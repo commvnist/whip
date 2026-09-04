@@ -247,7 +247,7 @@ class AdaptiveWhipScreenTest {
     }
 
     @Test
-    fun expandedTrackSupportSeparatesLoadingFailureRetryAndRealZeroMetrics() {
+    fun expandedTrackSupportSeparatesLoadingFailureRetryAndRealZeroMeasurements() {
         val trackState = mutableStateOf(TrackUiState())
         var retries = 0
         compose.setContent {
@@ -1625,7 +1625,7 @@ class AdaptiveWhipScreenTest {
         val goal = Goal(
             id = 41,
             uuid = "elapsed-goal-41",
-            metricId = "elapsed-metric-41",
+            measurementId = "elapsed-measurement-41",
             name = "Quit Alcohol",
             description = "",
             area = "Main",

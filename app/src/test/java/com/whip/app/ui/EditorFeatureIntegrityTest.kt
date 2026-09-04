@@ -114,7 +114,7 @@ class EditorFeatureIntegrityTest {
     }
 
     @Test
-    fun tracksExposeTheCompleteTypedFeatureWithoutLegacyCapsOrCosmeticColor() {
+    fun tracksExposeTheCompleteTypedFeatureWithoutConnectedCapsOrCosmeticColor() {
         val trackUi = File(uiRoot, "TrackScreens.kt").readText()
         val trackViewModel = File(uiRoot, "TrackViewModel.kt").readText()
         val trackDomain = File(uiRoot.parentFile, "domain/TrackModels.kt").readText()

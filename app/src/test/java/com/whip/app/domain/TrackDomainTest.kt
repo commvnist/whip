@@ -22,10 +22,10 @@ class TrackDomainTest {
             fieldName = "Notes",
             savedValueCount = 3,
             childChoiceCount = 2,
-            legacyLinkSourceCount = 1,
-            legacyLinkConditionCount = 2,
-            legacyTriggerConditionCount = 3,
-            legacyTriggerMappingCount = 4,
+            connectedLinkSourceCount = 1,
+            connectedLinkConditionCount = 2,
+            connectedTriggerConditionCount = 3,
+            connectedTriggerMappingCount = 4,
         )
         val choiceImpact = TrackChoiceRemovalImpact(
             optionId = 31,
@@ -36,9 +36,9 @@ class TrackDomainTest {
             savedValueCount = 5,
             replacementOptionId = 32,
             replacementOptionLabel = "Fiction",
-            legacyLinkConditionCount = 2,
-            legacyTriggerConditionCount = 3,
-            legacyTriggerMappingCount = 4,
+            connectedLinkConditionCount = 2,
+            connectedTriggerConditionCount = 3,
+            connectedTriggerMappingCount = 4,
             removedWithField = false,
         )
         val review = TrackDefinitionRemovalReview(
@@ -55,11 +55,11 @@ class TrackDomainTest {
         assertEquals(11, boundary.trackCreatedAtMillis)
         assertTrue(restoredReview.hasRemovals)
         assertEquals("removal-revision", restoredReview.removalRevisionToken)
-        assertEquals(3, restoredReview.removedFields.single().legacyLinkReferenceCount)
-        assertEquals(7, restoredReview.removedFields.single().legacyTriggerReferenceCount)
+        assertEquals(3, restoredReview.removedFields.single().connectedLinkReferenceCount)
+        assertEquals(7, restoredReview.removedFields.single().connectedTriggerReferenceCount)
         assertTrue(restoredReview.removedChoices.single().replacesSavedValues)
-        assertEquals(2, restoredReview.removedChoices.single().legacyLinkReferenceCount)
-        assertEquals(7, restoredReview.removedChoices.single().legacyTriggerReferenceCount)
+        assertEquals(2, restoredReview.removedChoices.single().connectedLinkReferenceCount)
+        assertEquals(7, restoredReview.removedChoices.single().connectedTriggerReferenceCount)
         assertEquals("Fiction", restoredReview.removedChoices.single().replacementOptionLabel)
         assertFalse(review.copy(removedFields = emptyList(), removedChoices = emptyList()).hasRemovals)
 
@@ -71,8 +71,8 @@ class TrackDomainTest {
                 removedChoiceCount = 1,
                 deletedValueCount = 3,
                 replacedValueCount = 5,
-                legacyLinkReferenceCount = 4,
-                legacyTriggerReferenceCount = 7,
+                connectedLinkReferenceCount = 4,
+                connectedTriggerReferenceCount = 7,
                 warnings = listOf("Tag suggestions did not refresh"),
             ),
         )
@@ -81,8 +81,8 @@ class TrackDomainTest {
         assertEquals(1, receipt.removedChoiceCount)
         assertEquals(3, receipt.deletedValueCount)
         assertEquals(5, receipt.replacedValueCount)
-        assertEquals(4, receipt.legacyLinkReferenceCount)
-        assertEquals(7, receipt.legacyTriggerReferenceCount)
+        assertEquals(4, receipt.connectedLinkReferenceCount)
+        assertEquals(7, receipt.connectedTriggerReferenceCount)
         assertEquals(1, receipt.warnings.size)
 
         val conflict = TrackDefinitionConflictException(

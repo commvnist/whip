@@ -72,7 +72,7 @@ class ElapsedGoalTimeUiTest {
     private fun elapsedGoal(started: Instant) = Goal(
         id = 91,
         uuid = "elapsed-91",
-        metricId = "elapsed-metric-91",
+        measurementId = "elapsed-measurement-91",
         name = "Days since smoking",
         description = "",
         area = "",

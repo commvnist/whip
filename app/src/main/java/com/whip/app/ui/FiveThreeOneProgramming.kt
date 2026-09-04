@@ -16,8 +16,8 @@ import com.whip.app.domain.RoutineSupplementalScheme
 import com.whip.app.domain.RoutineWorkSection
 import com.whip.app.domain.TrainingMaxBasisKind
 import com.whip.app.domain.WorkoutSetClassification
-import com.whip.app.domain.balancedOncePerLiftDayOwners
-import com.whip.app.domain.FIVE_THREE_ONE_ONCE_PER_LIFT_PROTOCOL_REVISION
+import com.whip.app.domain.balancedOncePerExerciseDayOwners
+import com.whip.app.domain.FIVE_THREE_ONE_ONCE_PER_EXERCISE_PROTOCOL_REVISION
 import kotlin.math.abs
 import kotlin.math.round
 
@@ -95,7 +95,7 @@ internal fun RoutineAssistanceCategory.fiveThreeOneUiLabel(): String = when (thi
 internal data class FiveThreeOneProgramRequest(
     val layout: FiveThreeOneProgramLayout,
     val plan: FiveThreeOneProgramPlan,
-    val lifts: List<FiveThreeOneProgramLift>,
+    val exercises: List<FiveThreeOneProgramExercise>,
     val mainScheme: FiveThreeOneMainScheme,
     val supplement: FiveThreeOneSupplement,
     val closingProtocol: FiveThreeOneSeventhWeekProtocol,
@@ -103,12 +103,12 @@ internal data class FiveThreeOneProgramRequest(
     val classicFinalSetAmrap: Boolean,
     val boringButBigPercent: Double,
     val progressionMode: RoutineProgressionMode,
-    /** Main exercise ID -> BBB exercise ID. Equal IDs mean same-lift BBB. */
-    val bbbLiftByMainExerciseId: Map<Long, Long> = emptyMap(),
+    /** Main exercise ID -> BBB exercise ID. Equal IDs mean same-exercise BBB. */
+    val bbbExerciseByMainExerciseId: Map<Long, Long> = emptyMap(),
     val assistance: List<FiveThreeOneAssistanceChoice> = emptyList(),
 )
 
-internal enum class FiveThreeOneLiftRole(val label: String) {
+internal enum class FiveThreeOneExerciseRole(val label: String) {
     Squat("Squat"),
     Bench("Bench Press"),
     Deadlift("Deadlift"),
@@ -149,9 +149,9 @@ internal fun suggestFiveThreeOneAssistance(
 ): Map<RoutineAssistanceCategory, List<Exercise>> = assistanceSignals.mapValues { (_, signals) ->
     exercises.asSequence()
         .filter { exercise -> exercise.isFiveThreeOneAssistanceCompatible(excludedExerciseIds) }
-        // Never silently demote an unselected canonical main lift into assistance. Lifters may
+        // Never silently demote an unselected canonical main exercise into assistance. Lifters may
         // still choose it explicitly from the full compatible-library picker.
-        .filterNot { exercise -> FiveThreeOneLiftRole.entries.any { it.matchesExerciseName(exercise.name) } }
+        .filterNot { exercise -> FiveThreeOneExerciseRole.entries.any { it.matchesExerciseName(exercise.name) } }
         .map { exercise ->
             val searchable = listOf(
                 exercise.name,
@@ -179,22 +179,22 @@ internal fun RoutineProgramKind.isFiveThreeOneProgramKind(): Boolean = this == R
 internal fun String?.isFiveThreeOneProgramKindName(): Boolean =
     runCatching { RoutineProgramKind.valueOf(this.orEmpty()) }.getOrNull()?.isFiveThreeOneProgramKind() == true
 
-internal fun FiveThreeOneLiftRole.matchesExerciseName(name: String): Boolean {
+internal fun FiveThreeOneExerciseRole.matchesExerciseName(name: String): Boolean {
     val normalized = name.lowercase()
         .replace(Regex("[^a-z0-9]+"), " ")
         .trim()
         .replace(Regex("\\s+"), " ")
     return when (this) {
-        FiveThreeOneLiftRole.Squat -> normalized in setOf(
+        FiveThreeOneExerciseRole.Squat -> normalized in setOf(
             "squat", "back squat", "barbell squat", "barbell back squat", "low bar squat", "high bar squat",
         )
-        FiveThreeOneLiftRole.Bench -> normalized in setOf(
+        FiveThreeOneExerciseRole.Bench -> normalized in setOf(
             "bench", "bench press", "barbell bench", "barbell bench press", "flat bench press",
         )
-        FiveThreeOneLiftRole.Deadlift -> normalized in setOf(
+        FiveThreeOneExerciseRole.Deadlift -> normalized in setOf(
             "deadlift", "dead lift", "barbell deadlift", "conventional deadlift", "sumo deadlift",
         )
-        FiveThreeOneLiftRole.Press -> normalized in setOf(
+        FiveThreeOneExerciseRole.Press -> normalized in setOf(
             "press", "overhead press", "barbell overhead press", "military press", "standing press", "shoulder press",
         )
     }
@@ -203,20 +203,20 @@ internal fun FiveThreeOneLiftRole.matchesExerciseName(name: String): Boolean {
 internal fun defaultFiveThreeOneCycleIncrease(
     unitId: String,
     exerciseName: String,
-    role: FiveThreeOneLiftRole? = null,
+    role: FiveThreeOneExerciseRole? = null,
 ): Double {
-    val lowerLift = role in setOf(FiveThreeOneLiftRole.Squat, FiveThreeOneLiftRole.Deadlift) ||
+    val lowerExercise = role in setOf(FiveThreeOneExerciseRole.Squat, FiveThreeOneExerciseRole.Deadlift) ||
         (role == null && listOf("squat", "deadlift", "dead lift").any(exerciseName.lowercase()::contains))
     return if (unitId == "pound") {
-        if (lowerLift) 10.0 else 5.0
+        if (lowerExercise) 10.0 else 5.0
     } else {
-        if (lowerLift) 5.0 else 2.5
+        if (lowerExercise) 5.0 else 2.5
     }
 }
 
-internal data class FiveThreeOneProgramLift(
-    /** Standard-role identity is required by the two Wendler presets and absent for custom lifts. */
-    val role: FiveThreeOneLiftRole?,
+internal data class FiveThreeOneProgramExercise(
+    /** Standard-role identity is required by the two Wendler presets and absent for custom exercises. */
+    val role: FiveThreeOneExerciseRole?,
     val exerciseId: Long,
     val exerciseName: String,
     val trainingMax: Double,
@@ -560,11 +560,11 @@ internal fun fiveThreeOneBuilderSets(
     }
 }
 
-/** Builds an intentional whole program from either a standard layout or the lifter's chosen lifts. */
+/** Builds an intentional whole program from either a standard layout or the lifter's chosen exercises. */
 internal fun buildFiveThreeOneProgramState(
     current: RoutineBuilderState,
     layout: FiveThreeOneProgramLayout,
-    lifts: List<FiveThreeOneProgramLift>,
+    exercises: List<FiveThreeOneProgramExercise>,
     mainScheme: FiveThreeOneMainScheme,
     supplement: FiveThreeOneSupplement,
     jokerSetsEnabled: Boolean,
@@ -576,49 +576,49 @@ internal fun buildFiveThreeOneProgramState(
         FiveThreeOneProgramLayout.FourDay,
         FiveThreeOneProgramLayout.Beginners,
         -> {
-            require(lifts.size == FiveThreeOneLiftRole.entries.size)
-            require(lifts.mapNotNull(FiveThreeOneProgramLift::role).toSet() == FiveThreeOneLiftRole.entries.toSet())
+            require(exercises.size == FiveThreeOneExerciseRole.entries.size)
+            require(exercises.mapNotNull(FiveThreeOneProgramExercise::role).toSet() == FiveThreeOneExerciseRole.entries.toSet())
         }
         FiveThreeOneProgramLayout.Custom -> {
-            require(lifts.isNotEmpty())
-            require(lifts.all { it.role == null })
+            require(exercises.isNotEmpty())
+            require(exercises.all { it.role == null })
         }
     }
-    require(lifts.map(FiveThreeOneProgramLift::exerciseId).distinct().size == lifts.size)
-    require(lifts.all {
+    require(exercises.map(FiveThreeOneProgramExercise::exerciseId).distinct().size == exercises.size)
+    require(exercises.all {
         it.exerciseId > 0L && it.trainingMax.isFinite() && it.trainingMax > 0.0 &&
             it.loadIncrement.isFinite() && it.loadIncrement > 0.0 &&
             it.cycleIncrement.isFinite() && it.cycleIncrement > 0.0
     })
     require(boringButBigPercent.isFinite() && boringButBigPercent in 1.0..100.0)
-    val liftByRole = lifts.mapNotNull { lift -> lift.role?.let { role -> role to lift } }.toMap()
+    val exerciseByRole = exercises.mapNotNull { exercise -> exercise.role?.let { role -> role to exercise } }.toMap()
     val schedule = when (layout) {
         FiveThreeOneProgramLayout.FourDay -> listOf(
-            "Squat" to listOf(requireNotNull(liftByRole[FiveThreeOneLiftRole.Squat])),
-            "Bench" to listOf(requireNotNull(liftByRole[FiveThreeOneLiftRole.Bench])),
-            "Deadlift" to listOf(requireNotNull(liftByRole[FiveThreeOneLiftRole.Deadlift])),
-            "Press" to listOf(requireNotNull(liftByRole[FiveThreeOneLiftRole.Press])),
+            "Squat" to listOf(requireNotNull(exerciseByRole[FiveThreeOneExerciseRole.Squat])),
+            "Bench" to listOf(requireNotNull(exerciseByRole[FiveThreeOneExerciseRole.Bench])),
+            "Deadlift" to listOf(requireNotNull(exerciseByRole[FiveThreeOneExerciseRole.Deadlift])),
+            "Press" to listOf(requireNotNull(exerciseByRole[FiveThreeOneExerciseRole.Press])),
         )
         FiveThreeOneProgramLayout.Beginners -> listOf(
             "Monday · Squat + Bench" to listOf(
-                requireNotNull(liftByRole[FiveThreeOneLiftRole.Squat]),
-                requireNotNull(liftByRole[FiveThreeOneLiftRole.Bench]),
+                requireNotNull(exerciseByRole[FiveThreeOneExerciseRole.Squat]),
+                requireNotNull(exerciseByRole[FiveThreeOneExerciseRole.Bench]),
             ),
             "Wednesday · Deadlift + Press" to listOf(
-                requireNotNull(liftByRole[FiveThreeOneLiftRole.Deadlift]),
-                requireNotNull(liftByRole[FiveThreeOneLiftRole.Press]),
+                requireNotNull(exerciseByRole[FiveThreeOneExerciseRole.Deadlift]),
+                requireNotNull(exerciseByRole[FiveThreeOneExerciseRole.Press]),
             ),
             "Friday · Bench + Squat" to listOf(
-                requireNotNull(liftByRole[FiveThreeOneLiftRole.Bench]),
-                requireNotNull(liftByRole[FiveThreeOneLiftRole.Squat]),
+                requireNotNull(exerciseByRole[FiveThreeOneExerciseRole.Bench]),
+                requireNotNull(exerciseByRole[FiveThreeOneExerciseRole.Squat]),
             ),
         )
-        FiveThreeOneProgramLayout.Custom -> lifts.map { lift -> lift.exerciseName to listOf(lift) }
+        FiveThreeOneProgramLayout.Custom -> exercises.map { exercise -> exercise.exerciseName to listOf(exercise) }
     }
     var nextKey = current.nextKey.coerceAtLeast(1L)
-    fun placement(lift: FiveThreeOneProgramLift): RoutineBuilderPlacementState {
+    fun placement(exercise: FiveThreeOneProgramExercise): RoutineBuilderPlacementState {
         val config = FiveThreeOneAuthoringConfig(
-            trainingMax = lift.trainingMax,
+            trainingMax = exercise.trainingMax,
             mainScheme = mainScheme,
             phase = FiveThreeOnePhase.Fives,
             supplement = if (layout == FiveThreeOneProgramLayout.Beginners) FiveThreeOneSupplement.FirstSetLast else supplement,
@@ -629,36 +629,36 @@ internal fun buildFiveThreeOneProgramState(
         val placementKey = nextKey++
         val generated = fiveThreeOneBuilderSets(
             emptyList(),
-            previewFiveThreeOneCycle(config, lift.loadIncrement),
+            previewFiveThreeOneCycle(config, exercise.loadIncrement),
             mainWorkScheme = fiveThreeOneMainWorkScheme(config),
             supplementalScheme = fiveThreeOneSupplementalScheme(config),
         )
             .map { it.copy(key = nextKey++) }
         return RoutineBuilderPlacementState(
             key = placementKey,
-            exerciseId = lift.exerciseId,
-            exerciseNameSnapshot = lift.exerciseName,
+            exerciseId = exercise.exerciseId,
+            exerciseNameSnapshot = exercise.exerciseName,
             copyPreviousWorkout = false,
             sets = generated,
-            trainingMaxValue = com.whip.app.domain.editableNumericValue(lift.trainingMax),
-            trainingMaxUnitId = lift.unitId,
-            cycleIncrementValue = com.whip.app.domain.editableNumericValue(lift.cycleIncrement),
+            trainingMaxValue = com.whip.app.domain.editableNumericValue(exercise.trainingMax),
+            trainingMaxUnitId = exercise.unitId,
+            cycleIncrementValue = com.whip.app.domain.editableNumericValue(exercise.cycleIncrement),
             trainingMaxSource = "Explicit",
-            trainingMaxPercent = com.whip.app.domain.editableNumericValue(lift.trainingMaxPercent),
-            trainingMaxBasisKind = lift.trainingMaxBasisKind.name,
-            trainingMaxBasisValue = lift.trainingMaxBasisValue
+            trainingMaxPercent = com.whip.app.domain.editableNumericValue(exercise.trainingMaxPercent),
+            trainingMaxBasisKind = exercise.trainingMaxBasisKind.name,
+            trainingMaxBasisValue = exercise.trainingMaxBasisValue
                 ?.let { value -> com.whip.app.domain.editableNumericValue(value) }.orEmpty(),
-            trainingMaxBasisUnitId = lift.trainingMaxBasisUnitId,
+            trainingMaxBasisUnitId = exercise.trainingMaxBasisUnitId,
             mainWorkScheme = fiveThreeOneMainWorkScheme(config).name,
             supplementalScheme = fiveThreeOneSupplementalScheme(config).name,
-            assistanceRole = RoutineAssistanceRole.MainLift.name,
-            placementKind = RoutinePlacementKind.MainLift.name,
+            assistanceRole = RoutineAssistanceRole.MainExercise.name,
+            placementKind = RoutinePlacementKind.MainExercise.name,
             assistanceCategory = RoutineAssistanceCategory.Unspecified.name,
             jokerSetsEnabled = jokerSetsEnabled,
         )
     }
-    val days = schedule.map { (name, scheduledLifts) ->
-        RoutineBuilderDayState(key = nextKey++, name = name, placements = scheduledLifts.map(::placement))
+    val days = schedule.map { (name, scheduledExercises) ->
+        RoutineBuilderDayState(key = nextKey++, name = name, placements = scheduledExercises.map(::placement))
     }
     val defaultName = when (layout) {
         FiveThreeOneProgramLayout.FourDay -> "4-Day 5/3/1"
@@ -719,7 +719,7 @@ private fun FiveThreeOneProgramRequest.generatedPhases(): List<FiveThreeOneGener
         FiveThreeOneGeneratedPhase("5/3/1 Week", RoutineProgramPhaseRole.Standard, FiveThreeOnePhase.FiveThreeOne, mainScheme, supplement, allowJokers = true),
         FiveThreeOneGeneratedPhase(
             "7th Week · ${closingProtocol.label}",
-            closingProtocol.phaseRole().asOncePerLiftProtocol(),
+            closingProtocol.phaseRole().asOncePerExerciseProtocol(),
             protocol = closingProtocol,
         ),
     )
@@ -743,7 +743,7 @@ private fun FiveThreeOneProgramRequest.generatedPhases(): List<FiveThreeOneGener
             add(
                 FiveThreeOneGeneratedPhase(
                     "7th Week · Deload",
-                    RoutineProgramPhaseRole.Deload.asOncePerLiftProtocol(),
+                    RoutineProgramPhaseRole.Deload.asOncePerExerciseProtocol(),
                     protocol = FiveThreeOneSeventhWeekProtocol.Deload,
                 ),
             )
@@ -753,7 +753,7 @@ private fun FiveThreeOneProgramRequest.generatedPhases(): List<FiveThreeOneGener
             add(
                 FiveThreeOneGeneratedPhase(
                     "7th Week · ${closingProtocol.label}",
-                    closingProtocol.phaseRole().asOncePerLiftProtocol(),
+                    closingProtocol.phaseRole().asOncePerExerciseProtocol(),
                     protocol = closingProtocol,
                 ),
             )
@@ -761,21 +761,21 @@ private fun FiveThreeOneProgramRequest.generatedPhases(): List<FiveThreeOneGener
     }
 }
 
-private fun FiveThreeOneProgramRequest.schedule(): List<Pair<String, List<FiveThreeOneProgramLift>>> {
-    val liftByRole = lifts.mapNotNull { lift -> lift.role?.let { role -> role to lift } }.toMap()
+private fun FiveThreeOneProgramRequest.schedule(): List<Pair<String, List<FiveThreeOneProgramExercise>>> {
+    val exerciseByRole = exercises.mapNotNull { exercise -> exercise.role?.let { role -> role to exercise } }.toMap()
     return when (layout) {
         FiveThreeOneProgramLayout.FourDay -> listOf(
-            "Squat" to listOf(requireNotNull(liftByRole[FiveThreeOneLiftRole.Squat])),
-            "Bench" to listOf(requireNotNull(liftByRole[FiveThreeOneLiftRole.Bench])),
-            "Deadlift" to listOf(requireNotNull(liftByRole[FiveThreeOneLiftRole.Deadlift])),
-            "Press" to listOf(requireNotNull(liftByRole[FiveThreeOneLiftRole.Press])),
+            "Squat" to listOf(requireNotNull(exerciseByRole[FiveThreeOneExerciseRole.Squat])),
+            "Bench" to listOf(requireNotNull(exerciseByRole[FiveThreeOneExerciseRole.Bench])),
+            "Deadlift" to listOf(requireNotNull(exerciseByRole[FiveThreeOneExerciseRole.Deadlift])),
+            "Press" to listOf(requireNotNull(exerciseByRole[FiveThreeOneExerciseRole.Press])),
         )
         FiveThreeOneProgramLayout.Beginners -> listOf(
-            "Monday · Squat + Bench" to listOf(requireNotNull(liftByRole[FiveThreeOneLiftRole.Squat]), requireNotNull(liftByRole[FiveThreeOneLiftRole.Bench])),
-            "Wednesday · Deadlift + Press" to listOf(requireNotNull(liftByRole[FiveThreeOneLiftRole.Deadlift]), requireNotNull(liftByRole[FiveThreeOneLiftRole.Press])),
-            "Friday · Bench + Squat" to listOf(requireNotNull(liftByRole[FiveThreeOneLiftRole.Bench]), requireNotNull(liftByRole[FiveThreeOneLiftRole.Squat])),
+            "Monday · Squat + Bench" to listOf(requireNotNull(exerciseByRole[FiveThreeOneExerciseRole.Squat]), requireNotNull(exerciseByRole[FiveThreeOneExerciseRole.Bench])),
+            "Wednesday · Deadlift + Press" to listOf(requireNotNull(exerciseByRole[FiveThreeOneExerciseRole.Deadlift]), requireNotNull(exerciseByRole[FiveThreeOneExerciseRole.Press])),
+            "Friday · Bench + Squat" to listOf(requireNotNull(exerciseByRole[FiveThreeOneExerciseRole.Bench]), requireNotNull(exerciseByRole[FiveThreeOneExerciseRole.Squat])),
         )
-        FiveThreeOneProgramLayout.Custom -> lifts.map { lift -> lift.exerciseName to listOf(lift) }
+        FiveThreeOneProgramLayout.Custom -> exercises.map { exercise -> exercise.exerciseName to listOf(exercise) }
     }
 }
 
@@ -784,21 +784,21 @@ internal fun buildFiveThreeOneProgramState(
     current: RoutineBuilderState,
     request: FiveThreeOneProgramRequest,
 ): RoutineBuilderState {
-    val lifts = request.lifts
+    val exercises = request.exercises
     when (request.layout) {
         FiveThreeOneProgramLayout.FourDay,
         FiveThreeOneProgramLayout.Beginners,
         -> {
-            require(lifts.size == FiveThreeOneLiftRole.entries.size)
-            require(lifts.mapNotNull(FiveThreeOneProgramLift::role).toSet() == FiveThreeOneLiftRole.entries.toSet())
+            require(exercises.size == FiveThreeOneExerciseRole.entries.size)
+            require(exercises.mapNotNull(FiveThreeOneProgramExercise::role).toSet() == FiveThreeOneExerciseRole.entries.toSet())
         }
-        FiveThreeOneProgramLayout.Custom -> require(lifts.isNotEmpty() && lifts.all { it.role == null })
+        FiveThreeOneProgramLayout.Custom -> require(exercises.isNotEmpty() && exercises.all { it.role == null })
     }
-    require(lifts.map(FiveThreeOneProgramLift::exerciseId).distinct().size == lifts.size)
-    require(lifts.all { lift ->
-        lift.exerciseId > 0L && lift.trainingMax.isFinite() && lift.trainingMax > 0.0 &&
-            lift.loadIncrement.isFinite() && lift.loadIncrement > 0.0 &&
-            lift.cycleIncrement.isFinite() && lift.cycleIncrement > 0.0
+    require(exercises.map(FiveThreeOneProgramExercise::exerciseId).distinct().size == exercises.size)
+    require(exercises.all { exercise ->
+        exercise.exerciseId > 0L && exercise.trainingMax.isFinite() && exercise.trainingMax > 0.0 &&
+            exercise.loadIncrement.isFinite() && exercise.loadIncrement > 0.0 &&
+            exercise.cycleIncrement.isFinite() && exercise.cycleIncrement > 0.0
     })
     require(request.boringButBigPercent.isFinite() && request.boringButBigPercent in 1.0..100.0)
     require(request.assistance.map(FiveThreeOneAssistanceChoice::category).distinct().size == request.assistance.size)
@@ -806,16 +806,16 @@ internal fun buildFiveThreeOneProgramState(
         RoutineAssistanceCategory.Push,
         RoutineAssistanceCategory.Pull,
         RoutineAssistanceCategory.SingleLegCore,
-    ) && it.exerciseId !in lifts.map(FiveThreeOneProgramLift::exerciseId) })
-    val liftById = lifts.associateBy(FiveThreeOneProgramLift::exerciseId)
-    require(request.bbbLiftByMainExerciseId.all { (mainId, supplementalId) ->
-        mainId in liftById && supplementalId in liftById
+    ) && it.exerciseId !in exercises.map(FiveThreeOneProgramExercise::exerciseId) })
+    val exerciseById = exercises.associateBy(FiveThreeOneProgramExercise::exerciseId)
+    require(request.bbbExerciseByMainExerciseId.all { (mainId, supplementalId) ->
+        mainId in exerciseById && supplementalId in exerciseById
     })
 
     val phases = request.generatedPhases()
     val scheduledDays = request.schedule()
-    val protocolOwnerDayByExerciseId = balancedOncePerLiftDayOwners(
-        scheduledDays.map { (_, scheduledLifts) -> scheduledLifts.map(FiveThreeOneProgramLift::exerciseId) },
+    val protocolOwnerDayByExerciseId = balancedOncePerExerciseDayOwners(
+        scheduledDays.map { (_, scheduledExercises) -> scheduledExercises.map(FiveThreeOneProgramExercise::exerciseId) },
     )
     var nextKey = current.nextKey.coerceAtLeast(1L)
 
@@ -823,7 +823,7 @@ internal fun buildFiveThreeOneProgramState(
         sets.map { set -> set.copy(key = nextKey++) }
 
     fun plansFor(
-        lift: FiveThreeOneProgramLift,
+        exercise: FiveThreeOneProgramExercise,
         dayIndex: Int,
         phaseIndex: Int,
         definition: FiveThreeOneGeneratedPhase,
@@ -832,13 +832,13 @@ internal fun buildFiveThreeOneProgramState(
         if (protocol != null) {
             val plans = fiveThreeOneSeventhWeekSetPlans(protocol).filterNot { plan ->
                 protocol == FiveThreeOneSeventhWeekProtocol.TrainingMaxTest &&
-                    protocolOwnerDayByExerciseId[lift.exerciseId] != dayIndex &&
+                    protocolOwnerDayByExerciseId[exercise.exerciseId] != dayIndex &&
                     plan.classification == WorkoutSetClassification.TrainingMaxTest
             }
             val previews = plans.map { plan ->
                 FiveThreeOnePreviewSet(
                     plan,
-                    roundedFiveThreeOneLoad(lift.trainingMax * plan.percentageOfTrainingMax / 100.0, lift.loadIncrement),
+                    roundedFiveThreeOneLoad(exercise.trainingMax * plan.percentageOfTrainingMax / 100.0, exercise.loadIncrement),
                 )
             }
             val protocolMainScheme = if (protocol == FiveThreeOneSeventhWeekProtocol.PersonalRecordTest) {
@@ -850,7 +850,7 @@ internal fun buildFiveThreeOneProgramState(
         }
         val ladder = request.jokerLadder.takeIf { definition.allowJokers } ?: FiveThreeOneJokerLadder()
         val config = FiveThreeOneAuthoringConfig(
-            trainingMax = lift.trainingMax,
+            trainingMax = exercise.trainingMax,
             mainScheme = definition.mainScheme,
             phase = requireNotNull(definition.mainPhase),
             supplement = definition.supplement,
@@ -863,7 +863,7 @@ internal fun buildFiveThreeOneProgramState(
         return rekey(
             fiveThreeOneBuilderSets(
                 emptyList(),
-                previewFiveThreeOneSets(config, lift.loadIncrement),
+                previewFiveThreeOneSets(config, exercise.loadIncrement),
                 fiveThreeOneMainWorkScheme(config),
                 fiveThreeOneSupplementalScheme(config),
                 phaseIndex,
@@ -871,11 +871,11 @@ internal fun buildFiveThreeOneProgramState(
         )
     }
 
-    fun mainPlacement(lift: FiveThreeOneProgramLift, dayIndex: Int): RoutineBuilderPlacementState {
-        val alternateBbbTarget = request.bbbLiftByMainExerciseId[lift.exerciseId]
+    fun mainPlacement(exercise: FiveThreeOneProgramExercise, dayIndex: Int): RoutineBuilderPlacementState {
+        val alternateBbbTarget = request.bbbExerciseByMainExerciseId[exercise.exerciseId]
         val generated = phases.flatMapIndexed { phaseIndex, definition ->
-            plansFor(lift, dayIndex, phaseIndex, definition).filterNot { set ->
-                alternateBbbTarget != null && alternateBbbTarget != lift.exerciseId &&
+            plansFor(exercise, dayIndex, phaseIndex, definition).filterNot { set ->
+                alternateBbbTarget != null && alternateBbbTarget != exercise.exerciseId &&
                     definition.supplement == FiveThreeOneSupplement.BoringButBig &&
                     set.workSection == RoutineWorkSection.Supplemental.name
             }
@@ -883,7 +883,7 @@ internal fun buildFiveThreeOneProgramState(
         val mainSchemes = generated.mapNotNull(RoutineBuilderSetState::mainWorkScheme).distinct()
         val supplementalSchemes = phases.map { phase -> fiveThreeOneSupplementalScheme(
             FiveThreeOneAuthoringConfig(
-                trainingMax = lift.trainingMax,
+                trainingMax = exercise.trainingMax,
                 mainScheme = phase.mainScheme,
                 phase = phase.mainPhase ?: FiveThreeOnePhase.Deload,
                 supplement = phase.supplement,
@@ -891,32 +891,32 @@ internal fun buildFiveThreeOneProgramState(
         ).name }.distinct()
         return RoutineBuilderPlacementState(
             key = nextKey++,
-            exerciseId = lift.exerciseId,
-            exerciseNameSnapshot = lift.exerciseName,
+            exerciseId = exercise.exerciseId,
+            exerciseNameSnapshot = exercise.exerciseName,
             copyPreviousWorkout = false,
             sets = generated,
-            trainingMaxValue = com.whip.app.domain.editableNumericValue(lift.trainingMax),
-            trainingMaxUnitId = lift.unitId,
-            cycleIncrementValue = com.whip.app.domain.editableNumericValue(lift.cycleIncrement),
+            trainingMaxValue = com.whip.app.domain.editableNumericValue(exercise.trainingMax),
+            trainingMaxUnitId = exercise.unitId,
+            cycleIncrementValue = com.whip.app.domain.editableNumericValue(exercise.cycleIncrement),
             trainingMaxSource = "Explicit",
-            trainingMaxPercent = com.whip.app.domain.editableNumericValue(lift.trainingMaxPercent),
-            trainingMaxBasisKind = lift.trainingMaxBasisKind.name,
-            trainingMaxBasisValue = lift.trainingMaxBasisValue
+            trainingMaxPercent = com.whip.app.domain.editableNumericValue(exercise.trainingMaxPercent),
+            trainingMaxBasisKind = exercise.trainingMaxBasisKind.name,
+            trainingMaxBasisValue = exercise.trainingMaxBasisValue
                 ?.let { value -> com.whip.app.domain.editableNumericValue(value) }.orEmpty(),
-            trainingMaxBasisUnitId = lift.trainingMaxBasisUnitId,
+            trainingMaxBasisUnitId = exercise.trainingMaxBasisUnitId,
             mainWorkScheme = mainSchemes.singleOrNull() ?: RoutineMainWorkScheme.Unspecified.name,
             supplementalScheme = supplementalSchemes.singleOrNull() ?: RoutineSupplementalScheme.Custom.name,
-            assistanceRole = RoutineAssistanceRole.MainLift.name,
-            placementKind = RoutinePlacementKind.MainLift.name,
+            assistanceRole = RoutineAssistanceRole.MainExercise.name,
+            placementKind = RoutinePlacementKind.MainExercise.name,
             assistanceCategory = RoutineAssistanceCategory.Unspecified.name,
             jokerSetsEnabled = generated.any { it.optionalWorkKind == RoutineOptionalWorkKind.Joker.name },
         )
     }
 
-    fun alternateBbbPlacement(mainLift: FiveThreeOneProgramLift): RoutineBuilderPlacementState? {
-        val targetId = request.bbbLiftByMainExerciseId[mainLift.exerciseId] ?: return null
-        if (targetId == mainLift.exerciseId) return null
-        val target = requireNotNull(liftById[targetId])
+    fun alternateBbbPlacement(mainExercise: FiveThreeOneProgramExercise): RoutineBuilderPlacementState? {
+        val targetId = request.bbbExerciseByMainExerciseId[mainExercise.exerciseId] ?: return null
+        if (targetId == mainExercise.exerciseId) return null
+        val target = requireNotNull(exerciseById[targetId])
         val generated = phases.flatMapIndexed { phaseIndex, definition ->
             if (definition.supplement != FiveThreeOneSupplement.BoringButBig) return@flatMapIndexed emptyList()
             val config = FiveThreeOneAuthoringConfig(
@@ -943,7 +943,7 @@ internal fun buildFiveThreeOneProgramState(
             key = nextKey++,
             exerciseId = target.exerciseId,
             exerciseNameSnapshot = target.exerciseName,
-            notes = "Alternate BBB after ${mainLift.exerciseName}; uses ${target.exerciseName}'s Training Max.",
+            notes = "Alternate BBB after ${mainExercise.exerciseName}; uses ${target.exerciseName}'s Training Max.",
             copyPreviousWorkout = false,
             sets = generated,
             trainingMaxValue = com.whip.app.domain.editableNumericValue(target.trainingMax),
@@ -990,9 +990,9 @@ internal fun buildFiveThreeOneProgramState(
         )
     }
 
-    val days = scheduledDays.mapIndexed { dayIndex, (name, scheduledLifts) ->
-        val programmed = scheduledLifts.flatMap { lift ->
-            listOfNotNull(mainPlacement(lift, dayIndex), alternateBbbPlacement(lift))
+    val days = scheduledDays.mapIndexed { dayIndex, (name, scheduledExercises) ->
+        val programmed = scheduledExercises.flatMap { exercise ->
+            listOfNotNull(mainPlacement(exercise, dayIndex), alternateBbbPlacement(exercise))
         }
         RoutineBuilderDayState(
             key = nextKey++,
@@ -1035,7 +1035,7 @@ internal fun buildFiveThreeOneProgramState(
         nextKey = nextKey,
         programKind = RoutineProgramKind.FiveThreeOne.name,
         programTemplateKey = templateKey.name,
-        programTemplateRevision = FIVE_THREE_ONE_ONCE_PER_LIFT_PROTOCOL_REVISION,
+        programTemplateRevision = FIVE_THREE_ONE_ONCE_PER_EXERCISE_PROTOCOL_REVISION,
         progressionMode = request.progressionMode.name,
         allowNonStandardHigherSuggestions = false,
         programPhaseCount = phases.size,

@@ -39,11 +39,11 @@ import com.whip.app.domain.GoalMilestoneDraft
 import com.whip.app.domain.GoalType
 import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.LinkRuleDraft
-import com.whip.app.domain.LinkSourceMetric
+import com.whip.app.domain.LinkSourceMeasurement
 import com.whip.app.domain.LinkSourceType
 import com.whip.app.domain.MachineLevelDirection
 import com.whip.app.domain.MachineLoadType
-import com.whip.app.domain.MetricSourceType
+import com.whip.app.domain.MeasurementSourceType
 import com.whip.app.domain.RoutineDayDraft
 import com.whip.app.domain.RoutineDraft
 import com.whip.app.domain.RoutineExerciseDraft
@@ -276,7 +276,7 @@ class DomainDeletionCoordinatorTest {
                 sourceType = LinkSourceType.Subtask,
                 sourceEntityId = taskId,
                 sourceItemId = stepId,
-                sourceMetric = LinkSourceMetric.Completion,
+                sourceMeasurement = LinkSourceMeasurement.Completion,
                 targetGoalId = goalId,
             ),
         )
@@ -472,14 +472,14 @@ class DomainDeletionCoordinatorTest {
         assertNotNull(tasks.getTask(targetId))
     }
 
-    @Test fun habitDeleteRemovesOwnedMetricLinksAndTargetingAutomations() = runBlocking {
+    @Test fun habitDeleteRemovesOwnedMeasurementLinksAndTargetingAutomations() = runBlocking {
         val habitId = habits.create(HabitDraft(name = "Read", startDate = FixedClock.today()))
         habits.log(habitId, 1.0)
-        val habitMetricId = habits.habits.first().single().metricId
+        val habitMeasurementId = habits.habits.first().single().measurementId
         val goalId = goals.create(accumulatingGoal("Reading goal"))
         links.createRule(
             LinkRuleDraft("Read link", sourceType = LinkSourceType.Habit, sourceEntityId = habitId,
-                sourceMetric = LinkSourceMetric.NumericValue, targetGoalId = goalId, retroactiveFrom = FixedClock.today()),
+                sourceMeasurement = LinkSourceMeasurement.NumericValue, targetGoalId = goalId, retroactiveFrom = FixedClock.today()),
             commitBackfill = true,
         )
         val taskId = tasks.create(TaskDraft(title = "Prompt source"))
@@ -493,23 +493,23 @@ class DomainDeletionCoordinatorTest {
         assertTrue(summary.deleted)
         assertTrue(habits.habits.first().isEmpty())
         assertTrue(habits.logs.first().isEmpty())
-        assertNull(database.measurementDao().getMetric(habitMetricId))
+        assertNull(database.measurementDao().getMeasurement(habitMeasurementId))
         assertTrue(links.rules.first().isEmpty())
         assertTrue(links.triggerRules.first().isEmpty())
-        assertTrue(goals.metricEntries.first().none { it.metricId == goals.goals.first().single().metricId })
+        assertTrue(goals.measurementEntries.first().none { it.measurementId == goals.goals.first().single().measurementId })
     }
 
-    @Test fun goalDeleteRemovesOwnedMetricAndPreservesIndependentHabits() = runBlocking {
+    @Test fun goalDeleteRemovesOwnedMeasurementAndPreservesIndependentHabits() = runBlocking {
         val habitId = habits.create(HabitDraft(name = "Pages", startDate = FixedClock.today()))
         habits.log(habitId, 12.0)
         val goalId = goals.create(accumulatingGoal("Book"))
-        val metricId = goals.goals.first().single().metricId
+        val measurementId = goals.goals.first().single().measurementId
         coordinator.deleteGoal(goalId)
 
         assertTrue(goals.goals.first().isEmpty())
         assertTrue(links.rules.first().isEmpty())
         assertTrue(links.contributions.first().isEmpty())
-        assertNull(database.measurementDao().getMetric(metricId))
+        assertNull(database.measurementDao().getMeasurement(measurementId))
         assertEquals(1, habits.habits.first().size)
     }
 
@@ -535,8 +535,8 @@ class DomainDeletionCoordinatorTest {
         stalePreviewIsRejected()
 
         var preview = coordinator.previewGoalDeletion(goalId)
-        val metric = requireNotNull(database.measurementDao().getMetric(goal.metricId))
-        database.measurementDao().upsertMetric(metric.copy(name = "Changed metric definition"))
+        val measurement = requireNotNull(database.measurementDao().getMeasurement(goal.measurementId))
+        database.measurementDao().upsertMeasurement(measurement.copy(name = "Changed measurement definition"))
         assertTrue(runCatching { coordinator.deleteGoal(goalId, preview.revisionToken) }.isFailure)
 
         preview = coordinator.previewGoalDeletion(goalId)
@@ -544,7 +544,7 @@ class DomainDeletionCoordinatorTest {
         assertTrue(runCatching { coordinator.deleteGoal(goalId, preview.revisionToken) }.isFailure)
 
         preview = coordinator.previewGoalDeletion(goalId)
-        measurements.record(goal.metricId, 42.0, "count")
+        measurements.record(goal.measurementId, 42.0, "count")
         assertTrue(runCatching { coordinator.deleteGoal(goalId, preview.revisionToken) }.isFailure)
 
         preview = coordinator.previewGoalDeletion(goalId)
@@ -580,7 +580,7 @@ class DomainDeletionCoordinatorTest {
                 name = "Source to reviewed Goal",
                 sourceType = LinkSourceType.Habit,
                 sourceEntityId = habitId,
-                sourceMetric = LinkSourceMetric.NumericValue,
+                sourceMeasurement = LinkSourceMeasurement.NumericValue,
                 targetGoalId = goalId,
             ),
         )
@@ -612,7 +612,7 @@ class DomainDeletionCoordinatorTest {
                 sourceType = LinkSourceType.Habit.name,
                 sourceEntityId = habitId,
                 targetGoalId = goalId,
-                metricEntryId = null,
+                measurementEntryId = null,
                 canonicalValue = 1.0,
                 localEpochDay = FixedClock.today().toEpochDay(),
                 timestampMillis = FixedClock.now().toEpochMilli(),
@@ -626,12 +626,12 @@ class DomainDeletionCoordinatorTest {
         assertTrue(runCatching { coordinator.deleteGoal(goalId, preview.revisionToken) }.isFailure)
 
         preview = coordinator.previewGoalDeletion(goalId)
-        val sourceMetricLinkId = links.createRule(
+        val sourceMeasurementLinkId = links.createRule(
             LinkRuleDraft(
-                name = "Reviewed Goal metric to another Goal",
-                sourceType = LinkSourceType.Metric,
-                sourceMetricId = goal.metricId,
-                sourceMetric = LinkSourceMetric.NumericValue,
+                name = "Reviewed Goal measurement to another Goal",
+                sourceType = LinkSourceType.Measurement,
+                sourceMeasurementId = goal.measurementId,
+                sourceMeasurement = LinkSourceMeasurement.NumericValue,
                 targetGoalId = otherGoalId,
             ),
         )
@@ -642,7 +642,7 @@ class DomainDeletionCoordinatorTest {
         assertEquals(1, finalImpact.milestoneCount)
         assertEquals(1, finalImpact.completedMilestoneCount)
         assertEquals(1, finalImpact.progressEntryCount)
-        assertEquals(1, finalImpact.legacyClosureSnapshotCount)
+        assertEquals(1, finalImpact.closureSnapshotCount)
         assertEquals(1, finalImpact.elapsedResetEventCount)
         assertEquals(2, finalImpact.linkRuleCount)
         assertEquals(1, finalImpact.contributionCount)
@@ -652,15 +652,15 @@ class DomainDeletionCoordinatorTest {
         assertTrue(summary.goalDeleted)
         assertEquals(1, summary.milestonesDeleted)
         assertEquals(1, summary.progressEntriesDeleted)
-        assertEquals(1, summary.legacyClosureSnapshotsDeleted)
+        assertEquals(1, summary.closureSnapshotsDeleted)
         assertEquals(1, summary.elapsedResetEventsDeleted)
         assertEquals(2, summary.linkRulesDeleted)
         assertEquals(1, summary.contributionsDeleted)
         assertNull(goals.get(goalId))
-        assertNull(database.measurementDao().getMetric(goal.metricId))
+        assertNull(database.measurementDao().getMeasurement(goal.measurementId))
         assertNotNull(goals.get(otherGoalId))
         assertNull(database.linkDao().getRule(targetLinkId))
-        assertNull(database.linkDao().getRule(sourceMetricLinkId))
+        assertNull(database.linkDao().getRule(sourceMeasurementLinkId))
     }
 
     @Test fun reviewedGoalDisappearingBeforeDeleteFailsTruthfully() = runBlocking {
@@ -762,7 +762,7 @@ class DomainDeletionCoordinatorTest {
                 "Read link",
                 sourceType = LinkSourceType.Habit,
                 sourceEntityId = habitId,
-                sourceMetric = LinkSourceMetric.NumericValue,
+                sourceMeasurement = LinkSourceMeasurement.NumericValue,
                 targetGoalId = goalId,
                 retroactiveFrom = FixedClock.today(),
             ),
@@ -1087,7 +1087,7 @@ class DomainDeletionCoordinatorTest {
                 name = "Historical workout link",
                 sourceType = LinkSourceType.Workout,
                 sourceEntityId = sessionId,
-                sourceMetric = LinkSourceMetric.Completion,
+                sourceMeasurement = LinkSourceMeasurement.Completion,
                 targetGoalId = goalId,
             ),
         )
@@ -1099,7 +1099,7 @@ class DomainDeletionCoordinatorTest {
                 sourceType = LinkSourceType.Workout.name,
                 sourceEntityId = sessionId,
                 targetGoalId = goalId,
-                metricEntryId = null,
+                measurementEntryId = null,
                 canonicalValue = 1.0,
                 localEpochDay = FixedClock.today().toEpochDay(),
                 timestampMillis = FixedClock.now().toEpochMilli(),
@@ -1136,8 +1136,8 @@ class DomainDeletionCoordinatorTest {
         val generatedHabitLogId = habits.log(
             habitId = habitId,
             value = 1.0,
-            sourceType = MetricSourceType.Workout,
-            sourceId = "trigger:legacy:workout:${session.uuid}:Completion",
+            sourceType = MeasurementSourceType.Workout,
+            sourceId = "trigger:connected:workout:${session.uuid}:Completion",
         )
 
         val impact = requireNotNull(coordinator.previewWorkoutDeletion(sessionId))

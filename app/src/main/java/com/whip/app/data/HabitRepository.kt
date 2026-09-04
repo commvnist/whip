@@ -26,9 +26,9 @@ import com.whip.app.domain.HabitTimerStopOutcome
 import com.whip.app.domain.withConfigurationSemantics
 import com.whip.app.domain.DEFAULT_HABIT_EMOJI
 import com.whip.app.domain.normalizedIdentityEmoji
-import com.whip.app.domain.MetricEntryStatus
-import com.whip.app.domain.MetricSourceType
-import com.whip.app.domain.MetricValueKind
+import com.whip.app.domain.MeasurementEntryStatus
+import com.whip.app.domain.MeasurementSourceType
+import com.whip.app.domain.MeasurementValueKind
 import com.whip.app.domain.TargetComparison
 import com.whip.app.domain.TargetPeriod
 import com.whip.app.domain.UnitDimension
@@ -81,7 +81,7 @@ interface HabitRepository {
         date: LocalDate? = null,
         timestamp: Instant? = null,
         note: String = "",
-        sourceType: MetricSourceType = MetricSourceType.Manual,
+        sourceType: MeasurementSourceType = MeasurementSourceType.Manual,
         sourceId: String? = null,
     ): Long
     suspend fun setPeriodValue(habitId: Long, date: LocalDate, value: Double, note: String = ""): Long?
@@ -128,13 +128,13 @@ class RoomHabitRepository(
     override suspend fun create(draft: HabitDraft): Long = database.withTransaction {
         val semanticDraft = draft.withConfigurationSemantics()
         validateHabit(semanticDraft)
-        validateSourceMetric(semanticDraft)
+        validateSourceMeasurement(semanticDraft)
         val area = areaRepository.resolve(semanticDraft.areaId, semanticDraft.area)
         val resolvedDraft = semanticDraft.copy(areaId = area.id, area = area.name)
         measurementRepository.ensureCustomUnit(semanticDraft.unitId, semanticDraft.unitId, semanticDraft.unitId, semanticDraft.dimension)
-        val metricId = measurementRepository.createMetric(
+        val measurementId = measurementRepository.createMeasurement(
             name = semanticDraft.name,
-            valueKind = semanticDraft.trackingMode.metricValueKind(),
+            valueKind = semanticDraft.trackingMode.measurementValueKind(),
             dimension = semanticDraft.dimension,
             defaultUnitId = semanticDraft.unitId,
             precision = semanticDraft.precision,
@@ -143,7 +143,7 @@ class RoomHabitRepository(
         val habitId = dao.insertHabit(
             resolvedDraft.toEntity(
                 uuid = ids.nextId(),
-                metricId = metricId,
+                measurementId = measurementId,
                 position = dao.nextPosition(),
                 createdAtMillis = now,
             ),
@@ -155,7 +155,7 @@ class RoomHabitRepository(
     override suspend fun update(id: Long, draft: HabitDraft) = database.withTransaction {
         val semanticDraft = draft.withConfigurationSemantics()
         validateHabit(semanticDraft)
-        validateSourceMetric(semanticDraft)
+        validateSourceMeasurement(semanticDraft)
         val area = areaRepository.resolve(semanticDraft.areaId, semanticDraft.area)
         val resolvedDraft = semanticDraft.copy(areaId = area.id, area = area.name)
         measurementRepository.ensureCustomUnit(semanticDraft.unitId, semanticDraft.unitId, semanticDraft.unitId, semanticDraft.dimension)
@@ -178,7 +178,7 @@ class RoomHabitRepository(
                 semanticDraft.trackingMode == HabitTrackingMode.Duration &&
                     semanticDraft.dimension == UnitDimension.Duration &&
                     semanticDraft.unitId == existing.unitId &&
-                    semanticDraft.sourceMetricId == null &&
+                    semanticDraft.sourceMeasurementId == null &&
                     semanticDraft.scheduleType.name == existing.scheduleType &&
                     semanticDraft.scheduleInterval == existing.scheduleInterval &&
                     semanticDraft.weekdays.toWeekdayMask() == existing.weekdaysMask &&
@@ -194,7 +194,7 @@ class RoomHabitRepository(
             resolvedDraft.toEntity(
                 id = existing.id,
                 uuid = existing.uuid,
-                metricId = existing.metricId,
+                measurementId = existing.measurementId,
                 timerStartedAtMillis = existing.timerStartedAtMillis,
                 timerSessionId = existing.timerSessionId,
                 timerNeedsReview = existing.timerNeedsReview,
@@ -287,10 +287,10 @@ class RoomHabitRepository(
         date: LocalDate?,
         timestamp: Instant?,
         note: String,
-        sourceType: MetricSourceType,
+        sourceType: MeasurementSourceType,
         sourceId: String?,
     ): Long = database.withTransaction {
-        if (sourceType != MetricSourceType.Manual && !sourceId.isNullOrBlank()) {
+        if (sourceType != MeasurementSourceType.Manual && !sourceId.isNullOrBlank()) {
             dao.getLogBySource(sourceType.name, sourceId)?.let { return@withTransaction it.id }
         }
         val habit = dao.getHabit(habitId)?.toDomain() ?: error("Habit no longer exists")
@@ -307,22 +307,22 @@ class RoomHabitRepository(
             status in setOf(HabitLogStatus.Recorded, HabitLogStatus.Success)
         ) value ?: 1.0 else value
         val entryStatus = when (status) {
-            HabitLogStatus.Failed -> MetricEntryStatus.Failed
-            else -> MetricEntryStatus.Recorded
+            HabitLogStatus.Failed -> MeasurementEntryStatus.Failed
+            else -> MeasurementEntryStatus.Recorded
         }
-        val metricEntryId = measurementRepository.record(
-            metricId = habit.metricId,
+        val measurementEntryId = measurementRepository.record(
+            measurementId = habit.measurementId,
             value = effectiveValue,
             unitId = habit.unitId.takeIf { effectiveValue != null },
             status = entryStatus,
             timestamp = instant,
             localDate = localDate,
             zoneId = zone,
-            sourceType = MetricSourceType.Habit,
+            sourceType = MeasurementSourceType.Habit,
             sourceId = logUuid,
             note = note,
         )
-        val canonical = database.measurementDao().getEntry(metricEntryId)?.canonicalValue
+        val canonical = database.measurementDao().getEntry(measurementEntryId)?.canonicalValue
         dao.insertLog(
             HabitLogEntity(
                 uuid = logUuid,
@@ -338,7 +338,7 @@ class RoomHabitRepository(
                 note = note.trim(),
                 sourceType = sourceType.name,
                 sourceId = sourceId,
-                metricEntryId = metricEntryId,
+                measurementEntryId = measurementEntryId,
                 createdAtMillis = clock.now().toEpochMilli(),
                 updatedAtMillis = clock.now().toEpochMilli(),
             ),
@@ -374,7 +374,7 @@ class RoomHabitRepository(
         require(expectedHabitId == null || log.habitId == expectedHabitId) {
             "Habit log does not belong to the selected Habit"
         }
-        log.metricEntryId?.let { measurementRepository.deleteEntry(it) }
+        log.measurementEntryId?.let { measurementRepository.deleteEntry(it) }
         dao.deleteLog(logId)
         log.habitId
     }
@@ -399,37 +399,37 @@ class RoomHabitRepository(
             value
         }
         val entryStatus = when (status) {
-            HabitLogStatus.Failed -> MetricEntryStatus.Failed
-            else -> MetricEntryStatus.Recorded
+            HabitLogStatus.Failed -> MeasurementEntryStatus.Failed
+            else -> MeasurementEntryStatus.Recorded
         }
         dao.deleteSkip(existing.habitId, date.toEpochDay())
         val zone = ZoneId.of(existing.zoneId)
         val instant = Instant.ofEpochMilli(existing.timestampMillis)
         val effectiveUnitId = enteredUnitId ?: existing.enteredUnitId ?: habit.unitId
-        val metricEntryId = measurementRepository.record(
-            metricId = habit.metricId,
+        val measurementEntryId = measurementRepository.record(
+            measurementId = habit.measurementId,
             value = effectiveValue,
             unitId = effectiveUnitId.takeIf { effectiveValue != null },
             status = entryStatus,
             timestamp = instant,
             localDate = date,
             zoneId = zone,
-            // Metric entries backing Habit logs always retain their Habit wrapper
+            // Measurement entries backing Habit logs always retain their Habit wrapper
             // provenance, even when the log itself records an initiating source.
-            sourceType = MetricSourceType.Habit,
+            sourceType = MeasurementSourceType.Habit,
             sourceId = existing.uuid,
             note = note,
-            existingEntryId = existing.metricEntryId,
+            existingEntryId = existing.measurementEntryId,
         )
         dao.updateLog(
             existing.copy(
                 value = effectiveValue,
-                canonicalValue = database.measurementDao().getEntry(metricEntryId)?.canonicalValue,
+                canonicalValue = database.measurementDao().getEntry(measurementEntryId)?.canonicalValue,
                 enteredUnitId = effectiveUnitId.takeIf { effectiveValue != null },
                 status = status.name,
                 localEpochDay = date.toEpochDay(),
                 note = note.trim(),
-                metricEntryId = metricEntryId,
+                measurementEntryId = measurementEntryId,
                 updatedAtMillis = clock.now().toEpochMilli(),
             ),
         )
@@ -487,7 +487,7 @@ class RoomHabitRepository(
         val habit = dao.getHabit(habitId)?.toDomain() ?: error("Habit no longer exists")
         require(!habit.archived) { "Archived habits cannot be skipped" }
         require(!habit.paused) { "Paused habits do not need to be skipped" }
-        require(habit.sourceMetricId == null) { "Synced habits cannot be skipped manually" }
+        require(habit.sourceMeasurementId == null) { "Synced habits cannot be skipped manually" }
         require(habit.scheduleType !in setOf(HabitScheduleType.FlexibleTimesPerWeek, HabitScheduleType.FlexibleTimesPerMonth)) {
             "Flexible habits are completed any time during their period and do not have a daily occurrence to skip"
         }
@@ -531,14 +531,14 @@ class RoomHabitRepository(
         require(habit.trackingMode == HabitTrackingMode.Duration.name && habit.dimension == UnitDimension.Duration.name) {
             "Only Duration Habits can use a timer"
         }
-        require(habit.sourceMetricId == null) { "Synced Habits cannot start a manual timer" }
+        require(habit.sourceMeasurementId == null) { "Synced Habits cannot start a manual timer" }
         require(!habit.archived) { "Restore this Habit before starting its timer" }
         require(!habit.paused) { "Resume this Habit before starting its timer" }
         require(habit.endType != HabitEndType.OnDate.name || habit.endEpochDay == null || habit.endEpochDay >= clock.today().toEpochDay()) {
             "This Habit has ended"
         }
-        val metric = database.measurementDao().getMetric(habit.metricId) ?: error("Habit metric no longer exists")
-        require(metric.valueKind == MetricValueKind.Duration.name && metric.dimension == UnitDimension.Duration.name) {
+        val measurement = database.measurementDao().getMeasurement(habit.measurementId) ?: error("Habit measurement no longer exists")
+        require(measurement.valueKind == MeasurementValueKind.Duration.name && measurement.dimension == UnitDimension.Duration.name) {
             "Habit timer measurement contract is invalid"
         }
         val unit = BuiltInUnits.get(habit.unitId) ?: database.measurementDao().getUnit(habit.unitId)?.toDomain()
@@ -604,7 +604,7 @@ class RoomHabitRepository(
         val session = requireTimerSession(boundary)
         when (session.state) {
             HabitTimerSessionState.Completed.name -> HabitTimerStopOutcome.AlreadyCompleted(
-                historyPresent = dao.getLogBySource(MetricSourceType.Manual.name, timerSourceId(session.sessionId)) != null,
+                historyPresent = dao.getLogBySource(MeasurementSourceType.Manual.name, timerSourceId(session.sessionId)) != null,
             )
             HabitTimerSessionState.Discarded.name -> HabitTimerStopOutcome.AlreadyDiscarded
             HabitTimerSessionState.ReviewRequired.name -> HabitTimerStopOutcome.ReviewRequired(
@@ -639,7 +639,7 @@ class RoomHabitRepository(
         val session = requireTimerSession(boundary)
         when (session.state) {
             HabitTimerSessionState.Completed.name -> return@withTransaction HabitTimerStopOutcome.AlreadyCompleted(
-                historyPresent = dao.getLogBySource(MetricSourceType.Manual.name, timerSourceId(session.sessionId)) != null,
+                historyPresent = dao.getLogBySource(MeasurementSourceType.Manual.name, timerSourceId(session.sessionId)) != null,
             )
             HabitTimerSessionState.Discarded.name -> return@withTransaction HabitTimerStopOutcome.AlreadyDiscarded
             HabitTimerSessionState.ReviewRequired.name -> Unit
@@ -778,13 +778,13 @@ class RoomHabitRepository(
         now: Long,
     ): Long {
         val habit = dao.getHabit(session.habitId) ?: error("Habit no longer exists")
-        val metricDao = database.measurementDao()
-        val metric = metricDao.getMetric(habit.metricId) ?: error("Habit metric no longer exists")
-        require(metric.valueKind == MetricValueKind.Duration.name && metric.dimension == UnitDimension.Duration.name) {
+        val measurementDao = database.measurementDao()
+        val measurement = measurementDao.getMeasurement(habit.measurementId) ?: error("Habit measurement no longer exists")
+        require(measurement.valueKind == MeasurementValueKind.Duration.name && measurement.dimension == UnitDimension.Duration.name) {
             "Habit timer measurement contract is invalid"
         }
         val unitId = requireNotNull(session.unitId) { "Timer has no saved duration unit" }
-        val unit = BuiltInUnits.get(unitId) ?: metricDao.getUnit(unitId)?.toDomain()
+        val unit = BuiltInUnits.get(unitId) ?: measurementDao.getUnit(unitId)?.toDomain()
         require(unit?.dimension == UnitDimension.Duration) { "Timer's saved duration unit is unavailable" }
         val value = unit.fromCanonical(canonicalSeconds)
         require(value.isFinite()) { "Timer duration cannot be represented in its saved unit" }
@@ -794,28 +794,28 @@ class RoomHabitRepository(
         val logUuid = ids.nextId()
         val entryId = ids.nextId()
         val sourceId = timerSourceId(session.sessionId)
-        val firstEntry = metricDao.entryCount(metric.id) == 0
-        metricDao.upsertEntry(
-            MetricEntryEntity(
+        val firstEntry = measurementDao.entryCount(measurement.id) == 0
+        measurementDao.upsertEntry(
+            MeasurementEntryEntity(
                 id = entryId,
-                metricId = metric.id,
+                measurementId = measurement.id,
                 canonicalValue = canonicalSeconds,
                 enteredValue = value,
                 enteredUnitId = unitId,
-                status = MetricEntryStatus.Recorded.name,
+                status = MeasurementEntryStatus.Recorded.name,
                 timestampMillis = now,
                 localEpochDay = effectiveDate.toEpochDay(),
                 zoneId = zone.id,
                 offsetSeconds = zone.rules.getOffset(instant).totalSeconds,
-                sourceType = MetricSourceType.Habit.name,
+                sourceType = MeasurementSourceType.Habit.name,
                 sourceId = logUuid,
                 note = "",
                 createdAtMillis = now,
                 updatedAtMillis = now,
             ),
         )
-        if (firstEntry && !metric.dimensionLocked) {
-            metricDao.upsertMetric(metric.copy(dimensionLocked = true, updatedAtMillis = now))
+        if (firstEntry && !measurement.dimensionLocked) {
+            measurementDao.upsertMeasurement(measurement.copy(dimensionLocked = true, updatedAtMillis = now))
         }
         return dao.insertLog(
             HabitLogEntity(
@@ -830,9 +830,9 @@ class RoomHabitRepository(
                 zoneId = zone.id,
                 offsetSeconds = zone.rules.getOffset(instant).totalSeconds,
                 note = "",
-                sourceType = MetricSourceType.Manual.name,
+                sourceType = MeasurementSourceType.Manual.name,
                 sourceId = sourceId,
-                metricEntryId = entryId,
+                measurementEntryId = entryId,
                 createdAtMillis = now,
                 updatedAtMillis = now,
             ),
@@ -889,16 +889,16 @@ class RoomHabitRepository(
         }
     }
 
-    private suspend fun validateSourceMetric(draft: HabitDraft) {
-        val sourceId = draft.sourceMetricId ?: return
-        val source = requireNotNull(database.measurementDao().getMetric(sourceId)) {
+    private suspend fun validateSourceMeasurement(draft: HabitDraft) {
+        val sourceId = draft.sourceMeasurementId ?: return
+        val source = requireNotNull(database.measurementDao().getMeasurement(sourceId)) {
             "Connected data source no longer exists"
         }
         require(!source.archived) { "Restore the connected data source before using it" }
         require(source.dimension == draft.dimension.name) { "Connected data source uses a different measurement type" }
-        val expectedMode = when (MetricValueKind.valueOf(source.valueKind)) {
-            MetricValueKind.Integer -> HabitTrackingMode.Count
-            MetricValueKind.Duration -> HabitTrackingMode.Duration
+        val expectedMode = when (MeasurementValueKind.valueOf(source.valueKind)) {
+            MeasurementValueKind.Integer -> HabitTrackingMode.Count
+            MeasurementValueKind.Duration -> HabitTrackingMode.Duration
             else -> HabitTrackingMode.Decimal
         }
         require(draft.trackingMode == expectedMode) {
@@ -925,7 +925,7 @@ class RoomHabitRepository(
             log(habitId, 1.0, HabitLogStatus.Success, date)
         } else if (!completed) {
             positiveLogs.forEach { entry ->
-                entry.metricEntryId?.let { measurementRepository.deleteEntry(it) }
+                entry.measurementEntryId?.let { measurementRepository.deleteEntry(it) }
                 dao.deleteLog(entry.id)
             }
         }
@@ -952,37 +952,37 @@ private fun validateHabit(draft: HabitDraft) {
 private fun requireHabitCanAcceptManualProgress(habit: Habit) {
     require(!habit.archived) { "Archived Habits cannot be changed" }
     require(!habit.paused) { "Paused Habits cannot be changed" }
-    require(habit.sourceMetricId == null) { "Synced Habits are updated by their connected data source" }
+    require(habit.sourceMeasurementId == null) { "Synced Habits are updated by their connected data source" }
 }
 
-private fun HabitTrackingMode.metricValueKind() = when (this) {
-    HabitTrackingMode.CheckOff -> MetricValueKind.Boolean
-    HabitTrackingMode.Count -> MetricValueKind.Integer
-    HabitTrackingMode.Decimal, HabitTrackingMode.LogOnly -> MetricValueKind.Decimal
-    HabitTrackingMode.Duration -> MetricValueKind.Duration
-    HabitTrackingMode.Checklist -> MetricValueKind.Checklist
-    HabitTrackingMode.Rating -> MetricValueKind.Rating
+private fun HabitTrackingMode.measurementValueKind() = when (this) {
+    HabitTrackingMode.CheckOff -> MeasurementValueKind.Boolean
+    HabitTrackingMode.Count -> MeasurementValueKind.Integer
+    HabitTrackingMode.Decimal, HabitTrackingMode.LogOnly -> MeasurementValueKind.Decimal
+    HabitTrackingMode.Duration -> MeasurementValueKind.Duration
+    HabitTrackingMode.Checklist -> MeasurementValueKind.Checklist
+    HabitTrackingMode.Rating -> MeasurementValueKind.Rating
 }
 
 private fun HabitDraft.toEntity(
-    id: Long = 0, uuid: String, metricId: String, timerStartedAtMillis: Long? = null,
+    id: Long = 0, uuid: String, measurementId: String, timerStartedAtMillis: Long? = null,
     timerSessionId: String? = null, timerNeedsReview: Boolean = false,
     timerAccumulatedSeconds: Double = 0.0,
     timerAnchorElapsedRealtimeMillis: Long? = null,
     pinned: Boolean = false, position: Int, archived: Boolean = false, paused: Boolean = false,
     createdAtMillis: Long, updatedAtMillis: Long = createdAtMillis,
 ) = HabitEntity(
-    id, uuid, metricId, name.trim(), notes.trim(), areaId, area.trim(), tags.map(String::trim).filter(String::isNotBlank).distinct().joinToString(","), icon.normalizedIdentityEmoji(DEFAULT_HABIT_EMOJI),
+    id, uuid, measurementId, name.trim(), notes.trim(), areaId, area.trim(), tags.map(String::trim).filter(String::isNotBlank).distinct().joinToString(","), icon.normalizedIdentityEmoji(DEFAULT_HABIT_EMOJI),
     trackingMode.name, dimension.name, unitId, precision, comparison.name, targetMin,
     targetMax, targetPeriod.name, rollingDays, scheduleType.name, scheduleInterval,
     weekdays.toWeekdayMask(), flexibleTimesPerWeek, startDate.toEpochDay(), endType.name,
     endDate?.takeIf { endType == HabitEndType.OnDate }?.toEpochDay(),
     endValue?.takeIf { endType in setOf(HabitEndType.AfterStreak, HabitEndType.AfterCompletions, HabitEndType.AfterTotal) },
-    if (sourceMetricId == null && trackingMode.supportsQuickAddAmounts()) quickIncrement else 1.0,
-    if (sourceMetricId == null && trackingMode.supportsQuickAddAmounts()) quickActions.joinToString(",") else "",
+    if (sourceMeasurementId == null && trackingMode.supportsQuickAddAmounts()) quickIncrement else 1.0,
+    if (sourceMeasurementId == null && trackingMode.supportsQuickAddAmounts()) quickActions.joinToString(",") else "",
     reminderMinutes.joinToString(","),
     weekdayReminderMinutes.toReminderCsv(), weekStart.name, timerStartedAtMillis, pinned, position,
-    archived, paused, createdAtMillis, updatedAtMillis, sourceMetricId, autoCompleteFromItems,
+    archived, paused, createdAtMillis, updatedAtMillis, sourceMeasurementId, autoCompleteFromItems,
     timerSessionId, timerNeedsReview, timerAccumulatedSeconds, timerAnchorElapsedRealtimeMillis,
 )
 
@@ -991,7 +991,7 @@ private fun HabitEntity.toDomain(): Habit {
     val resolvedTargetMin = targetMin.takeUnless { targetComparison == TargetComparison.AtMost }
     val resolvedTargetMax = if (targetComparison == TargetComparison.AtMost) targetMax ?: targetMin else targetMax
     return Habit(
-        id, uuid, metricId, name, notes, areaId, area, tagsCsv.split(',').map(String::trim).filter(String::isNotBlank), icon,
+        id, uuid, measurementId, name, notes, areaId, area, tagsCsv.split(',').map(String::trim).filter(String::isNotBlank), icon,
         HabitTrackingMode.valueOf(trackingMode), UnitDimension.valueOf(dimension), unitId,
         precision, targetComparison, resolvedTargetMin, resolvedTargetMax,
         TargetPeriod.valueOf(targetPeriod), rollingDays, HabitScheduleType.valueOf(scheduleType),
@@ -1002,7 +1002,7 @@ private fun HabitEntity.toDomain(): Habit {
         reminderMinutesCsv.split(',').mapNotNull(String::toIntOrNull),
         weekdayReminderMinutesCsv.fromReminderCsv(),
         java.time.DayOfWeek.valueOf(weekStart), timerStartedAtMillis, pinned, position,
-        archived, paused, createdAtMillis, updatedAtMillis, sourceMetricId, autoCompleteFromItems,
+        archived, paused, createdAtMillis, updatedAtMillis, sourceMeasurementId, autoCompleteFromItems,
         timerSessionId, timerNeedsReview, timerAccumulatedSeconds, timerAnchorElapsedRealtimeMillis,
     )
 }
@@ -1030,7 +1030,7 @@ private fun estimatedTimerSeconds(
 }
 
 private fun HabitChecklistItemEntity.toDomain() = HabitChecklistItem(id, uuid, habitId, name, position, archived, createdAtMillis, updatedAtMillis)
-private fun HabitLogEntity.toDomain() = HabitLog(id, uuid, habitId, value, canonicalValue, enteredUnitId, HabitLogStatus.valueOf(status), Instant.ofEpochMilli(timestampMillis), LocalDate.ofEpochDay(localEpochDay), zoneId, offsetSeconds, note, MetricSourceType.valueOf(sourceType), sourceId, metricEntryId, createdAtMillis, updatedAtMillis)
+private fun HabitLogEntity.toDomain() = HabitLog(id, uuid, habitId, value, canonicalValue, enteredUnitId, HabitLogStatus.valueOf(status), Instant.ofEpochMilli(timestampMillis), LocalDate.ofEpochDay(localEpochDay), zoneId, offsetSeconds, note, MeasurementSourceType.valueOf(sourceType), sourceId, measurementEntryId, createdAtMillis, updatedAtMillis)
 private fun HabitChecklistStateEntity.toDomain() = HabitChecklistState(habitId, itemId, LocalDate.ofEpochDay(localEpochDay), completed, completedAtMillis, nameSnapshot)
 private fun HabitPauseEntity.toDomain() = HabitPause(id, habitId, LocalDate.ofEpochDay(startEpochDay), endEpochDay?.let(LocalDate::ofEpochDay), note)
 private fun HabitSkipEntity.toDomain() = HabitSkip(uuid, habitId, LocalDate.ofEpochDay(localEpochDay), skippedAtMillis, createdAtMillis, updatedAtMillis)
@@ -1068,7 +1068,7 @@ private fun Habit.toDraft(items: List<HabitChecklistItemEntity>) = HabitDraft(
         HabitChecklistItemDraft(item.name, index, id = item.id, uuid = item.uuid)
     },
     autoCompleteFromItems = autoCompleteFromItems,
-    sourceMetricId = sourceMetricId,
+    sourceMeasurementId = sourceMeasurementId,
 )
 
 private fun Map<java.time.DayOfWeek, List<Int>>.toReminderCsv(): String = entries

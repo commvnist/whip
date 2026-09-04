@@ -120,7 +120,7 @@ class GoalReminderIntegrityTest {
     }
 
     @Test
-    fun legacyAndMalformedWorkClaimsFailClosed() {
+    fun connectedAndMalformedWorkClaimsFailClosed() {
         assertNull(Data.EMPTY.reminderDeliveryClaimOrNull())
         assertNull(
             Data.Builder()
@@ -184,7 +184,7 @@ class GoalReminderIntegrityTest {
     ) = GoalEntity(
         id = 7,
         uuid = "goal-stable",
-        metricId = "goal-metric",
+        measurementId = "goal-measurement",
         name = "Read",
         description = "",
         areaId = null,

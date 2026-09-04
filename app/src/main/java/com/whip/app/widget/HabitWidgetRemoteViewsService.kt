@@ -59,7 +59,7 @@ internal class HabitWidgetRemoteViewsFactory(
                         habitChecklistStates = app.habitRepository.checklistStates.first(),
                         habitPauses = app.habitRepository.pauses.first(),
                         habitSkips = app.habitRepository.skips.first(),
-                        metricEntries = app.measurementRepository.entries.first(),
+                        measurementEntries = app.measurementRepository.entries.first(),
                         customUnits = app.measurementRepository.customUnits.first(),
                         today = today,
                         areaScope = preferences.areaScope,
@@ -358,7 +358,7 @@ private fun habitActionDescription(context: Context, row: HabitWidgetRow): Strin
             "Review timer for ${row.habit.name}; ${widgetTimerElapsed(row.habit)} estimated"
         } else "Stop and log ${row.habit.name}; ${widgetTimerElapsed(row.habit)} elapsed"
         HabitWidgetAction.Open -> context.getString(R.string.widget_open_habit, row.habit.name)
-        HabitWidgetAction.ReadOnly -> if (row.habit.sourceMetricId != null) {
+        HabitWidgetAction.ReadOnly -> if (row.habit.sourceMeasurementId != null) {
             "${row.habit.name} is synced and read-only"
         } else {
             "${row.habit.name}: ${row.completedChecklistItems} of ${row.checklistItemCount} checklist items complete"
@@ -368,7 +368,7 @@ private fun habitActionDescription(context: Context, row: HabitWidgetRow): Strin
 
 private fun habitMeta(context: Context, row: HabitWidgetRow): String = when {
     row.isChecklistItem -> row.habit.name
-    row.habit.sourceMetricId != null -> context.getString(R.string.widget_synced)
+    row.habit.sourceMeasurementId != null -> context.getString(R.string.widget_synced)
     row.habit.trackingMode == HabitTrackingMode.Checklist -> context.getString(
         R.string.widget_items_progress,
         row.completedChecklistItems,

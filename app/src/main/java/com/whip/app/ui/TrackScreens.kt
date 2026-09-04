@@ -2131,8 +2131,8 @@ private fun TrackEntryDetailsDialog(
         onEdit = onEdit.takeIf { editable },
         editLabel = "Edit Entry",
         modifier = modifier,
-        legacySurfaceTag = "track-entry-detail-surface",
-        legacySectionTagPrefix = "track-entry-detail-section",
+        connectedSurfaceTag = "track-entry-detail-surface",
+        connectedSectionTagPrefix = "track-entry-detail-section",
         content = {
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
@@ -3064,7 +3064,7 @@ internal fun TrackEditor(
                     buildString {
                         append("This removes the Field from your draft. ")
                         if (valueCount > 0) append("It had $valueCount saved values when this editor opened. ")
-                        append("Before Save, Whip will review the current exact impact on values and legacy automation definitions.")
+                        append("Before Save, Whip will review the current exact impact on values and connected automation definitions.")
                     },
                 )
             },
@@ -3108,7 +3108,7 @@ internal fun TrackEditor(
                 ) {
                     item {
                         Text(
-                            "Nothing changes until you apply this exact review. If saved values or legacy references change, Save stops and asks you to review again.",
+                            "Nothing changes until you apply this exact review. If saved values or connected references change, Save stops and asks you to review again.",
                         )
                     }
                     review.removedFields.forEach { impact ->
@@ -3119,11 +3119,11 @@ internal fun TrackEditor(
                                     "Remove ${quantityLabel(impact.savedValueCount, "saved value")} and ${quantityLabel(impact.childChoiceCount, "Choice")}",
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
-                                val legacyLinks = impact.legacyLinkReferenceCount
-                                val legacyTriggers = impact.legacyTriggerReferenceCount
-                                if (legacyLinks + legacyTriggers > 0) {
+                                val connectedLinks = impact.connectedLinkReferenceCount
+                                val connectedTriggers = impact.connectedTriggerReferenceCount
+                                if (connectedLinks + connectedTriggers > 0) {
                                     Text(
-                                        "Also retire ${quantityLabel(legacyLinks, "legacy Link reference")} and ${quantityLabel(legacyTriggers, "legacy Trigger reference")}.",
+                                        "Also retire ${quantityLabel(connectedLinks, "connected Link reference")} and ${quantityLabel(connectedTriggers, "connected Trigger reference")}.",
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
@@ -3156,14 +3156,14 @@ internal fun TrackEditor(
                                         },
                                     )
                                 }
-                                val legacyLinks = impact.legacyLinkReferenceCount
-                                val legacyTriggers = impact.legacyTriggerReferenceCount
-                                if (legacyLinks + legacyTriggers > 0) {
+                                val connectedLinks = impact.connectedLinkReferenceCount
+                                val connectedTriggers = impact.connectedTriggerReferenceCount
+                                if (connectedLinks + connectedTriggers > 0) {
                                     Text(
                                         if (editorState.optionReplacementIds[impact.optionId] == null) {
-                                            "Retire ${quantityLabel(legacyLinks, "legacy Link reference")} and ${quantityLabel(legacyTriggers, "legacy Trigger reference")} with this Choice."
+                                            "Retire ${quantityLabel(connectedLinks, "connected Link reference")} and ${quantityLabel(connectedTriggers, "connected Trigger reference")} with this Choice."
                                         } else {
-                                            "Retarget ${quantityLabel(legacyLinks, "legacy Link reference")} and ${quantityLabel(legacyTriggers, "legacy Trigger reference")}; duplicate selections may consolidate."
+                                            "Retarget ${quantityLabel(connectedLinks, "connected Link reference")} and ${quantityLabel(connectedTriggers, "connected Trigger reference")}; duplicate selections may consolidate."
                                         },
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )

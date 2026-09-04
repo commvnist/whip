@@ -20,7 +20,7 @@ import com.whip.app.domain.TrainingMaxCycleDecision
 import com.whip.app.domain.TrainingMaxDecisionAction
 import com.whip.app.ui.FiveThreeOneCycleReview
 import com.whip.app.ui.FiveThreeOneCycleReviewDialog
-import com.whip.app.ui.FiveThreeOneLiftCycleReview
+import com.whip.app.ui.FiveThreeOneExerciseCycleReview
 import com.whip.app.ui.theme.WhipTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -121,11 +121,11 @@ class FiveThreeOneCycleReviewUiTest {
 
         compose.onNodeWithTag("training-max-choice-suggestion-7").performClick()
         compose.runOnIdle {
-            val lift = currentReview.lifts.single()
+            val exercise = currentReview.exercises.single()
             currentReview = currentReview.copy(
-                lifts = listOf(
-                    lift.copy(
-                        recommendation = lift.recommendation.copy(
+                exercises = listOf(
+                    exercise.copy(
+                        recommendation = exercise.recommendation.copy(
                             suggestedDelta = 2.5,
                             confidence = 0.61,
                         ),
@@ -143,8 +143,8 @@ class FiveThreeOneCycleReviewUiTest {
     private fun review() = FiveThreeOneCycleReview(
         routineName = "Custom 5/3/1",
         cycle = 2,
-        lifts = listOf(
-            FiveThreeOneLiftCycleReview(
+        exercises = listOf(
+            FiveThreeOneExerciseCycleReview(
                 exerciseId = 7,
                 exerciseName = "Zercher Squat",
                 currentTrainingMax = 300.0,

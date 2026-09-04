@@ -38,9 +38,9 @@ import com.whip.app.domain.HabitTimerStartRequest
 import com.whip.app.domain.HabitTimerStopOutcome
 import com.whip.app.domain.TargetPeriod
 import com.whip.app.domain.UnitDefinition
-import com.whip.app.domain.MetricDefinition
-import com.whip.app.domain.MetricEntry
-import com.whip.app.domain.MetricEntryStatus
+import com.whip.app.domain.MeasurementDefinition
+import com.whip.app.domain.MeasurementEntry
+import com.whip.app.domain.MeasurementEntryStatus
 import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.habitStreak
 import com.whip.app.domain.hasEnded
@@ -84,7 +84,7 @@ data class HabitUiState(
     val loading: Boolean = true,
     val errorMessage: String? = null,
     val customUnits: List<UnitDefinition> = emptyList(),
-    val sourceMetrics: List<MetricDefinition> = emptyList(),
+    val sourceMeasurements: List<MeasurementDefinition> = emptyList(),
 )
 
 data class HabitTimerReviewPrompt(
@@ -187,13 +187,13 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
     private val habitUiState = combine(
         habitData,
         app.calendarContext,
-        app.measurementRepository.metrics,
+        app.measurementRepository.measurements,
         app.measurementRepository.entries,
         app.measurementRepository.customUnits,
-    ) { data, calendar, metrics, metricEntries, customUnits ->
-        val mirrored = mirrorMetricEntriesAsHabitLogs(data.habits, metricEntries, customUnits)
+    ) { data, calendar, measurements, measurementEntries, customUnits ->
+        val mirrored = mirrorMeasurementEntriesAsHabitLogs(data.habits, measurementEntries, customUnits)
         buildHabitUiState(data.copy(logs = data.logs + mirrored), calendar.logicalDate, customUnits).copy(
-            sourceMetrics = metrics.filter { it.id.startsWith("health-connect-") && !it.archived },
+            sourceMeasurements = measurements.filter { it.id.startsWith("health-connect-") && !it.archived },
             customUnits = customUnits,
         )
     }
@@ -851,12 +851,12 @@ private suspend fun HabitMutationReceipt.withReminderRefresh(
     return if (warning == null) this else copy(warnings = warnings + warning)
 }
 
-internal fun mirrorMetricEntriesAsHabitLogs(
+internal fun mirrorMeasurementEntriesAsHabitLogs(
     habits: List<Habit>,
-    entries: List<MetricEntry>,
+    entries: List<MeasurementEntry>,
     customUnits: List<UnitDefinition> = emptyList(),
-): List<HabitLog> = habits.filter { it.sourceMetricId != null }.flatMap { habit ->
-    entries.asSequence().filter { it.metricId == habit.sourceMetricId }.mapNotNull { entry ->
+): List<HabitLog> = habits.filter { it.sourceMeasurementId != null }.flatMap { habit ->
+    entries.asSequence().filter { it.measurementId == habit.sourceMeasurementId }.mapNotNull { entry ->
         val value = when {
             entry.enteredValue != null && entry.enteredUnitId == habit.unitId -> entry.enteredValue
             entry.canonicalValue != null -> (BuiltInUnits.get(habit.unitId) ?: customUnits.firstOrNull { it.id == habit.unitId })
@@ -865,13 +865,13 @@ internal fun mirrorMetricEntriesAsHabitLogs(
         }
         val stable = ("${habit.id}:${entry.id}".hashCode().toLong() and 0x7fff_ffffL).let { if (it == 0L) -1L else -it }
         val status = when (entry.status) {
-            MetricEntryStatus.Recorded -> HabitLogStatus.Recorded
-            MetricEntryStatus.Failed -> HabitLogStatus.Failed
-            MetricEntryStatus.Missing, MetricEntryStatus.Skipped, MetricEntryStatus.Excused -> return@mapNotNull null
+            MeasurementEntryStatus.Recorded -> HabitLogStatus.Recorded
+            MeasurementEntryStatus.Failed -> HabitLogStatus.Failed
+            MeasurementEntryStatus.Missing, MeasurementEntryStatus.Skipped, MeasurementEntryStatus.Excused -> return@mapNotNull null
         }
         HabitLog(
             id = stable,
-            uuid = "metric:${habit.id}:${entry.id}",
+            uuid = "measurement:${habit.id}:${entry.id}",
             habitId = habit.id,
             value = value,
             canonicalValue = entry.canonicalValue,
@@ -884,7 +884,7 @@ internal fun mirrorMetricEntriesAsHabitLogs(
             note = entry.note,
             sourceType = entry.sourceType,
             sourceId = entry.sourceId,
-            metricEntryId = entry.id,
+            measurementEntryId = entry.id,
             createdAtMillis = entry.createdAtMillis,
             updatedAtMillis = entry.updatedAtMillis,
         )
@@ -901,7 +901,7 @@ private data class HabitData(
 )
 
 private fun buildHabitUiState(data: HabitData, today: LocalDate, customUnits: List<UnitDefinition>): HabitUiState {
-    // An unresolved timer stays reachable even when legacy/restored state says archived,
+    // An unresolved timer stays reachable even when persisted/restored state says archived,
     // paused, ended, or not scheduled today. New archive/pause operations are blocked first.
     val active = data.habits.filter { !it.archived || it.timerSessionId != null }
     val progress = active.map { habit -> buildProgress(habit, data, today, customUnits) }

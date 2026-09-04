@@ -731,7 +731,7 @@ class RoutineRepositoryTest {
                             cycleIncrementValue = 5.0,
                             trainingMaxSource = RoutineTrainingMaxSource.Explicit,
                             mainWorkScheme = RoutineMainWorkScheme.FivesPro,
-                            placementKind = RoutinePlacementKind.MainLift,
+                            placementKind = RoutinePlacementKind.MainExercise,
                             plannedSets = labels.indices.map { phase ->
                                 WorkoutSetDraft(
                                     weightUnitId = "pound",
@@ -1229,19 +1229,19 @@ class RoutineRepositoryTest {
     }
 
     @Test
-    fun removingOrSubstitutingOneOfSeveralMainLiftsInvalidatesOnlyThatSessionTrainingMaxAdvance() = runBlocking {
+    fun removingOrSubstitutingOneOfSeveralMainExercisesInvalidatesOnlyThatSessionTrainingMaxAdvance() = runBlocking {
         val benchId = gym.createExercise(ExerciseDraft("Bench Press", weightUnitId = "pound"))
         val squatId = gym.createExercise(ExerciseDraft("Squat", weightUnitId = "pound"))
         val rowId = gym.createExercise(ExerciseDraft("Row", weightUnitId = "pound"))
         val zercherId = gym.createExercise(ExerciseDraft("Zercher Squat", weightUnitId = "pound"))
-        fun mainLift(exerciseId: Long, trainingMax: Double, increment: Double) = RoutineExerciseDraft(
+        fun mainExercise(exerciseId: Long, trainingMax: Double, increment: Double) = RoutineExerciseDraft(
             exerciseId = exerciseId,
             trainingMaxValue = trainingMax,
             trainingMaxUnitId = "pound",
             cycleIncrementValue = increment,
             trainingMaxSource = RoutineTrainingMaxSource.Explicit,
             mainWorkScheme = RoutineMainWorkScheme.FivesPro,
-            placementKind = RoutinePlacementKind.MainLift,
+            placementKind = RoutinePlacementKind.MainExercise,
             plannedSets = listOf(
                 WorkoutSetDraft(
                     weightUnitId = "pound",
@@ -1264,8 +1264,8 @@ class RoutineRepositoryTest {
                     RoutineDayDraft(
                         "Bench + Squat",
                         listOf(
-                            mainLift(benchId, trainingMax = 200.0, increment = 5.0),
-                            mainLift(squatId, trainingMax = 300.0, increment = 10.0),
+                            mainExercise(benchId, trainingMax = 200.0, increment = 5.0),
+                            mainExercise(squatId, trainingMax = 300.0, increment = 10.0),
                             RoutineExerciseDraft(
                                 exerciseId = rowId,
                                 // Simulates a former Main placement reclassified as assistance.
@@ -1377,7 +1377,7 @@ class RoutineRepositoryTest {
                                 trainingMaxUnitId = "pound",
                                 cycleIncrementValue = 5.0,
                                 trainingMaxSource = RoutineTrainingMaxSource.Explicit,
-                                placementKind = RoutinePlacementKind.MainLift,
+                                placementKind = RoutinePlacementKind.MainExercise,
                                 plannedSets = listOf(
                                     WorkoutSetDraft(
                                         weightUnitId = "pound",
@@ -1494,7 +1494,7 @@ class RoutineRepositoryTest {
 
     @Test
     fun performanceReviewRejectsStaleForgedAndActionMismatchedDecisions() = runBlocking {
-        val liftId = gym.createExercise(ExerciseDraft("Decision-boundary Press", weightUnitId = "pound"))
+        val exerciseId = gym.createExercise(ExerciseDraft("Decision-boundary Press", weightUnitId = "pound"))
         val routineId = routines.createRoutine(
             RoutineDraft(
                 name = "Decision boundary",
@@ -1510,12 +1510,12 @@ class RoutineRepositoryTest {
                         "Press",
                         listOf(
                             RoutineExerciseDraft(
-                                exerciseId = liftId,
+                                exerciseId = exerciseId,
                                 trainingMaxValue = 200.0,
                                 trainingMaxUnitId = "pound",
                                 cycleIncrementValue = 5.0,
                                 trainingMaxSource = RoutineTrainingMaxSource.Explicit,
-                                placementKind = RoutinePlacementKind.MainLift,
+                                placementKind = RoutinePlacementKind.MainExercise,
                                 plannedSets = listOf(
                                     WorkoutSetDraft(
                                         weightUnitId = "pound",
@@ -1541,7 +1541,7 @@ class RoutineRepositoryTest {
             delta: Double,
             expectedCurrent: Double = 200.0,
         ) = TrainingMaxCycleDecision(
-            exerciseId = liftId,
+            exerciseId = exerciseId,
             expectedCurrentTrainingMax = expectedCurrent,
             requestedDelta = delta,
             standardDelta = 5.0,
@@ -1555,7 +1555,7 @@ class RoutineRepositoryTest {
         suspend fun assertRejected(candidate: TrainingMaxCycleDecision) {
             val failure = runCatching { gym.finishWorkout(sessionId, listOf(candidate)) }.exceptionOrNull()
             assertTrue(failure is IllegalArgumentException)
-            assertEquals(200.0, routines.exercises.first().single { it.exerciseId == liftId }.trainingMaxValue!!, 0.0)
+            assertEquals(200.0, routines.exercises.first().single { it.exerciseId == exerciseId }.trainingMaxValue!!, 0.0)
             assertTrue(routines.trainingMaxDecisions.first().isEmpty())
         }
 
@@ -1569,7 +1569,7 @@ class RoutineRepositoryTest {
             sessionId,
             listOf(decision(TrainingMaxDecisionAction.UseStandard, 5.0)),
         )
-        assertEquals(205.0, routines.exercises.first().single { it.exerciseId == liftId }.trainingMaxValue!!, 0.0)
+        assertEquals(205.0, routines.exercises.first().single { it.exerciseId == exerciseId }.trainingMaxValue!!, 0.0)
         val audit = routines.trainingMaxDecisions.first().single()
         assertEquals("StandardIncrease", audit.recommendationCategory)
         assertFalse(audit.reasons.any { it.contains("forged") })
@@ -1578,17 +1578,17 @@ class RoutineRepositoryTest {
 
     @Test
     fun performanceReviewEvidenceRequiresMatchingSourceProgramKindAtCommit() = runBlocking {
-        val liftId = gym.createExercise(ExerciseDraft("Program-kind Press", weightUnitId = "pound"))
+        val exerciseId = gym.createExercise(ExerciseDraft("Program-kind Press", weightUnitId = "pound"))
         fun programDay(name: String) = RoutineDayDraft(
             name,
             listOf(
                 RoutineExerciseDraft(
-                    exerciseId = liftId,
+                    exerciseId = exerciseId,
                     trainingMaxValue = 200.0,
                     trainingMaxUnitId = "pound",
                     cycleIncrementValue = 5.0,
                     trainingMaxSource = RoutineTrainingMaxSource.Explicit,
-                    placementKind = RoutinePlacementKind.MainLift,
+                    placementKind = RoutinePlacementKind.MainExercise,
                     plannedSets = buildList {
                         add(
                             WorkoutSetDraft(
@@ -1664,7 +1664,7 @@ class RoutineRepositoryTest {
             boundarySessionId,
             listOf(
                 TrainingMaxCycleDecision(
-                    exerciseId = liftId,
+                    exerciseId = exerciseId,
                     expectedCurrentTrainingMax = 200.0,
                     requestedDelta = 5.0,
                     standardDelta = 5.0,
@@ -1686,7 +1686,7 @@ class RoutineRepositoryTest {
 
     @Test
     fun trainingMaxTestSetRequiresExplicitTestPhaseOneHundredPercentAndThreeToFiveReps() = runBlocking {
-        val liftId = gym.createExercise(ExerciseDraft("TM Test Press", weightUnitId = "pound"))
+        val exerciseId = gym.createExercise(ExerciseDraft("TM Test Press", weightUnitId = "pound"))
         fun draft(
             phaseRole: RoutineProgramPhaseRole,
             percentage: Double,
@@ -1704,11 +1704,11 @@ class RoutineRepositoryTest {
                     "Test",
                     listOf(
                         RoutineExerciseDraft(
-                            exerciseId = liftId,
+                            exerciseId = exerciseId,
                             trainingMaxValue = 200.0,
                             trainingMaxUnitId = "pound",
                             cycleIncrementValue = 5.0,
-                            placementKind = RoutinePlacementKind.MainLift,
+                            placementKind = RoutinePlacementKind.MainExercise,
                             plannedSets = List(testSetCount) {
                                 WorkoutSetDraft(
                                     weightUnitId = "pound",
@@ -1753,14 +1753,14 @@ class RoutineRepositoryTest {
     }
 
     @Test
-    fun repeatedMainLiftHasExactlyOneTrainingMaxTestAcrossThePhase() = runBlocking {
-        val liftId = gym.createExercise(ExerciseDraft("Twice-weekly test squat", weightUnitId = "pound"))
+    fun repeatedMainExerciseHasExactlyOneTrainingMaxTestAcrossThePhase() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Twice-weekly test squat", weightUnitId = "pound"))
         fun placement(includeTest: Boolean) = RoutineExerciseDraft(
-            exerciseId = liftId,
+            exerciseId = exerciseId,
             trainingMaxValue = 300.0,
             trainingMaxUnitId = "pound",
             cycleIncrementValue = 10.0,
-            placementKind = RoutinePlacementKind.MainLift,
+            placementKind = RoutinePlacementKind.MainExercise,
             plannedSets = buildList {
                 add(
                     WorkoutSetDraft(
@@ -1786,7 +1786,7 @@ class RoutineRepositoryTest {
             },
         )
         fun draft(secondTest: Boolean) = RoutineDraft(
-            name = "One TM test per lift",
+            name = "One TM test per exercise",
             program = RoutineProgramDraft(
                 kind = RoutineProgramKind.FiveThreeOne,
                 phaseCount = 1,
@@ -1807,7 +1807,7 @@ class RoutineRepositoryTest {
 
     @Test
     fun failedPersistedTrainingMaxTestRetainsPrescriptionIdentityAndSuggestsDecrease() = runBlocking {
-        val liftId = gym.createExercise(ExerciseDraft("Failed TM test press", weightUnitId = "pound"))
+        val exerciseId = gym.createExercise(ExerciseDraft("Failed TM test press", weightUnitId = "pound"))
         val routineId = routines.createRoutine(
             RoutineDraft(
                 name = "Failed TM test",
@@ -1823,11 +1823,11 @@ class RoutineRepositoryTest {
                         "Press test",
                         listOf(
                             RoutineExerciseDraft(
-                                exerciseId = liftId,
+                                exerciseId = exerciseId,
                                 trainingMaxValue = 200.0,
                                 trainingMaxUnitId = "pound",
                                 cycleIncrementValue = 5.0,
-                                placementKind = RoutinePlacementKind.MainLift,
+                                placementKind = RoutinePlacementKind.MainExercise,
                                 plannedSets = listOf(
                                     WorkoutSetDraft(
                                         weightUnitId = "pound",
@@ -1868,7 +1868,7 @@ class RoutineRepositoryTest {
             sessionId,
             listOf(
                 TrainingMaxCycleDecision(
-                    exerciseId = liftId,
+                    exerciseId = exerciseId,
                     expectedCurrentTrainingMax = 200.0,
                     requestedDelta = -5.0,
                     standardDelta = 5.0,
@@ -1891,7 +1891,7 @@ class RoutineRepositoryTest {
 
     @Test
     fun manualProgramTrainingMaxEditCreatesVisibleAuditEventWithoutRewritingWorkouts() = runBlocking {
-        val liftId = gym.createExercise(ExerciseDraft("Audited Bench", weightUnitId = "pound"))
+        val exerciseId = gym.createExercise(ExerciseDraft("Audited Bench", weightUnitId = "pound"))
         fun draft(trainingMax: Double) = RoutineDraft(
             name = "Audited program",
             program = RoutineProgramDraft(
@@ -1903,11 +1903,11 @@ class RoutineRepositoryTest {
                     "Bench",
                     listOf(
                         RoutineExerciseDraft(
-                            exerciseId = liftId,
+                            exerciseId = exerciseId,
                             trainingMaxValue = trainingMax,
                             trainingMaxUnitId = "pound",
                             cycleIncrementValue = 5.0,
-                            placementKind = RoutinePlacementKind.MainLift,
+                            placementKind = RoutinePlacementKind.MainExercise,
                             plannedSets = listOf(
                                 WorkoutSetDraft(
                                     weightUnitId = "pound",
@@ -2015,7 +2015,7 @@ class RoutineRepositoryTest {
                                     cycleIncrementValue = 5.0,
                                     trainingMaxSource = RoutineTrainingMaxSource.Explicit,
                                     mainWorkScheme = RoutineMainWorkScheme.FivesPro,
-                                    placementKind = RoutinePlacementKind.MainLift,
+                                    placementKind = RoutinePlacementKind.MainExercise,
                                     plannedSets = listOf(65.0, 75.0).map { percentage ->
                                         WorkoutSetDraft(
                                             weightUnitId = "pound",
@@ -2109,7 +2109,7 @@ class RoutineRepositoryTest {
                                 cycleIncrementValue = 5.0,
                                 trainingMaxSource = RoutineTrainingMaxSource.Explicit,
                                 mainWorkScheme = RoutineMainWorkScheme.FivesPro,
-                                placementKind = RoutinePlacementKind.MainLift,
+                                placementKind = RoutinePlacementKind.MainExercise,
                                 plannedSets = listOf(
                                     WorkoutSetDraft(
                                         weightUnitId = "pound",
@@ -2140,7 +2140,7 @@ class RoutineRepositoryTest {
     }
 
     @Test
-    fun repeatedFiveThreeOneMainLiftPlacementsCannotPersistDriftingTrainingMaxes() = runBlocking {
+    fun repeatedFiveThreeOneMainExercisePlacementsCannotPersistDriftingTrainingMaxes() = runBlocking {
         val squatId = gym.createExercise(ExerciseDraft("Squat", weightUnitId = "pound", weightIncrement = 5.0))
         fun squat(trainingMax: Double) = RoutineExerciseDraft(
             exerciseId = squatId,
@@ -2149,7 +2149,7 @@ class RoutineRepositoryTest {
             cycleIncrementValue = 10.0,
             trainingMaxSource = RoutineTrainingMaxSource.Explicit,
             mainWorkScheme = RoutineMainWorkScheme.FivesPro,
-            placementKind = RoutinePlacementKind.MainLift,
+            placementKind = RoutinePlacementKind.MainExercise,
             plannedSets = listOf(
                 WorkoutSetDraft(
                     reps = 5,
@@ -2202,7 +2202,7 @@ class RoutineRepositoryTest {
                                 cycleIncrementValue = 10.0,
                                 trainingMaxSource = RoutineTrainingMaxSource.Explicit,
                                 mainWorkScheme = RoutineMainWorkScheme.FivesPro,
-                                placementKind = RoutinePlacementKind.MainLift,
+                                placementKind = RoutinePlacementKind.MainExercise,
                                 plannedSets = listOf(
                                     WorkoutSetDraft(
                                         reps = 5,
@@ -2343,7 +2343,7 @@ class RoutineRepositoryTest {
                                 // These placement summaries intentionally describe only the Anchor.
                                 mainWorkScheme = RoutineMainWorkScheme.ClassicPrSet,
                                 supplementalScheme = RoutineSupplementalScheme.FirstSetLast,
-                                placementKind = RoutinePlacementKind.MainLift,
+                                placementKind = RoutinePlacementKind.MainExercise,
                                 jokerSetsEnabled = true,
                                 plannedSets = leaderMain +
                                     supplementalSets(0, 5, 10, 50.0, RoutineSupplementalScheme.BoringButBig) +
@@ -2443,7 +2443,7 @@ class RoutineRepositoryTest {
                                 RoutineWorkSection.Main,
                                 RoutineWorkSection.Supplemental,
                                 RoutineWorkSection.Optional,
-                                -> RoutinePlacementKind.MainLift
+                                -> RoutinePlacementKind.MainExercise
                                 RoutineWorkSection.Assistance -> RoutinePlacementKind.Assistance
                                 RoutineWorkSection.Unspecified -> RoutinePlacementKind.General
                             },
@@ -2540,7 +2540,7 @@ class RoutineRepositoryTest {
             trainingMaxUnitId = "pound",
             trainingMaxSource = RoutineTrainingMaxSource.Explicit,
             cycleIncrementValue = 5.0,
-            placementKind = RoutinePlacementKind.MainLift,
+            placementKind = RoutinePlacementKind.MainExercise,
             mainWorkScheme = RoutineMainWorkScheme.ClassicPrSet,
             supplementalScheme = RoutineSupplementalScheme.Custom,
             plannedSets = mainSets(),
@@ -2606,7 +2606,7 @@ class RoutineRepositoryTest {
     }
 
     @Test
-    fun beginnersProtocolsSaveEditAndRunOncePerLiftWithoutEmptyDays() = runBlocking {
+    fun beginnersProtocolsSaveEditAndRunOncePerExerciseWithoutEmptyDays() = runBlocking {
         val squatId = gym.createExercise(ExerciseDraft("Squat", weightUnitId = "pound", weightIncrement = 5.0))
         val benchId = gym.createExercise(ExerciseDraft("Bench", weightUnitId = "pound", weightIncrement = 5.0))
         val deadliftId = gym.createExercise(ExerciseDraft("Deadlift", weightUnitId = "pound", weightIncrement = 5.0))
@@ -2652,7 +2652,7 @@ class RoutineRepositoryTest {
                 trainingMaxUnitId = "pound",
                 trainingMaxSource = RoutineTrainingMaxSource.Explicit,
                 cycleIncrementValue = 5.0,
-                placementKind = RoutinePlacementKind.MainLift,
+                placementKind = RoutinePlacementKind.MainExercise,
                 mainWorkScheme = protocol.mainScheme,
                 plannedSets = listOf(70.0, 80.0, 90.0, 100.0).mapIndexedNotNull { index, percentage ->
                     if (
@@ -2682,7 +2682,7 @@ class RoutineRepositoryTest {
                     kind = RoutineProgramKind.FiveThreeOne,
                     phaseCount = 1,
                     phaseLabels = listOf("7th Week · ${protocol.name}"),
-                    phaseRoles = listOf(protocol.role.asOncePerLiftProtocol()),
+                    phaseRoles = listOf(protocol.role.asOncePerExerciseProtocol()),
                     templateKey = RoutineProgramTemplateKey.FiveThreeOneBeginners,
                     templateRevision = 2,
                 ),
@@ -2718,7 +2718,7 @@ class RoutineRepositoryTest {
     }
 
     @Test
-    fun legacyBeginnersDeloadKeepsEverySavedRepeatedLiftExposure() = runBlocking {
+    fun connectedBeginnersDeloadKeepsEverySavedRepeatedExerciseExposure() = runBlocking {
         val squatId = gym.createExercise(ExerciseDraft("Squat", weightUnitId = "pound", weightIncrement = 5.0))
         val benchId = gym.createExercise(ExerciseDraft("Bench", weightUnitId = "pound", weightIncrement = 5.0))
         val deadliftId = gym.createExercise(ExerciseDraft("Deadlift", weightUnitId = "pound", weightIncrement = 5.0))
@@ -2729,7 +2729,7 @@ class RoutineRepositoryTest {
             trainingMaxUnitId = "pound",
             trainingMaxSource = RoutineTrainingMaxSource.Explicit,
             cycleIncrementValue = 5.0,
-            placementKind = RoutinePlacementKind.MainLift,
+            placementKind = RoutinePlacementKind.MainExercise,
             mainWorkScheme = RoutineMainWorkScheme.ClassicMinimumReps,
             plannedSets = listOf(40.0, 50.0, 60.0).map { percentage ->
                 WorkoutSetDraft(
@@ -2749,7 +2749,7 @@ class RoutineRepositoryTest {
         )
         val routineId = routines.createRoutine(
             RoutineDraft(
-                name = "Legacy Beginners deload",
+                name = "Connected Beginners deload",
                 program = RoutineProgramDraft(
                     kind = RoutineProgramKind.FiveThreeOne,
                     phaseCount = 1,
@@ -2786,7 +2786,7 @@ class RoutineRepositoryTest {
     }
 
     @Test
-    fun applyingProtocolToOneLegacyPhaseDoesNotChangeAnotherPhasesRepeatedExposures() = runBlocking {
+    fun applyingProtocolToOneConnectedPhaseDoesNotChangeAnotherPhasesRepeatedExposures() = runBlocking {
         val squatId = gym.createExercise(ExerciseDraft("Squat", weightUnitId = "pound", weightIncrement = 5.0))
         val benchId = gym.createExercise(ExerciseDraft("Bench", weightUnitId = "pound", weightIncrement = 5.0))
         val deadliftId = gym.createExercise(ExerciseDraft("Deadlift", weightUnitId = "pound", weightIncrement = 5.0))
@@ -2797,7 +2797,7 @@ class RoutineRepositoryTest {
             trainingMaxUnitId = "pound",
             trainingMaxSource = RoutineTrainingMaxSource.Explicit,
             cycleIncrementValue = 5.0,
-            placementKind = RoutinePlacementKind.MainLift,
+            placementKind = RoutinePlacementKind.MainExercise,
             mainWorkScheme = RoutineMainWorkScheme.ClassicMinimumReps,
             plannedSets = listOf(70.0, 80.0, 90.0, 100.0).mapIndexed { index, percentage ->
                 WorkoutSetDraft(
@@ -2826,13 +2826,13 @@ class RoutineRepositoryTest {
         )
         val routineId = routines.createRoutine(
             RoutineDraft(
-                name = "Partially upgraded legacy Beginners",
+                name = "Partially upgraded connected Beginners",
                 program = RoutineProgramDraft(
                     kind = RoutineProgramKind.FiveThreeOne,
                     phaseCount = 2,
-                    phaseLabels = listOf("7th Week · Deload", "Untouched legacy deload"),
+                    phaseLabels = listOf("7th Week · Deload", "Untouched connected deload"),
                     phaseRoles = listOf(
-                        RoutineProgramPhaseRole.OncePerLiftDeload,
+                        RoutineProgramPhaseRole.OncePerExerciseDeload,
                         RoutineProgramPhaseRole.Deload,
                     ),
                     templateKey = RoutineProgramTemplateKey.FiveThreeOneBeginners,
@@ -2898,7 +2898,7 @@ class RoutineRepositoryTest {
         routines.updateGraphPreset(id, "Bench year", listOf(exerciseId), "EstimatedOneRepMax", "Year", "Week")
         val updated = routines.graphPresets.first().single()
         assertEquals("Bench year", updated.name)
-        assertEquals("EstimatedOneRepMax", updated.metric)
+        assertEquals("EstimatedOneRepMax", updated.measurement)
         assertEquals("Year", updated.dateRange)
         assertEquals("Week", updated.aggregation)
 
@@ -2923,7 +2923,7 @@ class RoutineRepositoryTest {
             routines.saveGraphPreset("Dangling", listOf(Long.MAX_VALUE), "MaxWeight", "All", "Workout")
         }.isFailure)
         assertTrue(runCatching {
-            routines.saveGraphPreset("Bad metric", listOf(exerciseId), "NotAMetric", "All", "Workout")
+            routines.saveGraphPreset("Bad measurement", listOf(exerciseId), "NotAMeasurement", "All", "Workout")
         }.isFailure)
         assertTrue(runCatching {
             routines.updateGraphPreset(id, "Empty", emptyList(), "MaxWeight", "All", "Workout")

@@ -213,7 +213,7 @@ class GoalRulesTest {
     @Test fun insightQualityExplainsExcludedDataAndLargeHistoryStaysComplete() {
         val large = (0 until 10_000).map { index ->
             entry(1.0, today.plusDays((index / 10).toLong())).copy(id = "large-$index")
-        } + entry(0.0, today).copy(id = "missing", status = MetricEntryStatus.Missing, canonicalValue = null)
+        } + entry(0.0, today).copy(id = "missing", status = MeasurementEntryStatus.Missing, canonicalValue = null)
         val accumulate = goal(type = GoalType.AccumulateTotal, target = 20_000.0).copy(aggregation = GoalAggregation.Sum)
         val insight = buildGoalInsights(accumulate, large)
 
@@ -229,7 +229,7 @@ class GoalRulesTest {
         type: GoalType = GoalType.ReachValue,
         direction: GoalDirection = type.defaultDirection(),
     ) = Goal(
-        id = 1, uuid = "g", metricId = "m", name = "Goal", description = "", area = "",
+        id = 1, uuid = "g", measurementId = "m", name = "Goal", description = "", area = "",
         tags = emptyList(), icon = "◎", type = type,
         dimension = UnitDimension.Unitless, unitId = "unitless", precision = 1,
         baseline = baseline, targetMin = target, targetMax = null, direction = direction,
@@ -240,5 +240,5 @@ class GoalRulesTest {
     )
 
     private fun milestone(weight: Double, completed: Boolean) = GoalMilestone(1, "ms-$weight", 1, "M", 0, weight, completed, null, "", 1, 1)
-    private fun entry(value: Double, date: LocalDate) = MetricEntry("e", "m", value, value, "unitless", MetricEntryStatus.Recorded, date.atStartOfDay(java.time.ZoneOffset.UTC).toInstant(), date, "UTC", 0, MetricSourceType.Manual, null, "", 1, 1)
+    private fun entry(value: Double, date: LocalDate) = MeasurementEntry("e", "m", value, value, "unitless", MeasurementEntryStatus.Recorded, date.atStartOfDay(java.time.ZoneOffset.UTC).toInstant(), date, "UTC", 0, MeasurementSourceType.Manual, null, "", 1, 1)
 }

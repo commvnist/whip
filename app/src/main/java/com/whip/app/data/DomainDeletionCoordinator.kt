@@ -76,7 +76,7 @@ class DomainDeletionCoordinator internal constructor(
         val habit = database.habitDao().getHabit(habitId) ?: return DomainDeletionSummary()
         val links = database.linkDao().getRules().filter { rule ->
             (rule.sourceType == LinkSourceType.Habit.name && rule.sourceEntityId == habitId) ||
-                rule.sourceMetricId == habit.metricId
+                rule.sourceMeasurementId == habit.measurementId
         }
         links.forEach { linkRepository.deleteRule(it.id) }
         val triggers = database.linkDao().getTriggerRules().filter { rule ->
@@ -85,7 +85,7 @@ class DomainDeletionCoordinator internal constructor(
         }
         triggers.forEach { linkRepository.deleteTrigger(it.id) }
         check(database.habitDao().deleteHabit(habitId) == 1) { "Habit no longer exists" }
-        database.measurementDao().deleteMetric(habit.metricId)
+        database.measurementDao().deleteMeasurement(habit.measurementId)
         return DomainDeletionSummary(true, links.size, triggers.size)
     }
 
@@ -169,7 +169,7 @@ class DomainDeletionCoordinator internal constructor(
         }
         impact.linkRuleIds.forEach { linkRepository.deleteRule(it) }
         check(database.goalDao().deleteGoal(goalId) == 1) { "Goal no longer exists" }
-        check(database.measurementDao().deleteMetric(impact.metricId) == 1) {
+        check(database.measurementDao().deleteMeasurement(impact.measurementId) == 1) {
             "Goal progress history changed before it could be deleted"
         }
         return GoalDeletionSummary(
@@ -177,7 +177,7 @@ class DomainDeletionCoordinator internal constructor(
             linkRulesDeleted = impact.linkRuleCount,
             milestonesDeleted = impact.milestoneCount,
             progressEntriesDeleted = impact.progressEntryCount,
-            legacyClosureSnapshotsDeleted = impact.legacyClosureSnapshotCount,
+            closureSnapshotsDeleted = impact.closureSnapshotCount,
             elapsedResetEventsDeleted = impact.elapsedResetEventCount,
             contributionsDeleted = impact.contributionCount,
         )
@@ -502,11 +502,11 @@ class DomainDeletionCoordinator internal constructor(
     private suspend fun buildGoalDeletionImpact(goalId: Long): GoalDeletionImpact {
         val goal = database.goalDao().getGoal(goalId)
             ?: return GoalDeletionImpact(goalId = goalId)
-        val metric = database.measurementDao().getMetric(goal.metricId)
+        val measurement = database.measurementDao().getMeasurement(goal.measurementId)
         val milestones = database.goalDao().getMilestones(goalId)
-        val progressEntries = database.measurementDao().getEntriesForMetric(goal.metricId)
+        val progressEntries = database.measurementDao().getEntriesForMeasurement(goal.measurementId)
         val links = database.linkDao().getRules().filter { rule ->
-            rule.targetGoalId == goalId || rule.sourceMetricId == goal.metricId
+            rule.targetGoalId == goalId || rule.sourceMeasurementId == goal.measurementId
         }
         val linkRuleIds = links.mapTo(linkedSetOf(), LinkRuleEntity::id)
         val linkConditions = links.flatMap { database.linkDao().getRuleConditions(it.id) }
@@ -517,7 +517,7 @@ class DomainDeletionCoordinator internal constructor(
         val contributions = database.linkDao().observeContributionsSnapshot().filter { contribution ->
             contribution.linkRuleId in linkRuleIds || contribution.targetGoalId == goalId
         }
-        val legacyClosureSnapshots = database.goalDao().getClosureSnapshots(goalId)
+        val closureSnapshots = database.goalDao().getClosureSnapshots(goalId)
         val elapsedResetEvents = database.goalDao().getElapsedResetEvents(goalId)
         return GoalDeletionImpact(
             goalId = goalId,
@@ -528,23 +528,23 @@ class DomainDeletionCoordinator internal constructor(
             milestoneCount = milestones.size,
             completedMilestoneCount = milestones.count(GoalMilestoneEntity::completed),
             progressEntryCount = progressEntries.size,
-            legacyClosureSnapshotCount = legacyClosureSnapshots.size,
+            closureSnapshotCount = closureSnapshots.size,
             elapsedResetEventCount = elapsedResetEvents.size,
             linkRuleCount = links.size,
             contributionCount = contributions.size,
             revisionToken = goalDeletionRevision(
                 goal = goal,
-                metric = metric,
+                measurement = measurement,
                 milestones = milestones,
                 progressEntries = progressEntries,
-                legacyClosureSnapshots = legacyClosureSnapshots,
+                closureSnapshots = closureSnapshots,
                 elapsedResetEvents = elapsedResetEvents,
                 links = links,
                 linkConditions = linkConditions,
                 linkConditionChoices = linkConditionChoices,
                 contributions = contributions,
             ),
-            metricId = goal.metricId,
+            measurementId = goal.measurementId,
             linkRuleIds = linkRuleIds,
         )
     }
@@ -904,10 +904,10 @@ class DomainDeletionCoordinator internal constructor(
 
 private fun goalDeletionRevision(
     goal: Any,
-    metric: Any?,
+    measurement: Any?,
     milestones: List<*>,
     progressEntries: List<*>,
-    legacyClosureSnapshots: List<*>,
+    closureSnapshots: List<*>,
     elapsedResetEvents: List<*>,
     links: List<*>,
     linkConditions: List<*>,
@@ -916,11 +916,11 @@ private fun goalDeletionRevision(
 ): String {
     val canonical = buildString {
         append("goal|").append(goal).append('\n')
-        append("metric|").append(metric).append('\n')
+        append("measurement|").append(measurement).append('\n')
         listOf(
             "milestone" to milestones,
             "progress-entry" to progressEntries,
-            "legacy-closure" to legacyClosureSnapshots,
+            "closure" to closureSnapshots,
             "elapsed-reset" to elapsedResetEvents,
             "link" to links,
             "link-condition" to linkConditions,
@@ -1108,12 +1108,12 @@ data class GoalDeletionImpact(
     val milestoneCount: Int = 0,
     val completedMilestoneCount: Int = 0,
     val progressEntryCount: Int = 0,
-    val legacyClosureSnapshotCount: Int = 0,
+    val closureSnapshotCount: Int = 0,
     val elapsedResetEventCount: Int = 0,
     val linkRuleCount: Int = 0,
     val contributionCount: Int = 0,
     val revisionToken: String = "",
-    internal val metricId: String = "",
+    internal val measurementId: String = "",
     internal val linkRuleIds: Set<Long> = emptySet(),
 ) : Serializable
 
@@ -1122,7 +1122,7 @@ data class GoalDeletionSummary(
     val linkRulesDeleted: Int = 0,
     val milestonesDeleted: Int = 0,
     val progressEntriesDeleted: Int = 0,
-    val legacyClosureSnapshotsDeleted: Int = 0,
+    val closureSnapshotsDeleted: Int = 0,
     val elapsedResetEventsDeleted: Int = 0,
     val contributionsDeleted: Int = 0,
     val warnings: List<String> = emptyList(),

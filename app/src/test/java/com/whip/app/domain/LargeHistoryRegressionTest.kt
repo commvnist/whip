@@ -20,12 +20,12 @@ class LargeHistoryRegressionTest {
 
         val goal = latestGoal()
         val measurements = dates.mapIndexed { index, date ->
-            MetricEntry(
-                id = "entry-$index", metricId = goal.metricId,
+            MeasurementEntry(
+                id = "entry-$index", measurementId = goal.measurementId,
                 canonicalValue = index.toDouble(), enteredValue = index.toDouble(),
-                enteredUnitId = "unitless", status = MetricEntryStatus.Recorded,
+                enteredUnitId = "unitless", status = MeasurementEntryStatus.Recorded,
                 timestamp = date.atStartOfDay(ZoneOffset.UTC).toInstant(), localDate = date,
-                zoneId = "UTC", offsetSeconds = 0, sourceType = MetricSourceType.Manual,
+                zoneId = "UTC", offsetSeconds = 0, sourceType = MeasurementSourceType.Manual,
                 sourceId = null, note = "", createdAtMillis = index.toLong(), updatedAtMillis = index.toLong(),
             )
         }
@@ -92,11 +92,11 @@ class LargeHistoryRegressionTest {
         val goal = latestGoal().copy(aggregation = GoalAggregation.Sum, type = GoalType.AccumulateTotal, targetMin = 200_000.0)
         val entries = List(100_000) { index ->
             val date = start.plusDays((index / 10).toLong())
-            MetricEntry(
-                id = "large-entry-$index", metricId = goal.metricId, canonicalValue = 1.0, enteredValue = 1.0,
-                enteredUnitId = "unitless", status = MetricEntryStatus.Recorded,
+            MeasurementEntry(
+                id = "large-entry-$index", measurementId = goal.measurementId, canonicalValue = 1.0, enteredValue = 1.0,
+                enteredUnitId = "unitless", status = MeasurementEntryStatus.Recorded,
                 timestamp = date.atStartOfDay(ZoneOffset.UTC).toInstant().plusSeconds((index % 10).toLong()),
-                localDate = date, zoneId = "UTC", offsetSeconds = 0, sourceType = MetricSourceType.Manual,
+                localDate = date, zoneId = "UTC", offsetSeconds = 0, sourceType = MeasurementSourceType.Manual,
                 sourceId = null, note = "", createdAtMillis = index.toLong(), updatedAtMillis = index.toLong(),
             )
         }
@@ -107,7 +107,7 @@ class LargeHistoryRegressionTest {
     }
 
     private fun dailyHabit() = Habit(
-        id = 1, uuid = "habit", metricId = "habit-metric", name = "Daily", notes = "", area = "", tags = emptyList(),
+        id = 1, uuid = "habit", measurementId = "habit-measurement", name = "Daily", notes = "", area = "", tags = emptyList(),
         icon = "✓", trackingMode = HabitTrackingMode.CheckOff,
         dimension = UnitDimension.Count, unitId = "count", precision = 0, comparison = TargetComparison.AtLeast,
         targetMin = 1.0, targetMax = null, targetPeriod = TargetPeriod.Day, rollingDays = null,
@@ -120,7 +120,7 @@ class LargeHistoryRegressionTest {
     )
 
     private fun latestGoal() = Goal(
-        id = 1, uuid = "goal", metricId = "goal-metric", name = "Trend", description = "", area = "", tags = emptyList(),
+        id = 1, uuid = "goal", measurementId = "goal-measurement", name = "Trend", description = "", area = "", tags = emptyList(),
         icon = "◎", type = GoalType.OpenEndedTrend, dimension = UnitDimension.Unitless,
         unitId = "unitless", precision = 1, baseline = null, targetMin = null, targetMax = null,
         direction = GoalDirection.Neutral, startDate = start, deadline = null, aggregation = GoalAggregation.Latest,

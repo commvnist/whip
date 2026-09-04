@@ -101,9 +101,9 @@ import com.whip.app.domain.TargetComparison
 import com.whip.app.domain.TargetPeriod
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.UnitDefinition
-import com.whip.app.domain.MetricDefinition
-import com.whip.app.domain.MetricSourceType
-import com.whip.app.domain.MetricValueKind
+import com.whip.app.domain.MeasurementDefinition
+import com.whip.app.domain.MeasurementSourceType
+import com.whip.app.domain.MeasurementValueKind
 import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.compactNumericSequence
 import com.whip.app.domain.editableNumericValue
@@ -135,21 +135,21 @@ enum class HabitDestination(val label: String) {
     Insights("Insights"),
 }
 
-internal fun preferredHealthMetricUnitId(
-    metric: MetricDefinition,
+internal fun preferredHealthMeasurementUnitId(
+    measurement: MeasurementDefinition,
     defaults: AppSettings,
     customUnits: List<UnitDefinition>,
 ): String {
-    val preferred = when (metric.dimension) {
+    val preferred = when (measurement.dimension) {
         UnitDimension.Mass -> defaults.massUnitId
         UnitDimension.Distance -> defaults.distanceUnitId
         UnitDimension.Volume -> defaults.volumeUnitId
-        else -> metric.defaultUnitId
+        else -> measurement.defaultUnitId
     }
     val available = BuiltInUnits.all + customUnits
     return available.firstOrNull {
-        it.id == preferred && it.dimension == metric.dimension && !it.archived
-    }?.id ?: metric.defaultUnitId
+        it.id == preferred && it.dimension == measurement.dimension && !it.archived
+    }?.id ?: measurement.defaultUnitId
 }
 
 @Composable
@@ -433,7 +433,7 @@ fun HabitAreaContent(
             defaultWeekStart = viewModel.defaultSettings().defaultHabitWeekStart,
             defaults = viewModel.defaultSettings(),
             customUnits = editorState.customUnits,
-            sourceMetrics = editorState.sourceMetrics,
+            sourceMeasurements = editorState.sourceMeasurements,
             areas = areas,
             defaultAreaId = defaultAreaId,
             onCreateArea = onCreateArea,
@@ -713,7 +713,7 @@ internal fun HabitDayProgress.compactCollectionStatus(): String {
         dayState == HabitDayState.Skipped -> "Skipped · streak protected"
         habit.paused || dayState == HabitDayState.Paused -> "Paused · no check-in expected"
         dayState == HabitDayState.NotScheduled -> "Not scheduled today"
-        habit.sourceMetricId != null -> "Synced · Health Connect"
+        habit.sourceMeasurementId != null -> "Synced · Health Connect"
         habit.trackingMode == HabitTrackingMode.Checklist -> {
             val completedItems = checklistItems.count { it.second }
             "$completedItems/${checklistItems.size} items · $streakLabel"
@@ -891,7 +891,7 @@ fun HabitProgressCard(
         reorderMode -> null
         unavailableForCheckIn -> null
         skipped -> if (compact) {{ ItemPrimaryTextButton("Undo", onUndoSkip) }} else {{ Text("Skipped", color = MaterialTheme.whipColors.warning, fontWeight = FontWeight.SemiBold) }}
-        habit.sourceMetricId != null -> if (compact) null else {{ Text("Synced", color = MaterialTheme.whipColors.success, fontWeight = FontWeight.SemiBold) }}
+        habit.sourceMeasurementId != null -> if (compact) null else {{ Text("Synced", color = MaterialTheme.whipColors.success, fontWeight = FontWeight.SemiBold) }}
         habit.trackingMode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist) -> {{
             WhipCompletionCheckbox(
                 checked = item.successful == true,
@@ -1056,7 +1056,7 @@ fun HabitProgressCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            if (!skipped && !unavailableForCheckIn && habit.sourceMetricId == null && habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal)) {
+            if (!skipped && !unavailableForCheckIn && habit.sourceMeasurementId == null && habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal)) {
                 val quickValues = (listOf(habit.quickIncrement) + habit.quickActions)
                     .filter { it.isFinite() && it > 0.0 }
                     .distinct()
@@ -1182,7 +1182,7 @@ fun HabitProgressCard(
                     },
                 )
             }
-            if (habit.sourceMetricId != null) {
+            if (habit.sourceMeasurementId != null) {
                 Text(
                     "Read-only source: Health Connect. Updates automatically.",
                     style = if (compact) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodySmall,
@@ -1194,7 +1194,7 @@ fun HabitProgressCard(
 }
 
 fun quickHabitAction(item: HabitDayProgress, vm: HabitViewModel, openNumeric: () -> Unit) {
-    if (item.habit.sourceMetricId != null) return
+    if (item.habit.sourceMeasurementId != null) return
     when (item.habit.trackingMode) {
         HabitTrackingMode.CheckOff -> vm.setCheckOff(item.habit.id, item.date, item.successful != true)
         HabitTrackingMode.Count, HabitTrackingMode.Decimal -> vm.log(item.habit.id, item.habit.quickIncrement)
@@ -1850,7 +1850,7 @@ private fun Habit.toEditorDraft(checklist: List<HabitChecklistItemDraft>) = Habi
     weekStart = weekStart,
     checklistItems = checklist,
     autoCompleteFromItems = autoCompleteFromItems,
-    sourceMetricId = sourceMetricId,
+    sourceMeasurementId = sourceMeasurementId,
 )
 
 @Composable
@@ -1865,7 +1865,7 @@ internal fun HabitEditorDialog(
     defaultWeekStart: DayOfWeek = DayOfWeek.MONDAY,
     defaults: AppSettings = AppSettings(),
     customUnits: List<UnitDefinition> = emptyList(),
-    sourceMetrics: List<MetricDefinition> = emptyList(),
+    sourceMeasurements: List<MeasurementDefinition> = emptyList(),
     onRequestNotificationPermission: () -> Unit = {},
     saving: Boolean = false,
     persistenceError: String? = null,
@@ -1936,7 +1936,7 @@ internal fun HabitEditorDialog(
     var unitId by rememberSaveable(editorKey) { mutableStateOf(initial.unitId) }
     var dimension by rememberSaveable(editorKey) { mutableStateOf(initial.dimension) }
     var precision by rememberSaveable(editorKey) { mutableStateOf(initial.precision.toString()) }
-    var sourceMetricId by rememberSaveable(editorKey) { mutableStateOf(initial.sourceMetricId) }
+    var sourceMeasurementId by rememberSaveable(editorKey) { mutableStateOf(initial.sourceMeasurementId) }
     var checklistDrafts by rememberSaveable(editorKey) {
         mutableStateOf<List<HabitChecklistItemDraft>>(
             initial.checklistItems.map { draft ->
@@ -1948,7 +1948,7 @@ internal fun HabitEditorDialog(
     var autoCompleteFromItems by rememberSaveable(editorKey) {
         mutableStateOf(initial.autoCompleteFromItems)
     }
-    val quickAddsEnabled = sourceMetricId == null && mode.supportsQuickAddAmounts()
+    val quickAddsEnabled = sourceMeasurementId == null && mode.supportsQuickAddAmounts()
     val quickActionResult = parseNumericSequence(
         specification = quickActions,
         rangeIncrement = quickIncrement.toWhipDoubleOrNull(),
@@ -1988,7 +1988,7 @@ internal fun HabitEditorDialog(
         checklistItems = checklistDrafts.filter { it.name.isNotBlank() }
             .mapIndexed { index, item -> item.copy(name = item.name.trim(), position = index) },
         autoCompleteFromItems = autoCompleteFromItems,
-        sourceMetricId = sourceMetricId,
+        sourceMeasurementId = sourceMeasurementId,
     ).withConfigurationSemantics()
     val rawFieldProblems = buildList {
         if (
@@ -2003,7 +2003,7 @@ internal fun HabitEditorDialog(
             add("Schedule interval must be a positive whole number")
         }
         if (
-            sourceMetricId == null &&
+            sourceMeasurementId == null &&
             mode !in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist, HabitTrackingMode.Rating) &&
             precision.toIntOrNull() == null
         ) add("Decimal places must be between 0 and 6")
@@ -2059,7 +2059,7 @@ internal fun HabitEditorDialog(
         name, notes, areaId, area, tags, icon, mode, comparison, targetMin, targetMax,
         targetPeriod, schedule, interval, weekdays.sortedBy { it.value }, flexible, rollingDays,
         quickIncrement, quickActions, reminders, weekdayReminders, endType,
-        endDate, endValue, weekStart, unitId, dimension, precision, sourceMetricId,
+        endDate, endValue, weekStart, unitId, dimension, precision, sourceMeasurementId,
         checklistDrafts.map { "${it.id}:${it.uuid}:${it.position}:${it.name}" }, autoCompleteFromItems,
     ).joinToString("\u001f")
     val initialFingerprint by rememberSaveable(editorKey) { mutableStateOf(editorFingerprint) }
@@ -2117,22 +2117,22 @@ internal fun HabitEditorDialog(
                         onRemoveSavedEmoji = onRemoveSavedIdentityEmoji,
                     )
                 }
-                if (sourceMetrics.isNotEmpty()) item {
+                if (sourceMeasurements.isNotEmpty()) item {
                     EnumDropdown(
                         "Data source",
-                        listOf<MetricDefinition?>(null) + sourceMetrics,
-                        sourceMetrics.firstOrNull { it.id == sourceMetricId },
-                        { metric -> metric?.let { "Health Connect · ${it.name}" } ?: "Manual Check-Ins" },
+                        listOf<MeasurementDefinition?>(null) + sourceMeasurements,
+                        sourceMeasurements.firstOrNull { it.id == sourceMeasurementId },
+                        { measurement -> measurement?.let { "Health Connect · ${it.name}" } ?: "Manual Check-Ins" },
                         titleCaseValues = false,
                     ) { selected ->
-                        sourceMetricId = selected?.id
+                        sourceMeasurementId = selected?.id
                         if (selected != null) {
                             dimension = selected.dimension
-                            unitId = preferredHealthMetricUnitId(selected, defaults, customUnits)
+                            unitId = preferredHealthMeasurementUnitId(selected, defaults, customUnits)
                             precision = selected.precision.toString()
                             mode = when (selected.valueKind) {
-                                MetricValueKind.Integer -> HabitTrackingMode.Count
-                                MetricValueKind.Duration -> HabitTrackingMode.Duration
+                                MeasurementValueKind.Integer -> HabitTrackingMode.Count
+                                MeasurementValueKind.Duration -> HabitTrackingMode.Duration
                                 else -> HabitTrackingMode.Decimal
                             }
                         }
@@ -2154,7 +2154,7 @@ internal fun HabitEditorDialog(
                         HabitTrackingMode.entries.forEach { selected ->
                             WhipFilterChip(
                                 selected = mode == selected,
-                                enabled = sourceMetricId == null,
+                                enabled = sourceMeasurementId == null,
                                 onClick = {
                                     mode = selected
                                     when (selected) {
@@ -2173,7 +2173,7 @@ internal fun HabitEditorDialog(
                     AvailabilityNotice(
                         label = "Tracking mode",
                         availability = ControlAvailability(
-                            enabled = sourceMetricId == null,
+                            enabled = sourceMeasurementId == null,
                             unavailableExplanation = "Health Connect determines this value. Set Data Source to Manual Check-Ins to change it.",
                         ),
                     )
@@ -2294,7 +2294,7 @@ internal fun HabitEditorDialog(
                         )
                     }
                 } else {
-                    if (sourceMetricId == null && mode != HabitTrackingMode.Rating) {
+                    if (sourceMeasurementId == null && mode != HabitTrackingMode.Rating) {
                         item {
                             Text("Unit", fontWeight = FontWeight.Bold)
                             Text(
@@ -2783,7 +2783,7 @@ internal fun HabitActionsDialog(
         mutableStateOf(if (item.habit.archived) HabitDetailSection.More else HabitDetailSection.Today)
     }
     val skipAvailable = item.dayState == HabitDayState.Pending &&
-        item.habit.sourceMetricId == null &&
+        item.habit.sourceMeasurementId == null &&
         item.habit.scheduleType !in setOf(
             HabitScheduleType.FlexibleTimesPerWeek,
             HabitScheduleType.FlexibleTimesPerMonth,
@@ -2795,7 +2795,7 @@ internal fun HabitActionsDialog(
             onQuick,
         )
         item.habit.archived -> EntityInspectorPrimaryAction("restore", "Restore", onArchive)
-        item.habit.sourceMetricId != null -> null
+        item.habit.sourceMeasurementId != null -> null
         item.habit.paused -> EntityInspectorPrimaryAction("resume", "Resume Habit", onPause)
         item.dayState == HabitDayState.Paused -> null
         item.dayState == HabitDayState.Skipped -> EntityInspectorPrimaryAction("undo-skip", "Undo Today's Skip", onUndoSkip)
@@ -2822,8 +2822,8 @@ internal fun HabitActionsDialog(
         onEdit = onEdit,
         editLabel = "Edit Habit",
         modifier = modifier,
-        legacySurfaceTag = "habit-detail-surface",
-        legacySectionTagPrefix = "habit-detail-section",
+        connectedSurfaceTag = "habit-detail-surface",
+        connectedSectionTagPrefix = "habit-detail-section",
         primaryAction = primaryAction,
         inputBlocked = mutationSaving,
         inputBlockedLabel = "Updating Habit",
@@ -2854,7 +2854,7 @@ internal fun HabitActionsDialog(
                                     else -> "${formatHabitValue(item.value, item.habit.precision)} logged today."
                                 },
                             )
-                            if (item.habit.trackingMode == HabitTrackingMode.Duration && item.habit.sourceMetricId == null) {
+                            if (item.habit.trackingMode == HabitTrackingMode.Duration && item.habit.sourceMeasurementId == null) {
                                 EntityInspectorAction(
                                     id = "enter-duration-manually",
                                     label = "Enter Duration Manually",
@@ -2883,7 +2883,7 @@ internal fun HabitActionsDialog(
                         }
                     }
                     HabitDetailSection.History -> {
-                        if (item.habit.sourceMetricId == null) {
+                        if (item.habit.sourceMeasurementId == null) {
                             EntityInspectorAction(
                                 id = "add-past-entry",
                                 label = item.habit.pastCheckInActionLabel(),
@@ -3193,7 +3193,7 @@ internal fun Habit.historyAmountLabel(unitId: String = this.unitId, optional: Bo
     }
 }
 
-internal fun HabitLog.isUserEditable(): Boolean = id > 0L && sourceType == MetricSourceType.Manual
+internal fun HabitLog.isUserEditable(): Boolean = id > 0L && sourceType == MeasurementSourceType.Manual
 
 internal fun HabitLog.activityTitle(habit: Habit): String {
     if (status == HabitLogStatus.Failed && value == null) return "Below target"

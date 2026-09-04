@@ -23,9 +23,9 @@ templates, copies prior workouts, and can create exercises or machines inline
 without losing the draft. Explicit load meaning keeps total, per-hand, per-side,
 bodyweight, assisted, displayed-mass, and ordinal-machine history honest.
 
-First-class productivity Areas organize Tasks, Habits, and Goals into durable,
+First-class productivity Areas organize Tasks, Habits, Goals, and Tracks into durable,
 user-named contexts. A global All/Unassigned/Area scope
-stays consistent across Home, the three productivity destinations, Search, and
+stays consistent across Home, the four productivity destinations, Search, and
 Review; Gym remains explicitly unscoped. Areas have stable identities, colors,
 ordering, archive/merge management, permanent deletion with preserve-or-delete
 item choices, editor pickers, and tappable record badges.

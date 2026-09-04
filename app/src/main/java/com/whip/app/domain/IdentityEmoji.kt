@@ -67,7 +67,7 @@ val IDENTITY_EMOJI_PRESETS: List<IdentityEmojiPreset> = listOf(
     IdentityEmojiPreset("🌅", "Recovery & Sobriety", "sober sobriety recovery abstinence reset streak"),
     IdentityEmojiPreset("💻", "Computer Work", "laptop desktop online admin"),
     IdentityEmojiPreset("🤝", "Meetings", "meet collaborate networking one on one"),
-    IdentityEmojiPreset("📊", "Reports & Analytics", "spreadsheet metrics review chart data"),
+    IdentityEmojiPreset("📊", "Reports & Analytics", "spreadsheet measurements review chart data"),
     IdentityEmojiPreset("📋", "Checklist & Tracking", "list log record entries inventory track"),
     IdentityEmojiPreset("🗂️", "Organize Files", "folders paperwork filing documents"),
     IdentityEmojiPreset("📌", "Priority", "important pin remember"),
@@ -148,34 +148,14 @@ fun normalizeCustomIdentityEmojis(values: Iterable<CustomIdentityEmoji>): List<C
     .distinctBy(CustomIdentityEmoji::emoji)
     .distinctBy { choice -> choice.name.lowercase(Locale.ROOT) }
 
-private val legacyIdentityEmoji = mapOf(
-    "✓" to "✅",
-    "○" to "⭕",
-    "◆" to "🔹",
-    "◎" to "🎯",
-    "⚑" to "🚩",
-    "✚" to "💊",
-    "◉" to "💧",
-    "▤" to "📋",
-    "★" to "⭐",
-    "⏱" to "⏱️",
-    "◈" to "⚖️",
-    "$" to "💰",
-    "↗" to "📈",
-    "◫" to "🗂️",
-    "✦" to "✨",
-    "♟" to "♟️",
-)
-
 /**
- * Returns a valid identity emoji while converting the pre-release symbol set
- * and rejecting arbitrary text. This is deliberately independent of UI so
- * repositories, restores, migrations, and editors share the same invariant.
+ * Returns a valid identity emoji and rejects arbitrary text. This is
+ * deliberately independent of UI so repositories, restores, and editors
+ * share the same invariant.
  */
 fun String.normalizedIdentityEmoji(defaultEmoji: String): String {
     val trimmed = trim()
-    val migrated = legacyIdentityEmoji[trimmed] ?: trimmed
-    return migrated.takeIf(String::isIdentityEmoji) ?: defaultEmoji
+    return trimmed.takeIf(String::isIdentityEmoji) ?: defaultEmoji
 }
 
 /**
@@ -186,7 +166,6 @@ fun String.normalizedIdentityEmoji(defaultEmoji: String): String {
 fun String.isIdentityEmoji(): Boolean {
     if (isBlank()) return false
     val trimmed = trim()
-    if (trimmed in legacyIdentityEmoji) return false
     val codePoints = trimmed.codePoints().toArray()
     if (codePoints.isEmpty() || codePoints.size > 16) return false
     val hasKeycap = 0x20E3 in codePoints

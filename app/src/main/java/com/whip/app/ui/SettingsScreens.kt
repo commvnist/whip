@@ -1645,7 +1645,7 @@ internal fun SettingsContent(
             WhipSettingsSectionCard {
                 Text("Local Health Connect Copies", fontWeight = FontWeight.Bold)
                 Text(
-                    "Whip currently stores ${state.healthImportedEntryCount} Health Connect ${if (state.healthImportedEntryCount == 1) "record" else "records"}.${if (settings.healthConnectDeletionPending) " A previous deletion is pending safe recovery." else ""} Deleting them keeps your metric definitions, selected categories, Android permissions, provider records, other Whip data, and existing backup files. Linked Habits, goals, and trends may change. Re-enabling sync can copy provider data again.",
+                    "Whip currently stores ${state.healthImportedEntryCount} Health Connect ${if (state.healthImportedEntryCount == 1) "record" else "records"}.${if (settings.healthConnectDeletionPending) " A previous deletion is pending safe recovery." else ""} Deleting them keeps your measurement definitions, selected categories, Android permissions, provider records, other Whip data, and existing backup files. Linked Habits, goals, and trends may change. Re-enabling sync can copy provider data again.",
                     style = MaterialTheme.typography.bodySmall,
                 )
                 WhipOutlinedButton(
@@ -1799,7 +1799,7 @@ internal fun SettingsContent(
             message = "This turns off future Health Connect sync and deletes ${state.healthImportedEntryCount} local ${if (state.healthImportedEntryCount == 1) "record" else "records"} from Whip.",
             impacts = listOf(
                 "Health Connect provider records and Android permissions are not changed.",
-                "Metric definitions, selected categories, other Whip data, and existing backup files are kept.",
+                "Measurement definitions, selected categories, other Whip data, and existing backup files are kept.",
                 "Linked Habits, goals, and trends may change; re-enabling sync can copy provider data again.",
             ),
             confirmLabel = "Turn Off Sync and Delete Copies",

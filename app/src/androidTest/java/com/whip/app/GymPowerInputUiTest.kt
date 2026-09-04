@@ -165,7 +165,7 @@ class GymPowerInputUiTest {
             trainingMaxIncreaseEligible = false,
             mainWorkScheme = RoutineMainWorkScheme.ClassicPrSet,
             supplementalScheme = RoutineSupplementalScheme.FirstSetLast,
-            placementKind = RoutinePlacementKind.MainLift,
+            placementKind = RoutinePlacementKind.MainExercise,
             jokerSetsEnabled = true,
         )
         val plannedSet = RoutineSet(
@@ -210,7 +210,7 @@ class GymPowerInputUiTest {
         assertFalse(reconstructedPlacement.trainingMaxIncreaseEligible)
         assertEquals(RoutineMainWorkScheme.ClassicPrSet, reconstructedPlacement.mainWorkScheme)
         assertEquals(RoutineSupplementalScheme.FirstSetLast, reconstructedPlacement.supplementalScheme)
-        assertEquals(RoutinePlacementKind.MainLift, reconstructedPlacement.placementKind)
+        assertEquals(RoutinePlacementKind.MainExercise, reconstructedPlacement.placementKind)
         assertTrue(reconstructedPlacement.jokerSetsEnabled)
         assertEquals(4, reconstructed.days.single().progressionIndex)
         assertEquals(RoutineProgramKind.FiveThreeOne, reconstructed.program?.kind)
@@ -1479,7 +1479,7 @@ class GymPowerInputUiTest {
     }
 
     @Test
-    fun quickSetShowsOnlyOneEffortScaleWhenLegacyPreferencesEnableBoth() {
+    fun quickSetShowsOnlyOneEffortScaleWhenConnectedPreferencesEnableBoth() {
         val exercise = testExercise()
         val workoutExercise = testWorkoutExercise(exercise)
         val set = testWorkoutSet(4, workoutExercise.id)

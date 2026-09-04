@@ -27,7 +27,7 @@ import com.whip.app.data.HabitEntity
 import com.whip.app.data.HabitLogEntity
 import com.whip.app.data.HabitPauseEntity
 import com.whip.app.data.HabitSkipEntity
-import com.whip.app.data.MetricEntryEntity
+import com.whip.app.data.MeasurementEntryEntity
 import com.whip.app.data.UnitDefinitionEntity
 import com.whip.app.core.SettingsRepository
 import com.whip.app.core.adjustForQuietHours
@@ -43,8 +43,8 @@ import com.whip.app.domain.HabitPause
 import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitSkip
 import com.whip.app.domain.HabitTrackingMode
-import com.whip.app.domain.MetricSourceType
-import com.whip.app.domain.MetricEntryStatus
+import com.whip.app.domain.MeasurementSourceType
+import com.whip.app.domain.MeasurementEntryStatus
 import com.whip.app.domain.TargetComparison
 import com.whip.app.domain.TargetPeriod
 import com.whip.app.domain.UnitDefinition
@@ -80,17 +80,17 @@ class HabitReminderScheduler(context: Context, private val settingsRepository: S
 
     private suspend fun syncAllInternal() = dao.getReminderHabitIds().forEach { syncHabitCoordinated(it) }
 
-    suspend fun syncSourceMetric(sourceMetricId: String, allowDuringRecovery: Boolean = false) {
-        if (sourceMetricId.isBlank()) return
+    suspend fun syncSourceMeasurement(sourceMeasurementId: String, allowDuringRecovery: Boolean = false) {
+        if (sourceMeasurementId.isBlank()) return
         if (!allowDuringRecovery) {
-            app.withUserDataAccess { syncSourceMetricInternal(sourceMetricId) }
+            app.withUserDataAccess { syncSourceMeasurementInternal(sourceMeasurementId) }
             return
         }
-        syncSourceMetricInternal(sourceMetricId)
+        syncSourceMeasurementInternal(sourceMeasurementId)
     }
 
-    private suspend fun syncSourceMetricInternal(sourceMetricId: String) {
-        dao.getReminderHabitIdsForSourceMetric(sourceMetricId).forEach { syncHabitCoordinated(it) }
+    private suspend fun syncSourceMeasurementInternal(sourceMeasurementId: String) {
+        dao.getReminderHabitIdsForSourceMeasurement(sourceMeasurementId).forEach { syncHabitCoordinated(it) }
     }
 
     suspend fun syncUnit(unitId: String, allowDuringRecovery: Boolean = false) {
@@ -356,7 +356,7 @@ internal data class HabitReminderSnapshot(
         habit.endValue,
         habit.quickIncrement,
         habit.weekStart,
-        habit.sourceMetricId,
+        habit.sourceMeasurementId,
         reminderMinutes.joinToString(","),
         weekdayReminderMinutes.toSortedMap(compareBy { it.value }).entries.joinToString(";") {
             "${it.key.name}=${it.value.joinToString(",")}"
@@ -424,21 +424,21 @@ private suspend fun loadHabitReminderSnapshot(
         runCatching(row::toReminderDomain).getOrNull() ?: return@withTransaction null
     }
     val targetCustomUnit = customUnits.firstOrNull { it.id == habit.unitId }
-    val sourceLogs = if (habit.sourceMetricId == null) {
+    val sourceLogs = if (habit.sourceMeasurementId == null) {
         emptyList()
     } else {
         val targetUnit = com.whip.app.domain.BuiltInUnits.get(habit.unitId) ?: targetCustomUnit
             ?: return@withTransaction null
-        database.measurementDao().getEntriesForMetric(habit.sourceMetricId)
+        database.measurementDao().getEntriesForMeasurement(habit.sourceMeasurementId)
             .mapNotNull { row ->
-                when (runCatching { MetricEntryStatus.valueOf(row.status) }.getOrNull()
+                when (runCatching { MeasurementEntryStatus.valueOf(row.status) }.getOrNull()
                     ?: return@withTransaction null) {
-                    MetricEntryStatus.Missing,
-                    MetricEntryStatus.Skipped,
-                    MetricEntryStatus.Excused,
+                    MeasurementEntryStatus.Missing,
+                    MeasurementEntryStatus.Skipped,
+                    MeasurementEntryStatus.Excused,
                     -> null
-                    MetricEntryStatus.Recorded,
-                    MetricEntryStatus.Failed,
+                    MeasurementEntryStatus.Recorded,
+                    MeasurementEntryStatus.Failed,
                     -> runCatching { row.toSourceHabitLogOrNull(habit, targetUnit) }.getOrNull()
                         ?: return@withTransaction null
                 }
@@ -456,16 +456,16 @@ private suspend fun loadHabitReminderSnapshot(
     )
 }
 
-private fun MetricEntryEntity.toSourceHabitLogOrNull(
+private fun MeasurementEntryEntity.toSourceHabitLogOrNull(
     habit: Habit,
     targetUnit: UnitDefinition,
 ): HabitLog? {
-    val status = when (runCatching { MetricEntryStatus.valueOf(status) }.getOrNull()) {
-        MetricEntryStatus.Recorded -> HabitLogStatus.Recorded
-        MetricEntryStatus.Failed -> HabitLogStatus.Failed
+    val status = when (runCatching { MeasurementEntryStatus.valueOf(status) }.getOrNull()) {
+        MeasurementEntryStatus.Recorded -> HabitLogStatus.Recorded
+        MeasurementEntryStatus.Failed -> HabitLogStatus.Failed
         else -> return null
     }
-    val sourceType = runCatching { MetricSourceType.valueOf(sourceType) }.getOrNull() ?: return null
+    val sourceType = runCatching { MeasurementSourceType.valueOf(sourceType) }.getOrNull() ?: return null
     val value = when {
         enteredValue != null && enteredUnitId == habit.unitId -> enteredValue
         canonicalValue != null -> targetUnit.fromCanonical(canonicalValue)
@@ -474,7 +474,7 @@ private fun MetricEntryEntity.toSourceHabitLogOrNull(
     val stable = ("${habit.id}:$id".hashCode().toLong() and 0x7fff_ffffL).let { if (it == 0L) -1L else -it }
     return HabitLog(
         id = stable,
-        uuid = "metric:${habit.id}:$id",
+        uuid = "measurement:${habit.id}:$id",
         habitId = habit.id,
         value = value,
         canonicalValue = canonicalValue,
@@ -487,7 +487,7 @@ private fun MetricEntryEntity.toSourceHabitLogOrNull(
         note = note,
         sourceType = sourceType,
         sourceId = sourceId,
-        metricEntryId = id,
+        measurementEntryId = id,
         createdAtMillis = createdAtMillis,
         updatedAtMillis = updatedAtMillis,
     )
@@ -646,7 +646,7 @@ object HabitReminderNotifications {
             .setAutoCancel(true).setCategory(NotificationCompat.CATEGORY_REMINDER)
             .apply {
                 val actionToken = System.currentTimeMillis()
-                if (habit.sourceMetricId == null && habit.trackingMode == "CheckOff") {
+                if (habit.sourceMeasurementId == null && habit.trackingMode == "CheckOff") {
                     addAction(
                         R.drawable.ic_notification,
                         "Mark done",
@@ -668,7 +668,7 @@ object HabitReminderNotifications {
                         ),
                     )
                 } else if (
-                    habit.sourceMetricId == null &&
+                    habit.sourceMeasurementId == null &&
                     habit.trackingMode in setOf("Count", "Decimal")
                 ) {
                     addAction(
@@ -815,7 +815,7 @@ private suspend fun WhipApplication.handleHabitNotificationAction(
                             habitId,
                             increment,
                             date = logicalDate,
-                            sourceType = MetricSourceType.Habit,
+                            sourceType = MeasurementSourceType.Habit,
                             sourceId = actionId,
                         )
                         HabitNotificationAction.Snooze -> error("Snooze is handled without a database mutation")
@@ -902,10 +902,10 @@ internal suspend fun WhipApplication.isCurrentHabitNotificationAction(
 
     return when (action) {
         HabitNotificationAction.Complete ->
-            snapshot.habit.trackingMode == HabitTrackingMode.CheckOff && snapshot.habit.sourceMetricId == null
+            snapshot.habit.trackingMode == HabitTrackingMode.CheckOff && snapshot.habit.sourceMeasurementId == null
         HabitNotificationAction.Increment ->
             snapshot.habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal) &&
-                snapshot.habit.sourceMetricId == null && increment.isFinite() && increment > 0.0 &&
+                snapshot.habit.sourceMeasurementId == null && increment.isFinite() && increment > 0.0 &&
                 increment == snapshot.habit.quickIncrement
         HabitNotificationAction.Snooze -> true
     }
@@ -928,7 +928,7 @@ private fun HabitEntity.toReminderDomain(
     reminderMinutes: List<Int>,
     weekdayReminderMinutes: Map<DayOfWeek, List<Int>>,
 ) = Habit(
-    id, uuid, metricId, name, notes, areaId, area,
+    id, uuid, measurementId, name, notes, areaId, area,
     tagsCsv.split(',').map(String::trim).filter(String::isNotBlank), icon,
     HabitTrackingMode.valueOf(trackingMode), UnitDimension.valueOf(dimension), unitId,
     precision, TargetComparison.valueOf(comparison), targetMin, targetMax,
@@ -940,13 +940,13 @@ private fun HabitEntity.toReminderDomain(
     reminderMinutes,
     weekdayReminderMinutes, DayOfWeek.valueOf(weekStart),
     timerStartedAtMillis, pinned, position, archived, paused, createdAtMillis, updatedAtMillis,
-    sourceMetricId, autoCompleteFromItems,
+    sourceMeasurementId, autoCompleteFromItems,
 )
 
 private fun HabitLogEntity.toReminderDomain() = HabitLog(
     id, uuid, habitId, value, canonicalValue, enteredUnitId, HabitLogStatus.valueOf(status),
     Instant.ofEpochMilli(timestampMillis), LocalDate.ofEpochDay(localEpochDay), zoneId,
-    offsetSeconds, note, MetricSourceType.valueOf(sourceType), sourceId, metricEntryId,
+    offsetSeconds, note, MeasurementSourceType.valueOf(sourceType), sourceId, measurementEntryId,
     createdAtMillis, updatedAtMillis,
 )
 

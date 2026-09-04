@@ -97,9 +97,9 @@ import com.whip.app.domain.withTypeSemantics
 import com.whip.app.domain.ElapsedDisplayUnit
 import com.whip.app.domain.elapsedCounter
 import com.whip.app.domain.DEFAULT_GOAL_EMOJI
-import com.whip.app.domain.MetricEntry
-import com.whip.app.domain.MetricDefinition
-import com.whip.app.domain.MetricSourceType
+import com.whip.app.domain.MeasurementEntry
+import com.whip.app.domain.MeasurementDefinition
+import com.whip.app.domain.MeasurementSourceType
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.BuiltInUnits
@@ -1976,7 +1976,7 @@ internal fun GoalEditorDialog(
 internal fun GoalMeasurementDialog(
     projection: GoalProjection,
     today: LocalDate,
-    entry: MetricEntry?,
+    entry: MeasurementEntry?,
     customUnits: List<UnitDefinition> = emptyList(),
     onDismiss: () -> Unit,
     onRecord: (Double, LocalDate, String) -> Unit,
@@ -2205,9 +2205,9 @@ internal fun GoalPermanentDeleteDialog(
                             if (reviewed.milestoneCount == 1) " (${reviewed.completedMilestoneCount} completed)"
                             else "s (${reviewed.completedMilestoneCount} completed)",
                     )
-                    if (reviewed.legacyClosureSnapshotCount > 0) Text(
-                        "• ${reviewed.legacyClosureSnapshotCount} historical completion or abandonment snapshot" +
-                            if (reviewed.legacyClosureSnapshotCount == 1) "" else "s",
+                    if (reviewed.closureSnapshotCount > 0) Text(
+                        "• ${reviewed.closureSnapshotCount} historical completion or abandonment snapshot" +
+                            if (reviewed.closureSnapshotCount == 1) "" else "s",
                     )
                     if (reviewed.elapsedResetEventCount > 0) Text(
                         "• ${reviewed.elapsedResetEventCount} timer reset history event" +
@@ -2267,7 +2267,7 @@ internal fun GoalActionsDialog(
     nowMillis: Long,
     customUnits: List<UnitDefinition> = emptyList(),
     onDismiss: () -> Unit,
-    onEditMeasurement: (MetricEntry) -> Unit,
+    onEditMeasurement: (MeasurementEntry) -> Unit,
     onRecordProgress: () -> Unit,
     onResetElapsed: () -> Unit,
     onEdit: () -> Unit,
@@ -2315,8 +2315,8 @@ internal fun GoalActionsDialog(
         onEdit = onEdit,
         editLabel = "Edit Goal",
         modifier = modifier,
-        legacySurfaceTag = "goal-detail-surface",
-        legacySectionTagPrefix = "goal-detail-section",
+        connectedSurfaceTag = "goal-detail-surface",
+        connectedSectionTagPrefix = "goal-detail-section",
         primaryAction = primaryAction,
         inputBlocked = mutationSaving,
         inputBlockedLabel = "Updating Goal",
@@ -2581,7 +2581,7 @@ private fun GoalProjection.inspectorOutcome(
     else -> "Ready to begin"
 }
 
-internal fun MetricEntry.historyTitle(customUnits: List<UnitDefinition> = emptyList()): String {
+internal fun MeasurementEntry.historyTitle(customUnits: List<UnitDefinition> = emptyList()): String {
     val valueLabel = enteredValue?.let(::editableNumericValue) ?: status.activityLabel()
     val unit = enteredUnitId?.goalUnitLabel(customUnits).orEmpty()
     return buildString {
@@ -2590,10 +2590,10 @@ internal fun MetricEntry.historyTitle(customUnits: List<UnitDefinition> = emptyL
     }
 }
 
-internal fun MetricEntry.historySupportingText(): String = buildList {
+internal fun MeasurementEntry.historySupportingText(): String = buildList {
     add(localDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
     note.takeIf(String::isNotBlank)?.let(::add)
-    if (sourceType !in setOf(MetricSourceType.Manual, MetricSourceType.Goal)) {
+    if (sourceType !in setOf(MeasurementSourceType.Manual, MeasurementSourceType.Goal)) {
         sourceType.activityAttribution()?.let(::add)
     }
 }.joinToString(" · ")
@@ -2654,8 +2654,8 @@ private fun formatGoalDuration(durationMillis: Long): String {
     }.joinToString(" ")
 }
 
-internal fun MetricEntry.isUserEditableGoalUpdate(): Boolean =
-    sourceType in setOf(MetricSourceType.Manual, MetricSourceType.Goal)
+internal fun MeasurementEntry.isUserEditableGoalUpdate(): Boolean =
+    sourceType in setOf(MeasurementSourceType.Manual, MeasurementSourceType.Goal)
 
 @Composable
 private fun GoalLineChart(values: List<Double>, description: String) {

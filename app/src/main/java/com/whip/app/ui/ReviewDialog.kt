@@ -51,7 +51,7 @@ import com.whip.app.domain.isScheduledOn
 import com.whip.app.domain.outcomeForPeriod
 import com.whip.app.domain.successfulPeriodOutcomeDates
 import com.whip.app.domain.goalOutcomeScoreOnDate
-import com.whip.app.domain.MetricEntryStatus
+import com.whip.app.domain.MeasurementEntryStatus
 import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.domain.pearsonCorrelation
 import java.time.Instant

@@ -141,7 +141,7 @@ class HabitRulesTest {
             ).validationErrors().any { it.startsWith("Quick ") },
         )
         assertFalse(
-            invalidQuickAdds.copy(sourceMetricId = "health-steps").validationErrors().any { it.startsWith("Quick ") },
+            invalidQuickAdds.copy(sourceMeasurementId = "health-steps").validationErrors().any { it.startsWith("Quick ") },
         )
     }
 
@@ -392,7 +392,7 @@ class HabitRulesTest {
         weekdays: Set<DayOfWeek> = emptySet(),
         flexible: Int? = null,
     ) = Habit(
-        id = 1, uuid = "habit", metricId = "metric", name = "Habit", notes = "", area = "", tags = emptyList(), icon = "✓",
+        id = 1, uuid = "habit", measurementId = "measurement", name = "Habit", notes = "", area = "", tags = emptyList(), icon = "✓",
         trackingMode = HabitTrackingMode.Count,
         dimension = UnitDimension.Count, unitId = "count", precision = 0,
         comparison = comparison, targetMin = min, targetMax = max, targetPeriod = TargetPeriod.Day,
@@ -419,9 +419,9 @@ class HabitRulesTest {
         zoneId = "UTC",
         offsetSeconds = 0,
         note = "",
-        sourceType = MetricSourceType.Workout,
+        sourceType = MeasurementSourceType.Workout,
         sourceId = "workout-$id",
-        metricEntryId = "entry-$id",
+        measurementEntryId = "entry-$id",
         createdAtMillis = id,
         updatedAtMillis = id,
     )

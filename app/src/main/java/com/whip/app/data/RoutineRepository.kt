@@ -58,8 +58,8 @@ import com.whip.app.domain.effectiveLoadKg
 import com.whip.app.domain.paceSecondsPerKilometre
 import com.whip.app.domain.speedMetresPerSecond
 import com.whip.app.domain.volumeKg
-import com.whip.app.domain.balancedOncePerLiftDayOwners
-import com.whip.app.domain.FIVE_THREE_ONE_ONCE_PER_LIFT_PROTOCOL_REVISION
+import com.whip.app.domain.balancedOncePerExerciseDayOwners
+import com.whip.app.domain.FIVE_THREE_ONE_ONCE_PER_EXERCISE_PROTOCOL_REVISION
 import java.time.ZoneId
 import kotlin.math.round
 import kotlinx.coroutines.flow.Flow
@@ -89,7 +89,7 @@ interface RoutineRepository {
     suspend fun saveGraphPreset(
         name: String,
         exerciseIds: List<Long>,
-        metric: String,
+        measurement: String,
         dateRange: String,
         aggregation: String,
     ): Long
@@ -97,7 +97,7 @@ interface RoutineRepository {
         id: Long,
         name: String,
         exerciseIds: List<Long>,
-        metric: String,
+        measurement: String,
         dateRange: String,
         aggregation: String,
     )
@@ -225,7 +225,7 @@ class RoomRoutineRepository(
         val previousByExercise = existingMainPlacements.groupBy(RoutineExerciseEntity::exerciseId)
             .mapValues { (_, placements) -> placements.first() }
         val updatedByExercise = draft.days.flatMap(RoutineDayDraft::exercises)
-            .filter { it.resolvedPlacementKind() == RoutinePlacementKind.MainLift }
+            .filter { it.resolvedPlacementKind() == RoutinePlacementKind.MainExercise }
             .groupBy(RoutineExerciseDraft::exerciseId)
             .mapValues { (_, placements) -> placements.first() }
         updatedByExercise.forEach { (exerciseId, updated) ->
@@ -394,17 +394,17 @@ class RoomRoutineRepository(
         val activeProgramPhaseRole = authoredProgramPhaseRole.semanticRole()
         val templateKey = runCatching { RoutineProgramTemplateKey.valueOf(routine.programTemplateKey) }
             .getOrDefault(RoutineProgramTemplateKey.None)
-        val oncePerLiftProtocolPhase =
+        val oncePerExerciseProtocolPhase =
             templateKey != RoutineProgramTemplateKey.None &&
-                routine.programTemplateRevision >= FIVE_THREE_ONE_ONCE_PER_LIFT_PROTOCOL_REVISION &&
-                authoredProgramPhaseRole.usesOncePerLiftProtocol()
-        val protocolOwnerDayIdByExerciseId = if (programmed && oncePerLiftProtocolPhase) {
+                routine.programTemplateRevision >= FIVE_THREE_ONE_ONCE_PER_EXERCISE_PROTOCOL_REVISION &&
+                authoredProgramPhaseRole.usesOncePerExerciseProtocol()
+        val protocolOwnerDayIdByExerciseId = if (programmed && oncePerExerciseProtocolPhase) {
             val mainExercisesByDay = days.map { day ->
                 dao.getExercises(day.id).filter { exercise ->
-                    exercise.placementKind == RoutinePlacementKind.MainLift.name
+                    exercise.placementKind == RoutinePlacementKind.MainExercise.name
                 }
             }
-            val owners = balancedOncePerLiftDayOwners(
+            val owners = balancedOncePerExerciseDayOwners(
                 mainExercisesByDay.map { exercises -> exercises.map { it.exerciseId } },
             ).mapValuesTo(mutableMapOf()) { (_, dayIndex) -> days[dayIndex].id }
             if (activeProgramPhaseRole == RoutineProgramPhaseRole.TrainingMaxTest) {
@@ -501,16 +501,16 @@ class RoomRoutineRepository(
             } else {
                 allPlanned.filter { it.routinePhaseIndex == null }
             }
-            val mainPlacement = routineExercise.placementKind == RoutinePlacementKind.MainLift.name
+            val mainPlacement = routineExercise.placementKind == RoutinePlacementKind.MainExercise.name
             if (
-                oncePerLiftProtocolPhase && mainPlacement &&
+                oncePerExerciseProtocolPhase && mainPlacement &&
                 protocolOwnerDayIdByExerciseId[routineExercise.exerciseId] != selectedDay.id
             ) return@forEach
             // Phase-scoped Main or Supplemental placements can intentionally have no work in
-            // this phase (for example an alternate BBB lift outside a Leader).
+            // this phase (for example an alternate BBB exercise outside a Leader).
             // Do not create an empty exercise card in the active workout.
             if (programmed && planned.isEmpty() && routineExercise.placementKind in setOf(
-                    RoutinePlacementKind.MainLift.name,
+                    RoutinePlacementKind.MainExercise.name,
                     RoutinePlacementKind.Supplemental.name,
                 )
             ) return@forEach
@@ -849,15 +849,15 @@ class RoomRoutineRepository(
     override suspend fun saveGraphPreset(
         name: String,
         exerciseIds: List<Long>,
-        metric: String,
+        measurement: String,
         dateRange: String,
         aggregation: String,
     ): Long = database.withTransaction {
-        val normalizedExerciseIds = validateGraphPreset(name, exerciseIds, metric, dateRange, aggregation)
+        val normalizedExerciseIds = validateGraphPreset(name, exerciseIds, measurement, dateRange, aggregation)
         val now = clock.now().toEpochMilli()
         val entity = GraphPresetEntity(
             uuid = ids.nextId(), name = name.trim(), exerciseIdsCsv = normalizedExerciseIds.joinToString(","),
-            metric = metric, dateRange = dateRange, aggregation = aggregation,
+            measurement = measurement, dateRange = dateRange, aggregation = aggregation,
             archived = false, createdAtMillis = now, updatedAtMillis = now,
         )
         dao.insertGraphPreset(entity)
@@ -867,18 +867,18 @@ class RoomRoutineRepository(
         id: Long,
         name: String,
         exerciseIds: List<Long>,
-        metric: String,
+        measurement: String,
         dateRange: String,
         aggregation: String,
     ) = database.withTransaction {
-        val normalizedExerciseIds = validateGraphPreset(name, exerciseIds, metric, dateRange, aggregation)
+        val normalizedExerciseIds = validateGraphPreset(name, exerciseIds, measurement, dateRange, aggregation)
         val existing = dao.getGraphPresets().firstOrNull { it.id == id }
             ?: error("Graph preset no longer exists")
         dao.updateGraphPreset(
             existing.copy(
                 name = name.trim(),
                 exerciseIdsCsv = normalizedExerciseIds.joinToString(","),
-                metric = metric,
+                measurement = measurement,
                 dateRange = dateRange,
                 aggregation = aggregation,
                 updatedAtMillis = clock.now().toEpochMilli(),
@@ -889,7 +889,7 @@ class RoomRoutineRepository(
     private suspend fun validateGraphPreset(
         name: String,
         exerciseIds: List<Long>,
-        metric: String,
+        measurement: String,
         dateRange: String,
         aggregation: String,
     ): List<Long> {
@@ -899,7 +899,7 @@ class RoomRoutineRepository(
         normalizedExerciseIds.forEach { exerciseId ->
             requireNotNull(gymDao.getExercise(exerciseId)) { "Exercise no longer exists" }
         }
-        require(runCatching { GymGraphMetric.valueOf(metric) }.isSuccess) { "Graph metric is not supported" }
+        require(runCatching { GymGraphMetric.valueOf(measurement) }.isSuccess) { "Graph measurement is not supported" }
         require(runCatching { GymGraphRange.valueOf(dateRange) }.isSuccess) { "Graph date range is not supported" }
         require(runCatching { GymGraphAggregation.valueOf(aggregation) }.isSuccess) { "Graph aggregation is not supported" }
         return normalizedExerciseIds
@@ -1110,7 +1110,7 @@ private fun RoutineExerciseDraft.resolvedPlacementKind(): RoutinePlacementKind =
     placementKind != RoutinePlacementKind.General || assistanceCategory != RoutineAssistanceCategory.Unspecified -> placementKind
     plannedSets.isNotEmpty() && plannedSets.all { it.workSection == RoutineWorkSection.Assistance } -> RoutinePlacementKind.Assistance
     plannedSets.isNotEmpty() && plannedSets.all { it.workSection == RoutineWorkSection.Supplemental } -> RoutinePlacementKind.Supplemental
-    plannedSets.any { it.workSection == RoutineWorkSection.Main } -> RoutinePlacementKind.MainLift
+    plannedSets.any { it.workSection == RoutineWorkSection.Main } -> RoutinePlacementKind.MainExercise
     else -> RoutinePlacementKind.General
 }
 
@@ -1159,7 +1159,7 @@ private fun validateRoutine(draft: RoutineDraft) {
                 (assistanceCategory != RoutineAssistanceCategory.Unspecified),
         ) { "Assistance placements require an explicit Push, Pull, Single-leg/Core, or Other category" }
         when (placementKind) {
-            RoutinePlacementKind.MainLift -> require(exercise.plannedSets.none {
+            RoutinePlacementKind.MainExercise -> require(exercise.plannedSets.none {
                 it.workSection in setOf(RoutineWorkSection.Assistance, RoutineWorkSection.Unspecified)
             }) { "Main-exercise placements may only contain Main, Supplemental, or Optional work" }
             RoutinePlacementKind.Supplemental -> require(exercise.plannedSets.all {
@@ -1183,7 +1183,7 @@ private fun validateRoutine(draft: RoutineDraft) {
             require(increment.isFinite() && increment >= 0.0) { "Cycle increment cannot be negative" }
             require(exercise.trainingMaxValue != null) { "Cycle increment requires an explicit training max" }
         }
-        if (fiveThreeOneProgram && placementKind == RoutinePlacementKind.MainLift) {
+        if (fiveThreeOneProgram && placementKind == RoutinePlacementKind.MainExercise) {
             require(exercise.trainingMaxValue != null) { "5/3/1 main exercises require an explicit training max" }
             require(exercise.cycleIncrementValue?.let { it.isFinite() && it > 0.0 } == true) {
                 "5/3/1 main exercises require a cycle increase above zero"
@@ -1255,12 +1255,12 @@ private fun validateRoutine(draft: RoutineDraft) {
         }
     }
     if (fiveThreeOneProgram) {
-        val mainPlacementsByLift = draft.days.flatMap(RoutineDayDraft::exercises)
-            .filter { it.resolvedPlacementKind() == RoutinePlacementKind.MainLift }
+        val mainPlacementsByExercise = draft.days.flatMap(RoutineDayDraft::exercises)
+            .filter { it.resolvedPlacementKind() == RoutinePlacementKind.MainExercise }
             .groupBy(RoutineExerciseDraft::exerciseId)
         program.phaseRoles.forEachIndexed { phaseIndex, role ->
             if (role.semanticRole() == RoutineProgramPhaseRole.TrainingMaxTest) {
-                mainPlacementsByLift.forEach { (_, placements) ->
+                mainPlacementsByExercise.forEach { (_, placements) ->
                     require(placements.sumOf { placement ->
                         placement.plannedSets.count { set ->
                             set.routinePhaseIndex == phaseIndex &&
@@ -1272,7 +1272,7 @@ private fun validateRoutine(draft: RoutineDraft) {
                 }
             }
         }
-        mainPlacementsByLift.filterValues { it.size > 1 }
+        mainPlacementsByExercise.filterValues { it.size > 1 }
             .forEach { (_, placements) ->
                 val expected = placements.first()
                 require(placements.drop(1).all { candidate ->
@@ -1580,7 +1580,7 @@ private fun PersonalRecordEntity.toDomain() = PersonalRecord(
     machineId = machineId,
     machineProfileUuidSnapshot = machineProfileUuidSnapshot,
 )
-private fun GraphPresetEntity.toDomain() = GraphPreset(id, uuid, name, exerciseIdsCsv.split(',').mapNotNull(String::toLongOrNull), metric, dateRange, aggregation, archived, createdAtMillis, updatedAtMillis)
+private fun GraphPresetEntity.toDomain() = GraphPreset(id, uuid, name, exerciseIdsCsv.split(',').mapNotNull(String::toLongOrNull), measurement, dateRange, aggregation, archived, createdAtMillis, updatedAtMillis)
 
 private fun WorkoutSetDraft.toRoutineEntity(uuid: String, routineExerciseId: Long, position: Int, now: Long) = RoutineSetEntity(
     uuid = uuid, routineExerciseId = routineExerciseId, position = position,

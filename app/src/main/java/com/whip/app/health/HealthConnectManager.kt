@@ -19,10 +19,10 @@ import com.whip.app.core.AppSettings
 import com.whip.app.core.SettingsRepository
 import com.whip.app.core.zoneId
 import com.whip.app.data.MeasurementRepository
-import com.whip.app.domain.HealthMetricContract
+import com.whip.app.domain.HealthMeasurementContract
 import com.whip.app.domain.HealthSourceRecord
 import com.whip.app.domain.HealthSourceWindow
-import com.whip.app.domain.MetricValueKind
+import com.whip.app.domain.MeasurementValueKind
 import com.whip.app.domain.UnitDimension
 import java.time.Duration
 import java.time.Instant
@@ -100,7 +100,7 @@ internal suspend fun reconcileHealthRecords(
 
 /**
  * A deliberately narrow Health Connect boundary. Whip requests read-only access to only the
- * record types selected by the user and mirrors those records into the normal metric ledger.
+ * record types selected by the user and mirrors those records into the normal measurement ledger.
  */
 class HealthConnectManager(
     private val context: Context,
@@ -426,14 +426,14 @@ class HealthConnectManager(
 
     private fun client() = HealthConnectClient.getOrCreate(context, providerPackage)
     private fun healthWindow(
-        metric: HealthMetricContract,
+        measurement: HealthMeasurementContract,
         sourcePrefix: String,
         startInclusive: Instant,
         endExclusive: Instant,
         zoneId: ZoneId,
         records: List<HealthRecordSnapshot>,
     ) = HealthSourceWindow(
-        metric = metric,
+        measurement = measurement,
         sourcePrefix = sourcePrefix,
         startInclusive = startInclusive,
         endExclusive = endExclusive,
@@ -451,37 +451,37 @@ class HealthConnectManager(
         },
     )
     private companion object {
-        const val WEIGHT_METRIC = "health-connect-weight"
-        const val STEPS_METRIC = "health-connect-steps"
-        const val DISTANCE_METRIC = "health-connect-distance"
-        const val HYDRATION_METRIC = "health-connect-hydration"
-        const val SLEEP_METRIC = "health-connect-sleep"
-        const val EXERCISE_METRIC = "health-connect-exercise"
+        const val WEIGHT_MEASUREMENT = "health-connect-weight"
+        const val STEPS_MEASUREMENT = "health-connect-steps"
+        const val DISTANCE_MEASUREMENT = "health-connect-distance"
+        const val HYDRATION_MEASUREMENT = "health-connect-hydration"
+        const val SLEEP_MEASUREMENT = "health-connect-sleep"
+        const val EXERCISE_MEASUREMENT = "health-connect-exercise"
         const val WEIGHT_PREFIX = "health:weight:"
         const val STEPS_PREFIX = "health:steps:"
         const val DISTANCE_PREFIX = "health:distance:"
         const val HYDRATION_PREFIX = "health:hydration:"
         const val SLEEP_PREFIX = "health:sleep:"
         const val EXERCISE_PREFIX = "health:exercise:"
-        val WEIGHT_CONTRACT = HealthMetricContract(
-            WEIGHT_METRIC, "Health weight", MetricValueKind.Decimal, UnitDimension.Mass, "kilogram", 2,
+        val WEIGHT_CONTRACT = HealthMeasurementContract(
+            WEIGHT_MEASUREMENT, "Health weight", MeasurementValueKind.Decimal, UnitDimension.Mass, "kilogram", 2,
         )
-        val STEPS_CONTRACT = HealthMetricContract(
-            STEPS_METRIC, "Health steps", MetricValueKind.Integer, UnitDimension.Count, "count", 0,
+        val STEPS_CONTRACT = HealthMeasurementContract(
+            STEPS_MEASUREMENT, "Health steps", MeasurementValueKind.Integer, UnitDimension.Count, "count", 0,
         )
-        val DISTANCE_CONTRACT = HealthMetricContract(
-            DISTANCE_METRIC, "Health distance", MetricValueKind.Decimal, UnitDimension.Distance, "distance_m", 0,
+        val DISTANCE_CONTRACT = HealthMeasurementContract(
+            DISTANCE_MEASUREMENT, "Health distance", MeasurementValueKind.Decimal, UnitDimension.Distance, "distance_m", 0,
         )
-        val HYDRATION_CONTRACT = HealthMetricContract(
-            HYDRATION_METRIC, "Health hydration", MetricValueKind.Decimal, UnitDimension.Volume, "litre", 2,
+        val HYDRATION_CONTRACT = HealthMeasurementContract(
+            HYDRATION_MEASUREMENT, "Health hydration", MeasurementValueKind.Decimal, UnitDimension.Volume, "litre", 2,
         )
-        val SLEEP_CONTRACT = HealthMetricContract(
-            SLEEP_METRIC, "Health sleep duration", MetricValueKind.Duration, UnitDimension.Duration, "minute", 0,
+        val SLEEP_CONTRACT = HealthMeasurementContract(
+            SLEEP_MEASUREMENT, "Health sleep duration", MeasurementValueKind.Duration, UnitDimension.Duration, "minute", 0,
         )
-        val EXERCISE_CONTRACT = HealthMetricContract(
-            EXERCISE_METRIC,
+        val EXERCISE_CONTRACT = HealthMeasurementContract(
+            EXERCISE_MEASUREMENT,
             "Health exercise duration",
-            MetricValueKind.Duration,
+            MeasurementValueKind.Duration,
             UnitDimension.Duration,
             "minute",
             0,

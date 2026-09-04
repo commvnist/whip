@@ -73,7 +73,7 @@ class NumericSequenceTest {
     }
 
     @Test
-    fun convertingMetricDefaultsUsesNativePoundEquipmentValues() {
+    fun convertingMeasurementDefaultsUsesNativePoundEquipmentValues() {
         val pounds = convertWeightEquipmentSetup(
             setup = standardWeightEquipment("kilogram"),
             fromUnitId = "kilogram",

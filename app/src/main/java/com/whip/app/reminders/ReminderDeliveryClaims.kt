@@ -18,7 +18,7 @@ internal enum class ReminderDomain { Task, Habit, Goal }
 /**
  * A queued reminder is an untrusted claim about one exact current delivery.
  * Stable identity, semantic fingerprint, trigger, kind, and schema version are
- * all required; legacy or malformed work fails closed and is reconciled.
+ * all required; obsolete or malformed work fails closed and is reconciled.
  */
 internal data class ReminderDeliveryClaim(
     val version: Int = REMINDER_DELIVERY_CLAIM_VERSION,

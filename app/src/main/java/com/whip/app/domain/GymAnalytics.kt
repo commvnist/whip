@@ -22,7 +22,7 @@ enum class GymGraphMetric(val label: String) {
     MaxMachineSetting("Best machine setting"),
 }
 
-/** Metrics that the selected input contract can actually produce. */
+/** Measurements that the selected input contract can actually produce. */
 fun ExerciseTrackingType.supportedGraphMetrics(
     machineLoadType: MachineLoadType? = null,
 ): List<GymGraphMetric> {
@@ -128,7 +128,7 @@ fun buildExerciseGraph(
     sessions: List<WorkoutSession>,
     workoutExercises: List<WorkoutExercise>,
     sets: List<WorkoutSet>,
-    metric: GymGraphMetric,
+    measurement: GymGraphMetric,
     aggregation: GymGraphAggregation = GymGraphAggregation.Workout,
     from: LocalDate? = null,
     to: LocalDate? = null,
@@ -162,7 +162,7 @@ fun buildExerciseGraph(
         if (session.state == WorkoutSessionState.Discarded || session.archived) return@mapNotNull null
         if (from != null && session.localDate.isBefore(from)) return@mapNotNull null
         if (to != null && session.localDate.isAfter(to)) return@mapNotNull null
-        val value = when (metric) {
+        val value = when (measurement) {
             GymGraphMetric.EstimatedOneRepMax -> sessionSets.mapNotNull {
                 it.estimatedOneRepMaxKg(
                     placements.getValue(it.workoutExerciseId).applyPolicySnapshot(exercise),
@@ -199,7 +199,7 @@ fun buildExerciseGraph(
             GymGraphAggregation.Month -> point.date.withDayOfMonth(1)
         }
     }.map { (date, points) ->
-        val value = when (metric) {
+        val value = when (measurement) {
             GymGraphMetric.Pace -> points.minOf(GymGraphPoint::value)
             GymGraphMetric.EstimatedOneRepMax,
             GymGraphMetric.MaxWeight,

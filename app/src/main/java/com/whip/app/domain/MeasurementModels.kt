@@ -5,7 +5,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
-enum class MetricValueKind {
+enum class MeasurementValueKind {
     Boolean,
     Integer,
     Decimal,
@@ -34,7 +34,7 @@ enum class UnitDimension(val label: String) {
     Custom("custom"),
 }
 
-enum class MetricEntryStatus {
+enum class MeasurementEntryStatus {
     Recorded,
     Missing,
     Failed,
@@ -42,7 +42,7 @@ enum class MetricEntryStatus {
     Excused,
 }
 
-enum class MetricSourceType {
+enum class MeasurementSourceType {
     Manual,
     Habit,
     Goal,
@@ -107,10 +107,10 @@ fun CustomUnitBoundary.toUnitDefinition() = UnitDefinition(
     updatedAtMillis = updatedAtMillis,
 )
 
-data class MetricDefinition(
+data class MeasurementDefinition(
     val id: String,
     val name: String,
-    val valueKind: MetricValueKind,
+    val valueKind: MeasurementValueKind,
     val dimension: UnitDimension,
     val defaultUnitId: String,
     val precision: Int = 1,
@@ -120,18 +120,18 @@ data class MetricDefinition(
     val updatedAtMillis: Long,
 )
 
-data class MetricEntry(
+data class MeasurementEntry(
     val id: String,
-    val metricId: String,
+    val measurementId: String,
     val canonicalValue: Double?,
     val enteredValue: Double?,
     val enteredUnitId: String?,
-    val status: MetricEntryStatus,
+    val status: MeasurementEntryStatus,
     val timestamp: Instant,
     val localDate: LocalDate,
     val zoneId: String,
     val offsetSeconds: Int,
-    val sourceType: MetricSourceType,
+    val sourceType: MeasurementSourceType,
     val sourceId: String?,
     val note: String,
     val createdAtMillis: Long,
@@ -150,17 +150,17 @@ data class HealthSourceRecord(
     val note: String = "Imported from Health Connect",
 )
 
-data class HealthMetricContract(
+data class HealthMeasurementContract(
     val id: String,
     val name: String,
-    val valueKind: MetricValueKind,
+    val valueKind: MeasurementValueKind,
     val dimension: UnitDimension,
     val defaultUnitId: String,
     val precision: Int,
 )
 
 data class HealthSourceWindow(
-    val metric: HealthMetricContract,
+    val measurement: HealthMeasurementContract,
     val sourcePrefix: String,
     val startInclusive: Instant,
     val endExclusive: Instant,

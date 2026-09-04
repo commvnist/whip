@@ -57,7 +57,7 @@ internal enum class EntityInspectorSectionPlacement { Direct, Overflow }
 internal data class EntityInspectorSection(
     val id: String,
     val label: String,
-    val legacyLabel: String = label,
+    val connectedLabel: String = label,
     val placement: EntityInspectorSectionPlacement = EntityInspectorSectionPlacement.Direct,
 )
 
@@ -88,8 +88,8 @@ internal fun EntityInspector(
     onEdit: (() -> Unit)?,
     editLabel: String = "Edit",
     modifier: Modifier = Modifier,
-    legacySurfaceTag: String? = null,
-    legacySectionTagPrefix: String? = null,
+    connectedSurfaceTag: String? = null,
+    connectedSectionTagPrefix: String? = null,
     primaryAction: EntityInspectorPrimaryAction? = null,
     inputBlocked: Boolean = false,
     inputBlockedLabel: String = "Saving",
@@ -116,7 +116,7 @@ internal fun EntityInspector(
                 modifier = resolvedModifier
                     .widthIn(min = 280.dp, max = 560.dp)
                     .height(inspectorHeight)
-                    .then(legacySurfaceTag?.let(Modifier::testTag) ?: Modifier)
+                    .then(connectedSurfaceTag?.let(Modifier::testTag) ?: Modifier)
                     .semantics { paneTitle = paneDescription },
                 shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surface,
@@ -147,7 +147,7 @@ internal fun EntityInspector(
                             sections = sections,
                             selectedSectionId = selectedSectionId,
                             onSelect = onSelectSection,
-                            legacySectionTagPrefix = legacySectionTagPrefix,
+                            connectedSectionTagPrefix = connectedSectionTagPrefix,
                         )
                     } else HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Box(
@@ -303,20 +303,20 @@ private fun EntityInspectorSectionSelector(
     sections: List<EntityInspectorSection>,
     selectedSectionId: String,
     onSelect: (String) -> Unit,
-    legacySectionTagPrefix: String?,
+    connectedSectionTagPrefix: String?,
 ) {
     DestinationTabBar(
         selected = sections.first { it.id == selectedSectionId },
         destinations = sections,
         onSelect = { onSelect(it.id) },
         label = EntityInspectorSection::label,
-        testTagPrefix = legacySectionTagPrefix ?: "entity-inspector-section",
-        testTagValue = if (legacySectionTagPrefix == null) {
+        testTagPrefix = connectedSectionTagPrefix ?: "entity-inspector-section",
+        testTagValue = if (connectedSectionTagPrefix == null) {
             EntityInspectorSection::id
         } else {
-            EntityInspectorSection::legacyLabel
+            EntityInspectorSection::connectedLabel
         },
-        secondaryTestTagPrefix = "entity-inspector-section".takeIf { legacySectionTagPrefix != null },
+        secondaryTestTagPrefix = "entity-inspector-section".takeIf { connectedSectionTagPrefix != null },
         secondaryTestTagValue = EntityInspectorSection::id,
         barTestTag = "entity-inspector-section-selector",
         resetCompactItemExpansionOnChange = false,

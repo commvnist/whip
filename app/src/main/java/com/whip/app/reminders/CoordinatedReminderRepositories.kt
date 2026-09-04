@@ -16,8 +16,8 @@ import com.whip.app.domain.HabitLogStatus
 import com.whip.app.domain.HabitTimerBoundary
 import com.whip.app.domain.HabitTimerReviewResolution
 import com.whip.app.domain.HabitTimerStartRequest
-import com.whip.app.domain.MetricEntryStatus
-import com.whip.app.domain.MetricSourceType
+import com.whip.app.domain.MeasurementEntryStatus
+import com.whip.app.domain.MeasurementSourceType
 import com.whip.app.domain.HealthSourceWindow
 import com.whip.app.domain.CustomUnitBoundary
 import com.whip.app.domain.ScheduledTask
@@ -124,7 +124,7 @@ internal class CoordinatedHabitRepository(
         date: LocalDate?,
         timestamp: Instant?,
         note: String,
-        sourceType: MetricSourceType,
+        sourceType: MeasurementSourceType,
         sourceId: String?,
     ) = mutate { delegate.log(habitId, value, status, date, timestamp, note, sourceType, sourceId) }
     override suspend fun setPeriodValue(habitId: Long, date: LocalDate, value: Double, note: String) =
@@ -264,27 +264,27 @@ internal class CoordinatedMeasurementRepository(
         delegate.createCustomUnitVersionExact(boundary, requestedId, name, symbol, toCanonicalFactor)
     }
     override suspend fun record(
-        metricId: String,
+        measurementId: String,
         value: Double?,
         unitId: String?,
-        status: MetricEntryStatus,
+        status: MeasurementEntryStatus,
         timestamp: Instant?,
         localDate: LocalDate?,
         zoneId: ZoneId?,
-        sourceType: MetricSourceType,
+        sourceType: MeasurementSourceType,
         sourceId: String?,
         note: String,
         existingEntryId: String?,
         createIfMissingForHealthReconciliation: Boolean,
     ) = mutate {
         delegate.record(
-            metricId, value, unitId, status, timestamp, localDate, zoneId,
+            measurementId, value, unitId, status, timestamp, localDate, zoneId,
             sourceType, sourceId, note, existingEntryId, createIfMissingForHealthReconciliation,
         )
     }
     override suspend fun deleteEntry(entryId: String) = mutate { delegate.deleteEntry(entryId) }
     override suspend fun deleteSourceEntriesExcept(
-        sourceType: MetricSourceType,
+        sourceType: MeasurementSourceType,
         sourcePrefix: String,
         retainedEntryIds: Set<String>,
     ) = mutate { delegate.deleteSourceEntriesExcept(sourceType, sourcePrefix, retainedEntryIds) }

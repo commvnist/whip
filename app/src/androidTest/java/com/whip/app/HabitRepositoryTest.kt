@@ -23,8 +23,8 @@ import com.whip.app.domain.HabitTimerReviewResolution
 import com.whip.app.domain.HabitTimerStartOutcome
 import com.whip.app.domain.HabitTimerStartRequest
 import com.whip.app.domain.HabitTimerStopOutcome
-import com.whip.app.domain.MetricSourceType
-import com.whip.app.domain.MetricValueKind
+import com.whip.app.domain.MeasurementSourceType
+import com.whip.app.domain.MeasurementValueKind
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.valueInUnit
 import com.whip.app.domain.valueForPeriod
@@ -102,20 +102,20 @@ class HabitRepositoryTest {
         val missingSource = HabitDraft(
             name = "Missing source",
             trackingMode = HabitTrackingMode.Count,
-            sourceMetricId = "missing",
+            sourceMeasurementId = "missing",
             startDate = today,
         )
         assertTrue(runCatching { repository.create(missingSource) }.isFailure)
 
-        val sourceId = measurements.ensureMetric(
+        val sourceId = measurements.ensureMeasurement(
             id = "source-count",
             name = "Source count",
-            valueKind = MetricValueKind.Integer,
+            valueKind = MeasurementValueKind.Integer,
             dimension = UnitDimension.Count,
             defaultUnitId = "count",
             precision = 0,
         )
-        val syncedId = repository.create(missingSource.copy(name = "Synced", sourceMetricId = sourceId))
+        val syncedId = repository.create(missingSource.copy(name = "Synced", sourceMeasurementId = sourceId))
         assertTrue(runCatching { repository.log(syncedId, 1.0) }.isFailure)
 
         val pausedId = repository.create(HabitDraft(name = "Paused", startDate = today))
@@ -500,7 +500,7 @@ class HabitRepositoryTest {
         val logId = repository.log(
             habitId,
             1.0,
-            sourceType = MetricSourceType.Habit,
+            sourceType = MeasurementSourceType.Habit,
             sourceId = "notification-action-1",
         )
         val logUuid = repository.logs.first().single().uuid
@@ -508,7 +508,7 @@ class HabitRepositoryTest {
         repository.updateLog(logId, 2.0, HabitLogStatus.Recorded, today, "corrected")
 
         val measurement = database.measurementDao().observeEntries().first().single()
-        assertEquals(MetricSourceType.Habit.name, measurement.sourceType)
+        assertEquals(MeasurementSourceType.Habit.name, measurement.sourceType)
         assertEquals(logUuid, measurement.sourceId)
     }
 
@@ -717,8 +717,8 @@ class HabitRepositoryTest {
             HabitDraft(name = "Water", trackingMode = HabitTrackingMode.Count, targetMin = 8.0, startDate = FixedClock.today()),
         )
 
-        repository.log(id, 1.0, sourceType = MetricSourceType.Habit, sourceId = "notification-action-1")
-        repository.log(id, 1.0, sourceType = MetricSourceType.Habit, sourceId = "notification-action-1")
+        repository.log(id, 1.0, sourceType = MeasurementSourceType.Habit, sourceId = "notification-action-1")
+        repository.log(id, 1.0, sourceType = MeasurementSourceType.Habit, sourceId = "notification-action-1")
 
         assertEquals(1, repository.logs.first().size)
         assertEquals(1.0, repository.logs.first().single().value ?: 0.0, 0.0)

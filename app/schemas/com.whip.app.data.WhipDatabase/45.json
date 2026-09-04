@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 43,
-    "identityHash": "4fa66f83bbf9ed3d37dea82e8e19a353",
+    "version": 45,
+    "identityHash": "bcdf90e01d5cccead54bfb75fa948c19",
     "entities": [
       {
         "tableName": "tasks",
@@ -703,7 +703,7 @@
         ]
       },
       {
-        "tableName": "metric_definitions",
+        "tableName": "measurement_definitions",
         "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `valueKind` TEXT NOT NULL, `dimension` TEXT NOT NULL, `defaultUnitId` TEXT NOT NULL, `precision` INTEGER NOT NULL, `dimensionLocked` INTEGER NOT NULL, `archived` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
@@ -775,19 +775,19 @@
         },
         "indices": [
           {
-            "name": "index_metric_definitions_archived",
+            "name": "index_measurement_definitions_archived",
             "unique": false,
             "columnNames": [
               "archived"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_metric_definitions_archived` ON `${TABLE_NAME}` (`archived`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_measurement_definitions_archived` ON `${TABLE_NAME}` (`archived`)"
           }
         ]
       },
       {
-        "tableName": "metric_entries",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `metricId` TEXT NOT NULL, `canonicalValue` REAL, `enteredValue` REAL, `enteredUnitId` TEXT, `status` TEXT NOT NULL, `timestampMillis` INTEGER NOT NULL, `localEpochDay` INTEGER NOT NULL, `zoneId` TEXT NOT NULL, `offsetSeconds` INTEGER NOT NULL, `sourceType` TEXT NOT NULL, `sourceId` TEXT, `note` TEXT NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`metricId`) REFERENCES `metric_definitions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "tableName": "measurement_entries",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `measurementId` TEXT NOT NULL, `canonicalValue` REAL, `enteredValue` REAL, `enteredUnitId` TEXT, `status` TEXT NOT NULL, `timestampMillis` INTEGER NOT NULL, `localEpochDay` INTEGER NOT NULL, `zoneId` TEXT NOT NULL, `offsetSeconds` INTEGER NOT NULL, `sourceType` TEXT NOT NULL, `sourceId` TEXT, `note` TEXT NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`measurementId`) REFERENCES `measurement_definitions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -796,8 +796,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "metricId",
-            "columnName": "metricId",
+            "fieldPath": "measurementId",
+            "columnName": "measurementId",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -884,42 +884,42 @@
         },
         "indices": [
           {
-            "name": "index_metric_entries_metricId",
+            "name": "index_measurement_entries_measurementId",
             "unique": false,
             "columnNames": [
-              "metricId"
+              "measurementId"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_metric_entries_metricId` ON `${TABLE_NAME}` (`metricId`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_measurement_entries_measurementId` ON `${TABLE_NAME}` (`measurementId`)"
           },
           {
-            "name": "index_metric_entries_metricId_timestampMillis",
+            "name": "index_measurement_entries_measurementId_timestampMillis",
             "unique": false,
             "columnNames": [
-              "metricId",
+              "measurementId",
               "timestampMillis"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_metric_entries_metricId_timestampMillis` ON `${TABLE_NAME}` (`metricId`, `timestampMillis`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_measurement_entries_measurementId_timestampMillis` ON `${TABLE_NAME}` (`measurementId`, `timestampMillis`)"
           },
           {
-            "name": "index_metric_entries_sourceType_sourceId",
+            "name": "index_measurement_entries_sourceType_sourceId",
             "unique": false,
             "columnNames": [
               "sourceType",
               "sourceId"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_metric_entries_sourceType_sourceId` ON `${TABLE_NAME}` (`sourceType`, `sourceId`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_measurement_entries_sourceType_sourceId` ON `${TABLE_NAME}` (`sourceType`, `sourceId`)"
           }
         ],
         "foreignKeys": [
           {
-            "table": "metric_definitions",
+            "table": "measurement_definitions",
             "onDelete": "CASCADE",
             "onUpdate": "NO ACTION",
             "columns": [
-              "metricId"
+              "measurementId"
             ],
             "referencedColumns": [
               "id"
@@ -2035,7 +2035,7 @@
       },
       {
         "tableName": "workout_exercises",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `sessionId` INTEGER NOT NULL, `exerciseId` INTEGER NOT NULL, `position` INTEGER NOT NULL, `notes` TEXT NOT NULL, `groupId` INTEGER, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `machineProfileUuidSnapshot` TEXT, `machineId` INTEGER, `machineNameSnapshot` TEXT NOT NULL, `machineLoadTypeSnapshot` TEXT NOT NULL, `machineUnitIdSnapshot` TEXT NOT NULL, `machineLevelLabelSnapshot` TEXT NOT NULL, `loadInterpretationSnapshot` TEXT NOT NULL, `baseLoadKgSnapshot` REAL, `trackingTypeSnapshot` TEXT NOT NULL, `bodyweightLoadPolicySnapshot` TEXT NOT NULL, `effectiveBodyweightPercentSnapshot` REAL NOT NULL, `oneRepMaxFormulaSnapshot` TEXT NOT NULL, `includeInVolumeSnapshot` INTEGER NOT NULL, `includeInPersonalRecordsSnapshot` INTEGER NOT NULL, `exerciseWeightUnitSnapshot` TEXT NOT NULL, `loadMultiplierSnapshot` REAL NOT NULL, `machineConfigurationGroupSnapshot` TEXT NOT NULL, `machineConfigurationVersionSnapshot` INTEGER NOT NULL, `machineConfigurationSnapshot` TEXT NOT NULL, `machinePulleyRatioSnapshot` REAL NOT NULL, `machineStackModeSnapshot` TEXT NOT NULL, `machineAddOnPlateKgSnapshot` REAL, `machineMassMappingCsvSnapshot` TEXT NOT NULL, `alternativeExerciseIdsCsvSnapshot` TEXT NOT NULL, `trainingMaxKgSnapshot` REAL, `trainingMaxValueSnapshot` REAL, `trainingMaxUnitIdSnapshot` TEXT NOT NULL, `cycleIncrementValueSnapshot` REAL, `trainingMaxSourceSnapshot` TEXT NOT NULL, `mainWorkSchemeSnapshot` TEXT NOT NULL, `supplementalSchemeSnapshot` TEXT NOT NULL, `placementKindSnapshot` TEXT NOT NULL, `assistanceCategorySnapshot` TEXT NOT NULL, `jokerSetsEnabledSnapshot` INTEGER NOT NULL, `outcome` TEXT NOT NULL, `outcomeAtMillis` INTEGER, `replacementWorkoutExerciseUuid` TEXT, FOREIGN KEY(`sessionId`) REFERENCES `workout_sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`exerciseId`) REFERENCES `exercises`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`groupId`) REFERENCES `workout_groups`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `sessionId` INTEGER NOT NULL, `exerciseId` INTEGER NOT NULL, `position` INTEGER NOT NULL, `notes` TEXT NOT NULL, `groupId` INTEGER, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `machineProfileUuidSnapshot` TEXT, `machineId` INTEGER, `machineNameSnapshot` TEXT NOT NULL, `machineLoadTypeSnapshot` TEXT NOT NULL, `machineUnitIdSnapshot` TEXT NOT NULL, `machineLevelLabelSnapshot` TEXT NOT NULL, `machineLevelDirectionSnapshot` TEXT NOT NULL, `loadInterpretationSnapshot` TEXT NOT NULL, `baseLoadKgSnapshot` REAL, `trackingTypeSnapshot` TEXT NOT NULL, `bodyweightLoadPolicySnapshot` TEXT NOT NULL, `effectiveBodyweightPercentSnapshot` REAL NOT NULL, `oneRepMaxFormulaSnapshot` TEXT NOT NULL, `includeInVolumeSnapshot` INTEGER NOT NULL, `includeInPersonalRecordsSnapshot` INTEGER NOT NULL, `exerciseWeightUnitSnapshot` TEXT NOT NULL, `loadMultiplierSnapshot` REAL NOT NULL, `machineConfigurationGroupSnapshot` TEXT NOT NULL, `machineConfigurationVersionSnapshot` INTEGER NOT NULL, `machineConfigurationSnapshot` TEXT NOT NULL, `machinePulleyRatioSnapshot` REAL NOT NULL, `machineStackModeSnapshot` TEXT NOT NULL, `machineAddOnPlateKgSnapshot` REAL, `machineMassMappingCsvSnapshot` TEXT NOT NULL, `alternativeExerciseIdsCsvSnapshot` TEXT NOT NULL, `trainingMaxKgSnapshot` REAL, `trainingMaxValueSnapshot` REAL, `trainingMaxUnitIdSnapshot` TEXT NOT NULL, `cycleIncrementValueSnapshot` REAL, `trainingMaxSourceSnapshot` TEXT NOT NULL, `mainWorkSchemeSnapshot` TEXT NOT NULL, `supplementalSchemeSnapshot` TEXT NOT NULL, `placementKindSnapshot` TEXT NOT NULL, `assistanceCategorySnapshot` TEXT NOT NULL, `jokerSetsEnabledSnapshot` INTEGER NOT NULL, `outcome` TEXT NOT NULL, `outcomeAtMillis` INTEGER, `replacementWorkoutExerciseUuid` TEXT, FOREIGN KEY(`sessionId`) REFERENCES `workout_sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`exerciseId`) REFERENCES `exercises`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`groupId`) REFERENCES `workout_groups`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
         "fields": [
           {
             "fieldPath": "id",
@@ -2121,6 +2121,12 @@
           {
             "fieldPath": "machineLevelLabelSnapshot",
             "columnName": "machineLevelLabelSnapshot",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "machineLevelDirectionSnapshot",
+            "columnName": "machineLevelDirectionSnapshot",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -3818,7 +3824,7 @@
       },
       {
         "tableName": "graph_presets",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `exerciseIdsCsv` TEXT NOT NULL, `metric` TEXT NOT NULL, `dateRange` TEXT NOT NULL, `aggregation` TEXT NOT NULL, `archived` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `exerciseIdsCsv` TEXT NOT NULL, `measurement` TEXT NOT NULL, `dateRange` TEXT NOT NULL, `aggregation` TEXT NOT NULL, `archived` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -3845,8 +3851,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "metric",
-            "columnName": "metric",
+            "fieldPath": "measurement",
+            "columnName": "measurement",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -3910,7 +3916,7 @@
       },
       {
         "tableName": "habits",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `metricId` TEXT NOT NULL, `name` TEXT NOT NULL, `notes` TEXT NOT NULL, `areaId` TEXT, `area` TEXT NOT NULL, `tagsCsv` TEXT NOT NULL, `icon` TEXT NOT NULL, `trackingMode` TEXT NOT NULL, `dimension` TEXT NOT NULL, `unitId` TEXT NOT NULL, `precision` INTEGER NOT NULL, `comparison` TEXT NOT NULL, `targetMin` REAL, `targetMax` REAL, `targetPeriod` TEXT NOT NULL, `rollingDays` INTEGER, `scheduleType` TEXT NOT NULL, `scheduleInterval` INTEGER NOT NULL, `weekdaysMask` INTEGER NOT NULL, `flexibleTimesPerWeek` INTEGER, `startEpochDay` INTEGER NOT NULL, `endType` TEXT NOT NULL, `endEpochDay` INTEGER, `endValue` REAL, `quickIncrement` REAL NOT NULL, `quickActionsCsv` TEXT NOT NULL, `reminderMinutesCsv` TEXT NOT NULL, `weekdayReminderMinutesCsv` TEXT NOT NULL, `weekStart` TEXT NOT NULL, `timerStartedAtMillis` INTEGER, `pinned` INTEGER NOT NULL, `position` INTEGER NOT NULL, `archived` INTEGER NOT NULL, `paused` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `sourceMetricId` TEXT, `autoCompleteFromItems` INTEGER NOT NULL DEFAULT 1, `timerSessionId` TEXT, `timerNeedsReview` INTEGER NOT NULL DEFAULT 0, `timerAccumulatedSeconds` REAL NOT NULL DEFAULT 0, `timerAnchorElapsedRealtimeMillis` INTEGER, FOREIGN KEY(`areaId`) REFERENCES `areas`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `measurementId` TEXT NOT NULL, `name` TEXT NOT NULL, `notes` TEXT NOT NULL, `areaId` TEXT, `area` TEXT NOT NULL, `tagsCsv` TEXT NOT NULL, `icon` TEXT NOT NULL, `trackingMode` TEXT NOT NULL, `dimension` TEXT NOT NULL, `unitId` TEXT NOT NULL, `precision` INTEGER NOT NULL, `comparison` TEXT NOT NULL, `targetMin` REAL, `targetMax` REAL, `targetPeriod` TEXT NOT NULL, `rollingDays` INTEGER, `scheduleType` TEXT NOT NULL, `scheduleInterval` INTEGER NOT NULL, `weekdaysMask` INTEGER NOT NULL, `flexibleTimesPerWeek` INTEGER, `startEpochDay` INTEGER NOT NULL, `endType` TEXT NOT NULL, `endEpochDay` INTEGER, `endValue` REAL, `quickIncrement` REAL NOT NULL, `quickActionsCsv` TEXT NOT NULL, `reminderMinutesCsv` TEXT NOT NULL, `weekdayReminderMinutesCsv` TEXT NOT NULL, `weekStart` TEXT NOT NULL, `timerStartedAtMillis` INTEGER, `pinned` INTEGER NOT NULL, `position` INTEGER NOT NULL, `archived` INTEGER NOT NULL, `paused` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `sourceMeasurementId` TEXT, `autoCompleteFromItems` INTEGER NOT NULL DEFAULT 1, `timerSessionId` TEXT, `timerNeedsReview` INTEGER NOT NULL DEFAULT 0, `timerAccumulatedSeconds` REAL NOT NULL DEFAULT 0, `timerAnchorElapsedRealtimeMillis` INTEGER, FOREIGN KEY(`areaId`) REFERENCES `areas`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
         "fields": [
           {
             "fieldPath": "id",
@@ -3925,8 +3931,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "metricId",
-            "columnName": "metricId",
+            "fieldPath": "measurementId",
+            "columnName": "measurementId",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -4133,8 +4139,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "sourceMetricId",
-            "columnName": "sourceMetricId",
+            "fieldPath": "sourceMeasurementId",
+            "columnName": "sourceMeasurementId",
             "affinity": "TEXT"
           },
           {
@@ -4186,13 +4192,13 @@
             "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_habits_uuid` ON `${TABLE_NAME}` (`uuid`)"
           },
           {
-            "name": "index_habits_metricId",
+            "name": "index_habits_measurementId",
             "unique": true,
             "columnNames": [
-              "metricId"
+              "measurementId"
             ],
             "orders": [],
-            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_habits_metricId` ON `${TABLE_NAME}` (`metricId`)"
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_habits_measurementId` ON `${TABLE_NAME}` (`measurementId`)"
           },
           {
             "name": "index_habits_archived",
@@ -4331,7 +4337,7 @@
       },
       {
         "tableName": "habit_logs",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `habitId` INTEGER NOT NULL, `value` REAL, `canonicalValue` REAL, `enteredUnitId` TEXT, `status` TEXT NOT NULL, `timestampMillis` INTEGER NOT NULL, `localEpochDay` INTEGER NOT NULL, `zoneId` TEXT NOT NULL, `offsetSeconds` INTEGER NOT NULL, `note` TEXT NOT NULL, `sourceType` TEXT NOT NULL, `sourceId` TEXT, `metricEntryId` TEXT, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, FOREIGN KEY(`habitId`) REFERENCES `habits`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `habitId` INTEGER NOT NULL, `value` REAL, `canonicalValue` REAL, `enteredUnitId` TEXT, `status` TEXT NOT NULL, `timestampMillis` INTEGER NOT NULL, `localEpochDay` INTEGER NOT NULL, `zoneId` TEXT NOT NULL, `offsetSeconds` INTEGER NOT NULL, `note` TEXT NOT NULL, `sourceType` TEXT NOT NULL, `sourceId` TEXT, `measurementEntryId` TEXT, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, FOREIGN KEY(`habitId`) REFERENCES `habits`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -4414,8 +4420,8 @@
             "affinity": "TEXT"
           },
           {
-            "fieldPath": "metricEntryId",
-            "columnName": "metricEntryId",
+            "fieldPath": "measurementEntryId",
+            "columnName": "measurementEntryId",
             "affinity": "TEXT"
           },
           {
@@ -4847,7 +4853,7 @@
       },
       {
         "tableName": "goals",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `metricId` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT NOT NULL, `areaId` TEXT, `area` TEXT NOT NULL, `tagsCsv` TEXT NOT NULL, `icon` TEXT NOT NULL, `type` TEXT NOT NULL, `dimension` TEXT NOT NULL, `unitId` TEXT NOT NULL, `precision` INTEGER NOT NULL, `baseline` REAL, `targetMin` REAL, `targetMax` REAL, `direction` TEXT NOT NULL, `startEpochDay` INTEGER NOT NULL, `deadlineEpochDay` INTEGER, `aggregation` TEXT NOT NULL, `aggregationPeriod` TEXT NOT NULL, `rollingDays` INTEGER, `paceType` TEXT NOT NULL, `consistencyPeriod` TEXT NOT NULL, `consistencyRequiredPeriods` INTEGER, `elapsedStartMillis` INTEGER, `elapsedDisplayUnit` TEXT NOT NULL, `reminderMinutes` INTEGER, `status` TEXT NOT NULL, `archived` INTEGER NOT NULL DEFAULT 0, `pinned` INTEGER NOT NULL, `position` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, FOREIGN KEY(`areaId`) REFERENCES `areas`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `measurementId` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT NOT NULL, `areaId` TEXT, `area` TEXT NOT NULL, `tagsCsv` TEXT NOT NULL, `icon` TEXT NOT NULL, `type` TEXT NOT NULL, `dimension` TEXT NOT NULL, `unitId` TEXT NOT NULL, `precision` INTEGER NOT NULL, `baseline` REAL, `targetMin` REAL, `targetMax` REAL, `direction` TEXT NOT NULL, `startEpochDay` INTEGER NOT NULL, `deadlineEpochDay` INTEGER, `aggregation` TEXT NOT NULL, `aggregationPeriod` TEXT NOT NULL, `rollingDays` INTEGER, `paceType` TEXT NOT NULL, `consistencyPeriod` TEXT NOT NULL, `consistencyRequiredPeriods` INTEGER, `elapsedStartMillis` INTEGER, `elapsedDisplayUnit` TEXT NOT NULL, `reminderMinutes` INTEGER, `status` TEXT NOT NULL, `archived` INTEGER NOT NULL DEFAULT 0, `pinned` INTEGER NOT NULL, `position` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, FOREIGN KEY(`areaId`) REFERENCES `areas`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
         "fields": [
           {
             "fieldPath": "id",
@@ -4862,8 +4868,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "metricId",
-            "columnName": "metricId",
+            "fieldPath": "measurementId",
+            "columnName": "measurementId",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -5063,13 +5069,13 @@
             "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_goals_uuid` ON `${TABLE_NAME}` (`uuid`)"
           },
           {
-            "name": "index_goals_metricId",
+            "name": "index_goals_measurementId",
             "unique": true,
             "columnNames": [
-              "metricId"
+              "measurementId"
             ],
             "orders": [],
-            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_goals_metricId` ON `${TABLE_NAME}` (`metricId`)"
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_goals_measurementId` ON `${TABLE_NAME}` (`measurementId`)"
           },
           {
             "name": "index_goals_status",
@@ -5438,7 +5444,7 @@
       },
       {
         "tableName": "link_rules",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `kind` TEXT NOT NULL, `sourceType` TEXT NOT NULL, `sourceEntityId` INTEGER, `sourceMetricId` TEXT, `sourceItemId` INTEGER, `sourceMetric` TEXT NOT NULL, `targetGoalId` INTEGER NOT NULL, `targetMilestoneId` INTEGER, `valueMode` TEXT NOT NULL, `fixedValue` REAL, `multiplier` REAL NOT NULL, `offset` REAL NOT NULL, `retroactiveFromEpochDay` INTEGER, `enabled` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `trackAggregation` TEXT, `sourceFieldId` INTEGER, `conditionMode` TEXT NOT NULL, FOREIGN KEY(`targetGoalId`) REFERENCES `goals`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`targetMilestoneId`) REFERENCES `goal_milestones`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`sourceFieldId`) REFERENCES `track_fields`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `kind` TEXT NOT NULL, `sourceType` TEXT NOT NULL, `sourceEntityId` INTEGER, `sourceMeasurementId` TEXT, `sourceItemId` INTEGER, `sourceMeasurement` TEXT NOT NULL, `targetGoalId` INTEGER NOT NULL, `targetMilestoneId` INTEGER, `valueMode` TEXT NOT NULL, `fixedValue` REAL, `multiplier` REAL NOT NULL, `offset` REAL NOT NULL, `retroactiveFromEpochDay` INTEGER, `enabled` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, `trackAggregation` TEXT, `sourceFieldId` INTEGER, `conditionMode` TEXT NOT NULL, FOREIGN KEY(`targetGoalId`) REFERENCES `goals`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`targetMilestoneId`) REFERENCES `goal_milestones`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`sourceFieldId`) REFERENCES `track_fields`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
         "fields": [
           {
             "fieldPath": "id",
@@ -5476,8 +5482,8 @@
             "affinity": "INTEGER"
           },
           {
-            "fieldPath": "sourceMetricId",
-            "columnName": "sourceMetricId",
+            "fieldPath": "sourceMeasurementId",
+            "columnName": "sourceMeasurementId",
             "affinity": "TEXT"
           },
           {
@@ -5486,8 +5492,8 @@
             "affinity": "INTEGER"
           },
           {
-            "fieldPath": "sourceMetric",
-            "columnName": "sourceMetric",
+            "fieldPath": "sourceMeasurement",
+            "columnName": "sourceMeasurement",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -5657,7 +5663,7 @@
       },
       {
         "tableName": "contributions",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `linkRuleId` INTEGER NOT NULL, `sourceEventId` TEXT NOT NULL, `sourceType` TEXT NOT NULL, `sourceEntityId` INTEGER, `targetGoalId` INTEGER NOT NULL, `metricEntryId` TEXT, `canonicalValue` REAL, `localEpochDay` INTEGER NOT NULL, `timestampMillis` INTEGER NOT NULL, `excluded` INTEGER NOT NULL, `overrideValue` REAL, `explanation` TEXT NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, FOREIGN KEY(`linkRuleId`) REFERENCES `link_rules`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`targetGoalId`) REFERENCES `goals`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `linkRuleId` INTEGER NOT NULL, `sourceEventId` TEXT NOT NULL, `sourceType` TEXT NOT NULL, `sourceEntityId` INTEGER, `targetGoalId` INTEGER NOT NULL, `measurementEntryId` TEXT, `canonicalValue` REAL, `localEpochDay` INTEGER NOT NULL, `timestampMillis` INTEGER NOT NULL, `excluded` INTEGER NOT NULL, `overrideValue` REAL, `explanation` TEXT NOT NULL, `createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, FOREIGN KEY(`linkRuleId`) REFERENCES `link_rules`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`targetGoalId`) REFERENCES `goals`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -5701,8 +5707,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "metricEntryId",
-            "columnName": "metricEntryId",
+            "fieldPath": "measurementEntryId",
+            "columnName": "measurementEntryId",
             "affinity": "TEXT"
           },
           {
@@ -5788,13 +5794,13 @@
             "createSql": "CREATE INDEX IF NOT EXISTS `index_contributions_targetGoalId` ON `${TABLE_NAME}` (`targetGoalId`)"
           },
           {
-            "name": "index_contributions_metricEntryId",
+            "name": "index_contributions_measurementEntryId",
             "unique": true,
             "columnNames": [
-              "metricEntryId"
+              "measurementEntryId"
             ],
             "orders": [],
-            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_contributions_metricEntryId` ON `${TABLE_NAME}` (`metricEntryId`)"
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_contributions_measurementEntryId` ON `${TABLE_NAME}` (`measurementEntryId`)"
           },
           {
             "name": "index_contributions_sourceType_sourceEntityId",
@@ -7445,7 +7451,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '4fa66f83bbf9ed3d37dea82e8e19a353')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'bcdf90e01d5cccead54bfb75fa948c19')"
     ]
   }
 }

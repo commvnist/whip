@@ -494,7 +494,7 @@ internal fun WhipCollectionCard(
     }
 }
 
-/** A compact, consistent dashboard metric with a predictable trailing affordance. */
+/** A compact, consistent dashboard measurement with a predictable trailing affordance. */
 @Composable
 internal fun WhipMetricTile(
     label: String,

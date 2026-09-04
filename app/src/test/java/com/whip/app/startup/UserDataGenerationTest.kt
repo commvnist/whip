@@ -6,7 +6,7 @@ import org.junit.Test
 
 class UserDataGenerationTest {
     @Test
-    fun legacyPayloadsAreAcceptedOnlyBeforeTheFirstReplaceRestore() {
+    fun connectedPayloadsAreAcceptedOnlyBeforeTheFirstReplaceRestore() {
         assertTrue(generationMatches(current = 0L, presented = MISSING_USER_DATA_GENERATION))
         assertFalse(generationMatches(current = 1L, presented = MISSING_USER_DATA_GENERATION))
     }

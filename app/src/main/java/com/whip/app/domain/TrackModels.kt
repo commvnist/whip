@@ -387,16 +387,16 @@ data class TrackFieldRemovalImpact(
     val fieldName: String,
     val savedValueCount: Int,
     val childChoiceCount: Int,
-    val legacyLinkSourceCount: Int,
-    val legacyLinkConditionCount: Int,
-    val legacyTriggerConditionCount: Int,
-    val legacyTriggerMappingCount: Int,
+    val connectedLinkSourceCount: Int,
+    val connectedLinkConditionCount: Int,
+    val connectedTriggerConditionCount: Int,
+    val connectedTriggerMappingCount: Int,
 ) : Serializable {
-    val legacyLinkReferenceCount: Int
-        get() = legacyLinkSourceCount + legacyLinkConditionCount
+    val connectedLinkReferenceCount: Int
+        get() = connectedLinkSourceCount + connectedLinkConditionCount
 
-    val legacyTriggerReferenceCount: Int
-        get() = legacyTriggerConditionCount + legacyTriggerMappingCount
+    val connectedTriggerReferenceCount: Int
+        get() = connectedTriggerConditionCount + connectedTriggerMappingCount
 }
 
 /**
@@ -412,15 +412,15 @@ data class TrackChoiceRemovalImpact(
     val savedValueCount: Int,
     val replacementOptionId: Long? = null,
     val replacementOptionLabel: String? = null,
-    val legacyLinkConditionCount: Int,
-    val legacyTriggerConditionCount: Int,
-    val legacyTriggerMappingCount: Int,
+    val connectedLinkConditionCount: Int,
+    val connectedTriggerConditionCount: Int,
+    val connectedTriggerMappingCount: Int,
     val removedWithField: Boolean,
 ) : Serializable {
     val replacesSavedValues: Boolean get() = replacementOptionId != null
-    val legacyLinkReferenceCount: Int get() = legacyLinkConditionCount
-    val legacyTriggerReferenceCount: Int
-        get() = legacyTriggerConditionCount + legacyTriggerMappingCount
+    val connectedLinkReferenceCount: Int get() = connectedLinkConditionCount
+    val connectedTriggerReferenceCount: Int
+        get() = connectedTriggerConditionCount + connectedTriggerMappingCount
 }
 
 /**
@@ -446,8 +446,8 @@ data class TrackDefinitionSaveReceipt(
     val removedChoiceCount: Int = 0,
     val deletedValueCount: Int = 0,
     val replacedValueCount: Int = 0,
-    val legacyLinkReferenceCount: Int = 0,
-    val legacyTriggerReferenceCount: Int = 0,
+    val connectedLinkReferenceCount: Int = 0,
+    val connectedTriggerReferenceCount: Int = 0,
     val warnings: List<String> = emptyList(),
 ) : Serializable
 

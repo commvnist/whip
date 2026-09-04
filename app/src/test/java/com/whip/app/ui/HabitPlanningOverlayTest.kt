@@ -45,7 +45,7 @@ class HabitPlanningOverlayTest {
     )
 
     private fun habit() = Habit(
-        id = 1, uuid = "habit", metricId = "metric", name = "Habit", notes = "", area = "", tags = emptyList(), icon = "✓",
+        id = 1, uuid = "habit", measurementId = "measurement", name = "Habit", notes = "", area = "", tags = emptyList(), icon = "✓",
         trackingMode = HabitTrackingMode.Count,
         dimension = UnitDimension.Count, unitId = "count", precision = 0,
         comparison = TargetComparison.AtLeast, targetMin = 1.0, targetMax = null, targetPeriod = TargetPeriod.Day,

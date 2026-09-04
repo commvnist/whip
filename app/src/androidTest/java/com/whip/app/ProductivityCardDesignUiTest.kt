@@ -559,7 +559,7 @@ class ProductivityCardDesignUiTest {
         val checkOffHabit = sampleHabit(date).copy(
             id = 22,
             uuid = "habit-22",
-            metricId = "metric-habit-22",
+            measurementId = "measurement-habit-22",
             name = "Creatine",
             comparison = TargetComparison.AtLeast,
             targetMin = 1.0,
@@ -675,7 +675,7 @@ class ProductivityCardDesignUiTest {
             unitId = "second",
         )
         val skipped = sampleHabit(date).copy(id = 12, name = "Evening walk")
-        val synced = sampleHabit(date).copy(id = 13, name = "Daily steps", sourceMetricId = "health-steps")
+        val synced = sampleHabit(date).copy(id = 13, name = "Daily steps", sourceMeasurementId = "health-steps")
 
         compose.setContent {
             WhipTheme(dynamicColor = false) {
@@ -1129,7 +1129,7 @@ class ProductivityCardDesignUiTest {
     private fun sampleHabit(date: LocalDate) = Habit(
         id = 2,
         uuid = "habit-2",
-        metricId = "metric-habit-2",
+        measurementId = "measurement-habit-2",
         name = "Read daily",
         notes = "",
         area = "",
@@ -1169,7 +1169,7 @@ class ProductivityCardDesignUiTest {
     private fun sampleGoal(date: LocalDate) = Goal(
         id = 3,
         uuid = "goal-3",
-        metricId = "metric-goal-3",
+        measurementId = "measurement-goal-3",
         name = "Read 50 books",
         description = "",
         area = "",

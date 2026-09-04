@@ -109,7 +109,7 @@ class PersistentStorageE2ETest {
         assertEquals("Persistent goal", reopenedGoal.name)
         assertEquals(
             12.0,
-            reopened.goals.metricEntries.first().single { it.metricId == reopenedGoal.metricId }.canonicalValue!!,
+            reopened.goals.measurementEntries.first().single { it.measurementId == reopenedGoal.measurementId }.canonicalValue!!,
             0.0,
         )
         assertEquals("Persistent press", reopened.gym.exercises.first().single().name)

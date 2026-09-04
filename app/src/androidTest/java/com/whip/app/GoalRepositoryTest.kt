@@ -55,7 +55,7 @@ class GoalRepositoryTest {
         val id = repository.create(GoalDraft(name = "Run 500 km", type = GoalType.AccumulateTotal, dimension = UnitDimension.Distance, unitId = "kilometre", targetMin = 500.0, startDate = FixedClock.today(), aggregation = GoalAggregation.Sum))
         repository.recordMeasurement(id, 5.0, date = FixedClock.today().minusDays(1))
         repository.recordMeasurement(id, 7.0, date = FixedClock.today())
-        val entries = repository.metricEntries.first()
+        val entries = repository.measurementEntries.first()
         assertEquals(2, entries.size)
         assertEquals(setOf(FixedClock.today().minusDays(1), FixedClock.today()), entries.map { it.localDate }.toSet())
     }
@@ -226,7 +226,7 @@ class GoalRepositoryTest {
         val goal = repository.goals.first().single()
         val unit = measurements.customUnits.first().single()
         assertEquals(2_000.0, goal.targetMin ?: -1.0, 0.0)
-        assertEquals(500.0, repository.metricEntries.first().single().canonicalValue ?: -1.0, 0.0)
+        assertEquals(500.0, repository.measurementEntries.first().single().canonicalValue ?: -1.0, 0.0)
         assertEquals(8.0, goal.displayValue(goal.targetMin, listOf(unit)) ?: -1.0, 0.0)
     }
 
@@ -278,7 +278,7 @@ class GoalRepositoryTest {
         )
 
         repository.updateMeasurement(id, entryId, 100.0, today, "unchanged")
-        val entry = repository.metricEntries.first().single()
+        val entry = repository.measurementEntries.first().single()
         assertEquals("kilogram", entry.enteredUnitId)
         assertEquals(100.0, entry.canonicalValue ?: -1.0, 0.0)
         assertEquals(220.0, repository.goals.first().single().displayValue(repository.goals.first().single().targetMin) ?: -1.0, 0.000001)
@@ -300,7 +300,7 @@ class GoalRepositoryTest {
 
         assertTrue(runCatching { repository.duplicate(mutation) }.isFailure)
         repository.recordMeasurement(progress, 1.0)
-        assertEquals(1, repository.metricEntries.first().size)
+        assertEquals(1, repository.measurementEntries.first().size)
 
         repository.update(
             repository.get(id)!!.mutationBoundary(),
@@ -309,7 +309,7 @@ class GoalRepositoryTest {
         assertTrue(runCatching { repository.recordMeasurement(progress, 1.0) }.isFailure)
     }
 
-    @Test fun closedOrArchivedGoalsCannotBeNewlyPinnedButLegacyPinsCanBeRemoved() = runBlocking {
+    @Test fun closedOrArchivedGoalsCannotBeNewlyPinnedButConnectedPinsCanBeRemoved() = runBlocking {
         val id = repository.create(
             GoalDraft(
                 name = "Read",
@@ -349,7 +349,7 @@ class GoalRepositoryTest {
             }.isFailure,
         )
         val entryId = repository.recordMeasurement(goal.progressBoundary(), 1.0)
-        val entry = repository.metricEntries.first().single { it.id == entryId }
+        val entry = repository.measurementEntries.first().single { it.id == entryId }
         val opened = goal.measurementBoundary(entry)
         repository.updateMeasurement(opened, 2.0, FixedClock.today(), "first save")
 
@@ -434,7 +434,7 @@ class GoalRepositoryTest {
         repository.setArchived(goal.mutationBoundary(), true)
 
         goal = repository.get(id)!!
-        var entry = repository.metricEntries.first().single { it.id == entryId }
+        var entry = repository.measurementEntries.first().single { it.id == entryId }
         repository.updateMeasurement(
             goal.measurementBoundary(entry),
             5.0,
@@ -444,9 +444,9 @@ class GoalRepositoryTest {
         assertEquals(4.0, repository.closureSnapshots.first().single().value ?: -1.0, 0.0)
 
         goal = repository.get(id)!!
-        entry = repository.metricEntries.first().single { it.id == entryId }
+        entry = repository.measurementEntries.first().single { it.id == entryId }
         repository.deleteMeasurement(goal.measurementBoundary(entry))
-        assertTrue(repository.metricEntries.first().isEmpty())
+        assertTrue(repository.measurementEntries.first().isEmpty())
         assertEquals(4.0, repository.closureSnapshots.first().single().value ?: -1.0, 0.0)
     }
 

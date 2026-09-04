@@ -135,7 +135,7 @@ interface GymRepository {
     suspend fun updateWorkout(id: Long, name: String, notes: String, keepScreenAwake: Boolean)
     /**
      * [trainingMaxDecisions] is used only at a performance-review boundary. Omitted or
-     * absent lift decisions conservatively keep that lift's current Training Max. When supplied,
+     * absent exercise decisions conservatively keep that exercise's current Training Max. When supplied,
      * [expectedSessionUuid] and [expectedWorkoutRevision] bind the commit to the exact session
      * graph the user reviewed.
      */
@@ -789,7 +789,7 @@ class RoomGymRepository(
         val programmedPlacementsByExerciseId = days.flatMap { day -> routineDao.getExercises(day.id) }
             .filter { placement ->
                 runCatching { RoutinePlacementKind.valueOf(placement.placementKind) }.getOrNull() in setOf(
-                    RoutinePlacementKind.MainLift,
+                    RoutinePlacementKind.MainExercise,
                     RoutinePlacementKind.Supplemental,
                 )
             }
@@ -1579,7 +1579,7 @@ class RoomGymRepository(
                 ),
             )
             // A replacement is immediately loggable. This is workout-only work; it never
-            // inherits the retired lift's prescribed Main/Supplemental identity.
+            // inherits the retired exercise's prescribed Main/Supplemental identity.
             insertSetForActivePlacement(
                 requireNotNull(dao.getWorkoutExercise(newId)),
                 session,

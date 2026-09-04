@@ -5848,7 +5848,7 @@ private fun TaskAreaContent(
     var dayPlanCandidateKeys by rememberSaveable { mutableStateOf<Set<String>?>(null) }
     var taskToolsExpanded by rememberSaveable { mutableStateOf(false) }
     var quickCapture by rememberSaveable { mutableStateOf("") }
-    var legacyQuickCaptureSubmitting by remember { mutableStateOf(false) }
+    var connectedQuickCaptureSubmitting by remember { mutableStateOf(false) }
     var submittedQuickCapture by rememberSaveable { mutableStateOf("") }
     val quickCaptureCoordinator = rememberPersistenceRequestCoordinator(
         state = authoredMutationState,
@@ -5864,7 +5864,7 @@ private fun TaskAreaContent(
             submittedQuickCapture = ""
         },
     )
-    val quickCaptureSubmitting = quickCaptureCoordinator.saving || legacyQuickCaptureSubmitting
+    val quickCaptureSubmitting = quickCaptureCoordinator.saving || connectedQuickCaptureSubmitting
     val quickCaptureAssumptions = remember(
         quickCapture,
         state.currentDate,
@@ -6115,10 +6115,10 @@ private fun TaskAreaContent(
                 quickCaptureCoordinator.finishFailure("Another Task change is already finishing.")
             }
         } else {
-            legacyQuickCaptureSubmitting = true
+            connectedQuickCaptureSubmitting = true
             onQuickCapture(submittedQuickCapture, targetDate, targetAreaId) { succeeded ->
                 if (succeeded && quickCapture.trim() == submittedQuickCapture) quickCapture = ""
-                legacyQuickCaptureSubmitting = false
+                connectedQuickCaptureSubmitting = false
                 submittedQuickCapture = ""
             }
         }

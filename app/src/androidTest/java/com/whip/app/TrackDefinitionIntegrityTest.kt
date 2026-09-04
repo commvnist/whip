@@ -195,7 +195,7 @@ class TrackDefinitionIntegrityTest {
         val history = projection.optionsFor(genre.id).single { it.label == "History" }
         val fiction = projection.optionsFor(genre.id).single { it.label == "Fiction" }
         addChoiceEntry(trackId, projection, "Retarget me", genre.uuid, history.uuid)
-        val legacy = insertDormantDefinitions(trackId, genre.id, history.id, fiction.id)
+        val connected = insertDormantDefinitions(trackId, genre.id, history.id, fiction.id)
         projection = requireNotNull(tracks.projection(trackId))
         val draft = projection.toDraft().withoutOption(history.id)
         val boundary = requireNotNull(tracks.definitionBoundary(trackId))
@@ -207,21 +207,21 @@ class TrackDefinitionIntegrityTest {
         )
         val impact = review.removedChoices.single { it.optionId == history.id }
         assertEquals(1, impact.savedValueCount)
-        assertEquals(1, impact.legacyLinkConditionCount)
-        assertEquals(1, impact.legacyTriggerConditionCount)
-        assertEquals(1, impact.legacyTriggerMappingCount)
+        assertEquals(1, impact.connectedLinkConditionCount)
+        assertEquals(1, impact.connectedTriggerConditionCount)
+        assertEquals(1, impact.connectedTriggerMappingCount)
 
         val receipt = tracks.update(trackId, draft, boundary, review)
 
         assertEquals(1, receipt.replacedValueCount)
         val current = requireNotNull(tracks.projection(trackId))
         assertEquals(fiction.id, current.entries.single().value(genre.id)?.choiceOptionId)
-        val linkChoices = database.linkDao().getLinkConditionChoices(listOf(legacy.linkConditionId))
+        val linkChoices = database.linkDao().getLinkConditionChoices(listOf(connected.linkConditionId))
         assertEquals(listOf(fiction.id), linkChoices.map { it.optionId })
-        val triggerChoices = database.linkDao().getTriggerConditionChoices(listOf(legacy.triggerConditionId))
+        val triggerChoices = database.linkDao().getTriggerConditionChoices(listOf(connected.triggerConditionId))
         assertEquals(listOf(fiction.id), triggerChoices.map { it.optionId })
-        assertEquals(fiction.id, database.linkDao().getTriggerMappings(legacy.triggerRuleId).single().constantChoiceOptionId)
-        assertEquals(1, database.linkDao().getContributions(legacy.linkRuleId).size)
+        assertEquals(fiction.id, database.linkDao().getTriggerMappings(connected.triggerRuleId).single().constantChoiceOptionId)
+        assertEquals(1, database.linkDao().getContributions(connected.linkRuleId).size)
     }
 
     @Test
@@ -232,16 +232,16 @@ class TrackDefinitionIntegrityTest {
         val history = projection.optionsFor(genre.id).single { it.label == "History" }
         val fiction = projection.optionsFor(genre.id).single { it.label == "Fiction" }
         addChoiceEntry(trackId, projection, "Keep this Entry", genre.uuid, history.uuid)
-        val legacy = insertDormantDefinitions(trackId, genre.id, history.id, fiction.id)
+        val connected = insertDormantDefinitions(trackId, genre.id, history.id, fiction.id)
         projection = requireNotNull(tracks.projection(trackId))
         val draft = projection.toDraft().withoutOption(history.id)
         val boundary = requireNotNull(tracks.definitionBoundary(trackId))
         val review = tracks.reviewDefinitionUpdate(trackId, draft, boundary)
         val impact = review.removedChoices.single { it.optionId == history.id }
         assertEquals(1, impact.savedValueCount)
-        assertEquals(1, impact.legacyLinkConditionCount)
-        assertEquals(1, impact.legacyTriggerConditionCount)
-        assertEquals(1, impact.legacyTriggerMappingCount)
+        assertEquals(1, impact.connectedLinkConditionCount)
+        assertEquals(1, impact.connectedTriggerConditionCount)
+        assertEquals(1, impact.connectedTriggerMappingCount)
 
         val receipt = tracks.update(trackId, draft, boundary, review)
 
@@ -252,16 +252,16 @@ class TrackDefinitionIntegrityTest {
         assertNotNull(current.options.firstOrNull { it.id == fiction.id })
         assertEquals("Keep this Entry", current.primaryText(current.entries.single()))
         assertNull(current.entries.single().value(genre.id))
-        assertEquals(listOf(fiction.id), database.linkDao().getLinkConditionChoices(listOf(legacy.linkConditionId)).map { it.optionId })
+        assertEquals(listOf(fiction.id), database.linkDao().getLinkConditionChoices(listOf(connected.linkConditionId)).map { it.optionId })
         assertEquals(
             listOf(fiction.id),
-            database.linkDao().getTriggerConditionChoices(listOf(legacy.triggerConditionId)).map { it.optionId },
+            database.linkDao().getTriggerConditionChoices(listOf(connected.triggerConditionId)).map { it.optionId },
         )
-        assertNull(database.linkDao().getTriggerMappings(legacy.triggerRuleId).single().constantChoiceOptionId)
-        assertNotNull(database.linkDao().getRule(legacy.linkRuleId))
-        assertNotNull(database.linkDao().getTriggerRule(legacy.triggerRuleId))
-        assertEquals(legacy.contributionId, database.linkDao().getContributions(legacy.linkRuleId).single().id)
-        assertEquals(legacy.occurrenceId, database.linkDao().getTriggerOccurrences(legacy.triggerRuleId).single().id)
+        assertNull(database.linkDao().getTriggerMappings(connected.triggerRuleId).single().constantChoiceOptionId)
+        assertNotNull(database.linkDao().getRule(connected.linkRuleId))
+        assertNotNull(database.linkDao().getTriggerRule(connected.triggerRuleId))
+        assertEquals(connected.contributionId, database.linkDao().getContributions(connected.linkRuleId).single().id)
+        assertEquals(connected.occurrenceId, database.linkDao().getTriggerOccurrences(connected.triggerRuleId).single().id)
     }
 
     @Test
@@ -310,7 +310,7 @@ class TrackDefinitionIntegrityTest {
                 ),
             ),
         )
-        val legacy = insertDormantFieldDefinitions(trackId, notes.id, entryId)
+        val connected = insertDormantFieldDefinitions(trackId, notes.id, entryId)
         projection = requireNotNull(tracks.projection(trackId))
         val draft = projection.toDraft().copy(
             description = "Field removed exactly",
@@ -320,10 +320,10 @@ class TrackDefinitionIntegrityTest {
         val review = tracks.reviewDefinitionUpdate(trackId, draft, boundary)
         val impact = review.removedFields.single { it.fieldId == notes.id }
         assertEquals(1, impact.savedValueCount)
-        assertEquals(1, impact.legacyLinkSourceCount)
-        assertEquals(1, impact.legacyLinkConditionCount)
-        assertEquals(1, impact.legacyTriggerConditionCount)
-        assertEquals(1, impact.legacyTriggerMappingCount)
+        assertEquals(1, impact.connectedLinkSourceCount)
+        assertEquals(1, impact.connectedLinkConditionCount)
+        assertEquals(1, impact.connectedTriggerConditionCount)
+        assertEquals(1, impact.connectedTriggerMappingCount)
 
         val receipt = tracks.update(trackId, draft, boundary, review)
 
@@ -336,14 +336,14 @@ class TrackDefinitionIntegrityTest {
         assertEquals("Field deletion history", current.primaryText(current.entries.single()))
         assertEquals(setOf(entryId), tracks.searchEntryIds(trackId, "Field deletion history"))
 
-        assertNull(requireNotNull(database.linkDao().getRule(legacy.linkRuleId)).sourceFieldId)
-        assertNull(database.linkDao().getRuleConditions(legacy.linkRuleId).single().fieldId)
-        assertEquals(legacy.contributionId, database.linkDao().getContributions(legacy.linkRuleId).single().id)
-        assertNotNull(database.linkDao().getTriggerRule(legacy.triggerRuleId))
-        assertNull(database.linkDao().getTriggerConditions(legacy.triggerRuleId).single().fieldId)
-        assertTrue(database.linkDao().getTriggerMappings(legacy.triggerRuleId).isEmpty())
-        val occurrence = database.linkDao().getTriggerOccurrences(legacy.triggerRuleId).single()
-        assertEquals(legacy.occurrenceId, occurrence.id)
+        assertNull(requireNotNull(database.linkDao().getRule(connected.linkRuleId)).sourceFieldId)
+        assertNull(database.linkDao().getRuleConditions(connected.linkRuleId).single().fieldId)
+        assertEquals(connected.contributionId, database.linkDao().getContributions(connected.linkRuleId).single().id)
+        assertNotNull(database.linkDao().getTriggerRule(connected.triggerRuleId))
+        assertNull(database.linkDao().getTriggerConditions(connected.triggerRuleId).single().fieldId)
+        assertTrue(database.linkDao().getTriggerMappings(connected.triggerRuleId).isEmpty())
+        val occurrence = database.linkDao().getTriggerOccurrences(connected.triggerRuleId).single()
+        assertEquals(connected.occurrenceId, occurrence.id)
         assertEquals(entryId, occurrence.fulfilledEntryId)
     }
 
@@ -409,7 +409,7 @@ class TrackDefinitionIntegrityTest {
 
         val failure = runCatching { tracks.update(trackId, draft, boundary) }.exceptionOrNull()
 
-        assertTrue(failure?.message.orEmpty().contains("legacy automation value"))
+        assertTrue(failure?.message.orEmpty().contains("connected automation value"))
         assertEquals(0.5, requireNotNull(tracks.projection(trackId)).fields.single { it.id == rating.id }.scaleStep, 0.0)
     }
 
@@ -442,7 +442,7 @@ class TrackDefinitionIntegrityTest {
 
         val failure = runCatching { tracks.update(trackId, changed, boundary) }.exceptionOrNull()
 
-        assertTrue(failure?.message.orEmpty().contains("legacy automation definitions"))
+        assertTrue(failure?.message.orEmpty().contains("connected automation definitions"))
         assertEquals(
             TrackFieldType.LongText,
             requireNotNull(tracks.projection(trackId)).fields.single { it.id == notes.id }.type,
@@ -545,7 +545,7 @@ class TrackDefinitionIntegrityTest {
             retainedTrackId,
             retained.toDraft().copy(
                 description = "Still editable",
-                // Legacy drafts may retain only the derived display name.
+                // Connected drafts may retain only the derived display name.
                 areaId = null,
             ),
             retainedBoundary,
@@ -624,18 +624,18 @@ class TrackDefinitionIntegrityTest {
         fieldId: Long,
         removedOptionId: Long,
         retainedOptionId: Long,
-    ): LegacyRows {
+    ): ConnectedRows {
         val goalId = database.goalDao().insertGoal(goalEntity())
         val linkRuleId = database.linkDao().insertRule(
             LinkRuleEntity(
-                uuid = "legacy-link",
+                uuid = "connected-link",
                 name = "Dormant Link",
                 kind = "Contribution",
                 sourceType = "Track",
                 sourceEntityId = trackId,
-                sourceMetricId = null,
+                sourceMeasurementId = null,
                 sourceItemId = null,
-                sourceMetric = "FieldValue",
+                sourceMeasurement = "FieldValue",
                 targetGoalId = goalId,
                 targetMilestoneId = null,
                 valueMode = "SourceValue",
@@ -669,13 +669,13 @@ class TrackDefinitionIntegrityTest {
         database.linkDao().insertLinkConditionChoice(LinkConditionChoiceEntity(linkConditionId, retainedOptionId))
         val contributionId = database.linkDao().upsertContribution(
             ContributionEntity(
-                uuid = "legacy-contribution",
+                uuid = "connected-contribution",
                 linkRuleId = linkRuleId,
                 sourceEventId = "historical-event",
                 sourceType = "Track",
                 sourceEntityId = trackId,
                 targetGoalId = goalId,
-                metricEntryId = null,
+                measurementEntryId = null,
                 canonicalValue = 1.0,
                 localEpochDay = TestClock.today().toEpochDay(),
                 timestampMillis = 1,
@@ -720,7 +720,7 @@ class TrackDefinitionIntegrityTest {
         val occurrenceId = database.linkDao().upsertTriggerOccurrence(
             TriggerOccurrenceEntity(
                 triggerRuleId = triggerRuleId,
-                sourceEventId = "legacy-choice-event",
+                sourceEventId = "connected-choice-event",
                 availableAtMillis = 1,
                 deliveredAtMillis = 2,
                 dismissedAtMillis = null,
@@ -729,7 +729,7 @@ class TrackDefinitionIntegrityTest {
                 sourceSnapshot = "{\"kind\":\"choice\"}",
             ),
         )
-        return LegacyRows(
+        return ConnectedRows(
             linkRuleId,
             linkConditionId,
             triggerRuleId,
@@ -743,7 +743,7 @@ class TrackDefinitionIntegrityTest {
         trackId: Long,
         fieldId: Long,
         fulfilledEntryId: Long,
-    ): FieldLegacyRows {
+    ): FieldConnectedRows {
         val goalId = database.goalDao().insertGoal(goalEntity())
         val linkRuleId = database.linkDao().insertRule(
             LinkRuleEntity(
@@ -752,9 +752,9 @@ class TrackDefinitionIntegrityTest {
                 kind = "Contribution",
                 sourceType = "Track",
                 sourceEntityId = trackId,
-                sourceMetricId = null,
+                sourceMeasurementId = null,
                 sourceItemId = null,
-                sourceMetric = "FieldValue",
+                sourceMeasurement = "FieldValue",
                 targetGoalId = goalId,
                 targetMilestoneId = null,
                 valueMode = "SourceValue",
@@ -792,7 +792,7 @@ class TrackDefinitionIntegrityTest {
                 sourceType = "Track",
                 sourceEntityId = trackId,
                 targetGoalId = goalId,
-                metricEntryId = null,
+                measurementEntryId = null,
                 canonicalValue = 1.0,
                 localEpochDay = TestClock.today().toEpochDay(),
                 timestampMillis = 1,
@@ -844,7 +844,7 @@ class TrackDefinitionIntegrityTest {
                 sourceSnapshot = "{\"kind\":\"field\"}",
             ),
         )
-        return FieldLegacyRows(linkRuleId, triggerRuleId, contributionId, occurrenceId)
+        return FieldConnectedRows(linkRuleId, triggerRuleId, contributionId, occurrenceId)
     }
 
     private suspend fun insertTriggerRule(trackId: Long): Long = database.linkDao().insertTriggerRule(
@@ -871,7 +871,7 @@ class TrackDefinitionIntegrityTest {
 
     private fun goalEntity() = GoalEntity(
         uuid = "goal-${nextFixtureId.incrementAndGet()}",
-        metricId = "metric-${nextFixtureId.incrementAndGet()}",
+        measurementId = "measurement-${nextFixtureId.incrementAndGet()}",
         name = "History target",
         description = "",
         areaId = "whip-default-main",
@@ -973,7 +973,7 @@ class TrackDefinitionIntegrityTest {
         fields = fields.map { field -> field.copy(options = field.options.filterNot { it.id == optionId }) },
     )
 
-    private data class LegacyRows(
+    private data class ConnectedRows(
         val linkRuleId: Long,
         val linkConditionId: Long,
         val triggerRuleId: Long,
@@ -982,7 +982,7 @@ class TrackDefinitionIntegrityTest {
         val occurrenceId: Long,
     )
 
-    private data class FieldLegacyRows(
+    private data class FieldConnectedRows(
         val linkRuleId: Long,
         val triggerRuleId: Long,
         val contributionId: Long,

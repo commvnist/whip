@@ -42,10 +42,10 @@ interface HabitDao {
     @Query(
         """SELECT id FROM habits
             WHERE archived = 0
-              AND sourceMetricId = :sourceMetricId
+              AND sourceMeasurementId = :sourceMeasurementId
               AND (reminderMinutesCsv != '' OR weekdayReminderMinutesCsv != '')""",
     )
-    suspend fun getReminderHabitIdsForSourceMetric(sourceMetricId: String): List<Long>
+    suspend fun getReminderHabitIdsForSourceMeasurement(sourceMeasurementId: String): List<Long>
 
     @Query(
         """SELECT DISTINCT habits.id FROM habits

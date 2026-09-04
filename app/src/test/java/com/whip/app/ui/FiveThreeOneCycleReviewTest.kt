@@ -41,8 +41,8 @@ class FiveThreeOneCycleReviewTest {
         )
 
         val review = requireNotNull(state.activeFiveThreeOneCycleReview())
-        assertEquals("StandardIncrease", review.lifts.single().recommendation.category.name)
-        assertEquals(10.0, review.lifts.single().recommendation.suggestedDelta, 0.0)
+        assertEquals("StandardIncrease", review.exercises.single().recommendation.category.name)
+        assertEquals(10.0, review.exercises.single().recommendation.suggestedDelta, 0.0)
     }
 
     @Test
@@ -60,10 +60,10 @@ class FiveThreeOneCycleReviewTest {
             allowHigher = true,
         )
 
-        val lift = requireNotNull(state.activeFiveThreeOneCycleReview()).lifts.single()
-        assertEquals("CautiousHigherIncrease", lift.recommendation.category.name)
-        assertEquals(15.0, lift.recommendation.suggestedDelta, 0.0)
-        assertTrue(lift.eligible)
+        val exercise = requireNotNull(state.activeFiveThreeOneCycleReview()).exercises.single()
+        assertEquals("CautiousHigherIncrease", exercise.recommendation.category.name)
+        assertEquals(15.0, exercise.recommendation.suggestedDelta, 0.0)
+        assertTrue(exercise.eligible)
     }
 
     @Test
@@ -85,7 +85,7 @@ class FiveThreeOneCycleReviewTest {
             ).activeFiveThreeOneCycleReview(),
         )
 
-        assertEquals("StandardIncrease", review.lifts.single().recommendation.category.name)
+        assertEquals("StandardIncrease", review.exercises.single().recommendation.category.name)
     }
 
     @Test
@@ -106,7 +106,7 @@ class FiveThreeOneCycleReviewTest {
     }
 
     @Test
-    fun underTargetMainWorkHoldsOnlyThatLift() {
+    fun underTargetMainWorkHoldsOnlyThatExercise() {
         val active = session(10, WorkoutSessionState.Active)
         val missed = set(101, 1001, WorkoutSetClassification.Working, RoutineWorkSection.Main, reps = 4)
         val state = state(
@@ -117,13 +117,13 @@ class FiveThreeOneCycleReviewTest {
             allowHigher = false,
         )
 
-        val lift = requireNotNull(state.activeFiveThreeOneCycleReview()).lifts.single()
-        assertFalse(lift.eligible)
-        assertEquals("Hold", lift.recommendation.category.name)
+        val exercise = requireNotNull(state.activeFiveThreeOneCycleReview()).exercises.single()
+        assertFalse(exercise.eligible)
+        assertEquals("Hold", exercise.recommendation.category.name)
     }
 
     @Test
-    fun successfulRetiredMainWorkRemainsEligibleAfterSameLiftEquipmentSubstitution() {
+    fun successfulRetiredMainWorkRemainsEligibleAfterSameExerciseEquipmentSubstitution() {
         val active = session(10, WorkoutSessionState.Active)
         val retired = workoutExercise(1001, active.id).copy(
             outcome = WorkoutExerciseOutcome.Substituted,
@@ -155,11 +155,11 @@ class FiveThreeOneCycleReviewTest {
             ).activeFiveThreeOneCycleReview(),
         )
 
-        assertTrue(review.lifts.single().eligible)
+        assertTrue(review.exercises.single().eligible)
     }
 
     @Test
-    fun earlierDayLiftRemainsEligibleAtFinalDayReview() {
+    fun earlierDayExerciseRemainsEligibleAtFinalDayReview() {
         val earlier = session(9, WorkoutSessionState.Finished).copy(sourceRoutineDayPosition = 0)
         val active = session(10, WorkoutSessionState.Active).copy(sourceRoutineDayPosition = 1)
         val earlierPlacement = workoutExercise(901, earlier.id)
@@ -200,13 +200,13 @@ class FiveThreeOneCycleReviewTest {
             ),
         )
 
-        val lifts = requireNotNull(reviewState.activeFiveThreeOneCycleReview()).lifts.associateBy { it.exerciseId }
-        assertTrue(requireNotNull(lifts[7]).eligible)
-        assertTrue(requireNotNull(lifts[8]).eligible)
+        val exercises = requireNotNull(reviewState.activeFiveThreeOneCycleReview()).exercises.associateBy { it.exerciseId }
+        assertTrue(requireNotNull(exercises[7]).eligible)
+        assertTrue(requireNotNull(exercises[8]).eligible)
     }
 
     @Test
-    fun malformedUnknownInvalidationConservativelyHoldsLift() {
+    fun malformedUnknownInvalidationConservativelyHoldsExercise() {
         val active = session(10, WorkoutSessionState.Active).copy(
             requiredMainWorkInvalidated = true,
             invalidatedMainExerciseIds = emptySet(),
@@ -220,7 +220,7 @@ class FiveThreeOneCycleReviewTest {
             allowHigher = false,
         ).activeFiveThreeOneCycleReview()
 
-        assertFalse(requireNotNull(review).lifts.single().eligible)
+        assertFalse(requireNotNull(review).exercises.single().eligible)
     }
 
     @Test
@@ -256,7 +256,7 @@ class FiveThreeOneCycleReviewTest {
                 activeSets = evidence.toList(),
                 allowHigher = false,
             ).activeFiveThreeOneCycleReview(),
-        ).lifts.single().recommendation.category
+        ).exercises.single().recommendation.category
 
         assertEquals(
             "Hold",
@@ -388,7 +388,7 @@ class FiveThreeOneCycleReviewTest {
                     trainingMaxKg = 300.0,
                     trainingMaxUnitId = "kilogram",
                     cycleIncrementValue = 10.0,
-                    placementKind = RoutinePlacementKind.MainLift,
+                    placementKind = RoutinePlacementKind.MainExercise,
                 ),
             ),
         )
@@ -433,7 +433,7 @@ class FiveThreeOneCycleReviewTest {
         trainingMaxKgSnapshot = 300.0,
         trainingMaxUnitIdSnapshot = "kilogram",
         cycleIncrementValueSnapshot = 10.0,
-        placementKindSnapshot = RoutinePlacementKind.MainLift,
+        placementKindSnapshot = RoutinePlacementKind.MainExercise,
     )
 
     private fun set(

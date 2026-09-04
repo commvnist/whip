@@ -97,7 +97,7 @@ including archived records and discarded workouts.
 
 Advanced task setup adds priority, comma-separated tags, a
 work date distinct from its final deadline, and multiple notification offsets.
-Areas group tasks, habits, and goals under any names you choose. Whip creates
+Areas group tasks, habits, goals, and tracks under any names you choose. Whip creates
 **Main** automatically, assigns new items to an Area, and always
 keeps at least one active Area. **Edit Areas** can move every item from one Area
 to another in one action while retaining both the records and their history.

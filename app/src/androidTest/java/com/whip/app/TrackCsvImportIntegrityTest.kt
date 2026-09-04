@@ -400,7 +400,7 @@ class TrackCsvImportIntegrityTest {
                 name = "Maximum-cell custom-unit CSV batch",
                 fields = List(fieldCount) { fieldIndex ->
                     TrackFieldDraft(
-                        name = "Metric ${fieldIndex + 1}",
+                        name = "Measurement ${fieldIndex + 1}",
                         type = TrackFieldType.Number,
                         required = true,
                         primary = fieldIndex == 0,
@@ -411,7 +411,7 @@ class TrackCsvImportIntegrityTest {
             ),
         )
         val openingForm = requireNotNull(tracks.csvImportForm(trackId))
-        val fields = openingForm.fields.sortedBy { it.name.removePrefix("Metric ").toInt() }
+        val fields = openingForm.fields.sortedBy { it.name.removePrefix("Measurement ").toInt() }
         val drafts = List(TRACK_CSV_MAX_IMPORT_ROWS) { rowIndex ->
             TrackEntryDraft(
                 entryDate = CsvClock.today().minusDays((rowIndex % 365).toLong()),

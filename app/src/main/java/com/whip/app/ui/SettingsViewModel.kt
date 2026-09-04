@@ -30,7 +30,7 @@ import com.whip.app.domain.AreaScope
 import com.whip.app.domain.WhipTag
 import com.whip.app.domain.CustomIdentityEmoji
 import com.whip.app.domain.CustomUnitBoundary
-import com.whip.app.domain.MetricSourceType
+import com.whip.app.domain.MeasurementSourceType
 import com.whip.app.domain.normalizeCustomIdentityEmojis
 import com.whip.app.widget.WhipWidgetProvider
 import java.time.DayOfWeek
@@ -184,7 +184,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             units = units,
             areas = areas,
             tags = tags,
-            healthImportedEntryCount = entries.count { it.sourceType == MetricSourceType.HealthConnect },
+            healthImportedEntryCount = entries.count { it.sourceType == MeasurementSourceType.HealthConnect },
         )
     }
 
@@ -1162,23 +1162,16 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             val status = checkNotNull(app.withUserDataAccess {
                 healthConnect.sync(settings.healthDataTypes, settings.healthSyncDays)
             }) { "Whip data is temporarily unavailable; try again." }
-            val warnings = mutableListOf<String>()
-            try {
-                app.withUserDataAccess { app.linkRepository.rebuildAll() }
-                    ?: error("Whip data is temporarily unavailable")
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
-                warnings += "Health records were synchronized, but linked Habit and trend summaries could not be refreshed. Restart Whip to retry."
-            }
             if (!status.receiptPersisted) {
-                warnings += "Health records were synchronized, but Whip could not preserve the last-sync receipt."
+                healthRuntime.update { current ->
+                    current.copy(message = "Health records were synchronized, but Whip could not preserve the last-sync receipt.")
+                }
             }
             healthRuntime.value = status
             HealthMutationReceipt(
                 kind = HealthMutationKind.Sync,
                 affectedEntries = status.importedEntries,
-                warnings = warnings,
+                warnings = emptyList(),
             )
         }
 
@@ -1188,18 +1181,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 "Whip data is temporarily unavailable; deletion will retry when Whip starts."
             }
             val warnings = mutableListOf<String>()
-            val linksRebuilt = try {
-                app.withUserDataAccess { app.linkRepository.rebuildAll() }
-                    ?: error("Whip data is temporarily unavailable")
-                true
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
-                warnings += "Local Health Connect copies were deleted, but linked Habit and trend summaries could not be refreshed. Whip kept a recovery marker and will retry when it starts."
-                false
-            }
-            if (linksRebuilt && !healthConnect.completeImportedDataDeletion()) {
-                warnings += "Deletion finished, but Whip could not clear its recovery marker. It will safely verify deletion next time it starts."
+            if (!healthConnect.completeImportedDataDeletion()) {
+                healthRuntime.update { current ->
+                    current.copy(message = "Deletion finished, but Whip could not clear its recovery marker. It will safely verify deletion next time it starts.")
+                }
             }
             val clearedStatus = healthRuntime.value.copy(lastSync = null, importedEntries = 0)
             healthRuntime.value = try {

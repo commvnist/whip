@@ -1527,9 +1527,8 @@ internal fun buildUiState(
 
         when (task.scheduleKind) {
             ScheduleKind.Anytime -> {
-                // `ScheduleKind.Anytime` remains the persisted, backward-compatible
-                // representation of "no date". Inbox is now the single product surface
-                // for every undated Task, including records created before consolidation.
+                // `ScheduleKind.Anytime` is the persisted representation of "no date".
+                // Inbox is the single product surface for every undated Task.
                 val item = ScheduledTask(task.copy(inbox = true), null, null).withStepProgress()
                 inboxItems += item
             }

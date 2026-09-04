@@ -787,13 +787,6 @@ class GymViewModel @JvmOverloads constructor(
                         } catch (_: Exception) {
                             warnings += "Personal-record reconciliation could not be verified after process recovery."
                         }
-                        try {
-                            app.linkRepository.rebuildAll()
-                        } catch (cancelled: CancellationException) {
-                            throw cancelled
-                        } catch (_: Exception) {
-                            warnings += "Link reconciliation could not be verified after process recovery."
-                        }
                         if (exerciseUuid != null) {
                             try {
                                 app.settingsRepository.update { current ->
@@ -866,13 +859,6 @@ class GymViewModel @JvmOverloads constructor(
                         require(app.isCurrentUserDataGeneration(expectedDataGeneration)) {
                             "User data changed during deletion recovery"
                         }
-                        try {
-                            app.linkRepository.rebuildAll()
-                        } catch (cancelled: CancellationException) {
-                            throw cancelled
-                        } catch (_: Exception) {
-                            warnings += "Link reconciliation could not be verified after process recovery."
-                        }
                         Unit
                     }) { "Whip data is unavailable while recovery is in progress" }
                 } catch (cancelled: CancellationException) {
@@ -940,13 +926,6 @@ class GymViewModel @JvmOverloads constructor(
                             throw cancelled
                         } catch (_: Exception) {
                             warnings += "Personal-record reconciliation could not be verified after process recovery."
-                        }
-                        try {
-                            app.linkRepository.rebuildAll()
-                        } catch (cancelled: CancellationException) {
-                            throw cancelled
-                        } catch (_: Exception) {
-                            warnings += "Link reconciliation could not be verified after process recovery."
                         }
                         Unit
                     }) { "Whip data is unavailable while recovery is in progress" }
@@ -1509,7 +1488,6 @@ class GymViewModel @JvmOverloads constructor(
             followUp = { receipt ->
                 reconcilePersistedRestTimer(receipt.sessionId)
                 receipt.exerciseIds.forEach { routineRepository.rebuildPersonalRecords(it) }
-                app.linkRepository.rebuildAll()
                 receipt
             },
             onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
@@ -1530,7 +1508,6 @@ class GymViewModel @JvmOverloads constructor(
             commit = { repository.resumeWorkout(id) },
             followUp = {
                 reconcilePersistedRestTimer(id)
-                app.linkRepository.rebuildAll()
             },
             onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
             onOrdinaryFailure = { },
@@ -1550,7 +1527,6 @@ class GymViewModel @JvmOverloads constructor(
             followUp = {
                 reconcilePersistedRestTimer(boundary.sessionId)
                 rebuildPersonalRecordsForSession(boundary.sessionId)
-                app.linkRepository.rebuildAll()
             },
             onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
             onOrdinaryFailure = { followUpWarning = true },
@@ -1571,7 +1547,6 @@ class GymViewModel @JvmOverloads constructor(
             followUp = {
                 reconcilePersistedRestTimer(id)
                 rebuildPersonalRecordsForSession(id)
-                app.linkRepository.rebuildAll()
             },
             onCancellation = { _, cancelled -> CommittedGymMutationCancellation(cancelled) },
             onOrdinaryFailure = { },

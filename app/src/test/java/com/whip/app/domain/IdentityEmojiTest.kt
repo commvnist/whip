@@ -14,18 +14,8 @@ class IdentityEmojiTest {
 
     @Test
     fun `rejects prose symbols and unrelated multiple emoji`() {
-        listOf("", "A", "check", "✓", "◆", "📚🔥", "📚 books")
+        listOf("", "A", "check", "📚🔥", "📚 books")
             .forEach { value -> assertFalse(value, value.isIdentityEmoji()) }
-    }
-
-    @Test
-    fun `normalization converts every shipped legacy identity symbol`() {
-        val expected = mapOf(
-            "✓" to "✅", "○" to "⭕", "◆" to "🔹", "◎" to "🎯", "⚑" to "🚩",
-            "✚" to "💊", "◉" to "💧", "▤" to "📋", "★" to "⭐", "⏱" to "⏱️",
-            "◈" to "⚖️", "$" to "💰", "↗" to "📈", "◫" to "🗂️", "✦" to "✨", "♟" to "♟️",
-        )
-        expected.forEach { (legacy, emoji) -> assertEquals(emoji, legacy.normalizedIdentityEmoji(DEFAULT_TRACK_EMOJI)) }
     }
 
     @Test

@@ -329,7 +329,7 @@ class ProductivityCreationJourneyE2ETest {
 
             val seriesStart = today.plusDays(2)
             compose.onNodeWithTag("task-quick-capture").performTextReplacement(
-                "Review metrics every 2 weeks on $seriesStart",
+                "Review measurements every 2 weeks on $seriesStart",
             )
             compose.onNodeWithText("Add Details").performClick()
             compose.onNodeWithTag("smart-task-editor-preview").assertIsDisplayed()
@@ -337,8 +337,8 @@ class ProductivityCreationJourneyE2ETest {
             compose.onNodeWithText("Save").performClick()
             val repeatingTask = runBlocking {
                 awaitPersistence("reviewed Smart Capture task") {
-                    app.taskRepository.tasks.first { tasks -> tasks.any { task -> task.title == "Review metrics" } }
-                        .single { task -> task.title == "Review metrics" }
+                    app.taskRepository.tasks.first { tasks -> tasks.any { task -> task.title == "Review measurements" } }
+                        .single { task -> task.title == "Review measurements" }
                 }
             }
             check(repeatingTask.scheduleKind == ScheduleKind.Recurring)

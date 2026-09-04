@@ -76,7 +76,7 @@ class ReminderRuntimeMaintenanceTest {
         val maintenance = ReminderRuntimeMaintenance(
             versionStore = store,
             currentClaimVersion = 3,
-            cancelVisibleLegacyReminders = {
+            cancelVisibleConnectedReminders = {
                 events += "cancel"
                 error("platform failure")
             },
@@ -159,7 +159,7 @@ class ReminderRuntimeMaintenanceTest {
         val maintenance = ReminderRuntimeMaintenance(
             versionStore = store,
             currentClaimVersion = 3,
-            cancelVisibleLegacyReminders = { events += "cancel" },
+            cancelVisibleConnectedReminders = { events += "cancel" },
             syncTaskReminders = {
                 events += "tasks"
                 if (!taskSyncStarted.isCompleted) {
@@ -210,7 +210,7 @@ class ReminderRuntimeMaintenanceTest {
     ) = ReminderRuntimeMaintenance(
         versionStore = store.onWrite { version -> events += "write:$version" },
         currentClaimVersion = currentVersion,
-        cancelVisibleLegacyReminders = { events += "cancel" },
+        cancelVisibleConnectedReminders = { events += "cancel" },
         syncTaskReminders = { events += "tasks" },
         syncHabitReminders = syncHabits,
         syncGoalReminders = { events += "goals" },

@@ -424,7 +424,7 @@ class TrackCsvBatchIdentityTest {
         val name = TrackField(1, "name", 7, "Name", TrackFieldType.ShortText, 0, true, true, true, null, null, 0, null, null, "", "", 1, 1)
         val weight = TrackField(2, "weight", 7, "Weight", TrackFieldType.Number, 1, false, false, true, UnitDimension.Mass, "kilogram", 1, null, null, "", "", 1, 1)
         return TrackProjection(
-            Track(7, "track-seven", "Lifts", "", "▤", "main", "Main", emptyList(), false, false, 0, 10, 10),
+            Track(7, "track-seven", "Exercises", "", "▤", "main", "Main", emptyList(), false, false, 0, 10, 10),
             listOf(name, weight),
             emptyList(),
             emptyList(),

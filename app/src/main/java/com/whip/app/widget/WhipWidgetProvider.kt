@@ -639,7 +639,7 @@ private suspend fun updateHabitTrackingWidgets(
         val pauses = app.habitRepository.pauses.first()
         val skips = app.habitRepository.skips.first()
         val units = app.measurementRepository.customUnits.first()
-        val metricEntries = app.measurementRepository.entries.first()
+        val measurementEntries = app.measurementRepository.entries.first()
         val contentCalculator: (WidgetPreferences) -> HabitTrackingContent = { preferences ->
             calculateHabitTrackingContent(
                 habits = habits,
@@ -648,7 +648,7 @@ private suspend fun updateHabitTrackingWidgets(
                 habitChecklistStates = checklistStates,
                 habitPauses = pauses,
                 habitSkips = skips,
-                metricEntries = metricEntries,
+                measurementEntries = measurementEntries,
                 customUnits = units,
                 today = today,
                 areaScope = preferences.areaScope,
@@ -746,7 +746,7 @@ private suspend fun currentHabitTrackingContent(
         habitChecklistStates = app.habitRepository.checklistStates.first(),
         habitPauses = app.habitRepository.pauses.first(),
         habitSkips = app.habitRepository.skips.first(),
-        metricEntries = app.measurementRepository.entries.first(),
+        measurementEntries = app.measurementRepository.entries.first(),
         customUnits = app.measurementRepository.customUnits.first(),
         today = app.clock.today(),
         areaScope = preferences.areaScope,

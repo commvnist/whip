@@ -40,11 +40,11 @@ import com.whip.app.domain.HabitChecklistItemDraft
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.HabitTimerStartRequest
 import com.whip.app.domain.LinkRuleDraft
-import com.whip.app.domain.LinkSourceMetric
+import com.whip.app.domain.LinkSourceMeasurement
 import com.whip.app.domain.LinkSourceType
-import com.whip.app.domain.MetricEntryStatus
-import com.whip.app.domain.MetricSourceType
-import com.whip.app.domain.MetricValueKind
+import com.whip.app.domain.MeasurementEntryStatus
+import com.whip.app.domain.MeasurementSourceType
+import com.whip.app.domain.MeasurementValueKind
 import com.whip.app.domain.MachineLevelDirection
 import com.whip.app.domain.MachineLoadType
 import com.whip.app.domain.PersonalRecordType
@@ -179,7 +179,7 @@ class BackupRepositoryTest {
         val recovery = JSONObject(backups.exportRecoveryBackup())
         val portableSession = portable.getJSONObject("tables").getJSONArray("habit_timer_sessions").getJSONObject(0)
         val recoverySession = recovery.getJSONObject("tables").getJSONArray("habit_timer_sessions").getJSONObject(0)
-        assertEquals(21, portable.getInt("databaseVersion"))
+        assertEquals(22, portable.getInt("databaseVersion"))
         assertEquals("ReviewRequired", portableSession.getString("state"))
         assertTrue(portableSession.isNull("anchorElapsedRealtimeMillis"))
         assertTrue(portableSession.isNull("anchorBootId"))
@@ -247,20 +247,20 @@ class BackupRepositoryTest {
         assertEquals(null, settings.current().healthLastSyncMillis)
         assertEquals(0, settings.current().healthLastSyncCount)
 
-        val legacyEnabled = JSONObject(backups.exportBackup())
-        legacyEnabled.getJSONObject("settings")
+        val connectedEnabled = JSONObject(backups.exportBackup())
+        connectedEnabled.getJSONObject("settings")
             .put("healthConnectEnabled", true)
             .remove("healthDataTypes")
-        refreshBackupChecksum(legacyEnabled)
-        backups.restoreBackup(legacyEnabled.toString())
+        refreshBackupChecksum(connectedEnabled)
+        backups.restoreBackup(connectedEnabled.toString())
         assertEquals(HealthDataType.entries.toSet(), settings.current().healthDataTypes)
 
-        val legacyPaused = JSONObject(backups.exportBackup())
-        legacyPaused.getJSONObject("settings")
+        val connectedPaused = JSONObject(backups.exportBackup())
+        connectedPaused.getJSONObject("settings")
             .put("healthConnectEnabled", false)
             .remove("healthDataTypes")
-        refreshBackupChecksum(legacyPaused)
-        backups.restoreBackup(legacyPaused.toString())
+        refreshBackupChecksum(connectedPaused)
+        backups.restoreBackup(connectedPaused.toString())
         assertTrue(settings.current().healthDataTypes.isEmpty())
 
         val malformedExplicitEmpty = JSONObject(backups.exportBackup())
@@ -327,8 +327,8 @@ class BackupRepositoryTest {
         val json = backups.exportBackup()
         val preview = backups.previewBackup(json)
         assertEquals(3, preview.envelopeVersion)
-        assertEquals(4, preview.dataModelEpoch)
-        assertEquals(21, preview.databaseVersion)
+        assertEquals(5, preview.dataModelEpoch)
+        assertEquals(22, preview.databaseVersion)
         assertTrue(preview.checksumValid)
         assertTrue(preview.settingsIncluded)
         assertTrue(preview.totalRecords >= 3)
@@ -376,7 +376,7 @@ class BackupRepositoryTest {
         val json = backups.exportBackup()
         val root = JSONObject(json)
 
-        assertEquals(21, root.getInt("databaseVersion"))
+        assertEquals(22, root.getInt("databaseVersion"))
         assertEquals(false, root.getJSONObject("tables").has("track_csv_import_receipts"))
         assertEquals(1, csvReceiptCount(committed.batchUuid))
 
@@ -601,7 +601,7 @@ class BackupRepositoryTest {
         assertEquals(countsBeforeSecondMerge, listOf(tasks.tasks.first().size, tasks.steps.first().size, habits.habits.first().size, habits.logs.first().size))
     }
 
-    @Test fun mergeRemapsPerLiftTrainingMaxInvalidationEvidenceWhenExerciseIdsCollide() = runBlocking {
+    @Test fun mergeRemapsPerExerciseTrainingMaxInvalidationEvidenceWhenExerciseIdsCollide() = runBlocking {
         val importedExerciseId = gym.createExercise(ExerciseDraft("Imported Squat"))
         val importedSessionId = gym.startWorkout("Imported cycle boundary")
         gym.addExerciseToWorkout(importedSessionId, importedExerciseId)
@@ -655,7 +655,7 @@ class BackupRepositoryTest {
         val sourceOccurrenceId = database.linkDao().upsertTriggerOccurrence(
             TriggerOccurrenceEntity(
                 triggerRuleId = triggerRuleId,
-                sourceEventId = "legacy-habit-event",
+                sourceEventId = "connected-habit-event",
                 availableAtMillis = FixedClock.now().toEpochMilli(),
                 deliveredAtMillis = FixedClock.now().toEpochMilli(),
                 dismissedAtMillis = null,
@@ -732,7 +732,7 @@ class BackupRepositoryTest {
                 name = "Water advances goal",
                 sourceType = LinkSourceType.Habit,
                 sourceEntityId = habitId,
-                sourceMetric = LinkSourceMetric.NumericValue,
+                sourceMeasurement = LinkSourceMeasurement.NumericValue,
                 targetGoalId = goalId,
                 retroactiveFrom = FixedClock.today(),
             ),
@@ -742,11 +742,11 @@ class BackupRepositoryTest {
             ContributionEntity(
                 uuid = "retired-contribution",
                 linkRuleId = retiredRuleId,
-                sourceEventId = "habit:$habitId:legacy",
+                sourceEventId = "habit:$habitId:connected",
                 sourceType = LinkSourceType.Habit.name,
                 sourceEntityId = habitId,
                 targetGoalId = goalId,
-                metricEntryId = null,
+                measurementEntryId = null,
                 canonicalValue = 3.0,
                 localEpochDay = FixedClock.today().toEpochDay(),
                 timestampMillis = FixedClock.now().toEpochMilli(),
@@ -794,7 +794,7 @@ class BackupRepositoryTest {
         assertTrue(preview.checksumValid)
         listOf(
             "tasks", "task_steps", "task_occurrences", "habits", "habit_logs", "goals",
-            "metric_entries", "link_rules", "contributions", "exercises", "exercise_categories",
+            "measurement_entries", "link_rules", "contributions", "exercises", "exercise_categories",
             "workout_sessions", "workout_exercises", "workout_sets", "gym_routines", "routine_days",
             "routine_exercises", "routine_sets", "personal_records", "graph_presets",
             "tracks", "track_fields", "track_entries", "track_values",
@@ -938,18 +938,18 @@ class BackupRepositoryTest {
             dimension = UnitDimension.Count,
             toCanonicalFactor = 2.0,
         )
-        val metricId = measurements.createMetric(
+        val measurementId = measurements.createMeasurement(
             name = "Canonical contract",
-            valueKind = MetricValueKind.Decimal,
+            valueKind = MeasurementValueKind.Decimal,
             dimension = UnitDimension.Count,
             defaultUnitId = "canonical-contract-unit",
         )
         measurements.record(
-            metricId = metricId,
+            measurementId = measurementId,
             value = 3.0,
             unitId = "canonical-contract-unit",
-            status = MetricEntryStatus.Recorded,
-            sourceType = MetricSourceType.Manual,
+            status = MeasurementEntryStatus.Recorded,
+            sourceType = MeasurementSourceType.Manual,
         )
         habits.create(HabitDraft(name = "Keep live data", startDate = FixedClock.today()))
         val exported = backups.exportBackup()
@@ -975,17 +975,17 @@ class BackupRepositoryTest {
             dimension = UnitDimension.Count,
             toCanonicalFactor = 2.0,
         )
-        val metricId = measurements.createMetric(
+        val measurementId = measurements.createMeasurement(
             name = "Merge contract",
-            valueKind = MetricValueKind.Decimal,
+            valueKind = MeasurementValueKind.Decimal,
             dimension = UnitDimension.Count,
             defaultUnitId = "merge-contract-unit",
         )
-        measurements.record(metricId = metricId, value = 3.0, unitId = "merge-contract-unit")
+        measurements.record(measurementId = measurementId, value = 3.0, unitId = "merge-contract-unit")
         val conflicting = JSONObject(backups.exportBackup())
         val tables = conflicting.getJSONObject("tables")
         tables.getJSONArray("unit_definitions").getJSONObject(0).put("toCanonicalFactor", 3.0)
-        tables.getJSONArray("metric_entries").getJSONObject(0).put("canonicalValue", 9.0)
+        tables.getJSONArray("measurement_entries").getJSONObject(0).put("canonicalValue", 9.0)
         refreshBackupChecksum(conflicting)
 
         assertTrue(runCatching { backups.mergeBackup(conflicting.toString()) }.isFailure)

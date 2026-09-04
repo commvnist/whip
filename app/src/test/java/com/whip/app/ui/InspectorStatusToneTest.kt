@@ -101,7 +101,7 @@ class InspectorStatusToneTest {
         habit = Habit(
             id = 1,
             uuid = "habit-status",
-            metricId = "habit-status-metric",
+            measurementId = "habit-status-measurement",
             name = "Status mapping",
             notes = "",
             area = "",

@@ -22,7 +22,7 @@ import com.whip.app.domain.GoalDraft
 import com.whip.app.domain.GoalAggregation
 import com.whip.app.domain.GoalType
 import com.whip.app.domain.LinkRuleDraft
-import com.whip.app.domain.LinkSourceMetric
+import com.whip.app.domain.LinkSourceMeasurement
 import com.whip.app.domain.LinkSourceType
 import com.whip.app.domain.RecurrenceRule
 import com.whip.app.domain.RecurrenceEnd
@@ -533,7 +533,7 @@ class TaskRepositoryTest {
                 sourceType = LinkSourceType.Subtask,
                 sourceEntityId = oldTaskId,
                 sourceItemId = sourceStep.id,
-                sourceMetric = LinkSourceMetric.Completion,
+                sourceMeasurement = LinkSourceMeasurement.Completion,
                 targetGoalId = goalId,
                 retroactiveFrom = boundary.plusDays(4),
             ),
@@ -1156,30 +1156,30 @@ class TaskRepositoryTest {
     @Test
     fun planMyDayAndItsUndoRestoreEveryUndatedTaskToInbox() = runBlocking {
         val inboxId = repository.create(TaskDraft(title = "Inbox", inbox = true))
-        val legacyUndatedId = repository.create(TaskDraft(title = "Legacy undated", inbox = false))
-        val storedLegacyUndated = requireNotNull(database.taskDao().getTask(legacyUndatedId))
-        database.taskDao().updateTask(storedLegacyUndated.copy(inbox = false))
-        assertFalse(requireNotNull(database.taskDao().getTask(legacyUndatedId)).inbox)
+        val connectedUndatedId = repository.create(TaskDraft(title = "Connected undated", inbox = false))
+        val storedConnectedUndated = requireNotNull(database.taskDao().getTask(connectedUndatedId))
+        database.taskDao().updateTask(storedConnectedUndated.copy(inbox = false))
+        assertFalse(requireNotNull(database.taskDao().getTask(connectedUndatedId)).inbox)
         val inbox = requireNotNull(repository.getTask(inboxId))
-        val legacyUndated = requireNotNull(repository.getTask(legacyUndatedId))
-        assertTrue(legacyUndated.inbox)
+        val connectedUndated = requireNotNull(repository.getTask(connectedUndatedId))
+        assertTrue(connectedUndated.inbox)
         val originals = listOf(
             ScheduledTask(inbox, originalDate = null, scheduledDate = null),
-            ScheduledTask(legacyUndated, originalDate = null, scheduledDate = null),
+            ScheduledTask(connectedUndated, originalDate = null, scheduledDate = null),
         )
 
         repository.planAll(originals, monday)
 
         assertEquals(ScheduleKind.Once, requireNotNull(repository.getTask(inboxId)).scheduleKind)
         assertEquals(false, requireNotNull(repository.getTask(inboxId)).inbox)
-        assertEquals(ScheduleKind.Once, requireNotNull(repository.getTask(legacyUndatedId)).scheduleKind)
+        assertEquals(ScheduleKind.Once, requireNotNull(repository.getTask(connectedUndatedId)).scheduleKind)
 
         repository.restoreSchedulesIfCurrent(originals, monday)
 
         assertEquals(ScheduleKind.Anytime, requireNotNull(repository.getTask(inboxId)).scheduleKind)
         assertEquals(true, requireNotNull(repository.getTask(inboxId)).inbox)
-        assertEquals(ScheduleKind.Anytime, requireNotNull(repository.getTask(legacyUndatedId)).scheduleKind)
-        assertTrue(requireNotNull(repository.getTask(legacyUndatedId)).inbox)
+        assertEquals(ScheduleKind.Anytime, requireNotNull(repository.getTask(connectedUndatedId)).scheduleKind)
+        assertTrue(requireNotNull(repository.getTask(connectedUndatedId)).inbox)
     }
 
     @Test

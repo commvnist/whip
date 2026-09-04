@@ -316,19 +316,19 @@ enum class RoutineSupplementalScheme {
 /** The structural job of an exercise placement inside one routine day. */
 enum class RoutinePlacementKind {
     General,
-    MainLift,
-    /** Programmed Supplemental work performed with a lift other than the day's Main lift. */
+    MainExercise,
+    /** Programmed Supplemental work performed with another exercise rather than the day's Main exercise. */
     Supplemental,
     Assistance,
 }
 
 /**
- * Assigns one execution day to each logical lift while covering as many scheduled days as
- * possible. Unique lifts are fixed first; repeated lifts then fill uncovered days in schedule
- * order. The result is deterministic and keeps once-per-lift protocol weeks from producing an
+ * Assigns one execution day to each logical exercise while covering as many scheduled days as
+ * possible. Unique exercises are fixed first; repeated exercises then fill uncovered days in schedule
+ * order. The result is deterministic and keeps once-per-exercise protocol weeks from producing an
  * avoidable empty day.
  */
-fun balancedOncePerLiftDayOwners(exerciseIdsByDay: List<List<Long>>): Map<Long, Int> {
+fun balancedOncePerExerciseDayOwners(exerciseIdsByDay: List<List<Long>>): Map<Long, Int> {
     val occurrences = linkedMapOf<Long, MutableList<Int>>()
     exerciseIdsByDay.forEachIndexed { dayIndex, exerciseIds ->
         exerciseIds.distinct().forEach { exerciseId ->
@@ -379,13 +379,13 @@ enum class RoutineProgramTemplateKey {
     FiveThreeOneForeverFslLeaderAnchor,
 }
 
-/** Template semantics from this revision execute 7th Week protocols once per logical lift. */
-const val FIVE_THREE_ONE_ONCE_PER_LIFT_PROTOCOL_REVISION = 2
+/** Template semantics from this revision execute 7th Week protocols once per logical exercise. */
+const val FIVE_THREE_ONE_ONCE_PER_EXERCISE_PROTOCOL_REVISION = 2
 
 /** Builder choice used while assigning a structural placement or assistance category. */
 enum class RoutineAssistanceRole {
     Unspecified,
-    MainLift,
+    MainExercise,
     Push,
     Pull,
     SingleLegCore,
@@ -412,31 +412,31 @@ enum class RoutineProgramPhaseRole {
     Deload,
     TrainingMaxTest,
     PersonalRecordTest,
-    /** Revision-2 7th Week phases whose repeated lift placements execute once per logical lift. */
-    OncePerLiftDeload,
-    OncePerLiftTrainingMaxTest,
-    OncePerLiftPersonalRecordTest,
+    /** Revision-2 7th Week phases whose repeated exercise placements execute once per logical exercise. */
+    OncePerExerciseDeload,
+    OncePerExerciseTrainingMaxTest,
+    OncePerExercisePersonalRecordTest,
     ;
 
     fun semanticRole(): RoutineProgramPhaseRole = when (this) {
-        OncePerLiftDeload -> Deload
-        OncePerLiftTrainingMaxTest -> TrainingMaxTest
-        OncePerLiftPersonalRecordTest -> PersonalRecordTest
+        OncePerExerciseDeload -> Deload
+        OncePerExerciseTrainingMaxTest -> TrainingMaxTest
+        OncePerExercisePersonalRecordTest -> PersonalRecordTest
         else -> this
     }
 
-    fun usesOncePerLiftProtocol(): Boolean = when (this) {
-        OncePerLiftDeload,
-        OncePerLiftTrainingMaxTest,
-        OncePerLiftPersonalRecordTest,
+    fun usesOncePerExerciseProtocol(): Boolean = when (this) {
+        OncePerExerciseDeload,
+        OncePerExerciseTrainingMaxTest,
+        OncePerExercisePersonalRecordTest,
         -> true
         else -> false
     }
 
-    fun asOncePerLiftProtocol(): RoutineProgramPhaseRole = when (semanticRole()) {
-        Deload -> OncePerLiftDeload
-        TrainingMaxTest -> OncePerLiftTrainingMaxTest
-        PersonalRecordTest -> OncePerLiftPersonalRecordTest
+    fun asOncePerExerciseProtocol(): RoutineProgramPhaseRole = when (semanticRole()) {
+        Deload -> OncePerExerciseDeload
+        TrainingMaxTest -> OncePerExerciseTrainingMaxTest
+        PersonalRecordTest -> OncePerExercisePersonalRecordTest
         else -> this
     }
 }
@@ -489,15 +489,15 @@ fun ExerciseDraft.withTrackingSemantics(): ExerciseDraft {
         ExerciseTrackingType.BodyweightReps,
         ExerciseTrackingType.AssistedBodyweightReps,
     )
-    val graphMetrics = trackingType.supportedGraphMetrics()
-    val graphMetric = runCatching { GymGraphMetric.valueOf(defaultGraphMetric) }
+    val graphMeasurements = trackingType.supportedGraphMetrics()
+    val graphMeasurement = runCatching { GymGraphMetric.valueOf(defaultGraphMetric) }
         .getOrNull()
-        .takeIf(graphMetrics::contains)
-        ?: graphMetrics.first()
+        .takeIf(graphMeasurements::contains)
+        ?: graphMeasurements.first()
     return copy(
         weightIncrement = weightIncrement.takeIf { loadEnabled } ?: 1.0,
         repetitionIncrement = repetitionIncrement.takeIf { repetitionsEnabled } ?: 1,
-        defaultGraphMetric = graphMetric.name,
+        defaultGraphMetric = graphMeasurement.name,
         barWeightKg = barWeightKg.takeIf { loadEnabled },
         availablePlatesKg = availablePlatesKg.takeIf { loadEnabled }.orEmpty(),
         includeInVolume = includeInVolume && loadEnabled,
@@ -1199,7 +1199,7 @@ data class GraphPreset(
     val uuid: String,
     val name: String,
     val exerciseIds: List<Long>,
-    val metric: String,
+    val measurement: String,
     val dateRange: String,
     val aggregation: String,
     val archived: Boolean,

@@ -132,7 +132,7 @@ class CompactCollectionStatusTest {
     private fun habit(mode: HabitTrackingMode) = Habit(
         id = 1,
         uuid = "habit-1",
-        metricId = "metric-habit-1",
+        measurementId = "measurement-habit-1",
         name = "Medication",
         notes = "",
         area = "Main",
@@ -172,7 +172,7 @@ class CompactCollectionStatusTest {
     private fun goal() = Goal(
         id = 2,
         uuid = "goal-2",
-        metricId = "metric-goal-2",
+        measurementId = "measurement-goal-2",
         name = "Quit alcohol",
         description = "",
         area = "Main",

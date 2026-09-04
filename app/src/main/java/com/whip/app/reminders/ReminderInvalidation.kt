@@ -40,7 +40,7 @@ internal fun Habit.reminderDefinitionChanged(draft: HabitDraft): Boolean =
         reminderMinutes.normalizedMinutes() != draft.reminderMinutes.normalizedMinutes() ||
         weekdayReminderMinutes.normalizedWeekdayMinutes() != draft.weekdayReminderMinutes.normalizedWeekdayMinutes() ||
         weekStart != draft.weekStart ||
-        sourceMetricId != draft.sourceMetricId
+        sourceMeasurementId != draft.sourceMeasurementId
 
 internal fun WhipTask.reminderDefinitionChanged(draft: TaskDraft): Boolean =
     scheduleKind != draft.scheduleKind ||

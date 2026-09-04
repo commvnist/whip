@@ -10,7 +10,7 @@ import com.whip.app.data.GoalEntity
 import com.whip.app.data.HabitLogEntity
 import com.whip.app.data.LinkRuleConditionEntity
 import com.whip.app.data.LinkRuleEntity
-import com.whip.app.data.MetricEntryEntity
+import com.whip.app.data.MeasurementEntryEntity
 import com.whip.app.data.RoomAreaRepository
 import com.whip.app.data.RoomGoalRepository
 import com.whip.app.data.RoomHabitRepository
@@ -27,7 +27,7 @@ import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.HabitLogStatus
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.LinkRuleDraft
-import com.whip.app.domain.LinkSourceMetric
+import com.whip.app.domain.LinkSourceMeasurement
 import com.whip.app.domain.LinkSourceType
 import com.whip.app.domain.TrackAggregation
 import com.whip.app.domain.TrackCondition
@@ -128,7 +128,7 @@ class LinkBackfillRepositoryTest {
                 name = "Qualified distance",
                 sourceType = LinkSourceType.Track,
                 sourceEntityId = trackId,
-                sourceMetric = LinkSourceMetric.FieldValue,
+                sourceMeasurement = LinkSourceMeasurement.FieldValue,
                 targetGoalId = goalId,
                 multiplier = 2.0,
                 offset = 10.0,
@@ -193,7 +193,7 @@ class LinkBackfillRepositoryTest {
                 name = "Adjusted ratings",
                 sourceType = LinkSourceType.Track,
                 sourceEntityId = trackId,
-                sourceMetric = LinkSourceMetric.FieldValue,
+                sourceMeasurement = LinkSourceMeasurement.FieldValue,
                 targetGoalId = goalId,
                 multiplier = 2.0,
                 offset = -1.0,
@@ -242,7 +242,7 @@ class LinkBackfillRepositoryTest {
                 name = "Recorded hydration",
                 sourceType = LinkSourceType.Habit,
                 sourceEntityId = habitId,
-                sourceMetric = LinkSourceMetric.NumericValue,
+                sourceMeasurement = LinkSourceMeasurement.NumericValue,
                 targetGoalId = goalId,
                 multiplier = 0.5,
                 retroactiveFrom = historyStart,
@@ -317,7 +317,7 @@ class LinkBackfillRepositoryTest {
             ruleConditions = database.linkDao().getAllRuleConditions(),
             contributions = database.linkDao().observeContributionsSnapshot(),
             goals = database.goalDao().getAllGoals(),
-            metricEntries = database.measurementDao().getAllEntries(),
+            measurementEntries = database.measurementDao().getAllEntries(),
             habitLogs = database.habitDao().getAllLogs(),
             trackEntries = entries,
             trackValues = entries.takeIf { it.isNotEmpty() }
@@ -331,7 +331,7 @@ class LinkBackfillRepositoryTest {
         val ruleConditions: List<LinkRuleConditionEntity>,
         val contributions: List<ContributionEntity>,
         val goals: List<GoalEntity>,
-        val metricEntries: List<MetricEntryEntity>,
+        val measurementEntries: List<MeasurementEntryEntity>,
         val habitLogs: List<HabitLogEntity>,
         val trackEntries: List<TrackEntryEntity>,
         val trackValues: List<TrackValueEntity>,

@@ -79,7 +79,7 @@ internal fun reminderTimeInvalidationPlan(
 internal class ReminderRuntimeMaintenance(
     private val versionStore: ReminderClaimVersionStore,
     private val currentClaimVersion: Int = REMINDER_DELIVERY_CLAIM_VERSION,
-    private val cancelVisibleLegacyReminders: () -> Unit,
+    private val cancelVisibleConnectedReminders: () -> Unit,
     private val syncTaskReminders: suspend () -> Unit,
     private val syncHabitReminders: suspend () -> Unit,
     private val syncGoalReminders: suspend () -> Unit,
@@ -95,7 +95,7 @@ internal class ReminderRuntimeMaintenance(
     suspend fun upgradeDeliveryClaimsIfRequired(): Boolean = maintenanceMutex.withLock {
         if (versionStore.read() >= currentClaimVersion) return@withLock false
 
-        cancelVisibleLegacyReminders()
+        cancelVisibleConnectedReminders()
         syncAllReminderDomains()
         check(versionStore.write(currentClaimVersion)) {
             "Could not persist the reminder delivery claim schema version"

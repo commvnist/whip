@@ -36,7 +36,7 @@ import com.whip.app.domain.HabitPause
 import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitSkip
 import com.whip.app.domain.HabitTrackingMode
-import com.whip.app.domain.MetricSourceType
+import com.whip.app.domain.MeasurementSourceType
 import com.whip.app.domain.TargetComparison
 import com.whip.app.domain.TargetPeriod
 import com.whip.app.domain.UnitDimension
@@ -566,7 +566,7 @@ class ActivityHistoryUiTest {
     private fun habit(mode: HabitTrackingMode) = Habit(
         id = 1,
         uuid = "habit-1",
-        metricId = "metric-habit-1",
+        measurementId = "measurement-habit-1",
         name = "Medication",
         notes = "",
         area = "Main",
@@ -616,9 +616,9 @@ class ActivityHistoryUiTest {
         zoneId = "UTC",
         offsetSeconds = 0,
         note = "",
-        sourceType = MetricSourceType.Manual,
+        sourceType = MeasurementSourceType.Manual,
         sourceId = null,
-        metricEntryId = null,
+        measurementEntryId = null,
         createdAtMillis = 1,
         updatedAtMillis = 1,
     )

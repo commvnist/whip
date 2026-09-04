@@ -16,12 +16,12 @@ import androidx.room.ColumnInfo
             onDelete = ForeignKey.RESTRICT,
         ),
     ],
-    indices = [Index("uuid", unique = true), Index("metricId", unique = true), Index("status"), Index("archived"), Index("pinned"), Index("areaId")],
+    indices = [Index("uuid", unique = true), Index("measurementId", unique = true), Index("status"), Index("archived"), Index("pinned"), Index("areaId")],
 )
 data class GoalEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val uuid: String,
-    val metricId: String,
+    val measurementId: String,
     val name: String,
     val description: String,
     val areaId: String? = null,

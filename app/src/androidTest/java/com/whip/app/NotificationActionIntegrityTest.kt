@@ -11,8 +11,8 @@ import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.HabitLogStatus
 import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitTrackingMode
-import com.whip.app.domain.MetricSourceType
-import com.whip.app.domain.MetricValueKind
+import com.whip.app.domain.MeasurementSourceType
+import com.whip.app.domain.MeasurementValueKind
 import com.whip.app.domain.OccurrenceState
 import com.whip.app.domain.GoalDraft
 import com.whip.app.domain.GoalType
@@ -264,17 +264,17 @@ class NotificationActionIntegrityTest {
         assertEquals(true, app.isCurrentHabitNotificationAction(current, today, HabitNotificationAction.Snooze, 1.0))
         assertEquals(true, app.isCurrentHabitNotificationAction(count, today, HabitNotificationAction.Increment, 2.0))
 
-        val healthStepsMetric = app.measurementRepository.ensureMetric(
+        val healthStepsMeasurement = app.measurementRepository.ensureMeasurement(
             id = "health:steps",
             name = "Health steps",
-            valueKind = MetricValueKind.Integer,
+            valueKind = MeasurementValueKind.Integer,
             dimension = UnitDimension.Count,
             defaultUnitId = "count",
             precision = 0,
         )
         val sourceLinked = app.habitRepository.create(
             reminderHabit("Health-linked", HabitTrackingMode.Count).copy(
-                sourceMetricId = healthStepsMetric,
+                sourceMeasurementId = healthStepsMeasurement,
                 targetMin = 5_000.0,
                 quickIncrement = 1_000.0,
             ),
@@ -298,7 +298,7 @@ class NotificationActionIntegrityTest {
     }
 
     @Test
-    fun habitClaimRejectsReminderMutationAndLegacyPayloadsFailClosed() = runBlocking {
+    fun habitClaimRejectsReminderMutationAndConnectedPayloadsFailClosed() = runBlocking {
         val original = reminderHabit("Claimed habit")
         val habitId = app.habitRepository.create(original)
         val claim = requireNotNull(app.currentHabitReminderDeliveryClaim(habitId, today))
@@ -330,17 +330,17 @@ class NotificationActionIntegrityTest {
             ),
         )
 
-        val legacyId = app.habitRepository.create(reminderHabit("Legacy action"))
+        val connectedId = app.habitRepository.create(reminderHabit("Connected action"))
         app.sendBroadcast(
             Intent(app, HabitReminderActionReceiver::class.java)
                 .putExtra(USER_DATA_GENERATION_KEY, app.currentUserDataGeneration())
                 .setAction(HabitReminderActionReceiver.ACTION_COMPLETE)
-                .putExtra(HabitReminderActionReceiver.EXTRA_HABIT_ID, legacyId)
+                .putExtra(HabitReminderActionReceiver.EXTRA_HABIT_ID, connectedId)
                 .putExtra(HabitReminderActionReceiver.EXTRA_LOGICAL_EPOCH_DAY, today.toEpochDay())
                 .putExtra(HabitReminderActionReceiver.EXTRA_ACTION_TOKEN, System.nanoTime()),
         )
         delay(750)
-        assertFalse(app.habitRepository.logs.first().any { it.habitId == legacyId })
+        assertFalse(app.habitRepository.logs.first().any { it.habitId == connectedId })
 
         val malformedId = app.habitRepository.create(reminderHabit("Malformed persistence"))
         val malformed = requireNotNull(app.database.habitDao().getHabit(malformedId))
@@ -350,10 +350,10 @@ class NotificationActionIntegrityTest {
 
     @Test
     fun habitClaimKeepsPartialSourceProgressCurrentButRejectsLiveClosureAndDefinitionChanges() = runBlocking {
-        val sourceMetricId = app.measurementRepository.ensureMetric(
+        val sourceMeasurementId = app.measurementRepository.ensureMeasurement(
             id = "test-source-progress",
             name = "Source progress",
-            valueKind = MetricValueKind.Integer,
+            valueKind = MeasurementValueKind.Integer,
             dimension = UnitDimension.Count,
             defaultUnitId = "count",
             precision = 1,
@@ -370,17 +370,17 @@ class NotificationActionIntegrityTest {
             precision = 1,
             targetMin = 5.0,
             quickIncrement = 1.0,
-            sourceMetricId = sourceMetricId,
+            sourceMeasurementId = sourceMeasurementId,
         )
         val sourceHabitId = app.habitRepository.create(sourceDraft)
         val sourceClaim = requireNotNull(app.currentHabitReminderDeliveryClaim(sourceHabitId, today))
 
         val entryId = app.measurementRepository.record(
-            metricId = sourceMetricId,
+            measurementId = sourceMeasurementId,
             value = 8.0,
             unitId = "count",
             localDate = today,
-            sourceType = MetricSourceType.HealthConnect,
+            sourceType = MeasurementSourceType.HealthConnect,
             sourceId = "partial",
         )
         assertTrue(
@@ -394,11 +394,11 @@ class NotificationActionIntegrityTest {
         )
 
         app.measurementRepository.record(
-            metricId = sourceMetricId,
+            measurementId = sourceMeasurementId,
             value = 10.0,
             unitId = "count",
             localDate = today,
-            sourceType = MetricSourceType.HealthConnect,
+            sourceType = MeasurementSourceType.HealthConnect,
             sourceId = "partial",
             existingEntryId = entryId,
         )
@@ -422,15 +422,15 @@ class NotificationActionIntegrityTest {
                 sourceClaim,
             ),
         )
-        app.measurementRepository.ensureMetric(
+        app.measurementRepository.ensureMeasurement(
             id = "another-source",
             name = "Replacement source",
-            valueKind = MetricValueKind.Integer,
+            valueKind = MeasurementValueKind.Integer,
             dimension = UnitDimension.Count,
             defaultUnitId = "count",
             precision = 0,
         )
-        app.habitRepository.update(sourceHabitId, sourceDraft.copy(sourceMetricId = "another-source"))
+        app.habitRepository.update(sourceHabitId, sourceDraft.copy(sourceMeasurementId = "another-source"))
         assertFalse(
             app.isCurrentHabitNotificationAction(
                 sourceHabitId,
@@ -470,42 +470,42 @@ class NotificationActionIntegrityTest {
     }
 
     @Test
-    fun sourceMetricResyncOnlyTouchesLinkedReminderEnabledHabits() = runBlocking {
-        val sourceMetricId = "bounded-source"
-        app.measurementRepository.ensureMetric(
-            id = sourceMetricId,
+    fun sourceMeasurementResyncOnlyTouchesLinkedReminderEnabledHabits() = runBlocking {
+        val sourceMeasurementId = "bounded-source"
+        app.measurementRepository.ensureMeasurement(
+            id = sourceMeasurementId,
             name = "Bounded source",
-            valueKind = MetricValueKind.Integer,
+            valueKind = MeasurementValueKind.Integer,
             dimension = UnitDimension.Count,
             defaultUnitId = "count",
             precision = 0,
         )
-        app.measurementRepository.ensureMetric(
+        app.measurementRepository.ensureMeasurement(
             id = "different-source",
             name = "Different source",
-            valueKind = MetricValueKind.Integer,
+            valueKind = MeasurementValueKind.Integer,
             dimension = UnitDimension.Count,
             defaultUnitId = "count",
             precision = 0,
         )
         val linkedId = app.habitRepository.create(
-            reminderHabit("Linked reminder", HabitTrackingMode.Count).copy(sourceMetricId = sourceMetricId),
+            reminderHabit("Linked reminder", HabitTrackingMode.Count).copy(sourceMeasurementId = sourceMeasurementId),
         )
         val noReminderId = app.habitRepository.create(
             reminderHabit("Linked without reminder", HabitTrackingMode.Count).copy(
-                sourceMetricId = sourceMetricId,
+                sourceMeasurementId = sourceMeasurementId,
                 reminderMinutes = emptyList(),
             ),
         )
         val unrelatedId = app.habitRepository.create(
-            reminderHabit("Unrelated reminder", HabitTrackingMode.Count).copy(sourceMetricId = "different-source"),
+            reminderHabit("Unrelated reminder", HabitTrackingMode.Count).copy(sourceMeasurementId = "different-source"),
         )
         val archivedId = app.habitRepository.create(
-            reminderHabit("Archived linked reminder", HabitTrackingMode.Count).copy(sourceMetricId = sourceMetricId),
+            reminderHabit("Archived linked reminder", HabitTrackingMode.Count).copy(sourceMeasurementId = sourceMeasurementId),
         )
         app.habitRepository.setArchived(archivedId, true)
 
-        app.habitReminderScheduler.syncSourceMetric(sourceMetricId)
+        app.habitReminderScheduler.syncSourceMeasurement(sourceMeasurementId)
 
         fun hasCurrentWork(habitId: Long): Boolean = WorkManager.getInstance(app)
             .getWorkInfosByTag("whip-habit-reminder-$habitId")
@@ -541,10 +541,10 @@ class NotificationActionIntegrityTest {
 
     @Test
     fun applicationObserverReconcilesSourceHabitAfterPartialAndCompletingMeasurements() = runBlocking {
-        val sourceMetricId = app.measurementRepository.ensureMetric(
+        val sourceMeasurementId = app.measurementRepository.ensureMeasurement(
             id = "observer-source-progress",
             name = "Observer source progress",
-            valueKind = MetricValueKind.Integer,
+            valueKind = MeasurementValueKind.Integer,
             dimension = UnitDimension.Count,
             defaultUnitId = "count",
             precision = 1,
@@ -556,7 +556,7 @@ class NotificationActionIntegrityTest {
             reminderHabit("Observed source", HabitTrackingMode.Count).copy(
                 startDate = logicalDate,
                 targetMin = 10.0,
-                sourceMetricId = sourceMetricId,
+                sourceMeasurementId = sourceMeasurementId,
                 reminderMinutes = listOf(reminderMinute.hour * 60 + reminderMinute.minute),
             ),
         )
@@ -582,21 +582,21 @@ class NotificationActionIntegrityTest {
         val initialIds = activeDueWorkIds()
         assertTrue(initialIds.isNotEmpty())
         app.measurementRepository.record(
-            metricId = sourceMetricId,
+            measurementId = sourceMeasurementId,
             value = 5.0,
             unitId = "count",
             localDate = logicalDate,
-            sourceType = MetricSourceType.HealthConnect,
+            sourceType = MeasurementSourceType.HealthConnect,
             sourceId = "observer-partial",
         )
         eventually { activeDueWorkIds().let { it.isNotEmpty() && it != initialIds } }
 
         app.measurementRepository.record(
-            metricId = sourceMetricId,
+            measurementId = sourceMeasurementId,
             value = 5.0,
             unitId = "count",
             localDate = logicalDate,
-            sourceType = MetricSourceType.Import,
+            sourceType = MeasurementSourceType.Import,
             sourceId = "observer-complete",
         )
         eventually { activeDueWorkIds().isEmpty() }
@@ -617,7 +617,7 @@ class NotificationActionIntegrityTest {
     }
 
     @Test
-    fun goalSnoozeRequiresTheCompleteCurrentClaimAndLegacyActionsFailClosed() = runBlocking {
+    fun goalSnoozeRequiresTheCompleteCurrentClaimAndConnectedActionsFailClosed() = runBlocking {
         val now = app.clock.now()
         val logicalDate = now.atZone(app.settingsRepository.current().zoneId()).toLocalDate()
         val original = GoalDraft(
@@ -660,18 +660,18 @@ class NotificationActionIntegrityTest {
                 .none { it.state != WorkInfo.State.CANCELLED }
         }
 
-        val legacyId = app.goalRepository.create(original.copy(name = "Legacy Goal action"))
+        val connectedId = app.goalRepository.create(original.copy(name = "Connected Goal action"))
         app.sendBroadcast(
             Intent(app, GoalReminderActionReceiver::class.java)
                 .setAction(GoalReminderActionReceiver.ACTION_SNOOZE)
                 .putExtra(USER_DATA_GENERATION_KEY, app.currentUserDataGeneration())
-                .putExtra(GoalReminderActionReceiver.EXTRA_GOAL_ID, legacyId)
+                .putExtra(GoalReminderActionReceiver.EXTRA_GOAL_ID, connectedId)
                 .putExtra(GoalReminderActionReceiver.EXTRA_ACTION_TOKEN, System.nanoTime()),
         )
         delay(750)
         assertTrue(
             WorkManager.getInstance(app)
-                .getWorkInfosForUniqueWork("whip-goal-reminder-$legacyId-snooze")
+                .getWorkInfosForUniqueWork("whip-goal-reminder-$connectedId-snooze")
                 .get()
                 .none { it.state != WorkInfo.State.CANCELLED },
         )

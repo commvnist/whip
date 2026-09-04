@@ -71,7 +71,7 @@ class ReminderInvalidationTest {
     }
 
     private fun goal(draft: GoalDraft) = Goal(
-        id = 1, uuid = "goal", metricId = "metric", name = draft.name, description = draft.description,
+        id = 1, uuid = "goal", measurementId = "measurement", name = draft.name, description = draft.description,
         area = draft.area, tags = draft.tags, icon = draft.icon, type = draft.type, dimension = draft.dimension,
         unitId = draft.unitId, precision = draft.precision, baseline = draft.baseline, targetMin = draft.targetMin,
         targetMax = draft.targetMax, direction = GoalDirection.Increase, startDate = draft.startDate,
@@ -81,7 +81,7 @@ class ReminderInvalidationTest {
     )
 
     private fun habit(draft: HabitDraft) = Habit(
-        id = 1, uuid = "habit", metricId = "metric", name = draft.name, notes = draft.notes, area = draft.area,
+        id = 1, uuid = "habit", measurementId = "measurement", name = draft.name, notes = draft.notes, area = draft.area,
         tags = draft.tags, icon = draft.icon, trackingMode = HabitTrackingMode.CheckOff, dimension = draft.dimension,
         unitId = draft.unitId, precision = draft.precision, comparison = TargetComparison.AtLeast,
         targetMin = draft.targetMin, targetMax = draft.targetMax, targetPeriod = TargetPeriod.Day,

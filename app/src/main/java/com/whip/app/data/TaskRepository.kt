@@ -212,7 +212,6 @@ class RoomTaskRepository(
                     futureDraft = futureDraft,
                     newStepByOldId = newStepByOldId,
                 )
-                copyFutureSeriesIntegrations(taskId, futureId, boundary, now, newStepByOldId)
                 return@withTransaction futureId
             }
             dao.updateTask(
@@ -1046,112 +1045,6 @@ class RoomTaskRepository(
                 )
             }
         }
-    }
-
-    private suspend fun copyFutureSeriesIntegrations(
-        oldTaskId: Long,
-        newTaskId: Long,
-        boundary: LocalDate,
-        now: Long,
-        newStepByOldId: Map<Long, Long>,
-    ) {
-        val linkDao = database.linkDao()
-
-        suspend fun copyLinkRuleDetails(oldRuleId: Long, newRuleId: Long) {
-            val conditions = linkDao.getRuleConditions(oldRuleId)
-            val choices = conditions.takeIf { it.isNotEmpty() }
-                ?.let { linkDao.getLinkConditionChoices(it.map { condition -> condition.id }) }
-                .orEmpty()
-            conditions.forEach { condition ->
-                val newConditionId = linkDao.insertRuleCondition(
-                    condition.copy(id = 0, linkRuleId = newRuleId),
-                )
-                choices.filter { it.conditionId == condition.id }.forEach { choice ->
-                    linkDao.insertLinkConditionChoice(choice.copy(conditionId = newConditionId))
-                }
-            }
-        }
-
-        suspend fun copyTriggerDetails(oldRuleId: Long, newRuleId: Long) {
-            val conditions = linkDao.getTriggerConditions(oldRuleId)
-            val choices = conditions.takeIf { it.isNotEmpty() }
-                ?.let { linkDao.getTriggerConditionChoices(it.map { condition -> condition.id }) }
-                .orEmpty()
-            conditions.forEach { condition ->
-                val newConditionId = linkDao.insertTriggerCondition(
-                    condition.copy(id = 0, triggerRuleId = newRuleId),
-                )
-                choices.filter { it.conditionId == condition.id }.forEach { choice ->
-                    linkDao.insertTriggerConditionChoice(choice.copy(conditionId = newConditionId))
-                }
-            }
-            linkDao.getTriggerMappings(oldRuleId).forEach { mapping ->
-                linkDao.insertTriggerMapping(mapping.copy(id = 0, triggerRuleId = newRuleId))
-            }
-        }
-
-        linkDao.getRules()
-            .filter { it.sourceEntityId == oldTaskId && it.sourceType in setOf("Task", "Subtask") }
-            .forEach { rule ->
-                val newSourceItemId = if (rule.sourceType == "Subtask") {
-                    rule.sourceItemId?.let(newStepByOldId::get)
-                } else null
-                if (rule.sourceType != "Subtask" || rule.sourceItemId == null || newSourceItemId != null) {
-                    val newRuleId = linkDao.insertRule(
-                        rule.copy(
-                            id = 0,
-                            uuid = UUID.randomUUID().toString(),
-                            name = "${rule.name} (future series)",
-                            sourceEntityId = newTaskId,
-                            sourceItemId = newSourceItemId,
-                            retroactiveFromEpochDay = maxOf(
-                                boundary.toEpochDay(),
-                                rule.retroactiveFromEpochDay ?: boundary.toEpochDay(),
-                            ),
-                            createdAtMillis = now,
-                            updatedAtMillis = now,
-                        ),
-                    )
-                    copyLinkRuleDetails(rule.id, newRuleId)
-                }
-            }
-        val triggerRules = linkDao.getTriggerRules()
-        triggerRules
-            .filter { rule ->
-                rule.sourceEntityId == oldTaskId && rule.sourceType in setOf("Task", "Subtask")
-            }
-            .forEach { rule ->
-                val newSourceItemId = if (rule.sourceType == "Subtask") {
-                    rule.sourceItemId?.let(newStepByOldId::get)
-                } else null
-                if (rule.sourceType == "Subtask" && (rule.sourceItemId == null || newSourceItemId == null)) {
-                    return@forEach
-                }
-                val newRuleId = linkDao.insertTriggerRule(
-                    rule.copy(
-                        id = 0,
-                        uuid = UUID.randomUUID().toString(),
-                        name = "${rule.name} (future series)",
-                        sourceEntityId = newTaskId,
-                        sourceItemId = newSourceItemId,
-                        targetEntityId = if (rule.targetType == "Task" && rule.targetEntityId == oldTaskId) newTaskId else rule.targetEntityId,
-                        createdAtMillis = now,
-                        updatedAtMillis = now,
-                    ),
-                )
-                copyTriggerDetails(rule.id, newRuleId)
-            }
-        triggerRules
-            .filter { rule ->
-                rule.targetType == "Task" &&
-                    rule.targetEntityId == oldTaskId &&
-                    !(rule.sourceEntityId == oldTaskId && rule.sourceType in setOf("Task", "Subtask"))
-            }
-            .forEach { rule ->
-                linkDao.updateTriggerRule(
-                    rule.copy(targetEntityId = newTaskId, updatedAtMillis = now),
-                )
-            }
     }
 
     private suspend fun completeWithinTransaction(item: ScheduledTask, now: Long) {

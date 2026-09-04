@@ -50,7 +50,6 @@ import com.whip.app.reminders.HabitReminderScheduler
 import com.whip.app.reminders.HabitReminderNotifications
 import com.whip.app.reminders.GoalReminderScheduler
 import com.whip.app.reminders.GoalReminderNotifications
-import com.whip.app.reminders.AutomationPromptScheduler
 import com.whip.app.reminders.FocusTimerNotifications
 import com.whip.app.reminders.FocusTimerScheduler
 import com.whip.app.health.HealthConnectManager
@@ -88,7 +87,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.work.Configuration
 import androidx.work.WorkManager
 import com.whip.app.reminders.ALL_WHIP_WORK_TAG
-import com.whip.app.domain.MetricEntry
+import com.whip.app.domain.MeasurementEntry
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.core.zoneId
@@ -150,9 +149,6 @@ class WhipApplication : Application(), Configuration.Provider {
     }
     private val rawLinkRepository by lazy {
         RoomLinkRepository(database, rawMeasurementRepository, clock, idGenerator)
-    }
-    val linkRepository by lazy {
-        RoomLinkRepository(database, measurementRepository, clock, idGenerator)
     }
     val trackRepository by lazy {
         RoomTrackRepository(database, clock, idGenerator)
@@ -222,7 +218,7 @@ class WhipApplication : Application(), Configuration.Provider {
     private val reminderRuntimeMaintenance by lazy {
         ReminderRuntimeMaintenance(
             versionStore = SharedPreferencesReminderClaimVersionStore(this),
-            cancelVisibleLegacyReminders = { cancelVisibleReminderNotifications(this) },
+            cancelVisibleConnectedReminders = { cancelVisibleReminderNotifications(this) },
             syncTaskReminders = {
                 reminderScheduler.syncAll(allowDuringRecovery = true)
             },
@@ -235,7 +231,6 @@ class WhipApplication : Application(), Configuration.Provider {
             refreshWidgets = { WhipWidgetProvider.updateAll(this) },
         )
     }
-    val automationPromptScheduler by lazy { AutomationPromptScheduler(this) }
     val focusTimerScheduler by lazy { FocusTimerScheduler(this) }
     val healthConnectManager by lazy { HealthConnectManager(this, measurementRepository, settingsRepository) }
     val startupRecoveryState: StateFlow<StartupRecoveryState>
@@ -461,7 +456,6 @@ class WhipApplication : Application(), Configuration.Provider {
         reconcilePendingReminderDeletions()
         if (settings.healthConnectDeletionPending) {
             healthConnectManager.deleteImportedData()
-            linkRepository.rebuildAll()
             check(healthConnectManager.completeImportedDataDeletion()) {
                 "Could not complete the pending Health Connect deletion"
             }
@@ -484,14 +478,10 @@ class WhipApplication : Application(), Configuration.Provider {
         val runtimeScope = CoroutineScope(runtimeJob + Dispatchers.Default)
         normalRuntimeJob = runtimeJob
         runtimeScope.launch { runCatching { portableBackupManager.recoverInterruptedWrites() } }
-        if (!backgroundAlreadyRebuilt) {
-            runtimeScope.launch { runCatching { automationPromptScheduler.syncAll() } }
-        }
         if (settings.healthConnectEnabled && !settings.healthConnectDeletionPending) {
             runtimeScope.launch {
                 runCatching {
                     healthConnectManager.sync(settings.healthDataTypes, settings.healthSyncDays)
-                    runCatching { withUserDataAccess { linkRepository.rebuildAll() } }
                 }
             }
         }
@@ -511,23 +501,23 @@ class WhipApplication : Application(), Configuration.Provider {
         }
         // A source-backed Habit can cross its target without a Habit mutation:
         // Health Connect, imports, Tracks, Goals, and manual measurements all
-        // write metric entries directly. Diff those shared flows here so every
+        // write measurement entries directly. Diff those shared flows here so every
         // writer gets the same bounded reminder reconciliation.
         runtimeScope.launch {
-            var previousByMetric = emptyMap<String, List<MetricEntry>>()
+            var previousByMeasurement = emptyMap<String, List<MeasurementEntry>>()
             measurementRepository.entries.debounce(250).collect { entries ->
-                val currentByMetric = entries.groupBy(MetricEntry::metricId)
-                val changedMetricIds = (previousByMetric.keys + currentByMetric.keys)
-                    .filterTo(sortedSetOf()) { metricId ->
-                        previousByMetric[metricId] != currentByMetric[metricId]
+                val currentByMeasurement = entries.groupBy(MeasurementEntry::measurementId)
+                val changedMeasurementIds = (previousByMeasurement.keys + currentByMeasurement.keys)
+                    .filterTo(sortedSetOf()) { measurementId ->
+                        previousByMeasurement[measurementId] != currentByMeasurement[measurementId]
                     }
                 try {
-                    changedMetricIds.forEach { metricId ->
-                        habitReminderScheduler.syncSourceMetric(metricId)
+                    changedMeasurementIds.forEach { measurementId ->
+                        habitReminderScheduler.syncSourceMeasurement(measurementId)
                     }
-                    previousByMetric = currentByMetric
+                    previousByMeasurement = currentByMeasurement
                 } catch (error: Throwable) {
-                    Log.e(LOG_TAG, "Could not reconcile metric-backed Habit reminders", error)
+                    Log.e(LOG_TAG, "Could not reconcile measurement-backed Habit reminders", error)
                 }
             }
         }
@@ -598,7 +588,6 @@ class WhipApplication : Application(), Configuration.Provider {
         workManager.cancelAllWorkByTag(ALL_WHIP_WORK_TAG).result.get()
         workManager.cancelUniqueWork(PORTABLE_BACKUP_WORK_NAME).result.get()
         NotificationManagerCompat.from(this).cancelAll()
-        automationPromptScheduler.syncAll()
         reminderScheduler.syncAll(allowDuringRecovery = true)
         habitReminderScheduler.syncAll(allowDuringRecovery = true)
         goalReminderScheduler.syncAll(allowDuringRecovery = true)

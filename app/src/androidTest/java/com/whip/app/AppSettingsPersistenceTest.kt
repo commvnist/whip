@@ -73,8 +73,8 @@ class AppSettingsPersistenceTest {
             .edit()
             .clear()
             .putBoolean("naturalLanguageTaskCapture", false)
-            .putString("savedReviewFilters", "legacy")
-            .putString("selectedReviewFilterName", "Legacy")
+            .putString("savedReviewFilters", "connected")
+            .putString("selectedReviewFilterName", "Connected")
             .commit()
 
         val repository = SharedPreferencesSettingsRepository(context)

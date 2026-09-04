@@ -1,8 +1,8 @@
 package com.whip.app.ui
 
 import com.whip.app.core.AppSettings
-import com.whip.app.domain.MetricDefinition
-import com.whip.app.domain.MetricValueKind
+import com.whip.app.domain.MeasurementDefinition
+import com.whip.app.domain.MeasurementValueKind
 import com.whip.app.domain.UnitDimension
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -16,16 +16,16 @@ class HabitHealthUnitTest {
             volumeUnitId = "fluid_ounce",
         )
 
-        assertEquals("pound", preferredHealthMetricUnitId(metric("weight", UnitDimension.Mass, "kilogram"), settings, emptyList()))
-        assertEquals("mile", preferredHealthMetricUnitId(metric("distance", UnitDimension.Distance, "distance_m"), settings, emptyList()))
-        assertEquals("fluid_ounce", preferredHealthMetricUnitId(metric("hydration", UnitDimension.Volume, "litre"), settings, emptyList()))
-        assertEquals("count", preferredHealthMetricUnitId(metric("steps", UnitDimension.Count, "count"), settings, emptyList()))
+        assertEquals("pound", preferredHealthMeasurementUnitId(measurement("weight", UnitDimension.Mass, "kilogram"), settings, emptyList()))
+        assertEquals("mile", preferredHealthMeasurementUnitId(measurement("distance", UnitDimension.Distance, "distance_m"), settings, emptyList()))
+        assertEquals("fluid_ounce", preferredHealthMeasurementUnitId(measurement("hydration", UnitDimension.Volume, "litre"), settings, emptyList()))
+        assertEquals("count", preferredHealthMeasurementUnitId(measurement("steps", UnitDimension.Count, "count"), settings, emptyList()))
     }
 
-    private fun metric(id: String, dimension: UnitDimension, unitId: String) = MetricDefinition(
+    private fun measurement(id: String, dimension: UnitDimension, unitId: String) = MeasurementDefinition(
         id = id,
         name = id,
-        valueKind = MetricValueKind.Decimal,
+        valueKind = MeasurementValueKind.Decimal,
         dimension = dimension,
         defaultUnitId = unitId,
         precision = 2,

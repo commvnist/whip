@@ -2,7 +2,7 @@ package com.whip.app.domain
 
 import kotlin.math.abs
 
-/** The role a recorded set plays in one lift's 5/3/1 progression evidence. */
+/** The role a recorded set plays in one exercise's 5/3/1 progression evidence. */
 enum class FiveThreeOneEvidenceKind {
     RequiredMain,
     PrSet,
@@ -11,7 +11,7 @@ enum class FiveThreeOneEvidenceKind {
 }
 
 /**
- * One immutable, already-normalized set of evidence for a single lift.
+ * One immutable, already-normalized set of evidence for a single exercise.
  *
  * Loads must use the same canonical unit as [FiveThreeOneProgressionInput.currentTrainingMax].
  * A PR set and a Training Max test are required work; a Joker is always optional.
@@ -62,7 +62,7 @@ data class FiveThreeOneProgressionRecommendation(
     val label: String get() = category.label
 }
 
-/** Pure, deterministic recommendations for one lift at the end of a 5/3/1 cycle. */
+/** Pure, deterministic recommendations for one exercise at the end of a 5/3/1 cycle. */
 object FiveThreeOneProgression {
     const val ENGINE_VERSION: String = "five-three-one-progression/1"
 

@@ -4,9 +4,9 @@ import com.whip.app.domain.Habit
 import com.whip.app.domain.HabitEndType
 import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitTrackingMode
-import com.whip.app.domain.MetricEntry
-import com.whip.app.domain.MetricEntryStatus
-import com.whip.app.domain.MetricSourceType
+import com.whip.app.domain.MeasurementEntry
+import com.whip.app.domain.MeasurementEntryStatus
+import com.whip.app.domain.MeasurementSourceType
 import com.whip.app.domain.TargetComparison
 import com.whip.app.domain.TargetPeriod
 import com.whip.app.domain.UnitDimension
@@ -17,27 +17,27 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class HabitMetricMirrorTest {
+class HabitMeasurementMirrorTest {
     @Test fun sourceBoundHabitReflectsProviderUpdateDeletionAndProvenance() {
         val habit = habit()
         val original = entry(value = 6_000.0)
 
-        val first = mirrorMetricEntriesAsHabitLogs(listOf(habit), listOf(original)).single()
+        val first = mirrorMeasurementEntriesAsHabitLogs(listOf(habit), listOf(original)).single()
         assertEquals(6_000.0, first.value ?: -1.0, 0.0)
-        assertEquals(MetricSourceType.HealthConnect, first.sourceType)
+        assertEquals(MeasurementSourceType.HealthConnect, first.sourceType)
         assertEquals("health:steps:a", first.sourceId)
-        assertEquals("entry-health:steps:a", first.metricEntryId)
+        assertEquals("entry-health:steps:a", first.measurementEntryId)
 
-        val edited = mirrorMetricEntriesAsHabitLogs(listOf(habit), listOf(original.copy(canonicalValue = 6_500.0, enteredValue = 6_500.0))).single()
+        val edited = mirrorMeasurementEntriesAsHabitLogs(listOf(habit), listOf(original.copy(canonicalValue = 6_500.0, enteredValue = 6_500.0))).single()
         assertEquals(first.id, edited.id)
         assertEquals(6_500.0, edited.value ?: -1.0, 0.0)
-        assertTrue(mirrorMetricEntriesAsHabitLogs(listOf(habit), emptyList()).isEmpty())
+        assertTrue(mirrorMeasurementEntriesAsHabitLogs(listOf(habit), emptyList()).isEmpty())
     }
 
     private fun habit() = Habit(
         id = 7,
         uuid = "habit-7",
-        metricId = "habit-metric",
+        measurementId = "habit-measurement",
         name = "Steps",
         notes = "",
         area = "Health",
@@ -72,21 +72,21 @@ class HabitMetricMirrorTest {
         paused = false,
         createdAtMillis = 1,
         updatedAtMillis = 1,
-        sourceMetricId = "health.steps",
+        sourceMeasurementId = "health.steps",
     )
 
-    private fun entry(value: Double) = MetricEntry(
+    private fun entry(value: Double) = MeasurementEntry(
         id = "entry-health:steps:a",
-        metricId = "health.steps",
+        measurementId = "health.steps",
         canonicalValue = value,
         enteredValue = value,
         enteredUnitId = "count",
-        status = MetricEntryStatus.Recorded,
+        status = MeasurementEntryStatus.Recorded,
         timestamp = Instant.parse("2026-08-17T16:00:00Z"),
         localDate = LocalDate.of(2026, 8, 17),
         zoneId = "UTC",
         offsetSeconds = 0,
-        sourceType = MetricSourceType.HealthConnect,
+        sourceType = MeasurementSourceType.HealthConnect,
         sourceId = "health:steps:a",
         note = "Imported from Health Connect",
         createdAtMillis = 1,

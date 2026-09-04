@@ -4,7 +4,7 @@ import android.content.Context
 import android.util.AtomicFile
 import java.io.File
 
-const val CURRENT_DATA_EPOCH = 4
+const val CURRENT_DATA_EPOCH = 5
 
 sealed interface DataEpochState {
     data class Current(val epoch: Int) : DataEpochState

@@ -308,7 +308,7 @@ class RoomBackupRepository(
     )
 
     override suspend fun exportGoalsCsv(): String = queryCsv(
-        "SELECT g.uuid AS goalUuid, g.name AS goal, COALESCE(a.name, '') AS area, g.type, g.unitId, g.elapsedStartMillis, g.elapsedDisplayUnit, e.id AS entryId, e.localEpochDay, e.enteredValue, e.enteredUnitId, e.status, e.sourceType, e.note FROM goals g LEFT JOIN areas a ON a.id = g.areaId LEFT JOIN metric_entries e ON e.metricId = g.metricId ORDER BY g.id, e.timestampMillis",
+        "SELECT g.uuid AS goalUuid, g.name AS goal, COALESCE(a.name, '') AS area, g.type, g.unitId, g.elapsedStartMillis, g.elapsedDisplayUnit, e.id AS entryId, e.localEpochDay, e.enteredValue, e.enteredUnitId, e.status, e.sourceType, e.note FROM goals g LEFT JOIN areas a ON a.id = g.areaId LEFT JOIN measurement_entries e ON e.measurementId = g.measurementId ORDER BY g.id, e.timestampMillis",
     )
 
     override suspend fun exportGymCsv(): String = queryCsv(
@@ -443,20 +443,20 @@ class RoomBackupRepository(
             require(tagNames.add(name.lowercase(Locale.ROOT))) { "Backup contains duplicate Tag names" }
         }
 
-        val metrics = tables.getJSONArray("metric_definitions").objects().associateBy { it.getString("id") }
-        tables.getJSONArray("metric_definitions").forEachObject { row ->
+        val measurements = tables.getJSONArray("measurement_definitions").objects().associateBy { it.getString("id") }
+        tables.getJSONArray("measurement_definitions").forEachObject { row ->
             row.requireEnum(
                 "valueKind",
                 enumNames("Boolean", "Integer", "Decimal", "Duration", "Percentage", "Rating", "TimeOfDay", "Checklist"),
-                "metric definition",
+                "measurement definition",
             )
-            row.requireEnum("dimension", UnitDimension.entries.mapTo(mutableSetOf(), UnitDimension::name), "metric definition")
+            row.requireEnum("dimension", UnitDimension.entries.mapTo(mutableSetOf(), UnitDimension::name), "measurement definition")
         }
-        val metricEntries = tables.getJSONArray("metric_entries").objects().associateBy { it.getString("id") }
-        metricEntries.values.forEach { row ->
-            require(metrics.containsKey(row.getString("metricId"))) { "Backup metric history references a missing metric" }
-            row.requireEnum("status", enumNames("Recorded", "Missing", "Failed", "Skipped", "Excused"), "metric history")
-            row.requireEnum("sourceType", enumNames("Manual", "Habit", "Goal", "Task", "Workout", "Exercise", "Track", "Import", "HealthConnect"), "metric history")
+        val measurementEntries = tables.getJSONArray("measurement_entries").objects().associateBy { it.getString("id") }
+        measurementEntries.values.forEach { row ->
+            require(measurements.containsKey(row.getString("measurementId"))) { "Backup measurement history references a missing measurement" }
+            row.requireEnum("status", enumNames("Recorded", "Missing", "Failed", "Skipped", "Excused"), "measurement history")
+            row.requireEnum("sourceType", enumNames("Manual", "Habit", "Goal", "Task", "Workout", "Exercise", "Track", "Import", "HealthConnect"), "measurement history")
         }
 
         val tasks = tables.getJSONArray("tasks").objects().associateBy { it.getLong("id") }
@@ -511,8 +511,8 @@ class RoomBackupRepository(
             row.requireEnum("scheduleType", enumNames("Daily", "SelectedWeekdays", "EveryNDays", "FlexibleTimesPerWeek", "FlexibleTimesPerMonth"), "Habit")
             row.requireEnum("endType", enumNames("Never", "OnDate", "AfterStreak", "AfterCompletions", "AfterTotal"), "Habit")
             row.requireEnum("weekStart", enumNames("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"), "Habit")
-            val metric = metrics[row.getString("metricId")] ?: error("Backup Habit references a missing metric")
-            require(metric.getString("dimension") == row.getString("dimension")) { "Backup Habit metric uses another measurement type" }
+            val measurement = measurements[row.getString("measurementId")] ?: error("Backup Habit references a missing measurement")
+            require(measurement.getString("dimension") == row.getString("dimension")) { "Backup Habit measurement uses another measurement type" }
             val expectedValueKind = when (row.getString("trackingMode")) {
                 "CheckOff" -> "Boolean"
                 "Count" -> "Integer"
@@ -522,9 +522,9 @@ class RoomBackupRepository(
                 "Rating" -> "Rating"
                 else -> error("Backup Habit has an unknown tracking mode")
             }
-            require(metric.getString("valueKind") == expectedValueKind) { "Backup Habit metric has incompatible value semantics" }
-            row.nonBlankString("sourceMetricId")?.let { sourceId ->
-                val source = metrics[sourceId] ?: error("Backup Habit references a missing connected data source")
+            require(measurement.getString("valueKind") == expectedValueKind) { "Backup Habit measurement has incompatible value semantics" }
+            row.nonBlankString("sourceMeasurementId")?.let { sourceId ->
+                val source = measurements[sourceId] ?: error("Backup Habit references a missing connected data source")
                 require(source.getString("dimension") == row.getString("dimension")) {
                     "Backup Habit connected data source uses another measurement type"
                 }
@@ -553,9 +553,9 @@ class RoomBackupRepository(
             val habit = habits[row.getLong("habitId")] ?: error("Backup Habit history references a missing Habit")
             row.requireEnum("status", enumNames("Recorded", "Success", "Failed"), "Habit history")
             row.requireEnum("sourceType", enumNames("Manual", "Habit", "Goal", "Task", "Workout", "Exercise", "Track", "Import", "HealthConnect"), "Habit history")
-            row.nonBlankString("metricEntryId")?.let { entryId ->
-                require(metricEntries[entryId]?.getString("metricId") == habit.getString("metricId")) {
-                    "Backup Habit history points to another metric"
+            row.nonBlankString("measurementEntryId")?.let { entryId ->
+                require(measurementEntries[entryId]?.getString("measurementId") == habit.getString("measurementId")) {
+                    "Backup Habit history points to another measurement"
                 }
             }
         }
@@ -570,9 +570,9 @@ class RoomBackupRepository(
             row.requireEnum("consistencyPeriod", enumNames("Day", "Week", "Month"), "Goal")
             row.requireEnum("elapsedDisplayUnit", enumNames("Auto", "Minutes", "Hours", "Days", "Weeks", "Years"), "Goal")
             row.requireEnum("status", enumNames("Active", "Paused", "Completed", "Abandoned", "Archived"), "Goal")
-            val metric = metrics[row.getString("metricId")] ?: error("Backup Goal references a missing metric")
-            require(metric.getString("dimension") == row.getString("dimension")) { "Backup Goal metric uses another measurement type" }
-            require(metric.getString("valueKind") == "Decimal") { "Backup Goal metric has incompatible value semantics" }
+            val measurement = measurements[row.getString("measurementId")] ?: error("Backup Goal references a missing measurement")
+            require(measurement.getString("dimension") == row.getString("dimension")) { "Backup Goal measurement uses another measurement type" }
+            require(measurement.getString("valueKind") == "Decimal") { "Backup Goal measurement has incompatible value semantics" }
         }
         tables.getJSONArray("goal_completion_snapshots").forEachObject { row ->
             row.requireEnum("status", enumNames("Completed", "Abandoned"), "Goal closure history")
@@ -635,28 +635,28 @@ class RoomBackupRepository(
             )
         }
 
-        val metricDimensions = mutableMapOf<String, String>()
-        tables.getJSONArray("metric_definitions").forEachObject { row ->
+        val measurementDimensions = mutableMapOf<String, String>()
+        tables.getJSONArray("measurement_definitions").forEachObject { row ->
             val dimension = row.getString("dimension")
-            metricDimensions[row.getString("id")] = dimension
-            requireCompatibleBackupUnit(units, row.getString("defaultUnitId"), dimension, "metric definition")
+            measurementDimensions[row.getString("id")] = dimension
+            requireCompatibleBackupUnit(units, row.getString("defaultUnitId"), dimension, "measurement definition")
         }
-        tables.getJSONArray("metric_entries").forEachObject { row ->
+        tables.getJSONArray("measurement_entries").forEachObject { row ->
             val enteredValue = row.nullableDouble("enteredValue")
             val enteredUnitId = row.nonBlankString("enteredUnitId")
             require((enteredValue == null) == (enteredUnitId == null)) {
-                "Backup metric history has inconsistent value and unit data"
+                "Backup measurement history has inconsistent value and unit data"
             }
             if (enteredUnitId == null) {
                 require(row.nullableDouble("canonicalValue") == null) {
-                    "Backup metric history has canonical data without an entered value"
+                    "Backup measurement history has canonical data without an entered value"
                 }
                 return@forEachObject
             }
-            val dimension = metricDimensions[row.getString("metricId")]
-                ?: error("Backup metric entry references a missing metric definition")
-            val unit = requireCompatibleBackupUnit(units, enteredUnitId, dimension, "metric history")
-            validateCanonicalPair(row, "enteredValue", "canonicalValue", unit, "metric history")
+            val dimension = measurementDimensions[row.getString("measurementId")]
+                ?: error("Backup measurement entry references a missing measurement definition")
+            val unit = requireCompatibleBackupUnit(units, enteredUnitId, dimension, "measurement history")
+            validateCanonicalPair(row, "enteredValue", "canonicalValue", unit, "measurement history")
         }
 
         tables.getJSONArray("habits").forEachObject { row ->
@@ -1072,7 +1072,7 @@ class RoomBackupRepository(
                 require(
                     habit.optString("trackingMode") == HabitTrackingMode.Duration.name &&
                         habit.optString("dimension") == UnitDimension.Duration.name &&
-                        habit.nullableString("sourceMetricId") == null
+                        habit.nullableString("sourceMeasurementId") == null
                 ) { "Backup active timer belongs to an incompatible Habit" }
                 require(session.optLongOrNull("anchorWallMillis") != null) { "Backup active timer has no wall anchor" }
                 val timerUnitId = session.optString("unitId")
@@ -1340,8 +1340,8 @@ private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
 
 private const val BACKUP_FORMAT = "whip-backup"
 internal const val ENVELOPE_VERSION = 3
-internal const val CURRENT_DATA_MODEL_EPOCH = 4
-internal const val BACKUP_DATABASE_VERSION = 21
+internal const val CURRENT_DATA_MODEL_EPOCH = 5
+internal const val BACKUP_DATABASE_VERSION = 22
 
 internal fun validateBackupContract(
     envelopeVersion: Int,
@@ -1370,7 +1370,7 @@ internal fun validateBackupContract(
 private val EXPORT_TABLES = listOf(
     "areas",
     "tasks", "task_occurrences", "task_steps", "task_step_states", "task_step_snapshots",
-    "unit_definitions", "metric_definitions", "metric_entries", "tags",
+    "unit_definitions", "measurement_definitions", "measurement_entries", "tags",
     "exercises", "exercise_categories", "exercise_category_joins", "gym_machines", "gym_machine_exercise_joins",
     "gym_routines", "routine_days", "routine_exercises", "routine_sets", "training_max_decisions",
     "workout_sessions", "workout_groups", "workout_exercises", "workout_sets",

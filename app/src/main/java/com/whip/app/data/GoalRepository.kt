@@ -25,9 +25,9 @@ import com.whip.app.domain.GoalType
 import com.whip.app.domain.ElapsedDisplayUnit
 import com.whip.app.domain.DEFAULT_GOAL_EMOJI
 import com.whip.app.domain.normalizedIdentityEmoji
-import com.whip.app.domain.MetricEntry
-import com.whip.app.domain.MetricSourceType
-import com.whip.app.domain.MetricValueKind
+import com.whip.app.domain.MeasurementEntry
+import com.whip.app.domain.MeasurementSourceType
+import com.whip.app.domain.MeasurementValueKind
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.validationErrors
@@ -47,7 +47,7 @@ import kotlinx.coroutines.flow.map
 interface GoalRepository {
     val goals: Flow<List<Goal>>
     val milestones: Flow<List<GoalMilestone>>
-    val metricEntries: Flow<List<MetricEntry>>
+    val measurementEntries: Flow<List<MeasurementEntry>>
     val closureSnapshots: Flow<List<GoalClosureSnapshot>>
     val elapsedResetEvents: Flow<List<GoalElapsedResetEvent>>
 
@@ -98,7 +98,7 @@ class RoomGoalRepository(
     private val areaRepository = RoomAreaRepository(database, clock, ids)
     override val goals = dao.observeGoals().map { it.map(GoalEntity::toDomain) }
     override val milestones = dao.observeMilestones().map { it.map(GoalMilestoneEntity::toDomain) }
-    override val metricEntries = measurementRepository.entries
+    override val measurementEntries = measurementRepository.entries
     override val closureSnapshots = dao.observeClosureSnapshots().map { list -> list.map(GoalClosureSnapshotEntity::toDomain) }
     override val elapsedResetEvents = dao.observeElapsedResetEvents().map { list -> list.map(GoalElapsedResetEventEntity::toDomain) }
 
@@ -111,16 +111,16 @@ class RoomGoalRepository(
         val resolvedDraft = semanticDraft.copy(areaId = area.id, area = area.name)
         measurementRepository.ensureCustomUnit(semanticDraft.unitId, semanticDraft.unitId, semanticDraft.unitId, semanticDraft.dimension)
         val unit = requireNotNull(resolveUnit(semanticDraft.unitId)) { "Unknown goal unit" }
-        val metricId = measurementRepository.createMetric(
+        val measurementId = measurementRepository.createMeasurement(
             name = semanticDraft.name,
-            valueKind = MetricValueKind.Decimal,
+            valueKind = MeasurementValueKind.Decimal,
             dimension = semanticDraft.dimension,
             defaultUnitId = semanticDraft.unitId,
             precision = semanticDraft.precision,
         )
         val now = clock.now().toEpochMilli()
         val goalId = dao.insertGoal(
-            resolvedDraft.toEntity(ids.nextId(), metricId, dao.nextPosition(), now, unit = unit),
+            resolvedDraft.toEntity(ids.nextId(), measurementId, dao.nextPosition(), now, unit = unit),
         )
         syncMilestones(goalId, semanticDraft.milestones, now)
         goalId
@@ -146,7 +146,7 @@ class RoomGoalRepository(
         dao.updateGoal(
             resolvedDraft.toEntity(
                 uuid = existing.uuid,
-                metricId = existing.metricId,
+                measurementId = existing.measurementId,
                 position = existing.position,
                 createdAtMillis = existing.createdAtMillis,
                 id = existing.id,
@@ -263,13 +263,13 @@ class RoomGoalRepository(
         require(date == null || !date.isAfter(clock.today())) { "Measurement date cannot be in the future" }
         require(timestamp == null || !timestamp.isAfter(clock.now())) { "Measurement time cannot be in the future" }
         measurementRepository.record(
-            metricId = goal.metricId,
+            measurementId = goal.measurementId,
             value = value,
             unitId = goal.unitId,
             timestamp = timestamp,
             localDate = date,
             zoneId = clock.zoneId(),
-            sourceType = MetricSourceType.Goal,
+            sourceType = MeasurementSourceType.Goal,
             sourceId = goal.uuid,
             note = note,
         )
@@ -309,13 +309,13 @@ class RoomGoalRepository(
         require(boundary == goal.measurementBoundary(entry)) { "Measurement changed; reopen it before saving" }
         requireEditableGoalEntry(goal, entryEntity)
         measurementRepository.record(
-            metricId = goal.metricId,
+            measurementId = goal.measurementId,
             value = value,
             unitId = enteredUnitId ?: entryEntity.enteredUnitId ?: goal.unitId,
             timestamp = Instant.ofEpochMilli(entryEntity.timestampMillis),
             localDate = date,
             zoneId = ZoneId.of(entryEntity.zoneId),
-            sourceType = MetricSourceType.valueOf(entryEntity.sourceType),
+            sourceType = MeasurementSourceType.valueOf(entryEntity.sourceType),
             sourceId = entryEntity.sourceId,
             note = note,
             existingEntryId = entryEntity.id,
@@ -417,7 +417,7 @@ class RoomGoalRepository(
 
     private suspend fun requireCurrent(boundary: GoalProgressBoundary): GoalEntity {
         val current = dao.getGoal(boundary.goalId) ?: error("Goal no longer exists")
-        require(current.uuid == boundary.goalUuid && current.metricId == boundary.metricId) {
+        require(current.uuid == boundary.goalUuid && current.measurementId == boundary.measurementId) {
             "Goal identity no longer matches"
         }
         require(current.toDomain().progressBoundary() == boundary) {
@@ -436,25 +436,25 @@ class RoomGoalRepository(
         return current
     }
 
-    private suspend fun requireEditableGoalEntry(goal: Goal, entry: MetricEntryEntity) {
-        require(entry.metricId == goal.metricId) { "Measurement does not belong to this goal" }
-        require(entry.status == com.whip.app.domain.MetricEntryStatus.Recorded.name) {
+    private suspend fun requireEditableGoalEntry(goal: Goal, entry: MeasurementEntryEntity) {
+        require(entry.measurementId == goal.measurementId) { "Measurement does not belong to this goal" }
+        require(entry.status == com.whip.app.domain.MeasurementEntryStatus.Recorded.name) {
             "Only recorded progress can be edited"
         }
-        val owned = when (MetricSourceType.valueOf(entry.sourceType)) {
-            MetricSourceType.Goal -> entry.sourceId == goal.uuid
+        val owned = when (MeasurementSourceType.valueOf(entry.sourceType)) {
+            MeasurementSourceType.Goal -> entry.sourceId == goal.uuid
             // Early Goal versions stored authored progress without provenance.
-            MetricSourceType.Manual -> entry.sourceId == null
+            MeasurementSourceType.Manual -> entry.sourceId == null
             else -> false
         }
         require(owned) { "Linked or externally recorded progress must be edited at its source" }
-        val linked = database.linkDao().observeContributionsSnapshot().any { it.metricEntryId == entry.id }
+        val linked = database.linkDao().observeContributionsSnapshot().any { it.measurementEntryId == entry.id }
         require(!linked) { "Exclude a linked contribution from the link history instead" }
     }
 
     private suspend fun insertClosureSnapshot(current: GoalEntity, status: GoalStatus, now: Long) {
         val goal = current.toDomain().copy(status = status)
-        val entries = database.measurementDao().getEntriesForMetric(current.metricId).map(MetricEntryEntity::toDomain)
+        val entries = database.measurementDao().getEntriesForMeasurement(current.measurementId).map(MeasurementEntryEntity::toDomain)
         val milestones = dao.getMilestones(current.id).map(GoalMilestoneEntity::toDomain)
         val projection = projectGoal(goal, entries, milestones, clock.today())
         val elapsedDurationMillis = goal.elapsedStartMillis
@@ -541,7 +541,7 @@ private fun GoalDraft.requireValid(nowMillis: Long) {
 }
 
 private fun GoalDraft.toEntity(
-    uuid: String, metricId: String, position: Int, createdAtMillis: Long,
+    uuid: String, measurementId: String, position: Int, createdAtMillis: Long,
     id: Long = 0, status: GoalStatus = GoalStatus.Active, pinned: Boolean = false,
     archived: Boolean = false,
     updatedAtMillis: Long = createdAtMillis,
@@ -551,7 +551,7 @@ private fun GoalDraft.toEntity(
         require(it.isFinite()) { "Converted goal value must be finite" }
     }
     return GoalEntity(
-        id = id, uuid = uuid, metricId = metricId, name = name.trim(), description = description.trim(),
+        id = id, uuid = uuid, measurementId = measurementId, name = name.trim(), description = description.trim(),
         areaId = areaId, area = area.trim(), tagsCsv = tags.map(String::trim).filter(String::isNotBlank).distinct().joinToString(","),
         icon = icon.normalizedIdentityEmoji(DEFAULT_GOAL_EMOJI), type = type.name, dimension = dimension.name,
         unitId = unitId, precision = precision, baseline = canonical(baseline),
@@ -569,7 +569,7 @@ private fun GoalDraft.toEntity(
 }
 
 internal fun GoalEntity.toDomain() = Goal(
-    id = id, uuid = uuid, metricId = metricId, name = name, description = description,
+    id = id, uuid = uuid, measurementId = measurementId, name = name, description = description,
     areaId = areaId, area = area, tags = tagsCsv.split(',').map(String::trim).filter(String::isNotBlank),
     icon = icon, type = GoalType.valueOf(type),
     dimension = UnitDimension.valueOf(dimension), unitId = unitId, precision = precision,

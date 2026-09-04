@@ -111,13 +111,9 @@ internal object WidgetSnapshotCodec {
     fun decode(encoded: String): CachedWidgetSnapshot? = runCatching {
         val lines = encoded.lineSequence().toList()
         val header = lines.firstOrNull()?.split(FIELD_SEPARATOR) ?: return null
-        if (header.size !in 2..3) return null
+        if (header.size != 3 || header[0] != VERSION) return null
         val savedAtMillis = header[1].toLongOrNull() ?: return null
-        val dataGeneration = when (header[0]) {
-            "1" -> if (header.size == 2) 0L else return null
-            VERSION -> if (header.size == 3) header[2].toLongOrNull() ?: return null else return null
-            else -> return null
-        }
+        val dataGeneration = header[2].toLongOrNull() ?: return null
         val rows = lines.drop(1).map { line ->
             val fields = line.split(FIELD_SEPARATOR)
             require(fields.size == 4)

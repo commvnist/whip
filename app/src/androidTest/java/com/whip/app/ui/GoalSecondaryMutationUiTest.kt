@@ -31,9 +31,9 @@ import com.whip.app.domain.GoalPaceType
 import com.whip.app.domain.GoalProjection
 import com.whip.app.domain.GoalStatus
 import com.whip.app.domain.GoalType
-import com.whip.app.domain.MetricEntry
-import com.whip.app.domain.MetricEntryStatus
-import com.whip.app.domain.MetricSourceType
+import com.whip.app.domain.MeasurementEntry
+import com.whip.app.domain.MeasurementEntryStatus
+import com.whip.app.domain.MeasurementSourceType
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.UnitDimension
 import com.whip.app.ui.theme.WhipTheme
@@ -142,7 +142,7 @@ class GoalSecondaryMutationUiTest {
             toCanonicalFactor = 6.35029318,
             custom = true,
         )
-        var entry by mutableStateOf(metricEntry(localDate = TODAY.plusDays(1), enteredUnitId = customUnit.id))
+        var entry by mutableStateOf(measurementEntry(localDate = TODAY.plusDays(1), enteredUnitId = customUnit.id))
         var saves = 0
         compose.setContent {
             WhipTheme(dynamicColor = false) {
@@ -165,7 +165,7 @@ class GoalSecondaryMutationUiTest {
             assertTrue("Opaque custom-unit ID leaked into the UI", nodes.isEmpty())
         }
 
-        compose.runOnIdle { entry = metricEntry(localDate = TODAY.minusDays(8), enteredUnitId = customUnit.id) }
+        compose.runOnIdle { entry = measurementEntry(localDate = TODAY.minusDays(8), enteredUnitId = customUnit.id) }
         compose.onNodeWithTag("goal-measurement-window-warning").assertIsDisplayed()
         compose.onNodeWithTag("goal-measurement-save").assertIsEnabled().performClick()
         compose.onNodeWithTag("goal-measurement-window-confirmation").assertIsDisplayed()
@@ -185,7 +185,7 @@ class GoalSecondaryMutationUiTest {
             milestoneCount = 3,
             completedMilestoneCount = 2,
             progressEntryCount = 5,
-            legacyClosureSnapshotCount = 1,
+            closureSnapshotCount = 1,
             elapsedResetEventCount = 2,
             linkRuleCount = 4,
             contributionCount = 6,
@@ -329,7 +329,7 @@ class GoalSecondaryMutationUiTest {
     ) = Goal(
         id = 17,
         uuid = "goal-17",
-        metricId = "metric-17",
+        measurementId = "measurement-17",
         name = "Launch",
         description = "",
         area = "",
@@ -385,18 +385,18 @@ class GoalSecondaryMutationUiTest {
         entries = emptyList(),
     )
 
-    private fun metricEntry(localDate: LocalDate, enteredUnitId: String) = MetricEntry(
+    private fun measurementEntry(localDate: LocalDate, enteredUnitId: String) = MeasurementEntry(
         id = "entry-${localDate.toEpochDay()}",
-        metricId = "metric-17",
+        measurementId = "measurement-17",
         canonicalValue = 10.0,
         enteredValue = 10.0,
         enteredUnitId = enteredUnitId,
-        status = MetricEntryStatus.Recorded,
+        status = MeasurementEntryStatus.Recorded,
         timestamp = Instant.parse("2026-09-01T12:00:00Z"),
         localDate = localDate,
         zoneId = "UTC",
         offsetSeconds = 0,
-        sourceType = MetricSourceType.Goal,
+        sourceType = MeasurementSourceType.Goal,
         sourceId = "goal-17",
         note = "",
         createdAtMillis = 1,

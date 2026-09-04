@@ -59,7 +59,7 @@ class TaskWorkspacePolicyTest {
     }
 
     @Test
-    fun legacyFiltersNormalizeInvalidDestinationViewPairs() {
+    fun connectedFiltersNormalizeInvalidDestinationViewPairs() {
         TaskDestination.entries.forEach { destination ->
             TaskPlanningView.entries.forEach { view ->
                 val normalized = SavedTaskFilter(
@@ -94,12 +94,12 @@ class TaskWorkspacePolicyTest {
     fun removedAnytimeSavedDestinationMigratesToInboxList() {
         assertEquals(
             SavedTaskFilter(
-                name = "Legacy Anytime",
+                name = "Connected Anytime",
                 destination = TaskDestination.Inbox.name,
                 planningView = TaskPlanningView.List.name,
             ),
             SavedTaskFilter(
-                name = "Legacy Anytime",
+                name = "Connected Anytime",
                 destination = "Anytime",
                 planningView = TaskPlanningView.Calendar.name,
             ).normalizedForWorkspace(),

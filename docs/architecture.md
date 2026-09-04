@@ -10,11 +10,11 @@ domain calculations. WorkManager, notifications, graphs, summaries, personal
 records, streaks, and goal progress are projections or side effects; none of
 them replaces the underlying source records.
 
-The 2026-08-22 pre-release cleanup established schema 1 as the public baseline.
-Room is now schema 9, with every exported schema and explicit forward migration
-from 1 through 8 checked in. Migration tests exercise both the schema-1 baseline
-and schema-2 Track baseline through the current schema while preserving records
-and relationships. Destructive fallback is not permitted for user data.
+The current product data contract is schema 45 and data epoch 5. This is a
+deliberate clean boundary: an update from an earlier epoch is locked until the
+person explicitly confirms a fresh start twice. Whip then removes only its own
+local data and creates the canonical schema. It never attempts to reinterpret
+an earlier schema or silently fall back to destructive database opening.
 
 ## Time and identity
 
@@ -38,12 +38,12 @@ from leaking into Tuesday's occurrence.
 
 ## Measurements
 
-Habits and goals share typed metric definitions and timestamped metric
-entries. Values are normalized to a canonical unit while retaining entry-unit
+Habits and goals share typed measurement definitions and timestamped
+measurement entries. Values are normalized to a canonical unit while retaining entry-unit
 metadata for display and audit. Zero and failed measurements remain explicit;
 an absent habit check-in is derived as missed only after its scheduled day
 closes. A user skip is stored separately in `habit_skips`, never as a value or
-metric entry, so it cannot inflate totals. A metric's
+measurement entry, so it cannot inflate totals. A measurement's
 dimensional type cannot silently change after data exists.
 Custom units store a name, symbol, dimension, and conversion factor, and use
 the same canonical conversion path as built-in units.
@@ -89,9 +89,8 @@ visible in the Today card, History, Insights, and exports; it suppresses that
 day's reminder, is excluded from completion-rate
 denominators, and bridges rather than increments a streak. **Undo Skip** removes
 the occurrence. Missing is not writable state: past scheduled occurrences with
-no check-in or skip are derived as missed. Room migration 8→9 converts legacy
-Skip/Excuse log rows into one skip occurrence per habit/day and removes legacy
-Missing rows and their metric entries.
+no check-in or skip are derived as missed. The epoch-5 schema stores one skip
+occurrence per habit/day and has no separate missing-value record.
 
 ## Productivity collection design
 
@@ -141,8 +140,9 @@ files:
 ```json
 {
   "format": "whip-backup",
-  "envelopeVersion": 2,
-  "databaseVersion": 8,
+  "envelopeVersion": 3,
+  "dataEpoch": 5,
+  "databaseVersion": 22,
   "exportedAt": "2026-08-18T00:00:00Z",
   "checksumSha256": "...",
   "tables": {},
@@ -151,14 +151,15 @@ files:
 ```
 
 The backup data version is intentionally independent of Room's schema version.
-The current backup data version is 7; version-5 and version-6 archives are upgraded during
-restore by supplying the deterministic default Track Scale increment and Task identity emoji. Import is
+Only envelope 3, data epoch 5, and backup data version 22 are accepted. Older
+and future complete archives are rejected before their tables are interpreted;
+the clean boundary deliberately provides no archive upgrade path. Import is
 parse -> authenticate/checksum -> validate -> preview -> recoverable commit.
-Unknown future versions fail safely. CSV files are domain-specific
+CSV files are domain-specific
 interoperability exports, not complete backups. An optional encrypted envelope
 uses a password-based key derivation plus authenticated encryption; the
 passphrase is never stored.
-Envelope version 2 is the only supported complete-backup format and includes
+Envelope version 3 is the only supported complete-backup format and includes
 user preferences. Restore replaces Whip-owned reminder/timer
 jobs so background state matches the restored records.
 
@@ -185,5 +186,5 @@ normalized into the same measurement ledger as manual entries and retain stable
 provider record IDs. Aggregate types such as steps and distance are read as
 daily totals to avoid double counting. A bounded sync rebuild removes stale
 Health Connect entries inside the requested window; manual data is independent.
-A Habit or Goal can explicitly bind to a Health metric. Its UI and link events
+A Habit or Goal can explicitly bind to a Health measurement. Its UI and link events
 then mirror the authoritative source with stable IDs and provenance.

@@ -11,12 +11,12 @@ import com.whip.app.core.SettingsRepository
 import com.whip.app.data.RoomMeasurementRepository
 import com.whip.app.data.RoomBackupRepository
 import com.whip.app.data.WhipDatabase
-import com.whip.app.domain.HealthMetricContract
+import com.whip.app.domain.HealthMeasurementContract
 import com.whip.app.domain.HealthSourceRecord
 import com.whip.app.domain.HealthSourceWindow
-import com.whip.app.domain.MetricEntryStatus
-import com.whip.app.domain.MetricSourceType
-import com.whip.app.domain.MetricValueKind
+import com.whip.app.domain.MeasurementEntryStatus
+import com.whip.app.domain.MeasurementSourceType
+import com.whip.app.domain.MeasurementValueKind
 import com.whip.app.domain.UnitDimension
 import com.whip.app.health.reconcileHealthRecords
 import com.whip.app.health.HealthConnectManager
@@ -73,7 +73,7 @@ class HealthReconciliationTest {
         val remaining = measurements.entries.first().single()
         assertEquals("entry-health:weight:a", remaining.id)
         assertEquals(79.5, remaining.canonicalValue ?: -1.0, 0.0)
-        assertEquals(MetricSourceType.HealthConnect, remaining.sourceType)
+        assertEquals(MeasurementSourceType.HealthConnect, remaining.sourceType)
         assertEquals("health:weight:a", remaining.sourceId)
         assertTrue(remaining.note.contains("Edited"))
 
@@ -147,7 +147,7 @@ class HealthReconciliationTest {
         assertEquals(original.offsetSeconds, resynchronized.offsetSeconds)
     }
 
-    @Test fun malformedRecordRollsBackEveryRecordAndMetricInTheBatch() = runBlocking {
+    @Test fun malformedRecordRollsBackEveryRecordAndMeasurementInTheBatch() = runBlocking {
         val failure = expectFailure {
             measurements.reconcileHealthSourceWindows(
                 listOf(
@@ -158,14 +158,14 @@ class HealthReconciliationTest {
 
         assertTrue(failure.message.orEmpty().contains("negative"))
         assertTrue(measurements.entries.first().isEmpty())
-        assertTrue(measurements.metrics.first().isEmpty())
+        assertTrue(measurements.measurements.first().isEmpty())
     }
 
     @Test fun invalidSecondCategoryRollsBackTheFirstCategoryToo() = runBlocking {
-        val steps = HealthMetricContract(
+        val steps = HealthMeasurementContract(
             id = "health-connect-steps",
             name = "Health steps",
-            valueKind = MetricValueKind.Integer,
+            valueKind = MeasurementValueKind.Integer,
             dimension = UnitDimension.Count,
             defaultUnitId = "count",
             precision = 0,
@@ -184,7 +184,7 @@ class HealthReconciliationTest {
         }
 
         assertTrue(measurements.entries.first().isEmpty())
-        assertTrue(measurements.metrics.first().isEmpty())
+        assertTrue(measurements.measurements.first().isEmpty())
     }
 
     @Test fun duplicateProviderIdsAndStableIdentityCollisionsFailClosed() = runBlocking {
@@ -204,9 +204,9 @@ class HealthReconciliationTest {
                 listOf(window(records = listOf(record("same", 81.0)))),
             )
         }
-        assertTrue(failure.message.orEmpty().contains("another metric"))
+        assertTrue(failure.message.orEmpty().contains("another measurement"))
         val preserved = measurements.entries.first().single()
-        assertEquals(otherContract.id, preserved.metricId)
+        assertEquals(otherContract.id, preserved.measurementId)
         assertEquals(80.0, preserved.canonicalValue ?: -1.0, 0.0)
 
         val absentCollision = expectFailure {
@@ -214,12 +214,12 @@ class HealthReconciliationTest {
                 listOf(window(records = emptyList())),
             )
         }
-        assertTrue(absentCollision.message.orEmpty().contains("another metric"))
-        assertEquals(otherContract.id, measurements.entries.first().single().metricId)
+        assertTrue(absentCollision.message.orEmpty().contains("another measurement"))
+        assertEquals(otherContract.id, measurements.entries.first().single().measurementId)
     }
 
-    @Test fun restoredReservedMetricMismatchCannotReceiveHealthData() = runBlocking {
-        measurements.ensureMetric(
+    @Test fun restoredReservedMeasurementMismatchCannotReceiveHealthData() = runBlocking {
+        measurements.ensureMeasurement(
             id = WEIGHT.id,
             name = "User-restored conflicting name",
             valueKind = WEIGHT.valueKind,
@@ -235,22 +235,22 @@ class HealthReconciliationTest {
         }
         assertTrue(failure.message.orEmpty().contains("reserved contract"))
         assertTrue(measurements.entries.first().isEmpty())
-        assertEquals("User-restored conflicting name", measurements.metrics.first().single().name)
+        assertEquals("User-restored conflicting name", measurements.measurements.first().single().name)
     }
 
-    @Test fun deleteHealthCopiesPreservesManualHistoryAndMetricDefinitions() = runBlocking {
-        val manualMetric = measurements.createMetric(
+    @Test fun deleteHealthCopiesPreservesManualHistoryAndMeasurementDefinitions() = runBlocking {
+        val manualMeasurement = measurements.createMeasurement(
             name = "Manual body weight",
-            valueKind = MetricValueKind.Decimal,
+            valueKind = MeasurementValueKind.Decimal,
             dimension = UnitDimension.Mass,
             defaultUnitId = "kilogram",
         )
         measurements.record(
-            metricId = manualMetric,
+            measurementId = manualMeasurement,
             value = 77.0,
             unitId = "kilogram",
-            status = MetricEntryStatus.Recorded,
-            sourceType = MetricSourceType.Manual,
+            status = MeasurementEntryStatus.Recorded,
+            sourceType = MeasurementSourceType.Manual,
         )
         measurements.reconcileHealthSourceWindows(
             listOf(window(records = listOf(record("a", 80.0), record("b", 79.0)))),
@@ -260,8 +260,8 @@ class HealthReconciliationTest {
 
         val entries = measurements.entries.first()
         assertEquals(1, entries.size)
-        assertEquals(MetricSourceType.Manual, entries.single().sourceType)
-        assertEquals(setOf(manualMetric, WEIGHT.id), measurements.metrics.first().mapTo(mutableSetOf()) { it.id })
+        assertEquals(MeasurementSourceType.Manual, entries.single().sourceType)
+        assertEquals(setOf(manualMeasurement, WEIGHT.id), measurements.measurements.first().mapTo(mutableSetOf()) { it.id })
         assertEquals(0, measurements.deleteHealthConnectEntries())
     }
 
@@ -445,7 +445,7 @@ class HealthReconciliationTest {
         assertTrue(failure.isFailure)
         assertTrue(failure.exceptionOrNull()?.message.orEmpty().contains("access changed"))
         assertTrue(measurements.entries.first().isEmpty())
-        assertTrue(measurements.metrics.first().isEmpty())
+        assertTrue(measurements.measurements.first().isEmpty())
     }
 
     @Test fun localDeletionCannotInterleaveWithAnInFlightProviderSync() = runBlocking {
@@ -501,31 +501,31 @@ class HealthReconciliationTest {
             )
         }
         assertTrue(measurements.entries.first().isEmpty())
-        assertTrue(measurements.metrics.first().isEmpty())
+        assertTrue(measurements.measurements.first().isEmpty())
 
         expectFailure {
             val empty = window(records = emptyList())
             measurements.reconcileHealthSourceWindows(listOf(empty, empty))
         }
-        assertFalse(measurements.metrics.first().any { it.id == WEIGHT.id })
+        assertFalse(measurements.measurements.first().any { it.id == WEIGHT.id })
 
         expectFailure {
             measurements.reconcileHealthSourceWindows(
                 listOf(window(prefix = "health:%:", records = emptyList())),
             )
         }
-        assertTrue(measurements.metrics.first().isEmpty())
+        assertTrue(measurements.measurements.first().isEmpty())
     }
 
     private fun window(
-        contract: HealthMetricContract = WEIGHT,
+        contract: HealthMeasurementContract = WEIGHT,
         prefix: String = "health:weight:",
         start: String = "2026-01-01T00:00:00Z",
         end: String = "2026-08-18T00:00:00Z",
         zoneId: ZoneId = ZoneId.of("UTC"),
         records: List<HealthSourceRecord>,
     ) = HealthSourceWindow(
-        metric = contract,
+        measurement = contract,
         sourcePrefix = prefix,
         startInclusive = Instant.parse(start),
         endExclusive = Instant.parse(end),
@@ -579,10 +579,10 @@ class HealthReconciliationTest {
     }
 
     private companion object {
-        val WEIGHT = HealthMetricContract(
+        val WEIGHT = HealthMeasurementContract(
             id = "health-connect-weight",
             name = "Health weight",
-            valueKind = MetricValueKind.Decimal,
+            valueKind = MeasurementValueKind.Decimal,
             dimension = UnitDimension.Mass,
             defaultUnitId = "kilogram",
             precision = 2,

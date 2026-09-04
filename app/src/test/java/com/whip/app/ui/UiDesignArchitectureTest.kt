@@ -283,7 +283,7 @@ class UiDesignArchitectureTest {
         assertFalse(
             "Entity inspector controls must not expose compatibility labels through zero-size text",
             inspector.contains("Text(editLabel, modifier = Modifier.size(0.dp))") ||
-                inspector.contains("Text(section.legacyLabel, modifier = Modifier.size(0.dp))") ||
+                inspector.contains("Text(section.connectedLabel, modifier = Modifier.size(0.dp))") ||
                 inspector.contains("Text(\"Close\", modifier = Modifier.size(0.dp))"),
         )
         listOf(tasks, habits, goals, tracks, gym).forEach { source ->

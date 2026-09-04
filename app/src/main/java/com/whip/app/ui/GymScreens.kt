@@ -2027,7 +2027,7 @@ fun GymAreaContent(
         val finishingSession = state.activeSession
         val programmedSession = finishingSession != null &&
             finishingSession.sourceRoutineProgramKind != RoutineProgramKind.Static
-        val heldMainLiftNames = state.activeWorkoutPerformanceExercises.mapNotNull { item ->
+        val heldMainExerciseNames = state.activeWorkoutPerformanceExercises.mapNotNull { item ->
             val required = item.sets.filter { it.workSectionSnapshot == RoutineWorkSection.Main }
             val missed = required.isNotEmpty() && required.any { set ->
                 !set.completed || set.deletedAtMillis != null ||
@@ -2047,8 +2047,8 @@ fun GymAreaContent(
                 " Program position will advance, but Training Max progression is held" +
                     (names.takeIf { it.isNotEmpty() }?.joinToString(prefix = " only for ") ?: " for affected Main work") +
                     " because a prescribed Main exercise was removed or substituted."
-            } else if (heldMainLiftNames.isNotEmpty()) {
-                " Program position will advance; Training Max progression is held only for ${heldMainLiftNames.joinToString()} because required Main work was incomplete, failed, under reps, or under load."
+            } else if (heldMainExerciseNames.isNotEmpty()) {
+                " Program position will advance; Training Max progression is held only for ${heldMainExerciseNames.joinToString()} because required Main work was incomplete, failed, under reps, or under load."
             } else {
                 " Program position will advance; Training Max increases occur only at configured boundaries."
             }
@@ -2288,7 +2288,7 @@ internal fun selectNextWorkoutSet(
             firstIncomplete(item, targetPriority)?.let { set -> item to set }
         }
 
-    // Finish each programmed lift's Main → accepted Optional → Supplemental work before moving
+    // Finish each programmed exercise's Main → accepted Optional → Supplemental work before moving
     // to the next bar/equipment station. Global section priority caused Squat Main → Bench Main →
     // Squat FSL, which is expensive and surprising during a real workout.
     val programmed = executionOrder.filter { item -> item.sets.any { priority(it) in 0..1 } }
@@ -2903,9 +2903,9 @@ private fun WorkoutContent(
                     RoutineProgramPhaseRole.Deload -> "Deload"
                     RoutineProgramPhaseRole.TrainingMaxTest -> "Training Max Test"
                     RoutineProgramPhaseRole.PersonalRecordTest -> "PR Test"
-                    RoutineProgramPhaseRole.OncePerLiftDeload,
-                    RoutineProgramPhaseRole.OncePerLiftTrainingMaxTest,
-                    RoutineProgramPhaseRole.OncePerLiftPersonalRecordTest,
+                    RoutineProgramPhaseRole.OncePerExerciseDeload,
+                    RoutineProgramPhaseRole.OncePerExerciseTrainingMaxTest,
+                    RoutineProgramPhaseRole.OncePerExercisePersonalRecordTest,
                     -> null
                 }
                 Text(
@@ -3916,7 +3916,7 @@ internal fun WorkoutExerciseCard(
                 "This removes the exercise from the active workout and records that outcome in History."
             } else {
                 "Completed sets stay in History. Unperformed sets are marked as not performed because the exercise was removed." +
-                    if (item.workoutExercise.placementKindSnapshot == RoutinePlacementKind.MainLift) {
+                    if (item.workoutExercise.placementKindSnapshot == RoutinePlacementKind.MainExercise) {
                         " Removing prescribed Main work holds this exercise's Training Max increase."
                     } else ""
             },
@@ -3938,7 +3938,7 @@ internal fun WorkoutExerciseCard(
         ConfirmationDialog(
             title = "Replace ${item.exercise.name}?",
             message = "Completed sets stay attached to ${item.exercise.name} in History. Unperformed sets are marked as replaced; the new exercise is logged separately." +
-                if (item.workoutExercise.placementKindSnapshot == RoutinePlacementKind.MainLift) {
+                if (item.workoutExercise.placementKindSnapshot == RoutinePlacementKind.MainExercise) {
                     " Replacing prescribed Main work holds this exercise's Training Max increase."
                 } else "",
             confirmLabel = "Choose Replacement",
@@ -7190,9 +7190,9 @@ internal fun workoutProgramSnapshotLabel(session: WorkoutSession): String? {
                 RoutineProgramPhaseRole.Deload -> "Deload"
                 RoutineProgramPhaseRole.TrainingMaxTest -> "Training Max Test"
                 RoutineProgramPhaseRole.PersonalRecordTest -> "PR Test"
-                RoutineProgramPhaseRole.OncePerLiftDeload,
-                RoutineProgramPhaseRole.OncePerLiftTrainingMaxTest,
-                RoutineProgramPhaseRole.OncePerLiftPersonalRecordTest,
+                RoutineProgramPhaseRole.OncePerExerciseDeload,
+                RoutineProgramPhaseRole.OncePerExerciseTrainingMaxTest,
+                RoutineProgramPhaseRole.OncePerExercisePersonalRecordTest,
                 -> null
             }
             add(listOfNotNull(label, role).distinct().joinToString(" · "))
@@ -7983,7 +7983,7 @@ internal fun GymProgressContent(
     val machineLevelLabel = selectedMachine?.levelLabel
         ?: exercisePlacements.firstOrNull { it.equipmentScopeKey == selectedMachineScope }?.machineLevelLabelSnapshot
         ?: "level"
-    var metric by rememberSaveable {
+    var measurement by rememberSaveable {
         mutableStateOf(
             state.exercises.firstOrNull()?.defaultGraphMetric
                 ?.let { runCatching { GymGraphMetric.valueOf(it) }.getOrNull() }
@@ -8017,15 +8017,15 @@ internal fun GymProgressContent(
     val effectiveTo = validatedRange.to
     val selectedPlacement = exercisePlacements.firstOrNull { it.equipmentScopeKey == selectedMachineScope }
     val selectedMachineLoadType = selectedMachine?.loadType ?: selectedPlacement?.machineLoadTypeSnapshot
-    val availableMetrics = exercise?.trackingType?.supportedGraphMetrics(selectedMachineLoadType)
+    val availableMeasurements = exercise?.trackingType?.supportedGraphMetrics(selectedMachineLoadType)
         ?: listOf(GymGraphMetric.EstimatedOneRepMax)
     LaunchedEffect(selectedExerciseId, selectedMachineScope, selectedMachineLoadType) {
-        if (metric !in availableMetrics) metric = availableMetrics.first()
+        if (measurement !in availableMeasurements) measurement = availableMeasurements.first()
         if (machineScoped) comparisonIds = emptySet()
     }
-    LaunchedEffect(metric, state.exercises) {
+    LaunchedEffect(measurement, state.exercises) {
         val compatibleExerciseIds = state.exercises
-            .filter { metric in it.trackingType.supportedGraphMetrics() }
+            .filter { measurement in it.trackingType.supportedGraphMetrics() }
             .mapTo(mutableSetOf(), Exercise::id)
         comparisonIds = comparisonIds.intersect(compatibleExerciseIds)
     }
@@ -8046,7 +8046,7 @@ internal fun GymProgressContent(
             sessions = state.history,
             workoutExercises = state.allWorkoutExercises,
             sets = state.allSets,
-            metric = metric,
+            measurement = measurement,
             aggregation = aggregation,
             from = effectiveFrom,
             to = effectiveTo,
@@ -8061,20 +8061,20 @@ internal fun GymProgressContent(
             machineLevelDirection = selectedMachine?.levelDirection
                 ?: selectedPlacement?.machineLevelDirectionSnapshot
                 ?: MachineLevelDirection.HigherNumberMoreResistance,
-        ).map { point -> point.copy(value = metric.displayValue(point.value, displayWeightUnitId, state.appSettings.distanceUnitId)) }
+        ).map { point -> point.copy(value = measurement.displayValue(point.value, displayWeightUnitId, state.appSettings.distanceUnitId)) }
     }.orEmpty()
     val comparisons = if (machineScoped || validatedRange.error != null) emptyMap() else comparisonIds.mapNotNull { id -> state.exercises.firstOrNull { it.id == id } }.associateWith { compared ->
         buildExerciseGraph(
             exercise = compared, sessions = state.history, workoutExercises = state.allWorkoutExercises,
-            sets = state.allSets, metric = metric, aggregation = aggregation, from = effectiveFrom,
+            sets = state.allSets, measurement = measurement, aggregation = aggregation, from = effectiveFrom,
             to = effectiveTo, selectedRepetitions = selectedRepetitions.toIntOrNull(),
             includeWarmups = state.appSettings.includeWarmupsInGymStats,
             oneRepMaxRepCutoff = state.appSettings.oneRepMaxRepCutoff,
             adjustOneRepMaxForEffort = state.appSettings.adjustE1rmForEffort,
             firstDayOfWeek = state.appSettings.firstDayOfWeek,
-        ).map { point -> point.copy(value = metric.displayValue(point.value, state.appSettings.gymWeightUnitId, state.appSettings.distanceUnitId)) }
+        ).map { point -> point.copy(value = measurement.displayValue(point.value, state.appSettings.gymWeightUnitId, state.appSettings.distanceUnitId)) }
     }
-    val displayUnit = metric.displayUnit(
+    val displayUnit = measurement.displayUnit(
         displayWeightUnitId,
         state.appSettings.distanceUnitId,
         machineLevelLabel,
@@ -8101,7 +8101,7 @@ internal fun GymProgressContent(
                 val unit = displayUnit
                 val summary = chartDescription(
                     exercise?.name.orEmpty(),
-                    metric.label.uiTitleCase(),
+                    measurement.label.uiTitleCase(),
                     exercisePoints,
                     unit,
                 )
@@ -8130,7 +8130,7 @@ internal fun GymProgressContent(
                 EditorSectionHeader(
                     "Explore a Trend",
                     if (state.history.isEmpty()) "Finish a workout to create your first progress data point."
-                    else "Choose an exercise and metric. Every point keeps its source workout.",
+                    else "Choose an exercise and measurement. Every point keeps its source workout.",
                 )
                 if (state.history.isEmpty()) {
                     WhipTextButton(onClick = onOpenWorkout) { Text("Open Workout") }
@@ -8145,11 +8145,11 @@ internal fun GymProgressContent(
                 onSelect = { id ->
                     val selected = state.exercises.firstOrNull { it.id == id } ?: return@ExerciseSelectionField
                     selectedExerciseId = selected.id
-                    val metrics = selected.trackingType.supportedGraphMetrics()
-                    metric = runCatching { GymGraphMetric.valueOf(selected.defaultGraphMetric) }
+                    val measurements = selected.trackingType.supportedGraphMetrics()
+                    measurement = runCatching { GymGraphMetric.valueOf(selected.defaultGraphMetric) }
                         .getOrNull()
-                        .takeIf(metrics::contains)
-                        ?: metrics.first()
+                        .takeIf(measurements::contains)
+                        ?: measurements.first()
                 },
                 modifier = Modifier.fillMaxWidth().testTag("gym-progress-exercise-selector"),
             )
@@ -8183,8 +8183,8 @@ internal fun GymProgressContent(
             )
         }
         item {
-            GymEnumDropdown("Metric", availableMetrics, metric.takeIf { it in availableMetrics } ?: availableMetrics.first(), { it.label }) { metric = it }
-            if (metric == GymGraphMetric.EstimatedOneRepMax) {
+            GymEnumDropdown("Measurement", availableMeasurements, measurement.takeIf { it in availableMeasurements } ?: availableMeasurements.first(), { it.label }) { measurement = it }
+            if (measurement == GymGraphMetric.EstimatedOneRepMax) {
                 val formulas = exercisePlacements.map(WorkoutExercise::oneRepMaxFormulaSnapshot).distinct()
                     .ifEmpty { listOfNotNull(exercise?.oneRepMaxFormula) }
                 Text(
@@ -8230,12 +8230,12 @@ internal fun GymProgressContent(
                 if (range == GymGraphRange.Custom && validatedRange.error != null) {
                     Text(requireNotNull(validatedRange.error), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
-                if (metric in setOf(GymGraphMetric.MaxWeightForReps, GymGraphMetric.ActualRepMaxHistory)) {
+                if (measurement in setOf(GymGraphMetric.MaxWeightForReps, GymGraphMetric.ActualRepMaxHistory)) {
                     NumberField(selectedRepetitions, { selectedRepetitions = it }, "Repetitions", integer = true)
                 }
                 if (state.exercises.size > 1 && !machineScoped) {
                     ExerciseComparisonField(
-                        exercises = state.exercises.filter { metric in it.trackingType.supportedGraphMetrics() },
+                        exercises = state.exercises.filter { measurement in it.trackingType.supportedGraphMetrics() },
                         excludedExerciseId = selectedExerciseId,
                         selectedExerciseIds = comparisonIds,
                         onSelectionChange = { comparisonIds = it },
@@ -8253,16 +8253,16 @@ internal fun GymProgressContent(
         }
         item {
             if (exercisePoints.isEmpty()) {
-                Text("No eligible data for this metric and date range.")
+                Text("No eligible data for this measurement and date range.")
             } else {
-                val best = if (metric == GymGraphMetric.Pace) exercisePoints.minOf { it.value } else exercisePoints.maxOf { it.value }
-                Text("${metric.label.uiTitleCase()} · ${formatNumber(best, state.appSettings.numberPrecision)} $displayUnit · best")
+                val best = if (measurement == GymGraphMetric.Pace) exercisePoints.minOf { it.value } else exercisePoints.maxOf { it.value }
+                Text("${measurement.label.uiTitleCase()} · ${formatNumber(best, state.appSettings.numberPrecision)} $displayUnit · best")
                 SharedGymLineChart(
                     series = chartSeries.map { it.copy(points = downsampleEvenly(it.points, 200)) },
                     unit = displayUnit,
                     precision = state.appSettings.numberPrecision,
                     description = chartSeries.joinToString(" ") { series ->
-                        chartDescription(series.name, metric.label, series.points, displayUnit)
+                        chartDescription(series.name, measurement.label, series.points, displayUnit)
                     },
                     onPointSelected = { seriesName, point ->
                         selectedChartSeriesName = seriesName
@@ -8361,7 +8361,7 @@ internal fun GymProgressContent(
         PaneAwareAlertDialog(
             modifier = modifier,
             onDismissRequest = { selectedChartPointDate = null },
-            title = { Text("${selectedSeries?.name.orEmpty()} · ${metric.label.uiTitleCase()} · ${point.date}") },
+            title = { Text("${selectedSeries?.name.orEmpty()} · ${measurement.label.uiTitleCase()} · ${point.date}") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
@@ -8781,12 +8781,12 @@ private fun RoutineContent(
             val dayIds = days.mapTo(mutableSetOf(), RoutineDay::id)
             val mainPlacements = state.routineExercises.filter { placement ->
                 placement.routineDayId in dayIds &&
-                    (placement.placementKind == RoutinePlacementKind.MainLift ||
+                    (placement.placementKind == RoutinePlacementKind.MainExercise ||
                         state.routineSets.any { set ->
                             set.routineExerciseId == placement.id && set.draft.workSection == RoutineWorkSection.Main
                         })
             }.distinctBy { it.exerciseId }
-            val heldMainLiftNames = mainPlacements.filterNot { it.trainingMaxIncreaseEligible }
+            val heldMainExerciseNames = mainPlacements.filterNot { it.trainingMaxIncreaseEligible }
                 .map { placement ->
                     (state.exercises + state.archivedExercises)
                         .firstOrNull { it.id == placement.exerciseId }?.name ?: "Exercise ${placement.exerciseId}"
@@ -8910,14 +8910,14 @@ private fun RoutineContent(
                                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                                 )
                                 Text(
-                                    if (heldMainLiftNames.isEmpty()) {
+                                    if (heldMainExerciseNames.isEmpty()) {
                                         "Training Max progression · All exercises eligible"
                                     } else {
-                                        "Training Max held · ${heldMainLiftNames.joinToString()}"
+                                        "Training Max held · ${heldMainExerciseNames.joinToString()}"
                                     },
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = if (heldMainLiftNames.isEmpty()) {
+                                    color = if (heldMainExerciseNames.isEmpty()) {
                                         MaterialTheme.colorScheme.onSecondaryContainer
                                     } else MaterialTheme.colorScheme.error,
                                     modifier = Modifier.testTag("routine-training-max-eligibility-${routine.id}"),
@@ -9405,11 +9405,11 @@ private fun SharedGymLineChart(
 
 private fun chartDescription(
     exerciseName: String,
-    metric: String,
+    measurement: String,
     points: List<GymGraphPoint>,
     unit: String,
 ): String {
-    if (points.isEmpty()) return "$exerciseName $metric chart with no data"
+    if (points.isEmpty()) return "$exerciseName $measurement chart with no data"
     val first = points.first()
     val latest = points.last()
     val minimum = points.minOf { it.value }
@@ -9419,7 +9419,7 @@ private fun chartDescription(
         latest.value < first.value -> "decreased"
         else -> "unchanged"
     }
-    return "$exerciseName $metric chart. ${points.size} point${if (points.size == 1) "" else "s"} from ${first.date} to ${latest.date}. " +
+    return "$exerciseName $measurement chart. ${points.size} point${if (points.size == 1) "" else "s"} from ${first.date} to ${latest.date}. " +
         "Range ${formatNumber(minimum, 2)} to ${formatNumber(maximum, 2)} $unit. " +
         "Latest ${formatNumber(latest.value, 2)} $unit; $trend from the first point."
 }
@@ -9459,7 +9459,7 @@ internal fun ExerciseEditorDialog(
         )
     }
     var repetitionIncrement by rememberSaveable(editorKey) { mutableStateOf(exercise?.repetitionIncrement?.toString() ?: "1") }
-    var graphMetric by rememberSaveable(editorKey) { mutableStateOf(exercise?.defaultGraphMetric ?: GymGraphMetric.EstimatedOneRepMax.name) }
+    var graphMeasurement by rememberSaveable(editorKey) { mutableStateOf(exercise?.defaultGraphMetric ?: GymGraphMetric.EstimatedOneRepMax.name) }
     var formula by rememberSaveable(editorKey) { mutableStateOf(exercise?.oneRepMaxFormula ?: defaultFormula) }
     var barWeight by rememberSaveable(editorKey) {
         mutableStateOf(
@@ -9492,8 +9492,8 @@ internal fun ExerciseEditorDialog(
     val supportsRepetitions = trackingType.supportsRepetitionEntry()
     val supportedGraphMetrics = trackingType.supportedGraphMetrics()
     LaunchedEffect(trackingType) {
-        val selected = runCatching { GymGraphMetric.valueOf(graphMetric) }.getOrNull()
-        if (selected !in supportedGraphMetrics) graphMetric = supportedGraphMetrics.first().name
+        val selected = runCatching { GymGraphMetric.valueOf(graphMeasurement) }.getOrNull()
+        if (selected !in supportedGraphMetrics) graphMeasurement = supportedGraphMetrics.first().name
     }
     fun convertDefaultsToUnit(selected: String) {
         val current = WeightEquipmentSetup(
@@ -9552,7 +9552,7 @@ internal fun ExerciseEditorDialog(
     )
     val editorFingerprint = listOf(
         name, trackingType, notes, equipment, primaryMuscles, secondaryMuscles, weightUnit,
-        restSeconds, weightIncrement, repetitionIncrement, graphMetric, formula, barWeight,
+        restSeconds, weightIncrement, repetitionIncrement, graphMeasurement, formula, barWeight,
         plates, loadInterpretation, bodyweightPolicy, effectiveBodyweight, showRpe, showRir,
         showTempo, categoryIds.sorted(), includeVolume, includePr,
     ).joinToString("\u001f")
@@ -9758,9 +9758,9 @@ internal fun ExerciseEditorDialog(
                         GymEnumDropdown(
                             "Default graph",
                             supportedGraphMetrics,
-                            supportedGraphMetrics.firstOrNull { it.name == graphMetric } ?: supportedGraphMetrics.first(),
+                            supportedGraphMetrics.firstOrNull { it.name == graphMeasurement } ?: supportedGraphMetrics.first(),
                             GymGraphMetric::label,
-                        ) { graphMetric = it.name }
+                        ) { graphMeasurement = it.name }
                     }
                     if (trackingType == ExerciseTrackingType.WeightReps) item {
                         GymEnumDropdown("Estimated 1RM formula", EstimatedOneRepMaxFormula.entries, formula, { it.name }) { formula = it }
@@ -9851,7 +9851,7 @@ internal fun ExerciseEditorDialog(
                             weightIncrement = weightIncrement.toWhipDoubleOrNull() ?: 2.5,
                             repetitionIncrement = repetitionIncrement.toIntOrNull() ?: 1,
                             defaultRestSeconds = restSeconds.toIntOrNull(),
-                            defaultGraphMetric = graphMetric,
+                            defaultGraphMetric = graphMeasurement,
                             oneRepMaxFormula = formula,
                             barWeightKg = barWeight.toWhipDoubleOrNull()?.let { massToKilograms(it, weightUnit) },
                             availablePlatesKg = parsedPlateValues.map { massToKilograms(it, weightUnit) },
@@ -10388,8 +10388,8 @@ private fun ExerciseActionsDialog(
         onEdit = onEdit,
         editLabel = "Edit Exercise",
         modifier = modifier,
-        legacySurfaceTag = "exercise-detail-surface",
-        legacySectionTagPrefix = "exercise-detail-section",
+        connectedSurfaceTag = "exercise-detail-surface",
+        connectedSectionTagPrefix = "exercise-detail-section",
         primaryAction = EntityInspectorPrimaryAction(
             id = "restore",
             label = "Restore Exercise",

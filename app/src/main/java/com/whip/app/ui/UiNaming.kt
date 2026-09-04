@@ -5,9 +5,9 @@ import com.whip.app.domain.GymGraphAggregation
 import com.whip.app.domain.PersonalRecordType
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.HabitLogStatus
-import com.whip.app.domain.LinkSourceMetric
-import com.whip.app.domain.MetricEntryStatus
-import com.whip.app.domain.MetricSourceType
+import com.whip.app.domain.LinkSourceMeasurement
+import com.whip.app.domain.MeasurementEntryStatus
+import com.whip.app.domain.MeasurementSourceType
 import com.whip.app.domain.RepeatStepPolicy
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.WorkoutSetClassification
@@ -63,31 +63,31 @@ internal fun HabitLogStatus.activityLabel(): String = when (this) {
     HabitLogStatus.Failed -> "Below target"
 }
 
-internal fun MetricEntryStatus.activityLabel(): String = when (this) {
-    MetricEntryStatus.Recorded -> "Logged"
-    MetricEntryStatus.Missing -> "No entry"
-    MetricEntryStatus.Failed -> "Below target"
-    MetricEntryStatus.Skipped -> "Skipped"
-    MetricEntryStatus.Excused -> "Excused"
+internal fun MeasurementEntryStatus.activityLabel(): String = when (this) {
+    MeasurementEntryStatus.Recorded -> "Logged"
+    MeasurementEntryStatus.Missing -> "No entry"
+    MeasurementEntryStatus.Failed -> "Below target"
+    MeasurementEntryStatus.Skipped -> "Skipped"
+    MeasurementEntryStatus.Excused -> "Excused"
 }
 
-internal fun MetricSourceType.uiLabel(): String = when (this) {
-    MetricSourceType.Manual -> "Whip"
-    MetricSourceType.Habit -> "Habit"
-    MetricSourceType.Goal -> "Goal"
-    MetricSourceType.Task -> "Task"
-    MetricSourceType.Workout -> "Workout"
-    MetricSourceType.Exercise -> "Exercise"
-    MetricSourceType.Track -> "Track"
-    MetricSourceType.Import -> "Import"
-    MetricSourceType.HealthConnect -> "Health Connect"
+internal fun MeasurementSourceType.uiLabel(): String = when (this) {
+    MeasurementSourceType.Manual -> "Whip"
+    MeasurementSourceType.Habit -> "Habit"
+    MeasurementSourceType.Goal -> "Goal"
+    MeasurementSourceType.Task -> "Task"
+    MeasurementSourceType.Workout -> "Workout"
+    MeasurementSourceType.Exercise -> "Exercise"
+    MeasurementSourceType.Track -> "Track"
+    MeasurementSourceType.Import -> "Import"
+    MeasurementSourceType.HealthConnect -> "Health Connect"
 }
 
 /** Manual activity needs no attribution; connected activity should explain why it is read-only. */
-internal fun MetricSourceType.activityAttribution(): String? = when (this) {
-    MetricSourceType.Manual -> null
-    MetricSourceType.HealthConnect -> "Synced from Health Connect"
-    MetricSourceType.Import -> "Imported"
+internal fun MeasurementSourceType.activityAttribution(): String? = when (this) {
+    MeasurementSourceType.Manual -> null
+    MeasurementSourceType.HealthConnect -> "Synced from Health Connect"
+    MeasurementSourceType.Import -> "Imported"
     else -> "Added from ${uiLabel()}"
 }
 
@@ -140,19 +140,19 @@ internal fun PersonalRecordType.uiLabel(): String = when (this) {
     PersonalRecordType.MaxMachineSetting -> "Best Machine Setting"
 }
 
-internal fun LinkSourceMetric.uiLabel(): String = when (this) {
-    LinkSourceMetric.NumericValue -> "Numeric Value"
-    LinkSourceMetric.Success -> "Success"
-    LinkSourceMetric.Completion -> "Completion"
-    LinkSourceMetric.Count -> "Count"
-    LinkSourceMetric.Duration -> "Duration"
-    LinkSourceMetric.Volume -> "Volume"
-    LinkSourceMetric.EstimatedOneRepMax -> "Estimated 1RM"
-    LinkSourceMetric.MaxWeight -> "Maximum Weight"
-    LinkSourceMetric.Distance -> "Distance"
-    LinkSourceMetric.Repetitions -> "Repetitions"
-    LinkSourceMetric.EntryCount -> "Entry Count"
-    LinkSourceMetric.FieldValue -> "Field Value"
+internal fun LinkSourceMeasurement.uiLabel(): String = when (this) {
+    LinkSourceMeasurement.NumericValue -> "Numeric Value"
+    LinkSourceMeasurement.Success -> "Success"
+    LinkSourceMeasurement.Completion -> "Completion"
+    LinkSourceMeasurement.Count -> "Count"
+    LinkSourceMeasurement.Duration -> "Duration"
+    LinkSourceMeasurement.Volume -> "Volume"
+    LinkSourceMeasurement.EstimatedOneRepMax -> "Estimated 1RM"
+    LinkSourceMeasurement.MaxWeight -> "Maximum Weight"
+    LinkSourceMeasurement.Distance -> "Distance"
+    LinkSourceMeasurement.Repetitions -> "Repetitions"
+    LinkSourceMeasurement.EntryCount -> "Entry Count"
+    LinkSourceMeasurement.FieldValue -> "Field Value"
 }
 
 internal fun UnitDimension.uiLabel(): String = when (this) {

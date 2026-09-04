@@ -11,9 +11,9 @@ import com.whip.app.domain.HabitPause
 import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitSkip
 import com.whip.app.domain.HabitTrackingMode
-import com.whip.app.domain.MetricEntry
-import com.whip.app.domain.MetricEntryStatus
-import com.whip.app.domain.MetricSourceType
+import com.whip.app.domain.MeasurementEntry
+import com.whip.app.domain.MeasurementEntryStatus
+import com.whip.app.domain.MeasurementSourceType
 import com.whip.app.domain.OccurrenceState
 import com.whip.app.domain.RecurrenceRule
 import com.whip.app.domain.RecurrenceUnit
@@ -177,7 +177,7 @@ class WidgetContentTest {
             ),
             habitPauses = emptyList(),
             habitSkips = emptyList(),
-            metricEntries = emptyList(),
+            measurementEntries = emptyList(),
             customUnits = emptyList(),
             today = today,
             areaScope = AreaScope.All,
@@ -208,7 +208,7 @@ class WidgetContentTest {
             habitChecklistStates = emptyList(),
             habitPauses = emptyList(),
             habitSkips = emptyList(),
-            metricEntries = emptyList(),
+            measurementEntries = emptyList(),
             customUnits = emptyList(),
             today = today,
             areaScope = AreaScope.All,
@@ -227,7 +227,7 @@ class WidgetContentTest {
         val done = habit(1).copy(trackingMode = HabitTrackingMode.CheckOff)
         val count = habit(2).copy(trackingMode = HabitTrackingMode.Count)
         val duration = habit(3).copy(trackingMode = HabitTrackingMode.Duration)
-        val synced = habit(4).copy(sourceMetricId = "health.steps")
+        val synced = habit(4).copy(sourceMeasurementId = "health.steps")
         val content = calculateHabitTrackingContent(
             habits = listOf(done, count, duration, synced),
             habitLogs = listOf(log(done.id)),
@@ -235,7 +235,7 @@ class WidgetContentTest {
             habitChecklistStates = emptyList(),
             habitPauses = emptyList(),
             habitSkips = emptyList(),
-            metricEntries = emptyList(),
+            measurementEntries = emptyList(),
             customUnits = emptyList(),
             today = today,
             areaScope = AreaScope.All,
@@ -277,7 +277,7 @@ class WidgetContentTest {
             habitChecklistStates = emptyList(),
             habitPauses = emptyList(),
             habitSkips = emptyList(),
-            metricEntries = emptyList(),
+            measurementEntries = emptyList(),
             customUnits = emptyList(),
             today = today,
             areaScope = AreaScope.Unassigned,
@@ -314,7 +314,7 @@ class WidgetContentTest {
     private fun habit(id: Long, areaId: String? = null) = Habit(
         id = id,
         uuid = "habit-$id",
-        metricId = "metric-$id",
+        measurementId = "measurement-$id",
         name = "Habit $id",
         notes = "",
         areaId = areaId,
@@ -365,9 +365,9 @@ class WidgetContentTest {
         zoneId = "UTC",
         offsetSeconds = 0,
         note = "",
-        sourceType = MetricSourceType.Habit,
+        sourceType = MeasurementSourceType.Habit,
         sourceId = "habit-$habitId",
-        metricEntryId = null,
+        measurementEntryId = null,
         createdAtMillis = 1,
         updatedAtMillis = 1,
     )
@@ -383,18 +383,18 @@ class WidgetContentTest {
         updatedAtMillis = 1,
     )
 
-    private fun metricEntry(value: Double) = MetricEntry(
+    private fun measurementEntry(value: Double) = MeasurementEntry(
         id = "health-entry",
-        metricId = "health.steps",
+        measurementId = "health.steps",
         canonicalValue = value,
         enteredValue = value,
         enteredUnitId = "count",
-        status = MetricEntryStatus.Recorded,
+        status = MeasurementEntryStatus.Recorded,
         timestamp = Instant.parse("2026-08-28T12:00:00Z"),
         localDate = today,
         zoneId = "UTC",
         offsetSeconds = 0,
-        sourceType = MetricSourceType.HealthConnect,
+        sourceType = MeasurementSourceType.HealthConnect,
         sourceId = "health-steps",
         note = "",
         createdAtMillis = 1,

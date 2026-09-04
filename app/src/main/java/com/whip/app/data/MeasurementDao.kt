@@ -11,11 +11,11 @@ interface MeasurementDao {
     @Query("SELECT * FROM unit_definitions ORDER BY name")
     fun observeCustomUnits(): Flow<List<UnitDefinitionEntity>>
 
-    @Query("SELECT * FROM metric_definitions ORDER BY createdAtMillis")
-    fun observeMetrics(): Flow<List<MetricDefinitionEntity>>
+    @Query("SELECT * FROM measurement_definitions ORDER BY createdAtMillis")
+    fun observeMeasurements(): Flow<List<MeasurementDefinitionEntity>>
 
-    @Query("SELECT * FROM metric_entries ORDER BY timestampMillis DESC")
-    fun observeEntries(): Flow<List<MetricEntryEntity>>
+    @Query("SELECT * FROM measurement_entries ORDER BY timestampMillis DESC")
+    fun observeEntries(): Flow<List<MeasurementEntryEntity>>
 
     @Query("SELECT * FROM areas ORDER BY position, name")
     fun observeAreas(): Flow<List<AreaEntity>>
@@ -29,11 +29,11 @@ interface MeasurementDao {
     @Query("SELECT * FROM tags ORDER BY name")
     suspend fun getTagsSnapshot(): List<TagEntity>
 
-    @Query("SELECT * FROM metric_definitions WHERE id = :id")
-    suspend fun getMetric(id: String): MetricDefinitionEntity?
+    @Query("SELECT * FROM measurement_definitions WHERE id = :id")
+    suspend fun getMeasurement(id: String): MeasurementDefinitionEntity?
 
-    @Query("SELECT * FROM metric_entries WHERE id = :id")
-    suspend fun getEntry(id: String): MetricEntryEntity?
+    @Query("SELECT * FROM measurement_entries WHERE id = :id")
+    suspend fun getEntry(id: String): MeasurementEntryEntity?
 
     @Query("SELECT * FROM unit_definitions WHERE id = :id")
     suspend fun getUnit(id: String): UnitDefinitionEntity?
@@ -53,17 +53,17 @@ interface MeasurementDao {
     @Query("SELECT * FROM tags WHERE id = :id")
     suspend fun getTag(id: String): TagEntity?
 
-    @Query("SELECT * FROM metric_entries")
-    suspend fun getAllEntries(): List<MetricEntryEntity>
+    @Query("SELECT * FROM measurement_entries")
+    suspend fun getAllEntries(): List<MeasurementEntryEntity>
 
-    @Query("SELECT * FROM metric_entries WHERE metricId = :metricId")
-    suspend fun getEntriesForMetric(metricId: String): List<MetricEntryEntity>
+    @Query("SELECT * FROM measurement_entries WHERE measurementId = :measurementId")
+    suspend fun getEntriesForMeasurement(measurementId: String): List<MeasurementEntryEntity>
 
-    @Query("SELECT * FROM metric_entries WHERE sourceType = :sourceType AND sourceId LIKE :sourcePrefix || '%'")
-    suspend fun getEntriesBySourcePrefix(sourceType: String, sourcePrefix: String): List<MetricEntryEntity>
+    @Query("SELECT * FROM measurement_entries WHERE sourceType = :sourceType AND sourceId LIKE :sourcePrefix || '%'")
+    suspend fun getEntriesBySourcePrefix(sourceType: String, sourcePrefix: String): List<MeasurementEntryEntity>
 
     @Query(
-        "SELECT * FROM metric_entries WHERE sourceType = :sourceType " +
+        "SELECT * FROM measurement_entries WHERE sourceType = :sourceType " +
             "AND sourceId LIKE :sourcePrefix || '%' " +
             "AND timestampMillis >= :startInclusiveMillis AND timestampMillis < :endExclusiveMillis",
     )
@@ -72,25 +72,25 @@ interface MeasurementDao {
         sourcePrefix: String,
         startInclusiveMillis: Long,
         endExclusiveMillis: Long,
-    ): List<MetricEntryEntity>
+    ): List<MeasurementEntryEntity>
 
-    @Query("SELECT COUNT(*) FROM metric_entries WHERE metricId = :metricId")
-    suspend fun entryCount(metricId: String): Int
+    @Query("SELECT COUNT(*) FROM measurement_entries WHERE measurementId = :measurementId")
+    suspend fun entryCount(measurementId: String): Int
 
     @Upsert suspend fun upsertUnit(entity: UnitDefinitionEntity)
-    @Upsert suspend fun upsertMetric(entity: MetricDefinitionEntity)
-    @Upsert suspend fun upsertEntry(entity: MetricEntryEntity)
+    @Upsert suspend fun upsertMeasurement(entity: MeasurementDefinitionEntity)
+    @Upsert suspend fun upsertEntry(entity: MeasurementEntryEntity)
     @Upsert suspend fun upsertArea(entity: AreaEntity)
     @Update suspend fun updateArea(entity: AreaEntity)
     @Upsert suspend fun upsertTag(entity: TagEntity)
-    @Query("DELETE FROM metric_entries WHERE id = :id")
+    @Query("DELETE FROM measurement_entries WHERE id = :id")
     suspend fun deleteEntry(id: String)
 
-    @Query("DELETE FROM metric_entries WHERE sourceType = :sourceType")
+    @Query("DELETE FROM measurement_entries WHERE sourceType = :sourceType")
     suspend fun deleteEntriesBySourceType(sourceType: String): Int
 
-    @Query("DELETE FROM metric_definitions WHERE id = :id")
-    suspend fun deleteMetric(id: String): Int
+    @Query("DELETE FROM measurement_definitions WHERE id = :id")
+    suspend fun deleteMeasurement(id: String): Int
 
     @Query("DELETE FROM areas WHERE id = :id")
     suspend fun deleteArea(id: String): Int

@@ -317,7 +317,7 @@ class TrackEntryIntegrityTest {
         val row = requireNotNull(database.trackDao().getEntry(entryId))
         check(
             database.trackDao().updateEntry(
-                row.copy(sourceOccurrenceId = 999_999, sourceExplanation = "Missing legacy source"),
+                row.copy(sourceOccurrenceId = 999_999, sourceExplanation = "Missing connected source"),
             ) == 1,
         )
         val opening = requireNotNull(tracks.prepareEntryEdit(entryId))

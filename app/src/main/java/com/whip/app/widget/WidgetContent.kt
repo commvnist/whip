@@ -9,7 +9,7 @@ import com.whip.app.domain.HabitPause
 import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitSkip
 import com.whip.app.domain.HabitTrackingMode
-import com.whip.app.domain.MetricEntry
+import com.whip.app.domain.MeasurementEntry
 import com.whip.app.domain.ScheduledTask
 import com.whip.app.domain.ScheduledSubtask
 import com.whip.app.domain.TaskOccurrence
@@ -26,7 +26,7 @@ import com.whip.app.domain.matches
 import com.whip.app.domain.outcomeForPeriod
 import com.whip.app.domain.valueForPeriod
 import com.whip.app.ui.buildUiState
-import com.whip.app.ui.mirrorMetricEntriesAsHabitLogs
+import com.whip.app.ui.mirrorMeasurementEntriesAsHabitLogs
 import com.whip.app.ui.withRecurringOccurrenceVisibility
 import java.time.LocalDate
 import java.time.ZoneId
@@ -132,7 +132,7 @@ internal fun calculateHabitTrackingContent(
     habitChecklistStates: List<HabitChecklistState>,
     habitPauses: List<HabitPause>,
     habitSkips: List<HabitSkip>,
-    metricEntries: List<MetricEntry>,
+    measurementEntries: List<MeasurementEntry>,
     customUnits: List<UnitDefinition>,
     today: LocalDate,
     areaScope: AreaScope,
@@ -140,7 +140,7 @@ internal fun calculateHabitTrackingContent(
     selectedHabitIds: Set<Long>? = null,
     expandedHabitIds: Set<Long> = emptySet(),
 ): HabitTrackingContent {
-    val projectedLogs = habitLogs + mirrorMetricEntriesAsHabitLogs(habits, metricEntries, customUnits)
+    val projectedLogs = habitLogs + mirrorMeasurementEntriesAsHabitLogs(habits, measurementEntries, customUnits)
     val scheduled = habits.mapNotNull { habit ->
         val hasActiveTimer = habit.timerSessionId != null
         if (
@@ -184,7 +184,7 @@ internal fun calculateHabitTrackingContent(
                 .associateBy(HabitChecklistState::itemId)
             val completedItems = items.count { states[it.id]?.completed == true }
             val parentAction = when {
-                habit.sourceMetricId != null -> HabitWidgetAction.ReadOnly
+                habit.sourceMeasurementId != null -> HabitWidgetAction.ReadOnly
                 habit.trackingMode == HabitTrackingMode.CheckOff -> HabitWidgetAction.ToggleHabit
                 habit.trackingMode == HabitTrackingMode.Checklist -> HabitWidgetAction.ToggleHabit
                 habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal) -> HabitWidgetAction.Increment

@@ -8,9 +8,9 @@ import com.whip.app.domain.HabitPause
 import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitSkip
 import com.whip.app.domain.HabitTrackingMode
-import com.whip.app.domain.MetricEntry
-import com.whip.app.domain.MetricEntryStatus
-import com.whip.app.domain.MetricSourceType
+import com.whip.app.domain.MeasurementEntry
+import com.whip.app.domain.MeasurementEntryStatus
+import com.whip.app.domain.MeasurementSourceType
 import com.whip.app.domain.TargetComparison
 import com.whip.app.domain.TargetPeriod
 import com.whip.app.domain.UnitDimension
@@ -48,12 +48,12 @@ class ActivityPresentationTest {
     @Test
     fun activityRowsExplainMeaningAndConnectedSourceWithoutRawEnumNames() {
         val count = habit(HabitTrackingMode.Count)
-        val manual = log(value = 3.0, sourceType = MetricSourceType.Manual, note = "After lunch")
+        val manual = log(value = 3.0, sourceType = MeasurementSourceType.Manual, note = "After lunch")
         assertEquals("Logged 3", manual.activityTitle(count))
         assertEquals("Yesterday · After lunch", manual.activitySupportingText(today))
         assertTrue(manual.isUserEditable())
 
-        val synced = log(id = -4, value = 6_500.0, sourceType = MetricSourceType.HealthConnect)
+        val synced = log(id = -4, value = 6_500.0, sourceType = MeasurementSourceType.HealthConnect)
         assertEquals("Logged 6500", synced.activityTitle(count))
         assertEquals("Yesterday · Synced from Health Connect", synced.activitySupportingText(today))
         assertFalse(synced.isUserEditable())
@@ -94,23 +94,23 @@ class ActivityPresentationTest {
 
     @Test
     fun goalHistoryUsesProgressLanguageAndOnlyWhipUpdatesAreEditable() {
-        val manual = metricEntry(sourceType = MetricSourceType.Goal, value = 72.5, note = "Weekly weigh-in")
+        val manual = measurementEntry(sourceType = MeasurementSourceType.Goal, value = 72.5, note = "Weekly weigh-in")
         assertEquals("72.5 kg", manual.historyTitle())
         assertEquals("Aug 29, 2026 · Weekly weigh-in", manual.historySupportingText())
         assertTrue(manual.isUserEditableGoalUpdate())
 
-        val synced = metricEntry(sourceType = MetricSourceType.HealthConnect, value = 72.5)
+        val synced = measurementEntry(sourceType = MeasurementSourceType.HealthConnect, value = 72.5)
         assertEquals("Aug 29, 2026 · Synced from Health Connect", synced.historySupportingText())
         assertFalse(synced.isUserEditableGoalUpdate())
 
-        val skipped = synced.copy(enteredValue = null, enteredUnitId = null, status = MetricEntryStatus.Skipped)
+        val skipped = synced.copy(enteredValue = null, enteredUnitId = null, status = MeasurementEntryStatus.Skipped)
         assertEquals("Skipped", skipped.historyTitle())
     }
 
     private fun habit(mode: HabitTrackingMode) = Habit(
         id = 1,
         uuid = "habit-1",
-        metricId = "metric-habit-1",
+        measurementId = "measurement-habit-1",
         name = "Medication",
         notes = "",
         area = "Main",
@@ -151,7 +151,7 @@ class ActivityPresentationTest {
         id: Long = 2,
         value: Double? = null,
         status: HabitLogStatus = HabitLogStatus.Recorded,
-        sourceType: MetricSourceType = MetricSourceType.Manual,
+        sourceType: MeasurementSourceType = MeasurementSourceType.Manual,
         note: String = "",
     ) = HabitLog(
         id = id,
@@ -168,22 +168,22 @@ class ActivityPresentationTest {
         note = note,
         sourceType = sourceType,
         sourceId = null,
-        metricEntryId = null,
+        measurementEntryId = null,
         createdAtMillis = 1,
         updatedAtMillis = 1,
     )
 
-    private fun metricEntry(
-        sourceType: MetricSourceType,
+    private fun measurementEntry(
+        sourceType: MeasurementSourceType,
         value: Double?,
         note: String = "",
-    ) = MetricEntry(
+    ) = MeasurementEntry(
         id = "entry-1",
-        metricId = "goal-1",
+        measurementId = "goal-1",
         canonicalValue = value,
         enteredValue = value,
         enteredUnitId = "kilogram".takeIf { value != null },
-        status = MetricEntryStatus.Recorded,
+        status = MeasurementEntryStatus.Recorded,
         timestamp = Instant.parse("2026-08-29T14:00:00Z"),
         localDate = today.minusDays(1),
         zoneId = "UTC",

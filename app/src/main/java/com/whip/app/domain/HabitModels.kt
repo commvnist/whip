@@ -85,8 +85,8 @@ data class HabitDraft(
     val weekStart: DayOfWeek = DayOfWeek.MONDAY,
     val checklistItems: List<HabitChecklistItemDraft> = emptyList(),
     val autoCompleteFromItems: Boolean = true,
-    /** Optional external metric mirrored into this habit (for example Health Connect steps). */
-    val sourceMetricId: String? = null,
+    /** Optional external measurement mirrored into this habit (for example Health Connect steps). */
+    val sourceMeasurementId: String? = null,
 ) : java.io.Serializable
 
 /** Numeric quick-add amounts only have meaning for manually accumulated values. */
@@ -121,7 +121,7 @@ fun HabitDraft.withConfigurationSemantics(): HabitDraft {
     )
     return copy(
         precision = precision.takeUnless {
-            sourceMetricId == null &&
+            sourceMeasurementId == null &&
                 trackingMode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist, HabitTrackingMode.Rating)
         } ?: 0,
         comparison = semanticComparison,
@@ -151,12 +151,12 @@ fun HabitDraft.validationErrors(): List<String> = buildList {
     if (scheduleType == HabitScheduleType.EveryNDays && scheduleInterval <= 0) {
         add("Schedule interval must be a positive whole number")
     }
-    if (sourceMetricId == null && trackingMode.supportsQuickAddAmounts()) {
+    if (sourceMeasurementId == null && trackingMode.supportsQuickAddAmounts()) {
         if (!quickIncrement.isFinite() || quickIncrement <= 0.0) add("Quick increment must be a positive number")
         if (quickActions.any { !it.isFinite() || it < 0.0 }) add("Quick actions must be non-negative numbers")
     }
     if (
-        sourceMetricId == null &&
+        sourceMeasurementId == null &&
         trackingMode !in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist, HabitTrackingMode.Rating) &&
         precision !in 0..6
     ) add("Decimal places must be between 0 and 6")
@@ -217,7 +217,7 @@ fun HabitDraft.validationErrors(): List<String> = buildList {
 data class Habit(
     val id: Long,
     val uuid: String,
-    val metricId: String,
+    val measurementId: String,
     val name: String,
     val notes: String,
     val areaId: String? = null,
@@ -253,7 +253,7 @@ data class Habit(
     val paused: Boolean,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
-    val sourceMetricId: String? = null,
+    val sourceMeasurementId: String? = null,
     val autoCompleteFromItems: Boolean = true,
     val timerSessionId: String? = null,
     val timerNeedsReview: Boolean = false,
@@ -293,9 +293,9 @@ data class HabitLog(
     val zoneId: String,
     val offsetSeconds: Int,
     val note: String,
-    val sourceType: MetricSourceType,
+    val sourceType: MeasurementSourceType,
     val sourceId: String?,
-    val metricEntryId: String?,
+    val measurementEntryId: String?,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
 ) : java.io.Serializable

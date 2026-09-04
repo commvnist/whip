@@ -178,7 +178,7 @@ class ReminderWorkerDeliveryIntegrityTest {
     }
 
     @Test
-    fun habitWorkerAcceptsPartialHistoryButRejectsCompletionEditedDefinitionsAndLegacyWork() = runBlocking {
+    fun habitWorkerAcceptsPartialHistoryButRejectsCompletionEditedDefinitionsAndConnectedWork() = runBlocking {
         val now = app.clock.now().atZone(ZoneOffset.UTC)
         val logicalDate = now.toLocalDate()
         val original = HabitDraft(
@@ -258,14 +258,14 @@ class ReminderWorkerDeliveryIntegrityTest {
         assertTrue(notifications.activeNotifications.isEmpty())
 
         app.habitRepository.update(habitId, original)
-        val legacyInput = Data.Builder()
+        val connectedInput = Data.Builder()
             .putLong(HabitReminderWorker.HABIT_ID, habitId)
             .putLong(HabitReminderWorker.LOGICAL_EPOCH_DAY, logicalDate.toEpochDay())
             .putLong(USER_DATA_GENERATION_KEY, app.currentUserDataGeneration())
             .build()
         assertEquals(
             ListenableWorker.Result.success(),
-            TestListenableWorkerBuilder<HabitReminderWorker>(app).setInputData(legacyInput).build().doWork(),
+            TestListenableWorkerBuilder<HabitReminderWorker>(app).setInputData(connectedInput).build().doWork(),
         )
         assertTrue(notifications.activeNotifications.isEmpty())
     }
@@ -322,7 +322,7 @@ class ReminderWorkerDeliveryIntegrityTest {
     }
 
     @Test
-    fun goalWorkerRejectsAnEditedDefinitionAndLegacyWork() = runBlocking {
+    fun goalWorkerRejectsAnEditedDefinitionAndConnectedWork() = runBlocking {
         val now = app.clock.now().atZone(ZoneOffset.UTC)
         val logicalDate = now.toLocalDate()
         val goalId = app.goalRepository.create(
@@ -371,13 +371,13 @@ class ReminderWorkerDeliveryIntegrityTest {
         )
         assertTrue(notifications.activeNotifications.isEmpty())
 
-        val legacyInput = Data.Builder()
+        val connectedInput = Data.Builder()
             .putLong(GoalReminderWorker.GOAL_ID, goalId)
             .putLong(USER_DATA_GENERATION_KEY, app.currentUserDataGeneration())
             .build()
         assertEquals(
             ListenableWorker.Result.success(),
-            TestListenableWorkerBuilder<GoalReminderWorker>(app).setInputData(legacyInput).build().doWork(),
+            TestListenableWorkerBuilder<GoalReminderWorker>(app).setInputData(connectedInput).build().doWork(),
         )
         assertTrue(notifications.activeNotifications.isEmpty())
     }

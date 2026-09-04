@@ -12,11 +12,11 @@ import com.whip.app.domain.LinkBackfillPreview
 import com.whip.app.domain.LinkKind
 import com.whip.app.domain.LinkRule
 import com.whip.app.domain.LinkRuleDraft
-import com.whip.app.domain.LinkSourceMetric
+import com.whip.app.domain.LinkSourceMeasurement
 import com.whip.app.domain.LinkSourceType
 import com.whip.app.domain.LinkValueMode
-import com.whip.app.domain.MetricEntryStatus
-import com.whip.app.domain.MetricSourceType
+import com.whip.app.domain.MeasurementEntryStatus
+import com.whip.app.domain.MeasurementSourceType
 import com.whip.app.domain.TargetComparison
 import com.whip.app.domain.TriggerOccurrence
 import com.whip.app.domain.TriggerOutcome
@@ -337,10 +337,10 @@ class RoomLinkRepository(
             val excluded = old?.excluded ?: false
             val override = old?.overrideValue
             val effectiveCanonical = override ?: transformed
-            val currentMetricEntryId = old?.metricEntryId?.takeIf {
+            val currentMeasurementEntryId = old?.measurementEntryId?.takeIf {
                 database.measurementDao().getEntry(it) != null
             }
-            val metricEntryId = if (
+            val measurementEntryId = if (
                 rule.kind == LinkKind.Contribution.name &&
                 rule.targetMilestoneId == null &&
                 !excluded &&
@@ -348,19 +348,19 @@ class RoomLinkRepository(
             ) {
                 val targetUnit = resolveUnit(target.unitId) ?: error("The linked goal unit no longer exists")
                 measurementRepository.record(
-                    metricId = target.metricId,
+                    measurementId = target.measurementId,
                     value = targetUnit.fromCanonical(effectiveCanonical),
                     unitId = target.unitId,
                     timestamp = event.timestamp,
                     localDate = event.date,
                     zoneId = clock.zoneId(),
-                    sourceType = event.metricSourceType,
+                    sourceType = event.measurementSourceType,
                     sourceId = uuid,
                     note = "Linked: ${event.explanation}",
-                    existingEntryId = currentMetricEntryId,
+                    existingEntryId = currentMeasurementEntryId,
                 )
             } else {
-                old?.metricEntryId?.let { measurementRepository.deleteEntry(it) }
+                old?.measurementEntryId?.let { measurementRepository.deleteEntry(it) }
                 null
             }
             dao.upsertContribution(
@@ -372,7 +372,7 @@ class RoomLinkRepository(
                     sourceType = event.type.name,
                     sourceEntityId = event.entityId,
                     targetGoalId = target.id,
-                    metricEntryId = metricEntryId,
+                    measurementEntryId = measurementEntryId,
                     canonicalValue = transformed,
                     localEpochDay = event.date.toEpochDay(),
                     timestampMillis = event.timestamp.toEpochMilli(),
@@ -389,7 +389,7 @@ class RoomLinkRepository(
     }
 
     private suspend fun removeContribution(entity: ContributionEntity) {
-        entity.metricEntryId?.let { measurementRepository.deleteEntry(it) }
+        entity.measurementEntryId?.let { measurementRepository.deleteEntry(it) }
         dao.deleteContribution(entity.id)
     }
 
@@ -424,19 +424,19 @@ class RoomLinkRepository(
             require(database.goalDao().getMilestone(milestoneId)?.goalId == target.id) { "Milestone does not belong to this goal" }
         }
         if (draft.kind == LinkKind.Contribution && draft.targetMilestoneId == null && draft.valueMode == LinkValueMode.SourceValue) {
-            val sourceDimension = sourceDimension(draft.sourceType, draft.sourceEntityId, draft.sourceMetricId, draft.sourceMetric, draft.sourceFieldId)
+            val sourceDimension = sourceDimension(draft.sourceType, draft.sourceEntityId, draft.sourceMeasurementId, draft.sourceMeasurement, draft.sourceFieldId)
             require(sourceDimension == UnitDimension.valueOf(target.dimension)) {
                 "The source uses $sourceDimension but the goal uses ${target.dimension}"
             }
         }
-        if (draft.sourceType == LinkSourceType.Metric) {
-            val metricId = requireNotNull(draft.sourceMetricId) { "Choose a source metric" }
-            require(metricId != target.metricId) { "A goal cannot contribute to itself" }
-            val edges = dao.getRules().filter { it.id != excludingRuleId && it.enabled && it.sourceType == LinkSourceType.Metric.name }
+        if (draft.sourceType == LinkSourceType.Measurement) {
+            val measurementId = requireNotNull(draft.sourceMeasurementId) { "Choose a source measurement" }
+            require(measurementId != target.measurementId) { "A goal cannot contribute to itself" }
+            val edges = dao.getRules().filter { it.id != excludingRuleId && it.enabled && it.sourceType == LinkSourceType.Measurement.name }
                 .mapNotNull { link ->
                     val goal = database.goalDao().getGoal(link.targetGoalId) ?: return@mapNotNull null
-                    link.sourceMetricId?.let { it to goal.metricId }
-                } + (metricId to target.metricId)
+                    link.sourceMeasurementId?.let { it to goal.measurementId }
+                } + (measurementId to target.measurementId)
             require(!hasDirectedCycle(edges)) { "This link would create a circular goal dependency" }
         }
         if (draft.sourceType == LinkSourceType.Track) {
@@ -482,24 +482,24 @@ class RoomLinkRepository(
         }
     }
 
-    private suspend fun sourceDimension(type: LinkSourceType, entityId: Long?, metricId: String?, metric: LinkSourceMetric, sourceFieldId: Long? = null): UnitDimension = when (type) {
+    private suspend fun sourceDimension(type: LinkSourceType, entityId: Long?, measurementId: String?, measurement: LinkSourceMeasurement, sourceFieldId: Long? = null): UnitDimension = when (type) {
         LinkSourceType.Habit -> UnitDimension.valueOf(database.habitDao().getHabit(requireNotNull(entityId))?.dimension ?: error("Habit no longer exists"))
         LinkSourceType.Task, LinkSourceType.Subtask -> UnitDimension.Count
-        LinkSourceType.Workout -> when (metric) {
-            LinkSourceMetric.Duration -> UnitDimension.Duration
-            LinkSourceMetric.Volume -> UnitDimension.Custom
+        LinkSourceType.Workout -> when (measurement) {
+            LinkSourceMeasurement.Duration -> UnitDimension.Duration
+            LinkSourceMeasurement.Volume -> UnitDimension.Custom
             else -> UnitDimension.Count
         }
-        LinkSourceType.Exercise -> when (metric) {
-            LinkSourceMetric.EstimatedOneRepMax, LinkSourceMetric.MaxWeight -> UnitDimension.Mass
-            LinkSourceMetric.Distance -> UnitDimension.Distance
-            LinkSourceMetric.Repetitions, LinkSourceMetric.Count -> UnitDimension.Count
-            LinkSourceMetric.Duration -> UnitDimension.Duration
-            LinkSourceMetric.Volume -> UnitDimension.Custom
+        LinkSourceType.Exercise -> when (measurement) {
+            LinkSourceMeasurement.EstimatedOneRepMax, LinkSourceMeasurement.MaxWeight -> UnitDimension.Mass
+            LinkSourceMeasurement.Distance -> UnitDimension.Distance
+            LinkSourceMeasurement.Repetitions, LinkSourceMeasurement.Count -> UnitDimension.Count
+            LinkSourceMeasurement.Duration -> UnitDimension.Duration
+            LinkSourceMeasurement.Volume -> UnitDimension.Custom
             else -> UnitDimension.Unitless
         }
-        LinkSourceType.Metric -> UnitDimension.valueOf(database.measurementDao().getMetric(requireNotNull(metricId))?.dimension ?: error("Metric no longer exists"))
-        LinkSourceType.Track -> if (metric == LinkSourceMetric.EntryCount) {
+        LinkSourceType.Measurement -> UnitDimension.valueOf(database.measurementDao().getMeasurement(requireNotNull(measurementId))?.dimension ?: error("Measurement no longer exists"))
+        LinkSourceType.Track -> if (measurement == LinkSourceMeasurement.EntryCount) {
             UnitDimension.Count
         } else {
             val field = database.trackDao().getField(requireNotNull(sourceFieldId))
@@ -522,9 +522,9 @@ class RoomLinkRepository(
         } else sourceEvents(
             LinkSourceType.valueOf(rule.sourceType),
             rule.sourceEntityId,
-            rule.sourceMetricId,
+            rule.sourceMeasurementId,
             rule.sourceItemId,
-            LinkSourceMetric.valueOf(rule.sourceMetric),
+            LinkSourceMeasurement.valueOf(rule.sourceMeasurement),
         )
         val earliestEpochDay = rule.retroactiveFromEpochDay
         return all.filter { event ->
@@ -551,24 +551,24 @@ class RoomLinkRepository(
     private suspend fun sourceEvents(
         type: LinkSourceType,
         entityId: Long?,
-        metricId: String?,
+        measurementId: String?,
         itemId: Long?,
-        metric: LinkSourceMetric,
+        measurement: LinkSourceMeasurement,
     ): List<SourceEvent> = when (type) {
-        LinkSourceType.Habit -> habitEvents(requireNotNull(entityId), metric)
+        LinkSourceType.Habit -> habitEvents(requireNotNull(entityId), measurement)
         LinkSourceType.Task -> taskEvents(requireNotNull(entityId))
         LinkSourceType.Subtask -> subtaskEvents(requireNotNull(entityId), itemId)
-        LinkSourceType.Workout -> workoutEvents(metric)
-        LinkSourceType.Exercise -> exerciseEvents(requireNotNull(entityId), metric)
-        LinkSourceType.Metric -> metricEvents(requireNotNull(metricId))
+        LinkSourceType.Workout -> workoutEvents(measurement)
+        LinkSourceType.Exercise -> exerciseEvents(requireNotNull(entityId), measurement)
+        LinkSourceType.Measurement -> measurementEvents(requireNotNull(measurementId))
         LinkSourceType.Track -> emptyList()
     }
 
-    private suspend fun habitEvents(habitId: Long, metric: LinkSourceMetric): List<SourceEvent> {
+    private suspend fun habitEvents(habitId: Long, measurement: LinkSourceMeasurement): List<SourceEvent> {
         val habit = database.habitDao().getHabit(habitId) ?: return emptyList()
-        habit.sourceMetricId?.let { sourceMetricId ->
-            val sourceEvents = metricEvents(sourceMetricId)
-            if (metric != LinkSourceMetric.Success) {
+        habit.sourceMeasurementId?.let { sourceMeasurementId ->
+            val sourceEvents = measurementEvents(sourceMeasurementId)
+            if (measurement != LinkSourceMeasurement.Success) {
                 return sourceEvents.map { event ->
                     event.copy(
                         id = "habit-source:${habit.uuid}:${event.id}",
@@ -601,12 +601,12 @@ class RoomLinkRepository(
                     date = day,
                     timestamp = latest.timestamp,
                     explanation = "${habit.name} reached its target from ${latest.explanation}",
-                    metricSourceType = latest.metricSourceType,
+                    measurementSourceType = latest.measurementSourceType,
                 )
             }
         }
         val logs = database.habitDao().getAllLogs().filter { it.habitId == habitId }
-        if (metric == LinkSourceMetric.Success) {
+        if (measurement == LinkSourceMeasurement.Success) {
             return logs.groupBy(HabitLogEntity::localEpochDay).mapNotNull { (day, dayLogs) ->
                 val recorded = dayLogs.filter { it.status in setOf(HabitLogStatus.Recorded.name, HabitLogStatus.Success.name, HabitLogStatus.Failed.name) }
                 val entered = recorded.sumOf { it.value ?: 0.0 }
@@ -625,7 +625,7 @@ class RoomLinkRepository(
                 if (!success || latest == null) null else SourceEvent(
                     "habit:${habit.uuid}:day:$day:success", LinkSourceType.Habit, habitId, 1.0,
                     UnitDimension.Count, LocalDate.ofEpochDay(day), Instant.ofEpochMilli(latest.timestampMillis),
-                    "${habit.name} succeeded on ${LocalDate.ofEpochDay(day)}", MetricSourceType.Habit,
+                    "${habit.name} succeeded on ${LocalDate.ofEpochDay(day)}", MeasurementSourceType.Habit,
                 )
             }
         }
@@ -633,7 +633,7 @@ class RoomLinkRepository(
             .map { log -> SourceEvent(
                 "habit-log:${log.uuid}", LinkSourceType.Habit, habitId, log.canonicalValue,
                 UnitDimension.valueOf(habit.dimension), LocalDate.ofEpochDay(log.localEpochDay),
-                Instant.ofEpochMilli(log.timestampMillis), "${habit.name}: ${log.value} ${log.enteredUnitId.orEmpty()}", MetricSourceType.Habit,
+                Instant.ofEpochMilli(log.timestampMillis), "${habit.name}: ${log.value} ${log.enteredUnitId.orEmpty()}", MeasurementSourceType.Habit,
             ) }
     }
 
@@ -643,12 +643,12 @@ class RoomLinkRepository(
         task.completedAtMillis?.let { completed ->
             val instant = Instant.ofEpochMilli(completed)
             events += SourceEvent("task:$taskId:single", LinkSourceType.Task, taskId, 1.0, UnitDimension.Count,
-                instant.atZone(clock.zoneId()).toLocalDate(), instant, "Completed task: ${task.title}", MetricSourceType.Task)
+                instant.atZone(clock.zoneId()).toLocalDate(), instant, "Completed task: ${task.title}", MeasurementSourceType.Task)
         }
         database.taskDao().getOccurrences(taskId).filter { it.state == "Completed" && it.completedAtMillis != null }.forEach { occurrence ->
             events += SourceEvent("task:$taskId:${occurrence.originalEpochDay}", LinkSourceType.Task, taskId, 1.0, UnitDimension.Count,
                 LocalDate.ofEpochDay(occurrence.originalEpochDay), Instant.ofEpochMilli(requireNotNull(occurrence.completedAtMillis)),
-                "Completed task: ${task.title} (${LocalDate.ofEpochDay(occurrence.originalEpochDay)})", MetricSourceType.Task)
+                "Completed task: ${task.title} (${LocalDate.ofEpochDay(occurrence.originalEpochDay)})", MeasurementSourceType.Task)
         }
         return events
     }
@@ -662,11 +662,11 @@ class RoomLinkRepository(
                 val instant = Instant.ofEpochMilli(requireNotNull(state.completedAtMillis))
                 SourceEvent("subtask:$taskId:${state.occurrenceKey}:${state.stepId}", LinkSourceType.Subtask, taskId, 1.0,
                     UnitDimension.Count, instant.atZone(clock.zoneId()).toLocalDate(), instant,
-                    "Completed subtask $title in ${task.title}", MetricSourceType.Task)
+                    "Completed subtask $title in ${task.title}", MeasurementSourceType.Task)
             }
     }
 
-    private suspend fun workoutEvents(metric: LinkSourceMetric): List<SourceEvent> {
+    private suspend fun workoutEvents(measurement: LinkSourceMeasurement): List<SourceEvent> {
         val gym = database.gymDao()
         val sessions = gym.getAllSessions().filter { it.state == "Finished" && !it.archived }
         val workoutExercises = gym.getAllWorkoutExercises()
@@ -675,19 +675,19 @@ class RoomLinkRepository(
         return sessions.mapNotNull { session ->
             val sessionExercises = workoutExercises.filter { it.sessionId == session.id }
             val sessionSets = sets.filter { set -> sessionExercises.any { it.id == set.workoutExerciseId } && set.completed && set.deletedAtMillis == null }
-            val valueAndDimension = when (metric) {
-                LinkSourceMetric.Count, LinkSourceMetric.Completion -> 1.0 to UnitDimension.Count
-                LinkSourceMetric.Duration -> ((session.endedAtMillis ?: session.startedAtMillis) - session.startedAtMillis).coerceAtLeast(0).div(1_000.0) to UnitDimension.Duration
-                LinkSourceMetric.Volume -> sessionSets.sumOf { set -> rawSetVolume(set, sessionExercises, exercises) } to UnitDimension.Custom
+            val valueAndDimension = when (measurement) {
+                LinkSourceMeasurement.Count, LinkSourceMeasurement.Completion -> 1.0 to UnitDimension.Count
+                LinkSourceMeasurement.Duration -> ((session.endedAtMillis ?: session.startedAtMillis) - session.startedAtMillis).coerceAtLeast(0).div(1_000.0) to UnitDimension.Duration
+                LinkSourceMeasurement.Volume -> sessionSets.sumOf { set -> rawSetVolume(set, sessionExercises, exercises) } to UnitDimension.Custom
                 else -> return@mapNotNull null
             }
-            SourceEvent("workout:${session.uuid}:${metric.name}", LinkSourceType.Workout, session.id, valueAndDimension.first,
+            SourceEvent("workout:${session.uuid}:${measurement.name}", LinkSourceType.Workout, session.id, valueAndDimension.first,
                 valueAndDimension.second, LocalDate.ofEpochDay(session.localEpochDay), Instant.ofEpochMilli(session.endedAtMillis ?: session.startedAtMillis),
-                "Workout ${session.name.ifBlank { LocalDate.ofEpochDay(session.localEpochDay).toString() }}: ${metric.name}", MetricSourceType.Workout)
+                "Workout ${session.name.ifBlank { LocalDate.ofEpochDay(session.localEpochDay).toString() }}: ${measurement.name}", MeasurementSourceType.Workout)
         }
     }
 
-    private suspend fun exerciseEvents(exerciseId: Long, metric: LinkSourceMetric): List<SourceEvent> {
+    private suspend fun exerciseEvents(exerciseId: Long, measurement: LinkSourceMeasurement): List<SourceEvent> {
         val gym = database.gymDao()
         val exercise = gym.getExercise(exerciseId) ?: return emptyList()
         val sessions = gym.getAllSessions().filter { it.state == "Finished" && !it.archived }.associateBy(WorkoutSessionEntity::id)
@@ -696,27 +696,27 @@ class RoomLinkRepository(
         return workoutExercises.mapNotNull { workoutExercise ->
             val session = sessions[workoutExercise.sessionId] ?: return@mapNotNull null
             val eligible = sets.filter { it.workoutExerciseId == workoutExercise.id && it.completed && it.deletedAtMillis == null }
-            val valueDimension = when (metric) {
-                LinkSourceMetric.EstimatedOneRepMax -> eligible.mapNotNull { rawEstimatedOneRepMax(it, exercise) }.maxOrNull()?.let { it to UnitDimension.Mass }
-                LinkSourceMetric.MaxWeight -> eligible.mapNotNull(WorkoutSetEntity::canonicalWeightKg).maxOrNull()?.let { it to UnitDimension.Mass }
-                LinkSourceMetric.Distance -> eligible.sumOf { it.canonicalDistanceMetres ?: 0.0 } to UnitDimension.Distance
-                LinkSourceMetric.Repetitions, LinkSourceMetric.Count -> eligible.sumOf { it.repetitions ?: 0 }.toDouble() to UnitDimension.Count
-                LinkSourceMetric.Duration -> eligible.sumOf { it.durationSeconds ?: 0L }.toDouble() to UnitDimension.Duration
-                LinkSourceMetric.Volume -> eligible.sumOf { rawSetVolume(it, listOf(workoutExercise), mapOf(exerciseId to exercise)) } to UnitDimension.Custom
+            val valueDimension = when (measurement) {
+                LinkSourceMeasurement.EstimatedOneRepMax -> eligible.mapNotNull { rawEstimatedOneRepMax(it, exercise) }.maxOrNull()?.let { it to UnitDimension.Mass }
+                LinkSourceMeasurement.MaxWeight -> eligible.mapNotNull(WorkoutSetEntity::canonicalWeightKg).maxOrNull()?.let { it to UnitDimension.Mass }
+                LinkSourceMeasurement.Distance -> eligible.sumOf { it.canonicalDistanceMetres ?: 0.0 } to UnitDimension.Distance
+                LinkSourceMeasurement.Repetitions, LinkSourceMeasurement.Count -> eligible.sumOf { it.repetitions ?: 0 }.toDouble() to UnitDimension.Count
+                LinkSourceMeasurement.Duration -> eligible.sumOf { it.durationSeconds ?: 0L }.toDouble() to UnitDimension.Duration
+                LinkSourceMeasurement.Volume -> eligible.sumOf { rawSetVolume(it, listOf(workoutExercise), mapOf(exerciseId to exercise)) } to UnitDimension.Custom
                 else -> null
             } ?: return@mapNotNull null
-            SourceEvent("exercise:${exercise.uuid}:workout:${session.uuid}:${metric.name}", LinkSourceType.Exercise, exerciseId,
+            SourceEvent("exercise:${exercise.uuid}:workout:${session.uuid}:${measurement.name}", LinkSourceType.Exercise, exerciseId,
                 valueDimension.first, valueDimension.second, LocalDate.ofEpochDay(session.localEpochDay),
-                Instant.ofEpochMilli(session.endedAtMillis ?: session.startedAtMillis), "${exercise.name}: ${metric.name}", MetricSourceType.Exercise)
+                Instant.ofEpochMilli(session.endedAtMillis ?: session.startedAtMillis), "${exercise.name}: ${measurement.name}", MeasurementSourceType.Exercise)
         }
     }
 
-    private suspend fun metricEvents(metricId: String): List<SourceEvent> {
-        val metric = database.measurementDao().getMetric(metricId) ?: return emptyList()
-        return database.measurementDao().getAllEntries().filter { it.metricId == metricId && it.status == MetricEntryStatus.Recorded.name && it.canonicalValue != null }
-            .map { entry -> SourceEvent("metric-entry:${entry.id}", LinkSourceType.Metric, null, entry.canonicalValue,
-                UnitDimension.valueOf(metric.dimension), LocalDate.ofEpochDay(entry.localEpochDay), Instant.ofEpochMilli(entry.timestampMillis),
-                "${metric.name} measurement", MetricSourceType.valueOf(entry.sourceType)) }
+    private suspend fun measurementEvents(measurementId: String): List<SourceEvent> {
+        val measurement = database.measurementDao().getMeasurement(measurementId) ?: return emptyList()
+        return database.measurementDao().getAllEntries().filter { it.measurementId == measurementId && it.status == MeasurementEntryStatus.Recorded.name && it.canonicalValue != null }
+            .map { entry -> SourceEvent("measurement-entry:${entry.id}", LinkSourceType.Measurement, null, entry.canonicalValue,
+                UnitDimension.valueOf(measurement.dimension), LocalDate.ofEpochDay(entry.localEpochDay), Instant.ofEpochMilli(entry.timestampMillis),
+                "${measurement.name} measurement", MeasurementSourceType.valueOf(entry.sourceType)) }
     }
 
     private suspend fun trackEvents(
@@ -737,9 +737,9 @@ class RoomLinkRepository(
         val matching = projection.matchingEntries(conditions, conditionModeOverride ?: TrackConditionMode.valueOf(rule.conditionMode))
         val sourceField = rule.sourceFieldId?.let { id -> projection.fields.firstOrNull { it.id == id } }
         return matching.mapNotNull { entry ->
-            val valueAndDimension = when (LinkSourceMetric.valueOf(rule.sourceMetric)) {
-                LinkSourceMetric.EntryCount -> 1.0 to UnitDimension.Count
-                LinkSourceMetric.FieldValue -> when (sourceField?.type) {
+            val valueAndDimension = when (LinkSourceMeasurement.valueOf(rule.sourceMeasurement)) {
+                LinkSourceMeasurement.EntryCount -> 1.0 to UnitDimension.Count
+                LinkSourceMeasurement.FieldValue -> when (sourceField?.type) {
                     TrackFieldType.Number -> entry.value(sourceField.id)?.canonicalNumber?.let { it to requireNotNull(sourceField.dimension) }
                     TrackFieldType.Scale -> entry.value(sourceField.id)?.scaleValue?.let { it to UnitDimension.Unitless }
                     else -> null
@@ -760,7 +760,7 @@ class RoomLinkRepository(
                     append(projection.primaryText(entry))
                     sourceField?.let { append(" · ${it.name} ${valueAndDimension.first}") }
                 },
-                metricSourceType = MetricSourceType.Track,
+                measurementSourceType = MeasurementSourceType.Track,
             )
         }
     }
@@ -838,7 +838,7 @@ class RoomLinkRepository(
                     entry.entry.entryDate,
                     Instant.ofEpochMilli(entry.entry.createdAtMillis),
                     "${projection.track.name}: ${projection.primaryText(entry)}",
-                    MetricSourceType.Track,
+                    MeasurementSourceType.Track,
                 )
             }
         }
@@ -855,7 +855,7 @@ class RoomLinkRepository(
                         LocalDate.ofEpochDay(skip.localEpochDay),
                         Instant.ofEpochMilli(skip.skippedAtMillis),
                         "${habit.name} skipped",
-                        MetricSourceType.Habit,
+                        MeasurementSourceType.Habit,
                     )
                 }
             }
@@ -868,7 +868,7 @@ class RoomLinkRepository(
                 SourceEvent("habit-log:${log.uuid}:${outcome.name}", type, habit.id, log.canonicalValue,
                     if (outcome == TriggerOutcome.Recorded) UnitDimension.valueOf(habit.dimension) else UnitDimension.Count,
                     LocalDate.ofEpochDay(log.localEpochDay), Instant.ofEpochMilli(log.timestampMillis),
-                    "${habit.name} ${outcome.name.lowercase()}", MetricSourceType.Habit)
+                    "${habit.name} ${outcome.name.lowercase()}", MeasurementSourceType.Habit)
             }
         }
         if (type == LinkSourceType.Task && outcome == TriggerOutcome.Skipped) {
@@ -876,20 +876,20 @@ class RoomLinkRepository(
             return database.taskDao().getOccurrences(task.id).filter { it.state == "Skipped" }.map { occurrence ->
                 val timestamp = Instant.ofEpochMilli(task.updatedAtMillis)
                 SourceEvent("task:${task.id}:${occurrence.originalEpochDay}:skipped", type, task.id, null, UnitDimension.Count,
-                    LocalDate.ofEpochDay(occurrence.originalEpochDay), timestamp, "Skipped task: ${task.title}", MetricSourceType.Task)
+                    LocalDate.ofEpochDay(occurrence.originalEpochDay), timestamp, "Skipped task: ${task.title}", MeasurementSourceType.Task)
             }
         }
         if (type == LinkSourceType.Subtask) {
             return subtaskEvents(rule.sourceEntityId, rule.sourceItemId)
         }
-        val metric = when (type) {
-            LinkSourceType.Habit -> LinkSourceMetric.Success
-            LinkSourceType.Task, LinkSourceType.Subtask, LinkSourceType.Workout -> LinkSourceMetric.Completion
-            LinkSourceType.Exercise -> LinkSourceMetric.Count
-            LinkSourceType.Metric -> LinkSourceMetric.NumericValue
-            LinkSourceType.Track -> LinkSourceMetric.EntryCount
+        val measurement = when (type) {
+            LinkSourceType.Habit -> LinkSourceMeasurement.Success
+            LinkSourceType.Task, LinkSourceType.Subtask, LinkSourceType.Workout -> LinkSourceMeasurement.Completion
+            LinkSourceType.Exercise -> LinkSourceMeasurement.Count
+            LinkSourceType.Measurement -> LinkSourceMeasurement.NumericValue
+            LinkSourceType.Track -> LinkSourceMeasurement.EntryCount
         }
-        return sourceEvents(type, rule.sourceEntityId, null, rule.sourceItemId, metric)
+        return sourceEvents(type, rule.sourceEntityId, null, rule.sourceItemId, measurement)
     }
 
     private suspend fun syncGeneratedHabitLogs(rule: TriggerRuleEntity, events: List<SourceEvent>) {
@@ -898,13 +898,13 @@ class RoomLinkRepository(
         val retained = events.mapTo(mutableSetOf()) { prefix + it.id }
         events.forEach { event ->
             val sourceId = prefix + event.id
-            val existingLog = database.habitDao().getLogBySource(event.metricSourceType.name, sourceId)
+            val existingLog = database.habitDao().getLogBySource(event.measurementSourceType.name, sourceId)
             if (existingLog == null) {
                 val logUuid = ids.nextId()
                 val entryId = measurementRepository.record(
-                    habit.metricId, 1.0, habit.unitId, timestamp = event.timestamp, localDate = event.date,
+                    habit.measurementId, 1.0, habit.unitId, timestamp = event.timestamp, localDate = event.date,
                     zoneId = clock.zoneId(),
-                    sourceType = event.metricSourceType, sourceId = sourceId, note = "Automatically logged by ${rule.name}",
+                    sourceType = event.measurementSourceType, sourceId = sourceId, note = "Automatically logged by ${rule.name}",
                 )
                 val canonical = requireNotNull(database.measurementDao().getEntry(entryId)?.canonicalValue) {
                     "Generated Habit measurement has no canonical value"
@@ -915,10 +915,10 @@ class RoomLinkRepository(
                         enteredUnitId = habit.unitId, status = HabitLogStatus.Success.name, timestampMillis = event.timestamp.toEpochMilli(),
                         localEpochDay = event.date.toEpochDay(), zoneId = clock.zoneId().id,
                         offsetSeconds = clock.zoneId().rules.getOffset(event.timestamp).totalSeconds, note = "Automatically logged by ${rule.name}",
-                        sourceType = event.metricSourceType.name, sourceId = sourceId, metricEntryId = entryId, createdAtMillis = now, updatedAtMillis = now),
+                        sourceType = event.measurementSourceType.name, sourceId = sourceId, measurementEntryId = entryId, createdAtMillis = now, updatedAtMillis = now),
                 )
             } else {
-                val canonical = existingLog.metricEntryId
+                val canonical = existingLog.measurementEntryId
                     ?.let { database.measurementDao().getEntry(it)?.canonicalValue }
                 if (canonical != null && canonical != existingLog.canonicalValue) {
                     database.habitDao().updateLog(
@@ -933,7 +933,7 @@ class RoomLinkRepository(
     private suspend fun removeGeneratedHabitLogs(rule: TriggerRuleEntity, retained: Set<String>) {
         val prefix = "trigger:${rule.uuid}:%"
         database.habitDao().getLogsBySourcePrefix(prefix).filter { it.sourceId !in retained }.forEach { log ->
-            log.metricEntryId?.let { measurementRepository.deleteEntry(it) }
+            log.measurementEntryId?.let { measurementRepository.deleteEntry(it) }
             database.habitDao().deleteLog(log.id)
         }
     }
@@ -969,7 +969,7 @@ class RoomLinkRepository(
                 require(draft.sourceEntityId == 0L) { "Workout Automations use all completed Workouts" }
                 require(draft.outcome == TriggerOutcome.Completed) { "Workouts can trigger automation only when completed" }
             }
-            LinkSourceType.Exercise, LinkSourceType.Metric -> error("This source is available for Goal progress, not follow-up Automations")
+            LinkSourceType.Exercise, LinkSourceType.Measurement -> error("This source is available for Goal progress, not follow-up Automations")
         }
         val sourceNodeType = if (draft.sourceType == LinkSourceType.Subtask) TriggerTargetType.Task.name else draft.sourceType.name
         require(!(sourceNodeType == draft.targetType.name && draft.sourceEntityId == draft.targetEntityId)) { "A trigger cannot target itself" }
@@ -1013,12 +1013,12 @@ class RoomLinkRepository(
                 }
                 require(mapping.sourceProperty in allowed) { "${mapping.sourceProperty.name} cannot prefill ${field.name}" }
                 if (mapping.sourceProperty == TriggerSourceProperty.NumericValue && type == TrackFieldType.Number) {
-                    val metric = when (draft.sourceType) {
-                        LinkSourceType.Habit, LinkSourceType.Metric -> LinkSourceMetric.NumericValue
-                        LinkSourceType.Task, LinkSourceType.Subtask -> LinkSourceMetric.Completion
-                        LinkSourceType.Workout, LinkSourceType.Exercise, LinkSourceType.Track -> LinkSourceMetric.Count
+                    val measurement = when (draft.sourceType) {
+                        LinkSourceType.Habit, LinkSourceType.Measurement -> LinkSourceMeasurement.NumericValue
+                        LinkSourceType.Task, LinkSourceType.Subtask -> LinkSourceMeasurement.Completion
+                        LinkSourceType.Workout, LinkSourceType.Exercise, LinkSourceType.Track -> LinkSourceMeasurement.Count
                     }
-                    val sourceDimension = sourceDimension(draft.sourceType, draft.sourceEntityId, null, metric)
+                    val sourceDimension = sourceDimension(draft.sourceType, draft.sourceEntityId, null, measurement)
                     require(field.dimension == sourceDimension.name) {
                         "${field.name} uses ${field.dimension}, but the source number uses ${sourceDimension.name}. Choose another Field or mapping."
                     }
@@ -1120,7 +1120,7 @@ private data class SourceEvent(
     val date: LocalDate,
     val timestamp: Instant,
     val explanation: String,
-    val metricSourceType: MetricSourceType,
+    val measurementSourceType: MeasurementSourceType,
 )
 
 private data class TriggerSnapshot(
@@ -1281,8 +1281,8 @@ private fun hasDirectedCycle(edges: List<Pair<String, String>>): Boolean {
 
 private fun LinkRuleDraft.toEntity(uuid: String, createdAtMillis: Long) = LinkRuleEntity(
     uuid = uuid, name = name.trim(), kind = kind.name, sourceType = sourceType.name,
-    sourceEntityId = sourceEntityId, sourceMetricId = sourceMetricId, sourceItemId = sourceItemId,
-    sourceMetric = sourceMetric.name, targetGoalId = targetGoalId, targetMilestoneId = targetMilestoneId,
+    sourceEntityId = sourceEntityId, sourceMeasurementId = sourceMeasurementId, sourceItemId = sourceItemId,
+    sourceMeasurement = sourceMeasurement.name, targetGoalId = targetGoalId, targetMilestoneId = targetMilestoneId,
     valueMode = valueMode.name, fixedValue = fixedValue, multiplier = multiplier, offset = offset,
     retroactiveFromEpochDay = retroactiveFrom?.toEpochDay(), enabled = enabled,
     createdAtMillis = createdAtMillis, updatedAtMillis = createdAtMillis,
@@ -1298,9 +1298,9 @@ private fun LinkRuleEntity.toDomain(conditions: List<TrackCondition> = emptyList
     kind = LinkKind.valueOf(kind),
     sourceType = LinkSourceType.valueOf(sourceType),
     sourceEntityId = sourceEntityId,
-    sourceMetricId = sourceMetricId,
+    sourceMeasurementId = sourceMeasurementId,
     sourceItemId = sourceItemId,
-    sourceMetric = LinkSourceMetric.valueOf(sourceMetric),
+    sourceMeasurement = LinkSourceMeasurement.valueOf(sourceMeasurement),
     targetGoalId = targetGoalId,
     targetMilestoneId = targetMilestoneId,
     valueMode = LinkValueMode.valueOf(valueMode),
@@ -1318,7 +1318,7 @@ private fun LinkRuleEntity.toDomain(conditions: List<TrackCondition> = emptyList
 )
 
 private fun ContributionEntity.toDomain() = Contribution(id, uuid, linkRuleId, sourceEventId, LinkSourceType.valueOf(sourceType),
-    sourceEntityId, targetGoalId, metricEntryId, canonicalValue, LocalDate.ofEpochDay(localEpochDay),
+    sourceEntityId, targetGoalId, measurementEntryId, canonicalValue, LocalDate.ofEpochDay(localEpochDay),
     Instant.ofEpochMilli(timestampMillis), excluded, overrideValue, explanation, createdAtMillis, updatedAtMillis)
 
 private fun TriggerRuleDraft.toEntity(uuid: String, createdAtMillis: Long) = TriggerRuleEntity(

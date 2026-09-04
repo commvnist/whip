@@ -417,8 +417,8 @@ fun TaskActionsDialog(
             (item.occurrenceState == null || item.occurrenceState == OccurrenceState.Open)
         ) "Edit This and Future" else if (item.task.scheduleKind == ScheduleKind.Recurring) "Edit Series" else "Edit Task",
         modifier = modifier,
-        legacySurfaceTag = "task-actions-surface",
-        legacySectionTagPrefix = "task-detail-section",
+        connectedSurfaceTag = "task-actions-surface",
+        connectedSectionTagPrefix = "task-detail-section",
         primaryAction = EntityInspectorPrimaryAction(
             id = "complete",
             label = "Complete Task",
@@ -571,7 +571,7 @@ fun TaskActionsDialog(
 private enum class TaskDetailSection(
     val id: String,
     val label: String,
-    val legacyLabel: String = label,
+    val connectedLabel: String = label,
 ) {
     Overview("overview", "Overview"),
     Activity("activity", "Activity", "Schedule"),
@@ -582,7 +582,7 @@ private enum class TaskDetailSection(
         get() = EntityInspectorSection(
             id = id,
             label = label,
-            legacyLabel = legacyLabel,
+            connectedLabel = connectedLabel,
         )
 }
 
@@ -613,8 +613,8 @@ fun CompletedTaskDialog(
         onEdit = onEdit,
         editLabel = if (item.task.scheduleKind == ScheduleKind.Recurring) "Edit Series" else "Edit Task",
         modifier = modifier,
-        legacySurfaceTag = "completed-task-surface",
-        legacySectionTagPrefix = "completed-task-detail-section",
+        connectedSurfaceTag = "completed-task-surface",
+        connectedSectionTagPrefix = "completed-task-detail-section",
         primaryAction = EntityInspectorPrimaryAction(
             id = "reopen",
             label = if (item.task.scheduleKind == ScheduleKind.Recurring) "Reopen Occurrence" else "Reopen Task",

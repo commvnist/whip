@@ -54,7 +54,7 @@ data class RoutineDayEntity(
     val position: Int,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
-    /** Persisted cursor for backward-compatible per-day load-multiplier waves. */
+    /** Persisted cursor for canonical per-day load-multiplier waves. */
     val progressionIndex: Int = 0,
 )
 
@@ -257,7 +257,7 @@ data class GraphPresetEntity(
     val uuid: String,
     val name: String,
     val exerciseIdsCsv: String,
-    val metric: String,
+    val measurement: String,
     val dateRange: String,
     val aggregation: String,
     val archived: Boolean,

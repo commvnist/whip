@@ -31,8 +31,8 @@ import com.whip.app.domain.GoalProgressBoundary
 import com.whip.app.domain.GoalMilestone
 import com.whip.app.domain.GoalProjection
 import com.whip.app.domain.GoalStatus
-import com.whip.app.domain.MetricEntry
-import com.whip.app.domain.MetricDefinition
+import com.whip.app.domain.MeasurementEntry
+import com.whip.app.domain.MeasurementDefinition
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.projectGoal
 import com.whip.app.reminders.GoalReminderScheduler
@@ -68,7 +68,7 @@ data class GoalUiState(
     val loading: Boolean = true,
     val errorMessage: String? = null,
     val customUnits: List<UnitDefinition> = emptyList(),
-    val sourceMetrics: List<MetricDefinition> = emptyList(),
+    val sourceMeasurements: List<MeasurementDefinition> = emptyList(),
 )
 
 internal enum class GoalMutationKind {
@@ -158,7 +158,7 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
     private val goalCore = combine(
         repository.goals,
         repository.milestones,
-        repository.metricEntries,
+        repository.measurementEntries,
         app.calendarContext,
         goalHistory,
     ) { goals, milestones, entries, calendar, history ->
@@ -174,15 +174,15 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
 
     private val measurementMetadata = combine(
         app.measurementRepository.customUnits,
-        app.measurementRepository.metrics,
-    ) { units, metrics -> units to metrics }
+        app.measurementRepository.measurements,
+    ) { units, measurements -> units to measurements }
 
     val uiState = reloadKey.flatMapLatest {
         combine(goalCore, measurementMetadata, elapsedClockFlow()) { core, metadata, nowMillis ->
-            val (units, metrics) = metadata
+            val (units, measurements) = metadata
             core.copy(
                 customUnits = units,
-                sourceMetrics = metrics.filterNot { it.archived },
+                sourceMeasurements = measurements.filterNot { it.archived },
                 nowMillis = nowMillis,
             )
         }.catch { error ->
@@ -377,13 +377,6 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
-    /** Legacy dispatchers remain fail-closed until their caller supplies a reviewed boundary. */
-    fun duplicate(id: Long) = runOperation("Could not duplicate goal", "") {
-        error("Reopen the Goal before duplicating it")
-    }
-    fun setStatus(id: Long, status: GoalStatus) = runOperation("Could not update goal", "") {
-        error("Reopen the Goal before changing its status")
-    }
     fun deletePermanently(
         id: Long,
         expectedRevisionToken: String,
@@ -677,7 +670,7 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
 private fun buildState(
     goals: List<Goal>,
     milestones: List<GoalMilestone>,
-    entries: List<MetricEntry>,
+    entries: List<MeasurementEntry>,
     closureSnapshots: List<GoalClosureSnapshot>,
     elapsedResetEvents: List<GoalElapsedResetEvent>,
     today: LocalDate,
@@ -687,7 +680,7 @@ private fun buildState(
         val resetEvents = elapsedResetEvents.filter { it.goalId == goal.id }
         val live = projectGoal(
             goal,
-            entries.filter { it.metricId == goal.metricId },
+            entries.filter { it.measurementId == goal.measurementId },
             milestones.filter { it.goalId == goal.id },
             today,
         )

@@ -7,8 +7,8 @@ import com.whip.app.core.WhipClock
 import com.whip.app.core.WhipIdGenerator
 import com.whip.app.data.RoomMeasurementRepository
 import com.whip.app.data.WhipDatabase
-import com.whip.app.domain.MetricValueKind
-import com.whip.app.domain.MetricEntryStatus
+import com.whip.app.domain.MeasurementValueKind
+import com.whip.app.domain.MeasurementEntryStatus
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.customUnitBoundary
 import java.time.Instant
@@ -85,20 +85,20 @@ class CustomUnitIntegrityTest {
     }
 
     @Test fun measurementValueAndUnitMustAlwaysBeStoredAsAPair() = runBlocking {
-        val metricId = measurements.createMetric(
+        val measurementId = measurements.createMeasurement(
             name = "Water",
-            valueKind = MetricValueKind.Decimal,
+            valueKind = MeasurementValueKind.Decimal,
             dimension = UnitDimension.Volume,
             defaultUnitId = "millilitre",
         )
 
         expectFailure {
-            measurements.record(metricId, value = null, unitId = "millilitre", status = MetricEntryStatus.Missing)
+            measurements.record(measurementId, value = null, unitId = "millilitre", status = MeasurementEntryStatus.Missing)
         }
         expectFailure {
-            measurements.record(metricId, value = 1.0, unitId = null, status = MetricEntryStatus.Missing)
+            measurements.record(measurementId, value = 1.0, unitId = null, status = MeasurementEntryStatus.Missing)
         }
-        measurements.record(metricId, value = null, unitId = null, status = MetricEntryStatus.Missing)
+        measurements.record(measurementId, value = null, unitId = null, status = MeasurementEntryStatus.Missing)
 
         assertEquals(1, measurements.entries.first().size)
     }
@@ -126,13 +126,13 @@ class CustomUnitIntegrityTest {
     @Test fun versionRetryCannotForkAndHistoryKeepsItsOriginalUnit() = runBlocking {
         measurements.createCustomUnitExact("unit-source", "Bottle", "btl", UnitDimension.Volume, 500.0)
         val source = measurements.customUnits.first().single().customUnitBoundary()
-        val metricId = measurements.createMetric(
+        val measurementId = measurements.createMeasurement(
             name = "Water",
-            valueKind = MetricValueKind.Decimal,
+            valueKind = MeasurementValueKind.Decimal,
             dimension = UnitDimension.Volume,
             defaultUnitId = source.id,
         )
-        measurements.record(metricId = metricId, value = 2.0, unitId = source.id)
+        measurements.record(measurementId = measurementId, value = 2.0, unitId = source.id)
 
         assertEquals(
             "unit-version-1",

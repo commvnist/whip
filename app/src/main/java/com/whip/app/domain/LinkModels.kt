@@ -5,9 +5,9 @@ import java.time.LocalDate
 
 enum class LinkKind { Contribution, Context }
 
-enum class LinkSourceType { Habit, Task, Subtask, Workout, Exercise, Metric, Track }
+enum class LinkSourceType { Habit, Task, Subtask, Workout, Exercise, Measurement, Track }
 
-enum class LinkSourceMetric {
+enum class LinkSourceMeasurement {
     NumericValue,
     Success,
     Completion,
@@ -29,9 +29,9 @@ data class LinkRuleDraft(
     val kind: LinkKind = LinkKind.Contribution,
     val sourceType: LinkSourceType,
     val sourceEntityId: Long? = null,
-    val sourceMetricId: String? = null,
+    val sourceMeasurementId: String? = null,
     val sourceItemId: Long? = null,
-    val sourceMetric: LinkSourceMetric,
+    val sourceMeasurement: LinkSourceMeasurement,
     val targetGoalId: Long,
     val targetMilestoneId: Long? = null,
     val valueMode: LinkValueMode = LinkValueMode.SourceValue,
@@ -53,9 +53,9 @@ data class LinkRule(
     val kind: LinkKind,
     val sourceType: LinkSourceType,
     val sourceEntityId: Long?,
-    val sourceMetricId: String?,
+    val sourceMeasurementId: String?,
     val sourceItemId: Long?,
-    val sourceMetric: LinkSourceMetric,
+    val sourceMeasurement: LinkSourceMeasurement,
     val targetGoalId: Long,
     val targetMilestoneId: Long?,
     val valueMode: LinkValueMode,
@@ -80,7 +80,7 @@ data class Contribution(
     val sourceType: LinkSourceType,
     val sourceEntityId: Long?,
     val targetGoalId: Long,
-    val metricEntryId: String?,
+    val measurementEntryId: String?,
     val canonicalValue: Double?,
     val localDate: LocalDate,
     val timestamp: Instant,

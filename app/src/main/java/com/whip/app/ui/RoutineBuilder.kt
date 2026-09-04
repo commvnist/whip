@@ -105,8 +105,8 @@ import com.whip.app.domain.RoutineWorkSection
 import com.whip.app.domain.WorkoutSession
 import com.whip.app.domain.WorkoutSetClassification
 import com.whip.app.domain.WorkoutSetDraft
-import com.whip.app.domain.balancedOncePerLiftDayOwners
-import com.whip.app.domain.FIVE_THREE_ONE_ONCE_PER_LIFT_PROTOCOL_REVISION
+import com.whip.app.domain.balancedOncePerExerciseDayOwners
+import com.whip.app.domain.FIVE_THREE_ONE_ONCE_PER_EXERCISE_PROTOCOL_REVISION
 import com.whip.app.domain.convertPracticalMassValue
 import com.whip.app.domain.editableNumericValue
 import com.whip.app.domain.massFromKilograms
@@ -205,8 +205,8 @@ internal fun RoutineBuilderScreen(
     var deletedDayUndo by rememberSaveable(token) { mutableStateOf<Pair<Int, RoutineBuilderDayState>?>(null) }
     var deletedPlacementUndo by rememberSaveable(token) { mutableStateOf<DeletedPlacementUndo?>(null) }
     var showFiveThreeOneProgramSetup by rememberSaveable(token) { mutableStateOf(false) }
-    var standardLiftCreationInFlight by rememberSaveable(token) { mutableStateOf(false) }
-    var standardLiftCreationError by rememberSaveable(token) { mutableStateOf<String?>(null) }
+    var standardExerciseCreationInFlight by rememberSaveable(token) { mutableStateOf(false) }
+    var standardExerciseCreationError by rememberSaveable(token) { mutableStateOf<String?>(null) }
     var savedInPlaceMessage by rememberSaveable(token) { mutableStateOf<String?>(null) }
     var pendingTrainingMaxDerivations by rememberSaveable(token) {
         mutableStateOf<List<PendingTrainingMaxDerivation>>(emptyList())
@@ -258,24 +258,24 @@ internal fun RoutineBuilderScreen(
         ?.takeIf(String::isNotBlank)
         ?: gymState.appSettings.gymWeightUnitId
 
-    fun createMissingStandardLifts() {
+    fun createMissingStandardExercises() {
         val standardNames = mapOf(
-            FiveThreeOneLiftRole.Squat to "Squat",
-            FiveThreeOneLiftRole.Bench to "Bench Press",
-            FiveThreeOneLiftRole.Deadlift to "Deadlift",
-            FiveThreeOneLiftRole.Press to "Overhead Press",
+            FiveThreeOneExerciseRole.Squat to "Squat",
+            FiveThreeOneExerciseRole.Bench to "Bench Press",
+            FiveThreeOneExerciseRole.Deadlift to "Deadlift",
+            FiveThreeOneExerciseRole.Press to "Overhead Press",
         )
-        val missing = FiveThreeOneLiftRole.entries.filter { role ->
+        val missing = FiveThreeOneExerciseRole.entries.filter { role ->
             gymState.exercises.none { exercise ->
                 exercise.trackingType == ExerciseTrackingType.WeightReps && role.matchesExerciseName(exercise.name)
             }
         }
-        if (missing.isEmpty() || standardLiftCreationInFlight) return
-        standardLiftCreationInFlight = true
-        standardLiftCreationError = null
+        if (missing.isEmpty() || standardExerciseCreationInFlight) return
+        standardExerciseCreationInFlight = true
+        standardExerciseCreationError = null
         fun createAt(index: Int) {
             if (index >= missing.size) {
-                standardLiftCreationInFlight = false
+                standardExerciseCreationInFlight = false
                 return
             }
             val role = missing[index]
@@ -288,16 +288,16 @@ internal fun RoutineBuilderScreen(
                     weightUnitId = unitId,
                     weightIncrement = if (unitId == "pound") 5.0 else 2.5,
                     primaryMuscles = when (role) {
-                        FiveThreeOneLiftRole.Squat -> "Quadriceps, glutes"
-                        FiveThreeOneLiftRole.Bench -> "Chest, triceps"
-                        FiveThreeOneLiftRole.Deadlift -> "Posterior chain"
-                        FiveThreeOneLiftRole.Press -> "Shoulders, triceps"
+                        FiveThreeOneExerciseRole.Squat -> "Quadriceps, glutes"
+                        FiveThreeOneExerciseRole.Bench -> "Chest, triceps"
+                        FiveThreeOneExerciseRole.Deadlift -> "Posterior chain"
+                        FiveThreeOneExerciseRole.Press -> "Shoulders, triceps"
                     },
                 ),
             ) { createdId ->
                 if (createdId == null) {
-                    standardLiftCreationInFlight = false
-                    standardLiftCreationError = "Could not create ${standardNames[role]}. No other exercises were removed or changed."
+                    standardExerciseCreationInFlight = false
+                    standardExerciseCreationError = "Could not create ${standardNames[role]}. No other exercises were removed or changed."
                 } else {
                     stateHolder.noteIndependentLibrarySave()
                     createAt(index + 1)
@@ -340,8 +340,8 @@ internal fun RoutineBuilderScreen(
                     trainingMaxSource = RoutineTrainingMaxSource.Explicit.name,
                     mainWorkScheme = result.mainWorkScheme.name,
                     supplementalScheme = result.supplementalScheme.name,
-                    assistanceRole = RoutineAssistanceRole.MainLift.name,
-                    placementKind = RoutinePlacementKind.MainLift.name,
+                    assistanceRole = RoutineAssistanceRole.MainExercise.name,
+                    placementKind = RoutinePlacementKind.MainExercise.name,
                     assistanceCategory = RoutineAssistanceCategory.Unspecified.name,
                     jokerSetsEnabled = result.jokerSetsEnabled,
                 )
@@ -857,10 +857,10 @@ internal fun RoutineBuilderScreen(
             personalRecords = gymState.personalRecords,
             replacingExistingRoutine = builder.days.any { it.placements.isNotEmpty() },
             onDismiss = { showFiveThreeOneProgramSetup = false },
-            standardLiftCreationInFlight = standardLiftCreationInFlight,
-            standardLiftCreationError = standardLiftCreationError,
-            onCreateMissingStandardLifts = ::createMissingStandardLifts,
-            onCreateLift = { nameSeed ->
+            standardExerciseCreationInFlight = standardExerciseCreationInFlight,
+            standardExerciseCreationError = standardExerciseCreationError,
+            onCreateMissingStandardExercises = ::createMissingStandardExercises,
+            onCreateExercise = { nameSeed ->
                 exerciseNameSeed = nameSeed
                 createExerciseForProgramSetup = true
                 showCreateExercise = true
@@ -939,15 +939,15 @@ private fun FiveThreeOneProgramSetupDialog(
     personalRecords: List<com.whip.app.domain.PersonalRecord>,
     replacingExistingRoutine: Boolean,
     onDismiss: () -> Unit,
-    standardLiftCreationInFlight: Boolean,
-    standardLiftCreationError: String?,
-    onCreateMissingStandardLifts: () -> Unit,
-    onCreateLift: (String) -> Unit,
+    standardExerciseCreationInFlight: Boolean,
+    standardExerciseCreationError: String?,
+    onCreateMissingStandardExercises: () -> Unit,
+    onCreateExercise: (String) -> Unit,
     onApply: (FiveThreeOneProgramRequest) -> Unit,
 ) {
     val eligible = exercises.filter { it.trackingType == ExerciseTrackingType.WeightReps }
-    val roles = FiveThreeOneLiftRole.entries
-    fun suggested(role: FiveThreeOneLiftRole, unused: Set<Long>): Exercise? {
+    val roles = FiveThreeOneExerciseRole.entries
+    fun suggested(role: FiveThreeOneExerciseRole, unused: Set<Long>): Exercise? {
         return eligible.firstOrNull { it.id !in unused && role.matchesExerciseName(it.name) }
             ?: eligible.firstOrNull { it.id !in unused }
     }
@@ -996,7 +996,7 @@ private fun FiveThreeOneProgramSetupDialog(
     var assistanceExerciseIds by rememberSaveable { mutableStateOf(List(3) { 0L }) }
     var manuallyChangedAssistanceIndices by rememberSaveable { mutableStateOf<List<Int>>(emptyList()) }
     var progressionModeName by rememberSaveable { mutableStateOf(RoutineProgressionMode.Standard.name) }
-    var liftPickerIndex by rememberSaveable { mutableStateOf<Int?>(null) }
+    var exercisePickerIndex by rememberSaveable { mutableStateOf<Int?>(null) }
     val layout = FiveThreeOneProgramLayout.valueOf(layoutName)
     val plan = FiveThreeOneProgramPlan.valueOf(planName)
     val closingProtocol = FiveThreeOneSeventhWeekProtocol.valueOf(closingProtocolName)
@@ -1017,7 +1017,7 @@ private fun FiveThreeOneProgramSetupDialog(
                 eligible.firstOrNull()?.let { listOf(it.id) }.orEmpty()
             }
         } else {
-            fillEmptyFiveThreeOneLiftSelections(
+            fillEmptyFiveThreeOneExerciseSelections(
                 currentIds = previousIds,
                 candidates = eligible.map { it.id to it.name },
                 manuallySelectedRoleIndices = manuallySelectedRoleIndices.toSet(),
@@ -1103,11 +1103,11 @@ private fun FiveThreeOneProgramSetupDialog(
     val activeRoles = exerciseIds.indices.map { index ->
         roles.getOrNull(index).takeIf { layout != FiveThreeOneProgramLayout.Custom }
     }
-    val lifts = exerciseIds.indices.mapNotNull { index ->
+    val programExercises = exerciseIds.indices.mapNotNull { index ->
         val exercise = selectedExercises.getOrNull(index) ?: return@mapNotNull null
         val tm = trainingMaxes.getOrNull(index)?.toWhipDoubleOrNull() ?: return@mapNotNull null
         val increase = increments.getOrNull(index)?.toWhipDoubleOrNull() ?: return@mapNotNull null
-        FiveThreeOneProgramLift(
+        FiveThreeOneProgramExercise(
             activeRoles[index],
             exercise.id,
             exercise.name,
@@ -1173,8 +1173,8 @@ private fun FiveThreeOneProgramSetupDialog(
     } else {
         emptyList()
     }
-    val requiredLiftCount = if (layout == FiveThreeOneProgramLayout.Custom) exerciseIds.size else roles.size
-    val bbbLiftByMainExerciseId = if (
+    val requiredExerciseCount = if (layout == FiveThreeOneProgramLayout.Custom) exerciseIds.size else roles.size
+    val bbbExerciseByMainExerciseId = if (
         supplement == FiveThreeOneSupplement.BoringButBig && layout != FiveThreeOneProgramLayout.Beginners
     ) {
         exerciseIds.mapIndexedNotNull { index, mainId ->
@@ -1184,7 +1184,7 @@ private fun FiveThreeOneProgramSetupDialog(
         emptyMap()
     }
     val bbbMappingsValid = supplement != FiveThreeOneSupplement.BoringButBig ||
-        layout == FiveThreeOneProgramLayout.Beginners || bbbLiftByMainExerciseId.size == exerciseIds.size
+        layout == FiveThreeOneProgramLayout.Beginners || bbbExerciseByMainExerciseId.size == exerciseIds.size
     val standardSelectionsConfirmed = layout == FiveThreeOneProgramLayout.Custom ||
         exerciseIds.indices.all { index ->
             val selected = selectedExercises.getOrNull(index)
@@ -1204,20 +1204,20 @@ private fun FiveThreeOneProgramSetupDialog(
                     appliedSourceMaxes.getOrNull(index).orEmpty().isNotBlank()
                 )
     }
-    val valid = requiredLiftCount > 0 && lifts.size == requiredLiftCount &&
-        lifts.map(FiveThreeOneProgramLift::exerciseId).distinct().size == requiredLiftCount &&
+    val valid = requiredExerciseCount > 0 && programExercises.size == requiredExerciseCount &&
+        programExercises.map(FiveThreeOneProgramExercise::exerciseId).distinct().size == requiredExerciseCount &&
         standardSelectionsConfirmed && everyDerivedTrainingMaxIsApplied &&
         bbbMappingsValid &&
-        lifts.all { it.trainingMax > 0.0 && it.cycleIncrement > 0.0 } &&
+        programExercises.all { it.trainingMax > 0.0 && it.cycleIncrement > 0.0 } &&
         (supplement != FiveThreeOneSupplement.BoringButBig ||
             boringButBigPercent?.let { it.isFinite() && it in 1.0..100.0 } == true)
     val buildBlocker = when {
         !everyDerivedTrainingMaxIsApplied -> "Apply every calculated Training Max after changing its source max or percentage."
-        requiredLiftCount <= 0 || lifts.size != requiredLiftCount -> "Enter a Training Max and cycle increase above zero for every selected exercise."
-        lifts.map(FiveThreeOneProgramLift::exerciseId).distinct().size != requiredLiftCount -> "Choose each main exercise only once."
+        requiredExerciseCount <= 0 || programExercises.size != requiredExerciseCount -> "Enter a Training Max and cycle increase above zero for every selected exercise."
+        programExercises.map(FiveThreeOneProgramExercise::exerciseId).distinct().size != requiredExerciseCount -> "Choose each main exercise only once."
         !standardSelectionsConfirmed -> "Confirm or replace every prefilled standard exercise."
         !bbbMappingsValid -> "Choose the BBB exercise used after every Main exercise."
-        lifts.any { it.trainingMax <= 0.0 || it.cycleIncrement <= 0.0 } -> "Enter a Training Max and cycle increase above zero for every selected exercise."
+        programExercises.any { it.trainingMax <= 0.0 || it.cycleIncrement <= 0.0 } -> "Enter a Training Max and cycle increase above zero for every selected exercise."
         supplement == FiveThreeOneSupplement.BoringButBig &&
             boringButBigPercent?.let { it.isFinite() && it in 1.0..100.0 } != true ->
             "Enter a Boring But Big percentage from 1 to 100%."
@@ -1230,7 +1230,7 @@ private fun FiveThreeOneProgramSetupDialog(
             values.add(toIndex, moved)
         }
     }
-    fun moveCustomLift(fromIndex: Int, toIndex: Int) {
+    fun moveCustomExercise(fromIndex: Int, toIndex: Int) {
         exerciseIds = exerciseIds.moved(fromIndex, toIndex)
         trainingMaxes = trainingMaxes.moved(fromIndex, toIndex)
         useRecentMaxSuggestion = useRecentMaxSuggestion.moved(fromIndex, toIndex)
@@ -1245,7 +1245,7 @@ private fun FiveThreeOneProgramSetupDialog(
         bbbTargetIds = bbbTargetIds.moved(fromIndex, toIndex)
     }
 
-    fun selectLift(index: Int, exercise: Exercise) {
+    fun selectExercise(index: Int, exercise: Exercise) {
         if (layout == FiveThreeOneProgramLayout.Custom && index == exerciseIds.size) {
             exerciseIds = exerciseIds + exercise.id
             trainingMaxes = trainingMaxes + ""
@@ -1274,8 +1274,8 @@ private fun FiveThreeOneProgramSetupDialog(
             manuallySelectedRoleIndices = (manuallySelectedRoleIndices + index).distinct()
         }
         if (exercise.id != previousExerciseId) {
-            // Training Max values and their provenance belong to one lift. Replacing the
-            // exercise must never carry another lift's load or source into the new slot.
+            // Training Max values and their provenance belong to one exercise. Replacing the
+            // exercise must never carry another exercise's load or source into the new slot.
             trainingMaxes = trainingMaxes.toMutableList().also { it[index] = "" }
             useRecentMaxSuggestion = useRecentMaxSuggestion.toMutableList().also { it[index] = false }
             recentMaxes = recentMaxes.toMutableList().also { it[index] = "" }
@@ -1323,7 +1323,7 @@ private fun FiveThreeOneProgramSetupDialog(
                         .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
                 ) {
                     Text(
-                        if (valid) "Ready to build · ${requiredLiftCount} ${if (requiredLiftCount == 1) "exercise" else "exercises"} configured"
+                        if (valid) "Ready to build · ${requiredExerciseCount} ${if (requiredExerciseCount == 1) "exercise" else "exercises"} configured"
                         else "Still needed · ${buildBlocker ?: "Review the highlighted program settings."}",
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                         style = MaterialTheme.typography.bodySmall,
@@ -1417,8 +1417,8 @@ private fun FiveThreeOneProgramSetupDialog(
                         color = MaterialTheme.colorScheme.error,
                     )
                     WhipButton(
-                        onClick = { liftPickerIndex = 0 },
-                        modifier = Modifier.fillMaxWidth().testTag("five-three-one-create-custom-lift"),
+                        onClick = { exercisePickerIndex = 0 },
+                        modifier = Modifier.fillMaxWidth().testTag("five-three-one-create-custom-exercise"),
                     ) {
                         Icon(Icons.Filled.Add, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
@@ -1430,13 +1430,13 @@ private fun FiveThreeOneProgramSetupDialog(
                 val missingNamedRoles = roles.filter { role -> eligible.none { role.matchesExerciseName(it.name) } }
                 if (layout != FiveThreeOneProgramLayout.Custom && missingNamedRoles.isNotEmpty()) {
                     WhipOutlinedButton(
-                        enabled = !standardLiftCreationInFlight,
-                        onClick = onCreateMissingStandardLifts,
-                        modifier = Modifier.fillMaxWidth().testTag("five-three-one-create-standard-lifts"),
+                        enabled = !standardExerciseCreationInFlight,
+                        onClick = onCreateMissingStandardExercises,
+                        modifier = Modifier.fillMaxWidth().testTag("five-three-one-create-standard-exercises"),
                     ) {
-                        Text(if (standardLiftCreationInFlight) "Creating standard exercises…" else "Create missing standard Squat, Bench Press, Deadlift, and Overhead Press exercises")
+                        Text(if (standardExerciseCreationInFlight) "Creating standard exercises…" else "Create missing standard Squat, Bench Press, Deadlift, and Overhead Press exercises")
                     }
-                    standardLiftCreationError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                    standardExerciseCreationError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 }
                 if (eligible.isNotEmpty()) {
                     exerciseIds.indices.forEach { index ->
@@ -1487,14 +1487,14 @@ private fun FiveThreeOneProgramSetupDialog(
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 WhipTextButton(
                                     enabled = index > 0,
-                                    onClick = { moveCustomLift(index, index - 1) },
+                                    onClick = { moveCustomExercise(index, index - 1) },
                                     modifier = Modifier
                                         .testTag("five-three-one-move-earlier-$fieldKey")
                                         .semantics { contentDescription = "Move ${selected.name} earlier" },
                                 ) { Text("Move earlier") }
                                 WhipTextButton(
                                     enabled = index < exerciseIds.lastIndex,
-                                    onClick = { moveCustomLift(index, index + 1) },
+                                    onClick = { moveCustomExercise(index, index + 1) },
                                     modifier = Modifier
                                         .testTag("five-three-one-move-later-$fieldKey")
                                         .semantics { contentDescription = "Move ${selected.name} later" },
@@ -1512,7 +1512,7 @@ private fun FiveThreeOneProgramSetupDialog(
                         ) {
                             Text(exerciseFieldLabel, style = MaterialTheme.typography.labelMedium)
                             WhipOutlinedButton(
-                                onClick = { liftPickerIndex = index },
+                                onClick = { exercisePickerIndex = index },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .heightIn(min = 48.dp)
@@ -1741,8 +1741,8 @@ private fun FiveThreeOneProgramSetupDialog(
                     }
                     if (layout == FiveThreeOneProgramLayout.Custom) {
                         WhipOutlinedButton(
-                            onClick = { liftPickerIndex = exerciseIds.size },
-                            modifier = Modifier.fillMaxWidth().testTag("five-three-one-add-custom-lift"),
+                            onClick = { exercisePickerIndex = exerciseIds.size },
+                            modifier = Modifier.fillMaxWidth().testTag("five-three-one-add-custom-exercise"),
                         ) {
                             Icon(Icons.Filled.Add, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
@@ -1802,22 +1802,22 @@ private fun FiveThreeOneProgramSetupDialog(
                             modifier = Modifier.fillMaxWidth().testTag("five-three-one-program-bbb-percent"),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         )
-                        if (layout != FiveThreeOneProgramLayout.Beginners && lifts.isNotEmpty()) {
+                        if (layout != FiveThreeOneProgramLayout.Beginners && programExercises.isNotEmpty()) {
                             Text("BBB exercise mapping", style = MaterialTheme.typography.labelLarge)
                             Text(
                                 "Use the Main exercise again or choose another selected program exercise. The alternate uses its own Training Max.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            lifts.forEachIndexed { index, mainLift ->
-                                val selectedTarget = lifts.firstOrNull { it.exerciseId == bbbTargetIds.getOrNull(index) }
-                                    ?: mainLift
+                            programExercises.forEachIndexed { index, mainExercise ->
+                                val selectedTarget = programExercises.firstOrNull { it.exerciseId == bbbTargetIds.getOrNull(index) }
+                                    ?: mainExercise
                                 SelectionField(
-                                    label = "BBB after ${mainLift.exerciseName}",
-                                    values = lifts,
+                                    label = "BBB after ${mainExercise.exerciseName}",
+                                    values = programExercises,
                                     selected = selectedTarget,
                                     valueText = { target ->
-                                        if (target.exerciseId == mainLift.exerciseId) "${target.exerciseName} · same exercise"
+                                        if (target.exerciseId == mainExercise.exerciseId) "${target.exerciseName} · same exercise"
                                         else target.exerciseName
                                     },
                                     onSelect = { target ->
@@ -1826,7 +1826,7 @@ private fun FiveThreeOneProgramSetupDialog(
                                             else bbbTargetIds.getOrNull(slot)?.takeIf { it in exerciseIds } ?: exerciseIds[slot]
                                         }
                                     },
-                                    modifier = Modifier.testTag("five-three-one-bbb-lift-${mainLift.exerciseId}"),
+                                    modifier = Modifier.testTag("five-three-one-bbb-exercise-${mainExercise.exerciseId}"),
                                 )
                             }
                         }
@@ -1991,9 +1991,9 @@ private fun FiveThreeOneProgramSetupDialog(
                             )
                         }
                     }
-                    lifts.forEach { lift ->
+                    programExercises.forEach { exercise ->
                         val previewConfig = FiveThreeOneAuthoringConfig(
-                            trainingMax = lift.trainingMax,
+                            trainingMax = exercise.trainingMax,
                             mainScheme = mainScheme,
                             phase = previewPhase,
                             supplement = if (layout == FiveThreeOneProgramLayout.Beginners) {
@@ -2006,16 +2006,16 @@ private fun FiveThreeOneProgramSetupDialog(
                             jokerStepPercent = jokerStepPercent.toDouble(),
                         )
                         val mainPreview = runCatching {
-                            previewFiveThreeOneSets(previewConfig, lift.loadIncrement)
+                            previewFiveThreeOneSets(previewConfig, exercise.loadIncrement)
                                 .filter { it.plan.section == FiveThreeOneSetSection.Main }
                         }.getOrDefault(emptyList())
                         if (mainPreview.isNotEmpty()) {
                             Text(
-                                "${lift.exerciseName} · " + mainPreview.joinToString(" · ") { set ->
-                                    "${editableNumericValue(set.roundedLoad)} ${unitSymbol(lift.unitId)} × ${set.plan.repetitionLabel}"
+                                "${exercise.exerciseName} · " + mainPreview.joinToString(" · ") { set ->
+                                    "${editableNumericValue(set.roundedLoad)} ${unitSymbol(exercise.unitId)} × ${set.plan.repetitionLabel}"
                                 },
                                 style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.testTag("five-three-one-program-preview-lift-${lift.exerciseId}"),
+                                modifier = Modifier.testTag("five-three-one-program-preview-exercise-${exercise.exerciseId}"),
                             )
                         }
                     }
@@ -2038,7 +2038,7 @@ private fun FiveThreeOneProgramSetupDialog(
                         FiveThreeOneProgramRequest(
                             layout = layout,
                             plan = plan,
-                            lifts = lifts,
+                            exercises = programExercises,
                             mainScheme = mainScheme,
                             supplement = supplement,
                             closingProtocol = closingProtocol,
@@ -2046,7 +2046,7 @@ private fun FiveThreeOneProgramSetupDialog(
                             classicFinalSetAmrap = classicFinalSetAmrap,
                             boringButBigPercent = boringButBigPercent ?: 50.0,
                             progressionMode = RoutineProgressionMode.valueOf(progressionModeName),
-                            bbbLiftByMainExerciseId = bbbLiftByMainExerciseId,
+                            bbbExerciseByMainExerciseId = bbbExerciseByMainExerciseId,
                             assistance = assistanceChoices,
                         ),
                     )
@@ -2060,7 +2060,7 @@ private fun FiveThreeOneProgramSetupDialog(
         dismissOnClickOutside = false,
     )
 
-    liftPickerIndex?.let { index ->
+    exercisePickerIndex?.let { index ->
         val selected = selectedExercises.getOrNull(index)
         val selectedElsewhere = exerciseIds.filterIndexed { itemIndex, _ -> itemIndex != index }.toSet()
         ExercisePickerDialog(
@@ -2069,12 +2069,12 @@ private fun FiveThreeOneProgramSetupDialog(
             title = "Choose ${activeRoles.getOrNull(index)?.label ?: "Exercise ${index + 1}"}",
             supportingText = "Only active Weight + Reps exercises are shown. Search by name, equipment, or muscle.",
             itemLabel = "exercise",
-            onDismiss = { liftPickerIndex = null },
+            onDismiss = { exercisePickerIndex = null },
             onPick = { exercise ->
-                selectLift(index, exercise)
-                liftPickerIndex = null
+                selectExercise(index, exercise)
+                exercisePickerIndex = null
             },
-            onCreate = onCreateLift,
+            onCreate = onCreateExercise,
         )
     }
 }
@@ -2106,18 +2106,18 @@ private fun RoutineProgramStructurePage(
     val labels = builder.normalizedProgramPhaseLabels()
     val roles = builder.normalizedProgramPhaseRoles()
     val selectedRole = roles.getOrElse(selectedPhase) { RoutineProgramPhaseRole.Standard }
-    val mainLifts = builder.days.asSequence()
+    val mainExercises = builder.days.asSequence()
         .flatMap { it.placements.asSequence() }
-        .filter { it.placementKind == RoutinePlacementKind.MainLift.name }
+        .filter { it.placementKind == RoutinePlacementKind.MainExercise.name }
         .distinctBy { it.exerciseId }
         .toList()
-    LaunchedEffect(mainLifts.map { it.exerciseId }) {
-        if (prescriptionExerciseId != null && mainLifts.none { it.exerciseId == prescriptionExerciseId }) {
+    LaunchedEffect(mainExercises.map { it.exerciseId }) {
+        if (prescriptionExerciseId != null && mainExercises.none { it.exerciseId == prescriptionExerciseId }) {
             prescriptionExerciseId = null
         }
     }
-    val policiesByExercise = mainLifts.mapNotNull { lift ->
-        builder.fiveThreeOnePhasePolicy(selectedPhase, lift.exerciseId)?.let { lift.exerciseId to it }
+    val policiesByExercise = mainExercises.mapNotNull { exercise ->
+        builder.fiveThreeOnePhasePolicy(selectedPhase, exercise.exerciseId)?.let { exercise.exerciseId to it }
     }
     val exactUniformPolicy = policiesByExercise.map(Pair<Long, FiveThreeOnePhasePolicyState>::second)
         .distinct().singleOrNull()
@@ -2194,7 +2194,7 @@ private fun RoutineProgramStructurePage(
             DisclosureRow(
                 title = "Training Maxes",
                 supportingText = buildString {
-                    append(quantityLabel(mainLifts.size, "main exercise"))
+                    append(quantityLabel(mainExercises.size, "main exercise"))
                     if (pendingTrainingMaxDerivations.isNotEmpty()) {
                         append(" · ${pendingTrainingMaxDerivations.size} unapplied")
                     } else {
@@ -2213,48 +2213,48 @@ private fun RoutineProgramStructurePage(
                 )
             }
         }
-        if (trainingMaxesExpanded) mainLifts.forEach { lift ->
-            item(key = "program-lift-${lift.exerciseId}") {
-                val exercise = (gymState.exercises + gymState.archivedExercises).firstOrNull { it.id == lift.exerciseId }
-                val unitId = lift.trainingMaxUnitId.ifBlank { exercise?.weightUnitId ?: gymState.appSettings.gymWeightUnitId }
-                val trainingMaxIsInvalid = lift.trainingMaxValue.toWhipDoubleOrNull()
+        if (trainingMaxesExpanded) mainExercises.forEach { placement ->
+            item(key = "program-exercise-${placement.exerciseId}") {
+                val exercise = (gymState.exercises + gymState.archivedExercises).firstOrNull { it.id == placement.exerciseId }
+                val unitId = placement.trainingMaxUnitId.ifBlank { exercise?.weightUnitId ?: gymState.appSettings.gymWeightUnitId }
+                val trainingMaxIsInvalid = placement.trainingMaxValue.toWhipDoubleOrNull()
                     ?.let { !it.isFinite() || it <= 0.0 } != false
-                val cycleIncreaseIsInvalid = lift.cycleIncrementValue.toWhipDoubleOrNull()
+                val cycleIncreaseIsInvalid = placement.cycleIncrementValue.toWhipDoubleOrNull()
                     ?.let { !it.isFinite() || it <= 0.0 } != false
-                val appliedBasisKind = runCatching { TrainingMaxBasisKind.valueOf(lift.trainingMaxBasisKind) }
+                val appliedBasisKind = runCatching { TrainingMaxBasisKind.valueOf(placement.trainingMaxBasisKind) }
                     .getOrDefault(TrainingMaxBasisKind.ExplicitTrainingMax)
                 val pendingDerivation = pendingTrainingMaxDerivations.firstOrNull {
-                    it.exerciseId == lift.exerciseId
+                    it.exerciseId == placement.exerciseId
                 }
                 val editedBasis = pendingDerivation ?: PendingTrainingMaxDerivation(
-                    exerciseId = lift.exerciseId,
-                    basisKind = lift.trainingMaxBasisKind,
-                    basisValue = lift.trainingMaxBasisValue,
-                    basisUnitId = lift.trainingMaxBasisUnitId,
-                    percentage = lift.trainingMaxPercent.ifBlank { "85" },
+                    exerciseId = placement.exerciseId,
+                    basisKind = placement.trainingMaxBasisKind,
+                    basisValue = placement.trainingMaxBasisValue,
+                    basisUnitId = placement.trainingMaxBasisUnitId,
+                    percentage = placement.trainingMaxPercent.ifBlank { "85" },
                 )
                 val basisKind = runCatching { TrainingMaxBasisKind.valueOf(editedBasis.basisKind) }
                     .getOrDefault(appliedBasisKind)
                 val loadIncrement = exercise?.weightIncrement?.takeIf { it > 0.0 }
                     ?: if (unitId == "pound") 5.0 else 2.5
                 val derivation = FiveThreeOneTrainingMaxEntryState(
-                    explicitTrainingMax = lift.trainingMaxValue,
+                    explicitTrainingMax = placement.trainingMaxValue,
                     recentMaxOrEstimatedOneRepMax = editedBasis.basisValue,
                     trainingMaxPercentage = editedBasis.percentage,
                 )
                 val derivedSuggestion = derivation.suggestionOrNull(loadIncrement)
-                var basisExpanded by rememberSaveable(lift.key) { mutableStateOf(false) }
+                var basisExpanded by rememberSaveable(placement.key) { mutableStateOf(false) }
                 OutlinedCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(exercise?.name ?: lift.exerciseNameSnapshot, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                        Text(exercise?.name ?: placement.exerciseNameSnapshot, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                         ResponsiveFieldPair(
                             first = { field ->
                                 OutlinedTextField(
-                                    value = lift.trainingMaxValue,
+                                    value = placement.trainingMaxValue,
                                     onValueChange = { value ->
-                                        onPendingTrainingMaxDerivationChange(lift.exerciseId, null)
+                                        onPendingTrainingMaxDerivationChange(placement.exerciseId, null)
                                         onBuilderChange { current ->
-                                            current.updateProgramPlacement(lift.key) {
+                                            current.updateProgramPlacement(placement.key) {
                                                 it.copy(
                                                     trainingMaxValue = value.numericInput(),
                                                     trainingMaxUnitId = unitId,
@@ -2271,15 +2271,15 @@ private fun RoutineProgramStructurePage(
                                     isError = trainingMaxIsInvalid,
                                     singleLine = true,
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                    modifier = field.testTag("routine-program-training-max-${lift.exerciseId}"),
+                                    modifier = field.testTag("routine-program-training-max-${placement.exerciseId}"),
                                 )
                             },
                             second = { field ->
                                 OutlinedTextField(
-                                    value = lift.cycleIncrementValue,
+                                    value = placement.cycleIncrementValue,
                                     onValueChange = { value ->
                                         onBuilderChange { current ->
-                                            current.updateProgramPlacement(lift.key) {
+                                            current.updateProgramPlacement(placement.key) {
                                                 it.copy(cycleIncrementValue = value.numericInput())
                                             }
                                         }
@@ -2291,7 +2291,7 @@ private fun RoutineProgramStructurePage(
                                     isError = cycleIncreaseIsInvalid,
                                     singleLine = true,
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                    modifier = field.testTag("routine-program-cycle-increase-${lift.exerciseId}"),
+                                    modifier = field.testTag("routine-program-cycle-increase-${placement.exerciseId}"),
                                 )
                             },
                         )
@@ -2307,7 +2307,7 @@ private fun RoutineProgramStructurePage(
                             },
                             expanded = basisExpanded,
                             onClick = { basisExpanded = !basisExpanded },
-                            modifier = Modifier.testTag("routine-program-tm-basis-${lift.exerciseId}"),
+                            modifier = Modifier.testTag("routine-program-tm-basis-${placement.exerciseId}"),
                         )
                         if (basisExpanded) {
                             Text(
@@ -2330,12 +2330,12 @@ private fun RoutineProgramStructurePage(
                                         onClick = {
                                             val matchingRecord = when (basis) {
                                                 TrainingMaxBasisKind.ActualOneRepMax -> gymState.personalRecords.firstOrNull { record ->
-                                                    record.exerciseId == lift.exerciseId && record.current &&
+                                                    record.exerciseId == placement.exerciseId && record.current &&
                                                         record.type == PersonalRecordType.BestWeightForRepCount &&
                                                         record.secondaryValue == 1.0 && record.machineProfileUuidSnapshot == null
                                                 }
                                                 TrainingMaxBasisKind.EstimatedOneRepMax -> gymState.personalRecords.firstOrNull { record ->
-                                                    record.exerciseId == lift.exerciseId && record.current &&
+                                                    record.exerciseId == placement.exerciseId && record.current &&
                                                         record.type == PersonalRecordType.EstimatedOneRepMax &&
                                                         record.machineProfileUuidSnapshot == null
                                                 }
@@ -2348,13 +2348,13 @@ private fun RoutineProgramStructurePage(
                                                     editableNumericValue(massFromKilograms(record.value, unitId))
                                                 }.orEmpty()
                                                 TrainingMaxBasisKind.ManualSourceMax -> ""
-                                                TrainingMaxBasisKind.ExplicitTrainingMax -> lift.trainingMaxValue
+                                                TrainingMaxBasisKind.ExplicitTrainingMax -> placement.trainingMaxValue
                                                 TrainingMaxBasisKind.Unspecified -> ""
                                             }
                                             if (basis == TrainingMaxBasisKind.ExplicitTrainingMax) {
-                                                onPendingTrainingMaxDerivationChange(lift.exerciseId, null)
+                                                onPendingTrainingMaxDerivationChange(placement.exerciseId, null)
                                                 onBuilderChange { current ->
-                                                    current.updateProgramPlacement(lift.key) {
+                                                    current.updateProgramPlacement(placement.key) {
                                                         it.copy(
                                                             trainingMaxBasisKind = basis.name,
                                                             trainingMaxBasisValue = it.trainingMaxValue,
@@ -2370,13 +2370,13 @@ private fun RoutineProgramStructurePage(
                                                     basisUnitId = unitId,
                                                 )
                                                 onPendingTrainingMaxDerivationChange(
-                                                    lift.exerciseId,
-                                                    candidate.takeUnless { it.matchesApplied(lift) },
+                                                    placement.exerciseId,
+                                                    candidate.takeUnless { it.matchesApplied(placement) },
                                                 )
                                             }
                                         },
                                         label = { Text(label) },
-                                        modifier = Modifier.testTag("routine-program-tm-basis-${lift.exerciseId}-${basis.name}"),
+                                        modifier = Modifier.testTag("routine-program-tm-basis-${placement.exerciseId}-${basis.name}"),
                                     )
                                 }
                             }
@@ -2395,8 +2395,8 @@ private fun RoutineProgramStructurePage(
                                                     basisUnitId = unitId,
                                                 )
                                                 onPendingTrainingMaxDerivationChange(
-                                                    lift.exerciseId,
-                                                    candidate.takeUnless { it.matchesApplied(lift) },
+                                                    placement.exerciseId,
+                                                    candidate.takeUnless { it.matchesApplied(placement) },
                                                 )
                                             },
                                             label = {
@@ -2410,7 +2410,7 @@ private fun RoutineProgramStructurePage(
                                             },
                                             singleLine = true,
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                            modifier = field.testTag("routine-program-tm-source-${lift.exerciseId}"),
+                                            modifier = field.testTag("routine-program-tm-source-${placement.exerciseId}"),
                                         )
                                     },
                                     second = { field ->
@@ -2419,8 +2419,8 @@ private fun RoutineProgramStructurePage(
                                             onValueChange = { value ->
                                                 val candidate = editedBasis.copy(percentage = value.numericInput())
                                                 onPendingTrainingMaxDerivationChange(
-                                                    lift.exerciseId,
-                                                    candidate.takeUnless { it.matchesApplied(lift) },
+                                                    placement.exerciseId,
+                                                    candidate.takeUnless { it.matchesApplied(placement) },
                                                 )
                                             },
                                             label = { Text("TM percentage") },
@@ -2428,7 +2428,7 @@ private fun RoutineProgramStructurePage(
                                             isError = editedBasis.percentage.toWhipDoubleOrNull()?.let { it !in 1.0..100.0 } != false,
                                             singleLine = true,
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                            modifier = field.testTag("routine-program-tm-percent-${lift.exerciseId}"),
+                                            modifier = field.testTag("routine-program-tm-percent-${placement.exerciseId}"),
                                         )
                                     },
                                 )
@@ -2444,7 +2444,7 @@ private fun RoutineProgramStructurePage(
                                     onClick = {
                                         val suggestion = derivedSuggestion ?: return@WhipOutlinedButton
                                         onBuilderChange { current ->
-                                            current.updateProgramPlacement(lift.key) {
+                                            current.updateProgramPlacement(placement.key) {
                                                 it.copy(
                                                     trainingMaxValue = editableNumericValue(suggestion),
                                                     trainingMaxUnitId = unitId,
@@ -2456,9 +2456,9 @@ private fun RoutineProgramStructurePage(
                                                 )
                                             }
                                         }
-                                        onPendingTrainingMaxDerivationChange(lift.exerciseId, null)
+                                        onPendingTrainingMaxDerivationChange(placement.exerciseId, null)
                                     },
-                                    modifier = Modifier.fillMaxWidth().testTag("routine-program-apply-tm-${lift.exerciseId}"),
+                                    modifier = Modifier.fillMaxWidth().testTag("routine-program-apply-tm-${placement.exerciseId}"),
                                 ) {
                                     Text(
                                         derivedSuggestion?.let { value ->
@@ -2471,7 +2471,7 @@ private fun RoutineProgramStructurePage(
                                         "Training Max basis has unapplied changes. Apply the calculated Training Max before saving the routine.",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.error,
-                                        modifier = Modifier.testTag("routine-program-tm-unapplied-${lift.exerciseId}"),
+                                        modifier = Modifier.testTag("routine-program-tm-unapplied-${placement.exerciseId}"),
                                     )
                                 }
                             }
@@ -2537,7 +2537,7 @@ private fun RoutineProgramStructurePage(
         item {
             SelectionField(
                 label = "Phase role",
-                values = RoutineProgramPhaseRole.entries.filterNot(RoutineProgramPhaseRole::usesOncePerLiftProtocol),
+                values = RoutineProgramPhaseRole.entries.filterNot(RoutineProgramPhaseRole::usesOncePerExerciseProtocol),
                 selected = selectedRole.semanticRole(),
                 valueText = RoutineProgramPhaseRole::uiLabel,
                 onSelect = { role ->
@@ -2590,7 +2590,7 @@ private fun RoutineProgramStructurePage(
                 }
             }
         }
-        if (mainLifts.isNotEmpty()) {
+        if (mainExercises.isNotEmpty()) {
             item {
                 Text("Prescription for this phase", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text(
@@ -2608,14 +2608,14 @@ private fun RoutineProgramStructurePage(
                         label = { Text("All main exercises") },
                         modifier = Modifier.testTag("routine-program-policy-scope-all"),
                     )
-                    mainLifts.forEach { lift ->
-                        val liftName = (gymState.exercises + gymState.archivedExercises).firstOrNull { it.id == lift.exerciseId }?.name
-                            ?: lift.exerciseNameSnapshot
+                    mainExercises.forEach { exercise ->
+                        val exerciseName = (gymState.exercises + gymState.archivedExercises).firstOrNull { it.id == exercise.exerciseId }?.name
+                            ?: exercise.exerciseNameSnapshot
                         WhipFilterChip(
-                            selected = prescriptionExerciseId == lift.exerciseId,
-                            onClick = { prescriptionExerciseId = lift.exerciseId },
-                            label = { Text(liftName) },
-                            modifier = Modifier.testTag("routine-program-policy-scope-${lift.exerciseId}"),
+                            selected = prescriptionExerciseId == exercise.exerciseId,
+                            onClick = { prescriptionExerciseId = exercise.exerciseId },
+                            label = { Text(exerciseName) },
+                            modifier = Modifier.testTag("routine-program-policy-scope-${exercise.exerciseId}"),
                         )
                     }
                 }
@@ -2644,7 +2644,7 @@ private fun RoutineProgramStructurePage(
             item {
                 val summaries = builder.fiveThreeOnePhasePrescriptionSummary(
                     selectedPhase,
-                    prescriptionExerciseId ?: mainLifts.firstOrNull()?.exerciseId,
+                    prescriptionExerciseId ?: mainExercises.firstOrNull()?.exerciseId,
                 )
                 if (summaries.isNotEmpty()) {
                     Column(
@@ -2859,9 +2859,9 @@ private fun RoutineProgramPhaseRole.uiLabel(): String = when (semanticRole()) {
     RoutineProgramPhaseRole.Deload -> "Deload"
     RoutineProgramPhaseRole.TrainingMaxTest -> "Training Max Test"
     RoutineProgramPhaseRole.PersonalRecordTest -> "PR Test"
-    RoutineProgramPhaseRole.OncePerLiftDeload,
-    RoutineProgramPhaseRole.OncePerLiftTrainingMaxTest,
-    RoutineProgramPhaseRole.OncePerLiftPersonalRecordTest,
+    RoutineProgramPhaseRole.OncePerExerciseDeload,
+    RoutineProgramPhaseRole.OncePerExerciseTrainingMaxTest,
+    RoutineProgramPhaseRole.OncePerExercisePersonalRecordTest,
     -> error("semanticRole() must return a public phase role")
 }
 
@@ -3410,7 +3410,7 @@ private fun RoutinePlacementCard(
 }
 
 private fun RoutineBuilderPlacementState.routineRoleSummary(): String? = when (placementKind) {
-    RoutinePlacementKind.MainLift.name -> "Program main exercise"
+    RoutinePlacementKind.MainExercise.name -> "Program main exercise"
     RoutinePlacementKind.Supplemental.name -> "Program supplemental work"
     RoutinePlacementKind.Assistance.name -> {
         val label = when (assistanceCategory) {
@@ -3485,11 +3485,11 @@ private fun RoutinePlacementEditor(
         }.getOrNull()
     }
     val isStructuredFiveThreeOne = programKind.isFiveThreeOneProgramKindName()
-    val singleLiftConversionAvailable = allDays.size == 1
+    val singleExerciseConversionAvailable = allDays.size == 1
     val placementKind = runCatching { RoutinePlacementKind.valueOf(placement.placementKind) }
         .getOrDefault(RoutinePlacementKind.General)
     val isProgramControlledPlacement = isStructuredFiveThreeOne && placementKind in setOf(
-        RoutinePlacementKind.MainLift,
+        RoutinePlacementKind.MainExercise,
         RoutinePlacementKind.Supplemental,
     )
     val hasTrainingMaxPrescription = placement.sets.any {
@@ -3547,8 +3547,8 @@ private fun RoutinePlacementEditor(
                 maxLines = 3,
             )
         }
-        if (placementKind == RoutinePlacementKind.MainLift) item {
-            OutlinedCard(Modifier.fillMaxWidth().testTag("routine-main-lift-provenance")) {
+        if (placementKind == RoutinePlacementKind.MainExercise) item {
+            OutlinedCard(Modifier.fillMaxWidth().testTag("routine-main-exercise-provenance")) {
                 Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("Program main exercise", fontWeight = FontWeight.Bold)
                     Text(
@@ -3616,7 +3616,7 @@ private fun RoutinePlacementEditor(
         }
         if (
             supportsFiveThreeOne && isStructuredFiveThreeOne &&
-            placementKind == RoutinePlacementKind.MainLift
+            placementKind == RoutinePlacementKind.MainExercise
         ) item {
             OutlinedCard(Modifier.fillMaxWidth().testTag("routine-five-three-one-program-controlled")) {
                 Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -3629,7 +3629,7 @@ private fun RoutinePlacementEditor(
                 }
             }
         }
-        if (supportsFiveThreeOne && !isStructuredFiveThreeOne && singleLiftConversionAvailable) item {
+        if (supportsFiveThreeOne && !isStructuredFiveThreeOne && singleExerciseConversionAvailable) item {
             WhipOutlinedButton(
                 onClick = { showFiveThreeOneBuilder = !showFiveThreeOneBuilder },
                 modifier = Modifier.fillMaxWidth().testTag("routine-five-three-one-toggle"),
@@ -3661,7 +3661,7 @@ private fun RoutinePlacementEditor(
                 )
             }
         }
-        if (supportsFiveThreeOne && !isStructuredFiveThreeOne && !singleLiftConversionAvailable) item {
+        if (supportsFiveThreeOne && !isStructuredFiveThreeOne && !singleExerciseConversionAvailable) item {
             OutlinedCard(Modifier.fillMaxWidth().testTag("routine-five-three-one-whole-program-required")) {
                 Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("Build the whole 5/3/1 program", fontWeight = FontWeight.Bold)
@@ -3975,7 +3975,7 @@ private fun RoutinePlacementEditor(
                                 routinePhaseIndex = visibleProgramPhase.takeIf { hasProgramPhases },
                                 workSection = when (placementKind) {
                                     RoutinePlacementKind.Assistance -> RoutineWorkSection.Assistance.name
-                                    RoutinePlacementKind.MainLift -> RoutineWorkSection.Optional.name
+                                    RoutinePlacementKind.MainExercise -> RoutineWorkSection.Optional.name
                                     RoutinePlacementKind.Supplemental -> RoutineWorkSection.Supplemental.name
                                     RoutinePlacementKind.General -> RoutineWorkSection.Unspecified.name
                                 },
@@ -4998,8 +4998,8 @@ private fun routineBuilderValidationErrors(state: RoutineBuilderState, gymState:
         val isProgrammed = state.programKind?.let { kind ->
             runCatching { RoutineProgramKind.valueOf(kind) }.getOrDefault(RoutineProgramKind.Static)
         }?.let { it != RoutineProgramKind.Static } == true
-        val isProgramMainLift = state.programKind.isFiveThreeOneProgramKindName() &&
-            placement.placementKind == RoutinePlacementKind.MainLift.name
+        val isProgramMainExercise = state.programKind.isFiveThreeOneProgramKindName() &&
+            placement.placementKind == RoutinePlacementKind.MainExercise.name
         val error = when {
             exercise == null -> "Exercise no longer exists"
             placement.equipmentBindingState == RoutineEquipmentBindingState.NeedsEquipment.name -> "Choose replacement equipment"
@@ -5029,7 +5029,7 @@ private fun routineBuilderValidationErrors(state: RoutineBuilderState, gymState:
                 !hasCurrentEstimatedOneRepMax -> "Record an estimated 1RM or enter an explicit Training Max"
             hasEstimatedOneRepMaxPrescription && !hasCurrentEstimatedOneRepMax ->
                 "Record an estimated 1RM for this exercise and equipment"
-            isProgramMainLift && placement.cycleIncrementValue.toWhipDoubleOrNull()
+            isProgramMainExercise && placement.cycleIncrementValue.toWhipDoubleOrNull()
                 ?.let { !it.isFinite() || it <= 0.0 } != false -> "Cycle increase must be above zero"
             !isProgrammed && placement.progressionPercentages.split(',').map(String::trim).filter(String::isNotBlank)
                 .any { it.toWhipDoubleOrNull()?.let { value -> value !in 1.0..200.0 } != false } -> "Every cycle multiplier must be from 1 to 200%"
@@ -5396,12 +5396,12 @@ private fun RoutineAssistanceRole.toBuilderAssistanceCategory(): RoutineAssistan
     RoutineAssistanceRole.SingleLegCore -> RoutineAssistanceCategory.SingleLegCore
     RoutineAssistanceRole.Other -> RoutineAssistanceCategory.Other
     RoutineAssistanceRole.Unspecified,
-    RoutineAssistanceRole.MainLift,
+    RoutineAssistanceRole.MainExercise,
     -> RoutineAssistanceCategory.Unspecified
 }
 
 private fun RoutineExerciseDraft.toBuilderAssistanceRole(): RoutineAssistanceRole = when (placementKind) {
-    RoutinePlacementKind.MainLift -> RoutineAssistanceRole.MainLift
+    RoutinePlacementKind.MainExercise -> RoutineAssistanceRole.MainExercise
     RoutinePlacementKind.Assistance -> when (assistanceCategory) {
         RoutineAssistanceCategory.Push -> RoutineAssistanceRole.Push
         RoutineAssistanceCategory.Pull -> RoutineAssistanceRole.Pull
@@ -5421,7 +5421,7 @@ private fun RoutineAssistanceRole.assistanceUiLabel(): String = when (this) {
     RoutineAssistanceRole.SingleLegCore -> "Single-leg / Core"
     RoutineAssistanceRole.Other -> "Other"
     RoutineAssistanceRole.Unspecified -> "Unclassified"
-    RoutineAssistanceRole.MainLift -> "Main exercise"
+    RoutineAssistanceRole.MainExercise -> "Main exercise"
 }
 
 private fun RoutineAssistanceRole.assistanceUiDescription(): String = when (this) {
@@ -5430,7 +5430,7 @@ private fun RoutineAssistanceRole.assistanceUiDescription(): String = when (this
     RoutineAssistanceRole.SingleLegCore -> "Single-leg lower-body, abdominal, or lower-back work"
     RoutineAssistanceRole.Other -> "Assistance outside the three common categories"
     RoutineAssistanceRole.Unspecified -> "No routine assistance category"
-    RoutineAssistanceRole.MainLift -> "Program-managed Main and Supplemental work"
+    RoutineAssistanceRole.MainExercise -> "Program-managed Main and Supplemental work"
 }
 
 private fun RoutineBuilderPlacementState.plannedAssistanceReps(): Int = sets.sumOf { set ->
@@ -5469,10 +5469,10 @@ internal fun RoutineBuilderPlacementState.withAssistanceCategory(
 
 internal fun RoutineBuilderPlacementState.withAssistanceRole(role: RoutineAssistanceRole): RoutineBuilderPlacementState =
     when (role) {
-        RoutineAssistanceRole.MainLift -> copy(
-            placementKind = RoutinePlacementKind.MainLift.name,
+        RoutineAssistanceRole.MainExercise -> copy(
+            placementKind = RoutinePlacementKind.MainExercise.name,
             assistanceCategory = RoutineAssistanceCategory.Unspecified.name,
-            assistanceRole = RoutineAssistanceRole.MainLift.name,
+            assistanceRole = RoutineAssistanceRole.MainExercise.name,
         )
         RoutineAssistanceRole.Unspecified -> withAssistanceCategory(null)
         RoutineAssistanceRole.Push -> withAssistanceCategory(RoutineAssistanceCategory.Push)
@@ -5482,15 +5482,15 @@ internal fun RoutineBuilderPlacementState.withAssistanceRole(role: RoutineAssist
     }
 
 /**
- * Reconciles asynchronously created standard lifts. Automatic fallbacks may move to a better
+ * Reconciles asynchronously created standard exercises. Automatic fallbacks may move to a better
  * role/name match as the library changes; indices the lifter selected manually are preserved.
  */
-internal fun fillEmptyFiveThreeOneLiftSelections(
+internal fun fillEmptyFiveThreeOneExerciseSelections(
     currentIds: List<Long>,
     candidates: List<Pair<Long, String>>,
     manuallySelectedRoleIndices: Set<Int> = emptySet(),
 ): List<Long> {
-    val roles = FiveThreeOneLiftRole.entries
+    val roles = FiveThreeOneExerciseRole.entries
     val candidateIds = candidates.mapTo(mutableSetOf(), Pair<Long, String>::first)
     val result = MutableList(roles.size) { index ->
         currentIds.getOrNull(index).orZero().takeIf { index in manuallySelectedRoleIndices && it in candidateIds } ?: 0L
@@ -5557,11 +5557,11 @@ internal fun RoutineBuilderState.fiveThreeOnePhasePrescriptionSummary(
     if (phaseIndex !in 0 until programPhaseCount || exerciseId == null) return emptyList()
     val day = days.firstOrNull { candidate ->
         candidate.placements.any {
-            it.exerciseId == exerciseId && it.placementKind == RoutinePlacementKind.MainLift.name
+            it.exerciseId == exerciseId && it.placementKind == RoutinePlacementKind.MainExercise.name
         }
     } ?: return emptyList()
     val placement = day.placements.first {
-        it.exerciseId == exerciseId && it.placementKind == RoutinePlacementKind.MainLift.name
+        it.exerciseId == exerciseId && it.placementKind == RoutinePlacementKind.MainExercise.name
     }
     val active = placement.sets.filter { it.routinePhaseIndex == null || it.routinePhaseIndex == phaseIndex }
     val alternate = day.placements.firstOrNull { candidate ->
@@ -5611,12 +5611,12 @@ internal fun RoutineBuilderState.fiveThreeOnePhasePolicy(
     if (phaseIndex !in 0 until programPhaseCount) return null
     val day = days.firstOrNull { candidate ->
         candidate.placements.any {
-            it.placementKind == RoutinePlacementKind.MainLift.name &&
+            it.placementKind == RoutinePlacementKind.MainExercise.name &&
                 (exerciseId == null || it.exerciseId == exerciseId)
         }
     } ?: return null
     val placement = day.placements.first {
-        it.placementKind == RoutinePlacementKind.MainLift.name &&
+        it.placementKind == RoutinePlacementKind.MainExercise.name &&
             (exerciseId == null || it.exerciseId == exerciseId)
     }
     val active = placement.sets.filter { it.routinePhaseIndex == null || it.routinePhaseIndex == phaseIndex }
@@ -5666,7 +5666,7 @@ internal fun RoutineBuilderState.fiveThreeOnePhasePolicy(
 }
 
 /**
- * Rewrites only one phase's executable Main/Supplemental/Joker work across mapped main lifts.
+ * Rewrites only one phase's executable Main/Supplemental/Joker work across mapped main exercises.
  * Phase-null supplemental work is first expanded across every phase so changing one phase can
  * never leave both a global and a phase-specific prescription active.
  */
@@ -5709,7 +5709,7 @@ internal fun RoutineBuilderState.applyFiveThreeOnePhasePolicy(
 
     val updatedDays = days.map { day ->
         val targetedMainInDay = day.placements.any { placement ->
-            placement.placementKind == RoutinePlacementKind.MainLift.name &&
+            placement.placementKind == RoutinePlacementKind.MainExercise.name &&
                 (exerciseId == null || placement.exerciseId == exerciseId)
         }
         val activeAlternatePlacement = day.placements.firstOrNull { placement ->
@@ -5742,7 +5742,7 @@ internal fun RoutineBuilderState.applyFiveThreeOnePhasePolicy(
                 )
             }
             if (
-                placement.placementKind != RoutinePlacementKind.MainLift.name ||
+                placement.placementKind != RoutinePlacementKind.MainExercise.name ||
                 (exerciseId != null && placement.exerciseId != exerciseId)
             ) return@map placement
             val materialized = materializeGlobalSupplemental(placement.sets)
@@ -5912,7 +5912,7 @@ internal fun RoutineBuilderState.setFiveThreeOneJokerLadder(
     val updatedDays = days.map { day ->
         day.copy(placements = day.placements.map { placement ->
             if (
-                placement.placementKind != RoutinePlacementKind.MainLift.name ||
+                placement.placementKind != RoutinePlacementKind.MainExercise.name ||
                 (exerciseId != null && placement.exerciseId != exerciseId)
             ) return@map placement
             val isPhaseJoker: (RoutineBuilderSetState) -> Boolean = { set ->
@@ -5954,7 +5954,7 @@ internal fun RoutineBuilderState.setFiveThreeOneJokerLadder(
     return copy(days = updatedDays, nextKey = next)
 }
 
-/** Removes optional Joker prescriptions without normalizing any lift's Main or Supplemental policy. */
+/** Removes optional Joker prescriptions without normalizing any exercise's Main or Supplemental policy. */
 internal fun RoutineBuilderState.removeFiveThreeOneJokers(
     phaseIndex: Int,
     exerciseId: Long? = null,
@@ -5973,9 +5973,9 @@ internal fun RoutineBuilderState.applyFiveThreeOneSeventhWeekProtocol(
     val highestKey = days.asSequence().flatMap { it.placements.asSequence() }
         .flatMap { it.sets.asSequence() }.maxOfOrNull(RoutineBuilderSetState::key) ?: 0L
     var next = maxOf(nextKey, highestKey + 1L)
-    val protocolOwnerDayByExerciseId = balancedOncePerLiftDayOwners(
+    val protocolOwnerDayByExerciseId = balancedOncePerExerciseDayOwners(
         days.map { day ->
-            day.placements.filter { it.placementKind == RoutinePlacementKind.MainLift.name }
+            day.placements.filter { it.placementKind == RoutinePlacementKind.MainExercise.name }
                 .map(RoutineBuilderPlacementState::exerciseId)
         },
     )
@@ -6000,7 +6000,7 @@ internal fun RoutineBuilderState.applyFiveThreeOneSeventhWeekProtocol(
             val kind = runCatching { RoutinePlacementKind.valueOf(placement.placementKind) }
                 .getOrDefault(RoutinePlacementKind.General)
             when (kind) {
-                RoutinePlacementKind.MainLift -> {
+                RoutinePlacementKind.MainExercise -> {
                     val materialized = materializeGlobalSupplemental(placement.sets)
                     val retained = materialized.filterNot { set ->
                         set.routinePhaseIndex == phaseIndex && (
@@ -6053,13 +6053,13 @@ internal fun RoutineBuilderState.applyFiveThreeOneSeventhWeekProtocol(
             ?: RoutineProgramTemplateKey.FiveThreeOneCustom.name,
         programTemplateRevision = maxOf(
             programTemplateRevision,
-            FIVE_THREE_ONE_ONCE_PER_LIFT_PROTOCOL_REVISION,
+            FIVE_THREE_ONE_ONCE_PER_EXERCISE_PROTOCOL_REVISION,
         ),
     )
         .updateProgramPhaseMetadata(
             phaseIndex = phaseIndex,
             label = "7th Week · ${protocol.label}",
-            role = protocol.phaseRole().asOncePerLiftProtocol(),
+            role = protocol.phaseRole().asOncePerExerciseProtocol(),
             advancesTrainingMax = true,
         )
 }
@@ -6199,7 +6199,7 @@ private fun RoutineBuilderPlacementState.fiveThreeOneProjection() = FiveThreeOne
     sets,
 )
 
-/** Keeps repeated main-lift placements in one program from silently drifting apart. */
+/** Keeps repeated main-exercise placements in one program from silently drifting apart. */
 internal fun RoutineBuilderState.updateProgramPlacement(
     placementKey: Long,
     transform: (RoutineBuilderPlacementState) -> RoutineBuilderPlacementState,
@@ -6207,7 +6207,7 @@ internal fun RoutineBuilderState.updateProgramPlacement(
     val before = days.asSequence().flatMap { it.placements.asSequence() }.firstOrNull { it.key == placementKey } ?: return this
     val after = transform(before)
     val shouldSync = programKind.isFiveThreeOneProgramKindName() &&
-        after.placementKind == RoutinePlacementKind.MainLift.name &&
+        after.placementKind == RoutinePlacementKind.MainExercise.name &&
         before.fiveThreeOneProjection() != after.fiveThreeOneProjection()
     val trainingMaxChanged = before.trainingMaxValue != after.trainingMaxValue ||
         before.trainingMaxUnitId != after.trainingMaxUnitId ||
@@ -6221,7 +6221,7 @@ internal fun RoutineBuilderState.updateProgramPlacement(
         .flatMap { it.placements.asSequence() }
         .filter {
             it.exerciseId == after.exerciseId &&
-                it.placementKind == RoutinePlacementKind.MainLift.name
+                it.placementKind == RoutinePlacementKind.MainExercise.name
         }
         .toList()
     fun RoutineBuilderSetState.isTrainingMaxTest() =
@@ -6245,7 +6245,7 @@ internal fun RoutineBuilderState.updateProgramPlacement(
             when {
                 placement.key == placementKey -> after
                 shouldSync && placement.exerciseId == after.exerciseId &&
-                    placement.placementKind == RoutinePlacementKind.MainLift.name -> {
+                    placement.placementKind == RoutinePlacementKind.MainExercise.name -> {
                     val ownedTrainingMaxTests = placement.sets.filter { set ->
                         set.isTrainingMaxTest() && trainingMaxTestOwnerByPhase[set.routinePhaseIndex] == placement.key
                     }

@@ -14,8 +14,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         TaskStepStateEntity::class,
         TaskStepSnapshotEntity::class,
         UnitDefinitionEntity::class,
-        MetricDefinitionEntity::class,
-        MetricEntryEntity::class,
+        MeasurementDefinitionEntity::class,
+        MeasurementEntryEntity::class,
         AreaEntity::class,
         TagEntity::class,
         ExerciseEntity::class,
@@ -62,7 +62,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         TrackEntrySearchEntity::class,
         TrackCsvImportReceiptEntity::class,
     ],
-    version = 44,
+    version = 45,
     exportSchema = true,
 )
 abstract class WhipDatabase : RoomDatabase() {

@@ -16,12 +16,12 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.RESTRICT,
         ),
     ],
-    indices = [Index("uuid", unique = true), Index("metricId", unique = true), Index("archived"), Index("pinned"), Index("areaId")],
+    indices = [Index("uuid", unique = true), Index("measurementId", unique = true), Index("archived"), Index("pinned"), Index("areaId")],
 )
 data class HabitEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val uuid: String,
-    val metricId: String,
+    val measurementId: String,
     val name: String,
     val notes: String,
     val areaId: String? = null,
@@ -57,7 +57,7 @@ data class HabitEntity(
     val paused: Boolean,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
-    val sourceMetricId: String? = null,
+    val sourceMeasurementId: String? = null,
     @ColumnInfo(defaultValue = "1") val autoCompleteFromItems: Boolean = true,
     val timerSessionId: String? = null,
     @ColumnInfo(defaultValue = "0") val timerNeedsReview: Boolean = false,
@@ -128,7 +128,7 @@ data class HabitLogEntity(
     val note: String,
     val sourceType: String,
     val sourceId: String?,
-    val metricEntryId: String?,
+    val measurementEntryId: String?,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
 )

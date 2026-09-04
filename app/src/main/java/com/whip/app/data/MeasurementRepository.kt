@@ -7,11 +7,11 @@ import com.whip.app.domain.Area
 import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.CustomUnitBoundary
 import com.whip.app.domain.customUnitBoundary
-import com.whip.app.domain.MetricDefinition
-import com.whip.app.domain.MetricEntry
-import com.whip.app.domain.MetricEntryStatus
-import com.whip.app.domain.MetricSourceType
-import com.whip.app.domain.MetricValueKind
+import com.whip.app.domain.MeasurementDefinition
+import com.whip.app.domain.MeasurementEntry
+import com.whip.app.domain.MeasurementEntryStatus
+import com.whip.app.domain.MeasurementSourceType
+import com.whip.app.domain.MeasurementValueKind
 import com.whip.app.domain.HealthSourceRecord
 import com.whip.app.domain.HealthSourceWindow
 import com.whip.app.domain.UnitDefinition
@@ -28,23 +28,23 @@ import kotlin.math.sign
 
 interface MeasurementRepository {
     val customUnits: Flow<List<UnitDefinition>>
-    val metrics: Flow<List<MetricDefinition>>
-    val entries: Flow<List<MetricEntry>>
+    val measurements: Flow<List<MeasurementDefinition>>
+    val entries: Flow<List<MeasurementEntry>>
     val areas: Flow<List<Area>>
     val tags: Flow<List<WhipTag>>
 
-    suspend fun createMetric(
+    suspend fun createMeasurement(
         name: String,
-        valueKind: MetricValueKind,
+        valueKind: MeasurementValueKind,
         dimension: UnitDimension,
         defaultUnitId: String,
         precision: Int = 1,
     ): String
 
-    suspend fun ensureMetric(
+    suspend fun ensureMeasurement(
         id: String,
         name: String,
-        valueKind: MetricValueKind,
+        valueKind: MeasurementValueKind,
         dimension: UnitDimension,
         defaultUnitId: String,
         precision: Int = 1,
@@ -103,14 +103,14 @@ interface MeasurementRepository {
     suspend fun moveArea(id: String, direction: Int)
 
     suspend fun record(
-        metricId: String,
+        measurementId: String,
         value: Double?,
         unitId: String?,
-        status: MetricEntryStatus = MetricEntryStatus.Recorded,
+        status: MeasurementEntryStatus = MeasurementEntryStatus.Recorded,
         timestamp: Instant? = null,
         localDate: LocalDate? = null,
         zoneId: ZoneId? = null,
-        sourceType: MetricSourceType = MetricSourceType.Manual,
+        sourceType: MeasurementSourceType = MeasurementSourceType.Manual,
         sourceId: String? = null,
         note: String = "",
         existingEntryId: String? = null,
@@ -119,7 +119,7 @@ interface MeasurementRepository {
 
     suspend fun deleteEntry(entryId: String)
     suspend fun deleteSourceEntriesExcept(
-        sourceType: MetricSourceType,
+        sourceType: MeasurementSourceType,
         sourcePrefix: String,
         retainedEntryIds: Set<String>,
     )
@@ -140,25 +140,25 @@ class RoomMeasurementRepository(
     private val areaRepository = RoomAreaRepository(database, clock, ids)
 
     override val customUnits = dao.observeCustomUnits().map { list -> list.map { it.toDomain() } }
-    override val metrics = dao.observeMetrics().map { list -> list.map { it.toDomain() } }
+    override val measurements = dao.observeMeasurements().map { list -> list.map { it.toDomain() } }
     override val entries = dao.observeEntries().map { list -> list.map { it.toDomain() } }
     override val areas = areaRepository.areas
     override val tags = dao.observeTags().map { list -> list.map { it.toDomain() } }
 
-    override suspend fun createMetric(
+    override suspend fun createMeasurement(
         name: String,
-        valueKind: MetricValueKind,
+        valueKind: MeasurementValueKind,
         dimension: UnitDimension,
         defaultUnitId: String,
         precision: Int,
     ): String = database.withTransaction {
-        require(name.isNotBlank()) { "Metric name is required" }
+        require(name.isNotBlank()) { "Measurement name is required" }
         val unit = findUnit(defaultUnitId) ?: error("Unknown unit")
         require(unit.dimension == dimension) { "The selected unit has an incompatible dimension" }
         val now = clock.now().toEpochMilli()
         val id = ids.nextId()
-        dao.upsertMetric(
-            MetricDefinitionEntity(
+        dao.upsertMeasurement(
+            MeasurementDefinitionEntity(
                 id = id,
                 name = name.trim(),
                 valueKind = valueKind.name,
@@ -174,29 +174,29 @@ class RoomMeasurementRepository(
         id
     }
 
-    override suspend fun ensureMetric(
+    override suspend fun ensureMeasurement(
         id: String,
         name: String,
-        valueKind: MetricValueKind,
+        valueKind: MeasurementValueKind,
         dimension: UnitDimension,
         defaultUnitId: String,
         precision: Int,
     ): String = database.withTransaction {
-        require(id.isNotBlank()) { "Metric ID is required" }
+        require(id.isNotBlank()) { "Measurement ID is required" }
         val unit = findUnit(defaultUnitId) ?: error("Unknown unit")
         require(unit.dimension == dimension) { "The selected unit has an incompatible dimension" }
-        val existing = dao.getMetric(id)
+        val existing = dao.getMeasurement(id)
         if (existing != null) {
-            require(existing.dimension == dimension.name) { "The metric already uses another dimension" }
-            require(existing.valueKind == valueKind.name) { "The metric already uses another value type" }
+            require(existing.dimension == dimension.name) { "The measurement already uses another dimension" }
+            require(existing.valueKind == valueKind.name) { "The measurement already uses another value type" }
             require(findUnit(existing.defaultUnitId)?.dimension == dimension) {
-                "The metric's existing default unit is incompatible"
+                "The measurement's existing default unit is incompatible"
             }
             return@withTransaction id
         }
         val now = clock.now().toEpochMilli()
-        dao.upsertMetric(
-            MetricDefinitionEntity(
+        dao.upsertMeasurement(
+            MeasurementDefinitionEntity(
                 id = id, name = name.trim(), valueKind = valueKind.name, dimension = dimension.name,
                 defaultUnitId = defaultUnitId, precision = precision.coerceIn(0, 6),
                 dimensionLocked = false, archived = false, createdAtMillis = now, updatedAtMillis = now,
@@ -478,14 +478,14 @@ class RoomMeasurementRepository(
     }
 
     override suspend fun record(
-        metricId: String,
+        measurementId: String,
         value: Double?,
         unitId: String?,
-        status: MetricEntryStatus,
+        status: MeasurementEntryStatus,
         timestamp: Instant?,
         localDate: LocalDate?,
         zoneId: ZoneId?,
-        sourceType: MetricSourceType,
+        sourceType: MeasurementSourceType,
         sourceId: String?,
         note: String,
         existingEntryId: String?,
@@ -494,16 +494,16 @@ class RoomMeasurementRepository(
         require(!createIfMissingForHealthReconciliation || existingEntryId != null) {
             "Reconciliation requires a stable measurement ID"
         }
-        val metric = dao.getMetric(metricId)?.toDomain() ?: error("Metric no longer exists")
+        val measurement = dao.getMeasurement(measurementId)?.toDomain() ?: error("Measurement no longer exists")
         require((value == null) == (unitId == null)) {
             "Measurement value and unit must be provided together"
         }
         val unit = unitId?.let { findUnit(it) }
         require(value == null || value.isFinite()) { "Measurement value must be a finite number" }
-        if (status == MetricEntryStatus.Recorded) {
+        if (status == MeasurementEntryStatus.Recorded) {
             requireNotNull(value) { "A value is required" }
             requireNotNull(unit) { "A unit is required" }
-            require(unit.dimension == metric.dimension) { "Incompatible unit" }
+            require(unit.dimension == measurement.dimension) { "Incompatible unit" }
         }
         val effectiveTimestamp = timestamp ?: clock.now()
         val effectiveZone = zoneId ?: clock.zoneId()
@@ -516,14 +516,14 @@ class RoomMeasurementRepository(
             val stored = dao.getEntry(existingId)
             if (stored == null) {
                 require(createIfMissingForHealthReconciliation) { "Measurement no longer exists" }
-                require(sourceType == MetricSourceType.HealthConnect && !sourceId.isNullOrBlank()) {
+                require(sourceType == MeasurementSourceType.HealthConnect && !sourceId.isNullOrBlank()) {
                     "Only identified Health Connect records can be reconciled"
                 }
                 require(existingId == "entry-$sourceId") {
                     "Health reconciliation requires the source's stable measurement ID"
                 }
             } else {
-                require(stored.metricId == metricId) { "Measurement belongs to another metric" }
+                require(stored.measurementId == measurementId) { "Measurement belongs to another measurement" }
                 require(stored.sourceType == sourceType.name && stored.sourceId == sourceId) {
                     "Measurement provenance cannot be changed"
                 }
@@ -534,11 +534,11 @@ class RoomMeasurementRepository(
         require(canonicalValue == null || canonicalValue.isFinite()) {
             "Converted measurement value must be finite"
         }
-        val isFirstEntry = existing == null && dao.entryCount(metricId) == 0
+        val isFirstEntry = existing == null && dao.entryCount(measurementId) == 0
         dao.upsertEntry(
-            MetricEntryEntity(
+            MeasurementEntryEntity(
                 id = entryId,
-                metricId = metricId,
+                measurementId = measurementId,
                 canonicalValue = canonicalValue,
                 enteredValue = value,
                 enteredUnitId = unitId,
@@ -554,9 +554,9 @@ class RoomMeasurementRepository(
                 updatedAtMillis = now,
             ),
         )
-        if (isFirstEntry && !metric.dimensionLocked) {
-            dao.upsertMetric(
-                metric.toEntity().copy(dimensionLocked = true, updatedAtMillis = now),
+        if (isFirstEntry && !measurement.dimensionLocked) {
+            dao.upsertMeasurement(
+                measurement.toEntity().copy(dimensionLocked = true, updatedAtMillis = now),
             )
         }
         entryId
@@ -565,7 +565,7 @@ class RoomMeasurementRepository(
     override suspend fun deleteEntry(entryId: String) = dao.deleteEntry(entryId)
 
     override suspend fun deleteSourceEntriesExcept(
-        sourceType: MetricSourceType,
+        sourceType: MeasurementSourceType,
         sourcePrefix: String,
         retainedEntryIds: Set<String>,
     ) = database.withTransaction {
@@ -577,8 +577,8 @@ class RoomMeasurementRepository(
     override suspend fun reconcileHealthSourceWindows(windows: List<HealthSourceWindow>): Int =
         database.withTransaction {
             require(windows.isNotEmpty()) { "Choose at least one Health Connect data type" }
-            require(windows.map { it.metric.id }.distinct().size == windows.size) {
-                "Health sync contains a duplicate metric window"
+            require(windows.map { it.measurement.id }.distinct().size == windows.size) {
+                "Health sync contains a duplicate measurement window"
             }
             require(windows.map { it.sourcePrefix }.distinct().size == windows.size) {
                 "Health sync contains a duplicate source window"
@@ -591,19 +591,19 @@ class RoomMeasurementRepository(
                     "Health source prefix is invalid"
                 }
                 require(window.startInclusive < window.endExclusive) { "Health source window is invalid" }
-                val defaultUnit = findUnit(window.metric.defaultUnitId) ?: error("Unknown Health metric unit")
-                require(defaultUnit.dimension == window.metric.dimension) { "Health metric unit is incompatible" }
-                require(window.metric.precision in 0..6) { "Health metric precision is invalid" }
-                val storedMetric = dao.getMetric(window.metric.id)
-                if (storedMetric == null) {
-                    dao.upsertMetric(
-                        MetricDefinitionEntity(
-                            id = window.metric.id,
-                            name = window.metric.name,
-                            valueKind = window.metric.valueKind.name,
-                            dimension = window.metric.dimension.name,
-                            defaultUnitId = window.metric.defaultUnitId,
-                            precision = window.metric.precision,
+                val defaultUnit = findUnit(window.measurement.defaultUnitId) ?: error("Unknown Health measurement unit")
+                require(defaultUnit.dimension == window.measurement.dimension) { "Health measurement unit is incompatible" }
+                require(window.measurement.precision in 0..6) { "Health measurement precision is invalid" }
+                val storedMeasurement = dao.getMeasurement(window.measurement.id)
+                if (storedMeasurement == null) {
+                    dao.upsertMeasurement(
+                        MeasurementDefinitionEntity(
+                            id = window.measurement.id,
+                            name = window.measurement.name,
+                            valueKind = window.measurement.valueKind.name,
+                            dimension = window.measurement.dimension.name,
+                            defaultUnitId = window.measurement.defaultUnitId,
+                            precision = window.measurement.precision,
                             dimensionLocked = false,
                             archived = false,
                             createdAtMillis = now,
@@ -611,15 +611,15 @@ class RoomMeasurementRepository(
                         ),
                     )
                 } else {
-                    require(storedMetric.name == window.metric.name) { "Health metric name does not match its reserved contract" }
-                    require(storedMetric.valueKind == window.metric.valueKind.name) { "Health metric value type does not match" }
-                    require(storedMetric.dimension == window.metric.dimension.name) { "Health metric dimension does not match" }
-                    require(storedMetric.defaultUnitId == window.metric.defaultUnitId) { "Health metric unit does not match" }
-                    require(storedMetric.precision == window.metric.precision) { "Health metric precision does not match" }
-                    require(!storedMetric.archived) { "Health metric is archived" }
+                    require(storedMeasurement.name == window.measurement.name) { "Health measurement name does not match its reserved contract" }
+                    require(storedMeasurement.valueKind == window.measurement.valueKind.name) { "Health measurement value type does not match" }
+                    require(storedMeasurement.dimension == window.measurement.dimension.name) { "Health measurement dimension does not match" }
+                    require(storedMeasurement.defaultUnitId == window.measurement.defaultUnitId) { "Health measurement unit does not match" }
+                    require(storedMeasurement.precision == window.measurement.precision) { "Health measurement precision does not match" }
+                    require(!storedMeasurement.archived) { "Health measurement is archived" }
                 }
-                val metric = requireNotNull(dao.getMetric(window.metric.id)).toDomain()
-                val hadEntries = dao.entryCount(metric.id) > 0
+                val measurement = requireNotNull(dao.getMeasurement(window.measurement.id)).toDomain()
+                val hadEntries = dao.entryCount(measurement.id) > 0
                 val requestedIds = linkedSetOf<String>()
 
                 window.records.forEach { record ->
@@ -634,14 +634,14 @@ class RoomMeasurementRepository(
                     val entryId = "entry-$sourceId"
                     require(requestedIds.add(entryId)) { "Health provider returned a duplicate record ID" }
                     val unit = findUnit(record.unitId) ?: error("Unknown Health measurement unit")
-                    require(unit.dimension == metric.dimension) { "Health measurement unit is incompatible" }
+                    require(unit.dimension == measurement.dimension) { "Health measurement unit is incompatible" }
                     val canonicalValue = unit.toCanonical(record.value)
                     require(canonicalValue.isFinite()) { "Converted Health measurement value must be finite" }
                     val existing = dao.getEntry(entryId)
                     if (existing != null) {
-                        require(existing.metricId == metric.id) { "Health measurement identity belongs to another metric" }
+                        require(existing.measurementId == measurement.id) { "Health measurement identity belongs to another measurement" }
                         require(
-                            existing.sourceType == MetricSourceType.HealthConnect.name && existing.sourceId == sourceId,
+                            existing.sourceType == MeasurementSourceType.HealthConnect.name && existing.sourceId == sourceId,
                         ) { "Health measurement identity has different provenance" }
                     }
                     val providerOffset = record.zoneOffsetSeconds?.let { offsetSeconds ->
@@ -668,18 +668,18 @@ class RoomMeasurementRepository(
                     }
                     val effectiveDate = record.localDate ?: timestampDate
                     dao.upsertEntry(
-                        MetricEntryEntity(
+                        MeasurementEntryEntity(
                             id = entryId,
-                            metricId = metric.id,
+                            measurementId = measurement.id,
                             canonicalValue = canonicalValue,
                             enteredValue = record.value,
                             enteredUnitId = record.unitId,
-                            status = MetricEntryStatus.Recorded.name,
+                            status = MeasurementEntryStatus.Recorded.name,
                             timestampMillis = record.timestamp.toEpochMilli(),
                             localEpochDay = effectiveDate.toEpochDay(),
                             zoneId = providerOffset?.id ?: existingProvenance?.zoneId ?: window.zoneId.id,
                             offsetSeconds = effectiveOffset.totalSeconds,
-                            sourceType = MetricSourceType.HealthConnect.name,
+                            sourceType = MeasurementSourceType.HealthConnect.name,
                             sourceId = sourceId,
                             note = record.note.trim().take(1_000),
                             createdAtMillis = existing?.createdAtMillis ?: now,
@@ -689,18 +689,18 @@ class RoomMeasurementRepository(
                 }
 
                 val existingWindowEntries = dao.getEntriesBySourceWindow(
-                    MetricSourceType.HealthConnect.name,
+                    MeasurementSourceType.HealthConnect.name,
                     window.sourcePrefix,
                     window.startInclusive.toEpochMilli(),
                     window.endExclusive.toEpochMilli(),
                 )
-                require(existingWindowEntries.all { it.metricId == metric.id }) {
-                    "Health source window contains data assigned to another metric"
+                require(existingWindowEntries.all { it.measurementId == measurement.id }) {
+                    "Health source window contains data assigned to another measurement"
                 }
                 existingWindowEntries.filterNot { it.id in requestedIds }.forEach { dao.deleteEntry(it.id) }
 
-                if (!hadEntries && window.records.isNotEmpty() && !metric.dimensionLocked) {
-                    dao.upsertMetric(metric.toEntity().copy(dimensionLocked = true, updatedAtMillis = now))
+                if (!hadEntries && window.records.isNotEmpty() && !measurement.dimensionLocked) {
+                    dao.upsertMeasurement(measurement.toEntity().copy(dimensionLocked = true, updatedAtMillis = now))
                 }
                 imported += requestedIds.size
             }
@@ -708,7 +708,7 @@ class RoomMeasurementRepository(
         }
 
     override suspend fun deleteHealthConnectEntries(): Int = database.withTransaction {
-        dao.deleteEntriesBySourceType(MetricSourceType.HealthConnect.name)
+        dao.deleteEntriesBySourceType(MeasurementSourceType.HealthConnect.name)
     }
 
     private suspend fun findUnit(id: String): UnitDefinition? =
@@ -739,10 +739,10 @@ private fun validateCustomUnitSymbol(value: String): String = value.trim().also 
 
 private val HEALTH_SOURCE_PREFIX = Regex("health:[a-z0-9-]+:")
 
-private fun MetricDefinitionEntity.toDomain() = MetricDefinition(
+private fun MeasurementDefinitionEntity.toDomain() = MeasurementDefinition(
     id = id,
     name = name,
-    valueKind = MetricValueKind.valueOf(valueKind),
+    valueKind = MeasurementValueKind.valueOf(valueKind),
     dimension = UnitDimension.valueOf(dimension),
     defaultUnitId = defaultUnitId,
     precision = precision,
@@ -752,7 +752,7 @@ private fun MetricDefinitionEntity.toDomain() = MetricDefinition(
     updatedAtMillis = updatedAtMillis,
 )
 
-private fun MetricDefinition.toEntity() = MetricDefinitionEntity(
+private fun MeasurementDefinition.toEntity() = MeasurementDefinitionEntity(
     id = id,
     name = name,
     valueKind = valueKind.name,
@@ -765,18 +765,18 @@ private fun MetricDefinition.toEntity() = MetricDefinitionEntity(
     updatedAtMillis = updatedAtMillis,
 )
 
-internal fun MetricEntryEntity.toDomain() = MetricEntry(
+internal fun MeasurementEntryEntity.toDomain() = MeasurementEntry(
     id = id,
-    metricId = metricId,
+    measurementId = measurementId,
     canonicalValue = canonicalValue,
     enteredValue = enteredValue,
     enteredUnitId = enteredUnitId,
-    status = MetricEntryStatus.valueOf(status),
+    status = MeasurementEntryStatus.valueOf(status),
     timestamp = Instant.ofEpochMilli(timestampMillis),
     localDate = LocalDate.ofEpochDay(localEpochDay),
     zoneId = zoneId,
     offsetSeconds = offsetSeconds,
-    sourceType = MetricSourceType.valueOf(sourceType),
+    sourceType = MeasurementSourceType.valueOf(sourceType),
     sourceId = sourceId,
     note = note,
     createdAtMillis = createdAtMillis,

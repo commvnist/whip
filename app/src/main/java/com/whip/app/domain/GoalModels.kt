@@ -152,7 +152,7 @@ fun GoalDraft.validationErrors(nowMillis: Long): List<String> = buildList {
 data class Goal(
     val id: Long,
     val uuid: String,
-    val metricId: String,
+    val measurementId: String,
     val name: String,
     val description: String,
     val areaId: String? = null,
@@ -203,7 +203,7 @@ data class GoalMutationBoundary(
 data class GoalProgressBoundary(
     val goalId: Long,
     val goalUuid: String,
-    val metricId: String,
+    val measurementId: String,
     val type: GoalType,
     val dimension: UnitDimension,
     val unitId: String,
@@ -266,7 +266,7 @@ fun Goal.mutationBoundary(): GoalMutationBoundary = GoalMutationBoundary(
     goalId = id,
     goalUuid = uuid,
     revisionToken = revisionToken(
-        id, uuid, metricId, name, description, areaId, area, tags, icon, type,
+        id, uuid, measurementId, name, description, areaId, area, tags, icon, type,
         dimension, unitId, precision, baseline, targetMin, targetMax, direction,
         startDate, deadline, aggregation, paceType, reminderMinutes, status,
         archived, pinned, position, createdAtMillis, updatedAtMillis,
@@ -278,7 +278,7 @@ fun Goal.mutationBoundary(): GoalMutationBoundary = GoalMutationBoundary(
 fun Goal.progressBoundary(): GoalProgressBoundary = GoalProgressBoundary(
     goalId = id,
     goalUuid = uuid,
-    metricId = metricId,
+    measurementId = measurementId,
     type = type,
     dimension = dimension,
     unitId = unitId,
@@ -290,7 +290,7 @@ fun Goal.progressBoundary(): GoalProgressBoundary = GoalProgressBoundary(
     status = status,
     archived = archived,
     semanticToken = revisionToken(
-        id, uuid, metricId, type, dimension, unitId, aggregation,
+        id, uuid, measurementId, type, dimension, unitId, aggregation,
         aggregationPeriod, rollingDays, startDate, deadline, status, archived,
     ),
 )
@@ -303,13 +303,13 @@ fun Goal.eligibilityBoundary(): GoalEligibilityBoundary = GoalEligibilityBoundar
     eligibilityToken = revisionToken(id, uuid, status, archived),
 )
 
-fun Goal.measurementBoundary(entry: MetricEntry): GoalMeasurementBoundary {
-    require(entry.metricId == metricId) { "Measurement does not belong to this goal" }
+fun Goal.measurementBoundary(entry: MeasurementEntry): GoalMeasurementBoundary {
+    require(entry.measurementId == measurementId) { "Measurement does not belong to this goal" }
     return GoalMeasurementBoundary(
         goal = progressBoundary(),
         entryId = entry.id,
         entryRevisionToken = revisionToken(
-            entry.id, entry.metricId, entry.canonicalValue, entry.enteredValue,
+            entry.id, entry.measurementId, entry.canonicalValue, entry.enteredValue,
             entry.enteredUnitId, entry.status, entry.timestamp, entry.localDate,
             entry.zoneId, entry.offsetSeconds, entry.sourceType, entry.sourceId,
             entry.note, entry.createdAtMillis, entry.updatedAtMillis,
@@ -417,7 +417,7 @@ data class GoalProjection(
     val forecastDate: LocalDate?,
     val onPace: Boolean?,
     val milestones: List<GoalMilestone>,
-    val entries: List<MetricEntry>,
+    val entries: List<MeasurementEntry>,
     val consistency: GoalConsistencyProgress? = null,
     val closureSnapshots: List<GoalClosureSnapshot> = emptyList(),
     val elapsedResetEvents: List<GoalElapsedResetEvent> = emptyList(),
@@ -456,20 +456,20 @@ data class GoalInsightSummary(
  * but never become numeric progress. */
 fun buildGoalInsights(
     goal: Goal,
-    entries: List<MetricEntry>,
+    entries: List<MeasurementEntry>,
     milestones: List<GoalMilestone> = emptyList(),
 ): GoalInsightSummary {
-    val relevant = entries.filter { it.metricId == goal.metricId }.sortedBy(MetricEntry::timestamp)
-    val recordedByDate = relevant.filter { it.status == MetricEntryStatus.Recorded && it.canonicalValue?.isFinite() == true }
-        .groupBy(MetricEntry::localDate).toSortedMap()
+    val relevant = entries.filter { it.measurementId == goal.measurementId }.sortedBy(MeasurementEntry::timestamp)
+    val recordedByDate = relevant.filter { it.status == MeasurementEntryStatus.Recorded && it.canonicalValue?.isFinite() == true }
+        .groupBy(MeasurementEntry::localDate).toSortedMap()
     var runningSum = 0.0
     var runningCount = 0
     var runningPositive = 0
     var runningInRange = 0
     var runningMin: Double? = null
     var runningMax: Double? = null
-    var latest: MetricEntry? = null
-    val accumulated = mutableListOf<MetricEntry>()
+    var latest: MeasurementEntry? = null
+    val accumulated = mutableListOf<MeasurementEntry>()
     val points = recordedByDate.map { (date, dayEntries) ->
         dayEntries.forEach { entry ->
             val value = requireNotNull(entry.canonicalValue)
@@ -505,8 +505,8 @@ fun buildGoalInsights(
         (last.canonicalValue - first.canonicalValue) / elapsed
     } else null
     val forecast = forecastGoalDate(goal, last, rate)
-    val sourceKinds = relevant.map(MetricEntry::sourceType).distinct()
-    val invalid = relevant.count { it.status != MetricEntryStatus.Recorded || it.canonicalValue?.isFinite() != true }
+    val sourceKinds = relevant.map(MeasurementEntry::sourceType).distinct()
+    val invalid = relevant.count { it.status != MeasurementEntryStatus.Recorded || it.canonicalValue?.isFinite() != true }
     val confidence = when {
         points.size >= 12 && elapsed >= 28 -> "higher"
         points.size >= 4 && elapsed >= 7 -> "limited"
@@ -536,15 +536,15 @@ private fun forecastGoalDate(goal: Goal, last: GoalHistoryPoint?, rate: Double?)
 
 fun aggregateGoalValue(
     goal: Goal,
-    entries: List<MetricEntry>,
+    entries: List<MeasurementEntry>,
     through: LocalDate? = null,
 ): Double? {
     val relevantEntries = entries.filterForGoalWindow(goal, through)
-    val values = relevantEntries.filter { it.status == MetricEntryStatus.Recorded }.mapNotNull(MetricEntry::canonicalValue)
+    val values = relevantEntries.filter { it.status == MeasurementEntryStatus.Recorded }.mapNotNull(MeasurementEntry::canonicalValue)
     if (values.isEmpty()) return null
     return when (goal.aggregation) {
-        GoalAggregation.Latest -> relevantEntries.filter { it.status == MetricEntryStatus.Recorded && it.canonicalValue != null }
-            .maxByOrNull(MetricEntry::timestamp)?.canonicalValue
+        GoalAggregation.Latest -> relevantEntries.filter { it.status == MeasurementEntryStatus.Recorded && it.canonicalValue != null }
+            .maxByOrNull(MeasurementEntry::timestamp)?.canonicalValue
         GoalAggregation.Sum -> values.sum()
         GoalAggregation.Average -> values.average()
         GoalAggregation.Minimum -> values.min()
@@ -599,7 +599,7 @@ fun calculateGoalProgress(
 
 fun projectGoal(
     goal: Goal,
-    entries: List<MetricEntry>,
+    entries: List<MeasurementEntry>,
     milestones: List<GoalMilestone>,
     today: LocalDate,
 ): GoalProjection {
@@ -630,7 +630,7 @@ fun projectGoal(
         forecastDate = forecast,
         onPace = paceDelta?.let { it >= -0.02 },
         milestones = milestones.sortedBy(GoalMilestone::position),
-        entries = entries.sortedByDescending(MetricEntry::timestamp),
+        entries = entries.sortedByDescending(MeasurementEntry::timestamp),
         consistency = consistency,
     )
 }
@@ -640,11 +640,11 @@ fun projectGoal(
  * Multiple raw entries cannot inflate the outcome merely by being numerous. */
 fun goalOutcomeScoreOnDate(
     goal: Goal,
-    entries: List<MetricEntry>,
+    entries: List<MeasurementEntry>,
     milestones: List<GoalMilestone>,
     date: LocalDate,
 ): Double {
-    val relevant = entries.filter { it.metricId == goal.metricId && it.status == MetricEntryStatus.Recorded }
+    val relevant = entries.filter { it.measurementId == goal.measurementId && it.status == MeasurementEntryStatus.Recorded }
     if (relevant.none { it.localDate == date }) return 0.0
     if (goal.type == GoalType.ElapsedSince) return 0.0
     if (goal.type == GoalType.OpenEndedTrend) return 1.0
@@ -663,7 +663,7 @@ fun goalOutcomeScoreOnDate(
 
 fun calculateConsistencyProgress(
     goal: Goal,
-    entries: List<MetricEntry>,
+    entries: List<MeasurementEntry>,
     through: LocalDate,
 ): GoalConsistencyProgress {
     require(goal.type == GoalType.Consistency) { "Goal must use consistency mode" }
@@ -677,18 +677,18 @@ fun calculateConsistencyProgress(
         .take(required)
         .toList()
     val eligibleEntries = entries.filter {
-        it.status == MetricEntryStatus.Recorded &&
+        it.status == MeasurementEntryStatus.Recorded &&
             it.canonicalValue != null &&
             !it.localDate.isBefore(goal.startDate) &&
             !it.localDate.isAfter(effectiveThrough)
     }
     fun periodValue(start: LocalDate): Double {
         val end = nextConsistencyPeriod(start, goal.consistencyPeriod).minusDays(1)
-        val values = eligibleEntries.filter { it.localDate in start..end }.mapNotNull(MetricEntry::canonicalValue)
+        val values = eligibleEntries.filter { it.localDate in start..end }.mapNotNull(MeasurementEntry::canonicalValue)
         if (values.isEmpty()) return 0.0
         return when (goal.aggregation) {
             GoalAggregation.Latest -> eligibleEntries.filter { it.localDate in start..end }
-                .maxByOrNull(MetricEntry::timestamp)?.canonicalValue ?: 0.0
+                .maxByOrNull(MeasurementEntry::timestamp)?.canonicalValue ?: 0.0
             GoalAggregation.Sum -> values.sum()
             GoalAggregation.Average -> values.average()
             GoalAggregation.Minimum -> values.min()
@@ -715,8 +715,8 @@ fun calculateConsistencyProgress(
     )
 }
 
-private fun List<MetricEntry>.filterForGoalWindow(goal: Goal, through: LocalDate?): List<MetricEntry> {
-    val requestedEnd = through ?: maxOfOrNull(MetricEntry::localDate) ?: return emptyList()
+private fun List<MeasurementEntry>.filterForGoalWindow(goal: Goal, through: LocalDate?): List<MeasurementEntry> {
+    val requestedEnd = through ?: maxOfOrNull(MeasurementEntry::localDate) ?: return emptyList()
     val end = minOf(requestedEnd, goal.deadline ?: requestedEnd)
     val windowStart = when (goal.aggregationPeriod) {
         GoalAggregationPeriod.All -> goal.startDate

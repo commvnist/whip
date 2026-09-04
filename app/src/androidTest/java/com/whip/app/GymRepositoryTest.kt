@@ -1132,11 +1132,11 @@ class GymRepositoryTest {
     }
 
     @Test
-    fun normalizationRepairsLegacySplitAndSingletonWorkoutGroups() = runBlocking {
+    fun normalizationRepairsConnectedSplitAndSingletonWorkoutGroups() = runBlocking {
         val exerciseIds = listOf("A", "B", "C").map { name ->
             repository.createExercise(ExerciseDraft(name = name))
         }
-        val session = repository.startWorkout("Legacy repair")
+        val session = repository.startWorkout("Connected repair")
         val placements = exerciseIds.map { exerciseId -> repository.addExerciseToWorkout(session, exerciseId) }
         val groupId = repository.createGroup(
             session,

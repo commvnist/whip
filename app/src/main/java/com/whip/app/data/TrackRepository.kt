@@ -467,10 +467,10 @@ class RoomTrackRepository(
                 fieldName = field.name,
                 savedValueCount = affectedValues.count { it.fieldId == field.id },
                 childChoiceCount = removedOptions.count { it.fieldId == field.id },
-                legacyLinkSourceCount = affectedLinkRules.count { it.sourceFieldId == field.id },
-                legacyLinkConditionCount = affectedLinkConditions.count { it.fieldId == field.id },
-                legacyTriggerConditionCount = affectedTriggerConditions.count { it.fieldId == field.id },
-                legacyTriggerMappingCount = affectedTriggerMappings.count { it.targetFieldId == field.id },
+                connectedLinkSourceCount = affectedLinkRules.count { it.sourceFieldId == field.id },
+                connectedLinkConditionCount = affectedLinkConditions.count { it.fieldId == field.id },
+                connectedTriggerConditionCount = affectedTriggerConditions.count { it.fieldId == field.id },
+                connectedTriggerMappingCount = affectedTriggerMappings.count { it.targetFieldId == field.id },
             )
         }
         val choiceImpacts = removedOptions.sortedWith(
@@ -486,9 +486,9 @@ class RoomTrackRepository(
                 savedValueCount = affectedValues.count { it.choiceOptionId == option.id },
                 replacementOptionId = replacement?.id,
                 replacementOptionLabel = replacement?.label,
-                legacyLinkConditionCount = affectedLinkChoices.count { it.optionId == option.id },
-                legacyTriggerConditionCount = affectedTriggerChoices.count { it.optionId == option.id },
-                legacyTriggerMappingCount = affectedTriggerMappings.count { it.constantChoiceOptionId == option.id },
+                connectedLinkConditionCount = affectedLinkChoices.count { it.optionId == option.id },
+                connectedTriggerConditionCount = affectedTriggerChoices.count { it.optionId == option.id },
+                connectedTriggerMappingCount = affectedTriggerMappings.count { it.constantChoiceOptionId == option.id },
                 removedWithField = option.fieldId in removedFieldIds,
             )
         }
@@ -572,7 +572,7 @@ class RoomTrackRepository(
         if (reviewedRemoval == null && currentRemoval.review.hasRemovals) {
             throw TrackDefinitionConflictException(
                 TrackDefinitionConflictKind.RemovalImpactChanged,
-                "Review the exact Field, Choice, history, and legacy automation impact before saving.",
+                "Review the exact Field, Choice, history, and connected automation impact before saving.",
             )
         }
         if (reviewedRemoval != null && reviewedRemoval != currentRemoval.review) {
@@ -623,9 +623,9 @@ class RoomTrackRepository(
             removedChoiceCount = currentRemoval.review.removedChoices.size,
             deletedValueCount = deletedValues,
             replacedValueCount = replacedValues,
-            legacyLinkReferenceCount = currentRemoval.affectedLinkRules.size +
+            connectedLinkReferenceCount = currentRemoval.affectedLinkRules.size +
                 currentRemoval.affectedLinkConditions.size + currentRemoval.affectedLinkChoices.size,
-            legacyTriggerReferenceCount = currentRemoval.affectedTriggerRules.size +
+            connectedTriggerReferenceCount = currentRemoval.affectedTriggerRules.size +
                 currentRemoval.affectedTriggerConditions.size + currentRemoval.affectedTriggerChoices.size +
                 currentRemoval.affectedTriggerMappings.size,
         )
@@ -1417,7 +1417,7 @@ class RoomTrackRepository(
                     linkDao.countLinkConditionsForField(field.id) == 0 &&
                     linkDao.countTriggerConditionsForField(field.id) == 0 &&
                     linkDao.countTriggerMappingsForField(field.id) == 0,
-            ) { "Legacy Field references were not reconciled exactly" }
+            ) { "Connected Field references were not reconciled exactly" }
         }
     }
 
@@ -1472,7 +1472,7 @@ class RoomTrackRepository(
                     linkDao.countLinkConditionsForOption(option.id) == 0 &&
                     linkDao.countTriggerConditionsForOption(option.id) == 0 &&
                     linkDao.countTriggerMappingsForOption(option.id) == 0,
-            ) { "Legacy Choice references were not reconciled exactly" }
+            ) { "Connected Choice references were not reconciled exactly" }
         }
     }
 
@@ -1506,7 +1506,7 @@ class RoomTrackRepository(
                 linkDao.countLinkConditionsForOption(removedId) == 0 &&
                 linkDao.countTriggerConditionsForOption(removedId) == 0 &&
                 linkDao.countTriggerMappingsForOption(removedId) == 0,
-        ) { "Legacy Choice references were not replaced exactly" }
+        ) { "Connected Choice references were not replaced exactly" }
         val expectedLinkConditions = removal.affectedLinkChoices
             .filter { it.optionId == removedId }
             .mapTo(linkedSetOf(), LinkConditionChoiceEntity::conditionId)
@@ -1515,7 +1515,7 @@ class RoomTrackRepository(
             .orEmpty()
         check(expectedLinkConditions.all { conditionId ->
             currentLinkChoices.any { it.conditionId == conditionId && it.optionId == replacementId }
-        }) { "A legacy Link Choice replacement was lost" }
+        }) { "A connected Link Choice replacement was lost" }
         val expectedTriggerConditions = removal.affectedTriggerChoices
             .filter { it.optionId == removedId }
             .mapTo(linkedSetOf(), TriggerConditionChoiceEntity::conditionId)
@@ -1524,7 +1524,7 @@ class RoomTrackRepository(
             .orEmpty()
         check(expectedTriggerConditions.all { conditionId ->
             currentTriggerChoices.any { it.conditionId == conditionId && it.optionId == replacementId }
-        }) { "A legacy Trigger Choice replacement was lost" }
+        }) { "A connected Trigger Choice replacement was lost" }
         val expectedMappingIds = removal.affectedTriggerMappings
             .filter { it.constantChoiceOptionId == removedId }
             .mapTo(linkedSetOf(), TriggerFieldMappingEntity::id)
@@ -1533,7 +1533,7 @@ class RoomTrackRepository(
             currentMappings.mapTo(linkedSetOf(), TriggerFieldMappingEntity::id) == expectedMappingIds &&
                 currentMappings.all { it.constantChoiceOptionId == replacementId },
         ) {
-            "A legacy Trigger mapping replacement was lost"
+            "A connected Trigger mapping replacement was lost"
         }
     }
 
@@ -1828,7 +1828,7 @@ class RoomTrackRepository(
             "Restore ${selectedBeforeResolve?.name ?: "this Area"} before moving this Track into it."
         }
         if (selectedBeforeResolve?.archived == true) {
-            // Retaining an archived Area by its legacy display name must not call
+            // Retaining an archived Area by its connected display name must not call
             // AreaRepository.create(), which intentionally restores archived
             // Areas when users explicitly create/select them elsewhere.
             return AreaSelection(selectedBeforeResolve.id, selectedBeforeResolve.name)
@@ -1852,14 +1852,14 @@ class RoomTrackRepository(
         draft.fields.forEach { fieldDraft ->
             val current = resolveExistingField(fieldDraft, byId, byUuid) ?: return@forEach
             val hasSavedValues = dao.countValuesForField(current.id) > 0
-            val hasLegacyDefinitionReferences =
+            val hasConnectedDefinitionReferences =
                 linkDao.countLinkRulesForSourceField(current.id) > 0 ||
                     linkDao.countLinkConditionsForField(current.id) > 0 ||
                     linkDao.countTriggerConditionsForField(current.id) > 0 ||
                     linkDao.countTriggerMappingsForField(current.id) > 0
             if (current.type != fieldDraft.type.name) {
-                require(!hasSavedValues && !hasLegacyDefinitionReferences) {
-                    "${current.name} has saved values or legacy automation definitions. Delete it and add a new Field instead of changing its type."
+                require(!hasSavedValues && !hasConnectedDefinitionReferences) {
+                    "${current.name} has saved values or connected automation definitions. Delete it and add a new Field instead of changing its type."
                 }
             }
             if (
@@ -1867,8 +1867,8 @@ class RoomTrackRepository(
                 fieldDraft.type == TrackFieldType.Number &&
                 current.dimension != fieldDraft.dimension?.name
             ) {
-                require(!hasSavedValues && !hasLegacyDefinitionReferences) {
-                    "${current.name}'s measurement type cannot change while it has saved values or legacy automation definitions."
+                require(!hasSavedValues && !hasConnectedDefinitionReferences) {
+                    "${current.name}'s measurement type cannot change while it has saved values or connected automation definitions."
                 }
             }
         }
@@ -1883,11 +1883,11 @@ class RoomTrackRepository(
         require(invalidSavedValue == null) {
             "An existing Scale value does not fit the new range and increment. Keep it selectable or edit that Entry first."
         }
-        val invalidLegacyMapping = linkDao.getTriggerMappingsForField(fieldId)
+        val invalidConnectedMapping = linkDao.getTriggerMappingsForField(fieldId)
             .mapNotNull(TriggerFieldMappingEntity::constantScale)
             .firstOrNull { value -> normalizeTrackScaleValue(value, minimum, maximum, draft.scaleStep) == null }
-        require(invalidLegacyMapping == null) {
-            "A legacy automation value does not fit the new Scale range and increment. Keep it selectable or replace the Field."
+        require(invalidConnectedMapping == null) {
+            "A connected automation value does not fit the new Scale range and increment. Keep it selectable or replace the Field."
         }
     }
 
@@ -2674,8 +2674,8 @@ private fun CanonicalTrackRevisionBuilder.row(row: TrackValueEntity) {
 private fun CanonicalTrackRevisionBuilder.row(row: LinkRuleEntity) {
     value("row", "link_rule")
     value("id", row.id); value("uuid", row.uuid); value("name", row.name); value("kind", row.kind)
-    value("sourceType", row.sourceType); value("sourceEntityId", row.sourceEntityId); value("sourceMetricId", row.sourceMetricId)
-    value("sourceItemId", row.sourceItemId); value("sourceMetric", row.sourceMetric); value("targetGoalId", row.targetGoalId)
+    value("sourceType", row.sourceType); value("sourceEntityId", row.sourceEntityId); value("sourceMeasurementId", row.sourceMeasurementId)
+    value("sourceItemId", row.sourceItemId); value("sourceMeasurement", row.sourceMeasurement); value("targetGoalId", row.targetGoalId)
     value("targetMilestoneId", row.targetMilestoneId); value("valueMode", row.valueMode); value("fixedValue", row.fixedValue)
     value("multiplier", row.multiplier); value("offset", row.offset); value("retroactive", row.retroactiveFromEpochDay)
     value("enabled", row.enabled); value("created", row.createdAtMillis); value("updated", row.updatedAtMillis)

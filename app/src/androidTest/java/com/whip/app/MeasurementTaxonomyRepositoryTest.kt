@@ -15,7 +15,7 @@ import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.GoalDraft
 import com.whip.app.domain.GoalType
 import com.whip.app.domain.HabitDraft
-import com.whip.app.domain.MetricValueKind
+import com.whip.app.domain.MeasurementValueKind
 import com.whip.app.domain.TaskDraft
 import com.whip.app.domain.TrackDraft
 import com.whip.app.domain.TrackEntryDraft
@@ -356,17 +356,17 @@ class MeasurementTaxonomyRepositoryTest {
 
     @Test
     fun measurementRecordsUseTheRepositoryClockZoneUnlessAnExplicitProvenanceZoneIsSupplied() = runBlocking {
-        val metricId = measurements.createMetric(
+        val measurementId = measurements.createMeasurement(
             name = "Timezone provenance",
-            valueKind = MetricValueKind.Decimal,
+            valueKind = MeasurementValueKind.Decimal,
             dimension = UnitDimension.Count,
             defaultUnitId = "count",
         )
         val timestamp = Instant.parse("2026-09-01T02:00:00Z")
 
-        val defaultId = measurements.record(metricId, 1.0, "count", timestamp = timestamp)
+        val defaultId = measurements.record(measurementId, 1.0, "count", timestamp = timestamp)
         val explicitId = measurements.record(
-            metricId,
+            measurementId,
             2.0,
             "count",
             timestamp = timestamp,

@@ -11,7 +11,7 @@ import org.junit.Test
 
 class GymAnalyticsTest {
     @Test
-    fun eachTrackingTypeOnlyOffersMetricsItsSetsCanProduce() {
+    fun eachTrackingTypeOnlyOffersMeasurementsItsSetsCanProduce() {
         assertEquals(
             listOf(GymGraphMetric.Duration),
             ExerciseTrackingType.DurationOnly.supportedGraphMetrics(),
@@ -254,7 +254,7 @@ class GymAnalyticsTest {
             sessions = sessions,
             workoutExercises = workoutExercises,
             sets = sets,
-            metric = GymGraphMetric.MaxMachineSetting,
+            measurement = GymGraphMetric.MaxMachineSetting,
             machineId = 10,
             restrictToMachine = true,
             machineLevelDirection = MachineLevelDirection.HigherNumberLessResistance,

@@ -390,7 +390,7 @@ class GymUxRulesTest {
     }
 
     @Test
-    fun programmedLiftFinishesMainThenSupplementalBeforeChangingStationsAndOptionalRequiresAcceptance() {
+    fun programmedExerciseFinishesMainThenSupplementalBeforeChangingStationsAndOptionalRequiresAcceptance() {
         fun item(id: Long, position: Int, section: RoutineWorkSection, completed: Boolean = false): WorkoutExerciseUi {
             val exercise = testExercise(id, "Exercise $id", "Barbell", "Chest")
             val placement = WorkoutExercise(
@@ -442,11 +442,11 @@ class GymUxRulesTest {
         assertEquals(supplemental.workoutExercise.id, selectNextWorkoutSet(listOf(supplemental, main))?.first?.workoutExercise?.id)
 
         val completedMain = main.sets.single().copy(completed = true, completedAtMillis = 2L)
-        val sameLiftSupplemental = supplemental.sets.single().copy(
+        val sameExerciseSupplemental = supplemental.sets.single().copy(
             id = 21L,
             workoutExerciseId = main.workoutExercise.id,
         )
-        val squatStation = main.copy(sets = listOf(completedMain, sameLiftSupplemental))
+        val squatStation = main.copy(sets = listOf(completedMain, sameExerciseSupplemental))
         val benchMain = item(4, 2, RoutineWorkSection.Main)
         assertEquals(
             squatStation.workoutExercise.id,

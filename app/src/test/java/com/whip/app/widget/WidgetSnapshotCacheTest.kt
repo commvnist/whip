@@ -33,10 +33,7 @@ class WidgetSnapshotCacheTest {
     }
 
     @Test
-    fun legacySnapshotBelongsOnlyToPreRestoreGenerationZero() {
-        val legacy = WidgetSnapshotCodec.decode("1|42\n0|0|VGFzaw|VG9kYXk")
-
-        assertEquals(0L, legacy?.dataGeneration)
-        assertEquals("Task", legacy?.rows?.single()?.title)
+    fun preEpochSnapshotIsRejected() {
+        assertNull(WidgetSnapshotCodec.decode("1|42\n0|0|VGFzaw|VG9kYXk"))
     }
 }

@@ -43,7 +43,7 @@ import com.whip.app.domain.massFromKilograms
 import com.whip.app.domain.toWhipDoubleOrNull
 import com.whip.app.domain.unitSymbol
 
-internal data class FiveThreeOneLiftCycleReview(
+internal data class FiveThreeOneExerciseCycleReview(
     val exerciseId: Long,
     val exerciseName: String,
     val currentTrainingMax: Double,
@@ -56,7 +56,7 @@ internal data class FiveThreeOneLiftCycleReview(
 internal data class FiveThreeOneCycleReview(
     val routineName: String,
     val cycle: Int,
-    val lifts: List<FiveThreeOneLiftCycleReview>,
+    val exercises: List<FiveThreeOneExerciseCycleReview>,
 )
 
 /**
@@ -81,7 +81,7 @@ internal fun GymUiState.activeFiveThreeOneCycleReview(): FiveThreeOneCycleReview
     val dayIds = days.mapTo(mutableSetOf()) { it.id }
     val placements = routineExercises.filter { placement ->
         placement.routineDayId in dayIds &&
-            (placement.placementKind == RoutinePlacementKind.MainLift || routineSets.any { set ->
+            (placement.placementKind == RoutinePlacementKind.MainExercise || routineSets.any { set ->
                 set.routineExerciseId == placement.id && set.draft.workSection == RoutineWorkSection.Main
             })
     }.groupBy { it.exerciseId }
@@ -97,7 +97,7 @@ internal fun GymUiState.activeFiveThreeOneCycleReview(): FiveThreeOneCycleReview
         .groupBy { it.exerciseId }
     val exerciseById = (exercises + archivedExercises).associateBy { it.id }
 
-    val lifts = placements.mapNotNull { (exerciseId, repeatedPlacements) ->
+    val exercises = placements.mapNotNull { (exerciseId, repeatedPlacements) ->
         val representative = repeatedPlacements.first()
         val currentTm = representative.trainingMaxValue ?: return@mapNotNull null
         val standard = representative.cycleIncrementValue ?: return@mapNotNull null
@@ -170,13 +170,13 @@ internal fun GymUiState.activeFiveThreeOneCycleReview(): FiveThreeOneCycleReview
             standardIncrement = standard,
             allowNonStandardHigher = routine.allowNonStandardHigherSuggestions,
         )
-        val activeLiftWork = activeWorkoutPerformanceExercises.filter { it.exercise.id == exerciseId }
-        val currentRequiredMainPassed = if (activeLiftWork.isEmpty()) {
-            // Other lifts were performed on earlier days in this cycle. Their persisted per-lift
+        val activeExerciseWork = activeWorkoutPerformanceExercises.filter { it.exercise.id == exerciseId }
+        val currentRequiredMainPassed = if (activeExerciseWork.isEmpty()) {
+            // Other exercises were performed on earlier days in this cycle. Their persisted per-exercise
             // eligibility and immutable evidence remain authoritative at the final-day review.
             true
         } else {
-            activeLiftWork.flatMap { it.sets }
+            activeExerciseWork.flatMap { it.sets }
                 .filter { it.workSectionSnapshot == RoutineWorkSection.Main }
                 .let { sets -> sets.isNotEmpty() && sets.all { set ->
                     set.deletedAtMillis == null && set.completed &&
@@ -187,7 +187,7 @@ internal fun GymUiState.activeFiveThreeOneCycleReview(): FiveThreeOneCycleReview
                             (set.canonicalWeightKg ?: Double.NEGATIVE_INFINITY) + 1e-9 >= set.prescribedCanonicalWeightKg)
                 } }
         }
-        FiveThreeOneLiftCycleReview(
+        FiveThreeOneExerciseCycleReview(
             exerciseId = exerciseId,
             exerciseName = exerciseById[exerciseId]?.name ?: "Exercise $exerciseId",
             currentTrainingMax = currentTm,
@@ -200,8 +200,8 @@ internal fun GymUiState.activeFiveThreeOneCycleReview(): FiveThreeOneCycleReview
                         exerciseId !in session.invalidatedMainExerciseIds)),
             recommendation = recommendation,
         )
-    }.sortedBy { lift -> lift.exerciseName.lowercase() }
-    return FiveThreeOneCycleReview(routine.name, cycle, lifts).takeIf { lifts.isNotEmpty() }
+    }.sortedBy { exercise -> exercise.exerciseName.lowercase() }
+    return FiveThreeOneCycleReview(routine.name, cycle, exercises).takeIf { exercises.isNotEmpty() }
 }
 
 private enum class CycleReviewChoice { Suggestion, Standard, Hold, Ignore, Custom }
@@ -216,55 +216,55 @@ internal fun FiveThreeOneCycleReviewDialog(
     onDismiss: () -> Unit,
     onApply: (List<TrainingMaxCycleDecision>) -> Unit,
 ) {
-    val reviewIdentity = review.lifts.map { lift ->
+    val reviewIdentity = review.exercises.map { exercise ->
         listOf(
-            lift.exerciseId,
-            lift.currentTrainingMax,
-            lift.eligible,
-            lift.recommendation.category,
-            lift.recommendation.suggestedDelta,
-            lift.recommendation.confidence,
+            exercise.exerciseId,
+            exercise.currentTrainingMax,
+            exercise.eligible,
+            exercise.recommendation.category,
+            exercise.recommendation.suggestedDelta,
+            exercise.recommendation.confidence,
         )
     }
     var choices by rememberSaveable(review.cycle, reviewRevision, reviewIdentity) {
-        mutableStateOf(review.lifts.associate { lift ->
-            lift.exerciseId to if (lift.eligible) CycleReviewChoice.Standard.name else CycleReviewChoice.Hold.name
+        mutableStateOf(review.exercises.associate { exercise ->
+            exercise.exerciseId to if (exercise.eligible) CycleReviewChoice.Standard.name else CycleReviewChoice.Hold.name
         })
     }
     var customValues by rememberSaveable(review.cycle, reviewRevision, reviewIdentity) {
-        mutableStateOf(review.lifts.associate { it.exerciseId to "0" })
+        mutableStateOf(review.exercises.associate { it.exerciseId to "0" })
     }
     val decisions = remember(review, choices, customValues) {
-        review.lifts.mapNotNull { lift ->
-            val choice = runCatching { CycleReviewChoice.valueOf(choices[lift.exerciseId].orEmpty()) }
+        review.exercises.mapNotNull { exercise ->
+            val choice = runCatching { CycleReviewChoice.valueOf(choices[exercise.exerciseId].orEmpty()) }
                 .getOrDefault(CycleReviewChoice.Hold)
             val delta = when (choice) {
-                CycleReviewChoice.Suggestion -> lift.recommendation.suggestedDelta
-                CycleReviewChoice.Standard -> lift.standardDelta
+                CycleReviewChoice.Suggestion -> exercise.recommendation.suggestedDelta
+                CycleReviewChoice.Standard -> exercise.standardDelta
                 CycleReviewChoice.Hold -> 0.0
                 CycleReviewChoice.Ignore -> 0.0
-                CycleReviewChoice.Custom -> customValues[lift.exerciseId]?.toWhipDoubleOrNull() ?: return@mapNotNull null
+                CycleReviewChoice.Custom -> customValues[exercise.exerciseId]?.toWhipDoubleOrNull() ?: return@mapNotNull null
             }
-            val maximumDelta = if (lift.recommendation.category == FiveThreeOneProgressionCategory.CautiousHigherIncrease) {
-                lift.standardDelta * 2.0
+            val maximumDelta = if (exercise.recommendation.category == FiveThreeOneProgressionCategory.CautiousHigherIncrease) {
+                exercise.standardDelta * 2.0
             } else {
-                lift.standardDelta
+                exercise.standardDelta
             }
-            if (!delta.isFinite() || delta < -lift.standardDelta || delta > maximumDelta ||
-                (!lift.eligible && delta > 0.0) || lift.currentTrainingMax + delta <= 0.0
+            if (!delta.isFinite() || delta < -exercise.standardDelta || delta > maximumDelta ||
+                (!exercise.eligible && delta > 0.0) || exercise.currentTrainingMax + delta <= 0.0
             ) {
                 return@mapNotNull null
             }
             TrainingMaxCycleDecision(
-                exerciseId = lift.exerciseId,
-                expectedCurrentTrainingMax = lift.currentTrainingMax,
+                exerciseId = exercise.exerciseId,
+                expectedCurrentTrainingMax = exercise.currentTrainingMax,
                 requestedDelta = delta,
-                standardDelta = lift.standardDelta,
-                recommendationCategory = lift.recommendation.category.name,
-                recommendationDelta = lift.recommendation.suggestedDelta,
-                confidence = lift.recommendation.confidence,
-                reasons = lift.recommendation.reasons,
-                engineVersion = lift.recommendation.engineVersion,
+                standardDelta = exercise.standardDelta,
+                recommendationCategory = exercise.recommendation.category.name,
+                recommendationDelta = exercise.recommendation.suggestedDelta,
+                confidence = exercise.recommendation.confidence,
+                reasons = exercise.recommendation.reasons,
+                engineVersion = exercise.recommendation.engineVersion,
                 action = when (choice) {
                     CycleReviewChoice.Suggestion -> TrainingMaxDecisionAction.UseSuggestion
                     CycleReviewChoice.Standard -> TrainingMaxDecisionAction.UseStandard
@@ -296,19 +296,19 @@ internal fun FiveThreeOneCycleReviewDialog(
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
-                review.lifts.forEach { lift ->
-                    val recommendation = lift.recommendation
+                review.exercises.forEach { exercise ->
+                    val recommendation = exercise.recommendation
                     val maximumDelta = if (recommendation.category == FiveThreeOneProgressionCategory.CautiousHigherIncrease) {
-                        lift.standardDelta * 2.0
+                        exercise.standardDelta * 2.0
                     } else {
-                        lift.standardDelta
+                        exercise.standardDelta
                     }
                     val suggestionAllowed = recommendation.category != FiveThreeOneProgressionCategory.InsufficientEvidence &&
-                        recommendation.suggestedDelta in -lift.standardDelta..maximumDelta &&
-                        (lift.eligible || recommendation.suggestedDelta <= 0.0) &&
-                        lift.currentTrainingMax + recommendation.suggestedDelta > 0.0
+                        recommendation.suggestedDelta in -exercise.standardDelta..maximumDelta &&
+                        (exercise.eligible || recommendation.suggestedDelta <= 0.0) &&
+                        exercise.currentTrainingMax + recommendation.suggestedDelta > 0.0
                     Surface(
-                        modifier = Modifier.fillMaxWidth().testTag("training-max-review-${lift.exerciseId}"),
+                        modifier = Modifier.fillMaxWidth().testTag("training-max-review-${exercise.exerciseId}"),
                         color = MaterialTheme.colorScheme.surfaceContainerLow,
                         shape = MaterialTheme.shapes.medium,
                     ) {
@@ -316,20 +316,20 @@ internal fun FiveThreeOneCycleReviewDialog(
                             modifier = Modifier.fillMaxWidth().padding(12.dp),
                             verticalArrangement = Arrangement.spacedBy(7.dp),
                         ) {
-                            Text(lift.exerciseName, fontWeight = FontWeight.Bold)
+                            Text(exercise.exerciseName, fontWeight = FontWeight.Bold)
                             Text(
-                                "Current TM ${editableNumericValue(lift.currentTrainingMax)} ${unitSymbol(lift.unitId)} · " +
-                                    "5/3/1 standard +${editableNumericValue(lift.standardDelta)}",
+                                "Current TM ${editableNumericValue(exercise.currentTrainingMax)} ${unitSymbol(exercise.unitId)} · " +
+                                    "5/3/1 standard +${editableNumericValue(exercise.standardDelta)}",
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             Text(
                                 when {
-                                    lift.eligible -> recommendation.label
+                                    exercise.eligible -> recommendation.label
                                     recommendation.category == FiveThreeOneProgressionCategory.DecreaseReview -> recommendation.label
                                     else -> "Hold — required Main work was not completed"
                                 },
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (lift.eligible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                                color = if (exercise.eligible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                             )
                             if (recommendation.category == FiveThreeOneProgressionCategory.CautiousHigherIncrease) {
                                 Text(
@@ -349,78 +349,78 @@ internal fun FiveThreeOneCycleReviewDialog(
                                 verticalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
                                 WhipFilterChip(
-                                    selected = choices[lift.exerciseId] == CycleReviewChoice.Standard.name,
+                                    selected = choices[exercise.exerciseId] == CycleReviewChoice.Standard.name,
                                     onClick = {
-                                        choices = choices + (lift.exerciseId to CycleReviewChoice.Standard.name)
+                                        choices = choices + (exercise.exerciseId to CycleReviewChoice.Standard.name)
                                     },
-                                    enabled = lift.eligible,
-                                    label = { Text("Standard +${editableNumericValue(lift.standardDelta)}") },
-                                    modifier = Modifier.testTag("training-max-choice-standard-${lift.exerciseId}"),
+                                    enabled = exercise.eligible,
+                                    label = { Text("Standard +${editableNumericValue(exercise.standardDelta)}") },
+                                    modifier = Modifier.testTag("training-max-choice-standard-${exercise.exerciseId}"),
                                 )
                                 WhipFilterChip(
-                                    selected = choices[lift.exerciseId] == CycleReviewChoice.Suggestion.name,
+                                    selected = choices[exercise.exerciseId] == CycleReviewChoice.Suggestion.name,
                                     onClick = {
-                                        choices = choices + (lift.exerciseId to CycleReviewChoice.Suggestion.name)
+                                        choices = choices + (exercise.exerciseId to CycleReviewChoice.Suggestion.name)
                                     },
                                     enabled = suggestionAllowed,
                                     label = { Text("Suggestion ${deltaLabel(recommendation.suggestedDelta)}") },
-                                    modifier = Modifier.testTag("training-max-choice-suggestion-${lift.exerciseId}"),
+                                    modifier = Modifier.testTag("training-max-choice-suggestion-${exercise.exerciseId}"),
                                 )
                                 WhipFilterChip(
-                                    selected = choices[lift.exerciseId] == CycleReviewChoice.Hold.name,
-                                    onClick = { choices = choices + (lift.exerciseId to CycleReviewChoice.Hold.name) },
+                                    selected = choices[exercise.exerciseId] == CycleReviewChoice.Hold.name,
+                                    onClick = { choices = choices + (exercise.exerciseId to CycleReviewChoice.Hold.name) },
                                     label = { Text("Hold") },
-                                    modifier = Modifier.testTag("training-max-choice-hold-${lift.exerciseId}"),
+                                    modifier = Modifier.testTag("training-max-choice-hold-${exercise.exerciseId}"),
                                 )
                                 WhipFilterChip(
-                                    selected = choices[lift.exerciseId] == CycleReviewChoice.Ignore.name,
-                                    onClick = { choices = choices + (lift.exerciseId to CycleReviewChoice.Ignore.name) },
+                                    selected = choices[exercise.exerciseId] == CycleReviewChoice.Ignore.name,
+                                    onClick = { choices = choices + (exercise.exerciseId to CycleReviewChoice.Ignore.name) },
                                     label = { Text("Ignore recommendation") },
-                                    modifier = Modifier.testTag("training-max-choice-ignore-${lift.exerciseId}"),
+                                    modifier = Modifier.testTag("training-max-choice-ignore-${exercise.exerciseId}"),
                                 )
                                 WhipFilterChip(
-                                    selected = choices[lift.exerciseId] == CycleReviewChoice.Custom.name,
-                                    onClick = { choices = choices + (lift.exerciseId to CycleReviewChoice.Custom.name) },
+                                    selected = choices[exercise.exerciseId] == CycleReviewChoice.Custom.name,
+                                    onClick = { choices = choices + (exercise.exerciseId to CycleReviewChoice.Custom.name) },
                                     label = { Text("Custom") },
-                                    modifier = Modifier.testTag("training-max-choice-custom-${lift.exerciseId}"),
+                                    modifier = Modifier.testTag("training-max-choice-custom-${exercise.exerciseId}"),
                                 )
                             }
-                            if (choices[lift.exerciseId] == CycleReviewChoice.Custom.name) {
+                            if (choices[exercise.exerciseId] == CycleReviewChoice.Custom.name) {
                                 OutlinedTextField(
-                                    value = customValues[lift.exerciseId].orEmpty(),
+                                    value = customValues[exercise.exerciseId].orEmpty(),
                                     onValueChange = { value ->
-                                        customValues = customValues + (lift.exerciseId to value.cycleDeltaInput())
+                                        customValues = customValues + (exercise.exerciseId to value.cycleDeltaInput())
                                     },
-                                    label = { Text("Custom cycle change (${unitSymbol(lift.unitId)})") },
+                                    label = { Text("Custom cycle change (${unitSymbol(exercise.unitId)})") },
                                     supportingText = {
                                         Text(
-                                            if (lift.eligible) {
-                                                "-${editableNumericValue(lift.standardDelta)} to ${editableNumericValue(maximumDelta)}; zero keeps the current TM"
+                                            if (exercise.eligible) {
+                                                "-${editableNumericValue(exercise.standardDelta)} to ${editableNumericValue(maximumDelta)}; zero keeps the current TM"
                                             } else {
-                                                "-${editableNumericValue(lift.standardDelta)} to 0; positive changes require completed Main work"
+                                                "-${editableNumericValue(exercise.standardDelta)} to 0; positive changes require completed Main work"
                                             },
                                         )
                                     },
-                                    isError = customValues[lift.exerciseId]?.toWhipDoubleOrNull()
+                                    isError = customValues[exercise.exerciseId]?.toWhipDoubleOrNull()
                                         ?.let { value ->
-                                            value !in -lift.standardDelta..maximumDelta ||
-                                                (!lift.eligible && value > 0.0) || lift.currentTrainingMax + value <= 0.0
+                                            value !in -exercise.standardDelta..maximumDelta ||
+                                                (!exercise.eligible && value > 0.0) || exercise.currentTrainingMax + value <= 0.0
                                         } != false,
                                     singleLine = true,
-                                    modifier = Modifier.fillMaxWidth().testTag("training-max-custom-delta-${lift.exerciseId}"),
+                                    modifier = Modifier.fillMaxWidth().testTag("training-max-custom-delta-${exercise.exerciseId}"),
                                 )
                             }
-                            if (choices[lift.exerciseId] == CycleReviewChoice.Ignore.name) {
+                            if (choices[exercise.exerciseId] == CycleReviewChoice.Ignore.name) {
                                 Text(
                                     "Decline Whip's advisory recommendation for this cycle and keep the current Training Max. This is recorded separately from a programming Hold.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            val selectedDelta = decisions.firstOrNull { it.exerciseId == lift.exerciseId }?.requestedDelta
+                            val selectedDelta = decisions.firstOrNull { it.exerciseId == exercise.exerciseId }?.requestedDelta
                             if (selectedDelta != null) {
                                 Text(
-                                    "Next TM ${editableNumericValue(lift.currentTrainingMax + selectedDelta)} ${unitSymbol(lift.unitId)}",
+                                    "Next TM ${editableNumericValue(exercise.currentTrainingMax + selectedDelta)} ${unitSymbol(exercise.unitId)}",
                                     style = MaterialTheme.typography.labelLarge,
                                 )
                             }
@@ -431,7 +431,7 @@ internal fun FiveThreeOneCycleReviewDialog(
         },
         confirmButton = {
             WhipButton(
-                enabled = decisions.size == review.lifts.size && !saving,
+                enabled = decisions.size == review.exercises.size && !saving,
                 onClick = { onApply(decisions) },
                 modifier = Modifier.testTag("apply-training-max-decisions"),
             ) { Text(if (saving) "Finishing…" else "Apply Decisions & Finish") }

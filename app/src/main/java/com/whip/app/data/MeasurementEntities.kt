@@ -19,8 +19,8 @@ data class UnitDefinitionEntity(
     val updatedAtMillis: Long,
 )
 
-@Entity(tableName = "metric_definitions", indices = [Index("archived")])
-data class MetricDefinitionEntity(
+@Entity(tableName = "measurement_definitions", indices = [Index("archived")])
+data class MeasurementDefinitionEntity(
     @androidx.room.PrimaryKey val id: String,
     val name: String,
     val valueKind: String,
@@ -34,24 +34,24 @@ data class MetricDefinitionEntity(
 )
 
 @Entity(
-    tableName = "metric_entries",
+    tableName = "measurement_entries",
     foreignKeys = [
         ForeignKey(
-            entity = MetricDefinitionEntity::class,
+            entity = MeasurementDefinitionEntity::class,
             parentColumns = ["id"],
-            childColumns = ["metricId"],
+            childColumns = ["measurementId"],
             onDelete = ForeignKey.CASCADE,
         ),
     ],
     indices = [
-        Index("metricId"),
-        Index(value = ["metricId", "timestampMillis"]),
+        Index("measurementId"),
+        Index(value = ["measurementId", "timestampMillis"]),
         Index(value = ["sourceType", "sourceId"]),
     ],
 )
-data class MetricEntryEntity(
+data class MeasurementEntryEntity(
     @androidx.room.PrimaryKey val id: String,
-    val metricId: String,
+    val measurementId: String,
     val canonicalValue: Double?,
     val enteredValue: Double?,
     val enteredUnitId: String?,
