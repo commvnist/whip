@@ -1,0 +1,288 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+
+format='human'
+base_ref='HEAD'
+changes_file=''
+explicit_changes=()
+
+usage() {
+    printf '%s\n' \
+        'Explain the deterministic Whip checks required by changed paths.' \
+        '' \
+        'Usage:' \
+        '  scripts/change-router [--base REF] [--format human|tsv]' \
+        '  scripts/change-router --path PATH [--path PATH ...] [--format human|tsv]' \
+        '  scripts/change-router --changes-file FILE [--format human|tsv]' \
+        '' \
+        'A changes file uses git name-status rows: STATUS<TAB>PATH[<TAB>NEW_PATH].' \
+        'Renames route both the removed and added names. Unknown production, build,' \
+        'and harness paths fail closed to the frozen-candidate gate.'
+}
+
+die() {
+    printf 'error: %s\n' "$*" >&2
+    exit 1
+}
+
+while (($#)); do
+    case "$1" in
+        --base)
+            shift
+            (($#)) || die '--base requires a Git reference'
+            base_ref="$1"
+            ;;
+        --format)
+            shift
+            (($#)) || die '--format requires human or tsv'
+            format="$1"
+            ;;
+        --path)
+            shift
+            (($#)) || die '--path requires a repository-relative path'
+            explicit_changes+=("M"$'\t'"$1")
+            ;;
+        --changes-file)
+            shift
+            (($#)) || die '--changes-file requires a path'
+            [[ -z "$changes_file" ]] || die 'only one --changes-file may be supplied'
+            changes_file="$1"
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            usage >&2
+            die "unknown option $1"
+            ;;
+    esac
+    shift
+done
+
+[[ "$format" == 'human' || "$format" == 'tsv' ]] || die '--format must be human or tsv'
+[[ -z "$changes_file" || "${#explicit_changes[@]}" -eq 0 ]] ||
+    die '--changes-file and --path are mutually exclusive'
+
+cd "$PROJECT_ROOT"
+
+changes=()
+if [[ -n "$changes_file" ]]; then
+    [[ -f "$changes_file" ]] || die "changes file not found: $changes_file"
+    mapfile -t changes < <(sed '/^[[:space:]]*$/d; /^[[:space:]]*#/d' "$changes_file")
+elif [[ "${#explicit_changes[@]}" -gt 0 ]]; then
+    changes=("${explicit_changes[@]}")
+else
+    git rev-parse --verify --quiet "$base_ref^{commit}" >/dev/null ||
+        die "unknown base reference: $base_ref"
+    mapfile -t changes < <(
+        {
+            git diff --name-status --find-renames "$base_ref" --
+            git ls-files --others --exclude-standard | sed $'s/^/A\t/'
+        } | awk 'NF' | sort -u
+    )
+fi
+
+declare -A profiles=()
+declare -A jvm_selectors=()
+declare -A android_selectors=()
+routes=()
+candidate_required=false
+static_required=false
+jvm_all=false
+android_all=false
+
+add_profile() {
+    profiles["$1"]=1
+}
+
+add_route() {
+    local status="$1" path="$2" decision="$3" reason="$4"
+    routes+=("${status}"$'\t'"${path}"$'\t'"${decision}"$'\t'"${reason}")
+}
+
+profile_for_name() {
+    local lowered="${1,,}"
+    case "$lowered" in
+        *fivethreeone*|*531*) printf 'gym531\n' ;;
+        *routine*|*workout*|*exercise*|*machine*|*gym*|*trainingmax*) printf 'gym\n' ;;
+        *habit*) printf 'habits\n' ;;
+        *task*|*recurrence*|*focus*) printf 'tasks\n' ;;
+        *goal*|*measurement*) printf 'goals\n' ;;
+        *track*|*entry*|*csv*|*search*|*review*) printf 'tracks\n' ;;
+        *setting*|*backup*|*restore*|*health*|*unit*|*epoch*|*preference*) printf 'settings\n' ;;
+        *navigation*|*adaptive*|*accessib*|*visual*|*interaction*|*calendar*|*shell*) printf 'shell\n' ;;
+        *) return 1 ;;
+    esac
+}
+
+selector_from_path() {
+    local path="$1" relative
+    case "$path" in
+        */java/*) relative="${path#*/java/}" ;;
+        */kotlin/*) relative="${path#*/kotlin/}" ;;
+        *) return 1 ;;
+    esac
+    relative="${relative%.kt}"
+    printf '%s\n' "${relative//\//.}"
+}
+
+route_named_profile() {
+    local status="$1" path="$2" area
+    if area="$(profile_for_name "$path")"; then
+        add_profile "$area"
+        add_route "$status" "$path" "profile:$area" 'feature-owned path'
+    else
+        add_profile all
+        add_route "$status" "$path" 'profile:all' 'shared or unowned test path'
+    fi
+}
+
+route_path() {
+    local status="$1" path="$2" selector area
+    [[ -n "$path" && "$path" != /* && "$path" != *$'\t'* && "$path" != *$'\n'* ]] ||
+        die "changed path must be a safe repository-relative path: $path"
+    case "$path" in
+        docs/quality/*)
+            add_profile all
+            static_required=true
+            candidate_required=true
+            add_route "$status" "$path" 'candidate:required' 'machine-checked quality harness path'
+            ;;
+        docs/*|README.md|PLAN.md|PRIVACY.md|AGENTS.md|*.md)
+            add_profile docs
+            add_route "$status" "$path" 'profile:docs' 'documentation-only path'
+            ;;
+        app/src/test/*)
+            if [[ "$status" != D* && "$path" == *Test.kt ]] && selector="$(selector_from_path "$path")"; then
+                jvm_selectors["$selector"]=1
+                add_route "$status" "$path" "jvm:$selector" 'exact JVM test class'
+            elif [[ "$path" == *Test.kt ]]; then
+                route_named_profile "$status" "$path"
+            else
+                jvm_all=true
+                add_route "$status" "$path" 'jvm:all' 'shared JVM test support'
+            fi
+            ;;
+        app/src/androidTest/*)
+            if [[ "$status" != D* && "$path" == *Test.kt ]] && selector="$(selector_from_path "$path")"; then
+                android_selectors["$selector"]=1
+                add_route "$status" "$path" "android:$selector" 'exact Android test class'
+            elif [[ "$path" == *Test.kt ]]; then
+                route_named_profile "$status" "$path"
+            else
+                android_all=true
+                add_route "$status" "$path" 'android:all' 'shared Android test support'
+            fi
+            ;;
+        app/src/main/*)
+            static_required=true
+            case "$path" in
+                */core/*|*/ui/theme/*|*/ui/components/*|*/ui/WhipApp.kt|*/MainActivity.kt|*/WhipApplication.kt)
+                    add_profile all
+                    add_route "$status" "$path" 'profile:all' 'shared UI/core production path'
+                    ;;
+                */res/*|*/AndroidManifest.xml)
+                    add_profile shell
+                    add_route "$status" "$path" 'profile:shell' 'application resource or manifest path'
+                    ;;
+                *)
+                    if area="$(profile_for_name "$path")"; then
+                        add_profile "$area"
+                        add_route "$status" "$path" "profile:$area" 'feature-owned production path'
+                    else
+                        add_profile all
+                        candidate_required=true
+                        add_route "$status" "$path" 'candidate:required' 'unknown production path'
+                    fi
+                    ;;
+            esac
+            ;;
+        app/schemas/*)
+            add_profile all
+            static_required=true
+            candidate_required=true
+            add_route "$status" "$path" 'candidate:required' 'persistence schema input'
+            ;;
+        scripts/*)
+            add_profile all
+            static_required=true
+            candidate_required=true
+            add_route "$status" "$path" 'candidate:required' 'test or release harness integrity path'
+            ;;
+        build.gradle|build.gradle.kts|settings.gradle|settings.gradle.kts|gradle.properties|gradle/*|gradlew|gradlew.bat|app/build.gradle*|benchmark/build.gradle*|benchmark/src/*)
+            add_profile all
+            static_required=true
+            candidate_required=true
+            add_route "$status" "$path" 'candidate:required' 'build or benchmark configuration path'
+            ;;
+        .github/*|.codex/*|.agents/*)
+            add_profile all
+            candidate_required=true
+            add_route "$status" "$path" 'candidate:required' 'automation or agent harness path'
+            ;;
+        *)
+            add_profile all
+            static_required=true
+            candidate_required=true
+            add_route "$status" "$path" 'candidate:required' 'unclassified repository path'
+            ;;
+    esac
+}
+
+for change in "${changes[@]}"; do
+    IFS=$'\t' read -r status old_path new_path extra <<< "$change"
+    [[ -n "${status:-}" && -n "${old_path:-}" && -z "${extra:-}" ]] ||
+        die "malformed change row: $change"
+    case "$status" in
+        R[0-9]*)
+            [[ -n "${new_path:-}" ]] || die "rename row is missing its destination: $change"
+            route_path D "$old_path"
+            route_path A "$new_path"
+            ;;
+        A|C|D|M|T|U|X|B)
+            [[ -z "${new_path:-}" ]] || die "non-rename row has an unexpected third field: $change"
+            route_path "$status" "$old_path"
+            ;;
+        *)
+            die "unsupported change status '$status' in row: $change"
+            ;;
+    esac
+done
+
+if [[ "${#changes[@]}" -eq 0 ]]; then
+    add_profile docs
+    add_route N '(no changes)' 'profile:docs' 'no changed repository inputs'
+fi
+
+emit_sorted_keys() {
+    local kind="$1" array_name="$2" key
+    local -n values="$array_name"
+    while IFS= read -r key; do
+        [[ -n "$key" ]] && printf '%s\t%s\n' "$kind" "$key"
+    done < <(printf '%s\n' "${!values[@]}" | sort -u)
+    return 0
+}
+
+if [[ "$format" == 'tsv' ]]; then
+    printf '%s\n' "${routes[@]/#/ROUTE$'\t'}"
+    emit_sorted_keys PROFILE profiles
+    emit_sorted_keys JVM jvm_selectors
+    emit_sorted_keys ANDROID android_selectors
+    printf 'JVM_ALL\t%s\nANDROID_ALL\t%s\nSTATIC\t%s\nCANDIDATE\t%s\n' \
+        "$jvm_all" "$android_all" "$static_required" "$candidate_required"
+else
+    for change in "${routes[@]}"; do
+        IFS=$'\t' read -r status path decision reason <<< "$change"
+        printf 'Route %s %s -> %s (%s)\n' "$status" "$path" "$decision" "$reason"
+    done
+    while IFS=$'\t' read -r _ value; do printf 'Profile: %s\n' "$value"; done < <(emit_sorted_keys PROFILE profiles)
+    while IFS=$'\t' read -r _ value; do printf 'JVM selector: %s\n' "$value"; done < <(emit_sorted_keys JVM jvm_selectors)
+    while IFS=$'\t' read -r _ value; do printf 'Android selector: %s\n' "$value"; done < <(emit_sorted_keys ANDROID android_selectors)
+    printf 'All JVM tests: %s\nAll Android tests: %s\nStatic checks: %s\nFrozen candidate required: %s\n' \
+        "$jvm_all" "$android_all" "$static_required" "$candidate_required"
+fi

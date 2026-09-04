@@ -5,23 +5,28 @@ set -euo pipefail
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 
-profile=""
+profiles=()
 run_emulator=false
 repeat_count=1
 jvm_patterns=()
 android_classes=()
+all_jvm=false
+all_android=false
+dry_run=false
 
 usage() {
     printf '%s\n' \
         'Run a narrow Whip development QA profile.' \
         '' \
         'Usage:' \
-        '  scripts/qa-targeted PROFILE [--emulator] [--repeat N]' \
+        '  scripts/qa-targeted PROFILE [PROFILE ...] [--emulator] [--repeat N]' \
+        '  scripts/qa-targeted --profile PROFILE [--profile PROFILE ...]' \
         '  scripts/qa-targeted --jvm PATTERN [--jvm PATTERN ...]' \
         '  scripts/qa-targeted --android CLASS[#METHOD] [--android ...] [--repeat N]' \
+        '  scripts/qa-targeted --all-jvm [--all-android --emulator]' \
         '  scripts/qa-targeted --list' \
         '' \
-        'Profiles: shell, tasks, habits, goals, tracks, gym, gym531, settings' \
+        'Profiles: shell, tasks, habits, goals, tracks, gym, gym531, settings, all' \
         'Without --emulator, profiles run their JVM tests and compile Android tests.' \
         'Android execution refuses physical devices. Use scripts/check for final gates.'
 }
@@ -35,13 +40,19 @@ list_profiles() {
         'tracks    Track schema, entry, CSV, search and workspace coverage' \
         'gym       Gym calculations, persistence, routines and active-workout UI' \
         'gym531    5/3/1 planning, progression, routine persistence and builder UI' \
-        'settings  Settings, backup/reset, units, Health and responsive UI'
+        'settings  Settings, backup/reset, units, Health and responsive UI' \
+        'all       Union of every named product profile'
 }
 
 while (($#)); do
     case "$1" in
         --emulator)
             run_emulator=true
+            ;;
+        --profile)
+            shift
+            (($#)) || { printf 'error: --profile requires a name\n' >&2; exit 2; }
+            profiles+=("$1")
             ;;
         --repeat)
             shift
@@ -59,6 +70,15 @@ while (($#)); do
             android_classes+=("$1")
             run_emulator=true
             ;;
+        --all-jvm)
+            all_jvm=true
+            ;;
+        --all-android)
+            all_android=true
+            ;;
+        --dry-run)
+            dry_run=true
+            ;;
         --list)
             list_profiles
             exit 0
@@ -73,8 +93,7 @@ while (($#)); do
             exit 2
             ;;
         *)
-            [[ -z "$profile" ]] || { printf 'error: only one profile may be selected\n' >&2; exit 2; }
-            profile="$1"
+            profiles+=("$1")
             ;;
     esac
     shift
@@ -87,6 +106,16 @@ done
 
 add_profile() {
     case "$1" in
+        all)
+            add_profile shell
+            add_profile tasks
+            add_profile habits
+            add_profile goals
+            add_profile tracks
+            add_profile gym
+            add_profile gym531
+            add_profile settings
+            ;;
         shell)
             jvm_patterns+=(
                 'com.whip.app.ui.UiDesignArchitectureTest'
@@ -216,48 +245,66 @@ add_profile() {
     esac
 }
 
-if [[ -n "$profile" ]]; then
-    add_profile "$profile"
+for profile in "${profiles[@]}"; do add_profile "$profile"; done
+
+if [[ "${#jvm_patterns[@]}" -gt 0 ]]; then
+    mapfile -t jvm_patterns < <(printf '%s\n' "${jvm_patterns[@]}" | sort -u)
+fi
+if [[ "${#android_classes[@]}" -gt 0 ]]; then
+    mapfile -t android_classes < <(printf '%s\n' "${android_classes[@]}" | sort -u)
 fi
 
-if [[ "${#jvm_patterns[@]}" -eq 0 && "${#android_classes[@]}" -eq 0 ]]; then
+if [[ "$all_jvm" != true && "$all_android" != true &&
+    "${#jvm_patterns[@]}" -eq 0 && "${#android_classes[@]}" -eq 0 ]]; then
     usage >&2
     exit 2
 fi
 
-if [[ "$run_emulator" == true && "${#android_classes[@]}" -gt 0 ]]; then
+if [[ "$run_emulator" == true &&
+    ("$all_android" == true || "${#android_classes[@]}" -gt 0) ]]; then
     "${SCRIPT_DIR}/android-target-guard" instrumentation
-    readonly test_serial="$ANDROID_SERIAL"
 fi
 
 cd "$PROJECT_ROOT"
 
-if [[ "${#jvm_patterns[@]}" -gt 0 ]]; then
+if [[ "$dry_run" == true ]]; then
+    printf 'all-jvm=%s\nall-android=%s\nemulator=%s\n' "$all_jvm" "$all_android" "$run_emulator"
+    printf 'jvm=%s\n' "${jvm_patterns[@]}"
+    printf 'android=%s\n' "${android_classes[@]}"
+    exit 0
+fi
+
+if [[ "$all_jvm" == true ]]; then
+    ./gradlew :app:testDebugUnitTest
+elif [[ "${#jvm_patterns[@]}" -gt 0 ]]; then
     gradle_test_filters=()
     for pattern in "${jvm_patterns[@]}"; do
         gradle_test_filters+=(--tests "$pattern")
     done
     ./gradlew :app:testDebugUnitTest "${gradle_test_filters[@]}"
-    ./gradlew :app:compileDebugAndroidTestKotlin
-else
+fi
+
+if [[ "$all_android" == true || "${#android_classes[@]}" -gt 0 ]]; then
     ./gradlew :app:compileDebugAndroidTestKotlin
 fi
 
 if [[ "$run_emulator" != true ]]; then
-    printf 'Targeted JVM checks passed; Android tests compiled. Add --emulator to execute %s selected Android classes.\n' \
-        "${#android_classes[@]}"
+    printf 'Targeted development checks passed; selected Android tests were compiled but not executed.\n'
     exit 0
 fi
 
-if [[ "${#android_classes[@]}" -eq 0 ]]; then
+if [[ "$all_android" != true && "${#android_classes[@]}" -eq 0 ]]; then
     printf 'No Android classes were selected.\n'
     exit 0
 fi
 
-class_argument="$(IFS=,; printf '%s' "${android_classes[*]}")"
 for ((run_index = 1; run_index <= repeat_count; run_index++)); do
-    printf 'Targeted Android run %s/%s: %s selector(s)\n' \
-        "$run_index" "$repeat_count" "${#android_classes[@]}"
-    ANDROID_SERIAL="$test_serial" ./gradlew :app:connectedDebugAndroidTest \
-        "-Pandroid.testInstrumentationRunnerArguments.class=${class_argument}"
+    printf 'Targeted Android run %s/%s.\n' "$run_index" "$repeat_count"
+    if [[ "$all_android" == true ]]; then
+        "${SCRIPT_DIR}/android-test-engine" --mode reusable
+    else
+        engine_args=(--mode targeted)
+        for android_class in "${android_classes[@]}"; do engine_args+=(--class "$android_class"); done
+        "${SCRIPT_DIR}/android-test-engine" "${engine_args[@]}"
+    fi
 done

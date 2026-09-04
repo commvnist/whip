@@ -54,12 +54,17 @@ See `docs/UX_ARCHITECTURE_IMPLEMENTATION_PLAN_2026-08-22.md` for the detailed re
 1. The downstream behavior is explicit before a control or field is added.
 2. Domain and persistence names describe the same concept shown to users.
 3. Unit tests cover calculation/state rules; repository tests cover persistence; UI tests cover consequence and accessibility.
-4. `scripts/check` passes.
-5. Adaptive changes pass the compact, typical, and expanded emulator matrix;
+4. The deterministic `scripts/check` change route passes with every changed path
+   explained; unknown production/build/harness paths escalate to the candidate gate.
+5. One frozen source candidate passes `ANDROID_SERIAL=emulator-N scripts/candidate`,
+   including complete JVM coverage, fresh complete Android E2E coverage, lint,
+   static guards, and debug/release/AAB/benchmark builds with atomic evidence.
+6. Adaptive changes pass the compact, typical, and expanded emulator matrix;
    optional physical-device checks never run destructive instrumentation
    against a personal release app.
-6. A signed release is installed only after the full non-device gate passes.
-7. After public release, every schema change includes an explicit forward migration and backup compatibility decision. Destructive resets require new explicit owner approval.
+7. A signed release is installed only after the frozen-candidate gate passes;
+   release/deployment remains a separately authorized workflow.
+8. After public release, every schema change includes an explicit forward migration and backup compatibility decision. Destructive resets require new explicit owner approval.
 
 ## Remaining release work
 

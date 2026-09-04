@@ -3,25 +3,49 @@
 Local quality gate:
 
 ```bash
+# Explain or execute checks selected from the current working-tree changes.
+scripts/check --explain
 scripts/check
-scripts/check --full
 ANDROID_SERIAL=emulator-5554 scripts/check --emulator
+# Complete JVM/static/release-build compatibility gate; no device is required.
+scripts/check --full
+
+# Qualify one frozen source tree with complete fresh evidence.
+ANDROID_SERIAL=emulator-5554 scripts/candidate
+scripts/candidate verify
+
+# Explicit development selectors remain available.
 scripts/coverage
-ANDROID_SERIAL=emulator-5554 scripts/coverage --emulator
 scripts/qa-targeted gym531
 ANDROID_SERIAL=emulator-5554 scripts/qa-targeted gym531 --emulator
 ANDROID_SERIAL=emulator-5554 scripts/qa-targeted --android com.whip.app.RoutineRepositoryTest#testName --repeat 3
-ANDROID_SERIAL=emulator-5554 scripts/check --emulator --fresh-emulator
 ```
 
-Use `scripts/qa-targeted` for the development loop. Its named subsystem profiles
-run the relevant deterministic JVM suites and compile Android tests; `--emulator`
-executes only the selected Android classes on a disposable emulator. Exact
-`--jvm` patterns and `--android Class#method` selectors support one-regression
-reproduction, and `--repeat` is reserved for confirming timing-sensitive tests.
-This targeted evidence is a chunk gate, not a release claim. Run `scripts/check
---emulator` once after product source freezes and `scripts/check --full` once for
-the release artifacts.
+`scripts/check` is the primary development/change gate. It consumes Git
+name-status changes, or explicit `--base`, `--path`, or `--changes-file` inputs,
+then explains every route and unions/deduplicates named profiles and exact
+JVM/Android selectors. Documentation-only, JVM-test-only, Android-test-only,
+feature-domain, and shared UI/core changes stay proportionate. Deletions and
+renames route both affected names. Unknown production, build/configuration,
+benchmark, quality-register, automation, and harness paths fail closed and
+require `scripts/candidate`.
+
+Without `--emulator`, selected Android tests compile but do not execute. With
+`--emulator`, the shared engine executes only the selected classes through the
+emulator guard. `scripts/qa-targeted` remains the explicit-selector development
+tool: profiles may be unioned, exact `--jvm` and `--android Class#method`
+selectors are supported, and `--repeat` is reserved for timing investigations.
+Development evidence is not a release claim.
+
+`scripts/check --full` preserves the historical complete local gate used by
+release tooling: complete JVM coverage, Android-test compilation, lint/static
+guards, debug and release APKs, release AAB, benchmark builds, merged-manifest
+safety, and release application/version metadata validation. With no
+`--emulator` it neither reads `ANDROID_SERIAL` nor invokes candidate or
+instrumentation code. `--emulator` explicitly adds the complete reusable
+Android inventory, and `--emulator --fresh-emulator` explicitly disables batch
+reuse. None of these compatibility forms creates frozen-candidate evidence;
+only an explicit `scripts/candidate` command can do that.
 
 All instrumentation entry points require one explicit `ANDROID_SERIAL`. The
 selected target must report `device` state and `ro.boot.qemu=1`; physical,
@@ -30,22 +54,16 @@ targets fail closed. The root Gradle guard applies the same rule to direct app
 and benchmark `connected*AndroidTest` tasks, while Android-test compilation and
 assembly remain device-independent.
 
-The complete emulator gate resumes successful instrumentation batches only when
-the production source, build configuration, emulator image, shared test support,
-requested class set, and those class files have the same signatures. A product
-source change invalidates every device batch; a test-only correction reruns its
-own batch while retaining exact evidence for unaffected batches. Use
-`--fresh-emulator` to deliberately ignore the local cache. Cached batches never
-replace JVM, compilation, lint, artifact, class-accounting, or zero-skip checks.
-Coverage is stricter: `scripts/coverage --emulator` always executes every batch
-fresh and never consumes the successful-test cache.
+`scripts/android-test-engine` is the sole Android inventory, batching, signature,
+and result-accounting implementation used by check and coverage. Reusable
+evidence requires exact production/build, debug APK, Android-test APK, runner,
+emulator, shared-support, requested-selector, and class-file signatures. A
+localized test-only edit invalidates only its batch; a production change
+invalidates every batch. Each cached record must prove the exact
+requested/executed class count, nonzero tests, and zero failures/skips. Fresh
+and coverage modes never consume that cache.
 
-`scripts/check` is the required pre-commit gate: deterministic JVM tests with
-an enforced coverage floor,
-Android-test compilation, lint, and a debug build. `--emulator` additionally runs
-the persisted-data, navigation, Compose Accessibility Test
-Framework, editor-recreation, notification-action, backup fault-injection, and
-adaptive-layout tests. Android instrumentation resets only the separate
+Android instrumentation resets only the separate
 `commvne.com.whip.app.debug` app, so it can run beside the signed
 `commvne.com.whip.app` release
 without replacing release data. The gate refuses physical hardware and requires
@@ -61,6 +79,24 @@ last. At the current 90-class baseline this is exactly 11 runner processes: one
 graphics process, nine batches of at most ten ordinary classes, and one reset
 process.
 
+`scripts/candidate` is the only frozen-candidate authority. It snapshots every
+tracked or unignored repository input, then runs complete JVM coverage,
+complete fresh Android E2E coverage, debug and release-vital lint, static
+guards, and debug/release APK, release AAB, and benchmark builds. Repository
+drift is checked between phases and inside every Android batch. Compilation and
+packaging may remain incrementally up to date; instrumentation must produce new
+XML after each batch marker, and coverage additionally requires exactly one new
+nonempty execution-data file per process. Success is published atomically under
+`build/candidate-evidence/runs/`. `scripts/candidate verify` rejects source
+drift, evidence tampering, any missing required evidence file or manifest field,
+non-fresh Android manifests/aggregates, rewritten checksum inventories, missing
+or changed artifacts, malformed pointers, and incomplete manifests. Each
+accepted run retains its merged manifest and release `output-metadata.json`
+inside the checksummed evidence directory. Verification semantically rechecks
+the retained manifest for retired location permissions and the retained release
+metadata for the expected application ID and source version code, including
+when a checksum inventory has been recomputed after tampering.
+
 Emulator screenshots, UI hierarchy dumps, traces, and other inspection
 artifacts must be created with `scripts/device-artifacts`. The tool stores
 user-visible development files under `/storage/emulated/0/whip-debug` and
@@ -74,8 +110,8 @@ benchmark-only Activity. Benchmark JSON, messages, and Perfetto traces are
 collected by the Android Gradle plugin under `benchmark/build/outputs`; Whip's
 harness does not write status files to a device storage root.
 
-`scripts/check --full` is the comprehensive local gate; it also builds the
-minified release and optimized Macrobenchmark target/harness. Release
+The frozen-candidate gate also builds the minified release and optimized
+Macrobenchmark target/harness. Release
 compatibility uses disposable API 26 (minimum), API 34 (typical phone/full
 instrumentation), and API 37 (target/latest, large screen) emulators. Emulator
 benchmark runs are execution and regression smoke, not claims about retail
@@ -94,7 +130,7 @@ $ANDROID_HOME/emulator/emulator @whip_api34 \
   -no-window -no-audio -no-boot-anim \
   -no-snapshot-load -no-snapshot-save \
   -gpu software -feature -Vulkan
-ANDROID_SERIAL=emulator-5554 scripts/check --emulator
+ANDROID_SERIAL=emulator-5554 scripts/candidate
 ```
 
 Release signing is opt-in and never checked into the repository. Set all four
@@ -166,11 +202,15 @@ remains visible in the raw report. Reports are written to
 `app/build/reports/coverage/test/debug/index.html` and
 `app/build/reports/coverage/androidTest/debug/connected/index.html`.
 
-To roll back the batching/report implementation, revert `scripts/coverage` and
-the `createBatchedDebugAndroidTestCoverageReport` task together while retaining
-the explicit Android-target guard. Generated `build/coverage-results-*`
-directories are disposable local evidence; this tooling change has no database,
-schema, release-package, or user-data transition to reverse.
+To roll back this harness, revert the router, check/candidate/coverage wrappers,
+shared Android engine, repository-state helper, executable fixtures (including
+`scripts/test-check-full`), tests, and documentation
+together while retaining `scripts/android-target-guard` and
+the module-local Gradle guards. Generated `build/candidate-evidence/`,
+`build/coverage-results-*`, and `build/instrumentation-results-*` directories
+are disposable local evidence, but accepted candidate evidence must not be
+reused after rollback. This tooling change has no database, schema, installed
+package, or user-data transition to reverse.
 
 Line/branch percentages are not treated as a substitute for product behavior.
 The machine-checked cause/effect register in

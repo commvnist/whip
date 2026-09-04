@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly TEST_ROOT="$(mktemp -d)"
+readonly OUTPUT="${TEST_ROOT}/output"
+trap 'rm -rf -- "$TEST_ROOT"' EXIT
+
+route_fixture() {
+    local name="$1"
+    shift
+    printf '%s\n' "$@" > "${TEST_ROOT}/changes.tsv"
+    if ! "${SCRIPT_DIR}/change-router" --changes-file "${TEST_ROOT}/changes.tsv" --format tsv > "$OUTPUT"; then
+        printf 'FAIL %s: router failed\n' "$name" >&2
+        sed -n '1,160p' "$OUTPUT" >&2
+        exit 1
+    fi
+    printf 'PASS %s\n' "$name"
+}
+
+require_line() {
+    local name="$1" expected="$2"
+    grep -Fqx "$expected" "$OUTPUT" || {
+        printf 'FAIL %s: missing %s\n' "$name" "$expected" >&2
+        sed -n '1,160p' "$OUTPUT" >&2
+        exit 1
+    }
+}
+
+reject_line() {
+    local name="$1" unexpected="$2"
+    if grep -Fqx "$unexpected" "$OUTPUT"; then
+        printf 'FAIL %s: unexpected %s\n' "$name" "$unexpected" >&2
+        exit 1
+    fi
+}
+
+route_fixture docs-only $'M\tdocs/testing.md' $'M\tREADME.md'
+require_line docs-only $'PROFILE\tdocs'
+require_line docs-only $'CANDIDATE\tfalse'
+reject_line docs-only $'STATIC\ttrue'
+
+route_fixture jvm-test-only $'M\tapp/src/test/java/com/whip/app/domain/TaskProgressTest.kt'
+require_line jvm-test-only $'JVM\tcom.whip.app.domain.TaskProgressTest'
+require_line jvm-test-only $'ANDROID_ALL\tfalse'
+require_line jvm-test-only $'CANDIDATE\tfalse'
+
+route_fixture android-test-only $'M\tapp/src/androidTest/java/com/whip/app/TaskRepositoryTest.kt'
+require_line android-test-only $'ANDROID\tcom.whip.app.TaskRepositoryTest'
+require_line android-test-only $'JVM_ALL\tfalse'
+require_line android-test-only $'CANDIDATE\tfalse'
+
+route_fixture domain $'M\tapp/src/main/java/com/whip/app/domain/HabitRules.kt'
+require_line domain $'PROFILE\thabits'
+require_line domain $'STATIC\ttrue'
+require_line domain $'CANDIDATE\tfalse'
+
+route_fixture shared-ui-core \
+    $'M\tapp/src/main/java/com/whip/app/core/Clock.kt' \
+    $'M\tapp/src/main/java/com/whip/app/ui/theme/WhipTheme.kt'
+require_line shared-ui-core $'PROFILE\tall'
+[[ "$(grep -Fc $'PROFILE\tall' "$OUTPUT")" -eq 1 ]] || {
+    printf 'FAIL shared-ui-core: profile union was not deduplicated\n' >&2
+    exit 1
+}
+require_line shared-ui-core $'CANDIDATE\tfalse'
+
+route_fixture build-config $'M\tgradle/libs.versions.toml'
+require_line build-config $'CANDIDATE\ttrue'
+
+route_fixture deletion $'D\tapp/src/test/java/com/whip/app/domain/GoalRulesTest.kt'
+require_line deletion $'PROFILE\tgoals'
+reject_line deletion $'JVM\tcom.whip.app.domain.GoalRulesTest'
+
+route_fixture rename $'R100\tapp/src/main/java/com/whip/app/domain/TaskPolicy.kt\tapp/src/main/java/com/whip/app/domain/HabitPolicy.kt'
+require_line rename $'PROFILE\ttasks'
+require_line rename $'PROFILE\thabits'
+[[ "$(grep -c '^ROUTE' "$OUTPUT")" -eq 2 ]] || {
+    printf 'FAIL rename: old and new paths were not both explained\n' >&2
+    exit 1
+}
+
+route_fixture harness-integrity $'M\tscripts/check'
+require_line harness-integrity $'CANDIDATE\ttrue'
+
+route_fixture unknown-production $'M\tapp/src/main/java/com/whip/app/mystery/NovelSubsystem.kt'
+require_line unknown-production $'CANDIDATE\ttrue'
+
+"${SCRIPT_DIR}/check" --explain --path docs/testing.md > "$OUTPUT"
+grep -Fq 'Frozen candidate required: false' "$OUTPUT" || {
+    printf 'FAIL check explain: development command did not consume router output\n' >&2
+    exit 1
+}
+printf 'PASS change gate consumes deterministic routes\n'
+
+printf 'All change-router fixtures passed.\n'

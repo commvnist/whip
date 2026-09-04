@@ -1,0 +1,410 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+readonly GRAPHICS_TEST_CLASS='com.whip.app.ui.InteractionControlUiTest'
+readonly DESTRUCTIVE_RESET_TEST_CLASS='com.whip.app.DataEpochResetIntegrationTest'
+readonly INSTRUMENTATION_BATCH_SIZE=10
+
+mode='reusable'
+evidence_dir=''
+requested_selectors=()
+
+usage() {
+    printf '%s\n' \
+        'Run Android instrumentation through Whip shared inventory and accounting.' \
+        '' \
+        'Usage:' \
+        '  ANDROID_SERIAL=emulator-N scripts/android-test-engine --mode reusable' \
+        '  ANDROID_SERIAL=emulator-N scripts/android-test-engine --mode fresh' \
+        '  ANDROID_SERIAL=emulator-N scripts/android-test-engine --mode coverage [--evidence-dir DIR]' \
+        '  ANDROID_SERIAL=emulator-N scripts/android-test-engine --mode targeted --class CLASS[#METHOD] ...' \
+        '' \
+        'Modes reusable, fresh, and coverage select the complete inventory. Coverage' \
+        'and fresh never reuse execution; compilation and APK packaging stay incremental.'
+}
+
+die() {
+    printf 'error: %s\n' "$*" >&2
+    exit 1
+}
+
+while (($#)); do
+    case "$1" in
+        --mode)
+            shift
+            (($#)) || die '--mode requires reusable, fresh, coverage, or targeted'
+            mode="$1"
+            ;;
+        --class)
+            shift
+            (($#)) || die '--class requires a class or class#method selector'
+            requested_selectors+=("$1")
+            ;;
+        --evidence-dir)
+            shift
+            (($#)) || die '--evidence-dir requires a directory'
+            evidence_dir="$1"
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            usage >&2
+            die "unknown option $1"
+            ;;
+    esac
+    shift
+done
+
+case "$mode" in
+    reusable|fresh|coverage) [[ "${#requested_selectors[@]}" -eq 0 ]] || die "$mode mode selects the complete inventory" ;;
+    targeted) [[ "${#requested_selectors[@]}" -gt 0 ]] || die 'targeted mode requires at least one --class' ;;
+    *) die "unknown mode: $mode" ;;
+esac
+
+"${SCRIPT_DIR}/android-target-guard" instrumentation
+readonly test_serial="$ANDROID_SERIAL"
+emulator_api="$(adb -s "$test_serial" shell getprop ro.build.version.sdk | tr -d '\r')"
+[[ "$emulator_api" =~ ^[0-9]+$ ]] && ((emulator_api >= 34)) ||
+    die "instrumentation requires an API 34+ emulator; $test_serial reports API $emulator_api"
+readonly emulator_api
+
+cd "$PROJECT_ROOT"
+
+mapfile -t instrumentation_test_files < <(find app/src/androidTest -name '*Test.kt' -type f | sort)
+mapfile -t instrumentation_shared_files < <(find app/src/androidTest -type f ! -name '*Test.kt' | sort)
+declare -A instrumentation_class_files=()
+instrumentation_classes=()
+for test_file in "${instrumentation_test_files[@]}"; do
+    test_package="$(sed -nE 's/^package[[:space:]]+([^[:space:]]+).*/\1/p' "$test_file" | head -n 1)"
+    test_class="$(basename "$test_file" .kt)"
+    if [[ -z "$test_package" ]] ||
+        ! grep -Eq "^(internal[[:space:]]+)?class[[:space:]]+${test_class}([[:space:]:<{]|$)" "$test_file"; then
+        die "instrumentation test file must declare its filename as a top-level class: $test_file"
+    fi
+    qualified_test_class="${test_package}.${test_class}"
+    instrumentation_classes+=("$qualified_test_class")
+    instrumentation_class_files["$qualified_test_class"]="$test_file"
+done
+[[ "${#instrumentation_classes[@]}" -gt 0 ]] || die 'no instrumentation test classes found'
+
+full_inventory=true
+selectors=()
+if [[ "$mode" == 'targeted' ]]; then
+    full_inventory=false
+    declare -A seen_selectors=()
+    for selector in "${requested_selectors[@]}"; do
+        base_class="${selector%%#*}"
+        [[ -n "$base_class" && -n "${instrumentation_class_files[$base_class]:-}" ]] ||
+            die "Android selector is not a top-level inventory class: $selector"
+        if [[ -z "${seen_selectors[$selector]+x}" ]]; then
+            selectors+=("$selector")
+            seen_selectors["$selector"]=1
+        fi
+    done
+else
+    selectors=("${instrumentation_classes[@]}")
+fi
+
+graphics_selectors=()
+ordinary_selectors=()
+reset_selectors=()
+for selector in "${selectors[@]}"; do
+    base_class="${selector%%#*}"
+    if [[ "$base_class" == "$GRAPHICS_TEST_CLASS" ]]; then
+        graphics_selectors+=("$selector")
+    elif [[ "$base_class" == "$DESTRUCTIVE_RESET_TEST_CLASS" ]]; then
+        reset_selectors+=("$selector")
+    else
+        ordinary_selectors+=("$selector")
+    fi
+done
+if [[ "$full_inventory" == true &&
+    ("${#graphics_selectors[@]}" -ne 1 || "${#reset_selectors[@]}" -ne 1) ]]; then
+    die "complete inventory requires $GRAPHICS_TEST_CLASS first and $DESTRUCTIVE_RESET_TEST_CLASS last"
+fi
+
+batch_arguments=()
+batch_labels=()
+append_batch() {
+    local label="$1"
+    shift
+    local argument
+    argument="$(IFS=,; printf '%s' "$*")"
+    batch_arguments+=("$argument")
+    batch_labels+=("$label")
+}
+if [[ "${#graphics_selectors[@]}" -gt 0 ]]; then
+    append_batch graphics "${graphics_selectors[@]}"
+fi
+for ((batch_start = 0; batch_start < ${#ordinary_selectors[@]}; batch_start += INSTRUMENTATION_BATCH_SIZE)); do
+    batch=("${ordinary_selectors[@]:batch_start:INSTRUMENTATION_BATCH_SIZE}")
+    append_batch ordinary "${batch[@]}"
+done
+if [[ "${#reset_selectors[@]}" -gt 0 ]]; then
+    append_batch reset "${reset_selectors[@]}"
+fi
+readonly batch_total="${#batch_arguments[@]}"
+((batch_total > 0)) || die 'no Android selectors were batched'
+
+# Build inputs may remain incremental. Freshness is proved only by new connected-test
+# XML (and, for coverage, new execution data) created after each batch marker.
+./gradlew :app:assembleDebug :app:assembleDebugAndroidTest
+
+debug_apk='app/build/outputs/apk/debug/app-debug.apk'
+android_test_apk="$(find app/build/outputs/apk/androidTest/debug -maxdepth 1 -name '*.apk' -type f -print -quit 2>/dev/null || true)"
+[[ -s "$debug_apk" ]] || die "debug APK is missing after assembly: $debug_apk"
+[[ -n "$android_test_apk" && -s "$android_test_apk" ]] ||
+    die 'debug Android-test APK is missing after assembly'
+
+signature_for_files() {
+    local namespace="$1"
+    shift
+    {
+        printf 'namespace:%s\n' "$namespace"
+        local source_file
+        for source_file in "$@"; do
+            printf 'path:%s\n' "$source_file"
+            sha256sum -- "$source_file"
+        done
+    } | sha256sum | awk '{ print $1 }'
+}
+
+mapfile -t production_signature_files < <(
+    {
+        find app/src/main -type f
+        find gradle -type f
+        printf '%s\n' \
+            app/build.gradle.kts \
+            build.gradle.kts \
+            settings.gradle.kts \
+            gradle.properties \
+            scripts/android-target-guard \
+            scripts/android-test-engine
+    } | sort -u
+)
+production_signature="$(signature_for_files 'whip-instrumentation-production-v2' "${production_signature_files[@]}")"
+shared_test_signature="$(signature_for_files 'whip-instrumentation-shared-tests-v2' "${instrumentation_shared_files[@]}")"
+debug_apk_signature="$(sha256sum "$debug_apk" | awk '{ print $1 }')"
+android_test_apk_signature="$(sha256sum "$android_test_apk" | awk '{ print $1 }')"
+runner_identity="$(sed -nE 's/^[[:space:]]*testInstrumentationRunner[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' app/build.gradle.kts | head -n 1)"
+[[ -n "$runner_identity" ]] || die 'could not determine the instrumentation runner'
+emulator_fingerprint="$(adb -s "$test_serial" shell getprop ro.build.fingerprint | tr -d '\r')"
+emulator_abi="$(adb -s "$test_serial" shell getprop ro.product.cpu.abi | tr -d '\r')"
+[[ -n "$emulator_fingerprint" && -n "$emulator_abi" ]] || die 'could not fingerprint the selected emulator'
+emulator_signature="$(printf '%s\n' "$emulator_api" "$emulator_fingerprint" "$emulator_abi" | sha256sum | awk '{ print $1 }')"
+runner_signature="$(printf '%s\n' "$runner_identity" "$debug_apk_signature" "$android_test_apk_signature" | sha256sum | awk '{ print $1 }')"
+
+mapfile -t campaign_signature_files < <(
+    {
+        printf '%s\n' "${production_signature_files[@]}"
+        printf '%s\n' "${instrumentation_test_files[@]}" "${instrumentation_shared_files[@]}"
+        printf '%s\n' "$debug_apk" "$android_test_apk"
+    } | sort -u
+)
+campaign_signature="$(signature_for_files 'whip-instrumentation-campaign-v2' "${campaign_signature_files[@]}")"
+readonly campaign_signature
+
+require_unchanged_campaign() {
+    local boundary="$1" current_signature
+    current_signature="$(signature_for_files 'whip-instrumentation-campaign-v2' "${campaign_signature_files[@]}")"
+    [[ "$current_signature" == "$campaign_signature" ]] ||
+        die "Android test inputs or APKs changed $boundary; discard this campaign"
+}
+
+run_prefix='instrumentation'
+[[ "$mode" == 'coverage' ]] && run_prefix='coverage'
+run_dir="$(mktemp -d "${PROJECT_ROOT}/build/${run_prefix}-results-XXXXXX")"
+readonly run_dir
+aggregate_result="${run_dir}/aggregate.tsv"
+readonly aggregate_result
+printf 'batch\tkind\texpected_classes\texecuted_classes\texecuted\tfailures\tskipped\tcoverage_bytes\treused\tsignature\n' > "$aggregate_result"
+execution_data_dir="${run_dir}/execution-data"
+if [[ "$mode" == 'coverage' ]]; then mkdir -p "$execution_data_dir"; fi
+cache_dir="${PROJECT_ROOT}/build/instrumentation-batch-cache-v2"
+mkdir -p "$cache_dir"
+
+executed_test_total=0
+failed_test_total=0
+skipped_test_total=0
+reused_batch_total=0
+
+batch_signature_for() {
+    local selector_argument="$1" base_class
+    local batch_files=()
+    while IFS= read -r selector; do
+        [[ -n "$selector" ]] || continue
+        base_class="${selector%%#*}"
+        batch_files+=("${instrumentation_class_files[$base_class]}")
+    done < <(tr ',' '\n' <<< "$selector_argument" | sort -u)
+    signature_for_files \
+        "production=${production_signature};shared=${shared_test_signature};runner=${runner_signature};emulator=${emulator_signature};selectors=${selector_argument}" \
+        "${batch_files[@]}"
+}
+
+expected_classes_for() {
+    tr ',' '\n' <<< "$1" | sed 's/#.*$//; /^$/d' | sort -u
+}
+
+reuse_batch() {
+    local batch_number="$1" kind="$2" selector_argument="$3" batch_signature="$4"
+    local cache_file="${cache_dir}/${batch_signature}.tsv"
+    [[ "$mode" == 'reusable' && -s "$cache_file" ]] || return 1
+    local cached_signature expected_count executed_count executed failures skipped
+    IFS=$'\t' read -r cached_signature expected_count executed_count executed failures skipped < "$cache_file"
+    [[ "$cached_signature" == "$batch_signature" &&
+        "$expected_count" =~ ^[1-9][0-9]*$ &&
+        "$executed_count" =~ ^[1-9][0-9]*$ &&
+        "$executed" =~ ^[1-9][0-9]*$ &&
+        "$failures" == 0 && "$skipped" == 0 ]] || return 1
+    current_expected_count="$(expected_classes_for "$selector_argument" | wc -l | tr -d ' ')"
+    [[ "$expected_count" -eq "$current_expected_count" && "$executed_count" -eq "$current_expected_count" ]] || return 1
+    executed_test_total="$((executed_test_total + executed))"
+    reused_batch_total="$((reused_batch_total + 1))"
+    printf '%s\t%s\t%s\t%s\t%s\t0\t0\t0\ttrue\t%s\n' \
+        "$batch_number" "$kind" "$expected_count" "$executed_count" "$executed" "$batch_signature" >> "$aggregate_result"
+    printf 'Android batch %s/%s reused (%s tests; signature %s).\n' \
+        "$batch_number" "$batch_total" "$executed" "${batch_signature:0:12}"
+}
+
+clear_previous_outputs() {
+    local result_root='app/build/outputs/androidTest-results/connected'
+    local coverage_root='app/build/outputs/code_coverage/debugAndroidTest/connected'
+    if [[ -d "$result_root" ]]; then
+        find "$result_root" -type f -name 'TEST-*.xml' -delete
+    fi
+    if [[ -d "$coverage_root" ]]; then
+        find "$coverage_root" -type f -name '*.ec' -delete
+    fi
+}
+
+capture_batch() {
+    local batch_number="$1" kind="$2" selector_argument="$3" marker="$4" gradle_status="$5" batch_signature="$6"
+    local batch_report_dir="${run_dir}/batch-${batch_number}"
+    mkdir -p "$batch_report_dir"
+    mapfile -t result_xml_files < <(
+        find app/build/outputs/androidTest-results/connected -name 'TEST-*.xml' -type f -newer "$marker" 2>/dev/null | sort
+    )
+    [[ "${#result_xml_files[@]}" -gt 0 ]] ||
+        die "Android batch $batch_number produced no fresh executable XML; results retained in $run_dir"
+    xml_index=0
+    for result_xml in "${result_xml_files[@]}"; do
+        xml_index="$((xml_index + 1))"
+        cp -- "$result_xml" "${batch_report_dir}/result-${xml_index}.xml"
+    done
+    expected_class_file="${batch_report_dir}/expected-classes.txt"
+    executed_class_file="${batch_report_dir}/executed-classes.txt"
+    expected_classes_for "$selector_argument" > "$expected_class_file"
+    (grep -Rho 'classname="[^"]*"' "$batch_report_dir" || true) \
+        | sed -E 's/^classname="([^"]*)"$/\1/' | sed '/^$/d' | sort -u > "$executed_class_file"
+    if ! cmp -s "$expected_class_file" "$executed_class_file"; then
+        diff -u "$expected_class_file" "$executed_class_file" >&2 || true
+        die "Android batch $batch_number executed a different class set than requested; results retained in $run_dir"
+    fi
+    expected_count="$(wc -l < "$expected_class_file" | tr -d ' ')"
+    executed_count="$(wc -l < "$executed_class_file" | tr -d ' ')"
+    executed="$( (grep -Rho '<testcase[ >]' "$batch_report_dir" || true) | wc -l | tr -d ' ')"
+    failures="$( (grep -RhoE '<(failure|error)[ >]' "$batch_report_dir" || true) | wc -l | tr -d ' ')"
+    skipped="$( (grep -Rho '<skipped[ >]' "$batch_report_dir" || true) | wc -l | tr -d ' ')"
+    if [[ "$executed" -eq 0 || "$failures" -ne 0 || "$skipped" -ne 0 || "$gradle_status" -ne 0 ]]; then
+        die "Android batch $batch_number requires a successful Gradle task, nonzero tests, and zero failures/skips; got status/tests/failures/skips $gradle_status/$executed/$failures/$skipped; results retained in $run_dir"
+    fi
+    coverage_bytes=0
+    if [[ "$mode" == 'coverage' ]]; then
+        mapfile -t coverage_files < <(
+            find app/build/outputs/code_coverage/debugAndroidTest/connected -name '*.ec' -type f -newer "$marker" 2>/dev/null | sort
+        )
+        [[ "${#coverage_files[@]}" -eq 1 && -s "${coverage_files[0]:-}" ]] ||
+            die "coverage batch $batch_number requires exactly one nonempty fresh .ec file; found ${#coverage_files[@]}; results retained in $run_dir"
+        printf -v batch_id '%02d' "$batch_number"
+        copied_coverage_file="${execution_data_dir}/batch-${batch_id}.ec"
+        cp -- "${coverage_files[0]}" "$copied_coverage_file"
+        [[ -s "$copied_coverage_file" ]] || die "copied coverage data is empty for batch $batch_number"
+        coverage_bytes="$(wc -c < "$copied_coverage_file" | tr -d ' ')"
+    fi
+    executed_test_total="$((executed_test_total + executed))"
+    failed_test_total="$((failed_test_total + failures))"
+    skipped_test_total="$((skipped_test_total + skipped))"
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\tfalse\t%s\n' \
+        "$batch_number" "$kind" "$expected_count" "$executed_count" "$executed" \
+        "$failures" "$skipped" "$coverage_bytes" "$batch_signature" >> "$aggregate_result"
+    if [[ "$mode" == 'reusable' ]]; then
+        printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
+            "$batch_signature" "$expected_count" "$executed_count" "$executed" "$failures" "$skipped" \
+            > "${cache_dir}/${batch_signature}.tsv"
+    fi
+}
+
+run_batch() {
+    local batch_number="$1" kind="$2" selector_argument="$3" batch_signature marker gradle_status
+    batch_signature="$(batch_signature_for "$selector_argument")"
+    if reuse_batch "$batch_number" "$kind" "$selector_argument" "$batch_signature"; then
+        return
+    fi
+    printf 'Android batch %s/%s (%s, %s selector(s)).\n' \
+        "$batch_number" "$batch_total" "$kind" "$(tr ',' '\n' <<< "$selector_argument" | wc -l | tr -d ' ')"
+    ANDROID_SERIAL="$test_serial" "${SCRIPT_DIR}/android-target-guard" instrumentation
+    require_unchanged_campaign "before batch $batch_number"
+    clear_previous_outputs
+    marker="${run_dir}/batch-${batch_number}.started"
+    : > "$marker"
+    gradle_args=(
+        :app:connectedDebugAndroidTest
+        --no-build-cache
+        --no-configuration-cache
+        --console=plain
+        "-Pandroid.testInstrumentationRunnerArguments.class=${selector_argument}"
+    )
+    set +e
+    ANDROID_SERIAL="$test_serial" ./gradlew "${gradle_args[@]}"
+    gradle_status="$?"
+    set -e
+    require_unchanged_campaign "during batch $batch_number"
+    capture_batch "$batch_number" "$kind" "$selector_argument" "$marker" "$gradle_status" "$batch_signature"
+    adb -s "$test_serial" shell am force-stop commvne.com.whip.app.debug >/dev/null
+    adb -s "$test_serial" shell am force-stop commvne.com.whip.app.debug.test >/dev/null
+}
+
+for ((batch_index = 0; batch_index < batch_total; batch_index++)); do
+    run_batch "$((batch_index + 1))" "${batch_labels[$batch_index]}" "${batch_arguments[$batch_index]}"
+done
+
+if [[ "$full_inventory" == true ]]; then
+    source_test_count="$(grep -RhoE --include='*.kt' '^[[:space:]]*@Test([[:space:](]|$)' app/src/androidTest | wc -l | tr -d ' ')"
+    [[ "$executed_test_total" -eq "$source_test_count" ]] ||
+        die "expected $source_test_count Android tests from source but XML proves $executed_test_total; see $aggregate_result"
+fi
+[[ "$failed_test_total" -eq 0 && "$skipped_test_total" -eq 0 ]] ||
+    die "Android aggregate contains $failed_test_total failures and $skipped_test_total skips; see $aggregate_result"
+
+if [[ "$mode" == 'coverage' ]]; then
+    mapfile -t copied_coverage_files < <(find "$execution_data_dir" -name 'batch-*.ec' -type f | sort)
+    [[ "${#copied_coverage_files[@]}" -eq "$batch_total" ]] ||
+        die "expected $batch_total copied coverage files, found ${#copied_coverage_files[@]}"
+    require_unchanged_campaign 'before coverage report generation'
+    ANDROID_SERIAL="$test_serial" ./gradlew :app:createBatchedDebugAndroidTestCoverageReport \
+        --no-build-cache --no-configuration-cache --console=plain \
+        "-PwhipAndroidCoverageExecutionDataDir=${execution_data_dir}" \
+        "-PwhipAndroidCoverageExpectedBatchCount=${batch_total}"
+    require_unchanged_campaign 'during coverage report generation'
+    e2e_report='app/build/reports/coverage/androidTest/debug/connected/report.xml'
+    e2e_html='app/build/reports/coverage/androidTest/debug/connected/index.html'
+    [[ -s "$e2e_report" && -s "$e2e_html" ]] || die 'batched XML/HTML coverage report is missing or empty'
+    java scripts/CoverageGate.java e2e "$e2e_report"
+fi
+
+if [[ -n "$evidence_dir" ]]; then
+    mkdir -p "$evidence_dir"
+    cp -- "$aggregate_result" "${evidence_dir}/android-aggregate.tsv"
+    if [[ "$mode" == 'coverage' ]]; then
+        cp -- "$e2e_report" "${evidence_dir}/android-coverage.xml"
+    fi
+    printf '%s\n' "$campaign_signature" > "${evidence_dir}/android-campaign.sha256"
+fi
+
+printf 'Android instrumentation accepted %s tests with zero failures/skips across %s batches (%s reused). Evidence: %s\n' \
+    "$executed_test_total" "$batch_total" "$reused_batch_total" "$run_dir"

@@ -5,367 +5,210 @@ set -euo pipefail
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 
-run_emulator_tests=false
-build_release=false
-resume_emulator_batches=true
+run_emulator=false
+explain_only=false
+route_all=false
+full_gate=false
+fresh_emulator=false
+routing_requested=false
+router_args=(--format tsv)
 
 usage() {
     printf '%s\n' \
-        'Run Whip automated quality gates.' \
+        'Run the proportionate Whip development/change gate.' \
         '' \
         'Usage:' \
-        '  scripts/check             Unit tests, Android-test compilation, lint, debug APK' \
-        '  scripts/check --emulator  Also run instrumentation tests on one disposable emulator' \
-        '  scripts/check --emulator --fresh-emulator  Ignore successful exact-source batch cache' \
-        '  scripts/check --device    Backwards-compatible alias for --emulator' \
-        '  scripts/check --full      Also build release and the optimized benchmark harness' \
+        '  scripts/check [--base REF] [--emulator]' \
+        '  scripts/check --path PATH [--path PATH ...] [--emulator]' \
+        '  scripts/check --changes-file FILE [--emulator]' \
+        '  scripts/check --all [--emulator]' \
+        '  scripts/check --explain [routing options]' \
+        '  scripts/check --full [--emulator [--fresh-emulator]]' \
         '' \
-        'Instrumentation reinstalls/clears the debug app. Physical devices are refused.' \
-        'Set ANDROID_SERIAL to exactly one API 34+ disposable emulator.'
+        'Changed paths are unioned and deduplicated into exact selectors/profiles.' \
+        'Unknown production/build/harness inputs fail closed to scripts/candidate.' \
+        '--full preserves the complete device-independent JVM/static/build gate.' \
+        '--device aliases --emulator; --fresh-emulator requires --emulator.' \
+        'Only an explicit scripts/candidate command creates fresh candidate evidence.'
 }
 
-while (($#)); do
-    case "$1" in
-        --device|--emulator) run_emulator_tests=true ;;
-        --fresh-emulator) resume_emulator_batches=false ;;
-        --full) build_release=true ;;
-        -h|--help) usage; exit 0 ;;
-        *) usage >&2; printf 'error: unknown option %s\n' "$1" >&2; exit 2 ;;
-    esac
-    shift
-done
+die() {
+    printf 'error: %s\n' "$*" >&2
+    exit 1
+}
 
-if [[ "$resume_emulator_batches" == false && "$run_emulator_tests" != true ]]; then
-    printf 'error: --fresh-emulator requires --emulator\n' >&2
-    exit 2
-fi
+run_complete_local_gate() {
+    cd "$PROJECT_ROOT"
 
-if [[ "$run_emulator_tests" == true ]]; then
-    "${SCRIPT_DIR}/android-target-guard" instrumentation
-    readonly test_serial="$ANDROID_SERIAL"
-    emulator_api="$(adb -s "$test_serial" shell getprop ro.build.version.sdk | tr -d '\r')"
-    if [[ ! "$emulator_api" =~ ^[0-9]+$ ]] || ((emulator_api < 34)); then
-        printf 'error: instrumentation requires an API 34+ emulator; %s reports API %s\n' "$test_serial" "$emulator_api" >&2
-        exit 1
+    jvm_test_count="$(grep -RhoE --include='*.kt' '^[[:space:]]*@Test([[:space:](]|$)' app/src/test | wc -l | tr -d ' ')"
+    android_test_count="$(grep -RhoE --include='*.kt' '^[[:space:]]*@Test([[:space:](]|$)' app/src/androidTest | wc -l | tr -d ' ')"
+    product_test_count="$((jvm_test_count + android_test_count))"
+    documented_baseline="Current baseline: ${product_test_count} product tests—${jvm_test_count} fast JVM tests and ${android_test_count} Android"
+    grep -Fq "$documented_baseline" docs/testing.md ||
+        die "docs/testing.md test baseline is stale; expected: $documented_baseline instrumentation tests"
+
+    java scripts/RenderBrandIcon.java --verify
+    unexpected_device_paths="$(
+        rg -n '/sdcard|/storage/emulated/0|/data/local/tmp' app/src benchmark/src scripts \
+            --glob '!scripts/device-artifacts' --glob '!scripts/check' --glob '!scripts/candidate' \
+            --glob '!scripts/test-*' --glob '!**/build/**' || true
+    )"
+    [[ -z "$unexpected_device_paths" ]] ||
+        die "direct device-root artifact path bypasses scripts/device-artifacts: $unexpected_device_paths"
+    if rg -n 'fallbackToDestructiveMigration' app/src/main; then
+        die 'destructive Room migration fallback is forbidden'
     fi
-    readonly emulator_api
-fi
 
-tasks=(
-    :app:createDebugUnitTestCoverageReport
-    :app:compileDebugAndroidTestKotlin
-    :app:lintDebug
-    :app:assembleDebug
-)
-if [[ "$build_release" == true ]]; then
-    tasks+=(:app:assembleRelease :app:bundleRelease :benchmark:assembleBenchmark)
-fi
+    ./gradlew \
+        :app:createDebugUnitTestCoverageReport \
+        :app:compileDebugAndroidTestKotlin \
+        :app:lintDebug \
+        :app:assembleDebug \
+        :app:assembleRelease \
+        :app:bundleRelease \
+        :benchmark:assembleBenchmark
+    java scripts/CoverageGate.java unit app/build/reports/coverage/test/debug/report.xml
 
-cd "$PROJECT_ROOT"
+    merged_manifest="$(find app/build/intermediates/merged_manifests/debug -name AndroidManifest.xml -print -quit)"
+    [[ -n "$merged_manifest" && -s "$merged_manifest" ]] ||
+        die 'debug merged manifest was not produced'
+    if grep -Eq 'android\.permission\.ACCESS_(BACKGROUND_LOCATION|COARSE_LOCATION|FINE_LOCATION)' "$merged_manifest"; then
+        die "retired location permission found in merged manifest: $merged_manifest"
+    fi
 
-jvm_test_count="$(grep -RhoE --include='*.kt' '^[[:space:]]*@Test([[:space:](]|$)' app/src/test | wc -l | tr -d ' ')"
-android_test_count="$(grep -RhoE --include='*.kt' '^[[:space:]]*@Test([[:space:](]|$)' app/src/androidTest | wc -l | tr -d ' ')"
-product_test_count="$((jvm_test_count + android_test_count))"
-documented_baseline="Current baseline: ${product_test_count} product tests—${jvm_test_count} fast JVM tests and ${android_test_count} Android"
-if ! grep -Fq "$documented_baseline" docs/testing.md; then
-    printf 'error: docs/testing.md test baseline is stale; expected: %s instrumentation tests\n' "$documented_baseline" >&2
-    exit 1
-fi
-
-java scripts/RenderBrandIcon.java --verify
-
-unexpected_device_paths="$(
-    rg -n '/sdcard|/storage/emulated/0|/data/local/tmp' app/src benchmark/src scripts \
-        --glob '!scripts/device-artifacts' \
-        --glob '!scripts/check' \
-        --glob '!**/build/**' || true
-)"
-if [[ -n "$unexpected_device_paths" ]]; then
-    printf 'error: direct device-root artifact path bypasses scripts/device-artifacts:\n%s\n' "$unexpected_device_paths" >&2
-    exit 1
-fi
-
-if rg -n 'fallbackToDestructiveMigration' app/src/main; then
-    printf 'error: destructive Room migration fallback is forbidden\n' >&2
-    exit 1
-fi
-
-./gradlew "${tasks[@]}"
-java scripts/CoverageGate.java unit app/build/reports/coverage/test/debug/report.xml
-
-merged_manifest="$(find app/build/intermediates/merged_manifests/debug -name AndroidManifest.xml -print -quit)"
-if [[ -z "$merged_manifest" ]]; then
-    printf 'error: debug merged manifest was not produced\n' >&2
-    exit 1
-fi
-if grep -Eq 'android\.permission\.ACCESS_(BACKGROUND_LOCATION|COARSE_LOCATION|FINE_LOCATION)' "$merged_manifest"; then
-    printf 'error: retired location permission found in merged manifest: %s\n' "$merged_manifest" >&2
-    exit 1
-fi
-
-if [[ "$build_release" == true ]]; then
     expected_release_version_code="$(
         sed -nE 's/^[[:space:]]*versionCode[[:space:]]*=[[:space:]]*([0-9]+).*$/\1/p' \
             app/build.gradle.kts | head -n 1
     )"
-    readonly expected_release_version_code
-    if [[ -z "$expected_release_version_code" ]]; then
-        printf 'error: could not read the expected release version code from app/build.gradle.kts\n' >&2
-        exit 1
-    fi
-    release_apk="$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' -print -quit)"
-    release_bundle="app/build/outputs/bundle/release/app-release.aab"
-    readonly release_apk release_bundle
-    readonly release_metadata="app/build/outputs/apk/release/output-metadata.json"
-    for artifact in "$release_apk" "$release_bundle" "$release_metadata"; do
-        if [[ ! -s "$artifact" ]]; then
-            printf 'error: expected release artifact is missing or empty: %s\n' "$artifact" >&2
-            exit 1
-        fi
+    [[ -n "$expected_release_version_code" ]] ||
+        die 'could not read the expected release version code from app/build.gradle.kts'
+    release_apk="$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' -type f -print -quit)"
+    release_bundle='app/build/outputs/bundle/release/app-release.aab'
+    release_metadata='app/build/outputs/apk/release/output-metadata.json'
+    for release_artifact in "$release_apk" "$release_bundle" "$release_metadata"; do
+        [[ -n "$release_artifact" && -s "$release_artifact" ]] ||
+            die "expected release artifact is missing or empty: $release_artifact"
     done
-    grep -Fq '"applicationId": "commvne.com.whip.app"' "$release_metadata" || {
-        printf 'error: release artifact has the wrong application ID\n' >&2
-        exit 1
-    }
-    grep -Fq "\"versionCode\": $expected_release_version_code" "$release_metadata" || {
-        printf 'error: release artifact has the wrong version code; expected %s\n' \
-            "$expected_release_version_code" >&2
-        exit 1
-    }
+    grep -Fq '"applicationId": "commvne.com.whip.app"' "$release_metadata" ||
+        die 'release artifact has the wrong application ID'
+    grep -Fq "\"versionCode\": $expected_release_version_code" "$release_metadata" ||
+        die "release artifact has the wrong version code; expected $expected_release_version_code"
+
+    git diff --check
+}
+
+while (($#)); do
+    case "$1" in
+        --emulator|--device) run_emulator=true ;;
+        --explain) explain_only=true ;;
+        --all) route_all=true; routing_requested=true ;;
+        --full) full_gate=true ;;
+        --fresh-emulator) fresh_emulator=true ;;
+        --base|--path|--changes-file)
+            option="$1"
+            routing_requested=true
+            shift
+            (($#)) || die "$option requires a value"
+            router_args+=("$option" "$1")
+            ;;
+        -h|--help) usage; exit 0 ;;
+        *) usage >&2; die "unknown option $1" ;;
+    esac
+    shift
+done
+
+if [[ "$fresh_emulator" == true && "$run_emulator" != true ]]; then
+    die '--fresh-emulator requires --emulator'
+fi
+if [[ "$full_gate" == true ]]; then
+    [[ "$explain_only" != true && "$routing_requested" != true ]] ||
+        die '--full cannot be combined with routing or explain options'
+    if [[ "$run_emulator" == true ]]; then
+        "${SCRIPT_DIR}/android-target-guard" instrumentation
+    fi
+    run_complete_local_gate
+    if [[ "$run_emulator" == true ]]; then
+        android_mode='reusable'
+        [[ "$fresh_emulator" != true ]] || android_mode='fresh'
+        "${SCRIPT_DIR}/android-test-engine" --mode "$android_mode"
+    fi
+    printf 'Complete local quality/build gate passed%s. Frozen-candidate evidence was not created.\n' \
+        "$([[ "$run_emulator" == true ]] && printf ' with Android instrumentation' || true)"
+    exit 0
+fi
+if [[ "$run_emulator" == true ]]; then
+    "${SCRIPT_DIR}/android-target-guard" instrumentation
 fi
 
-if [[ "$run_emulator_tests" == true ]]; then
-    mapfile -t instrumentation_test_files < <(find app/src/androidTest -name '*Test.kt' -type f | sort)
-    mapfile -t instrumentation_shared_files < <(find app/src/androidTest -type f ! -name '*Test.kt' | sort)
-    declare -A instrumentation_class_files=()
-    instrumentation_classes=()
-    for test_file in "${instrumentation_test_files[@]}"; do
-        test_package="$(sed -nE 's/^package[[:space:]]+([^[:space:]]+).*/\1/p' "$test_file" | head -n 1)"
-        test_class="$(basename "$test_file" .kt)"
-        if [[ -z "$test_package" ]] || ! grep -Eq "^(internal[[:space:]]+)?class[[:space:]]+${test_class}([[:space:]:<{]|$)" "$test_file"; then
-            printf 'error: instrumentation test file must declare its filename as a top-level class: %s\n' "$test_file" >&2
-            exit 1
-        fi
-        qualified_test_class="${test_package}.${test_class}"
-        instrumentation_classes+=("$qualified_test_class")
-        instrumentation_class_files["$qualified_test_class"]="$test_file"
-    done
-    if [[ "${#instrumentation_classes[@]}" -eq 0 ]]; then
-        printf 'error: no instrumentation test classes found\n' >&2
-        exit 1
-    fi
-
-    # Long Compose runs can exhaust host-emulator graphics state even when every
-    # assertion is healthy. Run the canvas/color interaction suite first on the
-    # fresh AVD. Run the whole-app destructive reset contract last in its own
-    # process so its deliberate teardown cannot contaminate a neighboring class.
-    # Keep the remaining classes in bounded batches.
-    readonly graphics_test_class='com.whip.app.ui.InteractionControlUiTest'
-    readonly destructive_reset_test_class='com.whip.app.DataEpochResetIntegrationTest'
-    remaining_instrumentation_classes=()
-    graphics_test_found=false
-    destructive_reset_test_found=false
-    for test_class in "${instrumentation_classes[@]}"; do
-        if [[ "$test_class" == "$graphics_test_class" ]]; then
-            graphics_test_found=true
-        elif [[ "$test_class" == "$destructive_reset_test_class" ]]; then
-            destructive_reset_test_found=true
-        else
-            remaining_instrumentation_classes+=("$test_class")
-        fi
-    done
-    readonly instrumentation_batch_size=10
-    batch_total="$(((${#remaining_instrumentation_classes[@]} + instrumentation_batch_size - 1) / instrumentation_batch_size))"
-    instrumentation_run_dir="$(mktemp -d "${PROJECT_ROOT}/build/instrumentation-results-XXXXXX")"
-    readonly instrumentation_run_dir
-    aggregate_result="${instrumentation_run_dir}/aggregate.tsv"
-    readonly aggregate_result
-    printf 'batch\texpected_classes\texecuted_classes\texecuted\tskipped\n' > "$aggregate_result"
-    executed_test_total=0
-    skipped_test_total=0
-    reused_batch_total=0
-
-    signature_for_files() {
-        local namespace="$1"
-        shift
-        {
-            printf 'namespace:%s\n' "$namespace"
-            local source_file
-            for source_file in "$@"; do
-                printf 'path:%s\n' "$source_file"
-                sha256sum "$source_file"
-            done
-        } | sha256sum | awk '{ print $1 }'
-    }
-
-    mapfile -t production_signature_files < <(
-        {
-            find app/src -type f ! -path '*/test/*' ! -path '*/androidTest/*'
-            find gradle -type f
-            printf '%s\n' app/build.gradle.kts build.gradle.kts settings.gradle.kts gradle.properties scripts/check
-        } | sort -u
-    )
-    production_signature="$(signature_for_files 'whip-instrumentation-production-v1' "${production_signature_files[@]}")"
-    shared_test_signature="$(signature_for_files 'whip-instrumentation-shared-tests-v1' "${instrumentation_shared_files[@]}")"
-    emulator_fingerprint="$(adb -s "$test_serial" shell getprop ro.build.fingerprint | tr -d '\r')"
-    emulator_abi="$(adb -s "$test_serial" shell getprop ro.product.cpu.abi | tr -d '\r')"
-    emulator_signature="$(printf '%s\n' "$emulator_api" "$emulator_fingerprint" "$emulator_abi" | sha256sum | awk '{ print $1 }')"
-    instrumentation_cache_dir="${PROJECT_ROOT}/build/instrumentation-batch-cache"
-    mkdir -p "$instrumentation_cache_dir"
-
-    instrumentation_batch_signature() {
-        local expected_class_argument="$1"
-        local batch_source_files=()
-        local expected_class
-        while IFS= read -r expected_class; do
-            [[ -n "$expected_class" ]] || continue
-            batch_source_files+=("${instrumentation_class_files[$expected_class]}")
-        done < <(tr ',' '\n' <<< "$expected_class_argument" | sort -u)
-        signature_for_files \
-            "production=${production_signature};shared=${shared_test_signature};emulator=${emulator_signature};classes=${expected_class_argument}" \
-            "${batch_source_files[@]}"
-    }
-
-    reuse_instrumentation_batch() {
-        local batch_number="$1"
-        local class_argument="$2"
-        local batch_signature="$3"
-        local cache_file="${instrumentation_cache_dir}/${batch_signature}.tsv"
-        [[ "$resume_emulator_batches" == true && -s "$cache_file" ]] || return 1
-
-        local cached_signature expected_class_count executed_class_count executed skipped
-        IFS=$'\t' read -r cached_signature expected_class_count executed_class_count executed skipped < "$cache_file"
-        if [[ "$cached_signature" != "$batch_signature" ||
-            ! "$expected_class_count" =~ ^[1-9][0-9]*$ ||
-            ! "$executed_class_count" =~ ^[1-9][0-9]*$ ||
-            ! "$executed" =~ ^[1-9][0-9]*$ ||
-            ! "$skipped" =~ ^[0-9]+$ ||
-            "$skipped" -ne 0 ]]; then
-            return 1
-        fi
-
-        local current_expected_class_count
-        current_expected_class_count="$(tr ',' '\n' <<< "$class_argument" | sed '/^$/d' | sort -u | wc -l | tr -d ' ')"
-        [[ "$expected_class_count" -eq "$current_expected_class_count" &&
-            "$executed_class_count" -eq "$current_expected_class_count" ]] || return 1
-
-        executed_test_total="$((executed_test_total + executed))"
-        skipped_test_total="$((skipped_test_total + skipped))"
-        reused_batch_total="$((reused_batch_total + 1))"
-        printf '%s\t%s\t%s\t%s\t%s\n' \
-            "$batch_number" "$expected_class_count" "$executed_class_count" "$executed" "$skipped" >> "$aggregate_result"
-        printf 'Instrumentation batch %s reused (%s tests, exact source/device signature %s)\n' \
-            "$batch_number" "$executed" "${batch_signature:0:12}"
-        return 0
-    }
-
-    capture_instrumentation_batch() {
-        local batch_number="$1"
-        local expected_class_argument="$2"
-        local batch_report_dir="${instrumentation_run_dir}/batch-${batch_number}"
-        mkdir -p "$batch_report_dir"
-        mapfile -t batch_xml < <(find app/build/outputs/androidTest-results/connected -name 'TEST-*.xml' -type f 2>/dev/null | sort)
-        if [[ "${#batch_xml[@]}" -eq 0 ]]; then
-            printf 'error: instrumentation batch %s produced no executable XML results\n' "$batch_number" >&2
-            exit 1
-        fi
-        for result_xml in "${batch_xml[@]}"; do
-            cp "$result_xml" "$batch_report_dir/"
-        done
-        local expected_class_file="${batch_report_dir}/expected-classes.txt"
-        local executed_class_file="${batch_report_dir}/executed-classes.txt"
-        tr ',' '\n' <<< "$expected_class_argument" | sed '/^$/d' | sort -u > "$expected_class_file"
-        (grep -Rho 'classname="[^"]*"' "$batch_report_dir" || true) \
-            | sed -E 's/^classname="([^"]*)"$/\1/' \
-            | sed '/^$/d' \
-            | sort -u > "$executed_class_file"
-        if ! cmp -s "$expected_class_file" "$executed_class_file"; then
-            printf 'error: instrumentation batch %s executed a different class set than requested\n' "$batch_number" >&2
-            diff -u "$expected_class_file" "$executed_class_file" >&2 || true
-            exit 1
-        fi
-        local expected_class_count executed_class_count executed skipped
-        expected_class_count="$(wc -l < "$expected_class_file" | tr -d ' ')"
-        executed_class_count="$(wc -l < "$executed_class_file" | tr -d ' ')"
-        executed="$( (grep -Rho '<testcase[ >]' "$batch_report_dir" || true) | wc -l | tr -d ' ')"
-        skipped="$( (grep -Rho '<skipped[ >]' "$batch_report_dir" || true) | wc -l | tr -d ' ')"
-        if [[ "$executed" -eq 0 ]]; then
-            printf 'error: instrumentation batch %s reported zero executed tests\n' "$batch_number" >&2
-            exit 1
-        fi
-        executed_test_total="$((executed_test_total + executed))"
-        skipped_test_total="$((skipped_test_total + skipped))"
-        captured_expected_class_count="$expected_class_count"
-        captured_executed_class_count="$executed_class_count"
-        captured_executed="$executed"
-        captured_skipped="$skipped"
-        printf '%s\t%s\t%s\t%s\t%s\n' \
-            "$batch_number" "$expected_class_count" "$executed_class_count" "$executed" "$skipped" >> "$aggregate_result"
-    }
-
-    run_instrumentation_batch() {
-        local batch_number="$1"
-        local class_argument="$2"
-        local batch_signature
-        batch_signature="$(instrumentation_batch_signature "$class_argument")"
-        if reuse_instrumentation_batch "$batch_number" "$class_argument" "$batch_signature"; then
-            return
-        fi
-        local gradle_status
-        set +e
-        ANDROID_SERIAL="$test_serial" ./gradlew :app:connectedDebugAndroidTest \
-            "-Pandroid.testInstrumentationRunnerArguments.class=${class_argument}"
-        gradle_status="$?"
-        set -e
-        capture_instrumentation_batch "$batch_number" "$class_argument"
-        if [[ "$gradle_status" -ne 0 ]]; then
-            printf 'error: instrumentation batch %s failed; results retained in %s\n' "$batch_number" "$instrumentation_run_dir" >&2
-            exit "$gradle_status"
-        fi
-        if [[ "$captured_skipped" -eq 0 ]]; then
-            printf '%s\t%s\t%s\t%s\t%s\n' \
-                "$batch_signature" "$captured_expected_class_count" "$captured_executed_class_count" \
-                "$captured_executed" "$captured_skipped" \
-                > "${instrumentation_cache_dir}/${batch_signature}.tsv"
-        fi
-        adb -s "$test_serial" shell am force-stop commvne.com.whip.app.debug >/dev/null
-        adb -s "$test_serial" shell am force-stop commvne.com.whip.app.debug.test >/dev/null
-    }
-
-    if [[ "$graphics_test_found" == true ]]; then
-        batch_total="$((batch_total + 1))"
-    fi
-    if [[ "$destructive_reset_test_found" == true ]]; then
-        batch_total="$((batch_total + 1))"
-    fi
-    if [[ "$graphics_test_found" == true ]]; then
-        printf 'Instrumentation batch 1/%s (graphics interaction class)\n' "$batch_total"
-        run_instrumentation_batch 1 "$graphics_test_class"
-    fi
-
-    for ((batch_start = 0; batch_start < ${#remaining_instrumentation_classes[@]}; batch_start += instrumentation_batch_size)); do
-        batch=("${remaining_instrumentation_classes[@]:batch_start:instrumentation_batch_size}")
-        batch_classes="$(IFS=,; printf '%s' "${batch[*]}")"
-        batch_number="$((batch_start / instrumentation_batch_size + 1))"
-        if [[ "$graphics_test_found" == true ]]; then
-            batch_number="$((batch_number + 1))"
-        fi
-        printf 'Instrumentation batch %s/%s (%s classes)\n' "$batch_number" "$batch_total" "${#batch[@]}"
-        run_instrumentation_batch "$batch_number" "$batch_classes"
-    done
-    if [[ "$destructive_reset_test_found" == true ]]; then
-        printf 'Instrumentation batch %s/%s (destructive data-epoch reset class)\n' "$batch_total" "$batch_total"
-        run_instrumentation_batch "$batch_total" "$destructive_reset_test_class"
-    fi
-    if [[ "$executed_test_total" -ne "$android_test_count" ]]; then
-        printf 'error: expected %s Android tests from source but XML proves %s executed; see %s\n' \
-            "$android_test_count" "$executed_test_total" "$aggregate_result" >&2
-        exit 1
-    fi
-    if [[ "$skipped_test_total" -ne 0 ]]; then
-        printf 'error: %s Android tests were skipped; see %s\n' "$skipped_test_total" "$aggregate_result" >&2
-        exit 1
-    fi
-    printf 'All %s Android instrumentation tests executed or reused with zero skips across %s exact-signature batches (%s reused). Aggregate: %s\n' \
-        "$executed_test_total" "$batch_total" "$reused_batch_total" "$aggregate_result"
+cd "$PROJECT_ROOT"
+route_file="$(mktemp)"
+trap 'rm -f -- "$route_file"' EXIT
+if [[ "$route_all" == true ]]; then
+    printf '%s\n' \
+        $'ROUTE\tM\t(explicit --all)\tprofile:all\tcaller requested all development profiles' \
+        $'PROFILE\tall' \
+        $'JVM_ALL\tfalse' \
+        $'ANDROID_ALL\tfalse' \
+        $'STATIC\ttrue' \
+        $'CANDIDATE\tfalse' > "$route_file"
+else
+    "${SCRIPT_DIR}/change-router" "${router_args[@]}" > "$route_file"
 fi
+
+awk -F '\t' '$1 == "ROUTE" { printf "Route %s %s -> %s (%s)\n", $2, $3, $4, $5 }' "$route_file"
+awk -F '\t' '$1 == "PROFILE" { print "Profile: " $2 }' "$route_file"
+awk -F '\t' '$1 == "JVM" { print "JVM selector: " $2 }' "$route_file"
+awk -F '\t' '$1 == "ANDROID" { print "Android selector: " $2 }' "$route_file"
+candidate_required="$(awk -F '\t' '$1 == "CANDIDATE" { print $2 }' "$route_file")"
+static_required="$(awk -F '\t' '$1 == "STATIC" { print $2 }' "$route_file")"
+jvm_all="$(awk -F '\t' '$1 == "JVM_ALL" { print $2 }' "$route_file")"
+android_all="$(awk -F '\t' '$1 == "ANDROID_ALL" { print $2 }' "$route_file")"
+printf 'All JVM tests: %s\nAll Android tests: %s\nStatic checks: %s\nFrozen candidate required: %s\n' \
+    "$jvm_all" "$android_all" "$static_required" "$candidate_required"
+
+if [[ "$explain_only" == true ]]; then exit 0; fi
+[[ "$candidate_required" != true ]] ||
+    die 'this change touches frozen-candidate inputs; run ANDROID_SERIAL=emulator-N scripts/candidate'
+
+qa_args=()
+while IFS=$'\t' read -r record value _; do
+    case "$record" in
+        PROFILE) [[ "$value" == docs ]] || qa_args+=(--profile "$value") ;;
+        JVM) qa_args+=(--jvm "$value") ;;
+        ANDROID)
+            if [[ "$run_emulator" == true && "$fresh_emulator" != true ]]; then
+                qa_args+=(--android "$value")
+            fi
+            ;;
+    esac
+done < "$route_file"
+[[ "$jvm_all" != true ]] || qa_args+=(--all-jvm)
+if [[ "$android_all" == true ]]; then
+    qa_args+=(--all-android)
+    [[ "$run_emulator" != true || "$fresh_emulator" == true ]] || qa_args+=(--emulator)
+elif [[ "$run_emulator" == true && "$fresh_emulator" != true ]]; then
+    qa_args+=(--emulator)
+fi
+
+android_selector_count="$(awk -F '\t' '$1 == "ANDROID" { count++ } END { print count + 0 }' "$route_file")"
+if [[ "${#qa_args[@]}" -gt 0 ]]; then
+    "${SCRIPT_DIR}/qa-targeted" "${qa_args[@]}"
+elif [[ "$android_selector_count" -gt 0 ]]; then
+    ./gradlew :app:compileDebugAndroidTestKotlin
+fi
+if [[ "$run_emulator" != true && "$android_selector_count" -gt 0 && "${#qa_args[@]}" -gt 0 ]]; then
+    ./gradlew :app:compileDebugAndroidTestKotlin
+fi
+if [[ "$fresh_emulator" == true ]]; then
+    "${SCRIPT_DIR}/android-test-engine" --mode fresh
+fi
+
+if [[ "$static_required" == true ]]; then
+    java scripts/RenderBrandIcon.java --verify
+    if rg -n 'fallbackToDestructiveMigration' app/src/main; then
+        die 'destructive Room migration fallback is forbidden'
+    fi
+    ./gradlew :app:lintDebug :app:assembleDebug
+fi
+git diff --check
+printf 'Proportionate change gate passed. Frozen-candidate evidence was not created.\n'

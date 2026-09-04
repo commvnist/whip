@@ -1,0 +1,332 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+readonly EVIDENCE_ROOT="${PROJECT_ROOT}/build/candidate-evidence"
+readonly RELEASE_APP_ID='commvne.com.whip.app'
+
+usage() {
+    printf '%s\n' \
+        'Create or verify the one fresh frozen-candidate authority.' \
+        '' \
+        'Usage:' \
+        '  ANDROID_SERIAL=emulator-N scripts/candidate' \
+        '  scripts/candidate verify [--source-only] [--evidence DIR]' \
+        '' \
+        'Creation snapshots repository inputs, executes complete JVM and fresh Android' \
+        'coverage, lint/static checks, and debug/release/AAB/benchmark builds, rejects' \
+        'source drift, and publishes evidence atomically. It never targets a phone.'
+}
+
+die() {
+    printf 'error: %s\n' "$*" >&2
+    exit 1
+}
+
+evidence_path=''
+source_only=false
+
+read_expected_release_version_code() {
+    local version_code
+    version_code="$(
+        sed -nE 's/^[[:space:]]*versionCode[[:space:]]*=[[:space:]]*([0-9]+).*$/\1/p' \
+            app/build.gradle.kts | head -n 1
+    )"
+    [[ -n "$version_code" ]] ||
+        die 'could not read the expected release version code from app/build.gradle.kts'
+    printf '%s\n' "$version_code"
+}
+
+validate_retained_release_evidence() {
+    local retained_dir="$1" expected_version_code
+    local retained_manifest="${retained_dir}/merged-manifest.xml"
+    local retained_metadata="${retained_dir}/release-output-metadata.json"
+    local -a metadata_app_ids=() metadata_version_codes=()
+
+    if grep -Eq 'android\.permission\.ACCESS_(BACKGROUND_LOCATION|COARSE_LOCATION|FINE_LOCATION)' \
+        "$retained_manifest"; then
+        die 'candidate retained merged manifest contains a retired location permission'
+    fi
+
+    expected_version_code="$(read_expected_release_version_code)"
+    mapfile -t metadata_app_ids < <(
+        grep -Eo '"applicationId"[[:space:]]*:[[:space:]]*"[^"]*"' "$retained_metadata" |
+            sed -E 's/^[^:]*:[[:space:]]*"([^"]*)"$/\1/'
+    )
+    [[ "${#metadata_app_ids[@]}" -eq 1 && "${metadata_app_ids[0]}" == "$RELEASE_APP_ID" ]] ||
+        die 'candidate retained release metadata has a missing or wrong application ID'
+    mapfile -t metadata_version_codes < <(
+        grep -Eo '"versionCode"[[:space:]]*:[[:space:]]*[0-9]+' "$retained_metadata" |
+            sed -E 's/^[^:]*:[[:space:]]*([0-9]+)$/\1/'
+    )
+    [[ "${#metadata_version_codes[@]}" -eq 1 &&
+        "${metadata_version_codes[0]}" == "$expected_version_code" ]] ||
+        die "candidate retained release metadata has a missing or wrong version code; expected $expected_version_code"
+}
+
+resolve_evidence_path() {
+    if [[ -n "$evidence_path" ]]; then
+        [[ "$evidence_path" == /* ]] || evidence_path="${PROJECT_ROOT}/${evidence_path}"
+        return
+    fi
+    latest_file="${EVIDENCE_ROOT}/latest"
+    [[ -s "$latest_file" ]] || die 'no accepted candidate evidence exists; run scripts/candidate'
+    IFS= read -r latest_relative < "$latest_file"
+    [[ "$latest_relative" =~ ^runs/[0-9]{8}T[0-9]{6}Z-[0-9]+-[0-9a-f]{12}$ ]] ||
+        die 'candidate latest pointer is malformed'
+    evidence_path="${EVIDENCE_ROOT}/${latest_relative}"
+}
+
+verify_evidence() {
+    resolve_evidence_path
+    [[ -d "$evidence_path" ]] || die "candidate evidence is incomplete: $evidence_path"
+    required_evidence_files=(
+        android-aggregate.tsv
+        android-campaign.sha256
+        android-coverage.xml
+        artifacts.tsv
+        inputs.tsv
+        jvm-coverage.xml
+        manifest.tsv
+        merged-manifest.xml
+        release-output-metadata.json
+    )
+    for required_file in "${required_evidence_files[@]}"; do
+        [[ -s "${evidence_path}/${required_file}" ]] ||
+            die "candidate evidence required file is missing or empty: $required_file"
+    done
+    [[ -s "${evidence_path}/checksums.sha256" ]] ||
+        die 'candidate evidence required file is missing or empty: checksums.sha256'
+    mapfile -t checksum_files < <(awk 'NF == 2 { sub(/^\*/, "", $2); print $2 }' "${evidence_path}/checksums.sha256" | sort)
+    [[ "${#checksum_files[@]}" -eq "${#required_evidence_files[@]}" ]] ||
+        die 'candidate checksum inventory is not canonical and complete'
+    for file_index in "${!required_evidence_files[@]}"; do
+        [[ "${checksum_files[$file_index]}" == "${required_evidence_files[$file_index]}" ]] ||
+            die 'candidate checksum inventory is not canonical and complete'
+    done
+    (cd "$evidence_path" && sha256sum -c checksums.sha256 >/dev/null) ||
+        die "candidate evidence checksum validation failed: $evidence_path"
+    validate_retained_release_evidence "$evidence_path"
+
+    expected_manifest_fields=(
+        format status created_at input_sha256 jvm_tests android_tests android_fresh emulator_serial_sha256
+    )
+    mapfile -t actual_manifest_fields < <(awk -F '\t' 'NF == 2 { print $1 }' "${evidence_path}/manifest.tsv")
+    [[ "${#actual_manifest_fields[@]}" -eq "${#expected_manifest_fields[@]}" ]] ||
+        die 'candidate manifest is missing or duplicating a required field'
+    for field_index in "${!expected_manifest_fields[@]}"; do
+        [[ "${actual_manifest_fields[$field_index]}" == "${expected_manifest_fields[$field_index]}" ]] ||
+            die 'candidate manifest is missing, duplicating, or reordering a required field'
+    done
+    evidence_format="$(awk -F '\t' '$1 == "format" { print $2 }' "${evidence_path}/manifest.tsv")"
+    evidence_status="$(awk -F '\t' '$1 == "status" { print $2 }' "${evidence_path}/manifest.tsv")"
+    evidence_created_at="$(awk -F '\t' '$1 == "created_at" { print $2 }' "${evidence_path}/manifest.tsv")"
+    evidence_input="$(awk -F '\t' '$1 == "input_sha256" { print $2 }' "${evidence_path}/manifest.tsv")"
+    evidence_jvm_tests="$(awk -F '\t' '$1 == "jvm_tests" { print $2 }' "${evidence_path}/manifest.tsv")"
+    evidence_android_tests="$(awk -F '\t' '$1 == "android_tests" { print $2 }' "${evidence_path}/manifest.tsv")"
+    evidence_android_fresh="$(awk -F '\t' '$1 == "android_fresh" { print $2 }' "${evidence_path}/manifest.tsv")"
+    evidence_emulator="$(awk -F '\t' '$1 == "emulator_serial_sha256" { print $2 }' "${evidence_path}/manifest.tsv")"
+    [[ "$evidence_format" == 'whip-frozen-candidate-v1' &&
+        "$evidence_status" == 'accepted' &&
+        "$evidence_created_at" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ &&
+        "$evidence_input" =~ ^[0-9a-f]{64}$ &&
+        "$evidence_jvm_tests" =~ ^[1-9][0-9]*$ &&
+        "$evidence_android_tests" =~ ^[1-9][0-9]*$ &&
+        "$evidence_android_fresh" == true &&
+        "$evidence_emulator" =~ ^[0-9a-f]{64}$ ]] ||
+        die 'candidate manifest is not a complete fresh accepted v1 authority'
+    [[ "$(sha256sum "${evidence_path}/inputs.tsv" | awk '{ print $1 }')" == "$evidence_input" ]] ||
+        die 'candidate input manifest hash does not match the accepted input signature'
+    [[ "$(tr -d '\n' < "${evidence_path}/android-campaign.sha256")" =~ ^[0-9a-f]{64}$ ]] ||
+        die 'candidate Android campaign signature is malformed'
+    awk -F '\t' -v expected_tests="$evidence_android_tests" '
+        NR == 1 {
+            expected = "batch\tkind\texpected_classes\texecuted_classes\texecuted\tfailures\tskipped\tcoverage_bytes\treused\tsignature"
+            if ($0 != expected) exit 1
+            next
+        }
+        NF != 10 || $1 != NR - 1 || $3 !~ /^[1-9][0-9]*$/ || $4 != $3 ||
+            $5 !~ /^[1-9][0-9]*$/ || $6 != 0 || $7 != 0 ||
+            $8 !~ /^[1-9][0-9]*$/ || $9 != "false" || $10 !~ /^[0-9a-f]{64}$/ { exit 1 }
+        NR == 2 && $2 != "graphics" { exit 1 }
+        { last_kind = $2; executed += $5; rows++ }
+        END { if (rows < 2 || last_kind != "reset" || executed != expected_tests) exit 1 }
+    ' "${evidence_path}/android-aggregate.tsv" ||
+        die 'candidate Android aggregate is not complete fresh zero-failure evidence'
+
+    artifact_count=0
+    debug_artifact=false
+    release_apk_artifact=false
+    release_bundle_artifact=false
+    benchmark_artifact=false
+    declare -A artifact_paths=()
+    while IFS=$'\t' read -r recorded_hash artifact_path extra; do
+        [[ -z "${extra:-}" && "$recorded_hash" =~ ^[0-9a-f]{64}$ &&
+            -n "$artifact_path" && -z "${artifact_paths[$artifact_path]+x}" ]] ||
+            die 'candidate artifact inventory is malformed or duplicated'
+        artifact_paths["$artifact_path"]=1
+        artifact_count="$((artifact_count + 1))"
+        case "$artifact_path" in
+            app/build/outputs/apk/debug/app-debug.apk) debug_artifact=true ;;
+            app/build/outputs/apk/release/*.apk) release_apk_artifact=true ;;
+            app/build/outputs/bundle/release/app-release.aab) release_bundle_artifact=true ;;
+            benchmark/build/outputs/apk/*.apk|benchmark/build/outputs/apk/*/*.apk) benchmark_artifact=true ;;
+            *) die "candidate artifact path is not canonical: $artifact_path" ;;
+        esac
+        if [[ "$source_only" != true ]]; then
+            [[ -s "${PROJECT_ROOT}/${artifact_path}" ]] ||
+                die "candidate artifact is missing or malformed: $artifact_path"
+            actual_hash="$(sha256sum "${PROJECT_ROOT}/${artifact_path}" | awk '{ print $1 }')"
+            [[ "$actual_hash" == "$recorded_hash" ]] ||
+                die "candidate artifact hash changed: $artifact_path"
+        fi
+    done < "${evidence_path}/artifacts.tsv"
+    [[ "$artifact_count" -eq 4 && "$debug_artifact" == true &&
+        "$release_apk_artifact" == true && "$release_bundle_artifact" == true &&
+        "$benchmark_artifact" == true ]] || die 'candidate artifact inventory is not canonical and complete'
+
+    "${SCRIPT_DIR}/repository-state" verify "$evidence_input" >/dev/null
+    printf 'Accepted frozen-candidate evidence matches repository inputs%s: %s\n' \
+        "$([[ "$source_only" == true ]] && printf ' (source only)' || true)" "$evidence_path"
+}
+
+if [[ "${1:-}" == 'verify' ]]; then
+    shift
+    while (($#)); do
+        case "$1" in
+            --source-only) source_only=true ;;
+            --evidence)
+                shift
+                (($#)) || die '--evidence requires a directory'
+                evidence_path="$1"
+                ;;
+            -h|--help) usage; exit 0 ;;
+            *) usage >&2; die "unknown verify option $1" ;;
+        esac
+        shift
+    done
+    cd "$PROJECT_ROOT"
+    verify_evidence
+    exit 0
+fi
+
+if [[ "${1:-}" == '-h' || "${1:-}" == '--help' || "${1:-}" == 'help' ]]; then
+    usage
+    exit 0
+fi
+[[ "$#" -eq 0 ]] || { usage >&2; die "unknown option $1"; }
+
+"${SCRIPT_DIR}/android-target-guard" instrumentation
+cd "$PROJECT_ROOT"
+
+mkdir -p "${EVIDENCE_ROOT}/runs"
+pending_dir="$(mktemp -d "${EVIDENCE_ROOT}/.pending-XXXXXX")"
+published=false
+cleanup() {
+    if [[ "$published" != true && -d "$pending_dir" ]]; then
+        printf 'Candidate failed; incomplete evidence retained at %s\n' "$pending_dir" >&2
+    fi
+}
+trap cleanup EXIT
+
+"${SCRIPT_DIR}/repository-state" manifest "${pending_dir}/inputs.tsv"
+input_signature="$(sha256sum "${pending_dir}/inputs.tsv" | awk '{ print $1 }')"
+readonly input_signature
+
+require_frozen_inputs() {
+    local boundary="$1"
+    if ! "${SCRIPT_DIR}/repository-state" verify "$input_signature" >/dev/null; then
+        die "repository inputs changed $boundary; discard this candidate"
+    fi
+}
+
+jvm_test_count="$(grep -RhoE --include='*.kt' '^[[:space:]]*@Test([[:space:](]|$)' app/src/test | wc -l | tr -d ' ')"
+android_test_count="$(grep -RhoE --include='*.kt' '^[[:space:]]*@Test([[:space:](]|$)' app/src/androidTest | wc -l | tr -d ' ')"
+product_test_count="$((jvm_test_count + android_test_count))"
+documented_baseline="Current baseline: ${product_test_count} product tests—${jvm_test_count} fast JVM tests and ${android_test_count} Android"
+grep -Fq "$documented_baseline" docs/testing.md ||
+    die "docs/testing.md test baseline is stale; expected: $documented_baseline instrumentation tests"
+
+java scripts/RenderBrandIcon.java --verify
+unexpected_device_paths="$(
+    rg -n '/sdcard|/storage/emulated/0|/data/local/tmp' app/src benchmark/src scripts \
+        --glob '!scripts/device-artifacts' --glob '!scripts/check' --glob '!scripts/candidate' \
+        --glob '!scripts/test-*' --glob '!**/build/**' || true
+)"
+[[ -z "$unexpected_device_paths" ]] ||
+    die "direct device-root artifact path bypasses scripts/device-artifacts: $unexpected_device_paths"
+if rg -n 'fallbackToDestructiveMigration' app/src/main; then
+    die 'destructive Room migration fallback is forbidden'
+fi
+git diff --check
+require_frozen_inputs 'during static checks'
+
+./gradlew \
+    :app:createDebugUnitTestCoverageReport \
+    :app:compileDebugAndroidTestKotlin \
+    :app:lintDebug \
+    :app:lintVitalRelease \
+    :app:assembleDebug \
+    :app:assembleRelease \
+    :app:bundleRelease \
+    :benchmark:assembleBenchmark
+java scripts/CoverageGate.java unit app/build/reports/coverage/test/debug/report.xml
+cp -- app/build/reports/coverage/test/debug/report.xml "${pending_dir}/jvm-coverage.xml"
+
+merged_manifest="$(find app/build/intermediates/merged_manifests/debug -name AndroidManifest.xml -print -quit)"
+[[ -n "$merged_manifest" && -s "$merged_manifest" ]] ||
+    die 'debug merged manifest was not produced'
+cp -- "$merged_manifest" "${pending_dir}/merged-manifest.xml"
+
+release_apk="$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' -type f -print -quit)"
+release_bundle='app/build/outputs/bundle/release/app-release.aab'
+release_metadata='app/build/outputs/apk/release/output-metadata.json'
+for release_artifact in "$release_apk" "$release_bundle" "$release_metadata"; do
+    [[ -n "$release_artifact" && -s "$release_artifact" ]] ||
+        die "expected release artifact is missing or empty: $release_artifact"
+done
+cp -- "$release_metadata" "${pending_dir}/release-output-metadata.json"
+validate_retained_release_evidence "$pending_dir"
+require_frozen_inputs 'during JVM/static/build gates'
+
+"${SCRIPT_DIR}/android-test-engine" --mode coverage --evidence-dir "$pending_dir"
+require_frozen_inputs 'during fresh Android coverage'
+
+debug_apk='app/build/outputs/apk/debug/app-debug.apk'
+benchmark_apk="$(find benchmark/build/outputs/apk -name '*.apk' -type f -print -quit)"
+for artifact in "$debug_apk" "$release_apk" "$release_bundle" "$benchmark_apk"; do
+    [[ -n "$artifact" && -s "$artifact" ]] || die "candidate artifact is missing or empty: $artifact"
+    printf '%s\t%s\n' "$(sha256sum "$artifact" | awk '{ print $1 }')" "$artifact" >> "${pending_dir}/artifacts.tsv"
+done
+
+created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+printf '%s\t%s\n' \
+    format whip-frozen-candidate-v1 \
+    status accepted \
+    created_at "$created_at" \
+    input_sha256 "$input_signature" \
+    jvm_tests "$jvm_test_count" \
+    android_tests "$android_test_count" \
+    android_fresh true \
+    emulator_serial_sha256 "$(printf '%s' "$ANDROID_SERIAL" | sha256sum | awk '{ print $1 }')" \
+    > "${pending_dir}/manifest.tsv"
+
+(
+    cd "$pending_dir"
+    find . -maxdepth 1 -type f ! -name checksums.sha256 -printf '%P\n' | sort | xargs sha256sum > checksums.sha256
+)
+require_frozen_inputs 'before evidence publication'
+
+run_id="$(date -u +%Y%m%dT%H%M%SZ)-$$-${input_signature:0:12}"
+published_relative="runs/${run_id}"
+published_dir="${EVIDENCE_ROOT}/${published_relative}"
+[[ ! -e "$published_dir" ]] || die "candidate evidence destination already exists: $published_dir"
+mv -- "$pending_dir" "$published_dir"
+latest_tmp="${EVIDENCE_ROOT}/.latest-$$"
+printf '%s\n' "$published_relative" > "$latest_tmp"
+mv -- "$latest_tmp" "${EVIDENCE_ROOT}/latest"
+published=true
+trap - EXIT
+printf 'Fresh frozen candidate accepted and published atomically: %s\n' "$published_dir"

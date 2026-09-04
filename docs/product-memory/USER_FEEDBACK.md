@@ -320,6 +320,25 @@ These records preserve durable user intent. “Released” means the change reac
 - Status: Verified and independently accepted; awaiting user validation.
 - Notes: This authorizes local, reversible implementation and verification only. It does not authorize a physical-device reset, release/deployment, credentials, publication, or other external/destructive action.
 
+### FB-20260904-005 — Overhaul testing philosophy and system for faster change release
+
+- Date/source: 2026-09-04, direct user instruction.
+- User need: Reduce the time required to release a change by overhauling Whip's testing philosophy and the supporting test system, after first preserving the current VERA-Codex work as named remote commits.
+- Acceptance criteria: Define and implement an evidence-based, proportionate test strategy that keeps correctness, regression confidence, coverage accounting, and emulator-only safety intact while materially shortening the normal change-to-release feedback path; make the required development, candidate, and release gates explicit and executable; avoid redundant broad reruns when trustworthy scoped evidence is sufficient; retain an intentional complete/fresh gate for frozen release candidates; update durable testing documentation and regression coverage for the routing rules.
+- Non-goals/constraints: Do not weaken or bypass deterministic quality checks, allow physical-device instrumentation, claim release/deployment, alter user data/schema, disclose credentials, or make unrelated application changes. Local reversible edits and verification are authorized; future push/release/deployment actions require their own explicit approval.
+- Affected users/workflows: Whip contributors' development, test selection, candidate qualification, release evidence, and Android emulator QA workflows.
+- Related: `FB-20260904-004`, `DEC-20260904-003`, `IMP-20260904-004`, `VER-20260904-004`, `IMP-20260904-003`, and `VER-20260904-003`.
+- Status: Blocked after a second fresh Sol review found release-flow and candidate-evidence contract regressions; no real fresh emulator candidate or release was run. See `VER-20260904-004`.
+
+### FB-20260904-006 — Resume the bounded testing-system compatibility recovery
+
+- Date/source: 2026-09-04, direct user instruction after reviewing the blocked testing-system overhaul.
+- User need: Complete the approved recovery without erasing the failed-review history: retain the historical device-independent meaning of `scripts/check --full`, keep `scripts/candidate` as the explicit emulator-only fresh authority, and make retained evidence independently enforce the manifest and release-metadata safety claims.
+- Acceptance criteria: `scripts/check --full` must run complete JVM coverage, Android-test compilation, lint/static guards, debug/release APK, release AAB, benchmark builds, merged-manifest safety, and release application/version validation without requiring `ANDROID_SERIAL` or invoking candidate/instrumentation. Candidate evidence must require and checksum retained merged-manifest and release-output metadata, then reject missing, tampered, location-permission, wrong-application-ID, and wrong-version evidence even after checksums are rewritten. Deterministic fixtures, shell/help/diff checks, unchanged `scripts/device`, and an environment-unset real `scripts/check --full` must pass.
+- Non-goals/constraints: Do not run a real emulator or physical-device command, create a release candidate, sign/install/deploy/release, change application code/data/schema, or erase the prior NO-GO evidence. Preserve concurrent work and limit edits to the testing harness, testing documentation, and product-memory ledgers.
+- Related: `FB-20260904-005`, `DEC-20260904-003`, `IMP-20260904-004`, `VER-20260904-004`, and `VER-20260904-005`.
+- Status: Implemented and locally verified; awaiting the required fresh final review. No emulator candidate, physical-device action, release, install, or deployment was run.
+
 ### FB-20260904-003 — Fail-closed device QA and physical release
 
 - Date/source: 2026-09-04, direct user instruction.

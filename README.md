@@ -62,14 +62,24 @@ sync, select an API 26+ emulator or device, and run the `app` configuration.
 From a configured terminal:
 
 ```bash
+# Proportionate checks selected from the current change:
 ./scripts/check
-# Also run persisted-data, migration, UI, and fold-layout tests on a device:
-./scripts/check --device
-# Full local gate also assembles the optimized release and benchmark harness:
+# Explain the selected profiles and exact selectors without executing them:
+./scripts/check --explain
+# Execute selected Android coverage only on an explicitly pinned emulator:
+ANDROID_SERIAL=emulator-5554 ./scripts/check --emulator
+# Run the historical complete local JVM/static/release-build gate without a device:
 ./scripts/check --full
+# Qualify one frozen release candidate with complete fresh evidence:
+ANDROID_SERIAL=emulator-5554 ./scripts/candidate
 ```
 
-The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`. See
+Unknown production/build/harness paths require the frozen-candidate gate rather
+than silently receiving narrow coverage. `scripts/check --full` remains the
+device-independent complete local compatibility gate used by release tooling;
+it never creates candidate evidence and runs instrumentation only when Android
+execution is separately requested with `--emulator`. The debug APK is written to
+`app/build/outputs/apk/debug/app-debug.apk`. See
 [`docs/testing.md`](docs/testing.md) for device tests and environment-based
 release signing, and [`docs/performance.md`](docs/performance.md) for the
 Macrobenchmark/Baseline Profile workflow.

@@ -1,0 +1,233 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly TEST_ROOT="$(mktemp -d)"
+readonly PROJECT="${TEST_ROOT}/project"
+readonly OUTPUT="${TEST_ROOT}/output"
+trap 'rm -rf -- "$TEST_ROOT"' EXIT
+
+mkdir -p \
+    "${PROJECT}/scripts" \
+    "${PROJECT}/app/build/outputs/apk/debug" \
+    "${PROJECT}/app/build/outputs/apk/release" \
+    "${PROJECT}/app/build/outputs/bundle/release" \
+    "${PROJECT}/benchmark/build/outputs/apk/benchmark" \
+    "${PROJECT}/build/candidate-evidence/runs"
+cp -- "${SCRIPT_DIR}/candidate" "${SCRIPT_DIR}/repository-state" "${PROJECT}/scripts/"
+chmod 755 "${PROJECT}/scripts/candidate" "${PROJECT}/scripts/repository-state"
+printf 'build/\n' > "${PROJECT}/.gitignore"
+printf 'frozen source\n' > "${PROJECT}/source.txt"
+printf '%s\n' 'android {' '    defaultConfig {' '        versionCode = 53' '    }' '}' \
+    > "${PROJECT}/app/build.gradle.kts"
+(
+    cd "$PROJECT"
+    git init -q
+    git config user.name 'Whip Fixture'
+    git config user.email 'fixture@example.invalid'
+    git add .gitignore app/build.gradle.kts source.txt scripts
+    git commit -qm fixture
+)
+
+printf 'debug artifact\n' > "${PROJECT}/app/build/outputs/apk/debug/app-debug.apk"
+printf 'release artifact\n' > "${PROJECT}/app/build/outputs/apk/release/app-release.apk"
+printf 'bundle artifact\n' > "${PROJECT}/app/build/outputs/bundle/release/app-release.aab"
+printf 'benchmark artifact\n' > "${PROJECT}/benchmark/build/outputs/apk/benchmark/benchmark-benchmark.apk"
+input_manifest="${TEST_ROOT}/inputs.tsv"
+(cd "$PROJECT" && scripts/repository-state manifest "$input_manifest")
+input_signature="$(sha256sum "$input_manifest" | awk '{ print $1 }')"
+run_relative="runs/20260904T120000Z-123-${input_signature:0:12}"
+run_dir="${PROJECT}/build/candidate-evidence/${run_relative}"
+mkdir -p "$run_dir"
+cp -- "$input_manifest" "${run_dir}/inputs.tsv"
+printf '%s\t%s\n' \
+    format whip-frozen-candidate-v1 \
+    status accepted \
+    created_at 2026-09-04T12:00:00Z \
+    input_sha256 "$input_signature" \
+    jvm_tests 1 \
+    android_tests 2 \
+    android_fresh true \
+    emulator_serial_sha256 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+    > "${run_dir}/manifest.tsv"
+for artifact in \
+    app/build/outputs/apk/debug/app-debug.apk \
+    app/build/outputs/apk/release/app-release.apk \
+    app/build/outputs/bundle/release/app-release.aab \
+    benchmark/build/outputs/apk/benchmark/benchmark-benchmark.apk; do
+    printf '%s\t%s\n' "$(sha256sum "${PROJECT}/${artifact}" | awk '{ print $1 }')" "$artifact"
+done > "${run_dir}/artifacts.tsv"
+printf '%s\n' \
+    $'batch\tkind\texpected_classes\texecuted_classes\texecuted\tfailures\tskipped\tcoverage_bytes\treused\tsignature' \
+    $'1\tgraphics\t1\t1\t1\t0\t0\t10\tfalse\taaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' \
+    $'2\treset\t1\t1\t1\t0\t0\t10\tfalse\tbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' \
+    > "${run_dir}/android-aggregate.tsv"
+printf '%064d\n' 0 > "${run_dir}/android-campaign.sha256"
+printf '<report/>\n' > "${run_dir}/android-coverage.xml"
+printf '<report/>\n' > "${run_dir}/jvm-coverage.xml"
+printf '%s\n' \
+    '<manifest xmlns:android="http://schemas.android.com/apk/res/android">' \
+    '    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />' \
+    '</manifest>' \
+    > "${run_dir}/merged-manifest.xml"
+printf '%s\n' \
+    '{' \
+    '  "applicationId": "commvne.com.whip.app",' \
+    '  "elements": [' \
+    '    {' \
+    '      "versionCode": 53,' \
+    '      "outputFile": "app-release.apk"' \
+    '    }' \
+    '  ]' \
+    '}' \
+    > "${run_dir}/release-output-metadata.json"
+(
+    cd "$run_dir"
+    find . -maxdepth 1 -type f ! -name checksums.sha256 -printf '%P\n' | sort | xargs sha256sum > checksums.sha256
+)
+printf '%s\n' "$run_relative" > "${PROJECT}/build/candidate-evidence/latest"
+
+expect_success() {
+    local name="$1"
+    shift
+    if ! "$@" > "$OUTPUT" 2>&1; then
+        printf 'FAIL %s: command failed\n' "$name" >&2
+        sed -n '1,120p' "$OUTPUT" >&2
+        exit 1
+    fi
+    printf 'PASS %s\n' "$name"
+}
+
+expect_failure() {
+    local name="$1" expected="$2"
+    shift 2
+    if "$@" > "$OUTPUT" 2>&1; then
+        printf 'FAIL %s: command unexpectedly succeeded\n' "$name" >&2
+        exit 1
+    fi
+    grep -Fq "$expected" "$OUTPUT" || {
+        printf 'FAIL %s: expected %s\n' "$name" "$expected" >&2
+        sed -n '1,120p' "$OUTPUT" >&2
+        exit 1
+    }
+    printf 'PASS %s\n' "$name"
+}
+
+expect_success matching-evidence "${PROJECT}/scripts/candidate" verify
+
+printf 'drifted source\n' > "${PROJECT}/source.txt"
+expect_failure rejects-source-drift 'repository inputs changed' "${PROJECT}/scripts/candidate" verify
+printf 'frozen source\n' > "${PROJECT}/source.txt"
+
+printf 'changed artifact\n' > "${PROJECT}/app/build/outputs/apk/debug/app-debug.apk"
+expect_failure rejects-artifact-drift 'candidate artifact hash changed' "${PROJECT}/scripts/candidate" verify
+printf 'debug artifact\n' > "${PROJECT}/app/build/outputs/apk/debug/app-debug.apk"
+
+cp -- "${run_dir}/android-aggregate.tsv" "${TEST_ROOT}/android-aggregate.tsv"
+printf 'tamper\n' >> "${run_dir}/android-aggregate.tsv"
+expect_failure rejects-evidence-tamper 'candidate evidence checksum validation failed' \
+    "${PROJECT}/scripts/candidate" verify
+cp -- "${TEST_ROOT}/android-aggregate.tsv" "${run_dir}/android-aggregate.tsv"
+
+rewrite_checksums() {
+    (
+        cd "$run_dir"
+        find . -maxdepth 1 -type f ! -name checksums.sha256 -printf '%P\n' | sort | xargs sha256sum > checksums.sha256
+    )
+}
+
+mv -- "${run_dir}/android-coverage.xml" "${TEST_ROOT}/android-coverage.xml"
+rewrite_checksums
+expect_failure rejects-missing-required-file 'candidate evidence required file is missing or empty: android-coverage.xml' \
+    "${PROJECT}/scripts/candidate" verify
+mv -- "${TEST_ROOT}/android-coverage.xml" "${run_dir}/android-coverage.xml"
+rewrite_checksums
+
+mv -- "${run_dir}/merged-manifest.xml" "${TEST_ROOT}/merged-manifest.xml"
+rewrite_checksums
+expect_failure rejects-missing-retained-manifest \
+    'candidate evidence required file is missing or empty: merged-manifest.xml' \
+    "${PROJECT}/scripts/candidate" verify
+mv -- "${TEST_ROOT}/merged-manifest.xml" "${run_dir}/merged-manifest.xml"
+rewrite_checksums
+
+mv -- "${run_dir}/release-output-metadata.json" "${TEST_ROOT}/release-output-metadata.json"
+rewrite_checksums
+expect_failure rejects-missing-retained-release-metadata \
+    'candidate evidence required file is missing or empty: release-output-metadata.json' \
+    "${PROJECT}/scripts/candidate" verify
+mv -- "${TEST_ROOT}/release-output-metadata.json" "${run_dir}/release-output-metadata.json"
+rewrite_checksums
+
+cp -- "${run_dir}/merged-manifest.xml" "${TEST_ROOT}/safe-merged-manifest.xml"
+sed '/<\/manifest>/i\    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />' \
+    "${TEST_ROOT}/safe-merged-manifest.xml" > "${run_dir}/merged-manifest.xml"
+rewrite_checksums
+expect_failure rejects-rewritten-location-permission-manifest \
+    'candidate retained merged manifest contains a retired location permission' \
+    "${PROJECT}/scripts/candidate" verify
+cp -- "${TEST_ROOT}/safe-merged-manifest.xml" "${run_dir}/merged-manifest.xml"
+rewrite_checksums
+
+cp -- "${run_dir}/release-output-metadata.json" "${TEST_ROOT}/safe-release-output-metadata.json"
+sed 's/commvne\.com\.whip\.app/commvne.com.wrong.app/' \
+    "${TEST_ROOT}/safe-release-output-metadata.json" > "${run_dir}/release-output-metadata.json"
+rewrite_checksums
+expect_failure rejects-rewritten-wrong-release-application-id \
+    'candidate retained release metadata has a missing or wrong application ID' \
+    "${PROJECT}/scripts/candidate" verify
+
+sed '/"applicationId"/d' \
+    "${TEST_ROOT}/safe-release-output-metadata.json" > "${run_dir}/release-output-metadata.json"
+rewrite_checksums
+expect_failure rejects-rewritten-missing-release-application-id \
+    'candidate retained release metadata has a missing or wrong application ID' \
+    "${PROJECT}/scripts/candidate" verify
+
+sed 's/"versionCode": 53/"versionCode": 54/' \
+    "${TEST_ROOT}/safe-release-output-metadata.json" > "${run_dir}/release-output-metadata.json"
+rewrite_checksums
+expect_failure rejects-rewritten-wrong-release-version \
+    'candidate retained release metadata has a missing or wrong version code; expected 53' \
+    "${PROJECT}/scripts/candidate" verify
+
+sed '/"versionCode"/d' \
+    "${TEST_ROOT}/safe-release-output-metadata.json" > "${run_dir}/release-output-metadata.json"
+rewrite_checksums
+expect_failure rejects-rewritten-missing-release-version \
+    'candidate retained release metadata has a missing or wrong version code; expected 53' \
+    "${PROJECT}/scripts/candidate" verify
+cp -- "${TEST_ROOT}/safe-release-output-metadata.json" "${run_dir}/release-output-metadata.json"
+rewrite_checksums
+
+cp -- "${run_dir}/manifest.tsv" "${TEST_ROOT}/manifest.tsv"
+awk -F '\t' '$1 != "android_tests"' "${TEST_ROOT}/manifest.tsv" > "${run_dir}/manifest.tsv"
+rewrite_checksums
+expect_failure rejects-missing-manifest-field 'candidate manifest is missing or duplicating a required field' \
+    "${PROJECT}/scripts/candidate" verify
+cp -- "${TEST_ROOT}/manifest.tsv" "${run_dir}/manifest.tsv"
+rewrite_checksums
+
+sed 's/^android_fresh\ttrue$/android_fresh\tfalse/' \
+    "${TEST_ROOT}/manifest.tsv" > "${run_dir}/manifest.tsv"
+rewrite_checksums
+expect_failure rejects-nonfresh-manifest 'candidate manifest is not a complete fresh accepted v1 authority' \
+    "${PROJECT}/scripts/candidate" verify
+cp -- "${TEST_ROOT}/manifest.tsv" "${run_dir}/manifest.tsv"
+rewrite_checksums
+
+sed 's/\tfalse\t/\ttrue\t/' \
+    "${TEST_ROOT}/android-aggregate.tsv" > "${run_dir}/android-aggregate.tsv"
+rewrite_checksums
+expect_failure rejects-rewritten-checksum-for-nonfresh-aggregate \
+    'candidate Android aggregate is not complete fresh zero-failure evidence' \
+    "${PROJECT}/scripts/candidate" verify
+cp -- "${TEST_ROOT}/android-aggregate.tsv" "${run_dir}/android-aggregate.tsv"
+rewrite_checksums
+
+printf '../../outside\n' > "${PROJECT}/build/candidate-evidence/latest"
+expect_failure rejects-unsafe-latest 'candidate latest pointer is malformed' \
+    "${PROJECT}/scripts/candidate" verify
+
+printf 'All candidate-evidence rejection fixtures passed.\n'

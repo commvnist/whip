@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly TEST_ROOT="$(mktemp -d)"
+readonly PROJECT="${TEST_ROOT}/project"
+readonly FAKE_BIN="${TEST_ROOT}/bin"
+readonly OUTPUT="${TEST_ROOT}/output"
+readonly GRADLE_LOG="${TEST_ROOT}/gradle.log"
+readonly JAVA_LOG="${TEST_ROOT}/java.log"
+readonly FORBIDDEN_LOG="${TEST_ROOT}/forbidden.log"
+trap 'rm -rf -- "$TEST_ROOT"' EXIT
+
+mkdir -p \
+    "${PROJECT}/scripts" \
+    "${PROJECT}/app/src/main" \
+    "${PROJECT}/app/src/test/java/com/whip/app" \
+    "${PROJECT}/app/src/androidTest/java/com/whip/app" \
+    "${PROJECT}/benchmark/src" \
+    "${PROJECT}/docs" \
+    "$FAKE_BIN"
+cp -- "${SCRIPT_DIR}/check" "${PROJECT}/scripts/check"
+chmod 755 "${PROJECT}/scripts/check"
+
+printf '%s\n' \
+    'package com.whip.app' \
+    'class FullJvmFixtureTest {' \
+    '    @Test fun passes() = Unit' \
+    '}' \
+    > "${PROJECT}/app/src/test/java/com/whip/app/FullJvmFixtureTest.kt"
+printf '%s\n' \
+    'package com.whip.app' \
+    'class FullAndroidFixtureTest {' \
+    '    @Test fun passes() = Unit' \
+    '}' \
+    > "${PROJECT}/app/src/androidTest/java/com/whip/app/FullAndroidFixtureTest.kt"
+printf '%s\n' \
+    'android {' \
+    '    defaultConfig {' \
+    '        versionCode = 53' \
+    '    }' \
+    '}' \
+    > "${PROJECT}/app/build.gradle.kts"
+printf '%s\n' \
+    '# Fixture testing baseline' \
+    'Current baseline: 2 product tests—1 fast JVM tests and 1 Android instrumentation tests.' \
+    > "${PROJECT}/docs/testing.md"
+printf '%s\n' \
+    '#!/usr/bin/env bash' \
+    'printf "%s\n" candidate >> "$WHIP_FULL_FIXTURE_FORBIDDEN_LOG"' \
+    'exit 97' \
+    > "${PROJECT}/scripts/candidate"
+printf '%s\n' \
+    '#!/usr/bin/env bash' \
+    'printf "%s\n" android-target-guard >> "$WHIP_FULL_FIXTURE_FORBIDDEN_LOG"' \
+    'exit 98' \
+    > "${PROJECT}/scripts/android-target-guard"
+printf '%s\n' \
+    '#!/usr/bin/env bash' \
+    'printf "%s\n" android-test-engine >> "$WHIP_FULL_FIXTURE_FORBIDDEN_LOG"' \
+    'exit 99' \
+    > "${PROJECT}/scripts/android-test-engine"
+chmod 755 \
+    "${PROJECT}/scripts/candidate" \
+    "${PROJECT}/scripts/android-target-guard" \
+    "${PROJECT}/scripts/android-test-engine"
+
+printf '%s\n' \
+    '#!/usr/bin/env bash' \
+    'set -euo pipefail' \
+    '[[ -z "${ANDROID_SERIAL+x}" ]]' \
+    'printf "%s\n" "$*" >> "$WHIP_FULL_FIXTURE_GRADLE_LOG"' \
+    'mkdir -p app/build/reports/coverage/test/debug' \
+    'mkdir -p app/build/intermediates/merged_manifests/debug/fixture' \
+    'mkdir -p app/build/outputs/apk/debug app/build/outputs/apk/release' \
+    'mkdir -p app/build/outputs/bundle/release benchmark/build/outputs/apk/benchmark' \
+    'printf "<report/>\n" > app/build/reports/coverage/test/debug/report.xml' \
+    'printf "<manifest/>\n" > app/build/intermediates/merged_manifests/debug/fixture/AndroidManifest.xml' \
+    'printf "debug\n" > app/build/outputs/apk/debug/app-debug.apk' \
+    'printf "release\n" > app/build/outputs/apk/release/app-release.apk' \
+    'printf "bundle\n" > app/build/outputs/bundle/release/app-release.aab' \
+    'printf "benchmark\n" > benchmark/build/outputs/apk/benchmark/benchmark-benchmark.apk' \
+    'printf "%s\n" "{" "  \"applicationId\": \"commvne.com.whip.app\"," "  \"versionCode\": 53" "}" > app/build/outputs/apk/release/output-metadata.json' \
+    > "${PROJECT}/gradlew"
+printf '%s\n' \
+    '#!/usr/bin/env bash' \
+    'set -euo pipefail' \
+    'printf "%s\n" "$*" >> "$WHIP_FULL_FIXTURE_JAVA_LOG"' \
+    > "${FAKE_BIN}/java"
+chmod 755 "${PROJECT}/gradlew" "${FAKE_BIN}/java"
+
+(
+    cd "$PROJECT"
+    git init -q
+    git config user.name 'Whip Fixture'
+    git config user.email 'fixture@example.invalid'
+    git add app benchmark docs gradlew scripts
+    git commit -qm fixture
+)
+
+if ! env -u ANDROID_SERIAL -u WHIP_DEVICE \
+    WHIP_FULL_FIXTURE_GRADLE_LOG="$GRADLE_LOG" \
+    WHIP_FULL_FIXTURE_JAVA_LOG="$JAVA_LOG" \
+    WHIP_FULL_FIXTURE_FORBIDDEN_LOG="$FORBIDDEN_LOG" \
+    PATH="${FAKE_BIN}:${PATH}" \
+    "${PROJECT}/scripts/check" --full > "$OUTPUT" 2>&1; then
+    printf 'FAIL check-full-without-android-serial\n' >&2
+    sed -n '1,160p' "$OUTPUT" >&2
+    exit 1
+fi
+
+for expected_task in \
+    :app:createDebugUnitTestCoverageReport \
+    :app:compileDebugAndroidTestKotlin \
+    :app:lintDebug \
+    :app:assembleDebug \
+    :app:assembleRelease \
+    :app:bundleRelease \
+    :benchmark:assembleBenchmark; do
+    grep -Fq "$expected_task" "$GRADLE_LOG" || {
+        printf 'FAIL missing-full-task: %s\n' "$expected_task" >&2
+        exit 1
+    }
+done
+grep -Fq 'scripts/RenderBrandIcon.java --verify' "$JAVA_LOG" || {
+    printf 'FAIL missing-static-icon-verification\n' >&2
+    exit 1
+}
+grep -Fq 'scripts/CoverageGate.java unit app/build/reports/coverage/test/debug/report.xml' "$JAVA_LOG" || {
+    printf 'FAIL missing-jvm-coverage-gate\n' >&2
+    exit 1
+}
+[[ ! -s "$FORBIDDEN_LOG" ]] || {
+    printf 'FAIL candidate-or-instrumentation-was-invoked\n' >&2
+    sed -n '1,80p' "$FORBIDDEN_LOG" >&2
+    exit 1
+}
+[[ ! -e "${PROJECT}/build/candidate-evidence" ]] || {
+    printf 'FAIL candidate-evidence-was-created\n' >&2
+    exit 1
+}
+if grep -Eq 'connected.*AndroidTest' "$GRADLE_LOG"; then
+    printf 'FAIL instrumentation-task-was-invoked\n' >&2
+    exit 1
+fi
+grep -Fq 'Complete local quality/build gate passed. Frozen-candidate evidence was not created.' "$OUTPUT" || {
+    printf 'FAIL missing-full-gate-success\n' >&2
+    sed -n '1,160p' "$OUTPUT" >&2
+    exit 1
+}
+
+printf 'PASS check-full-without-android-serial\n'
+printf 'All complete-local-gate fixtures passed.\n'

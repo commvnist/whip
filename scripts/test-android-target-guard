@@ -29,6 +29,12 @@ case "$*" in
     '-s '*" shell getprop ro.build.version.sdk")
         printf '%s\n' "${FAKE_ADB_API:-34}"
         ;;
+    '-s '*" shell getprop ro.build.fingerprint")
+        printf '%s\n' "${FAKE_ADB_FINGERPRINT:-fixture/fingerprint}"
+        ;;
+    '-s '*" shell getprop ro.product.cpu.abi")
+        printf '%s\n' "${FAKE_ADB_ABI:-x86_64}"
+        ;;
     '-s '*" shell am force-stop commvne.com.whip.app.debug"|\
     '-s '*" shell am force-stop commvne.com.whip.app.debug.test")
         ;;
@@ -302,23 +308,14 @@ expect_failure gradle-task-rejects-managed-target 'Whip instrumentation may run 
     exit 1
 }
 
-for batch_script in check coverage; do
-    grep -Fq "readonly graphics_test_class='com.whip.app.ui.InteractionControlUiTest'" \
-        "${SCRIPT_DIR}/${batch_script}" || {
-        printf 'FAIL batch topology: graphics-first class drifted in %s\n' "$batch_script" >&2
-        exit 1
-    }
-    grep -Fq "readonly destructive_reset_test_class='com.whip.app.DataEpochResetIntegrationTest'" \
-        "${SCRIPT_DIR}/${batch_script}" || {
-        printf 'FAIL batch topology: reset-last class drifted in %s\n' "$batch_script" >&2
-        exit 1
-    }
-    grep -Fq 'readonly instrumentation_batch_size=10' "${SCRIPT_DIR}/${batch_script}" || {
-        printf 'FAIL batch topology: ordinary batch size drifted in %s\n' "$batch_script" >&2
-        exit 1
-    }
-done
-printf 'PASS check/coverage batch topology contract\n'
+grep -Fq "readonly GRAPHICS_TEST_CLASS='com.whip.app.ui.InteractionControlUiTest'" \
+    "${SCRIPT_DIR}/android-test-engine"
+grep -Fq "readonly DESTRUCTIVE_RESET_TEST_CLASS='com.whip.app.DataEpochResetIntegrationTest'" \
+    "${SCRIPT_DIR}/android-test-engine"
+grep -Fq 'readonly INSTRUMENTATION_BATCH_SIZE=10' "${SCRIPT_DIR}/android-test-engine"
+grep -Fq 'android-test-engine' "${SCRIPT_DIR}/coverage"
+grep -Fq 'android-test-engine' "${SCRIPT_DIR}/qa-targeted"
+printf 'PASS shared Android batch topology contract\n'
 
 readonly COVERAGE_FIXTURE_ROOT="${TEST_ROOT}/coverage-project"
 readonly COVERAGE_GRADLE_LOG="${TEST_ROOT}/coverage-gradle.log"
@@ -327,16 +324,21 @@ readonly COVERAGE_COUNTER="${TEST_ROOT}/coverage-counter"
 mkdir -p \
     "${COVERAGE_FIXTURE_ROOT}/scripts" \
     "${COVERAGE_FIXTURE_ROOT}/build" \
+    "${COVERAGE_FIXTURE_ROOT}/app/src/main" \
     "${COVERAGE_FIXTURE_ROOT}/app/src/androidTest/java/com/whip/app/ui" \
     "${COVERAGE_FIXTURE_ROOT}/app/src/androidTest/java/com/whip/app" \
     "${COVERAGE_FIXTURE_ROOT}/gradle"
 cp "${SCRIPT_DIR}/coverage" "${SCRIPT_DIR}/android-target-guard" \
+    "${SCRIPT_DIR}/android-test-engine" \
     "${COVERAGE_FIXTURE_ROOT}/scripts/"
-: > "${COVERAGE_FIXTURE_ROOT}/app/build.gradle.kts"
+printf 'testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"\n' \
+    > "${COVERAGE_FIXTURE_ROOT}/app/build.gradle.kts"
 : > "${COVERAGE_FIXTURE_ROOT}/build.gradle.kts"
 : > "${COVERAGE_FIXTURE_ROOT}/settings.gradle.kts"
 : > "${COVERAGE_FIXTURE_ROOT}/gradle.properties"
 : > "${COVERAGE_FIXTURE_ROOT}/gradle/fixture"
+printf 'package com.whip.app\nclass FixtureProduction\n' \
+    > "${COVERAGE_FIXTURE_ROOT}/app/src/main/FixtureProduction.kt"
 : > "$COVERAGE_COUNTER"
 
 cat > "${COVERAGE_FIXTURE_ROOT}/app/src/androidTest/java/com/whip/app/ui/InteractionControlUiTest.kt" <<'COVERAGE_TEST'
@@ -365,6 +367,12 @@ cat > "${COVERAGE_FIXTURE_ROOT}/gradlew" <<'FAKE_GRADLE'
 #!/usr/bin/env bash
 set -euo pipefail
 printf '%s\n' "$*" >> "${FAKE_COVERAGE_GRADLE_LOG:?}"
+if [[ " $* " == *' :app:assembleDebug '* && " $* " == *' :app:assembleDebugAndroidTest '* ]]; then
+    mkdir -p app/build/outputs/apk/debug app/build/outputs/apk/androidTest/debug
+    printf 'debug-apk\n' > app/build/outputs/apk/debug/app-debug.apk
+    printf 'test-apk\n' > app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+    exit 0
+fi
 if [[ " $* " == *' :app:createDebugUnitTestCoverageReport '* ]]; then
     mkdir -p app/build/reports/coverage/test/debug
     printf '<report/>\n' > app/build/reports/coverage/test/debug/report.xml
@@ -375,8 +383,8 @@ if [[ " $* " == *' :app:connectedDebugAndroidTest '* ]]; then
         printf 'connected coverage task was not pinned\n' >&2
         exit 90
     }
-    [[ " $* " == *' --rerun '* && " $* " == *' --no-build-cache '* ]] || {
-        printf 'connected coverage task did not force fresh execution\n' >&2
+    [[ " $* " == *' --no-build-cache '* && " $* " == *' --no-configuration-cache '* ]] || {
+        printf 'connected coverage task did not disable result caches\n' >&2
         exit 91
     }
     class_argument=''
@@ -501,8 +509,8 @@ done
     printf 'FAIL coverage report: union of 11 execution-data files was not requested\n' >&2
     exit 1
 }
-[[ "$(grep -Fc -- '-s emulator-5554 get-state' "$ADB_LOG")" -eq 12 &&
-    "$(grep -Fc -- '-s emulator-5554 shell getprop ro.boot.qemu' "$ADB_LOG")" -eq 12 ]] || {
+[[ "$(grep -Fc -- '-s emulator-5554 get-state' "$ADB_LOG")" -eq 13 &&
+    "$(grep -Fc -- '-s emulator-5554 shell getprop ro.boot.qemu' "$ADB_LOG")" -eq 13 ]] || {
     printf 'FAIL coverage guard: initial plus every nested task was not revalidated\n' >&2
     exit 1
 }
@@ -513,16 +521,69 @@ grep -Fq 'CoverageGate.java e2e app/build/reports/coverage/androidTest/debug/con
 }
 printf 'PASS fresh 11-process coverage accounting and report union\n'
 
+: > "$COVERAGE_GRADLE_LOG"
+expect_success reusable-engine-populates-exact-cache \
+    env ANDROID_SERIAL=emulator-5554 PATH="$GUARDED_PATH" \
+        "${COVERAGE_FIXTURE_ROOT}/scripts/android-test-engine" --mode reusable
+[[ "$(grep -c '^connected' "$COVERAGE_GRADLE_LOG")" -eq 11 ]] || {
+    printf 'FAIL reusable engine: initial run did not execute all 11 batches\n' >&2
+    exit 1
+}
+: > "$COVERAGE_GRADLE_LOG"
+expect_success reusable-engine-accepts-matching-cache \
+    env ANDROID_SERIAL=emulator-5554 PATH="$GUARDED_PATH" \
+        "${COVERAGE_FIXTURE_ROOT}/scripts/android-test-engine" --mode reusable
+[[ "$(grep -c '^connected' "$COVERAGE_GRADLE_LOG")" -eq 0 ]] || {
+    printf 'FAIL reusable engine: exact cache still executed instrumentation\n' >&2
+    exit 1
+}
+printf '// localized test edit\n' \
+    >> "${COVERAGE_FIXTURE_ROOT}/app/src/androidTest/java/com/whip/app/CoverageProbe01Test.kt"
+: > "$COVERAGE_GRADLE_LOG"
+expect_success reusable-engine-invalidates-only-affected-test-batch \
+    env ANDROID_SERIAL=emulator-5554 PATH="$GUARDED_PATH" \
+        "${COVERAGE_FIXTURE_ROOT}/scripts/android-test-engine" --mode reusable
+[[ "$(grep -c '^connected' "$COVERAGE_GRADLE_LOG")" -eq 1 ]] || {
+    printf 'FAIL reusable engine: localized test edit did not rerun exactly one batch\n' >&2
+    exit 1
+}
+printf '// production edit\n' >> "${COVERAGE_FIXTURE_ROOT}/app/src/main/FixtureProduction.kt"
+: > "$COVERAGE_GRADLE_LOG"
+expect_success reusable-engine-invalidates-all-batches-for-production \
+    env ANDROID_SERIAL=emulator-5554 PATH="$GUARDED_PATH" \
+        "${COVERAGE_FIXTURE_ROOT}/scripts/android-test-engine" --mode reusable
+[[ "$(grep -c '^connected' "$COVERAGE_GRADLE_LOG")" -eq 11 ]] || {
+    printf 'FAIL reusable engine: production edit did not rerun every batch\n' >&2
+    exit 1
+}
+latest_run_dir="$(sed -nE 's/^Android instrumentation accepted .* Evidence: (.*)$/\1/p' "$OUTPUT_FILE" | tail -n 1)"
+cache_signature="$(awk -F '\t' 'NR == 2 { print $10 }' "${latest_run_dir}/aggregate.tsv")"
+cache_file="${COVERAGE_FIXTURE_ROOT}/build/instrumentation-batch-cache-v2/${cache_signature}.tsv"
+[[ -s "$cache_file" ]] || {
+    printf 'FAIL reusable engine: could not resolve current cache fixture\n' >&2
+    exit 1
+}
+printf 'corrupt\n' > "$cache_file"
+: > "$COVERAGE_GRADLE_LOG"
+expect_success reusable-engine-rejects-corrupt-cache \
+    env ANDROID_SERIAL=emulator-5554 PATH="$GUARDED_PATH" \
+        "${COVERAGE_FIXTURE_ROOT}/scripts/android-test-engine" --mode reusable
+[[ "$(grep -c '^connected' "$COVERAGE_GRADLE_LOG")" -eq 1 ]] || {
+    printf 'FAIL reusable engine: corrupt cache did not rerun exactly one batch\n' >&2
+    exit 1
+}
+printf 'PASS exact cache reuse and invalidation accounting\n'
+
 expect_failure coverage-rejects-class-mismatch 'executed a different class set than requested' \
     env ANDROID_SERIAL=emulator-5554 FAKE_COVERAGE_MODE=mismatch PATH="$GUARDED_PATH" \
         "${COVERAGE_FIXTURE_ROOT}/scripts/coverage" --emulator
-expect_failure coverage-rejects-zero-tests 'requires nonzero tests and zero failures/skips' \
+expect_failure coverage-rejects-zero-tests 'requires a successful Gradle task, nonzero tests, and zero failures/skips' \
     env ANDROID_SERIAL=emulator-5554 FAKE_COVERAGE_MODE=zero PATH="$GUARDED_PATH" \
         "${COVERAGE_FIXTURE_ROOT}/scripts/coverage" --emulator
-expect_failure coverage-rejects-failures 'requires nonzero tests and zero failures/skips' \
+expect_failure coverage-rejects-failures 'requires a successful Gradle task, nonzero tests, and zero failures/skips' \
     env ANDROID_SERIAL=emulator-5554 FAKE_COVERAGE_MODE=failure PATH="$GUARDED_PATH" \
         "${COVERAGE_FIXTURE_ROOT}/scripts/coverage" --emulator
-expect_failure coverage-rejects-skips 'requires nonzero tests and zero failures/skips' \
+expect_failure coverage-rejects-skips 'requires a successful Gradle task, nonzero tests, and zero failures/skips' \
     env ANDROID_SERIAL=emulator-5554 FAKE_COVERAGE_MODE=skip PATH="$GUARDED_PATH" \
         "${COVERAGE_FIXTURE_ROOT}/scripts/coverage" --emulator
 expect_failure coverage-rejects-multiple-ec 'requires exactly one nonempty fresh .ec file; found 2' \
