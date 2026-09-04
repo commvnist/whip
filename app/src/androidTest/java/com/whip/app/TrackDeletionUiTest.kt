@@ -3,6 +3,9 @@ package com.whip.app
 import android.content.Intent
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -11,7 +14,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -67,7 +70,9 @@ class TrackDeletionUiTest {
             }
             compose.onNodeWithTag("track-card-$trackId").performClick()
             compose.onNodeWithTag("track-destination-Options").performClick()
-            compose.onNodeWithText("Delete Track Permanently").performScrollTo().performClick()
+            compose.onNode(hasScrollAction() and hasAnyDescendant(hasText("Track Options")))
+                .performScrollToNode(hasText("Delete Track Permanently"))
+            compose.onNodeWithText("Delete Track Permanently").performClick()
             compose.waitUntil(10_000) {
                 compose.onAllNodesWithText("Delete Delete review Track Permanently?").fetchSemanticsNodes().isNotEmpty()
             }
