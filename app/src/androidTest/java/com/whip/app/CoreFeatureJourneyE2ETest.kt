@@ -11,9 +11,11 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertContentDescriptionContains
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
@@ -108,9 +110,14 @@ class CoreFeatureJourneyE2ETest {
             compose.waitUntil(timeoutMillis = 5_000) {
                 compose.onAllNodesWithTag("gym-chart-summary").fetchSemanticsNodes().isNotEmpty()
             }
-            compose.onNodeWithTag("gym-chart-summary").assertIsDisplayed()
+            compose.onNodeWithTag("gym-chart-summary")
+                .assertIsDisplayed()
+                .assertContentDescriptionContains(
+                    "E2E exercise Max Weight chart",
+                    substring = true,
+                )
             compose.onNodeWithTag("gym-progress-list").performScrollToNode(
-                hasContentDescription("E2E exercise Max weight chart", substring = true),
+                hasText("Chart Points"),
             )
             compose.onAllNodesWithContentDescription(
                 "E2E exercise Max weight chart",
@@ -134,8 +141,9 @@ class CoreFeatureJourneyE2ETest {
             .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
         launchMainActivity(intent).use { scenario ->
             compose.waitUntil(timeoutMillis = 5_000) {
-                compose.onAllNodesWithContentDescription("Edit task", substring = true).fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithContentDescription("Expand task E2E task").fetchSemanticsNodes().isNotEmpty()
             }
+            compose.onNodeWithContentDescription("Expand task E2E task").performClick()
             compose.onAllNodesWithContentDescription("Edit task", substring = true)[0]
                 .performScrollTo()
                 .performClick()
@@ -148,9 +156,11 @@ class CoreFeatureJourneyE2ETest {
             scenario.recreate()
 
             compose.waitUntil(timeoutMillis = 5_000) {
-                compose.onAllNodesWithText("Unsaved fold draft").fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithTag("task-editor-title").fetchSemanticsNodes().isNotEmpty()
             }
-            compose.onNodeWithTag("task-editor-title").assertIsDisplayed()
+            compose.onNodeWithTag("task-editor-title")
+                .assertIsDisplayed()
+                .assertTextContains("Unsaved fold draft")
             compose.onNodeWithText("Edit Task").assertIsDisplayed()
         }
     }

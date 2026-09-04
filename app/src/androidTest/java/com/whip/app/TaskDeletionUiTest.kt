@@ -71,6 +71,7 @@ class TaskDeletionUiTest {
             }
         }
 
+        compose.onNodeWithTag("task-expand-1", useUnmergedTree = true).performClick()
         compose.onNodeWithContentDescription("Edit task Editable task").performClick()
         compose.runOnIdle {
             assertEquals(0, details.get())

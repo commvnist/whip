@@ -7945,9 +7945,9 @@ internal fun GymProgressContent(
     val machineLevelLabel = selectedMachine?.levelLabel
         ?: exercisePlacements.firstOrNull { it.equipmentScopeKey == selectedMachineScope }?.machineLevelLabelSnapshot
         ?: "level"
-    var measurement by rememberSaveable {
+    var measurement by rememberSaveable(selectedExerciseId) {
         mutableStateOf(
-            state.exercises.firstOrNull()?.defaultGraphMetric
+            exercise?.defaultGraphMetric
                 ?.let { runCatching { GymGraphMetric.valueOf(it) }.getOrNull() }
                 ?: GymGraphMetric.EstimatedOneRepMax,
         )
