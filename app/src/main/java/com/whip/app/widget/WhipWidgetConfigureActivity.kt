@@ -9,7 +9,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,7 +34,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,11 +53,9 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.whip.app.R
 import com.whip.app.WhipApplication
-import com.whip.app.core.AppThemeMode
 import com.whip.app.domain.AreaScope
 import com.whip.app.domain.Habit
 import com.whip.app.domain.matches
@@ -68,7 +64,6 @@ import com.whip.app.ui.SegmentedChoiceBar
 import com.whip.app.ui.WhipButton
 import com.whip.app.ui.WhipContentWidth
 import com.whip.app.ui.WhipFilterChip
-import com.whip.app.ui.WhipFullScreenSurface
 import com.whip.app.ui.WhipPageContentPadding
 import com.whip.app.ui.WhipPageHeader
 import com.whip.app.ui.WhipSection
@@ -76,9 +71,7 @@ import com.whip.app.ui.WhipSettingsRow
 import com.whip.app.ui.WhipSpacing
 import com.whip.app.ui.WhipTextButton
 import com.whip.app.ui.WhipTrailingCloseAction
-import com.whip.app.ui.StartupRecoveryScreen
-import com.whip.app.ui.theme.WhipTheme
-import com.whip.app.startup.StartupRecoveryState
+import com.whip.app.ui.ExternalWhipActivityHost
 import kotlin.math.abs
 import kotlinx.coroutines.launch
 
@@ -113,40 +106,20 @@ class WhipWidgetConfigureActivity : ComponentActivity() {
         }
         val app = application as WhipApplication
 
+        val title = if (kind == WidgetKind.TaskAgenda) "Task Agenda" else "Habit Tracking"
         setContent {
-            val startupState by app.startupRecoveryState.collectAsStateWithLifecycle()
-            if (startupState != StartupRecoveryState.Ready) {
-                WhipTheme(darkTheme = isSystemInDarkTheme(), dynamicColor = false) {
-                    StartupRecoveryScreen(
-                        state = startupState,
-                        onRetry = app::retryStartupRecovery,
-                        onEraseAllData = app::beginFreshStartReset,
-                        onKeepDataAndClose = ::finishAffinity,
-                    )
-                }
-                return@setContent
-            }
+            ExternalWhipActivityHost(
+                activity = this@WhipWidgetConfigureActivity,
+                app = app,
+                title = "$title widget configuration",
+            ) {
             val dataGeneration by app.userDataGeneration.collectAsStateWithLifecycle()
             val existing = remember(widgetId, dataGeneration) {
                 WhipWidgetPreferences.load(this, widgetId, dataGeneration)
             }
             val areas by app.areaRepository.areas.collectAsStateWithLifecycle(initialValue = emptyList())
             val habits by app.habitRepository.habits.collectAsStateWithLifecycle(initialValue = emptyList())
-            val appSettings by app.settingsRepository.settings.collectAsStateWithLifecycle(
-                initialValue = app.settingsRepository.current(),
-            )
-            val systemDarkTheme = isSystemInDarkTheme()
-            val darkTheme = when (appSettings.themeMode) {
-                AppThemeMode.System -> systemDarkTheme
-                AppThemeMode.Light -> false
-                AppThemeMode.Dark -> true
-            }
-            SideEffect {
-                WindowCompat.getInsetsController(window, window.decorView).apply {
-                    isAppearanceLightStatusBars = !darkTheme
-                    isAppearanceLightNavigationBars = !darkTheme
-                }
-            }
+            val systemDarkTheme = androidx.compose.foundation.isSystemInDarkTheme()
 
             var selectedAreaScopeKey by rememberSaveable(widgetId, dataGeneration) {
                 mutableStateOf(existing.areaScope.storageKey)
@@ -206,14 +179,11 @@ class WhipWidgetConfigureActivity : ComponentActivity() {
                 AreaScope.Unassigned -> unassignedLabel
                 is AreaScope.One -> selectedArea?.name ?: "Area unavailable"
             }
-            val title = if (kind == WidgetKind.TaskAgenda) "Task Agenda" else "Habit Tracking"
             val canSave = kind == WidgetKind.TaskAgenda ||
                 habitSelectionMode == HabitSelectionMode.AllMatching ||
                 selectedHabitCount > 0
 
-            WhipTheme(darkTheme = darkTheme, dynamicColor = appSettings.dynamicColor) {
-                WhipFullScreenSurface(title = "$title widget configuration") {
-                    Column(Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize()) {
                         LazyColumn(
                             modifier = Modifier
                                 .weight(1f)
@@ -536,11 +506,10 @@ class WhipWidgetConfigureActivity : ComponentActivity() {
                                 Text("Save Widget")
                             }
                         }
-                    }
-                }
             }
         }
     }
+}
 }
 
 internal suspend fun persistWidgetConfiguration(

@@ -67,6 +67,25 @@ private data class ReviewCorrelation(
     val sampleSize: Int,
 )
 
+internal data class TrackReviewEvidence(
+    val entryCount: Int,
+    val touchedTrackCount: Int,
+)
+
+internal fun trackReviewEvidence(
+    trackState: TrackUiState,
+    start: LocalDate,
+    through: LocalDate,
+): TrackReviewEvidence? {
+    val entries = trackState.projections.flatMap { projection ->
+        projection.entries.filter { it.entry.entryDate in start..through }
+            .map { projection.track.id }
+    }
+    return entries.takeIf { it.isNotEmpty() }?.let {
+        TrackReviewEvidence(entryCount = it.size, touchedTrackCount = it.distinct().size)
+    }
+}
+
 internal fun reviewStartDate(period: ReviewPeriod, through: LocalDate): LocalDate = when (period) {
     ReviewPeriod.Weekly -> through.minusDays(6)
     ReviewPeriod.Monthly -> through.withDayOfMonth(1)
@@ -159,6 +178,7 @@ fun ReviewDialog(
     }
     val hasReviewData = signals.any { signal -> signal.values.any { it != 0.0 } }
     val hasTrackEvidence = trackState.projections.any { it.entries.isNotEmpty() }
+    val trackEvidence = trackReviewEvidence(trackState, start, through)
     val rangeLabel = formatReviewRange(start, through, locale)
     val controls: @Composable () -> Unit = {
         ReviewControlPanel(
@@ -174,6 +194,7 @@ fun ReviewDialog(
         ReviewOverview(
             hasReviewData = hasReviewData,
             hasTrackEvidence = hasTrackEvidence,
+            trackEvidence = trackEvidence,
             allSignals = allSignals,
             includedSections = includedSections,
             correlations = correlations,
@@ -427,6 +448,7 @@ private fun ReviewControlPanel(
 private fun ReviewOverview(
     hasReviewData: Boolean,
     hasTrackEvidence: Boolean,
+    trackEvidence: TrackReviewEvidence?,
     allSignals: List<Pair<ReviewSection, ReviewSignal>>,
     includedSections: Set<ReviewSection>,
     correlations: List<ReviewCorrelation>,
@@ -443,6 +465,9 @@ private fun ReviewOverview(
             title = "Overview",
             supportingText = "$rangeLabel · Select any card to open its source.",
         )
+        trackEvidence?.let { evidence ->
+            TrackEvidenceCard(evidence = evidence, rangeLabel = rangeLabel, onOpenTracks = onOpenTracks)
+        }
         if (!hasReviewData) {
             WhipEmptyState(
                 title = "No Reviewable Outcomes Yet",
@@ -460,7 +485,9 @@ private fun ReviewOverview(
                 WhipTextButton(onClick = { onDrillDown(ReviewSection.Tasks) }) { Text("Open Tasks") }
                 WhipTextButton(onClick = { onDrillDown(ReviewSection.Habits) }) { Text("Open Habits") }
                 WhipTextButton(onClick = { onDrillDown(ReviewSection.Goals) }) { Text("Open Goals") }
-                WhipTextButton(onClick = onOpenTracks) { Text("Open Tracks") }
+                if (trackEvidence == null) {
+                    WhipTextButton(onClick = onOpenTracks) { Text("Open Tracks") }
+                }
                 WhipTextButton(onClick = { onDrillDown(ReviewSection.Gym) }) { Text("Open Gym") }
             }
             return@Column
@@ -516,6 +543,36 @@ private fun ReviewOverview(
         }
     }
 }
+
+@Composable
+private fun TrackEvidenceCard(
+    evidence: TrackReviewEvidence,
+    rangeLabel: String,
+    onOpenTracks: () -> Unit,
+) {
+    WhipGroupedInformationCard(
+        modifier = Modifier.testTag("review-track-evidence"),
+    ) {
+            Text("Track Evidence · All Tracks", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                "$rangeLabel · ${formatTrackEvidenceSummary(evidence)}",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                "Track values are evidence, not productivity outcomes; they are excluded from scores and correlations.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            WhipTextButton(
+                onClick = onOpenTracks,
+                modifier = Modifier.testTag("review-track-evidence-open"),
+            ) { Text("Open Tracks") }
+    }
+}
+
+internal fun formatTrackEvidenceSummary(evidence: TrackReviewEvidence): String =
+    "${evidence.entryCount} ${if (evidence.entryCount == 1) "entry" else "entries"} across " +
+        "${evidence.touchedTrackCount} touched ${if (evidence.touchedTrackCount == 1) "Track" else "Tracks"}."
 
 internal fun formatReviewRange(start: LocalDate, through: LocalDate, locale: java.util.Locale): String {
     val sameYear = start.year == through.year

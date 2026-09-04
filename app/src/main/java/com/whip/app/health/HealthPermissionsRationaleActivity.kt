@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,30 +19,22 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.core.view.WindowCompat
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.whip.app.R
 import com.whip.app.WhipApplication
-import com.whip.app.core.AppThemeMode
 import com.whip.app.ui.WhipButton
 import com.whip.app.ui.WhipContentWidth
-import com.whip.app.ui.WhipFullScreenSurface
 import com.whip.app.ui.WhipNoticeCard
 import com.whip.app.ui.WhipNoticeTone
 import com.whip.app.ui.WhipPageContentPadding
 import com.whip.app.ui.WhipPageHeader
 import com.whip.app.ui.WhipSpacing
-import com.whip.app.ui.StartupRecoveryScreen
-import com.whip.app.ui.theme.WhipTheme
-import com.whip.app.startup.StartupRecoveryState
+import com.whip.app.ui.ExternalWhipActivityHost
 
 class HealthPermissionsRationaleActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,34 +42,11 @@ class HealthPermissionsRationaleActivity : ComponentActivity() {
         enableEdgeToEdge()
         val app = application as WhipApplication
         setContent {
-            val startupState by app.startupRecoveryState.collectAsStateWithLifecycle()
-            if (startupState != StartupRecoveryState.Ready) {
-                WhipTheme(darkTheme = isSystemInDarkTheme(), dynamicColor = false) {
-                    StartupRecoveryScreen(
-                        state = startupState,
-                        onRetry = app::retryStartupRecovery,
-                        onEraseAllData = app::beginFreshStartReset,
-                        onKeepDataAndClose = ::finishAffinity,
-                    )
-                }
-                return@setContent
-            }
-            val settings by app.settingsRepository.settings.collectAsStateWithLifecycle(
-                initialValue = app.settingsRepository.current(),
-            )
-            val systemDark = isSystemInDarkTheme()
-            val darkTheme = when (settings.themeMode) {
-                AppThemeMode.System -> systemDark
-                AppThemeMode.Light -> false
-                AppThemeMode.Dark -> true
-            }
-            SideEffect {
-                WindowCompat.getInsetsController(window, window.decorView).apply {
-                    isAppearanceLightStatusBars = !darkTheme
-                    isAppearanceLightNavigationBars = !darkTheme
-                }
-            }
-            WhipTheme(darkTheme = darkTheme, dynamicColor = settings.dynamicColor) {
+            ExternalWhipActivityHost(
+                activity = this@HealthPermissionsRationaleActivity,
+                app = app,
+                title = stringResource(R.string.health_rationale_page_title),
+            ) {
                 HealthPermissionsRationaleContent(onClose = ::finish)
             }
         }
@@ -92,8 +60,7 @@ internal fun HealthPermissionsRationaleContent(
 ) {
     val listState = rememberLazyListState()
     val pageTitle = stringResource(R.string.health_rationale_page_title)
-    WhipFullScreenSurface(title = pageTitle, modifier = modifier) {
-        Column(Modifier.fillMaxSize().testTag("health-rationale-surface")) {
+    Column(modifier.fillMaxSize().testTag("health-rationale-surface")) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier
@@ -167,7 +134,6 @@ internal fun HealthPermissionsRationaleContent(
                     Text(stringResource(R.string.health_rationale_close))
                 }
             }
-        }
     }
 }
 
