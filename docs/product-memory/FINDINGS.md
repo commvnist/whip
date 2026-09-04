@@ -815,3 +815,16 @@
 - Expected: A user-authorized current-only epoch must not retain a dormant unsupported subsystem as first-class persistent state.
 - Resolution: Removed the complete subsystem from Room entities/DAO/application wiring, domain models, runtime scheduling, Task-series copying, Track provenance and CSV paths, deletion coordinators/previews, backup export/import/remap, UI state/copy, baseline profile, and automated tests. Rewrote the current deletion and backup contracts without compatibility stubs, retained only canonical authored/history data, and established schema 46/data epoch 6/backup version 23 as the sole supported boundary.
 - Status: Resolved in `acbf2d4`, independently accepted in `VER-20260903-022`, and released in Whip 0.3.45/code 51; see `VER-20260903-023`.
+
+### FND-20260903-025 — Shared Exercise picker confused ordering with substitution semantics
+
+- Severity/category: P1 new-user 5/3/1 comprehension and shared-component contract.
+- Observed: The 5/3/1 setup passed its current Exercise selection through the shared picker's `preferredIds` ordering input. Shared picker presentation hard-coded preferred IDs as “Planned alternative” and announced that routine alternatives appear first, so the newly selected Exercise 1 was visibly misrepresented even though generated state correctly made it Main work.
+- Expected: Ordering and semantic role are separate inputs. A 5/3/1 current selection is presented neutrally; substitute language appears only in an explicit substitution context. Routine alternatives remain optional advanced configuration and never relabel the programmed Exercise.
+- Why it matters / affected users: A novice can reasonably conclude that the Exercise they just selected will not be performed or that they configured the wrong field. The false label undermines trust at the moment the program is created and repeats through accessibility output.
+- Evidence: `FiveThreeOneProgramSetup`/`preferredIds` and `selectExercise` in `RoutineBuilder.kt`; shared picker rendering in `GymScreens.kt` and `GymExercisePicker.kt`; Main-work generation in `FiveThreeOneProgramming.kt`; direct user reproduction in `FB-20260903-015`.
+- Root cause: The shared picker overloaded a neutral ordering mechanism with routine-substitution-specific copy.
+- Recommended solution: Make preferred-item annotation/supporting copy caller-owned or neutral; keep 5/3/1 selection unlabelled; reserve preferred-substitute wording for active-workout substitution; rename the advanced routine section to “Preferred workout substitutes” and add a regression for empty-library creation/current selection/Main-work identity.
+- Resolution: Renamed the shared input to neutral priority ordering and made group/item role labels caller-owned. The 5/3/1 picker now marks its selected item only as “Current selection”; active-workout substitution explicitly supplies preferred-substitute language; the advanced Routine section explains that substitutes are optional and never change the programmed Exercise.
+- Related: `FB-20260903-015`, `IMP-20260903-024`, `VER-20260903-024`.
+- Status: Verified and independently accepted; awaiting commit/push and the next physical release.

@@ -808,3 +808,13 @@
 - Related: `FND-20260903-023`, `FND-20260903-024`, `IMP-20260903-020` through `IMP-20260903-022`.
 - Verification: `VER-20260903-023`.
 - Status: Released and physically verified; release source `e163318`.
+
+### IMP-20260903-024 — Context-owned Exercise picker priority semantics
+
+- Behavior changed: Preferred ordering in the shared Exercise picker no longer assigns a substitute role. The 5/3/1 setup labels its selected Exercise as “Current selection”; only active-workout substitution opts into preferred-substitute copy. The Routine advanced section is now “Preferred workout substitutes” and explicitly states that it is optional and leaves the programmed Exercise unchanged.
+- Important files/symbols: `GymExercisePickerBody`, `ExercisePickerDialog`, `FiveThreeOneProgramSetupDialog`, `RoutinePlacementEditor`, and `RoutineBuilderUiTest`.
+- Persistence/migration/history impact: None. Existing priority and substitute IDs are unchanged; 5/3/1 generation continues to create Main-work placements with empty substitute lists unless a user separately configures substitutes.
+- Compatibility and limitations: Actual substitution ordering is preserved. The active-workout caller owns its contextual copy; ordinary workout addition and 5/3/1 selection do not inherit it.
+- Related: `FB-20260903-015`, `FND-20260903-025`, `VER-20260903-024`.
+- Verification: `VER-20260903-024`.
+- Status: Implemented, focused-emulator verified, and independently accepted; awaiting commit/push and physical release.

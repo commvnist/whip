@@ -104,6 +104,31 @@ class RoutineBuilderUiTest {
     }
 
     @Test
+    fun sharedExercisePickerOnlyUsesSubstituteLanguageWhenContextProvidesIt() {
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                ExercisePickerDialog(
+                    exercises = listOf(
+                        exercise(1, "Bench Press"),
+                        exercise(2, "Dumbbell Bench Press"),
+                    ),
+                    priorityIds = listOf(2),
+                    priorityGroupLabel = "Preferred workout substitutes are shown first",
+                    priorityItemLabel = "Preferred substitute",
+                    title = "Substitute Exercise",
+                    onDismiss = {},
+                    onPick = {},
+                    onCreate = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("Preferred workout substitutes are shown first").assertIsDisplayed()
+        compose.onNodeWithText("Dumbbell Bench Press · Preferred substitute").assertIsDisplayed()
+        compose.onAllNodesWithText("Planned alternative", substring = true).assertCountEquals(0)
+    }
+
+    @Test
     fun blankRoutineSurfacesTopLevelFiveThreeOneEntry() {
         compose.setContent {
             WhipTheme(darkTheme = true, dynamicColor = false) {
@@ -455,10 +480,13 @@ class RoutineBuilderUiTest {
 
         compose.runOnIdle {
             val draft = requireNotNull(savedDraft)
+            val placements = draft.days.flatMap(RoutineDayDraft::exercises)
             assertEquals("Custom 5/3/1", draft.name)
             assertEquals(listOf("Bench Press", "Deadlift", "Zercher Squat"), draft.days.map(RoutineDayDraft::name))
-            assertEquals(listOf(21L, 22L, 23L), draft.days.map { it.exercises.single().exerciseId })
-            assertEquals(listOf(200.0, 300.0, 250.0), draft.days.map { it.exercises.single().trainingMaxValue })
+            assertEquals(listOf(21L, 22L, 23L), placements.map(RoutineExerciseDraft::exerciseId))
+            assertEquals(listOf(200.0, 300.0, 250.0), placements.map(RoutineExerciseDraft::trainingMaxValue))
+            assertTrue(placements.all { it.placementKind == RoutinePlacementKind.MainExercise })
+            assertTrue(placements.all { it.alternativeExerciseIds.isEmpty() })
             assertEquals(RoutineProgramKind.FiveThreeOne, draft.program?.kind)
         }
     }
@@ -494,6 +522,8 @@ class RoutineBuilderUiTest {
         compose.onNodeWithContentDescription("Exercise 1: Bench Press").performScrollTo().performClick()
 
         compose.onNodeWithText("Choose Exercise 1").assertIsDisplayed()
+        compose.onNodeWithText("Bench Press · Current selection").assertIsDisplayed()
+        compose.onAllNodesWithText("alternative", substring = true, ignoreCase = true).assertCountEquals(0)
         compose.onNodeWithTag("exercise-picker-search").performTextInput("Safety Bar")
         compose.onNode(
             hasText("Safety Bar Squat") and hasAnyAncestor(hasTestTag("workout-exercise-picker-list")),

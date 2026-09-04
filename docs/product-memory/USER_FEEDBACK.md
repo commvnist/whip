@@ -270,4 +270,13 @@ These records preserve durable user intent. “Released” means the change reac
 - User need: Replace the competing Lift/Lifts vocabulary across Gym with Exercise/Exercises so an action never says “Create a Lift” and then opens “Create Exercise.”
 - Acceptance criteria: Routine and 5/3/1 setup, Training Max guidance, workout states, Settings, accessibility labels, and surfaced validation all use Exercise consistently; actual exercise names such as Deadlift remain intact; stored identities and existing user data require no migration.
 - Related: `FND-20260903-023`, `DEC-20260903-013`, `IMP-20260903-020`, `VER-20260903-020`.
-- Status: Implemented, focused-emulator verified, independently accepted, committed, and pushed; not yet released to the physical phone.
+- Status: Implemented, focused-emulator verified, independently accepted, committed, pushed, and released in Whip 0.3.45/code 51; see `VER-20260903-023`.
+
+### FB-20260903-015 — Do not label a selected 5/3/1 Exercise as an alternative
+
+- Date/source: 2026-09-03, direct new-user report from Whip 0.3.45.
+- User need: When creating a new 5/3/1 routine and selecting Flat Barbell Bench Press for Exercise 1, the picker must present it as the selected programmed Exercise—not label it “Planned alternative.”
+- Acceptance criteria: Preferred picker ordering must not imply a domain role; the 5/3/1 picker uses neutral/current-selection presentation; an Exercise created from an empty library can become Exercise 1 without alternative wording; generated work remains Main work with no substitute IDs; actual routine substitutes are explicitly optional and configured separately; active-workout substitution may still identify preferred substitutes in its own context.
+- Affected users/workflows: New 5/3/1 users, empty-library creation, custom Exercise selection, active-workout substitution, screen-reader users.
+- Related: `FND-20260903-025`, `IMP-20260903-024`, `VER-20260903-024`.
+- Status: Implemented, focused-emulator verified, and independently accepted; awaiting commit/push and the next physical release.

@@ -44,7 +44,8 @@ internal fun GymExercisePickerBody(
     searchTag: String = "exercise-picker-search",
     createTag: String = "exercise-picker-create",
     emptyTag: String = "exercise-picker-empty",
-    preferredIds: List<Long> = emptyList(),
+    priorityIds: List<Long> = emptyList(),
+    priorityGroupLabel: String? = null,
     supportingText: String? = null,
     errorMessage: String? = null,
     onCreate: ((String) -> Unit)?,
@@ -53,7 +54,7 @@ internal fun GymExercisePickerBody(
     var query by rememberSaveable(queryKey) { mutableStateOf("") }
     val normalizedQuery = query.trim()
     val visible = exercises.filter { exerciseMatchesQuery(it, query) }
-        .sortedWith(compareByDescending<Exercise> { it.id in preferredIds }.thenBy { it.name.lowercase() })
+        .sortedWith(compareByDescending<Exercise> { it.id in priorityIds }.thenBy { it.name.lowercase() })
     val displayLabel = itemLabel.uiTitleCase()
 
     Column(
@@ -109,9 +110,9 @@ internal fun GymExercisePickerBody(
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
             contentPadding = PaddingValues(bottom = WhipSpacing.compact),
         ) {
-            if (preferredIds.isNotEmpty() && visible.any { it.id in preferredIds }) item {
+            if (priorityGroupLabel != null && visible.any { it.id in priorityIds }) item {
                 Text(
-                    "Routine alternatives are shown first",
+                    priorityGroupLabel,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                 )

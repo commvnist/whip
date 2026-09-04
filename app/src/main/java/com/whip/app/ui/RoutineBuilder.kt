@@ -2065,7 +2065,8 @@ private fun FiveThreeOneProgramSetupDialog(
         val selectedElsewhere = exerciseIds.filterIndexed { itemIndex, _ -> itemIndex != index }.toSet()
         ExercisePickerDialog(
             exercises = eligible.filter { it.id == selected?.id || it.id !in selectedElsewhere },
-            preferredIds = listOfNotNull(selected?.id),
+            priorityIds = listOfNotNull(selected?.id),
+            priorityItemLabel = "Current selection",
             title = "Choose ${activeRoles.getOrNull(index)?.label ?: "Exercise ${index + 1}"}",
             supportingText = "Only active Weight + Reps exercises are shown. Search by name, equipment, or muscle.",
             itemLabel = "exercise",
@@ -4011,16 +4012,16 @@ private fun RoutinePlacementEditor(
             }
         }
         if (showAdvanced) item {
-            Text("Planned Alternatives", fontWeight = FontWeight.SemiBold)
+            Text("Preferred workout substitutes", fontWeight = FontWeight.SemiBold)
             Text(
-                "These stay attached to the routine and are offered first when substituting during a workout.",
+                "Optional. These do not change this programmed Exercise. They are offered first only when you choose Substitute during a workout.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             OutlinedTextField(
                 alternativeQuery,
                 { alternativeQuery = it },
-                label = { Text("Find alternative exercises") },
+                label = { Text("Find substitute exercises") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )

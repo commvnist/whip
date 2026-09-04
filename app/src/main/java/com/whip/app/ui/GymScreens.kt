@@ -1786,7 +1786,9 @@ fun GymAreaContent(
         ExercisePickerDialog(
             modifier = dialogModifier,
             exercises = state.exercises,
-            preferredIds = preferredSubstitutions,
+            priorityIds = preferredSubstitutions,
+            priorityGroupLabel = if (substitutingExercise) "Preferred workout substitutes are shown first" else null,
+            priorityItemLabel = if (substitutingExercise) "Preferred substitute" else null,
             title = if (substitutingExercise) "Substitute Exercise" else "Add Exercise to This Workout",
             supportingText = if (substitutingExercise) {
                 "Choose a replacement for this workout. Completed history is never rewritten."
@@ -10271,7 +10273,9 @@ private fun SteppedNumberField(
 internal fun ExercisePickerDialog(
     modifier: Modifier = Modifier,
     exercises: List<Exercise>,
-    preferredIds: List<Long> = emptyList(),
+    priorityIds: List<Long> = emptyList(),
+    priorityGroupLabel: String? = null,
+    priorityItemLabel: String? = null,
     title: String = "Add Exercise",
     supportingText: String? = null,
     itemLabel: String = "exercise",
@@ -10299,7 +10303,8 @@ internal fun ExercisePickerDialog(
                 saving = saving,
                 queryKey = title,
                 listTag = "workout-exercise-picker-list",
-                preferredIds = preferredIds,
+                priorityIds = priorityIds,
+                priorityGroupLabel = priorityGroupLabel,
                 supportingText = supportingText,
                 errorMessage = errorMessage,
                 onCreate = onCreate,
@@ -10310,7 +10315,11 @@ internal fun ExercisePickerDialog(
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 ) {
                     Text(
-                        exercise.name + if (exercise.id in preferredIds) " · Planned alternative" else "",
+                        exercise.name + if (exercise.id in priorityIds && priorityItemLabel != null) {
+                            " · $priorityItemLabel"
+                        } else {
+                            ""
+                        },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
