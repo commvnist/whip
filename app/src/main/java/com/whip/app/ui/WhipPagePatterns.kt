@@ -634,9 +634,14 @@ internal fun WhipNoticeCard(
     }
 }
 
-/** Canonical grouped Settings block for explanatory or multi-control content. */
+/**
+ * Canonical low-emphasis surface for ordinary grouped information and controls.
+ *
+ * Collection, selection, reorder, chart/calendar, notice, provenance, and
+ * execution surfaces deliberately retain their own semantic components.
+ */
 @Composable
-internal fun WhipSettingsSectionCard(
+internal fun WhipGroupedInformationCard(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -645,12 +650,19 @@ internal fun WhipSettingsSectionCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(WhipSpacing.compact),
-            verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+            modifier = Modifier.fillMaxWidth().padding(WhipSpacing.standard),
+            verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
             content = content,
         )
     }
 }
+
+/** Canonical grouped Settings block for explanatory or multi-control content. */
+@Composable
+internal fun WhipSettingsSectionCard(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) = WhipGroupedInformationCard(modifier, content)
 
 @Composable
 internal fun WhipSettingsRow(

@@ -874,13 +874,9 @@ internal fun SettingsContent(
                 style = MaterialTheme.typography.bodySmall,
             )
             if (settings.naturalLanguageTaskCapture) {
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp).testTag("smart-task-capture-examples"),
+                WhipSettingsSectionCard(
+                    modifier = Modifier.padding(top = 8.dp).testTag("smart-task-capture-examples"),
                 ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
                         Text("Try Smart Capture", fontWeight = FontWeight.Bold)
                         Text("Send report tomorrow at 9am #work", style = MaterialTheme.typography.bodyMedium)
                         Text("Review notes every Mon & Thu for 30m", style = MaterialTheme.typography.bodyMedium)
@@ -892,7 +888,6 @@ internal fun SettingsContent(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                    }
                 }
             }
         }
@@ -1003,13 +998,11 @@ internal fun SettingsContent(
         if (section == SettingsSection.Organization) {
         item { SettingsHeading("Organization") }
         item {
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            WhipSettingsSectionCard {
                     Text("Areas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text("Create named areas to group related tasks, habits, goals, and tracks across search and review.")
                     Text("${state.areas.count { !it.archived }} active · ${state.areas.count { it.archived }} archived · ${state.areaUsage.values.sumOf(AreaUsageCounts::total) + state.unassignedAreaUsage.total} items", style = MaterialTheme.typography.bodySmall)
                     WhipButton(onClick = onEditAreas, modifier = Modifier.fillMaxWidth()) { Text("Manage Areas") }
-                }
             }
         }
         item {
@@ -1093,8 +1086,7 @@ internal fun SettingsContent(
             }
         }
         item {
-            Card(Modifier.fillMaxWidth().testTag("settings-tags-summary")) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            WhipSettingsSectionCard(Modifier.testTag("settings-tags-summary")) {
                     Text("Tags", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text("Use flexible labels across Tasks, Habits, Goals, and Tracks while each item keeps one primary Area.")
                     Text(
@@ -1105,7 +1097,6 @@ internal fun SettingsContent(
                         onClick = onEditTags,
                         modifier = Modifier.fillMaxWidth().testTag("manage-tags-action"),
                     ) { Text("Manage Tags") }
-                }
             }
         }
         }
@@ -1113,8 +1104,7 @@ internal fun SettingsContent(
         if (section == SettingsSection.Reminders) {
         item { SettingsHeading("Notifications") }
         item(key = "notification-diagnostics-$diagnosticRefresh") {
-            Card(Modifier.fillMaxWidth().testTag("notification-diagnostics")) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            WhipSettingsSectionCard(Modifier.testTag("notification-diagnostics")) {
                     Text("Reminder Delivery", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(overallNotificationState.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     Text(
@@ -1206,7 +1196,6 @@ internal fun SettingsContent(
                         ) { Text("Battery Optimization Settings") }
                     }
                     notificationTestMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-                }
             }
         }
         item {
@@ -1308,11 +1297,7 @@ internal fun SettingsContent(
         if (dataPrivacyPass == DataPrivacyGroup.Backup) {
         item { SettingsHeading("Backup & Export") }
         item {
-            Card(Modifier.fillMaxWidth()) {
-                Column(
-                    Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
+            WhipSettingsSectionCard {
                     Text("Portable Backup Folder", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(
                         "Choose a folder in Files, Drive, or removable storage. Automatic portable backups are plain JSON, not encrypted. Whip keeps access after restart, verifies every backup after writing it, and never deletes unrelated files.",
@@ -1386,7 +1371,6 @@ internal fun SettingsContent(
                             modifier = Modifier.fillMaxWidth(),
                         ) { Text("Choose Backup Folder") }
                     }
-                }
             }
         }
         item {
@@ -1653,8 +1637,7 @@ internal fun SettingsContent(
         if (section == SettingsSection.AboutDiagnostics) {
         item { SettingsHeading("About Whip") }
         item {
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            WhipSettingsSectionCard {
                     Text("Whip", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Text(
                         "${if (BuildConfig.DEBUG) "Development" else "Release"} · ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
@@ -1662,7 +1645,6 @@ internal fun SettingsContent(
                     )
                     Text(context.packageName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text("Your data stays on this device unless you explicitly export or sync it.")
-                }
             }
         }
         }

@@ -4874,7 +4874,7 @@ private fun MachineLibraryContent(
             )
         }
         items(visible, key = GymMachine::id) { machine ->
-            Card(Modifier.fillMaxWidth()) {
+            WhipCollectionCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
@@ -6906,7 +6906,7 @@ internal fun WorkoutHistoryCard(
     }.joinToString(" · ")
     val exerciseNames = workoutExercises.mapNotNull { exerciseById[it.exerciseId]?.name }
 
-    Card(modifier = modifier.fillMaxWidth().testTag("history-workout-card-${session.id}")) {
+    WhipCollectionCard(modifier = modifier.fillMaxWidth().testTag("history-workout-card-${session.id}")) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {

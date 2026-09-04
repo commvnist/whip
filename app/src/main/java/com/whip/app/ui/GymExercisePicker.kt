@@ -37,6 +37,7 @@ import com.whip.app.domain.Exercise
 @Composable
 internal fun GymExercisePickerBody(
     exercises: List<Exercise>,
+    modifier: Modifier = Modifier,
     itemLabel: String = "exercise",
     saving: Boolean = false,
     queryKey: Any,
@@ -48,19 +49,26 @@ internal fun GymExercisePickerBody(
     priorityGroupLabel: String? = null,
     supportingText: String? = null,
     errorMessage: String? = null,
+    matches: (Exercise, String) -> Boolean = { exercise, search -> exerciseMatchesQuery(exercise, search) },
+    sort: (List<Exercise>) -> List<Exercise> = { visible ->
+        visible.sortedWith(compareByDescending<Exercise> { it.id in priorityIds }.thenBy { it.name.lowercase() })
+    },
     onCreate: ((String) -> Unit)?,
+    header: @Composable (() -> Unit)? = null,
+    filters: @Composable (() -> Unit)? = null,
+    footer: @Composable (() -> Unit)? = null,
     row: @Composable (Exercise) -> Unit,
 ) {
     var query by rememberSaveable(queryKey) { mutableStateOf("") }
     val normalizedQuery = query.trim()
-    val visible = exercises.filter { exerciseMatchesQuery(it, query) }
-        .sortedWith(compareByDescending<Exercise> { it.id in priorityIds }.thenBy { it.name.lowercase() })
+    val visible = sort(exercises.filter { matches(it, query) })
     val displayLabel = itemLabel.uiTitleCase()
 
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
+        header?.invoke()
         supportingText?.let { message ->
             Text(
                 message,
@@ -85,6 +93,7 @@ internal fun GymExercisePickerBody(
             singleLine = true,
             modifier = Modifier.fillMaxWidth().testTag(searchTag),
         )
+        filters?.invoke()
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 quantityLabel(visible.size, itemLabel),
@@ -160,5 +169,6 @@ internal fun GymExercisePickerBody(
                 }
             }
         }
+        footer?.invoke()
     }
 }

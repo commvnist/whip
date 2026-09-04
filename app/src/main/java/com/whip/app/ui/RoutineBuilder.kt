@@ -4496,7 +4496,6 @@ private fun ExercisePickerPage(
     onCreateExercise: (String) -> Unit,
     onAdd: () -> Unit,
 ) {
-    var query by rememberSaveable { mutableStateOf("") }
     var categoryId by rememberSaveable { mutableStateOf<Long?>(null) }
     var equipment by rememberSaveable { mutableStateOf<String?>(null) }
     var muscle by rememberSaveable { mutableStateOf<String?>(null) }
@@ -4508,23 +4507,30 @@ private fun ExercisePickerPage(
         (exercise.primaryMuscles + "," + exercise.secondaryMuscles)
             .split(',', ';').map(String::trim).filter(String::isNotBlank)
     }.distinct().sorted()
-    val visible = gymState.exercises.asSequence()
-        .filter { exercise ->
+    val assistanceLabel = assistanceRole?.assistanceUiLabel()
+    GymExercisePickerBody(
+        exercises = gymState.exercises,
+        modifier = modifier,
+        queryKey = "routine-exercise-picker-$dayName-${assistanceRole?.name.orEmpty()}",
+        listTag = "routine-exercise-picker-list",
+        searchTag = "routine-exercise-search",
+        createTag = "routine-exercise-create",
+        matches = { exercise, query ->
             exerciseMatchesQuery(
                 exercise,
                 query,
                 gymState.machines.filter { it.supportsExercise(exercise.id) }.joinToString(" ") { it.displayName },
-            )
-        }
-        .filter { !favouritesOnly || it.favorite }
-        .filter { !recentOnly || it.id in recentIds }
-        .filter { selected -> categoryId == null || gymState.categoryLinks.any { it.exerciseId == selected.id && it.categoryId == categoryId } }
-        .filter { selected -> equipment == null || selected.equipment.equals(equipment, true) }
-        .filter { selected -> muscle == null || (selected.primaryMuscles + "," + selected.secondaryMuscles).contains(requireNotNull(muscle), true) }
-        .sortedWith(compareByDescending<Exercise> { it.id in recentIds }.thenByDescending(Exercise::favorite).thenBy { it.name.lowercase() })
-        .toList()
-    val assistanceLabel = assistanceRole?.assistanceUiLabel()
-    Column(modifier) {
+            ) && (!favouritesOnly || exercise.favorite) &&
+                (!recentOnly || exercise.id in recentIds) &&
+                (categoryId == null || gymState.categoryLinks.any { it.exerciseId == exercise.id && it.categoryId == categoryId }) &&
+                (equipment == null || exercise.equipment.equals(equipment, true)) &&
+                (muscle == null || (exercise.primaryMuscles + "," + exercise.secondaryMuscles).contains(requireNotNull(muscle), true))
+        },
+        sort = { visible ->
+            visible.sortedWith(compareByDescending<Exercise> { it.id in recentIds }.thenByDescending(Exercise::favorite).thenBy { it.name.lowercase() })
+        },
+        onCreate = onCreateExercise,
+        header = {
         if (assistanceLabel != null) {
             Surface(
                 color = MaterialTheme.colorScheme.secondaryContainer,
@@ -4563,7 +4569,8 @@ private fun ExercisePickerPage(
                 )
             }
         }
-        OutlinedTextField(query, { query = it }, label = { Text("Search exercises") }, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).testTag("routine-exercise-search"), singleLine = true)
+        },
+        filters = {
         Text(
             "Filters come from your library: Favorites, workout history, your categories, equipment, and muscle fields. They filter this list; they do not assign the routine role above.",
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
@@ -4571,27 +4578,27 @@ private fun ExercisePickerPage(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            WhipFilterChip(favouritesOnly, { favouritesOnly = !favouritesOnly }, { Text("Favourites") })
+            WhipFilterChip(favouritesOnly, { favouritesOnly = !favouritesOnly }, { Text("Favorites") })
             WhipFilterChip(recentOnly, { recentOnly = !recentOnly }, { Text("Recent") })
             gymState.categories.forEach { category -> WhipFilterChip(categoryId == category.id, { categoryId = if (categoryId == category.id) null else category.id }, { Text(category.name) }) }
             equipmentOptions.forEach { option -> WhipFilterChip(equipment == option, { equipment = option.takeUnless { it == equipment } }, { Text(option) }) }
             muscleOptions.forEach { option -> WhipFilterChip(muscle == option, { muscle = option.takeUnless { it == muscle } }, { Text(option) }) }
         }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(quantityLabel(visible.size, "exercise"), modifier = Modifier.weight(1f))
-            WhipTextButton(onClick = { onCreateExercise(query.trim()) }) { Text(if (query.isBlank()) "Create Exercise" else "Create “${query.trim()}”") }
-        }
-        LazyColumn(Modifier.weight(1f).testTag("routine-exercise-picker-list"), contentPadding = PaddingValues(12.dp, 0.dp, 12.dp, 96.dp)) {
-            if (visible.isEmpty()) item {
-                OutlinedCard(Modifier.fillMaxWidth().padding(4.dp)) {
-                    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("No Matching Exercise", fontWeight = FontWeight.Bold)
-                        Text("Create it without leaving this routine. It will be added to your library and selected here.")
-                        WhipButton(onClick = { onCreateExercise(query.trim()) }) { Text("Create Exercise") }
-                    }
+        },
+        footer = {
+            Surface(tonalElevation = 4.dp) {
+                WhipButton(enabled = selectedIds.isNotEmpty(), onClick = onAdd, modifier = Modifier.fillMaxWidth().padding(12.dp).testTag("routine-add-selected")) {
+                    Text(
+                        if (assistanceLabel == null) {
+                            "Add ${selectedIds.size} Exercise${if (selectedIds.size == 1) "" else "s"} to $dayName"
+                        } else {
+                            "Add ${selectedIds.size} as $assistanceLabel to $dayName"
+                        },
+                    )
                 }
             }
-            items(visible, key = Exercise::id) { exercise ->
+        },
+    ) { exercise ->
                 val checked = exercise.id in selectedIds
                 WhipMultiChoiceRow(
                     label = exercise.name,
@@ -4610,19 +4617,6 @@ private fun ExercisePickerPage(
                         assistanceLabel?.let { append(", will be added as $it assistance to $dayName") }
                     },
                 )
-            }
-        }
-        Surface(tonalElevation = 4.dp) {
-            WhipButton(enabled = selectedIds.isNotEmpty(), onClick = onAdd, modifier = Modifier.fillMaxWidth().padding(12.dp).testTag("routine-add-selected")) {
-                Text(
-                    if (assistanceLabel == null) {
-                        "Add ${selectedIds.size} Exercise${if (selectedIds.size == 1) "" else "s"} to $dayName"
-                    } else {
-                        "Add ${selectedIds.size} as $assistanceLabel to $dayName"
-                    },
-                )
-            }
-        }
     }
 }
 

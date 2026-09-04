@@ -407,7 +407,55 @@ class UiDesignArchitectureTest {
             "Single-select and Machine linked exercises must both consume the shared picker",
             Regex("GymExercisePickerBody\\(").findAll(gymScreens).count() == 2,
         )
+        val routineBuilder = File(sourceRoot, "com/whip/app/ui/RoutineBuilder.kt").readText()
+        assertTrue("Routine selection must reuse the bounded Gym picker mechanics", routineBuilder.contains("GymExercisePickerBody("))
+        assertTrue("Routine filters remain caller-owned", routineBuilder.contains("filters = {"))
+        assertTrue("Routine's sticky Add action remains caller-owned", routineBuilder.contains("footer = {"))
+        assertTrue("Routine copy uses the product-standard spelling", !routineBuilder.contains("Favourites"))
+        assertTrue("Machine collection rows must use the canonical card", gymScreens.contains("WhipCollectionCard(Modifier.fillMaxWidth())"))
+        assertTrue("Workout history display rows must use the canonical card", gymScreens.contains("WhipCollectionCard(modifier = modifier.fillMaxWidth().testTag(\"history-workout-card-"))
+        // Exercise/category/reorder and Routine-placement cards retain their distinct interaction contracts.
+        assertTrue("Routine placement remains a specialized card", routineBuilder.contains("RoutinePlacementCard"))
         assertTrue("The rest execution lane must use the canonical collection card", gymScreens.contains("WhipCollectionCard(\n                modifier = Modifier.testTag(\"workout-execution-lane\")"))
         assertTrue("Collection cards must lock their canonical shape", patterns.contains("val shape = MaterialTheme.shapes.medium"))
+    }
+
+    @Test
+    fun groupedInformationAndDatePickerHaveNeutralBoundedOwnership() {
+        val patterns = File(sourceRoot, "com/whip/app/ui/WhipPagePatterns.kt").readText()
+        val settings = File(sourceRoot, "com/whip/app/ui/SettingsScreens.kt").readText()
+        val taskEditor = File(sourceRoot, "com/whip/app/ui/TaskEditorDialog.kt").readText()
+        val datePicker = File(sourceRoot, "com/whip/app/ui/WhipDatePickerDialog.kt").readText()
+
+        assertTrue(patterns.contains("fun WhipGroupedInformationCard("))
+        val groupedInformationCard = patterns
+            .substringAfter("fun WhipGroupedInformationCard(")
+            .substringBefore("/** Canonical grouped Settings block")
+        assertTrue(patterns.contains("WhipGroupedInformationCard(modifier, content)"))
+        assertTrue(groupedInformationCard.contains("padding(WhipSpacing.standard)"))
+        assertTrue(groupedInformationCard.contains("Arrangement.spacedBy(WhipSpacing.sibling)"))
+        listOf(
+            "smart-task-capture-examples",
+            "settings-tags-summary",
+            "notification-diagnostics",
+            "Portable Backup Folder",
+            "Text(\"Areas\"",
+            "Text(\"Whip\"",
+        ).forEach { equivalentGroup ->
+            assertTrue("Equivalent Settings group '$equivalentGroup' must use the shared section card", settings.contains(equivalentGroup))
+        }
+        assertTrue(Regex("WhipSettingsSectionCard\\s*[({]").findAll(settings).count() >= 6)
+        // Reorder and item-specific cards remain semantic exceptions; this is not a raw Card ban.
+        assertTrue(settings.contains("whipReorderItem("))
+        assertTrue(Regex("Card\\(\\s*Modifier\\.fillMaxWidth\\(\\)\\.whipReorderItem\\(").containsMatchIn(settings))
+        assertTrue(settings.contains("Card(Modifier.fillMaxWidth())"))
+
+        assertFalse(taskEditor.contains("fun WhipDatePickerDialog("))
+        assertFalse(taskEditor.contains("fun DateWheelColumn("))
+        assertFalse(taskEditor.contains("fun LazyListState.centeredItemIndex("))
+        assertTrue(datePicker.contains("fun WhipDatePickerDialog("))
+        assertTrue(datePicker.contains("private fun clampedDate("))
+        assertTrue(datePicker.contains("private fun DateWheelColumn("))
+        assertTrue(datePicker.contains("private fun LazyListState.centeredItemIndex("))
     }
 }
