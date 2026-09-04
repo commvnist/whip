@@ -186,7 +186,7 @@ private fun LazyListState.centeredItemIndex(): Int? {
 }
 
 private val DayOfWeek.shortLabel: String
-    get() = getDisplayName(TextStyle.SHORT, Locale.getDefault())
+    get() = name.take(2).lowercase().replaceFirstChar(Char::uppercase)
 
 private fun datePickerOrderedWeekdays(first: DayOfWeek): List<DayOfWeek> =
     (0..6).map { offset -> DayOfWeek.of((first.value - 1 + offset) % 7 + 1) }

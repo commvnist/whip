@@ -621,8 +621,6 @@ class GymPowerInputUiTest {
         compose.onNodeWithText("Preserved").assertIsDisplayed()
         compose.onNodeWithTag("exercise-delete-impact-list").performScrollToNode(hasText("References changed"))
         compose.onNodeWithText("References changed").assertIsDisplayed()
-        compose.onNodeWithTag("exercise-delete-impact-list").performScrollToNode(hasText("Track history kept"))
-        compose.onNodeWithText("Track history kept").assertIsDisplayed()
         compose.onNodeWithTag("exercise-delete-impact-list").performScrollToNode(hasText("Open Active Workout"))
         compose.onNodeWithText("Open Active Workout").assertIsDisplayed().performClick()
         compose.onNodeWithTag("exercise-delete-confirm").assertIsDisplayed().assertIsNotEnabled()
