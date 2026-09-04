@@ -115,20 +115,29 @@ class SafetyChoiceUiTest {
     @Test
     fun workoutEditorPristineCancelClosesButDirtyCancelRequiresDiscard() {
         val dismissals = AtomicInteger(0)
+        var showEditor by mutableStateOf(true)
         compose.setContent {
             WhipTheme(dynamicColor = false) {
-                WorkoutEditorDialog(
-                    session = null,
-                    initialDate = LocalDate.of(2026, 8, 29),
-                    onDismiss = { dismissals.incrementAndGet() },
-                    onStart = { _, _, _, _, _ -> },
-                )
+                if (showEditor) {
+                    WorkoutEditorDialog(
+                        session = null,
+                        initialDate = LocalDate.of(2026, 8, 29),
+                        onDismiss = {
+                            dismissals.incrementAndGet()
+                            showEditor = false
+                        },
+                        onStart = { _, _, _, _, _ -> },
+                    )
+                }
             }
         }
         compose.onNodeWithText("Cancel").performClick()
         assertEquals(1, dismissals.get())
+        compose.onAllNodesWithTag("workout-editor-name").assertCountEquals(0)
 
+        compose.runOnIdle { showEditor = true }
         compose.onNodeWithTag("workout-editor-name").performTextInput("Protected draft")
+        compose.onNodeWithTag("workout-editor-name").assertTextContains("Protected draft")
         compose.onNodeWithText("Cancel").performClick()
         compose.onNodeWithText("Discard Unsaved Changes?").assertExists()
         compose.onNodeWithText("Keep Editing").performClick()
