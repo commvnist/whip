@@ -59,18 +59,115 @@ class DomainDeletionCoordinator internal constructor(
         )
     }
 
-    suspend fun deleteHabit(habitId: Long): DomainDeletionSummary =
-        withDurableReminderDeletion(ReminderDomain.Habit, habitId) {
-            val summary = database.withTransaction { deleteHabitWithinTransaction(habitId) }
-            summary
+    suspend fun previewHabitDeletion(habitId: Long): HabitDeletionImpact? = database.withTransaction {
+        buildHabitDeletionImpact(habitId)
+    }
+
+    suspend fun deleteHabit(
+        habitId: Long,
+        expectedHabitUuid: String,
+        expectedRevisionToken: String,
+    ): HabitDeletionSummary {
+        val requested = setOf(habitId)
+        val cleanupWarnings = mutableListOf<String>()
+        var committedSummary: HabitDeletionSummary? = null
+        try {
+            withReminderStateBoundary {
+                onDeletionPrepared(ReminderDomain.Habit, requested)
+                val summary = database.withTransaction {
+                    deleteHabitExactWithinTransaction(
+                        habitId = habitId,
+                        expectedHabitUuid = expectedHabitUuid,
+                        expectedRevisionToken = expectedRevisionToken,
+                    )
+                }
+                committedSummary = summary
+                try {
+                    onDeletionCommitted(ReminderDomain.Habit, requested)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    cleanupWarnings +=
+                        "Reminder cleanup did not finish; the permanent deletion was committed and will be reconciled later."
+                }
+            }
+        } catch (cancelled: CancellationException) {
+            notifyDeletionInterrupted(cancelled)
+            val committed = committedSummary
+            if (committed != null) {
+                throw CommittedHabitDeletionCancellation(
+                    committed.copy(warnings = committed.warnings + cleanupWarnings),
+                    cancelled,
+                )
+            }
+            throw cancelled
+        } catch (error: Throwable) {
+            notifyDeletionInterrupted(error)
+            throw error
         }
+
+        val committed = requireNotNull(committedSummary).copy(warnings = cleanupWarnings)
+        if (cleanupWarnings.isNotEmpty()) {
+            try {
+                onDeletionInterrupted()
+            } catch (cancelled: CancellationException) {
+                throw CommittedHabitDeletionCancellation(committed, cancelled)
+            } catch (fatal: Error) {
+                throw fatal
+            } catch (_: Exception) {
+                // The deletion and its durable cleanup marker are already committed.
+                // Startup reconciliation will retry without inviting a destructive replay.
+            }
+        }
+        return committed
+    }
 
     /** Room cleanup only. The caller owns the surrounding transaction and every post-commit action. */
     internal suspend fun deleteHabitWithinTransaction(habitId: Long): DomainDeletionSummary {
-        val habit = database.habitDao().getHabit(habitId) ?: return DomainDeletionSummary()
+        val impact = buildHabitDeletionImpact(habitId) ?: return DomainDeletionSummary()
+        val summary = deleteHabitExactWithinTransaction(
+            habitId = habitId,
+            expectedHabitUuid = impact.habitUuid,
+            expectedRevisionToken = impact.revisionToken,
+        )
+        return DomainDeletionSummary(summary.habitDeleted)
+    }
+
+    private suspend fun deleteHabitExactWithinTransaction(
+        habitId: Long,
+        expectedHabitUuid: String,
+        expectedRevisionToken: String,
+    ): HabitDeletionSummary {
+        val impact = buildHabitDeletionImpact(habitId) ?: throw HabitDeletionConflictException(
+            HabitDeletionConflictKind.TargetMissing,
+            "Habit no longer exists. Verify the Habit workspace before retrying.",
+        )
+        if (impact.habitUuid != expectedHabitUuid) {
+            throw HabitDeletionConflictException(
+                HabitDeletionConflictKind.IdentityChanged,
+                "Habit identity changed while the confirmation was open. Close it and select the Habit again.",
+            )
+        }
+        if (impact.revisionToken != expectedRevisionToken) {
+            throw HabitDeletionConflictException(
+                HabitDeletionConflictKind.RevisionChanged,
+                "The Habit or its history changed while the confirmation was open. Review the updated impact before deleting.",
+            )
+        }
         check(database.habitDao().deleteHabit(habitId) == 1) { "Habit no longer exists" }
-        database.measurementDao().deleteMeasurement(habit.measurementId)
-        return DomainDeletionSummary(true)
+        check(database.measurementDao().deleteMeasurement(impact.measurementId) == 1) {
+            "Habit measurement history changed before it could be deleted"
+        }
+        return HabitDeletionSummary(
+            habitDeleted = true,
+            measurementEntriesDeleted = impact.measurementEntryCount,
+            checklistItemsDeleted = impact.checklistItemCount,
+            checklistStatesDeleted = impact.checklistStateCount,
+            logsDeleted = impact.logCount,
+            skipsDeleted = impact.skipCount,
+            pausesDeleted = impact.pauseCount,
+            timerSessionsDeleted = impact.timerSessionCount,
+        )
     }
 
     suspend fun previewGoalDeletion(goalId: Long): GoalDeletionImpact = database.withTransaction {
@@ -367,23 +464,6 @@ class DomainDeletionCoordinator internal constructor(
     private suspend fun <T> withReminderStateBoundary(block: suspend () -> T): T =
         reminderDeliveryCoordinator?.withStateBoundary(block) ?: block()
 
-    private suspend fun <T> withDurableReminderDeletion(
-        domain: ReminderDomain,
-        entityId: Long,
-        block: suspend () -> T,
-    ): T {
-        val ids = setOf(entityId)
-        return try {
-            withReminderStateBoundary {
-                onDeletionPrepared(domain, ids)
-                block().also { onDeletionCommitted(domain, ids) }
-            }
-        } catch (error: Throwable) {
-            onDeletionInterrupted()
-            throw error
-        }
-    }
-
     private suspend fun notifyDeletionInterrupted(original: Throwable) {
         try {
             onDeletionInterrupted()
@@ -396,6 +476,76 @@ class DomainDeletionCoordinator internal constructor(
             original.addSuppressed(secondary)
         }
     }
+
+    private suspend fun buildHabitDeletionImpact(habitId: Long): HabitDeletionImpact? {
+        val habit = database.habitDao().getHabit(habitId) ?: return null
+        val measurement = requireNotNull(database.measurementDao().getMeasurement(habit.measurementId)) {
+            "Habit measurement no longer exists"
+        }
+        val measurementEntries = database.measurementDao().getEntriesForMeasurement(habit.measurementId)
+        val checklistItems = database.habitDao().getChecklistItems(habitId)
+        val logs = database.habitDao().getLogsForHabit(habitId)
+        val skips = database.habitDao().getSkips(habitId)
+        val pauses = database.habitDao().getPauses(habitId)
+        val checklistStates = habitDeletionRows("habit_checklist_states", "habitId", habitId)
+        val timerSessions = habitDeletionRows("habit_timer_sessions", "habitId", habitId)
+        return HabitDeletionImpact(
+            habitId = habit.id,
+            habitUuid = habit.uuid,
+            displayName = habit.name,
+            archived = habit.archived,
+            measurementEntryCount = measurementEntries.size,
+            checklistItemCount = checklistItems.size,
+            checklistStateCount = checklistStates.size,
+            logCount = logs.size,
+            skipCount = skips.size,
+            pauseCount = pauses.size,
+            timerSessionCount = timerSessions.size,
+            activeTimerSessionCount = if (database.habitDao().getActiveTimerSession(habitId) == null) 0 else 1,
+            revisionToken = gymDeletionRevision(
+                rootLabel = "habit",
+                root = habit,
+                rows = listOf(
+                    "measurement" to listOf(measurement),
+                    "measurement-entry" to measurementEntries,
+                    "checklist-item" to checklistItems,
+                    "checklist-state" to checklistStates,
+                    "habit-log" to logs,
+                    "habit-skip" to skips,
+                    "habit-pause" to pauses,
+                    "timer-session" to timerSessions,
+                ),
+            ),
+            measurementId = habit.measurementId,
+        )
+    }
+
+    /** Canonicalizes rows whose complete graph currently has no snapshot DAO query. */
+    private fun habitDeletionRows(table: String, ownerColumn: String, ownerId: Long): List<String> =
+        database.openHelper.readableDatabase.query(
+            "SELECT * FROM $table WHERE $ownerColumn = ?",
+            arrayOf(ownerId),
+        ).use { cursor ->
+            buildList {
+                while (cursor.moveToNext()) {
+                    add(buildString {
+                        cursor.columnNames.forEachIndexed { index, columnName ->
+                            append(columnName).append('=')
+                            when (cursor.getType(index)) {
+                                android.database.Cursor.FIELD_TYPE_NULL -> append("null")
+                                android.database.Cursor.FIELD_TYPE_BLOB -> append(
+                                    cursor.getBlob(index).joinToString("") { byte -> "%02x".format(byte) },
+                                )
+                                android.database.Cursor.FIELD_TYPE_FLOAT -> append(cursor.getDouble(index))
+                                android.database.Cursor.FIELD_TYPE_INTEGER -> append(cursor.getLong(index))
+                                else -> append(cursor.getString(index))
+                            }
+                            append(';')
+                        }
+                    })
+                }
+            }
+        }
 
     private suspend fun buildGoalDeletionImpact(goalId: Long): GoalDeletionImpact {
         val goal = database.goalDao().getGoal(goalId) ?: return GoalDeletionImpact(goalId = goalId)
@@ -809,6 +959,49 @@ data class WorkoutDeletionSummary(
 
 class CommittedWorkoutDeletionCancellation(
     val summary: WorkoutDeletionSummary,
+    cause: CancellationException,
+) : CancellationException(cause.message) {
+    init { initCause(cause) }
+}
+
+data class HabitDeletionImpact(
+    val habitId: Long,
+    val habitUuid: String,
+    val displayName: String,
+    val archived: Boolean,
+    val measurementEntryCount: Int,
+    val checklistItemCount: Int,
+    val checklistStateCount: Int,
+    val logCount: Int,
+    val skipCount: Int,
+    val pauseCount: Int,
+    val timerSessionCount: Int,
+    val activeTimerSessionCount: Int,
+    val revisionToken: String,
+    internal val measurementId: String = "",
+) : Serializable
+
+data class HabitDeletionSummary(
+    val habitDeleted: Boolean = false,
+    val measurementEntriesDeleted: Int = 0,
+    val checklistItemsDeleted: Int = 0,
+    val checklistStatesDeleted: Int = 0,
+    val logsDeleted: Int = 0,
+    val skipsDeleted: Int = 0,
+    val pausesDeleted: Int = 0,
+    val timerSessionsDeleted: Int = 0,
+    val warnings: List<String> = emptyList(),
+) : Serializable
+
+enum class HabitDeletionConflictKind { TargetMissing, IdentityChanged, RevisionChanged }
+
+class HabitDeletionConflictException(
+    val kind: HabitDeletionConflictKind,
+    message: String,
+) : IllegalArgumentException(message)
+
+class CommittedHabitDeletionCancellation(
+    val summary: HabitDeletionSummary,
     cause: CancellationException,
 ) : CancellationException(cause.message) {
     init { initCause(cause) }

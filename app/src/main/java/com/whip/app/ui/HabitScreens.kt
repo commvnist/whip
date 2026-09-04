@@ -81,6 +81,7 @@ import androidx.compose.material.icons.outlined.Search
 import com.whip.app.core.AppSettings
 import com.whip.app.core.EntitySaveReceipt
 import com.whip.app.core.calculateHabitTimerElapsedSeconds
+import com.whip.app.data.HabitDeletionImpact
 import com.whip.app.domain.Habit
 import com.whip.app.domain.Area
 import com.whip.app.domain.CustomIdentityEmoji
@@ -216,9 +217,10 @@ fun HabitAreaContent(
     var editingLogHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var editingLogId by rememberSaveable { mutableStateOf<Long?>(null) }
     var focusedArchivedHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var deleteCandidateHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var skipConfirmationHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     val timerReviewPrompt by viewModel.timerReviewPrompt.collectAsStateWithLifecycle()
+    val habitDeletionReview by viewModel.habitDeletionReviewState.collectAsStateWithLifecycle()
+    val habitDeletionRequestState by viewModel.habitDeletionRequestState.collectAsStateWithLifecycle()
     val progressById = (state.all + state.today + state.archivedProgress).associateBy { it.habit.id }
     val editorProgressById = (editorState.all + editorState.today + editorState.archivedProgress)
         .associateBy { it.habit.id }
@@ -269,8 +271,17 @@ fun HabitAreaContent(
     val editingPause = liveEditingPause ?: editingPauseSnapshot?.takeIf {
         it.id == editingPauseId && it.habitId == pauseRequestHabitId
     }
-    val deleteCandidate = deleteCandidateHabitId?.let { id ->
-        progressById[id]?.habit ?: state.archived.firstOrNull { it.id == id }
+    val habitDeletionCoordinator = habitDeletionReview.requestNamespace?.let { requestNamespace ->
+        rememberPersistenceRequestCoordinator(
+            state = habitDeletionRequestState,
+            consume = viewModel::consumeHabitDeletionResult,
+            key = requestNamespace,
+            requestNamespace = requestNamespace,
+            orphanedMessage =
+                "The previous permanent deletion was interrupted and its outcome is unknown. " +
+                    "Verify the current Habit before retrying.",
+            onPersisted = {},
+        )
     }
     val editorSaveState by viewModel.editorSaveState.collectAsStateWithLifecycle()
     val editorSaveCoordinator = rememberEntitySaveCoordinator(
@@ -519,7 +530,10 @@ fun HabitAreaContent(
                 actionsHabitId = null
             },
             onArchive = { viewModel.setArchived(item.habit.id, !item.habit.archived); actionsHabitId = null },
-            onDelete = { deleteCandidateHabitId = item.habit.id; actionsHabitId = null },
+            onDelete = {
+                viewModel.preparePermanentDeletion(item.habit.id, item.habit.uuid, item.habit.name)
+                actionsHabitId = null
+            },
             lowPressureMode = lowPressureMode,
             mutationSaving = mutationCoordinator.saving,
             mutationError = mutationCoordinator.errorMessage,
@@ -551,17 +565,32 @@ fun HabitAreaContent(
             onDiscard = viewModel::discardTimer,
         )
     }
-    deleteCandidate?.let { habit ->
-        val logCount = state.logs.count { it.habitId == habit.id }
-        val skipCount = state.skips.count { it.habitId == habit.id }
-        val pauseCount = state.pauses.count { it.habitId == habit.id }
-        PermanentDeleteDialog(
-            title = "Delete ${habit.name} Permanently?",
-            impacts = listOf(
-                "$logCount check-in${if (logCount == 1) "" else "s"}, $skipCount skipped day${if (skipCount == 1) "" else "s"}, $pauseCount scheduled pause${if (pauseCount == 1) "" else "s"}, checklist state, and streak history will be removed",
-            ),
-            onDismiss = { deleteCandidateHabitId = null },
-            onConfirm = { viewModel.deletePermanently(habit.id); deleteCandidateHabitId = null },
+    if (habitDeletionReview.habitId != null && habitDeletionCoordinator != null) {
+        HabitPermanentDeleteDialog(
+            state = habitDeletionReview,
+            saving = habitDeletionCoordinator.saving,
+            persistenceError = habitDeletionCoordinator.errorMessage,
+            onDismiss = {
+                habitDeletionCoordinator.clear()
+                viewModel.dismissPermanentDeletionReview()
+            },
+            onRefresh = {
+                habitDeletionCoordinator.clear()
+                viewModel.refreshPermanentDeletionReview()
+            },
+            onConfirm = { impact ->
+                val requestId = habitDeletionCoordinator.begin()
+                if (requestId != null && !viewModel.deletePermanently(
+                        habitId = impact.habitId,
+                        expectedRevisionToken = impact.revisionToken,
+                        requestId = requestId,
+                    )
+                ) {
+                    habitDeletionCoordinator.finishFailure(
+                        "Another Habit deletion is already finishing. Review the current impact before retrying.",
+                    )
+                }
+            },
         )
     }
     if (authoredMutationCoordinator != null) {
@@ -700,6 +729,121 @@ fun HabitAreaContent(
             },
         )
     }
+}
+
+@Composable
+internal fun HabitPermanentDeleteDialog(
+    state: HabitDeletionReviewUiState,
+    saving: Boolean,
+    persistenceError: String?,
+    onDismiss: () -> Unit,
+    onRefresh: () -> Unit,
+    onConfirm: (HabitDeletionImpact) -> Unit,
+) {
+    val impact = state.impact
+    val requiresFreshReview = state.reviewRequired || state.outcomeUncertain || state.targetMissing
+    val displayedError = state.errorMessage ?: persistenceError
+    val titleName = state.displayName.ifBlank { "Habit" }
+    PaneAwareAlertDialog(
+        testTag = "habit-permanent-delete-dialog",
+        paneTitle = "Permanent Habit Deletion",
+        inputBlocked = saving,
+        inputBlockedLabel = "Permanently Deleting Habit",
+        onDismissRequest = { if (!saving) onDismiss() },
+        title = {
+            Text(
+                when {
+                    state.targetMissing -> "Habit Not Found"
+                    else -> "Delete $titleName Permanently?"
+                },
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()).testTag("habit-delete-impact-list"),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                PersistenceFailureNotice(displayedError, testTag = "habit-delete-problem")
+                if (state.preparing) {
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth().testTag("habit-delete-preparing"),
+                    )
+                    Text("Whip is verifying the exact Habit, measurement history, checklist, exceptions, and timer sessions.")
+                }
+                impact?.let { reviewed ->
+                    Text(
+                        if (state.preparing || requiresFreshReview) {
+                            "The previous review included:"
+                        } else {
+                            "This cannot be undone. The reviewed deletion includes:"
+                        },
+                    )
+                    Text("• The ${if (reviewed.archived) "archived " else ""}Habit and its measurement definition")
+                    Text("• ${quantityLabel(reviewed.measurementEntryCount, "measurement Entry")}")
+                    Text("• ${quantityLabel(reviewed.logCount, "check-in")}")
+                    Text(
+                        "• ${quantityLabel(reviewed.checklistItemCount, "checklist item")} and " +
+                            quantityLabel(reviewed.checklistStateCount, "saved checklist state"),
+                    )
+                    Text(
+                        "• ${quantityLabel(reviewed.skipCount, "skipped day")} and " +
+                            quantityLabel(reviewed.pauseCount, "scheduled pause"),
+                    )
+                    Text("• ${quantityLabel(reviewed.timerSessionCount, "timer session")}")
+                    if (reviewed.activeTimerSessionCount > 0) {
+                        Text(
+                            "An active or unresolved timer is included and will not be logged.",
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                    Text(
+                        "Export a backup first if you may need this history.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (!saving && (requiresFreshReview || displayedError != null)) {
+                    WhipOutlinedButton(
+                        onClick = onRefresh,
+                        modifier = Modifier.fillMaxWidth().testTag("habit-delete-refresh"),
+                    ) {
+                        Text(
+                            when {
+                                state.outcomeUncertain -> "Verify Current Habit"
+                                state.targetMissing -> "Check Again"
+                                impact == null -> "Retry Impact Review"
+                                requiresFreshReview -> "Review Updated Impact"
+                                else -> "Refresh Impact"
+                            },
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            WhipTextButton(
+                enabled = impact != null && !state.preparing && !requiresFreshReview && !saving,
+                onClick = { impact?.let(onConfirm) },
+                modifier = Modifier.testTag("habit-delete-confirm"),
+            ) {
+                Text(
+                    when {
+                        saving -> "Deleting…"
+                        persistenceError != null -> "Retry Delete"
+                        else -> "Delete Permanently"
+                    },
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        },
+        dismissButton = {
+            WhipTextButton(
+                enabled = !saving,
+                onClick = onDismiss,
+                modifier = Modifier.testTag("habit-delete-cancel"),
+            ) { Text(if (state.targetMissing) "Close" else "Cancel") }
+        },
+    )
 }
 
 internal fun HabitDayProgress.compactCollectionStatus(): String {

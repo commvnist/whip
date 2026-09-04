@@ -552,7 +552,14 @@ class ReminderWorkerDeliveryIntegrityTest {
         assertTrue(awaitActiveNotificationCount(4))
 
         app.taskDeletionCoordinator.delete(taskId)
-        app.domainDeletionCoordinator.deleteHabit(habitId)
+        val habitDeletionImpact = requireNotNull(
+            app.domainDeletionCoordinator.previewHabitDeletion(habitId),
+        )
+        app.domainDeletionCoordinator.deleteHabit(
+            habitId,
+            habitDeletionImpact.habitUuid,
+            habitDeletionImpact.revisionToken,
+        )
         app.domainDeletionCoordinator.deleteGoal(goalId)
 
         assertTrue(awaitActiveNotificationCount(0))

@@ -2,6 +2,7 @@ package com.whip.app.ui
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.whip.app.WhipApplication
 import com.whip.app.core.CommittedEntitySaveCancellation
@@ -18,6 +19,11 @@ import com.whip.app.core.completeCommittedPersistence
 import com.whip.app.core.saveFollowUpWarning
 import com.whip.app.core.tryStartPersistenceRequest
 import com.whip.app.data.HabitRepository
+import com.whip.app.data.CommittedHabitDeletionCancellation
+import com.whip.app.data.HabitDeletionConflictException
+import com.whip.app.data.HabitDeletionConflictKind
+import com.whip.app.data.HabitDeletionImpact
+import com.whip.app.data.HabitDeletionSummary
 import com.whip.app.reminders.HabitReminderScheduler
 import com.whip.app.domain.Habit
 import com.whip.app.domain.HabitChecklistItem
@@ -55,6 +61,8 @@ import com.whip.app.domain.targetSatisfied
 import com.whip.app.domain.valueForPeriod
 import com.whip.app.domain.dayStateOn
 import java.time.LocalDate
+import java.io.Serializable
+import java.util.UUID
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
@@ -113,6 +121,59 @@ internal data class HabitMutationReceipt(
     val warnings: List<String> = emptyList(),
 )
 
+internal data class HabitDeletionReceipt(
+    val habitId: Long,
+    val habitUuid: String,
+    val summary: HabitDeletionSummary,
+    val warnings: List<String> = emptyList(),
+) : Serializable
+
+internal data class HabitDeletionReviewUiState(
+    val habitId: Long? = null,
+    val habitUuid: String? = null,
+    val displayName: String = "",
+    val requestNamespace: String? = null,
+    val impact: HabitDeletionImpact? = null,
+    val preparing: Boolean = false,
+    val errorMessage: String? = null,
+    val targetMissing: Boolean = false,
+    val reviewRequired: Boolean = false,
+    val outcomeUncertain: Boolean = false,
+)
+
+private data class HabitDeletionSessionDescriptor(
+    val habitId: Long,
+    val habitUuid: String,
+    val displayName: String,
+    val dataGeneration: Long,
+    val previewGeneration: Long,
+    val requestNamespace: String,
+    val impact: HabitDeletionImpact? = null,
+    val preparing: Boolean = true,
+    val errorMessage: String? = null,
+    val targetMissing: Boolean = false,
+    val reviewRequired: Boolean = false,
+    val commitAttempted: Boolean = false,
+    val commitRequestId: String? = null,
+    val outcomeUncertain: Boolean = false,
+    val committedReceipt: HabitDeletionReceipt? = null,
+) : Serializable
+
+private data class HabitDeletionPreviewLookup(val impact: HabitDeletionImpact?)
+
+private fun HabitDeletionSessionDescriptor.toUiState() = HabitDeletionReviewUiState(
+    habitId = habitId,
+    habitUuid = habitUuid,
+    displayName = displayName,
+    requestNamespace = requestNamespace,
+    impact = impact,
+    preparing = preparing,
+    errorMessage = errorMessage,
+    targetMissing = targetMissing,
+    reviewRequired = reviewRequired,
+    outcomeUncertain = outcomeUncertain,
+)
+
 internal class CommittedHabitMutationCancellation(
     val receipt: HabitMutationReceipt,
     cause: CancellationException,
@@ -142,7 +203,10 @@ internal suspend fun completeCommittedHabitMutation(
 )
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-class HabitViewModel(application: Application) : AndroidViewModel(application) {
+class HabitViewModel(
+    application: Application,
+    private val savedStateHandle: SavedStateHandle = SavedStateHandle(),
+) : AndroidViewModel(application) {
     private val app = application as WhipApplication
     private val repository: HabitRepository = app.habitRepository
     private val clock = app.clock
@@ -160,14 +224,57 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
     )
     internal val authoredMutationState: StateFlow<PersistenceRequestState<HabitMutationReceipt>> =
         _authoredMutationState.asStateFlow()
+    private var habitDeletionSession = savedStateHandle
+        .get<HabitDeletionSessionDescriptor>(HABIT_DELETION_SESSION_KEY)
+        ?.takeIf { it.dataGeneration == app.currentUserDataGeneration() }
+    private val restoredHabitDeletionReceipt = habitDeletionSession?.committedReceipt
+    private val restoredHabitDeletionRequestId = habitDeletionSession?.commitRequestId
+    private val _habitDeletionRequestState = MutableStateFlow<PersistenceRequestState<HabitDeletionReceipt>>(
+        if (restoredHabitDeletionReceipt != null && restoredHabitDeletionRequestId != null) {
+            PersistenceRequestState.Finished(
+                restoredHabitDeletionRequestId,
+                WhipResult.Success(restoredHabitDeletionReceipt),
+            )
+        } else {
+            PersistenceRequestState.Idle
+        },
+    )
+    internal val habitDeletionRequestState: StateFlow<PersistenceRequestState<HabitDeletionReceipt>> =
+        _habitDeletionRequestState.asStateFlow()
+    private val _habitDeletionReviewState = MutableStateFlow(
+        habitDeletionSession?.toUiState() ?: HabitDeletionReviewUiState(),
+    )
+    internal val habitDeletionReviewState: StateFlow<HabitDeletionReviewUiState> =
+        _habitDeletionReviewState.asStateFlow()
+    private val habitDeletionMutex = Mutex()
     private val reloadKey = MutableStateFlow(0)
 
     init {
+        if (habitDeletionSession == null) {
+            savedStateHandle.remove<HabitDeletionSessionDescriptor>(HABIT_DELETION_SESSION_KEY)
+        } else {
+            val restored = requireNotNull(habitDeletionSession)
+            when {
+                restored.committedReceipt != null -> Unit
+                restored.commitAttempted -> updateHabitDeletionSession(
+                    restored.copy(
+                        preparing = false,
+                        errorMessage =
+                            "The previous permanent deletion was interrupted and its outcome is unknown. " +
+                                "Verify the current Habit before attempting another deletion.",
+                        reviewRequired = true,
+                        outcomeUncertain = true,
+                    ),
+                )
+                restored.preparing -> refreshPermanentDeletionReview()
+            }
+        }
         viewModelScope.launch { runCatching { reminders.syncAll() } }
         viewModelScope.launch {
             app.userDataGeneration.drop(1).collect {
                 _editorSaveState.value = PersistenceRequestState.Idle
                 _authoredMutationState.value = PersistenceRequestState.Idle
+                clearHabitDeletionSession()
                 _operationStatus.value = OperationStatus.Idle
                 _timerReviewPrompt.value = null
             }
@@ -219,8 +326,139 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
             _authoredMutationState.value = PersistenceRequestState.Idle
         }
     }
+    fun consumeHabitDeletionResult(requestId: String) {
+        val finished = _habitDeletionRequestState.value as? PersistenceRequestState.Finished
+        if (finished?.requestId != requestId) return
+        val committed = (finished.result as? WhipResult.Success)?.value
+        _habitDeletionRequestState.value = PersistenceRequestState.Idle
+        if (committed != null && habitDeletionSession?.habitUuid == committed.habitUuid) {
+            clearHabitDeletionSession(clearRequestState = false)
+        }
+    }
     fun retryLoading() { reloadKey.value++ }
     fun defaultSettings() = app.settingsRepository.current()
+
+    fun preparePermanentDeletion(
+        habitId: Long,
+        habitUuid: String,
+        displayName: String,
+    ) {
+        val currentGeneration = app.currentUserDataGeneration()
+        val current = habitDeletionSession
+        if (
+            current != null &&
+            current.habitId == habitId &&
+            current.habitUuid == habitUuid &&
+            current.dataGeneration == currentGeneration
+        ) {
+            if (current.impact == null && !current.preparing && !current.commitAttempted) {
+                refreshPermanentDeletionReview()
+            }
+            return
+        }
+        check(_habitDeletionRequestState.value is PersistenceRequestState.Idle) {
+            "Another Habit deletion request is still finishing"
+        }
+        updateHabitDeletionSession(
+            HabitDeletionSessionDescriptor(
+                habitId = habitId,
+                habitUuid = habitUuid,
+                displayName = displayName,
+                dataGeneration = currentGeneration,
+                previewGeneration = 0L,
+                requestNamespace =
+                    "habit-delete-$habitId-${habitUuid.take(12)}-g$currentGeneration-${UUID.randomUUID()}",
+            ),
+        )
+        refreshPermanentDeletionReview()
+    }
+
+    fun refreshPermanentDeletionReview() {
+        val current = habitDeletionSession ?: return
+        if (current.committedReceipt != null) return
+        val refreshed = current.copy(
+            previewGeneration = current.previewGeneration + 1L,
+            preparing = true,
+            errorMessage = null,
+            targetMissing = false,
+            reviewRequired = false,
+            commitAttempted = false,
+            commitRequestId = null,
+            outcomeUncertain = false,
+        )
+        updateHabitDeletionSession(refreshed)
+        val expectedNamespace = refreshed.requestNamespace
+        val expectedPreviewGeneration = refreshed.previewGeneration
+        viewModelScope.launch {
+            val result = runCatching {
+                checkNotNull(app.withUserDataAccess {
+                    HabitDeletionPreviewLookup(
+                        app.domainDeletionCoordinator.previewHabitDeletion(refreshed.habitId),
+                    )
+                }) { "Whip data is unavailable while recovery is in progress" }
+            }
+            val active = habitDeletionSession?.takeIf {
+                it.requestNamespace == expectedNamespace &&
+                    it.previewGeneration == expectedPreviewGeneration &&
+                    it.dataGeneration == app.currentUserDataGeneration()
+            } ?: return@launch
+            result.fold(
+                onSuccess = { lookup ->
+                    val impact = lookup.impact
+                    when {
+                        impact == null -> updateHabitDeletionSession(
+                            active.copy(
+                                preparing = false,
+                                impact = null,
+                                errorMessage =
+                                    "Habit no longer exists. Close this review and verify the Habit workspace.",
+                                targetMissing = true,
+                                reviewRequired = true,
+                            ),
+                        )
+                        impact.habitUuid != active.habitUuid -> updateHabitDeletionSession(
+                            active.copy(
+                                preparing = false,
+                                impact = null,
+                                errorMessage =
+                                    "Habit identity changed while the deletion review was opening. " +
+                                        "Close it and select the Habit again.",
+                                targetMissing = true,
+                                reviewRequired = true,
+                            ),
+                        )
+                        else -> updateHabitDeletionSession(
+                            active.copy(
+                                displayName = impact.displayName,
+                                preparing = false,
+                                impact = impact,
+                                errorMessage = null,
+                                targetMissing = false,
+                                reviewRequired = false,
+                            ),
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    if (error is CancellationException) throw error
+                    updateHabitDeletionSession(
+                        active.copy(
+                            preparing = false,
+                            errorMessage = error.message
+                                ?: "The Habit deletion impact could not be verified.",
+                            reviewRequired = true,
+                        ),
+                    )
+                },
+            )
+        }
+    }
+
+    fun dismissPermanentDeletionReview(): Boolean {
+        if (_habitDeletionRequestState.value is PersistenceRequestState.Running) return false
+        clearHabitDeletionSession()
+        return true
+    }
     fun saveHabit(
         id: Long?,
         draft: HabitDraft,
@@ -284,13 +522,182 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
         if (archived) "Archiving habit…" else "Restoring habit…",
         if (archived) "Habit archived" else "Habit restored",
     ) { repository.setArchived(id, archived); reminders.syncHabit(id) }
-    fun deletePermanently(id: Long) = runOperation(
-        "Deleting habit…",
-        "Habit permanently deleted",
-        successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
-    ) {
-        app.domainDeletionCoordinator.deleteHabit(id)
-        reminders.syncHabit(id)
+    fun deletePermanently(
+        habitId: Long,
+        expectedRevisionToken: String,
+        requestId: String,
+    ): Boolean {
+        val session = habitDeletionSession ?: return false
+        val impact = session.impact ?: return false
+        if (
+            session.habitId != habitId ||
+            session.habitUuid != impact.habitUuid ||
+            session.dataGeneration != app.currentUserDataGeneration() ||
+            session.preparing ||
+            session.reviewRequired ||
+            session.targetMissing ||
+            session.commitAttempted ||
+            impact.revisionToken != expectedRevisionToken ||
+            !requestId.startsWith("${session.requestNamespace}:") ||
+            !_habitDeletionRequestState.tryStartPersistenceRequest(requestId)
+        ) return false
+
+        updateHabitDeletionSession(
+            session.copy(
+                commitAttempted = true,
+                commitRequestId = requestId,
+                outcomeUncertain = false,
+                errorMessage = null,
+            ),
+        )
+        _operationStatus.value = OperationStatus.Running("Deleting habit…")
+        val expectedNamespace = session.requestNamespace
+        viewModelScope.launch {
+            fun committedResult(receipt: HabitDeletionReceipt): WhipResult.Success<HabitDeletionReceipt> {
+                habitDeletionSession?.takeIf {
+                    it.requestNamespace == expectedNamespace && it.commitRequestId == requestId
+                }?.let { current ->
+                    updateHabitDeletionSession(
+                        current.copy(
+                            preparing = false,
+                            committedReceipt = receipt,
+                            errorMessage = null,
+                            reviewRequired = false,
+                            outcomeUncertain = false,
+                        ),
+                    )
+                }
+                val message = if (receipt.warnings.isEmpty()) {
+                    "Habit permanently deleted"
+                } else {
+                    "Habit permanently deleted · ${receipt.warnings.joinToString(" ")}"
+                }
+                _operationStatus.value = OperationStatus.Succeeded(
+                    message,
+                    OperationFeedbackPresentation.Snackbar,
+                )
+                return WhipResult.Success(receipt)
+            }
+
+            val result = try {
+                val summary = checkNotNull(app.withUserDataAccess {
+                    habitDeletionMutex.withLock {
+                        app.domainDeletionCoordinator.deleteHabit(
+                            habitId = habitId,
+                            expectedHabitUuid = session.habitUuid,
+                            expectedRevisionToken = expectedRevisionToken,
+                        )
+                    }
+                }) { "Whip data is unavailable while recovery is in progress" }
+                require(summary.habitDeleted) { "Habit no longer exists" }
+                committedResult(
+                    HabitDeletionReceipt(habitId, session.habitUuid, summary, summary.warnings),
+                )
+            } catch (committed: CommittedHabitDeletionCancellation) {
+                val receipt = HabitDeletionReceipt(
+                    habitId,
+                    session.habitUuid,
+                    committed.summary,
+                    committed.summary.warnings +
+                        "Follow-up reconciliation was interrupted; the Habit itself was deleted.",
+                )
+                if (currentCoroutineContext().isActive) {
+                    committedResult(receipt)
+                } else {
+                    habitDeletionSession?.takeIf {
+                        it.requestNamespace == expectedNamespace && it.commitRequestId == requestId
+                    }?.let { current ->
+                        updateHabitDeletionSession(
+                            current.copy(
+                                committedReceipt = receipt,
+                                preparing = false,
+                                outcomeUncertain = false,
+                            ),
+                        )
+                    }
+                    _operationStatus.value = OperationStatus.Idle
+                    throw committed
+                }
+            } catch (cancelled: CancellationException) {
+                if (currentCoroutineContext().isActive) {
+                    habitDeletionSession?.takeIf {
+                        it.requestNamespace == expectedNamespace && it.commitRequestId == requestId
+                    }?.let { current ->
+                        updateHabitDeletionSession(
+                            current.copy(
+                                commitAttempted = false,
+                                commitRequestId = null,
+                                outcomeUncertain = false,
+                            ),
+                        )
+                    }
+                    _operationStatus.value = OperationStatus.Idle
+                    WhipResult.Failure(
+                        "The Habit deletion was interrupted before commit. Review the current impact before retrying.",
+                        cancelled,
+                    )
+                } else {
+                    habitDeletionSession?.takeIf {
+                        it.requestNamespace == expectedNamespace && it.commitRequestId == requestId
+                    }?.let { current ->
+                        updateHabitDeletionSession(
+                            current.copy(
+                                preparing = false,
+                                errorMessage =
+                                    "The permanent deletion was interrupted and its outcome is unknown. " +
+                                        "Verify the current Habit before trying again.",
+                                reviewRequired = true,
+                                outcomeUncertain = true,
+                            ),
+                        )
+                    }
+                    _operationStatus.value = OperationStatus.Idle
+                    throw cancelled
+                }
+            } catch (conflict: HabitDeletionConflictException) {
+                habitDeletionSession?.takeIf {
+                    it.requestNamespace == expectedNamespace && it.commitRequestId == requestId
+                }?.let { current ->
+                    updateHabitDeletionSession(
+                        current.copy(
+                            preparing = false,
+                            commitAttempted = false,
+                            commitRequestId = null,
+                            errorMessage = conflict.message,
+                            targetMissing = conflict.kind != HabitDeletionConflictKind.RevisionChanged,
+                            reviewRequired = true,
+                            outcomeUncertain = false,
+                        ),
+                    )
+                }
+                _operationStatus.value = OperationStatus.Idle
+                WhipResult.Failure(
+                    conflict.message ?: "The Habit deletion review is no longer current.",
+                    conflict,
+                )
+            } catch (error: Exception) {
+                habitDeletionSession?.takeIf {
+                    it.requestNamespace == expectedNamespace && it.commitRequestId == requestId
+                }?.let { current ->
+                    updateHabitDeletionSession(
+                        current.copy(
+                            commitAttempted = false,
+                            commitRequestId = null,
+                            outcomeUncertain = false,
+                        ),
+                    )
+                }
+                _operationStatus.value = OperationStatus.Idle
+                WhipResult.Failure(error.message ?: "The Habit could not be deleted.", error)
+            }
+            if (
+                (_habitDeletionRequestState.value as? PersistenceRequestState.Running)?.requestId == requestId &&
+                habitDeletionSession?.requestNamespace == expectedNamespace
+            ) {
+                _habitDeletionRequestState.value = PersistenceRequestState.Finished(requestId, result)
+            }
+        }
+        return true
     }
     fun setPinned(id: Long, pinned: Boolean) = runOperation(
         "Updating Home priority…",
@@ -629,6 +1036,19 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
         _operationStatus.value = OperationStatus.Idle
     }
 
+    private fun updateHabitDeletionSession(value: HabitDeletionSessionDescriptor) {
+        habitDeletionSession = value
+        savedStateHandle[HABIT_DELETION_SESSION_KEY] = value
+        _habitDeletionReviewState.value = value.toUiState()
+    }
+
+    private fun clearHabitDeletionSession(clearRequestState: Boolean = true) {
+        habitDeletionSession = null
+        savedStateHandle.remove<HabitDeletionSessionDescriptor>(HABIT_DELETION_SESSION_KEY)
+        _habitDeletionReviewState.value = HabitDeletionReviewUiState()
+        if (clearRequestState) _habitDeletionRequestState.value = PersistenceRequestState.Idle
+    }
+
     private suspend fun handleTimerStopOutcome(habit: Habit, outcome: HabitTimerStopOutcome) {
         when (outcome) {
             is HabitTimerStopOutcome.ReviewRequired -> {
@@ -830,6 +1250,10 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
             }
             runCatching { onFinished(result) }
         }
+    }
+
+    private companion object {
+        const val HABIT_DELETION_SESSION_KEY = "habit_deletion_session"
     }
 }
 
