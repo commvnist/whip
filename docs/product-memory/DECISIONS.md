@@ -711,3 +711,12 @@
 - Consequences: Feature pages present the same accessible calendar language and less visual drift without coupling their behavior or data models.
 - Related: `FB-20260904-002`, `FND-20260904-001`, `IMP-20260904-002`, `VER-20260904-002`.
 - Status: Accepted, implemented, verified, and independently approved.
+
+### DEC-20260904-002 — Device QA fails closed while routine verification stays proportional
+
+- Context: An unscoped connected-test command reached both a disposable emulator and a physical phone. Subsequent repair work also showed that forcing the entire fresh Android inventory after every test-only edit adds substantial delay without increasing evidence quality when exact inputs are unchanged.
+- Decision: One shared guard classifies a caller-selected serial from live ADB state and `ro.boot.qemu`. Instrumentation requires exactly one explicit `ANDROID_SERIAL`, state `device`, and qemu value `1`; physical release requires explicit `WHIP_DEVICE`, state `device`, a successful property read, and any value other than `1`. Missing, malformed, ambiguous, offline, unauthorized, or unclassifiable targets fail before execution. Supported wrappers and both Android modules enforce the same contract, and every ADB install/launch uses explicit `-s` targeting.
+- Verification policy: `scripts/check --emulator` is the routine acceptance path. It reuses only exact successful batch signatures and reruns affected batches. A fresh complete emulator or coverage campaign is reserved for product/runtime changes, harness/cache-integrity changes, explicit freshness requirements, or evidence investigation. Fresh coverage remains 11 isolated processes with exact class, result, skip, failure, and execution-data accounting.
+- Release/data boundary: Physical release remains a separate explicitly authorized action using a signed in-place `install -r`; no fallback selection, compatibility path, uninstall, downgrade, reset, or implicit data migration is allowed.
+- Related: `FB-20260904-003`, `FB-20260904-004`, `FND-20260904-002`, `IMP-20260904-003`, and `VER-20260904-003`.
+- Status: Accepted, implemented, verified, independently approved, and exercised by the 0.3.47 physical release.

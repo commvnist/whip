@@ -1,6 +1,6 @@
 # Whip durable product memory
 
-Last reconciled: 2026-09-03
+Last reconciled: 2026-09-04
 
 This is the canonical cross-session entry point for Whip product and engineering context. It indexes durable conclusions and evidence; current code and reproducible behavior remain authoritative.
 
@@ -13,11 +13,11 @@ This is the canonical cross-session entry point for Whip product and engineering
 
 ## Current product snapshot
 
-- Latest device-verified release: **0.3.46 (version code 52)**, installed in place on 2026-09-03 with Android installation identity preserved and no automated data reset. See `VER-20260903-025`.
-- Signed and installed release APK SHA-256: `305eb1608a0930b8d7663e65a0b2447b1f703e6571d2f5c550e99b2b26c0f656`.
-- Released production source: `1f0e3af` on `origin/main`; the Exercise-picker correction is `ad2f3a9`, and the canonical hard cut remains `acbf2d4`.
-- Current source remains on schema 46/data epoch 6 and now uses exact-match backup version 24. Backup 24 cleanly removes the retired item-density preference; the latest installed 0.3.46 release still uses backup 23. Retired Link/Trigger automation persistence, runtime, backup, deletion, provenance, profile, and test structures remain fully removed. Updating installations enter the explicit user-confirmed fresh start; release tooling neither clears data nor confirms it.
-- Declared test baseline: **1,526 product tests: 607 JVM and 919 Android**. Current source `a65889f` passed all tests with zero Android skips, lint/build/Play-asset gates, deterministic coverage, semantic/architecture scans, the visual/accessibility matrix, and a fresh independent Sol GO review; see `VER-20260903-027`. The latest signed physical release remains 0.3.46 and is separately evidenced by `VER-20260903-025`.
+- Latest device-verified release: **0.3.47 (version code 53)**, installed in place on 2026-09-04 with first-install identity preserved and no data reset. See `VER-20260904-003`.
+- Signed and installed release APK SHA-256: `8c98d77aef4cbaaa65bad1299764492537d94eda613d250cdac13766fd935669`.
+- Released production source: `6b02d75` on `origin/main`; it contains the product-quality candidate plus the fail-closed Android targeting and proportional QA repair.
+- Current source and installed 0.3.47 remain on schema 46/data epoch 6 with exact-match backup version 24. Retired density and Link/Trigger compatibility structures remain removed; release tooling neither clears data nor confirms a fresh start.
+- Declared test baseline: **1,535 product tests: 612 JVM and 923 Android**. All 923 Android tests passed with zero skips in fresh isolated coverage, the routine exact-signature gate accepted 923/923, and the full JVM/static/lint/release gate plus fresh Sol review passed. Exact successful batch reuse is the default for small localized changes; fresh complete campaigns are reserved for changed product/runtime or cache-integrity inputs. See `VER-20260904-003`.
 - Fresh Level-machine Sets now start from exact prior context or the Profile endpoint that represents least resistance, including maximum level for “Higher number = less resistance.” Blank Routine templates receive this as actual work without invented prescriptions; archived Profiles remain valid for existing bindings. Fresh Track Number Fields honor current unit/precision preferences, Goal weight templates convert canonically, and reminder Adds never silently reuse an occupied time. See `FND-20260903-021`, `FND-20260903-022`, and `VER-20260903-018`.
 - Whip 0.3.44 gives Machine Profile the same full-pane searchable/actionable Exercise-picker contract, preserves Routine and Machine drafts through contextual creation, removes unavailable no-op creation, and makes Rest use the canonical Home/context collection-card geometry and semantic state. See `FND-20260903-019`, `FND-20260903-020`, and `VER-20260903-019`.
 - Whip 0.3.45 removes the competing Lift/Lifts object vocabulary from routine creation, 5/3/1 setup and review, Training Max guidance, workout confirmations, Settings, accessibility descriptions, persisted Gym identity, and surfaced validation. `MainLift` remains only where it expresses the genuine 5/3/1 Main-work role of an Exercise. See `FND-20260903-023`, `IMP-20260903-021`, and `VER-20260903-023`.

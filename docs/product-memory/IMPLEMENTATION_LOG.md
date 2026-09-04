@@ -862,3 +862,12 @@
 - Verification: Unit, architecture, and Compose tests cover localized recomposition, RTL/dark/narrow/large-text month controls, 48 dp targets, selection panels, and Routine empty state; complete results are in `VER-20260904-002`.
 - Related: `FB-20260904-002`, `FND-20260904-001`, `DEC-20260904-001`, `VER-20260904-002`.
 - Status: Implemented, verified, and independently accepted; awaiting user validation.
+
+### IMP-20260904-003 — Fail-closed Android targeting, proportional QA, and Whip 0.3.47 release
+
+- Behavior changed: Added `scripts/android-target-guard` and applied it to `scripts/check`, `scripts/coverage`, `scripts/qa-targeted`, `scripts/device`, and the app/benchmark connected-test tasks. Instrumentation now accepts only an explicitly selected connected emulator, while release accepts only an explicitly selected connected physical device. There is no implicit or transitional selector.
+- Test system: The routine emulator gate retains exact source/device/test-batch signatures so unchanged successful batches are reused. Fresh coverage runs the 923-test inventory in 11 isolated processes, requires exact class/result accounting with zero skips or failures, accepts exactly one fresh nonempty execution-data artifact per process, and combines them through a dedicated report task. Two bounded Compose tests gained synchronization-only stability repairs.
+- Release: Bumped the app to 0.3.47/code 53, committed and pushed source `6b02d75`, built the signed APK/AAB, then installed the APK in place on the explicitly guarded phone. No uninstall, downgrade, reset, schema, data-epoch, backup-format, or production-behavior change occurred in this P0 repair.
+- Rollback: Source can revert `6b02d75`; device rollback is not automated because Android downgrade would be destructive or require data loss. Preserve the installed data and advance with a higher signed version if a repair is needed.
+- Related: `FB-20260904-003`, `FB-20260904-004`, `FND-20260904-002`, `DEC-20260904-002`, and `VER-20260904-003`.
+- Status: Implemented, verified, committed, pushed, signed, and physically released; awaiting user validation.

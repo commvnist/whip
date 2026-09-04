@@ -308,4 +308,22 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Independently re-inventory the entire currently implemented product; remediate evidence-backed usability, visual-hierarchy, interaction, accessibility, responsive-layout, copy, state, and defect issues; use bounded semantic reuse; exercise changed workflows visually and with automation; pass focused checks, the full deterministic product gate, and fresh high-risk review.
 - Related: `FB-20260903-017`, `DEC-20260903-015`, `DEC-20260904-001`, `FND-20260904-001` through `FND-20260904-002`, `IMP-20260904-002`, and `VER-20260904-002`.
 - Status: Verified and independently accepted; awaiting user validation.
-- Notes: Local reversible implementation and verification only; no physical-device reset, release/deployment, credentials, publication, or other external/destructive action was authorized.
+- Notes: This authorizes local, reversible implementation and verification only. It does not authorize a physical-device reset, release/deployment, credentials, publication, or other external/destructive action.
+
+### FB-20260904-003 — Fail-closed device QA and physical release
+
+- Date/source: 2026-09-04, direct user instruction.
+- User need: Fix the P0 QA-device safety defect, then release the verified UX/UI candidate to the user's phone.
+- Acceptance criteria: Any direct or scripted Android instrumentation command must fail before test execution unless explicitly pinned to a connected emulator; physical devices must be rejected as instrumentation targets; the guard needs deterministic regression coverage and must preserve supported emulator QA. After full release-candidate checks and fresh independent review, build the next signed release, install it in place on the explicitly selected phone without clearing data, launch it, and verify package/version/process and a bounded smoke journey.
+- Affected users/workflows: Whip developers running Android QA and the user's installed Whip release/data.
+- Related: `FND-20260904-002`, `DEC-20260904-002`, `IMP-20260904-003`, and `VER-20260904-003`.
+- Status: Released as Whip 0.3.47/code 53; the fail-closed guard, full candidate evidence, signed in-place install, and cold-launch smoke passed. Awaiting user validation.
+- Notes: This message explicitly authorizes the final signed build, in-place install, launch, and smoke check on the user's phone. It does not authorize data reset, uninstall, credential disclosure, store publication, or unrelated device changes.
+
+### FB-20260904-004 — Proportional exact-signature Android QA
+
+- Date/source: 2026-09-04, direct user instruction after redundant fresh reruns added roughly 40 minutes to small changes.
+- User need: Small, localized changes must not trigger the complete fresh Android suite repeatedly when exact, trustworthy evidence can identify the affected test batch.
+- Acceptance criteria: The ordinary emulator gate reuses only successful results whose source, test-class set, APK, runner, and device signatures still match; a localized test-only change reruns only affected batches; product/runtime or cache-integrity changes invalidate the relevant evidence; explicitly requested fresh coverage still uses isolated complete processes and exact accounting.
+- Related: `DEC-20260904-002`, `IMP-20260904-003`, and `VER-20260904-003`.
+- Status: Implemented and verified. The final localized repair reran only its affected batch before all 923 tests were accepted with zero failures or skips.
