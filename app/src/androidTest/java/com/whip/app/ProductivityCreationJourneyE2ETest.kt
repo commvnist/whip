@@ -10,7 +10,6 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -146,9 +145,8 @@ class ProductivityCreationJourneyE2ETest {
             // Today intentionally moves completed habits behind the Done disclosure so the
             // remaining list stays focused. Reveal that section before exercising edit.
             compose.onNodeWithTag("habit-done-disclosure").performClick()
-            compose.onNodeWithTag("habit-list-Today").performScrollToNode(
-                hasContentDescription("Edit habit Journey water"),
-            )
+            compose.onNodeWithTag("habit-list-Today").performScrollToNode(hasTestTag("habit-card-$habitId"))
+            compose.onNodeWithTag("habit-expand-$habitId").performClick()
             compose.onNodeWithContentDescription("Edit habit Journey water")
                 .performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithText("Edit Habit").assertIsDisplayed()
@@ -188,6 +186,7 @@ class ProductivityCreationJourneyE2ETest {
             compose.waitUntil(15_000) {
                 compose.onAllNodesWithContentDescription("Open goal details for Journey target").fetchSemanticsNodes().isNotEmpty()
             }
+            compose.onNodeWithTag("goal-expand-$goalId").performScrollTo().performClick()
             compose.onNodeWithContentDescription("Edit goal Journey target")
                 .performSemanticsAction(SemanticsActions.OnClick)
             compose.waitUntil(2_500) {
