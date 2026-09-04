@@ -210,7 +210,7 @@ class HabitRulesTest {
     }
 
     @Test
-    fun flexibleWeeklyProgressCountsEachSuccessfulAutomationEvent() {
+    fun flexibleWeeklyProgressCountsEachSuccessfulEvent() {
         val habit = habit(schedule = HabitScheduleType.FlexibleTimesPerWeek, flexible = 4)
         val logs = listOf(
             log(1, monday, HabitLogStatus.Success),

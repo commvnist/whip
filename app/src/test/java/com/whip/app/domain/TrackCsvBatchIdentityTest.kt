@@ -138,22 +138,6 @@ class TrackCsvBatchIdentityTest {
                 },
             )
         }
-        assertThrows(IllegalArgumentException::class.java) {
-            prepareTrackCsvImportRequest(
-                BATCH_UUID,
-                boundary(),
-                fingerprint,
-                TrackCsvMapping(fieldColumns = mapOf("name" to "Name")),
-                DATE,
-                listOf(
-                    TrackEntryDraft(
-                        DATE,
-                        mapOf("name" to TrackValueDraft(textValue = "A")),
-                        sourceOccurrenceId = 9,
-                    ),
-                ),
-            )
-        }
     }
 
     @Test

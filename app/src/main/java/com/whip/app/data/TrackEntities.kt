@@ -116,7 +116,6 @@ data class TrackChoiceOptionEntity(
     indices = [
         Index("uuid", unique = true),
         Index(value = ["trackId", "entryEpochDay"]),
-        Index("sourceOccurrenceId", unique = true),
     ],
 )
 data class TrackEntryEntity(
@@ -124,8 +123,6 @@ data class TrackEntryEntity(
     val uuid: String,
     val trackId: Long,
     val entryEpochDay: Long,
-    val sourceOccurrenceId: Long?,
-    val sourceExplanation: String,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
 )

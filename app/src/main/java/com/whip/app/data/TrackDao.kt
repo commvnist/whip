@@ -61,9 +61,6 @@ interface TrackDao {
     @Query("SELECT * FROM track_entries WHERE uuid IN (:uuids)")
     suspend fun getEntriesByUuids(uuids: List<String>): List<TrackEntryEntity>
 
-    @Query("SELECT * FROM track_entries WHERE sourceOccurrenceId IN (:occurrenceIds)")
-    suspend fun getEntriesForSourceOccurrences(occurrenceIds: List<Long>): List<TrackEntryEntity>
-
     @Query("SELECT * FROM track_entries WHERE trackId = :trackId ORDER BY entryEpochDay DESC, createdAtMillis DESC, id DESC")
     suspend fun getEntries(trackId: Long): List<TrackEntryEntity>
 
@@ -137,9 +134,6 @@ interface TrackDao {
 
     @Query("DELETE FROM track_entries WHERE id = :id")
     suspend fun deleteEntry(id: Long): Int
-
-    @Query("UPDATE track_entries SET sourceOccurrenceId = NULL WHERE sourceOccurrenceId = :occurrenceId")
-    suspend fun clearSourceOccurrence(occurrenceId: Long): Int
 
     @Query("DELETE FROM tracks WHERE id = :id")
     suspend fun deleteTrack(id: Long): Int

@@ -167,10 +167,6 @@ class TrackDefinitionMutationUiTest {
                     fieldName = "Historical field $index",
                     savedValueCount = index * 3,
                     childChoiceCount = index,
-                    connectedLinkSourceCount = index,
-                    connectedLinkConditionCount = 1,
-                    connectedTriggerConditionCount = index,
-                    connectedTriggerMappingCount = 1,
                 )
             },
             removedChoices = emptyList(),
@@ -217,7 +213,6 @@ class TrackDefinitionMutationUiTest {
         compose.onNodeWithTag("track-definition-removal-impact-list")
             .performScrollToNode(hasText("Historical field 8"))
         compose.onNodeWithText("Historical field 8").assertIsDisplayed()
-        compose.onNodeWithText("9 connected Trigger references", substring = true).assertIsDisplayed()
         compose.onNodeWithText("Apply Reviewed Changes").assertIsDisplayed()
         compose.onNodeWithText("Keep Editing").assertIsDisplayed()
     }

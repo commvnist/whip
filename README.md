@@ -6,7 +6,7 @@ with Kotlin and Jetpack Compose.
 Whip does not collect or transmit personal data. See the
 [Privacy Policy](PRIVACY.md) for details.
 
-The full product roadmap, including tasks, user-defined habits, goals, linking,
+The full product roadmap, including tasks, user-defined habits, goals, Tracks,
 and gym/workout tracking, is maintained in [`PLAN.md`](PLAN.md).
 
 Tasks include recurrence, subtasks, equal-weight progress, reminders,
@@ -30,9 +30,10 @@ Review; Gym remains explicitly unscoped. Areas have stable identities, colors,
 ordering, archive/merge management, permanent deletion with preserve-or-delete
 item choices, editor pickers, and tappable record badges.
 
-All records live in Room and work offline. Explicit contribution and trigger
-links connect domains without merging their meaning. Optional read-only Health
-Connect sync can be selected as a Habit or Goal source. Complete versioned
+All records live in Room and work offline. A shared measurement model keeps
+units and historical values consistent without coupling otherwise independent
+features. Optional read-only Health Connect sync can be selected as a Habit or
+Goal source. Complete versioned
 backup/restore, optional authenticated encrypted archives, a remembered
 portable-backup folder with crash-safe verified daily copies and retention,
 per-domain CSV export, widgets, notification actions, unified search, and

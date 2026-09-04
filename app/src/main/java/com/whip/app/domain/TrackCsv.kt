@@ -188,11 +188,6 @@ fun prepareTrackCsvImportRequest(
     require(mapping.numberUnitColumns.all { (fieldUuid, header) ->
         header.isNotBlank() && fieldsByUuid[fieldUuid]?.type == TrackFieldType.Number && fieldUuid in mapping.fieldColumns
     }) { "CSV unit mapping must target a mapped Number Field and a nonblank column" }
-    drafts.forEach { draft ->
-        require(draft.sourceOccurrenceId == null && draft.sourceExplanation.isBlank()) {
-            "CSV imports cannot claim automation provenance"
-        }
-    }
     val normalizedDrafts = normalizeTrackCsvDrafts(openingFormBoundary, drafts)
     val requestFingerprint = CanonicalCsvDigest().apply {
         integer("fingerprintVersion", TRACK_CSV_IMPORT_FINGERPRINT_VERSION)
@@ -607,8 +602,6 @@ private class CanonicalCsvDigest {
 
     fun draft(ordinal: Int, draft: TrackEntryDraft) {
         integer("draft.ordinal", ordinal); long("draft.entryDate", draft.entryDate.toEpochDay())
-        nullableLong("draft.sourceOccurrenceId", draft.sourceOccurrenceId)
-        string("draft.sourceExplanation", draft.sourceExplanation)
         draft.values.toSortedMap().forEach { (fieldUuid, value) ->
             string("value.fieldUuid", fieldUuid); nullableString("value.text", value.textValue)
             nullableDouble("value.enteredNumber", value.enteredNumber); nullableString("value.enteredUnitId", value.enteredUnitId)

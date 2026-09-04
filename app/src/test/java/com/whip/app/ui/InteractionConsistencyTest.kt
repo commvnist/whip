@@ -4,7 +4,6 @@ import com.whip.app.domain.TaskEffort
 import com.whip.app.domain.GymGraphRange
 import com.whip.app.domain.GymGraphAggregation
 import com.whip.app.domain.HabitTrackingMode
-import com.whip.app.domain.LinkSourceMeasurement
 import com.whip.app.domain.RepeatStepPolicy
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.WorkoutSetClassification
@@ -64,7 +63,6 @@ class InteractionConsistencyTest {
         assertEquals(listOf("Each Workout", "Weekly", "Monthly"), GymGraphAggregation.entries.map(GymGraphAggregation::uiLabel))
         assertEquals("Estimated 1RM", PersonalRecordType.EstimatedOneRepMax.uiLabel())
         assertEquals("Highest Workout Volume", PersonalRecordType.ExerciseWorkoutVolume.uiLabel())
-        assertEquals("Estimated 1RM", LinkSourceMeasurement.EstimatedOneRepMax.uiLabel())
         assertEquals("No Unit", UnitDimension.Unitless.uiLabel())
     }
 

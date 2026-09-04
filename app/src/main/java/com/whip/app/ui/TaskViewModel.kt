@@ -105,8 +105,6 @@ enum class TaskMutationKind {
 
 data class TaskDeletionReceipt(
     val tasksDeleted: Int,
-    val linkRulesDeleted: Int,
-    val automationRulesDeleted: Int,
 )
 
 data class TaskMutationReceipt(
@@ -598,8 +596,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                             setOf(taskId),
                             deletion = TaskDeletionReceipt(
                                 tasksDeleted = 1,
-                                linkRulesDeleted = cancelled.summary.linkRulesDeleted,
-                                automationRulesDeleted = cancelled.summary.automationRulesDeleted,
                             ),
                             warnings = cancelled.summary.warnings,
                         ),
@@ -613,8 +609,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                     setOf(taskId),
                     deletion = TaskDeletionReceipt(
                         tasksDeleted = 1,
-                        linkRulesDeleted = summary.linkRulesDeleted,
-                        automationRulesDeleted = summary.automationRulesDeleted,
                     ),
                     warnings = summary.warnings,
                 )
@@ -691,8 +685,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                                 uniqueIds,
                                 deletion = TaskDeletionReceipt(
                                     tasksDeleted = cancelled.summary.tasksDeleted,
-                                    linkRulesDeleted = cancelled.summary.linkRulesDeleted,
-                                    automationRulesDeleted = cancelled.summary.automationRulesDeleted,
                                 ),
                                 warnings = cancelled.summary.warnings,
                             ),
@@ -708,8 +700,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                         uniqueIds,
                         deletion = TaskDeletionReceipt(
                             tasksDeleted = summary.tasksDeleted,
-                            linkRulesDeleted = summary.linkRulesDeleted,
-                            automationRulesDeleted = summary.automationRulesDeleted,
                         ),
                         warnings = summary.warnings,
                     )

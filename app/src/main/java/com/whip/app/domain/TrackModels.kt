@@ -107,8 +107,6 @@ data class TrackEntry(
     val uuid: String,
     val trackId: Long,
     val entryDate: LocalDate,
-    val sourceOccurrenceId: Long? = null,
-    val sourceExplanation: String = "",
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
 ) : Serializable
@@ -157,8 +155,6 @@ data class TrackEntryDraft(
     val entryDate: LocalDate,
     /** Values are keyed by stable Field UUID, never Field position or label. */
     val values: Map<String, TrackValueDraft>,
-    val sourceOccurrenceId: Long? = null,
-    val sourceExplanation: String = "",
 ) : Serializable
 
 data class TrackEntryProjection(
@@ -182,8 +178,6 @@ data class DeletedTrackEntry(
     val entry: TrackEntry,
     val values: List<TrackFieldValue>,
     val openingFormBoundary: TrackEntryFormBoundary,
-    val sourceOccurrence: TrackEntryFulfillmentSnapshot? = null,
-    val fulfilledOccurrences: List<TrackEntryFulfillmentSnapshot> = emptyList(),
 ) : Serializable
 
 /**
@@ -291,7 +285,6 @@ enum class TrackEntryConflictKind {
     FormChanged,
     EntryChanged,
     IdentityCollision,
-    ProvenanceChanged,
     RestoreIncompatible,
     OutcomeUnknown,
 }
@@ -300,19 +293,6 @@ class TrackEntryConflictException(
     val kind: TrackEntryConflictKind,
     message: String,
 ) : IllegalStateException(message)
-
-/** Exact historical Trigger occurrence captured before its Entry link is cleared. */
-data class TrackEntryFulfillmentSnapshot(
-    val id: Long,
-    val triggerRuleId: Long,
-    val sourceEventId: String,
-    val availableAtMillis: Long,
-    val deliveredAtMillis: Long?,
-    val dismissedAtMillis: Long?,
-    val remindAtMillis: Long?,
-    val fulfilledEntryId: Long?,
-    val sourceSnapshot: String,
-) : Serializable
 
 /** Authoritative result built inside the transaction that committed the mutation. */
 data class TrackEntryMutationReceipt(
@@ -387,21 +367,11 @@ data class TrackFieldRemovalImpact(
     val fieldName: String,
     val savedValueCount: Int,
     val childChoiceCount: Int,
-    val connectedLinkSourceCount: Int,
-    val connectedLinkConditionCount: Int,
-    val connectedTriggerConditionCount: Int,
-    val connectedTriggerMappingCount: Int,
-) : Serializable {
-    val connectedLinkReferenceCount: Int
-        get() = connectedLinkSourceCount + connectedLinkConditionCount
-
-    val connectedTriggerReferenceCount: Int
-        get() = connectedTriggerConditionCount + connectedTriggerMappingCount
-}
+ ) : Serializable
 
 /**
  * User-facing impact of deleting or replacing one persisted Choice. References
- * are retained only as dormant compatibility metadata since automation retired.
+ * are always safe to replace once their saved values have been reviewed.
  */
 data class TrackChoiceRemovalImpact(
     val optionId: Long,
@@ -412,20 +382,14 @@ data class TrackChoiceRemovalImpact(
     val savedValueCount: Int,
     val replacementOptionId: Long? = null,
     val replacementOptionLabel: String? = null,
-    val connectedLinkConditionCount: Int,
-    val connectedTriggerConditionCount: Int,
-    val connectedTriggerMappingCount: Int,
     val removedWithField: Boolean,
 ) : Serializable {
     val replacesSavedValues: Boolean get() = replacementOptionId != null
-    val connectedLinkReferenceCount: Int get() = connectedLinkConditionCount
-    val connectedTriggerReferenceCount: Int
-        get() = connectedTriggerConditionCount + connectedTriggerMappingCount
 }
 
 /**
  * Exact reviewed destructive subset of a Track-definition save. The removal
- * token covers the plan, affected values, and dormant Link/Trigger rows.
+ * token covers the plan and affected values.
  */
 data class TrackDefinitionRemovalReview(
     val trackId: Long,
@@ -446,8 +410,6 @@ data class TrackDefinitionSaveReceipt(
     val removedChoiceCount: Int = 0,
     val deletedValueCount: Int = 0,
     val replacedValueCount: Int = 0,
-    val connectedLinkReferenceCount: Int = 0,
-    val connectedTriggerReferenceCount: Int = 0,
     val warnings: List<String> = emptyList(),
 ) : Serializable
 

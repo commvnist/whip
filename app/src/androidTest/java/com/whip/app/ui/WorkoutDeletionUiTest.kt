@@ -46,8 +46,6 @@ class WorkoutDeletionUiTest {
             hasText("1 Training Max decision remains", substring = true),
         )
         compose.onNodeWithText("1 Training Max decision remains", substring = true).assertIsDisplayed()
-        compose.onNodeWithText("1 Goal contribution", substring = true).assertIsDisplayed()
-        compose.onNodeWithText("3 automation occurrences remain", substring = true).assertIsDisplayed()
         compose.onNodeWithTag("workout-delete-confirm").assertIsEnabled().performClick()
         compose.runOnIdle { assertEquals(1, confirmed) }
     }
@@ -141,9 +139,6 @@ class WorkoutDeletionUiTest {
         completedSetCount = 10,
         personalRecordCount = 2,
         trainingMaxDecisionCount = 1,
-        contributionCount = 1,
-        generatedHabitLogCount = 1,
-        triggerOccurrenceCount = 3,
         revisionToken = "reviewed-workout-revision",
     )
 }

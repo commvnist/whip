@@ -631,13 +631,6 @@ internal fun TrackAreaContent(
                                 "${quantityLabel(impact.fieldCount, "Field")}, and " +
                                 "${quantityLabel(impact.choiceOptionCount, "Choice option")}.",
                         )
-                        if (impact.linkRuleCount > 0 || impact.automationRuleCount > 0) {
-                            Text(
-                                "It also removes ${quantityLabel(impact.linkRuleCount, "Link rule")} and " +
-                                    "${quantityLabel(impact.automationRuleCount, "automation rule")} that depend on this Track.",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
                         Text("This cannot be undone.", color = MaterialTheme.colorScheme.error)
                         coordinator.errorMessage?.let { message ->
                             PersistenceFailureNotice(message, testTag = "track-delete-commit-problem")
@@ -2088,7 +2081,6 @@ private fun TrackEntryRow(
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(projection.primaryText(entry), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Text((supporting + entry.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))).joinToString(" · "), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
-                if (entry.entry.sourceExplanation.isNotBlank()) Text(entry.entry.sourceExplanation, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
             }
             IconButton(enabled = editable, onClick = onEdit) { Icon(Icons.Outlined.Edit, contentDescription = "Edit Entry ${projection.primaryText(entry)}") }
             Box {
@@ -2149,9 +2141,6 @@ private fun TrackEntryDetailsDialog(
                 items(projection.fields, key = TrackField::id) { field ->
                     val value = projection.formattedValue(entry, field, units).ifBlank { "—" }
                     EntityInspectorFact(field.name, value)
-                }
-                if (entry.entry.sourceExplanation.isNotBlank()) item {
-                    EntityInspectorFact("How this entry was added", entry.entry.sourceExplanation)
                 }
             }
         },
@@ -3064,7 +3053,7 @@ internal fun TrackEditor(
                     buildString {
                         append("This removes the Field from your draft. ")
                         if (valueCount > 0) append("It had $valueCount saved values when this editor opened. ")
-                        append("Before Save, Whip will review the current exact impact on values and connected automation definitions.")
+                        append("Before Save, Whip will review the current exact impact on values.")
                     },
                 )
             },
@@ -3108,7 +3097,7 @@ internal fun TrackEditor(
                 ) {
                     item {
                         Text(
-                            "Nothing changes until you apply this exact review. If saved values or connected references change, Save stops and asks you to review again.",
+                            "Nothing changes until you apply this exact review. If saved values change, Save stops and asks you to review again.",
                         )
                     }
                     review.removedFields.forEach { impact ->
@@ -3119,14 +3108,6 @@ internal fun TrackEditor(
                                     "Remove ${quantityLabel(impact.savedValueCount, "saved value")} and ${quantityLabel(impact.childChoiceCount, "Choice")}",
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
-                                val connectedLinks = impact.connectedLinkReferenceCount
-                                val connectedTriggers = impact.connectedTriggerReferenceCount
-                                if (connectedLinks + connectedTriggers > 0) {
-                                    Text(
-                                        "Also retire ${quantityLabel(connectedLinks, "connected Link reference")} and ${quantityLabel(connectedTriggers, "connected Trigger reference")}.",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
                             }
                         }
                     }
@@ -3154,18 +3135,6 @@ internal fun TrackEditor(
                                         { replacement ->
                                             stateHolder.updateOptionReplacement(impact.optionId, replacement?.id)
                                         },
-                                    )
-                                }
-                                val connectedLinks = impact.connectedLinkReferenceCount
-                                val connectedTriggers = impact.connectedTriggerReferenceCount
-                                if (connectedLinks + connectedTriggers > 0) {
-                                    Text(
-                                        if (editorState.optionReplacementIds[impact.optionId] == null) {
-                                            "Retire ${quantityLabel(connectedLinks, "connected Link reference")} and ${quantityLabel(connectedTriggers, "connected Trigger reference")} with this Choice."
-                                        } else {
-                                            "Retarget ${quantityLabel(connectedLinks, "connected Link reference")} and ${quantityLabel(connectedTriggers, "connected Trigger reference")}; duplicate selections may consolidate."
-                                        },
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                             }
@@ -3574,7 +3543,6 @@ internal fun TrackEntryEditor(
                             TrackEntryConflictKind.EntryChanged,
                             TrackEntryConflictKind.FormChanged,
                             TrackEntryConflictKind.IdentityChanged,
-                            TrackEntryConflictKind.ProvenanceChanged,
                             -> "Entry Changed Elsewhere"
                             TrackEntryConflictKind.TargetMissing,
                             TrackEntryConflictKind.ParentMissing,

@@ -1,8 +1,6 @@
 package com.whip.app.data
 
 import androidx.room.withTransaction
-import com.whip.app.domain.LinkSourceType
-import com.whip.app.domain.TriggerTargetType
 import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.reminders.ReminderDeliveryCoordinator
 import com.whip.app.reminders.ReminderDomain
@@ -12,22 +10,19 @@ import java.time.LocalDate
 import kotlinx.coroutines.CancellationException
 
 /**
- * Performs irreversible cross-feature deletion without leaving polymorphic links,
- * generated measurements, automation events, or gym references behind.
+ * Performs irreversible cross-feature deletion while preserving the records that
+ * are intentionally owned by their feature boundaries.
  */
 class DomainDeletionCoordinator internal constructor(
     private val database: WhipDatabase,
-    private val linkRepository: LinkRepository,
     private val routineRepository: RoutineRepository,
     private val reminderDeliveryCoordinator: ReminderDeliveryCoordinator? = null,
     private val onDeletionPrepared: (ReminderDomain, Set<Long>) -> Unit = { _, _ -> },
     private val onDeletionCommitted: (ReminderDomain, Set<Long>) -> Unit = { _, _ -> },
     private val onDeletionInterrupted: suspend () -> Unit = {},
-    private val rebuildLinksAfterGoalDeletion: suspend () -> Unit = { linkRepository.rebuildAll() },
     private val rebuildPersonalRecordsAfterExerciseDeletion: suspend (Long) -> Unit = {
         routineRepository.rebuildPersonalRecords(it)
     },
-    private val rebuildLinksAfterGymDeletion: suspend () -> Unit = { linkRepository.rebuildAll() },
 ) {
     suspend fun previewMachineDeletion(machineId: Long): MachineDeletionImpact? = database.withTransaction {
         buildMachineDeletionImpact(machineId)
@@ -67,26 +62,15 @@ class DomainDeletionCoordinator internal constructor(
     suspend fun deleteHabit(habitId: Long): DomainDeletionSummary =
         withDurableReminderDeletion(ReminderDomain.Habit, habitId) {
             val summary = database.withTransaction { deleteHabitWithinTransaction(habitId) }
-            linkRepository.rebuildAll()
             summary
         }
 
     /** Room cleanup only. The caller owns the surrounding transaction and every post-commit action. */
     internal suspend fun deleteHabitWithinTransaction(habitId: Long): DomainDeletionSummary {
         val habit = database.habitDao().getHabit(habitId) ?: return DomainDeletionSummary()
-        val links = database.linkDao().getRules().filter { rule ->
-            (rule.sourceType == LinkSourceType.Habit.name && rule.sourceEntityId == habitId) ||
-                rule.sourceMeasurementId == habit.measurementId
-        }
-        links.forEach { linkRepository.deleteRule(it.id) }
-        val triggers = database.linkDao().getTriggerRules().filter { rule ->
-            (rule.targetType == TriggerTargetType.Habit.name && rule.targetEntityId == habitId) ||
-                (rule.sourceType == LinkSourceType.Habit.name && rule.sourceEntityId == habitId)
-        }
-        triggers.forEach { linkRepository.deleteTrigger(it.id) }
         check(database.habitDao().deleteHabit(habitId) == 1) { "Habit no longer exists" }
         database.measurementDao().deleteMeasurement(habit.measurementId)
-        return DomainDeletionSummary(true, links.size, triggers.size)
+        return DomainDeletionSummary(true)
     }
 
     suspend fun previewGoalDeletion(goalId: Long): GoalDeletionImpact = database.withTransaction {
@@ -107,14 +91,6 @@ class DomainDeletionCoordinator internal constructor(
                     deleteGoalWithinTransaction(goalId, expectedRevisionToken)
                 }
                 committedSummary = summary
-                try {
-                    rebuildLinksAfterCommittedDeletion()
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (_: Exception) {
-                    cleanupWarnings +=
-                        "Link reconciliation did not finish; the permanent deletion was committed and will be reconciled later."
-                }
                 try {
                     onDeletionCommitted(ReminderDomain.Goal, requested)
                 } catch (cancelled: CancellationException) {
@@ -167,19 +143,16 @@ class DomainDeletionCoordinator internal constructor(
                 "The Goal or its history changed while the confirmation was open. Review the updated impact before deleting."
             }
         }
-        impact.linkRuleIds.forEach { linkRepository.deleteRule(it) }
         check(database.goalDao().deleteGoal(goalId) == 1) { "Goal no longer exists" }
         check(database.measurementDao().deleteMeasurement(impact.measurementId) == 1) {
             "Goal progress history changed before it could be deleted"
         }
         return GoalDeletionSummary(
             goalDeleted = true,
-            linkRulesDeleted = impact.linkRuleCount,
             milestonesDeleted = impact.milestoneCount,
             progressEntriesDeleted = impact.progressEntryCount,
             closureSnapshotsDeleted = impact.closureSnapshotCount,
             elapsedResetEventsDeleted = impact.elapsedResetEventCount,
-            contributionsDeleted = impact.contributionCount,
         )
     }
 
@@ -194,26 +167,7 @@ class DomainDeletionCoordinator internal constructor(
         val summary = database.withTransaction {
             deleteTrackExactWithinTransaction(trackId, expectedRevisionToken)
         }
-        return try {
-            linkRepository.rebuildAll()
-            summary
-        } catch (cancelled: CancellationException) {
-            throw CommittedTrackDeletionCancellation(summary, cancelled)
-        } catch (_: Exception) {
-            try {
-                onDeletionInterrupted()
-            } catch (cancelled: CancellationException) {
-                throw CommittedTrackDeletionCancellation(summary, cancelled)
-            } catch (fatal: Error) {
-                throw fatal
-            } catch (_: Exception) {
-                // The deletion is authoritative; startup reconciliation owns the retry.
-            }
-            summary.copy(
-                warnings = summary.warnings +
-                    "Link and automation reconciliation did not finish; the Track itself was deleted.",
-            )
-        }
+        return summary
     }
 
     /** Room cleanup only. The caller owns the surrounding transaction and every post-commit action. */
@@ -222,8 +176,6 @@ class DomainDeletionCoordinator internal constructor(
         val summary = deleteTrackExactWithinTransaction(trackId, impact.revisionToken)
         return DomainDeletionSummary(
             deleted = summary.trackDeleted,
-            linkRulesDeleted = summary.linkRulesDeleted,
-            automationRulesDeleted = summary.automationRulesDeleted,
         )
     }
 
@@ -237,15 +189,6 @@ class DomainDeletionCoordinator internal constructor(
                 "The Track or its history changed while the confirmation was open. Review the updated impact before deleting."
             }
         }
-        val links = database.linkDao().getRules().filter {
-            it.sourceType == LinkSourceType.Track.name && it.sourceEntityId == trackId
-        }
-        links.forEach { linkRepository.deleteRule(it.id) }
-        val triggers = database.linkDao().getTriggerRules().filter {
-            (it.sourceType == LinkSourceType.Track.name && it.sourceEntityId == trackId) ||
-                (it.targetType == TriggerTargetType.Track.name && it.targetEntityId == trackId)
-        }
-        triggers.forEach { linkRepository.deleteTrigger(it.id) }
         database.trackDao().deleteSearchForTrack(trackId)
         check(database.trackDao().deleteTrack(trackId) == 1) { "Track no longer exists" }
         return TrackDeletionSummary(
@@ -254,12 +197,8 @@ class DomainDeletionCoordinator internal constructor(
             fieldsDeleted = impact.fieldCount,
             choiceOptionsDeleted = impact.choiceOptionCount,
             savedValuesDeleted = impact.savedValueCount,
-            linkRulesDeleted = links.size,
-            automationRulesDeleted = triggers.size,
         )
     }
-
-    internal suspend fun rebuildLinksAfterCommittedDeletion() = rebuildLinksAfterGoalDeletion()
 
     suspend fun previewExerciseDeletion(exerciseId: Long): ExerciseDeletionImpact? = database.withTransaction {
         buildExerciseDeletionImpact(exerciseId)
@@ -281,8 +220,6 @@ class DomainDeletionCoordinator internal constructor(
                 }
             }
 
-            impact.linkRuleIds.forEach { linkRepository.deleteRule(it) }
-            impact.automationRuleIds.forEach { linkRepository.deleteTrigger(it) }
 
             val routinePlacements = database.routineDao().deleteExercisesForExercise(exerciseId)
             check(routinePlacements == impact.routinePlacementCount) {
@@ -313,16 +250,6 @@ class DomainDeletionCoordinator internal constructor(
 
             ExerciseDeletionSummary(
                 exerciseDeleted = true,
-                linkRulesDeleted = impact.linkRuleCount,
-                linkConditionsDeleted = impact.linkConditionCount,
-                linkConditionChoicesDeleted = impact.linkConditionChoiceCount,
-                contributionsDeleted = impact.contributionCount,
-                automationRulesDeleted = impact.automationRuleCount,
-                automationConditionsDeleted = impact.automationConditionCount,
-                automationConditionChoicesDeleted = impact.automationConditionChoiceCount,
-                automationMappingsDeleted = impact.automationMappingCount,
-                automationOccurrencesDeleted = impact.automationOccurrenceCount,
-                linkedTrackEntriesDetached = impact.linkedTrackEntryCount,
                 workoutPlacementsDeleted = impact.workoutPlacementCount,
                 workoutSetsDeleted = impact.workoutSetCount,
                 routinePlacementsDeleted = impact.routinePlacementCount,
@@ -346,13 +273,6 @@ class DomainDeletionCoordinator internal constructor(
         } catch (_: Exception) {
             warnings +=
                 "Personal-record reconciliation did not finish; the Exercise deletion was committed and will be reconciled later."
-        }
-        try {
-            rebuildLinksAfterGymDeletion()
-        } catch (cancelled: CancellationException) {
-            throw CommittedExerciseDeletionCancellation(summary.copy(warnings = warnings), cancelled)
-        } catch (_: Exception) {
-            warnings += "Link reconciliation did not finish; the Exercise deletion was committed and will be reconciled later."
         }
         return summary.copy(warnings = warnings)
     }
@@ -392,18 +312,7 @@ class DomainDeletionCoordinator internal constructor(
         }
         if (!summary.routineDeleted) return summary
 
-        return try {
-            rebuildLinksAfterGymDeletion()
-            summary
-        } catch (cancelled: CancellationException) {
-            throw CommittedRoutineDeletionCancellation(summary, cancelled)
-        } catch (_: Exception) {
-            summary.copy(
-                warnings = listOf(
-                    "Link reconciliation did not finish; the Routine deletion was committed and will be reconciled later.",
-                ),
-            )
-        }
+        return summary
     }
 
     suspend fun previewWorkoutDeletion(sessionId: Long): WorkoutDeletionImpact? = database.withTransaction {
@@ -434,9 +343,6 @@ class DomainDeletionCoordinator internal constructor(
                 completedSetsDeleted = impact.completedSetCount,
                 personalRecordsRecalculated = impact.personalRecordCount,
                 trainingMaxDecisionsPreserved = impact.trainingMaxDecisionCount,
-                contributionsPreserved = impact.contributionCount,
-                generatedHabitLogsPreserved = impact.generatedHabitLogCount,
-                triggerOccurrencesPreserved = impact.triggerOccurrenceCount,
                 affectedExerciseIds = impact.exerciseIds,
             )
         }
@@ -454,14 +360,6 @@ class DomainDeletionCoordinator internal constructor(
                         "Personal-record reconciliation did not finish for one or more affected Exercises; the Workout deletion was committed and will be reconciled when Gym opens again."
                 }
             }
-        }
-        try {
-            rebuildLinksAfterGymDeletion()
-        } catch (cancelled: CancellationException) {
-            throw CommittedWorkoutDeletionCancellation(summary.copy(warnings = warnings), cancelled)
-        } catch (_: Exception) {
-            warnings +=
-                "Link reconciliation did not finish; the Workout deletion was committed and will be reconciled later."
         }
         return summary.copy(warnings = warnings)
     }
@@ -500,52 +398,18 @@ class DomainDeletionCoordinator internal constructor(
     }
 
     private suspend fun buildGoalDeletionImpact(goalId: Long): GoalDeletionImpact {
-        val goal = database.goalDao().getGoal(goalId)
-            ?: return GoalDeletionImpact(goalId = goalId)
+        val goal = database.goalDao().getGoal(goalId) ?: return GoalDeletionImpact(goalId = goalId)
         val measurement = database.measurementDao().getMeasurement(goal.measurementId)
         val milestones = database.goalDao().getMilestones(goalId)
         val progressEntries = database.measurementDao().getEntriesForMeasurement(goal.measurementId)
-        val links = database.linkDao().getRules().filter { rule ->
-            rule.targetGoalId == goalId || rule.sourceMeasurementId == goal.measurementId
-        }
-        val linkRuleIds = links.mapTo(linkedSetOf(), LinkRuleEntity::id)
-        val linkConditions = links.flatMap { database.linkDao().getRuleConditions(it.id) }
-        val linkConditionIds = linkConditions.map(LinkRuleConditionEntity::id)
-        val linkConditionChoices = linkConditionIds.takeIf { it.isNotEmpty() }
-            ?.let { database.linkDao().getLinkConditionChoices(it) }
-            .orEmpty()
-        val contributions = database.linkDao().observeContributionsSnapshot().filter { contribution ->
-            contribution.linkRuleId in linkRuleIds || contribution.targetGoalId == goalId
-        }
         val closureSnapshots = database.goalDao().getClosureSnapshots(goalId)
         val elapsedResetEvents = database.goalDao().getElapsedResetEvents(goalId)
         return GoalDeletionImpact(
-            goalId = goalId,
-            exists = true,
-            name = goal.name,
-            status = goal.status,
-            archived = goal.archived,
-            milestoneCount = milestones.size,
-            completedMilestoneCount = milestones.count(GoalMilestoneEntity::completed),
-            progressEntryCount = progressEntries.size,
-            closureSnapshotCount = closureSnapshots.size,
-            elapsedResetEventCount = elapsedResetEvents.size,
-            linkRuleCount = links.size,
-            contributionCount = contributions.size,
-            revisionToken = goalDeletionRevision(
-                goal = goal,
-                measurement = measurement,
-                milestones = milestones,
-                progressEntries = progressEntries,
-                closureSnapshots = closureSnapshots,
-                elapsedResetEvents = elapsedResetEvents,
-                links = links,
-                linkConditions = linkConditions,
-                linkConditionChoices = linkConditionChoices,
-                contributions = contributions,
-            ),
-            measurementId = goal.measurementId,
-            linkRuleIds = linkRuleIds,
+            goalId = goalId, exists = true, name = goal.name, status = goal.status, archived = goal.archived,
+            milestoneCount = milestones.size, completedMilestoneCount = milestones.count(GoalMilestoneEntity::completed),
+            progressEntryCount = progressEntries.size, closureSnapshotCount = closureSnapshots.size,
+            elapsedResetEventCount = elapsedResetEvents.size, measurementId = goal.measurementId,
+            revisionToken = goalDeletionRevision(goal, measurement, milestones, progressEntries, closureSnapshots, elapsedResetEvents),
         )
     }
 
@@ -598,32 +462,6 @@ class DomainDeletionCoordinator internal constructor(
             .filter { (_, retainedExercises) -> retainedExercises.isEmpty() }
             .map { (preset) -> preset }
 
-        val linkRules = database.linkDao().getRules().filter {
-            it.sourceType == LinkSourceType.Exercise.name && it.sourceEntityId == exerciseId
-        }
-        val linkRuleIds = linkRules.mapTo(linkedSetOf(), LinkRuleEntity::id)
-        val linkConditions = linkRules.flatMap { database.linkDao().getRuleConditions(it.id) }
-        val linkConditionChoices = linkConditions.map(LinkRuleConditionEntity::id)
-            .takeIf { it.isNotEmpty() }
-            ?.let { database.linkDao().getLinkConditionChoices(it) }
-            .orEmpty()
-        val contributions = linkRules.flatMap { database.linkDao().getContributions(it.id) }
-
-        val automations = database.linkDao().getTriggerRules().filter {
-            it.sourceType == LinkSourceType.Exercise.name && it.sourceEntityId == exerciseId
-        }
-        val automationRuleIds = automations.mapTo(linkedSetOf(), TriggerRuleEntity::id)
-        val automationConditions = automations.flatMap { database.linkDao().getTriggerConditions(it.id) }
-        val automationConditionChoices = automationConditions.map(TriggerRuleConditionEntity::id)
-            .takeIf { it.isNotEmpty() }
-            ?.let { database.linkDao().getTriggerConditionChoices(it) }
-            .orEmpty()
-        val automationMappings = automations.flatMap { database.linkDao().getTriggerMappings(it.id) }
-        val automationOccurrences = automations.flatMap { database.linkDao().getTriggerOccurrences(it.id) }
-        val linkedTrackEntries = automationOccurrences.map(TriggerOccurrenceEntity::id)
-            .takeIf { it.isNotEmpty() }
-            ?.let { database.trackDao().getEntriesForSourceOccurrences(it) }
-            .orEmpty()
 
         return ExerciseDeletionImpact(
             exerciseId = exercise.id,
@@ -634,16 +472,6 @@ class DomainDeletionCoordinator internal constructor(
             routineAlternativeReferenceCount = routineAlternativePlacements.size,
             workoutPlacementCount = workoutPlacements.size,
             workoutSetCount = workoutSets.size,
-            linkRuleCount = linkRules.size,
-            linkConditionCount = linkConditions.size,
-            linkConditionChoiceCount = linkConditionChoices.size,
-            contributionCount = contributions.size,
-            automationRuleCount = automations.size,
-            automationConditionCount = automationConditions.size,
-            automationConditionChoiceCount = automationConditionChoices.size,
-            automationMappingCount = automationMappings.size,
-            automationOccurrenceCount = automationOccurrences.size,
-            linkedTrackEntryCount = linkedTrackEntries.size,
             graphPresetUpdateCount = graphPresetUpdates.size,
             graphPresetDeleteCount = graphPresetDeletes.size,
             personalRecordCount = personalRecords.size,
@@ -666,20 +494,8 @@ class DomainDeletionCoordinator internal constructor(
                     "personal-record" to personalRecords,
                     "preserved-training-max-decision" to trainingMaxDecisions,
                     "graph-preset" to graphPresetMutations.map { it.first },
-                    "link" to linkRules,
-                    "link-condition" to linkConditions,
-                    "link-condition-choice" to linkConditionChoices,
-                    "contribution" to contributions,
-                    "automation" to automations,
-                    "automation-condition" to automationConditions,
-                    "automation-condition-choice" to automationConditionChoices,
-                    "automation-mapping" to automationMappings,
-                    "automation-occurrence" to automationOccurrences,
-                    "linked-track-entry" to linkedTrackEntries,
                 ),
             ),
-            linkRuleIds = linkRuleIds,
-            automationRuleIds = automationRuleIds,
             routineAlternativeUpdates = routineAlternativeUpdates,
             graphPresetUpdates = graphPresetUpdates,
             graphPresetDeleteIds = graphPresetDeletes.mapTo(linkedSetOf(), GraphPresetEntity::id),
@@ -698,26 +514,6 @@ class DomainDeletionCoordinator internal constructor(
         val values = entryIds.takeIf { it.isNotEmpty() }
             ?.let { database.trackDao().getValuesForEntries(it) }
             .orEmpty()
-        val links = database.linkDao().getRules().filter {
-            it.sourceType == LinkSourceType.Track.name && it.sourceEntityId == trackId
-        }
-        val linkConditions = links.flatMap { database.linkDao().getRuleConditions(it.id) }
-        val linkConditionChoices = linkConditions.map(LinkRuleConditionEntity::id)
-            .takeIf { it.isNotEmpty() }
-            ?.let { database.linkDao().getLinkConditionChoices(it) }
-            .orEmpty()
-        val contributions = links.flatMap { database.linkDao().getContributions(it.id) }
-        val triggers = database.linkDao().getTriggerRules().filter {
-            (it.sourceType == LinkSourceType.Track.name && it.sourceEntityId == trackId) ||
-                (it.targetType == TriggerTargetType.Track.name && it.targetEntityId == trackId)
-        }
-        val triggerConditions = triggers.flatMap { database.linkDao().getTriggerConditions(it.id) }
-        val triggerConditionChoices = triggerConditions.map(TriggerRuleConditionEntity::id)
-            .takeIf { it.isNotEmpty() }
-            ?.let { database.linkDao().getTriggerConditionChoices(it) }
-            .orEmpty()
-        val triggerMappings = triggers.flatMap { database.linkDao().getTriggerMappings(it.id) }
-        val triggerOccurrences = triggers.flatMap { database.linkDao().getTriggerOccurrences(it.id) }
         return TrackDeletionImpact(
             trackId = track.id,
             trackUuid = track.uuid,
@@ -726,8 +522,6 @@ class DomainDeletionCoordinator internal constructor(
             fieldCount = fields.size,
             choiceOptionCount = options.size,
             savedValueCount = values.size,
-            linkRuleCount = links.size,
-            automationRuleCount = triggers.size,
             revisionToken = gymDeletionRevision(
                 rootLabel = "track",
                 root = track,
@@ -736,15 +530,6 @@ class DomainDeletionCoordinator internal constructor(
                     "choice-option" to options,
                     "entry" to entries,
                     "saved-value" to values,
-                    "link" to links,
-                    "link-condition" to linkConditions,
-                    "link-condition-choice" to linkConditionChoices,
-                    "contribution" to contributions,
-                    "automation" to triggers,
-                    "automation-condition" to triggerConditions,
-                    "automation-condition-choice" to triggerConditionChoices,
-                    "automation-mapping" to triggerMappings,
-                    "automation-occurrence" to triggerOccurrences,
                 ),
             ),
         )
@@ -796,20 +581,6 @@ class DomainDeletionCoordinator internal constructor(
         val trainingMaxDecisions = database.routineDao().getAllTrainingMaxDecisions().filter {
             it.sessionUuid == session.uuid
         }
-        val contributions = database.linkDao().observeContributionsSnapshot().filter {
-            it.sourceEventId.startsWith("workout:${session.uuid}:") ||
-                it.sourceEventId.contains(":workout:${session.uuid}:")
-        }
-        val triggerOccurrences = database.linkDao().getTriggerRules()
-            .flatMap { database.linkDao().getTriggerOccurrences(it.id) }
-            .filter {
-                it.sourceEventId.startsWith("workout:${session.uuid}:") ||
-                    it.sourceEventId.contains(":workout:${session.uuid}:")
-            }
-        val generatedHabitLogs = database.habitDao().getAllLogs().filter {
-            it.sourceId?.startsWith("trigger:") == true &&
-                it.sourceId.contains(":workout:${session.uuid}:")
-        }
         val exerciseIds = placements.map(WorkoutExerciseEntity::exerciseId).distinct().sorted()
         return WorkoutDeletionImpact(
             sessionId = session.id,
@@ -824,9 +595,6 @@ class DomainDeletionCoordinator internal constructor(
             completedSetCount = sets.count { it.completed && it.deletedAtMillis == null },
             personalRecordCount = personalRecords.size,
             trainingMaxDecisionCount = trainingMaxDecisions.size,
-            contributionCount = contributions.size,
-            generatedHabitLogCount = generatedHabitLogs.size,
-            triggerOccurrenceCount = triggerOccurrences.size,
             revisionToken = gymDeletionRevision(
                 rootLabel = "workout",
                 root = session,
@@ -836,9 +604,6 @@ class DomainDeletionCoordinator internal constructor(
                     "workout-set" to sets,
                     "personal-record" to personalRecords,
                     "preserved-training-max-decision" to trainingMaxDecisions,
-                    "preserved-contribution" to contributions,
-                    "preserved-generated-habit-log" to generatedHabitLogs,
-                    "preserved-trigger-occurrence" to triggerOccurrences,
                 ),
             ),
             exerciseIds = exerciseIds,
@@ -903,38 +668,16 @@ class DomainDeletionCoordinator internal constructor(
 }
 
 private fun goalDeletionRevision(
-    goal: Any,
-    measurement: Any?,
-    milestones: List<*>,
-    progressEntries: List<*>,
-    closureSnapshots: List<*>,
-    elapsedResetEvents: List<*>,
-    links: List<*>,
-    linkConditions: List<*>,
-    linkConditionChoices: List<*>,
-    contributions: List<*>,
+    goal: Any, measurement: Any?, milestones: List<*>, progressEntries: List<*>, closureSnapshots: List<*>, elapsedResetEvents: List<*>,
 ): String {
     val canonical = buildString {
-        append("goal|").append(goal).append('\n')
-        append("measurement|").append(measurement).append('\n')
-        listOf(
-            "milestone" to milestones,
-            "progress-entry" to progressEntries,
-            "closure" to closureSnapshots,
-            "elapsed-reset" to elapsedResetEvents,
-            "link" to links,
-            "link-condition" to linkConditions,
-            "link-condition-choice" to linkConditionChoices,
-            "contribution" to contributions,
-        ).forEach { (label, rows) ->
-            rows.map(Any?::toString).sorted().forEach { row ->
-                append(label).append('|').append(row).append('\n')
-            }
+        append("goal|").append(goal).append("\n")
+        append("measurement|").append(measurement).append("\n")
+        listOf("milestone" to milestones, "progress-entry" to progressEntries, "closure" to closureSnapshots, "elapsed-reset" to elapsedResetEvents).forEach { (label, rows) ->
+            rows.map(Any?::toString).sorted().forEach { append(label).append("|").append(it).append("\n") }
         }
     }
-    return MessageDigest.getInstance("SHA-256")
-        .digest(canonical.toByteArray(Charsets.UTF_8))
-        .joinToString("") { byte -> "%02x".format(byte) }
+    return MessageDigest.getInstance("SHA-256").digest(canonical.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
 }
 
 private fun String.parseDeletionIds(): List<Long> = split(',').mapNotNull { it.trim().toLongOrNull() }
@@ -966,16 +709,6 @@ data class ExerciseDeletionImpact(
     val routineAlternativeReferenceCount: Int,
     val workoutPlacementCount: Int,
     val workoutSetCount: Int,
-    val linkRuleCount: Int,
-    val linkConditionCount: Int,
-    val linkConditionChoiceCount: Int,
-    val contributionCount: Int,
-    val automationRuleCount: Int,
-    val automationConditionCount: Int,
-    val automationConditionChoiceCount: Int,
-    val automationMappingCount: Int,
-    val automationOccurrenceCount: Int,
-    val linkedTrackEntryCount: Int,
     val graphPresetUpdateCount: Int,
     val graphPresetDeleteCount: Int,
     val personalRecordCount: Int,
@@ -983,8 +716,6 @@ data class ExerciseDeletionImpact(
     val machineReferenceCount: Int,
     val categoryReferenceCount: Int,
     val revisionToken: String,
-    internal val linkRuleIds: Set<Long> = emptySet(),
-    internal val automationRuleIds: Set<Long> = emptySet(),
     internal val routineAlternativeUpdates: Map<Long, String> = emptyMap(),
     internal val graphPresetUpdates: Map<Long, String> = emptyMap(),
     internal val graphPresetDeleteIds: Set<Long> = emptySet(),
@@ -992,16 +723,6 @@ data class ExerciseDeletionImpact(
 
 data class ExerciseDeletionSummary(
     val exerciseDeleted: Boolean = false,
-    val linkRulesDeleted: Int = 0,
-    val linkConditionsDeleted: Int = 0,
-    val linkConditionChoicesDeleted: Int = 0,
-    val contributionsDeleted: Int = 0,
-    val automationRulesDeleted: Int = 0,
-    val automationConditionsDeleted: Int = 0,
-    val automationConditionChoicesDeleted: Int = 0,
-    val automationMappingsDeleted: Int = 0,
-    val automationOccurrencesDeleted: Int = 0,
-    val linkedTrackEntriesDetached: Int = 0,
     val workoutPlacementsDeleted: Int = 0,
     val workoutSetsDeleted: Int = 0,
     val routinePlacementsDeleted: Int = 0,
@@ -1070,9 +791,6 @@ data class WorkoutDeletionImpact(
     val completedSetCount: Int,
     val personalRecordCount: Int,
     val trainingMaxDecisionCount: Int,
-    val contributionCount: Int,
-    val generatedHabitLogCount: Int,
-    val triggerOccurrenceCount: Int,
     val revisionToken: String,
     internal val exerciseIds: List<Long> = emptyList(),
 ) : Serializable
@@ -1085,9 +803,6 @@ data class WorkoutDeletionSummary(
     val completedSetsDeleted: Int = 0,
     val personalRecordsRecalculated: Int = 0,
     val trainingMaxDecisionsPreserved: Int = 0,
-    val contributionsPreserved: Int = 0,
-    val generatedHabitLogsPreserved: Int = 0,
-    val triggerOccurrencesPreserved: Int = 0,
     val warnings: List<String> = emptyList(),
     internal val affectedExerciseIds: List<Long> = emptyList(),
 )
@@ -1110,21 +825,16 @@ data class GoalDeletionImpact(
     val progressEntryCount: Int = 0,
     val closureSnapshotCount: Int = 0,
     val elapsedResetEventCount: Int = 0,
-    val linkRuleCount: Int = 0,
-    val contributionCount: Int = 0,
     val revisionToken: String = "",
     internal val measurementId: String = "",
-    internal val linkRuleIds: Set<Long> = emptySet(),
 ) : Serializable
 
 data class GoalDeletionSummary(
     val goalDeleted: Boolean = false,
-    val linkRulesDeleted: Int = 0,
     val milestonesDeleted: Int = 0,
     val progressEntriesDeleted: Int = 0,
     val closureSnapshotsDeleted: Int = 0,
     val elapsedResetEventsDeleted: Int = 0,
-    val contributionsDeleted: Int = 0,
     val warnings: List<String> = emptyList(),
 )
 
@@ -1164,8 +874,6 @@ data class MachineDeletionResult(
 
 data class DomainDeletionSummary(
     val deleted: Boolean = false,
-    val linkRulesDeleted: Int = 0,
-    val automationRulesDeleted: Int = 0,
     val workoutReferencesDeleted: Int = 0,
     val routineReferencesDeleted: Int = 0,
     val preservedHistoryReferences: Int = 0,
@@ -1179,8 +887,6 @@ data class TrackDeletionImpact(
     val fieldCount: Int,
     val choiceOptionCount: Int,
     val savedValueCount: Int,
-    val linkRuleCount: Int,
-    val automationRuleCount: Int,
     val revisionToken: String,
 ) : Serializable
 
@@ -1190,8 +896,6 @@ data class TrackDeletionSummary(
     val fieldsDeleted: Int = 0,
     val choiceOptionsDeleted: Int = 0,
     val savedValuesDeleted: Int = 0,
-    val linkRulesDeleted: Int = 0,
-    val automationRulesDeleted: Int = 0,
     val warnings: List<String> = emptyList(),
 )
 

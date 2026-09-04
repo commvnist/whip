@@ -6,12 +6,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.core.WhipClock
 import com.whip.app.core.WhipIdGenerator
 import com.whip.app.data.RoomAreaRepository
-import com.whip.app.data.RoomLinkRepository
 import com.whip.app.data.RoomMeasurementRepository
 import com.whip.app.data.RoomTrackRepository
-import com.whip.app.data.TriggerFieldMappingEntity
-import com.whip.app.data.TriggerOccurrenceEntity
-import com.whip.app.data.TriggerRuleEntity
 import com.whip.app.data.UnitDefinitionEntity
 import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.TrackChoiceOptionDraft
@@ -44,7 +40,6 @@ import org.junit.runner.RunWith
 class TrackEntryIntegrityTest {
     private lateinit var database: WhipDatabase
     private lateinit var tracks: RoomTrackRepository
-    private lateinit var links: RoomLinkRepository
 
     @Before
     fun setUp() = runBlocking {
@@ -56,12 +51,6 @@ class TrackEntryIntegrityTest {
         val ids = TestIds()
         RoomAreaRepository(database, TestClock, ids).ensureDefaultArea()
         tracks = RoomTrackRepository(database, TestClock, ids)
-        links = RoomLinkRepository(
-            database,
-            RoomMeasurementRepository(database, TestClock, ids),
-            TestClock,
-            ids,
-        )
     }
 
     @After fun tearDown() = database.close()
@@ -191,7 +180,7 @@ class TrackEntryIntegrityTest {
     }
 
     @Test
-    fun malformedTypePayloadProvenanceAndChangedSelectedUnitAreRejectedWithoutRows() = runBlocking {
+    fun malformedTypePayloadAndChangedSelectedUnitAreRejectedWithoutRows() = runBlocking {
         val trackId = tracks.create(textTrack())
         val preparation = requireNotNull(tracks.prepareEntryCreate(trackId))
         val titleUuid = preparation.form.fields.single { it.primary }.uuid
@@ -205,13 +194,6 @@ class TrackEntryIntegrityTest {
             )
         }.exceptionOrNull()
         assertTrue(malformed is IllegalArgumentException)
-        val provenance = runCatching {
-            tracks.addEntry(
-                preparation.request,
-                titleDraft(titleUuid, "Prompt forgery").copy(sourceOccurrenceId = 99, sourceExplanation = "forged"),
-            )
-        }.exceptionOrNull()
-        assertEntryConflict(TrackEntryConflictKind.ProvenanceChanged, provenance)
         assertTrue(requireNotNull(tracks.projection(trackId)).entries.isEmpty())
 
         val custom = UnitDefinitionEntity(
@@ -306,81 +288,7 @@ class TrackEntryIntegrityTest {
         )
     }
 
-    @Test
-    fun deleteRejectsMissingSourceOccurrenceAndPreservesEntry() = runBlocking {
-        val trackId = tracks.create(textTrack())
-        val title = requireNotNull(tracks.projection(trackId)).primaryField
-        val entryId = tracks.addEntry(
-            requireNotNull(tracks.prepareEntryCreate(trackId)).request,
-            titleDraft(title.uuid, "Keep orphaned provenance"),
-        ).entryId
-        val row = requireNotNull(database.trackDao().getEntry(entryId))
-        check(
-            database.trackDao().updateEntry(
-                row.copy(sourceOccurrenceId = 999_999, sourceExplanation = "Missing connected source"),
-            ) == 1,
-        )
-        val opening = requireNotNull(tracks.prepareEntryEdit(entryId))
-
-        assertEntryConflict(
-            TrackEntryConflictKind.ProvenanceChanged,
-            runCatching { tracks.deleteEntry(opening.boundary) }.exceptionOrNull(),
-        )
-        assertNotNull(database.trackDao().getEntry(entryId))
-        assertEquals(1, requireNotNull(tracks.projection(trackId)).entries.size)
-    }
-
-    @Test
-    fun undoPreservesExactRowsAndRelinksEveryOccurrenceAcrossHarmlessFormChanges() = runBlocking {
-        val trackId = tracks.create(textTrack())
-        val title = requireNotNull(tracks.projection(trackId)).primaryField
-        val entryId = tracks.addEntry(
-            requireNotNull(tracks.prepareEntryCreate(trackId)).request,
-            titleDraft(title.uuid, "Restore exactly"),
-        ).entryId
-        val occurrences = attachOccurrences(trackId, entryId, count = 2)
-        val unlinkedEntry = requireNotNull(database.trackDao().getEntry(entryId))
-        check(database.trackDao().updateEntry(unlinkedEntry.copy(
-            sourceOccurrenceId = occurrences.first().id,
-            sourceExplanation = "Exact prompt explanation",
-            updatedAtMillis = 777,
-        )) == 1)
-        val entryBefore = requireNotNull(database.trackDao().getEntry(entryId))
-        val valuesBefore = database.trackDao().getValues(entryId)
-        val opening = requireNotNull(tracks.prepareEntryEdit(entryId))
-        val deletion = tracks.deleteEntry(opening.boundary)
-        val snapshot = requireNotNull(deletion.deletedEntry)
-        occurrences.forEach { assertNull(database.linkDao().getTriggerOccurrence(it.id)?.fulfilledEntryId) }
-
-        var projection = requireNotNull(tracks.projection(trackId))
-        tracks.update(
-            trackId,
-            projection.toDraft().copy(
-                fields = projection.toDraft().fields.map { field ->
-                    if (field.id == title.id) field.copy(name = "Renamed safely", showInList = !field.showInList) else field
-                } + TrackFieldDraft("Later required", TrackFieldType.YesNo, required = true),
-            ),
-            requireNotNull(tracks.definitionBoundary(trackId)),
-        )
-        tracks.setArchived(trackId, true)
-        TestClock.instant = Instant.parse("2026-09-02T12:00:00Z")
-
-        val restored = tracks.restoreEntry(snapshot)
-        val entryAfter = requireNotNull(database.trackDao().getEntry(restored.entryId))
-        val valuesAfter = database.trackDao().getValues(restored.entryId)
-        assertEquals(entryBefore.uuid, entryAfter.uuid)
-        assertEquals(entryBefore.createdAtMillis, entryAfter.createdAtMillis)
-        assertEquals(777, entryAfter.updatedAtMillis)
-        assertEquals(entryBefore.sourceOccurrenceId, entryAfter.sourceOccurrenceId)
-        assertEquals(entryBefore.sourceExplanation, entryAfter.sourceExplanation)
-        assertEquals(valuesBefore.map { it.uuid to (it.createdAtMillis to it.updatedAtMillis) }.toSet(), valuesAfter.map { it.uuid to (it.createdAtMillis to it.updatedAtMillis) }.toSet())
-        occurrences.forEach { before ->
-            assertEquals(before.copy(fulfilledEntryId = restored.entryId), database.linkDao().getTriggerOccurrence(before.id))
-        }
-        assertTrue(tracks.restoreEntry(snapshot).alreadyApplied)
-    }
-
-    @Test
+      @Test
     fun restoreRetryRejectsSameEntryIdentityUnderReincarnatedTrack() = runBlocking {
         val trackId = tracks.create(textTrack())
         val title = requireNotNull(tracks.projection(trackId)).primaryField
@@ -415,37 +323,7 @@ class TrackEntryIntegrityTest {
         )
     }
 
-    @Test
-    fun incompatibleRestoreRollsBackEntryValuesAndAllOccurrenceLinks() = runBlocking {
-        val trackId = tracks.create(textTrack())
-        val title = requireNotNull(tracks.projection(trackId)).primaryField
-        val entryId = tracks.addEntry(
-            requireNotNull(tracks.prepareEntryCreate(trackId)).request,
-            titleDraft(title.uuid, "Cannot reinterpret"),
-        ).entryId
-        val occurrences = attachOccurrences(trackId, entryId, count = 2)
-        val opening = requireNotNull(tracks.prepareEntryEdit(entryId))
-        val snapshot = requireNotNull(tracks.deleteEntry(opening.boundary).deletedEntry)
-        val projection = requireNotNull(tracks.projection(trackId))
-        tracks.update(
-            trackId,
-            projection.toDraft().copy(
-                fields = projection.toDraft().fields.map { field ->
-                    if (field.id == title.id) field.copy(type = TrackFieldType.YesNo) else field
-                },
-            ),
-            requireNotNull(tracks.definitionBoundary(trackId)),
-        )
-
-        val failure = runCatching { tracks.restoreEntry(snapshot) }.exceptionOrNull()
-
-        assertEntryConflict(TrackEntryConflictKind.RestoreIncompatible, failure)
-        assertNull(database.trackDao().getEntryByUuid(snapshot.entry.uuid))
-        snapshot.values.forEach { assertNull(database.trackDao().getValueByUuid(it.uuid)) }
-        occurrences.forEach { assertNull(database.linkDao().getTriggerOccurrence(it.id)?.fulfilledEntryId) }
-    }
-
-    @Test
+     @Test
     fun undoAllowsUnitRenameAndArchiveButRejectsConversionChange() = runBlocking {
         val custom = UnitDefinitionEntity(
             id = "dose-unit",
@@ -635,7 +513,7 @@ class TrackEntryIntegrityTest {
             requireNotNull(tracks.definitionBoundary(trackId)),
         )
         assertEntryConflict(
-            TrackEntryConflictKind.FormChanged,
+            TrackEntryConflictKind.EntryChanged,
             runCatching { tracks.deleteEntry(staleDelete.boundary) }.exceptionOrNull(),
         )
         assertNotNull(database.trackDao().getEntry(secondId))
@@ -768,7 +646,7 @@ class TrackEntryIntegrityTest {
     }
 
     @Test
-    fun restoreValidatesChoiceScaleAndOccurrenceHistoryBeforeWriting() = runBlocking {
+    fun restoreValidatesChoiceAndScaleBeforeWriting() = runBlocking {
         val typedTrack = tracks.create(allTypesTrack().copy(name = "Typed Undo"))
         val preparation = requireNotNull(tracks.prepareEntryCreate(typedTrack))
         val fields = preparation.form.fields.associateBy { it.name }
@@ -801,214 +679,9 @@ class TrackEntryIntegrityTest {
             TrackEntryConflictKind.RestoreIncompatible,
             runCatching { tracks.restoreEntry(typedSnapshot) }.exceptionOrNull(),
         )
-
-        val provenanceTrack = tracks.create(textTrack().copy(name = "Provenance Undo"))
-        val title = requireNotNull(tracks.projection(provenanceTrack)).primaryField
-        val provenanceEntry = tracks.addEntry(
-            requireNotNull(tracks.prepareEntryCreate(provenanceTrack)).request,
-            titleDraft(title.uuid, "Prompt history"),
-        ).entryId
-        val occurrence = attachOccurrences(provenanceTrack, provenanceEntry, 1).single()
-        val provenanceRow = requireNotNull(database.trackDao().getEntry(provenanceEntry))
-        check(database.trackDao().updateEntry(provenanceRow.copy(sourceOccurrenceId = occurrence.id)) == 1)
-        val provenanceSnapshot = requireNotNull(
-            tracks.deleteEntry(requireNotNull(tracks.prepareEntryEdit(provenanceEntry)).boundary).deletedEntry,
-        )
-        assertEntryConflict(
-            TrackEntryConflictKind.ProvenanceChanged,
-            runCatching { tracks.restoreEntry(provenanceSnapshot.copy(sourceOccurrence = null)) }.exceptionOrNull(),
-        )
-        assertTrue(
-            runCatching {
-                tracks.restoreEntry(
-                    provenanceSnapshot.copy(
-                        fulfilledOccurrences = provenanceSnapshot.fulfilledOccurrences + provenanceSnapshot.fulfilledOccurrences.single(),
-                    ),
-                )
-            }.exceptionOrNull() is IllegalArgumentException,
-        )
-        assertEntryConflict(
-            TrackEntryConflictKind.ProvenanceChanged,
-            runCatching {
-                tracks.restoreEntry(
-                    provenanceSnapshot.copy(
-                        fulfilledOccurrences = provenanceSnapshot.fulfilledOccurrences.map {
-                            it.copy(fulfilledEntryId = provenanceEntry + 100)
-                        },
-                    ),
-                )
-            }.exceptionOrNull(),
-        )
-        val afterDelete = requireNotNull(database.linkDao().getTriggerOccurrence(occurrence.id))
-        database.linkDao().upsertTriggerOccurrence(afterDelete.copy(sourceSnapshot = "changed after delete"))
-        assertEntryConflict(
-            TrackEntryConflictKind.ProvenanceChanged,
-            runCatching { tracks.restoreEntry(provenanceSnapshot) }.exceptionOrNull(),
-        )
-        assertNull(database.trackDao().getEntryByUuid(provenanceSnapshot.entry.uuid))
     }
 
-    @Test
-    fun promptDraftAndFulfillmentUseTrustedAtomicProvenancePath() = runBlocking {
-        val trackId = tracks.create(textTrack().copy(name = "Prompt target"))
-        val title = requireNotNull(tracks.projection(trackId)).primaryField
-        val occurrence = insertPromptOccurrence(trackId, title.id)
-
-        val draft = links.trackPromptDraft(occurrence.id)
-        assertEquals("Mapped prompt title", draft.values.getValue(title.uuid).textValue)
-        assertEquals(LocalDate.of(2026, 8, 30), draft.entryDate)
-        assertEquals(occurrence.id, draft.sourceOccurrenceId)
-        assertEquals("Mapped from automation", draft.sourceExplanation)
-
-        val entryId = links.fulfillTrackPrompt(occurrence.id, draft.copy(sourceExplanation = ""))
-        val entry = requireNotNull(database.trackDao().getEntry(entryId))
-        assertEquals(occurrence.id, entry.sourceOccurrenceId)
-        assertEquals("Mapped from automation", entry.sourceExplanation)
-        assertEquals(entryId, requireNotNull(database.linkDao().getTriggerOccurrence(occurrence.id)).fulfilledEntryId)
-        assertEquals("Mapped prompt title", requireNotNull(tracks.projection(trackId)).entries.single().value(title.id)?.textValue)
-
-        assertTrue(runCatching { links.fulfillTrackPrompt(occurrence.id, draft) }.exceptionOrNull() is IllegalArgumentException)
-        assertEquals(1, requireNotNull(tracks.projection(trackId)).entries.size)
-    }
-
-    @Test
-    fun promptWorkflowRejectsMissingDismissedWrongTypeAndArchivedTargetsAtomically() = runBlocking {
-        assertTrue(runCatching { links.trackPromptDraft(999_999) }.exceptionOrNull() is IllegalStateException)
-        assertTrue(
-            runCatching { links.fulfillTrackPrompt(999_999, TrackEntryDraft(TestClock.today(), emptyMap())) }
-                .exceptionOrNull() is IllegalStateException,
-        )
-
-        val trackId = tracks.create(textTrack().copy(name = "Prompt rejection"))
-        val title = requireNotNull(tracks.projection(trackId)).primaryField
-        val dismissed = insertPromptOccurrence(trackId, title.id, dismissedAtMillis = 50)
-        assertTrue(runCatching { links.trackPromptDraft(dismissed.id) }.exceptionOrNull() is IllegalArgumentException)
-
-        val wrongType = insertPromptOccurrence(trackId, title.id, action = "OpenApp")
-        assertTrue(runCatching { links.trackPromptDraft(wrongType.id) }.exceptionOrNull() is IllegalArgumentException)
-        assertTrue(
-            runCatching { links.fulfillTrackPrompt(wrongType.id, titleDraft(title.uuid, "Wrong type")) }
-                .exceptionOrNull() is IllegalArgumentException,
-        )
-
-        assertEntryConflict(
-            TrackEntryConflictKind.ProvenanceChanged,
-            runCatching { tracks.addPromptEntry(trackId, titleDraft(title.uuid, "No occurrence")) }.exceptionOrNull(),
-        )
-        assertEntryConflict(
-            TrackEntryConflictKind.ProvenanceChanged,
-            runCatching {
-                tracks.addPromptEntry(
-                    trackId,
-                    titleDraft(title.uuid, "Missing occurrence").copy(sourceOccurrenceId = 888_888),
-                )
-            }.exceptionOrNull(),
-        )
-
-        val archived = insertPromptOccurrence(trackId, title.id)
-        tracks.setArchived(trackId, true)
-        assertEntryConflict(
-            TrackEntryConflictKind.FormChanged,
-            runCatching { links.fulfillTrackPrompt(archived.id, titleDraft(title.uuid, "Archived")) }.exceptionOrNull(),
-        )
-        assertNull(requireNotNull(database.linkDao().getTriggerOccurrence(archived.id)).fulfilledEntryId)
-        assertTrue(requireNotNull(tracks.projection(trackId)).entries.isEmpty())
-    }
-
-    private suspend fun attachOccurrences(trackId: Long, entryId: Long, count: Int): List<TriggerOccurrenceEntity> {
-        val ruleId = database.linkDao().insertTriggerRule(
-            TriggerRuleEntity(
-                uuid = "rule-${fixtureIds.incrementAndGet()}",
-                name = "Prompt",
-                sourceType = "Track",
-                sourceEntityId = trackId,
-                outcome = "Completed",
-                targetType = "Track",
-                targetEntityId = trackId,
-                delayMinutes = 0,
-                quietStartMinutes = null,
-                quietEndMinutes = null,
-                action = "PromptTrackEntry",
-                notificationEnabled = false,
-                conditionMode = "MatchAll",
-                enabled = false,
-                createdAtMillis = 10,
-                updatedAtMillis = 10,
-            ),
-        )
-        return (0 until count).map { index ->
-            val id = database.linkDao().upsertTriggerOccurrence(
-                TriggerOccurrenceEntity(
-                    triggerRuleId = ruleId,
-                    sourceEventId = "event-$index-${fixtureIds.incrementAndGet()}",
-                    availableAtMillis = 100L + index,
-                    deliveredAtMillis = 200L + index,
-                    dismissedAtMillis = null,
-                    remindAtMillis = 300L + index,
-                    fulfilledEntryId = entryId,
-                    sourceSnapshot = "{\"index\":$index}",
-                ),
-            )
-            requireNotNull(database.linkDao().getTriggerOccurrence(id))
-        }
-    }
-
-    private suspend fun insertPromptOccurrence(
-        targetTrackId: Long,
-        mappedFieldId: Long,
-        action: String = "PromptTrackEntry",
-        dismissedAtMillis: Long? = null,
-    ): TriggerOccurrenceEntity {
-        val ruleId = database.linkDao().insertTriggerRule(
-            TriggerRuleEntity(
-                uuid = "prompt-rule-${fixtureIds.incrementAndGet()}",
-                name = "Mapped prompt",
-                sourceType = "Track",
-                sourceEntityId = targetTrackId,
-                outcome = "Completed",
-                targetType = "Track",
-                targetEntityId = targetTrackId,
-                delayMinutes = 0,
-                quietStartMinutes = null,
-                quietEndMinutes = null,
-                action = action,
-                notificationEnabled = false,
-                conditionMode = "MatchAll",
-                enabled = true,
-                createdAtMillis = 10,
-                updatedAtMillis = 10,
-            ),
-        )
-        database.linkDao().insertTriggerMapping(
-            TriggerFieldMappingEntity(
-                triggerRuleId = ruleId,
-                targetFieldId = mappedFieldId,
-                sourceProperty = "Title",
-                constantText = null,
-                constantNumber = null,
-                constantUnitId = null,
-                constantDateEpochDay = null,
-                constantBoolean = null,
-                constantChoiceOptionId = null,
-                constantScale = null,
-            ),
-        )
-        val occurrenceId = database.linkDao().upsertTriggerOccurrence(
-            TriggerOccurrenceEntity(
-                triggerRuleId = ruleId,
-                sourceEventId = "prompt-event-${fixtureIds.incrementAndGet()}",
-                availableAtMillis = 100,
-                deliveredAtMillis = 110,
-                dismissedAtMillis = dismissedAtMillis,
-                remindAtMillis = null,
-                fulfilledEntryId = null,
-                sourceSnapshot = """{"version":1,"title":"Mapped prompt title","name":"Mapped name","notes":"Mapped notes","numericValue":null,"unit":"","outcome":"Completed","eventDate":"2026-08-30","explanation":"Mapped from automation"}""",
-            ),
-        )
-        return requireNotNull(database.linkDao().getTriggerOccurrence(occurrenceId))
-    }
-
-    private fun textTrack() = TrackDraft(
+       private fun textTrack() = TrackDraft(
         name = "Entry integrity",
         fields = listOf(
             TrackFieldDraft("Title", TrackFieldType.ShortText, required = true, primary = true),

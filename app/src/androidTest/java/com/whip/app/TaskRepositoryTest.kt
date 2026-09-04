@@ -7,23 +7,14 @@ import com.whip.app.core.WhipClock
 import com.whip.app.core.UuidWhipIdGenerator
 import com.whip.app.data.RoomTrackRepository
 import com.whip.app.data.RoomGoalRepository
-import com.whip.app.data.RoomLinkRepository
 import com.whip.app.data.RoomMeasurementRepository
 import com.whip.app.data.RoomTaskRepository
-import com.whip.app.data.LinkRuleConditionEntity
-import com.whip.app.data.TriggerFieldMappingEntity
-import com.whip.app.data.TriggerOccurrenceEntity
-import com.whip.app.data.TriggerRuleConditionEntity
 import com.whip.app.data.WhipDatabase
-import com.whip.app.data.TriggerRuleEntity
 import com.whip.app.data.TaskBulkEdit
 import com.whip.app.domain.OccurrenceState
 import com.whip.app.domain.GoalDraft
 import com.whip.app.domain.GoalAggregation
 import com.whip.app.domain.GoalType
-import com.whip.app.domain.LinkRuleDraft
-import com.whip.app.domain.LinkSourceMeasurement
-import com.whip.app.domain.LinkSourceType
 import com.whip.app.domain.RecurrenceRule
 import com.whip.app.domain.RecurrenceEnd
 import com.whip.app.domain.RecurrenceEngine
@@ -322,26 +313,6 @@ class TaskRepositoryTest {
         val oldTask = requireNotNull(repository.getTask(oldTaskId))
         repository.complete(item(oldTask, monday))
         repository.skip(item(oldTask, monday.plusDays(1)))
-        database.linkDao().insertTriggerRule(
-            TriggerRuleEntity(
-                uuid = "task-trigger",
-                name = "Continue after recurring task",
-                sourceType = "Task",
-                sourceEntityId = oldTaskId,
-                outcome = "Completed",
-                targetType = "Habit",
-                targetEntityId = 99,
-                delayMinutes = 0,
-                quietStartMinutes = null,
-                quietEndMinutes = null,
-                action = "PromptHabit",
-                notificationEnabled = false,
-                conditionMode = "MatchAll",
-                enabled = true,
-                createdAtMillis = 1,
-                updatedAtMillis = 1,
-            ),
-        )
         val boundary = monday.plusDays(2)
         val futureDraft = recurringDraft(autoComplete = false).copy(
             title = "Changed future",
@@ -363,9 +334,6 @@ class TaskRepositoryTest {
         assertEquals("Changed future", future.title)
         assertEquals(boundary, future.recurrence?.startDate)
         assertEquals(listOf("New future step"), future.steps.map { it.title })
-        val triggers = database.linkDao().getTriggerRules()
-        assertEquals(setOf(oldTaskId, futureTaskId), triggers.map { it.sourceEntityId }.toSet())
-        assertTrue(triggers.any { it.sourceEntityId == futureTaskId && "future series" in it.name })
     }
 
     @Test
@@ -471,125 +439,7 @@ class TaskRepositoryTest {
         assertTrue(future.inbox)
     }
 
-    @Test
-    fun futureSeriesRetainsSubtaskTriggerIdentityAndItsConditions() = runBlocking {
-        val oldTaskId = repository.create(recurringDraft(autoComplete = false))
-        val oldTask = requireNotNull(repository.getTask(oldTaskId))
-        val sourceStep = oldTask.steps.first()
-        val linkDao = database.linkDao()
-        val triggerId = linkDao.insertTriggerRule(
-            TriggerRuleEntity(
-                uuid = "subtask-trigger",
-                name = "Continue after first step",
-                sourceType = "Subtask",
-                sourceEntityId = oldTaskId,
-                sourceItemId = sourceStep.id,
-                outcome = "Completed",
-                targetType = "Habit",
-                targetEntityId = 99,
-                delayMinutes = 0,
-                quietStartMinutes = null,
-                quietEndMinutes = null,
-                action = "PromptHabit",
-                notificationEnabled = false,
-                conditionMode = "MatchAll",
-                enabled = true,
-                createdAtMillis = 1,
-                updatedAtMillis = 1,
-            ),
-        )
-        linkDao.insertTriggerCondition(
-            TriggerRuleConditionEntity(
-                triggerRuleId = triggerId,
-                fieldId = null,
-                entryDate = true,
-                operator = "OnOrAfter",
-                position = 0,
-                textValue = null,
-                numberValue = null,
-                secondNumberValue = null,
-                dateEpochDay = monday.toEpochDay(),
-                secondDateEpochDay = null,
-            ),
-        )
-        val measurements = RoomMeasurementRepository(database, FixedClock, UuidWhipIdGenerator)
-        val goals = RoomGoalRepository(database, measurements, FixedClock, UuidWhipIdGenerator)
-        val links = RoomLinkRepository(database, measurements, FixedClock, UuidWhipIdGenerator)
-        val boundary = monday.plusDays(2)
-        val goalId = goals.create(
-            GoalDraft(
-                name = "Retained Subtask goal",
-                type = GoalType.AccumulateTotal,
-                dimension = UnitDimension.Count,
-                unitId = "count",
-                targetMin = 1.0,
-                startDate = monday,
-                aggregation = GoalAggregation.Sum,
-            ),
-        )
-        val sourceLinkId = links.createRule(
-            LinkRuleDraft(
-                name = "First step contribution",
-                sourceType = LinkSourceType.Subtask,
-                sourceEntityId = oldTaskId,
-                sourceItemId = sourceStep.id,
-                sourceMeasurement = LinkSourceMeasurement.Completion,
-                targetGoalId = goalId,
-                retroactiveFrom = boundary.plusDays(4),
-            ),
-            commitBackfill = true,
-        )
-        linkDao.insertRuleCondition(
-            LinkRuleConditionEntity(
-                linkRuleId = sourceLinkId,
-                fieldId = null,
-                entryDate = true,
-                operator = "OnOrAfter",
-                position = 0,
-                textValue = null,
-                numberValue = null,
-                secondNumberValue = null,
-                dateEpochDay = monday.toEpochDay(),
-                secondDateEpochDay = null,
-            ),
-        )
-        val futureDraft = oldTask.toDraft().copy(
-            recurrence = requireNotNull(oldTask.recurrence).copy(startDate = boundary),
-            steps = listOf(
-                TaskStepDraft(title = "Inserted first", position = 0),
-                TaskStepDraft(
-                    id = oldTask.steps[1].id,
-                    title = oldTask.steps[1].title,
-                    position = 1,
-                ),
-                TaskStepDraft(
-                    id = oldTask.steps[0].id,
-                    title = oldTask.steps[0].title,
-                    position = 2,
-                ),
-            ),
-        )
-
-        val futureTaskId = repository.update(oldTaskId, futureDraft, boundary)
-
-        val futureTask = requireNotNull(repository.getTask(futureTaskId))
-        val copied = linkDao.getTriggerRules().single { it.sourceEntityId == futureTaskId }
-        assertEquals(futureTask.steps.single { it.title == sourceStep.title }.id, copied.sourceItemId)
-        assertTrue(copied.sourceItemId != sourceStep.id)
-        assertEquals(
-            linkDao.getTriggerConditions(triggerId).map { it.copy(id = 0, triggerRuleId = 0) },
-            linkDao.getTriggerConditions(copied.id).map { it.copy(id = 0, triggerRuleId = 0) },
-        )
-        val copiedLink = linkDao.getRules().single { it.sourceEntityId == futureTaskId }
-        assertEquals(futureTask.steps.single { it.title == sourceStep.title }.id, copiedLink.sourceItemId)
-        assertEquals(boundary.plusDays(4).toEpochDay(), copiedLink.retroactiveFromEpochDay)
-        assertEquals(
-            linkDao.getRuleConditions(sourceLinkId).map { it.copy(id = 0, linkRuleId = 0) },
-            linkDao.getRuleConditions(copiedLink.id).map { it.copy(id = 0, linkRuleId = 0) },
-        )
-    }
-
-    @Test
+     @Test
     fun futureSplitMigratesRescheduledBoundaryAndItsSubtaskStateExactlyOnce() = runBlocking {
         val oldTaskId = repository.create(recurringDraft(autoComplete = false))
         val oldTask = requireNotNull(repository.getTask(oldTaskId))
@@ -734,132 +584,7 @@ class TaskRepositoryTest {
         assertEquals(5, historicalSlots + requireNotNull(repository.getTask(futureTaskId)).recurrence!!.occurrenceCount!!)
     }
 
-    @Test
-    fun futureSeriesCopiesTrackMappingsAndRetargetsInboundAutomationWithoutLosingHistory() = runBlocking {
-        val oldTaskId = repository.create(recurringDraft(autoComplete = false))
-        val oldTask = requireNotNull(repository.getTask(oldTaskId))
-        val trackRepository = RoomTrackRepository(database, FixedClock, UuidWhipIdGenerator)
-        val trackId = trackRepository.create(
-            TrackDraft(
-                name = "Automation target",
-                fields = listOf(
-                    TrackFieldDraft(
-                        name = "Task",
-                        type = TrackFieldType.ShortText,
-                        required = true,
-                        primary = true,
-                    ),
-                ),
-            ),
-        )
-        val targetFieldId = requireNotNull(trackRepository.projection(trackId)).fields.single().id
-        val linkDao = database.linkDao()
-        val outboundId = linkDao.insertTriggerRule(
-            TriggerRuleEntity(
-                uuid = "task-track-trigger",
-                name = "Record completed task",
-                sourceType = "Task",
-                sourceEntityId = oldTaskId,
-                outcome = "Completed",
-                targetType = "Track",
-                targetEntityId = trackId,
-                delayMinutes = 0,
-                quietStartMinutes = null,
-                quietEndMinutes = null,
-                action = "PromptTrackEntry",
-                notificationEnabled = false,
-                conditionMode = "MatchAll",
-                enabled = true,
-                createdAtMillis = 1,
-                updatedAtMillis = 1,
-            ),
-        )
-        linkDao.insertTriggerMapping(
-            TriggerFieldMappingEntity(
-                triggerRuleId = outboundId,
-                targetFieldId = targetFieldId,
-                sourceProperty = "Title",
-                constantText = null,
-                constantNumber = null,
-                constantUnitId = null,
-                constantDateEpochDay = null,
-                constantBoolean = null,
-                constantChoiceOptionId = null,
-                constantScale = null,
-            ),
-        )
-        val inboundId = linkDao.insertTriggerRule(
-            TriggerRuleEntity(
-                uuid = "track-task-trigger",
-                name = "Prompt recurring task",
-                sourceType = "Track",
-                sourceEntityId = trackId,
-                outcome = "Recorded",
-                targetType = "Task",
-                targetEntityId = oldTaskId,
-                delayMinutes = 0,
-                quietStartMinutes = null,
-                quietEndMinutes = null,
-                action = "PromptTask",
-                notificationEnabled = true,
-                conditionMode = "MatchAll",
-                enabled = true,
-                createdAtMillis = 1,
-                updatedAtMillis = 1,
-            ),
-        )
-        linkDao.insertTriggerCondition(
-            TriggerRuleConditionEntity(
-                triggerRuleId = inboundId,
-                fieldId = targetFieldId,
-                entryDate = false,
-                operator = "Contains",
-                position = 0,
-                textValue = "important",
-                numberValue = null,
-                secondNumberValue = null,
-                dateEpochDay = null,
-                secondDateEpochDay = null,
-            ),
-        )
-        val occurrenceId = linkDao.upsertTriggerOccurrence(
-            TriggerOccurrenceEntity(
-                triggerRuleId = inboundId,
-                sourceEventId = "track:$trackId:entry:1",
-                availableAtMillis = 10,
-                deliveredAtMillis = 11,
-                dismissedAtMillis = null,
-                remindAtMillis = null,
-                fulfilledEntryId = null,
-                sourceSnapshot = "{}",
-            ),
-        )
-        val boundary = monday.plusDays(2)
-
-        val futureTaskId = repository.update(
-            oldTaskId,
-            oldTask.toDraft().copy(
-                recurrence = requireNotNull(oldTask.recurrence).copy(startDate = boundary),
-            ),
-            boundary,
-        )
-
-        val triggers = linkDao.getTriggerRules()
-        val copiedOutbound = triggers.single {
-            it.sourceEntityId == futureTaskId && it.targetEntityId == trackId
-        }
-        assertEquals(
-            linkDao.getTriggerMappings(outboundId).map { it.copy(id = 0, triggerRuleId = 0) },
-            linkDao.getTriggerMappings(copiedOutbound.id).map { it.copy(id = 0, triggerRuleId = 0) },
-        )
-        val retargetedInbound = requireNotNull(linkDao.getTriggerRule(inboundId))
-        assertEquals(futureTaskId, retargetedInbound.targetEntityId)
-        assertEquals(1, triggers.count { it.uuid == "track-task-trigger" })
-        assertEquals(1, linkDao.getTriggerConditions(inboundId).size)
-        assertEquals(occurrenceId, linkDao.getTriggerOccurrences(inboundId).single().id)
-    }
-
-    @Test
+     @Test
     fun powerTaskFieldsPersistAndUpdateTogether() = runBlocking {
         val draft = TaskDraft(
             title = "Plan launch",

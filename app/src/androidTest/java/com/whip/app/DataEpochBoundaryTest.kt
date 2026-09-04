@@ -19,8 +19,8 @@ class DataEpochBoundaryTest {
         val name = "test-fresh-data-epoch-${System.nanoTime()}"
         val base = File(context.noBackupFilesDir, name)
         try {
-            assertEquals(DataEpochState.Current(5), DataEpochGate(context, name) { false }.evaluate())
-            assertEquals("current:5", base.readText())
+            assertEquals(DataEpochState.Current(6), DataEpochGate(context, name) { false }.evaluate())
+            assertEquals("current:6", base.readText())
         } finally {
             base.delete()
             File(base.path + ".bak").delete()
@@ -34,9 +34,9 @@ class DataEpochBoundaryTest {
         try {
             assertEquals(DataEpochState.ResetRequired, gate.evaluate())
             gate.markResetInProgress()
-            assertEquals(DataEpochState.ResetInProgress(5), DataEpochGate(context, name) { true }.evaluate())
+            assertEquals(DataEpochState.ResetInProgress(6), DataEpochGate(context, name) { true }.evaluate())
             gate.markCurrent()
-            assertEquals(DataEpochState.Current(5), DataEpochGate(context, name) { true }.evaluate())
+            assertEquals(DataEpochState.Current(6), DataEpochGate(context, name) { true }.evaluate())
         } finally {
             base.delete()
             File(base.path + ".bak").delete()

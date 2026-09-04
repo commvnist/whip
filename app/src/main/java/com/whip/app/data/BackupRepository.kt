@@ -201,7 +201,6 @@ class RoomBackupRepository(
             val db = database.openHelper.writableDatabase
             val idMaps = mutableMapOf<String, MutableMap<Long, Long>>()
             val areaIdMap = mutableMapOf<String, String>()
-            val pendingEntryOccurrenceLinks = mutableListOf<Pair<Long, Long>>()
             var imported = 0
             var skipped = 0
             EXPORT_TABLES.forEach { table ->
@@ -243,11 +242,6 @@ class RoomBackupRepository(
                         continue
                     }
                     val values = row.toContentValues()
-                    val sourceOccurrenceId = if (table == "track_entries") {
-                        values.getAsLong("sourceOccurrenceId")?.also { values.putNull("sourceOccurrenceId") }
-                    } else {
-                        null
-                    }
                     if (table in setOf("tasks", "habits", "goals", "tracks")) {
                         values.getAsString("areaId")?.let { sourceId -> values.put("areaId", areaIdMap[sourceId] ?: sourceId) }
                     }
@@ -256,11 +250,6 @@ class RoomBackupRepository(
                     if (metadata.autoNumericId) values.remove("id")
                     val result = db.insert(safeIdentifier(table), SQLiteDatabase.CONFLICT_IGNORE, values)
                     if (result == -1L) {
-                        if (metadata.autoNumericId && sourceNumericId != null) {
-                            existingNaturalChildId(db, table, values)?.let { targetId ->
-                                idMaps.getOrPut(table, ::mutableMapOf)[sourceNumericId] = targetId
-                            }
-                        }
                         skipped++
                     } else {
                         imported++
@@ -268,28 +257,7 @@ class RoomBackupRepository(
                         if (metadata.autoNumericId && sourceNumericId != null) {
                             idMaps.getOrPut(table, ::mutableMapOf)[sourceNumericId] = result
                         }
-                        if (table == "track_entries" && sourceOccurrenceId != null) {
-                            pendingEntryOccurrenceLinks += result to sourceOccurrenceId
-                        }
                     }
-                }
-            }
-            val sourceOccurrences = tables.getJSONArray("trigger_occurrences")
-            pendingEntryOccurrenceLinks.forEach { (entryId, sourceOccurrenceId) ->
-                val targetOccurrenceId = idMaps["trigger_occurrences"]?.get(sourceOccurrenceId)
-                    ?: sourceOccurrences.findObjectByNumericId(sourceOccurrenceId)?.let { source ->
-                        val sourceRuleId = source.optLongOrNull("triggerRuleId") ?: return@let null
-                        val targetRuleId = idMaps["trigger_rules"]?.get(sourceRuleId) ?: sourceRuleId
-                        db.query(
-                            "SELECT id FROM trigger_occurrences WHERE triggerRuleId = ? AND sourceEventId = ? LIMIT 1",
-                            arrayOf(targetRuleId.toString(), source.optString("sourceEventId")),
-                        ).use { cursor -> if (cursor.moveToFirst()) cursor.getLong(0) else null }
-                    }
-                targetOccurrenceId?.let { occurrenceId ->
-                    db.execSQL(
-                        "UPDATE track_entries SET sourceOccurrenceId = ? WHERE id = ?",
-                        arrayOf(occurrenceId, entryId),
-                    )
                 }
             }
             BackupMergeSummary(imported, skipped)
@@ -861,12 +829,6 @@ class RoomBackupRepository(
             }
         }
 
-        tables.getJSONArray("trigger_field_mappings").forEachObject { row ->
-            val unitId = row.nonBlankString("constantUnitId") ?: return@forEachObject
-            val dimension = trackFieldDimensions[row.getLong("targetFieldId")]
-                ?: error("Backup automation constant references a Field without a compatible unit")
-            requireCompatibleBackupUnit(units, unitId, dimension, "automation constant")
-        }
     }
 
     private fun JSONObject.requireOptionalBackupUnit(
@@ -1200,14 +1162,6 @@ private fun JSONObject.stableMergeKey(metadata: MergeTableMetadata): Pair<String
 private fun JSONObject.optLongOrNull(key: String): Long? =
     if (!has(key) || isNull(key) || opt(key) !is Number) null else optLong(key)
 
-private fun JSONArray.findObjectByNumericId(id: Long): JSONObject? {
-    for (index in 0 until length()) {
-        val candidate = optJSONObject(index) ?: continue
-        if (candidate.optLongOrNull("id") == id) return candidate
-    }
-    return null
-}
-
 private fun remapForeignKeys(
     values: ContentValues,
     metadata: MergeTableMetadata,
@@ -1219,25 +1173,6 @@ private fun remapForeignKeys(
     }
 }
 
-private fun existingNaturalChildId(
-    db: androidx.sqlite.db.SupportSQLiteDatabase,
-    table: String,
-    values: ContentValues,
-): Long? {
-    val (parentColumn, positionColumn) = when (table) {
-        "link_rule_conditions" -> "linkRuleId" to "position"
-        "trigger_rule_conditions" -> "triggerRuleId" to "position"
-        "trigger_field_mappings" -> "triggerRuleId" to "targetFieldId"
-        else -> return null
-    }
-    val parent = values.getAsLong(parentColumn) ?: return null
-    val position = values.getAsLong(positionColumn) ?: return null
-    return db.query(
-        "SELECT id FROM ${safeIdentifier(table)} WHERE ${safeIdentifier(parentColumn)} = ? AND ${safeIdentifier(positionColumn)} = ? LIMIT 1",
-        arrayOf(parent.toString(), position.toString()),
-    ).use { cursor -> if (cursor.moveToFirst()) cursor.getLong(0) else null }
-}
-
 private fun remapPolymorphicReferences(
     table: String,
     values: ContentValues,
@@ -1246,14 +1181,6 @@ private fun remapPolymorphicReferences(
     fun remap(column: String, parent: String) {
         val old = values.getAsLong(column) ?: return
         idMaps[parent]?.get(old)?.let { values.put(column, it) }
-    }
-    fun sourceParent(type: String?): String? = when (type) {
-        "Task", "Subtask" -> "tasks"
-        "Habit" -> "habits"
-        "Workout" -> "workout_sessions"
-        "Exercise" -> "exercises"
-        "Track" -> "tracks"
-        else -> null
     }
     fun remapCsv(column: String, parent: String) {
         val original = values.getAsString(column) ?: return
@@ -1284,20 +1211,6 @@ private fun remapPolymorphicReferences(
             remap("exerciseId", "exercises")
         }
         "graph_presets" -> remapCsv("exerciseIdsCsv", "exercises")
-        "link_rules" -> {
-            sourceParent(values.getAsString("sourceType"))?.let { remap("sourceEntityId", it) }
-            if (values.getAsString("sourceType") == "Subtask") remap("sourceItemId", "task_steps")
-        }
-        "contributions" -> sourceParent(values.getAsString("sourceType"))?.let { remap("sourceEntityId", it) }
-        "trigger_rules" -> {
-            sourceParent(values.getAsString("sourceType"))?.let { remap("sourceEntityId", it) }
-            if (values.getAsString("sourceType") == "Subtask") remap("sourceItemId", "task_steps")
-            when (values.getAsString("targetType")) {
-                "Habit" -> remap("targetEntityId", "habits")
-                "Task" -> remap("targetEntityId", "tasks")
-                "Track" -> remap("targetEntityId", "tracks")
-            }
-        }
     }
 }
 
@@ -1340,8 +1253,8 @@ private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
 
 private const val BACKUP_FORMAT = "whip-backup"
 internal const val ENVELOPE_VERSION = 3
-internal const val CURRENT_DATA_MODEL_EPOCH = 5
-internal const val BACKUP_DATABASE_VERSION = 22
+internal const val CURRENT_DATA_MODEL_EPOCH = 6
+internal const val BACKUP_DATABASE_VERSION = 23
 
 internal fun validateBackupContract(
     envelopeVersion: Int,
@@ -1378,7 +1291,6 @@ private val EXPORT_TABLES = listOf(
     "habit_checklist_states", "habit_pauses", "habit_skips", "goals", "goal_milestones",
     "goal_completion_snapshots", "goal_elapsed_reset_events",
     "tracks", "track_fields", "track_choice_options", "track_entries", "track_values",
-    "link_rules", "link_rule_conditions", "link_condition_choices", "contributions", "trigger_rules", "trigger_rule_conditions", "trigger_condition_choices", "trigger_field_mappings", "trigger_occurrences",
 )
 
 private fun checksumPayload(tables: JSONObject, settings: JSONObject?): String =

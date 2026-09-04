@@ -443,13 +443,11 @@ class RoomGoalRepository(
         }
         val owned = when (MeasurementSourceType.valueOf(entry.sourceType)) {
             MeasurementSourceType.Goal -> entry.sourceId == goal.uuid
-            // Early Goal versions stored authored progress without provenance.
+            // Manually authored Goal progress has no external source identity.
             MeasurementSourceType.Manual -> entry.sourceId == null
             else -> false
         }
         require(owned) { "Linked or externally recorded progress must be edited at its source" }
-        val linked = database.linkDao().observeContributionsSnapshot().any { it.measurementEntryId == entry.id }
-        require(!linked) { "Exclude a linked contribution from the link history instead" }
     }
 
     private suspend fun insertClosureSnapshot(current: GoalEntity, status: GoalStatus, now: Long) {

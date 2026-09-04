@@ -210,8 +210,6 @@ class TrackCsvImportIntegrityTest {
                 uuid = collisionUuid,
                 trackId = trackId,
                 entryEpochDay = CsvClock.today().minusDays(1).toEpochDay(),
-                sourceOccurrenceId = null,
-                sourceExplanation = "pre-existing without receipt",
                 createdAtMillis = 1,
                 updatedAtMillis = 1,
             ),
@@ -236,7 +234,10 @@ class TrackCsvImportIntegrityTest {
             listOf("Would otherwise write", "Forged row"),
         )
         val forged = batch.drafts.toMutableList().also { drafts ->
-            drafts[1] = drafts[1].copy(sourceOccurrenceId = 77, sourceExplanation = "forged automation")
+            val titleUuid = batch.preparation.form.fields.single { it.primary }.uuid
+            drafts[1] = drafts[1].copy(
+                values = mapOf(titleUuid to TrackValueDraft(textValue = "Forged", booleanValue = true)),
+            )
         }
 
         assertCsvConflict(

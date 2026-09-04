@@ -39,13 +39,6 @@ class AreaDeletionCoordinator internal constructor(
                 }
                 committedSummary = summary
                 try {
-                    domainDeletionCoordinator.rebuildLinksAfterCommittedDeletion()
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (_: Exception) {
-                    warnings += "Link reconciliation did not finish; the Area deletion was committed and will be reconciled later."
-                }
-                try {
                     onDeletionCommitted(summary)
                 } catch (cancelled: CancellationException) {
                     throw cancelled

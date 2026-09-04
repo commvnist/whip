@@ -2213,14 +2213,6 @@ internal fun GoalPermanentDeleteDialog(
                         "• ${reviewed.elapsedResetEventCount} timer reset history event" +
                             if (reviewed.elapsedResetEventCount == 1) "" else "s",
                     )
-                    if (reviewed.linkRuleCount > 0) Text(
-                        "• ${reviewed.linkRuleCount} linked automation rule" +
-                            if (reviewed.linkRuleCount == 1) "" else "s",
-                    )
-                    if (reviewed.contributionCount > 0) Text(
-                        "• ${reviewed.contributionCount} linked contribution record" +
-                            if (reviewed.contributionCount == 1) "" else "s",
-                    )
                     Text(
                         "Export a backup first if you may need this history.",
                         style = MaterialTheme.typography.bodySmall,

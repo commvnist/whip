@@ -4,7 +4,7 @@ import android.content.Context
 import android.util.AtomicFile
 import java.io.File
 
-const val CURRENT_DATA_EPOCH = 5
+const val CURRENT_DATA_EPOCH = 6
 
 sealed interface DataEpochState {
     data class Current(val epoch: Int) : DataEpochState
@@ -67,7 +67,6 @@ object DataEpochPolicy {
         "whip_reminder_runtime",
         "notification_action_receipts",
         "reminder-deletion-cleanup",
-        "automation_prompt_scheduler",
     )
 }
 

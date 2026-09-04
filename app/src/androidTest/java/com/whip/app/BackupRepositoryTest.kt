@@ -17,13 +17,10 @@ import com.whip.app.data.RoomBackupRepository
 import com.whip.app.data.RoomGoalRepository
 import com.whip.app.data.RoomGymRepository
 import com.whip.app.data.RoomHabitRepository
-import com.whip.app.data.RoomLinkRepository
 import com.whip.app.data.RoomMeasurementRepository
 import com.whip.app.data.RoomRoutineRepository
 import com.whip.app.data.RoomTaskRepository
 import com.whip.app.data.RoomTrackRepository
-import com.whip.app.data.ContributionEntity
-import com.whip.app.data.TriggerOccurrenceEntity
 import com.whip.app.data.TrainingMaxDecisionEntity
 import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.ExerciseDraft
@@ -39,9 +36,6 @@ import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.HabitChecklistItemDraft
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.HabitTimerStartRequest
-import com.whip.app.domain.LinkRuleDraft
-import com.whip.app.domain.LinkSourceMeasurement
-import com.whip.app.domain.LinkSourceType
 import com.whip.app.domain.MeasurementEntryStatus
 import com.whip.app.domain.MeasurementSourceType
 import com.whip.app.domain.MeasurementValueKind
@@ -71,11 +65,6 @@ import com.whip.app.domain.TrackFieldDraft
 import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.TrackValueDraft
 import com.whip.app.domain.trackCsvPayloadFingerprint
-import com.whip.app.domain.TriggerAction
-import com.whip.app.domain.TriggerFieldMapping
-import com.whip.app.domain.TriggerRuleDraft
-import com.whip.app.domain.TriggerSourceProperty
-import com.whip.app.domain.TriggerTargetType
 import com.whip.app.domain.WorkoutSetDraft
 import com.whip.app.domain.WorkoutSetClassification
 import com.whip.app.domain.outcomeForPeriod
@@ -107,7 +96,6 @@ class BackupRepositoryTest {
     private lateinit var goals: RoomGoalRepository
     private lateinit var gym: RoomGymRepository
     private lateinit var routines: RoomRoutineRepository
-    private lateinit var links: RoomLinkRepository
     private lateinit var measurements: RoomMeasurementRepository
     private lateinit var tracks: RoomTrackRepository
     private lateinit var backups: RoomBackupRepository
@@ -127,7 +115,6 @@ class BackupRepositoryTest {
         goals = RoomGoalRepository(database, measurements, FixedClock, ids)
         gym = RoomGymRepository(database, FixedClock, ids)
         routines = RoomRoutineRepository(database, FixedClock, ids)
-        links = RoomLinkRepository(database, measurements, FixedClock, ids)
         settings = FakeSettingsRepository(
             AppSettings(
                 themeMode = AppThemeMode.Dark,
@@ -179,7 +166,7 @@ class BackupRepositoryTest {
         val recovery = JSONObject(backups.exportRecoveryBackup())
         val portableSession = portable.getJSONObject("tables").getJSONArray("habit_timer_sessions").getJSONObject(0)
         val recoverySession = recovery.getJSONObject("tables").getJSONArray("habit_timer_sessions").getJSONObject(0)
-        assertEquals(22, portable.getInt("databaseVersion"))
+        assertEquals(23, portable.getInt("databaseVersion"))
         assertEquals("ReviewRequired", portableSession.getString("state"))
         assertTrue(portableSession.isNull("anchorElapsedRealtimeMillis"))
         assertTrue(portableSession.isNull("anchorBootId"))
@@ -327,8 +314,8 @@ class BackupRepositoryTest {
         val json = backups.exportBackup()
         val preview = backups.previewBackup(json)
         assertEquals(3, preview.envelopeVersion)
-        assertEquals(5, preview.dataModelEpoch)
-        assertEquals(22, preview.databaseVersion)
+        assertEquals(6, preview.dataModelEpoch)
+        assertEquals(23, preview.databaseVersion)
         assertTrue(preview.checksumValid)
         assertTrue(preview.settingsIncluded)
         assertTrue(preview.totalRecords >= 3)
@@ -376,7 +363,7 @@ class BackupRepositoryTest {
         val json = backups.exportBackup()
         val root = JSONObject(json)
 
-        assertEquals(22, root.getInt("databaseVersion"))
+        assertEquals(23, root.getInt("databaseVersion"))
         assertEquals(false, root.getJSONObject("tables").has("track_csv_import_receipts"))
         assertEquals(1, csvReceiptCount(committed.batchUuid))
 
@@ -635,63 +622,7 @@ class BackupRepositoryTest {
         assertEquals(setOf(remappedExercise.id), remappedSession.invalidatedMainExerciseIds)
     }
 
-    @Test fun mergeRemapsBothSidesOfFulfilledTrackPromptRelationship() = runBlocking {
-        val trackId = tracks.create(
-            TrackDraft("Imported Books", fields = listOf(TrackFieldDraft("Title", TrackFieldType.ShortText, required = true, primary = true))),
-        )
-        val track = requireNotNull(tracks.projection(trackId))
-        val habitId = habits.create(HabitDraft("Imported Reading Habit", trackingMode = HabitTrackingMode.CheckOff, startDate = FixedClock.today()))
-        val triggerRuleId = links.createTrigger(
-            TriggerRuleDraft(
-                name = "Imported Capture",
-                sourceType = LinkSourceType.Habit,
-                sourceEntityId = habitId,
-                targetType = TriggerTargetType.Track,
-                targetEntityId = trackId,
-                action = TriggerAction.PromptTrackEntry,
-                mappings = listOf(TriggerFieldMapping(track.primaryField.id, TriggerSourceProperty.Name)),
-            ),
-        )
-        val sourceOccurrenceId = database.linkDao().upsertTriggerOccurrence(
-            TriggerOccurrenceEntity(
-                triggerRuleId = triggerRuleId,
-                sourceEventId = "connected-habit-event",
-                availableAtMillis = FixedClock.now().toEpochMilli(),
-                deliveredAtMillis = FixedClock.now().toEpochMilli(),
-                dismissedAtMillis = null,
-                remindAtMillis = null,
-                fulfilledEntryId = null,
-                sourceSnapshot = "{}",
-            ),
-        )
-        val sourceEntryId = links.fulfillTrackPrompt(
-            sourceOccurrenceId,
-            TrackEntryDraft(
-                entryDate = FixedClock.today(),
-                values = mapOf(track.primaryField.uuid to TrackValueDraft(textValue = "Imported Reading Habit")),
-                sourceExplanation = "Preserved fulfilled prompt",
-            ),
-        )
-        val portable = backups.exportBackup()
-
-        backups.deleteAllData()
-        tracks.create(TrackDraft("Local Track", fields = listOf(TrackFieldDraft("Name", TrackFieldType.ShortText, required = true, primary = true))))
-        habits.create(HabitDraft("Local Habit", startDate = FixedClock.today()))
-        backups.mergeBackup(portable)
-
-        val importedTrack = tracks.tracks.first().first { it.name == "Imported Books" }
-        val importedEntry = requireNotNull(tracks.projection(importedTrack.id)).entries.single().entry
-        val importedOccurrence = links.triggerOccurrences.first().single()
-        assertEquals(importedOccurrence.id, importedEntry.sourceOccurrenceId)
-        assertEquals(importedEntry.id, importedOccurrence.fulfilledEntryId)
-        assertEquals(false, links.triggerRules.first().single().enabled)
-
-        val counts = listOf(tracks.tracks.first().size, tracks.entries.first().size, links.triggerRules.first().size, links.triggerOccurrences.first().size)
-        backups.mergeBackup(portable)
-        assertEquals(counts, listOf(tracks.tracks.first().size, tracks.entries.first().size, links.triggerRules.first().size, links.triggerOccurrences.first().size))
-    }
-
-    @Test fun fullBackupRoundTripsEveryFirstClassDomainAndCrossDomainRelationship() = runBlocking {
+     @Test fun fullBackupRoundTripsEveryFirstClassDomainAndCrossDomainRelationship() = runBlocking {
         val taskId = tasks.create(
             TaskDraft(
                 title = "Prepare launch",
@@ -727,37 +658,6 @@ class BackupRepositoryTest {
             ),
         )
         goals.recordMeasurement(goalId, 4.0, note = "Manual baseline")
-        val retiredRuleId = links.createRule(
-            LinkRuleDraft(
-                name = "Water advances goal",
-                sourceType = LinkSourceType.Habit,
-                sourceEntityId = habitId,
-                sourceMeasurement = LinkSourceMeasurement.NumericValue,
-                targetGoalId = goalId,
-                retroactiveFrom = FixedClock.today(),
-            ),
-            commitBackfill = true,
-        )
-        database.linkDao().upsertContribution(
-            ContributionEntity(
-                uuid = "retired-contribution",
-                linkRuleId = retiredRuleId,
-                sourceEventId = "habit:$habitId:connected",
-                sourceType = LinkSourceType.Habit.name,
-                sourceEntityId = habitId,
-                targetGoalId = goalId,
-                measurementEntryId = null,
-                canonicalValue = 3.0,
-                localEpochDay = FixedClock.today().toEpochDay(),
-                timestampMillis = FixedClock.now().toEpochMilli(),
-                excluded = false,
-                overrideValue = null,
-                explanation = "Preserved retired contribution",
-                createdAtMillis = FixedClock.now().toEpochMilli(),
-                updatedAtMillis = FixedClock.now().toEpochMilli(),
-            ),
-        )
-
         val categoryId = gym.createCategory("Chest")
         val exerciseId = gym.createExercise(
             ExerciseDraft(name = "Flat Barbell Bench Press", categoryIds = setOf(categoryId)),
@@ -794,7 +694,7 @@ class BackupRepositoryTest {
         assertTrue(preview.checksumValid)
         listOf(
             "tasks", "task_steps", "task_occurrences", "habits", "habit_logs", "goals",
-            "measurement_entries", "link_rules", "contributions", "exercises", "exercise_categories",
+            "measurement_entries", "exercises", "exercise_categories",
             "workout_sessions", "workout_exercises", "workout_sets", "gym_routines", "routine_days",
             "routine_exercises", "routine_sets", "personal_records", "graph_presets",
             "tracks", "track_fields", "track_entries", "track_values",
@@ -809,9 +709,6 @@ class BackupRepositoryTest {
         assertEquals("Drink water", habits.habits.first().single().name)
         assertTrue(habits.logs.first().any { it.note == "Morning" })
         assertEquals("Complete 100 healthy actions", goals.goals.first().single().name)
-        assertEquals("Water advances goal", links.rules.first().single().name)
-        assertEquals(false, links.rules.first().single().enabled)
-        assertEquals(1, links.contributions.first().size)
         assertEquals("Flat Barbell Bench Press", gym.exercises.first().single().name)
         assertEquals(1, gym.sets.first().size)
         assertEquals("Push routine", routines.routines.first().single().name)

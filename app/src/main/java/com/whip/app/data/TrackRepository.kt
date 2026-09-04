@@ -32,7 +32,6 @@ import com.whip.app.domain.TrackEntryEditSnapshot
 import com.whip.app.domain.TrackEntryFormBoundary
 import com.whip.app.domain.TrackEntryFormSnapshot
 import com.whip.app.domain.TrackEntryFieldContract
-import com.whip.app.domain.TrackEntryFulfillmentSnapshot
 import com.whip.app.domain.TrackEntryMutationKind
 import com.whip.app.domain.TrackEntryMutationReceipt
 import com.whip.app.domain.TrackEntryUnitContract
@@ -164,7 +163,6 @@ class RoomTrackRepository(
     },
 ) : TrackRepository {
     private val dao = database.trackDao()
-    private val linkDao = database.linkDao()
     private val areaRepository = RoomAreaRepository(database, clock, ids)
 
     override val tracks: Flow<List<Track>> = dao.observeTracks().map { rows -> rows.map(TrackEntity::toDomain) }
@@ -413,52 +411,6 @@ class RoomTrackRepository(
             .orEmpty()
         val affectedValues = (fieldValues + optionValues).distinctBy(TrackValueEntity::id).sortedBy(TrackValueEntity::id)
 
-        val linkRules = linkDao.getRules()
-        val linkConditions = linkDao.getAllRuleConditions()
-        val linkChoices = linkConditions.map(LinkRuleConditionEntity::id).takeIf { it.isNotEmpty() }
-            ?.let { linkDao.getLinkConditionChoices(it) }
-            .orEmpty()
-        val touchedLinkConditionIds = buildSet {
-            linkConditions.filterTo(mutableListOf()) { it.fieldId in removedFieldIds }
-                .mapTo(this, LinkRuleConditionEntity::id)
-            linkChoices.filter { it.optionId in removedOptionIds }
-                .mapTo(this, LinkConditionChoiceEntity::conditionId)
-        }
-        val affectedLinkConditions = linkConditions.filter { it.id in touchedLinkConditionIds }
-        val affectedLinkChoices = linkChoices.filter {
-            it.conditionId in touchedLinkConditionIds || it.optionId in removedOptionIds
-        }
-        val touchedLinkRuleIds = buildSet {
-            linkRules.filter { it.sourceFieldId in removedFieldIds }.mapTo(this, LinkRuleEntity::id)
-            affectedLinkConditions.mapTo(this, LinkRuleConditionEntity::linkRuleId)
-        }
-        val affectedLinkRules = linkRules.filter { it.id in touchedLinkRuleIds }
-
-        val triggerRules = linkDao.getTriggerRules()
-        val triggerConditions = linkDao.getAllTriggerConditions()
-        val triggerChoices = triggerConditions.map(TriggerRuleConditionEntity::id).takeIf { it.isNotEmpty() }
-            ?.let { linkDao.getTriggerConditionChoices(it) }
-            .orEmpty()
-        val triggerMappings = linkDao.getAllTriggerMappings()
-        val touchedTriggerConditionIds = buildSet {
-            triggerConditions.filter { it.fieldId in removedFieldIds }
-                .mapTo(this, TriggerRuleConditionEntity::id)
-            triggerChoices.filter { it.optionId in removedOptionIds }
-                .mapTo(this, TriggerConditionChoiceEntity::conditionId)
-        }
-        val affectedTriggerConditions = triggerConditions.filter { it.id in touchedTriggerConditionIds }
-        val affectedTriggerChoices = triggerChoices.filter {
-            it.conditionId in touchedTriggerConditionIds || it.optionId in removedOptionIds
-        }
-        val affectedTriggerMappings = triggerMappings.filter {
-            it.targetFieldId in removedFieldIds || it.constantChoiceOptionId in removedOptionIds
-        }
-        val touchedTriggerRuleIds = buildSet {
-            affectedTriggerConditions.mapTo(this, TriggerRuleConditionEntity::triggerRuleId)
-            affectedTriggerMappings.mapTo(this, TriggerFieldMappingEntity::triggerRuleId)
-        }
-        val affectedTriggerRules = triggerRules.filter { it.id in touchedTriggerRuleIds }
-
         val fieldById = definition.fields.associateBy(TrackFieldEntity::id)
         val fieldImpacts = removedFields.sortedBy(TrackFieldEntity::position).map { field ->
             TrackFieldRemovalImpact(
@@ -467,10 +419,6 @@ class RoomTrackRepository(
                 fieldName = field.name,
                 savedValueCount = affectedValues.count { it.fieldId == field.id },
                 childChoiceCount = removedOptions.count { it.fieldId == field.id },
-                connectedLinkSourceCount = affectedLinkRules.count { it.sourceFieldId == field.id },
-                connectedLinkConditionCount = affectedLinkConditions.count { it.fieldId == field.id },
-                connectedTriggerConditionCount = affectedTriggerConditions.count { it.fieldId == field.id },
-                connectedTriggerMappingCount = affectedTriggerMappings.count { it.targetFieldId == field.id },
             )
         }
         val choiceImpacts = removedOptions.sortedWith(
@@ -486,9 +434,6 @@ class RoomTrackRepository(
                 savedValueCount = affectedValues.count { it.choiceOptionId == option.id },
                 replacementOptionId = replacement?.id,
                 replacementOptionLabel = replacement?.label,
-                connectedLinkConditionCount = affectedLinkChoices.count { it.optionId == option.id },
-                connectedTriggerConditionCount = affectedTriggerChoices.count { it.optionId == option.id },
-                connectedTriggerMappingCount = affectedTriggerMappings.count { it.constantChoiceOptionId == option.id },
                 removedWithField = option.fieldId in removedFieldIds,
             )
         }
@@ -499,13 +444,6 @@ class RoomTrackRepository(
             removedOptions = removedOptions,
             choiceReplacementIds = choiceReplacementIds,
             affectedValues = affectedValues,
-            affectedLinkRules = affectedLinkRules,
-            affectedLinkConditions = affectedLinkConditions,
-            affectedLinkChoices = affectedLinkChoices,
-            affectedTriggerRules = affectedTriggerRules,
-            affectedTriggerConditions = affectedTriggerConditions,
-            affectedTriggerChoices = affectedTriggerChoices,
-            affectedTriggerMappings = affectedTriggerMappings,
         )
         val review = TrackDefinitionRemovalReview(
             trackId = definition.track.id,
@@ -520,13 +458,6 @@ class RoomTrackRepository(
             removedFieldIds = removedFieldIds,
             removedOptionIds = removedOptionIds,
             affectedValues = affectedValues,
-            affectedLinkRules = affectedLinkRules,
-            affectedLinkConditions = affectedLinkConditions,
-            affectedLinkChoices = affectedLinkChoices,
-            affectedTriggerRules = affectedTriggerRules,
-            affectedTriggerConditions = affectedTriggerConditions,
-            affectedTriggerChoices = affectedTriggerChoices,
-            affectedTriggerMappings = affectedTriggerMappings,
         )
     }
 
@@ -572,7 +503,7 @@ class RoomTrackRepository(
         if (reviewedRemoval == null && currentRemoval.review.hasRemovals) {
             throw TrackDefinitionConflictException(
                 TrackDefinitionConflictKind.RemovalImpactChanged,
-                "Review the exact Field, Choice, history, and connected automation impact before saving.",
+                "Review the exact Field, Choice, and history impact before saving.",
             )
         }
         if (reviewedRemoval != null && reviewedRemoval != currentRemoval.review) {
@@ -623,11 +554,6 @@ class RoomTrackRepository(
             removedChoiceCount = currentRemoval.review.removedChoices.size,
             deletedValueCount = deletedValues,
             replacedValueCount = replacedValues,
-            connectedLinkReferenceCount = currentRemoval.affectedLinkRules.size +
-                currentRemoval.affectedLinkConditions.size + currentRemoval.affectedLinkChoices.size,
-            connectedTriggerReferenceCount = currentRemoval.affectedTriggerRules.size +
-                currentRemoval.affectedTriggerConditions.size + currentRemoval.affectedTriggerChoices.size +
-                currentRemoval.affectedTriggerMappings.size,
         )
     }
 
@@ -705,7 +631,6 @@ class RoomTrackRepository(
         request: TrackEntryCreateRequest,
         draft: TrackEntryDraft,
     ): TrackEntryMutationReceipt = database.withTransaction {
-        requireGenericEntryProvenance(draft)
         require(request.entryUuid.isNotBlank()) { "Entry identity is required" }
 
         // Stable identity is the create idempotency key. Compare against the
@@ -721,7 +646,7 @@ class RoomTrackRepository(
                 existing.trackId == request.openingFormBoundary.trackId &&
                 existingSnapshot.form.track.uuid == request.openingFormBoundary.trackUuid &&
                 existingSnapshot.form.track.createdAtMillis == request.openingFormBoundary.trackCreatedAtMillis &&
-                existingSnapshot.matches(intended, sourceOccurrenceId = null, sourceExplanation = "")
+                existingSnapshot.matches(intended)
             ) {
                 return@withTransaction existingSnapshot.receipt(
                     kind = TrackEntryMutationKind.Create,
@@ -745,50 +670,7 @@ class RoomTrackRepository(
             form = form,
             entryUuid = request.entryUuid,
             normalized = normalized,
-            sourceOccurrenceId = null,
-            sourceExplanation = "",
         ).receipt(kind = TrackEntryMutationKind.Create, changed = true, alreadyApplied = false)
-    }
-
-    /**
-     * Narrow trusted caller for LinkRepository's enclosing prompt transaction.
-     * Generic Entry APIs intentionally cannot author these provenance columns.
-     */
-    internal suspend fun addPromptEntry(trackId: Long, draft: TrackEntryDraft): Long = database.withTransaction {
-        val occurrenceId = draft.sourceOccurrenceId ?: throw TrackEntryConflictException(
-            TrackEntryConflictKind.ProvenanceChanged,
-            "A prompt Entry requires its source occurrence.",
-        )
-        val occurrence = linkDao.getTriggerOccurrence(occurrenceId) ?: throw TrackEntryConflictException(
-            TrackEntryConflictKind.ProvenanceChanged,
-            "The source prompt no longer exists.",
-        )
-        val rule = linkDao.getTriggerRule(occurrence.triggerRuleId) ?: throw TrackEntryConflictException(
-            TrackEntryConflictKind.ProvenanceChanged,
-            "The source prompt definition no longer exists.",
-        )
-        if (
-            occurrence.fulfilledEntryId != null || rule.targetEntityId != trackId ||
-            rule.action != "PromptTrackEntry" || rule.targetType != "Track"
-        ) {
-            throw TrackEntryConflictException(
-                TrackEntryConflictKind.ProvenanceChanged,
-                "This prompt can no longer create an Entry for this Track.",
-            )
-        }
-        val form = loadEntryFormSnapshot(trackId) ?: throw TrackEntryConflictException(
-            TrackEntryConflictKind.ParentMissing,
-            "The prompt's target Track no longer exists.",
-        )
-        requireWritableEntryForm(form)
-        val normalized = normalizeEntryDraft(form.boundary(), draft, verifyLiveUnits = true)
-        insertEntryLocked(
-            form = form,
-            entryUuid = ids.nextId(),
-            normalized = normalized,
-            sourceOccurrenceId = occurrence.id,
-            sourceExplanation = draft.sourceExplanation,
-        ).entry.id
     }
 
     override suspend fun csvImportForm(trackId: Long): TrackEntryFormSnapshot? = database.withTransaction {
@@ -831,14 +713,6 @@ class RoomTrackRepository(
                 TrackCsvImportConflictKind.FormChanged,
                 "Restore this Track before importing Entries.",
             )
-        }
-        drafts.forEach { draft ->
-            if (draft.sourceOccurrenceId != null || draft.sourceExplanation.isNotBlank()) {
-                throw TrackCsvImportConflictException(
-                    TrackCsvImportConflictKind.RequestMalformed,
-                    "CSV imports cannot claim automation provenance.",
-                )
-            }
         }
         try {
             // Selected/default units are compared to the opening snapshot here;
@@ -951,14 +825,6 @@ class RoomTrackRepository(
                 "Restore this Track before importing Entries.",
             )
         }
-        drafts.forEach { draft ->
-            if (draft.sourceOccurrenceId != null || draft.sourceExplanation.isNotBlank()) {
-                throw TrackCsvImportConflictException(
-                    TrackCsvImportConflictKind.RequestMalformed,
-                    "CSV imports cannot claim automation provenance.",
-                )
-            }
-        }
         val normalized: List<NormalizedTrackEntryDraft> = try {
             val normalization = csvEntryNormalizationContext(
                 opening = opening,
@@ -1019,14 +885,13 @@ class RoomTrackRepository(
         expectedBoundary: TrackEntryBoundary,
         draft: TrackEntryDraft,
     ): TrackEntryMutationReceipt = database.withTransaction {
-        requireGenericEntryProvenance(draft)
         val current = requireEntryIdentity(expectedBoundary)
         val intendedFromOpeningForm = normalizeEntryDraft(
             expectedBoundary.formBoundary,
             draft,
             verifyLiveUnits = false,
         )
-        if (current.matches(intendedFromOpeningForm, current.entry.sourceOccurrenceId, current.entry.sourceExplanation)) {
+        if (current.matches(intendedFromOpeningForm)) {
             return@withTransaction current.receipt(
                 kind = TrackEntryMutationKind.Update,
                 changed = false,
@@ -1054,10 +919,6 @@ class RoomTrackRepository(
             dao.updateEntry(
                 current.entry.copy(
                     entryEpochDay = normalized.entryDate.toEpochDay(),
-                    // Automation provenance is immutable outside the trusted
-                    // prompt transaction.
-                    sourceOccurrenceId = current.entry.sourceOccurrenceId,
-                    sourceExplanation = current.entry.sourceExplanation,
                     updatedAtMillis = now,
                 ),
             ) == 1,
@@ -1076,125 +937,27 @@ class RoomTrackRepository(
 
     override suspend fun deleteEntry(expectedBoundary: TrackEntryBoundary): TrackEntryMutationReceipt = database.withTransaction {
         val current = requireEntryIdentity(expectedBoundary, missingKind = TrackEntryConflictKind.OutcomeUnknown)
-        if (!current.form.boundary().sameContractAs(expectedBoundary.formBoundary)) {
-            throw TrackEntryConflictException(
-                TrackEntryConflictKind.FormChanged,
-                "This Entry form changed before deletion. Review the latest Entry before deleting it.",
-            )
-        }
-        if (current.boundary().semanticRevisionToken != expectedBoundary.semanticRevisionToken) {
-            throw TrackEntryConflictException(
-                TrackEntryConflictKind.EntryChanged,
-                "This Entry changed before deletion. Review the latest values before deleting it.",
-            )
-        }
-        val fulfilled = linkDao.getTriggerOccurrencesForFulfilledEntry(current.entry.id)
-        val sourceOccurrence = current.entry.sourceOccurrenceId?.let { sourceOccurrenceId ->
-            linkDao.getTriggerOccurrence(sourceOccurrenceId) ?: throw TrackEntryConflictException(
-                TrackEntryConflictKind.ProvenanceChanged,
-                "This Entry's source occurrence is missing, so an exact Undo cannot be guaranteed.",
-            )
-        }
-        val deleted = DeletedTrackEntry(
-            entry = current.entry.toDomain(),
-            values = current.values.map(TrackValueEntity::toDomain),
-            openingFormBoundary = current.form.boundary(),
-            sourceOccurrence = sourceOccurrence?.toTrackEntrySnapshot(),
-            fulfilledOccurrences = fulfilled.map(TriggerOccurrenceEntity::toTrackEntrySnapshot),
-        )
+        if (!current.form.boundary().sameContractAs(expectedBoundary.formBoundary) ||
+            current.boundary().semanticRevisionToken != expectedBoundary.semanticRevisionToken
+        ) throw TrackEntryConflictException(TrackEntryConflictKind.EntryChanged, "This Entry changed before deletion. Review the latest Entry before deleting it.")
+        val deleted = DeletedTrackEntry(current.entry.toDomain(), current.values.map(TrackValueEntity::toDomain), current.form.boundary())
         dao.deleteSearch(current.entry.id)
         check(dao.deleteEntry(current.entry.id) == 1) { "Entry no longer exists" }
-        fulfilled.forEach { before ->
-            val after = requireNotNull(linkDao.getTriggerOccurrence(before.id)) {
-                "Trigger occurrence changed during Entry deletion"
-            }
-            check(after == before.copy(fulfilledEntryId = null)) {
-                "Trigger occurrence changed during Entry deletion"
-            }
-        }
-        TrackEntryMutationReceipt(
-            kind = TrackEntryMutationKind.Delete,
-            trackId = current.form.track.id,
-            trackUuid = current.form.track.uuid,
-            entryId = current.entry.id,
-            entryUuid = current.entry.uuid,
-            changed = true,
-            alreadyApplied = false,
-            affectedValueCount = current.values.size,
-            postBoundary = null,
-            deletedEntry = deleted,
-        )
+        TrackEntryMutationReceipt(TrackEntryMutationKind.Delete, current.form.track.id, current.form.track.uuid, current.entry.id, current.entry.uuid, true, false, current.values.size, deletedEntry = deleted)
     }
 
     override suspend fun restoreEntry(deleted: DeletedTrackEntry): TrackEntryMutationReceipt = database.withTransaction {
         dao.getEntryByUuid(deleted.entry.uuid)?.let { existing ->
-            val current = loadEntrySnapshot(existing.id) ?: throw TrackEntryConflictException(
-                TrackEntryConflictKind.IdentityCollision,
-                "The restored Entry identity could not be verified.",
-            )
-            if (
-                current.form.track.id != deleted.openingFormBoundary.trackId ||
-                current.form.track.uuid != deleted.openingFormBoundary.trackUuid ||
-                current.form.track.createdAtMillis != deleted.openingFormBoundary.trackCreatedAtMillis
-            ) {
-                throw TrackEntryConflictException(
-                    TrackEntryConflictKind.IdentityCollision,
-                    "An Entry with this stable identity exists under a different Track identity.",
-                )
-            }
-            if (
-                current.matchesDeleted(deleted) &&
-                restoredOccurrencesMatch(deleted.fulfilledOccurrences, existing.id) &&
-                sourceOccurrenceMatches(deleted, existing.id)
-            ) {
-                return@withTransaction current.receipt(
-                    kind = TrackEntryMutationKind.Restore,
-                    changed = false,
-                    alreadyApplied = true,
-                )
-            }
-            throw TrackEntryConflictException(
-                TrackEntryConflictKind.IdentityCollision,
-                "An Entry with this stable identity already exists with different history.",
-            )
+            val current = requireNotNull(loadEntrySnapshot(existing.id))
+            if (current.matchesDeleted(deleted)) return@withTransaction current.receipt(TrackEntryMutationKind.Restore, false, true)
+            throw TrackEntryConflictException(TrackEntryConflictKind.IdentityCollision, "An Entry with this stable identity already exists with different history.")
         }
-        val form = loadEntryFormSnapshot(deleted.entry.trackId) ?: throw TrackEntryConflictException(
-            TrackEntryConflictKind.ParentMissing,
-            "The Track for this deleted Entry no longer exists.",
-        )
+        val form = loadEntryFormSnapshot(deleted.entry.trackId) ?: throw TrackEntryConflictException(TrackEntryConflictKind.ParentMissing, "The Track for this deleted Entry no longer exists.")
         validateRestoreCompatibility(deleted, form)
-        validateOccurrencesBeforeRestore(deleted)
-        val restoredId = dao.insertEntry(
-            TrackEntryEntity(
-                uuid = deleted.entry.uuid,
-                trackId = deleted.entry.trackId,
-                entryEpochDay = deleted.entry.entryDate.toEpochDay(),
-                sourceOccurrenceId = deleted.entry.sourceOccurrenceId,
-                sourceExplanation = deleted.entry.sourceExplanation,
-                createdAtMillis = deleted.entry.createdAtMillis,
-                updatedAtMillis = deleted.entry.updatedAtMillis,
-            ),
-        )
-        deleted.values.forEach { value ->
-            dao.upsertValue(
-                value.toEntity(entryId = restoredId, id = 0, updatedAtMillis = value.updatedAtMillis),
-            )
-        }
-        deleted.fulfilledOccurrences.forEach { occurrence ->
-            check(linkDao.restoreTriggerOccurrenceFulfillment(occurrence.id, restoredId) == 1) {
-                "Trigger occurrence changed before Entry restoration"
-            }
-        }
+        val restoredId = dao.insertEntry(TrackEntryEntity(uuid = deleted.entry.uuid, trackId = deleted.entry.trackId, entryEpochDay = deleted.entry.entryDate.toEpochDay(), createdAtMillis = deleted.entry.createdAtMillis, updatedAtMillis = deleted.entry.updatedAtMillis))
+        deleted.values.forEach { value -> dao.upsertValue(value.toEntity(entryId = restoredId, id = 0, updatedAtMillis = value.updatedAtMillis)) }
         rebuildSearchEntry(deleted.entry.trackId, restoredId)
-        val restored = requireNotNull(loadEntrySnapshot(restoredId))
-        check(
-            restored.matchesDeleted(deleted) &&
-                restoredOccurrencesMatch(deleted.fulfilledOccurrences, restoredId) &&
-                sourceOccurrenceMatches(deleted, restoredId),
-        ) {
-            "Entry restoration did not preserve its exact history"
-        }
-        restored.receipt(kind = TrackEntryMutationKind.Restore, changed = true, alreadyApplied = false)
+        requireNotNull(loadEntrySnapshot(restoredId)).receipt(TrackEntryMutationKind.Restore, true, false)
     }
 
     override suspend fun projection(trackId: Long): TrackProjection? = database.withTransaction {
@@ -1412,12 +1175,6 @@ class RoomTrackRepository(
             check(dao.getField(field.id) == null && dao.getValuesForField(field.id).isEmpty()) {
                 "Field history was not removed exactly"
             }
-            check(
-                linkDao.countLinkRulesForSourceField(field.id) == 0 &&
-                    linkDao.countLinkConditionsForField(field.id) == 0 &&
-                    linkDao.countTriggerConditionsForField(field.id) == 0 &&
-                    linkDao.countTriggerMappingsForField(field.id) == 0,
-            ) { "Connected Field references were not reconciled exactly" }
         }
     }
 
@@ -1433,116 +1190,22 @@ class RoomTrackRepository(
         val retainedIds = mutableSetOf<Long>()
         drafts.forEachIndexed { position, draft ->
             val current = resolveExistingOption(draft, byId, byUuid)
-            val optionId = if (current == null) {
-                dao.insertOption(draft.toEntity(fieldId, position, ids.nextId(), now))
-            } else {
+            retainedIds += if (current == null) dao.insertOption(draft.toEntity(fieldId, position, ids.nextId(), now)) else {
                 require(current.fieldId == fieldId) { "Choice option does not belong to this Field" }
-                dao.updateOption(
-                    current.copy(label = draft.label, position = position, updatedAtMillis = now),
-                )
-                current.id
+                dao.updateOption(current.copy(label = draft.label, position = position, updatedAtMillis = now)); current.id
             }
-            retainedIds += optionId
         }
         val optionsToRemove = existing.filterNot { it.id in retainedIds }
-        val expectedRemovedIds = existing
-            .filter { it.id in removal.removedOptionIds }
-            .mapTo(linkedSetOf(), TrackChoiceOptionEntity::id)
-        check(optionsToRemove.mapTo(linkedSetOf(), TrackChoiceOptionEntity::id) == expectedRemovedIds) {
-            "The Choice removal impact changed before it could be committed"
-        }
+        check(optionsToRemove.mapTo(linkedSetOf(), TrackChoiceOptionEntity::id) == removal.removedOptionIds.intersect(existing.mapTo(linkedSetOf(), TrackChoiceOptionEntity::id))) { "The Choice removal impact changed before it could be committed" }
         optionsToRemove.forEach { option ->
             val replacementId = removal.review.choiceReplacementIds[option.id]
             val expectedValueCount = removal.affectedValues.count { it.choiceOptionId == option.id }
             if (replacementId != null) {
                 val replacement = dao.getOption(replacementId) ?: error("Replacement Choice no longer exists")
-                require(replacement.fieldId == fieldId && replacement.id in retainedIds) {
-                    "Choose a retained Choice from ${replacement.label}'s Field"
-                }
-                replaceChoiceOption(option.id, replacement.id, expectedValueCount, removal, now)
-                check(dao.deleteOption(option.id) == 1) { "Choice option no longer exists" }
-                return@forEach
-            }
-            check(dao.deleteValuesForOption(option.id) == expectedValueCount) {
-                "Choice history changed before it could be deleted"
-            }
+                require(replacement.fieldId == fieldId && replacement.id in retainedIds) { "Choose a retained Choice from the same Field" }
+                check(dao.replaceChoiceOptionValues(option.id, replacement.id, now) == expectedValueCount) { "Choice history changed before it could be replaced" }
+            } else check(dao.deleteValuesForOption(option.id) == expectedValueCount) { "Choice history changed before it could be deleted" }
             check(dao.deleteOption(option.id) == 1) { "Choice option no longer exists" }
-            check(
-                dao.countValuesForOption(option.id) == 0 &&
-                    linkDao.countLinkConditionsForOption(option.id) == 0 &&
-                    linkDao.countTriggerConditionsForOption(option.id) == 0 &&
-                    linkDao.countTriggerMappingsForOption(option.id) == 0,
-            ) { "Connected Choice references were not reconciled exactly" }
-        }
-    }
-
-    private suspend fun replaceChoiceOption(
-        removedId: Long,
-        replacementId: Long,
-        expectedValueCount: Int,
-        removal: TrackRemovalSnapshot,
-        now: Long,
-    ) {
-        val db = database.openHelper.writableDatabase
-        check(dao.replaceChoiceOptionValues(removedId, replacementId, now) == expectedValueCount) {
-            "Choice history changed before it could be replaced"
-        }
-        db.execSQL(
-            "INSERT OR IGNORE INTO link_condition_choices(conditionId, optionId) SELECT conditionId, ? FROM link_condition_choices WHERE optionId = ?",
-            arrayOf(replacementId, removedId),
-        )
-        db.execSQL("DELETE FROM link_condition_choices WHERE optionId = ?", arrayOf(removedId))
-        db.execSQL(
-            "INSERT OR IGNORE INTO trigger_condition_choices(conditionId, optionId) SELECT conditionId, ? FROM trigger_condition_choices WHERE optionId = ?",
-            arrayOf(replacementId, removedId),
-        )
-        db.execSQL("DELETE FROM trigger_condition_choices WHERE optionId = ?", arrayOf(removedId))
-        db.execSQL(
-            "UPDATE trigger_field_mappings SET constantChoiceOptionId = ? WHERE constantChoiceOptionId = ?",
-            arrayOf(replacementId, removedId),
-        )
-        check(
-            dao.countValuesForOption(removedId) == 0 &&
-                linkDao.countLinkConditionsForOption(removedId) == 0 &&
-                linkDao.countTriggerConditionsForOption(removedId) == 0 &&
-                linkDao.countTriggerMappingsForOption(removedId) == 0,
-        ) { "Connected Choice references were not replaced exactly" }
-        val expectedLinkConditions = removal.affectedLinkChoices
-            .filter { it.optionId == removedId }
-            .mapTo(linkedSetOf(), LinkConditionChoiceEntity::conditionId)
-        val currentLinkChoices = expectedLinkConditions.takeIf { it.isNotEmpty() }
-            ?.let { linkDao.getLinkConditionChoices(it.toList()) }
-            .orEmpty()
-        check(expectedLinkConditions.all { conditionId ->
-            currentLinkChoices.any { it.conditionId == conditionId && it.optionId == replacementId }
-        }) { "A connected Link Choice replacement was lost" }
-        val expectedTriggerConditions = removal.affectedTriggerChoices
-            .filter { it.optionId == removedId }
-            .mapTo(linkedSetOf(), TriggerConditionChoiceEntity::conditionId)
-        val currentTriggerChoices = expectedTriggerConditions.takeIf { it.isNotEmpty() }
-            ?.let { linkDao.getTriggerConditionChoices(it.toList()) }
-            .orEmpty()
-        check(expectedTriggerConditions.all { conditionId ->
-            currentTriggerChoices.any { it.conditionId == conditionId && it.optionId == replacementId }
-        }) { "A connected Trigger Choice replacement was lost" }
-        val expectedMappingIds = removal.affectedTriggerMappings
-            .filter { it.constantChoiceOptionId == removedId }
-            .mapTo(linkedSetOf(), TriggerFieldMappingEntity::id)
-        val currentMappings = linkDao.getAllTriggerMappings().filter { it.id in expectedMappingIds }
-        check(
-            currentMappings.mapTo(linkedSetOf(), TriggerFieldMappingEntity::id) == expectedMappingIds &&
-                currentMappings.all { it.constantChoiceOptionId == replacementId },
-        ) {
-            "A connected Trigger mapping replacement was lost"
-        }
-    }
-
-    private fun requireGenericEntryProvenance(draft: TrackEntryDraft) {
-        if (draft.sourceOccurrenceId != null || draft.sourceExplanation.isNotBlank()) {
-            throw TrackEntryConflictException(
-                TrackEntryConflictKind.ProvenanceChanged,
-                "Automation provenance can only be authored by the trusted prompt workflow.",
-            )
         }
     }
 
@@ -1707,8 +1370,6 @@ class RoomTrackRepository(
         form: TrackEntryFormRows,
         entryUuid: String,
         normalized: NormalizedTrackEntryDraft,
-        sourceOccurrenceId: Long?,
-        sourceExplanation: String,
     ): TrackEntrySnapshot {
         val now = clock.now().toEpochMilli()
         val entryId = dao.insertEntry(
@@ -1716,8 +1377,6 @@ class RoomTrackRepository(
                 uuid = entryUuid,
                 trackId = form.track.id,
                 entryEpochDay = normalized.entryDate.toEpochDay(),
-                sourceOccurrenceId = sourceOccurrenceId,
-                sourceExplanation = sourceExplanation.trim(),
                 createdAtMillis = now,
                 updatedAtMillis = now,
             ),
@@ -1750,8 +1409,6 @@ class RoomTrackRepository(
                     uuid = entryUuids[index],
                     trackId = form.track.id,
                     entryEpochDay = entry.entryDate.toEpochDay(),
-                    sourceOccurrenceId = null,
-                    sourceExplanation = "",
                     createdAtMillis = now,
                     updatedAtMillis = now,
                 ),
@@ -1828,7 +1485,7 @@ class RoomTrackRepository(
             "Restore ${selectedBeforeResolve?.name ?: "this Area"} before moving this Track into it."
         }
         if (selectedBeforeResolve?.archived == true) {
-            // Retaining an archived Area by its connected display name must not call
+            // Retaining an archived Area by its saved display name must not call
             // AreaRepository.create(), which intentionally restores archived
             // Areas when users explicitly create/select them elsewhere.
             return AreaSelection(selectedBeforeResolve.id, selectedBeforeResolve.name)
@@ -1852,14 +1509,9 @@ class RoomTrackRepository(
         draft.fields.forEach { fieldDraft ->
             val current = resolveExistingField(fieldDraft, byId, byUuid) ?: return@forEach
             val hasSavedValues = dao.countValuesForField(current.id) > 0
-            val hasConnectedDefinitionReferences =
-                linkDao.countLinkRulesForSourceField(current.id) > 0 ||
-                    linkDao.countLinkConditionsForField(current.id) > 0 ||
-                    linkDao.countTriggerConditionsForField(current.id) > 0 ||
-                    linkDao.countTriggerMappingsForField(current.id) > 0
             if (current.type != fieldDraft.type.name) {
-                require(!hasSavedValues && !hasConnectedDefinitionReferences) {
-                    "${current.name} has saved values or connected automation definitions. Delete it and add a new Field instead of changing its type."
+                require(!hasSavedValues) {
+                    "${current.name} has saved values. Delete it and add a new Field instead of changing its type."
                 }
             }
             if (
@@ -1867,8 +1519,8 @@ class RoomTrackRepository(
                 fieldDraft.type == TrackFieldType.Number &&
                 current.dimension != fieldDraft.dimension?.name
             ) {
-                require(!hasSavedValues && !hasConnectedDefinitionReferences) {
-                    "${current.name}'s measurement type cannot change while it has saved values or connected automation definitions."
+                require(!hasSavedValues) {
+                    "${current.name}'s measurement type cannot change while it has saved values."
                 }
             }
         }
@@ -1882,12 +1534,6 @@ class RoomTrackRepository(
             .firstOrNull { value -> normalizeTrackScaleValue(value, minimum, maximum, draft.scaleStep) == null }
         require(invalidSavedValue == null) {
             "An existing Scale value does not fit the new range and increment. Keep it selectable or edit that Entry first."
-        }
-        val invalidConnectedMapping = linkDao.getTriggerMappingsForField(fieldId)
-            .mapNotNull(TriggerFieldMappingEntity::constantScale)
-            .firstOrNull { value -> normalizeTrackScaleValue(value, minimum, maximum, draft.scaleStep) == null }
-        require(invalidConnectedMapping == null) {
-            "A connected automation value does not fit the new Scale range and increment. Keep it selectable or replace the Field."
         }
     }
 
@@ -1985,58 +1631,6 @@ class RoomTrackRepository(
                 else -> Unit
             }
         }
-        deleted.entry.sourceOccurrenceId?.let { sourceId ->
-            if (deleted.sourceOccurrence?.id != sourceId) {
-                throw TrackEntryConflictException(
-                    TrackEntryConflictKind.ProvenanceChanged,
-                    "The deleted Entry's exact source occurrence was not captured.",
-                )
-            }
-        }
-    }
-
-    private suspend fun validateOccurrencesBeforeRestore(deleted: DeletedTrackEntry) {
-        require(deleted.fulfilledOccurrences.map(TrackEntryFulfillmentSnapshot::id).distinct().size == deleted.fulfilledOccurrences.size) {
-            "Deleted Entry contains duplicate occurrence identities"
-        }
-        val exactOccurrences = (deleted.fulfilledOccurrences + listOfNotNull(deleted.sourceOccurrence))
-            .distinctBy(TrackEntryFulfillmentSnapshot::id)
-        exactOccurrences.forEach { expected ->
-            val fulfilledThisEntry = expected.fulfilledEntryId == deleted.entry.id
-            if (expected.fulfilledEntryId != deleted.entry.id) {
-                if (deleted.fulfilledOccurrences.any { it.id == expected.id }) {
-                    throw TrackEntryConflictException(
-                        TrackEntryConflictKind.ProvenanceChanged,
-                        "A saved fulfillment occurrence does not belong to this deleted Entry.",
-                    )
-                }
-            }
-            val current = linkDao.getTriggerOccurrence(expected.id)
-            val expectedAfterDelete = expected.copy(
-                fulfilledEntryId = if (fulfilledThisEntry) null else expected.fulfilledEntryId,
-            )
-            if (current?.toTrackEntrySnapshot() != expectedAfterDelete) {
-                throw TrackEntryConflictException(
-                    TrackEntryConflictKind.ProvenanceChanged,
-                    "A source occurrence changed before this Entry could be restored.",
-                )
-            }
-        }
-    }
-
-    private suspend fun restoredOccurrencesMatch(
-        expected: List<TrackEntryFulfillmentSnapshot>,
-        restoredEntryId: Long,
-    ): Boolean = expected.all { occurrence ->
-        linkDao.getTriggerOccurrence(occurrence.id)?.toTrackEntrySnapshot() ==
-            occurrence.copy(fulfilledEntryId = restoredEntryId)
-    }
-
-    private suspend fun sourceOccurrenceMatches(deleted: DeletedTrackEntry, restoredEntryId: Long): Boolean {
-        val expected = deleted.sourceOccurrence ?: return deleted.entry.sourceOccurrenceId == null
-        val fulfilledId = if (expected.fulfilledEntryId == deleted.entry.id) restoredEntryId else expected.fulfilledEntryId
-        return linkDao.getTriggerOccurrence(expected.id)?.toTrackEntrySnapshot() ==
-            expected.copy(fulfilledEntryId = fulfilledId)
     }
 
     private fun restoreConflict(message: String): Nothing = throw TrackEntryConflictException(
@@ -2116,8 +1710,6 @@ private data class TrackEntrySnapshot(
                 value("entry.uuid", entry.uuid)
                 value("entry.trackId", entry.trackId)
                 value("entry.date", entry.entryEpochDay)
-                value("entry.sourceOccurrenceId", entry.sourceOccurrenceId)
-                value("entry.sourceExplanation", entry.sourceExplanation)
                 values.sortedBy(TrackValueEntity::id).forEach(::entryRow)
                 enteredUnits.forEach(::row)
             },
@@ -2161,14 +1753,8 @@ private data class TrackEntrySnapshot(
         )
     }
 
-    fun matches(
-        normalized: NormalizedTrackEntryDraft,
-        sourceOccurrenceId: Long?,
-        sourceExplanation: String,
-    ): Boolean =
+    fun matches(normalized: NormalizedTrackEntryDraft): Boolean =
         entry.entryEpochDay == normalized.entryDate.toEpochDay() &&
-            entry.sourceOccurrenceId == sourceOccurrenceId &&
-            entry.sourceExplanation == sourceExplanation &&
             values.associateBy(TrackValueEntity::fieldId).let { current ->
                 current.keys == normalized.values.keys && normalized.values.all { (fieldId, expected) ->
                     current[fieldId]?.matches(expected) == true
@@ -2178,8 +1764,6 @@ private data class TrackEntrySnapshot(
     fun matchesDeleted(deleted: DeletedTrackEntry): Boolean =
         entry.uuid == deleted.entry.uuid && entry.trackId == deleted.entry.trackId &&
             entry.entryEpochDay == deleted.entry.entryDate.toEpochDay() &&
-            entry.sourceOccurrenceId == deleted.entry.sourceOccurrenceId &&
-            entry.sourceExplanation == deleted.entry.sourceExplanation &&
             entry.createdAtMillis == deleted.entry.createdAtMillis &&
             entry.updatedAtMillis == deleted.entry.updatedAtMillis &&
             values.matchDeleted(deleted.values)
@@ -2311,13 +1895,6 @@ private data class TrackRemovalSnapshot(
     val removedFieldIds: Set<Long>,
     val removedOptionIds: Set<Long>,
     val affectedValues: List<TrackValueEntity>,
-    val affectedLinkRules: List<LinkRuleEntity>,
-    val affectedLinkConditions: List<LinkRuleConditionEntity>,
-    val affectedLinkChoices: List<LinkConditionChoiceEntity>,
-    val affectedTriggerRules: List<TriggerRuleEntity>,
-    val affectedTriggerConditions: List<TriggerRuleConditionEntity>,
-    val affectedTriggerChoices: List<TriggerConditionChoiceEntity>,
-    val affectedTriggerMappings: List<TriggerFieldMappingEntity>,
 )
 
 private fun resolveExistingField(
@@ -2583,18 +2160,6 @@ private fun TrackEntryUnitContract.sameStoredNumberSemanticsAs(other: TrackEntry
         toCanonicalFactor.rawEquals(other.toCanonicalFactor) &&
         toCanonicalOffset.rawEquals(other.toCanonicalOffset)
 
-private fun TriggerOccurrenceEntity.toTrackEntrySnapshot() = TrackEntryFulfillmentSnapshot(
-    id = id,
-    triggerRuleId = triggerRuleId,
-    sourceEventId = sourceEventId,
-    availableAtMillis = availableAtMillis,
-    deliveredAtMillis = deliveredAtMillis,
-    dismissedAtMillis = dismissedAtMillis,
-    remindAtMillis = remindAtMillis,
-    fulfilledEntryId = fulfilledEntryId,
-    sourceSnapshot = sourceSnapshot,
-)
-
 private fun validateStoredValueShape(value: TrackFieldValue, type: TrackFieldType) {
     val valid = when (type) {
         TrackFieldType.ShortText, TrackFieldType.LongText ->
@@ -2637,13 +2202,6 @@ private fun trackRemovalRevision(
     removedOptions: List<TrackChoiceOptionEntity>,
     choiceReplacementIds: Map<Long, Long>,
     affectedValues: List<TrackValueEntity>,
-    affectedLinkRules: List<LinkRuleEntity>,
-    affectedLinkConditions: List<LinkRuleConditionEntity>,
-    affectedLinkChoices: List<LinkConditionChoiceEntity>,
-    affectedTriggerRules: List<TriggerRuleEntity>,
-    affectedTriggerConditions: List<TriggerRuleConditionEntity>,
-    affectedTriggerChoices: List<TriggerConditionChoiceEntity>,
-    affectedTriggerMappings: List<TriggerFieldMappingEntity>,
 ): String = canonicalTrackRevision {
     value("definition", definitionRevisionToken)
     removedFields.sortedBy(TrackFieldEntity::id).forEach { value("remove.field", it.id) }
@@ -2653,13 +2211,6 @@ private fun trackRemovalRevision(
         value("replace.target", replacement)
     }
     affectedValues.sortedBy(TrackValueEntity::id).forEach(::row)
-    affectedLinkRules.sortedBy(LinkRuleEntity::id).forEach(::row)
-    affectedLinkConditions.sortedBy(LinkRuleConditionEntity::id).forEach(::row)
-    affectedLinkChoices.sortedWith(compareBy(LinkConditionChoiceEntity::conditionId, LinkConditionChoiceEntity::optionId)).forEach(::row)
-    affectedTriggerRules.sortedBy(TriggerRuleEntity::id).forEach(::row)
-    affectedTriggerConditions.sortedBy(TriggerRuleConditionEntity::id).forEach(::row)
-    affectedTriggerChoices.sortedWith(compareBy(TriggerConditionChoiceEntity::conditionId, TriggerConditionChoiceEntity::optionId)).forEach(::row)
-    affectedTriggerMappings.sortedBy(TriggerFieldMappingEntity::id).forEach(::row)
 }
 
 private fun CanonicalTrackRevisionBuilder.row(row: TrackValueEntity) {
@@ -2669,59 +2220,6 @@ private fun CanonicalTrackRevisionBuilder.row(row: TrackValueEntity) {
     value("enteredUnitId", row.enteredUnitId); value("date", row.dateEpochDay); value("boolean", row.booleanValue)
     value("choice", row.choiceOptionId); value("scale", row.scaleValue)
     value("created", row.createdAtMillis); value("updated", row.updatedAtMillis)
-}
-
-private fun CanonicalTrackRevisionBuilder.row(row: LinkRuleEntity) {
-    value("row", "link_rule")
-    value("id", row.id); value("uuid", row.uuid); value("name", row.name); value("kind", row.kind)
-    value("sourceType", row.sourceType); value("sourceEntityId", row.sourceEntityId); value("sourceMeasurementId", row.sourceMeasurementId)
-    value("sourceItemId", row.sourceItemId); value("sourceMeasurement", row.sourceMeasurement); value("targetGoalId", row.targetGoalId)
-    value("targetMilestoneId", row.targetMilestoneId); value("valueMode", row.valueMode); value("fixedValue", row.fixedValue)
-    value("multiplier", row.multiplier); value("offset", row.offset); value("retroactive", row.retroactiveFromEpochDay)
-    value("enabled", row.enabled); value("created", row.createdAtMillis); value("updated", row.updatedAtMillis)
-    value("aggregation", row.trackAggregation); value("sourceFieldId", row.sourceFieldId); value("conditionMode", row.conditionMode)
-}
-
-private fun CanonicalTrackRevisionBuilder.row(row: LinkRuleConditionEntity) {
-    value("row", "link_condition")
-    value("id", row.id); value("ruleId", row.linkRuleId); value("fieldId", row.fieldId); value("entryDate", row.entryDate)
-    value("operator", row.operator); value("position", row.position); value("text", row.textValue)
-    value("number", row.numberValue); value("secondNumber", row.secondNumberValue)
-    value("date", row.dateEpochDay); value("secondDate", row.secondDateEpochDay)
-}
-
-private fun CanonicalTrackRevisionBuilder.row(row: LinkConditionChoiceEntity) {
-    value("row", "link_choice"); value("conditionId", row.conditionId); value("optionId", row.optionId)
-}
-
-private fun CanonicalTrackRevisionBuilder.row(row: TriggerRuleEntity) {
-    value("row", "trigger_rule")
-    value("id", row.id); value("uuid", row.uuid); value("name", row.name); value("sourceType", row.sourceType)
-    value("sourceEntityId", row.sourceEntityId); value("sourceItemId", row.sourceItemId); value("outcome", row.outcome)
-    value("targetType", row.targetType); value("targetEntityId", row.targetEntityId); value("delay", row.delayMinutes)
-    value("quietStart", row.quietStartMinutes); value("quietEnd", row.quietEndMinutes); value("action", row.action)
-    value("notifications", row.notificationEnabled); value("conditionMode", row.conditionMode); value("enabled", row.enabled)
-    value("created", row.createdAtMillis); value("updated", row.updatedAtMillis)
-}
-
-private fun CanonicalTrackRevisionBuilder.row(row: TriggerRuleConditionEntity) {
-    value("row", "trigger_condition")
-    value("id", row.id); value("ruleId", row.triggerRuleId); value("fieldId", row.fieldId); value("entryDate", row.entryDate)
-    value("operator", row.operator); value("position", row.position); value("text", row.textValue)
-    value("number", row.numberValue); value("secondNumber", row.secondNumberValue)
-    value("date", row.dateEpochDay); value("secondDate", row.secondDateEpochDay)
-}
-
-private fun CanonicalTrackRevisionBuilder.row(row: TriggerConditionChoiceEntity) {
-    value("row", "trigger_choice"); value("conditionId", row.conditionId); value("optionId", row.optionId)
-}
-
-private fun CanonicalTrackRevisionBuilder.row(row: TriggerFieldMappingEntity) {
-    value("row", "trigger_mapping")
-    value("id", row.id); value("ruleId", row.triggerRuleId); value("fieldId", row.targetFieldId)
-    value("sourceProperty", row.sourceProperty); value("text", row.constantText); value("number", row.constantNumber)
-    value("unit", row.constantUnitId); value("date", row.constantDateEpochDay); value("boolean", row.constantBoolean)
-    value("choice", row.constantChoiceOptionId); value("scale", row.constantScale)
 }
 
 private fun List<TrackFieldEntity>.matches(
@@ -2863,8 +2361,6 @@ internal fun TrackEntryEntity.toDomain() = TrackEntry(
     uuid = uuid,
     trackId = trackId,
     entryDate = LocalDate.ofEpochDay(entryEpochDay),
-    sourceOccurrenceId = sourceOccurrenceId,
-    sourceExplanation = sourceExplanation,
     createdAtMillis = createdAtMillis,
     updatedAtMillis = updatedAtMillis,
 )

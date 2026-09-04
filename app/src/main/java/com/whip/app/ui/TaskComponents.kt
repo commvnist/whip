@@ -826,8 +826,6 @@ fun PermanentTaskDeleteDialog(
                             "(${impact.completedOccurrenceCount} completed, ${impact.skippedOccurrenceCount} skipped, ${impact.openOccurrenceCount} open)",
                     )
                     Text("${impact.stepCount} subtask${if (impact.stepCount == 1) "" else "s"}")
-                    Text("${impact.linkRuleCount} Goal link${if (impact.linkRuleCount == 1) "" else "s"}")
-                    Text("${impact.automationRuleCount} Automation${if (impact.automationRuleCount == 1) "" else "s"}")
                     Text(
                         "This cannot be undone. Export a backup first if you may need this history.",
                         color = MaterialTheme.colorScheme.error,

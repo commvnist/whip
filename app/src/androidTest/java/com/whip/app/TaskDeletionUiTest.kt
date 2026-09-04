@@ -165,8 +165,6 @@ class TaskDeletionUiTest {
                             title = item.task.title,
                             recordedOccurrenceCount = 0,
                             stepCount = 0,
-                            linkRuleCount = 0,
-                            automationRuleCount = 0,
                         ),
                         onDismiss = { confirming = false },
                         onConfirm = { confirmations.incrementAndGet() },
@@ -353,7 +351,7 @@ class TaskDeletionUiTest {
             WhipTheme(darkTheme = true, dynamicColor = false) {
                 PermanentDeleteDialog(
                     title = "Delete habit permanently?",
-                    impacts = listOf("12 check-ins will be removed", "2 links will be recalculated"),
+                    impacts = listOf("12 check-ins will be removed", "3 scheduled reminders will be cancelled"),
                     onDismiss = {},
                     onConfirm = { confirmations.incrementAndGet() },
                 )

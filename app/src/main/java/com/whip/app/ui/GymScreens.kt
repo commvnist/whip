@@ -4983,7 +4983,7 @@ internal fun ExercisePermanentDeleteDialog(
                 if (preparing && !targetMissing) item {
                     WhipNoticeCard(
                         title = "Reviewing impact",
-                        message = "Checking the exact workout, routine, record, and automation impact…",
+                        message = "Checking the exact workout, routine, and record impact…",
                         tone = WhipNoticeTone.Informative,
                         showProgress = true,
                         semanticStateLabel = "Reviewing exercise deletion impact",
@@ -5048,10 +5048,8 @@ internal fun ExercisePermanentDeleteDialog(
                     item {
                         Text("Definitions and records removed", fontWeight = FontWeight.Bold)
                         Text(
-                            "${exact.personalRecordCount} personal record${if (exact.personalRecordCount == 1) "" else "s"}, " +
-                                "${exact.graphPresetUpdateCount + exact.graphPresetDeleteCount} graph preset${if (exact.graphPresetUpdateCount + exact.graphPresetDeleteCount == 1) "" else "s"}, " +
-                                "${exact.linkRuleCount} Goal link rule${if (exact.linkRuleCount == 1) "" else "s"}, and " +
-                                "${exact.automationRuleCount} trigger rule${if (exact.automationRuleCount == 1) "" else "s"}.",
+                            "${exact.personalRecordCount} personal record${if (exact.personalRecordCount == 1) "" else "s"} and " +
+                                "${exact.graphPresetUpdateCount + exact.graphPresetDeleteCount} graph preset${if (exact.graphPresetUpdateCount + exact.graphPresetDeleteCount == 1) "" else "s"}.",
                         )
                     }
                     item {
@@ -5061,13 +5059,6 @@ internal fun ExercisePermanentDeleteDialog(
                                 "${exact.machineReferenceCount} machine assignment or compatibility link${if (exact.machineReferenceCount == 1) "" else "s"}, " +
                                 "and ${exact.categoryReferenceCount} category membership${if (exact.categoryReferenceCount == 1) "" else "s"} are removed. " +
                                 "Machine profiles themselves remain.",
-                        )
-                    }
-                    if (exact.linkedTrackEntryCount > 0) item {
-                        Text("Track history kept", fontWeight = FontWeight.Bold)
-                        Text(
-                            "${exact.linkedTrackEntryCount} automation-created Track entr${if (exact.linkedTrackEntryCount == 1) "y remains" else "ies remain"} " +
-                                "as recorded history, but no longer point to the deleted trigger occurrence.",
                         )
                     }
                     if (exact.trainingMaxDecisionCount > 0) item {
@@ -5447,18 +5438,6 @@ internal fun WorkoutPermanentDeleteDialog(
                             "Exercise definitions and routine templates remain. " +
                                 "${exact.trainingMaxDecisionCount} Training Max decision${if (exact.trainingMaxDecisionCount == 1) " remains" else "s remain"} " +
                                 "as immutable 5/3/1 audit history.",
-                        )
-                    }
-                    if (
-                        exact.contributionCount + exact.generatedHabitLogCount +
-                            exact.triggerOccurrenceCount > 0
-                    ) item {
-                        Text("Linked history kept", fontWeight = FontWeight.Bold)
-                        Text(
-                            "${exact.contributionCount} Goal contribution${if (exact.contributionCount == 1) "" else "s"}, " +
-                                "${exact.generatedHabitLogCount} automation-generated Habit check-in${if (exact.generatedHabitLogCount == 1) "" else "s"}, and " +
-                                "${exact.triggerOccurrenceCount} automation occurrence${if (exact.triggerOccurrenceCount == 1) " remains" else "s remain"} " +
-                                "as historical evidence; deleting this Workout does not silently retract them.",
                         )
                     }
                     item {

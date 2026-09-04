@@ -140,7 +140,7 @@ class LocalDataResetter(private val context: Context) {
 
     private companion object {
         const val DATABASE_NAME = "whip.db"
-        const val CANONICAL_DATABASE_VERSION = 45
+        const val CANONICAL_DATABASE_VERSION = 46
         const val PORTABLE_BACKUP_PREFERENCES = "portable_backups"
         const val PORTABLE_BACKUP_FOLDER_URI = "folder_uri"
         const val RECOVERY_RUNTIME_PREFERENCES = "whip_recovery_runtime"

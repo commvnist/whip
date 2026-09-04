@@ -184,9 +184,6 @@ import com.whip.app.domain.TaskEffort
 import com.whip.app.domain.TrackProjection
 import com.whip.app.domain.TrackEntryMutationKind
 import com.whip.app.domain.TrackEntryMutationReceipt
-import com.whip.app.domain.LinkSourceType
-import com.whip.app.domain.TriggerTargetType
-import com.whip.app.domain.TriggerAction
 import com.whip.app.domain.HabitDayProgress
 import com.whip.app.core.zoneId
 import com.whip.app.core.supportedTrackedRecordTypes
@@ -7372,8 +7369,6 @@ private fun PermanentTaskBatchDeleteDialog(
                                 "(${exactImpact.completedOccurrenceCount} completed, ${exactImpact.skippedOccurrenceCount} skipped, ${exactImpact.openOccurrenceCount} open)",
                         )
                         Text("${exactImpact.stepCount} subtask${if (exactImpact.stepCount == 1) "" else "s"}")
-                        Text("${exactImpact.linkRuleIds.size} Goal link${if (exactImpact.linkRuleIds.size == 1) "" else "s"}")
-                        Text("${exactImpact.automationRuleIds.size} Automation${if (exactImpact.automationRuleIds.size == 1) "" else "s"}")
                         Text(
                             "This cannot be undone. Export a backup first if you may need this history.",
                             color = MaterialTheme.colorScheme.error,

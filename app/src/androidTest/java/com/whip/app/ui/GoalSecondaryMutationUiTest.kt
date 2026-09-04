@@ -187,8 +187,6 @@ class GoalSecondaryMutationUiTest {
             progressEntryCount = 5,
             closureSnapshotCount = 1,
             elapsedResetEventCount = 2,
-            linkRuleCount = 4,
-            contributionCount = 6,
             revisionToken = "reviewed-revision",
         )
         var reviewRequests = 0
@@ -212,8 +210,6 @@ class GoalSecondaryMutationUiTest {
         compose.onNodeWithText("5 progress updates", substring = true).assertIsDisplayed()
         compose.onNodeWithText("3 milestones (2 completed)", substring = true).assertIsDisplayed()
         compose.onNodeWithText("2 timer reset history events", substring = true).assertIsDisplayed()
-        compose.onNodeWithText("4 linked automation rules", substring = true).assertIsDisplayed()
-        compose.onNodeWithText("6 linked contribution records", substring = true).assertIsDisplayed()
         compose.onNodeWithTag("goal-delete-confirm").assertIsNotEnabled()
         compose.onNodeWithTag("goal-delete-review-impact").performClick()
         compose.runOnIdle {

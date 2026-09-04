@@ -10,7 +10,7 @@ domain calculations. WorkManager, notifications, graphs, summaries, personal
 records, streaks, and goal progress are projections or side effects; none of
 them replaces the underlying source records.
 
-The current product data contract is schema 45 and data epoch 5. This is a
+The current product data contract is schema 46 and data epoch 6. This is a
 deliberate clean boundary: an update from an earlier epoch is locked until the
 person explicitly confirms a fresh start twice. Whip then removes only its own
 local data and creates the canonical schema. It never attempts to reinterpret
@@ -89,7 +89,7 @@ visible in the Today card, History, Insights, and exports; it suppresses that
 day's reminder, is excluded from completion-rate
 denominators, and bridges rather than increments a streak. **Undo Skip** removes
 the occurrence. Missing is not writable state: past scheduled occurrences with
-no check-in or skip are derived as missed. The epoch-5 schema stores one skip
+no check-in or skip are derived as missed. The epoch-6 schema stores one skip
 occurrence per habit/day and has no separate missing-value record.
 
 ## Productivity collection design
@@ -124,14 +124,6 @@ Features do not repurpose these roles as decorative identity colors. Shared
 navigation budgets elevated font scale and label length, fills available direct
 destination capacity, and reserves **More** only for genuine overflow.
 
-## Retired derived-action data
-
-Schema 31 retires the former rule-driven Automation feature. Its user interface,
-runtime collectors, notifications, and scheduling are removed. The migration
-deactivates stored rules and dismisses pending occurrences without deleting
-Task, Habit, Goal, Track, Gym, or already-recorded history. Old backup payloads
-may retain compatibility rows, but restore keeps them dormant.
-
 ## Backup envelope
 
 The complete export uses a versioned envelope rather than raw database
@@ -141,8 +133,8 @@ files:
 {
   "format": "whip-backup",
   "envelopeVersion": 3,
-  "dataEpoch": 5,
-  "databaseVersion": 22,
+  "dataModelEpoch": 6,
+  "databaseVersion": 23,
   "exportedAt": "2026-08-18T00:00:00Z",
   "checksumSha256": "...",
   "tables": {},
@@ -151,7 +143,7 @@ files:
 ```
 
 The backup data version is intentionally independent of Room's schema version.
-Only envelope 3, data epoch 5, and backup data version 22 are accepted. Older
+Only envelope 3, data epoch 6, and backup data version 23 are accepted. Older
 and future complete archives are rejected before their tables are interpreted;
 the clean boundary deliberately provides no archive upgrade path. Import is
 parse -> authenticate/checksum -> validate -> preview -> recoverable commit.
@@ -186,5 +178,5 @@ normalized into the same measurement ledger as manual entries and retain stable
 provider record IDs. Aggregate types such as steps and distance are read as
 daily totals to avoid double counting. A bounded sync rebuild removes stale
 Health Connect entries inside the requested window; manual data is independent.
-A Habit or Goal can explicitly bind to a Health measurement. Its UI and link events
+A Habit or Goal can explicitly bind to a Health measurement. Its UI and derived records
 then mirror the authoritative source with stable IDs and provenance.

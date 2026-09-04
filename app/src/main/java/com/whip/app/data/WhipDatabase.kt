@@ -45,15 +45,6 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         GoalMilestoneEntity::class,
         GoalClosureSnapshotEntity::class,
         GoalElapsedResetEventEntity::class,
-        LinkRuleEntity::class,
-        ContributionEntity::class,
-        TriggerRuleEntity::class,
-        TriggerOccurrenceEntity::class,
-        LinkRuleConditionEntity::class,
-        TriggerRuleConditionEntity::class,
-        TriggerFieldMappingEntity::class,
-        LinkConditionChoiceEntity::class,
-        TriggerConditionChoiceEntity::class,
         TrackEntity::class,
         TrackFieldEntity::class,
         TrackChoiceOptionEntity::class,
@@ -62,7 +53,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         TrackEntrySearchEntity::class,
         TrackCsvImportReceiptEntity::class,
     ],
-    version = 45,
+    version = 46,
     exportSchema = true,
 )
 abstract class WhipDatabase : RoomDatabase() {
@@ -72,7 +63,6 @@ abstract class WhipDatabase : RoomDatabase() {
     abstract fun routineDao(): RoutineDao
     abstract fun habitDao(): HabitDao
     abstract fun goalDao(): GoalDao
-    abstract fun linkDao(): LinkDao
     abstract fun trackDao(): TrackDao
 
     companion object {

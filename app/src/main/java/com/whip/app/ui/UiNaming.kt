@@ -5,7 +5,6 @@ import com.whip.app.domain.GymGraphAggregation
 import com.whip.app.domain.PersonalRecordType
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.HabitLogStatus
-import com.whip.app.domain.LinkSourceMeasurement
 import com.whip.app.domain.MeasurementEntryStatus
 import com.whip.app.domain.MeasurementSourceType
 import com.whip.app.domain.RepeatStepPolicy
@@ -138,21 +137,6 @@ internal fun PersonalRecordType.uiLabel(): String = when (this) {
     PersonalRecordType.MaxSpeed -> "Fastest Speed"
     PersonalRecordType.MinPace -> "Fastest Pace"
     PersonalRecordType.MaxMachineSetting -> "Best Machine Setting"
-}
-
-internal fun LinkSourceMeasurement.uiLabel(): String = when (this) {
-    LinkSourceMeasurement.NumericValue -> "Numeric Value"
-    LinkSourceMeasurement.Success -> "Success"
-    LinkSourceMeasurement.Completion -> "Completion"
-    LinkSourceMeasurement.Count -> "Count"
-    LinkSourceMeasurement.Duration -> "Duration"
-    LinkSourceMeasurement.Volume -> "Volume"
-    LinkSourceMeasurement.EstimatedOneRepMax -> "Estimated 1RM"
-    LinkSourceMeasurement.MaxWeight -> "Maximum Weight"
-    LinkSourceMeasurement.Distance -> "Distance"
-    LinkSourceMeasurement.Repetitions -> "Repetitions"
-    LinkSourceMeasurement.EntryCount -> "Entry Count"
-    LinkSourceMeasurement.FieldValue -> "Field Value"
 }
 
 internal fun UnitDimension.uiLabel(): String = when (this) {

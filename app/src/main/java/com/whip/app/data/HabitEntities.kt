@@ -167,7 +167,7 @@ data class HabitPauseEntity(
 /**
  * A deliberately skipped scheduled occurrence. This is separate from
  * [HabitLogEntity] because a skip is not a measurement and must never affect
- * totals, averages, or value-based Goal Automations.
+ * totals, averages, or value-based Goal progress.
  */
 @Entity(
     tableName = "habit_skips",

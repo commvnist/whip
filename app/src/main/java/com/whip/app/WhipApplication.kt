@@ -17,7 +17,6 @@ import com.whip.app.data.RoomHabitRepository
 import com.whip.app.data.HabitRepository
 import com.whip.app.data.RoomGoalRepository
 import com.whip.app.data.GoalRepository
-import com.whip.app.data.RoomLinkRepository
 import com.whip.app.data.RoomTrackRepository
 import com.whip.app.data.RoomBackupRepository
 import com.whip.app.data.TaskDeletionCoordinator
@@ -147,9 +146,6 @@ class WhipApplication : Application(), Configuration.Provider {
     val goalRepository: GoalRepository by lazy {
         CoordinatedGoalRepository(rawGoalRepository, reminderDeliveryCoordinator)
     }
-    private val rawLinkRepository by lazy {
-        RoomLinkRepository(database, rawMeasurementRepository, clock, idGenerator)
-    }
     val trackRepository by lazy {
         RoomTrackRepository(database, clock, idGenerator)
     }
@@ -157,7 +153,6 @@ class WhipApplication : Application(), Configuration.Provider {
         TaskDeletionCoordinator(
             database,
             rawTaskRepository,
-            rawLinkRepository,
             reminderDeliveryCoordinator,
             onDeletionPrepared = { ids -> prepareReminderDeletion(ReminderDomain.Task, ids) },
             onDeletionCommitted = { ids ->
@@ -170,7 +165,6 @@ class WhipApplication : Application(), Configuration.Provider {
     val domainDeletionCoordinator by lazy {
         DomainDeletionCoordinator(
             database,
-            rawLinkRepository,
             routineRepository,
             reminderDeliveryCoordinator,
             onDeletionPrepared = ::prepareReminderDeletion,
@@ -182,11 +176,9 @@ class WhipApplication : Application(), Configuration.Provider {
         val taskDeletionsWithinArea = TaskDeletionCoordinator(
             database,
             rawTaskRepository,
-            rawLinkRepository,
         )
         val domainDeletionsWithinArea = DomainDeletionCoordinator(
             database,
-            rawLinkRepository,
             routineRepository,
         )
         AreaDeletionCoordinator(

@@ -259,7 +259,7 @@ class TrackEditorStateTest {
                     definitionRevisionToken = "definition-revision",
                     removalRevisionToken = "removal-revision",
                     removedFields = listOf(
-                        TrackFieldRemovalImpact(9, "field-9", "Notes", 3, 0, 0, 0, 0, 0),
+                        TrackFieldRemovalImpact(9, "field-9", "Notes", 3, 0),
                     ),
                     removedChoices = emptyList(),
                 ),

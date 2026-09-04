@@ -80,7 +80,7 @@ class DataEpochResetIntegrationTest {
         val database = WhipDatabase.get(context)
         database.openHelper.writableDatabase.query("PRAGMA user_version").use { cursor ->
             assertTrue(cursor.moveToFirst())
-            assertEquals(45, cursor.getInt(0))
+            assertEquals(46, cursor.getInt(0))
         }
         database.openHelper.writableDatabase.query(
             "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'epoch_reset_sentinel'",
