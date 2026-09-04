@@ -849,3 +849,15 @@
 - Commit/push: `ad2f3a9` on `origin/main`.
 - Related: `FB-20260903-015`, `FND-20260903-025`, `IMP-20260903-024`.
 - Status: Passed; a fresh independent medium-risk reviewer returned GO.
+
+### VER-20260903-025 — Whip 0.3.46 Exercise-picker semantics physical release
+
+- `WHIP_DEVICE=192.168.2.187:44401 scripts/device release-deploy` selected the physical Samsung SM-F976W rather than the connected emulator. The guarded gate passed Play assets, all 596 JVM tests, compilation of the 908-test Android inventory, debug and release-vital lint, deterministic coverage (81.96% domain lines, 56.76% domain branches, and 68.31% Settings/policy lines), R8/resource optimization, debug/release/benchmark assembly, and signed APK/AAB generation.
+- Release APK SHA-256 is `305eb1608a0930b8d7663e65a0b2447b1f703e6571d2f5c550e99b2b26c0f656`; AAB SHA-256 is `a301f78f3acd855fbb00c9ad8718f6424e0c2e51d069aad891714bea0b396d70`. APK verification reports v2 signing, exactly one signer, and the established certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`; AAB signature verification exited successfully.
+- In-place installation succeeded. Android reports `commvne.com.whip.app` version 0.3.46/code 52, min SDK 26, target SDK 37, and an installed base APK hash exactly matching the signed local artifact. `firstInstallTime=2026-08-26 17:59:24` remained unchanged; `lastUpdateTime=2026-09-03 21:40:08` records this upgrade.
+- A forced cold launch returned `Status: ok` in 150 ms (`TotalTime`) / 154 ms (`WaitTime`), left `MainActivity` resumed, and retained a live application process. PID-scoped logs contained only Samsung/Qualcomm graphics/performance/vendor-hook diagnostics and no fatal exception, AndroidRuntime crash, Room/SQLite failure, ANR, or Whip application error.
+- No application data was cleared, no fresh-start confirmation was pressed, and no instrumentation or unrestricted debug-artifact write occurred on the physical phone.
+- Source: implementation `ad2f3a9`; release source `1f0e3af` on `origin/main`.
+- Related: `FB-20260903-015`, `FND-20260903-025`, `IMP-20260903-024`, `IMP-20260903-025`, `VER-20260903-024`.
+- Independent final release review: A fresh read-only VERA release reviewer reconciled both captured cold-launch runs, independently checked source and artifact provenance, signature continuity, installed identity, guarded-gate evidence, runtime evidence, and physical-device safety constraints, then returned GO with no blockers.
+- Status: Signed release installed, physically verified, and independently accepted. Manual validation of the corrected label on the phone remains user-facing acceptance evidence.

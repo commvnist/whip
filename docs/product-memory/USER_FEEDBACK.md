@@ -279,4 +279,4 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Preferred picker ordering must not imply a domain role; the 5/3/1 picker uses neutral/current-selection presentation; an Exercise created from an empty library can become Exercise 1 without alternative wording; generated work remains Main work with no substitute IDs; actual routine substitutes are explicitly optional and configured separately; active-workout substitution may still identify preferred substitutes in its own context.
 - Affected users/workflows: New 5/3/1 users, empty-library creation, custom Exercise selection, active-workout substitution, screen-reader users.
 - Related: `FND-20260903-025`, `IMP-20260903-024`, `VER-20260903-024`.
-- Status: Implemented, focused-emulator verified, independently accepted, committed, and pushed in `ad2f3a9`; awaiting the next physical release and user validation.
+- Status: Implemented in `ad2f3a9`, verified, independently accepted, and released to the physical phone in Whip 0.3.46/code 52; awaiting real-user validation. See `VER-20260903-025`.

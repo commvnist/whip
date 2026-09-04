@@ -818,4 +818,14 @@
 - Commit/push: `ad2f3a9` on `origin/main`.
 - Related: `FB-20260903-015`, `FND-20260903-025`, `VER-20260903-024`.
 - Verification: `VER-20260903-024`.
-- Status: Implemented, focused-emulator verified, independently accepted, committed, and pushed; awaiting physical release.
+- Status: Implemented, focused-emulator verified, independently accepted, committed, pushed, and released in Whip 0.3.46/code 52; see `VER-20260903-025`.
+
+### IMP-20260903-025 — Signed Whip 0.3.46 Exercise-picker semantics release
+
+- Assigned Whip 0.3.46/code 52 and pushed release-source commit `1f0e3af`, containing the `ad2f3a9` Exercise-picker correction.
+- Ran the complete guarded local release gate and installed the signed package in place on the explicitly selected Samsung endpoint `192.168.2.187:44401`.
+- Verified the installed APK byte-for-byte against the signed local release, the established single release signer, preserved Android installation identity, successful cold launch, resumed `MainActivity`, and absence of app/runtime/database fatals.
+- Did not run instrumentation, clear data, uninstall, or confirm the user-owned epoch-6 fresh-start action on the physical phone.
+- Related: `FB-20260903-015`, `FND-20260903-025`, `IMP-20260903-024`, `VER-20260903-024`.
+- Verification: `VER-20260903-025`.
+- Status: Released and physically verified; release source `1f0e3af`.
