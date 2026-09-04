@@ -161,6 +161,32 @@ class RoutineBuilderUiTest {
     }
 
     @Test
+    fun emptyWorkoutPickerUsesTheSharedEmptyStateAndKeepsBackReachable() {
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                RoutineBuilderScreen(
+                    routineId = null,
+                    gymState = GymUiState(loading = false),
+                    initial = null,
+                    onDismiss = {},
+                    onSave = { _, complete -> complete(true) },
+                    onCreateExercise = { _, _ -> },
+                    onCreateMachine = { _, _ -> },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("routine-selected-exercises")
+            .performScrollToNode(hasText("Add from a Previous Workout"))
+        compose.onNodeWithText("Add from a Previous Workout").performClick()
+
+        compose.onNodeWithText("No Completed Workouts").assertIsDisplayed()
+        compose.onNodeWithText("Complete a workout first, or go back and add exercises from your library.")
+            .assertIsDisplayed()
+        compose.onNodeWithContentDescription("Back to routine outline").assertIsDisplayed()
+    }
+
+    @Test
     fun emptyCustomFiveThreeOneCanCreateAndAddSeveralExercisesWithoutLeavingSetup() {
         val exercises = mutableStateOf<List<Exercise>>(emptyList())
         var nextId = 1L

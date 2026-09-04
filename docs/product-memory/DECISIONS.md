@@ -702,3 +702,12 @@
 - Verification: Serialize independently reviewable tranches. Prove ≥48 dp actions and reachability at 320 dp/200% text plus dark, RTL, and fold placement for affected surfaces; run focused domain/UI/lifecycle gates after each tranche, the complete deterministic gate at the end, a fresh Sol architecture review, and visual inspection on the disposable emulator. Do not deploy or reset the physical phone.
 - Related: `FB-20260903-017`, `FND-20260903-027` through `FND-20260903-033`.
 - Status: Accepted, implemented, fully verified, and independently approved. The bounded semantic exceptions and no-reset boundary remain part of the decision.
+
+### DEC-20260904-001 — Calendar presentation is a small shared contract, not a calendar framework
+
+- Context: Several pages independently rendered weekday abbreviations and month navigation, creating locale and accessibility drift. Other equivalent UI roles had isolated one-off implementations.
+- Decision: Share only locale-aware weekday formatting and standard calendar header chrome, plus existing semantic action/information/empty-state roles. Keep state, date selection, data ownership, exercise logic, and feature-specific action policy in their domains.
+- Constraints: Preserve `DayOfWeek` persistence identity, two-letter calendar legibility where possible, RTL-aware navigation, 48 dp controls, dark mode, 320 dp width, and 200% text behavior. Do not introduce a universal form/calendar DSL or migration.
+- Consequences: Feature pages present the same accessible calendar language and less visual drift without coupling their behavior or data models.
+- Related: `FB-20260904-002`, `FND-20260904-001`, `IMP-20260904-002`, `VER-20260904-002`.
+- Status: Accepted, implemented, verified, and independently approved.

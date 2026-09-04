@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,6 +27,7 @@ import com.whip.app.R
 import com.whip.app.WhipApplication
 import com.whip.app.ui.WhipButton
 import com.whip.app.ui.WhipContentWidth
+import com.whip.app.ui.WhipGroupedInformationCard
 import com.whip.app.ui.WhipNoticeCard
 import com.whip.app.ui.WhipNoticeTone
 import com.whip.app.ui.WhipPageContentPadding
@@ -143,21 +142,13 @@ private fun HealthRationaleSection(
     message: String,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(WhipSpacing.standard),
-            verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
-        ) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-                modifier = Modifier.semantics { heading() },
-            )
-            Text(message, style = MaterialTheme.typography.bodyLarge)
-        }
+    WhipGroupedInformationCard(modifier) {
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+            modifier = Modifier.semantics { heading() },
+        )
+        Text(message, style = MaterialTheme.typography.bodyLarge)
     }
 }

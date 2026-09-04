@@ -1357,30 +1357,29 @@ private fun AllTracksPage(
             )
         }
         if (selecting) item {
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("${quantityLabel(selectedIds.size, "Track")} Selected", fontWeight = FontWeight.Bold)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        if (!showArchived) {
-                            val allPinned = selectedIds.isNotEmpty() && source.filter { it.track.id in selectedIds }.all { it.track.pinned }
-                            WhipOutlinedButton(enabled = selectedIds.isNotEmpty(), onClick = {
-                                onSetPinned(selectedIds, !allPinned)
-                                selectedIds = emptySet()
-                                selecting = false
-                            }) { Text(if (allPinned) "Unpin from Whip Home" else "Pin to Whip Home") }
-                            WhipOutlinedButton(enabled = selectedIds.isNotEmpty(), onClick = {
-                                onSetArchived(selectedIds, true)
-                                selectedIds = emptySet()
-                                selecting = false
-                            }) { Text("Archive") }
-                        } else {
-                            WhipOutlinedButton(enabled = selectedIds.isNotEmpty(), onClick = {
-                                onSetArchived(selectedIds, false)
-                                selectedIds = emptySet()
-                                selecting = false
-                            }) { Text("Restore") }
-                        }
-                        WhipTextButton(onClick = { selectedIds = emptySet(); selecting = false }) { Text("Cancel") }
+            WhipSelectionActionPanel(
+                selectionSummary = "${quantityLabel(selectedIds.size, "Track")} selected",
+                onDone = { selectedIds = emptySet(); selecting = false },
+            ) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (!showArchived) {
+                        val allPinned = selectedIds.isNotEmpty() && source.filter { it.track.id in selectedIds }.all { it.track.pinned }
+                        WhipOutlinedButton(enabled = selectedIds.isNotEmpty(), onClick = {
+                            onSetPinned(selectedIds, !allPinned)
+                            selectedIds = emptySet()
+                            selecting = false
+                        }) { Text(if (allPinned) "Unpin from Whip Home" else "Pin to Whip Home") }
+                        WhipOutlinedButton(enabled = selectedIds.isNotEmpty(), onClick = {
+                            onSetArchived(selectedIds, true)
+                            selectedIds = emptySet()
+                            selecting = false
+                        }) { Text("Archive") }
+                    } else {
+                        WhipOutlinedButton(enabled = selectedIds.isNotEmpty(), onClick = {
+                            onSetArchived(selectedIds, false)
+                            selectedIds = emptySet()
+                            selecting = false
+                        }) { Text("Restore") }
                     }
                 }
             }

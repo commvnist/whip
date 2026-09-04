@@ -85,7 +85,8 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithText("Agenda").assertIsDisplayed().performClick()
             compose.onNodeWithText("Calendar").assertIsDisplayed().performClick()
             compose.onNodeWithTag("task-calendar").performScrollTo()
-            compose.onNodeWithText("Previous").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+            compose.onNodeWithContentDescription("Previous Month")
+                .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
             compose.waitForIdle()
             compose.onNodeWithText(previousMonthLabel).fetchSemanticsNode()
             openSettings()
@@ -182,7 +183,11 @@ class WhipComposeSemanticsTest {
         val intent = Intent(app, MainActivity::class.java)
             .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
         launchMainActivity(intent).use {
-            compose.onNodeWithText("Reset").performScrollTo().performClick()
+            compose.onNodeWithTag("home-list").performScrollToNode(hasTestTag("goal-card-$goalId"))
+            compose.onNode(
+                hasText("Reset") and hasAnyAncestor(hasTestTag("goal-primary-action-$goalId")),
+                useUnmergedTree = true,
+            ).performClick()
             compose.onNodeWithText("Reset Recovery Counter?").assertIsDisplayed()
             compose.onNodeWithText("Reset to Now").performClick()
 

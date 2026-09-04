@@ -60,7 +60,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.focus.FocusRequester
@@ -113,8 +112,6 @@ import java.time.Month
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
-import java.time.format.TextStyle
-import java.util.Locale
 import kotlin.math.abs
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
@@ -185,6 +182,7 @@ fun TaskEditorDialog(
     pendingTaskRequestWaiting: Boolean = false,
 ) {
     val keyboard = LocalSoftwareKeyboardController.current
+    val weekdayFormatter = rememberWhipWeekdayFormatter()
     val titleFocusRequester = remember { FocusRequester() }
     val captureLines = request.initialCapture.lines().map(String::trim).filter(String::isNotBlank)
     val requestedPlacement = request.initialPlacement
@@ -836,13 +834,13 @@ fun TaskEditorDialog(
                                 horizontalArrangement = Arrangement.spacedBy(7.dp),
                                 verticalArrangement = Arrangement.spacedBy(7.dp),
                             ) {
-                                orderedWeekdays(firstDayOfWeek).forEach { day ->
+                                orderedWhipWeekdays(firstDayOfWeek).forEach { day ->
                                     WhipFilterChip(
                                         selected = day in weekdays,
                                         onClick = {
                                             weekdays = if (day in weekdays) weekdays - day else weekdays + day
                                         },
-                                        label = { Text(day.shortLabel) },
+                                        label = { Text(weekdayFormatter.label(day, WhipWeekdayLabelWidth.Compact)) },
                                     )
                                 }
                             }
@@ -1706,12 +1704,6 @@ private fun reminderOffsetLabel(minutes: Int): String = when {
 private fun decimalInput(value: String): String = value.filterIndexed { index, char ->
     char.isDigit() || char == '.' || char == ',' || (char == '-' && index == 0)
 }.take(12)
-
-private val DayOfWeek.shortLabel: String
-    get() = name.take(2).lowercase().replaceFirstChar(Char::uppercase)
-
-private fun orderedWeekdays(first: DayOfWeek): List<DayOfWeek> =
-    (0..6).map { offset -> DayOfWeek.of((first.value - 1 + offset) % 7 + 1) }
 
 private val TaskProgressDisplay.label: String
     get() = when (this) {

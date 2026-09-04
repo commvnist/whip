@@ -887,3 +887,15 @@
 - VERA evaluation: High-risk route used read-only Sol/xhigh architecture gates, localized Terra implementation/review tranches, deterministic focused/full checks, one repair cycle for each discovered regression class, and a fresh final Sol/xhigh review. Agent token counters were not exposed by the collaboration API; no value is invented. Final acceptance: GO, zero known escaped defect.
 - Related: `FB-20260903-017`, `FND-20260903-027` through `FND-20260903-033`, `DEC-20260903-015`, `IMP-20260903-027`.
 - Status: Passed, independently accepted, committed, and pushed; subjective spacing awaits real-user validation and the candidate remains unreleased to the physical phone.
+
+### VER-20260904-002 — Product-quality presentation convergence verification
+
+- Scope/environment: Disposable API 34 emulator explicitly selected as `ANDROID_SERIAL=emulator-5554`. No reset, install, release, deployment, or physical-device command was used by the final acceptance gate.
+- Complete gate: `ANDROID_SERIAL=emulator-5554 scripts/check --emulator` passed. All 612 JVM tests and all 923 Android instrumentation tests executed or were validly reused across 11 exact-signature batches, with zero failures and zero skips.
+- Static/quality gates: `scripts/check` passed with production/test compilation, lint, architecture/stale-symbol checks, and `git diff --check`. Coverage was 81.96% line (4,207/5,133), 56.76% branch (2,379/4,191), and 68.43% core (568/830), above the 78%/51%/63% thresholds.
+- Focused evidence: Calendar presentation, UI architecture, localized recomposition, RTL/dark/320 dp/200% 48 dp controls, selection semantics, Routine empty state, and the repaired Home elapsed-goal reset contract passed. Exact `WhipComposeSemanticsTest` emulator class run passed 12/12.
+- Independent review: Fresh Sol final review returned GO with no blocking product finding and confirmed no persistence, schema, backup, lifecycle, or release change.
+- Incident: A prior repair agent omitted `ANDROID_SERIAL` in two direct instrumentation commands while a phone was attached, causing both targets to run. Phone results are excluded from acceptance; no reset/install/release followed, and final acceptance was rerun emulator-only. See `FND-20260904-002`.
+- Residual risk: Subjective appeal awaits real-user validation; API 26/API 37 visual/device coverage was outside this emulator-only gate.
+- Related: `FB-20260904-002`, `FND-20260904-001` through `FND-20260904-002`, `DEC-20260904-001`, `IMP-20260904-002`.
+- Status: Passed and independently accepted; awaiting user validation.

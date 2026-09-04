@@ -85,8 +85,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.ChevronLeft
-import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.DragHandle
@@ -7360,35 +7358,21 @@ private fun WorkoutMonthCalendar(
         .filter { YearMonth.from(it.localDate) == month }
         .groupingBy(WorkoutSession::localDate)
         .eachCount()
-    val orderedDays = (0..6).map { offset -> java.time.DayOfWeek.of((firstDayOfWeek.value - 1 + offset) % 7 + 1) }
     val firstOffset = (month.atDay(1).dayOfWeek.value - firstDayOfWeek.value + 7) % 7
     val cellCount = ((firstOffset + month.lengthOfMonth() + 6) / 7) * 7
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onPreviousMonth, modifier = Modifier.size(48.dp)) {
-                Icon(Icons.Outlined.ChevronLeft, contentDescription = "Previous month", modifier = Modifier.size(30.dp))
-            }
-            Text(
-                month.atDay(1).format(DateTimeFormatter.ofPattern("MMMM yyyy")),
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-            )
-            if (selectedDate != null) WhipTextButton(onClick = { onSelectDate(null) }) { Text("All") }
-            IconButton(onClick = onNextMonth, modifier = Modifier.size(48.dp)) {
-                Icon(Icons.Outlined.ChevronRight, contentDescription = "Next month", modifier = Modifier.size(30.dp))
-            }
-        }
-        Row {
-            orderedDays.forEach { day ->
-                Text(
-                    day.name.take(3).lowercase().replaceFirstChar(Char::uppercase),
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.labelSmall,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                )
-            }
-        }
+        WhipCalendarMonthHeader(
+            month = month,
+            onPreviousMonth = onPreviousMonth,
+            onNextMonth = onNextMonth,
+            contextualAction = selectedDate?.let {
+                @Composable { WhipTextButton(onClick = { onSelectDate(null) }) { Text("All") } }
+            },
+        )
+        WhipCalendarWeekdayHeader(
+            firstDayOfWeek = firstDayOfWeek,
+            width = WhipWeekdayLabelWidth.Short,
+        )
         (0 until cellCount).chunked(7).forEach { week ->
             Row {
                 week.forEach { cell ->

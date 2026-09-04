@@ -4630,7 +4630,12 @@ private fun WorkoutPickerPage(modifier: Modifier, gymState: GymUiState, onChoose
             Text("Reuse a Performed Workout", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text("Exercises, equipment, set types, loads, repetitions, effort, rest, and notes are copied as editable prescriptions.")
         }
-        if (gymState.history.isEmpty()) item { Text("No completed workouts are available yet.") }
+        if (gymState.history.isEmpty()) item {
+            WhipEmptyState(
+                title = "No Completed Workouts",
+                supportingText = "Complete a workout first, or go back and add exercises from your library.",
+            )
+        }
         items(gymState.history.take(50), key = WorkoutSession::id) { session ->
             val placements = gymState.allWorkoutExercises.count { it.sessionId == session.id }
             WhipCollectionCard(

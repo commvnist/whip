@@ -853,3 +853,12 @@
 - Source: audit/decision commits `b7222de` and `b0effdd`; implementation and regression commits `5297940` through `a65889f`, all pushed to `origin/main`.
 - Related: `FB-20260903-017`, `FND-20260903-027` through `FND-20260903-033`, `DEC-20260903-015`, `VER-20260903-027`.
 - Status: Implemented, fully verified, independently accepted, committed, and pushed; not released to the physical phone and awaiting user validation.
+
+### IMP-20260904-002 — Product-quality presentation convergence
+
+- Behavior changed: Introduced shared localized calendar presentation for weekday labels and month headers, then migrated the neutral date picker, Home planner, Task, Habit, Gym, productivity, and Settings consumers. Task and Track now share the selection action surface; Health rationale uses the grouped information surface; Routine's empty workout picker uses the canonical empty state.
+- Important files/symbols: `WhipWeekdayFormatter`, `rememberWhipWeekdayFormatter`, `WhipCalendarMonthHeader`, `WhipCalendarWeekdayHeader`, and `WhipSelectionActionPanel`.
+- Compatibility/data impact: Presentation and test-only change. No schema, data epoch, backup, date identity, lifecycle, persistence, release, reset, or physical-device change.
+- Verification: Unit, architecture, and Compose tests cover localized recomposition, RTL/dark/narrow/large-text month controls, 48 dp targets, selection panels, and Routine empty state; complete results are in `VER-20260904-002`.
+- Related: `FB-20260904-002`, `FND-20260904-001`, `DEC-20260904-001`, `VER-20260904-002`.
+- Status: Implemented, verified, and independently accepted; awaiting user validation.

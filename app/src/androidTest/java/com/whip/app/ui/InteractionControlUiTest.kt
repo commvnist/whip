@@ -1,5 +1,6 @@
 package com.whip.app.ui
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
@@ -71,9 +73,12 @@ import com.whip.app.domain.WhipTask
 import com.whip.app.ui.theme.WhipTheme
 import java.time.Instant
 import java.time.LocalDate
+import java.time.DayOfWeek
+import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -85,6 +90,94 @@ import org.junit.runner.RunWith
 class InteractionControlUiTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun weekdayFormatterReactsToObservableLocaleConfiguration() {
+        val configuration = mutableStateOf(Configuration().apply { setLocale(Locale.ENGLISH) })
+        compose.setContent {
+            CompositionLocalProvider(LocalConfiguration provides configuration.value) {
+                Text(
+                    rememberWhipWeekdayFormatter().label(
+                        DayOfWeek.MONDAY,
+                        WhipWeekdayLabelWidth.Full,
+                    ),
+                )
+            }
+        }
+
+        compose.onNodeWithText("Monday").assertIsDisplayed()
+        compose.runOnIdle {
+            configuration.value = Configuration(configuration.value).apply { setLocale(Locale.FRENCH) }
+        }
+        compose.onNodeWithText("lundi").assertIsDisplayed()
+        compose.onAllNodesWithText("Monday").assertCountEquals(0)
+    }
+
+    @Test
+    fun calendarHeaderKeepsNavigationReachableAtCompactLargeTextAndRtl() {
+        val largeText = Density(compose.density.density, fontScale = 2f)
+        val englishConfiguration = Configuration().apply { setLocale(Locale.ENGLISH) }
+        var previous = 0
+        var next = 0
+        compose.setContent {
+            CompositionLocalProvider(
+                LocalDensity provides largeText,
+                LocalLayoutDirection provides LayoutDirection.Rtl,
+                LocalConfiguration provides englishConfiguration,
+            ) {
+                WhipTheme(dynamicColor = false) {
+                    Box(Modifier.width(320.dp)) {
+                        WhipCalendarMonthHeader(
+                            month = YearMonth.of(2026, 9),
+                            onPreviousMonth = { previous += 1 },
+                            onNextMonth = { next += 1 },
+                        )
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithText("September 2026").assertIsDisplayed()
+        val minimum = with(compose.density) { 48.dp.toPx() }
+        listOf("Previous Month", "Next Month").forEach { label ->
+            val target = compose.onNodeWithContentDescription(label).assertIsDisplayed()
+            assertTrue(target.fetchSemanticsNode().boundsInRoot.height >= minimum - 0.5f)
+            target.performClick()
+        }
+        compose.runOnIdle {
+            assertEquals(1, previous)
+            assertEquals(1, next)
+        }
+    }
+
+    @Test
+    fun selectionActionPanelKeepsCallerActionsAndDoneReachableAtLargeText() {
+        val largeText = Density(compose.density.density, fontScale = 2f)
+        var finished = false
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides largeText) {
+                WhipTheme(darkTheme = true, dynamicColor = false) {
+                    Box(Modifier.width(320.dp)) {
+                        WhipSelectionActionPanel(
+                            selectionSummary = "12 Tracks selected",
+                            onDone = { finished = true },
+                        ) {
+                            Text("Caller-owned retry message")
+                            WhipOutlinedButton(onClick = {}, modifier = Modifier.testTag("caller-selection-action")) {
+                                Text("Archive")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithText("12 Tracks selected").assertIsDisplayed()
+        compose.onNodeWithText("Caller-owned retry message").assertIsDisplayed()
+        compose.onNodeWithTag("caller-selection-action").assertIsDisplayed()
+        compose.onNodeWithText("Done").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertTrue(finished) }
+    }
 
     @Test
     fun editorHeaderStacksActionsBelowIdentityAtCompactLargeText() {

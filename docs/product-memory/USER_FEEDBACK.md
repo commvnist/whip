@@ -300,3 +300,12 @@ These records preserve durable user intent. “Released” means the change reac
 - Related: Existing bounded-reuse decision `DEC-20260903-011`; `FND-20260903-027` through `FND-20260903-033`; `DEC-20260903-015`; `IMP-20260903-027`; `VER-20260903-027`.
 - Notes: Destructive data changes are authorized if genuinely required, but this does not authorize physical-device reset, release/deployment, or unrelated destructive operations. Current evidence must justify any data change before it is used.
 - Status: Implemented across `b7222de` through `a65889f`, fully regression-tested, independently accepted, committed, and pushed to `origin/main`; awaiting user validation.
+
+### FB-20260904-002 — Top-to-bottom product quality pass
+
+- Date/source: 2026-09-04, direct user request using `/goal`.
+- User need: Make Whip clear, intuitive, appealing, engaging, flawless, and bug free through a top-to-bottom UX, UI, design, and QA pass grounded in foundational product principles.
+- Acceptance criteria: Independently re-inventory the entire currently implemented product; remediate evidence-backed usability, visual-hierarchy, interaction, accessibility, responsive-layout, copy, state, and defect issues; use bounded semantic reuse; exercise changed workflows visually and with automation; pass focused checks, the full deterministic product gate, and fresh high-risk review.
+- Related: `FB-20260903-017`, `DEC-20260903-015`, `DEC-20260904-001`, `FND-20260904-001` through `FND-20260904-002`, `IMP-20260904-002`, and `VER-20260904-002`.
+- Status: Verified and independently accepted; awaiting user validation.
+- Notes: Local reversible implementation and verification only; no physical-device reset, release/deployment, credentials, publication, or other external/destructive action was authorized.

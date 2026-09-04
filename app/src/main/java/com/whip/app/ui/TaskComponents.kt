@@ -63,8 +63,6 @@ import com.whip.app.domain.WhipTask
 import com.whip.app.data.TaskDeletionImpact
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
-import java.time.format.TextStyle
-import java.util.Locale
 import com.whip.app.ui.theme.whipColors
 
 @Composable
@@ -112,7 +110,8 @@ fun TaskRow(
     showCompletionControl: Boolean = true,
 ) {
     val disclosure = rememberItemDisclosure("task:${item.stableKey}")
-    val metadata = item.detailSegments(completed)
+    val weekdayFormatter = rememberWhipWeekdayFormatter()
+    val metadata = item.detailSegments(completed, weekdayFormatter)
     ProductivityItemCard(
         modifier = Modifier.then(
             when {
@@ -386,6 +385,7 @@ fun TaskActionsDialog(
 ) {
     var section by rememberSaveable(item.stableKey) { mutableStateOf(TaskDetailSection.Overview) }
     var pendingMoveStepId by rememberSaveable(item.stableKey) { mutableStateOf<Long?>(null) }
+    val weekdayFormatter = rememberWhipWeekdayFormatter()
     EntityInspector(
         entityType = "Task",
         title = item.task.title,
@@ -420,7 +420,7 @@ fun TaskActionsDialog(
             ) {
                 if (section == TaskDetailSection.Overview) {
                     EntityInspectorGroup("Context") {
-                        EntityInspectorFact("Timing", item.task.scheduleExplanation())
+                        EntityInspectorFact("Timing", item.task.scheduleExplanation(weekdayFormatter))
                         item.task.notes.takeIf(String::isNotBlank)?.let { EntityInspectorFact("Notes", it) }
                         item.task.deadline?.let { deadline ->
                             EntityInspectorFact(
@@ -448,7 +448,7 @@ fun TaskActionsDialog(
                 if (section == TaskDetailSection.Activity) {
                     EntityInspectorGroup(
                         "Schedule",
-                        supportingText = item.task.scheduleExplanation().takeUnless {
+                        supportingText = item.task.scheduleExplanation(weekdayFormatter).takeUnless {
                             item.task.scheduleKind == ScheduleKind.Recurring
                         },
                     ) {
@@ -470,7 +470,7 @@ fun TaskActionsDialog(
                         EntityInspectorGroup("Activity") {
                             SeriesHistory(
                                 occurrences = occurrenceHistory,
-                                scheduleExplanation = item.task.scheduleExplanation(),
+                                scheduleExplanation = item.task.scheduleExplanation(weekdayFormatter),
                                 actionsEnabled = !item.task.archived,
                                 onReopenOccurrence = onReopenOccurrence,
                                 onResetOccurrence = onResetOccurrence,
@@ -587,6 +587,7 @@ fun CompletedTaskDialog(
     onResetOccurrence: (TaskOccurrence) -> Unit,
 ) {
     var section by rememberSaveable(item.stableKey) { mutableStateOf(TaskDetailSection.Overview) }
+    val weekdayFormatter = rememberWhipWeekdayFormatter()
     EntityInspector(
         entityType = "Task",
         title = item.task.title,
@@ -625,7 +626,7 @@ fun CompletedTaskDialog(
                             )
                         }
                         EntityInspectorGroup("Context") {
-                            EntityInspectorFact("Timing", item.task.scheduleExplanation())
+                            EntityInspectorFact("Timing", item.task.scheduleExplanation(weekdayFormatter))
                             item.task.notes.takeIf(String::isNotBlank)?.let { EntityInspectorFact("Notes", it) }
                             if (item.totalSubtasks > 0) {
                                 EntityInspectorFact("Subtasks", "${item.completedSubtasks} of ${item.totalSubtasks} complete")
@@ -636,7 +637,7 @@ fun CompletedTaskDialog(
                         if (item.task.scheduleKind == ScheduleKind.Recurring) {
                             SeriesHistory(
                                 occurrences = occurrenceHistory,
-                                scheduleExplanation = item.task.scheduleExplanation(),
+                                scheduleExplanation = item.task.scheduleExplanation(weekdayFormatter),
                                 actionsEnabled = true,
                                 onReopenOccurrence = onReopenOccurrence,
                                 onResetOccurrence = onResetOccurrence,
@@ -835,7 +836,10 @@ fun PermanentTaskDeleteDialog(
     )
 }
 
-private fun ScheduledTask.detailSegments(completed: Boolean): List<String> {
+private fun ScheduledTask.detailSegments(
+    completed: Boolean,
+    weekdayFormatter: WhipWeekdayFormatter,
+): List<String> {
     val parts = mutableListOf<String>()
     if (completed) {
         parts += "Completed"
@@ -866,7 +870,9 @@ private fun ScheduledTask.detailSegments(completed: Boolean): List<String> {
     task.durationMinutes?.let { parts += "$it min" }
     if (task.effort != TaskEffort.Unspecified) parts += "${task.effort.label} effort"
     task.tags.sorted().forEach { parts += "#$it" }
-    if (task.scheduleKind == ScheduleKind.Recurring) parts += "Repeats · ${task.repeatLabel()}"
+    if (task.scheduleKind == ScheduleKind.Recurring) {
+        parts += "Repeats · ${task.repeatLabel(weekdayFormatter)}"
+    }
     if (task.scheduleKind == ScheduleKind.Anytime) parts += "Inbox"
     return parts
 }
@@ -879,7 +885,7 @@ private fun ScheduledTask.progressLabel(): String = when (task.progressDisplay) 
     }
 }
 
-private fun WhipTask.repeatLabel(): String {
+private fun WhipTask.repeatLabel(weekdayFormatter: WhipWeekdayFormatter): String {
     val rule = requireNotNull(recurrence)
     val base = when {
         rule.unit == RecurrenceUnit.Days && rule.interval == 1 -> "Daily"
@@ -887,7 +893,9 @@ private fun WhipTask.repeatLabel(): String {
         rule.unit == RecurrenceUnit.Months -> "Every ${rule.interval} month${if (rule.interval == 1) "" else "s"}"
         rule.unit == RecurrenceUnit.Years -> "Every ${rule.interval} year${if (rule.interval == 1) "" else "s"}"
         rule.interval == 1 && rule.weekdays.isNotEmpty() -> {
-            rule.weekdays.sorted().joinToString(", ") { it.getDisplayName(TextStyle.SHORT, Locale.getDefault()) }
+            rule.weekdays.sorted().joinToString(", ") {
+                weekdayFormatter.label(it, WhipWeekdayLabelWidth.Short)
+            }
         }
         rule.weekdays.isNotEmpty() -> "Every ${rule.interval} weeks"
         else -> "Weekly"
@@ -899,7 +907,7 @@ private fun WhipTask.repeatLabel(): String {
     }
 }
 
-private fun WhipTask.scheduleExplanation(): String {
+private fun WhipTask.scheduleExplanation(weekdayFormatter: WhipWeekdayFormatter): String {
     if (scheduleKind == ScheduleKind.Anytime) {
         return "This task is in Inbox without a scheduled date. Choose one when you are ready to schedule it."
     }
@@ -913,7 +921,9 @@ private fun WhipTask.scheduleExplanation(): String {
         rule.unit == RecurrenceUnit.Days -> "every ${rule.interval} days from ${rule.startDate.format(shortDateFormatter)}"
         rule.unit == RecurrenceUnit.Months -> "every ${rule.interval} month${if (rule.interval == 1) "" else "s"}"
         rule.unit == RecurrenceUnit.Years -> "every ${rule.interval} year${if (rule.interval == 1) "" else "s"}"
-        rule.weekdays.isNotEmpty() -> "on ${rule.weekdays.sorted().joinToString(", ") { it.getDisplayName(TextStyle.SHORT, Locale.getDefault()) }}"
+        rule.weekdays.isNotEmpty() -> "on ${rule.weekdays.sorted().joinToString(", ") {
+            weekdayFormatter.label(it, WhipWeekdayLabelWidth.Short)
+        }}"
         else -> "every ${rule.interval} week${if (rule.interval == 1) "" else "s"} from ${rule.startDate.format(shortDateFormatter)}"
     }
     return if (rule.anchor == RecurrenceAnchor.Completion) {

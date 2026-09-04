@@ -60,7 +60,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -123,7 +122,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
-import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 import kotlinx.coroutines.delay
@@ -1977,7 +1975,7 @@ internal fun HabitEditorDialog(
     onSaveIdentityEmoji: (CustomIdentityEmoji) -> Unit = {},
     onRemoveSavedIdentityEmoji: (String) -> Unit = {},
 ) {
-    val currentLocale = LocalConfiguration.current.locales[0]
+    val weekdayFormatter = rememberWhipWeekdayFormatter()
     val baseInitial = initialDraft ?: habit?.toEditorDraft(initialChecklist) ?: HabitDraft(
         name = "",
         startDate = today,
@@ -2492,7 +2490,7 @@ internal fun HabitEditorDialog(
                                 WhipFilterChip(
                                     selected = day in weekdays,
                                     onClick = { weekdays = if (day in weekdays) weekdays - day else weekdays + day },
-                                    label = { Text(day.getDisplayName(TextStyle.SHORT, currentLocale)) },
+                                    label = { Text(weekdayFormatter.label(day, WhipWeekdayLabelWidth.Short)) },
                                 )
                             }
                         }
@@ -2511,7 +2509,7 @@ internal fun HabitEditorDialog(
                     ) {
                         Text("Reminders", fontWeight = FontWeight.Bold)
                         Text(
-                            habitReminderSummary(defaultReminderTimes, weekdayReminderTimes) { minutes ->
+                            habitReminderSummary(defaultReminderTimes, weekdayReminderTimes, weekdayFormatter) { minutes ->
                                 formatClockMinutes(context, minutes)
                             },
                             style = MaterialTheme.typography.bodySmall,
@@ -2526,7 +2524,7 @@ internal fun HabitEditorDialog(
                         }
                         if (weekStart != defaultWeekStart) {
                             Text(
-                                "Week starts ${weekStart.displayName()} (different from your app default)",
+                                "Week starts ${weekdayFormatter.label(weekStart, WhipWeekdayLabelWidth.Full)} (different from your app default)",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -2567,7 +2565,7 @@ internal fun HabitEditorDialog(
                     item { EnumDropdown("End Condition", HabitEndType.entries, endType, { it.scheduleLabel() }) { endType = it } }
                     if (endType == HabitEndType.OnDate) item { WhipOutlinedButton(onClick = { showEndDatePicker = true }, modifier = Modifier.fillMaxWidth()) { Text(endDate?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "Choose End Date") } }
                     if (endType in setOf(HabitEndType.AfterStreak, HabitEndType.AfterCompletions, HabitEndType.AfterTotal)) item { NumberTextField(endValue, { endValue = it }, when (endType) { HabitEndType.AfterStreak -> "End After Streak"; HabitEndType.AfterCompletions -> "End After Completions"; else -> "End After Total" }) }
-                    item { EnumDropdown("First Day of Week", DayOfWeek.entries, weekStart, DayOfWeek::displayName) { weekStart = it } }
+                    item { EnumDropdown("First Day of Week", DayOfWeek.entries, weekStart, { weekdayFormatter.label(it, WhipWeekdayLabelWidth.Full) }) { weekStart = it } }
                 }
                 item {
                     ProductivityOrganizationSection(
@@ -3560,17 +3558,16 @@ private fun HabitEndType.scheduleLabel(): String = when (this) {
     HabitEndType.AfterTotal -> "After total"
 }
 
-private fun DayOfWeek.displayName(): String = name.lowercase().replaceFirstChar(Char::uppercase)
-
 private fun habitReminderSummary(
     defaultTimes: List<Int>,
     weekdayTimes: Map<DayOfWeek, List<Int>>,
+    weekdayFormatter: WhipWeekdayFormatter,
     formatTime: (Int) -> String,
 ): String {
     val configuredWeekdays = weekdayTimes.entries
         .filter { (_, times) -> times.isNotEmpty() }
         .sortedBy { (day, _) -> day.value }
-        .map { (day, _) -> day.name.take(3).lowercase().replaceFirstChar(Char::uppercase) }
+        .map { (day, _) -> weekdayFormatter.label(day, WhipWeekdayLabelWidth.Short) }
     if (defaultTimes.isEmpty() && configuredWeekdays.isEmpty()) return "Off — no reminders configured"
 
     return buildList {

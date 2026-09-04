@@ -440,6 +440,36 @@ internal fun WhipEmptyState(
     }
 }
 
+/** Shared outer presentation for collection selection; callers own actions and errors. */
+@Composable
+internal fun WhipSelectionActionPanel(
+    selectionSummary: String,
+    onDone: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Card(modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(
+                horizontal = WhipSpacing.standard,
+                vertical = WhipSpacing.sibling,
+            ),
+            verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
+        ) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    selectionSummary,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                WhipTextButton(onClick = onDone) { Text("Done") }
+            }
+            content()
+        }
+    }
+}
+
 @Composable
 internal fun WhipSection(
     title: String,

@@ -710,6 +710,7 @@ internal fun WeekdayReminderEditor(
     var choosingDay by rememberSaveable { mutableStateOf(false) }
     var addingDayName by rememberSaveable { mutableStateOf<String?>(null) }
     val context = LocalContext.current
+    val weekdayFormatter = rememberWhipWeekdayFormatter()
     val activeValues = values.mapValues { (_, times) -> times.distinct().sorted() }
         .filterValues { it.isNotEmpty() }
     val hasAvailableWeekdaySlot = DayOfWeek.entries.any { day ->
@@ -728,7 +729,7 @@ internal fun WeekdayReminderEditor(
         )
         activeValues.toSortedMap(compareBy { it.value }).forEach { (day, times) ->
             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("${day.weekdayLabel()} reminders", style = MaterialTheme.typography.labelMedium)
+                Text("${weekdayFormatter.label(day, WhipWeekdayLabelWidth.Full)} reminders", style = MaterialTheme.typography.labelMedium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     times.sorted().forEach { value -> WhipFilterChip(
                         selected = true,
@@ -776,14 +777,14 @@ internal fun WeekdayReminderEditor(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        orderedWeekdays(firstDayOfWeek).forEach { day -> WhipFilterChip(
+                        orderedWhipWeekdays(firstDayOfWeek).forEach { day -> WhipFilterChip(
                             selected = false,
                             enabled = nextUnusedReminderMinute(activeValues[day].orEmpty()) != null,
                             onClick = {
                                 addingDayName = day.name
                                 choosingDay = false
                             },
-                            label = { Text(day.weekdayLabel()) },
+                            label = { Text(weekdayFormatter.label(day, WhipWeekdayLabelWidth.Full)) },
                         ) }
                     }
                 }
@@ -797,7 +798,7 @@ internal fun WeekdayReminderEditor(
         val occupiedMinutes = activeValues[selectedDay].orEmpty()
         val nextAvailableMinute = nextUnusedReminderMinute(occupiedMinutes)
         ClockPickerDialog(
-            title = "${selectedDay.weekdayLabel()} Reminder",
+            title = "${weekdayFormatter.label(selectedDay, WhipWeekdayLabelWidth.Full)} Reminder",
             initialMinutes = nextAvailableMinute ?: 8 * 60,
             occupiedMinutes = occupiedMinutes,
             onDismiss = { addingDayName = null },
@@ -808,11 +809,6 @@ internal fun WeekdayReminderEditor(
         )
     }
 }
-
-private fun DayOfWeek.weekdayLabel(): String = name.lowercase().replaceFirstChar(Char::uppercase)
-
-private fun orderedWeekdays(first: DayOfWeek): List<DayOfWeek> =
-    (0..6).map { offset -> DayOfWeek.of((first.value - 1 + offset) % 7 + 1) }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

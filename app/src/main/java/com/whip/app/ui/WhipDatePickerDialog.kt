@@ -10,19 +10,13 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ChevronLeft
-import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -78,6 +72,7 @@ fun WhipDatePickerDialog(
 ) {
     val resolvedFirstDayOfWeek = firstDayOfWeek ?: LocalWhipFirstDayOfWeek.current
     val today = LocalWhipToday.current
+    val weekdayFormatter = rememberWhipWeekdayFormatter()
     val density = LocalDensity.current
     val preferAccessibleWheels = preferWheelSelector
         ?: (LocalConfiguration.current.screenWidthDp < 384 || density.fontScale >= 1.5f)
@@ -116,7 +111,7 @@ fun WhipDatePickerDialog(
                     key(wheelResetToken) {
                         Row(Modifier.fillMaxWidth().testTag("date-picker-wheel-selector"), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)) {
                             DateWheelColumn("Year", 1..9999, jumpYear, Int::toString, { year -> jumpYear = year; jumpDay = jumpDay.coerceAtMost(YearMonth.of(year, jumpMonth).lengthOfMonth()) }, Modifier.weight(1f))
-                            DateWheelColumn("Month", 1..12, jumpMonth, { month -> Month.of(month).getDisplayName(TextStyle.FULL, Locale.getDefault()) }, { month -> jumpMonth = month; jumpDay = jumpDay.coerceAtMost(YearMonth.of(jumpYear, month).lengthOfMonth()) }, Modifier.weight(1.35f))
+                            DateWheelColumn("Month", 1..12, jumpMonth, { month -> Month.of(month).getDisplayName(TextStyle.FULL, weekdayFormatter.locale) }, { month -> jumpMonth = month; jumpDay = jumpDay.coerceAtMost(YearMonth.of(jumpYear, month).lengthOfMonth()) }, Modifier.weight(1.35f))
                             DateWheelColumn("Day", 1..YearMonth.of(jumpYear, jumpMonth).lengthOfMonth(), jumpDay, Int::toString, { jumpDay = it }, Modifier.weight(0.85f))
                         }
                     }
@@ -125,17 +120,23 @@ fun WhipDatePickerDialog(
                         WhipOutlinedButton(onClick = { selectedEpochDay = jumpDate.toEpochDay(); monthStartEpochDay = jumpDate.withDayOfMonth(1).toEpochDay(); choosingDateWithWheels = false }, modifier = Modifier.testTag("date-picker-show-calendar")) { Text("Show Calendar") }
                     }
                 } else {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { monthStartEpochDay = monthStart.minusMonths(1).toEpochDay() }, modifier = Modifier.size(48.dp)) { Icon(Icons.Outlined.ChevronLeft, "Previous Month") }
-                        WhipTextButton(onClick = { jumpYear = selectedDate.year; jumpMonth = selectedDate.monthValue; jumpDay = selectedDate.dayOfMonth; choosingDateWithWheels = true }, modifier = Modifier.weight(1f).testTag("date-picker-month-year").semantics { contentDescription = "${monthStart.format(DateTimeFormatter.ofPattern("MMMM yyyy"))}. Jump to Date" }) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(monthStart.format(DateTimeFormatter.ofPattern("MMMM yyyy")), textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                                Text("Jump to Date", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                        IconButton(onClick = { monthStartEpochDay = monthStart.plusMonths(1).toEpochDay() }, modifier = Modifier.size(48.dp)) { Icon(Icons.Outlined.ChevronRight, "Next Month") }
-                    }
-                    Row(Modifier.fillMaxWidth()) { datePickerOrderedWeekdays(resolvedFirstDayOfWeek).forEach { day -> Text(day.shortLabel, Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) } }
+                    WhipCalendarMonthHeader(
+                        month = YearMonth.from(monthStart),
+                        onPreviousMonth = { monthStartEpochDay = monthStart.minusMonths(1).toEpochDay() },
+                        onNextMonth = { monthStartEpochDay = monthStart.plusMonths(1).toEpochDay() },
+                        onMonthClick = {
+                            jumpYear = selectedDate.year
+                            jumpMonth = selectedDate.monthValue
+                            jumpDay = selectedDate.dayOfMonth
+                            choosingDateWithWheels = true
+                        },
+                        monthActionLabel = "Jump to Date",
+                        monthModifier = Modifier.testTag("date-picker-month-year"),
+                    )
+                    WhipCalendarWeekdayHeader(
+                        firstDayOfWeek = resolvedFirstDayOfWeek,
+                        textStyle = MaterialTheme.typography.labelMedium,
+                    )
                     calendarCells.chunked(7).forEach { week -> Row(Modifier.fillMaxWidth()) { week.forEach { date ->
                         if (date == null) Spacer(Modifier.weight(1f).aspectRatio(1f)) else {
                             val selected = date == selectedDate
@@ -184,9 +185,3 @@ private fun LazyListState.centeredItemIndex(): Int? {
     val viewportCenter = (layoutInfo.viewportStartOffset + layoutInfo.viewportEndOffset) / 2
     return layoutInfo.visibleItemsInfo.minByOrNull { item -> abs(item.offset + item.size / 2 - viewportCenter) }?.index
 }
-
-private val DayOfWeek.shortLabel: String
-    get() = name.take(2).lowercase().replaceFirstChar(Char::uppercase)
-
-private fun datePickerOrderedWeekdays(first: DayOfWeek): List<DayOfWeek> =
-    (0..6).map { offset -> DayOfWeek.of((first.value - 1 + offset) % 7 + 1) }

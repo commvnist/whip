@@ -467,4 +467,40 @@ class UiDesignArchitectureTest {
         assertTrue(datePicker.contains("private fun DateWheelColumn("))
         assertTrue(datePicker.contains("private fun LazyListState.centeredItemIndex("))
     }
+
+    @Test
+    fun weekdayCalendarSelectionAndEmptyStateReuseStayAtBoundedSemanticSeams() {
+        val calendar = File(sourceRoot, "com/whip/app/ui/WhipCalendarPresentation.kt").readText()
+        val patterns = File(sourceRoot, "com/whip/app/ui/WhipPagePatterns.kt").readText()
+        val app = File(sourceRoot, "com/whip/app/ui/WhipApp.kt").readText()
+        val datePicker = File(sourceRoot, "com/whip/app/ui/WhipDatePickerDialog.kt").readText()
+        val gym = File(sourceRoot, "com/whip/app/ui/GymScreens.kt").readText()
+        val tracks = File(sourceRoot, "com/whip/app/ui/TrackScreens.kt").readText()
+        val routine = File(sourceRoot, "com/whip/app/ui/RoutineBuilder.kt").readText()
+        val health = File(sourceRoot, "com/whip/app/health/HealthPermissionsRationaleActivity.kt").readText()
+
+        listOf(
+            "class WhipWeekdayFormatter(",
+            "fun rememberWhipWeekdayFormatter(",
+            "fun WhipCalendarMonthHeader(",
+            "fun WhipCalendarWeekdayHeader(",
+            "Icons.AutoMirrored.Outlined.ArrowBack",
+            "Icons.AutoMirrored.Outlined.ArrowForward",
+        ).forEach { contract -> assertTrue("Calendar presentation is missing $contract", calendar.contains(contract)) }
+        listOf(app, datePicker, gym).forEach { caller ->
+            assertTrue(caller.contains("WhipCalendarMonthHeader("))
+            assertTrue(caller.contains("WhipCalendarWeekdayHeader("))
+        }
+        assertTrue(calendar.contains(".then(monthModifier)"))
+        assertTrue(datePicker.contains("monthModifier = Modifier.testTag(\"date-picker-month-year\")"))
+        assertTrue(patterns.contains("fun WhipSelectionActionPanel("))
+        assertTrue(app.contains("WhipSelectionActionPanel("))
+        assertTrue(tracks.contains("WhipSelectionActionPanel("))
+        assertTrue(health.contains("WhipGroupedInformationCard(modifier)"))
+        assertFalse(Regex("(?m)^\\s*Card\\(").containsMatchIn(health))
+        val workoutPicker = routine.substringAfter("private fun WorkoutPickerPage(")
+            .substringBefore("private fun EquipmentPickerPane(")
+        assertTrue(workoutPicker.contains("WhipEmptyState("))
+        assertFalse(workoutPicker.contains("Text(\"No completed workouts are available yet.\")"))
+    }
 }

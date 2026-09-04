@@ -6244,12 +6244,10 @@ private fun TaskAreaContent(
                 }
                 }
             if (selectionMode) {
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text("${selectedItems.size} selected", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                            WhipTextButton(onClick = ::finishSelection) { Text("Done") }
-                        }
+                WhipSelectionActionPanel(
+                    selectionSummary = "${selectedItems.size} selected",
+                    onDone = ::finishSelection,
+                ) {
                         if (hiddenSelectedCount > 0) {
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 Text(
@@ -6403,7 +6401,6 @@ private fun TaskAreaContent(
                                 )
                             }
                         }
-                    }
                 }
             } else {
                 if (reordering) {
@@ -7689,27 +7686,18 @@ private fun TaskMonthPlanner(
     habitCounts: Map<LocalDate, Int> = emptyMap(),
 ) {
     val dates = (1..month.lengthOfMonth()).map(month::atDay)
-    val orderedDays = (0L..6L).map { firstDayOfWeek.plus(it) }
+    val orderedDays = orderedWhipWeekdays(firstDayOfWeek)
     val leading = orderedDays.indexOf(dates.first().dayOfWeek).coerceAtLeast(0)
     val cells: List<LocalDate?> = List(leading) { null } + dates
     val counts = tasks.flatMap { item -> listOfNotNull(item.planningDate(zoneId), item.task.deadline).distinct() }.groupingBy { it }.eachCount()
     Card(Modifier.fillMaxWidth().testTag("task-calendar")) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                WhipTextButton(onClick = onPrevious) { Text("Previous") }
-                Text(month.format(DateTimeFormatter.ofPattern("MMMM yyyy")), fontWeight = FontWeight.Bold)
-                WhipTextButton(onClick = onNext) { Text("Next") }
-            }
-            Row(Modifier.fillMaxWidth()) {
-                orderedDays.forEach { day ->
-                    Text(
-                        day.name.take(1),
-                        Modifier.weight(1f),
-                        style = MaterialTheme.typography.labelSmall,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    )
-                }
-            }
+            WhipCalendarMonthHeader(
+                month = month,
+                onPreviousMonth = onPrevious,
+                onNextMonth = onNext,
+            )
+            WhipCalendarWeekdayHeader(firstDayOfWeek = firstDayOfWeek)
             cells.chunked(7).forEach { week ->
                 Row(Modifier.fillMaxWidth()) {
                     (week + List(7 - week.size) { null }).forEach { date ->

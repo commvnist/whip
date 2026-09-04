@@ -911,3 +911,20 @@
 - Evidence: `WhipWidgetConfigureActivity.kt` and `HealthPermissionsRationaleActivity.kt`.
 - Resolution: Widget configuration and Health-permission rationale now share `ExternalWhipActivityHost` for recovery, Settings/theme collection, system bars, and full-screen hosting while retaining separate content and platform behavior.
 - Status: Resolved, platform-entry architecture coverage and the full matrix passed, and independently accepted; see `IMP-20260903-027` and `VER-20260903-027`.
+
+### FND-20260904-001 — Calendar chrome and shared action surfaces still drifted across feature families
+
+- Severity/category: P1 interaction consistency and internationalized presentation.
+- Observed: Weekday labels and calendar month controls were implemented locally by several feature families, selection action panels differed between Task and Track, Health permission rationale used a raw information card, and the empty Routine workout picker did not use the established empty-state contract.
+- Expected: A small presentation contract should provide localized, collision-safe weekday labels and accessible month navigation; semantically equivalent action, information, and empty-state surfaces should use the established roles while domain behavior remains local.
+- Resolution: Added the bounded `WhipCalendarPresentation` contract, converged Task/Track selection panels, used the grouped-information card for Health rationale, and used `WhipEmptyState` for the Routine picker. Persistence weekday identity and all feature-specific actions remain unchanged.
+- Evidence: `WhipCalendarPresentation.kt`, `WhipDatePickerDialog.kt`, `WhipApp.kt`, `GymScreens.kt`, `TaskComponents.kt`, `TrackScreens.kt`, `HealthPermissionsRationaleActivity.kt`, and `RoutineBuilder.kt`.
+- Status: Resolved; focused UI coverage, complete JVM/Android acceptance, and independent review passed. See `DEC-20260904-001`, `IMP-20260904-002`, and `VER-20260904-002`.
+
+### FND-20260904-002 — QA execution safety was breached by an unscoped instrumentation command
+
+- Severity/category: P0 verification-process safety incident.
+- Observed: During a repair attempt, two direct Gradle instrumentation commands omitted `ANDROID_SERIAL` while a physical phone and disposable emulator were connected. The command therefore ran against both targets; the phone saw one passing targeted test and a later class run with one timeout. No acceptance evidence relies on the phone results.
+- Expected: Every device-affecting command must target the disposable emulator explicitly; physical hardware must remain untouched unless the user expressly authorizes it.
+- Containment: No reset, install, release, deployment, or further physical-device interaction was performed. The final complete gate was rerun with `ANDROID_SERIAL=emulator-5554` and passed.
+- Status: Confirmed process incident. Product acceptance remains emulator-only; a tooling/process hardening follow-up should be authorized separately before any future multi-device QA.
