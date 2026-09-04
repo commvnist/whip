@@ -813,4 +813,5 @@
 - Severity/category: P1 architecture and data-contract integrity.
 - Observed: Link/Trigger Automation has no supported product surface, yet its models, Room tables, backup/remap paths, Track provenance, and deletion previews remain canonical state.
 - Expected: A user-authorized current-only epoch must not retain a dormant unsupported subsystem as first-class persistent state.
-- Resolution status: runtime rebuilding/scheduling and Task-series copying are removed in `b73893e`; persistence removal remains open because Track history and deletion contracts must be rewritten together.
+- Resolution: Removed the complete subsystem from Room entities/DAO/application wiring, domain models, runtime scheduling, Task-series copying, Track provenance and CSV paths, deletion coordinators/previews, backup export/import/remap, UI state/copy, baseline profile, and automated tests. Rewrote the current deletion and backup contracts without compatibility stubs, retained only canonical authored/history data, and established schema 46/data epoch 6/backup version 23 as the sole supported boundary.
+- Status: Resolved in `acbf2d4` and independently accepted in `VER-20260903-022`; pending inclusion in the next physical-phone release.

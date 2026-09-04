@@ -816,3 +816,14 @@
 - Reset Android profile passed: `DataEpochBoundaryTest` and `DataEpochResetIntegrationTest` (3 tests). A broader 175-test emulator profile ended after 82 passing tests without a product assertion; it is not accepted as a completed profile.
 - `git diff --check` passed. Independent architecture review accepted the Exercise/Measurement, graph-metric, schema 45/epoch 5/backup 22, benchmark, profile, and hard-reset contracts, then identified retired Link/Trigger persistence as the remaining clean-slate blocker.
 - Source: `b73893e`; status: verified first chunk, unreleased, with persistence removal open.
+
+### VER-20260903-022 — Retired automation hard-cut verification
+
+- Production, unit-test, Android-test, and benchmark Kotlin compilation passed. The complete current JVM suite passed 596/596.
+- The clean-data Android integration profile passed 128/128 on the disposable API 34 emulator, covering data-epoch boundaries/reset, backup, domain deletion, Tasks, and Track definition/Entry integrity. After the final stale UI fixture cleanup, the complete `TaskDeletionUiTest` class passed 7/7.
+- Exact source/schema/profile/document scans found no retired Link/Trigger Automation model, table, runtime, backup, deletion, provenance, generated-profile, or test reference. Schema 46 contains only current entities; data epoch 6 and backup version 23 are coherent, and architecture documentation matches the production `dataModelEpoch` envelope key.
+- Successive fresh independent read-only reviews found and prompted removal of generated-profile symbols, stale documentation/test fixtures, no-op backup merge infrastructure, and the incorrect backup-key example. A final different reviewer inspected the frozen candidate and returned GO with no blocker.
+- `git diff --check` and the final cached/staged diff checks passed. No physical-device instrumentation, data clearing, fresh-start confirmation, or phone install was performed in this verification stage.
+- Source: `acbf2d4` on `origin/main`.
+- Related: `FND-20260903-024`, `IMP-20260903-021`, `IMP-20260903-022`.
+- Status: Passed and independently accepted; ready for the guarded signed release.

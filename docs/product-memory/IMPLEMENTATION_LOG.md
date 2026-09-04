@@ -787,3 +787,13 @@
 - Retained the distinct graph-analytics `GymGraphMetric` terminology and removed obsolete identity-symbol conversion and unowned Goal mutation entry points.
 - Removed old Room schemas and the old widget snapshot decoder. Retired rule-engine runtime rebuilding/scheduling and future Task-series replication are disconnected; Link/Trigger persistence removal remains a separate hard-cut chunk.
 - Source: `b73893e` on `origin/main`; not released to the physical phone.
+
+### IMP-20260903-022 — Retired automation persistence hard cut
+
+- Removed the unsupported Link/Trigger Automation subsystem from Room, application wiring, repositories/domain models, runtime scheduling, Task-series copying, Track provenance/CSV logic, deletion coordinators and previews, backup export/import/remap, UI state, baseline profile, and test fixtures.
+- Replaced compatibility-shaped deletion and merge paths with current authored/history contracts, including removal of the final no-op backup child-merge helper and automation-only test infrastructure.
+- Advanced the intentional clean-data boundary to Room schema 46, data epoch 6, and backup version 23. Older app data and backups are not migrated; the existing two-step in-app fresh-start confirmation remains the only authorized reset path.
+- Updated current product, architecture, testing, and QA documentation, including the exact `dataModelEpoch` backup envelope key and the 1,503-test baseline.
+- Important files: `WhipDatabase.kt`, `BackupRepository.kt`, deletion coordinators, Track persistence/domain/UI, `DataEpochGate.kt`, `LocalDataResetter.kt`, schema 46, baseline profile, focused tests, `README.md`, `docs/architecture.md`, and `docs/testing.md`.
+- Related: `FND-20260903-024`, `IMP-20260903-021`, `VER-20260903-022`.
+- Status: Implemented, independently accepted, committed, and pushed in `acbf2d4`; not yet released to the physical phone.
