@@ -1,0 +1,4 @@
+interface:
+  display_name: "VERA-Codex"
+  short_description: "Evidence-gated Codex development routing"
+  default_prompt: "Use $vera-codex to route and verify this software development task."
