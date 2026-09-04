@@ -339,6 +339,16 @@ These records preserve durable user intent. “Released” means the change reac
 - Related: `FB-20260904-005`, `DEC-20260904-003`, `IMP-20260904-004`, `VER-20260904-004`, and `VER-20260904-005`.
 - Status: Implemented and locally verified; awaiting the required fresh final review. No emulator candidate, physical-device action, release, install, or deployment was run.
 
+### FB-20260904-007 — Build a Play Store bundle and release the latest source to the phone
+
+- Date/source: 2026-09-04, direct user instruction.
+- User need: Produce a signed Android App Bundle suitable for Play Store upload and release the latest Whip source to the connected Samsung phone.
+- Acceptance criteria: Advance the Android release version/code; build and verify signed APK/AAB artifacts from the pushed current source; preserve the complete local release quality gate; install the APK in place only on the explicitly selected physical phone, without uninstalling or clearing data; verify installed package/version/artifact identity; cold-launch and perform bounded process/log smoke verification; make the AAB available locally for Play Store upload.
+- Non-goals/constraints: Do not publish to the Play Store, clear/reset data, uninstall, downgrade, run instrumentation on the phone, disclose signing credentials, or target any unselected device. The user authorizes the signed build, AAB generation, in-place phone install, launch, smoke check, commit, and push of necessary release-version/memory records.
+- Affected users/workflows: Whip Play Store distribution and the installed Samsung release while preserving existing user data.
+- Related: `FB-20260904-003`, `FB-20260904-005`, `FB-20260904-006`, `VER-20260904-003`, and `VER-20260904-005`.
+- Status: In progress.
+
 ### FB-20260904-003 — Fail-closed device QA and physical release
 
 - Date/source: 2026-09-04, direct user instruction.
