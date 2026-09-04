@@ -1,8 +1,5 @@
 package com.whip.app.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -35,12 +32,10 @@ fun PermanentDeleteDialog(
         paneTitle = title,
         title = { Text(title) },
         text = {
-            Column(
+            WhipDialogBody(
                 modifier = Modifier
-                    .fillMaxWidth()
                     .heightIn(max = 520.dp)
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(message)
                 impacts.filter(String::isNotBlank).forEach { Text("• $it") }

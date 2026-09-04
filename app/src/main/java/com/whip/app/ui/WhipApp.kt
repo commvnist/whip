@@ -4455,38 +4455,33 @@ private fun HomeSupportPane(
                 }
             } else {
                 item {
-                    Card(
+                    WhipGroupedInformationCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 18.dp)
                             .testTag("home-support-introduction"),
                     ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Icon(
-                                Icons.Outlined.Home,
-                                contentDescription = null,
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                            Text(
-                                stringResource(R.string.home_support_introduction_title),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Text(
-                                stringResource(R.string.home_support_introduction_message),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                stringResource(R.string.home_support_introduction_nudge),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
+                        Icon(
+                            Icons.Outlined.Home,
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            stringResource(R.string.home_support_introduction_title),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            stringResource(R.string.home_support_introduction_message),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            stringResource(R.string.home_support_introduction_nudge),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
                     }
                 }
                 item {
@@ -4858,9 +4853,12 @@ private fun FoldContextPane(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         contextLines.forEachIndexed { index, line ->
-                            Card(
-                                Modifier.fillMaxWidth().clickable(onClickLabel = "Open $line") { onGymContextSelected(index) },
-                            ) { Text(line, Modifier.padding(12.dp), maxLines = 3) }
+                            WhipCollectionCard(
+                                onClick = { onGymContextSelected(index) },
+                                onClickLabel = "Open $line",
+                            ) {
+                                Text(line, Modifier.padding(WhipSpacing.compact), maxLines = 3)
+                            }
                         }
                     }
                 }
@@ -6478,22 +6476,12 @@ private fun TaskAreaContent(
         appSettings.focusTimerDeadlineMillis?.takeIf { it > focusClockMillis && !selectionMode && !reordering }?.let { deadline ->
             item {
                 val taskName = allTasks.firstOrNull { it.task.id == appSettings.focusTimerTaskId }?.task?.title ?: "Focus session"
-                Card(Modifier.fillMaxWidth()) {
-                    Row(
-                        Modifier.fillMaxWidth().padding(12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(taskName, fontWeight = FontWeight.Bold)
-                            Text(
-                                "${formatFocusDuration(((deadline - focusClockMillis).coerceAtLeast(0L) / 1_000L))} remaining · until ${java.time.Instant.ofEpochMilli(deadline).atZone(appSettings.zoneId()).toLocalTime().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))}",
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        }
-                        WhipTextButton(onClick = onStopFocus) { Text("Stop") }
-                    }
-                }
+                WhipNoticeCard(
+                    title = taskName,
+                    message = "${formatFocusDuration(((deadline - focusClockMillis).coerceAtLeast(0L) / 1_000L))} remaining · until ${java.time.Instant.ofEpochMilli(deadline).atZone(appSettings.zoneId()).toLocalTime().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))}",
+                    actionLabel = "Stop",
+                    onAction = onStopFocus,
+                )
             }
         }
         if (!selectionMode && !reordering && destination in setOf(TaskDestination.Today, TaskDestination.Inbox)) {
@@ -6703,10 +6691,9 @@ private fun TaskAreaContent(
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("Habits · ${selectedHabits.size}", fontWeight = FontWeight.Bold)
                         selectedHabits.forEach { habit ->
-                            Card(
-                                Modifier.fillMaxWidth().clickable(onClickLabel = "Open habit ${habit.habit.name}") {
-                                    onOpenPlanningHabit(habit.habit.id)
-                                },
+                            WhipCollectionCard(
+                                onClick = { onOpenPlanningHabit(habit.habit.id) },
+                                onClickLabel = "Open habit ${habit.habit.name}",
                             ) {
                                 Column(Modifier.padding(12.dp)) {
                                     Text(habit.habit.name, fontWeight = FontWeight.SemiBold)
@@ -6762,10 +6749,9 @@ private fun TaskAreaContent(
                     )
                 }
                 items(plannedHabitsByDate[date].orEmpty(), key = { "agenda-habit-${date}-${it.habit.id}" }) { habit ->
-                    Card(
-                        Modifier.fillMaxWidth().clickable(onClickLabel = "Open habit ${habit.habit.name}") {
-                            onOpenPlanningHabit(habit.habit.id)
-                        },
+                    WhipCollectionCard(
+                        onClick = { onOpenPlanningHabit(habit.habit.id) },
+                        onClickLabel = "Open habit ${habit.habit.name}",
                     ) {
                         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {

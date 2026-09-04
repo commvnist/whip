@@ -2194,8 +2194,11 @@ internal fun HabitEditorDialog(
                         testTag = "habit-save-problem",
                     )
                 }
-                item { EditorSectionHeader("Basics", "Name this Habit and choose the emoji used across Whip.") }
                 item {
+                    ProductivityIdentitySection(
+                        title = "Basics",
+                        supportingText = "Name this Habit and choose the emoji used across Whip.",
+                        identityFields = {
                     OutlinedTextField(
                         name,
                         { name = it.replace('\n', ' ').replace('\r', ' ').take(100) },
@@ -2205,8 +2208,8 @@ internal fun HabitEditorDialog(
                         supportingText = if (validationRequested && name.isBlank()) {{ Text("Habit name is required") }} else {{ Text("${name.length}/100") }},
                         modifier = Modifier.fillMaxWidth().testTag("habit-editor-name"),
                     )
-                }
-                item {
+                        },
+                        emojiPicker = {
                     WhipEmojiPicker(
                         value = icon,
                         defaultEmoji = DEFAULT_HABIT_EMOJI,
@@ -2215,6 +2218,8 @@ internal fun HabitEditorDialog(
                         customEmojis = customIdentityEmojis,
                         onSaveEmoji = onSaveIdentityEmoji,
                         onRemoveSavedEmoji = onRemoveSavedIdentityEmoji,
+                    )
+                        },
                     )
                 }
                 if (sourceMeasurements.isNotEmpty()) item {
@@ -2396,14 +2401,6 @@ internal fun HabitEditorDialog(
                 } else {
                     if (sourceMeasurementId == null && mode != HabitTrackingMode.Rating) {
                         item {
-                            Text("Unit", fontWeight = FontWeight.Bold)
-                            Text(
-                                "This unit is used by targets, check-ins, and history.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        item {
                             EnumDropdown("What are you tracking?", UnitDimension.entries, dimension, UnitDimension::uiLabel) { selected ->
                                 dimension = selected
                                 val units = BuiltInUnits.all + customUnits.filter { !it.archived || it.id == unitId }
@@ -2572,8 +2569,10 @@ internal fun HabitEditorDialog(
                     if (endType in setOf(HabitEndType.AfterStreak, HabitEndType.AfterCompletions, HabitEndType.AfterTotal)) item { NumberTextField(endValue, { endValue = it }, when (endType) { HabitEndType.AfterStreak -> "End After Streak"; HabitEndType.AfterCompletions -> "End After Completions"; else -> "End After Total" }) }
                     item { EnumDropdown("First Day of Week", DayOfWeek.entries, weekStart, DayOfWeek::displayName) { weekStart = it } }
                 }
-                item { EditorSectionHeader("Organization", "Choose the Area that owns this Habit.") }
                 item {
+                    ProductivityOrganizationSection(
+                        supportingText = "Choose the Area that owns this Habit.",
+                        areaPicker = {
                     AreaPicker(
                         areas = areas,
                         selectedAreaId = areaId,
@@ -2584,13 +2583,15 @@ internal fun HabitEditorDialog(
                         dialogModifier = modifier,
                         inheritedFromScope = habit == null && initialDraft?.areaId == null && defaultAreaId != null,
                     )
-                }
-                item {
+                        },
+                        extras = {
                     DisclosureButton(
                         label = "Additional Details",
                         expanded = showAdditionalDetails,
                         onClick = { showAdditionalDetails = !showAdditionalDetails },
                         modifier = Modifier.fillMaxWidth(),
+                    )
+                        },
                     )
                 }
                 if (showAdditionalDetails) {

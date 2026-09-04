@@ -1002,8 +1002,7 @@ private fun TrackActivityPage(
                 )
             }
             if (filtersVisible) item {
-                Card(Modifier.fillMaxWidth().testTag("track-activity-filters")) {
-                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                WhipGroupedInformationCard(Modifier.testTag("track-activity-filters")) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Text("Filters", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             if (activeFilterCount > 0) WhipTextButton(onClick = {
@@ -1042,7 +1041,6 @@ private fun TrackActivityPage(
                             onSelect = { areaFilterId = it },
                             modifier = Modifier.fillMaxWidth().testTag("track-activity-area-filter"),
                         )
-                    }
                 }
             }
             when {
@@ -1214,7 +1212,10 @@ private fun TrackWorkspaceInsightsPage(
                 if (recentTracks.isNotEmpty()) {
                     item { Text("Recently Active Tracks", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
                     items(recentTracks.take(8), key = { "recent-track-${it.first.track.id}" }) { (projection, entry) ->
-                        Card(Modifier.fillMaxWidth().clickable(onClickLabel = "Open ${projection.track.name} Insights") { onOpenTrack(projection.track.id) }) {
+                        WhipCollectionCard(
+                            onClick = { onOpenTrack(projection.track.id) },
+                            onClickLabel = "Open ${projection.track.name} Insights",
+                        ) {
                             Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 WhipIdentityEmoji(projection.track.icon)
                                 Column(Modifier.weight(1f)) {
@@ -2257,12 +2258,10 @@ private fun TrackInsightsPage(
 
 @Composable
 private fun InsightCard(title: String, lines: List<Pair<String, String>>) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            lines.forEach { (label, value) ->
-                Row(Modifier.fillMaxWidth()) { Text(label, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant); Text(value, fontWeight = FontWeight.SemiBold) }
-            }
+    WhipGroupedInformationCard {
+        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        lines.forEach { (label, value) ->
+            Row(Modifier.fillMaxWidth()) { Text(label, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant); Text(value, fontWeight = FontWeight.SemiBold) }
         }
     }
 }
@@ -2493,30 +2492,28 @@ internal fun TrackCsvImportDialog(
                 }
                 if (!completed) item { Text(stringResource(R.string.track_csv_mapping_description)) }
                 item {
-                    Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
-                                state.fileLabel.ifBlank { stringResource(R.string.track_csv_file_unavailable) },
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Text(
-                                state.fallbackDate?.let { date ->
-                                    stringResource(R.string.track_csv_fallback_date, date.format(dateFormatter))
-                                } ?: stringResource(R.string.track_csv_fallback_date_unavailable),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                pluralStringResource(
-                                    R.plurals.track_csv_mapped_fields,
-                                    mappedFieldCount,
-                                    mappedFieldCount,
-                                ),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                    WhipGroupedInformationCard {
+                        Text(
+                            state.fileLabel.ifBlank { stringResource(R.string.track_csv_file_unavailable) },
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            state.fallbackDate?.let { date ->
+                                stringResource(R.string.track_csv_fallback_date, date.format(dateFormatter))
+                            } ?: stringResource(R.string.track_csv_fallback_date_unavailable),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            pluralStringResource(
+                                R.plurals.track_csv_mapped_fields,
+                                mappedFieldCount,
+                                mappedFieldCount,
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
                 if (headers.isNotEmpty() && hasMappingForm && !completed) {
@@ -2583,35 +2580,33 @@ internal fun TrackCsvImportDialog(
                 }
                 preview?.let { result ->
                     item {
-                        Card(Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text(stringResource(R.string.track_csv_validation_preview), fontWeight = FontWeight.Bold)
+                        WhipGroupedInformationCard {
+                            Text(stringResource(R.string.track_csv_validation_preview), fontWeight = FontWeight.Bold)
+                            Text(
+                                stringResource(
+                                    R.string.track_csv_validation_summary,
+                                    result.totalRows,
+                                    result.validRows,
+                                    result.invalidRows,
+                                ),
+                            )
+                            result.issues.take(TRACK_CSV_MAX_DISPLAYED_ISSUES).forEach { issue ->
                                 Text(
-                                    stringResource(
-                                        R.string.track_csv_validation_summary,
-                                        result.totalRows,
-                                        result.validRows,
-                                        result.invalidRows,
-                                    ),
+                                    stringResource(R.string.track_csv_issue_row, issue.rowNumber, issue.message),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
                                 )
-                                result.issues.take(TRACK_CSV_MAX_DISPLAYED_ISSUES).forEach { issue ->
-                                    Text(
-                                        stringResource(R.string.track_csv_issue_row, issue.rowNumber, issue.message),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.error,
-                                    )
-                                }
-                                if (result.issues.size > TRACK_CSV_MAX_DISPLAYED_ISSUES) {
-                                    val remainingIssues = result.issues.size - TRACK_CSV_MAX_DISPLAYED_ISSUES
-                                    Text(
-                                        pluralStringResource(
-                                            R.plurals.track_csv_more_issues,
-                                            remainingIssues,
-                                            remainingIssues,
-                                        ),
-                                        style = MaterialTheme.typography.bodySmall,
-                                    )
-                                }
+                            }
+                            if (result.issues.size > TRACK_CSV_MAX_DISPLAYED_ISSUES) {
+                                val remainingIssues = result.issues.size - TRACK_CSV_MAX_DISPLAYED_ISSUES
+                                Text(
+                                    pluralStringResource(
+                                        R.plurals.track_csv_more_issues,
+                                        remainingIssues,
+                                        remainingIssues,
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
                             }
                         }
                     }
@@ -2925,10 +2920,15 @@ internal fun TrackEditor(
                     }
                 }
                 validationError?.let { message -> item { FormValidationSummary(listOf(message), visible = true, testTag = "track-save-problem") } }
-                item { EditorSectionHeader("Identity", "Name this structured log and choose a simple visual identifier.") }
-                item { OutlinedTextField(draft.name, { value -> stateHolder.updateDraft { it.copy(name = value.replace('\n', ' ').replace('\r', ' ').take(100)) } }, label = { Text("Track Name *") }, singleLine = true, isError = validationError != null && draft.name.isBlank(), modifier = Modifier.fillMaxWidth().testTag("track-editor-name"), supportingText = if (validationError != null && draft.name.isBlank()) {{ Text("Track name is required") }} else {{ Text("${draft.name.length}/100") }}) }
-                item { OutlinedTextField(draft.description, { value -> stateHolder.updateDraft { it.copy(description = value.take(500)) } }, label = { Text("Description") }, minLines = 2, maxLines = 5, modifier = Modifier.fillMaxWidth()) }
                 item {
+                    ProductivityIdentitySection(
+                        title = "Identity",
+                        supportingText = "Name this structured log and choose a simple visual identifier.",
+                        identityFields = {
+                    OutlinedTextField(draft.name, { value -> stateHolder.updateDraft { it.copy(name = value.replace('\n', ' ').replace('\r', ' ').take(100)) } }, label = { Text("Track Name *") }, singleLine = true, isError = validationError != null && draft.name.isBlank(), modifier = Modifier.fillMaxWidth().testTag("track-editor-name"), supportingText = if (validationError != null && draft.name.isBlank()) {{ Text("Track name is required") }} else {{ Text("${draft.name.length}/100") }})
+                    OutlinedTextField(draft.description, { value -> stateHolder.updateDraft { it.copy(description = value.take(500)) } }, label = { Text("Description") }, minLines = 2, maxLines = 5, modifier = Modifier.fillMaxWidth())
+                        },
+                        emojiPicker = {
                     WhipEmojiPicker(
                         value = draft.icon,
                         defaultEmoji = DEFAULT_TRACK_EMOJI,
@@ -2937,6 +2937,8 @@ internal fun TrackEditor(
                         customEmojis = customIdentityEmojis,
                         onSaveEmoji = onSaveIdentityEmoji,
                         onRemoveSavedEmoji = onRemoveSavedIdentityEmoji,
+                    )
+                        },
                     )
                 }
                 item { HorizontalDivider() }
@@ -2975,8 +2977,10 @@ internal fun TrackEditor(
                 }
                 item { WhipOutlinedButton(onClick = { addingField = true }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Outlined.Add, null); Spacer(Modifier.width(8.dp)); Text("Add Field") } }
                 item { HorizontalDivider() }
-                item { EditorSectionHeader("Organization", "Every Track belongs to one Area. Tags help search without changing the Entry form.") }
                 item {
+                    ProductivityOrganizationSection(
+                        supportingText = "Every Track belongs to one Area. Tags help search without changing the Entry form.",
+                        areaPicker = {
                     AreaPicker(
                         areas = areas,
                         selectedAreaId = draft.areaId,
@@ -2984,8 +2988,12 @@ internal fun TrackEditor(
                         onSelect = { id, _ -> stateHolder.updateDraft { it.copy(areaId = id) } },
                         onCreateArea = onCreateArea,
                     )
+                        },
+                        extras = {
+                    OutlinedTextField(draft.tags.joinToString(", "), { value -> stateHolder.updateDraft { it.copy(tags = value.split(',').map(String::trim)) } }, label = { Text("Tags") }, supportingText = { Text("Separate optional track tags with commas.") }, modifier = Modifier.fillMaxWidth())
+                        },
+                    )
                 }
-                item { OutlinedTextField(draft.tags.joinToString(", "), { value -> stateHolder.updateDraft { it.copy(tags = value.split(',').map(String::trim)) } }, label = { Text("Tags") }, supportingText = { Text("Separate optional track tags with commas.") }, modifier = Modifier.fillMaxWidth()) }
             }
         }
         PersistenceSavingOverlay(
@@ -3571,14 +3579,12 @@ internal fun TrackEntryEditor(
                     )
                 }
                 if (duplicatePrimaryMatches.isNotEmpty()) item {
-                    Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Possible Existing Entry", fontWeight = FontWeight.SemiBold)
-                            Text("All Entry Identity Fields match. Duplicates are allowed; review a match or keep this separate Entry.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            duplicatePrimaryMatches.forEach { match ->
-                                WhipTextButton(onClick = { possibleMatchId = match.entry.id }) {
-                                    Text("Review ${projection.primaryText(match)} · ${match.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
-                                }
+                    WhipGroupedInformationCard {
+                        Text("Possible Existing Entry", fontWeight = FontWeight.SemiBold)
+                        Text("All Entry Identity Fields match. Duplicates are allowed; review a match or keep this separate Entry.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        duplicatePrimaryMatches.forEach { match ->
+                            WhipTextButton(onClick = { possibleMatchId = match.entry.id }) {
+                                Text("Review ${projection.primaryText(match)} · ${match.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
                             }
                         }
                     }

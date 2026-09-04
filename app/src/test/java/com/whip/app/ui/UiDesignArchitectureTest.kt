@@ -45,13 +45,19 @@ class UiDesignArchitectureTest {
         val goal = File(sourceRoot, "com/whip/app/ui/GoalScreens.kt").readText()
         val app = File(sourceRoot, "com/whip/app/ui/WhipApp.kt").readText()
 
-        listOf("Basics", "Schedule", "Organization", "Planning").forEach { section ->
+        assertTrue("Task editor is missing its shared identity hierarchy", task.contains("ProductivityIdentitySection("))
+        assertTrue("Task editor is missing its shared organization hierarchy", task.contains("ProductivityOrganizationSection("))
+        listOf("Schedule", "Planning").forEach { section ->
             assertTrue("Task editor is missing $section hierarchy", task.contains("EditorSectionHeader(\"$section\""))
         }
-        listOf("Basics", "Tracking", "Schedule", "Organization").forEach { section ->
+        assertTrue("Habit editor is missing its shared identity hierarchy", habit.contains("ProductivityIdentitySection("))
+        assertTrue("Habit editor is missing its shared organization hierarchy", habit.contains("ProductivityOrganizationSection("))
+        listOf("Tracking", "Schedule").forEach { section ->
             assertTrue("Habit editor is missing $section hierarchy", habit.contains("EditorSectionHeader(\"$section\""))
         }
-        listOf("Basics", "Target", "Schedule", "Organization").forEach { section ->
+        assertTrue("Goal editor is missing its shared identity hierarchy", goal.contains("ProductivityIdentitySection("))
+        assertTrue("Goal editor is missing its shared organization hierarchy", goal.contains("ProductivityOrganizationSection("))
+        listOf("Target", "Schedule").forEach { section ->
             assertTrue("Goal editor is missing $section hierarchy", goal.contains("EditorSectionHeader(\"$section\""))
         }
         assertTrue(app.contains("stringResource(R.string.nav_home)"))
@@ -448,7 +454,6 @@ class UiDesignArchitectureTest {
         // Reorder and item-specific cards remain semantic exceptions; this is not a raw Card ban.
         assertTrue(settings.contains("whipReorderItem("))
         assertTrue(Regex("Card\\(\\s*Modifier\\.fillMaxWidth\\(\\)\\.whipReorderItem\\(").containsMatchIn(settings))
-        assertTrue(settings.contains("Card(Modifier.fillMaxWidth())"))
 
         assertFalse(taskEditor.contains("fun WhipDatePickerDialog("))
         assertFalse(taskEditor.contains("fun DateWheelColumn("))

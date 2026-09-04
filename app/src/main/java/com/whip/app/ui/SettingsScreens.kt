@@ -759,7 +759,7 @@ internal fun SettingsContent(
             if (state.customUnits.isEmpty()) Text("No custom conversion units yet.", style = MaterialTheme.typography.bodySmall)
             state.customUnits.forEach { unit ->
                 var unitMenuOpen by rememberSaveable(unit.id) { mutableStateOf(false) }
-                Card(Modifier.fillMaxWidth()) {
+                WhipCollectionCard {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(start = 12.dp, top = 8.dp, bottom = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -1015,8 +1015,7 @@ internal fun SettingsContent(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Card(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            WhipGroupedInformationCard(Modifier.padding(top = WhipSpacing.sibling)) {
                     Text(
                         "${IDENTITY_EMOJI_PRESETS.size} Common Emojis · Read-Only",
                         fontWeight = FontWeight.SemiBold,
@@ -1082,7 +1081,6 @@ internal fun SettingsContent(
                         },
                         modifier = Modifier.fillMaxWidth().testTag("custom-emoji-add"),
                     ) { Text("Add Custom Emoji") }
-                }
             }
         }
         item {
@@ -1673,7 +1671,7 @@ internal fun SettingsContent(
             },
             title = { Text("Encrypt This Backup") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                WhipDialogBody {
                     Text("Use at least 8 characters. Whip cannot recover this passphrase.")
                     OutlinedTextField(
                         value = exportPassphrase,
@@ -2012,7 +2010,7 @@ internal fun CustomIdentityEmojiDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (initial == null) "Add Custom Emoji" else "Edit Custom Emoji") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            WhipDialogBody {
                 Text(
                     "Your custom choices are available in every Habit, Goal, and Track emoji picker. The common library stays read-only.",
                     style = MaterialTheme.typography.bodySmall,

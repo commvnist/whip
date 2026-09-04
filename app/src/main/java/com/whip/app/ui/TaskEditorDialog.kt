@@ -563,7 +563,10 @@ fun TaskEditorDialog(
                             testTag = "task-edit-scope",
                         )
                     }
-                    EditorSectionHeader("Basics", "Name this Task and choose the emoji used across Whip.")
+                    ProductivityIdentitySection(
+                        title = "Basics",
+                        supportingText = "Name this Task and choose the emoji used across Whip.",
+                        identityFields = {
                     OutlinedTextField(
                         value = title,
                         onValueChange = { entered ->
@@ -675,6 +678,8 @@ fun TaskEditorDialog(
                             color = MaterialTheme.colorScheme.primary,
                         )
                     }
+                        },
+                        emojiPicker = {
                     WhipEmojiPicker(
                         value = icon,
                         defaultEmoji = DEFAULT_TASK_EMOJI,
@@ -683,6 +688,8 @@ fun TaskEditorDialog(
                         customEmojis = customIdentityEmojis,
                         onSaveEmoji = onSaveIdentityEmoji,
                         onRemoveSavedEmoji = onRemoveSavedIdentityEmoji,
+                    )
+                        },
                     )
                     if (request.task == null) {
                         WhipTextButton(onClick = { recipesOpen = true }) { Text("Use a Template") }
@@ -962,7 +969,9 @@ fun TaskEditorDialog(
                         )
                     }
 
-                    EditorSectionHeader("Organization", "Choose the Area that owns this Task.")
+                    ProductivityOrganizationSection(
+                        supportingText = "Choose the Area that owns this Task.",
+                        areaPicker = {
                     AreaPicker(
                         areas = areas,
                         selectedAreaId = areaId,
@@ -973,6 +982,8 @@ fun TaskEditorDialog(
                         dialogModifier = Modifier.absoluteOffset(x = paneOffsetX).width(paneMaxWidth),
                         inheritedFromScope = request.task == null && inheritedAreaFromScope,
                     )
+                        },
+                        extras = {
                     if (validationRequested && !areaSelectionValid) {
                         Text(
                             "Choose an Area before saving.",
@@ -980,6 +991,8 @@ fun TaskEditorDialog(
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
+                        },
+                    )
 
                     EditorSectionHeader("Planning", "Set urgency now and reveal estimates or subtasks only when useful.")
                     FieldLabel("Priority")

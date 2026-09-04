@@ -1532,8 +1532,11 @@ internal fun GoalEditorDialog(
                         testTag = "goal-save-problem",
                     )
                 }
-                item { EditorSectionHeader("Basics", "Name this Goal and choose the emoji used across Whip.") }
                 item {
+                    ProductivityIdentitySection(
+                        title = "Basics",
+                        supportingText = "Name this Goal and choose the emoji used across Whip.",
+                        identityFields = {
                     OutlinedTextField(
                         name,
                         { name = it.replace('\n', ' ').replace('\r', ' ').take(100) },
@@ -1545,8 +1548,8 @@ internal fun GoalEditorDialog(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().testTag("goal-editor-name"),
                     )
-                }
-                item {
+                        },
+                        emojiPicker = {
                     WhipEmojiPicker(
                         value = icon,
                         defaultEmoji = DEFAULT_GOAL_EMOJI,
@@ -1555,6 +1558,8 @@ internal fun GoalEditorDialog(
                         customEmojis = customIdentityEmojis,
                         onSaveEmoji = onSaveIdentityEmoji,
                         onRemoveSavedEmoji = onRemoveSavedIdentityEmoji,
+                    )
+                        },
                     )
                 }
                 item {
@@ -1718,14 +1723,7 @@ internal fun GoalEditorDialog(
                     }
                 }
                 if (type !in setOf(GoalType.WeightedMilestones, GoalType.Consistency, GoalType.ElapsedSince)) {
-                    item {
-                        Text("Unit", fontWeight = FontWeight.Bold)
-                        Text(
-                            "This unit is used by starting values, targets, entries, and progress.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    item { EditorSectionHeader("Measurement") }
                     item {
                         UnitSelectionField(
                             units = BuiltInUnits.all + customUnits,
@@ -1890,8 +1888,10 @@ internal fun GoalEditorDialog(
                         },
                     )
                 }
-                item { EditorSectionHeader("Organization", "Choose the Area that owns this Goal.") }
                 item {
+                    ProductivityOrganizationSection(
+                        supportingText = "Choose the Area that owns this Goal.",
+                        areaPicker = {
                     AreaPicker(
                         areas = areas,
                         selectedAreaId = areaId,
@@ -1902,13 +1902,15 @@ internal fun GoalEditorDialog(
                         dialogModifier = modifier,
                         inheritedFromScope = projection == null && initialDraft?.areaId == null && defaultAreaId != null,
                     )
-                }
-                item {
+                        },
+                        extras = {
                     DisclosureButton(
                         label = "Additional Details",
                         expanded = advanced,
                         onClick = { advanced = !advanced },
                         modifier = Modifier.fillMaxWidth(),
+                    )
+                        },
                     )
                 }
                 if (advanced) {

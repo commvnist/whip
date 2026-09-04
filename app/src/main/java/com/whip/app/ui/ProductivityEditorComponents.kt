@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -577,6 +578,24 @@ internal fun PaneAwareAlertDialog(
     )
 }
 
+/**
+ * Standard content rhythm for ordinary dialog bodies.
+ *
+ * The caller keeps ownership of scrolling and height so this never competes
+ * with [PaneAwareAlertDialog]'s responsive window and action placement.
+ */
+@Composable
+internal fun WhipDialogBody(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
+        content = content,
+    )
+}
+
 internal fun formatClockMinutes(minutes: Int): String = "%02d:%02d".format(minutes / 60, minutes % 60)
 
 internal fun formatClockMinutes(context: Context, minutes: Int): String {
@@ -817,7 +836,7 @@ internal fun ClockPickerDialog(
         paneTitle = title,
         title = { Text(title) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            WhipDialogBody {
                 TimePicker(state = picker)
                 if (isDuplicate) {
                     Text(

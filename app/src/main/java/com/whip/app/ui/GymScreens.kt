@@ -1238,43 +1238,24 @@ fun GymAreaContent(
         focusedRoutineId = null
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(innerPadding),
-    ) {
-        if (!routineEditorOpen && !browseReordering) DestinationTabBar(
-            selected = destination.takeUnless { it in libraryGymDestinations } ?: GymDestination.Library,
-            destinations = primaryGymDestinations,
-            onSelect = {
-                if (sessionMutationCoordinator.saving || historyCopyCoordinator.saving) return@DestinationTabBar
+    GymDestinationHost(
+        destination = destination,
+        innerPadding = innerPadding,
+        navigationVisible = !routineEditorOpen && !browseReordering,
+        onSelect = selectDestination@{
+            if (sessionMutationCoordinator.saving || historyCopyCoordinator.saving) return@selectDestination
+            sessionMutationCoordinator.clear()
+            destination = it
+            focusedWorkoutId = null
+            focusedRoutineId = null
+        },
+        onBackToLibrary = {
+            if (!sessionMutationCoordinator.saving && !historyCopyCoordinator.saving) {
                 sessionMutationCoordinator.clear()
-                destination = it
-                focusedWorkoutId = null
-                focusedRoutineId = null
-            },
-            label = GymDestination::label,
-            testTagPrefix = "gym-destination",
-            barTestTag = "gym-workspace-navigation",
-        )
-        if (!routineEditorOpen && !browseReordering && destination in libraryGymDestinations) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                WhipBackAction(
-                    label = "Back to Gym Library",
-                    onClick = {
-                        if (!sessionMutationCoordinator.saving && !historyCopyCoordinator.saving) {
-                            sessionMutationCoordinator.clear()
-                            destination = GymDestination.Library
-                        }
-                    },
-                    modifier = Modifier.testTag("gym-library-child-${destination.name}"),
-                )
-                Text("Library", style = MaterialTheme.typography.labelLarge)
+                destination = GymDestination.Library
             }
-        }
+        },
+    ) {
         when (destination) {
             GymDestination.Library -> GymLibraryLanding(onOpen = { destination = it })
             GymDestination.Workout -> GymWorkoutRoute(

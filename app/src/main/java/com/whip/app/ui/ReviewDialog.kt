@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -424,21 +423,14 @@ private fun ReviewControlPanel(
             }
         }
         productivityAreaLabel?.let { label ->
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-            ) {
-                Column(
-                    Modifier.fillMaxWidth().padding(WhipSpacing.compact),
-                    verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
-                ) {
-                    Text("Area Context", style = MaterialTheme.typography.labelLarge)
-                    Text("Productivity: $label", style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        "Gym uses all data and is excluded from Area-scoped correlations.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+            WhipGroupedInformationCard {
+                Text("Area Context", style = MaterialTheme.typography.labelLarge)
+                Text("Productivity: $label", style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    "Gym uses all data and is excluded from Area-scoped correlations.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
@@ -516,28 +508,20 @@ private fun ReviewOverview(
                 }
             }
         }
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        ) {
-            Column(
-                Modifier.fillMaxWidth().padding(WhipSpacing.standard),
-                verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
-            ) {
-                Text("30-Day Correlations", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(
-                    "Correlations show association, not causation. Each comparison needs at least seven observed days.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                if (correlations.isEmpty()) {
-                    Text("Not enough observations yet.")
-                } else {
-                    correlations.forEach { result ->
-                        Text(
-                            "${result.left} ↔ ${result.right}: ${String.format(locale, "%.2f", result.coefficient)} (n=${result.sampleSize})",
-                        )
-                    }
+        WhipGroupedInformationCard {
+            Text("30-Day Correlations", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                "Correlations show association, not causation. Each comparison needs at least seven observed days.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (correlations.isEmpty()) {
+                Text("Not enough observations yet.")
+            } else {
+                correlations.forEach { result ->
+                    Text(
+                        "${result.left} ↔ ${result.right}: ${String.format(locale, "%.2f", result.coefficient)} (n=${result.sampleSize})",
+                    )
                 }
             }
         }

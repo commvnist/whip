@@ -427,7 +427,7 @@ internal fun AreaManagementDialog(
                 onDismissRequest = { if (!saving(AreaMutationKind.Archive)) archiveId = null },
                 title = { Text("Archive ${area.name}?") },
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    WhipDialogBody {
                         Text(if (usage.total == 0) "It will be hidden from area pickers." else "${usageText(usage)} will keep this assignment. The area will be hidden from pickers until restored.")
                         error(AreaMutationKind.Archive)?.let { message ->
                             Text(message, color = MaterialTheme.colorScheme.error)

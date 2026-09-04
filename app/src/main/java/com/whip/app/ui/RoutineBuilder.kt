@@ -4510,7 +4510,7 @@ private fun ExercisePickerPage(
     val assistanceLabel = assistanceRole?.assistanceUiLabel()
     GymExercisePickerBody(
         exercises = gymState.exercises,
-        modifier = modifier,
+        modifier = modifier.padding(horizontal = WhipSpacing.standard),
         queryKey = "routine-exercise-picker-$dayName-${assistanceRole?.name.orEmpty()}",
         listTag = "routine-exercise-picker-list",
         searchTag = "routine-exercise-search",
@@ -4531,59 +4531,62 @@ private fun ExercisePickerPage(
         },
         onCreate = onCreateExercise,
         header = {
-        if (assistanceLabel != null) {
-            Surface(
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                modifier = Modifier.fillMaxWidth().testTag("routine-assistance-picker-context"),
-            ) {
-                Column(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+            if (assistanceLabel != null) {
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.fillMaxWidth().testTag("routine-assistance-picker-context"),
                 ) {
+                    Column(
+                        Modifier.fillMaxWidth().padding(WhipSpacing.compact),
+                        verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+                    ) {
+                        Text(
+                            "Choose $assistanceLabel assistance",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.semantics { heading() },
+                        )
+                        Text("For $dayName · every exercise selected here will be assigned as $assistanceLabel in this routine.")
+                        Text(
+                            "You make this assignment. Whip does not infer it from muscles, equipment, or Exercise Library categories.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                    }
+                }
+            } else {
+                Column(Modifier.fillMaxWidth().padding(vertical = WhipSpacing.compact)) {
                     Text(
-                        "Choose $assistanceLabel assistance",
+                        "Choose exercises",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.semantics { heading() },
                     )
-                    Text("For $dayName · every exercise selected here will be assigned as $assistanceLabel in this routine.")
                     Text(
-                        "You make this assignment. Whip does not infer it from muscles, equipment, or Exercise Library categories.",
+                        "Adding to $dayName without a program role. You can classify an exercise as assistance from its routine editor.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
-        } else {
-            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-                Text(
-                    "Choose exercises",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.semantics { heading() },
-                )
-                Text(
-                    "Adding to $dayName without a program role. You can classify an exercise as assistance from its routine editor.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
         },
         filters = {
-        Text(
-            "Filters come from your library: Favorites, workout history, your categories, equipment, and muscle fields. They filter this list; they do not assign the routine role above.",
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            WhipFilterChip(favouritesOnly, { favouritesOnly = !favouritesOnly }, { Text("Favorites") })
-            WhipFilterChip(recentOnly, { recentOnly = !recentOnly }, { Text("Recent") })
-            gymState.categories.forEach { category -> WhipFilterChip(categoryId == category.id, { categoryId = if (categoryId == category.id) null else category.id }, { Text(category.name) }) }
-            equipmentOptions.forEach { option -> WhipFilterChip(equipment == option, { equipment = option.takeUnless { it == equipment } }, { Text(option) }) }
-            muscleOptions.forEach { option -> WhipFilterChip(muscle == option, { muscle = option.takeUnless { it == muscle } }, { Text(option) }) }
-        }
+            Text(
+                "Filters come from your library: Favorites, workout history, your categories, equipment, and muscle fields. They filter this list; they do not assign the routine role above.",
+                modifier = Modifier.padding(vertical = 2.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                WhipFilterChip(favouritesOnly, { favouritesOnly = !favouritesOnly }, { Text("Favorites") })
+                WhipFilterChip(recentOnly, { recentOnly = !recentOnly }, { Text("Recent") })
+                gymState.categories.forEach { category -> WhipFilterChip(categoryId == category.id, { categoryId = if (categoryId == category.id) null else category.id }, { Text(category.name) }) }
+                equipmentOptions.forEach { option -> WhipFilterChip(equipment == option, { equipment = option.takeUnless { it == equipment } }, { Text(option) }) }
+                muscleOptions.forEach { option -> WhipFilterChip(muscle == option, { muscle = option.takeUnless { it == muscle } }, { Text(option) }) }
+            }
         },
         footer = {
             Surface(tonalElevation = 4.dp) {
@@ -4630,7 +4633,10 @@ private fun WorkoutPickerPage(modifier: Modifier, gymState: GymUiState, onChoose
         if (gymState.history.isEmpty()) item { Text("No completed workouts are available yet.") }
         items(gymState.history.take(50), key = WorkoutSession::id) { session ->
             val placements = gymState.allWorkoutExercises.count { it.sessionId == session.id }
-            OutlinedCard(Modifier.fillMaxWidth().clickable(onClickLabel = "Add ${session.name} to routine") { onChoose(session) }) {
+            WhipCollectionCard(
+                onClick = { onChoose(session) },
+                onClickLabel = "Add ${session.name} to routine",
+            ) {
                 Column(Modifier.padding(14.dp)) {
                     Text(session.name.ifBlank { "Workout" }, fontWeight = FontWeight.Bold)
                     Text("${session.localDate} · $placements exercise${if (placements == 1) "" else "s"}")
@@ -4662,7 +4668,10 @@ private fun EquipmentPickerPane(
         item { OutlinedTextField(query, { query = it }, label = { Text("Search machine or location") }, modifier = Modifier.fillMaxWidth()) }
         item { WhipOutlinedButton(onClick = onNoMachine, modifier = Modifier.fillMaxWidth()) { Text("No Machine / Free Weights") } }
         items(machines, key = GymMachine::id) { machine ->
-            OutlinedCard(Modifier.fillMaxWidth().clickable(onClickLabel = "Use ${machine.displayName}") { onChoose(machine) }) {
+            WhipCollectionCard(
+                onClick = { onChoose(machine) },
+                onClickLabel = "Use ${machine.displayName}",
+            ) {
                 Column(Modifier.padding(14.dp)) {
                     Text(machine.displayName, fontWeight = FontWeight.Bold)
                     Text("${machine.loadType.label.uiTitleCase()} · ${machine.availableLoads.size} saved values")

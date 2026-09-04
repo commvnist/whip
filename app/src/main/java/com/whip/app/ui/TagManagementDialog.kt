@@ -225,7 +225,7 @@ internal fun TagManagementDialog(
                 onDismissRequest = { if (!saving("archive")) archiveId = null },
                 title = { Text("Archive #${tag.name}?") },
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    WhipDialogBody {
                         Text(
                             if (usage.total == 0) {
                                 "It will move to Archived and remain available to restore."
@@ -512,7 +512,7 @@ private fun CreateTagDialog(
         onDismissRequest = { if (!saving) onDismiss() },
         title = { Text("Create Tag") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            WhipDialogBody {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it.take(40); onErrorCleared() },
