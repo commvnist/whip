@@ -701,4 +701,4 @@
 - Compatibility/data: Clean cut at source ownership boundaries, but no schema, data-epoch, or backup-format change and no reset are justified. Existing authored data, completed Gym history, calculations, and persisted Review-section choices remain unchanged.
 - Verification: Serialize independently reviewable tranches. Prove ≥48 dp actions and reachability at 320 dp/200% text plus dark, RTL, and fold placement for affected surfaces; run focused domain/UI/lifecycle gates after each tranche, the complete deterministic gate at the end, a fresh Sol architecture review, and visual inspection on the disposable emulator. Do not deploy or reset the physical phone.
 - Related: `FB-20260903-017`, `FND-20260903-027` through `FND-20260903-033`.
-- Status: Accepted for implementation after a fresh high-risk architecture gate returned GO with conditions.
+- Status: Accepted, implemented, fully verified, and independently approved. The bounded semantic exceptions and no-reset boundary remain part of the decision.

@@ -840,3 +840,16 @@
 - Related: `FB-20260903-016`, `FND-20260903-026`, `DEC-20260903-014`, `VER-20260903-026`.
 - Verification: Focused and full JVM, targeted API 34 emulator, exact stale-symbol, visual, and independent high-risk review evidence are recorded in `VER-20260903-026`.
 - Status: Implemented, verified, independently accepted, committed, and pushed; awaiting user validation.
+
+### IMP-20260903-027 — Whole-product semantic UI convergence
+
+- Behavior changed: Completed the whole-product follow-up to the unified summary-first collection layout. Ordinary grouped information and Settings groups now use canonical surfaces; dialogs share one body rhythm; Task, Habit, Goal, and Track editors share slot-based identity and organization sections; the cross-product date picker has neutral ownership; and duplicate Unit hierarchy was removed.
+- Gym/Routine boundary: Machine and workout-history cards use the shared collection role, Gym and Routine share bounded Exercise-picker mechanics, “Favorites” copy is consistent, and `GymDestinationHost` extracts only stable destination chrome. Selection, reorder, chart/calendar, provenance/warning, workout execution, editors, coordinators, and overlays retain explicit domain ownership.
+- Destructive integrity: Habit permanent deletion now reviews a repository-authored graph impact bound to UUID and complete-graph revision, revalidates transactionally, rejects stale confirmation, restores request state, and retains reviewed impact through safe retry or uncertain completion.
+- Review/platform boundary: Review now exposes period-bounded All Tracks evidence without scoring incomparable values and has one Open Tracks action. Widget configuration and Health-permission rationale share visual startup/theme/window hosting while keeping their platform behavior separate.
+- UX defects remediated during full regression: saved Gym exercise graph defaults now initialize per selected Exercise; the neutral date picker retains stable two-letter weekday labels; summary-first Habit/Task/Goal/Track journeys reveal details before secondary mutation; Goal milestones reveal before milestone actions; and semantic tags identify Track primary actions without position coupling.
+- Clean-cut ownership: Removed the remaining active `CompactItem*` disclosure vocabulary rather than retaining aliases. No new schema, data-epoch, backup-format, or authored-history change was required beyond the already accepted backup-24 density clean cut, and no app data was reset.
+- Important files/symbols: `WhipGroupedInformationCard`, `WhipSettingsSectionCard`, `WhipDialogBody`, `ProductivityIdentitySection`, `ProductivityOrganizationSection`, `WhipDatePickerDialog`, `GymExercisePickerBody`, `GymDestinationHost`, `ExternalWhipActivityHost`, `ItemDisclosureState`, and Habit deletion preview/coordinator state.
+- Source: audit/decision commits `b7222de` and `b0effdd`; implementation and regression commits `5297940` through `a65889f`, all pushed to `origin/main`.
+- Related: `FB-20260903-017`, `FND-20260903-027` through `FND-20260903-033`, `DEC-20260903-015`, `VER-20260903-027`.
+- Status: Implemented, fully verified, independently accepted, committed, and pushed; not released to the physical phone and awaiting user validation.
