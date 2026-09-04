@@ -374,12 +374,9 @@ class WhipComposeSemanticsTest {
         }
         launchHome {
             compose.onNodeWithTag("home-list").performScrollToNode(
-                hasText("Add Title") and hasAnyAncestor(hasTestTag("track-card-$trackId")),
+                hasTestTag("track-card-$trackId"),
             )
-            compose.onNode(
-                hasText("Add Title") and hasAnyAncestor(hasTestTag("track-card-$trackId")),
-                useUnmergedTree = true,
-            ).performClick()
+            compose.onNodeWithTag("track-primary-action-$trackId").performClick()
             compose.onNodeWithContentDescription("Close Entry Editor").assertIsDisplayed()
         }
     }
