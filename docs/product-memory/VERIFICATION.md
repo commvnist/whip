@@ -827,3 +827,14 @@
 - Source: `acbf2d4` on `origin/main`.
 - Related: `FND-20260903-024`, `IMP-20260903-021`, `IMP-20260903-022`.
 - Status: Passed and independently accepted; ready for the guarded signed release.
+
+### VER-20260903-023 — Whip 0.3.45 clean-slate physical release
+
+- `WHIP_DEVICE=192.168.2.187:44401 scripts/device release-deploy` selected the physical Samsung SM-F976W rather than the connected emulator. The guarded gate passed Play assets, all 596 JVM tests, Android-test compilation, debug and release-vital lint, deterministic coverage (81.96% domain lines, 56.76% domain branches, and 68.31% Settings/policy lines), R8/resource optimization, debug/release/benchmark assembly, and signed APK/AAB generation.
+- Release APK SHA-256 is `7950125d6f6ff34424e6d8725b268062087f41c7b5184114632a4c65c430842e`; AAB SHA-256 is `fdac056b3c21deb00ed2d0c5c40bb6cbc1ee93f0513df64cf136c65dcd41861b`. APK verification reports v2 signing, exactly one signer, and certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`.
+- Streamed `adb install -r` returned `Success`. Android reports `commvne.com.whip.app` version 0.3.45/code 51, min SDK 26, target SDK 37, and an installed base APK hash exactly matching the signed local artifact. `firstInstallTime=2026-08-26 17:59:24` remained unchanged.
+- A forced cold launch returned `Status: ok` in 108 ms (`TotalTime`) / 109 ms (`WaitTime`), left `MainActivity` resumed, and retained a live application process. PID-scoped error logs contained only Samsung/Qualcomm vendor diagnostics and no fatal exception, AndroidRuntime crash, Room/SQLite failure, or Whip application error.
+- No application data was cleared, no fresh-start confirmation was pressed, and no instrumentation or unrestricted debug-artifact write occurred on the physical phone. The app is expected to require the user-authorized epoch-6 fresh start before opening current data.
+- Source: implementation `acbf2d4`; memory closeout `a1bf571`; release source `e163318`.
+- Related: `FND-20260903-023`, `FND-20260903-024`, `IMP-20260903-020` through `IMP-20260903-023`, `VER-20260903-020` through `VER-20260903-022`.
+- Status: Signed release installed and verified on the physical phone.

@@ -778,7 +778,7 @@
 - Important files: `RoutineBuilder.kt`, `GymScreens.kt`, `FiveThreeOneBuilder.kt`, `FiveThreeOneCycleReview.kt`, `FiveThreeOneProgramming.kt`, `SettingsScreens.kt`, `GymRepository.kt`, `RoutineRepository.kt`, and focused tests.
 - Related: `FB-20260903-014`, `FND-20260903-023`, `DEC-20260903-013`.
 - Verification: `VER-20260903-020`.
-- Status: Implemented in `6527350`, committed, and pushed; not yet released to the physical phone.
+- Status: Implemented in `6527350`, committed, pushed, and released in Whip 0.3.45/code 51; see `VER-20260903-023`.
 
 ### IMP-20260903-021 — Canonical Exercise/Measurement clean-data boundary
 
@@ -786,7 +786,7 @@
 - Made `Exercise` the persisted Gym/program noun, including 5/3/1 main-work identities, and renamed the shared Habit/Goal ledger from `Metric` to `Measurement` through Room, backup, Health, tests, benchmark seeding, and baseline profile.
 - Retained the distinct graph-analytics `GymGraphMetric` terminology and removed obsolete identity-symbol conversion and unowned Goal mutation entry points.
 - Removed old Room schemas and the old widget snapshot decoder. Retired rule-engine runtime rebuilding/scheduling and future Task-series replication are disconnected; Link/Trigger persistence removal remains a separate hard-cut chunk.
-- Source: `b73893e` on `origin/main`; not released to the physical phone.
+- Source: `b73893e` on `origin/main`; released in Whip 0.3.45/code 51 after the `acbf2d4` hard cut; see `VER-20260903-023`.
 
 ### IMP-20260903-022 — Retired automation persistence hard cut
 
@@ -796,4 +796,15 @@
 - Updated current product, architecture, testing, and QA documentation, including the exact `dataModelEpoch` backup envelope key and the 1,503-test baseline.
 - Important files: `WhipDatabase.kt`, `BackupRepository.kt`, deletion coordinators, Track persistence/domain/UI, `DataEpochGate.kt`, `LocalDataResetter.kt`, schema 46, baseline profile, focused tests, `README.md`, `docs/architecture.md`, and `docs/testing.md`.
 - Related: `FND-20260903-024`, `IMP-20260903-021`, `VER-20260903-022`.
-- Status: Implemented, independently accepted, committed, and pushed in `acbf2d4`; not yet released to the physical phone.
+- Status: Implemented, independently accepted, committed, and pushed in `acbf2d4`; released in Whip 0.3.45/code 51; see `VER-20260903-023`.
+
+### IMP-20260903-023 — Signed Whip 0.3.45 clean-slate release
+
+- Assigned Whip 0.3.45/code 51 and pushed release-source commit `e163318`.
+- Ran the complete guarded local release gate, built minified signed APK and Play bundle artifacts, and installed the signed package in place on the explicitly selected Samsung endpoint.
+- Verified the installed version and APK hash against the local artifact, the established single release signer, preserved Android installation identity, successful cold launch, foreground activity, and no Whip/AndroidRuntime/Room/SQLite fatal error.
+- Did not run instrumentation, clear data, uninstall, or confirm the destructive fresh-start action on the physical phone. The epoch-6 gate leaves that authorized decision to the user in the app.
+- Important files: `app/build.gradle.kts`, signed APK/AAB, `scripts/check`, and `scripts/device`.
+- Related: `FND-20260903-023`, `FND-20260903-024`, `IMP-20260903-020` through `IMP-20260903-022`.
+- Verification: `VER-20260903-023`.
+- Status: Released and physically verified; release source `e163318`.

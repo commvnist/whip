@@ -805,8 +805,8 @@
 - Why it matters: Two nouns implied two objects, weakened novice comprehension, and made creation/navigation feel internally stitched together. Mixed accessibility descriptions increased the same ambiguity for TalkBack users.
 - Affected users: All Gym users, especially new lifters, custom 5/3/1 users, screen-reader users, and users who program noncanonical exercises.
 - Evidence: `RoutineBuilder.kt`, `GymScreens.kt`, `FiveThreeOneBuilder.kt`, `FiveThreeOneCycleReview.kt`, `FiveThreeOneProgramming.kt`, `SettingsScreens.kt`, and repository validation messages.
-- Resolution: Replaced visible and announced Lift/Lifts copy with Exercise/Exercises and updated focused assertions while preserving Deadlift names, search aliases, fixture data, stored enums, internal types, and stable automation tags.
-- Status: Resolved in `6527350` and verified in `VER-20260903-020`; not yet included in a physical-phone release.
+- Resolution: Replaced visible and announced Lift/Lifts copy with Exercise/Exercises and updated focused assertions while preserving Deadlift names, search aliases, fixture data, genuine Main-work role types, and stable UI test tags. The following clean-data boundary made Exercise the persisted Gym/program identity.
+- Status: Resolved in `6527350` and `b73893e`, verified in `VER-20260903-020` and `VER-20260903-022`, and released in Whip 0.3.45/code 51; see `VER-20260903-023`.
 
 ### FND-20260903-024 — Retired Automation persistence survives the hard data boundary
 
@@ -814,4 +814,4 @@
 - Observed: Link/Trigger Automation has no supported product surface, yet its models, Room tables, backup/remap paths, Track provenance, and deletion previews remain canonical state.
 - Expected: A user-authorized current-only epoch must not retain a dormant unsupported subsystem as first-class persistent state.
 - Resolution: Removed the complete subsystem from Room entities/DAO/application wiring, domain models, runtime scheduling, Task-series copying, Track provenance and CSV paths, deletion coordinators/previews, backup export/import/remap, UI state/copy, baseline profile, and automated tests. Rewrote the current deletion and backup contracts without compatibility stubs, retained only canonical authored/history data, and established schema 46/data epoch 6/backup version 23 as the sole supported boundary.
-- Status: Resolved in `acbf2d4` and independently accepted in `VER-20260903-022`; pending inclusion in the next physical-phone release.
+- Status: Resolved in `acbf2d4`, independently accepted in `VER-20260903-022`, and released in Whip 0.3.45/code 51; see `VER-20260903-023`.
