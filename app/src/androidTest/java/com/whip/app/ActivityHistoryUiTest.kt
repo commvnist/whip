@@ -184,12 +184,16 @@ class ActivityHistoryUiTest {
     @Test
     fun absoluteValueEditorExplainsThatALowerNumberSetsRatherThanAdds() {
         var savedValue: Double? = null
+        var saveCalls = 0
         compose.setContent {
             WhipTheme(darkTheme = true, dynamicColor = false) {
                 HabitValueDialog(
                     item = progress(HabitTrackingMode.Count).copy(value = 5.0),
                     onDismiss = {},
-                    onLog = { value, _ -> savedValue = value },
+                    onLog = { value, _ ->
+                        saveCalls += 1
+                        savedValue = value
+                    },
                 )
             }
         }
@@ -199,9 +203,14 @@ class ActivityHistoryUiTest {
             .assertIsDisplayed()
         compose.onNodeWithTag("habit-value-input").performTextReplacement("3")
         compose.onNodeWithTag("habit-value-input").assertTextContains("3")
-        compose.onNodeWithText("Save").performClick()
+        closeSoftKeyboard()
+        compose.waitForIdle()
+        compose.onNodeWithText("Save").assertIsDisplayed().assertIsEnabled().performClick()
 
-        compose.runOnIdle { assertEquals(3.0, savedValue ?: -1.0, 0.0) }
+        compose.runOnIdle {
+            assertEquals(1, saveCalls)
+            assertEquals(3.0, requireNotNull(savedValue), 0.0)
+        }
     }
 
     @Test
