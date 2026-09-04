@@ -290,3 +290,13 @@ These records preserve durable user intent. “Released” means the change reac
 - Related: `FND-20260903-026`, `DEC-20260903-014`, `IMP-20260903-026`, `VER-20260903-026`.
 - Notes: The user explicitly superseded the initial compatibility assumption after the first design gate: remove the legacy preference/backup field completely rather than leaving inert state.
 - Status: Implemented in `b6e3ef2`, automated/visual QA verified, independently accepted, committed, and pushed to `origin/main`; awaiting user validation.
+
+### FB-20260903-017 — Re-architect reusable UI components across Whip
+
+- Date/source: 2026-09-03, direct user request and active implementation goal.
+- User need: Perform another whole-product UX/UI/design pass, identify every component or module that should become a reusable piece, and carry out the rearchitecture rather than stopping at an audit.
+- Acceptance criteria: Inventory every Compose screen/component family and its current reuse/duplication boundaries; identify concrete visually or behaviorally duplicated primitives; separately identify and remediate UX/UI/design issues and inconsistencies in hierarchy, spacing, semantics, discoverability, accessibility, responsive behavior, and workflow context even where reuse is not the right solution; distinguish legitimate domain-specific composition from accidental one-off implementations; prioritize and implement reusable components that materially improve coherence and maintenance; remove obsolete duplicates and update callers/tests/documentation; visually exercise affected screen families; run proportionate full regression and independent high-risk review. A universal UI DSL, abstraction for abstraction's sake, local-defect omission, and unverified report-only completion are not acceptable.
+- Affected users/workflows: Whole product—Home, Tasks, Habits, Goals, Tracks, Gym, Settings, onboarding, search/review, editors, pickers, dialogs, collection states, adaptive layouts, widgets, and accessibility users.
+- Related: Existing bounded-reuse decision `DEC-20260903-011`; new audit findings/decisions/implementation/verification pending.
+- Notes: Destructive data changes are authorized if genuinely required, but this does not authorize physical-device reset, release/deployment, or unrelated destructive operations. Current evidence must justify any data change before it is used.
+- Status: Investigating.

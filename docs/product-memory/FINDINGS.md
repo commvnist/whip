@@ -841,3 +841,66 @@
 - Resolution: Replaced both modes with one summary-first card using medium shape, 12×10 dp inset, 6 dp direct-content rhythm, and 8 dp collection gaps; removed every user-density branch and setting/backup representation; advanced the exact-match backup format to 24 while retaining viewport-driven adaptive composition.
 - Related: `FB-20260903-016`, `DEC-20260903-014`, `IMP-20260903-026`, `VER-20260903-026`.
 - Status: Resolved in `b6e3ef2`, verified, independently accepted, and pushed to `origin/main`; awaiting user validation.
+
+### FND-20260903-027 — Equivalent grouped surfaces still own conflicting visual rhythm
+
+- Severity/category: P1 cross-product visual consistency and maintainability.
+- Observed: Home, Track, Gym, and Settings still construct ordinary informational or grouped content with direct `Card` calls and locally chosen 12–16 dp padding and 4–10 dp internal gaps. `WhipSettingsSectionCard` already encodes the intended low-emphasis Settings surface but is used only for the Local Health Connect Copies block while equivalent Settings groups bypass it.
+- Expected: Ordinary informational/grouped cards use one narrowly scoped, tokenized surface grammar; Settings sections use their existing canonical card. Item cards, charts, calendars, warning/provenance surfaces, workout execution rows, and reorder controls remain explicit semantic exceptions.
+- Why it matters / affected users: Visually equivalent information feels denser or more prominent depending on destination, and system-wide geometry improvements miss local implementations.
+- Evidence: `WhipPagePatterns.kt` (`WhipCollectionCard`, `WhipSettingsSectionCard`); direct grouped cards in `WhipApp.kt`, `TrackScreens.kt`, `SettingsScreens.kt`, `GymScreens.kt`, `GoalScreens.kt`, and `RoutineBuilder.kt`.
+- Status: Investigating under `FB-20260903-017`.
+
+### FND-20260903-028 — Dialog, form, and section grammar remains decentralized
+
+- Severity/category: P1 responsive UX, accessibility, and reusable UI architecture.
+- Observed: `PaneAwareAlertDialog` standardizes the window but dozens of callers independently build 8–14 dp body stacks and action layouts; ordinary labeled fields and section headings similarly repeat raw Material composition despite shared editor and section primitives.
+- Expected: Standard confirmation/choice dialogs share body and action rhythm, ordinary labeled text fields share presentation and validation spacing, and non-specialized page sections share heading hierarchy. Long editors, search/numeric fields, charts, and domain-specific execution controls retain specialized ownership.
+- Why it matters / affected users: Equivalent dialogs scan differently, action reachability can regress independently at large text, and repeated field/heading construction creates avoidable visual and accessibility drift.
+- Evidence: `ProductivityEditorComponents.kt` (`PaneAwareAlertDialog`, `EditorSectionHeader`), `WhipPagePatterns.kt` (`WhipSection`), and repeated callers in `TrackScreens.kt`, `AreaManagementDialog.kt`, `GymScreens.kt`, `RoutineBuilder.kt`, `HabitScreens.kt`, and `GoalScreens.kt`.
+- Status: Investigating under `FB-20260903-017`.
+
+### FND-20260903-029 — Gym retains an older collection system and oversized route owner
+
+- Severity/category: P1 Gym visual consistency and UI state ownership.
+- Observed: Exercise, Machine, category, workout-history, and Routine-placement rows use locally styled cards instead of the shared collection grammar. `GymAreaContent` also owns catalog routes, active-workout mutations, deletion reviews, builder launch, and more than 50 saveable request/dialog states in one composition; the Routine exercise picker separately recreates shared Gym search/create/empty-state mechanics and already differs on “Favourites” versus “Favorites.”
+- Expected: Display/tappable Gym rows adopt the shared collection card unless a named Gym interaction variant is required; route and overlay ownership split only at existing stable seams; bounded Exercise-picker mechanics are reused while role, filter, and multi-select policy remain caller-owned.
+- Why it matters / affected users: Gym feels visually older than the rest of Whip, unrelated state shares a large regression surface, and equivalent selection journeys can drift in copy and behavior.
+- Evidence: `GymScreens.kt` (`GymAreaContent`, `ExerciseLibraryContent`, `MachineLibraryContent`, `ExerciseCategoryContent`, `WorkoutHistoryCard`), `RoutineBuilder.kt` (`RoutinePlacementCard`, `ExercisePickerPage`), and `GymExercisePicker.kt` (`GymExercisePickerBody`).
+- Status: Investigating under `FB-20260903-017`.
+
+### FND-20260903-030 — Productivity editors repeat identity, organization, and picker ownership
+
+- Severity/category: P1 editor information architecture and reusable ownership.
+- Observed: Task, Habit, Goal, and Track editors independently compose title/emoji, Area, tags, headings, and supporting copy with small ordering and spacing differences. The cross-product `WhipDatePickerDialog` and its wheel helpers are still declared in `TaskEditorDialog.kt`. Goal and Habit can also announce an explanatory “Unit” heading immediately before a field named “Unit.”
+- Expected: Narrow shared identity and organization sections wrap the established emoji, Area, and tag controls while leaving draft/validation policy domain-owned; the date picker moves unchanged to a neutral module; measurement copy exposes one clear hierarchy and retains necessary helper context.
+- Why it matters / affected users: Common editor tasks feel subtly different, neutral infrastructure has misleading Task ownership, and duplicate labels add visual density and screen-reader repetition.
+- Evidence: `TaskEditorDialog.kt`, `HabitScreens.kt`, `GoalScreens.kt`, `TrackScreens.kt`, `UnitSelectionField.kt`, and the Goal editor accessibility capture under `artifacts/full-product-audit/2026-08-31/baseline/`.
+- Status: Investigating under `FB-20260903-017`.
+
+### FND-20260903-031 — Habit permanent deletion lacks a reviewed, stale-safe request flow
+
+- Severity/category: P0 destructive-action UX and state correctness.
+- Observed: Habit deletion derives impact from the currently collected UI projection, invokes `HabitViewModel.deletePermanently()`, and closes through the generic `PermanentDeleteDialog`. Unlike Task, Goal, and Gym deletion review, it has no repository revision token, preparing/review/failure state, stale-review rejection, or request-owned retry/restoration contract.
+- Expected: Repository-authored impact and revision are reviewed before confirmation; stale data disables confirmation until refreshed; rotation/process restoration preserves the request; failure retains the reviewed impact and permits an explicit safe retry. Domain-specific calculation and warning copy remain owned by Habit.
+- Why it matters / affected users: A destructive confirmation can understate its current impact, disappear on failure, or lose its request state across lifecycle change.
+- Evidence: `HabitScreens.kt`, `HabitViewModel.kt`, `PermanentDeleteDialog.kt`, and the established reviewed deletion flows in `TaskComponents.kt`, `GoalScreens.kt`, and `GymScreens.kt`.
+- Status: Investigating under `FB-20260903-017`.
+
+### FND-20260903-032 — Review has no explicit Track evidence contract
+
+- Severity/category: P2 whole-product review clarity.
+- Observed: Review produces signals for Tasks, Habits, Goals, and Gym. Track data changes empty-state copy and provides an Open Tracks action but never contributes a highlight or drill-down, and no test states whether that omission is intentional.
+- Expected: Make the product decision explicit. If Track belongs in Review, show bounded recent/change highlights without treating arbitrary Track values as comparable scores; otherwise explain and test the intentional scope.
+- Why it matters / affected users: Users cannot tell whether Review overlooked their Tracks or intentionally excludes incomparable measurements.
+- Evidence: `ReviewDialog.kt` signal construction and Track empty/non-empty branches.
+- Status: Open product decision under `FB-20260903-017`.
+
+### FND-20260903-033 — External Whip activities duplicate visual host policy
+
+- Severity/category: P2 platform-entry maintainability.
+- Observed: Widget configuration and Health-permission rationale independently gate startup recovery, collect Settings, derive theme, configure system bars, and host `WhipFullScreenSurface`.
+- Expected: A small external-surface host owns shared startup/theme/window policy while Widget and Health content remain separate.
+- Why it matters / affected users: Platform entry points are currently aligned but can drift in recovery and contrast behavior when either local copy changes.
+- Evidence: `WhipWidgetConfigureActivity.kt` and `HealthPermissionsRationaleActivity.kt`.
+- Status: Investigating under `FB-20260903-017`.
