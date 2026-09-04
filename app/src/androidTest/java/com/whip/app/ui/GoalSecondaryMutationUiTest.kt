@@ -308,6 +308,7 @@ class GoalSecondaryMutationUiTest {
             }
         }
 
+        compose.onNodeWithTag("goal-expand-17", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("goal-milestone-91", useUnmergedTree = true).assertIsNotEnabled()
         compose.runOnIdle { archived = false }
         compose.onNodeWithTag("goal-milestone-91", useUnmergedTree = true).assertIsEnabled().performClick()
