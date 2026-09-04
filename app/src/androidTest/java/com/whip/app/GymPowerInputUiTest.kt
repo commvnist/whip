@@ -35,6 +35,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.domain.BodyweightLoadPolicy
 import com.whip.app.domain.EstimatedOneRepMaxFormula
@@ -906,7 +907,10 @@ class GymPowerInputUiTest {
         }
         compose.onNodeWithText("Manage Presets").performClick()
         compose.onNodeWithTag("rest-preset-seconds").performTextReplacement("45")
-        compose.onNodeWithText("Add Preset").performClick()
+        compose.onNodeWithTag("rest-preset-seconds").assertTextContains("45")
+        closeSoftKeyboard()
+        compose.waitForIdle()
+        compose.onNodeWithText("Add Preset").assertIsDisplayed().assertIsEnabled().performClick()
         compose.waitUntil(10_000) {
             compose.onAllNodes(hasText("0:45 ×")).fetchSemanticsNodes().isNotEmpty()
         }
