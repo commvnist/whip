@@ -827,4 +827,4 @@
 - Recommended solution: Make preferred-item annotation/supporting copy caller-owned or neutral; keep 5/3/1 selection unlabelled; reserve preferred-substitute wording for active-workout substitution; rename the advanced routine section to “Preferred workout substitutes” and add a regression for empty-library creation/current selection/Main-work identity.
 - Resolution: Renamed the shared input to neutral priority ordering and made group/item role labels caller-owned. The 5/3/1 picker now marks its selected item only as “Current selection”; active-workout substitution explicitly supplies preferred-substitute language; the advanced Routine section explains that substitutes are optional and never change the programmed Exercise.
 - Related: `FB-20260903-015`, `IMP-20260903-024`, `VER-20260903-024`.
-- Status: Verified and independently accepted; awaiting commit/push and the next physical release.
+- Status: Resolved, verified, independently accepted, committed, and pushed in `ad2f3a9`; awaiting the next physical release and user validation.

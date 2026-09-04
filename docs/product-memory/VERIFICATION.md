@@ -846,5 +846,6 @@
 - Result: Compilation and JVM state coverage passed. The exact Android batch passed 3/3 with zero failures, errors, or skips. No production “Planned alternative,” “Routine alternatives are shown first,” or old `preferredIds` contract remains.
 - Counts and exclusions: Focused regression only; the complete 596-JVM/908-Android inventory, full lint/release gate, and physical installation were not run for this localized copy/API correction.
 - Failures or residual risk: None in the reviewed scope. The active-workout caller is protected through the shared dialog contract rather than a complete parent-screen substitution journey.
+- Commit/push: `ad2f3a9` on `origin/main`.
 - Related: `FB-20260903-015`, `FND-20260903-025`, `IMP-20260903-024`.
 - Status: Passed; a fresh independent medium-risk reviewer returned GO.

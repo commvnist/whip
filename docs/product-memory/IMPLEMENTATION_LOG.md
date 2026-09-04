@@ -815,6 +815,7 @@
 - Important files/symbols: `GymExercisePickerBody`, `ExercisePickerDialog`, `FiveThreeOneProgramSetupDialog`, `RoutinePlacementEditor`, and `RoutineBuilderUiTest`.
 - Persistence/migration/history impact: None. Existing priority and substitute IDs are unchanged; 5/3/1 generation continues to create Main-work placements with empty substitute lists unless a user separately configures substitutes.
 - Compatibility and limitations: Actual substitution ordering is preserved. The active-workout caller owns its contextual copy; ordinary workout addition and 5/3/1 selection do not inherit it.
+- Commit/push: `ad2f3a9` on `origin/main`.
 - Related: `FB-20260903-015`, `FND-20260903-025`, `VER-20260903-024`.
 - Verification: `VER-20260903-024`.
-- Status: Implemented, focused-emulator verified, and independently accepted; awaiting commit/push and physical release.
+- Status: Implemented, focused-emulator verified, independently accepted, committed, and pushed; awaiting physical release.
