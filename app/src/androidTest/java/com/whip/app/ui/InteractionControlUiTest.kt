@@ -652,20 +652,38 @@ class InteractionControlUiTest {
         compose.onNodeWithTag("emoji-saved-0").assertIsDisplayed().performClick()
         compose.waitUntil(10_000) { icon == "🦊" }
         assertEquals("🦊", icon)
+    }
+
+    @Test
+    fun emojiPickerSearchManagementRemovesSavedCustomEmoji() {
+        var icon by mutableStateOf("✅")
+        var saved by mutableStateOf(listOf(CustomIdentityEmoji("🦊", "Forest Work")))
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipEmojiPicker(
+                    value = icon,
+                    defaultEmoji = "✅",
+                    onValueChange = { icon = it },
+                    customEmojis = saved,
+                    onSaveEmoji = { choice -> saved = (saved.filterNot { it.emoji == choice.emoji } + choice) },
+                    onRemoveSavedEmoji = { emoji -> saved = saved.filterNot { it.emoji == emoji } },
+                )
+            }
+        }
 
         compose.onNodeWithTag("emoji-picker-trigger").performClick()
         compose.onNodeWithTag("emoji-picker-search").performTextReplacement("🦊")
-        compose.waitUntil(10_000) {
-            compose.onAllNodesWithText("Manage My Emojis").fetchSemanticsNodes().isNotEmpty()
-        }
-        compose.onNodeWithText("Manage My Emojis").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("emoji-picker-manage-saved").assertIsDisplayed().performClick()
         compose.waitUntil(10_000) {
             compose.onAllNodesWithContentDescription("Remove Forest Work custom emoji")
-                .fetchSemanticsNodes().isNotEmpty()
+                .fetchSemanticsNodes(atLeastOneRootRequired = false)
+                .size == 1
         }
-        compose.onNodeWithContentDescription("Remove Forest Work custom emoji").performClick()
-        compose.waitUntil(10_000) { saved.isEmpty() }
-        assertTrue(saved.isEmpty())
+        compose.onNodeWithTag("emoji-picker-manage-saved").assertTextEquals("Done")
+        compose.onNodeWithContentDescription("Remove Forest Work custom emoji")
+            .assertIsDisplayed()
+            .performClick()
+        compose.runOnIdle { assertTrue(saved.isEmpty()) }
     }
 
     @Test
