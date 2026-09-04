@@ -301,11 +301,21 @@ These records preserve durable user intent. “Released” means the change reac
 - Notes: Destructive data changes are authorized if genuinely required, but this does not authorize physical-device reset, release/deployment, or unrelated destructive operations. Current evidence must justify any data change before it is used.
 - Status: Implemented across `b7222de` through `a65889f`, fully regression-tested, independently accepted, committed, and pushed to `origin/main`; awaiting user validation.
 
+### FB-20260904-001 — Clean-replace active VERA-Codex globally and in Whip
+
+- Date/source: 2026-09-04, direct user instruction.
+- User need: Install the exact current working-tree VERA-Codex active bundle globally in both personal Codex homes and clean-replace the older Whip routing layer.
+- Acceptance criteria: Every non-trivial software development, diagnosis, testing, and code-review request automatically invokes `$vera-codex`; the only supported roles are Terra scout/low, Terra builder/medium, Terra reviewer/high, Sol architect/xhigh, and Sol critical builder/xhigh; no active Luna or standalone routing policy remains; Whip receives byte-exact source `AGENTS.md`, `.codex/config.toml`, role files, and skill files; global configs change only the seven approved VERA keys while every unrelated personal setting and Whip trust entry remains exact; recoverable backups and executable validation cover all three scopes.
+- Clean-cut constraints: Do not merge or rephrase the old prompt, retain Luna, commit, push, install a plugin, change application source/tests/device/data, use credentials, deploy, publish, or edit unrelated configuration.
+- Related: `FB-20260903-010`, `IMP-20260904-001`, `VER-20260904-001`.
+- Status: Implemented, deterministically verified, and independently accepted; remains local, uncommitted, and unpushed.
+
 ### FB-20260904-002 — Top-to-bottom product quality pass
 
 - Date/source: 2026-09-04, direct user request using `/goal`.
 - User need: Make Whip clear, intuitive, appealing, engaging, flawless, and bug free through a top-to-bottom UX, UI, design, and QA pass grounded in foundational product principles.
-- Acceptance criteria: Independently re-inventory the entire currently implemented product; remediate evidence-backed usability, visual-hierarchy, interaction, accessibility, responsive-layout, copy, state, and defect issues; use bounded semantic reuse; exercise changed workflows visually and with automation; pass focused checks, the full deterministic product gate, and fresh high-risk review.
+- Acceptance criteria: Independently re-inventory the entire currently implemented product after the previous UI convergence pass; identify and remediate evidence-backed usability, visual-hierarchy, interaction, accessibility, responsive-layout, copy, state, and defect issues; reuse components only where semantic ownership is genuinely shared; exercise changed workflows visually and with automation; pass proportionate targeted checks, the full deterministic product gate, and fresh high-risk review.
+- Affected users/workflows: All Whip users across navigation, Home, productivity, Gym, Settings, Review, onboarding, search, editors, dialogs, widgets, external activities, compact/foldable layouts, enlarged text, keyboard, RTL, and assistive technologies.
 - Related: `FB-20260903-017`, `DEC-20260903-015`, `DEC-20260904-001`, `FND-20260904-001` through `FND-20260904-002`, `IMP-20260904-002`, and `VER-20260904-002`.
 - Status: Verified and independently accepted; awaiting user validation.
 - Notes: This authorizes local, reversible implementation and verification only. It does not authorize a physical-device reset, release/deployment, credentials, publication, or other external/destructive action.

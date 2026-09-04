@@ -888,15 +888,29 @@
 - Related: `FB-20260903-017`, `FND-20260903-027` through `FND-20260903-033`, `DEC-20260903-015`, `IMP-20260903-027`.
 - Status: Passed, independently accepted, committed, and pushed; subjective spacing awaits real-user validation and the candidate remains unreleased to the physical phone.
 
+### VER-20260904-001 — Current VERA-Codex global and Whip installation verification
+
+- Scope/environment: Frozen current working tree `/root/repos/vera-codex`; personal homes `/mnt/c/Users/commv/.codex` and `/root/.codex`; trusted Whip repository; Codex CLI `0.146.0-alpha.9.2`; configuration/instruction/role/skill activation only.
+- Source and structure: `python3 scripts/validate_bundle.py` passed with exactly five roles and 24 routing cases. `sha256sum -c` matched all nine files in the frozen source manifest. Python `tomllib` parsed every source and installed config/role file. The exact role matrix is Terra scout/low, Terra builder/medium, Terra reviewer/high, Sol architect/xhigh, and Sol critical builder/xhigh.
+- Installation parity: All three installed role trees and skill trees match source file sets and SHA-256 hashes exactly. Whip `AGENTS.md` and `.codex/config.toml` compare byte-for-byte with source. Both personal `AGENTS.md` files are byte-identical and differ from source only by the approved repository-relative to `$CODEX_HOME` skill-path substitution.
+- Preservation and stale-policy gates: Semantic before/after comparison found no personal-config change outside the seven approved VERA paths. Windows notification, plugin, MCP/environment, approval, sandbox, desktop, trust, and shell-policy values remained exact; root Whip trust remained `trusted`. Active scans found no Luna model/role or `routing-policy.yaml` reference, and all three active routing-policy paths are absent.
+- Codex-native validation: Windows-home doctor from neutral `/tmp` initially reported one terminal failure because the noninteractive runner supplied `TERM=dumb`; the exact rerun with `TERM=xterm-256color` exited successfully with 17 ok, 1 idle, 2 notes, 0 warnings, and 0 failures. Root-home doctor from Whip exited successfully with 16 ok, 1 idle, 1 note, 1 warning, and 0 failures; its warning is the known nonfatal root-home rollout-files/state-DB thread inventory mismatch, while configuration loaded successfully.
+- Repository gates: `git diff --check` passed in VERA-Codex and Whip before and after this record. The final Whip scope assertion found 15 owned VERA/memory paths, zero unexpected paths, and neither of the two previously observed concurrent application edits remained modified; the installer never touched those paths. Final Whip policy/config parity also passed.
+- Independent final review: A fresh `sol_architect` reviewed the task contract and the checks already listed above and reported no blocking finding.
+- Counts/exclusions: No application source/test/build, device, user data, credentials, plugin/network installation, deployment, publication, commit, or push action was performed. A newly started Codex session is still required to observe the replaced instruction chain end-to-end.
+- Rollback: Pre-install files, absence markers, staged targets, source manifest, and recovery guidance are owner-only at `/root/.local/state/vera-codex/backups/20260904T050326Z` outside active instruction discovery.
+- Related: `FB-20260903-010`, `FB-20260904-001`, `IMP-20260904-001`.
+- Status: Deterministic installation gates, post-record diff/scope checks, and fresh independent Sol review passed; remains local, uncommitted, and unpushed.
+
 ### VER-20260904-002 — Product-quality presentation convergence verification
 
-- Scope/environment: Disposable API 34 emulator explicitly selected as `ANDROID_SERIAL=emulator-5554`. No reset, install, release, deployment, or physical-device command was used by the final acceptance gate.
+- Scope/environment: Current working tree; disposable API 34 emulator explicitly selected as `ANDROID_SERIAL=emulator-5554`. No reset, install, release, deployment, or physical-device command was used by the final acceptance gate.
 - Complete gate: `ANDROID_SERIAL=emulator-5554 scripts/check --emulator` passed. All 612 JVM tests and all 923 Android instrumentation tests executed or were validly reused across 11 exact-signature batches, with zero failures and zero skips.
-- Static/quality gates: `scripts/check` passed with production/test compilation, lint, architecture/stale-symbol checks, and `git diff --check`. Coverage was 81.96% line (4,207/5,133), 56.76% branch (2,379/4,191), and 68.43% core (568/830), above the 78%/51%/63% thresholds.
-- Focused evidence: Calendar presentation, UI architecture, localized recomposition, RTL/dark/320 dp/200% 48 dp controls, selection semantics, Routine empty state, and the repaired Home elapsed-goal reset contract passed. Exact `WhipComposeSemanticsTest` emulator class run passed 12/12.
-- Independent review: Fresh Sol final review returned GO with no blocking product finding and confirmed no persistence, schema, backup, lifecycle, or release change.
-- Incident: A prior repair agent omitted `ANDROID_SERIAL` in two direct instrumentation commands while a phone was attached, causing both targets to run. Phone results are excluded from acceptance; no reset/install/release followed, and final acceptance was rerun emulator-only. See `FND-20260904-002`.
-- Residual risk: Subjective appeal awaits real-user validation; API 26/API 37 visual/device coverage was outside this emulator-only gate.
+- Static/quality gates: `scripts/check` passed with production/test compilation, lint, architecture/stale-symbol checks, and `git diff --check`. Deterministic coverage was 81.96% line (4,207/5,133), 56.76% branch (2,379/4,191), and 68.43% core (568/830), above the 78%/51%/63% thresholds.
+- Focused evidence: `WhipCalendarPresentationTest`, UI architecture coverage, localized live recomposition, RTL/dark/320 dp/200% month-header controls, selection action semantics, Routine empty state, and the repaired Home elapsed-goal reset contract passed. The exact `WhipComposeSemanticsTest` emulator class run passed 12/12.
+- Independent review: Fresh Sol final review returned GO with no blocking product finding; it confirmed bounded presentation reuse and no persistence, schema, backup, lifecycle, or release changes.
+- Incident: A prior repair agent accidentally omitted `ANDROID_SERIAL` in two direct instrumentation commands while a phone was attached, causing them to target both devices. Their phone results are excluded from acceptance; no reset/install/release followed, and final acceptance was rerun emulator-only. See `FND-20260904-002`.
+- Residual risk: Subjective appeal remains for real-user validation; API 26/API 37 visual/device coverage was outside this emulator-only gate.
 - Related: `FB-20260904-002`, `FND-20260904-001` through `FND-20260904-002`, `DEC-20260904-001`, `IMP-20260904-002`.
 - Status: Passed and independently accepted; awaiting user validation.
 

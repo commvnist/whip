@@ -854,12 +854,23 @@
 - Related: `FB-20260903-017`, `FND-20260903-027` through `FND-20260903-033`, `DEC-20260903-015`, `VER-20260903-027`.
 - Status: Implemented, fully verified, independently accepted, committed, and pushed; not released to the physical phone and awaiting user validation.
 
+### IMP-20260904-001 — Current VERA-Codex clean replacement
+
+- Behavior changed: Installed the frozen current working-tree VERA-Codex bundle in `/mnt/c/Users/commv/.codex`, `/root/.codex`, and Whip. Non-trivial development, diagnosis, testing, and code review now invoke `$vera-codex` automatically; the active role set is exactly Terra scout/low, Terra builder/medium, Terra reviewer/high, Sol architect/xhigh, and Sol critical builder/xhigh.
+- Exact replacement: Both personal homes received the exact role files and exact skill tree. Their `AGENTS.md` files are identical derivatives of the source with only the repository-relative skill path changed to `$CODEX_HOME/skills/vera-codex/SKILL.md`. Whip received byte-exact source `AGENTS.md`, `.codex/config.toml`, `.codex/agents/`, and `.agents/skills/vera-codex/`. Active Luna and `routing-policy.yaml` files were removed.
+- Personal compatibility: Only `model`, `model_reasoning_effort`, and the five approved `[agents]` values were overlaid. Windows notifications, plugins, MCP servers/environment, approvals, sandbox, desktop, project trust, and shell policy remain unchanged; root's Whip trust remains unchanged.
+- Rollback: Owner-only pre-install copies, absence markers, staged targets, frozen source hashes, and restoration guidance are stored outside Whip and active instruction discovery at `/root/.local/state/vera-codex/backups/20260904T050326Z`.
+- Scope/constraints: No application source, test, device, user data, credential, plugin, deployment, publication, commit, or push action was part of this change. Concurrent unrelated Whip application edits were preserved untouched.
+- Related: `FB-20260903-010`, `FB-20260904-001`, `VER-20260904-001`.
+- Verification: `VER-20260904-001`.
+- Status: Implemented, deterministically verified, and independently accepted; remains local, uncommitted, and unpushed.
+
 ### IMP-20260904-002 — Product-quality presentation convergence
 
 - Behavior changed: Introduced shared localized calendar presentation for weekday labels and month headers, then migrated the neutral date picker, Home planner, Task, Habit, Gym, productivity, and Settings consumers. Task and Track now share the selection action surface; Health rationale uses the grouped information surface; Routine's empty workout picker uses the canonical empty state.
 - Important files/symbols: `WhipWeekdayFormatter`, `rememberWhipWeekdayFormatter`, `WhipCalendarMonthHeader`, `WhipCalendarWeekdayHeader`, and `WhipSelectionActionPanel`.
 - Compatibility/data impact: Presentation and test-only change. No schema, data epoch, backup, date identity, lifecycle, persistence, release, reset, or physical-device change.
-- Verification: Unit, architecture, and Compose tests cover localized recomposition, RTL/dark/narrow/large-text month controls, 48 dp targets, selection panels, and Routine empty state; complete results are in `VER-20260904-002`.
+- Verification: New unit, architecture, and Compose tests cover localized recomposition, RTL/dark/narrow/large-text month controls, 48 dp targets, selection panels, and Routine empty state; complete results are in `VER-20260904-002`.
 - Related: `FB-20260904-002`, `FND-20260904-001`, `DEC-20260904-001`, `VER-20260904-002`.
 - Status: Implemented, verified, and independently accepted; awaiting user validation.
 
