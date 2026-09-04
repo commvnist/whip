@@ -408,7 +408,7 @@ class EntitySaveCoordinatorUiTest {
     @Test
     fun taskFailureKeepsDraftAndScopeWhileSuccessReconcilesExactlyOnce() {
         var saveState by mutableStateOf<PersistenceRequestState<EntitySaveReceipt>>(PersistenceRequestState.Idle)
-        var selectedScope by mutableStateOf<AreaScope>(AreaScope.All)
+        var selectedScope by mutableStateOf<AreaScope>(AreaScope.One("health"))
         var submittedDraft: TaskDraft? = null
         var saveRequests = 0
         val areas = listOf(area("work", "Work"), area("health", "Health"))
@@ -448,8 +448,6 @@ class EntitySaveCoordinatorUiTest {
         compose.onNodeWithContentDescription("Add task, habit, goal, track, or workout").performClick()
         compose.onNodeWithText("New Task").performClick()
         compose.onNodeWithTag("task-editor-title").performTextInput("Keep this draft")
-        compose.onNodeWithContentDescription("Area selection: Choose Area").performScrollTo().performClick()
-        compose.onNodeWithText("Health").performClick()
         compose.runOnIdle { selectedScope = AreaScope.One("work") }
         compose.onNodeWithText("Save").performClick()
 

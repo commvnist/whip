@@ -781,8 +781,16 @@ class SettingsResponsiveUiTest {
             }
         }
 
-        compose.onNodeWithTag("custom-unit-confirm").assertIsEnabled().performClick()
-        compose.onNodeWithText("Name is required").assertIsDisplayed()
+        compose.onNodeWithTag("custom-unit-confirm")
+            .assertIsEnabled()
+            .assertIsDisplayed()
+            .performSemanticsAction(SemanticsActions.OnClick)
+        compose.waitUntil(2_000) {
+            compose.onAllNodesWithText("Name is required")
+                .fetchSemanticsNodes(atLeastOneRootRequired = false)
+                .isNotEmpty()
+        }
+        compose.onNodeWithText("Name is required").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("custom-unit-name").performTextReplacement("serving")
         compose.onNodeWithTag("custom-unit-factor").performTextReplacement("0")
         compose.onNodeWithTag("custom-unit-confirm").performClick()

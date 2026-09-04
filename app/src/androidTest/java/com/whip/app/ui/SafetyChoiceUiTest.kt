@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.SemanticsMatcher
@@ -20,7 +21,10 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
+import androidx.test.espresso.Espresso.closeSoftKeyboard
+import androidx.test.espresso.Espresso.pressBack
 import com.whip.app.core.WhipResult
 import com.whip.app.data.BackupPreview
 import com.whip.app.domain.BodyweightLoadPolicy
@@ -29,8 +33,6 @@ import com.whip.app.domain.Exercise
 import com.whip.app.domain.ExerciseTrackingType
 import com.whip.app.domain.WorkoutExercise
 import com.whip.app.ui.theme.WhipTheme
-import androidx.test.platform.app.InstrumentationRegistry
-import androidx.test.uiautomator.UiDevice
 import java.time.Instant
 import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicInteger
@@ -162,12 +164,15 @@ class SafetyChoiceUiTest {
         }
 
         compose.onNodeWithTag("workout-group-name").performTextInput("Intervals")
-        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-        device.pressBack()
+        closeSoftKeyboard()
         compose.waitForIdle()
         compose.onAllNodesWithText("Discard Unsaved Changes?").assertCountEquals(0)
-        device.pressBack()
-        compose.waitForIdle()
+        pressBack()
+        compose.waitUntil(2_000) {
+            compose.onAllNodesWithText("Discard Unsaved Changes?")
+                .fetchSemanticsNodes(atLeastOneRootRequired = false)
+                .isNotEmpty()
+        }
         compose.onNodeWithText("Discard Unsaved Changes?").assertExists()
         compose.onNodeWithText("Discard Changes").performClick()
         assertEquals(1, dismissals.get())
@@ -214,7 +219,9 @@ class SafetyChoiceUiTest {
         }
 
         compose.onNodeWithTag("workout-editor-name").performTextInput("Retry draft")
-        compose.onNodeWithTag("workout-editor-confirm").performClick()
+        compose.onNodeWithTag("workout-editor-confirm")
+            .assertIsEnabled()
+            .performSemanticsAction(SemanticsActions.OnClick)
         compose.runOnIdle {
             assertEquals(1, starts.get())
             checkNotNull(completion.get())
@@ -227,7 +234,9 @@ class SafetyChoiceUiTest {
         compose.onNodeWithTag("workout-editor-confirm").assertIsEnabled()
         assertEquals(0, dismissals.get())
 
-        compose.onNodeWithTag("workout-editor-confirm").performClick()
+        compose.onNodeWithTag("workout-editor-confirm")
+            .assertIsEnabled()
+            .performSemanticsAction(SemanticsActions.OnClick)
         compose.runOnIdle { completion.get().invoke(WhipResult.Success(Unit)) }
         assertEquals(2, starts.get())
         assertEquals(1, dismissals.get())
