@@ -836,7 +836,7 @@
 - Important files/symbols: `ProductivityItemCard` and `ProductivityItemHeader` in `ItemControlPatterns.kt`; `TaskRow`, `HabitProgressCard`, `GoalCard`, and `TrackSummaryRow`; list ownership in `WhipApp.kt`, `HabitScreens.kt`, `GoalScreens.kt`, and `TrackScreens.kt`; Appearance cleanup in `SettingsScreens.kt`.
 - Persistence/migration/history impact: Cleanly removed `compactItemLayout` from `AppSettings`, SharedPreferences, backup export/import, composition locals, fixtures, and cause/effect inventories. Backup format is 24 and rejects format 23; Room schema 46 and data epoch 6 are unchanged. No local reset or authored/history rewrite was needed.
 - Compatibility and limitations: This is an explicit clean cut with no density compatibility layer or old-backup upgrade path. Track master-pane compactness and other viewport-driven adaptive layouts remain independent. The change is not released to a physical phone.
-- Commit/push: Pending coherent commit after final review.
+- Commit/push: `b6e3ef2` on `origin/main`.
 - Related: `FB-20260903-016`, `FND-20260903-026`, `DEC-20260903-014`, `VER-20260903-026`.
 - Verification: Focused and full JVM, targeted API 34 emulator, exact stale-symbol, visual, and independent high-risk review evidence are recorded in `VER-20260903-026`.
-- Status: Implemented, verified, and independently accepted; awaiting commit/push and user validation.
+- Status: Implemented, verified, independently accepted, committed, and pushed; awaiting user validation.

@@ -870,7 +870,7 @@
 - Counts and exclusions: 596 JVM executions and 112 focused Android executions. No complete 908-test Android matrix, API 26/API 37 rerun, lint/release build, physical-phone install, or user-data reset.
 - Artifact/version/hash: Debug visual evidence is on the emulator at `/storage/emulated/0/whip-debug/screenshots/density-unified-tasks.png`, `density-unified-task-expanded.png`, and `density-settings-appearance.png`, with paired UI dumps. No release artifact.
 - Failures or residual risk: The builder's first productivity assertion encoded old expanded-row geometry and passed after correction. The first broader JVM gate exposed a stale `settings-cause-effect.tsv` row; the same builder removed it and the exact 35-test gate passed. The first independent review returned NO-GO only because `docs/architecture.md` still named backup 23; both current references were updated to 24 and the exact backup-version scan/diff check passed. Subjective spacing remains awaiting user validation.
-- Commit/push: Pending coherent commit after final re-review.
+- Commit/push: `b6e3ef2` on `origin/main`; upstream reachability verified after push.
 - Related: `FB-20260903-016`, `FND-20260903-026`, `DEC-20260903-014`, `IMP-20260903-026`.
 - Independent final review: After a first reviewer found the stale architecture backup number, the current documentation was corrected and a fresh read-only `sol_architect` re-review returned GO with no blockers.
-- Status: Verified and independently accepted; commit/push and user validation pending.
+- Status: Verified, independently accepted, committed, and pushed; awaiting user validation.

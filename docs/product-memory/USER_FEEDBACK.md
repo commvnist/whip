@@ -289,4 +289,4 @@ These records preserve durable user intent. “Released” means the change reac
 - Affected users/workflows: Appearance settings; Home, Tasks, Habits, Goals, and Tracks collections; restored/backed-up installations; compact phones, Fold panes, and enlarged text.
 - Related: `FND-20260903-026`, `DEC-20260903-014`, `IMP-20260903-026`, `VER-20260903-026`.
 - Notes: The user explicitly superseded the initial compatibility assumption after the first design gate: remove the legacy preference/backup field completely rather than leaving inert state.
-- Status: Implemented, automated/visual QA verified, and independently accepted; awaiting commit/push and user validation.
+- Status: Implemented in `b6e3ef2`, automated/visual QA verified, independently accepted, committed, and pushed to `origin/main`; awaiting user validation.

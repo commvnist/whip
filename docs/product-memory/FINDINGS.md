@@ -840,4 +840,4 @@
 - Recommended solution: Make the expandable summary row the sole collection pattern, relax its shared inset and collection rhythm to a middle density, and cleanly remove the Appearance toggle, settings field, preference key, and backup representation. Keep viewport-driven adaptive compactness separate.
 - Resolution: Replaced both modes with one summary-first card using medium shape, 12×10 dp inset, 6 dp direct-content rhythm, and 8 dp collection gaps; removed every user-density branch and setting/backup representation; advanced the exact-match backup format to 24 while retaining viewport-driven adaptive composition.
 - Related: `FB-20260903-016`, `DEC-20260903-014`, `IMP-20260903-026`, `VER-20260903-026`.
-- Status: Verified; awaiting user validation.
+- Status: Resolved in `b6e3ef2`, verified, independently accepted, and pushed to `origin/main`; awaiting user validation.
