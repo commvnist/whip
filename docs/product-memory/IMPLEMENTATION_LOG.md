@@ -911,7 +911,7 @@
 - Important file/symbol: `SafetyChoiceUiTest.workoutGroupSaveFailureKeepsParentAndDraftOpenForRetry`.
 - Verification: `VER-20260904-007`.
 - Related: `FB-20260904-007`.
-- Status: Implemented and targeted verified; fresh complete candidate pending.
+- Status: Included in the fresh complete 0.3.49 candidate and released in Whip 0.3.49/code 55; awaiting user validation.
 
 ### IMP-20260904-007 — VERA-Codex autonomous task-completion policy
 
