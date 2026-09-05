@@ -937,7 +937,7 @@
 - Compatibility/data: Presentation-only. No Task placement, capture parsing, schema, data epoch, backup, or authored data behavior changed.
 - Related: `FB-20260904-011`, `FND-20260904-003`, `DEC-20260904-005`.
 - Verification: `VER-20260904-010`.
-- Status: Implemented and focused-emulator verified; complete candidate and signed release pending.
+- Status: Included in the fresh complete candidate and released in Whip 0.3.49/code 55; awaiting user validation.
 
 ### IMP-20260904-010 — Deterministic Settings retry lifecycle test
 
@@ -945,5 +945,13 @@
 - Important file: `SettingsResponsiveUiTest.kt`.
 - Compatibility/data: Test-only synchronization. Production settings behavior, persistence, schema, backup, and user data are unchanged.
 - Related: `FND-20260904-004`, `VER-20260904-011`.
-- Status: Implemented, repeat-verified, and independently accepted; fresh candidate pending.
-- Status: Implemented globally and published.
+- Status: Included in the fresh complete candidate and released in Whip 0.3.49/code 55; awaiting user validation.
+
+### IMP-20260904-011 — Signed Whip 0.3.49 UX/QA release
+
+- Release: Advanced to 0.3.49/code 55, built the signed APK and Play-ready AAB, and installed the APK in place on the explicitly selected physical Samsung without clearing, resetting, uninstalling, or downgrading.
+- Behavior included: Task Today and Inbox retain explicit clear-state orientation below Quick Capture; Settings retry lifecycle coverage is deterministic.
+- Important files/artifacts: `app/build.gradle.kts`, `app/build/outputs/apk/release/app-release.apk`, `app/build/outputs/bundle/release/app-release.aab`, and `VER-20260904-012`.
+- Compatibility/data: Schema 46, data epoch 6, backup version 24, package identity, and signer continuity are unchanged. Android install identity was preserved; forward fixes must use a higher code.
+- Source: `0bc32cb` on `origin/main`.
+- Status: Released and physically verified; awaiting user validation.

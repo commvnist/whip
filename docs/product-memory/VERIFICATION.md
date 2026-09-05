@@ -1007,3 +1007,13 @@
 - Independent review: A fresh Sol review returned GO. It confirmed matching request IDs are required before simulated receipts and production coordinator behavior is untouched.
 - Related: `FND-20260904-004`, `IMP-20260904-010`, `FB-20260904-011`.
 - Status: Passed for the repair; a new complete candidate is required before release.
+
+### VER-20260904-012 — Whip 0.3.49 complete candidate and physical release verification
+
+- Candidate: Fresh `ANDROID_SERIAL=emulator-5554 scripts/candidate` completed at `runs/20260905T021908Z-145490-39d4f760936f`; `scripts/candidate verify` accepted the frozen source at `0bc32cb`. It executed 612 JVM and 925 Android tests (1,537 total) across 11 fresh batches, with zero failures, zero skips, and zero reused batches. Candidate manifest/release metadata bind version 0.3.49/code 55, and all evidence checksums passed.
+- Independent review: Fresh Sol pre-release review returned GO with no blocker. It confirmed the bounded Task/UI change, test-only Settings synchronization repair, unchanged schema 46/data epoch 6, and guarded physical-release boundary.
+- Signed artifacts: APK SHA-256 `4bf94310f749b5183c0d88bb981e005d19f7f9e5716aad8b498cd61fb78bd846`; AAB SHA-256 `1e734f9b767e44e21c82cf1bd56ed96107750ae9e2d23a996548194bc2a5ce00`. The APK verifies v2 signing with exactly one signer and established certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`; AAB archive integrity passed.
+- Physical result: Guarded `scripts/device release-deploy` completed the local quality gate, signed build, and in-place install on the explicitly selected physical Samsung. Android reports Whip 0.3.49/code 55; installed base APK SHA-256 exactly matches the local signed APK; `firstInstallTime=2026-08-26 17:59:24` remained unchanged. A forced cold launch returned `Status: ok` in 174 ms and left a live Whip process. Bounded log scan found no Whip/AndroidRuntime fatal exception, ANR, Room, or SQLite failure.
+- Exclusions: No phone instrumentation, reset, data clear, uninstall, downgrade, or Play Store publication occurred. The AAB remains local for manual Play Console upload.
+- Source: `0bc32cb` on `origin/main`.
+- Status: Passed, signed, installed in place, and physically verified; awaiting user validation.

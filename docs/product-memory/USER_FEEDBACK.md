@@ -348,7 +348,7 @@ These records preserve durable user intent. “Released” means the change reac
 - Execution constraint (2026-09-04): Continue autonomously through authorized recovery, qualification, signing, installation, and verification until this release is complete. Do not return control merely because an intermediate check is running or a repair/requalification cycle remains actionable; report only a genuine external blocker or the completed release.
 - Affected users/workflows: Whip Play Store distribution and the installed Samsung release while preserving existing user data.
 - Related: `FB-20260904-003`, `FB-20260904-005`, `FB-20260904-006`, `VER-20260904-003`, and `VER-20260904-005`.
-- Status: In progress.
+- Status: Released as Whip 0.3.49/code 55; signed AAB retained locally and in-place phone installation verified. Awaiting user validation.
 
 ### FB-20260904-003 — Fail-closed device QA and physical release
 
@@ -403,4 +403,4 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Audit onboarding, navigation, Home, Tasks, Habits, Goals, Tracks, Gym, Settings, search/review, editors, dialogs, empty/loading/error states, accessibility, responsive behavior, and tests; implement confirmed corrections with focused regression coverage; create a fresh complete emulator candidate and fresh critical review; build a higher signed version and install it in place on the explicitly selected physical phone, verify identity/version/hash/cold launch/log smoke, and retain the Play-ready AAB locally.
 - Non-goals/constraints: Do not reset, clear, uninstall, downgrade, run instrumentation on the phone, publish to Play Store, disclose secrets, or perform unrelated device actions. The user expressly authorizes normal commits/pushes needed for this goal and the final signed in-place phone installation.
 - Related: `FB-20260904-002`, `FB-20260904-007`, `FND-20260904-003`.
-- Status: In progress.
+- Status: Released as Whip 0.3.49/code 55; awaiting user validation.

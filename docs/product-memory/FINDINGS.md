@@ -939,7 +939,7 @@
 - Root cause: The empty-state condition treated the presence of the capture control as a substitute for state communication.
 - Resolution: Render the existing destination-specific `EmptyTasks` state whenever the visible Task collection is empty, including the new-profile Today and Inbox cases; Quick Capture remains first and remains the only creation control.
 - Related: `FB-20260904-011`.
-- Status: Implemented and focused-emulator verified; awaiting complete candidate and release verification.
+- Status: Resolved, fresh-candidate verified, and released in Whip 0.3.49/code 55; awaiting user validation.
 
 ### FND-20260904-004 — Settings retry test could inject a result before its owned request existed
 
@@ -950,4 +950,4 @@
 - Root cause: Test timing assumed Compose click dispatch and request-coordinator publication were synchronous.
 - Resolution: Add owned-request synchronization for both the failed first save and succeeding retry, retaining the existing discard/retry/success assertions.
 - Related: `FB-20260904-011`, `VER-20260904-011`.
-- Status: Implemented, repeat-verified, and independently accepted; fresh candidate pending.
+- Status: Resolved, repeat-verified, included in the fresh candidate, and released in Whip 0.3.49/code 55.
