@@ -936,7 +936,7 @@
 - Important files: `WhipApp.kt`, `ProductivityDefaultsUiTest.kt`, and `docs/quality/full-product-surface-inventory-2026-09-04.tsv`.
 - Compatibility/data: Presentation-only. No Task placement, capture parsing, schema, data epoch, backup, or authored data behavior changed.
 - Related: `FB-20260904-011`, `FND-20260904-003`, `DEC-20260904-005`.
-- Verification: `VER-20260904-010`.
+- Verification: `VER-20260904-010`, `VER-20260904-012`.
 - Status: Included in the fresh complete candidate and released in Whip 0.3.49/code 55; awaiting user validation.
 
 ### IMP-20260904-010 — Deterministic Settings retry lifecycle test
@@ -945,6 +945,7 @@
 - Important file: `SettingsResponsiveUiTest.kt`.
 - Compatibility/data: Test-only synchronization. Production settings behavior, persistence, schema, backup, and user data are unchanged.
 - Related: `FND-20260904-004`, `VER-20260904-011`.
+- Verification: `VER-20260904-011`, `VER-20260904-012`.
 - Status: Included in the fresh complete candidate and released in Whip 0.3.49/code 55; awaiting user validation.
 
 ### IMP-20260904-011 — Signed Whip 0.3.49 UX/QA release

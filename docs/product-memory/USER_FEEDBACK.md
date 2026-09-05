@@ -402,5 +402,5 @@ These records preserve durable user intent. “Released” means the change reac
 - User need: Audit Whip top-to-bottom, correct every evidence-backed UX/UI/design/QA issue found, then deliver the resulting signed release to the selected phone without clearing its data.
 - Acceptance criteria: Audit onboarding, navigation, Home, Tasks, Habits, Goals, Tracks, Gym, Settings, search/review, editors, dialogs, empty/loading/error states, accessibility, responsive behavior, and tests; implement confirmed corrections with focused regression coverage; create a fresh complete emulator candidate and fresh critical review; build a higher signed version and install it in place on the explicitly selected physical phone, verify identity/version/hash/cold launch/log smoke, and retain the Play-ready AAB locally.
 - Non-goals/constraints: Do not reset, clear, uninstall, downgrade, run instrumentation on the phone, publish to Play Store, disclose secrets, or perform unrelated device actions. The user expressly authorizes normal commits/pushes needed for this goal and the final signed in-place phone installation.
-- Related: `FB-20260904-002`, `FB-20260904-007`, `FND-20260904-003`.
+- Related: `FB-20260904-002`, `FB-20260904-007`, `FND-20260904-003`, `VER-20260904-012`.
 - Status: Released as Whip 0.3.49/code 55; awaiting user validation.
