@@ -739,3 +739,11 @@
 - Boundary: Stop only when the contract is accepted or no safe in-scope action can make meaningful progress because a genuine external blocker, required input, or protected final boundary remains. A second Sol failure ends that retry loop only; pursue any distinct safe in-scope path before reporting the blocker. Existing approval and non-inference limits remain unchanged.
 - Related: `FB-20260904-009`, `IMP-20260904-007`, `VER-20260904-008`.
 - Status: Accepted and implemented.
+
+### DEC-20260904-005 — Task capture supplements rather than replaces empty-state orientation
+
+- Context: The Task workspace needs a fast entry point, but no authored Task leaves the page visually silent after that input.
+- Decision: Always render the existing destination-specific `EmptyTasks` message when the visible Task collection is empty. Preserve Quick Capture as the first and only creation control on Today/Inbox; do not add a template CTA or alter Task placement behavior.
+- Consequences: New users receive the same reassuring orientation as the other primary workspaces while retaining Task's unique rapid-capture flow. No persistence, schema, backup, or data behavior changes.
+- Related: `FB-20260904-011`, `FND-20260904-003`.
+- Status: Accepted.

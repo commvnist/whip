@@ -395,3 +395,12 @@ These records preserve durable user intent. “Released” means the change reac
 - Result: The two personal-home skill copies and Whip project skill now match canonical VERA; the authorized repository commits and pushes were completed normally.
 - Related: `FB-20260904-009`, `DEC-20260904-004`, `IMP-20260904-007`, `IMP-20260904-008`, `VER-20260904-008`, `VER-20260904-009`.
 - Status: Implemented and published.
+
+### FB-20260904-011 — Complete UX/UI/design/QA pass and signed in-place release
+
+- Date/source: 2026-09-04, direct user request using `/goal`.
+- User need: Audit Whip top-to-bottom, correct every evidence-backed UX/UI/design/QA issue found, then deliver the resulting signed release to the selected phone without clearing its data.
+- Acceptance criteria: Audit onboarding, navigation, Home, Tasks, Habits, Goals, Tracks, Gym, Settings, search/review, editors, dialogs, empty/loading/error states, accessibility, responsive behavior, and tests; implement confirmed corrections with focused regression coverage; create a fresh complete emulator candidate and fresh critical review; build a higher signed version and install it in place on the explicitly selected physical phone, verify identity/version/hash/cold launch/log smoke, and retain the Play-ready AAB locally.
+- Non-goals/constraints: Do not reset, clear, uninstall, downgrade, run instrumentation on the phone, publish to Play Store, disclose secrets, or perform unrelated device actions. The user expressly authorizes normal commits/pushes needed for this goal and the final signed in-place phone installation.
+- Related: `FB-20260904-002`, `FB-20260904-007`, `FND-20260904-003`.
+- Status: In progress.

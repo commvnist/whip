@@ -184,6 +184,31 @@ class ProductivityDefaultsUiTest {
     }
 
     @Test
+    fun emptyTaskWorkspacesKeepClearStateVisibleBelowQuickCapture() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipScreen(
+                    state = TaskUiState(loading = false),
+                    onSaveTask = { _, _, _ -> },
+                    onComplete = {},
+                    onSkip = {},
+                    onReschedule = { _, _ -> },
+                    onArchive = {},
+                    onReopen = {},
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("Tasks tab").performClick()
+        compose.onNodeWithText("Quick Capture to Today").assertIsDisplayed()
+        compose.onNodeWithText("Today Is Clear").performScrollTo().assertIsDisplayed()
+
+        compose.onNodeWithTag("task-destination-Inbox").performClick()
+        compose.onNodeWithText("Quick Capture to Inbox").assertIsDisplayed()
+        compose.onNodeWithText("Inbox Is Clear").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
     fun savingGoalWithoutAReminderDoesNotRequestNotificationPermission() {
         val permissionRequests = AtomicInteger()
         compose.setContent {

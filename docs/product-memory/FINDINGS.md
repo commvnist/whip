@@ -929,3 +929,14 @@
 - Containment: No reset, install, release, deployment, or further physical-device interaction was performed. The final complete gate was rerun with `ANDROID_SERIAL=emulator-5554` and passed.
 - Resolution: Added one fail-closed target guard to every supported wrapper and module-local connected-test task. Instrumentation now requires exactly one explicit connected emulator; release requires one explicit connected physical device. Deterministic fake-ADB regressions exercise missing, malformed, multiple, offline, unauthorized, physical, emulator, and property-read failure cases.
 - Status: Resolved, fully verified, independently accepted, and released in Whip 0.3.47/code 53. See `DEC-20260904-002`, `IMP-20260904-003`, and `VER-20260904-003`.
+
+### FND-20260904-003 — Empty Tasks workspace hides its only explanatory state
+
+- Severity/category: P2 onboarding clarity and empty-state consistency.
+- Observed: On a new profile, Tasks renders Quick Capture but suppresses `EmptyTasks` whenever Today or Inbox has no Tasks at all. The resulting production screen has the input followed by an unexplained blank canvas, while Habits, Goals, Tracks, and Gym all name the state and orient the user toward the next action.
+- Expected: Quick Capture remains the immediate primary action, and the workspace still confirms the clear/no-Tasks state beneath it without adding a competing CTA.
+- Evidence: Disposable API 34 emulator captures `audit-tasks` and `audit-{habits,goals,tracks,gym}` on 2026-09-04; `WhipApp.kt` task list condition and `EmptyTasks`; `ProductivityDefaultsUiTest`.
+- Root cause: The empty-state condition treated the presence of the capture control as a substitute for state communication.
+- Resolution: Render the existing destination-specific `EmptyTasks` state whenever the visible Task collection is empty, including the new-profile Today and Inbox cases; Quick Capture remains first and remains the only creation control.
+- Related: `FB-20260904-011`.
+- Status: Implemented and focused-emulator verified; awaiting complete candidate and release verification.

@@ -929,4 +929,13 @@
 - Commit/push: Canonical VERA-Codex was published at `d82bad8`; Whip synchronization was published at `e84bbf5`.
 - Related: `FB-20260904-010`, `DEC-20260904-004`, `IMP-20260904-007`, `VER-20260904-009`.
 - Verification: `VER-20260904-009`.
+
+### IMP-20260904-009 — Task empty-state orientation below Quick Capture
+
+- Behavior changed: Today and Inbox now retain their existing destination-specific clear-state message whenever no Task is visible, including on a new profile. Quick Capture remains the first, direct action and no second creation CTA was added.
+- Important files: `WhipApp.kt`, `ProductivityDefaultsUiTest.kt`, and `docs/quality/full-product-surface-inventory-2026-09-04.tsv`.
+- Compatibility/data: Presentation-only. No Task placement, capture parsing, schema, data epoch, backup, or authored data behavior changed.
+- Related: `FB-20260904-011`, `FND-20260904-003`, `DEC-20260904-005`.
+- Verification: `VER-20260904-010`.
+- Status: Implemented and focused-emulator verified; complete candidate and signed release pending.
 - Status: Implemented globally and published.

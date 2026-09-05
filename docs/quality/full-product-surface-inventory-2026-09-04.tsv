@@ -1,0 +1,11 @@
+wave	surfaces	evidence	status	outcome
+onboarding	Welcome, recommended setup, customization handoff	disposable API 34 emulator visual capture	Inspected	Clear value proposition and explicit setup choices; no confirmed defect.
+shell	primary navigation, profile chooser, global add, search, Settings, system bars	emulator UI dumps/captures plus Whip navigation/accessibility architecture tests	Inspected	Named six-destination navigation and top actions remain reachable and semantically labelled.
+home	date summary, collection cards, destination routes	emulator capture and existing Home regression inventory	Inspected	No new confirmed issue.
+tasks	Today, Inbox, Upcoming, History, Quick Capture, empty/filter states	emulator before/after captures, WhipApp.kt condition, ProductivityDefaultsUiTest	Fixed	FND-20260904-003: restore destination empty-state orientation below Quick Capture.
+habits	Today, All Habits, Archived, Insights, templates	emulator capture and existing Habit suites	Inspected	Purpose/action/empty state are explicit; no new confirmed issue.
+goals	Active, History, Archived, Insights, templates	emulator capture and existing Goal suites	Inspected	Purpose/action/empty state are explicit; no new confirmed issue.
+tracks	Tracks, Activity, Archived, Insights, first-track creation	emulator capture and existing Track suites	Inspected	Purpose/action/empty state are explicit; no new confirmed issue.
+gym	Workout, History, Progress, Library, exercise/routine entry	emulator capture and existing Gym/Routine suites	Inspected	Two-track empty workout guidance is explicit and hierarchy is coherent; no new confirmed issue.
+settings	settings landing, section hierarchy, typed/immediate-action disclosure	emulator capture and Settings responsive/policy suites	Inspected	Section purpose and irreversible-value disclosure are explicit; no new confirmed issue.
+cross-cutting	responsive, dark/RTL, keyboard, TalkBack, widgets, external activities, review/search	existing full-product platform/accessibility evidence and targeted architecture suites	Queued for fresh candidate	No new source change outside Tasks; complete candidate will rerun product and cross-cutting gates.

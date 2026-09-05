@@ -989,3 +989,12 @@
 - Rollout status: Both personal-home skill copies and Whip now match canonical; owner-only global preimages are preserved at `/root/.local/state/vera-codex/backups/20260904T_global_persistence`. Canonical source is published at `d82bad8`; Whip synchronization is published at `e84bbf5`.
 - Related: `FB-20260904-010`, `DEC-20260904-004`, `IMP-20260904-008`, `VER-20260904-008`.
 - Status: Global replacement and publication verified.
+
+### VER-20260904-010 — Task empty-state orientation verification
+
+- Scope/environment: Whip production UI and Android regression test on explicitly selected disposable API 34 emulator `emulator-5554`; no physical-device instrumentation, reset, install, signing, or release action.
+- Focused regression: `ANDROID_SERIAL=emulator-5554 scripts/android-test-engine --mode targeted --class com.whip.app.ProductivityDefaultsUiTest#emptyTaskWorkspacesKeepClearStateVisibleBelowQuickCapture` passed 1/1 with zero failures/skips. `ANDROID_SERIAL=emulator-5554 scripts/qa-targeted tasks --emulator` passed its selected JVM tests and 70 Android tests with zero failures/skips in one ordinary batch.
+- Visual evidence: After rebuilding/installing only the debug package on the disposable emulator, `scripts/device-artifacts capture audit-tasks-clear-state /tmp/whip-audit-tasks-clear-state.png` and its UI dump showed Quick Capture followed by `Today Is Clear` and `Nothing scheduled or carried over today.` The captured hierarchy also retained labelled primary navigation and workspace controls.
+- Static evidence: `git diff --check` passed before and after the change.
+- Related: `FB-20260904-011`, `FND-20260904-003`, `DEC-20260904-005`, `IMP-20260904-009`.
+- Status: Passed for the focused change; fresh complete candidate, fresh critical review, and signed release remain pending.

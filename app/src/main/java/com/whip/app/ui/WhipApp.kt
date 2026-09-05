@@ -6704,10 +6704,7 @@ private fun TaskAreaContent(
         }
         if (state.loading) {
             item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
-        } else if (
-            visibleTasks.isEmpty() &&
-            !(allTasks.isEmpty() && destination in setOf(TaskDestination.Today, TaskDestination.Inbox))
-        ) {
+        } else if (visibleTasks.isEmpty()) {
             item {
                 EmptyTasks(destination, areaScope.takeUnless { it == AreaScope.All }?.let {
                     when (it) {
