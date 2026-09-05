@@ -377,3 +377,21 @@ These records preserve durable user intent. “Released” means the change reac
 - Related: `FB-20260904-001`, `IMP-20260904-005`, `VER-20260904-006`.
 - Status: Verified locally and installed as requested; remote publication remains pending separate approval.
 - Notes: Continue automatically through reversible local installation and verification without pausing for intermediate approval. Do not merge or preserve the old prompt logic. No commit, push, release, deployment, publication, credential use, plugin installation, device/emulator command, or application/test/harness edit is authorized; remote publication remains a separate explicit-approval boundary.
+
+### FB-20260904-009 — Make VERA-Codex persist autonomously to task completion
+
+- Date/source: 2026-09-04, direct user instruction.
+- User need: VERA-Codex must complete actionable tasks autonomously rather than exiting for intermediate progress or waiting for optional responses; update canonical policy first and then bring the validated policy to Whip.
+- Acceptance criteria: The canonical skill states a task-completion persistence rule; it continues through safe, reversible, in-scope investigation, repair, validation, and review; it treats progress reports as nonterminal; it makes conservative reversible assumptions when optional context is absent; it returns only at accepted completion or a genuine external/required-input/protected-action boundary. The canonical validator enforces the rule, and Whip receives the byte-exact validated skill body with durable evidence.
+- Constraints: Preserve all existing non-inference and protected-action boundaries. Do not authorize destructive or irreversible operations, production, credentials/secrets, billing, publication, deployment, or other external effects merely by making the policy autonomous.
+- Related: `FB-20260904-008`, `DEC-20260904-004`, `IMP-20260904-007`, `VER-20260904-008`.
+- Status: Implemented and verified in canonical VERA-Codex and the Whip project; personal Codex homes remain intentionally outside this synchronization.
+
+### FB-20260904-010 — Roll out and publish the corrected VERA persistence policy
+
+- Date/source: 2026-09-04, direct user instruction after the canonical policy consistency review.
+- User need: Repair the contradictory second-Sol wording, then copy the finalized canonical persistence policy into both personal Codex homes and Whip and publish the canonical VERA-Codex and Whip repository changes.
+- Acceptance criteria: Canonical skill and README consistently end only the failed Sol retry loop, require a distinct-safe-path scan before blocker reporting, and retain protected-action boundaries; the validator rejects the stale immediate-report wording; both personal-home skill copies and the Whip project skill match the validated canonical policy without changing unrelated configuration; authorized repository changes are committed and pushed normally.
+- Result: The two personal-home skill copies and Whip project skill now match canonical VERA; the authorized repository commits and pushes were completed normally.
+- Related: `FB-20260904-009`, `DEC-20260904-004`, `IMP-20260904-007`, `IMP-20260904-008`, `VER-20260904-008`, `VER-20260904-009`.
+- Status: Implemented and published.

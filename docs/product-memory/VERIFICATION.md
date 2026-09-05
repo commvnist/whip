@@ -970,3 +970,22 @@
 - Release implication: This localized test-source change invalidates prior candidate evidence. A new complete 1,536-test candidate is required before signing or physical release.
 - Related: `FB-20260904-007`.
 - Status: Targeted repair verified; complete candidate pending.
+
+### VER-20260904-008 — VERA-Codex autonomous persistence policy verification
+
+- Scope/environment: Canonical VERA-Codex policy bundle followed by the Whip project skill and durable policy records. No application, device, data, credential, release, or publication action is included.
+- Canonical result: The canonical `validate_bundle.py` completed with 5 roles and 43 routing cases after enforcing the persistence invariants and rejecting the obsolete early-stop sentence. Negative mutations confirmed missing persistence wording and the retired sentence fail validation. `git diff --check` passed.
+- Whip acceptance: Canonical/Whip skill parity and SHA-256 `92698c1da4a95bb9ac11b3b04876bfb6ac5e831afa1bbc57378444ca1604ab93` matched; the canonical validator reran with 5 roles and 43 routing cases; both scoped diff checks passed; a fresh Sol final review returned GO. Personal homes intentionally remain on the prior policy and are excluded from this synchronization.
+- Related: `FB-20260904-009`, `DEC-20260904-004`, `IMP-20260904-007`.
+- Status: Verified and independently accepted.
+
+### VER-20260904-009 — Corrected VERA persistence rollout preparation
+
+- Scope/environment: Local canonical VERA-Codex policy repair and Whip durable rollout preparation. Personal Codex homes, runtime replacement, staging, commits, pushes, publication, credentials, devices, application source, and user data are excluded from this step.
+- Failed-review evidence: The first fresh Sol review returned NO-GO because prose required a distinct-safe-path scan after a second Sol failure while executable `route_case` still immediately returned `blocked` and `report_blocker` solely from the failure count. That failed review remains part of the acceptance history.
+- Current repair: `distinct_safe_path_available` is normalized as a tri-state decision. Missing or malformed evidence requires `safe_path_scan`; `true` pursues a distinct safe path through the Sol-gated route; only explicit `false` permits blocker reporting. Protected final-boundary approval remains deferred until this unresolved failure path is scanned, pursued, or truthfully blocked.
+- Command or manual procedure: Canonical `python3 scripts/validate_bundle.py`; targeted direct `route_case` assertions for missing, present, absent, malformed, and protected distinct-path evidence; routing-fixture count/ID/coverage checks; targeted in-memory negative mutations for stale policy prose; `git diff --check` in canonical VERA-Codex and Whip; scoped status/diff inspection in both repositories.
+- Result: Canonical validation passed with 5 roles and 47 routing cases. Direct route assertions and fixture integrity checks passed, targeted prose mutations were rejected, and both repository diff checks passed.
+- Rollout status: Both personal-home skill copies and Whip now match canonical; owner-only global preimages are preserved at `/root/.local/state/vera-codex/backups/20260904T_global_persistence`. Canonical source is published at `d82bad8`; this Whip record is pending its authorized push.
+- Related: `FB-20260904-010`, `DEC-20260904-004`, `IMP-20260904-008`, `VER-20260904-008`.
+- Status: Global replacement complete; publication verification pending.

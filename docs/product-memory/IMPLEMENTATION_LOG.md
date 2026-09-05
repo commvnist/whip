@@ -912,3 +912,21 @@
 - Verification: `VER-20260904-007`.
 - Related: `FB-20260904-007`.
 - Status: Implemented and targeted verified; fresh complete candidate pending.
+
+### IMP-20260904-007 — VERA-Codex autonomous task-completion policy
+
+- Behavior changed: Whip now carries the canonical VERA persistence rule: progress reports are nonterminal, optional context does not pause safe reversible work, and the parent continues through actionable investigation, repair, validation, and review until acceptance or a genuine no-progress boundary.
+- Safety preserved: The policy expressly retains non-inference for destructive/irreversible, production, credential, billing, publication, deployment, and other external actions. A second Sol failure ends only that retry loop and requires any distinct safe path to be considered first.
+- Important file: `.agents/skills/vera-codex/SKILL.md`, synchronized byte-for-byte from the canonical VERA source after its validator passed.
+- Related: `FB-20260904-009`, `DEC-20260904-004`, `VER-20260904-008`.
+- Status: Implemented, byte-for-byte synchronized, and independently accepted in canonical VERA-Codex and Whip.
+
+### IMP-20260904-008 — Corrected VERA policy prepared for global rollout
+
+- Behavior changed: Canonical VERA-Codex now states consistently that a second material Sol failure ends only that retry loop, requires a scan for a distinct safe in-scope path, and permits blocker reporting only when no such path can make meaningful progress. The README routes and decision topology now express the same contract, and the validator enforces it while rejecting the stale immediate-report wording.
+- Important files/symbols: Canonical `.agents/skills/vera-codex/SKILL.md` repair/escalation contract, `README.md` routes and decision topology, and `scripts/validate_bundle.py` second-Sol policy invariants; Whip durable rollout records only.
+- Compatibility and rollback: Protected-action and non-inference boundaries remain unchanged. Global preimages are owner-only at `/root/.local/state/vera-codex/backups/20260904T_global_persistence`; all three runtime copies now match canonical.
+- Commit/push: Canonical VERA-Codex was published at `d82bad8`; this Whip commit is the remaining authorized publication step.
+- Related: `FB-20260904-010`, `DEC-20260904-004`, `IMP-20260904-007`, `VER-20260904-009`.
+- Verification: `VER-20260904-009`.
+- Status: Implemented globally; publication verification pending.

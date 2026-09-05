@@ -77,11 +77,17 @@ Never substitute model confidence for executable evidence. Accept only after req
 
 On the first material check or review failure, return the work to the same writer once. Give that writer only the task contract, changed diff, failing command, causal error, and relevant paths. Rerun deterministic checks and use a fresh risk-appropriate reviewer.
 
-On a second material lower-tier failure, escalate to the Sol route with a compact failure capsule and fresh context. On a second material Sol failure, stop retries and report the blocker, evidence, and approval or input needed.
+On a second material lower-tier failure, escalate to the Sol route with a compact failure capsule and fresh context. A second material Sol failure ends that retry loop, not necessarily the task; scan for any distinct safe in-scope path before reporting the blocker, evidence, and approval or input needed.
 
 An unresolved material failure takes precedence over a protected-action approval boundary: complete the required repair or escalation, or report the blocker, while approval remains deferred. Use `await_user_approval` only when no unresolved material failure exists.
 
-Stop when the acceptance gates pass. Do not add speculative reviewers or retries without a named failed criterion.
+## Persist to completion
+
+Continue until the task contract's acceptance gates pass or a genuine blocker leaves no safe, reversible, in-scope action that can make meaningful progress. Do not end or exit merely to report intermediate progress, partial results, elapsed time, token use, or an optional user response; progress updates are nonterminal. After an update, take the next safe in-scope investigation, implementation, repair, validation, or review action.
+
+Do not wait for user input while a safe, reversible, in-scope next action exists. If an answer would help but is not required, state the smallest conservative reversible assumption and continue. Ask only when a genuine external blocker or required input leaves no safe in-scope path, or when the next action reaches a protected final boundary. Never infer authority for destructive or irreversible operations, production actions, credentials or secrets, billing, publication, deployment, or other external effects.
+
+A second material Sol failure ends that retry loop, not necessarily the task; pursue any distinct safe in-scope path before reporting the blocker. End the task only after the acceptance gates pass or no safe in-scope action can make meaningful progress. Do not add speculative reviewers or retries without a named failed criterion.
 
 ## Return evidence capsules
 

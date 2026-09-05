@@ -731,3 +731,11 @@
 - Compatibility/rollback: No application behavior, schema, backup, release script, installed package, or user data changes. Roll back router, wrappers, engine, executable fixtures, tests, and docs together while retaining the existing Android target guards; discard generated candidate evidence after rollback. `scripts/device` remains byte-identical to its pre-overhaul version.
 - Related: `FB-20260904-004` through `FB-20260904-006`, `DEC-20260904-002`, `IMP-20260904-004`, `VER-20260904-004`, and `VER-20260904-005`.
 - Status: Accepted and implemented locally; the compatibility recovery is deterministically verified, while complete real-emulator candidate creation remains intentionally unexecuted in this change.
+
+### DEC-20260904-004 — Autonomous persistence is the VERA default, bounded by real authority
+
+- Context: Intermediate progress and actionable repair cycles can be mistaken for a terminal state, causing an agent to return before the user’s task contract is actually satisfied.
+- Decision: Treat status updates, elapsed time, partial results, and optional user context as nonterminal. Continue through every safe, reversible, in-scope investigation, implementation, repair, validation, and review action until acceptance gates pass. If helpful context is optional, state the smallest conservative reversible assumption and proceed.
+- Boundary: Stop only when the contract is accepted or no safe in-scope action can make meaningful progress because a genuine external blocker, required input, or protected final boundary remains. A second Sol failure ends that retry loop only; pursue any distinct safe in-scope path before reporting the blocker. Existing approval and non-inference limits remain unchanged.
+- Related: `FB-20260904-009`, `IMP-20260904-007`, `VER-20260904-008`.
+- Status: Accepted and implemented.
