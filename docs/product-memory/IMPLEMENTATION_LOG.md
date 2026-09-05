@@ -926,7 +926,7 @@
 - Behavior changed: Canonical VERA-Codex now states consistently that a second material Sol failure ends only that retry loop, requires a scan for a distinct safe in-scope path, and permits blocker reporting only when no such path can make meaningful progress. The README routes and decision topology now express the same contract, and the validator enforces it while rejecting the stale immediate-report wording.
 - Important files/symbols: Canonical `.agents/skills/vera-codex/SKILL.md` repair/escalation contract, `README.md` routes and decision topology, and `scripts/validate_bundle.py` second-Sol policy invariants; Whip durable rollout records only.
 - Compatibility and rollback: Protected-action and non-inference boundaries remain unchanged. Global preimages are owner-only at `/root/.local/state/vera-codex/backups/20260904T_global_persistence`; all three runtime copies now match canonical.
-- Commit/push: Canonical VERA-Codex was published at `d82bad8`; this Whip commit is the remaining authorized publication step.
+- Commit/push: Canonical VERA-Codex was published at `d82bad8`; Whip synchronization was published at `e84bbf5`.
 - Related: `FB-20260904-010`, `DEC-20260904-004`, `IMP-20260904-007`, `VER-20260904-009`.
 - Verification: `VER-20260904-009`.
-- Status: Implemented globally; publication verification pending.
+- Status: Implemented globally and published.
