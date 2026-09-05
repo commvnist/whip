@@ -938,4 +938,12 @@
 - Related: `FB-20260904-011`, `FND-20260904-003`, `DEC-20260904-005`.
 - Verification: `VER-20260904-010`.
 - Status: Implemented and focused-emulator verified; complete candidate and signed release pending.
+
+### IMP-20260904-010 — Deterministic Settings retry lifecycle test
+
+- Behavior changed: The Settings responsive retry regression now waits for the exact request it owns before injecting simulated persistence results. It continues to prove failure visibility, deliberate discard, distinct retry ownership, and successful close.
+- Important file: `SettingsResponsiveUiTest.kt`.
+- Compatibility/data: Test-only synchronization. Production settings behavior, persistence, schema, backup, and user data are unchanged.
+- Related: `FND-20260904-004`, `VER-20260904-011`.
+- Status: Implemented, repeat-verified, and independently accepted; fresh candidate pending.
 - Status: Implemented globally and published.

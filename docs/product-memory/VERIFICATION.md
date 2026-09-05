@@ -998,3 +998,12 @@
 - Static evidence: `git diff --check` passed before and after the change.
 - Related: `FB-20260904-011`, `FND-20260904-003`, `DEC-20260904-005`, `IMP-20260904-009`.
 - Status: Passed for the focused change; fresh complete candidate, fresh critical review, and signed release remain pending.
+
+### VER-20260904-011 — Settings retry test synchronization verification
+
+- Scope/environment: Disposable API 34 emulator explicitly selected as `emulator-5554`; test-only source change. No phone instrumentation, signing, installation, reset, or release action.
+- Failed-candidate evidence: The initial fresh 0.3.49 candidate stopped in the Settings responsive batch after 92 passing tests because `lateProcessMemoryPublicationAfterFailureStillRequiresAndAllowsDurableRetry` required an unpublished callback ID. The retained XML recorded 93 tests, one failure, zero skips; this partial candidate is excluded from release qualification.
+- Repair verification: The exact method passed three fresh isolated runs, each 1/1 with zero failures/skips. Full `SettingsResponsiveUiTest` passed 20/20 with zero failures/skips; Android-test compilation and `git diff --check` passed.
+- Independent review: A fresh Sol review returned GO. It confirmed matching request IDs are required before simulated receipts and production coordinator behavior is untouched.
+- Related: `FND-20260904-004`, `IMP-20260904-010`, `FB-20260904-011`.
+- Status: Passed for the repair; a new complete candidate is required before release.

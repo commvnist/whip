@@ -346,10 +346,18 @@ class SettingsResponsiveUiTest {
         compose.onNodeWithTag("settings-field-default-rest-time-seconds").performClick()
         compose.onNodeWithTag("settings-field-default-rest-time-seconds-input")
             .performTextReplacement("300")
-        compose.onNodeWithTag("settings-field-default-rest-time-seconds-save").performClick()
+        compose.onNodeWithTag("settings-field-default-rest-time-seconds-save")
+            .assertIsEnabled()
+            .performClick()
+        compose.waitUntil {
+            submissions == 1 &&
+                requestId != null &&
+                (mutationState as? PersistenceRequestState.Running)?.requestId == requestId
+        }
+        val failedRequestId = requireNotNull(requestId)
         compose.runOnIdle {
             mutationState = PersistenceRequestState.Finished(
-                requireNotNull(requestId),
+                failedRequestId,
                 WhipResult.Failure("Disk rejected this save."),
             )
         }
@@ -367,12 +375,19 @@ class SettingsResponsiveUiTest {
         }
         compose.onNodeWithText("Discard Unsaved Changes?").assertIsDisplayed()
         compose.onNodeWithText("Keep Editing").performClick()
-        compose.onNodeWithTag("settings-field-default-rest-time-seconds-save").performClick()
-        compose.runOnIdle { assertEquals(2, submissions) }
+        compose.onNodeWithTag("settings-field-default-rest-time-seconds-save")
+            .assertIsEnabled()
+            .performClick()
+        compose.waitUntil {
+            submissions == 2 &&
+                requestId != failedRequestId &&
+                (mutationState as? PersistenceRequestState.Running)?.requestId == requestId
+        }
+        val retryRequestId = requireNotNull(requestId)
 
         compose.runOnIdle {
             mutationState = PersistenceRequestState.Finished(
-                requireNotNull(requestId),
+                retryRequestId,
                 WhipResult.Success(SettingsMutationReceipt()),
             )
         }

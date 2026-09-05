@@ -940,3 +940,14 @@
 - Resolution: Render the existing destination-specific `EmptyTasks` state whenever the visible Task collection is empty, including the new-profile Today and Inbox cases; Quick Capture remains first and remains the only creation control.
 - Related: `FB-20260904-011`.
 - Status: Implemented and focused-emulator verified; awaiting complete candidate and release verification.
+
+### FND-20260904-004 — Settings retry test could inject a result before its owned request existed
+
+- Severity/category: P2 QA reliability.
+- Observed: The fresh 0.3.49 candidate reached the Settings responsive batch and failed `lateProcessMemoryPublicationAfterFailureStillRequiresAndAllowsDurableRetry` with `Required value was null` after its second Save. The test invoked Save and immediately required a callback-owned `requestId`; the callback had not necessarily published before the assertion.
+- Expected: The test must wait for the submission count, distinct owned request ID, and matching `Running` request before simulating the result, preserving the real retry lifecycle contract.
+- Evidence: Candidate batch XML under `app/build/outputs/androidTest-results/connected/debug/`; `SettingsResponsiveUiTest.kt`; fresh Sol review.
+- Root cause: Test timing assumed Compose click dispatch and request-coordinator publication were synchronous.
+- Resolution: Add owned-request synchronization for both the failed first save and succeeding retry, retaining the existing discard/retry/success assertions.
+- Related: `FB-20260904-011`, `VER-20260904-011`.
+- Status: Implemented, repeat-verified, and independently accepted; fresh candidate pending.
