@@ -10,6 +10,9 @@ readonly SOURCE_ROOT="${WHIP_UI_SOURCE_ROOT:-${PROJECT_ROOT}/app/src/main/java/c
 readonly DEVICE_CAPTURE_ROOT="/sdcard/Download/whip-ui-catalog"
 readonly DEVICE_CAPTURE_RELATIVE_PATH="Download/whip-ui-catalog/"
 readonly DEVICE_DOWNLOADS_URI="content://media/external_primary/downloads"
+capture_serial=''
+capture_previous_night_mode=''
+capture_previous_hide_error_dialogs=''
 
 usage() {
     cat <<'EOF'
@@ -19,17 +22,31 @@ Usage:
   scripts/ui-catalog discover
   scripts/ui-catalog source-snapshot
   scripts/ui-catalog lint [--allow-pending]
+  scripts/ui-catalog report CAPTURE_DIRECTORY
   ANDROID_SERIAL=emulator-5554 scripts/ui-catalog capture [--allow-pending] [--family FAMILY] OUTPUT_DIRECTORY
 
 The catalog is docs/quality/ui-surface-catalog.tsv. Capture is emulator-only,
 runs every unique catalog test selector, pulls app-private PNG/XML evidence,
 and fails if any required surface is missing or any uncatalogued artifact exists.
+Each accepted capture includes a searchable, dependency-free index.html review gallery.
 EOF
 }
 
 die() {
     printf 'error: %s\n' "$*" >&2
     exit 1
+}
+
+restore_capture_environment() {
+    if [[ -n "$capture_serial" && "$capture_previous_night_mode" =~ ^(yes|no|auto)$ ]]; then
+        adb -s "$capture_serial" shell cmd uimode night "$capture_previous_night_mode" >/dev/null || true
+    fi
+    if [[ -n "$capture_serial" ]]; then
+        case "$capture_previous_hide_error_dialogs" in
+            null) adb -s "$capture_serial" shell settings delete global hide_error_dialogs >/dev/null || true ;;
+            0|1) adb -s "$capture_serial" shell settings put global hide_error_dialogs "$capture_previous_hide_error_dialogs" >/dev/null || true ;;
+        esac
+    fi
 }
 
 family_for_file() {
@@ -171,6 +188,70 @@ lint_catalog() {
     fi
 }
 
+write_review_report() {
+    local capture_dir="$1"
+    local report="$capture_dir/index.html"
+    local capture_catalog="$capture_dir/catalog.tsv"
+    local manifest="$capture_dir/manifest.tsv"
+    [[ -f "$capture_catalog" ]] || die "capture catalog not found: $capture_catalog"
+    [[ -f "$manifest" ]] || die "capture manifest not found: $manifest"
+
+    local surface_count
+    surface_count="$(($(wc -l < "$manifest") - 1))"
+    cat > "$report" <<EOF
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Whip UI catalog review</title>
+<style>
+:root{color-scheme:dark;background:#0b0c0f;color:#f4f1ea;font:15px/1.45 system-ui,sans-serif}
+*{box-sizing:border-box}body{margin:0}header{position:sticky;top:0;z-index:2;padding:18px 22px;background:#111318ee;border-bottom:1px solid #30333b;backdrop-filter:blur(12px)}
+h1{font-size:22px;margin:0 0 4px}.summary{color:#aaaeb8;margin:0 0 14px}.controls{display:flex;gap:10px;flex-wrap:wrap}
+input,select{min-height:42px;border:1px solid #3b3f48;border-radius:10px;background:#1a1d23;color:inherit;padding:0 12px;font:inherit}input{flex:1;min-width:220px}
+main{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;padding:22px}.card{overflow:hidden;border:1px solid #30333b;border-radius:16px;background:#15171c;box-shadow:0 8px 24px #0005}
+.shot{display:block;width:100%;aspect-ratio:9/20;object-fit:contain;background:#050506}.meta{padding:14px}.eyebrow{color:#aaaeb8;font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+h2{font-size:16px;margin:4px 0 8px;overflow-wrap:anywhere}.state{display:inline-block;border-radius:999px;background:#282b32;padding:3px 8px;font-size:12px}.notes{min-height:42px;color:#c9cbd1}
+.links{display:flex;gap:14px}a{color:#e7c787}.empty{display:none;padding:36px;text-align:center;color:#aaaeb8}.hidden{display:none}
+</style>
+</head>
+<body>
+<header><h1>Whip UI catalog review</h1><p class="summary">${surface_count} exact page, dialog, menu, system, and widget states. Search or filter to review the design language systematically.</p>
+<div class="controls"><input id="query" type="search" placeholder="Search surfaces, states, or notes" aria-label="Search catalog"><select id="family" aria-label="Filter by family"><option value="">All families</option><option>shared</option><option>tasks</option><option>habits</option><option>goals</option><option>tracks</option><option>gym</option><option>settings</option><option>organization</option></select><select id="kind" aria-label="Filter by kind"><option value="">All kinds</option><option>page</option><option>dialog</option><option>menu</option><option>system</option><option>widget</option></select></div></header>
+<main id="gallery">
+EOF
+    awk -F '\t' '
+        function escape(value) {
+            gsub(/&/, "\\&amp;", value); gsub(/</, "\\&lt;", value); gsub(/>/, "\\&gt;", value)
+            gsub(/"/, "\\&quot;", value); return value
+        }
+        FNR == NR {
+            if (FNR > 1) {
+                family[$2]=$3; kind[$2]=$4; state[$2]=$5; notes[$2]=$8
+            }
+            next
+        }
+        FNR > 1 {
+            id=$1
+            searchable=tolower(id " " family[id] " " kind[id] " " state[id] " " notes[id])
+            printf "<article class=\"card\" data-family=\"%s\" data-kind=\"%s\" data-search=\"%s\">\n", escape(family[id]), escape(kind[id]), escape(searchable)
+            printf "<a href=\"raw/%s.png\"><img class=\"shot\" loading=\"lazy\" src=\"raw/%s.png\" alt=\"%s screenshot\"></a>\n", escape(id), escape(id), escape(id)
+            printf "<div class=\"meta\"><div class=\"eyebrow\">%s · %s</div><h2>%s</h2><span class=\"state\">%s</span><p class=\"notes\">%s</p>", escape(family[id]), escape(kind[id]), escape(id), escape(state[id]), escape(notes[id])
+            printf "<div class=\"links\"><a href=\"raw/%s.png\">PNG</a><a href=\"raw/%s.xml\">Semantics XML</a></div></div></article>\n", escape(id), escape(id)
+        }
+    ' "$capture_catalog" "$manifest" >> "$report"
+    cat >> "$report" <<'EOF'
+</main><p id="empty" class="empty">No catalog surfaces match these filters.</p>
+<script>
+const q=document.querySelector('#query'),family=document.querySelector('#family'),kind=document.querySelector('#kind'),cards=[...document.querySelectorAll('.card')],empty=document.querySelector('#empty');
+function filter(){const text=q.value.trim().toLowerCase();let shown=0;for(const card of cards){const visible=(!text||card.dataset.search.includes(text))&&(!family.value||card.dataset.family===family.value)&&(!kind.value||card.dataset.kind===kind.value);card.classList.toggle('hidden',!visible);if(visible)shown++}empty.style.display=shown?'none':'block'}
+q.addEventListener('input',filter);family.addEventListener('change',filter);kind.addEventListener('change',filter);
+</script></body></html>
+EOF
+    printf 'Wrote review gallery for %s catalog surfaces to %s.\n' "$surface_count" "$report"
+}
+
 capture_catalog() {
     local output_dir="$1" allow_pending="$2" selected_family="$3"
     lint_catalog "$allow_pending"
@@ -181,6 +262,19 @@ capture_catalog() {
         die "output directory must be empty: $output_dir"
 
     local serial="$ANDROID_SERIAL"
+    capture_serial="$serial"
+    capture_previous_night_mode="$(adb -s "$serial" shell cmd uimode night | sed -n 's/^Night mode: //p' | tr -d '\r')"
+    [[ "$capture_previous_night_mode" =~ ^(yes|no|auto)$ ]] ||
+        die "could not determine emulator night mode: ${capture_previous_night_mode:-missing}"
+    capture_previous_hide_error_dialogs="$(adb -s "$serial" shell settings get global hide_error_dialogs | tr -d '\r')"
+    [[ "$capture_previous_hide_error_dialogs" =~ ^(null|0|1)$ ]] ||
+        die "could not determine emulator error-dialog setting: ${capture_previous_hide_error_dialogs:-missing}"
+    trap restore_capture_environment EXIT
+    adb -s "$serial" shell cmd uimode night yes >/dev/null
+    # Background Google processes on the stock AVD can crash independently of
+    # Whip. Suppress those OS sheets during evidence collection, while the
+    # hierarchy guard still rejects any overlay that reaches a captured frame.
+    adb -s "$serial" shell settings put global hide_error_dialogs 1 >/dev/null
     adb -s "$serial" shell content delete \
         --uri "$DEVICE_DOWNLOADS_URI" \
         --where "relative_path=\\'${DEVICE_CAPTURE_RELATIVE_PATH}\\'" >/dev/null
@@ -230,7 +324,13 @@ capture_catalog() {
             'NR > 1 && $7 == "capture" && $6 != "pending" && (family == "" || $3 == family) { print $2 }' \
             "$CATALOG_FILE" | sort -u
     )
+    write_review_report "$output_dir"
     printf 'Captured %s catalog surfaces into %s.\n' "$(($(wc -l < "$output_dir/manifest.tsv") - 1))" "$output_dir"
+    restore_capture_environment
+    trap - EXIT
+    capture_serial=''
+    capture_previous_night_mode=''
+    capture_previous_hide_error_dialogs=''
 }
 
 main() {
@@ -246,6 +346,11 @@ main() {
             local allow_pending=false
             [[ "${2:-}" != '--allow-pending' ]] || allow_pending=true
             lint_catalog "$allow_pending"
+            ;;
+        report)
+            [[ -n "${2:-}" ]] || die 'report requires CAPTURE_DIRECTORY'
+            [[ -z "${3:-}" ]] || die 'report accepts one CAPTURE_DIRECTORY'
+            write_review_report "$2"
             ;;
         capture)
             shift

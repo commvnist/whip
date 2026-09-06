@@ -1088,3 +1088,14 @@
 - Compatibility and limitations: All 171 catalog rows now have concrete capture selectors with zero platform exceptions or pending rows. This milestone proves exact family capture, not yet the final whole-catalog baseline, critique, remediation, or release. No candidate, signed build, owner-phone query, phone instrumentation, install, or publication occurred.
 - Related: `FB-20260906-008`, `DEC-20260906-005`, `VER-20260906-013`.
 - Status: Implemented and exact-family captured; whole-catalog baseline and design work remain in progress.
+
+### IMP-20260906-014 — Fidelity-checked visual catalog and searchable review gallery
+
+- Behavior changed: The catalog collector now creates a dependency-free searchable/filterable HTML gallery, fixes dark mode for the duration of emulator capture, and restores the emulator's prior night-mode and crash-dialog settings on both success and failure. Accepted capture helpers wait through Compose and rendered-frame boundaries, prove the requested Whip state is present, and reject a hierarchy that loses the Whip package or exposes a crash/ANR sheet. Multi-state and behavior-sensitive journeys were split or synchronized so a correctly named file cannot silently preserve the preceding state.
+- Capture fidelity: Component fixtures for Area scope, workout components, Track entry mutation, Health rationale, Safety choices, and Settings use production-sized dark Whip hosts. Search results, bulk Task actions, Area/Tag workflows, Gym menus/dialogs, reset/restore confirmations, and other previously stale transitions now assert exact state before capture. The stock-AVD-only error-sheet setting prevents unrelated Google-process crash sheets from obscuring evidence, while captured overlays still fail closed.
+- Important files/symbols: `scripts/ui-catalog`, `scripts/test-ui-catalog`, `VisualCatalogCapture.kt`, affected Android UI capture tests, `docs/quality/ui-surface-catalog.tsv`, and `docs/quality/UI_VISUAL_REVIEW_PROTOCOL.md`.
+- Persistence/migration/history impact: Test tooling, test fixtures, evidence protocol, and catalog metadata only. Production behavior, schema 46, data epoch 6, backup version 24, release identity, and user data are unchanged.
+- Compatibility and limitations: The collector remains emulator-only and deletes only its exact MediaStore evidence path. Family capture is the fast iteration unit; a whole 171-surface capture is reserved for frozen audit milestones. Candidate qualification remains Play Store-only. No signed build, owner-phone query, phone instrumentation, install, or publication occurred.
+- Related: `FB-20260906-008`, `FND-20260906-002`, `DEC-20260906-005`, `VER-20260906-014`.
+- Verification: `VER-20260906-014`.
+- Status: Implemented, exact-family recaptured, visually inspected, and ready for product remediation.

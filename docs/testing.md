@@ -134,12 +134,22 @@ ANDROID_SERIAL=emulator-5554 scripts/ui-catalog capture \
 ```
 
 Capture first runs every unique catalog selector through the guarded targeted
-test engine. Tests save a PNG and UI hierarchy XML under the debug app's private
-files directory; the script then pulls them into the requested repository
+test engine. During that run it forces dark mode and suppresses unrelated stock
+AVD crash sheets, restoring both emulator settings on exit. Tests save a PNG
+and UI hierarchy XML under the debug app's private files directory; the script then pulls them into the requested repository
 evidence directory, verifies exact two-artifact accounting for every required
-surface, rejects uncatalogued output, and writes hashes and byte sizes to
-`manifest.tsv`. The output directory must be empty. The physical owner phone is
-never a capture or test target; it is reserved for the final signed deployment.
+surface, rejects uncatalogued output, fails if a non-Whip window or system error
+sheet obscures a capture, and writes hashes and byte sizes to
+`manifest.tsv`. It also writes a dependency-free `index.html` gallery with
+search plus family/kind filters and direct links to every PNG/XML pair. Rebuild
+that gallery without rerunning Android tests with
+`scripts/ui-catalog report CAPTURE_DIRECTORY`. The output directory must be
+empty. The physical owner phone is never a capture or test target; it is
+reserved for the final signed deployment.
+
+Review the accepted gallery using the criteria and closure rules in
+`docs/quality/UI_VISUAL_REVIEW_PROTOCOL.md`. A screenshot run proves inventory
+and evidence completeness; it does not by itself prove that the design passed.
 
 `scripts/candidate` is the only frozen-candidate authority. It snapshots every
 tracked or unignored repository input, then runs complete JVM coverage,

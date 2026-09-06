@@ -1161,3 +1161,14 @@
 - Failures or residual risk: No accepted-run failures. The complete 171-surface capture, visual critique, production remediation, final recapture, and owner-phone deployment remain incomplete.
 - Related: `FB-20260906-008`, `DEC-20260906-005`, `IMP-20260906-013`.
 - Status: Verified for complete Settings and Organization family coverage; the durable goal remains active.
+
+### VER-20260906-014 — Visual-catalog fidelity and review-system verification
+
+- Scope/environment: Capture-integrity remediation across all eight UI families on disposable API 34 `emulator-5554`, with deterministic dark theme and dynamic color disabled. The physical owner phone was not queried, connected, instrumented, installed to, or otherwise used.
+- Command or manual procedure: `scripts/test-ui-catalog`; strict `scripts/ui-catalog lint`; Android-test Kotlin compilation; affected family captures through explicit `ANDROID_SERIAL=emulator-5554`; exact PNG/XML/manifest accounting; generated gallery/contact-sheet review; and direct pixel inspection of corrected search, Task bulk, Habit value, Goal, Track edit/delete, Gym component/menu, Settings rationale/reset/restore, and Organization Area/Tag states.
+- Result: Strict lint reports 171 required captures, zero platform exceptions, and zero pending selectors. The accepted fidelity captures exported Shared 23, Tasks 22, Habits 19, Goals 13, Tracks 21, Gym 44, Settings 14, and Organization 15 exact PNG/XML pairs, with zero test failures/skips and no missing or unexpected IDs. The final Organization run executed five selectors and exported 15 exact surfaces; `organization.area-picker.menu` now uses the intended dark full-screen host. The gallery fixture passed and each accepted directory contains a searchable `index.html`.
+- Failed-then-repaired evidence: The original 171-file-count baseline was rejected because visual inspection found stale state and incomplete test hosts. Later Gym attempts exposed an incorrect semantics tag, a wrong category-allocation trigger, and unrelated stock-AVD Google crash sheets. Selectors, state waits, hosts, and scoped environment handling were repaired; only the final exact family runs are accepted evidence.
+- Counts and exclusions: This verifies catalog completeness and evidence fidelity, not product-design remediation or full product regression. No candidate suite, signed artifact, owner-phone interaction, install, or Play Store publication occurred.
+- Artifact/evidence: Accepted family exports under `/tmp/whip-ui-{shared,tasks,habits,goals,tracks,gym,settings}-fidelity*-20260906` and `/tmp/whip-ui-organization-fidelity5-20260906`; final Organization instrumentation evidence `/root/repos/whip/build/instrumentation-results-eGIfYw`.
+- Related: `FB-20260906-008`, `FND-20260906-002`, `DEC-20260906-005`, `IMP-20260906-014`.
+- Status: Verified; the systematic critique may now rely on the corrected inventory.

@@ -185,6 +185,21 @@ class ActivityHistoryUiTest {
     }
 
     @Test
+    fun captureAbsoluteValueEditorCatalog() {
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                HabitValueDialog(
+                    item = progress(HabitTrackingMode.Count).copy(value = 5.0),
+                    onDismiss = {},
+                    onLog = { _, _ -> },
+                )
+            }
+        }
+
+        captureVisualCatalogSurface("habits.value-entry")
+    }
+
+    @Test
     fun absoluteValueEditorExplainsThatALowerNumberSetsRatherThanAdds() {
         var savedValue: Double? = null
         var saveCalls = 0
@@ -201,14 +216,11 @@ class ActivityHistoryUiTest {
             }
         }
 
-        captureVisualCatalogSurface("habits.value-entry")
         compose.onNodeWithText("Set Today's Total").assertIsDisplayed()
         compose.onNodeWithText("Saving sets this total; it does not add to it.", substring = true)
             .assertIsDisplayed()
         compose.onNodeWithTag("habit-value-input").performTextReplacement("3")
         compose.onNodeWithTag("habit-value-input").assertTextContains("3")
-        closeSoftKeyboard()
-        compose.waitForIdle()
         compose.onNodeWithText("Save").assertIsDisplayed().assertIsEnabled().performClick()
 
         compose.runOnIdle {

@@ -801,4 +801,4 @@
 - Failure modes: A stale catalog after UI source growth; screenshots silently lost after test APK uninstall; duplicate IDs; a full visual campaign paid for every small edit; accidental instrumentation or cleanup on the owner's physical phone.
 - Consequences / reversal conditions: Baseline and final audits must reach zero pending selectors. Family capture is the normal iteration loop; full catalog capture is reserved for audit milestones. The physical phone remains out of scope until final signed deployment and smoke. Replace TSV or MediaStore only if a successor preserves exact coverage, deterministic export, emulator isolation, and family-level latency.
 - Related: `FB-20260906-008`, `IMP-20260906-007`, `VER-20260906-007`.
-- Status: Accepted and partially implemented; exhaustive selector coverage and design remediation remain in progress.
+- Status: Accepted and fully implemented for exhaustive capture and review evidence; product design remediation remains in progress.

@@ -4,9 +4,12 @@ import android.content.ContentValues
 import android.graphics.Bitmap
 import android.os.Environment
 import android.provider.MediaStore
+import android.view.Choreographer
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import java.io.File
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 private val visualCatalogId = Regex("^[a-z0-9][a-z0-9._-]*$")
 private val capturedVisualCatalogIds = linkedSetOf<String>()
@@ -24,6 +27,19 @@ internal fun captureVisualCatalogSurface(surfaceId: String) {
     val instrumentation = InstrumentationRegistry.getInstrumentation()
     instrumentation.waitForIdleSync()
     instrumentation.uiAutomation.waitForIdle(750L, 5_000L)
+    // Compose semantics can become idle before the window has drawn the newly
+    // asserted state. Wait through two real display frames so a correctly named
+    // catalog artifact cannot contain the preceding page or dialog.
+    repeat(2) {
+        val frameDrawn = CountDownLatch(1)
+        instrumentation.runOnMainSync {
+            Choreographer.getInstance().postFrameCallback { frameDrawn.countDown() }
+        }
+        check(frameDrawn.await(5L, TimeUnit.SECONDS)) {
+            "The UI did not draw a stable frame for $surfaceId"
+        }
+    }
+    instrumentation.waitForIdleSync()
 
     val screenshot = checkNotNull(instrumentation.uiAutomation.takeScreenshot()) {
         "Android did not provide a screenshot for $surfaceId"
@@ -43,6 +59,13 @@ internal fun captureVisualCatalogSurface(surfaceId: String) {
         UiDevice.getInstance(instrumentation).dumpWindowHierarchy(hierarchyFile)
         check(hierarchyFile.isFile && hierarchyFile.length() > 0L) {
             "Visual catalog hierarchy is missing or empty for $surfaceId"
+        }
+        val hierarchy = hierarchyFile.readText()
+        check("package=\"${instrumentation.targetContext.packageName}\"" in hierarchy) {
+            "Visual catalog hierarchy for $surfaceId is obscured by a non-Whip window"
+        }
+        check(" keeps stopping\"" !in hierarchy && " isn't responding\"" !in hierarchy) {
+            "Visual catalog hierarchy for $surfaceId contains an Android crash or ANR sheet"
         }
         hierarchyFile.inputStream().use { input ->
             insertCatalogAsset(surfaceId, "xml", "application/xml").use(input::copyTo)

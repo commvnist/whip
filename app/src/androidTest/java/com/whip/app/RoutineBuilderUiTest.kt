@@ -1424,6 +1424,8 @@ class RoutineBuilderUiTest {
         compose.onNodeWithTag("routine-reps-max-3").assertTextContains("10")
         compose.onNodeWithContentDescription("Back to routine outline").performClick()
         compose.onNodeWithContentDescription("Manage Exercise 200").performClick()
+        compose.onNodeWithText("Remove").assertIsDisplayed()
+        compose.waitForIdle()
         captureVisualCatalogSurface("gym.routine-placement.menu")
     }
 

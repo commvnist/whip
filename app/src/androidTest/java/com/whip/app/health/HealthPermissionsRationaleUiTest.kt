@@ -1,7 +1,10 @@
 package com.whip.app.health
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -22,6 +25,24 @@ class HealthPermissionsRationaleUiTest {
     @get:Rule val compose = createComposeRule()
 
     @Test
+    fun captureHealthPermissionsRationaleCatalog() {
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
+                    HealthPermissionsRationaleContent(onClose = {})
+                }
+            }
+        }
+
+        compose.onNodeWithTag("health-rationale-surface").assertIsDisplayed()
+        compose.onNodeWithTag("health-rationale-close").assertIsDisplayed()
+        captureVisualCatalogSurface("settings.health.rationale")
+    }
+
+    @Test
     fun compactLargeTextDarkLayoutKeepsCloseStableAndEveryExplanationScrollable() {
         compose.setContent {
             val density = LocalDensity.current
@@ -36,7 +57,6 @@ class HealthPermissionsRationaleUiTest {
 
         compose.onNodeWithTag("health-rationale-surface").assertIsDisplayed()
         compose.onNodeWithTag("health-rationale-close").assertIsDisplayed()
-        captureVisualCatalogSurface("settings.health.rationale")
         val closeBeforeScroll = compose.onNodeWithTag("health-rationale-close")
             .fetchSemanticsNode().boundsInRoot
 

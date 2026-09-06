@@ -1,5 +1,6 @@
 package com.whip.app
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,7 +49,7 @@ class TrackEntryMutationUiTest {
                     editSnapshot = null,
                     today = LocalDate.of(2026, 9, 1),
                     saving = false,
-                    modifier = Modifier.width(320.dp),
+                    modifier = Modifier.fillMaxSize(),
                     sessionId = 50,
                     onDismiss = {},
                     onSave = {},
@@ -58,6 +59,55 @@ class TrackEntryMutationUiTest {
 
         compose.onNodeWithTag("track-entry-editor-list").assertIsDisplayed()
         captureVisualCatalogSurface("tracks.entry.create")
+    }
+
+    @Test
+    fun captureTrackEntryEditCatalog() {
+        val form = entryForm()
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                TrackEntryEditor(
+                    form = form,
+                    editSnapshot = entryEditSnapshot(form),
+                    today = LocalDate.of(2026, 9, 1),
+                    saving = false,
+                    modifier = Modifier.fillMaxSize(),
+                    sessionId = 53,
+                    onDismiss = {},
+                    onSave = {},
+                    onDelete = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("track-entry-editor-list").assertIsDisplayed()
+        captureVisualCatalogSurface("tracks.entry.edit")
+    }
+
+    @Test
+    fun captureTrackEntryDeleteCatalog() {
+        val form = entryForm()
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                TrackEntryEditor(
+                    form = form,
+                    editSnapshot = entryEditSnapshot(form),
+                    today = LocalDate.of(2026, 9, 1),
+                    saving = false,
+                    modifier = Modifier.fillMaxSize(),
+                    sessionId = 54,
+                    onDismiss = {},
+                    onSave = {},
+                    onDelete = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("track-entry-editor-list")
+            .performScrollToNode(hasText("Delete Entry"))
+        compose.onNodeWithText("Delete Entry").performClick()
+        compose.onNodeWithTag("track-entry-delete-confirmation").assertIsDisplayed()
+        captureVisualCatalogSurface("tracks.entry-delete")
     }
 
     @Test
@@ -125,12 +175,10 @@ class TrackEntryMutationUiTest {
             }
         }
 
-        captureVisualCatalogSurface("tracks.entry.edit")
         compose.onNodeWithTag("track-entry-editor-list")
             .performScrollToNode(hasText("Delete Entry"))
         compose.onNodeWithText("Delete Entry").performClick()
         compose.onNodeWithTag("track-entry-delete-confirmation").assertIsDisplayed()
-        captureVisualCatalogSurface("tracks.entry-delete")
         compose.onNodeWithText("Delete The Dispossessed?").assertIsDisplayed()
         compose.onNodeWithText(
             "This removes the Entry dated Sep 1, 2026 and 1 saved value.",

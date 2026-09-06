@@ -3,6 +3,7 @@ package com.whip.app.ui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.heightIn
@@ -651,7 +652,7 @@ class SettingsResponsiveUiTest {
         val viewModel = SettingsViewModel(app)
         compose.setContent {
             WhipTheme(dynamicColor = false) {
-                Box(Modifier.size(width = 390.dp, height = 760.dp)) {
+                Box(Modifier.fillMaxSize()) {
                     SettingsContent(
                         state = SettingsUiState(
                             settings = AppSettings(

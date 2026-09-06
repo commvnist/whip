@@ -166,7 +166,13 @@ class VisualCatalogPagesTest {
             compose.onNodeWithTag("settings-list").performScrollToNode(
                 androidx.compose.ui.test.hasText("Overlapping category allocation"),
             )
-            compose.onNodeWithText("Overlapping category allocation").performClick()
+            compose.onNodeWithContentDescription(
+                "Overlapping category allocation: Split contribution",
+            ).performClick()
+            compose.onNodeWithContentDescription(
+                "Overlapping category allocation option: Full contribution",
+            ).assertIsDisplayed()
+            compose.waitForIdle()
             captureVisualCatalogSurface("gym.category-allocation")
         }
     }
@@ -288,10 +294,14 @@ class VisualCatalogPagesTest {
             captureVisualCatalogSurface("gym.${destination.lowercase()}.populated".replace("tools.populated", "tools"))
             if (destination == "Routines") {
                 compose.onNodeWithContentDescription("More options for routine Three Day Foundation").performClick()
+                compose.onNodeWithText("Duplicate").assertIsDisplayed()
+                compose.waitForIdle()
                 captureVisualCatalogSurface("gym.routine.menu")
             }
             if (destination == "Machines") {
                 compose.onNodeWithContentDescription("More options for Home Cable Stack").performClick()
+                compose.onNodeWithText("New Configuration Version").assertIsDisplayed()
+                compose.waitForIdle()
                 captureVisualCatalogSurface("gym.machine.menu")
             }
             compose.onNodeWithTag("gym-library-child-$destination").performClick()

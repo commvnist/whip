@@ -1,6 +1,9 @@
 package com.whip.app.ui
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -51,24 +54,31 @@ class SafetyChoiceUiTest {
         var surface by mutableStateOf(0)
         compose.setContent {
             WhipTheme(darkTheme = true, dynamicColor = false) {
-                when (surface) {
-                    0 -> WorkoutEditorDialog(
-                        session = null,
-                        initialDate = LocalDate.of(2026, 9, 6),
-                        onDismiss = {},
-                        onStart = { _, _, _, _, _ -> },
-                    )
-                    else -> WorkoutGroupDialog(
-                        exercises = listOf(workoutExerciseUi(1), workoutExerciseUi(2)),
-                        onDismiss = {},
-                        onCreate = { _, _, _ -> true },
-                    )
+                Surface(
+                    modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
+                    when (surface) {
+                        0 -> WorkoutEditorDialog(
+                            session = null,
+                            initialDate = LocalDate.of(2026, 9, 6),
+                            onDismiss = {},
+                            onStart = { _, _, _, _, _ -> },
+                        )
+                        else -> WorkoutGroupDialog(
+                            exercises = listOf(workoutExerciseUi(1), workoutExerciseUi(2)),
+                            onDismiss = {},
+                            onCreate = { _, _, _ -> true },
+                        )
+                    }
                 }
             }
         }
 
+        compose.onNodeWithText("Start Workout").assertExists()
         captureVisualCatalogSurface("gym.workout.editor")
         compose.runOnIdle { surface = 1 }
+        compose.onNodeWithTag("workout-group-choice-list").assertExists()
         compose.waitForIdle()
         captureVisualCatalogSurface("gym.workout.group")
     }
@@ -97,25 +107,32 @@ class SafetyChoiceUiTest {
         val replacements = AtomicInteger(0)
         var busy by mutableStateOf(false)
         compose.setContent {
-            WhipTheme(dynamicColor = false) {
-                BackupRestorePreviewDialogs(
-                    preview = preview(),
-                    busy = busy,
-                    onCancel = {},
-                    onMerge = {},
-                    onReplace = {
-                        replacements.incrementAndGet()
-                        busy = true
-                    },
-                )
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                Surface(
+                    modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
+                    BackupRestorePreviewDialogs(
+                        preview = preview(),
+                        busy = busy,
+                        onCancel = {},
+                        onMerge = {},
+                        onReplace = {
+                            replacements.incrementAndGet()
+                            busy = true
+                        },
+                    )
+                }
             }
         }
 
+        compose.onNodeWithText("Import This Whip Backup?").assertExists()
         captureVisualCatalogSurface("settings.backup-preview")
         compose.onNodeWithTag("request-replace-everything").performClick()
+        compose.onNodeWithText("Replace Everything With This Backup?").assertExists()
+        compose.waitForIdle()
         captureVisualCatalogSurface("settings.restore-preview")
         assertEquals(0, replacements.get())
-        compose.onNodeWithText("Replace Everything With This Backup?").assertExists()
         compose.onNodeWithText("private recovery snapshot", substring = true).assertExists()
         compose.onNodeWithText("recoverable only from a backup you exported", substring = true).assertExists()
 

@@ -23,7 +23,10 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.CompositionLocalProvider
@@ -35,7 +38,6 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.domain.BodyweightLoadPolicy
 import com.whip.app.domain.EstimatedOneRepMaxFormula
@@ -156,93 +158,98 @@ class GymPowerInputUiTest {
         var surface by mutableStateOf(0)
         compose.setContent {
             WhipTheme(darkTheme = true, dynamicColor = false) {
-                androidx.compose.runtime.key(surface) {
-                    when (surface) {
-                        0 -> WorkoutSetEditorDialog(
-                            set = workoutSet,
-                            exercise = exercise,
-                            workoutExercise = workoutExercise,
-                            machine = null,
-                            preferredWeightUnitId = "kilogram",
-                            preferredDistanceUnitId = "kilometre",
-                            showRpe = true,
-                            showRir = false,
-                            showTempo = true,
-                            saving = false,
-                            errorMessage = null,
-                            onDismiss = {},
-                            onSave = {},
-                        )
-                        1 -> WorkoutExerciseNotesDialog(
-                            exerciseName = exercise.name,
-                            initialNotes = workoutExercise.notes,
-                            machines = emptyList(),
-                            selectedMachineId = null,
-                            machineLocked = false,
-                            saving = false,
-                            errorMessage = null,
-                            onDismiss = {},
-                            onSave = { _, _ -> },
-                            onCreateMachine = {},
-                        )
-                        2 -> ExerciseActionsDialog(
-                            exercise = exercise,
-                            trackedInProgress = true,
-                            onDismiss = {},
-                            onEdit = {},
-                            onFavorite = {},
-                            onDuplicate = {},
-                            onConfigureTrackedRecords = {},
-                            onArchive = {},
-                            onDelete = {},
-                        )
-                        3 -> TrackedRecordsManagerDialog(
-                            modifier = Modifier,
-                            state = GymUiState(exercises = listOf(exercise), loading = false),
-                            initialExerciseId = exercise.id,
-                            onDismiss = {},
-                            onSave = {},
-                        )
-                        4 -> RoutineProgramPositionDialog(
-                            routine = routine,
-                            days = days,
-                            onDismiss = {},
-                            onSave = { _, _, _ -> },
-                        )
-                        else -> WorkoutExerciseCard(
-                            item = WorkoutExerciseUi(
-                                workoutExercise,
-                                exercise,
-                                listOf(workoutSet),
-                                emptyList(),
-                                0,
-                                null,
-                                null,
-                            ),
-                            preferredWeightUnitId = "kilogram",
-                            preferredDistanceUnitId = "kilometre",
-                            numberPrecision = 1,
-                            compactRows = false,
-                            showRpe = true,
-                            showRir = false,
-                            nextSetId = null,
-                            nextInGroup = false,
-                            canMoveUp = false,
-                            canMoveDown = false,
-                            onMoveUp = {},
-                            onMoveDown = {},
-                            onRemoveExercise = {},
-                            onSubstituteExercise = {},
-                            onAddSet = {},
-                            onEditSet = {},
-                            onEditNotes = {},
-                            onCompleteSet = { _, _ -> },
-                            onSaveQuickSet = { _, _, _ -> },
-                            onDuplicateSet = {},
-                            onDeleteSet = {},
-                            onUndoDeleteSet = {},
-                            onReorderSets = {},
-                        )
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
+                    androidx.compose.runtime.key(surface) {
+                        when (surface) {
+                            0 -> WorkoutSetEditorDialog(
+                                set = workoutSet,
+                                exercise = exercise,
+                                workoutExercise = workoutExercise,
+                                machine = null,
+                                preferredWeightUnitId = "kilogram",
+                                preferredDistanceUnitId = "kilometre",
+                                showRpe = true,
+                                showRir = false,
+                                showTempo = true,
+                                saving = false,
+                                errorMessage = null,
+                                onDismiss = {},
+                                onSave = {},
+                            )
+                            1 -> WorkoutExerciseNotesDialog(
+                                exerciseName = exercise.name,
+                                initialNotes = workoutExercise.notes,
+                                machines = emptyList(),
+                                selectedMachineId = null,
+                                machineLocked = false,
+                                saving = false,
+                                errorMessage = null,
+                                onDismiss = {},
+                                onSave = { _, _ -> },
+                                onCreateMachine = {},
+                            )
+                            2 -> ExerciseActionsDialog(
+                                exercise = exercise,
+                                trackedInProgress = true,
+                                onDismiss = {},
+                                onEdit = {},
+                                onFavorite = {},
+                                onDuplicate = {},
+                                onConfigureTrackedRecords = {},
+                                onArchive = {},
+                                onDelete = {},
+                            )
+                            3 -> TrackedRecordsManagerDialog(
+                                modifier = Modifier,
+                                state = GymUiState(exercises = listOf(exercise), loading = false),
+                                initialExerciseId = exercise.id,
+                                onDismiss = {},
+                                onSave = {},
+                            )
+                            4 -> RoutineProgramPositionDialog(
+                                routine = routine,
+                                days = days,
+                                onDismiss = {},
+                                onSave = { _, _, _ -> },
+                            )
+                            else -> WorkoutExerciseCard(
+                                item = WorkoutExerciseUi(
+                                    workoutExercise,
+                                    exercise,
+                                    listOf(workoutSet),
+                                    emptyList(),
+                                    0,
+                                    null,
+                                    null,
+                                ),
+                                preferredWeightUnitId = "kilogram",
+                                preferredDistanceUnitId = "kilometre",
+                                numberPrecision = 1,
+                                compactRows = false,
+                                showRpe = true,
+                                showRir = false,
+                                nextSetId = null,
+                                nextInGroup = false,
+                                canMoveUp = false,
+                                canMoveDown = false,
+                                onMoveUp = {},
+                                onMoveDown = {},
+                                onRemoveExercise = {},
+                                onSubstituteExercise = {},
+                                onAddSet = {},
+                                onEditSet = {},
+                                onEditNotes = {},
+                                onCompleteSet = { _, _ -> },
+                                onSaveQuickSet = { _, _, _ -> },
+                                onDuplicateSet = {},
+                                onDeleteSet = {},
+                                onUndoDeleteSet = {},
+                                onReorderSets = {},
+                            )
+                        }
                     }
                 }
             }
@@ -250,18 +257,30 @@ class GymPowerInputUiTest {
 
         captureVisualCatalogSurface("gym.workout.set-editor")
         compose.runOnIdle { surface = 1 }
+        compose.onNodeWithText("Cable Row Notes").assertIsDisplayed()
+        compose.waitForIdle()
         captureVisualCatalogSurface("gym.workout.notes")
         compose.runOnIdle { surface = 2 }
+        compose.onNodeWithTag("exercise-detail-surface").assertIsDisplayed()
+        compose.waitForIdle()
         captureVisualCatalogSurface("gym.exercise.actions")
         compose.runOnIdle { surface = 3 }
+        compose.onNodeWithTag("tracked-records-manager").assertIsDisplayed()
+        compose.waitForIdle()
         captureVisualCatalogSurface("gym.tracked-records")
         compose.runOnIdle { surface = 4 }
+        compose.onNodeWithText("Program Position", substring = true).assertIsDisplayed()
+        compose.waitForIdle()
         captureVisualCatalogSurface("gym.routine.program-position")
         compose.runOnIdle { surface = 5 }
         compose.onNodeWithContentDescription("More options for Cable Row").performClick()
+        compose.onNodeWithText("Substitute Exercise").assertIsDisplayed()
+        compose.waitForIdle()
         captureVisualCatalogSurface("gym.workout-exercise.menu")
         compose.runOnIdle { surface = 6 }
         compose.onNodeWithContentDescription("Manage set 1").performClick()
+        compose.onNodeWithText("Duplicate Set").assertIsDisplayed()
+        compose.waitForIdle()
         captureVisualCatalogSurface("gym.workout-set.menu")
     }
 
@@ -557,6 +576,37 @@ class GymPowerInputUiTest {
         val stop = compose.onNodeWithContentDescription("Stop rest timer").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         check(timer.bottom <= subtract.top) { "Large-text timer actions must move below the timer label" }
         check(subtract.right <= add.left && add.right <= stop.left) { "Timer actions must not overlap" }
+    }
+
+    @Test
+    fun captureRestDurationCatalog() {
+        val session = testHistorySession().copy(
+            id = 9,
+            uuid = "rest-catalog",
+            name = "Full Body",
+            endedAt = null,
+            state = WorkoutSessionState.Active,
+        )
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                RestTimerCard(
+                    session = session,
+                    remaining = null,
+                    selectedSeconds = 120,
+                    presetSeconds = DEFAULT_REST_TIMER_PRESET_SECONDS,
+                    notificationPermissionRequested = true,
+                    onSelectedSecondsChange = {},
+                    onPresetSecondsChange = {},
+                    onStart = { _, _ -> },
+                    onAdjust = { _, _ -> },
+                    onStop = {},
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("Adjust rest time for this workout").performClick()
+        compose.onNodeWithText("Rest Time for This Workout").assertIsDisplayed()
+        captureVisualCatalogSurface("gym.rest-duration")
     }
 
     @Test
@@ -1058,7 +1108,6 @@ class GymPowerInputUiTest {
         ).assertIsDisplayed()
         compose.onNodeWithContentDescription("Adjust rest time for this workout").performClick()
         compose.onNodeWithText("Rest Time for This Workout").assertIsDisplayed()
-        captureVisualCatalogSurface("gym.rest-duration")
         listOf("1:00", "1:30", "2:00", "2:30", "3:00", "5:00").forEach { preset ->
             compose.onAllNodes(hasText(preset)).fetchSemanticsNodes().also { nodes ->
                 check(nodes.isNotEmpty()) { "Missing default rest preset $preset" }
@@ -1067,7 +1116,6 @@ class GymPowerInputUiTest {
         compose.onNodeWithText("Manage Presets").performClick()
         compose.onNodeWithTag("rest-preset-seconds").performTextReplacement("45")
         compose.onNodeWithTag("rest-preset-seconds").assertTextContains("45")
-        closeSoftKeyboard()
         compose.waitForIdle()
         compose.onNodeWithText("Add Preset").assertIsDisplayed().assertIsEnabled().performClick()
         compose.waitUntil(10_000) {

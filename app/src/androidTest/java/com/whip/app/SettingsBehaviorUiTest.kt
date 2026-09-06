@@ -188,6 +188,8 @@ class SettingsBehaviorUiTest {
         openSettingsSection("Data & Privacy")
         compose.onNodeWithTag("settings-list").performScrollToNode(hasTestTag("reset-whip-action"))
         compose.onNodeWithTag("reset-whip-action").performClick()
+        compose.onNodeWithTag("confirm-reset-whip").assertIsDisplayed()
+        compose.waitForIdle()
         captureVisualCatalogSurface("settings.reset")
         compose.onNodeWithTag("confirm-reset-whip").performTouchInput {
             down(center)

@@ -64,14 +64,20 @@ class TagManagementUiTest {
 
         captureVisualCatalogSurface("organization.tags.list")
         compose.onNodeWithTag("create-tag-action").performClick()
+        compose.onNodeWithTag("create-tag-dialog").assertIsDisplayed()
+        compose.waitForIdle()
         captureVisualCatalogSurface("organization.tag.create")
         compose.onNodeWithText("Cancel").performClick()
         compose.onNodeWithTag("tag-menu-focus").performClick()
         compose.onNodeWithText("Rename").performClick()
+        compose.onNodeWithTag("rename-tag-dialog").assertIsDisplayed()
+        compose.waitForIdle()
         captureVisualCatalogSurface("organization.tag.rename")
         compose.onNodeWithText("Cancel").performClick()
         compose.onNodeWithTag("tag-menu-focus").performClick()
         compose.onNodeWithText("Merge").performClick()
+        compose.onNodeWithTag("merge-tag-dialog").assertIsDisplayed()
+        compose.waitForIdle()
         captureVisualCatalogSurface("organization.tag.merge")
     }
 

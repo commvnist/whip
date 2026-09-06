@@ -84,4 +84,27 @@ grep -Fq 'invalid family unknown' "$OUTPUT" || {
 }
 printf 'PASS invalid catalog rows fail closed\n'
 
+readonly CAPTURE_FIXTURE="${TEST_ROOT}/capture"
+mkdir -p "${CAPTURE_FIXTURE}/raw"
+cp "$TEST_CATALOG" "${CAPTURE_FIXTURE}/catalog.tsv"
+printf '%s\n' \
+    $'surface_id\tpng_sha256\tpng_bytes\txml_sha256\txml_bytes' \
+    $'shared.demo.page\tdeadbeef\t1\tdeadbeef\t1' \
+    > "${CAPTURE_FIXTURE}/manifest.tsv"
+touch "${CAPTURE_FIXTURE}/raw/shared.demo.page.png" "${CAPTURE_FIXTURE}/raw/shared.demo.page.xml"
+"${SCRIPT_DIR}/ui-catalog" report "$CAPTURE_FIXTURE" > "$OUTPUT"
+grep -Fq '1 catalog surfaces' "$OUTPUT" || {
+    printf 'FAIL review report did not report its exact surface count\n' >&2
+    exit 1
+}
+grep -Fq 'data-family="unknown"' "${CAPTURE_FIXTURE}/index.html" || {
+    printf 'FAIL review report did not preserve catalog metadata\n' >&2
+    exit 1
+}
+grep -Fq 'raw/shared.demo.page.xml' "${CAPTURE_FIXTURE}/index.html" || {
+    printf 'FAIL review report did not link semantics evidence\n' >&2
+    exit 1
+}
+printf 'PASS dependency-free review report\n'
+
 printf 'All UI catalog fixtures passed.\n'

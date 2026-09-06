@@ -2,6 +2,7 @@ package com.whip.app
 
 import android.content.Intent
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -30,6 +31,7 @@ class VisualCatalogSharedShellTest {
 
     private val app: WhipApplication
         get() = ApplicationProvider.getApplicationContext()
+    private var planTaskId = 0L
 
     @Before
     fun seed() = runBlocking {
@@ -38,7 +40,9 @@ class VisualCatalogSharedShellTest {
             AppSettings(setupCompleted = true, themeMode = AppThemeMode.Dark, dynamicColor = false)
         }
         val today = app.clock.today()
-        app.taskRepository.create(TaskDraft("Plan the week", scheduleKind = ScheduleKind.Once, date = today))
+        planTaskId = app.taskRepository.create(
+            TaskDraft("Plan the week", scheduleKind = ScheduleKind.Once, date = today),
+        )
         val completed = app.taskRepository.create(
             TaskDraft("Send design notes", scheduleKind = ScheduleKind.Once, date = today),
         )
@@ -67,14 +71,18 @@ class VisualCatalogSharedShellTest {
             compose.onNodeWithTag("workspace-search-action").performClick()
             compose.onNodeWithTag("unified-search-query").performTextReplacement("Plan")
             compose.waitUntil(10_000L) {
-                compose.onAllNodesWithText("Plan the week").fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithTag("unified-search-result-Task-$planTaskId")
+                    .fetchSemanticsNodes().isNotEmpty()
             }
+            compose.onNodeWithTag("unified-search-result-Task-$planTaskId").assertExists()
+            compose.waitForIdle()
             captureVisualCatalogSurface("shared.search.results")
 
             compose.onNodeWithTag("unified-search-query").performTextReplacement("No such Whip result")
             compose.waitUntil(10_000L) {
                 compose.onAllNodesWithText("No matching items").fetchSemanticsNodes().isNotEmpty()
             }
+            compose.waitForIdle()
             captureVisualCatalogSurface("shared.search.empty")
             compose.onNodeWithContentDescription("Close Search").performClick()
 

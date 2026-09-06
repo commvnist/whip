@@ -3,7 +3,7 @@ route:first-run	shared.first-run.setup	shared	dialog	fresh install	com.whip.app.
 route:startup-recovery	shared.startup-recovery.failure	shared	page	recoverable startup failure	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Recovery actions and failure explanation.
 route:domain-loading	shared.domain.loading	shared	page	loading	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Canonical domain loading state.
 route:domain-failure	shared.domain.failure	shared	page	load failed	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Canonical domain failure state.
-route:health-rationale	settings.health.rationale	settings	page	permission rationale	com.whip.app.health.HealthPermissionsRationaleUiTest#compactLargeTextDarkLayoutKeepsCloseStableAndEveryExplanationScrollable	capture	Health Connect permission education.
+route:health-rationale	settings.health.rationale	settings	page	permission rationale	com.whip.app.health.HealthPermissionsRationaleUiTest#captureHealthPermissionsRationaleCatalog	capture	Health Connect permission education.
 route:home	shared.home.populated	shared	page	populated today	com.whip.app.VisualCatalogPagesTest#captureSharedPageCatalog	capture	Home priorities and destination links.
 route:home-empty	shared.home.empty	shared	page	empty today	com.whip.app.VisualCatalogPagesTest#captureSharedPageCatalog	capture	Home empty state.
 action:global-add	shared.global-add.menu	shared	menu	open	com.whip.app.VisualCatalogSharedShellTest#captureSharedShellCatalog	capture	Cross-domain create menu.
@@ -56,7 +56,7 @@ dialog:habit-inspector-options	habits.inspector.options	habits	dialog	options ta
 editor:habit-create	habits.editor.create	habits	dialog	new habit	com.whip.app.ui.VisualCatalogHabitComponentsTest#captureHabitComponentCatalog	capture	Habit creation form.
 editor:habit-edit	habits.editor.edit	habits	dialog	existing habit	com.whip.app.ui.VisualCatalogHabitComponentsTest#captureHabitComponentCatalog	capture	Habit editing form.
 dialog:habit-template	habits.template	habits	dialog	open	com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog	capture	Habit template chooser.
-dialog:habit-value	habits.value-entry	habits	dialog	numeric	com.whip.app.ActivityHistoryUiTest#absoluteValueEditorExplainsThatALowerNumberSetsRatherThanAdds	capture	Numeric habit check-in.
+dialog:habit-value	habits.value-entry	habits	dialog	numeric	com.whip.app.ActivityHistoryUiTest#captureAbsoluteValueEditorCatalog	capture	Numeric habit check-in.
 dialog:habit-timer	habits.timer-review	habits	dialog	elapsed timer	com.whip.app.ProductivityCardDesignUiTest#timerReviewDialogSupportsCorrectionContinueStopAndDiscardAtNarrowWidth	capture	Timer completion review.
 dialog:habit-history	habits.history-log	habits	dialog	view log	com.whip.app.ActivityHistoryUiTest#pastCheckInAsksWhatHappenedWithoutExposingStateOrValueStorageFields	capture	Habit history log detail.
 dialog:habit-history-edit	habits.history-log-edit	habits	dialog	edit log	com.whip.app.ActivityHistoryUiTest#editedHistoryDraftWaitsForItsExactOutcomeAndSurvivesFailure	capture	Editable past habit log.
@@ -89,12 +89,12 @@ route:track-unavailable	tracks.detail.unavailable	tracks	page	missing target	com
 editor:track-create	tracks.editor.create	tracks	dialog	new track	com.whip.app.TrackDefinitionMutationUiTest#freshAddedNumberFieldUsesCurrentUnitAndPrecisionPreferences	capture	Track definition creation.
 editor:track-edit	tracks.editor.edit	tracks	dialog	existing track	com.whip.app.TrackDefinitionMutationUiTest#asynchronousDefinitionConflictScrollsToAndAnnouncesItsRecoveryAction	capture	Track definition editing.
 editor:track-entry-create	tracks.entry.create	tracks	dialog	new entry	com.whip.app.TrackEntryMutationUiTest#captureTrackEntryCreateCatalog	capture	Track entry creation.
-editor:track-entry-edit	tracks.entry.edit	tracks	dialog	existing entry	com.whip.app.TrackEntryMutationUiTest#deletingEntryRequiresExactReviewAndFailureKeepsTheConfirmationOpen	capture	Track entry editing.
+editor:track-entry-edit	tracks.entry.edit	tracks	dialog	existing entry	com.whip.app.TrackEntryMutationUiTest#captureTrackEntryEditCatalog	capture	Track entry editing.
 dialog:track-entry-details	tracks.entry.details	tracks	dialog	read-only details	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Entry detail summary.
 dialog:track-filter	tracks.filter	tracks	dialog	configured	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Track filter builder.
 dialog:track-condition	tracks.condition	tracks	dialog	configured	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Track filter condition editor.
 dialog:track-csv	tracks.csv-import	tracks	dialog	preview	com.whip.app.ui.TrackCsvImportUiTest#captureTrackCsvImportCatalog	capture	CSV import mapping and preview.
-dialog:track-delete	tracks.entry-delete	tracks	dialog	with impact summary	com.whip.app.TrackEntryMutationUiTest#deletingEntryRequiresExactReviewAndFailureKeepsTheConfirmationOpen	capture	Track entry deletion.
+dialog:track-delete	tracks.entry-delete	tracks	dialog	with impact summary	com.whip.app.TrackEntryMutationUiTest#captureTrackEntryDeleteCatalog	capture	Track entry deletion.
 menu:track-activity	tracks.activity.menu	tracks	menu	open	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Activity row actions.
 menu:track-entry	tracks.entry.menu	tracks	menu	open	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Entry row actions.
 menu:track-reorder	tracks.reorder.menu	tracks	menu	open	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Track collection ordering actions.
@@ -127,14 +127,14 @@ dialog:workout-editor	gym.workout.editor	gym	dialog	new workout	com.whip.app.ui.
 dialog:workout-set	gym.workout.set-editor	gym	dialog	configured	com.whip.app.GymPowerInputUiTest#captureWorkoutComponentCatalog	capture	Workout set editor.
 dialog:workout-group	gym.workout.group	gym	dialog	configured	com.whip.app.ui.SafetyChoiceUiTest#captureWorkoutEditorAndGroupCatalog	capture	Workout group editor.
 dialog:workout-notes	gym.workout.notes	gym	dialog	populated	com.whip.app.GymPowerInputUiTest#captureWorkoutComponentCatalog	capture	Workout exercise notes.
-dialog:rest-duration	gym.rest-duration	gym	dialog	configured	com.whip.app.GymPowerInputUiTest#readyRestTimerMakesWorkoutScopedDurationDiscoverableAndUsesIt	capture	Rest timer duration.
+dialog:rest-duration	gym.rest-duration	gym	dialog	configured	com.whip.app.GymPowerInputUiTest#captureRestDurationCatalog	capture	Rest timer duration.
 dialog:workout-delete	gym.workout.permanent-delete	gym	dialog	with impact summary	com.whip.app.ui.WorkoutDeletionUiTest#exactReviewDistinguishesRemovedRecalculatedAndPreservedHistory	capture	Permanent workout deletion.
 dialog:tracked-records	gym.tracked-records	gym	dialog	configured	com.whip.app.GymPowerInputUiTest#captureWorkoutComponentCatalog	capture	Tracked record manager.
 dialog:routine-position	gym.routine.program-position	gym	dialog	configured	com.whip.app.GymPowerInputUiTest#captureWorkoutComponentCatalog	capture	Routine program positioning.
 dialog:routine-delete	gym.routine.permanent-delete	gym	dialog	with impact summary	com.whip.app.GymPowerInputUiTest#routineDeleteDialogBlocksActiveSourceAndKeepsWorkoutAndTrainingMaxHistory	capture	Permanent routine deletion.
 dialog:gym-confirmation	gym.confirmation	gym	dialog	open	com.whip.app.GymPowerInputUiTest#requiredMainSetUsesExplicitNotPerformedWarningInsteadOfGenericRemoval	capture	Canonical gym confirmation.
 dialog:gym-defaults	gym.defaults-change	gym	dialog	meaning change	com.whip.app.GymPowerInputUiTest#convertingExerciseToPoundsUsesPoundHardwareRatherThanConvertedDecimals	capture	Defaults semantic-change guard.
-dialog:gym-allocation	gym.category-allocation	gym	dialog	configured	com.whip.app.VisualCatalogPagesTest#captureGymCategoryAllocationCatalog	capture	Category allocation editor.
+dialog:gym-allocation	gym.category-allocation	gym	menu	open	com.whip.app.VisualCatalogPagesTest#captureGymCategoryAllocationCatalog	capture	Category allocation choice menu.
 menu:workout-set	gym.workout-set.menu	gym	menu	open	com.whip.app.GymPowerInputUiTest#captureWorkoutComponentCatalog	capture	Workout set actions.
 menu:workout-exercise	gym.workout-exercise.menu	gym	menu	open	com.whip.app.GymPowerInputUiTest#captureWorkoutComponentCatalog	capture	Workout exercise actions.
 menu:workout-history	gym.workout-history.menu	gym	menu	open	com.whip.app.GymPowerInputUiTest#workoutHistoryCardUsesOneStableActionPerExerciseAndMovesSecondaryActionsToMenu	capture	Workout history actions.

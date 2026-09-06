@@ -1,10 +1,14 @@
 package com.whip.app.ui
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertCountEquals
@@ -63,24 +67,38 @@ class AreaFeatureUiTest {
 
         captureVisualCatalogSurface("organization.areas.list")
         compose.onNodeWithContentDescription("Open area details for Main").performClick()
+        compose.onNodeWithText("Active Area · 4 items · 2 tasks · 1 habit · 1 goal").assertIsDisplayed()
+        compose.waitForIdle()
         captureVisualCatalogSurface("organization.areas.detail")
         compose.onNodeWithText("Rename Area").performClick()
+        compose.onNodeWithTag("rename-area-dialog").assertIsDisplayed()
+        compose.waitForIdle()
         captureVisualCatalogSurface("organization.area.rename")
         compose.onNodeWithText("Cancel").performClick()
         compose.onNodeWithText("Choose Color").performClick()
+        compose.onNodeWithText("Color for Main").assertIsDisplayed()
+        compose.waitForIdle()
         captureVisualCatalogSurface("organization.area.color")
         compose.onNodeWithText("Cancel").performClick()
         compose.onNodeWithText("Merge into Another Area").performClick()
+        compose.onNodeWithText("Merge Main").assertIsDisplayed()
+        compose.waitForIdle()
         captureVisualCatalogSurface("organization.area.merge")
         compose.onNodeWithText("Cancel").performClick()
         compose.onNodeWithText("Move 4 Items").performClick()
+        compose.onNodeWithTag("move-area-items-dialog").assertIsDisplayed()
+        compose.waitForIdle()
         captureVisualCatalogSurface("organization.area.move-items")
         compose.onNodeWithText("Cancel").performClick()
         compose.onNodeWithContentDescription("Back to Areas").performClick()
         compose.onNodeWithText("Create Area").performClick()
+        compose.onNodeWithText("Area name").assertIsDisplayed()
+        compose.waitForIdle()
         captureVisualCatalogSurface("organization.area.create")
         compose.onNodeWithText("Cancel").performClick()
         compose.onNodeWithContentDescription("More options for Main").performClick()
+        compose.onNodeWithText("Rename").assertIsDisplayed()
+        compose.waitForIdle()
         captureVisualCatalogSurface("organization.area.menu")
     }
 
@@ -223,13 +241,18 @@ class AreaFeatureUiTest {
     fun scopeMenuShowsSelectionAndItemCountsWithSentenceCaseLabels() {
         val work = area("work", "Work")
         compose.setContent {
-            WhipTheme(dynamicColor = false) {
-                AreaScopeMenu(
-                    scope = AreaScope.One("work"),
-                    areas = listOf(work),
-                    usage = mapOf("work" to AreaUsageCounts(tasks = 2, habits = 1)),
-                    onSelect = {},
-                )
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
+                    AreaScopeMenu(
+                        scope = AreaScope.One("work"),
+                        areas = listOf(work),
+                        usage = mapOf("work" to AreaUsageCounts(tasks = 2, habits = 1)),
+                        onSelect = {},
+                    )
+                }
             }
         }
 
