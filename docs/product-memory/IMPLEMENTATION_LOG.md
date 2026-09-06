@@ -967,3 +967,14 @@
 - Related: `FB-20260906-001`, `FB-20260906-002`, `DEC-20260906-001`, `VER-20260906-001`.
 - Verification: `VER-20260906-001`.
 - Status: Implemented.
+
+### IMP-20260906-002 — Tiered fast development and release-readiness loop
+
+- Behavior changed: The default `scripts/check` path now runs routed JVM tests and lightweight source checks without compiling Android tests, linting, or packaging. `scripts/check --ready` explicitly adds those pre-commit costs; `--emulator` continues to execute only routed Android classes. Android-test-only edits still compile headlessly. Candidate-required changes can receive focused development feedback without being mistaken for release-ready.
+- Important files/symbols: `scripts/check`, `scripts/qa-targeted --jvm-only`, `scripts/change-router` `HARNESS` records, `scripts/test-check-fast`, `scripts/test-change-router`, `README.md`, and `docs/testing.md`.
+- Persistence/migration/history impact: Development tooling and documentation only; no application source, schema, backup format, release identity, installed package, or user data changed.
+- Compatibility and limitations: `scripts/check --full`, fresh candidate semantics, emulator/physical target guards, signing, and deployment remain intact. This harness-changing work itself still requires one fresh candidate before any release. Physical release was not authorized or performed.
+- Commit/push: Pending coherent-chunk commit and normal push.
+- Related: `FB-20260906-003`, `DEC-20260906-002`, `VER-20260906-002`.
+- Verification: Deterministic router, fast/default, full-gate, candidate-evidence, and Android-target fixture suites passed; the real changed-path fast command passed in about one second of reported wall time.
+- Status: Implemented and fixture-verified; candidate qualification remains pending before release.

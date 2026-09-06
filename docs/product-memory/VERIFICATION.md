@@ -1029,3 +1029,15 @@
 - Final acceptance: Fresh critical review returned PASS with no finding. Whip commit `9821225` contains exactly the reviewed 14-path removal. The literal canonical checkout, retained VERA state, and transaction-backup paths were validated as non-symlink directories, deleted, and verified absent; a final active-reference scan then found and removed the stale Windows trust entry for the deleted checkout. No push or remote deletion occurred.
 - Related: `FB-20260906-001`, `FB-20260906-002`, `DEC-20260906-001`, `IMP-20260906-001`.
 - Status: Verified.
+
+### VER-20260906-002 — Fast-cycle harness verification
+
+- Scope/environment: Whip `main` working tree on 2026-09-06; shell fixtures use isolated temporary Git repositories and fake Gradle/Java/ADB boundaries. No Android device, application install, signing, release, or user-data operation occurred.
+- Command or manual procedure: `bash -n scripts/check scripts/qa-targeted scripts/change-router scripts/test-check-fast scripts/test-check-full scripts/test-change-router`; `scripts/test-change-router`; `scripts/test-check-fast`; `scripts/test-check-full`; `scripts/test-candidate-evidence`; `scripts/test-android-target-guard`; `git diff --check`; and the real `scripts/check` against the active changes.
+- Result: All commands passed. The new fast fixture proves that the default runs routed JVM selectors without `compileDebugAndroidTestKotlin`, lint, or debug packaging, while `--ready` adds the deferred tasks. Router fixtures prove known harness edits select their own tests without `profile:all`. Candidate evidence and every emulator/physical-device guard regression remained green.
+- Counts and exclusions: 10 router scenarios; 1 fast/readiness fixture; 1 complete-local-gate fixture; 16 candidate-evidence acceptance/rejection fixtures; Android target/Gradle/batching/coverage/cache fixtures all passed. Product JVM and Android application suites were not executed because no application source changed. Fresh candidate execution was intentionally not claimed.
+- Artifact/version/hash: None; process-only change and no release artifact produced.
+- Failures or residual risk: The harness changes require an explicit fresh `scripts/candidate` before a future release. Real-world elapsed-time improvement varies with Gradle daemon/cache state; the active harness-only `scripts/check` completed with tool-reported wall time of approximately 1.1 seconds.
+- Commit/push: Pending coherent-chunk commit and normal push.
+- Related: `FB-20260906-003`, `DEC-20260906-002`, `IMP-20260906-002`.
+- Status: Verified for the development boundary; candidate qualification remains pending for release authority.

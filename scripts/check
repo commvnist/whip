@@ -11,6 +11,7 @@ route_all=false
 full_gate=false
 fresh_emulator=false
 routing_requested=false
+ready_gate=false
 router_args=(--format tsv)
 
 usage() {
@@ -19,14 +20,16 @@ usage() {
         '' \
         'Usage:' \
         '  scripts/check [--base REF] [--emulator]' \
+        '  scripts/check --ready [--base REF] [--emulator]' \
         '  scripts/check --path PATH [--path PATH ...] [--emulator]' \
         '  scripts/check --changes-file FILE [--emulator]' \
         '  scripts/check --all [--emulator]' \
         '  scripts/check --explain [routing options]' \
         '  scripts/check --full [--emulator [--fresh-emulator]]' \
         '' \
-        'Changed paths are unioned and deduplicated into exact selectors/profiles.' \
-        'Unknown production/build/harness inputs fail closed to scripts/candidate.' \
+        'The default is the edit/test inner loop: relevant JVM tests only.' \
+        '--emulator adds selected Android execution; --ready adds compile/lint/build checks.' \
+        'Unknown production/build/harness inputs remain candidate-required for release.' \
         '--full preserves the complete device-independent JVM/static/build gate.' \
         '--device aliases --emulator; --fresh-emulator requires --emulator.' \
         'Only an explicit scripts/candidate command creates fresh candidate evidence.'
@@ -102,6 +105,7 @@ while (($#)); do
         --emulator|--device) run_emulator=true ;;
         --explain) explain_only=true ;;
         --all) route_all=true; routing_requested=true ;;
+        --ready) ready_gate=true ;;
         --full) full_gate=true ;;
         --fresh-emulator) fresh_emulator=true ;;
         --base|--path|--changes-file)
@@ -121,7 +125,7 @@ if [[ "$fresh_emulator" == true && "$run_emulator" != true ]]; then
     die '--fresh-emulator requires --emulator'
 fi
 if [[ "$full_gate" == true ]]; then
-    [[ "$explain_only" != true && "$routing_requested" != true ]] ||
+    [[ "$explain_only" != true && "$routing_requested" != true && "$ready_gate" != true ]] ||
         die '--full cannot be combined with routing or explain options'
     if [[ "$run_emulator" == true ]]; then
         "${SCRIPT_DIR}/android-target-guard" instrumentation
@@ -159,6 +163,7 @@ awk -F '\t' '$1 == "ROUTE" { printf "Route %s %s -> %s (%s)\n", $2, $3, $4, $5 }
 awk -F '\t' '$1 == "PROFILE" { print "Profile: " $2 }' "$route_file"
 awk -F '\t' '$1 == "JVM" { print "JVM selector: " $2 }' "$route_file"
 awk -F '\t' '$1 == "ANDROID" { print "Android selector: " $2 }' "$route_file"
+awk -F '\t' '$1 == "HARNESS" { print "Harness check: " $2 }' "$route_file"
 candidate_required="$(awk -F '\t' '$1 == "CANDIDATE" { print $2 }' "$route_file")"
 static_required="$(awk -F '\t' '$1 == "STATIC" { print $2 }' "$route_file")"
 jvm_all="$(awk -F '\t' '$1 == "JVM_ALL" { print $2 }' "$route_file")"
@@ -168,9 +173,16 @@ printf 'All JVM tests: %s\nAll Android tests: %s\nStatic checks: %s\nFrozen cand
 
 if [[ "$explain_only" == true ]]; then exit 0; fi
 [[ "$candidate_required" != true ]] ||
-    die 'this change touches frozen-candidate inputs; run ANDROID_SERIAL=emulator-N scripts/candidate'
+    if [[ "$ready_gate" == true ]]; then
+        die 'this change touches frozen-candidate inputs; focused checks may use scripts/check, but release readiness requires ANDROID_SERIAL=emulator-N scripts/candidate'
+    fi
 
 qa_args=()
+jvm_route_count="$(awk -F '\t' '$1 == "JVM" || ($1 == "PROFILE" && $2 != "docs") { count++ } END { print count + 0 }' "$route_file")"
+if [[ "$run_emulator" != true && "$jvm_route_count" -gt 0 &&
+    ("$ready_gate" != true || "$static_required" == true) ]]; then
+    qa_args+=(--jvm-only)
+fi
 while IFS=$'\t' read -r record value _; do
     case "$record" in
         PROFILE) [[ "$value" == docs ]] || qa_args+=(--profile "$value") ;;
@@ -196,9 +208,12 @@ if [[ "${#qa_args[@]}" -gt 0 ]]; then
 elif [[ "$android_selector_count" -gt 0 ]]; then
     ./gradlew :app:compileDebugAndroidTestKotlin
 fi
-if [[ "$run_emulator" != true && "$android_selector_count" -gt 0 && "${#qa_args[@]}" -gt 0 ]]; then
-    ./gradlew :app:compileDebugAndroidTestKotlin
-fi
+while IFS=$'\t' read -r record harness_check _; do
+    [[ "$record" == HARNESS ]] || continue
+    [[ "$harness_check" == scripts/test-* && -x "$harness_check" ]] ||
+        die "invalid routed harness check: $harness_check"
+    "$harness_check"
+done < "$route_file"
 if [[ "$fresh_emulator" == true ]]; then
     "${SCRIPT_DIR}/android-test-engine" --mode fresh
 fi
@@ -208,7 +223,16 @@ if [[ "$static_required" == true ]]; then
     if rg -n 'fallbackToDestructiveMigration' app/src/main; then
         die 'destructive Room migration fallback is forbidden'
     fi
-    ./gradlew :app:lintDebug :app:assembleDebug
+    if [[ "$ready_gate" == true ]]; then
+        ./gradlew :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug
+    fi
 fi
 git diff --check
-printf 'Proportionate change gate passed. Frozen-candidate evidence was not created.\n'
+if [[ "$ready_gate" == true ]]; then
+    printf 'Affected-change readiness gate passed. Frozen-candidate evidence was not created.\n'
+else
+    printf 'Fast affected-test loop passed. Android compilation, lint, and packaging were deferred to scripts/check --ready.\n'
+    if [[ "$candidate_required" == true ]]; then
+        printf 'Release note: these inputs still require a fresh scripts/candidate qualification.\n'
+    fi
+fi

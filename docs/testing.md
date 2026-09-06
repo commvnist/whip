@@ -6,6 +6,9 @@ Local quality gate:
 # Explain or execute checks selected from the current working-tree changes.
 scripts/check --explain
 scripts/check
+# Before commit: compile Android tests and run affected lint/debug-build checks.
+scripts/check --ready
+# Run only affected Android tests when UI/device behavior actually changed.
 ANDROID_SERIAL=emulator-5554 scripts/check --emulator
 # Complete JVM/static/release-build compatibility gate; no device is required.
 scripts/check --full
@@ -17,25 +20,39 @@ scripts/candidate verify
 # Explicit development selectors remain available.
 scripts/coverage
 scripts/qa-targeted gym531
+scripts/qa-targeted gym531 --jvm-only
 ANDROID_SERIAL=emulator-5554 scripts/qa-targeted gym531 --emulator
 ANDROID_SERIAL=emulator-5554 scripts/qa-targeted --android com.whip.app.RoutineRepositoryTest#testName --repeat 3
 ```
 
-`scripts/check` is the primary development/change gate. It consumes Git
+`scripts/check` is the primary development/change gate. Its default is the
+fast edit/test loop: it consumes Git
 name-status changes, or explicit `--base`, `--path`, or `--changes-file` inputs,
 then explains every route and unions/deduplicates named profiles and exact
 JVM/Android selectors. Documentation-only, JVM-test-only, Android-test-only,
 feature-domain, and shared UI/core changes stay proportionate. Deletions and
 renames route both affected names. Unknown production, build/configuration,
-benchmark, quality-register, automation, and harness paths fail closed and
-require `scripts/candidate`.
+benchmark, quality-register, automation, and harness paths remain marked as
+requiring `scripts/candidate` before release. Harness changes first run their
+focused deterministic fixture rather than the product suite.
 
-Without `--emulator`, selected Android tests compile but do not execute. With
-`--emulator`, the shared engine executes only the selected classes through the
-emulator guard. `scripts/qa-targeted` remains the explicit-selector development
+The default runs only selected JVM tests plus millisecond-scale source guards;
+it deliberately defers Android-test compilation, lint, and packaging.
+`scripts/check --ready` adds those affected-change readiness checks before a
+commit. With `--emulator`, the shared engine executes only the selected Android
+classes through the emulator guard. Android-test-only edits still compile when
+no emulator is requested so they always receive meaningful feedback.
+`scripts/qa-targeted` remains the explicit-selector development
 tool: profiles may be unioned, exact `--jvm` and `--android Class#method`
-selectors are supported, and `--repeat` is reserved for timing investigations.
+selectors and `--jvm-only` are supported, and `--repeat` is reserved for timing investigations.
 Development evidence is not a release claim.
+
+The intended prompt-to-release ladder is `scripts/check` while editing,
+`scripts/check --emulator` only for affected UI/integration behavior,
+`scripts/check --ready` before handoff, one `scripts/candidate` after source is
+frozen, and then separately authorized `scripts/device release-install` using
+the already-qualified artifact. Do not use `release-deploy` after qualification:
+it rebuilds the APK and therefore creates different, unqualified bytes.
 
 `scripts/check --full` preserves the historical complete local gate used by
 release tooling: complete JVM coverage, Android-test compilation, lint/static
@@ -204,7 +221,7 @@ remains visible in the raw report. Reports are written to
 
 To roll back this harness, revert the router, check/candidate/coverage wrappers,
 shared Android engine, repository-state helper, executable fixtures (including
-`scripts/test-check-full`), tests, and documentation
+`scripts/test-check-fast` and `scripts/test-check-full`), tests, and documentation
 together while retaining `scripts/android-target-guard` and
 the module-local Gradle guards. Generated `build/candidate-evidence/`,
 `build/coverage-results-*`, and `build/instrumentation-results-*` directories

@@ -13,6 +13,7 @@ android_classes=()
 all_jvm=false
 all_android=false
 dry_run=false
+jvm_only=false
 
 usage() {
     printf '%s\n' \
@@ -24,10 +25,12 @@ usage() {
         '  scripts/qa-targeted --jvm PATTERN [--jvm PATTERN ...]' \
         '  scripts/qa-targeted --android CLASS[#METHOD] [--android ...] [--repeat N]' \
         '  scripts/qa-targeted --all-jvm [--all-android --emulator]' \
+        '  scripts/qa-targeted PROFILE --jvm-only' \
         '  scripts/qa-targeted --list' \
         '' \
         'Profiles: shell, tasks, habits, goals, tracks, gym, gym531, settings, all' \
         'Without --emulator, profiles run their JVM tests and compile Android tests.' \
+        '--jvm-only is the fastest edit/test loop and skips Android-test compilation.' \
         'Android execution refuses physical devices. Use scripts/check for final gates.'
 }
 
@@ -76,6 +79,9 @@ while (($#)); do
         --all-android)
             all_android=true
             ;;
+        --jvm-only)
+            jvm_only=true
+            ;;
         --dry-run)
             dry_run=true
             ;;
@@ -101,6 +107,10 @@ done
 
 [[ "$repeat_count" =~ ^[1-9][0-9]*$ ]] || {
     printf 'error: --repeat must be a positive integer\n' >&2
+    exit 2
+}
+[[ "$jvm_only" != true || "$run_emulator" != true ]] || {
+    printf 'error: --jvm-only cannot be combined with Android execution\n' >&2
     exit 2
 }
 
@@ -268,7 +278,7 @@ fi
 cd "$PROJECT_ROOT"
 
 if [[ "$dry_run" == true ]]; then
-    printf 'all-jvm=%s\nall-android=%s\nemulator=%s\n' "$all_jvm" "$all_android" "$run_emulator"
+    printf 'all-jvm=%s\nall-android=%s\nemulator=%s\njvm-only=%s\n' "$all_jvm" "$all_android" "$run_emulator" "$jvm_only"
     printf 'jvm=%s\n' "${jvm_patterns[@]}"
     printf 'android=%s\n' "${android_classes[@]}"
     exit 0
@@ -284,12 +294,16 @@ elif [[ "${#jvm_patterns[@]}" -gt 0 ]]; then
     ./gradlew :app:testDebugUnitTest "${gradle_test_filters[@]}"
 fi
 
-if [[ "$all_android" == true || "${#android_classes[@]}" -gt 0 ]]; then
+if [[ "$jvm_only" != true && ("$all_android" == true || "${#android_classes[@]}" -gt 0) ]]; then
     ./gradlew :app:compileDebugAndroidTestKotlin
 fi
 
 if [[ "$run_emulator" != true ]]; then
-    printf 'Targeted development checks passed; selected Android tests were compiled but not executed.\n'
+    if [[ "$jvm_only" == true ]]; then
+        printf 'Targeted JVM checks passed; Android-test compilation was intentionally deferred.\n'
+    else
+        printf 'Targeted development checks passed; selected Android tests were compiled but not executed.\n'
+    fi
     exit 0
 fi
 

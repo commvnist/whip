@@ -757,3 +757,16 @@
 - Rollback: Before the final source/state purge, restore the exact recorded preimages and modes from the owner-only transaction backup if any material acceptance gate fails; after accepted cleanup, reinstating VERA requires an explicit new installation decision.
 - Related: `FB-20260906-001`, `FB-20260906-002`, `IMP-20260906-001`, `VER-20260906-001`.
 - Status: Implemented.
+
+### DEC-20260906-002 — Development feedback is tiered by cost and authority
+
+- Context: The changed-path gate was proportionate in test selection but still compiled the complete Android test source set and ran lint/debug packaging for ordinary production edits. Harness edits were marked candidate-required before their focused fixtures could establish basic correctness. This made the nominal inner loop carry pre-commit and candidate costs.
+- Position A: Keep one development command that always compiles Android tests and performs static packaging checks.
+- Position B: Separate fast behavioral feedback, affected Android execution, pre-commit readiness, frozen-candidate qualification, and physical release into explicit authority levels.
+- Evidence and constraints: JVM profiles already give narrow deterministic domain feedback; Android execution already has exact selector/cache/device guards; candidate qualification already freezes inputs and executes complete fresh coverage. Android-test-only edits still need compilation as their minimum useful headless check. Unknown, build, schema, automation, and harness inputs must never become release-ready from a narrow run.
+- Failure modes: Treating a quick pass as release evidence; silently skipping all checks for an Android-test-only edit; rebuilding different release bytes after candidate acceptance; routing a harness change through the entire product profile; weakening explicit emulator and physical-device boundaries.
+- Decision: `scripts/check` is the fast default and runs only routed JVM behavior plus lightweight source guards. `--emulator` adds selected Android execution, and `--ready` adds Android-test compilation, lint, and debug packaging. Android-test-only changes compile even in headless quick mode. Known harness files route to deterministic shell fixtures, but remain candidate-required. One explicit fresh `scripts/candidate` qualifies frozen release bytes; separately authorized deployment installs those accepted bytes with `scripts/device release-install` rather than rebuilding them.
+- Why this is superior for Whip: The most frequent edit/test loop pays only for relevant behavioral feedback, progressively more expensive work is invoked once at the boundary where it adds confidence, and release authority remains stronger rather than being conflated with development convenience.
+- Consequences / reversal conditions: A fast pass is intentionally insufficient for commit or release claims. Use `--ready` before handoff and candidate qualification after source freeze. Restore mandatory inner-loop Android compilation only if deterministic evidence shows JVM compilation plus the explicit readiness boundary permits recurring Android source breakage to escape development.
+- Related: `FB-20260906-003`, `DEC-20260904-002`, `DEC-20260904-003`, `IMP-20260906-002`, `VER-20260906-002`.
+- Status: Accepted, implemented, and fixture-verified.

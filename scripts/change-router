@@ -90,6 +90,7 @@ fi
 declare -A profiles=()
 declare -A jvm_selectors=()
 declare -A android_selectors=()
+declare -A harness_checks=()
 routes=()
 candidate_required=false
 static_required=false
@@ -209,9 +210,20 @@ route_path() {
             add_route "$status" "$path" 'candidate:required' 'persistence schema input'
             ;;
         scripts/*)
-            add_profile all
             static_required=true
             candidate_required=true
+            case "$path" in
+                scripts/change-router|scripts/test-change-router)
+                    harness_checks['scripts/test-change-router']=1 ;;
+                scripts/check|scripts/qa-targeted|scripts/test-check-fast|scripts/test-check-full)
+                    harness_checks['scripts/test-check-fast']=1
+                    harness_checks['scripts/test-check-full']=1 ;;
+                scripts/candidate|scripts/test-candidate-evidence)
+                    harness_checks['scripts/test-candidate-evidence']=1 ;;
+                scripts/android-target-guard|scripts/test-android-target-guard)
+                    harness_checks['scripts/test-android-target-guard']=1 ;;
+                *) add_profile all ;;
+            esac
             add_route "$status" "$path" 'candidate:required' 'test or release harness integrity path'
             ;;
         build.gradle|build.gradle.kts|settings.gradle|settings.gradle.kts|gradle.properties|gradle/*|gradlew|gradlew.bat|app/build.gradle*|benchmark/build.gradle*|benchmark/src/*)
@@ -273,6 +285,7 @@ if [[ "$format" == 'tsv' ]]; then
     emit_sorted_keys PROFILE profiles
     emit_sorted_keys JVM jvm_selectors
     emit_sorted_keys ANDROID android_selectors
+    emit_sorted_keys HARNESS harness_checks
     printf 'JVM_ALL\t%s\nANDROID_ALL\t%s\nSTATIC\t%s\nCANDIDATE\t%s\n' \
         "$jvm_all" "$android_all" "$static_required" "$candidate_required"
 else
@@ -283,6 +296,7 @@ else
     while IFS=$'\t' read -r _ value; do printf 'Profile: %s\n' "$value"; done < <(emit_sorted_keys PROFILE profiles)
     while IFS=$'\t' read -r _ value; do printf 'JVM selector: %s\n' "$value"; done < <(emit_sorted_keys JVM jvm_selectors)
     while IFS=$'\t' read -r _ value; do printf 'Android selector: %s\n' "$value"; done < <(emit_sorted_keys ANDROID android_selectors)
+    while IFS=$'\t' read -r _ value; do printf 'Harness check: %s\n' "$value"; done < <(emit_sorted_keys HARNESS harness_checks)
     printf 'All JVM tests: %s\nAll Android tests: %s\nStatic checks: %s\nFrozen candidate required: %s\n' \
         "$jvm_all" "$android_all" "$static_required" "$candidate_required"
 fi

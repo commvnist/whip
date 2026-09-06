@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly TEST_ROOT="$(mktemp -d)"
+readonly PROJECT="${TEST_ROOT}/project"
+readonly FAKE_BIN="${TEST_ROOT}/bin"
+readonly GRADLE_LOG="${TEST_ROOT}/gradle.log"
+readonly OUTPUT="${TEST_ROOT}/output"
+trap 'rm -rf -- "$TEST_ROOT"' EXIT
+
+mkdir -p "${PROJECT}/scripts" "${PROJECT}/app/src/main/java/com/whip/app/domain" \
+    "${PROJECT}/app/src/test/java/com/whip/app/domain" "$FAKE_BIN"
+cp -- "${SCRIPT_DIR}/check" "${SCRIPT_DIR}/change-router" "${SCRIPT_DIR}/qa-targeted" "${PROJECT}/scripts/"
+chmod 755 "${PROJECT}/scripts/"*
+printf '%s\n' 'package com.whip.app.domain' 'object HabitRules' > \
+    "${PROJECT}/app/src/main/java/com/whip/app/domain/HabitRules.kt"
+printf '%s\n' 'package com.whip.app.domain' 'class HabitRulesTest' > \
+    "${PROJECT}/app/src/test/java/com/whip/app/domain/HabitRulesTest.kt"
+printf '%s\n' '#!/usr/bin/env bash' 'printf "%s\n" "$*" >> "$WHIP_FAST_FIXTURE_GRADLE_LOG"' > \
+    "${PROJECT}/gradlew"
+printf '%s\n' '#!/usr/bin/env bash' 'exit 0' > "${FAKE_BIN}/java"
+chmod 755 "${PROJECT}/gradlew" "${FAKE_BIN}/java"
+
+(
+    cd "$PROJECT"
+    git init -q
+    git config user.name 'Whip Fixture'
+    git config user.email 'fixture@example.invalid'
+    git add .
+    git commit -qm fixture
+    printf '%s\n' '// changed' >> app/src/main/java/com/whip/app/domain/HabitRules.kt
+)
+
+env WHIP_FAST_FIXTURE_GRADLE_LOG="$GRADLE_LOG" PATH="${FAKE_BIN}:${PATH}" \
+    "${PROJECT}/scripts/check" > "$OUTPUT"
+grep -Fq ':app:testDebugUnitTest' "$GRADLE_LOG"
+grep -Fq -- '--tests com.whip.app.core.HabitTimerClockTest' "$GRADLE_LOG"
+if grep -Eq 'compileDebugAndroidTestKotlin|lintDebug|assembleDebug' "$GRADLE_LOG"; then
+    printf 'FAIL fast loop invoked deferred Android/static work\n' >&2
+    exit 1
+fi
+grep -Fq 'Fast affected-test loop passed.' "$OUTPUT"
+
+: > "$GRADLE_LOG"
+env WHIP_FAST_FIXTURE_GRADLE_LOG="$GRADLE_LOG" PATH="${FAKE_BIN}:${PATH}" \
+    "${PROJECT}/scripts/check" --ready > "$OUTPUT"
+grep -Fq ':app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug' "$GRADLE_LOG"
+grep -Fq 'Affected-change readiness gate passed.' "$OUTPUT"
+
+printf 'PASS fast-default-and-explicit-readiness\n'

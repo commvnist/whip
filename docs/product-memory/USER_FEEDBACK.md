@@ -424,3 +424,13 @@ These records preserve durable user intent. “Released” means the change reac
 - Related: `FB-20260906-001`, `DEC-20260906-001`, `IMP-20260906-001`, `VER-20260906-001`.
 - Status: Implemented.
 - Notes: Preserve unrelated Whip changes and personal settings. Do not touch application, test, build, device, release, credential, plugin, or remote state; do not stage, commit, push, or delete the canonical repository/state until the ordered acceptance boundary is reached.
+
+### FB-20260906-003 — Make prompt-to-release development feedback as fast as possible
+
+- Date/source: 2026-09-06, direct user request.
+- User need: Overhaul Whip's development cycle so ordinary changes receive useful test feedback quickly instead of repeatedly paying for the complete suite, while retaining a trustworthy path from prompt to change to test to release.
+- Acceptance criteria: Provide one obvious fast default that selects only change-relevant checks; avoid Android-test compilation, lint, packaging, complete profiles, and fresh full-suite work in the edit/test inner loop unless the changed inputs require them; retain explicit affected-emulator, readiness, frozen-candidate, and separately authorized physical-release boundaries; make the command contract discoverable and deterministically tested; preserve fail-closed routing for unknown/high-risk inputs.
+- Affected users/workflows: Whip development, automated coding sessions, targeted JVM and Android regression work, candidate qualification, and release preparation.
+- Related: `FB-20260902-009`, `DEC-20260904-002`, `DEC-20260904-003`, `DEC-20260906-002`, `IMP-20260906-002`, `VER-20260906-002`.
+- Status: Implemented and fixture-verified; fresh candidate qualification remains required before release because the harness itself changed.
+- Notes: This request authorizes development-process and repository-tooling changes, not an application release or physical-device deployment.

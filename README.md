@@ -62,20 +62,25 @@ sync, select an API 26+ emulator or device, and run the `app` configuration.
 From a configured terminal:
 
 ```bash
-# Proportionate checks selected from the current change:
+# Fast JVM checks selected from the current change (the edit/test loop):
 ./scripts/check
 # Explain the selected profiles and exact selectors without executing them:
 ./scripts/check --explain
 # Execute selected Android coverage only on an explicitly pinned emulator:
 ANDROID_SERIAL=emulator-5554 ./scripts/check --emulator
+# Before commit, add affected Android compilation, lint, and debug packaging:
+./scripts/check --ready
 # Run the historical complete local JVM/static/release-build gate without a device:
 ./scripts/check --full
 # Qualify one frozen release candidate with complete fresh evidence:
 ANDROID_SERIAL=emulator-5554 ./scripts/candidate
 ```
 
-Unknown production/build/harness paths require the frozen-candidate gate rather
-than silently receiving narrow coverage. `scripts/check --full` remains the
+The fast default does not compile Android tests, lint, or package the app;
+Android-test-only edits are the exception because compiling them is their first
+useful check. Unknown production/build/harness paths remain marked for the
+frozen-candidate gate rather than silently becoming release-ready.
+`scripts/check --full` remains the
 device-independent complete local compatibility gate used by release tooling;
 it never creates candidate evidence and runs instrumentation only when Android
 execution is separately requested with `--emulator`. The debug APK is written to

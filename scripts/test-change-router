@@ -83,6 +83,9 @@ require_line rename $'PROFILE\thabits'
 
 route_fixture harness-integrity $'M\tscripts/check'
 require_line harness-integrity $'CANDIDATE\ttrue'
+require_line harness-integrity $'HARNESS\tscripts/test-check-fast'
+require_line harness-integrity $'HARNESS\tscripts/test-check-full'
+reject_line harness-integrity $'PROFILE\tall'
 
 route_fixture unknown-production $'M\tapp/src/main/java/com/whip/app/mystery/NovelSubsystem.kt'
 require_line unknown-production $'CANDIDATE\ttrue'
