@@ -1098,7 +1098,7 @@
 - Compatibility and limitations: The collector remains emulator-only and deletes only its exact MediaStore evidence path. Family capture is the fast iteration unit; a whole 171-surface capture is reserved for frozen audit milestones. Candidate qualification remains Play Store-only. No signed build, owner-phone query, phone instrumentation, install, or publication occurred.
 - Related: `FB-20260906-008`, `FND-20260906-002`, `DEC-20260906-005`, `VER-20260906-014`.
 - Verification: `VER-20260906-014`.
-- Status: Implemented, exact-family recaptured, visually inspected, and ready for product remediation.
+- Status: Implemented, frozen-audit verified, and released in Whip 0.3.52/code 58.
 
 ### IMP-20260906-015 — Coherent Task/Goal summaries and elapsed-reset action hierarchy
 
@@ -1108,7 +1108,7 @@
 - Compatibility and limitations: Existing inspector tabs, scroll/frame behavior, docked primary actions, Task actions, Goal charts/data-table disclosure, timer reset semantics, daylight-saving resolution, and failure/saving ownership remain intact. The affected-change readiness gate passed; the whole 171-surface frozen recapture and final private-phone deployment remain pending. No candidate, signed build, phone query, phone instrumentation, install, or publication occurred.
 - Related: `FB-20260906-008`, `FND-20260906-003`, `FND-20260906-004`, `DEC-20260906-006`, `VER-20260906-015`.
 - Verification: `VER-20260906-015`.
-- Status: Implemented and accepted in focused Task/Goal emulator recaptures.
+- Status: Implemented, frozen-audit accepted, and released in Whip 0.3.52/code 58.
 
 ### IMP-20260906-016 — Close final Habit and Track popup capture gaps
 
@@ -1118,4 +1118,15 @@
 - Compatibility and limitations: Exact Habit and Track family recaptures now show the intended popups in PNG and semantics evidence. A resource-exhausted stock emulator run failed closed on non-Whip hierarchy ownership and was rejected; refreshing only the disposable emulator restored deterministic capture. The final whole-catalog recapture remains pending. No candidate, signed build, owner-phone query, phone instrumentation, install, or publication occurred.
 - Related: `FB-20260906-008`, `FND-20260906-002`, `DEC-20260906-005`, `VER-20260906-016`.
 - Verification: `VER-20260906-016`.
-- Status: Implemented and exact-family verified; ready for frozen whole-catalog recapture.
+- Status: Implemented, frozen-audit verified, and released in Whip 0.3.52/code 58.
+
+### IMP-20260906-017 — Signed Whip 0.3.52 whole-UI owner-phone release
+
+- Behavior changed: Advanced Whip to 0.3.52/code 58 and installed the completed whole-UI design remediation in place on the explicitly selected owner phone through the fast private-development lane. The release contains the shared Task/Goal inspector-information role, corrected Goal copy, elapsed-reset hierarchy, and the reusable 171-surface review system in source.
+- Important files/symbols: `app/build.gradle.kts`, `EntityInspectorInformationGroup`, `ElapsedGoalResetDialog`, `scripts/ui-catalog`, signed `app-release.apk`, local `app-release.aab`, and `VER-20260906-018`.
+- Persistence/migration/history impact: Schema 46, data epoch 6, and exact-match backup version 24 are unchanged. Android first-install identity and existing app data were preserved; no reset, clear, uninstall, downgrade, or fresh-start confirmation occurred.
+- Compatibility and limitations: This private release uses the accepted focused checks and frozen 171-surface audit plus release-vital lint, R8/resource optimization, signed build/install, and physical smoke. It is not Play Store candidate evidence; public publication still requires one fresh `scripts/candidate` run.
+- Commit/push: Release source `957bf64` was pushed to `origin/main` before the signed build and deployment.
+- Related: `FB-20260906-008`, `FND-20260906-002`, `FND-20260906-003`, `FND-20260906-004`, `DEC-20260906-005`, `DEC-20260906-006`, `VER-20260906-017`, `VER-20260906-018`.
+- Verification: `VER-20260906-018`.
+- Status: Released and device-verified as Whip 0.3.52/code 58; awaiting real-use feedback.

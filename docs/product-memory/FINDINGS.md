@@ -973,7 +973,7 @@
 - Root cause: The exporter proves identity and count but several multi-state selectors capture immediately after a transition without a state-specific Compose assertion/settle boundary. A second subset renders a production component inside an incompletely themed or size-limited test host, so the device screenshot includes scaffolding that cannot occur in the app.
 - Resolution: Multi-state journeys now require a state-specific visible assertion and an idle/frame boundary before capture; behavior-sensitive captures such as Habit value entry, Track entry mutation, Health rationale, and Rest duration use isolated capture-only tests; component fixtures render inside full-screen dark Whip surfaces; the collector forces and restores dark mode, scopes stock-AVD crash-sheet suppression to capture, and still rejects any Whip hierarchy loss or visible crash/ANR overlay. The final four popup journeys now assert an invariant visible menu item and settle before capture. Exact Habit and Track family recaptures confirm the requested popup in both pixels and semantics.
 - Related: `FB-20260906-008`, `DEC-20260906-005`, `IMP-20260906-014`, `IMP-20260906-016`, `VER-20260906-014`, `VER-20260906-016`.
-- Status: Resolved and emulator-verified, including the four gaps found by final whole-gallery inspection. Rejected captures remain non-evidence and the physical owner phone was not used.
+- Status: Resolved, frozen-audit verified, and released in Whip 0.3.52/code 58. Rejected captures remain non-evidence.
 
 ### FND-20260906-003 — Task and Goal inspectors still render related evidence as loose text
 
@@ -985,7 +985,7 @@
 - Root cause: `EntityInspectorGroup` supplies only heading rhythm, and Task/Goal composed read-only evidence with that same primitive used to label action sections. Goal's progress insight was built as an unstructured sequence of text nodes.
 - Resolution: Added one shared inspector information-group role backed by `WhipGroupedInformationCard`. Task Context/Subtasks and completed Outcome/Context now use it; Goal Outcome/Progress Insight uses the same role, scans the target as one user-facing fact, explains unavailable pace as future context, and fixes singular fallback-source copy. Action groups retain their existing uncontained hierarchy.
 - Related: `FB-20260906-008`, `IMP-20260906-015`, `VER-20260906-015`.
-- Status: Resolved, focused-tested, and visually accepted in exact Task/Goal recaptures. The physical owner phone was not used.
+- Status: Resolved, focused-tested, frozen-audit accepted, and released in Whip 0.3.52/code 58.
 
 ### FND-20260906-004 — Elapsed Goal reset gives two commit actions competing footer priority
 
@@ -997,4 +997,4 @@
 - Root cause: The alternative reset command was placed inside `dismissButton` beside Cancel, causing Material dialog action wrapping to define the information hierarchy.
 - Resolution: Moved “Reset to Now” into the dialog body as a full-width outlined alternative beside the date/time choices. The footer now contains only Cancel and “Reset to Chosen Time.” Both reset callbacks, exact-instant preservation, minimum targets, constrained bounds, and vertical ordering are covered by the large-text regression.
 - Related: `FB-20260906-008`, `IMP-20260906-015`, `VER-20260906-015`.
-- Status: Resolved, focused-tested, and visually accepted in the exact Goal recapture. The physical owner phone was not used.
+- Status: Resolved, focused-tested, frozen-audit accepted, and released in Whip 0.3.52/code 58.

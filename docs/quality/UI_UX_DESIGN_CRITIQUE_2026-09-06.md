@@ -90,10 +90,10 @@ both pixels and semantics. No additional product-design finding remained.
 
 ## Closure criteria
 
-The UI review and remediation portion is closed: both confirmed findings are
+The UI review and remediation is closed: both confirmed findings are
 implemented, focused behavior tests pass, Tasks and Goals are visually
 accepted, and the replacement frozen whole-catalog export accounts for all 171
-surfaces after source freeze. The overall delivery closes after the final
-signed development build is installed and smoke-tested on the owner phone.
-The Play Store candidate suite remains intentionally excluded from this
-private-phone release.
+surfaces after source freeze. Whip 0.3.52/code 58 was subsequently installed
+in place and smoke-tested on the owner phone in `VER-20260906-018`, closing the
+overall delivery. The Play Store candidate suite remains intentionally
+excluded from this private-phone release.

@@ -800,8 +800,8 @@
 - Evidence and constraints: Production UI discovery is fingerprinted so new composables or modal call sites fail closed until triaged. MediaStore Download assets survive Gradle's post-instrumentation package removal, unlike app-private files. The collector deletes only its exact emulator-owned capture directory and the test clears the matching MediaStore collection before the first capture.
 - Failure modes: A stale catalog after UI source growth; screenshots silently lost after test APK uninstall; duplicate IDs; a full visual campaign paid for every small edit; accidental instrumentation or cleanup on the owner's physical phone.
 - Consequences / reversal conditions: Baseline and final audits must reach zero pending selectors. Family capture is the normal iteration loop; full catalog capture is reserved for audit milestones. The physical phone remains out of scope until final signed deployment and smoke. Replace TSV or MediaStore only if a successor preserves exact coverage, deterministic export, emulator isolation, and family-level latency.
-- Related: `FB-20260906-008`, `IMP-20260906-007`, `VER-20260906-007`.
-- Status: Accepted and fully implemented; confirmed product findings are remediated and final whole-catalog recapture remains pending.
+- Related: `FB-20260906-008`, `IMP-20260906-007`, `IMP-20260906-014`, `IMP-20260906-016`, `VER-20260906-017`, `VER-20260906-018`.
+- Status: Accepted, fully implemented, frozen-audit verified, and released in Whip 0.3.52/code 58.
 
 ### DEC-20260906-006 — Inspector evidence is contained; dialog footers make one decision
 
@@ -809,5 +809,5 @@
 - Decision: Add a narrowly named `EntityInspectorInformationGroup` backed by Whip's established low-emphasis grouped-information card. Use it for related read-only summary evidence, while action sections, danger zones, charts, and domain-specific interaction roles remain explicit. Dialog footers retain one Cancel and one commit; consequential shortcuts to a different value belong with the input choices in the body.
 - Rejected alternatives: Put every `EntityInspectorGroup` in a card, which would nest action cards and erase semantic distinctions; build bespoke Task and Goal summary components, which would perpetuate family drift; keep two commit actions in the Material footer and tune spacing around the resulting wrap.
 - Constraints and consequences: Preserve inspector frame/navigation/action behavior and all Task/Goal persistence semantics. Summary cards must remain scrollable and legible in dark mode. The elapsed reset keeps exact instant, daylight-saving overlap/gap, discard, saving, failure, and both reset paths unchanged.
-- Related: `FB-20260906-008`, `FND-20260906-003`, `FND-20260906-004`, `IMP-20260906-015`, `VER-20260906-015`.
-- Status: Accepted, implemented, focused-tested, and visually accepted on the emulator.
+- Related: `FB-20260906-008`, `FND-20260906-003`, `FND-20260906-004`, `IMP-20260906-015`, `VER-20260906-015`, `VER-20260906-017`, `VER-20260906-018`.
+- Status: Accepted, implemented, focused-tested, frozen-audit accepted, and released in Whip 0.3.52/code 58.
