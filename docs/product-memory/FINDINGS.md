@@ -998,3 +998,14 @@
 - Resolution: Moved “Reset to Now” into the dialog body as a full-width outlined alternative beside the date/time choices. The footer now contains only Cancel and “Reset to Chosen Time.” Both reset callbacks, exact-instant preservation, minimum targets, constrained bounds, and vertical ordering are covered by the large-text regression.
 - Related: `FB-20260906-008`, `IMP-20260906-015`, `VER-20260906-015`.
 - Status: Resolved, focused-tested, frozen-audit accepted, and released in Whip 0.3.52/code 58.
+
+### FND-20260906-005 — Elapsed Goals reduce a meaningful duration to one unit
+
+- Severity/category: P2 motivation, information hierarchy, and authored-display fidelity.
+- Observed: Count Time Since persists one `ElapsedDisplayUnit`, offers only Automatic, Minutes, Hours, Days, Weeks, or Years, and formats every collection/detail/Insights/terminal state as one scalar such as “8 weeks.” Months are unavailable and a user cannot keep a personally meaningful combination visible.
+- Expected: The Goal owns a durable display configuration with Automatic or any non-empty ordered combination of Years, Months, Weeks, Days, Hours, and Minutes, and the same configured breakdown is the prominent always-visible status wherever the Goal appears.
+- Why it matters / affected users: A sobriety, recovery, or anniversary counter is partly motivational identity, not incidental metadata; collapsing “1 year, 2 months, 4 days” to a single coarse value hides the progress the user deliberately wants to see.
+- Evidence: `ElapsedDisplayUnit`, `GoalDraft.elapsedDisplayUnit`, `Goal.elapsedDisplayUnit`, `elapsedCounter`, the Goal editor's single “Counter Display” dropdown, scalar Room/backup mapping, and all elapsed rendering call sites in `GoalScreens.kt`.
+- Root cause: Storage, domain state, editing, and presentation share a scalar enum contract instead of a first-class multi-unit display definition.
+- Related: `FB-20260906-009`.
+- Status: Confirmed; remediation in progress.

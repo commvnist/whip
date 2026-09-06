@@ -484,3 +484,13 @@ These records preserve durable user intent. “Released” means the change reac
 - Related: `FB-20260902-009`, `DEC-20260903-015`, `DEC-20260906-005`, `DEC-20260906-006`, `IMP-20260906-017`, `VER-20260906-017`, `VER-20260906-018`.
 - Status: Completed and device-verified in Whip 0.3.52/code 58.
 - Notes: The physical phone is explicitly prohibited for discovery, capture, testing, and review; use disposable emulators until the final deployment step. The task is not complete at inventory or critique—the accepted feedback must be implemented and verified.
+
+### FB-20260906-009 — Make elapsed time a configurable first-class Goal display
+
+- Date/source: 2026-09-06, direct user request.
+- User need: Count Time Since Goals should celebrate meaningful duration—such as sobriety, recovery, or an anniversary—using the exact time-unit combination the user wants to keep visible, including months, weeks, days, hours, and minutes.
+- Acceptance criteria: Let an author choose any non-empty combination of Years, Months, Weeks, Days, Hours, and Minutes or retain Automatic; persist and restore that choice; migrate existing Automatic and single-unit Goals without loss; make the resulting duration the always-visible primary status on Goal collections and consistent in detail, Insights, completion, and reset states; keep the exact event instant authoritative; cover formatting, repository persistence, backup validation/restore, editor interaction, and compact/responsive presentation with focused regression tests; then issue a higher signed in-place release through the fast owner-phone lane.
+- Affected users/workflows: Creating and editing Count Time Since Goals, daily Goal browsing, motivational sobriety/recovery counters, detail and Insights review, completed/abandoned snapshots, backup/restore, and owner-phone development releases.
+- Related: `FND-20260906-005`, `DEC-20260906-007`, `FB-20260906-005`.
+- Status: In progress.
+- Notes: The physical phone remains excluded from development testing and may be used only for the final explicitly requested deployment. Complete Play Store candidate qualification is out of scope.
