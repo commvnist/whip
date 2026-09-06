@@ -69,14 +69,14 @@ route:goals-active-empty	goals.active.empty	goals	page	empty	com.whip.app.Visual
 route:goals-history	goals.history.populated	goals	page	populated	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Completed goal history.
 route:goals-archived	goals.archived.populated	goals	page	populated	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Archived goals.
 route:goals-insights	goals.insights.populated	goals	page	populated	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Goal insights.
-editor:goal-create	goals.editor.create	goals	dialog	new goal	pending	capture	Goal creation form.
-editor:goal-edit	goals.editor.edit	goals	dialog	existing goal	pending	capture	Goal editing form.
-dialog:goal-template	goals.template	goals	dialog	open	pending	capture	Goal template chooser.
-dialog:goal-measurement	goals.measurement	goals	dialog	open	pending	capture	Goal progress measurement.
-dialog:goal-elapsed-reset	goals.elapsed-reset	goals	dialog	elapsed target	pending	capture	Elapsed goal reset choice.
-dialog:goal-actions	goals.actions	goals	dialog	open	pending	capture	Goal details and actions.
-dialog:goal-delete	goals.permanent-delete	goals	dialog	with impact summary	pending	capture	Permanent goal deletion.
-menu:goal-row	goals.row.menu	goals	menu	open	pending	capture	Goal row overflow actions.
+editor:goal-create	goals.editor.create	goals	dialog	new goal	com.whip.app.ui.GoalSecondaryMutationUiTest#captureGoalComponentCatalog	capture	Goal creation form.
+editor:goal-edit	goals.editor.edit	goals	dialog	existing goal	com.whip.app.ui.GoalSecondaryMutationUiTest#captureGoalComponentCatalog	capture	Goal editing form.
+dialog:goal-template	goals.template	goals	dialog	open	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Goal template chooser.
+dialog:goal-measurement	goals.measurement	goals	dialog	open	com.whip.app.ui.GoalSecondaryMutationUiTest#captureGoalComponentCatalog	capture	Goal progress measurement.
+dialog:goal-elapsed-reset	goals.elapsed-reset	goals	dialog	elapsed target	com.whip.app.ui.ElapsedGoalTimeUiTest#resetWithoutEditingPreservesTheExactInstantAndActionsRemainUsableAtLargeText	capture	Elapsed goal reset choice.
+dialog:goal-actions	goals.actions	goals	dialog	open	com.whip.app.ui.GoalSecondaryMutationUiTest#captureGoalComponentCatalog	capture	Goal details and actions.
+dialog:goal-delete	goals.permanent-delete	goals	dialog	with impact summary	com.whip.app.ui.GoalSecondaryMutationUiTest#captureGoalComponentCatalog	capture	Permanent goal deletion.
+menu:goal-row	goals.row.menu	goals	menu	open	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Goal row overflow actions.
 route:tracks-all	tracks.all.populated	tracks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Track definitions.
 route:tracks-all-empty	tracks.all.empty	tracks	page	empty	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Tracks empty state.
 route:tracks-activity	tracks.activity.populated	tracks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Cross-track activity.

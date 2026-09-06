@@ -1050,3 +1050,12 @@
 - Compatibility and limitations: Habits is exhaustive against the current catalog; 77 later-family selectors remain pending. No candidate, signed build, owner-phone query, phone instrumentation, install, or publication occurred.
 - Related: `FB-20260906-008`, `DEC-20260906-005`, `VER-20260906-009`.
 - Status: Implemented and exact-family captured; visual critique and remediation remain pending.
+
+### IMP-20260906-010 — Complete Goals visual-catalog family
+
+- Behavior changed: Added exact capture ownership for all declared Goal surfaces. A deterministic production-component journey covers create/edit, progress measurement, active-goal inspector actions, and impact-aware deletion; the established constrained elapsed-reset test owns the reset dialog; the real application owns active/empty/history/archive/insights pages plus overflow and template chooser states.
+- Important files/symbols: `GoalSecondaryMutationUiTest.captureGoalComponentCatalog`, `ElapsedGoalTimeUiTest`, `VisualCatalogPagesTest.captureGoalPageCatalog`, and `docs/quality/ui-surface-catalog.tsv`.
+- Persistence/migration/history impact: Android-test fixtures and catalog metadata only. Production Goal behavior, schema 46, data epoch 6, backup version 24, release identity, and stored user data are unchanged.
+- Compatibility and limitations: Goals is exhaustive against the current catalog; 69 later-family selectors remain pending. No candidate, signed build, owner-phone query, phone instrumentation, install, or publication occurred.
+- Related: `FB-20260906-008`, `DEC-20260906-005`, `VER-20260906-010`.
+- Status: Implemented and exact-family captured; cross-family visual critique and remediation remain pending.

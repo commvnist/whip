@@ -194,6 +194,13 @@ class VisualCatalogPagesTest {
     private fun captureGoalPages() {
         openPrimary("Goals")
         captureVisualCatalogSurface("goals.active.populated")
+        compose.onNodeWithContentDescription("More Goal Actions").performClick()
+        captureVisualCatalogSurface("goals.row.menu")
+        compose.onNodeWithTag("goal-browse-templates-menu-action").performClick()
+        compose.waitForIdle()
+        captureVisualCatalogSurface("goals.template")
+        compose.onNodeWithText("Cancel").performClick()
+        compose.waitForIdle()
         selectTag("goal-destination-History")
         captureVisualCatalogSurface("goals.history.populated")
         selectTag("goal-destination-Archived")
@@ -297,6 +304,15 @@ class VisualCatalogPagesTest {
             ),
         )
         app.goalRepository.recordMeasurement(activeGoalId, 8.0, today, note = "Current progress")
+        app.goalRepository.create(
+            GoalDraft(
+                name = "Build emergency savings",
+                icon = "🛟",
+                type = GoalType.ReachValue,
+                targetMin = 10_000.0,
+                startDate = today.minusDays(14),
+            ),
+        )
         val completedGoalId = app.goalRepository.create(
             GoalDraft(
                 name = "Launch personal site",

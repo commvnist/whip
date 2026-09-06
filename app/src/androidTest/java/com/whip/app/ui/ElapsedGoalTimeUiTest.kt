@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.whip.app.captureVisualCatalogSurface
 import com.whip.app.domain.ElapsedDisplayUnit
 import com.whip.app.domain.Goal
 import com.whip.app.domain.GoalAggregation
@@ -54,6 +55,7 @@ class ElapsedGoalTimeUiTest {
             }
         }
 
+        captureVisualCatalogSurface("goals.elapsed-reset")
         val surface = compose.onNodeWithTag("elapsed-reset-dialog").assertIsDisplayed()
             .fetchSemanticsNode().boundsInRoot
         val density = compose.density

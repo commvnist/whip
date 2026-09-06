@@ -1119,3 +1119,13 @@
 - Failures or residual risk: No accepted-run failures. Goals, Tracks, Gym, Settings, and Organization selectors, cross-family visual critique, product remediation, final recapture, and owner-phone deployment remain incomplete.
 - Related: `FB-20260906-008`, `DEC-20260906-005`, `IMP-20260906-009`.
 - Status: Verified for complete Habits family coverage; the durable goal remains active.
+
+### VER-20260906-010 — Exhaustive Goals catalog evidence
+
+- Scope/environment: Goal catalog fixtures on disposable API 34 `emulator-5554`, deterministic dark theme with dynamic color disabled. The physical owner phone was not queried, connected, instrumented, installed to, or otherwise used.
+- Command or manual procedure: Android-test Kotlin compilation followed by `ANDROID_SERIAL=emulator-5554 scripts/ui-catalog capture --allow-pending --family goals /tmp/whip-ui-goals-complete-20260906` and exact catalog/export accounting.
+- Result: Three selectors executed with zero failures/skips and exported exactly 13 PNG plus 13 matching XML files (1,863,012 transferred bytes), with no missing or unexpected surface IDs and a complete SHA-256/byte manifest.
+- Coverage accounting: Implemented catalog coverage advanced from 94 to 102 surfaces: five existing Goal page captures plus eight newly assigned dialog/menu states. The whole catalog remains 171 required surfaces, zero platform exceptions, and 69 later-family pending selectors; Goals has no pending row.
+- Failures or residual risk: No accepted-run failures. Tracks, Gym, Settings, and Organization selectors, cross-family visual critique, product remediation, final recapture, and owner-phone deployment remain incomplete.
+- Related: `FB-20260906-008`, `DEC-20260906-005`, `IMP-20260906-010`.
+- Status: Verified for complete Goals family coverage; the durable goal remains active.

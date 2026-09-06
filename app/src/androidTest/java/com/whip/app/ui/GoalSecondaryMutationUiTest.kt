@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.whip.app.captureVisualCatalogSurface
 import com.whip.app.data.GoalDeletionImpact
 import com.whip.app.domain.ElapsedDisplayUnit
 import com.whip.app.domain.Goal
@@ -50,6 +51,88 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class GoalSecondaryMutationUiTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test
+    fun captureGoalComponentCatalog() {
+        var surface by mutableStateOf(GoalCatalogSurface.EditorCreate)
+        val deletionImpact = GoalDeletionImpact(
+            goalId = 17,
+            exists = true,
+            name = "Launch",
+            status = GoalStatus.Active.name,
+            archived = false,
+            milestoneCount = 3,
+            completedMilestoneCount = 2,
+            progressEntryCount = 5,
+            closureSnapshotCount = 1,
+            elapsedResetEventCount = 2,
+            revisionToken = "reviewed-revision",
+        )
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                when (surface) {
+                    GoalCatalogSurface.EditorCreate,
+                    GoalCatalogSurface.EditorEdit,
+                    -> GoalEditorDialog(
+                        projection = projection(goal()).takeIf { surface == GoalCatalogSurface.EditorEdit },
+                        today = TODAY,
+                        activeZoneId = ZoneId.of("America/Toronto"),
+                        nowMillis = Instant.parse("2026-09-06T16:00:00Z").toEpochMilli(),
+                        customUnits = emptyList(),
+                        onDismiss = {},
+                        onSave = {},
+                    )
+                    GoalCatalogSurface.Measurement -> GoalMeasurementDialog(
+                        projection = projection(goal()),
+                        today = TODAY,
+                        entry = null,
+                        onDismiss = {},
+                        onRecord = { _, _, _ -> },
+                    )
+                    GoalCatalogSurface.Actions -> GoalActionsDialog(
+                        projection = projection(goal()),
+                        zoneId = ZoneId.of("America/Toronto"),
+                        nowMillis = Instant.parse("2026-09-06T16:00:00Z").toEpochMilli(),
+                        onDismiss = {},
+                        onEditMeasurement = {},
+                        onRecordProgress = {},
+                        onResetElapsed = {},
+                        onEdit = {},
+                        onDuplicate = {},
+                        onPin = {},
+                        onPause = {},
+                        onComplete = {},
+                        onAbandon = {},
+                        onReopen = {},
+                        onArchive = {},
+                        onDelete = {},
+                    )
+                    GoalCatalogSurface.Delete -> GoalPermanentDeleteDialog(
+                        goalName = deletionImpact.name,
+                        impact = deletionImpact,
+                        preparing = false,
+                        saving = false,
+                        persistenceError = null,
+                        onDismiss = {},
+                        onReviewUpdatedImpact = {},
+                        onConfirm = {},
+                    )
+                }
+            }
+        }
+
+        fun show(next: GoalCatalogSurface, surfaceId: String) {
+            compose.runOnIdle { surface = next }
+            compose.waitForIdle()
+            captureVisualCatalogSurface(surfaceId)
+        }
+
+        captureVisualCatalogSurface("goals.editor.create")
+        show(GoalCatalogSurface.EditorEdit, "goals.editor.edit")
+        show(GoalCatalogSurface.Measurement, "goals.measurement")
+        show(GoalCatalogSurface.Actions, "goals.actions")
+        show(GoalCatalogSurface.Delete, "goals.permanent-delete")
+    }
 
     @Test
     fun leavingAnActionSurfaceClearsItsFailedRequestBeforeOpeningAnotherDialog() {
@@ -404,3 +487,5 @@ class GoalSecondaryMutationUiTest {
         private val TODAY: LocalDate = LocalDate.of(2026, 9, 1)
     }
 }
+
+private enum class GoalCatalogSurface { EditorCreate, EditorEdit, Measurement, Actions, Delete }
