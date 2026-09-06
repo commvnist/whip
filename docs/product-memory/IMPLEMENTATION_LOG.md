@@ -1010,4 +1010,15 @@
 - Commit/push: `13f00a0` pushed to `origin/main`.
 - Related: `FB-20260906-006`, `FND-20260906-001`, `DEC-20260906-004`, `VER-20260906-005`.
 - Verification: `VER-20260906-005`.
-- Status: Implemented and emulator-verified; awaiting user validation.
+- Status: Released in Whip 0.3.51/code 57; awaiting user validation.
+
+### IMP-20260906-006 — Signed Whip 0.3.51 Habit Today owner-phone release
+
+- Behavior changed: Advanced Whip to 0.3.51/code 57 and installed the purposeful Habit Today redesign in place on the explicitly selected owner phone through the fast private-development lane.
+- Important files/symbols: `app/build.gradle.kts`, `HabitActionsDialog`, signed `app-release.apk`, local `app-release.aab`, and `VER-20260906-006`.
+- Persistence/migration/history impact: Schema 46, data epoch 6, and exact-match backup version 24 are unchanged. Android first-install identity and existing app data were preserved; no reset, clear, uninstall, downgrade, or fresh-start confirmation occurred.
+- Compatibility and limitations: This private release used the prior focused Habit verification plus a fast clean-source check, signed release build/install, and device smoke. It is not complete-suite, candidate, or Play Store evidence.
+- Commit/push: Release source `e833272` pushed to `origin/main` before artifact creation and install.
+- Related: `FB-20260906-005`, `FB-20260906-006`, `FB-20260906-007`, `DEC-20260906-003`, `DEC-20260906-004`, `IMP-20260906-005`, `VER-20260906-006`.
+- Verification: `VER-20260906-006`.
+- Status: Released and physically verified; awaiting user validation.

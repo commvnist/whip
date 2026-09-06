@@ -1077,3 +1077,15 @@
 - Commit/push: `13f00a0` pushed to `origin/main`.
 - Related: `FB-20260906-006`, `FND-20260906-001`, `DEC-20260906-004`, `IMP-20260906-005`.
 - Status: Verified for the focused change; awaiting user validation.
+
+### VER-20260906-006 — Whip 0.3.51 fast owner-phone release
+
+- Scope/environment: Clean pushed source `e833272`; Whip 0.3.51/code 57; signed release build on WSL; explicitly selected physical Samsung owner phone. No emulator was connected during deployment.
+- Command or manual procedure: Pre-install physical-target guard and package/version/hash/first-install snapshot; guarded `scripts/device release-deploy`; APK signer verification; AAB archive test; local/installed hash comparison; post-install package/first-install inspection; cold-launch/foreground check; live-process check; bounded app-PID fatal/ANR/Room/SQLite log scan; and `git diff --check`.
+- Result: The fast clean-source check passed without rerunning the already accepted focused Habit evidence. Signed APK/AAB assembly, release-vital lint, R8, and resource optimization completed in 66 seconds. Streamed in-place install succeeded; Android reports 0.3.51/code 57; installed/local APK hashes match; first install remains `2026-08-26 17:59:24`; and the forced cold launch returned `Status: ok` in 106 ms with `MainActivity` foreground. The app process remained live and the bounded log scan found zero fatal, ANR, Room, or SQLite matches. A later foreground audit observed ChatGPT after the user returned to the conversation; this does not supersede the immediate successful Whip launch evidence.
+- Counts and exclusions: No complete JVM/Android suite or phone instrumentation ran, per the owner-phone policy. No reset, clear, uninstall, downgrade, fresh-start confirmation, candidate qualification, or Play Store publication occurred.
+- Artifact/version/hash: APK SHA-256 `0c47b0d9fc0a9eb601a848bd7b4fe78ec8c958a67e460b6e77804e272db0cc62`; AAB SHA-256 `03deee4d94b539045988c8f13619ecf617127e986ec89a052add38915415c9c4`; established single signer certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`; APK Signature Scheme v2 verified.
+- Failures or residual risk: This private build is not Play Store-qualified; public publication requires a fresh complete candidate. Subjective Habit Today behavior awaits user validation on the phone.
+- Commit/push: Release source `e833272` pushed to `origin/main` before build/install.
+- Related: `FB-20260906-005`, `FB-20260906-006`, `FB-20260906-007`, `DEC-20260906-003`, `DEC-20260906-004`, `IMP-20260906-005`, `IMP-20260906-006`.
+- Status: Released, installed in place, and physically verified; awaiting user validation.

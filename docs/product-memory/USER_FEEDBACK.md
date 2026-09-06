@@ -462,7 +462,7 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Establish a clear current-state focal point; visually group the date and progress metrics; give values a deliberate dashboard hierarchy; integrate the optional manual-duration path; present Skip Today as a clearly secondary action with its consequence; preserve the stable header/tabs/bottom primary action, all Habit state semantics, 48 dp targets, scrolling, narrow widths, and 200% text accessibility.
 - Affected users/workflows: Habit Today detail for checklist, check-off, numeric, duration, rating, log-only, paused, skipped, archived, off-schedule, low-pressure, and flexible-schedule states.
 - Related: `FND-20260906-001`, `DEC-20260906-004`, `IMP-20260906-005`, `VER-20260906-005`.
-- Status: Implemented and emulator-verified; awaiting user validation.
+- Status: Released in Whip 0.3.51/code 57; awaiting user validation.
 - Notes: The screenshot shows Whip 0.3.50 on the user's foldable phone in dark mode.
 
 ### FB-20260906-007 — Release the Habit Today redesign to the owner phone
@@ -471,6 +471,6 @@ These records preserve durable user intent. “Released” means the change reac
 - User need: Install the latest pushed Habit Today design on the user's connected development phone for real-device use.
 - Acceptance criteria: Advance to a higher monotonic private release identity; use the fast owner-phone lane rather than candidate/full-suite qualification; build signed APK/AAB outputs from pushed source; explicitly target the connected physical phone; install in place without reset, clear, uninstall, downgrade, or phone instrumentation; verify signer, artifact integrity, installed version/hash, preserved first-install identity, cold launch, foreground activity, and bounded fatal/ANR/Room/SQLite logs.
 - Affected users/workflows: Owner-only Whip development installation and Habit Today real-device validation.
-- Related: `FB-20260906-005`, `FB-20260906-006`, `DEC-20260906-003`, `IMP-20260906-005`, `VER-20260906-005`.
-- Status: In progress.
+- Related: `FB-20260906-005`, `FB-20260906-006`, `DEC-20260906-003`, `IMP-20260906-005`, `IMP-20260906-006`, `VER-20260906-005`, `VER-20260906-006`.
+- Status: Released and device-verified as Whip 0.3.51/code 57; awaiting user validation.
 - Notes: Play Store publication and complete candidate qualification remain out of scope.

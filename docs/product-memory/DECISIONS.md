@@ -791,4 +791,4 @@
 - Rejected alternatives: Decorative dividers around the existing field stacks; a denser generic dashboard shared across unrelated inspectors; promoting Skip Today to a second primary action.
 - Constraints and consequences: Preserve every archived, skipped, paused, off-schedule, timer, low-pressure, flexible-schedule, source-owned, and manual-duration behavior. The composition must remain scrollable, dark-mode legible, and actionable at 320 dp and 200% text.
 - Related: `FB-20260906-006`, `FND-20260906-001`, `IMP-20260906-005`, `VER-20260906-005`.
-- Status: Accepted, implemented, and emulator-verified; awaiting user validation.
+- Status: Accepted, implemented, emulator-verified, and released in Whip 0.3.51/code 57; awaiting user validation.

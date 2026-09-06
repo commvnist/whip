@@ -961,4 +961,4 @@
 - Root cause: Semantically correct facts were placed using generic inspector primitives without a Habit-specific daily summary composition.
 - Resolution: Replaced the three generic fact stacks with one Habit-specific Today overview that leads with a plain-language state, binds the date to it, scans streak/completion/flexible-period values as metrics, retains manual duration entry in context, and gives Skip Today an icon and consequence in a separate secondary-action card.
 - Related: `FB-20260906-006`, `DEC-20260906-004`, `IMP-20260906-005`, `VER-20260906-005`.
-- Status: Resolved and emulator-verified; awaiting user validation.
+- Status: Resolved, emulator-verified, and released in Whip 0.3.51/code 57; awaiting user validation.
