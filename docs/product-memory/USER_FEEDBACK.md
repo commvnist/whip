@@ -419,8 +419,8 @@ These records preserve durable user intent. “Released” means the change reac
 
 - Date/source: 2026-09-06, direct user request.
 - User need: Remove VERA-Codex because its standing autonomous orchestration and subagent routing slowed normal Codex work, and return Whip and both personal Codex homes to having no active VERA layer.
-- Acceptance criteria: Remove the exact Whip and personal-home VERA instruction, role, skill, metadata, and project-config files; remove only VERA-owned model, reasoning, and `[agents]` settings from both personal configs; preserve all unrelated configuration and the complete historical memory of earlier installations; verify exact absence, semantic config preservation, strict Codex Doctors, repository scope, and secret hygiene; then make a local Whip commit before deleting the canonical VERA repository and its retained state.
+- Acceptance criteria: Remove the exact Whip and personal-home VERA instruction, role, skill, metadata, and project-config files; remove VERA-owned model, reasoning, and `[agents]` settings from both personal configs plus the stale Windows trust entry for the deleted VERA checkout; preserve all unrelated configuration and the complete historical memory of earlier installations; verify exact absence, semantic config preservation, strict Codex Doctors, repository scope, and secret hygiene; then make a local Whip commit before deleting the canonical VERA repository and its retained state.
 - Affected users/workflows: Future Whip and personal Codex sessions use no standing VERA orchestration policy or custom VERA roles; existing sessions can retain instructions already loaded into their context until restarted.
 - Related: `FB-20260906-001`, `DEC-20260906-001`, `IMP-20260906-001`, `VER-20260906-001`.
-- Status: In progress.
+- Status: Implemented.
 - Notes: Preserve unrelated Whip changes and personal settings. Do not touch application, test, build, device, release, credential, plugin, or remote state; do not stage, commit, push, or delete the canonical repository/state until the ordered acceptance boundary is reached.
