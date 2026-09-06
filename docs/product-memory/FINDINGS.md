@@ -974,3 +974,27 @@
 - Resolution: Multi-state journeys now require a state-specific visible assertion and an idle/frame boundary before capture; behavior-sensitive captures such as Habit value entry, Track entry mutation, Health rationale, and Rest duration use isolated capture-only tests; component fixtures render inside full-screen dark Whip surfaces; the collector forces and restores dark mode, scopes stock-AVD crash-sheet suppression to capture, and still rejects any Whip hierarchy loss or visible crash/ANR overlay. The complete affected family set was recaptured with exact accounting and manually inspected before critique.
 - Related: `FB-20260906-008`, `DEC-20260906-005`, `IMP-20260906-014`, `VER-20260906-014`.
 - Status: Resolved and emulator-verified. The rejected baseline remains non-evidence; the physical owner phone was not used.
+
+### FND-20260906-003 — Task and Goal inspectors still render related evidence as loose text
+
+- Severity/category: P2 read-first hierarchy and cross-family design consistency.
+- Observed: Habit Today establishes a bounded daily summary, but Task Overview/Completed and Goal Overview still place section headings, labels, values, descriptions, trend state, target data, and data-quality copy directly on the inspector canvas. Goal also exposes the implementation-oriented phrase “Target overlay.” The information is correct, yet adjacent facts do not read as one purposeful summary and the Goal insight block becomes a dense text run.
+- Expected: Reuse Whip's low-emphasis grouped-information surface for read-only inspector evidence; retain labels and accessible headings; make the primary outcome scan first; express target data as a user-facing range; keep actions, destructive zones, charts, and domain behavior in their existing semantic roles.
+- Why it matters / affected users: Task and Goal details are frequent read-before-act surfaces. Users currently have to infer which lines belong together, and the mismatch makes equivalent entity inspectors feel designed by different systems.
+- Evidence: Faithful dark-theme captures `tasks.actions`, `tasks.completed-detail`, and `goals.actions`; `TaskActionsDialog`, `CompletedTaskDetailsDialog`, and `GoalActionsDialog`; comparison with `habits.actions.today` and `WhipGroupedInformationCard`.
+- Root cause: `EntityInspectorGroup` supplies only heading rhythm, and Task/Goal composed read-only evidence with that same primitive used to label action sections. Goal's progress insight was built as an unstructured sequence of text nodes.
+- Resolution: Pending shared inspector information-group composition and focused Task/Goal recapture.
+- Related: `FB-20260906-008`, `IMP-20260906-015`, `VER-20260906-015`.
+- Status: Confirmed by the exhaustive visual review; implementation pending. The physical owner phone was not used.
+
+### FND-20260906-004 — Elapsed Goal reset gives two commit actions competing footer priority
+
+- Severity/category: P2 dialog action grammar and decision clarity.
+- Observed: At constrained width and 200% text, the elapsed Goal reset dialog places “Reset to Now” beside Cancel, then wraps “Reset to Chosen Time” onto a separate footer row. Both resets are consequential commit actions, but one occupies the dismiss slot and the visual order makes Cancel appear between two competing confirmations.
+- Expected: The body should present “Reset to Now” as the full-width alternative to editing date/time; the footer should contain one dismiss action and one final commit for the chosen time. Existing reset-now, chosen-time, validation, daylight-saving, discard, saving, and persistence behavior must remain unchanged.
+- Why it matters / affected users: Users choosing a new timer origin should be able to distinguish an immediate shortcut from the final confirmation without parsing footer layout behavior.
+- Evidence: Faithful `goals.elapsed-reset` capture at the established 320 dp/200% text fixture; `ElapsedGoalResetDialog` confirm/dismiss slot composition.
+- Root cause: The alternative reset command was placed inside `dismissButton` beside Cancel, causing Material dialog action wrapping to define the information hierarchy.
+- Resolution: Pending action-placement change and focused elapsed-time regression/recapture.
+- Related: `FB-20260906-008`, `IMP-20260906-015`, `VER-20260906-015`.
+- Status: Confirmed by the exhaustive visual review; implementation pending. The physical owner phone was not used.
