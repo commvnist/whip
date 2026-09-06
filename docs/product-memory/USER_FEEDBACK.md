@@ -404,3 +404,23 @@ These records preserve durable user intent. “Released” means the change reac
 - Non-goals/constraints: Do not reset, clear, uninstall, downgrade, run instrumentation on the phone, publish to Play Store, disclose secrets, or perform unrelated device actions. The user expressly authorizes normal commits/pushes needed for this goal and the final signed in-place phone installation.
 - Related: `FB-20260904-002`, `FB-20260904-007`, `FND-20260904-003`, `VER-20260904-012`.
 - Status: Released as Whip 0.3.49/code 55; awaiting user validation.
+
+### FB-20260906-001 — Make VERA autonomous with a Sol/xhigh default
+
+- Date/source: 2026-09-06, direct user request.
+- User need: Make VERA-Codex persist autonomously until development tasks are complete, audit the orchestration for quality, efficiency, and speed, remove the Terra start/default lock, and use `gpt-5.6-sol` at `xhigh` as the parent and fallback default before synchronizing Whip and global Codex.
+- Acceptance criteria: The canonical VERA policy treats action requests as instructions to complete all safe, reversible, in-scope work; initiates required bounded subagent routes without another permission prompt; retains executable checks, fresh risk-appropriate review, one-writer ownership, and protected final-action boundaries; configures Sol/xhigh as both parent and unspecified-child default; preserves explicit Terra scout/builder/reviewer routes for lighter work; passes canonical validation, adversarial mutations, skill validation, forward tests, strict Doctors, exact downstream parity, and fresh Sol acceptance reviews; and is committed locally before Whip is synchronized and committed.
+- Affected users/workflows: All future VERA-governed development tasks in Whip and both personal Codex homes, after a new Codex session loads the updated instruction chain.
+- Related: `FB-20260906-002`, `FB-20260904-009`, `FB-20260904-010`, `DEC-20260904-004`, `DEC-20260906-001`, `IMP-20260906-001`, `VER-20260906-001`.
+- Status: Superseded by `FB-20260906-002` at the user's direct request.
+- Notes: The user authorized autonomous reversible implementation and local commits. No push, deployment, release, credential use, destructive action, or other protected external effect is authorized. Current runtime-confirmed spawn overrides remain Sol and Terra; the public API guidance names a newer model that this Codex collaboration runtime does not expose, so the explicit `gpt-5.6-sol` target is preserved.
+
+### FB-20260906-002 — Uninstall VERA-Codex completely
+
+- Date/source: 2026-09-06, direct user request.
+- User need: Remove VERA-Codex because its standing autonomous orchestration and subagent routing slowed normal Codex work, and return Whip and both personal Codex homes to having no active VERA layer.
+- Acceptance criteria: Remove the exact Whip and personal-home VERA instruction, role, skill, metadata, and project-config files; remove only VERA-owned model, reasoning, and `[agents]` settings from both personal configs; preserve all unrelated configuration and the complete historical memory of earlier installations; verify exact absence, semantic config preservation, strict Codex Doctors, repository scope, and secret hygiene; then make a local Whip commit before deleting the canonical VERA repository and its retained state.
+- Affected users/workflows: Future Whip and personal Codex sessions use no standing VERA orchestration policy or custom VERA roles; existing sessions can retain instructions already loaded into their context until restarted.
+- Related: `FB-20260906-001`, `DEC-20260906-001`, `IMP-20260906-001`, `VER-20260906-001`.
+- Status: In progress.
+- Notes: Preserve unrelated Whip changes and personal settings. Do not touch application, test, build, device, release, credential, plugin, or remote state; do not stage, commit, push, or delete the canonical repository/state until the ordered acceptance boundary is reached.

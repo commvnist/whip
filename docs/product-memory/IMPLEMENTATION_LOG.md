@@ -956,3 +956,14 @@
 - Compatibility/data: Schema 46, data epoch 6, backup version 24, package identity, and signer continuity are unchanged. Android install identity was preserved; forward fixes must use a higher code.
 - Source: `0bc32cb` on `origin/main`.
 - Status: Released and physically verified; awaiting user validation.
+
+### IMP-20260906-001 — VERA-Codex active-layer uninstall
+
+- Behavior changed: Deleted the nine tracked Whip VERA runtime files (`AGENTS.md`, project `.codex/config.toml`, five project role TOMLs, and the two-file project skill); deleted the eight VERA-only instruction/role/skill files from each of `/root/.codex` and `/mnt/c/Users/commv/.codex`; and removed only the top-level `model`, `model_reasoning_effort`, and complete `[agents]` table from both personal configs. The Windows config also lost exactly its first two VERA comments. Resulting empty VERA skill/role/project-config directories were removed without touching shared skill directories.
+- Configuration preservation: The root Whip trust remains `trusted`. Normalized before/after comparison proves all unrelated root and Windows config semantics are identical; Windows approval policy/reviewer, sandbox, service tier, notification, marketplaces, plugins, features, MCP/environment, desktop, Windows, projects, and shell policy remain exact. An independent textual-subtraction check proves the global configs changed only by the authorized VERA blocks.
+- Compatibility and history: New sessions load no standing VERA policy or custom VERA roles; an already-running session can retain previously loaded instructions in its context. Historical feedback, decisions, implementation, and verification evidence remains intact. No Whip application, test, build, generated, device, release, credential, plugin, remote, staging, or commit state changed.
+- Rollback: Owner-only transaction preimages, SHA-256/mode manifests, and normalized config projections are at `/root/.local/state/vera-uninstall.OfcocF`. If an acceptance gate fails before final cleanup, restore those exact preimages and modes; the transaction directory is temporary and must be removed by the parent only after final acceptance.
+- Ordered cleanup boundary: The canonical `/root/repos/vera-codex` repository and `/root/.local/state/vera-codex` state remain deliberately present and unchanged in this implementation phase. Fresh critical review and the exact local Whip commit precede their deletion; transaction-backup cleanup follows accepted purge verification.
+- Related: `FB-20260906-001`, `FB-20260906-002`, `DEC-20260906-001`, `VER-20260906-001`.
+- Verification: `VER-20260906-001`.
+- Status: Implemented.
