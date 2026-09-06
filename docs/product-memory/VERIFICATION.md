@@ -1038,6 +1038,6 @@
 - Counts and exclusions: 10 router scenarios; 1 fast/readiness fixture; 1 complete-local-gate fixture; 16 candidate-evidence acceptance/rejection fixtures; Android target/Gradle/batching/coverage/cache fixtures all passed. Product JVM and Android application suites were not executed because no application source changed. Fresh candidate execution was intentionally not claimed.
 - Artifact/version/hash: None; process-only change and no release artifact produced.
 - Failures or residual risk: The harness changes require an explicit fresh `scripts/candidate` before a future release. Real-world elapsed-time improvement varies with Gradle daemon/cache state; the active harness-only `scripts/check` completed with tool-reported wall time of approximately 1.1 seconds.
-- Commit/push: Pending coherent-chunk commit and normal push.
+- Commit/push: `7fab98c` pushed to `origin/main`.
 - Related: `FB-20260906-003`, `DEC-20260906-002`, `IMP-20260906-002`.
 - Status: Verified for the development boundary; candidate qualification remains pending for release authority.

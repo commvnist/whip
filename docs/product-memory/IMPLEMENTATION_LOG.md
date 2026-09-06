@@ -974,7 +974,7 @@
 - Important files/symbols: `scripts/check`, `scripts/qa-targeted --jvm-only`, `scripts/change-router` `HARNESS` records, `scripts/test-check-fast`, `scripts/test-change-router`, `README.md`, and `docs/testing.md`.
 - Persistence/migration/history impact: Development tooling and documentation only; no application source, schema, backup format, release identity, installed package, or user data changed.
 - Compatibility and limitations: `scripts/check --full`, fresh candidate semantics, emulator/physical target guards, signing, and deployment remain intact. This harness-changing work itself still requires one fresh candidate before any release. Physical release was not authorized or performed.
-- Commit/push: Pending coherent-chunk commit and normal push.
+- Commit/push: `7fab98c` pushed to `origin/main`.
 - Related: `FB-20260906-003`, `DEC-20260906-002`, `VER-20260906-002`.
 - Verification: Deterministic router, fast/default, full-gate, candidate-evidence, and Android-target fixture suites passed; the real changed-path fast command passed in about one second of reported wall time.
-- Status: Implemented and fixture-verified; candidate qualification remains pending before release.
+- Status: Implemented, fixture-verified, committed, and pushed; candidate qualification remains pending before release.
