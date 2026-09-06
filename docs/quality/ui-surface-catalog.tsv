@@ -108,40 +108,40 @@ route:gym-exercises	gym.exercises.populated	gym	page	populated	com.whip.app.Visu
 route:gym-machines	gym.machines.populated	gym	page	populated	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Machine library.
 route:gym-categories	gym.categories.populated	gym	page	populated	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Exercise categories.
 route:gym-tools	gym.tools	gym	page	populated	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Gym calculation and management tools.
-route:routine-builder	gym.routine-builder.outline	gym	page	outline	pending	capture	Routine builder outline.
-route:routine-program	gym.routine-builder.program	gym	page	program structure	pending	capture	Routine program structure.
-route:routine-exercise-picker	gym.routine-builder.exercise-picker	gym	page	picker	pending	capture	Routine exercise picker.
-route:routine-workout-picker	gym.routine-builder.workout-picker	gym	page	picker	pending	capture	Routine workout import picker.
-dialog:531-setup	gym.531.setup	gym	dialog	configured	pending	capture	5/3/1 program setup.
-dialog:531-review	gym.531.review	gym	dialog	populated	pending	capture	5/3/1 cycle review.
-dialog:rep-scheme	gym.rep-scheme	gym	dialog	configured	pending	capture	Rep prescription scheme editor.
-dialog:quick-machine	gym.quick-machine	gym	dialog	new machine	pending	capture	Inline machine creation.
-dialog:exercise-editor	gym.exercise.editor	gym	dialog	existing exercise	pending	capture	Exercise editor.
-dialog:exercise-picker	gym.exercise.picker	gym	dialog	populated	pending	capture	Exercise picker.
-dialog:exercise-actions	gym.exercise.actions	gym	dialog	open	pending	capture	Exercise actions and details.
-dialog:exercise-delete	gym.exercise.permanent-delete	gym	dialog	with impact summary	pending	capture	Permanent exercise deletion.
-dialog:machine-editor	gym.machine.editor	gym	dialog	existing machine	pending	capture	Machine editor.
-dialog:machine-choice	gym.machine.choice	gym	dialog	populated	pending	capture	Machine selection.
-dialog:machine-delete	gym.machine.permanent-delete	gym	dialog	with impact summary	pending	capture	Permanent machine deletion.
-dialog:workout-editor	gym.workout.editor	gym	dialog	existing workout	pending	capture	Workout editor.
-dialog:workout-set	gym.workout.set-editor	gym	dialog	configured	pending	capture	Workout set editor.
-dialog:workout-group	gym.workout.group	gym	dialog	configured	pending	capture	Workout group editor.
-dialog:workout-notes	gym.workout.notes	gym	dialog	populated	pending	capture	Workout exercise notes.
-dialog:rest-duration	gym.rest-duration	gym	dialog	configured	pending	capture	Rest timer duration.
-dialog:workout-delete	gym.workout.permanent-delete	gym	dialog	with impact summary	pending	capture	Permanent workout deletion.
-dialog:tracked-records	gym.tracked-records	gym	dialog	configured	pending	capture	Tracked record manager.
-dialog:routine-position	gym.routine.program-position	gym	dialog	configured	pending	capture	Routine program positioning.
-dialog:routine-delete	gym.routine.permanent-delete	gym	dialog	with impact summary	pending	capture	Permanent routine deletion.
-dialog:gym-confirmation	gym.confirmation	gym	dialog	open	pending	capture	Canonical gym confirmation.
-dialog:gym-defaults	gym.defaults-change	gym	dialog	meaning change	pending	capture	Defaults semantic-change guard.
-dialog:gym-allocation	gym.category-allocation	gym	dialog	configured	pending	capture	Category allocation editor.
-menu:workout-set	gym.workout-set.menu	gym	menu	open	pending	capture	Workout set actions.
-menu:workout-exercise	gym.workout-exercise.menu	gym	menu	open	pending	capture	Workout exercise actions.
-menu:workout-history	gym.workout-history.menu	gym	menu	open	pending	capture	Workout history actions.
-menu:routine-row	gym.routine.menu	gym	menu	open	pending	capture	Routine actions.
-menu:machine-row	gym.machine.menu	gym	menu	open	pending	capture	Machine actions.
-menu:routine-placement	gym.routine-placement.menu	gym	menu	open	pending	capture	Routine placement actions.
-menu:routine-classification	gym.classification.menu	gym	menu	open	pending	capture	Routine classification choices.
+route:routine-builder	gym.routine-builder.outline	gym	page	outline	com.whip.app.RoutineBuilderUiTest#blankRoutineSurfacesTopLevelFiveThreeOneEntry	capture	Routine builder outline.
+route:routine-program	gym.routine-builder.program	gym	page	program structure	com.whip.app.RoutineBuilderUiTest#structuredMainExerciseUsesProgramStructureAndHidesGenericRewriteControls	capture	Routine program structure.
+route:routine-exercise-picker	gym.routine-builder.exercise-picker	gym	page	picker	com.whip.app.RoutineBuilderUiTest#twoHundredExerciseLibraryIsSearchableAndOnlySelectionsEnterOutline	capture	Routine exercise picker.
+route:routine-workout-picker	gym.routine-builder.workout-picker	gym	page	picker	com.whip.app.RoutineBuilderUiTest#emptyWorkoutPickerUsesTheSharedEmptyStateAndKeepsBackReachable	capture	Routine workout import picker.
+dialog:531-setup	gym.531.setup	gym	dialog	configured	com.whip.app.RoutineBuilderUiTest#blankRoutineSurfacesTopLevelFiveThreeOneEntry	capture	5/3/1 program setup.
+dialog:531-review	gym.531.review	gym	dialog	populated	com.whip.app.FiveThreeOneCycleReviewUiTest#defaultsToStandardAndValidatesSuggestionAndCustomDecision	capture	5/3/1 cycle review.
+dialog:rep-scheme	gym.rep-scheme	gym	dialog	configured	com.whip.app.RoutineBuilderUiTest#captureRepSchemeCatalog	capture	Rep prescription scheme editor.
+dialog:quick-machine	gym.quick-machine	gym	dialog	new machine	com.whip.app.RoutineBuilderUiTest#machineCanBeQuickCreatedForAPlacementWithoutLeavingBuilder	capture	Inline machine creation.
+dialog:exercise-editor	gym.exercise.editor	gym	dialog	existing exercise	com.whip.app.GymPowerInputUiTest#durationExerciseOnlyShowsApplicableAdvancedOptionsAndRepairsItsGraphDefault	capture	Exercise editor.
+dialog:exercise-picker	gym.exercise.picker	gym	dialog	populated	com.whip.app.RoutineBuilderUiTest#sharedExercisePickerAlwaysOffersSearchAndSeededCreation	capture	Exercise picker.
+dialog:exercise-actions	gym.exercise.actions	gym	dialog	open	com.whip.app.GymPowerInputUiTest#captureWorkoutComponentCatalog	capture	Exercise actions and details.
+dialog:exercise-delete	gym.exercise.permanent-delete	gym	dialog	with impact summary	com.whip.app.GymPowerInputUiTest#exerciseDeleteDialogBlocksActiveUseAndPreservesTrainingMaxAuditHistory	capture	Permanent exercise deletion.
+dialog:machine-editor	gym.machine.editor	gym	dialog	new machine	com.whip.app.GymPowerInputUiTest#numberedMachineDefaultsToCompactOneThroughTenRangeAndIncrement	capture	Machine editor.
+dialog:machine-choice	gym.machine.choice	gym	dialog	populated	com.whip.app.RoutineBuilderUiTest#machineCanBeQuickCreatedForAPlacementWithoutLeavingBuilder	capture	Machine selection.
+dialog:machine-delete	gym.machine.permanent-delete	gym	dialog	with impact summary	com.whip.app.GymPowerInputUiTest#machineDeleteDialogExplainsPreservedHistoryAndBlocksActiveUse	capture	Permanent machine deletion.
+dialog:workout-editor	gym.workout.editor	gym	dialog	new workout	com.whip.app.ui.SafetyChoiceUiTest#captureWorkoutEditorAndGroupCatalog	capture	Workout editor.
+dialog:workout-set	gym.workout.set-editor	gym	dialog	configured	com.whip.app.GymPowerInputUiTest#captureWorkoutComponentCatalog	capture	Workout set editor.
+dialog:workout-group	gym.workout.group	gym	dialog	configured	com.whip.app.ui.SafetyChoiceUiTest#captureWorkoutEditorAndGroupCatalog	capture	Workout group editor.
+dialog:workout-notes	gym.workout.notes	gym	dialog	populated	com.whip.app.GymPowerInputUiTest#captureWorkoutComponentCatalog	capture	Workout exercise notes.
+dialog:rest-duration	gym.rest-duration	gym	dialog	configured	com.whip.app.GymPowerInputUiTest#readyRestTimerMakesWorkoutScopedDurationDiscoverableAndUsesIt	capture	Rest timer duration.
+dialog:workout-delete	gym.workout.permanent-delete	gym	dialog	with impact summary	com.whip.app.ui.WorkoutDeletionUiTest#exactReviewDistinguishesRemovedRecalculatedAndPreservedHistory	capture	Permanent workout deletion.
+dialog:tracked-records	gym.tracked-records	gym	dialog	configured	com.whip.app.GymPowerInputUiTest#captureWorkoutComponentCatalog	capture	Tracked record manager.
+dialog:routine-position	gym.routine.program-position	gym	dialog	configured	com.whip.app.GymPowerInputUiTest#captureWorkoutComponentCatalog	capture	Routine program positioning.
+dialog:routine-delete	gym.routine.permanent-delete	gym	dialog	with impact summary	com.whip.app.GymPowerInputUiTest#routineDeleteDialogBlocksActiveSourceAndKeepsWorkoutAndTrainingMaxHistory	capture	Permanent routine deletion.
+dialog:gym-confirmation	gym.confirmation	gym	dialog	open	com.whip.app.GymPowerInputUiTest#requiredMainSetUsesExplicitNotPerformedWarningInsteadOfGenericRemoval	capture	Canonical gym confirmation.
+dialog:gym-defaults	gym.defaults-change	gym	dialog	meaning change	com.whip.app.GymPowerInputUiTest#convertingExerciseToPoundsUsesPoundHardwareRatherThanConvertedDecimals	capture	Defaults semantic-change guard.
+dialog:gym-allocation	gym.category-allocation	gym	dialog	configured	com.whip.app.VisualCatalogPagesTest#captureGymCategoryAllocationCatalog	capture	Category allocation editor.
+menu:workout-set	gym.workout-set.menu	gym	menu	open	com.whip.app.GymPowerInputUiTest#captureWorkoutComponentCatalog	capture	Workout set actions.
+menu:workout-exercise	gym.workout-exercise.menu	gym	menu	open	com.whip.app.GymPowerInputUiTest#captureWorkoutComponentCatalog	capture	Workout exercise actions.
+menu:workout-history	gym.workout-history.menu	gym	menu	open	com.whip.app.GymPowerInputUiTest#workoutHistoryCardUsesOneStableActionPerExerciseAndMovesSecondaryActionsToMenu	capture	Workout history actions.
+menu:routine-row	gym.routine.menu	gym	menu	open	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Routine actions.
+menu:machine-row	gym.machine.menu	gym	menu	open	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Machine actions.
+menu:routine-placement	gym.routine-placement.menu	gym	menu	open	com.whip.app.RoutineBuilderUiTest#twoHundredExerciseLibraryIsSearchableAndOnlySelectionsEnterOutline	capture	Routine placement actions.
+menu:routine-classification	gym.classification.menu	gym	menu	open	com.whip.app.RoutineBuilderUiTest#captureRepSchemeCatalog	capture	Routine classification choices.
 route:settings-index	settings.index	settings	page	category list	com.whip.app.VisualCatalogPagesTest#captureSettingsPageCatalog	capture	Settings section index on compact windows.
 route:settings-appearance	settings.appearance	settings	page	configured	com.whip.app.VisualCatalogPagesTest#captureSettingsPageCatalog	capture	Appearance settings.
 route:settings-planning	settings.planning	settings	page	configured	com.whip.app.VisualCatalogPagesTest#captureSettingsPageCatalog	capture	Planning settings.

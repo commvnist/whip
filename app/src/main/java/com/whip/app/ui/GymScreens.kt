@@ -7264,7 +7264,7 @@ private fun formatWorkoutHistoryDuration(totalMinutes: Long): String = when {
 }
 
 @Composable
-private fun WorkoutExerciseNotesDialog(
+internal fun WorkoutExerciseNotesDialog(
     modifier: Modifier = Modifier,
     exerciseName: String,
     initialNotes: String,
@@ -7605,7 +7605,7 @@ private fun availableTrackedRecords(exercise: Exercise, state: GymUiState): List
 }
 
 @Composable
-private fun TrackedRecordsManagerDialog(
+internal fun TrackedRecordsManagerDialog(
     modifier: Modifier,
     state: GymUiState,
     initialExerciseId: Long?,
@@ -9094,7 +9094,7 @@ private fun RoutineContent(
 }
 
 @Composable
-private fun RoutineProgramPositionDialog(
+internal fun RoutineProgramPositionDialog(
     routine: GymRoutine,
     days: List<RoutineDay>,
     onDismiss: () -> Unit,
@@ -9893,7 +9893,7 @@ private fun DefaultsMeaningChangeDialog(
 }
 
 @Composable
-private fun WorkoutSetEditorDialog(
+internal fun WorkoutSetEditorDialog(
     modifier: Modifier = Modifier,
     set: WorkoutSet,
     exercise: Exercise,
@@ -10306,7 +10306,7 @@ internal fun ExercisePickerDialog(
 }
 
 @Composable
-private fun ExerciseActionsDialog(
+internal fun ExerciseActionsDialog(
     modifier: Modifier = Modifier,
     exercise: Exercise,
     trackedInProgress: Boolean,

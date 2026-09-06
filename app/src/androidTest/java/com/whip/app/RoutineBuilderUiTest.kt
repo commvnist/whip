@@ -94,6 +94,7 @@ class RoutineBuilderUiTest {
 
         compose.onNodeWithTag("exercise-picker-dialog").assertIsDisplayed()
         compose.onNodeWithTag("exercise-picker-create").assertIsDisplayed()
+        captureVisualCatalogSurface("gym.exercise.picker")
         compose.onNodeWithTag("exercise-picker-search").performTextInput("Zercher Squat")
         compose.onNodeWithTag("exercise-picker-empty").assertIsDisplayed()
         compose.onNodeWithText("Nothing matches “Zercher Squat”. Create it as a new exercise without leaving this screen.")
@@ -145,6 +146,7 @@ class RoutineBuilderUiTest {
         }
 
         compose.onNodeWithTag("routine-five-three-one-program-entry").assertIsDisplayed()
+        captureVisualCatalogSurface("gym.routine-builder.outline")
         compose.onNode(
             hasText("Set Up 5/3/1") and hasClickAction() and
                 hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
@@ -153,6 +155,7 @@ class RoutineBuilderUiTest {
         compose.onNodeWithText("Choose a program, configure its exercises, then review the exact work before building your routine.")
             .assertIsDisplayed()
         compose.onNodeWithTag("five-three-one-program-setup").assertIsDisplayed()
+        captureVisualCatalogSurface("gym.531.setup")
         compose.onNodeWithTag("five-three-one-plan-SingleCycle").assertIsSelected()
         compose.onNodeWithTag("five-three-one-program-status")
             .assertTextContains("Still needed · Enter a Training Max and cycle increase above zero for every selected exercise.")
@@ -184,6 +187,7 @@ class RoutineBuilderUiTest {
         compose.onNodeWithText("Complete a workout first, or go back and add exercises from your library.")
             .assertIsDisplayed()
         compose.onNodeWithContentDescription("Back to routine outline").assertIsDisplayed()
+        captureVisualCatalogSurface("gym.routine-builder.workout-picker")
     }
 
     @Test
@@ -610,6 +614,7 @@ class RoutineBuilderUiTest {
         compose.onNodeWithTag("routine-program-structure-page").assertIsDisplayed()
         compose.onNodeWithTag("routine-program-training-maxes-disclosure").assertIsDisplayed()
         compose.onNodeWithTag("routine-program-phase-select-0").performScrollTo().assertIsDisplayed()
+        captureVisualCatalogSurface("gym.routine-builder.program")
     }
 
     @Test
@@ -1397,6 +1402,7 @@ class RoutineBuilderUiTest {
 
         compose.onNodeWithTag("routine-add-exercises").performClick()
         compose.onNodeWithText("205 exercises").assertIsDisplayed()
+        captureVisualCatalogSurface("gym.routine-builder.exercise-picker")
         compose.onNodeWithTag("routine-exercise-search").performTextInput("Exercise 200")
         compose.onNode(
             hasText("Exercise 200") and hasAnyAncestor(hasTestTag("routine-exercise-picker-list")),
@@ -1416,6 +1422,9 @@ class RoutineBuilderUiTest {
         compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasText("Reps min"))
         compose.onNodeWithTag("routine-reps-min-3").assertTextContains("8")
         compose.onNodeWithTag("routine-reps-max-3").assertTextContains("10")
+        compose.onNodeWithContentDescription("Back to routine outline").performClick()
+        compose.onNodeWithContentDescription("Manage Exercise 200").performClick()
+        captureVisualCatalogSurface("gym.routine-placement.menu")
     }
 
     @Test
@@ -1535,7 +1544,9 @@ class RoutineBuilderUiTest {
 
         compose.onNodeWithText("Machine bench", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("routine-equipment-picker").performClick()
+        captureVisualCatalogSurface("gym.machine.choice")
         compose.onNodeWithText("Quick-Create Machine for This Exercise").assertIsDisplayed().performClick()
+        captureVisualCatalogSurface("gym.quick-machine")
         compose.onNodeWithTag("routine-quick-machine-name").performTextInput("Home stack")
         compose.onNodeWithTag("routine-quick-machine-create").performClick()
 
@@ -1724,6 +1735,33 @@ class RoutineBuilderUiTest {
         compose.onNodeWithContentDescription("Delete Volume · 3 × 8–12").performClick()
         compose.onNodeWithText("Delete Scheme").performClick()
         compose.runOnIdle { assertEquals("custom", deletedId) }
+    }
+
+    @Test
+    fun captureRepSchemeCatalog() {
+        val bench = exercise(1, "Bench")
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                RoutineBuilderScreen(
+                    routineId = null,
+                    gymState = GymUiState(exercises = listOf(bench), loading = false),
+                    initial = RoutineDraft(
+                        name = "Push",
+                        days = listOf(RoutineDayDraft("A", listOf(RoutineExerciseDraft(bench.id)))),
+                    ),
+                    onDismiss = {},
+                    onSave = { _, complete -> complete(true) },
+                    onCreateExercise = { _, _ -> },
+                    onCreateMachine = { _, _ -> },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Bench", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("routine-add-rep-scheme").performClick()
+        captureVisualCatalogSurface("gym.rep-scheme")
+        compose.onNodeWithTag("rep-scheme-classification").performClick()
+        captureVisualCatalogSurface("gym.classification.menu")
     }
 
     private fun exercise(

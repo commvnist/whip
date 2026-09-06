@@ -18,6 +18,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.whip.app.captureVisualCatalogSurface
 import com.whip.app.data.WorkoutDeletionImpact
 import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.ui.theme.WhipTheme
@@ -39,6 +40,7 @@ class WorkoutDeletionUiTest {
             onConfirm = { confirmed++ },
         )
 
+        captureVisualCatalogSurface("gym.workout.permanent-delete")
         compose.onNodeWithText("Delete “5/3/1 Anchor” Permanently?").assertIsDisplayed()
         compose.onNodeWithText("Removed").assertIsDisplayed()
         compose.onNodeWithText("Recalculated").assertIsDisplayed()

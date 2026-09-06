@@ -1140,3 +1140,14 @@
 - Failures or residual risk: Gym, Settings, and Organization selectors, cross-family visual critique, product remediation, final recapture, and owner-phone deployment remain incomplete.
 - Related: `FB-20260906-008`, `DEC-20260906-005`, `IMP-20260906-011`.
 - Status: Verified for complete Tracks family coverage; the durable goal remains active.
+
+### VER-20260906-012 — Exhaustive Gym catalog evidence
+
+- Scope/environment: Gym catalog fixtures on disposable API 34 `emulator-5554`, deterministic dark theme with dynamic color disabled. The physical owner phone was not queried, connected, instrumented, installed to, or otherwise used.
+- Command or manual procedure: Android-test Kotlin compilation; catalog lint; final `ANDROID_SERIAL=emulator-5554 scripts/ui-catalog capture --allow-pending --family gym /tmp/whip-ui-gym-complete-20260906`; and exact catalog/export accounting.
+- Result: The accepted run executed 22 focused selectors in three batches with zero failures/skips and exported exactly 44 PNG plus 44 matching XML files (7,155,083 transferred bytes), with no missing or unexpected surface IDs and a complete SHA-256/byte manifest.
+- Coverage accounting: Implemented catalog coverage advanced from 115 to 149 surfaces. The whole catalog remains 171 required surfaces, zero platform exceptions, and 22 Settings/Organization pending selectors; Gym has no pending row.
+- Additional evidence: Production and Android-test Kotlin compiled successfully after the testability visibility change. Catalog lint accepted the unchanged 238-owner discovery fingerprint. The Gym seed now truthfully populates machine and category pages with representative linked data.
+- Failures or residual risk: No accepted-run failures. Settings and Organization selectors, cross-family visual critique, production remediation, final recapture, and owner-phone deployment remain incomplete.
+- Related: `FB-20260906-008`, `DEC-20260906-005`, `IMP-20260906-012`.
+- Status: Verified for complete Gym family coverage; the durable goal remains active.

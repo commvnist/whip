@@ -1069,3 +1069,13 @@
 - Compatibility and limitations: Tracks is exhaustive against the current catalog; 56 Gym/Settings/Organization selectors remain pending. No candidate, signed build, owner-phone query, phone instrumentation, install, or publication occurred.
 - Related: `FB-20260906-008`, `DEC-20260906-005`, `VER-20260906-011`.
 - Status: Implemented and exact-family captured; cross-family visual critique and remediation remain pending.
+
+### IMP-20260906-012 — Complete Gym visual-catalog family
+
+- Behavior changed: Added deterministic capture ownership for every declared Gym surface: empty/populated workout, History, Progress, Library, Routines, Exercises, Machines, Categories, and Tools pages; Routine Builder outline, pickers, program structure, 5/3/1 setup/review, rep-scheme and quick-machine flows; exercise, machine, workout, tracked-record, program-position, confirmation, category-allocation, and impact-aware deletion dialogs; and every declared Gym overflow menu. Populated page fixtures now include a linked category and machine instead of visually empty content.
+- Capture testability: Five stateful production composables are module-visible so instrumentation can render the exact production workout-set, workout-note, exercise-inspector, tracked-record, and routine-position surfaces without duplicating their UI. No production behavior or styling changed.
+- Important files/symbols: `GymPowerInputUiTest.captureWorkoutComponentCatalog`, `RoutineBuilderUiTest.captureRepSchemeCatalog`, `VisualCatalogPagesTest.captureGymPageCatalog`, `VisualCatalogPagesTest.captureGymCategoryAllocationCatalog`, `FiveThreeOneCycleReviewUiTest`, `SafetyChoiceUiTest`, `WorkoutDeletionUiTest`, `GymScreens.kt`, and `docs/quality/ui-surface-catalog.tsv`.
+- Persistence/migration/history impact: Android-test fixtures, catalog metadata, and Kotlin visibility only. Production behavior, schema 46, data epoch 6, backup version 24, release identity, and stored user data are unchanged.
+- Compatibility and limitations: Gym is exhaustive against the current catalog; 22 Settings/Organization selectors remain pending. No candidate, signed build, owner-phone query, phone instrumentation, install, or publication occurred.
+- Related: `FB-20260906-008`, `DEC-20260906-005`, `VER-20260906-012`.
+- Status: Implemented and exact-family captured; cross-family visual critique and remediation remain pending.

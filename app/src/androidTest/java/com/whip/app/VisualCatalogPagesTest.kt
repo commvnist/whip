@@ -17,6 +17,7 @@ import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.GoalDraft
 import com.whip.app.domain.GoalStatus
 import com.whip.app.domain.GoalType
+import com.whip.app.domain.GymMachineDraft
 import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.RoutineDayDraft
 import com.whip.app.domain.RoutineDraft
@@ -153,6 +154,23 @@ class VisualCatalogPagesTest {
         }
     }
 
+    @Test
+    fun captureGymCategoryAllocationCatalog() {
+        seedRepresentativeData()
+        launch().use {
+            waitForHome("Plan the week")
+            compose.onNodeWithContentDescription("Open Settings").performClick()
+            compose.waitForIdle()
+            compose.onNodeWithTag("settings-section-Planning & Units").performClick()
+            compose.waitForIdle()
+            compose.onNodeWithTag("settings-list").performScrollToNode(
+                androidx.compose.ui.test.hasText("Overlapping category allocation"),
+            )
+            compose.onNodeWithText("Overlapping category allocation").performClick()
+            captureVisualCatalogSurface("gym.category-allocation")
+        }
+    }
+
     private fun captureTaskPages() {
         openPrimary("Tasks")
         captureVisualCatalogSurface("tasks.today.populated")
@@ -268,6 +286,14 @@ class VisualCatalogPagesTest {
             compose.onNodeWithTag("gym-library-$destination").performClick()
             compose.waitForIdle()
             captureVisualCatalogSurface("gym.${destination.lowercase()}.populated".replace("tools.populated", "tools"))
+            if (destination == "Routines") {
+                compose.onNodeWithContentDescription("More options for routine Three Day Foundation").performClick()
+                captureVisualCatalogSurface("gym.routine.menu")
+            }
+            if (destination == "Machines") {
+                compose.onNodeWithContentDescription("More options for Home Cable Stack").performClick()
+                captureVisualCatalogSurface("gym.machine.menu")
+            }
             compose.onNodeWithTag("gym-library-child-$destination").performClick()
             compose.waitForIdle()
         }
@@ -385,8 +411,21 @@ class VisualCatalogPagesTest {
         )
         app.trackRepository.setArchived(archivedTrackId, true)
 
+        val strengthCategoryId = app.gymRepository.createCategory("Strength")
         val exerciseId = app.gymRepository.createExercise(
-            ExerciseDraft(name = "Goblet Squat", defaultGraphMetric = "MaxWeight"),
+            ExerciseDraft(
+                name = "Goblet Squat",
+                defaultGraphMetric = "MaxWeight",
+                categoryIds = setOf(strengthCategoryId),
+            ),
+        )
+        app.gymRepository.createMachine(
+            GymMachineDraft(
+                exerciseId = exerciseId,
+                name = "Home Cable Stack",
+                details = "Compact selectorized stack",
+                availableLoads = listOf(5.0, 10.0, 15.0, 20.0),
+            ),
         )
         val historyId = app.gymRepository.startWorkout("Saturday Strength")
         val historyExerciseId = app.gymRepository.addExerciseToWorkout(historyId, exerciseId)

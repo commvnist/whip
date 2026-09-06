@@ -25,6 +25,7 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.test.espresso.Espresso.pressBack
+import com.whip.app.captureVisualCatalogSurface
 import com.whip.app.core.WhipResult
 import com.whip.app.data.BackupPreview
 import com.whip.app.domain.BodyweightLoadPolicy
@@ -44,6 +45,33 @@ import org.junit.Test
 
 class SafetyChoiceUiTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test
+    fun captureWorkoutEditorAndGroupCatalog() {
+        var surface by mutableStateOf(0)
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                when (surface) {
+                    0 -> WorkoutEditorDialog(
+                        session = null,
+                        initialDate = LocalDate.of(2026, 9, 6),
+                        onDismiss = {},
+                        onStart = { _, _, _, _, _ -> },
+                    )
+                    else -> WorkoutGroupDialog(
+                        exercises = listOf(workoutExerciseUi(1), workoutExerciseUi(2)),
+                        onDismiss = {},
+                        onCreate = { _, _, _ -> true },
+                    )
+                }
+            }
+        }
+
+        captureVisualCatalogSurface("gym.workout.editor")
+        compose.runOnIdle { surface = 1 }
+        compose.waitForIdle()
+        captureVisualCatalogSurface("gym.workout.group")
+    }
 
     @Test
     fun workoutCompletionActionsAreDisabledWhileAnotherWorkoutMutationOwnsPersistence() {

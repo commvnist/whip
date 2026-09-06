@@ -45,6 +45,7 @@ class FiveThreeOneCycleReviewUiTest {
             }
         }
 
+        captureVisualCatalogSurface("gym.531.review")
         compose.onNodeWithTag("training-max-choice-standard-7").performClick()
         compose.onNodeWithTag("apply-training-max-decisions").assertIsEnabled().performClick()
         compose.runOnIdle {

@@ -73,6 +73,7 @@ import com.whip.app.domain.WorkoutSetRemovalReason
 import com.whip.app.domain.WorkoutSetMutationBoundary
 import com.whip.app.core.DEFAULT_REST_TIMER_PRESET_SECONDS
 import com.whip.app.ui.ExerciseEditorDialog
+import com.whip.app.ui.ExerciseActionsDialog
 import com.whip.app.ui.MachineEditorDialog
 import com.whip.app.ui.MachinePermanentDeleteDialog
 import com.whip.app.ui.ExercisePermanentDeleteDialog
@@ -82,10 +83,14 @@ import com.whip.app.ui.WhipDialogPlacement
 import com.whip.app.ui.QuickSetEntry
 import com.whip.app.ui.QuickSetAuthorshipBoundary
 import com.whip.app.ui.RestTimerCard
+import com.whip.app.ui.RoutineProgramPositionDialog
+import com.whip.app.ui.TrackedRecordsManagerDialog
 import com.whip.app.ui.WorkoutExerciseCard
+import com.whip.app.ui.WorkoutExerciseNotesDialog
 import com.whip.app.ui.WorkoutExerciseGroupSurface
 import com.whip.app.ui.WorkoutExerciseUi
 import com.whip.app.ui.WorkoutHistoryCard
+import com.whip.app.ui.WorkoutSetEditorDialog
 import com.whip.app.ui.GymUiState
 import com.whip.app.ui.GymProgressContent
 import com.whip.app.ui.buildWorkoutExerciseBlocks
@@ -112,6 +117,153 @@ import java.time.Instant
 class GymPowerInputUiTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun captureWorkoutComponentCatalog() {
+        val exercise = testExercise().copy(name = "Cable Row", notes = "Keep the torso stable")
+        val workoutExercise = testWorkoutExercise(exercise).copy(notes = "Seat position 4")
+        val workoutSet = testWorkoutSet(4, workoutExercise.id).copy(note = "Controlled eccentric", rpe = 8.0)
+        val routine = GymRoutine(
+            id = 1,
+            uuid = "routine",
+            name = "Strength Cycle",
+            notes = "Four-phase program",
+            position = 0,
+            archived = false,
+            pinned = true,
+            createdAtMillis = 1,
+            updatedAtMillis = 2,
+            programKind = RoutineProgramKind.FiveThreeOne,
+            programPhaseCount = 4,
+            programPhaseLabels = listOf("5s", "3s", "5/3/1", "Deload"),
+            currentProgramPhaseIndex = 2,
+            currentProgramCycle = 3,
+            nextProgramDayPosition = 1,
+            programPhaseRoles = listOf(
+                RoutineProgramPhaseRole.Leader,
+                RoutineProgramPhaseRole.Leader,
+                RoutineProgramPhaseRole.Anchor,
+                RoutineProgramPhaseRole.Deload,
+            ),
+            trainingMaxAdvanceAfterPhaseIndices = setOf(3),
+            progressionMode = RoutineProgressionMode.PerformanceInformed,
+            allowNonStandardHigherSuggestions = true,
+        )
+        val days = listOf(
+            RoutineDay(2, "day-a", routine.id, "Upper", 0, 1, 2, progressionIndex = 4),
+            RoutineDay(3, "day-b", routine.id, "Lower", 1, 1, 2, progressionIndex = 4),
+        )
+        var surface by mutableStateOf(0)
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                androidx.compose.runtime.key(surface) {
+                    when (surface) {
+                        0 -> WorkoutSetEditorDialog(
+                            set = workoutSet,
+                            exercise = exercise,
+                            workoutExercise = workoutExercise,
+                            machine = null,
+                            preferredWeightUnitId = "kilogram",
+                            preferredDistanceUnitId = "kilometre",
+                            showRpe = true,
+                            showRir = false,
+                            showTempo = true,
+                            saving = false,
+                            errorMessage = null,
+                            onDismiss = {},
+                            onSave = {},
+                        )
+                        1 -> WorkoutExerciseNotesDialog(
+                            exerciseName = exercise.name,
+                            initialNotes = workoutExercise.notes,
+                            machines = emptyList(),
+                            selectedMachineId = null,
+                            machineLocked = false,
+                            saving = false,
+                            errorMessage = null,
+                            onDismiss = {},
+                            onSave = { _, _ -> },
+                            onCreateMachine = {},
+                        )
+                        2 -> ExerciseActionsDialog(
+                            exercise = exercise,
+                            trackedInProgress = true,
+                            onDismiss = {},
+                            onEdit = {},
+                            onFavorite = {},
+                            onDuplicate = {},
+                            onConfigureTrackedRecords = {},
+                            onArchive = {},
+                            onDelete = {},
+                        )
+                        3 -> TrackedRecordsManagerDialog(
+                            modifier = Modifier,
+                            state = GymUiState(exercises = listOf(exercise), loading = false),
+                            initialExerciseId = exercise.id,
+                            onDismiss = {},
+                            onSave = {},
+                        )
+                        4 -> RoutineProgramPositionDialog(
+                            routine = routine,
+                            days = days,
+                            onDismiss = {},
+                            onSave = { _, _, _ -> },
+                        )
+                        else -> WorkoutExerciseCard(
+                            item = WorkoutExerciseUi(
+                                workoutExercise,
+                                exercise,
+                                listOf(workoutSet),
+                                emptyList(),
+                                0,
+                                null,
+                                null,
+                            ),
+                            preferredWeightUnitId = "kilogram",
+                            preferredDistanceUnitId = "kilometre",
+                            numberPrecision = 1,
+                            compactRows = false,
+                            showRpe = true,
+                            showRir = false,
+                            nextSetId = null,
+                            nextInGroup = false,
+                            canMoveUp = false,
+                            canMoveDown = false,
+                            onMoveUp = {},
+                            onMoveDown = {},
+                            onRemoveExercise = {},
+                            onSubstituteExercise = {},
+                            onAddSet = {},
+                            onEditSet = {},
+                            onEditNotes = {},
+                            onCompleteSet = { _, _ -> },
+                            onSaveQuickSet = { _, _, _ -> },
+                            onDuplicateSet = {},
+                            onDeleteSet = {},
+                            onUndoDeleteSet = {},
+                            onReorderSets = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        captureVisualCatalogSurface("gym.workout.set-editor")
+        compose.runOnIdle { surface = 1 }
+        captureVisualCatalogSurface("gym.workout.notes")
+        compose.runOnIdle { surface = 2 }
+        captureVisualCatalogSurface("gym.exercise.actions")
+        compose.runOnIdle { surface = 3 }
+        captureVisualCatalogSurface("gym.tracked-records")
+        compose.runOnIdle { surface = 4 }
+        captureVisualCatalogSurface("gym.routine.program-position")
+        compose.runOnIdle { surface = 5 }
+        compose.onNodeWithContentDescription("More options for Cable Row").performClick()
+        captureVisualCatalogSurface("gym.workout-exercise.menu")
+        compose.runOnIdle { surface = 6 }
+        compose.onNodeWithContentDescription("Manage set 1").performClick()
+        captureVisualCatalogSurface("gym.workout-set.menu")
+    }
 
     @Test
     fun routineEditReconstructionPreservesAdvancedProgrammingFields() {
@@ -255,6 +407,7 @@ class GymPowerInputUiTest {
 
         compose.onNodeWithText("Advanced Options").performClick()
         compose.onNodeWithText("lb").performScrollTo().performClick()
+        captureVisualCatalogSurface("gym.defaults-change")
         compose.onNodeWithText("Convert Default Values").performClick()
         compose.onNodeWithTag("exercise-editor-list").performScrollToNode(hasTestTag("exercise-weight-increment"))
         compose.onNodeWithTag("exercise-weight-increment").assertTextContains("5")
@@ -322,6 +475,7 @@ class GymPowerInputUiTest {
             }
         }
 
+        captureVisualCatalogSurface("gym.exercise.editor")
         compose.onNodeWithText("Advanced Options").performClick()
         compose.onNodeWithTag("exercise-editor-list").performScrollToNode(hasText("Default graph"))
         compose.onAllNodesWithTag("exercise-weight-increment").assertCountEquals(0)
@@ -419,6 +573,7 @@ class GymPowerInputUiTest {
             }
         }
 
+        captureVisualCatalogSurface("gym.machine.editor")
         compose.onNodeWithTag("machine-editor-list").performScrollToNode(hasText("Numbered Stack / Level"))
         compose.onNodeWithText("Numbered Stack / Level").performClick()
         compose.onNodeWithTag("machine-editor-list").performScrollToNode(hasTestTag("machine-load-spec"))
@@ -547,6 +702,7 @@ class GymPowerInputUiTest {
             }
         }
 
+        captureVisualCatalogSurface("gym.machine.permanent-delete")
         compose.onNodeWithText("Delete “Downtown cable stack” v2 Permanently?").assertIsDisplayed()
         compose.onNodeWithText("Kept").assertIsDisplayed()
         compose.onNodeWithText("Needs Attention").assertIsDisplayed()
@@ -615,6 +771,7 @@ class GymPowerInputUiTest {
             }
         }
 
+        captureVisualCatalogSurface("gym.exercise.permanent-delete")
         val dialog = compose.onNodeWithTag("exercise-delete-dialog").getUnclippedBoundsInRoot()
         assertTrue(dialog.right - dialog.left <= 321.dp)
         compose.onNodeWithText("Active Workout").performScrollTo().assertIsDisplayed()
@@ -658,6 +815,7 @@ class GymPowerInputUiTest {
             }
         }
 
+        captureVisualCatalogSurface("gym.routine.permanent-delete")
         compose.onNodeWithText("Active Workout").assertIsDisplayed()
         compose.onNodeWithText("Kept").assertIsDisplayed()
         compose.onNodeWithTag("routine-delete-confirm").assertIsNotEnabled()
@@ -900,6 +1058,7 @@ class GymPowerInputUiTest {
         ).assertIsDisplayed()
         compose.onNodeWithContentDescription("Adjust rest time for this workout").performClick()
         compose.onNodeWithText("Rest Time for This Workout").assertIsDisplayed()
+        captureVisualCatalogSurface("gym.rest-duration")
         listOf("1:00", "1:30", "2:00", "2:30", "3:00", "5:00").forEach { preset ->
             compose.onAllNodes(hasText(preset)).fetchSemanticsNodes().also { nodes ->
                 check(nodes.isNotEmpty()) { "Missing default rest preset $preset" }
@@ -1094,6 +1253,7 @@ class GymPowerInputUiTest {
         compose.onNodeWithContentDescription("Manage set 1").performClick()
         compose.onNodeWithText("Mark Main Set Not Performed").performClick()
         compose.onNodeWithText("Mark Main Set not performed?").assertIsDisplayed()
+        captureVisualCatalogSurface("gym.confirmation")
         compose.onNodeWithText("It can hold this exercise's Training Max progression", substring = true).assertIsDisplayed()
         compose.runOnIdle {
             assertEquals(null, submittedBoundary)
@@ -1618,6 +1778,7 @@ class GymPowerInputUiTest {
         compose.onNodeWithText("Edit Details").assertIsDisplayed()
         compose.onNodeWithText("Resume Original Workout").assertIsDisplayed()
         compose.onNodeWithText("Save as Routine").assertIsDisplayed()
+        captureVisualCatalogSurface("gym.workout-history.menu")
         assertEquals(
             "Program snapshot · 5/3/1 · Cycle 3 · Anchor 1 · Anchor · Day 2 · Day progression 5 · Did not advance program progress",
             workoutProgramSnapshotLabel(session),
