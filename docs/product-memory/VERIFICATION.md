@@ -1182,3 +1182,14 @@
 - Artifact/evidence: `/tmp/whip-ui-tasks-remediated-20260906` and `/tmp/whip-ui-goals-remediated-20260906`, each with exact manifests and searchable galleries.
 - Related: `FB-20260906-008`, `FND-20260906-003`, `FND-20260906-004`, `DEC-20260906-006`, `IMP-20260906-015`.
 - Status: Verified and visually accepted; final whole-catalog closure remains pending.
+
+### VER-20260906-016 — Final popup-state capture verification
+
+- Scope/environment: Habit and Track popup capture fidelity on disposable API 34 `emulator-5554`, with deterministic dark theme. The physical owner phone was not queried, connected, instrumented, installed to, or otherwise used.
+- Command or manual procedure: Exact Habit and Track family runs through `ANDROID_SERIAL=emulator-5554 scripts/ui-catalog capture --family …`; direct original-resolution PNG inspection; exact semantics-text checks; manifest accounting; and `git diff --check`.
+- Result: Habit executed nine selectors and exported exactly 19 PNG/XML pairs with zero failures/skips in `/root/repos/whip/build/instrumentation-results-37RRWP`. After refreshing the disposable emulator, Tracks executed eight selectors and exported exactly 21 pairs with zero failures/skips in `/root/repos/whip/build/instrumentation-results-iCezMc`. `habits.row.menu` visibly contains Browse Templates/Reorder All Habits; `tracks.reorder.menu` contains Select Tracks; `tracks.activity.menu` contains Open Track/Delete Entry; and `tracks.entry.menu` contains Delete Entry. Each label is also present in its paired XML.
+- Failed-then-repaired evidence: `/root/repos/whip/build/instrumentation-results-t5RSYw` rejected an incorrect scope-dependent Track label assumption. `/root/repos/whip/build/instrumentation-results-V64Uej` then failed closed when a resource-exhausted stock emulator exposed non-Whip launcher/test windows during every hierarchy export. Neither run is evidence; no product failure occurred.
+- Counts and exclusions: This verifies the four popup gaps found in the first frozen gallery. The replacement whole 171-surface recapture remains pending. The Play Store candidate suite was intentionally not run.
+- Artifact/evidence: `/tmp/whip-ui-habits-finalfix-20260906` and `/tmp/whip-ui-tracks-finalfix3-20260906`, with exact manifests and searchable galleries.
+- Related: `FB-20260906-008`, `FND-20260906-002`, `DEC-20260906-005`, `IMP-20260906-016`.
+- Status: Verified and visually accepted; frozen whole-catalog closure remains pending.

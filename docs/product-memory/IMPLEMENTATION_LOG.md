@@ -1109,3 +1109,13 @@
 - Related: `FB-20260906-008`, `FND-20260906-003`, `FND-20260906-004`, `DEC-20260906-006`, `VER-20260906-015`.
 - Verification: `VER-20260906-015`.
 - Status: Implemented and accepted in focused Task/Goal emulator recaptures.
+
+### IMP-20260906-016 — Close final Habit and Track popup capture gaps
+
+- Behavior changed: Added state-specific visible-menu assertions and settle boundaries before the Habit row overflow and the Track collection, activity-entry, and detail-entry overflow captures. The Track collection gate uses the invariant Select Tracks action so it remains valid across scoped reorder labels.
+- Important files/symbols: `VisualCatalogPagesTest.captureHabitPages`, `VisualCatalogPagesTest.captureTrackPages`, and the four `*.menu` catalog artifacts.
+- Persistence/migration/history impact: Android-test capture synchronization only. Production UI/behavior, schema 46, data epoch 6, backup version 24, release identity, and user data are unchanged.
+- Compatibility and limitations: Exact Habit and Track family recaptures now show the intended popups in PNG and semantics evidence. A resource-exhausted stock emulator run failed closed on non-Whip hierarchy ownership and was rejected; refreshing only the disposable emulator restored deterministic capture. The final whole-catalog recapture remains pending. No candidate, signed build, owner-phone query, phone instrumentation, install, or publication occurred.
+- Related: `FB-20260906-008`, `FND-20260906-002`, `DEC-20260906-005`, `VER-20260906-016`.
+- Verification: `VER-20260906-016`.
+- Status: Implemented and exact-family verified; ready for frozen whole-catalog recapture.
