@@ -1109,3 +1109,13 @@
 - Failures or residual risk: An early workspace selector assumed a private section tag and was repaired to use the production content description plus Schedule section. Remaining Habits, Goals, Tracks, Gym, Settings, and Organization selectors, visual critique, production remediation, final recapture, and owner-phone deployment remain incomplete.
 - Related: `FB-20260906-008`, `DEC-20260906-005`, `IMP-20260906-008`.
 - Status: Verified for complete Shared and Tasks family coverage; the durable goal remains active.
+
+### VER-20260906-009 — Exhaustive Habits catalog evidence
+
+- Scope/environment: Habit catalog fixtures on disposable API 34 `emulator-5554`, deterministic dark theme with dynamic color disabled. The physical owner phone was not queried, connected, instrumented, installed to, or otherwise used.
+- Command or manual procedure: Android-test Kotlin compilation followed by `ANDROID_SERIAL=emulator-5554 scripts/ui-catalog capture --allow-pending --family habits /tmp/whip-ui-habits-complete-20260906` and exact catalog/export accounting.
+- Result: Nine selectors executed with zero failures/skips and exported exactly 19 PNG plus 19 matching XML files (2,594,401 transferred bytes), with no missing or unexpected surface IDs and a complete SHA-256/byte manifest.
+- Coverage accounting: Implemented catalog coverage advanced from 80 to 94 surfaces, because the pre-existing five Habit page states plus fourteen newly assigned states produce 19 total Habit captures. The whole catalog remains 171 required surfaces, zero platform exceptions, and 77 later-family pending selectors; Habits has no pending row.
+- Failures or residual risk: No accepted-run failures. Goals, Tracks, Gym, Settings, and Organization selectors, cross-family visual critique, product remediation, final recapture, and owner-phone deployment remain incomplete.
+- Related: `FB-20260906-008`, `DEC-20260906-005`, `IMP-20260906-009`.
+- Status: Verified for complete Habits family coverage; the durable goal remains active.

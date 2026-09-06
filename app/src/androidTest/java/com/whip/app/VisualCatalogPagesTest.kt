@@ -176,6 +176,13 @@ class VisualCatalogPagesTest {
     private fun captureHabitPages() {
         openPrimary("Habits")
         captureVisualCatalogSurface("habits.today.populated")
+        compose.onNodeWithContentDescription("More Habit Actions").performClick()
+        captureVisualCatalogSurface("habits.row.menu")
+        compose.onNodeWithText("Browse Templates").performClick()
+        compose.waitForIdle()
+        captureVisualCatalogSurface("habits.template")
+        compose.onNodeWithText("Cancel").performClick()
+        compose.waitForIdle()
         selectTag("habit-destination-All")
         captureVisualCatalogSurface("habits.all.populated")
         selectTag("habit-destination-Archived")
@@ -274,6 +281,7 @@ class VisualCatalogPagesTest {
         app.taskRepository.archive(archivedTaskId)
 
         app.habitRepository.create(HabitDraft(name = "Morning medication", icon = "💊", startDate = today))
+        app.habitRepository.create(HabitDraft(name = "Evening stretch", icon = "🧘", startDate = today))
         val archivedHabitId = app.habitRepository.create(
             HabitDraft(name = "Previous routine", icon = "🌱", startDate = today.minusDays(30)),
         )

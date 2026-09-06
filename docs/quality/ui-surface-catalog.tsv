@@ -50,20 +50,20 @@ route:habits-today-empty	habits.today.empty	habits	page	empty	com.whip.app.Visua
 route:habits-all	habits.all.populated	habits	page	populated	com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog	capture	All habits.
 route:habits-archived	habits.archived.populated	habits	page	populated	com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog	capture	Archived habits.
 route:habits-insights	habits.insights.populated	habits	page	populated	com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog	capture	Habit insights.
-dialog:habit-inspector-today	habits.inspector.today	habits	dialog	today tab	pending	capture	Habit inspector primary check-in state.
-dialog:habit-inspector-history	habits.inspector.history	habits	dialog	history tab	pending	capture	Habit inspector activity timeline.
-dialog:habit-inspector-options	habits.inspector.options	habits	dialog	options tab	pending	capture	Habit inspector lifecycle actions.
-editor:habit-create	habits.editor.create	habits	dialog	new habit	pending	capture	Habit creation form.
-editor:habit-edit	habits.editor.edit	habits	dialog	existing habit	pending	capture	Habit editing form.
-dialog:habit-template	habits.template	habits	dialog	open	pending	capture	Habit template chooser.
-dialog:habit-value	habits.value-entry	habits	dialog	numeric	pending	capture	Numeric habit check-in.
-dialog:habit-timer	habits.timer-review	habits	dialog	elapsed timer	pending	capture	Timer completion review.
-dialog:habit-history	habits.history-log	habits	dialog	view log	pending	capture	Habit history log detail.
-dialog:habit-history-edit	habits.history-log-edit	habits	dialog	edit log	pending	capture	Editable past habit log.
-dialog:habit-pause	habits.pause-create	habits	dialog	new pause	pending	capture	Habit pause scheduling.
-dialog:habit-actions	habits.actions	habits	dialog	open	pending	capture	Habit action menu dialog.
-dialog:habit-delete	habits.permanent-delete	habits	dialog	with impact summary	pending	capture	Permanent habit deletion.
-menu:habit-row	habits.row.menu	habits	menu	open	pending	capture	Habit row overflow actions.
+dialog:habit-inspector-today	habits.inspector.today	habits	dialog	today tab	com.whip.app.ActivityHistoryUiTest#habitTodayUsesOneResponsiveOverviewAndExplainedSecondaryAction	capture	Habit inspector primary check-in state.
+dialog:habit-inspector-history	habits.inspector.history	habits	dialog	history tab	com.whip.app.ActivityHistoryUiTest#inspectorMakesScheduledPausesEditableAndHistoricalSkipsUndoable	capture	Habit inspector activity timeline.
+dialog:habit-inspector-options	habits.inspector.options	habits	dialog	options tab	com.whip.app.ActivityHistoryUiTest#inspectorMakesScheduledPausesEditableAndHistoricalSkipsUndoable	capture	Habit inspector lifecycle actions.
+editor:habit-create	habits.editor.create	habits	dialog	new habit	com.whip.app.ui.VisualCatalogHabitComponentsTest#captureHabitComponentCatalog	capture	Habit creation form.
+editor:habit-edit	habits.editor.edit	habits	dialog	existing habit	com.whip.app.ui.VisualCatalogHabitComponentsTest#captureHabitComponentCatalog	capture	Habit editing form.
+dialog:habit-template	habits.template	habits	dialog	open	com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog	capture	Habit template chooser.
+dialog:habit-value	habits.value-entry	habits	dialog	numeric	com.whip.app.ActivityHistoryUiTest#absoluteValueEditorExplainsThatALowerNumberSetsRatherThanAdds	capture	Numeric habit check-in.
+dialog:habit-timer	habits.timer-review	habits	dialog	elapsed timer	com.whip.app.ProductivityCardDesignUiTest#timerReviewDialogSupportsCorrectionContinueStopAndDiscardAtNarrowWidth	capture	Timer completion review.
+dialog:habit-history	habits.history-log	habits	dialog	view log	com.whip.app.ActivityHistoryUiTest#pastCheckInAsksWhatHappenedWithoutExposingStateOrValueStorageFields	capture	Habit history log detail.
+dialog:habit-history-edit	habits.history-log-edit	habits	dialog	edit log	com.whip.app.ActivityHistoryUiTest#editedHistoryDraftWaitsForItsExactOutcomeAndSurvivesFailure	capture	Editable past habit log.
+dialog:habit-pause	habits.pause-create	habits	dialog	new pause	com.whip.app.ui.VisualCatalogHabitComponentsTest#captureHabitComponentCatalog	capture	Habit pause scheduling.
+dialog:habit-actions	habits.actions	habits	dialog	open	com.whip.app.ActivityHistoryUiTest#inspectorMakesScheduledPausesEditableAndHistoricalSkipsUndoable	capture	Habit action menu dialog.
+dialog:habit-delete	habits.permanent-delete	habits	dialog	with impact summary	com.whip.app.ui.HabitDeletionUiTest#captureHabitDeletionCatalog	capture	Permanent habit deletion.
+menu:habit-row	habits.row.menu	habits	menu	open	com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog	capture	Habit row overflow actions.
 route:goals-active	goals.active.populated	goals	page	populated	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Active goals.
 route:goals-active-empty	goals.active.empty	goals	page	empty	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Active goals empty state.
 route:goals-history	goals.history.populated	goals	page	populated	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Completed goal history.

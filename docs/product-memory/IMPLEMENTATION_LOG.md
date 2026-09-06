@@ -1041,3 +1041,12 @@
 - Compatibility and limitations: Shared and Tasks are exhaustive against the current 171-row catalog. Ninety-one selectors in later families remain pending, so full lint intentionally remains fail-closed. No candidate, signed build, owner-phone query, phone instrumentation, install, or publication occurred.
 - Related: `FB-20260906-008`, `DEC-20260906-005`, `IMP-20260906-007`, `VER-20260906-008`.
 - Status: Implemented, exact-family captured, and ready for the remaining catalog families.
+
+### IMP-20260906-009 — Complete Habits visual-catalog family
+
+- Behavior changed: Added exact emulator capture ownership for every declared Habit surface: empty/populated workspace pages, all inspector tabs, create/edit forms, template chooser, numeric check-in, timer review, past-log create/edit, pause scheduling, lifecycle actions, impact-aware permanent deletion, and row overflow. Stateful/private surfaces reuse their production behavior tests and the template/menu path runs through the real application; only standalone editors use a deterministic production-component fixture.
+- Important files/symbols: `VisualCatalogHabitComponentsTest`, `VisualCatalogPagesTest.captureHabitPageCatalog`, `ActivityHistoryUiTest`, `ProductivityCardDesignUiTest`, `HabitDeletionUiTest`, and `docs/quality/ui-surface-catalog.tsv`.
+- Persistence/migration/history impact: Android-test fixtures and catalog metadata only. Production Habit behavior, schema 46, data epoch 6, backup version 24, release identity, and stored user data are unchanged.
+- Compatibility and limitations: Habits is exhaustive against the current catalog; 77 later-family selectors remain pending. No candidate, signed build, owner-phone query, phone instrumentation, install, or publication occurred.
+- Related: `FB-20260906-008`, `DEC-20260906-005`, `VER-20260906-009`.
+- Status: Implemented and exact-family captured; visual critique and remediation remain pending.

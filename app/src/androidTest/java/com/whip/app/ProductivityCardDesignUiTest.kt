@@ -804,6 +804,7 @@ class ProductivityCardDesignUiTest {
             }
         }
 
+        captureVisualCatalogSurface("habits.timer-review")
         compose.onNodeWithText("Review Meditation Timer").assertIsDisplayed()
         compose.onNodeWithTag("habit-timer-review-minutes").performTextReplacement("2.5")
         compose.onNodeWithTag("habit-timer-review-stop").performClick()

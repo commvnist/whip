@@ -91,6 +91,7 @@ class ActivityHistoryUiTest {
             }
         }
 
+        captureVisualCatalogSurface("habits.history-log")
         compose.onNodeWithText("Record Past Check-In").assertIsDisplayed()
         compose.onNodeWithText("💊 Medication").assertIsDisplayed()
         compose.onNodeWithText("Date · ${today.minusDays(1).format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
@@ -200,6 +201,7 @@ class ActivityHistoryUiTest {
             }
         }
 
+        captureVisualCatalogSurface("habits.value-entry")
         compose.onNodeWithText("Set Today's Total").assertIsDisplayed()
         compose.onNodeWithText("Saving sets this total; it does not add to it.", substring = true)
             .assertIsDisplayed()
@@ -233,6 +235,7 @@ class ActivityHistoryUiTest {
             }
         }
 
+        captureVisualCatalogSurface("habits.history-log-edit")
         compose.onNodeWithTag("habit-history-value").performTextReplacement("4")
         compose.onNodeWithTag("habit-history-note").performTextReplacement("Corrected")
         compose.onNodeWithText("Save Changes").performClick()
@@ -342,11 +345,14 @@ class ActivityHistoryUiTest {
         }
 
         compose.onNodeWithText("Options").performClick()
+        captureVisualCatalogSurface("habits.inspector.options")
+        captureVisualCatalogSurface("habits.actions")
         compose.onNodeWithTag("entity-inspector-action-pause-8").performScrollTo().assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(8L, editedPauseId) }
 
         compose.onNodeWithText("History").performClick()
         compose.onNodeWithText("Habit History").assertIsDisplayed()
+        captureVisualCatalogSurface("habits.inspector.history")
         compose.onNodeWithTag("entity-inspector-action-pause-history-9")
             .performScrollTo()
             .assertIsDisplayed()
@@ -381,6 +387,7 @@ class ActivityHistoryUiTest {
             }
         }
 
+        captureVisualCatalogSurface("habits.inspector.today")
         compose.onNodeWithTag("habit-today-overview").assertIsDisplayed()
         compose.onNodeWithTag("habit-today-state").assertTextContains("Ready for today's check-in.")
         compose.onNodeWithTag("habit-today-date")

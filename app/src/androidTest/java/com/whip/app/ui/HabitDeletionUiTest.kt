@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.whip.app.captureVisualCatalogSurface
 import com.whip.app.data.HabitDeletionImpact
 import com.whip.app.ui.theme.WhipTheme
 import org.junit.Assert.assertEquals
@@ -18,6 +19,14 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class HabitDeletionUiTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test
+    fun captureHabitDeletionCatalog() {
+        showDialog(readyState())
+
+        compose.onNodeWithTag("habit-permanent-delete-dialog").assertIsDisplayed()
+        captureVisualCatalogSurface("habits.permanent-delete")
+    }
 
     @Test
     fun preparingReviewKeepsTheDialogOpenAndDisablesPermanentDelete() {
