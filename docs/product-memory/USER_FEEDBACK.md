@@ -434,3 +434,13 @@ These records preserve durable user intent. “Released” means the change reac
 - Related: `FB-20260902-009`, `DEC-20260904-002`, `DEC-20260904-003`, `DEC-20260906-002`, `IMP-20260906-002`, `VER-20260906-002`.
 - Status: Implemented and fixture-verified; fresh candidate qualification remains required before release because the harness itself changed.
 - Notes: This request authorizes development-process and repository-tooling changes, not an application release or physical-device deployment.
+
+### FB-20260906-004 — Release the latest source to the phone
+
+- Date/source: 2026-09-06, direct user request.
+- User need: Qualify and install the latest pushed Whip source on the user's physical phone.
+- Acceptance criteria: Assign a higher monotonic release identity; create one fresh complete frozen candidate after the testing-cycle harness change; build signed APK/AAB artifacts from that exact source; use an explicitly selected connected physical target; install in place without clearing, resetting, uninstalling, downgrading, or running instrumentation on the phone; verify source/artifact/signature/package identity, installed version/hash, preserved first-install identity, cold launch, foreground activity, and bounded fatal/Room/SQLite logs.
+- Affected users/workflows: The user's installed production Whip application and future upgrade continuity.
+- Related: `FB-20260906-003`, `DEC-20260906-002`.
+- Status: In progress; the phone and disposable emulator were not connected at request start.
+- Notes: Installation and launch are authorized. Play Store publication and any destructive in-app fresh-start confirmation remain out of scope.
