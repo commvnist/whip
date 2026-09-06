@@ -1074,6 +1074,6 @@
 - Failed-then-repaired evidence: Initial compilation caught a timer `Double`/`Long` mismatch and missing `ZoneId` import. The first device assertion reached the correct punctuated state but expected an unpunctuated exact string. Both were repaired. A deliberate temporary visual-hold run passed its test body but was correctly excluded when the harness detected changed test inputs; the final unchanged-input run is the accepted evidence.
 - Counts and exclusions: Routed JVM Habit checks passed; one focused Android test executed. The complete 1,538-test suite, candidate qualification, signed release build, and phone installation were intentionally not run.
 - Artifact/version/hash: No release artifact. Current installed release remains 0.3.50/code 56 without this change.
-- Commit/push: Pending verified implementation commit.
+- Commit/push: `13f00a0` pushed to `origin/main`.
 - Related: `FB-20260906-006`, `FND-20260906-001`, `DEC-20260906-004`, `IMP-20260906-005`.
 - Status: Verified for the focused change; awaiting user validation.

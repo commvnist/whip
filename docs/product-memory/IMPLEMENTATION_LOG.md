@@ -1007,7 +1007,7 @@
 - Important files/symbols: `HabitActionsDialog`, `HabitDayProgress.inspectorTodaySummary`, `HabitTodayMetric`, and `ActivityHistoryUiTest.habitTodayUsesOneResponsiveOverviewAndExplainedSecondaryAction`.
 - Persistence/migration/history impact: Presentation and copy only. No schema, data epoch, backup format, scheduling, streak calculation, mutation, or stored user data changed.
 - Compatibility and limitations: Verified in dark mode at a constrained 320 dp pane and 200% text. The complete product suite and Play Store candidate were intentionally not run; the current physical-phone release remains 0.3.50/code 56 and does not contain this change.
-- Commit/push: Pending verified implementation commit.
+- Commit/push: `13f00a0` pushed to `origin/main`.
 - Related: `FB-20260906-006`, `FND-20260906-001`, `DEC-20260906-004`, `VER-20260906-005`.
 - Verification: `VER-20260906-005`.
 - Status: Implemented and emulator-verified; awaiting user validation.
