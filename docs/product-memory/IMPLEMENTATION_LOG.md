@@ -1059,3 +1059,13 @@
 - Compatibility and limitations: Goals is exhaustive against the current catalog; 69 later-family selectors remain pending. No candidate, signed build, owner-phone query, phone instrumentation, install, or publication occurred.
 - Related: `FB-20260906-008`, `DEC-20260906-005`, `VER-20260906-010`.
 - Status: Implemented and exact-family captured; cross-family visual critique and remediation remain pending.
+
+### IMP-20260906-011 — Complete Tracks visual-catalog family
+
+- Behavior changed: Added exact capture ownership for every declared Track surface: collection/detail pages and missing-target state; definition and entry create/edit forms; entry details; filter and condition dialogs; CSV preview; entry deletion; and collection/activity/entry overflow menus. Production mutation tests own authored/destructive states, while the real `MainActivity` journey owns private workspace dialogs and menus.
+- Capture reliability: Popup captures intentionally transition through another production destination before further interaction because the UI-automation hierarchy pass can invalidate popup-window focus. Capture-only tests isolate surfaces whose existing behavior tests later rely on Espresso back handling.
+- Important files/symbols: `VisualCatalogPagesTest.captureTrackPageCatalog`, `TrackDefinitionMutationUiTest`, `TrackEntryMutationUiTest`, `TrackCsvImportUiTest`, and `docs/quality/ui-surface-catalog.tsv`.
+- Persistence/migration/history impact: Android-test fixtures and catalog metadata only. Production Track behavior, schema 46, data epoch 6, backup version 24, release identity, and stored user data are unchanged.
+- Compatibility and limitations: Tracks is exhaustive against the current catalog; 56 Gym/Settings/Organization selectors remain pending. No candidate, signed build, owner-phone query, phone instrumentation, install, or publication occurred.
+- Related: `FB-20260906-008`, `DEC-20260906-005`, `VER-20260906-011`.
+- Status: Implemented and exact-family captured; cross-family visual critique and remediation remain pending.

@@ -55,10 +55,27 @@ class TrackDefinitionMutationUiTest {
     @get:Rule val compose = createComposeRule()
 
     @Test
+    fun captureTrackUnavailableCatalog() {
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                TrackEntryUnavailableRoute(
+                    title = "Entry Unavailable",
+                    message = "This Entry is no longer available. It was not reinterpreted as a new Entry.",
+                    modifier = Modifier,
+                    onDismiss = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("track-entry-unavailable").assertIsDisplayed()
+        captureVisualCatalogSurface("tracks.detail.unavailable")
+    }
+
+    @Test
     fun freshAddedNumberFieldUsesCurrentUnitAndPrecisionPreferences() {
         var saved: TrackDraft? = null
         compose.setContent {
-            WhipTheme(dynamicColor = false) {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
                 TrackEditor(
                     liveInitial = null,
                     targetTrackId = null,
@@ -81,6 +98,7 @@ class TrackDefinitionMutationUiTest {
             }
         }
 
+        captureVisualCatalogSurface("tracks.editor.create")
         compose.onNodeWithTag("track-editor-name").performTextInput("Measurements")
         compose.onNodeWithText("Add Field").performClick()
         compose.onNodeWithTag("track-field-name").performTextInput("Weight")
@@ -112,7 +130,7 @@ class TrackDefinitionMutationUiTest {
             precision = 4,
         )
         compose.setContent {
-            WhipTheme(dynamicColor = false) {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
                 TrackEditor(
                     liveInitial = null,
                     targetTrackId = null,
@@ -373,7 +391,7 @@ class TrackDefinitionMutationUiTest {
             ),
         )
         compose.setContent {
-            WhipTheme(dynamicColor = false) {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
                 TrackEditor(
                     liveInitial = null,
                     targetTrackId = 9,
@@ -397,6 +415,7 @@ class TrackDefinitionMutationUiTest {
             }
         }
 
+        captureVisualCatalogSurface("tracks.editor.edit")
         compose.onNodeWithTag("track-editor-list").performScrollToNode(hasText("Organization"))
         compose.onNodeWithText("Organization").assertIsDisplayed()
         compose.runOnIdle {

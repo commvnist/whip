@@ -40,13 +40,34 @@ class TrackEntryMutationUiTest {
     @get:Rule val compose = createComposeRule()
 
     @Test
+    fun captureTrackEntryCreateCatalog() {
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                TrackEntryEditor(
+                    form = entryForm(),
+                    editSnapshot = null,
+                    today = LocalDate.of(2026, 9, 1),
+                    saving = false,
+                    modifier = Modifier.width(320.dp),
+                    sessionId = 50,
+                    onDismiss = {},
+                    onSave = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("track-entry-editor-list").assertIsDisplayed()
+        captureVisualCatalogSurface("tracks.entry.create")
+    }
+
+    @Test
     fun savingEntryShieldsInputAndFailureKeepsTheUsersDraft() {
         var saving by mutableStateOf(false)
         var persistenceError by mutableStateOf<String?>(null)
         var dismissed = 0
         val form = entryForm()
         compose.setContent {
-            WhipTheme(dynamicColor = false) {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
                 TrackEntryEditor(
                     form = form,
                     editSnapshot = null,
@@ -85,7 +106,7 @@ class TrackEntryMutationUiTest {
         var persistenceError by mutableStateOf<String?>(null)
         var deleteRequests = 0
         compose.setContent {
-            WhipTheme(dynamicColor = false) {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
                 TrackEntryEditor(
                     form = form,
                     editSnapshot = snapshot,
@@ -104,10 +125,12 @@ class TrackEntryMutationUiTest {
             }
         }
 
+        captureVisualCatalogSurface("tracks.entry.edit")
         compose.onNodeWithTag("track-entry-editor-list")
             .performScrollToNode(hasText("Delete Entry"))
         compose.onNodeWithText("Delete Entry").performClick()
         compose.onNodeWithTag("track-entry-delete-confirmation").assertIsDisplayed()
+        captureVisualCatalogSurface("tracks.entry-delete")
         compose.onNodeWithText("Delete The Dispossessed?").assertIsDisplayed()
         compose.onNodeWithText(
             "This removes the Entry dated Sep 1, 2026 and 1 saved value.",

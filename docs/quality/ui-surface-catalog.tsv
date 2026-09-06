@@ -85,19 +85,19 @@ route:tracks-insights	tracks.insights.populated	tracks	page	populated	com.whip.a
 route:track-entries	tracks.detail.entries	tracks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Track entry list.
 route:track-options	tracks.detail.options	tracks	page	configured	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Track configuration summary.
 route:track-insights	tracks.detail.insights	tracks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Single-track insights.
-route:track-unavailable	tracks.detail.unavailable	tracks	page	missing target	pending	capture	Unavailable deep-link target.
-editor:track-create	tracks.editor.create	tracks	dialog	new track	pending	capture	Track definition creation.
-editor:track-edit	tracks.editor.edit	tracks	dialog	existing track	pending	capture	Track definition editing.
-editor:track-entry-create	tracks.entry.create	tracks	dialog	new entry	pending	capture	Track entry creation.
-editor:track-entry-edit	tracks.entry.edit	tracks	dialog	existing entry	pending	capture	Track entry editing.
-dialog:track-entry-details	tracks.entry.details	tracks	dialog	read-only details	pending	capture	Entry detail summary.
-dialog:track-filter	tracks.filter	tracks	dialog	configured	pending	capture	Track filter builder.
-dialog:track-condition	tracks.condition	tracks	dialog	configured	pending	capture	Track filter condition editor.
-dialog:track-csv	tracks.csv-import	tracks	dialog	preview	pending	capture	CSV import mapping and preview.
-dialog:track-delete	tracks.entry-delete	tracks	dialog	with impact summary	pending	capture	Track entry deletion.
-menu:track-activity	tracks.activity.menu	tracks	menu	open	pending	capture	Activity row actions.
-menu:track-entry	tracks.entry.menu	tracks	menu	open	pending	capture	Entry row actions.
-menu:track-reorder	tracks.reorder.menu	tracks	menu	open	pending	capture	Track field ordering actions.
+route:track-unavailable	tracks.detail.unavailable	tracks	page	missing target	com.whip.app.TrackDefinitionMutationUiTest#captureTrackUnavailableCatalog	capture	Unavailable deep-link target.
+editor:track-create	tracks.editor.create	tracks	dialog	new track	com.whip.app.TrackDefinitionMutationUiTest#freshAddedNumberFieldUsesCurrentUnitAndPrecisionPreferences	capture	Track definition creation.
+editor:track-edit	tracks.editor.edit	tracks	dialog	existing track	com.whip.app.TrackDefinitionMutationUiTest#asynchronousDefinitionConflictScrollsToAndAnnouncesItsRecoveryAction	capture	Track definition editing.
+editor:track-entry-create	tracks.entry.create	tracks	dialog	new entry	com.whip.app.TrackEntryMutationUiTest#captureTrackEntryCreateCatalog	capture	Track entry creation.
+editor:track-entry-edit	tracks.entry.edit	tracks	dialog	existing entry	com.whip.app.TrackEntryMutationUiTest#deletingEntryRequiresExactReviewAndFailureKeepsTheConfirmationOpen	capture	Track entry editing.
+dialog:track-entry-details	tracks.entry.details	tracks	dialog	read-only details	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Entry detail summary.
+dialog:track-filter	tracks.filter	tracks	dialog	configured	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Track filter builder.
+dialog:track-condition	tracks.condition	tracks	dialog	configured	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Track filter condition editor.
+dialog:track-csv	tracks.csv-import	tracks	dialog	preview	com.whip.app.ui.TrackCsvImportUiTest#captureTrackCsvImportCatalog	capture	CSV import mapping and preview.
+dialog:track-delete	tracks.entry-delete	tracks	dialog	with impact summary	com.whip.app.TrackEntryMutationUiTest#deletingEntryRequiresExactReviewAndFailureKeepsTheConfirmationOpen	capture	Track entry deletion.
+menu:track-activity	tracks.activity.menu	tracks	menu	open	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Activity row actions.
+menu:track-entry	tracks.entry.menu	tracks	menu	open	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Entry row actions.
+menu:track-reorder	tracks.reorder.menu	tracks	menu	open	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Track collection ordering actions.
 route:gym-workout-empty	gym.workout.empty	gym	page	no active workout	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Workout launch state.
 route:gym-workout-active	gym.workout.active	gym	page	active workout	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Active workout logging.
 route:gym-history	gym.history.populated	gym	page	populated	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Workout history.

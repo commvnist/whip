@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.whip.app.captureVisualCatalogSurface
 import com.whip.app.domain.Track
 import com.whip.app.domain.TrackCsvImportPreparation
 import com.whip.app.domain.TrackCsvImportPreview
@@ -48,12 +49,34 @@ class TrackCsvImportUiTest {
     @get:Rule val compose = createComposeRule()
 
     @Test
+    fun captureTrackCsvImportCatalog() {
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                TrackCsvImportDialog(
+                    projection = projection(),
+                    state = readyState(),
+                    saving = false,
+                    persistenceError = null,
+                    onMappingChange = {},
+                    onRetry = {},
+                    onChooseAnother = {},
+                    onDismiss = {},
+                    onImport = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("track-csv-import-dialog").assertIsDisplayed()
+        captureVisualCatalogSurface("tracks.csv-import")
+    }
+
+    @Test
     fun importingShieldsTheWholeDialogAndBlocksBackOrDuplicateSubmission() {
         var saving by mutableStateOf(false)
         var submissions = 0
         var dismissals = 0
         compose.setContent {
-            WhipTheme(dynamicColor = false) {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
                 TrackCsvImportDialog(
                     projection = projection(),
                     state = readyState(),

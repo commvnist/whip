@@ -1129,3 +1129,14 @@
 - Failures or residual risk: No accepted-run failures. Tracks, Gym, Settings, and Organization selectors, cross-family visual critique, product remediation, final recapture, and owner-phone deployment remain incomplete.
 - Related: `FB-20260906-008`, `DEC-20260906-005`, `IMP-20260906-010`.
 - Status: Verified for complete Goals family coverage; the durable goal remains active.
+
+### VER-20260906-011 — Exhaustive Tracks catalog evidence
+
+- Scope/environment: Track catalog fixtures on disposable API 34 `emulator-5554`, deterministic dark theme with dynamic color disabled. The physical owner phone was not queried, connected, instrumented, installed to, or otherwise used.
+- Command or manual procedure: Android-test compilation through the family runner; focused repair iterations; final `ANDROID_SERIAL=emulator-5554 scripts/ui-catalog capture --allow-pending --family tracks /tmp/whip-ui-tracks-complete-20260906`; and exact catalog/export accounting.
+- Result: The accepted run executed seven selectors with zero failures/skips and exported exactly 21 PNG plus 21 matching XML files (3,127,553 transferred bytes), with no missing or unexpected surface IDs and a complete SHA-256/byte manifest.
+- Coverage accounting: Implemented catalog coverage advanced from 102 to 115 surfaces: eight pre-existing Track pages plus thirteen newly assigned states. The whole catalog remains 171 required surfaces, zero platform exceptions, and 56 later-family pending selectors; Tracks has no pending row.
+- Failed-then-repaired evidence: Rejected runs exposed an incorrect use of an accessibility action label as content description, Espresso focus loss after popup capture, scope-dependent ordering copy, popup state invalidation after UI-automation hierarchy collection, the exact inspector close label, and two nested Cancel actions. The final journey uses visible entry text, destination transitions after popup capture, the exact `Close Track Entry details` label, and explicit nested-dialog selection. None of the rejected runs is accepted evidence.
+- Failures or residual risk: Gym, Settings, and Organization selectors, cross-family visual critique, product remediation, final recapture, and owner-phone deployment remain incomplete.
+- Related: `FB-20260906-008`, `DEC-20260906-005`, `IMP-20260906-011`.
+- Status: Verified for complete Tracks family coverage; the durable goal remains active.
