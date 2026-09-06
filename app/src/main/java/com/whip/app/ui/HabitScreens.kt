@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -33,6 +34,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -120,6 +122,7 @@ import com.whip.app.domain.supportsQuickAddAmounts
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.temporal.TemporalAdjusters
@@ -2934,25 +2937,70 @@ internal fun HabitActionsDialog(
                 PersistenceFailureNotice(mutationError, testTag = "habit-actions-save-problem")
                 when (section) {
                     HabitDetailSection.Today -> {
-                        EntityInspectorGroup("Today's check-in") {
+                        WhipGroupedInformationCard(
+                            Modifier.testTag("habit-today-overview"),
+                        ) {
                             Text(
-                                when {
-                                    item.habit.timerStartedAtMillis != null -> if (item.habit.timerNeedsReview) {
-                                        "Timer needs review · ${formatElapsedDuration(timerElapsedSeconds)} estimated."
-                                    } else {
-                                        "Timer started ${Instant.ofEpochMilli(requireNotNull(item.habit.timerStartedAtMillis)).atZone(activeZoneId).toLocalTime().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))} · ${formatElapsedDuration(timerElapsedSeconds)} elapsed."
-                                    }
-                                    item.habit.archived -> "This habit is archived. Use Restore below to resume check-ins."
-                                    item.dayState == HabitDayState.Skipped -> if (lowPressureMode) {
-                                        "Skipped today. No check-in is expected."
-                                    } else {
-                                        "Skipped today. Your streak remains protected."
-                                    }
-                                    item.dayState == HabitDayState.Paused -> "Paused today. No check-in is expected."
-                                    item.dayState == HabitDayState.NotScheduled -> "Not scheduled today."
-                                    else -> "${formatHabitValue(item.value, item.habit.precision)} logged today."
-                                },
+                                "Today's check-in",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
+                            Text(
+                                item.inspectorTodaySummary(
+                                    timerElapsedSeconds = timerElapsedSeconds,
+                                    activeZoneId = activeZoneId,
+                                    lowPressureMode = lowPressureMode,
+                                ),
+                                modifier = Modifier.testTag("habit-today-state"),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    Icons.Outlined.CalendarMonth,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    item.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)),
+                                    modifier = Modifier.testTag("habit-today-date"),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            if (!lowPressureMode || item.flexibleScheduleProgress != null) {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                FlowRow(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(20.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    if (!lowPressureMode) {
+                                        HabitTodayMetric(
+                                            id = "streak",
+                                            value = "${item.streak} ${if (item.streak == 1) "day" else "days"}",
+                                            label = "Current streak",
+                                        )
+                                        HabitTodayMetric(
+                                            id = "completion",
+                                            value = "${(item.completionRate * 100).toInt()}%",
+                                            label = "Completion rate",
+                                        )
+                                    }
+                                    item.flexibleScheduleProgress?.let { progress ->
+                                        HabitTodayMetric(
+                                            id = "period",
+                                            value = "$progress of ${item.flexibleScheduleTarget ?: 0}",
+                                            label = "This period",
+                                        )
+                                    }
+                                }
+                            }
                             if (item.habit.trackingMode == HabitTrackingMode.Duration && item.habit.sourceMeasurementId == null) {
                                 EntityInspectorAction(
                                     id = "enter-duration-manually",
@@ -2962,22 +3010,20 @@ internal fun HabitActionsDialog(
                                 )
                             }
                         }
-                        EntityInspectorGroup("Context") {
-                            EntityInspectorFact("Date", item.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)))
-                            if (!lowPressureMode) {
-                                EntityInspectorFact("Current streak", "${item.streak} ${if (item.streak == 1) "day" else "days"}")
-                                EntityInspectorFact("Completion rate", "${(item.completionRate * 100).toInt()}%")
-                            }
-                            item.flexibleScheduleProgress?.let { progress ->
-                                EntityInspectorFact(
-                                    "This period",
-                                    "$progress of ${item.flexibleScheduleTarget ?: 0} check-ins",
-                                )
-                            }
-                        }
                         if (skipAvailable) {
-                            EntityInspectorGroup("Today's availability") {
-                                EntityInspectorAction("skip-today", "Skip Today", onSkip)
+                            WhipActionList {
+                                WhipActionRow(
+                                    title = "Skip Today",
+                                    onClick = onSkip,
+                                    modifier = Modifier.testTag("entity-inspector-action-skip-today"),
+                                    supportingText = if (lowPressureMode) {
+                                        "No check-in will be expected today."
+                                    } else {
+                                        "No check-in will be expected; your streak stays protected."
+                                    },
+                                    icon = Icons.Outlined.PauseCircleOutline,
+                                    navigates = false,
+                                )
                             }
                         }
                     }
@@ -3122,6 +3168,64 @@ internal fun HabitActionsDialog(
             }
         },
     )
+}
+
+@Composable
+private fun HabitTodayMetric(
+    id: String,
+    value: String,
+    label: String,
+) {
+    Column(
+        modifier = Modifier
+            .widthIn(min = 104.dp)
+            .testTag("habit-today-metric-$id"),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(
+            value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+private fun HabitDayProgress.inspectorTodaySummary(
+    timerElapsedSeconds: Double,
+    activeZoneId: ZoneId,
+    lowPressureMode: Boolean,
+): String = when {
+    habit.timerStartedAtMillis != null -> if (habit.timerNeedsReview) {
+        "Timer needs review · ${formatElapsedDuration(timerElapsedSeconds)} estimated."
+    } else {
+        "Timer started ${Instant.ofEpochMilli(requireNotNull(habit.timerStartedAtMillis)).atZone(activeZoneId).toLocalTime().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))} · ${formatElapsedDuration(timerElapsedSeconds)} elapsed."
+    }
+    habit.archived -> "This habit is archived. Use Restore below to resume check-ins."
+    dayState == HabitDayState.Skipped -> if (lowPressureMode) {
+        "Skipped today. No check-in is expected."
+    } else {
+        "Skipped today. Your streak remains protected."
+    }
+    dayState == HabitDayState.Paused -> "Paused today. No check-in is expected."
+    dayState == HabitDayState.NotScheduled -> "Not scheduled today."
+    habit.trackingMode == HabitTrackingMode.CheckOff -> if (dayState == HabitDayState.Completed) {
+        "Completed today."
+    } else {
+        "Ready for today's check-in."
+    }
+    habit.trackingMode == HabitTrackingMode.Checklist -> {
+        val completedItems = checklistItems.count { it.second }
+        if (checklistItems.isEmpty()) "Ready for today's checklist."
+        else "$completedItems of ${checklistItems.size} items complete."
+    }
+    habit.trackingMode == HabitTrackingMode.Rating && value == 0.0 -> "Not rated yet today."
+    habit.trackingMode == HabitTrackingMode.LogOnly && value == 0.0 -> "No entries yet today."
+    else -> "${formatHabitValue(value, habit.precision)} logged today."
 }
 
 internal sealed interface HabitHistoryEvent {

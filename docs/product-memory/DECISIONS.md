@@ -783,3 +783,12 @@
 - Consequences / reversal conditions: Phone-release records must state that complete suites were not run. Restore the stronger boundary for private installs only if additional users or irreversible external distribution enter that lane.
 - Related: `FB-20260906-004`, `FB-20260906-005`, `DEC-20260906-002`.
 - Status: Accepted, implemented, fixture-verified, and exercised by the 0.3.50 physical release.
+
+### DEC-20260906-004 — Habit Today is a daily snapshot, not a field report
+
+- Context: Habit Today exposed correct information through three generic inspector groups, but equal-weight headings and vertically labeled facts forced the user to assemble the day’s meaning before acting.
+- Decision: The Today tab owns one bounded daily overview: a plain-language current state is the focal point, the localized date supplies context, and streak/completion/flexible-period values scan together as compact metrics. Tracking-specific input remains inside that overview; availability exceptions use a separate, explained secondary-action row; the stable inspector header, tabs, and docked primary action remain unchanged.
+- Rejected alternatives: Decorative dividers around the existing field stacks; a denser generic dashboard shared across unrelated inspectors; promoting Skip Today to a second primary action.
+- Constraints and consequences: Preserve every archived, skipped, paused, off-schedule, timer, low-pressure, flexible-schedule, source-owned, and manual-duration behavior. The composition must remain scrollable, dark-mode legible, and actionable at 320 dp and 200% text.
+- Related: `FB-20260906-006`, `FND-20260906-001`, `IMP-20260906-005`, `VER-20260906-005`.
+- Status: Accepted, implemented, and emulator-verified; awaiting user validation.

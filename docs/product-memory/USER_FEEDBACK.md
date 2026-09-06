@@ -454,3 +454,13 @@ These records preserve durable user intent. “Released” means the change reac
 - Related: `FB-20260906-003`, `FB-20260906-004`, `DEC-20260906-003`.
 - Status: Implemented, fixture-verified, and exercised by the 0.3.50 physical install.
 - Notes: The already-running 0.3.50 candidate was stopped during Android batch 7/11; its partial output is not acceptance evidence.
+
+### FB-20260906-006 — Make the Habit Today detail feel coherent and purposeful
+
+- Date/source: 2026-09-06, direct user feedback with a physical-phone screenshot of the Habit detail pane.
+- User need: The Habit Today menu should read as one intentionally designed status surface rather than loose headings, text, database-like facts, and an isolated action.
+- Acceptance criteria: Establish a clear current-state focal point; visually group the date and progress metrics; give values a deliberate dashboard hierarchy; integrate the optional manual-duration path; present Skip Today as a clearly secondary action with its consequence; preserve the stable header/tabs/bottom primary action, all Habit state semantics, 48 dp targets, scrolling, narrow widths, and 200% text accessibility.
+- Affected users/workflows: Habit Today detail for checklist, check-off, numeric, duration, rating, log-only, paused, skipped, archived, off-schedule, low-pressure, and flexible-schedule states.
+- Related: `FND-20260906-001`, `DEC-20260906-004`, `IMP-20260906-005`, `VER-20260906-005`.
+- Status: Implemented and emulator-verified; awaiting user validation.
+- Notes: The screenshot shows Whip 0.3.50 on the user's foldable phone in dark mode.

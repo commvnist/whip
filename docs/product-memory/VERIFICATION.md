@@ -1065,3 +1065,15 @@
 - Commit/push: `6051d6c` and `a9fd764` were pushed to `origin/main` before artifact creation and install.
 - Related: `FB-20260906-004`, `FB-20260906-005`, `DEC-20260906-003`, `IMP-20260906-004`.
 - Status: Released, installed in place, and physically verified; awaiting user validation.
+
+### VER-20260906-005 — Habit Today visual hierarchy verification
+
+- Scope/environment: Habit Today presentation change on 2026-09-06; disposable API 34 emulator explicitly selected as `emulator-5554`; dark theme, 320 dp pane, and 200% text. No physical-phone instrumentation, install, reset, release, or Play Store action occurred.
+- Command or manual procedure: Debug and Android-test Kotlin compilation; routed `scripts/check`; exact `ActivityHistoryUiTest#habitTodayUsesOneResponsiveOverviewAndExplainedSecondaryAction` execution; device screenshot and UI hierarchy capture through `scripts/device-artifacts`; manual pixel inspection; `scripts/check --ready`; and `git diff --check`.
+- Result: The final exact Android run was accepted 1/1 with zero failures/skips. It proves one overview, tracking-aware state copy, localized date, reachable streak/completion metrics, removal of the old Context/availability headings, explained Skip behavior, successful secondary action, constrained width, and 200% text. Manual inspection confirmed clear status → date → metrics → secondary-action hierarchy, legible wrapping, and a reachable docked primary action.
+- Failed-then-repaired evidence: Initial compilation caught a timer `Double`/`Long` mismatch and missing `ZoneId` import. The first device assertion reached the correct punctuated state but expected an unpunctuated exact string. Both were repaired. A deliberate temporary visual-hold run passed its test body but was correctly excluded when the harness detected changed test inputs; the final unchanged-input run is the accepted evidence.
+- Counts and exclusions: Routed JVM Habit checks passed; one focused Android test executed. The complete 1,538-test suite, candidate qualification, signed release build, and phone installation were intentionally not run.
+- Artifact/version/hash: No release artifact. Current installed release remains 0.3.50/code 56 without this change.
+- Commit/push: Pending verified implementation commit.
+- Related: `FB-20260906-006`, `FND-20260906-001`, `DEC-20260906-004`, `IMP-20260906-005`.
+- Status: Verified for the focused change; awaiting user validation.

@@ -951,3 +951,14 @@
 - Resolution: Add owned-request synchronization for both the failed first save and succeeding retry, retaining the existing discard/retry/success assertions.
 - Related: `FB-20260904-011`, `VER-20260904-011`.
 - Status: Resolved, repeat-verified, included in the fresh candidate, and released in Whip 0.3.49/code 55.
+### FND-20260906-001 — Habit Today detail lacks a visual information model
+
+- Severity/category: P2 usability and visual hierarchy.
+- Observed: The Today tab renders “Today's check-in,” “Context,” and “Today's availability” as independent title/text stacks. Date, streak, and completion rate use the same vertical fact treatment, while Skip Today appears as an unexplained low-emphasis rectangle. The result resembles loose data output rather than a coherent daily command center.
+- Expected: One bounded daily summary should connect state, date, and progress; metrics should scan as metrics rather than form fields; secondary availability actions should explain their consequence without competing with the docked primary check-in action.
+- Why it matters / affected users: Habit review is a frequent workflow, and the existing hierarchy makes users assemble the meaning of the page themselves before acting.
+- Evidence: User-provided physical-phone screenshot on 2026-09-06; `HabitActionsDialog` Today branch in `HabitScreens.kt`; generic `EntityInspectorGroup`/`EntityInspectorFact` composition.
+- Root cause: Semantically correct facts were placed using generic inspector primitives without a Habit-specific daily summary composition.
+- Resolution: Replaced the three generic fact stacks with one Habit-specific Today overview that leads with a plain-language state, binds the date to it, scans streak/completion/flexible-period values as metrics, retains manual duration entry in context, and gives Skip Today an icon and consequence in a separate secondary-action card.
+- Related: `FB-20260906-006`, `DEC-20260906-004`, `IMP-20260906-005`, `VER-20260906-005`.
+- Status: Resolved and emulator-verified; awaiting user validation.

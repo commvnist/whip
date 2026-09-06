@@ -1000,3 +1000,14 @@
 - Related: `FB-20260906-004`, `FB-20260906-005`, `DEC-20260906-003`, `VER-20260906-004`.
 - Verification: Signed APK/AAB integrity, established certificate, installed package/version/hash, preserved first-install time, cold launch/foreground activity, and bounded fatal logs passed.
 - Status: Released and physically verified; awaiting user validation.
+
+### IMP-20260906-005 — Purposeful Habit Today overview
+
+- Behavior changed: Habit Today now presents one rounded daily overview with tracking-aware status copy, localized date context, and value-first progress metrics. Manual duration entry stays in that context. Skip Today is an icon-led secondary card that explains its effect instead of an isolated button under another heading; the existing header, tabs, state actions, and docked primary check-in action are unchanged.
+- Important files/symbols: `HabitActionsDialog`, `HabitDayProgress.inspectorTodaySummary`, `HabitTodayMetric`, and `ActivityHistoryUiTest.habitTodayUsesOneResponsiveOverviewAndExplainedSecondaryAction`.
+- Persistence/migration/history impact: Presentation and copy only. No schema, data epoch, backup format, scheduling, streak calculation, mutation, or stored user data changed.
+- Compatibility and limitations: Verified in dark mode at a constrained 320 dp pane and 200% text. The complete product suite and Play Store candidate were intentionally not run; the current physical-phone release remains 0.3.50/code 56 and does not contain this change.
+- Commit/push: Pending verified implementation commit.
+- Related: `FB-20260906-006`, `FND-20260906-001`, `DEC-20260906-004`, `VER-20260906-005`.
+- Verification: `VER-20260906-005`.
+- Status: Implemented and emulator-verified; awaiting user validation.
