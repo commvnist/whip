@@ -1099,3 +1099,13 @@
 - Failures or residual risk: The initial journey found and repaired populated Home readiness, non-selected Home navigation semantics, Goal History tagging, compact Settings entry, and Settings back-navigation assumptions. Remaining surface selectors, contact-sheet review, critique, product changes, final recapture, and owner-phone deployment are not yet complete.
 - Related: `FB-20260906-008`, `DEC-20260906-005`, `IMP-20260906-007`.
 - Status: Verified for the capture runtime and first 45 page states; the durable goal remains active.
+
+### VER-20260906-008 — Exhaustive Shared and Tasks catalog evidence
+
+- Scope/environment: Shared and Tasks capture fixtures plus the multi-batch collector repair on disposable API 34 `emulator-5554`; deterministic dark theme with dynamic color disabled. The physical owner phone was not queried, connected, instrumented, installed to, or otherwise used.
+- Command or manual procedure: Focused Android-test compilation/execution while building the component and real-app journeys; `ANDROID_SERIAL=emulator-5554 scripts/ui-catalog capture --allow-pending --family shared /tmp/whip-ui-shared-complete-20260906`; the equivalent Tasks family capture into `/tmp/whip-ui-tasks-complete-20260906`; catalog lint; and exact export accounting.
+- Result: Shared executed three selectors with zero failures/skips and exported exactly 23 PNG plus 23 XML files. Tasks executed four selectors with zero failures/skips and exported exactly 22 PNG plus 22 XML files. Both collectors accepted every declared ID and no unexpected ID; each wrote its SHA-256/byte manifest. The Tasks pass also recompiled and exercised the added pending-editor-launch capture.
+- Coverage accounting: The catalog remains 171 required surfaces with zero platform exceptions; implemented coverage advanced from 45 to 80 exact selectors, leaving 91 later-family rows intentionally pending. Shared and Tasks now have no pending rows.
+- Failures or residual risk: An early workspace selector assumed a private section tag and was repaired to use the production content description plus Schedule section. Remaining Habits, Goals, Tracks, Gym, Settings, and Organization selectors, visual critique, production remediation, final recapture, and owner-phone deployment remain incomplete.
+- Related: `FB-20260906-008`, `DEC-20260906-005`, `IMP-20260906-008`.
+- Status: Verified for complete Shared and Tasks family coverage; the durable goal remains active.

@@ -25,16 +25,6 @@ internal fun captureVisualCatalogSurface(surfaceId: String) {
     instrumentation.waitForIdleSync()
     instrumentation.uiAutomation.waitForIdle(750L, 5_000L)
 
-    val resolver = instrumentation.targetContext.contentResolver
-    val collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI
-    if (capturedVisualCatalogIds.size == 1) {
-        resolver.delete(
-            collection,
-            "${MediaStore.MediaColumns.RELATIVE_PATH} = ?",
-            arrayOf(visualCatalogRelativePath),
-        )
-    }
-
     val screenshot = checkNotNull(instrumentation.uiAutomation.takeScreenshot()) {
         "Android did not provide a screenshot for $surfaceId"
     }

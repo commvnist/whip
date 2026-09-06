@@ -1,28 +1,28 @@
 source_keys	surface_id	family	kind	state	capture_selector	disposition	notes
-route:first-run	shared.first-run.setup	shared	dialog	fresh install	pending	capture	Required identity and planning setup.
-route:startup-recovery	shared.startup-recovery.failure	shared	page	recoverable startup failure	pending	capture	Recovery actions and failure explanation.
-route:domain-loading	shared.domain.loading	shared	page	loading	pending	capture	Canonical domain loading state.
-route:domain-failure	shared.domain.failure	shared	page	load failed	pending	capture	Canonical domain failure state.
+route:first-run	shared.first-run.setup	shared	dialog	fresh install	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Required identity and planning setup.
+route:startup-recovery	shared.startup-recovery.failure	shared	page	recoverable startup failure	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Recovery actions and failure explanation.
+route:domain-loading	shared.domain.loading	shared	page	loading	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Canonical domain loading state.
+route:domain-failure	shared.domain.failure	shared	page	load failed	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Canonical domain failure state.
 route:health-rationale	settings.health.rationale	settings	page	permission rationale	pending	capture	Health Connect permission education.
 route:home	shared.home.populated	shared	page	populated today	com.whip.app.VisualCatalogPagesTest#captureSharedPageCatalog	capture	Home priorities and destination links.
 route:home-empty	shared.home.empty	shared	page	empty today	com.whip.app.VisualCatalogPagesTest#captureSharedPageCatalog	capture	Home empty state.
-action:global-add	shared.global-add.menu	shared	menu	open	pending	capture	Cross-domain create menu.
-action:global-search	shared.search.results	shared	dialog	query with results	pending	capture	Unified search and result grouping.
-action:global-search-empty	shared.search.empty	shared	dialog	no results	pending	capture	Unified search empty result state.
-action:review	shared.review.summary	shared	dialog	populated	pending	capture	Daily review summary.
-component:entity-inspector	shared.inspector.base	shared	dialog	populated	pending	capture	Canonical adaptive entity inspector shell.
-component:identity-emoji	shared.identity-emoji.picker	shared	dialog	open	pending	capture	Emoji identity picker.
-component:custom-emoji	shared.identity-emoji.custom	shared	dialog	custom entry	pending	capture	Custom emoji entry.
-component:color-picker	shared.color-picker	shared	dialog	open	pending	capture	Canonical color picker.
-component:date-picker	shared.date-picker	shared	dialog	open	pending	capture	Canonical date picker.
-component:clock-picker	shared.clock-picker	shared	dialog	open	pending	capture	Canonical time picker.
-component:weekday-reminders	shared.weekday-reminders	shared	dialog	open	pending	capture	Per-weekday reminder editor.
-component:unit-menu	shared.unit.menu	shared	menu	open	pending	capture	Canonical unit selection menu.
-component:disclosure-menu	shared.disclosure.menu	shared	menu	open	pending	capture	Canonical disclosure destination menu.
-component:overflow-menu	shared.overflow.menu	shared	menu	open	pending	capture	Canonical overflow action menu.
-guard:unsaved	shared.unsaved-changes	shared	dialog	dirty editor	pending	capture	Unsaved changes guard.
-guard:launch-queue	shared.launch-queue-overflow	shared	dialog	queue full	pending	capture	Queued editor launch guard.
-guard:permanent-delete	shared.permanent-delete	shared	dialog	destructive confirmation	pending	capture	Canonical permanent delete shell.
+action:global-add	shared.global-add.menu	shared	menu	open	com.whip.app.VisualCatalogSharedShellTest#captureSharedShellCatalog	capture	Cross-domain create menu.
+action:global-search	shared.search.results	shared	dialog	query with results	com.whip.app.VisualCatalogSharedShellTest#captureSharedShellCatalog	capture	Unified search and result grouping.
+action:global-search-empty	shared.search.empty	shared	dialog	no results	com.whip.app.VisualCatalogSharedShellTest#captureSharedShellCatalog	capture	Unified search empty result state.
+action:review	shared.review.summary	shared	dialog	populated	com.whip.app.VisualCatalogSharedShellTest#captureSharedShellCatalog	capture	Daily review summary.
+component:entity-inspector	shared.inspector.base	shared	dialog	populated	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Canonical adaptive entity inspector shell.
+component:identity-emoji	shared.identity-emoji.picker	shared	dialog	open	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Emoji identity picker.
+component:custom-emoji	shared.identity-emoji.custom	shared	dialog	custom entry	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Custom emoji entry.
+component:color-picker	shared.color-picker	shared	dialog	open	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Canonical color picker.
+component:date-picker	shared.date-picker	shared	dialog	open	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Canonical date picker.
+component:clock-picker	shared.clock-picker	shared	dialog	open	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Canonical time picker.
+component:weekday-reminders	shared.weekday-reminders	shared	dialog	open	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Per-weekday reminder editor.
+component:unit-menu	shared.unit.menu	shared	menu	open	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Canonical unit selection menu.
+component:disclosure-menu	shared.disclosure.menu	shared	menu	open	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Canonical disclosure destination menu.
+component:overflow-menu	shared.overflow.menu	shared	menu	open	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Canonical overflow action menu.
+guard:unsaved	shared.unsaved-changes	shared	dialog	dirty editor	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Unsaved changes guard.
+guard:launch-queue	shared.launch-queue-overflow	shared	dialog	queue full	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Queued editor launch guard.
+guard:permanent-delete	shared.permanent-delete	shared	dialog	destructive confirmation	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Canonical permanent delete shell.
 route:tasks-today	tasks.today.populated	tasks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Today task list.
 route:tasks-today-empty	tasks.today.empty	tasks	page	empty	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Today task empty state.
 route:tasks-inbox	tasks.inbox.populated	tasks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Inbox task list.
@@ -31,20 +31,20 @@ route:tasks-upcoming-agenda	tasks.upcoming.agenda	tasks	page	agenda	com.whip.app
 route:tasks-upcoming-calendar	tasks.upcoming.calendar	tasks	page	calendar	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Upcoming calendar planning view.
 route:tasks-history-completed	tasks.history.completed	tasks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Completed task history.
 route:tasks-history-archived	tasks.history.archived	tasks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Archived task history.
-state:tasks-selection	tasks.bulk-selection	tasks	page	multiple selected	pending	capture	Bulk selection state and action bar.
-editor:task-create	tasks.editor.create	tasks	dialog	new task	pending	capture	Task creation form.
-editor:task-edit	tasks.editor.edit	tasks	dialog	existing task	pending	capture	Task editing form.
-dialog:task-recipe	tasks.recipe	tasks	dialog	open	pending	capture	Task recipe/template chooser.
-dialog:task-repeat-change	tasks.repeat-change	tasks	dialog	series edit	pending	capture	Repeated-task scope confirmation.
-dialog:task-actions	tasks.actions	tasks	dialog	active task	pending	capture	Task detail actions and information.
-dialog:task-completed	tasks.completed-detail	tasks	dialog	completed task	pending	capture	Completed task detail and history.
-dialog:task-reschedule	tasks.reschedule	tasks	dialog	open	pending	capture	Task reschedule flow.
-dialog:task-delete	tasks.permanent-delete	tasks	dialog	with impact summary	pending	capture	Permanent task deletion.
-dialog:task-bulk-edit	tasks.bulk-edit	tasks	dialog	multiple tasks	pending	capture	Bulk task edit controls.
-dialog:task-batch-delete	tasks.batch-delete	tasks	dialog	multiple tasks	pending	capture	Batch permanent deletion.
-dialog:pending-task-editor	tasks.pending-editor-launch	tasks	dialog	queued	pending	capture	Pending task editor launch.
-menu:task-row	tasks.row.menu	tasks	menu	open	pending	capture	Task row overflow actions.
-menu:task-area-scope	tasks.area-scope.menu	tasks	menu	open	pending	capture	Task area filter.
+state:tasks-selection	tasks.bulk-selection	tasks	page	multiple selected	com.whip.app.TaskBulkSelectionUiTest#activeSelectionKeepsPrimaryActionsVisibleAndSecondaryActionsInOverflow	capture	Bulk selection state and action bar.
+editor:task-create	tasks.editor.create	tasks	dialog	new task	com.whip.app.ui.VisualCatalogTaskComponentsTest#captureTaskComponentCatalog	capture	Task creation form.
+editor:task-edit	tasks.editor.edit	tasks	dialog	existing task	com.whip.app.ui.VisualCatalogTaskComponentsTest#captureTaskComponentCatalog	capture	Task editing form.
+dialog:task-recipe	tasks.recipe	tasks	dialog	open	com.whip.app.ui.VisualCatalogTaskComponentsTest#captureTaskComponentCatalog	capture	Task recipe/template chooser.
+dialog:task-repeat-change	tasks.repeat-change	tasks	dialog	series edit	com.whip.app.ui.VisualCatalogTaskComponentsTest#captureTaskComponentCatalog	capture	Repeated-task scope confirmation.
+dialog:task-actions	tasks.actions	tasks	dialog	active task	com.whip.app.ui.VisualCatalogTaskComponentsTest#captureTaskComponentCatalog	capture	Task detail actions and information.
+dialog:task-completed	tasks.completed-detail	tasks	dialog	completed task	com.whip.app.ui.VisualCatalogTaskComponentsTest#captureTaskComponentCatalog	capture	Completed task detail and history.
+dialog:task-reschedule	tasks.reschedule	tasks	dialog	open	com.whip.app.ui.VisualCatalogTaskComponentsTest#captureTaskWorkspaceControlCatalog	capture	Task reschedule flow.
+dialog:task-delete	tasks.permanent-delete	tasks	dialog	with impact summary	com.whip.app.ui.VisualCatalogTaskComponentsTest#captureTaskComponentCatalog	capture	Permanent task deletion.
+dialog:task-bulk-edit	tasks.bulk-edit	tasks	dialog	multiple tasks	com.whip.app.TaskBulkSelectionUiTest#activeSelectionKeepsPrimaryActionsVisibleAndSecondaryActionsInOverflow	capture	Bulk task edit controls.
+dialog:task-batch-delete	tasks.batch-delete	tasks	dialog	multiple tasks	com.whip.app.TaskBulkSelectionUiTest#activeSelectionKeepsPrimaryActionsVisibleAndSecondaryActionsInOverflow	capture	Batch permanent deletion.
+dialog:pending-task-editor	tasks.pending-editor-launch	tasks	dialog	queued	com.whip.app.ui.VisualCatalogTaskComponentsTest#captureTaskComponentCatalog	capture	Pending task editor launch.
+menu:task-row	tasks.row.menu	tasks	menu	open	com.whip.app.ui.VisualCatalogTaskComponentsTest#captureTaskWorkspaceControlCatalog	capture	Task list overflow actions.
+menu:task-area-scope	tasks.area-scope.menu	tasks	menu	open	com.whip.app.ui.VisualCatalogTaskComponentsTest#captureTaskWorkspaceControlCatalog	capture	Task area filter.
 route:habits-today	habits.today.populated	habits	page	populated	com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog	capture	Daily habit check-ins.
 route:habits-today-empty	habits.today.empty	habits	page	empty	com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog	capture	Daily habit empty state.
 route:habits-all	habits.all.populated	habits	page	populated	com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog	capture	All habits.

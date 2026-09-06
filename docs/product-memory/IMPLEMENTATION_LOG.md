@@ -1031,3 +1031,13 @@
 - Compatibility and limitations: The catalog currently accounts for 171 required surfaces; 45 page states are implemented and 126 dialog/menu/special-state selectors remain pending. Full lint deliberately remains fail-closed until those rows are implemented. No candidate, signed build, phone connection, phone instrumentation, install, or publication occurred.
 - Related: `FB-20260906-008`, `DEC-20260906-005`, `VER-20260906-007`.
 - Status: Implemented and emulator-verified as the first capture-runtime milestone; exhaustive audit work remains in progress.
+
+### IMP-20260906-008 — Complete Shared and Tasks visual-catalog families
+
+- Behavior changed: Expanded the emulator-only catalog from primary pages to every declared Shared and Tasks surface. Production component fixtures now cover setup/recovery/domain states, reusable inspectors and pickers, destructive/unsaved/queue dialogs, task create/edit/recipe/repeat/value/action/detail/delete flows, workspace menus, rescheduling, bulk selection/edit/delete, and pending editor launch. Real `MainActivity` journeys cover global add/search/review and preserve production navigation semantics.
+- Capture reliability: Moved exact MediaStore cleanup to the guarded host collector so selector batches cannot erase evidence produced by earlier test processes. Cleanup remains restricted to `Download/whip-ui-catalog/` on an explicitly selected emulator; each family export still rejects missing and extra PNG/XML pairs.
+- Important files/symbols: `VisualCatalogSharedComponentsTest`, `VisualCatalogSharedShellTest`, `VisualCatalogTaskComponentsTest`, `TaskBulkSelectionUiTest`, `VisualCatalogCapture.kt`, `scripts/ui-catalog`, and `docs/quality/ui-surface-catalog.tsv`.
+- Persistence/migration/history impact: Android-test and quality tooling only. Production application behavior, schema 46, data epoch 6, backup version 24, release identity, and user data are unchanged.
+- Compatibility and limitations: Shared and Tasks are exhaustive against the current 171-row catalog. Ninety-one selectors in later families remain pending, so full lint intentionally remains fail-closed. No candidate, signed build, owner-phone query, phone instrumentation, install, or publication occurred.
+- Related: `FB-20260906-008`, `DEC-20260906-005`, `IMP-20260906-007`, `VER-20260906-008`.
+- Status: Implemented, exact-family captured, and ready for the remaining catalog families.

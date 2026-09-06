@@ -89,9 +89,13 @@ class TaskBulkSelectionUiTest {
         }
 
         openSelectionFor(item.task.title)
+        captureVisualCatalogSurface("tasks.bulk-selection")
         listOf("complete", "edit", "more").forEach { action ->
             compose.onNodeWithTag("task-selection-$action").assertIsDisplayed().assertIsEnabled()
         }
+        compose.onNodeWithTag("task-selection-edit").performClick()
+        captureVisualCatalogSurface("tasks.bulk-edit")
+        compose.onNodeWithText("Cancel").performClick()
         compose.onNodeWithTag("task-selection-more").performClick()
         compose.onNodeWithTag("task-selection-archive").assertIsDisplayed().assertIsEnabled()
         compose.onNodeWithTag("task-selection-delete").assertIsDisplayed().assertIsEnabled()
@@ -99,6 +103,7 @@ class TaskBulkSelectionUiTest {
 
         compose.onNodeWithTag("task-selection-delete").performClick()
         compose.onNodeWithText("Delete 1 Task Permanently?").assertIsDisplayed()
+        captureVisualCatalogSurface("tasks.batch-delete")
         compose.onNodeWithText("This cannot be undone", substring = true).assertIsDisplayed()
         compose.onNodeWithTag("confirm-task-selection-delete").assertIsEnabled()
         compose.onNodeWithText("Cancel").performClick()

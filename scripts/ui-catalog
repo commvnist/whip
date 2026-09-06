@@ -8,6 +8,8 @@ readonly CATALOG_FILE="${WHIP_UI_CATALOG_FILE:-${PROJECT_ROOT}/docs/quality/ui-s
 readonly SOURCE_SNAPSHOT_FILE="${WHIP_UI_SOURCE_SNAPSHOT_FILE:-${PROJECT_ROOT}/docs/quality/ui-source-snapshot.tsv}"
 readonly SOURCE_ROOT="${WHIP_UI_SOURCE_ROOT:-${PROJECT_ROOT}/app/src/main/java/com/whip/app}"
 readonly DEVICE_CAPTURE_ROOT="/sdcard/Download/whip-ui-catalog"
+readonly DEVICE_CAPTURE_RELATIVE_PATH="Download/whip-ui-catalog/"
+readonly DEVICE_DOWNLOADS_URI="content://media/external_primary/downloads"
 
 usage() {
     cat <<'EOF'
@@ -179,6 +181,9 @@ capture_catalog() {
         die "output directory must be empty: $output_dir"
 
     local serial="$ANDROID_SERIAL"
+    adb -s "$serial" shell content delete \
+        --uri "$DEVICE_DOWNLOADS_URI" \
+        --where "relative_path=\\'${DEVICE_CAPTURE_RELATIVE_PATH}\\'" >/dev/null
     adb -s "$serial" shell rm -rf "$DEVICE_CAPTURE_ROOT"
 
     local -a selectors=()
