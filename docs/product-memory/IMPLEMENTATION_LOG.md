@@ -1022,3 +1022,12 @@
 - Related: `FB-20260906-005`, `FB-20260906-006`, `FB-20260906-007`, `DEC-20260906-003`, `DEC-20260906-004`, `IMP-20260906-005`, `VER-20260906-006`.
 - Verification: `VER-20260906-006`.
 - Status: Released and physically verified; awaiting user validation.
+
+### IMP-20260906-007 — Emulator-only visual catalog capture runtime
+
+- Behavior changed: Added a dedicated instrumentation capture helper and deterministic MainActivity journeys for 45 empty/populated primary pages across Home, Tasks, Habits, Goals, Tracks, Gym, and Settings. `scripts/ui-catalog capture` now runs the exact implemented selectors, exports matching device-level PNG/XML pairs through a persistent MediaStore staging directory, rejects missing and extra evidence, and writes a SHA-256/byte manifest. `--family` limits execution and accounting to one product family.
+- Important files/symbols: `VisualCatalogCapture.kt`, `VisualCatalogPagesTest`, `scripts/ui-catalog capture`, and `docs/quality/ui-surface-catalog.tsv`.
+- Persistence/migration/history impact: Test and quality tooling only. Production schema 46, data epoch 6, backup version 24, application behavior, release identity, and user data are unchanged. Test fixtures delete only disposable emulator data and the exact `Download/whip-ui-catalog` evidence collection.
+- Compatibility and limitations: The catalog currently accounts for 171 required surfaces; 45 page states are implemented and 126 dialog/menu/special-state selectors remain pending. Full lint deliberately remains fail-closed until those rows are implemented. No candidate, signed build, phone connection, phone instrumentation, install, or publication occurred.
+- Related: `FB-20260906-008`, `DEC-20260906-005`, `VER-20260906-007`.
+- Status: Implemented and emulator-verified as the first capture-runtime milestone; exhaustive audit work remains in progress.

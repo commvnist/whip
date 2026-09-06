@@ -7,8 +7,7 @@ readonly PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 readonly CATALOG_FILE="${WHIP_UI_CATALOG_FILE:-${PROJECT_ROOT}/docs/quality/ui-surface-catalog.tsv}"
 readonly SOURCE_SNAPSHOT_FILE="${WHIP_UI_SOURCE_SNAPSHOT_FILE:-${PROJECT_ROOT}/docs/quality/ui-source-snapshot.tsv}"
 readonly SOURCE_ROOT="${WHIP_UI_SOURCE_ROOT:-${PROJECT_ROOT}/app/src/main/java/com/whip/app}"
-readonly DEBUG_APP_ID="commvne.com.whip.app.debug"
-readonly INTERNAL_CAPTURE_ROOT="files/ui-catalog"
+readonly DEVICE_CAPTURE_ROOT="/sdcard/Download/whip-ui-catalog"
 
 usage() {
     cat <<'EOF'
@@ -18,7 +17,7 @@ Usage:
   scripts/ui-catalog discover
   scripts/ui-catalog source-snapshot
   scripts/ui-catalog lint [--allow-pending]
-  ANDROID_SERIAL=emulator-5554 scripts/ui-catalog capture OUTPUT_DIRECTORY
+  ANDROID_SERIAL=emulator-5554 scripts/ui-catalog capture [--allow-pending] [--family FAMILY] OUTPUT_DIRECTORY
 
 The catalog is docs/quality/ui-surface-catalog.tsv. Capture is emulator-only,
 runs every unique catalog test selector, pulls app-private PNG/XML evidence,
@@ -171,8 +170,8 @@ lint_catalog() {
 }
 
 capture_catalog() {
-    local output_dir="$1"
-    lint_catalog false
+    local output_dir="$1" allow_pending="$2" selected_family="$3"
+    lint_catalog "$allow_pending"
     "${SCRIPT_DIR}/android-target-guard" instrumentation
     [[ ! -e "$output_dir" || -d "$output_dir" ]] || die "output path is not a directory: $output_dir"
     mkdir -p "$output_dir"
@@ -180,26 +179,29 @@ capture_catalog() {
         die "output directory must be empty: $output_dir"
 
     local serial="$ANDROID_SERIAL"
-    adb -s "$serial" shell run-as "$DEBUG_APP_ID" rm -rf "$INTERNAL_CAPTURE_ROOT" 2>/dev/null || true
+    adb -s "$serial" shell rm -rf "$DEVICE_CAPTURE_ROOT"
 
     local -a selectors=()
     mapfile -t selectors < <(
-        awk -F '\t' 'NR > 1 && $7 == "capture" { print $6 }' "$CATALOG_FILE" | sort -u
+        awk -F '\t' -v family="$selected_family" \
+            'NR > 1 && $7 == "capture" && $6 != "pending" && (family == "" || $3 == family) { print $6 }' \
+            "$CATALOG_FILE" | sort -u
     )
+    [[ "${#selectors[@]}" -gt 0 ]] || die 'no implemented catalog captures matched the requested scope'
     local -a qa_args=()
     local selector
     for selector in "${selectors[@]}"; do qa_args+=(--android "$selector"); done
     ANDROID_SERIAL="$serial" "${SCRIPT_DIR}/qa-targeted" "${qa_args[@]}"
 
     mkdir -p "$output_dir/raw"
-    adb -s "$serial" exec-out run-as "$DEBUG_APP_ID" \
-        tar -C "$INTERNAL_CAPTURE_ROOT" -cf - . | tar -C "$output_dir/raw" -xf -
+    adb -s "$serial" pull "$DEVICE_CAPTURE_ROOT/." "$output_dir/raw" >/dev/null
     cp "$CATALOG_FILE" "$output_dir/catalog.tsv"
 
     local expected actual missing unexpected
     expected="$(mktemp)"
     actual="$(mktemp)"
-    awk -F '\t' 'NR > 1 && $7 == "capture" { print $2 ".png"; print $2 ".xml" }' \
+    awk -F '\t' -v family="$selected_family" \
+        'NR > 1 && $7 == "capture" && $6 != "pending" && (family == "" || $3 == family) { print $2 ".png"; print $2 ".xml" }' \
         "$CATALOG_FILE" | sort -u > "$expected"
     find "$output_dir/raw" -maxdepth 1 -type f -printf '%f\n' | rg '\.(png|xml)$' | sort -u > "$actual"
     missing="$(comm -23 "$expected" "$actual")"
@@ -218,7 +220,11 @@ capture_catalog() {
             "$(sha256sum "$png" | awk '{print $1}')" "$(stat -c %s "$png")" \
             "$(sha256sum "$xml" | awk '{print $1}')" "$(stat -c %s "$xml")" \
             >> "$output_dir/manifest.tsv"
-    done < <(awk -F '\t' 'NR > 1 && $7 == "capture" { print $2 }' "$CATALOG_FILE" | sort -u)
+    done < <(
+        awk -F '\t' -v family="$selected_family" \
+            'NR > 1 && $7 == "capture" && $6 != "pending" && (family == "" || $3 == family) { print $2 }' \
+            "$CATALOG_FILE" | sort -u
+    )
     printf 'Captured %s catalog surfaces into %s.\n' "$(($(wc -l < "$output_dir/manifest.tsv") - 1))" "$output_dir"
 }
 
@@ -237,8 +243,28 @@ main() {
             lint_catalog "$allow_pending"
             ;;
         capture)
-            [[ -n "${2:-}" ]] || die 'capture requires OUTPUT_DIRECTORY'
-            capture_catalog "$2"
+            shift
+            local allow_pending=false selected_family='' output_dir=''
+            while (($#)); do
+                case "$1" in
+                    --allow-pending) allow_pending=true ;;
+                    --family)
+                        shift
+                        (($#)) || die '--family requires a catalog family'
+                        selected_family="$1"
+                        [[ "$selected_family" =~ ^(shared|tasks|habits|goals|tracks|gym|settings|organization)$ ]] ||
+                            die "unknown catalog family: $selected_family"
+                        ;;
+                    -*) die "unknown capture option: $1" ;;
+                    *)
+                        [[ -z "$output_dir" ]] || die 'capture accepts one OUTPUT_DIRECTORY'
+                        output_dir="$1"
+                        ;;
+                esac
+                shift
+            done
+            [[ -n "$output_dir" ]] || die 'capture requires OUTPUT_DIRECTORY'
+            capture_catalog "$output_dir" "$allow_pending" "$selected_family"
             ;;
         -h|--help|'') usage ;;
         *) usage >&2; die "unknown command: $command" ;;

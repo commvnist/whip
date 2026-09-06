@@ -792,3 +792,13 @@
 - Constraints and consequences: Preserve every archived, skipped, paused, off-schedule, timer, low-pressure, flexible-schedule, source-owned, and manual-duration behavior. The composition must remain scrollable, dark-mode legible, and actionable at 320 dp and 200% text.
 - Related: `FB-20260906-006`, `FND-20260906-001`, `IMP-20260906-005`, `VER-20260906-005`.
 - Status: Accepted, implemented, emulator-verified, and released in Whip 0.3.51/code 57; awaiting user validation.
+
+### DEC-20260906-005 — Visual quality is governed by an exact surface catalog
+
+- Context: Whip had broad UI tests and individual screenshots, but no fail-closed answer to which pages, dialogs, menus, and meaningful states had actually been reviewed. A monolithic screenshot journey would also make routine design iteration unnecessarily slow.
+- Decision: Keep one source-linked TSV catalog as the coverage contract. Every required row owns a stable surface ID and exact Android test selector; capture must run only on a guarded emulator, export one PNG and one accessibility hierarchy per row, reject missing or uncatalogued evidence, and produce a hash/size manifest. Selectors are split by product family so a changed family can be recaptured independently.
+- Evidence and constraints: Production UI discovery is fingerprinted so new composables or modal call sites fail closed until triaged. MediaStore Download assets survive Gradle's post-instrumentation package removal, unlike app-private files. The collector deletes only its exact emulator-owned capture directory and the test clears the matching MediaStore collection before the first capture.
+- Failure modes: A stale catalog after UI source growth; screenshots silently lost after test APK uninstall; duplicate IDs; a full visual campaign paid for every small edit; accidental instrumentation or cleanup on the owner's physical phone.
+- Consequences / reversal conditions: Baseline and final audits must reach zero pending selectors. Family capture is the normal iteration loop; full catalog capture is reserved for audit milestones. The physical phone remains out of scope until final signed deployment and smoke. Replace TSV or MediaStore only if a successor preserves exact coverage, deterministic export, emulator isolation, and family-level latency.
+- Related: `FB-20260906-008`, `IMP-20260906-007`, `VER-20260906-007`.
+- Status: Accepted and partially implemented; exhaustive selector coverage and design remediation remain in progress.

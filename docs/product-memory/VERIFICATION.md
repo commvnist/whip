@@ -1089,3 +1089,13 @@
 - Commit/push: Release source `e833272` pushed to `origin/main` before build/install.
 - Related: `FB-20260906-005`, `FB-20260906-006`, `FB-20260906-007`, `DEC-20260906-003`, `DEC-20260906-004`, `IMP-20260906-005`, `IMP-20260906-006`.
 - Status: Released, installed in place, and physically verified; awaiting user validation.
+
+### VER-20260906-007 — Visual catalog runtime and primary-page evidence
+
+- Scope/environment: UI catalog capture tooling and test-only deterministic journeys on the disposable API 34 `emulator-5554`; dark theme with dynamic color disabled. The physical owner phone was not queried, connected, instrumented, installed to, or otherwise used.
+- Command or manual procedure: Android-test Kotlin compilation; `scripts/test-ui-catalog`; focused primary-page journey repair runs; full implemented-surface `ANDROID_SERIAL=emulator-5554 scripts/ui-catalog capture --allow-pending`; and family-only Shared capture.
+- Result: The final broad journey passed one test with zero failures/skips and exported exactly 45 PNG plus 45 XML files (90 files, 8,731,285 bytes) with a complete manifest. Export correctly failed when the original app-private staging was removed by Gradle, then passed after changing to MediaStore-backed evidence. The independent Shared run executed only its selector, passed in 14 seconds of instrumentation time, and exported exactly two declared surfaces/four files.
+- Coverage accounting: Catalog lint reports 171 required captures, zero platform exceptions, and 126 intentionally pending selectors. Source discovery fingerprint remains unchanged because no production UI owner changed. The full capture cannot pass without `--allow-pending`, preserving the completion boundary.
+- Failures or residual risk: The initial journey found and repaired populated Home readiness, non-selected Home navigation semantics, Goal History tagging, compact Settings entry, and Settings back-navigation assumptions. Remaining surface selectors, contact-sheet review, critique, product changes, final recapture, and owner-phone deployment are not yet complete.
+- Related: `FB-20260906-008`, `DEC-20260906-005`, `IMP-20260906-007`.
+- Status: Verified for the capture runtime and first 45 page states; the durable goal remains active.

@@ -4,8 +4,8 @@ route:startup-recovery	shared.startup-recovery.failure	shared	page	recoverable s
 route:domain-loading	shared.domain.loading	shared	page	loading	pending	capture	Canonical domain loading state.
 route:domain-failure	shared.domain.failure	shared	page	load failed	pending	capture	Canonical domain failure state.
 route:health-rationale	settings.health.rationale	settings	page	permission rationale	pending	capture	Health Connect permission education.
-route:home	shared.home.populated	shared	page	populated today	pending	capture	Home priorities and destination links.
-route:home-empty	shared.home.empty	shared	page	empty today	pending	capture	Home empty state.
+route:home	shared.home.populated	shared	page	populated today	com.whip.app.VisualCatalogPagesTest#captureSharedPageCatalog	capture	Home priorities and destination links.
+route:home-empty	shared.home.empty	shared	page	empty today	com.whip.app.VisualCatalogPagesTest#captureSharedPageCatalog	capture	Home empty state.
 action:global-add	shared.global-add.menu	shared	menu	open	pending	capture	Cross-domain create menu.
 action:global-search	shared.search.results	shared	dialog	query with results	pending	capture	Unified search and result grouping.
 action:global-search-empty	shared.search.empty	shared	dialog	no results	pending	capture	Unified search empty result state.
@@ -23,14 +23,14 @@ component:overflow-menu	shared.overflow.menu	shared	menu	open	pending	capture	Ca
 guard:unsaved	shared.unsaved-changes	shared	dialog	dirty editor	pending	capture	Unsaved changes guard.
 guard:launch-queue	shared.launch-queue-overflow	shared	dialog	queue full	pending	capture	Queued editor launch guard.
 guard:permanent-delete	shared.permanent-delete	shared	dialog	destructive confirmation	pending	capture	Canonical permanent delete shell.
-route:tasks-today	tasks.today.populated	tasks	page	populated	pending	capture	Today task list.
-route:tasks-today-empty	tasks.today.empty	tasks	page	empty	pending	capture	Today task empty state.
-route:tasks-inbox	tasks.inbox.populated	tasks	page	populated	pending	capture	Inbox task list.
-route:tasks-upcoming-list	tasks.upcoming.list	tasks	page	list	pending	capture	Upcoming list planning view.
-route:tasks-upcoming-agenda	tasks.upcoming.agenda	tasks	page	agenda	pending	capture	Upcoming agenda planning view.
-route:tasks-upcoming-calendar	tasks.upcoming.calendar	tasks	page	calendar	pending	capture	Upcoming calendar planning view.
-route:tasks-history-completed	tasks.history.completed	tasks	page	populated	pending	capture	Completed task history.
-route:tasks-history-archived	tasks.history.archived	tasks	page	populated	pending	capture	Archived task history.
+route:tasks-today	tasks.today.populated	tasks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Today task list.
+route:tasks-today-empty	tasks.today.empty	tasks	page	empty	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Today task empty state.
+route:tasks-inbox	tasks.inbox.populated	tasks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Inbox task list.
+route:tasks-upcoming-list	tasks.upcoming.list	tasks	page	list	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Upcoming list planning view.
+route:tasks-upcoming-agenda	tasks.upcoming.agenda	tasks	page	agenda	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Upcoming agenda planning view.
+route:tasks-upcoming-calendar	tasks.upcoming.calendar	tasks	page	calendar	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Upcoming calendar planning view.
+route:tasks-history-completed	tasks.history.completed	tasks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Completed task history.
+route:tasks-history-archived	tasks.history.archived	tasks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Archived task history.
 state:tasks-selection	tasks.bulk-selection	tasks	page	multiple selected	pending	capture	Bulk selection state and action bar.
 editor:task-create	tasks.editor.create	tasks	dialog	new task	pending	capture	Task creation form.
 editor:task-edit	tasks.editor.edit	tasks	dialog	existing task	pending	capture	Task editing form.
@@ -45,11 +45,11 @@ dialog:task-batch-delete	tasks.batch-delete	tasks	dialog	multiple tasks	pending	
 dialog:pending-task-editor	tasks.pending-editor-launch	tasks	dialog	queued	pending	capture	Pending task editor launch.
 menu:task-row	tasks.row.menu	tasks	menu	open	pending	capture	Task row overflow actions.
 menu:task-area-scope	tasks.area-scope.menu	tasks	menu	open	pending	capture	Task area filter.
-route:habits-today	habits.today.populated	habits	page	populated	pending	capture	Daily habit check-ins.
-route:habits-today-empty	habits.today.empty	habits	page	empty	pending	capture	Daily habit empty state.
-route:habits-all	habits.all.populated	habits	page	populated	pending	capture	All habits.
-route:habits-archived	habits.archived.populated	habits	page	populated	pending	capture	Archived habits.
-route:habits-insights	habits.insights.populated	habits	page	populated	pending	capture	Habit insights.
+route:habits-today	habits.today.populated	habits	page	populated	com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog	capture	Daily habit check-ins.
+route:habits-today-empty	habits.today.empty	habits	page	empty	com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog	capture	Daily habit empty state.
+route:habits-all	habits.all.populated	habits	page	populated	com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog	capture	All habits.
+route:habits-archived	habits.archived.populated	habits	page	populated	com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog	capture	Archived habits.
+route:habits-insights	habits.insights.populated	habits	page	populated	com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog	capture	Habit insights.
 dialog:habit-inspector-today	habits.inspector.today	habits	dialog	today tab	pending	capture	Habit inspector primary check-in state.
 dialog:habit-inspector-history	habits.inspector.history	habits	dialog	history tab	pending	capture	Habit inspector activity timeline.
 dialog:habit-inspector-options	habits.inspector.options	habits	dialog	options tab	pending	capture	Habit inspector lifecycle actions.
@@ -64,11 +64,11 @@ dialog:habit-pause	habits.pause-create	habits	dialog	new pause	pending	capture	H
 dialog:habit-actions	habits.actions	habits	dialog	open	pending	capture	Habit action menu dialog.
 dialog:habit-delete	habits.permanent-delete	habits	dialog	with impact summary	pending	capture	Permanent habit deletion.
 menu:habit-row	habits.row.menu	habits	menu	open	pending	capture	Habit row overflow actions.
-route:goals-active	goals.active.populated	goals	page	populated	pending	capture	Active goals.
-route:goals-active-empty	goals.active.empty	goals	page	empty	pending	capture	Active goals empty state.
-route:goals-history	goals.history.populated	goals	page	populated	pending	capture	Completed goal history.
-route:goals-archived	goals.archived.populated	goals	page	populated	pending	capture	Archived goals.
-route:goals-insights	goals.insights.populated	goals	page	populated	pending	capture	Goal insights.
+route:goals-active	goals.active.populated	goals	page	populated	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Active goals.
+route:goals-active-empty	goals.active.empty	goals	page	empty	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Active goals empty state.
+route:goals-history	goals.history.populated	goals	page	populated	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Completed goal history.
+route:goals-archived	goals.archived.populated	goals	page	populated	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Archived goals.
+route:goals-insights	goals.insights.populated	goals	page	populated	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Goal insights.
 editor:goal-create	goals.editor.create	goals	dialog	new goal	pending	capture	Goal creation form.
 editor:goal-edit	goals.editor.edit	goals	dialog	existing goal	pending	capture	Goal editing form.
 dialog:goal-template	goals.template	goals	dialog	open	pending	capture	Goal template chooser.
@@ -77,14 +77,14 @@ dialog:goal-elapsed-reset	goals.elapsed-reset	goals	dialog	elapsed target	pendin
 dialog:goal-actions	goals.actions	goals	dialog	open	pending	capture	Goal details and actions.
 dialog:goal-delete	goals.permanent-delete	goals	dialog	with impact summary	pending	capture	Permanent goal deletion.
 menu:goal-row	goals.row.menu	goals	menu	open	pending	capture	Goal row overflow actions.
-route:tracks-all	tracks.all.populated	tracks	page	populated	pending	capture	Track definitions.
-route:tracks-all-empty	tracks.all.empty	tracks	page	empty	pending	capture	Tracks empty state.
-route:tracks-activity	tracks.activity.populated	tracks	page	populated	pending	capture	Cross-track activity.
-route:tracks-archived	tracks.archived.populated	tracks	page	populated	pending	capture	Archived tracks.
-route:tracks-insights	tracks.insights.populated	tracks	page	populated	pending	capture	Cross-track insights.
-route:track-entries	tracks.detail.entries	tracks	page	populated	pending	capture	Track entry list.
-route:track-options	tracks.detail.options	tracks	page	configured	pending	capture	Track configuration summary.
-route:track-insights	tracks.detail.insights	tracks	page	populated	pending	capture	Single-track insights.
+route:tracks-all	tracks.all.populated	tracks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Track definitions.
+route:tracks-all-empty	tracks.all.empty	tracks	page	empty	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Tracks empty state.
+route:tracks-activity	tracks.activity.populated	tracks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Cross-track activity.
+route:tracks-archived	tracks.archived.populated	tracks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Archived tracks.
+route:tracks-insights	tracks.insights.populated	tracks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Cross-track insights.
+route:track-entries	tracks.detail.entries	tracks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Track entry list.
+route:track-options	tracks.detail.options	tracks	page	configured	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Track configuration summary.
+route:track-insights	tracks.detail.insights	tracks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Single-track insights.
 route:track-unavailable	tracks.detail.unavailable	tracks	page	missing target	pending	capture	Unavailable deep-link target.
 editor:track-create	tracks.editor.create	tracks	dialog	new track	pending	capture	Track definition creation.
 editor:track-edit	tracks.editor.edit	tracks	dialog	existing track	pending	capture	Track definition editing.
@@ -98,16 +98,16 @@ dialog:track-delete	tracks.entry-delete	tracks	dialog	with impact summary	pendin
 menu:track-activity	tracks.activity.menu	tracks	menu	open	pending	capture	Activity row actions.
 menu:track-entry	tracks.entry.menu	tracks	menu	open	pending	capture	Entry row actions.
 menu:track-reorder	tracks.reorder.menu	tracks	menu	open	pending	capture	Track field ordering actions.
-route:gym-workout-empty	gym.workout.empty	gym	page	no active workout	pending	capture	Workout launch state.
-route:gym-workout-active	gym.workout.active	gym	page	active workout	pending	capture	Active workout logging.
-route:gym-history	gym.history.populated	gym	page	populated	pending	capture	Workout history.
-route:gym-progress	gym.progress.populated	gym	page	populated	pending	capture	Gym progress dashboard.
-route:gym-library	gym.library.landing	gym	page	populated	pending	capture	Gym library hub.
-route:gym-routines	gym.routines.populated	gym	page	populated	pending	capture	Routine library.
-route:gym-exercises	gym.exercises.populated	gym	page	populated	pending	capture	Exercise library.
-route:gym-machines	gym.machines.populated	gym	page	populated	pending	capture	Machine library.
-route:gym-categories	gym.categories.populated	gym	page	populated	pending	capture	Exercise categories.
-route:gym-tools	gym.tools	gym	page	populated	pending	capture	Gym calculation and management tools.
+route:gym-workout-empty	gym.workout.empty	gym	page	no active workout	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Workout launch state.
+route:gym-workout-active	gym.workout.active	gym	page	active workout	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Active workout logging.
+route:gym-history	gym.history.populated	gym	page	populated	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Workout history.
+route:gym-progress	gym.progress.populated	gym	page	populated	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Gym progress dashboard.
+route:gym-library	gym.library.landing	gym	page	populated	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Gym library hub.
+route:gym-routines	gym.routines.populated	gym	page	populated	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Routine library.
+route:gym-exercises	gym.exercises.populated	gym	page	populated	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Exercise library.
+route:gym-machines	gym.machines.populated	gym	page	populated	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Machine library.
+route:gym-categories	gym.categories.populated	gym	page	populated	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Exercise categories.
+route:gym-tools	gym.tools	gym	page	populated	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Gym calculation and management tools.
 route:routine-builder	gym.routine-builder.outline	gym	page	outline	pending	capture	Routine builder outline.
 route:routine-program	gym.routine-builder.program	gym	page	program structure	pending	capture	Routine program structure.
 route:routine-exercise-picker	gym.routine-builder.exercise-picker	gym	page	picker	pending	capture	Routine exercise picker.
@@ -142,12 +142,13 @@ menu:routine-row	gym.routine.menu	gym	menu	open	pending	capture	Routine actions.
 menu:machine-row	gym.machine.menu	gym	menu	open	pending	capture	Machine actions.
 menu:routine-placement	gym.routine-placement.menu	gym	menu	open	pending	capture	Routine placement actions.
 menu:routine-classification	gym.classification.menu	gym	menu	open	pending	capture	Routine classification choices.
-route:settings-appearance	settings.appearance	settings	page	configured	pending	capture	Appearance settings.
-route:settings-planning	settings.planning	settings	page	configured	pending	capture	Planning settings.
-route:settings-organization	settings.organization	settings	page	configured	pending	capture	Organization settings.
-route:settings-reminders	settings.reminders	settings	page	configured	pending	capture	Reminder settings.
-route:settings-data	settings.data-privacy	settings	page	configured	pending	capture	Data and privacy settings.
-route:settings-about	settings.about-diagnostics	settings	page	configured	pending	capture	About and diagnostics.
+route:settings-index	settings.index	settings	page	category list	com.whip.app.VisualCatalogPagesTest#captureSettingsPageCatalog	capture	Settings section index on compact windows.
+route:settings-appearance	settings.appearance	settings	page	configured	com.whip.app.VisualCatalogPagesTest#captureSettingsPageCatalog	capture	Appearance settings.
+route:settings-planning	settings.planning	settings	page	configured	com.whip.app.VisualCatalogPagesTest#captureSettingsPageCatalog	capture	Planning settings.
+route:settings-organization	settings.organization	settings	page	configured	com.whip.app.VisualCatalogPagesTest#captureSettingsPageCatalog	capture	Organization settings.
+route:settings-reminders	settings.reminders	settings	page	configured	com.whip.app.VisualCatalogPagesTest#captureSettingsPageCatalog	capture	Reminder settings.
+route:settings-data	settings.data-privacy	settings	page	configured	com.whip.app.VisualCatalogPagesTest#captureSettingsPageCatalog	capture	Data and privacy settings.
+route:settings-about	settings.about-diagnostics	settings	page	configured	com.whip.app.VisualCatalogPagesTest#captureSettingsPageCatalog	capture	About and diagnostics.
 dialog:settings-backup	settings.backup-preview	settings	dialog	backup preview	pending	capture	Backup preview and confirmation.
 dialog:settings-restore	settings.restore-preview	settings	dialog	restore preview	pending	capture	Restore preview and confirmation.
 dialog:settings-reset	settings.reset	settings	dialog	destructive confirmation	pending	capture	App data reset confirmation.
