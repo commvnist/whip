@@ -12,8 +12,10 @@ language, action grammar, state truth, reachability, and copy.
 
 The first count-complete export was rejected because several labeled files
 showed a preceding state or an incomplete test host. The critique below uses
-only the corrected family captures recorded in `VER-20260906-014`. The owner
-phone was not queried or used.
+the corrected family captures recorded in `VER-20260906-014`, the remediated
+Task/Goal families in `VER-20260906-015`, and the final accepted frozen export
+in `VER-20260906-017`. The owner phone was not queried or used during capture
+or review.
 
 ## Executive critique
 
@@ -58,6 +60,16 @@ grammar by presenting two reset commands around Cancel.
 Both findings are resolved and visually accepted in the exact remediated Task
 and Goal family captures recorded by `VER-20260906-015`.
 
+## Frozen acceptance
+
+The post-remediation audit executed 61 emulator tests in seven fresh batches
+with zero failures, skips, or result reuse. It exported exactly 171 PNG and 171
+paired semantics files, with no missing or unexpected surface IDs. All 23
+generated contact sheets were reviewed. The review initially rejected four
+popup artifacts whose files existed but whose menus were absent; after exact
+state gates were added, the replacement frozen run shows all four popups in
+both pixels and semantics. No additional product-design finding remained.
+
 ## Reviewed non-findings and intentional exceptions
 
 - At enlarged text, destination tabs remain one stable, horizontally
@@ -78,9 +90,10 @@ and Goal family captures recorded by `VER-20260906-015`.
 
 ## Closure criteria
 
-The review closes only after both confirmed findings are implemented, focused
-behavior tests pass, Tasks and Goals are recaptured and visually accepted, a
-fresh whole-catalog export accounts for all 171 surfaces after source freeze,
-and the final signed development build is installed and smoke-tested on the
-owner phone. The Play Store candidate suite remains intentionally excluded
-from this private-phone release.
+The UI review and remediation portion is closed: both confirmed findings are
+implemented, focused behavior tests pass, Tasks and Goals are visually
+accepted, and the replacement frozen whole-catalog export accounts for all 171
+surfaces after source freeze. The overall delivery closes after the final
+signed development build is installed and smoke-tested on the owner phone.
+The Play Store candidate suite remains intentionally excluded from this
+private-phone release.

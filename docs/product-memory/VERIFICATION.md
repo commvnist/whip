@@ -1193,3 +1193,14 @@
 - Artifact/evidence: `/tmp/whip-ui-habits-finalfix-20260906` and `/tmp/whip-ui-tracks-finalfix3-20260906`, with exact manifests and searchable galleries.
 - Related: `FB-20260906-008`, `FND-20260906-002`, `DEC-20260906-005`, `IMP-20260906-016`.
 - Status: Verified and visually accepted; frozen whole-catalog closure remains pending.
+
+### VER-20260906-017 — Frozen 171-surface UI audit closure
+
+- Scope/environment: Post-remediation whole-product UI catalog on disposable API 34 `emulator-5554`, deterministic dark theme, dynamic color disabled, and source frozen at pushed commit `1035e82`. The physical owner phone was not queried, connected, instrumented, installed to, or otherwise used during this audit.
+- Command or manual procedure: Fresh `ANDROID_SERIAL=emulator-5554 scripts/ui-catalog capture /tmp/whip-ui-final2-20260906`; strict catalog lint; exact PNG/XML/manifest accounting; generation of 23 family contact sheets; review of every sheet against `UI_VISUAL_REVIEW_PROTOCOL.md`; and original-resolution pixel plus semantics inspection of the four repaired popup surfaces.
+- Result: 61 Android tests completed across seven batches with zero failures/skips and zero result reuse in `/root/repos/whip/build/instrumentation-results-5zQt0p`. The collector exported exactly 171 PNG and 171 paired XML files, a 171-row unique manifest, no missing/unexpected IDs, and a searchable gallery. All 23 contact sheets passed the eight-criterion review. The Habit row menu and all three Track menus are present in both pixels and semantics. The remediated Task/Goal summaries and elapsed-reset hierarchy remain visually accepted; no new product finding was identified.
+- Audit conclusion: All 171 declared page, dialog, menu, system, and widget states have accepted evidence. All product findings from the exhaustive critique are resolved. The systematic capture/review/remediation loop is complete and reusable by family for development or as a fresh whole-product milestone audit.
+- Counts and exclusions: This closes UI capture, critique, remediation, and frozen visual acceptance. Signed private-phone build/install/smoke remains the only delivery step. The Play Store candidate suite was intentionally not run and no candidate evidence was created.
+- Artifact/evidence: `/tmp/whip-ui-final2-20260906/index.html`, `/tmp/whip-ui-final2-20260906/manifest.tsv`, `/tmp/whip-ui-final2-20260906/raw`, and `/tmp/whip-ui-final2-sheets-20260906`.
+- Related: `FB-20260906-008`, `FND-20260906-002`, `FND-20260906-003`, `FND-20260906-004`, `DEC-20260906-005`, `DEC-20260906-006`, `IMP-20260906-014`, `IMP-20260906-015`, `IMP-20260906-016`, `VER-20260906-014`, `VER-20260906-015`, `VER-20260906-016`.
+- Status: Verified and visually accepted; UI audit closed, final private-phone deployment pending.
