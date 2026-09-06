@@ -223,6 +223,13 @@ class GoalRulesTest {
         assertEquals("higher", insight.confidence)
     }
 
+    @Test fun emptyInsightUsesSingularFallbackSourceTypeCopy() {
+        val insight = buildGoalInsights(goal(), emptyList())
+
+        assertTrue(insight.dataQualityExplanation.contains("0 observed days from 1 source type;"))
+        assertTrue(!insight.dataQualityExplanation.contains("1 source types"))
+    }
+
     private fun goal(
         baseline: Double? = 0.0,
         target: Double? = 100.0,

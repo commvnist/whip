@@ -36,6 +36,7 @@ class ElapsedGoalTimeUiTest {
     fun resetWithoutEditingPreservesTheExactInstantAndActionsRemainUsableAtLargeText() {
         val original = Instant.parse("2026-08-30T14:15:45.321Z")
         var saved: Instant? = null
+        var resetNowCount = 0
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 val density = LocalDensity.current
@@ -49,7 +50,7 @@ class ElapsedGoalTimeUiTest {
                         nowMillis = Instant.parse("2026-09-01T12:00:00Z").toEpochMilli(),
                         onDismiss = {},
                         onReset = { saved = it },
-                        onResetNow = {},
+                        onResetNow = { resetNowCount++ },
                     )
                 }
             }
@@ -67,8 +68,16 @@ class ElapsedGoalTimeUiTest {
             check(bounds.width >= with(density) { 48.dp.toPx() }) { "$tag is narrower than 48dp" }
             check(bounds.height >= with(density) { 48.dp.toPx() }) { "$tag is shorter than 48dp" }
         }
+        val resetNow = compose.onNodeWithTag("elapsed-reset-now").fetchSemanticsNode().boundsInRoot
+        val cancel = compose.onNodeWithTag("elapsed-reset-cancel").fetchSemanticsNode().boundsInRoot
+        val confirm = compose.onNodeWithTag("elapsed-reset-confirm").fetchSemanticsNode().boundsInRoot
+        check(resetNow.bottom <= minOf(cancel.top, confirm.top)) {
+            "Reset to Now should read as a body alternative above the Cancel/confirm footer"
+        }
         compose.onNodeWithText("Reset to Chosen Time").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(original, saved) }
+        compose.onNodeWithTag("elapsed-reset-now").performClick()
+        compose.runOnIdle { assertEquals(1, resetNowCount) }
     }
 
     private fun elapsedGoal(started: Instant) = Goal(

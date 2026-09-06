@@ -513,8 +513,9 @@ fun buildGoalInsights(
         else -> "insufficient"
     }
     val quality = buildString {
-        append("${points.size} observed days from ${sourceKinds.size.coerceAtLeast(1)} source type")
-        if (sourceKinds.size != 1) append('s')
+        val sourceTypeCount = sourceKinds.size.coerceAtLeast(1)
+        append("${points.size} observed days from $sourceTypeCount source type")
+        if (sourceTypeCount != 1) append('s')
         append("; $invalid missing, skipped, failed, or invalid entries excluded")
         if (confidence != "higher") append(". Forecast confidence is $confidence because history is short or sparse")
     }

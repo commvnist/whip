@@ -359,6 +359,8 @@ class GoalSecondaryMutationUiTest {
         }
 
         compose.onNodeWithText("Archived").assertIsDisplayed()
+        compose.onNodeWithTag("goal-inspector-outcome-card").assertIsDisplayed()
+        compose.onNodeWithTag("goal-inspector-progress-card").assertIsDisplayed()
         compose.onNodeWithTag("goal-inspector-outcome").assertTextContains("19 days", substring = true)
         compose.onNodeWithText("Restore Goal").assertIsDisplayed()
         compose.onNodeWithText("History").performClick()

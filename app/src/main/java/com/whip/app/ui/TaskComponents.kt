@@ -419,7 +419,10 @@ fun TaskActionsDialog(
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 if (section == TaskDetailSection.Overview) {
-                    EntityInspectorGroup("Context") {
+                    EntityInspectorInformationGroup(
+                        title = "Context",
+                        modifier = Modifier.testTag("task-inspector-context-card"),
+                    ) {
                         EntityInspectorFact("Timing", item.task.scheduleExplanation(weekdayFormatter))
                         item.task.notes.takeIf(String::isNotBlank)?.let { EntityInspectorFact("Notes", it) }
                         item.task.deadline?.let { deadline ->
@@ -429,8 +432,9 @@ fun TaskActionsDialog(
                             )
                         }
                     }
-                    EntityInspectorGroup(
+                    EntityInspectorInformationGroup(
                         title = "Subtasks",
+                        modifier = Modifier.testTag("task-inspector-subtasks-card"),
                         supportingText = if (item.subtasks.isEmpty()) {
                             "No subtasks yet. Use Edit to break this task into smaller steps."
                         } else "${item.completedSubtasks} of ${item.totalSubtasks} complete",
@@ -616,7 +620,10 @@ fun CompletedTaskDialog(
             ) {
                 when (section) {
                     TaskDetailSection.Overview -> {
-                        EntityInspectorGroup("Outcome") {
+                        EntityInspectorInformationGroup(
+                            title = "Outcome",
+                            modifier = Modifier.testTag("completed-task-outcome-card"),
+                        ) {
                             Text(
                                 if (item.task.scheduleKind == ScheduleKind.Recurring) {
                                     "This occurrence is complete and remains available in the series history."
@@ -625,7 +632,10 @@ fun CompletedTaskDialog(
                                 },
                             )
                         }
-                        EntityInspectorGroup("Context") {
+                        EntityInspectorInformationGroup(
+                            title = "Context",
+                            modifier = Modifier.testTag("completed-task-context-card"),
+                        ) {
                             EntityInspectorFact("Timing", item.task.scheduleExplanation(weekdayFormatter))
                             item.task.notes.takeIf(String::isNotBlank)?.let { EntityInspectorFact("Notes", it) }
                             if (item.totalSubtasks > 0) {
@@ -643,7 +653,9 @@ fun CompletedTaskDialog(
                                 onResetOccurrence = onResetOccurrence,
                             )
                         } else {
-                            EntityInspectorFact("Recorded activity", "Completed")
+                            EntityInspectorInformationGroup("Activity") {
+                                EntityInspectorFact("Recorded activity", "Completed")
+                            }
                         }
                     }
                     TaskDetailSection.More -> {

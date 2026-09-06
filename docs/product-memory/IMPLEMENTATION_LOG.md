@@ -1099,3 +1099,13 @@
 - Related: `FB-20260906-008`, `FND-20260906-002`, `DEC-20260906-005`, `VER-20260906-014`.
 - Verification: `VER-20260906-014`.
 - Status: Implemented, exact-family recaptured, visually inspected, and ready for product remediation.
+
+### IMP-20260906-015 — Coherent Task/Goal summaries and elapsed-reset action hierarchy
+
+- Behavior changed: Task Overview and Completed details now contain related outcome, context, timing, notes, deadline, and subtask evidence in the same low-emphasis summary role used across Whip. Goal Overview now separates Outcome and Progress Insight into purposeful summary cards, replaces “Target overlay” with one readable Target fact, and explains that rate/forecast appear as history grows. Empty Goal insight copy now correctly says “1 source type.” The elapsed-reset body presents Reset to Now as an alternative to its date/time selection, leaving Cancel and Reset to Chosen Time as the single footer decision.
+- Important files/symbols: `EntityInspectorInformationGroup`, `TaskActionsDialog`, `CompletedTaskDetailsDialog`, `GoalActionsDialog`, `ElapsedGoalResetDialog`, `buildGoalInsights`, focused Task/Goal Android tests, and `GoalRulesTest`.
+- Persistence/migration/history impact: Presentation, copy, and UI composition only. Task/Goal repositories, mutations, persisted history, schema 46, data epoch 6, backup version 24, release identity, and user data are unchanged.
+- Compatibility and limitations: Existing inspector tabs, scroll/frame behavior, docked primary actions, Task actions, Goal charts/data-table disclosure, timer reset semantics, daylight-saving resolution, and failure/saving ownership remain intact. The affected-change readiness gate passed; the whole 171-surface frozen recapture and final private-phone deployment remain pending. No candidate, signed build, phone query, phone instrumentation, install, or publication occurred.
+- Related: `FB-20260906-008`, `FND-20260906-003`, `FND-20260906-004`, `DEC-20260906-006`, `VER-20260906-015`.
+- Verification: `VER-20260906-015`.
+- Status: Implemented and accepted in focused Task/Goal emulator recaptures.

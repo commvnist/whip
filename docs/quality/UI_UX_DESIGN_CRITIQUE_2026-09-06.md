@@ -37,9 +37,9 @@ grammar by presenting two reset commands around Cancel.
 | Family | Surfaces | Review result |
 | --- | ---: | --- |
 | Shared | 23 | Pass. Setup/recovery, global search, review, shared pickers, editors, inspector shell, unsaved and destructive dialogs use consistent roles. |
-| Tasks | 22 | One systemic issue. Pages, bulk actions, scheduling, menus, and deletion pass; Overview and Completed details need contained read-only evidence. |
+| Tasks | 22 | Pass after remediation. Pages, bulk actions, scheduling, menus, deletion, Overview, and Completed details now use coherent roles. |
 | Habits | 19 | Pass. The Today redesign supplies the strongest inspector model; History, Options, entry/timer/pause, and deletion states remain consistent. |
-| Goals | 13 | Two issues. Pages, editors, measurement, history, menus, and deletion pass; Overview evidence and elapsed-reset action hierarchy need refinement. |
+| Goals | 13 | Pass after remediation. Pages, editors, measurement, history, menus, deletion, Overview evidence, and elapsed-reset decisions now share the intended hierarchy. |
 | Tracks | 21 | Pass. Collection/detail/activity structure, definition and entry mutation, filters, CSV preview, menus, and deletion reuse the established language. |
 | Gym | 44 | Pass. Dense workout and Routine workflows retain domain-specific structure while using shared cards, pickers, dialogs, actions, and state roles. |
 | Settings | 14 | Pass. Sections, typed controls, rationale/status surfaces, backup/restore, reset, unit, and emoji flows have clear hierarchy and consequence copy. |
@@ -54,6 +54,9 @@ grammar by presenting two reset commands around Cancel.
 2. `FND-20260906-004`: elapsed Goal reset needs one footer confirmation. “Reset
    to Now” belongs beside the date/time choice as an alternative, while Cancel
    and “Reset to Chosen Time” remain the dialog decision.
+
+Both findings are resolved and visually accepted in the exact remediated Task
+and Goal family captures recorded by `VER-20260906-015`.
 
 ## Reviewed non-findings and intentional exceptions
 

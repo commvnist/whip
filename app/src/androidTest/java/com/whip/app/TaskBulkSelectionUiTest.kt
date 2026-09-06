@@ -192,6 +192,8 @@ class TaskBulkSelectionUiTest {
         compose.onNodeWithTag("task-destination-History").performClick()
         compose.onNodeWithText(completed.task.title).performClick()
         compose.onNodeWithTag("completed-task-surface").assertIsDisplayed()
+        compose.onNodeWithTag("completed-task-outcome-card").assertIsDisplayed()
+        compose.onNodeWithTag("completed-task-context-card").assertIsDisplayed()
         compose.onNodeWithText("Reopen Task").performClick()
 
         compose.onAllNodesWithTag("completed-task-surface").assertCountEquals(0)

@@ -347,6 +347,23 @@ internal fun EntityInspectorGroup(
     }
 }
 
+/** A bounded summary for related read-only evidence inside an inspector. */
+@Composable
+internal fun EntityInspectorInformationGroup(
+    title: String,
+    modifier: Modifier = Modifier,
+    supportingText: String? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    WhipGroupedInformationCard(modifier) {
+        EntityInspectorGroup(
+            title = title,
+            supportingText = supportingText,
+            content = content,
+        )
+    }
+}
+
 @Composable
 internal fun EntityInspectorAction(
     id: String,

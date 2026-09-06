@@ -983,9 +983,9 @@
 - Why it matters / affected users: Task and Goal details are frequent read-before-act surfaces. Users currently have to infer which lines belong together, and the mismatch makes equivalent entity inspectors feel designed by different systems.
 - Evidence: Faithful dark-theme captures `tasks.actions`, `tasks.completed-detail`, and `goals.actions`; `TaskActionsDialog`, `CompletedTaskDetailsDialog`, and `GoalActionsDialog`; comparison with `habits.actions.today` and `WhipGroupedInformationCard`.
 - Root cause: `EntityInspectorGroup` supplies only heading rhythm, and Task/Goal composed read-only evidence with that same primitive used to label action sections. Goal's progress insight was built as an unstructured sequence of text nodes.
-- Resolution: Pending shared inspector information-group composition and focused Task/Goal recapture.
+- Resolution: Added one shared inspector information-group role backed by `WhipGroupedInformationCard`. Task Context/Subtasks and completed Outcome/Context now use it; Goal Outcome/Progress Insight uses the same role, scans the target as one user-facing fact, explains unavailable pace as future context, and fixes singular fallback-source copy. Action groups retain their existing uncontained hierarchy.
 - Related: `FB-20260906-008`, `IMP-20260906-015`, `VER-20260906-015`.
-- Status: Confirmed by the exhaustive visual review; implementation pending. The physical owner phone was not used.
+- Status: Resolved, focused-tested, and visually accepted in exact Task/Goal recaptures. The physical owner phone was not used.
 
 ### FND-20260906-004 — Elapsed Goal reset gives two commit actions competing footer priority
 
@@ -995,6 +995,6 @@
 - Why it matters / affected users: Users choosing a new timer origin should be able to distinguish an immediate shortcut from the final confirmation without parsing footer layout behavior.
 - Evidence: Faithful `goals.elapsed-reset` capture at the established 320 dp/200% text fixture; `ElapsedGoalResetDialog` confirm/dismiss slot composition.
 - Root cause: The alternative reset command was placed inside `dismissButton` beside Cancel, causing Material dialog action wrapping to define the information hierarchy.
-- Resolution: Pending action-placement change and focused elapsed-time regression/recapture.
+- Resolution: Moved “Reset to Now” into the dialog body as a full-width outlined alternative beside the date/time choices. The footer now contains only Cancel and “Reset to Chosen Time.” Both reset callbacks, exact-instant preservation, minimum targets, constrained bounds, and vertical ordering are covered by the large-text regression.
 - Related: `FB-20260906-008`, `IMP-20260906-015`, `VER-20260906-015`.
-- Status: Confirmed by the exhaustive visual review; implementation pending. The physical owner phone was not used.
+- Status: Resolved, focused-tested, and visually accepted in the exact Goal recapture. The physical owner phone was not used.
