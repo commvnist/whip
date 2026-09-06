@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.key.Key
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.pressBack
+import com.whip.app.captureVisualCatalogSurface
 import com.whip.app.WhipApplication
 import com.whip.app.core.AppSettings
 import com.whip.app.core.HealthDataType
@@ -682,6 +683,7 @@ class SettingsResponsiveUiTest {
             .performScrollToNode(hasTestTag("delete-health-connect-copies"))
         compose.onNodeWithTag("delete-health-connect-copies").assertIsEnabled().performClick()
         compose.onNodeWithText("Delete Health Connect Copies from Whip?").assertIsDisplayed()
+        captureVisualCatalogSurface("settings.health-action")
         compose.onAllNodesWithText(
             "Health Connect provider records and Android permissions are not changed.",
             substring = true,
@@ -695,7 +697,7 @@ class SettingsResponsiveUiTest {
         var saving by mutableStateOf(false)
         var failure by mutableStateOf<String?>(null)
         compose.setContent {
-            WhipTheme(dynamicColor = false) {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
                 CustomUnitDialog(
                     mode = CustomUnitEditMode.Create,
                     saving = saving,
@@ -706,6 +708,7 @@ class SettingsResponsiveUiTest {
             }
         }
 
+        captureVisualCatalogSurface("settings.custom-unit")
         compose.onNodeWithTag("custom-unit-name").performTextReplacement("Training block")
         compose.onNodeWithTag("custom-unit-symbol").performTextReplacement("blk")
         compose.onNodeWithTag("custom-unit-factor").performTextReplacement("4")

@@ -26,6 +26,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ApplicationProvider
+import com.whip.app.captureVisualCatalogSurface
 import com.whip.app.WhipApplication
 import com.whip.app.domain.Area
 import com.whip.app.domain.AreaScope
@@ -37,6 +38,51 @@ import org.junit.Test
 
 class AreaFeatureUiTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test
+    fun captureAreaManagementCatalog() {
+        val application = ApplicationProvider.getApplicationContext<WhipApplication>()
+        val viewModel = SettingsViewModel(application)
+        val main = area("main", "Main")
+        val work = area("work", "Work")
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                AreaManagementDialog(
+                    state = SettingsUiState(
+                        areas = listOf(main, work),
+                        areaUsage = mapOf(
+                            main.id to AreaUsageCounts(tasks = 2, habits = 1, goals = 1),
+                            work.id to AreaUsageCounts(tasks = 1),
+                        ),
+                    ),
+                    viewModel = viewModel,
+                    onDismiss = {},
+                )
+            }
+        }
+
+        captureVisualCatalogSurface("organization.areas.list")
+        compose.onNodeWithContentDescription("Open area details for Main").performClick()
+        captureVisualCatalogSurface("organization.areas.detail")
+        compose.onNodeWithText("Rename Area").performClick()
+        captureVisualCatalogSurface("organization.area.rename")
+        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithText("Choose Color").performClick()
+        captureVisualCatalogSurface("organization.area.color")
+        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithText("Merge into Another Area").performClick()
+        captureVisualCatalogSurface("organization.area.merge")
+        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithText("Move 4 Items").performClick()
+        captureVisualCatalogSurface("organization.area.move-items")
+        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithContentDescription("Back to Areas").performClick()
+        compose.onNodeWithText("Create Area").performClick()
+        captureVisualCatalogSurface("organization.area.create")
+        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithContentDescription("More options for Main").performClick()
+        captureVisualCatalogSurface("organization.area.menu")
+    }
 
     @Test
     fun pickerSelectsExistingAreaAndCreatesInline() {
@@ -191,6 +237,7 @@ class AreaFeatureUiTest {
         compose.onNodeWithText("Work · 3 items").assertIsDisplayed()
         compose.onAllNodesWithText("No area", substring = true).assertCountEquals(0)
         compose.onNodeWithText("Manage Areas").assertIsDisplayed()
+        captureVisualCatalogSurface("organization.area-picker.menu")
     }
 
     @Test
@@ -342,6 +389,7 @@ class AreaFeatureUiTest {
             }
         }
 
+        captureVisualCatalogSurface("organization.area.permanent-delete")
         compose.onNodeWithText("Delete Client Delta Permanently?").assertIsDisplayed()
         compose.onNodeWithText("Moving them keeps the items and their history.", substring = true).assertIsDisplayed()
         compose.onNodeWithText("Deleting the items cannot be undone.", substring = true).assertIsDisplayed()
@@ -415,6 +463,7 @@ class AreaFeatureUiTest {
             }
         }
 
+        captureVisualCatalogSurface("organization.area.last-required")
         compose.onNodeWithText("Create Another Area First").assertIsDisplayed()
         compose.onNodeWithText("Main is your only active Area.", substring = true).assertIsDisplayed()
         compose.onNodeWithText("Create Area").performClick()

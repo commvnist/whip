@@ -154,6 +154,7 @@ class SettingsBehaviorUiTest {
         compose.onNodeWithTag("settings-list").performScrollToNode(hasTestTag("custom-emoji-add"))
         compose.onNodeWithTag("custom-emoji-add").performClick()
         compose.onNodeWithTag("custom-emoji-editor").assertIsDisplayed()
+        captureVisualCatalogSurface("settings.custom-emoji")
         compose.onNodeWithTag("custom-emoji-editor-glyph").performTextReplacement("🦊")
         compose.onNodeWithTag("custom-emoji-editor-name").performTextReplacement("Forest Work")
         compose.onNodeWithTag("custom-emoji-editor-save").performClick()
@@ -187,6 +188,7 @@ class SettingsBehaviorUiTest {
         openSettingsSection("Data & Privacy")
         compose.onNodeWithTag("settings-list").performScrollToNode(hasTestTag("reset-whip-action"))
         compose.onNodeWithTag("reset-whip-action").performClick()
+        captureVisualCatalogSurface("settings.reset")
         compose.onNodeWithTag("confirm-reset-whip").performTouchInput {
             down(center)
             up()

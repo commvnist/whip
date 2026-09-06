@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.whip.app.captureVisualCatalogSurface
 import com.whip.app.WhipApplication
 import com.whip.app.core.AppSettings
 import com.whip.app.domain.WhipTag
@@ -44,6 +45,34 @@ class TagManagementUiTest {
     fun resetData() = runBlocking {
         app.backupRepository.deleteAllData()
         app.settingsRepository.update { AppSettings(setupCompleted = true) }
+    }
+
+    @Test
+    fun captureTagManagementCatalog() {
+        val focus = tag("focus", "Focus")
+        val work = tag("work", "Work")
+        showManager(
+            SettingsUiState(
+                tags = listOf(focus, work),
+                tagUsage = mapOf(
+                    focus.id to TagUsageCounts(tasks = 2, habits = 1),
+                    work.id to TagUsageCounts(goals = 1, tracks = 1),
+                ),
+            ),
+            darkTheme = true,
+        )
+
+        captureVisualCatalogSurface("organization.tags.list")
+        compose.onNodeWithTag("create-tag-action").performClick()
+        captureVisualCatalogSurface("organization.tag.create")
+        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithTag("tag-menu-focus").performClick()
+        compose.onNodeWithText("Rename").performClick()
+        captureVisualCatalogSurface("organization.tag.rename")
+        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithTag("tag-menu-focus").performClick()
+        compose.onNodeWithText("Merge").performClick()
+        captureVisualCatalogSurface("organization.tag.merge")
     }
 
     @Test
@@ -172,10 +201,10 @@ class TagManagementUiTest {
         compose.onNodeWithText("Cancel").assertIsDisplayed()
     }
 
-    private fun showManager(state: SettingsUiState) {
+    private fun showManager(state: SettingsUiState, darkTheme: Boolean = false) {
         val viewModel = SettingsViewModel(app)
         compose.setContent {
-            WhipTheme(dynamicColor = false) {
+            WhipTheme(darkTheme = darkTheme, dynamicColor = false) {
                 TagManagementDialog(state = state, viewModel = viewModel, onDismiss = {})
             }
         }

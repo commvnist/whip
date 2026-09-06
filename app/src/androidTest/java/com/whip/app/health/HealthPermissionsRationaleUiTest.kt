@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import com.whip.app.captureVisualCatalogSurface
 import com.whip.app.ui.theme.WhipTheme
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -35,6 +36,7 @@ class HealthPermissionsRationaleUiTest {
 
         compose.onNodeWithTag("health-rationale-surface").assertIsDisplayed()
         compose.onNodeWithTag("health-rationale-close").assertIsDisplayed()
+        captureVisualCatalogSurface("settings.health.rationale")
         val closeBeforeScroll = compose.onNodeWithTag("health-rationale-close")
             .fetchSemanticsNode().boundsInRoot
 

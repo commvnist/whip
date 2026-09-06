@@ -1079,3 +1079,12 @@
 - Compatibility and limitations: Gym is exhaustive against the current catalog; 22 Settings/Organization selectors remain pending. No candidate, signed build, owner-phone query, phone instrumentation, install, or publication occurred.
 - Related: `FB-20260906-008`, `DEC-20260906-005`, `VER-20260906-012`.
 - Status: Implemented and exact-family captured; cross-family visual critique and remediation remain pending.
+
+### IMP-20260906-013 — Complete Settings and Organization visual-catalog families
+
+- Behavior changed: Completed capture ownership for Health permission rationale, backup/restore preview, reset, Health-copy deletion, custom-unit, and custom-emoji surfaces; and for every declared Area and Tag manager, detail, create, rename, color, merge, move, permanent-delete, invariant, and menu state. Compact Settings pages remain real-application captures; focused safety and management journeys render production components with deterministic content.
+- Important files/symbols: `AreaFeatureUiTest.captureAreaManagementCatalog`, `TagManagementUiTest.captureTagManagementCatalog`, `SafetyChoiceUiTest.replaceEverythingRequiresFinalConfirmationAndBusyBlocksDuplicates`, `SettingsBehaviorUiTest`, `SettingsResponsiveUiTest`, `HealthPermissionsRationaleUiTest`, and `docs/quality/ui-surface-catalog.tsv`.
+- Persistence/migration/history impact: Android-test fixtures and catalog metadata only. Production Settings, Area, and Tag behavior; schema 46; data epoch 6; backup version 24; release identity; and stored user data are unchanged.
+- Compatibility and limitations: All 171 catalog rows now have concrete capture selectors with zero platform exceptions or pending rows. This milestone proves exact family capture, not yet the final whole-catalog baseline, critique, remediation, or release. No candidate, signed build, owner-phone query, phone instrumentation, install, or publication occurred.
+- Related: `FB-20260906-008`, `DEC-20260906-005`, `VER-20260906-013`.
+- Status: Implemented and exact-family captured; whole-catalog baseline and design work remain in progress.

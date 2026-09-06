@@ -111,7 +111,9 @@ class SafetyChoiceUiTest {
             }
         }
 
+        captureVisualCatalogSurface("settings.backup-preview")
         compose.onNodeWithTag("request-replace-everything").performClick()
+        captureVisualCatalogSurface("settings.restore-preview")
         assertEquals(0, replacements.get())
         compose.onNodeWithText("Replace Everything With This Backup?").assertExists()
         compose.onNodeWithText("private recovery snapshot", substring = true).assertExists()

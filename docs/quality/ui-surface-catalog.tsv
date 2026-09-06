@@ -3,7 +3,7 @@ route:first-run	shared.first-run.setup	shared	dialog	fresh install	com.whip.app.
 route:startup-recovery	shared.startup-recovery.failure	shared	page	recoverable startup failure	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Recovery actions and failure explanation.
 route:domain-loading	shared.domain.loading	shared	page	loading	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Canonical domain loading state.
 route:domain-failure	shared.domain.failure	shared	page	load failed	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Canonical domain failure state.
-route:health-rationale	settings.health.rationale	settings	page	permission rationale	pending	capture	Health Connect permission education.
+route:health-rationale	settings.health.rationale	settings	page	permission rationale	com.whip.app.health.HealthPermissionsRationaleUiTest#compactLargeTextDarkLayoutKeepsCloseStableAndEveryExplanationScrollable	capture	Health Connect permission education.
 route:home	shared.home.populated	shared	page	populated today	com.whip.app.VisualCatalogPagesTest#captureSharedPageCatalog	capture	Home priorities and destination links.
 route:home-empty	shared.home.empty	shared	page	empty today	com.whip.app.VisualCatalogPagesTest#captureSharedPageCatalog	capture	Home empty state.
 action:global-add	shared.global-add.menu	shared	menu	open	com.whip.app.VisualCatalogSharedShellTest#captureSharedShellCatalog	capture	Cross-domain create menu.
@@ -149,24 +149,24 @@ route:settings-organization	settings.organization	settings	page	configured	com.w
 route:settings-reminders	settings.reminders	settings	page	configured	com.whip.app.VisualCatalogPagesTest#captureSettingsPageCatalog	capture	Reminder settings.
 route:settings-data	settings.data-privacy	settings	page	configured	com.whip.app.VisualCatalogPagesTest#captureSettingsPageCatalog	capture	Data and privacy settings.
 route:settings-about	settings.about-diagnostics	settings	page	configured	com.whip.app.VisualCatalogPagesTest#captureSettingsPageCatalog	capture	About and diagnostics.
-dialog:settings-backup	settings.backup-preview	settings	dialog	backup preview	pending	capture	Backup preview and confirmation.
-dialog:settings-restore	settings.restore-preview	settings	dialog	restore preview	pending	capture	Restore preview and confirmation.
-dialog:settings-reset	settings.reset	settings	dialog	destructive confirmation	pending	capture	App data reset confirmation.
-dialog:settings-health	settings.health-action	settings	dialog	permission change	pending	capture	Health Connect setting confirmation.
-dialog:settings-custom-unit	settings.custom-unit	settings	dialog	create	pending	capture	Custom measurement unit editor.
-dialog:settings-emoji	settings.custom-emoji	settings	dialog	custom entry	pending	capture	Custom identity emoji.
-dialog:area-manager-list	organization.areas.list	organization	dialog	populated list	pending	capture	Area manager master list.
-dialog:area-manager-detail	organization.areas.detail	organization	dialog	selected area	pending	capture	Area manager detail.
-dialog:area-create	organization.area.create	organization	dialog	new area	pending	capture	Inline area creation.
-dialog:area-rename	organization.area.rename	organization	dialog	existing area	pending	capture	Area rename.
-dialog:area-color	organization.area.color	organization	dialog	existing area	pending	capture	Area color selection.
-dialog:area-merge	organization.area.merge	organization	dialog	populated	pending	capture	Area merge target selection.
-dialog:area-move	organization.area.move-items	organization	dialog	populated	pending	capture	Move area items before deletion.
-dialog:area-delete	organization.area.permanent-delete	organization	dialog	with impact summary	pending	capture	Permanent area deletion.
-dialog:area-last-required	organization.area.last-required	organization	dialog	one area remains	pending	capture	Last-area invariant explanation.
-menu:area-row	organization.area.menu	organization	menu	open	pending	capture	Area row actions.
-menu:area-picker	organization.area-picker.menu	organization	menu	open	pending	capture	Area selection menu.
-dialog:tag-manager	organization.tags.list	organization	dialog	populated	pending	capture	Tag manager list.
-dialog:tag-create	organization.tag.create	organization	dialog	new tag	pending	capture	Tag creation.
-dialog:tag-rename	organization.tag.rename	organization	dialog	existing tag	pending	capture	Tag rename.
-dialog:tag-merge	organization.tag.merge	organization	dialog	populated	pending	capture	Tag merge target selection.
+dialog:settings-backup	settings.backup-preview	settings	dialog	backup preview	com.whip.app.ui.SafetyChoiceUiTest#replaceEverythingRequiresFinalConfirmationAndBusyBlocksDuplicates	capture	Backup preview and confirmation.
+dialog:settings-restore	settings.restore-preview	settings	dialog	restore preview	com.whip.app.ui.SafetyChoiceUiTest#replaceEverythingRequiresFinalConfirmationAndBusyBlocksDuplicates	capture	Restore preview and confirmation.
+dialog:settings-reset	settings.reset	settings	dialog	destructive confirmation	com.whip.app.SettingsBehaviorUiTest#rapidDoubleTapOnResetSubmitsOnlyOneDestructiveOperationAndReturnsHome	capture	App data reset confirmation.
+dialog:settings-health	settings.health-action	settings	dialog	permission change	com.whip.app.ui.SettingsResponsiveUiTest#healthControlsRemainUnderstandableAndDeletableWhenProviderIsUnavailable	capture	Health Connect setting confirmation.
+dialog:settings-custom-unit	settings.custom-unit	settings	dialog	create	com.whip.app.ui.SettingsResponsiveUiTest#customUnitDialogKeepsDraftAndShowsAnInlineDurabilityFailure	capture	Custom measurement unit editor.
+dialog:settings-emoji	settings.custom-emoji	settings	dialog	custom entry	com.whip.app.SettingsBehaviorUiTest#organizationSettingsAddsRenamesAndRemovesNamedCustomEmojis	capture	Custom identity emoji.
+dialog:area-manager-list	organization.areas.list	organization	dialog	populated list	com.whip.app.ui.AreaFeatureUiTest#captureAreaManagementCatalog	capture	Area manager master list.
+dialog:area-manager-detail	organization.areas.detail	organization	dialog	selected area	com.whip.app.ui.AreaFeatureUiTest#captureAreaManagementCatalog	capture	Area manager detail.
+dialog:area-create	organization.area.create	organization	dialog	new area	com.whip.app.ui.AreaFeatureUiTest#captureAreaManagementCatalog	capture	Inline area creation.
+dialog:area-rename	organization.area.rename	organization	dialog	existing area	com.whip.app.ui.AreaFeatureUiTest#captureAreaManagementCatalog	capture	Area rename.
+dialog:area-color	organization.area.color	organization	dialog	existing area	com.whip.app.ui.AreaFeatureUiTest#captureAreaManagementCatalog	capture	Area color selection.
+dialog:area-merge	organization.area.merge	organization	dialog	populated	com.whip.app.ui.AreaFeatureUiTest#captureAreaManagementCatalog	capture	Area merge target selection.
+dialog:area-move	organization.area.move-items	organization	dialog	populated	com.whip.app.ui.AreaFeatureUiTest#captureAreaManagementCatalog	capture	Move area items before deletion.
+dialog:area-delete	organization.area.permanent-delete	organization	dialog	with impact summary	com.whip.app.ui.AreaFeatureUiTest#permanentDeleteExplainsBothChoicesAndRequiresAnExplicitChoice	capture	Permanent area deletion.
+dialog:area-last-required	organization.area.last-required	organization	dialog	one area remains	com.whip.app.ui.AreaFeatureUiTest#deletingTheOnlyAreaPromptsForAReplacementFirst	capture	Last-area invariant explanation.
+menu:area-row	organization.area.menu	organization	menu	open	com.whip.app.ui.AreaFeatureUiTest#captureAreaManagementCatalog	capture	Area row actions.
+menu:area-picker	organization.area-picker.menu	organization	menu	open	com.whip.app.ui.AreaFeatureUiTest#scopeMenuShowsSelectionAndItemCountsWithSentenceCaseLabels	capture	Area selection menu.
+dialog:tag-manager	organization.tags.list	organization	dialog	populated	com.whip.app.ui.TagManagementUiTest#captureTagManagementCatalog	capture	Tag manager list.
+dialog:tag-create	organization.tag.create	organization	dialog	new tag	com.whip.app.ui.TagManagementUiTest#captureTagManagementCatalog	capture	Tag creation.
+dialog:tag-rename	organization.tag.rename	organization	dialog	existing tag	com.whip.app.ui.TagManagementUiTest#captureTagManagementCatalog	capture	Tag rename.
+dialog:tag-merge	organization.tag.merge	organization	dialog	populated	com.whip.app.ui.TagManagementUiTest#captureTagManagementCatalog	capture	Tag merge target selection.

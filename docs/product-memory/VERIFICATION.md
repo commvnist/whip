@@ -1151,3 +1151,13 @@
 - Failures or residual risk: No accepted-run failures. Settings and Organization selectors, cross-family visual critique, production remediation, final recapture, and owner-phone deployment remain incomplete.
 - Related: `FB-20260906-008`, `DEC-20260906-005`, `IMP-20260906-012`.
 - Status: Verified for complete Gym family coverage; the durable goal remains active.
+
+### VER-20260906-013 — Exhaustive Settings and Organization catalog evidence
+
+- Scope/environment: Final catalog fixture tranche on disposable API 34 `emulator-5554`, with deterministic dark-theme capture states. The physical owner phone was not queried, connected, instrumented, installed to, or otherwise used.
+- Command or manual procedure: Android-test Kotlin compilation; strict `scripts/ui-catalog lint`; `ANDROID_SERIAL=emulator-5554 scripts/ui-catalog capture --family settings /tmp/whip-ui-settings-complete-20260906`; the equivalent Organization capture into `/tmp/whip-ui-organization-complete-20260906`; and exact export accounting.
+- Result: Settings executed seven focused selectors and exported exactly 14 PNG/XML pairs; Organization executed five focused selectors and exported exactly 15 PNG/XML pairs. Both runs had zero failures/skips, no missing or unexpected surface IDs, and complete SHA-256/byte manifests.
+- Coverage accounting: Implemented catalog coverage advanced from 149 to all 171 required surfaces. Strict lint reports 171 required captures, zero platform exceptions, and zero pending selectors.
+- Failures or residual risk: No accepted-run failures. The complete 171-surface capture, visual critique, production remediation, final recapture, and owner-phone deployment remain incomplete.
+- Related: `FB-20260906-008`, `DEC-20260906-005`, `IMP-20260906-013`.
+- Status: Verified for complete Settings and Organization family coverage; the durable goal remains active.
