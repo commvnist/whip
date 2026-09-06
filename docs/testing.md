@@ -33,7 +33,7 @@ JVM/Android selectors. Documentation-only, JVM-test-only, Android-test-only,
 feature-domain, and shared UI/core changes stay proportionate. Deletions and
 renames route both affected names. Unknown production, build/configuration,
 benchmark, quality-register, automation, and harness paths remain marked as
-requiring `scripts/candidate` before release. Harness changes first run their
+requiring `scripts/candidate` before Play Store release. Harness changes first run their
 focused deterministic fixture rather than the product suite.
 
 The default runs only selected JVM tests plus millisecond-scale source guards;
@@ -47,15 +47,19 @@ tool: profiles may be unioned, exact `--jvm` and `--android Class#method`
 selectors and `--jvm-only` are supported, and `--repeat` is reserved for timing investigations.
 Development evidence is not a release claim.
 
-The intended prompt-to-release ladder is `scripts/check` while editing,
+The intended personal-development ladder is `scripts/check` while editing,
 `scripts/check --emulator` only for affected UI/integration behavior,
-`scripts/check --ready` before handoff, one `scripts/candidate` after source is
-frozen, and then separately authorized `scripts/device release-install` using
-the already-qualified artifact. Do not use `release-deploy` after qualification:
-it rebuilds the APK and therefore creates different, unqualified bytes.
+`scripts/check --ready` before handoff, and separately authorized
+`scripts/device release-deploy` for a fast signed in-place build/install on the
+owner's phone. Personal-phone deployment does not claim complete-suite or store
+candidate evidence.
 
-`scripts/check --full` preserves the historical complete local gate used by
-release tooling: complete JVM coverage, Android-test compilation, lint/static
+Reserve `scripts/candidate` for a Play Store release. After source is frozen it
+runs the complete fresh qualification once; publish or install the exact
+qualified artifacts without rebuilding them.
+
+`scripts/check --full` preserves the historical complete local compatibility
+gate: complete JVM coverage, Android-test compilation, lint/static
 guards, debug and release APKs, release AAB, benchmark builds, merged-manifest
 safety, and release application/version metadata validation. With no
 `--emulator` it neither reads `ANDROID_SERIAL` nor invokes candidate or
@@ -166,13 +170,16 @@ and emits an unsigned APK suitable for local verification.
 
 On the configured WSL workstation, `WHIP_DEVICE=SERIAL scripts/device
 release-deploy` first proves that the explicitly selected target is connected
-physical hardware, then reads the
+physical hardware, runs the fast changed-path check, then reads the
 mode-600 key and password file under `/root/.android/whip`, exports those values
-only to the Gradle child process, builds the signed release, installs it with
+only to the Gradle child process, builds the signed APK/AAB, installs the APK with
 `adb -s SERIAL install -r`, and launches it. `WHIP_DEVICE=SERIAL scripts/device
 release-install` reuses an
 already-built release APK. Never copy the keystore or password into this
 repository, and keep a secure offline copy of both.
+
+This fast path is for the owner's development phone. It is not Play Store
+release evidence. Run `scripts/candidate` before store publication.
 
 ## Query and background-work review
 

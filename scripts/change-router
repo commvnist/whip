@@ -222,6 +222,8 @@ route_path() {
                     harness_checks['scripts/test-candidate-evidence']=1 ;;
                 scripts/android-target-guard|scripts/test-android-target-guard)
                     harness_checks['scripts/test-android-target-guard']=1 ;;
+                scripts/device)
+                    harness_checks['scripts/test-android-target-guard']=1 ;;
                 *) add_profile all ;;
             esac
             add_route "$status" "$path" 'candidate:required' 'test or release harness integrity path'

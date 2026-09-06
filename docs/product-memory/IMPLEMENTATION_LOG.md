@@ -977,4 +977,15 @@
 - Commit/push: `7fab98c` pushed to `origin/main`.
 - Related: `FB-20260906-003`, `DEC-20260906-002`, `VER-20260906-002`.
 - Verification: Deterministic router, fast/default, full-gate, candidate-evidence, and Android-target fixture suites passed; the real changed-path fast command passed in about one second of reported wall time.
-- Status: Implemented, fixture-verified, committed, and pushed; candidate qualification remains pending before release.
+- Status: Implemented, fixture-verified, committed, and pushed; candidate qualification remains pending only before Play Store release.
+
+### IMP-20260906-003 — Fast owner-phone release lane
+
+- Behavior changed: `scripts/device release-deploy` now runs the changed-path fast check before signing/building/installing instead of the complete local suite. The complete fresh candidate is explicitly reserved for Play Store qualification. The physical target guard, `adb -s` install, signed package identity, in-place update, and launch verification remain mandatory.
+- Important files/symbols: `scripts/device` `build_release_apk`, `scripts/change-router` harness routing, `scripts/check` Play Store messaging, `scripts/test-android-target-guard`, `README.md`, and `docs/testing.md`.
+- Persistence/migration/history impact: No application behavior, schema, data epoch, backup format, or existing user data changed. Whip 0.3.50/code 56 remains the prepared identity.
+- Compatibility and limitations: A personal-phone release proves only affected checks, signed artifact creation, exact physical install, and smoke; it must not be represented as complete-suite or Play Store evidence. No physical target was connected while this tooling chunk was implemented.
+- Commit/push: Pending coherent-chunk commit and normal push.
+- Related: `FB-20260906-004`, `FB-20260906-005`, `DEC-20260906-003`, `VER-20260906-003`.
+- Verification: Router and Android target/release regressions passed, including the new assertion that personal-phone deployment invokes `scripts/check` and never `scripts/check --full`.
+- Status: Implemented and fixture-verified.

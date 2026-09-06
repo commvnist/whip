@@ -103,9 +103,9 @@ build_release_apk() {
     local release_password
     IFS= read -r release_password < "$RELEASE_PASSWORD_FILE"
     [[ -n "$release_password" ]] || die "release password file is empty"
-    printf 'Running the required local release quality gate...\n'
-    (cd "$PROJECT_ROOT" && scripts/check --full)
-    printf 'Building signed release APK and Play bundle...\n'
+    printf 'Running fast affected checks for the personal-phone build...\n'
+    (cd "$PROJECT_ROOT" && scripts/check)
+    printf 'Building signed release APK and bundle...\n'
     (
         cd "$PROJECT_ROOT"
         WHIP_KEYSTORE_FILE="$RELEASE_KEYSTORE" \

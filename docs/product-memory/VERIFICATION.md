@@ -1040,4 +1040,16 @@
 - Failures or residual risk: The harness changes require an explicit fresh `scripts/candidate` before a future release. Real-world elapsed-time improvement varies with Gradle daemon/cache state; the active harness-only `scripts/check` completed with tool-reported wall time of approximately 1.1 seconds.
 - Commit/push: `7fab98c` pushed to `origin/main`.
 - Related: `FB-20260906-003`, `DEC-20260906-002`, `IMP-20260906-002`.
-- Status: Verified for the development boundary; candidate qualification remains pending for release authority.
+- Status: Verified for the development boundary; candidate qualification remains pending only for Play Store authority.
+
+### VER-20260906-003 — Personal-phone/store boundary verification
+
+- Scope/environment: Whip 0.3.50/code 56 tooling on 2026-09-06; disposable API 34 emulator only. No physical phone was connected and no install, reset, uninstall, downgrade, or publication occurred in this verification chunk.
+- Command or manual procedure: Stopped the in-progress `ANDROID_SERIAL=emulator-5554 scripts/candidate` on direct user clarification; ran shell syntax, `scripts/test-change-router`, the complete `scripts/test-android-target-guard`, and `git diff --check`.
+- Result: Candidate interruption was fail-closed and published no accepted evidence. Six complete fresh Android batches recorded 672 passing tests with zero failures/skips before the partial seventh batch was rejected for lacking fresh complete XML. The release fixture proves the fast personal-phone lane uses `scripts/check`, not `scripts/check --full`, while every explicit physical-target and `adb -s` guard remains green.
+- Counts and exclusions: Partial/store-ineligible run only—complete JVM coverage/build/lint phases passed and 6/11 Android batches completed, but no complete candidate is claimed. Product behavior did not change, so no replacement complete campaign was started.
+- Artifact/version/hash: No accepted candidate artifact; pending output is transient rejected evidence. Prepared identity remains 0.3.50/code 56.
+- Failures or residual risk: Physical signing/install/launch/log verification awaits a connected phone. Play Store release would require a new complete fresh candidate from frozen inputs.
+- Commit/push: Pending coherent-chunk commit and normal push.
+- Related: `FB-20260906-004`, `FB-20260906-005`, `DEC-20260906-003`, `IMP-20260906-003`.
+- Status: Verified for the policy/harness boundary; physical release pending.

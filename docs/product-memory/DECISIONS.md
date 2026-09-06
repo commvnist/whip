@@ -769,4 +769,17 @@
 - Why this is superior for Whip: The most frequent edit/test loop pays only for relevant behavioral feedback, progressively more expensive work is invoked once at the boundary where it adds confidence, and release authority remains stronger rather than being conflated with development convenience.
 - Consequences / reversal conditions: A fast pass is intentionally insufficient for commit or release claims. Use `--ready` before handoff and candidate qualification after source freeze. Restore mandatory inner-loop Android compilation only if deterministic evidence shows JVM compilation plus the explicit readiness boundary permits recurring Android source breakage to escape development.
 - Related: `FB-20260906-003`, `DEC-20260904-002`, `DEC-20260904-003`, `IMP-20260906-002`, `VER-20260906-002`.
+- Status: Superseded only for personal-phone release qualification by `DEC-20260906-003`; its fast development tiers and Play Store candidate boundary remain active.
+
+### DEC-20260906-003 — Personal-phone releases are fast; complete candidates are store-only
+
+- Context: The owner uses the signed physical-phone installation as a development version. During the 0.3.50 release, the user clarified that complete fresh candidate testing should be paid only for Play Store publication, not every private phone update.
+- Position A: Require the store-grade frozen candidate before any signed physical-phone installation.
+- Position B: Use affected tests plus signed build/install/smoke for the personal phone, while reserving the complete fresh candidate for store publication.
+- Evidence and constraints: Personal-phone deployment is reversible through a later higher signed build and reaches only the explicitly selected owner device. The release guard already rejects emulators, ambiguous/offline targets, uninstalls, downgrades, and untargeted ADB. Play Store publication has a materially broader audience and warrants immutable full-suite evidence.
+- Failure modes: Mistaking a private-phone smoke result for complete regression evidence; weakening the physical target guard; clearing local data; publishing an artifact that never passed candidate qualification; rebuilding bytes after store qualification.
+- Decision: `scripts/device release-deploy` runs the changed-path fast check, builds signed APK/AAB outputs, installs the APK in place, and launches it. It does not invoke `scripts/check --full` or `scripts/candidate`. A complete fresh `scripts/candidate` is required only when Play Store release is explicitly requested, and store publication must use its exact qualified artifacts.
+- Why this is superior for Whip: It matches risk and latency to audience: seconds/minutes for the owner's iterative device loop, complete fresh qualification once for public distribution.
+- Consequences / reversal conditions: Phone-release records must state that complete suites were not run. Restore the stronger boundary for private installs only if additional users or irreversible external distribution enter that lane.
+- Related: `FB-20260906-004`, `FB-20260906-005`, `DEC-20260906-002`.
 - Status: Accepted, implemented, and fixture-verified.

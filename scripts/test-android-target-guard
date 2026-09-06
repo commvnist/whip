@@ -216,6 +216,16 @@ printf 'PASS explicitly-targeted installs\n'
 }
 printf 'PASS release commands select guarded physical targets\n'
 
+grep -Fq '(cd "$PROJECT_ROOT" && scripts/check)' "${SCRIPT_DIR}/device" || {
+    printf 'FAIL personal-phone release must use the fast affected gate\n' >&2
+    exit 1
+}
+if grep -Fq '(cd "$PROJECT_ROOT" && scripts/check --full)' "${SCRIPT_DIR}/device"; then
+    printf 'FAIL personal-phone release still invokes the complete local gate\n' >&2
+    exit 1
+fi
+printf 'PASS personal-phone release uses fast affected checks\n'
+
 if grep -Fq 'TestSuiteTestTask' "${PROJECT_ROOT}/build.gradle.kts"; then
     printf 'FAIL Gradle guard: ineffective cross-project typed hook remains in root build script\n' >&2
     exit 1

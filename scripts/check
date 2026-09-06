@@ -29,7 +29,7 @@ usage() {
         '' \
         'The default is the edit/test inner loop: relevant JVM tests only.' \
         '--emulator adds selected Android execution; --ready adds compile/lint/build checks.' \
-        'Unknown production/build/harness inputs remain candidate-required for release.' \
+        'Unknown production/build/harness inputs remain candidate-required for Play Store release.' \
         '--full preserves the complete device-independent JVM/static/build gate.' \
         '--device aliases --emulator; --fresh-emulator requires --emulator.' \
         'Only an explicit scripts/candidate command creates fresh candidate evidence.'
@@ -174,7 +174,7 @@ printf 'All JVM tests: %s\nAll Android tests: %s\nStatic checks: %s\nFrozen cand
 if [[ "$explain_only" == true ]]; then exit 0; fi
 [[ "$candidate_required" != true ]] ||
     if [[ "$ready_gate" == true ]]; then
-        die 'this change touches frozen-candidate inputs; focused checks may use scripts/check, but release readiness requires ANDROID_SERIAL=emulator-N scripts/candidate'
+        die 'this change touches frozen-candidate inputs; focused checks may use scripts/check, but Play Store readiness requires ANDROID_SERIAL=emulator-N scripts/candidate'
     fi
 
 qa_args=()
@@ -233,6 +233,6 @@ if [[ "$ready_gate" == true ]]; then
 else
     printf 'Fast affected-test loop passed. Android compilation, lint, and packaging were deferred to scripts/check --ready.\n'
     if [[ "$candidate_required" == true ]]; then
-        printf 'Release note: these inputs still require a fresh scripts/candidate qualification.\n'
+        printf 'Play Store note: these inputs still require a fresh scripts/candidate qualification.\n'
     fi
 fi

@@ -432,15 +432,25 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Provide one obvious fast default that selects only change-relevant checks; avoid Android-test compilation, lint, packaging, complete profiles, and fresh full-suite work in the edit/test inner loop unless the changed inputs require them; retain explicit affected-emulator, readiness, frozen-candidate, and separately authorized physical-release boundaries; make the command contract discoverable and deterministically tested; preserve fail-closed routing for unknown/high-risk inputs.
 - Affected users/workflows: Whip development, automated coding sessions, targeted JVM and Android regression work, candidate qualification, and release preparation.
 - Related: `FB-20260902-009`, `DEC-20260904-002`, `DEC-20260904-003`, `DEC-20260906-002`, `IMP-20260906-002`, `VER-20260906-002`.
-- Status: Implemented and fixture-verified; fresh candidate qualification remains required before release because the harness itself changed.
+- Status: Implemented and fixture-verified; fresh candidate qualification remains required before Play Store release because the harness itself changed.
 - Notes: This request authorizes development-process and repository-tooling changes, not an application release or physical-device deployment.
 
 ### FB-20260906-004 — Release the latest source to the phone
 
 - Date/source: 2026-09-06, direct user request.
 - User need: Qualify and install the latest pushed Whip source on the user's physical phone.
-- Acceptance criteria: Assign a higher monotonic release identity; create one fresh complete frozen candidate after the testing-cycle harness change; build signed APK/AAB artifacts from that exact source; use an explicitly selected connected physical target; install in place without clearing, resetting, uninstalling, downgrading, or running instrumentation on the phone; verify source/artifact/signature/package identity, installed version/hash, preserved first-install identity, cold launch, foreground activity, and bounded fatal/Room/SQLite logs.
+- Acceptance criteria: Assign a higher monotonic release identity; use the personal-phone fast affected-check/build path defined by `FB-20260906-005`; build signed APK/AAB artifacts from the latest source; use an explicitly selected connected physical target; install in place without clearing, resetting, uninstalling, downgrading, or running instrumentation on the phone; verify source/artifact/signature/package identity, installed version/hash, preserved first-install identity, cold launch, foreground activity, and bounded fatal/Room/SQLite logs.
 - Affected users/workflows: The user's installed production Whip application and future upgrade continuity.
-- Related: `FB-20260906-003`, `DEC-20260906-002`.
+- Related: `FB-20260906-003`, `FB-20260906-005`, `DEC-20260906-003`.
 - Status: In progress; the phone and disposable emulator were not connected at request start.
 - Notes: Installation and launch are authorized. Play Store publication and any destructive in-app fresh-start confirmation remain out of scope.
+
+### FB-20260906-005 — Reserve complete candidate testing for Play Store releases
+
+- Date/source: 2026-09-06, direct user clarification during the 0.3.50 phone release.
+- User need: Treat the user's phone as a personal development installation and keep its release loop fast; do not run the complete candidate suite for ordinary phone updates.
+- Acceptance criteria: Personal-phone deployment runs only affected development checks, produces a signed build, installs in place, and performs package/hash/launch/log smoke. Complete fresh JVM/Android coverage, candidate evidence, and store-grade artifact qualification run only for an explicitly requested Play Store release. Preserve explicit physical-device targeting and all no-reset/no-uninstall/no-downgrade protections.
+- Affected users/workflows: Owner-only physical-phone development releases versus Play Store publication.
+- Related: `FB-20260906-003`, `FB-20260906-004`, `DEC-20260906-003`.
+- Status: Implemented and fixture-verified; the 0.3.50 physical install remains pending.
+- Notes: The already-running 0.3.50 candidate was stopped during Android batch 7/11; its partial output is not acceptance evidence.

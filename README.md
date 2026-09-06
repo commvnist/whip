@@ -79,9 +79,9 @@ ANDROID_SERIAL=emulator-5554 ./scripts/candidate
 The fast default does not compile Android tests, lint, or package the app;
 Android-test-only edits are the exception because compiling them is their first
 useful check. Unknown production/build/harness paths remain marked for the
-frozen-candidate gate rather than silently becoming release-ready.
+frozen-candidate gate rather than silently becoming Play Store-ready.
 `scripts/check --full` remains the
-device-independent complete local compatibility gate used by release tooling;
+device-independent complete local compatibility gate;
 it never creates candidate evidence and runs instrumentation only when Android
 execution is separately requested with `--emulator`. The debug APK is written to
 `app/build/outputs/apk/debug/app-debug.apk`. See
@@ -108,7 +108,7 @@ Use each in order:
 # Build, replace the isolated `Whip Dev` app, and launch it without touching release data.
 ./scripts/device deploy
 
-# Build, update, and launch the signed non-debug release configured on this workstation.
+# Fast affected-check, signed build, in-place update, and launch on the owner's phone.
 ./scripts/device release-deploy
 ```
 
