@@ -464,3 +464,13 @@ These records preserve durable user intent. “Released” means the change reac
 - Related: `FND-20260906-001`, `DEC-20260906-004`, `IMP-20260906-005`, `VER-20260906-005`.
 - Status: Implemented and emulator-verified; awaiting user validation.
 - Notes: The screenshot shows Whip 0.3.50 on the user's foldable phone in dark mode.
+
+### FB-20260906-007 — Release the Habit Today redesign to the owner phone
+
+- Date/source: 2026-09-06, direct user request immediately after the focused redesign verification.
+- User need: Install the latest pushed Habit Today design on the user's connected development phone for real-device use.
+- Acceptance criteria: Advance to a higher monotonic private release identity; use the fast owner-phone lane rather than candidate/full-suite qualification; build signed APK/AAB outputs from pushed source; explicitly target the connected physical phone; install in place without reset, clear, uninstall, downgrade, or phone instrumentation; verify signer, artifact integrity, installed version/hash, preserved first-install identity, cold launch, foreground activity, and bounded fatal/ANR/Room/SQLite logs.
+- Affected users/workflows: Owner-only Whip development installation and Habit Today real-device validation.
+- Related: `FB-20260906-005`, `FB-20260906-006`, `DEC-20260906-003`, `IMP-20260906-005`, `VER-20260906-005`.
+- Status: In progress.
+- Notes: Play Store publication and complete candidate qualification remain out of scope.

@@ -42,8 +42,8 @@ android {
         applicationId = "commvne.com.whip.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 56
-        versionName = "0.3.50"
+        versionCode = 57
+        versionName = "0.3.51"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
