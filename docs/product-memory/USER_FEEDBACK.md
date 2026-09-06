@@ -442,7 +442,7 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Assign a higher monotonic release identity; use the personal-phone fast affected-check/build path defined by `FB-20260906-005`; build signed APK/AAB artifacts from the latest source; use an explicitly selected connected physical target; install in place without clearing, resetting, uninstalling, downgrading, or running instrumentation on the phone; verify source/artifact/signature/package identity, installed version/hash, preserved first-install identity, cold launch, foreground activity, and bounded fatal/Room/SQLite logs.
 - Affected users/workflows: The user's installed production Whip application and future upgrade continuity.
 - Related: `FB-20260906-003`, `FB-20260906-005`, `DEC-20260906-003`.
-- Status: In progress; the phone and disposable emulator were not connected at request start.
+- Status: Released and verified as Whip 0.3.50/code 56; awaiting user validation.
 - Notes: Installation and launch are authorized. Play Store publication and any destructive in-app fresh-start confirmation remain out of scope.
 
 ### FB-20260906-005 — Reserve complete candidate testing for Play Store releases
@@ -452,5 +452,5 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Personal-phone deployment runs only affected development checks, produces a signed build, installs in place, and performs package/hash/launch/log smoke. Complete fresh JVM/Android coverage, candidate evidence, and store-grade artifact qualification run only for an explicitly requested Play Store release. Preserve explicit physical-device targeting and all no-reset/no-uninstall/no-downgrade protections.
 - Affected users/workflows: Owner-only physical-phone development releases versus Play Store publication.
 - Related: `FB-20260906-003`, `FB-20260906-004`, `DEC-20260906-003`.
-- Status: Implemented and fixture-verified; the 0.3.50 physical install remains pending.
+- Status: Implemented, fixture-verified, and exercised by the 0.3.50 physical install.
 - Notes: The already-running 0.3.50 candidate was stopped during Android batch 7/11; its partial output is not acceptance evidence.

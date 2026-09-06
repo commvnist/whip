@@ -1050,6 +1050,18 @@
 - Counts and exclusions: Partial/store-ineligible run only—complete JVM coverage/build/lint phases passed and 6/11 Android batches completed, but no complete candidate is claimed. Product behavior did not change, so no replacement complete campaign was started.
 - Artifact/version/hash: No accepted candidate artifact; pending output is transient rejected evidence. Prepared identity remains 0.3.50/code 56.
 - Failures or residual risk: Physical signing/install/launch/log verification awaits a connected phone. Play Store release would require a new complete fresh candidate from frozen inputs.
-- Commit/push: Pending coherent-chunk commit and normal push.
+- Commit/push: `a9fd764` pushed to `origin/main`.
 - Related: `FB-20260906-004`, `FB-20260906-005`, `DEC-20260906-003`, `IMP-20260906-003`.
-- Status: Verified for the policy/harness boundary; physical release pending.
+- Status: Verified for the policy/harness boundary and exercised by the physical release.
+
+### VER-20260906-004 — Whip 0.3.50 fast owner-phone release
+
+- Scope/environment: Source `a9fd764` on `origin/main`; Whip 0.3.50/code 56; signed release build on WSL; explicitly selected physical Samsung target. The disposable emulator remained connected but could not pass the physical release guard.
+- Command or manual procedure: Clean-tree `scripts/check`; signing-configured `:app:assembleRelease :app:bundleRelease`; `apksigner verify --verbose --print-certs`; AAB `unzip -t`; pre-install package snapshot; guarded `scripts/device release-install`; guarded `scripts/device release-run`; post-install package/hash/foreground/process checks; bounded app-PID fatal/ANR/Room/SQLite log scan.
+- Result: Fast changed-path check passed with no changed inputs. Signing/build completed in 51 seconds. APK verifies with one established RSA signer and v2 signing; AAB archive integrity passed. In-place streamed install succeeded, Android reports 0.3.50/code 56, installed/local APK hashes match, original first-install time remained 2026-08-26 17:59:24, cold launch returned `Status: ok` in 153 ms, `MainActivity` remained foreground, and the bounded app-process log scan was clean.
+- Counts and exclusions: No complete JVM or Android suite was run for this private owner-phone release, per `FB-20260906-005`. No instrumentation ran on the phone. No reset, clear, uninstall, downgrade, fresh-start confirmation, or Play Store publication occurred. The interrupted store candidate remains rejected partial evidence only.
+- Artifact/version/hash: APK SHA-256 `69ce3d5d641d9c55d08a2b687672deddbfec33a0ea7a84b33de39d374139f504`; AAB SHA-256 `562d67d41115950ae3087fca4093f990f0afd89ed95f1939b9dfe21ee7cbb5fa`; signer certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`.
+- Failures or residual risk: Not Play Store-qualified. A public release requires a new complete fresh candidate. Subjective behavior awaits user validation on the phone.
+- Commit/push: `6051d6c` and `a9fd764` were pushed to `origin/main` before artifact creation and install.
+- Related: `FB-20260906-004`, `FB-20260906-005`, `DEC-20260906-003`, `IMP-20260906-004`.
+- Status: Released, installed in place, and physically verified; awaiting user validation.

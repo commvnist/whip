@@ -782,4 +782,4 @@
 - Why this is superior for Whip: It matches risk and latency to audience: seconds/minutes for the owner's iterative device loop, complete fresh qualification once for public distribution.
 - Consequences / reversal conditions: Phone-release records must state that complete suites were not run. Restore the stronger boundary for private installs only if additional users or irreversible external distribution enter that lane.
 - Related: `FB-20260906-004`, `FB-20260906-005`, `DEC-20260906-002`.
-- Status: Accepted, implemented, and fixture-verified.
+- Status: Accepted, implemented, fixture-verified, and exercised by the 0.3.50 physical release.

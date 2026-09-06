@@ -985,7 +985,18 @@
 - Important files/symbols: `scripts/device` `build_release_apk`, `scripts/change-router` harness routing, `scripts/check` Play Store messaging, `scripts/test-android-target-guard`, `README.md`, and `docs/testing.md`.
 - Persistence/migration/history impact: No application behavior, schema, data epoch, backup format, or existing user data changed. Whip 0.3.50/code 56 remains the prepared identity.
 - Compatibility and limitations: A personal-phone release proves only affected checks, signed artifact creation, exact physical install, and smoke; it must not be represented as complete-suite or Play Store evidence. No physical target was connected while this tooling chunk was implemented.
-- Commit/push: Pending coherent-chunk commit and normal push.
+- Commit/push: `a9fd764` pushed to `origin/main`.
 - Related: `FB-20260906-004`, `FB-20260906-005`, `DEC-20260906-003`, `VER-20260906-003`.
 - Verification: Router and Android target/release regressions passed, including the new assertion that personal-phone deployment invokes `scripts/check` and never `scripts/check --full`.
-- Status: Implemented and fixture-verified.
+- Status: Implemented, fixture-verified, committed, pushed, and exercised by the 0.3.50 phone release.
+
+### IMP-20260906-004 — Signed Whip 0.3.50 owner-phone release
+
+- Behavior changed: Advanced Whip to 0.3.50/code 56 and installed the latest signed source in place on the explicitly selected physical phone through the new fast owner-development lane. This release contains the prompt-to-test cycle overhaul and personal-phone/store qualification split; production application behavior remains the 0.3.49 baseline.
+- Important files/symbols: `app/build.gradle.kts`, `scripts/device`, signed `app-release.apk`, local `app-release.aab`, and `VER-20260906-004`.
+- Persistence/migration/history impact: Schema 46, data epoch 6, and exact-match backup version 24 are unchanged. Android first-install identity and existing application data were preserved; no reset, clear, uninstall, downgrade, or fresh-start confirmation occurred.
+- Compatibility and limitations: This owner-phone release used affected checks, signed build, exact install/hash, cold launch, and log smoke. Per direct user policy it is not complete-candidate or Play Store evidence; public release requires a new complete fresh candidate.
+- Commit/push: Release identity source `6051d6c`; fast phone-lane source `a9fd764`, both pushed to `origin/main` before build/install.
+- Related: `FB-20260906-004`, `FB-20260906-005`, `DEC-20260906-003`, `VER-20260906-004`.
+- Verification: Signed APK/AAB integrity, established certificate, installed package/version/hash, preserved first-install time, cold launch/foreground activity, and bounded fatal logs passed.
+- Status: Released and physically verified; awaiting user validation.
