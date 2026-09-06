@@ -87,6 +87,11 @@ require_line harness-integrity $'HARNESS\tscripts/test-check-fast'
 require_line harness-integrity $'HARNESS\tscripts/test-check-full'
 reject_line harness-integrity $'PROFILE\tall'
 
+route_fixture ui-catalog-harness $'M\tscripts/ui-catalog'
+require_line ui-catalog-harness $'CANDIDATE\ttrue'
+require_line ui-catalog-harness $'HARNESS\tscripts/test-ui-catalog'
+reject_line ui-catalog-harness $'PROFILE\tall'
+
 route_fixture unknown-production $'M\tapp/src/main/java/com/whip/app/mystery/NovelSubsystem.kt'
 require_line unknown-production $'CANDIDATE\ttrue'
 

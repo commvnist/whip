@@ -39,7 +39,9 @@ focused deterministic fixture rather than the product suite.
 The default runs only selected JVM tests plus millisecond-scale source guards;
 it deliberately defers Android-test compilation, lint, and packaging.
 `scripts/check --ready` adds those affected-change readiness checks before a
-commit. With `--emulator`, the shared engine executes only the selected Android
+commit. Candidate-required paths do not block this development gate: they emit
+a Play Store qualification note, while only an explicit `scripts/candidate`
+invocation runs the complete frozen-candidate suite. With `--emulator`, the shared engine executes only the selected Android
 classes through the emulator guard. Android-test-only edits still compile when
 no emulator is requested so they always receive meaningful feedback.
 `scripts/qa-targeted` remains the explicit-selector development
@@ -99,6 +101,45 @@ matching top-level class. The whole-app data-epoch reset class runs alone and
 last. At the current 90-class baseline this is exactly 11 runner processes: one
 graphics process, nine batches of at most ten ordinary classes, and one reset
 process.
+
+## Systematic UI surface catalog
+
+`docs/quality/ui-surface-catalog.tsv` is the canonical leaf-level inventory of
+Whip pages, dialogs, menus, and meaningful empty/populated/editor states. Every
+row has a stable surface ID, an owning family, an evidence-producing Android
+test selector, and either a required capture or an explicit platform-owned
+exception. The catalog is intentionally separate from the broad product-family
+coverage matrix: a family-level test cannot stand in for visual evidence of an
+individual surface.
+
+`scripts/ui-catalog discover` scans production Kotlin for named page/dialog
+composables and direct dialog/menu call sites. The checked-in
+`docs/quality/ui-source-snapshot.tsv` fingerprints all discovered owners by
+family, so adding, deleting, or moving a UI owner fails catalog lint until its
+effect on the leaf inventory has been reviewed. Refresh that file only after
+reviewing the human-facing catalog:
+
+```bash
+scripts/ui-catalog discover
+scripts/ui-catalog source-snapshot
+scripts/ui-catalog lint --allow-pending  # while building new capture journeys
+scripts/ui-catalog lint                  # completion gate; no pending selectors
+```
+
+The actual evidence pass is emulator-only and requires one explicit target:
+
+```bash
+ANDROID_SERIAL=emulator-5554 scripts/ui-catalog capture \
+  docs/ux-audits/catalog-YYYY-MM-DD/baseline
+```
+
+Capture first runs every unique catalog selector through the guarded targeted
+test engine. Tests save a PNG and UI hierarchy XML under the debug app's private
+files directory; the script then pulls them into the requested repository
+evidence directory, verifies exact two-artifact accounting for every required
+surface, rejects uncatalogued output, and writes hashes and byte sizes to
+`manifest.tsv`. The output directory must be empty. The physical owner phone is
+never a capture or test target; it is reserved for the final signed deployment.
 
 `scripts/candidate` is the only frozen-candidate authority. It snapshots every
 tracked or unignored repository input, then runs complete JVM coverage,

@@ -49,4 +49,12 @@ env WHIP_FAST_FIXTURE_GRADLE_LOG="$GRADLE_LOG" PATH="${FAKE_BIN}:${PATH}" \
 grep -Fq ':app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug' "$GRADLE_LOG"
 grep -Fq 'Affected-change readiness gate passed.' "$OUTPUT"
 
-printf 'PASS fast-default-and-explicit-readiness\n'
+printf '%s\n' $'M\tgradle.properties' > "${TEST_ROOT}/candidate-changes.tsv"
+: > "$GRADLE_LOG"
+env WHIP_FAST_FIXTURE_GRADLE_LOG="$GRADLE_LOG" PATH="${FAKE_BIN}:${PATH}" \
+    "${PROJECT}/scripts/check" --changes-file "${TEST_ROOT}/candidate-changes.tsv" --ready > "$OUTPUT"
+grep -Fq ':app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug' "$GRADLE_LOG"
+grep -Fq 'Affected-change readiness gate passed.' "$OUTPUT"
+grep -Fq 'qualify these inputs with a fresh scripts/candidate run only when preparing a store release' "$OUTPUT"
+
+printf 'PASS fast-default-explicit-readiness-and-store-boundary\n'

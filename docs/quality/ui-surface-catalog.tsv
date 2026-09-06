@@ -1,0 +1,171 @@
+source_keys	surface_id	family	kind	state	capture_selector	disposition	notes
+route:first-run	shared.first-run.setup	shared	dialog	fresh install	pending	capture	Required identity and planning setup.
+route:startup-recovery	shared.startup-recovery.failure	shared	page	recoverable startup failure	pending	capture	Recovery actions and failure explanation.
+route:domain-loading	shared.domain.loading	shared	page	loading	pending	capture	Canonical domain loading state.
+route:domain-failure	shared.domain.failure	shared	page	load failed	pending	capture	Canonical domain failure state.
+route:health-rationale	settings.health.rationale	settings	page	permission rationale	pending	capture	Health Connect permission education.
+route:home	shared.home.populated	shared	page	populated today	pending	capture	Home priorities and destination links.
+route:home-empty	shared.home.empty	shared	page	empty today	pending	capture	Home empty state.
+action:global-add	shared.global-add.menu	shared	menu	open	pending	capture	Cross-domain create menu.
+action:global-search	shared.search.results	shared	dialog	query with results	pending	capture	Unified search and result grouping.
+action:global-search-empty	shared.search.empty	shared	dialog	no results	pending	capture	Unified search empty result state.
+action:review	shared.review.summary	shared	dialog	populated	pending	capture	Daily review summary.
+component:entity-inspector	shared.inspector.base	shared	dialog	populated	pending	capture	Canonical adaptive entity inspector shell.
+component:identity-emoji	shared.identity-emoji.picker	shared	dialog	open	pending	capture	Emoji identity picker.
+component:custom-emoji	shared.identity-emoji.custom	shared	dialog	custom entry	pending	capture	Custom emoji entry.
+component:color-picker	shared.color-picker	shared	dialog	open	pending	capture	Canonical color picker.
+component:date-picker	shared.date-picker	shared	dialog	open	pending	capture	Canonical date picker.
+component:clock-picker	shared.clock-picker	shared	dialog	open	pending	capture	Canonical time picker.
+component:weekday-reminders	shared.weekday-reminders	shared	dialog	open	pending	capture	Per-weekday reminder editor.
+component:unit-menu	shared.unit.menu	shared	menu	open	pending	capture	Canonical unit selection menu.
+component:disclosure-menu	shared.disclosure.menu	shared	menu	open	pending	capture	Canonical disclosure destination menu.
+component:overflow-menu	shared.overflow.menu	shared	menu	open	pending	capture	Canonical overflow action menu.
+guard:unsaved	shared.unsaved-changes	shared	dialog	dirty editor	pending	capture	Unsaved changes guard.
+guard:launch-queue	shared.launch-queue-overflow	shared	dialog	queue full	pending	capture	Queued editor launch guard.
+guard:permanent-delete	shared.permanent-delete	shared	dialog	destructive confirmation	pending	capture	Canonical permanent delete shell.
+route:tasks-today	tasks.today.populated	tasks	page	populated	pending	capture	Today task list.
+route:tasks-today-empty	tasks.today.empty	tasks	page	empty	pending	capture	Today task empty state.
+route:tasks-inbox	tasks.inbox.populated	tasks	page	populated	pending	capture	Inbox task list.
+route:tasks-upcoming-list	tasks.upcoming.list	tasks	page	list	pending	capture	Upcoming list planning view.
+route:tasks-upcoming-agenda	tasks.upcoming.agenda	tasks	page	agenda	pending	capture	Upcoming agenda planning view.
+route:tasks-upcoming-calendar	tasks.upcoming.calendar	tasks	page	calendar	pending	capture	Upcoming calendar planning view.
+route:tasks-history-completed	tasks.history.completed	tasks	page	populated	pending	capture	Completed task history.
+route:tasks-history-archived	tasks.history.archived	tasks	page	populated	pending	capture	Archived task history.
+state:tasks-selection	tasks.bulk-selection	tasks	page	multiple selected	pending	capture	Bulk selection state and action bar.
+editor:task-create	tasks.editor.create	tasks	dialog	new task	pending	capture	Task creation form.
+editor:task-edit	tasks.editor.edit	tasks	dialog	existing task	pending	capture	Task editing form.
+dialog:task-recipe	tasks.recipe	tasks	dialog	open	pending	capture	Task recipe/template chooser.
+dialog:task-repeat-change	tasks.repeat-change	tasks	dialog	series edit	pending	capture	Repeated-task scope confirmation.
+dialog:task-actions	tasks.actions	tasks	dialog	active task	pending	capture	Task detail actions and information.
+dialog:task-completed	tasks.completed-detail	tasks	dialog	completed task	pending	capture	Completed task detail and history.
+dialog:task-reschedule	tasks.reschedule	tasks	dialog	open	pending	capture	Task reschedule flow.
+dialog:task-delete	tasks.permanent-delete	tasks	dialog	with impact summary	pending	capture	Permanent task deletion.
+dialog:task-bulk-edit	tasks.bulk-edit	tasks	dialog	multiple tasks	pending	capture	Bulk task edit controls.
+dialog:task-batch-delete	tasks.batch-delete	tasks	dialog	multiple tasks	pending	capture	Batch permanent deletion.
+dialog:pending-task-editor	tasks.pending-editor-launch	tasks	dialog	queued	pending	capture	Pending task editor launch.
+menu:task-row	tasks.row.menu	tasks	menu	open	pending	capture	Task row overflow actions.
+menu:task-area-scope	tasks.area-scope.menu	tasks	menu	open	pending	capture	Task area filter.
+route:habits-today	habits.today.populated	habits	page	populated	pending	capture	Daily habit check-ins.
+route:habits-today-empty	habits.today.empty	habits	page	empty	pending	capture	Daily habit empty state.
+route:habits-all	habits.all.populated	habits	page	populated	pending	capture	All habits.
+route:habits-archived	habits.archived.populated	habits	page	populated	pending	capture	Archived habits.
+route:habits-insights	habits.insights.populated	habits	page	populated	pending	capture	Habit insights.
+dialog:habit-inspector-today	habits.inspector.today	habits	dialog	today tab	pending	capture	Habit inspector primary check-in state.
+dialog:habit-inspector-history	habits.inspector.history	habits	dialog	history tab	pending	capture	Habit inspector activity timeline.
+dialog:habit-inspector-options	habits.inspector.options	habits	dialog	options tab	pending	capture	Habit inspector lifecycle actions.
+editor:habit-create	habits.editor.create	habits	dialog	new habit	pending	capture	Habit creation form.
+editor:habit-edit	habits.editor.edit	habits	dialog	existing habit	pending	capture	Habit editing form.
+dialog:habit-template	habits.template	habits	dialog	open	pending	capture	Habit template chooser.
+dialog:habit-value	habits.value-entry	habits	dialog	numeric	pending	capture	Numeric habit check-in.
+dialog:habit-timer	habits.timer-review	habits	dialog	elapsed timer	pending	capture	Timer completion review.
+dialog:habit-history	habits.history-log	habits	dialog	view log	pending	capture	Habit history log detail.
+dialog:habit-history-edit	habits.history-log-edit	habits	dialog	edit log	pending	capture	Editable past habit log.
+dialog:habit-pause	habits.pause-create	habits	dialog	new pause	pending	capture	Habit pause scheduling.
+dialog:habit-actions	habits.actions	habits	dialog	open	pending	capture	Habit action menu dialog.
+dialog:habit-delete	habits.permanent-delete	habits	dialog	with impact summary	pending	capture	Permanent habit deletion.
+menu:habit-row	habits.row.menu	habits	menu	open	pending	capture	Habit row overflow actions.
+route:goals-active	goals.active.populated	goals	page	populated	pending	capture	Active goals.
+route:goals-active-empty	goals.active.empty	goals	page	empty	pending	capture	Active goals empty state.
+route:goals-history	goals.history.populated	goals	page	populated	pending	capture	Completed goal history.
+route:goals-archived	goals.archived.populated	goals	page	populated	pending	capture	Archived goals.
+route:goals-insights	goals.insights.populated	goals	page	populated	pending	capture	Goal insights.
+editor:goal-create	goals.editor.create	goals	dialog	new goal	pending	capture	Goal creation form.
+editor:goal-edit	goals.editor.edit	goals	dialog	existing goal	pending	capture	Goal editing form.
+dialog:goal-template	goals.template	goals	dialog	open	pending	capture	Goal template chooser.
+dialog:goal-measurement	goals.measurement	goals	dialog	open	pending	capture	Goal progress measurement.
+dialog:goal-elapsed-reset	goals.elapsed-reset	goals	dialog	elapsed target	pending	capture	Elapsed goal reset choice.
+dialog:goal-actions	goals.actions	goals	dialog	open	pending	capture	Goal details and actions.
+dialog:goal-delete	goals.permanent-delete	goals	dialog	with impact summary	pending	capture	Permanent goal deletion.
+menu:goal-row	goals.row.menu	goals	menu	open	pending	capture	Goal row overflow actions.
+route:tracks-all	tracks.all.populated	tracks	page	populated	pending	capture	Track definitions.
+route:tracks-all-empty	tracks.all.empty	tracks	page	empty	pending	capture	Tracks empty state.
+route:tracks-activity	tracks.activity.populated	tracks	page	populated	pending	capture	Cross-track activity.
+route:tracks-archived	tracks.archived.populated	tracks	page	populated	pending	capture	Archived tracks.
+route:tracks-insights	tracks.insights.populated	tracks	page	populated	pending	capture	Cross-track insights.
+route:track-entries	tracks.detail.entries	tracks	page	populated	pending	capture	Track entry list.
+route:track-options	tracks.detail.options	tracks	page	configured	pending	capture	Track configuration summary.
+route:track-insights	tracks.detail.insights	tracks	page	populated	pending	capture	Single-track insights.
+route:track-unavailable	tracks.detail.unavailable	tracks	page	missing target	pending	capture	Unavailable deep-link target.
+editor:track-create	tracks.editor.create	tracks	dialog	new track	pending	capture	Track definition creation.
+editor:track-edit	tracks.editor.edit	tracks	dialog	existing track	pending	capture	Track definition editing.
+editor:track-entry-create	tracks.entry.create	tracks	dialog	new entry	pending	capture	Track entry creation.
+editor:track-entry-edit	tracks.entry.edit	tracks	dialog	existing entry	pending	capture	Track entry editing.
+dialog:track-entry-details	tracks.entry.details	tracks	dialog	read-only details	pending	capture	Entry detail summary.
+dialog:track-filter	tracks.filter	tracks	dialog	configured	pending	capture	Track filter builder.
+dialog:track-condition	tracks.condition	tracks	dialog	configured	pending	capture	Track filter condition editor.
+dialog:track-csv	tracks.csv-import	tracks	dialog	preview	pending	capture	CSV import mapping and preview.
+dialog:track-delete	tracks.entry-delete	tracks	dialog	with impact summary	pending	capture	Track entry deletion.
+menu:track-activity	tracks.activity.menu	tracks	menu	open	pending	capture	Activity row actions.
+menu:track-entry	tracks.entry.menu	tracks	menu	open	pending	capture	Entry row actions.
+menu:track-reorder	tracks.reorder.menu	tracks	menu	open	pending	capture	Track field ordering actions.
+route:gym-workout-empty	gym.workout.empty	gym	page	no active workout	pending	capture	Workout launch state.
+route:gym-workout-active	gym.workout.active	gym	page	active workout	pending	capture	Active workout logging.
+route:gym-history	gym.history.populated	gym	page	populated	pending	capture	Workout history.
+route:gym-progress	gym.progress.populated	gym	page	populated	pending	capture	Gym progress dashboard.
+route:gym-library	gym.library.landing	gym	page	populated	pending	capture	Gym library hub.
+route:gym-routines	gym.routines.populated	gym	page	populated	pending	capture	Routine library.
+route:gym-exercises	gym.exercises.populated	gym	page	populated	pending	capture	Exercise library.
+route:gym-machines	gym.machines.populated	gym	page	populated	pending	capture	Machine library.
+route:gym-categories	gym.categories.populated	gym	page	populated	pending	capture	Exercise categories.
+route:gym-tools	gym.tools	gym	page	populated	pending	capture	Gym calculation and management tools.
+route:routine-builder	gym.routine-builder.outline	gym	page	outline	pending	capture	Routine builder outline.
+route:routine-program	gym.routine-builder.program	gym	page	program structure	pending	capture	Routine program structure.
+route:routine-exercise-picker	gym.routine-builder.exercise-picker	gym	page	picker	pending	capture	Routine exercise picker.
+route:routine-workout-picker	gym.routine-builder.workout-picker	gym	page	picker	pending	capture	Routine workout import picker.
+dialog:531-setup	gym.531.setup	gym	dialog	configured	pending	capture	5/3/1 program setup.
+dialog:531-review	gym.531.review	gym	dialog	populated	pending	capture	5/3/1 cycle review.
+dialog:rep-scheme	gym.rep-scheme	gym	dialog	configured	pending	capture	Rep prescription scheme editor.
+dialog:quick-machine	gym.quick-machine	gym	dialog	new machine	pending	capture	Inline machine creation.
+dialog:exercise-editor	gym.exercise.editor	gym	dialog	existing exercise	pending	capture	Exercise editor.
+dialog:exercise-picker	gym.exercise.picker	gym	dialog	populated	pending	capture	Exercise picker.
+dialog:exercise-actions	gym.exercise.actions	gym	dialog	open	pending	capture	Exercise actions and details.
+dialog:exercise-delete	gym.exercise.permanent-delete	gym	dialog	with impact summary	pending	capture	Permanent exercise deletion.
+dialog:machine-editor	gym.machine.editor	gym	dialog	existing machine	pending	capture	Machine editor.
+dialog:machine-choice	gym.machine.choice	gym	dialog	populated	pending	capture	Machine selection.
+dialog:machine-delete	gym.machine.permanent-delete	gym	dialog	with impact summary	pending	capture	Permanent machine deletion.
+dialog:workout-editor	gym.workout.editor	gym	dialog	existing workout	pending	capture	Workout editor.
+dialog:workout-set	gym.workout.set-editor	gym	dialog	configured	pending	capture	Workout set editor.
+dialog:workout-group	gym.workout.group	gym	dialog	configured	pending	capture	Workout group editor.
+dialog:workout-notes	gym.workout.notes	gym	dialog	populated	pending	capture	Workout exercise notes.
+dialog:rest-duration	gym.rest-duration	gym	dialog	configured	pending	capture	Rest timer duration.
+dialog:workout-delete	gym.workout.permanent-delete	gym	dialog	with impact summary	pending	capture	Permanent workout deletion.
+dialog:tracked-records	gym.tracked-records	gym	dialog	configured	pending	capture	Tracked record manager.
+dialog:routine-position	gym.routine.program-position	gym	dialog	configured	pending	capture	Routine program positioning.
+dialog:routine-delete	gym.routine.permanent-delete	gym	dialog	with impact summary	pending	capture	Permanent routine deletion.
+dialog:gym-confirmation	gym.confirmation	gym	dialog	open	pending	capture	Canonical gym confirmation.
+dialog:gym-defaults	gym.defaults-change	gym	dialog	meaning change	pending	capture	Defaults semantic-change guard.
+dialog:gym-allocation	gym.category-allocation	gym	dialog	configured	pending	capture	Category allocation editor.
+menu:workout-set	gym.workout-set.menu	gym	menu	open	pending	capture	Workout set actions.
+menu:workout-exercise	gym.workout-exercise.menu	gym	menu	open	pending	capture	Workout exercise actions.
+menu:workout-history	gym.workout-history.menu	gym	menu	open	pending	capture	Workout history actions.
+menu:routine-row	gym.routine.menu	gym	menu	open	pending	capture	Routine actions.
+menu:machine-row	gym.machine.menu	gym	menu	open	pending	capture	Machine actions.
+menu:routine-placement	gym.routine-placement.menu	gym	menu	open	pending	capture	Routine placement actions.
+menu:routine-classification	gym.classification.menu	gym	menu	open	pending	capture	Routine classification choices.
+route:settings-appearance	settings.appearance	settings	page	configured	pending	capture	Appearance settings.
+route:settings-planning	settings.planning	settings	page	configured	pending	capture	Planning settings.
+route:settings-organization	settings.organization	settings	page	configured	pending	capture	Organization settings.
+route:settings-reminders	settings.reminders	settings	page	configured	pending	capture	Reminder settings.
+route:settings-data	settings.data-privacy	settings	page	configured	pending	capture	Data and privacy settings.
+route:settings-about	settings.about-diagnostics	settings	page	configured	pending	capture	About and diagnostics.
+dialog:settings-backup	settings.backup-preview	settings	dialog	backup preview	pending	capture	Backup preview and confirmation.
+dialog:settings-restore	settings.restore-preview	settings	dialog	restore preview	pending	capture	Restore preview and confirmation.
+dialog:settings-reset	settings.reset	settings	dialog	destructive confirmation	pending	capture	App data reset confirmation.
+dialog:settings-health	settings.health-action	settings	dialog	permission change	pending	capture	Health Connect setting confirmation.
+dialog:settings-custom-unit	settings.custom-unit	settings	dialog	create	pending	capture	Custom measurement unit editor.
+dialog:settings-emoji	settings.custom-emoji	settings	dialog	custom entry	pending	capture	Custom identity emoji.
+dialog:area-manager-list	organization.areas.list	organization	dialog	populated list	pending	capture	Area manager master list.
+dialog:area-manager-detail	organization.areas.detail	organization	dialog	selected area	pending	capture	Area manager detail.
+dialog:area-create	organization.area.create	organization	dialog	new area	pending	capture	Inline area creation.
+dialog:area-rename	organization.area.rename	organization	dialog	existing area	pending	capture	Area rename.
+dialog:area-color	organization.area.color	organization	dialog	existing area	pending	capture	Area color selection.
+dialog:area-merge	organization.area.merge	organization	dialog	populated	pending	capture	Area merge target selection.
+dialog:area-move	organization.area.move-items	organization	dialog	populated	pending	capture	Move area items before deletion.
+dialog:area-delete	organization.area.permanent-delete	organization	dialog	with impact summary	pending	capture	Permanent area deletion.
+dialog:area-last-required	organization.area.last-required	organization	dialog	one area remains	pending	capture	Last-area invariant explanation.
+menu:area-row	organization.area.menu	organization	menu	open	pending	capture	Area row actions.
+menu:area-picker	organization.area-picker.menu	organization	menu	open	pending	capture	Area selection menu.
+dialog:tag-manager	organization.tags.list	organization	dialog	populated	pending	capture	Tag manager list.
+dialog:tag-create	organization.tag.create	organization	dialog	new tag	pending	capture	Tag creation.
+dialog:tag-rename	organization.tag.rename	organization	dialog	existing tag	pending	capture	Tag rename.
+dialog:tag-merge	organization.tag.merge	organization	dialog	populated	pending	capture	Tag merge target selection.

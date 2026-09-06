@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly TEST_ROOT="$(mktemp -d)"
+readonly TEST_SOURCE="${TEST_ROOT}/source"
+readonly TEST_CATALOG="${TEST_ROOT}/catalog.tsv"
+readonly TEST_SNAPSHOT="${TEST_ROOT}/source-snapshot.tsv"
+readonly OUTPUT="${TEST_ROOT}/output"
+trap 'rm -rf -- "$TEST_ROOT"' EXIT
+
+mkdir -p "$TEST_SOURCE"
+printf '%s\n' \
+    'package fixture' \
+    '@Composable' \
+    'fun DemoScreen() {' \
+    '    PaneAwareAlertDialog(' \
+    '    DropdownMenu(' \
+    '}' \
+    '@Composable' \
+    'fun DemoDialog() {' \
+    '    Dialog(' \
+    '}' > "${TEST_SOURCE}/Demo.kt"
+
+WHIP_UI_SOURCE_ROOT="$TEST_SOURCE" \
+    "${SCRIPT_DIR}/ui-catalog" source-snapshot > "$TEST_SNAPSHOT"
+printf '%s\n' \
+    $'source_keys\tsurface_id\tfamily\tkind\tstate\tcapture_selector\tdisposition\tnotes' \
+    $'route:demo\tshared.demo.page\tshared\tpage\tpopulated\tpending\tcapture\tDemo page.' \
+    $'dialog:demo\tshared.demo.dialog\tshared\tdialog\topen\tpending\tcapture\tDemo dialog.' \
+    > "$TEST_CATALOG"
+
+WHIP_UI_SOURCE_ROOT="$TEST_SOURCE" \
+WHIP_UI_CATALOG_FILE="$TEST_CATALOG" \
+WHIP_UI_SOURCE_SNAPSHOT_FILE="$TEST_SNAPSHOT" \
+    "${SCRIPT_DIR}/ui-catalog" lint --allow-pending > "$OUTPUT"
+grep -Fq '2 required captures, 0 platform exceptions, 2 pending selectors' "$OUTPUT" || {
+    printf 'FAIL valid pending catalog was not accepted\n' >&2
+    exit 1
+}
+printf 'PASS valid pending catalog\n'
+
+if WHIP_UI_SOURCE_ROOT="$TEST_SOURCE" \
+    WHIP_UI_CATALOG_FILE="$TEST_CATALOG" \
+    WHIP_UI_SOURCE_SNAPSHOT_FILE="$TEST_SNAPSHOT" \
+    "${SCRIPT_DIR}/ui-catalog" lint > "$OUTPUT" 2>&1; then
+    printf 'FAIL complete lint accepted pending capture selectors\n' >&2
+    exit 1
+fi
+grep -Fq 'still have pending capture selectors' "$OUTPUT" || {
+    printf 'FAIL pending-selector failure was not explained\n' >&2
+    exit 1
+}
+printf 'PASS pending selectors fail closed\n'
+
+printf '%s\n' '@Composable' 'fun AddedDialog() = Unit' >> "${TEST_SOURCE}/Demo.kt"
+if WHIP_UI_SOURCE_ROOT="$TEST_SOURCE" \
+    WHIP_UI_CATALOG_FILE="$TEST_CATALOG" \
+    WHIP_UI_SOURCE_SNAPSHOT_FILE="$TEST_SNAPSHOT" \
+    "${SCRIPT_DIR}/ui-catalog" lint --allow-pending > "$OUTPUT" 2>&1; then
+    printf 'FAIL changed UI source was not detected\n' >&2
+    exit 1
+fi
+grep -Fq 'UI source discovery changed' "$OUTPUT" || {
+    printf 'FAIL source-discovery drift was not explained\n' >&2
+    exit 1
+}
+printf 'PASS source discovery drift fails closed\n'
+
+WHIP_UI_SOURCE_ROOT="$TEST_SOURCE" \
+    "${SCRIPT_DIR}/ui-catalog" source-snapshot > "$TEST_SNAPSHOT"
+sed -i $'s/\tshared\tpage\t/\tunknown\tpage\t/' "$TEST_CATALOG"
+if WHIP_UI_SOURCE_ROOT="$TEST_SOURCE" \
+    WHIP_UI_CATALOG_FILE="$TEST_CATALOG" \
+    WHIP_UI_SOURCE_SNAPSHOT_FILE="$TEST_SNAPSHOT" \
+    "${SCRIPT_DIR}/ui-catalog" lint --allow-pending > "$OUTPUT" 2>&1; then
+    printf 'FAIL invalid catalog family was accepted\n' >&2
+    exit 1
+fi
+grep -Fq 'invalid family unknown' "$OUTPUT" || {
+    printf 'FAIL invalid-family failure was not explained\n' >&2
+    exit 1
+}
+printf 'PASS invalid catalog rows fail closed\n'
+
+printf 'All UI catalog fixtures passed.\n'

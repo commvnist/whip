@@ -474,3 +474,13 @@ These records preserve durable user intent. “Released” means the change reac
 - Related: `FB-20260906-005`, `FB-20260906-006`, `DEC-20260906-003`, `IMP-20260906-005`, `IMP-20260906-006`, `VER-20260906-005`, `VER-20260906-006`.
 - Status: Released and device-verified as Whip 0.3.51/code 57; awaiting user validation.
 - Notes: Play Store publication and complete candidate qualification remain out of scope.
+
+### FB-20260906-008 — Systematically capture and raise every Whip surface to one design standard
+
+- Date/source: 2026-09-06, direct user request as a durable completion goal.
+- User need: Create a repeatable system that captures every Whip page and dialog, critique the complete UI/UX/design experience, and implement the findings until the app is consistently and purposefully designed throughout.
+- Acceptance criteria: Maintain a canonical, machine-checkable inventory of pages, dialogs, sheets, menus, and meaningful states; capture deterministic emulator screenshots and UI hierarchies with explicit coverage accounting; audit hierarchy, density, rhythm, typography, color, components, navigation, action priority, copy, responsiveness, dark/light presentation, and accessibility against one design language; turn every confirmed issue into traceable prioritized findings; implement and recapture all accepted fixes; run focused checks during iteration and the appropriate final release verification; deploy only the completed result to the user's physical phone.
+- Affected users/workflows: Every Whip workspace, inspector, editor, dialog, sheet, menu, empty/populated/error state, adaptive layout, and final owner-phone release.
+- Related: `FB-20260902-009`, `DEC-20260903-015`, `VER-20260903-027`.
+- Status: In progress.
+- Notes: The physical phone is explicitly prohibited for discovery, capture, testing, and review; use disposable emulators until the final deployment step. The task is not complete at inventory or critique—the accepted feedback must be implemented and verified.

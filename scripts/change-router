@@ -213,6 +213,8 @@ route_path() {
             static_required=true
             candidate_required=true
             case "$path" in
+                scripts/ui-catalog|scripts/test-ui-catalog)
+                    harness_checks['scripts/test-ui-catalog']=1 ;;
                 scripts/change-router|scripts/test-change-router)
                     harness_checks['scripts/test-change-router']=1 ;;
                 scripts/check|scripts/qa-targeted|scripts/test-check-fast|scripts/test-check-full)

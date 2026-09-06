@@ -1,0 +1,248 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+readonly CATALOG_FILE="${WHIP_UI_CATALOG_FILE:-${PROJECT_ROOT}/docs/quality/ui-surface-catalog.tsv}"
+readonly SOURCE_SNAPSHOT_FILE="${WHIP_UI_SOURCE_SNAPSHOT_FILE:-${PROJECT_ROOT}/docs/quality/ui-source-snapshot.tsv}"
+readonly SOURCE_ROOT="${WHIP_UI_SOURCE_ROOT:-${PROJECT_ROOT}/app/src/main/java/com/whip/app}"
+readonly DEBUG_APP_ID="commvne.com.whip.app.debug"
+readonly INTERNAL_CAPTURE_ROOT="files/ui-catalog"
+
+usage() {
+    cat <<'EOF'
+Inventory and capture Whip's user-visible pages, dialogs, and menus.
+
+Usage:
+  scripts/ui-catalog discover
+  scripts/ui-catalog source-snapshot
+  scripts/ui-catalog lint [--allow-pending]
+  ANDROID_SERIAL=emulator-5554 scripts/ui-catalog capture OUTPUT_DIRECTORY
+
+The catalog is docs/quality/ui-surface-catalog.tsv. Capture is emulator-only,
+runs every unique catalog test selector, pulls app-private PNG/XML evidence,
+and fails if any required surface is missing or any uncatalogued artifact exists.
+EOF
+}
+
+die() {
+    printf 'error: %s\n' "$*" >&2
+    exit 1
+}
+
+family_for_file() {
+    case "$1" in
+        *Task*|WhipApp.kt) printf 'tasks\n' ;;
+        *Habit*) printf 'habits\n' ;;
+        *Goal*) printf 'goals\n' ;;
+        *Track*) printf 'tracks\n' ;;
+        *Gym*|*Routine*|*FiveThreeOne*) printf 'gym\n' ;;
+        *Settings*|*Startup*|*Health*) printf 'settings\n' ;;
+        *Area*|*Tag*) printf 'organization\n' ;;
+        *) printf 'shared\n' ;;
+    esac
+}
+
+discover_symbols() {
+    local file base family declaration name kind
+    while IFS=: read -r file _ declaration; do
+        base="${file##*/}"
+        family="$(family_for_file "$base")"
+        name="$(sed -E 's/.*fun[[:space:]]+([A-Za-z0-9_]+).*/\1/' <<<"$declaration")"
+        if [[ "$name" == *Dialog ]]; then kind='dialog'; else kind='page'; fi
+        printf 'symbol:%s.%s\t%s\t%s\t%s\n' "${base%.kt}" "$name" "$family" "$kind" "${file#"${PROJECT_ROOT}/"}"
+    done < <(
+        rg -n --no-heading \
+            '^[[:space:]]*(internal[[:space:]]+|private[[:space:]]+|public[[:space:]]+)?fun[[:space:]]+[A-Z][A-Za-z0-9_]*(Dialog|Screen|Content|Page|Route|Landing)[[:space:]]*\(' \
+            "$SOURCE_ROOT" -g '*.kt' | sort
+    )
+}
+
+discover_modal_calls() {
+    local file base family
+    while IFS= read -r file; do
+        base="${file##*/}"
+        family="$(family_for_file "$base")"
+        awk -v base="${base%.kt}" -v family="$family" -v owner="${file#"${PROJECT_ROOT}/"}" '
+            function emit(kind) {
+                key = function_name SUBSEP kind
+                count[key]++
+                printf "call:%s.%s.%s-%03d\t%s\t%s\t%s\n", base, function_name, kind, count[key], family, kind, owner
+            }
+            {
+                declaration = ($0 ~ /fun[[:space:]]+[A-Za-z0-9_]+[[:space:]]*\(/)
+                if (declaration) {
+                    signature = $0
+                    sub(/^.*fun[[:space:]]+/, "", signature)
+                    sub(/[[:space:]]*\(.*/, "", signature)
+                    function_name = signature
+                }
+                if (function_name == "") function_name = "file"
+                if (!declaration && $0 ~ /PaneAwareAlertDialog[[:space:]]*\(/) emit("dialog")
+                else if (!declaration && $0 ~ /(^|[^A-Za-z0-9_])Dialog[[:space:]]*\(/) emit("dialog")
+                if (!declaration && $0 ~ /(^|[^A-Za-z0-9_])(DropdownMenu|ExposedDropdownMenu)[[:space:]]*\(/) emit("menu")
+            }
+        ' "$file"
+    done < <(find "$SOURCE_ROOT" -type f -name '*.kt' | sort)
+}
+
+discover_all() {
+    printf 'source_key\tfamily\tdiscovery_kind\towner\n'
+    {
+        discover_symbols
+        discover_modal_calls
+    } | sort -u
+}
+
+source_snapshot() {
+    local discovered family count digest
+    discovered="$(mktemp)"
+    discover_all | tail -n +2 > "$discovered"
+    printf 'family\tdiscovered_owners\tsha256\n'
+    while IFS= read -r family; do
+        count="$(awk -F '\t' -v family="$family" '$2 == family { n++ } END { print n+0 }' "$discovered")"
+        digest="$(awk -F '\t' -v family="$family" '$2 == family' "$discovered" | sha256sum | cut -d' ' -f1)"
+        printf '%s\t%s\t%s\n' "$family" "$count" "$digest"
+    done < <(cut -f2 "$discovered" | sort -u)
+    count="$(wc -l < "$discovered" | tr -d ' ')"
+    digest="$(sha256sum "$discovered" | cut -d' ' -f1)"
+    printf 'all\t%s\t%s\n' "$count" "$digest"
+    rm -f "$discovered"
+}
+
+validate_catalog_rows() {
+    [[ -f "$CATALOG_FILE" ]] || die "catalog not found: $CATALOG_FILE"
+    local expected_header
+    expected_header=$'source_keys\tsurface_id\tfamily\tkind\tstate\tcapture_selector\tdisposition\tnotes'
+    [[ "$(head -n 1 "$CATALOG_FILE")" == "$expected_header" ]] ||
+        die "catalog header must be: $expected_header"
+
+    awk -F '\t' '
+        NR == 1 { next }
+        NF != 8 { printf "line %d has %d columns, expected 8\n", NR, NF > "/dev/stderr"; bad=1; next }
+        $1 == "" || $2 == "" || $3 == "" || $4 == "" || $5 == "" || $6 == "" || $7 == "" {
+            printf "line %d has a blank required field\n", NR > "/dev/stderr"; bad=1
+        }
+        $2 !~ /^[a-z0-9][a-z0-9._-]*$/ {
+            printf "line %d has unsafe surface_id %s\n", NR, $2 > "/dev/stderr"; bad=1
+        }
+        $3 !~ /^(shared|tasks|habits|goals|tracks|gym|settings|organization)$/ {
+            printf "line %d has invalid family %s\n", NR, $3 > "/dev/stderr"; bad=1
+        }
+        seen[$2]++ { printf "line %d duplicates surface_id %s\n", NR, $2 > "/dev/stderr"; bad=1 }
+        source[$1]++ { printf "line %d duplicates source_keys %s\n", NR, $1 > "/dev/stderr"; bad=1 }
+        $4 !~ /^(page|dialog|menu|system|widget)$/ {
+            printf "line %d has invalid kind %s\n", NR, $4 > "/dev/stderr"; bad=1
+        }
+        $7 !~ /^(capture|platform-exception)$/ {
+            printf "line %d has invalid disposition %s\n", NR, $7 > "/dev/stderr"; bad=1
+        }
+        END { exit bad }
+    ' "$CATALOG_FILE"
+}
+
+validate_discovery_coverage() {
+    [[ -f "$SOURCE_SNAPSHOT_FILE" ]] || die "source snapshot not found: $SOURCE_SNAPSHOT_FILE"
+    local current difference
+    current="$(mktemp)"
+    source_snapshot > "$current"
+    difference="$(diff -u "$SOURCE_SNAPSHOT_FILE" "$current" || true)"
+    rm -f "$current"
+    [[ -z "$difference" ]] || {
+        printf 'UI source discovery changed; review the catalog and refresh the source snapshot:\n%s\n' "$difference" >&2
+        return 1
+    }
+}
+
+lint_catalog() {
+    local allow_pending="$1"
+    validate_catalog_rows
+    validate_discovery_coverage
+    local pending_count capture_count exception_count
+    pending_count="$(awk -F '\t' 'NR > 1 && $6 == "pending" { n++ } END { print n+0 }' "$CATALOG_FILE")"
+    capture_count="$(awk -F '\t' 'NR > 1 && $7 == "capture" { n++ } END { print n+0 }' "$CATALOG_FILE")"
+    exception_count="$(awk -F '\t' 'NR > 1 && $7 == "platform-exception" { n++ } END { print n+0 }' "$CATALOG_FILE")"
+    printf 'UI catalog: %s required captures, %s platform exceptions, %s pending selectors.\n' \
+        "$capture_count" "$exception_count" "$pending_count"
+    if [[ "$pending_count" -gt 0 && "$allow_pending" != true ]]; then
+        die "$pending_count catalog rows still have pending capture selectors"
+    fi
+}
+
+capture_catalog() {
+    local output_dir="$1"
+    lint_catalog false
+    "${SCRIPT_DIR}/android-target-guard" instrumentation
+    [[ ! -e "$output_dir" || -d "$output_dir" ]] || die "output path is not a directory: $output_dir"
+    mkdir -p "$output_dir"
+    [[ -z "$(find "$output_dir" -mindepth 1 -maxdepth 1 -print -quit)" ]] ||
+        die "output directory must be empty: $output_dir"
+
+    local serial="$ANDROID_SERIAL"
+    adb -s "$serial" shell run-as "$DEBUG_APP_ID" rm -rf "$INTERNAL_CAPTURE_ROOT" 2>/dev/null || true
+
+    local -a selectors=()
+    mapfile -t selectors < <(
+        awk -F '\t' 'NR > 1 && $7 == "capture" { print $6 }' "$CATALOG_FILE" | sort -u
+    )
+    local -a qa_args=()
+    local selector
+    for selector in "${selectors[@]}"; do qa_args+=(--android "$selector"); done
+    ANDROID_SERIAL="$serial" "${SCRIPT_DIR}/qa-targeted" "${qa_args[@]}"
+
+    mkdir -p "$output_dir/raw"
+    adb -s "$serial" exec-out run-as "$DEBUG_APP_ID" \
+        tar -C "$INTERNAL_CAPTURE_ROOT" -cf - . | tar -C "$output_dir/raw" -xf -
+    cp "$CATALOG_FILE" "$output_dir/catalog.tsv"
+
+    local expected actual missing unexpected
+    expected="$(mktemp)"
+    actual="$(mktemp)"
+    awk -F '\t' 'NR > 1 && $7 == "capture" { print $2 ".png"; print $2 ".xml" }' \
+        "$CATALOG_FILE" | sort -u > "$expected"
+    find "$output_dir/raw" -maxdepth 1 -type f -printf '%f\n' | rg '\.(png|xml)$' | sort -u > "$actual"
+    missing="$(comm -23 "$expected" "$actual")"
+    unexpected="$(comm -13 "$expected" "$actual")"
+    [[ -z "$missing" ]] || die "capture evidence is missing: ${missing//$'\n'/, }"
+    [[ -z "$unexpected" ]] || die "capture produced uncatalogued evidence: ${unexpected//$'\n'/, }"
+    rm -f "$expected" "$actual"
+
+    printf 'surface_id\tpng_sha256\tpng_bytes\txml_sha256\txml_bytes\n' > "$output_dir/manifest.tsv"
+    while IFS= read -r surface_id; do
+        local png xml
+        png="$output_dir/raw/${surface_id}.png"
+        xml="$output_dir/raw/${surface_id}.xml"
+        printf '%s\t%s\t%s\t%s\t%s\n' \
+            "$surface_id" \
+            "$(sha256sum "$png" | awk '{print $1}')" "$(stat -c %s "$png")" \
+            "$(sha256sum "$xml" | awk '{print $1}')" "$(stat -c %s "$xml")" \
+            >> "$output_dir/manifest.tsv"
+    done < <(awk -F '\t' 'NR > 1 && $7 == "capture" { print $2 }' "$CATALOG_FILE" | sort -u)
+    printf 'Captured %s catalog surfaces into %s.\n' "$(($(wc -l < "$output_dir/manifest.tsv") - 1))" "$output_dir"
+}
+
+main() {
+    local command="${1:-}"
+    case "$command" in
+        discover)
+            discover_all
+            ;;
+        source-snapshot)
+            source_snapshot
+            ;;
+        lint)
+            local allow_pending=false
+            [[ "${2:-}" != '--allow-pending' ]] || allow_pending=true
+            lint_catalog "$allow_pending"
+            ;;
+        capture)
+            [[ -n "${2:-}" ]] || die 'capture requires OUTPUT_DIRECTORY'
+            capture_catalog "$2"
+            ;;
+        -h|--help|'') usage ;;
+        *) usage >&2; die "unknown command: $command" ;;
+    esac
+}
+
+main "$@"
