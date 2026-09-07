@@ -85,6 +85,15 @@ internal object WhipContentWidth {
     val dashboard = 1200.dp
 }
 
+/** Gives a standalone visual switch an explicit setting name and state. */
+internal fun Modifier.whipLabeledSwitchSemantics(
+    label: String,
+    checked: Boolean,
+) = semantics {
+    contentDescription = label
+    stateDescription = if (checked) "On" else "Off"
+}
+
 /**
  * Shared chrome for full-screen authored editors.
  *

@@ -2358,7 +2358,12 @@ internal fun HabitEditorDialog(
                                 Switch(
                                     checked = autoCompleteFromItems,
                                     onCheckedChange = { autoCompleteFromItems = it },
-                                    modifier = Modifier.testTag("habit-auto-complete-from-items"),
+                                    modifier = Modifier
+                                        .testTag("habit-auto-complete-from-items")
+                                        .whipLabeledSwitchSemantics(
+                                            "Complete Habit With Final Item",
+                                            autoCompleteFromItems,
+                                        ),
                                 )
                             }
                             if (checklistDrafts.none { it.name.isNotBlank() }) {

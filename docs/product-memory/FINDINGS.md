@@ -1052,3 +1052,86 @@
 - Resolution: Added one `hasWarnings || hasRecoveryAction` policy and applied it across Goal, Habit, Task, Track, Gym, Area, Tag, and Track-entry success paths. Self-evident successful actions are consumed inline; failures, post-commit warnings, and token-owned Undo/Edit/Retry affordances remain transient.
 - Related implementation: `IMP-20260906-020`, `VER-20260906-021`.
 - Status: Resolved, focused emulator-verified, and released in Whip 0.3.54/code 60; the existing Android notification/reminder system is intentionally unchanged.
+
+### FND-20260906-009 — UI catalog bypasses the guarded device-artifact owner
+
+- Severity/category: P1 whole-product QA evidence integrity and physical-device safety.
+- Observed: The current-source `scripts/check --full` gate rejects `scripts/ui-catalog` because its collector directly names, deletes, and pulls an `/sdcard/Download/whip-ui-catalog` directory instead of routing device-root artifacts through `scripts/device-artifacts`.
+- Expected: The visual catalog may retain its scoped MediaStore Downloads collection, but only the centralized artifact owner may resolve or mutate the device path; catalog cleanup/export must remain emulator-only and fail closed on physical hardware.
+- Why it matters / affected users: A comprehensive visual pass cannot be trusted while its own collector violates the repository's artifact-safety policy, and a future invocation could otherwise run cleanup against the owner phone outside the intended guard.
+- Evidence: Reproduced by `scripts/check --full` from current `main`; direct path and `adb shell rm`/`adb pull` calls in `scripts/ui-catalog`; the artifact policy in `scripts/check`, `scripts/candidate`, and `docs/testing.md`.
+- Root cause: The catalog's MediaStore export was added after the generic artifact owner, but the collector kept local device-path ownership while the full/candidate guards exempt only `scripts/device-artifacts`.
+- Recommended solution: Add emulator-only catalog clear/pull operations to `scripts/device-artifacts`, delegate the collector to them, and protect the seam with deterministic fixture and complete-gate coverage.
+- Related: `FB-20260906-008`, `FB-20260906-012`, `DEC-20260906-005`, `DEC-20260906-010`.
+- Status: Resolved and verified. Catalog cleanup/export delegates to the emulator-only artifact owner; deterministic fixtures, an explicit physical-target rejection, the complete gate, and the fresh 172-surface export pass.
+
+### FND-20260906-010 — Elapsed Goal E2E evidence points to a renamed test
+
+- Severity/category: P1 whole-product QA traceability.
+- Observed: After the catalog artifact repair allowed `scripts/check --full` to proceed, `E2ECoverageContractTest` rejected the `goals-elapsed-milestones-consistency` row because it named `GoalRepositoryTest#elapsedGoalPersistsDisplayRejectsMeasurementsAndResetsExactStart`, while the current executable test is `elapsedGoalPersistsCompositeDisplayRejectsMeasurementsAndResetsExactStart`.
+- Expected: Every cause/effect evidence cell names the exact current `@Test` method so the matrix is an executable coverage contract rather than historical prose.
+- Why it matters / affected users: The full gate cannot prove current Goal persistence/recreation coverage when a required evidence reference is stale, and the renamed method is the primary repository proof for authored multi-unit elapsed displays.
+- Evidence: `docs/quality/e2e-coverage.tsv`, `GoalRepositoryTest.kt`, and the failed current-source `E2ECoverageContractTest` XML.
+- Root cause: The Goal repository test was renamed when scalar elapsed display became composite, but the older evidence-matrix identifier was not updated in the same change.
+- Recommended solution: Point the matrix to the exact composite-display method and rerun the contract followed by the complete current-source gate.
+- Related: `FB-20260906-009`, `FB-20260906-012`, `FND-20260906-005`, `VER-20260906-019`.
+- Status: Resolved and verified by the executable E2E contract and the fresh complete 1,575-test matrix.
+
+### FND-20260906-011 — Task scheduling switches have no owned accessibility labels
+
+- Severity/category: P1 accessibility and editor interaction clarity.
+- Observed: The fresh 172-surface semantics catalog marks the Task editor's visible Repeat, Separate Deadline, and Time switches `NAF="true"`; each control is focusable and toggleable but exposes no text or content description of its own. The adjacent visual labels are sibling nodes rather than part of the switch semantics.
+- Expected: Every standalone switch must announce the setting it controls and its current state, without changing the visible editor layout or schedule behavior.
+- Why it matters / affected users: TalkBack and other accessibility-service users can encounter several indistinguishable “switch” controls while configuring the most consequential Task scheduling fields.
+- Evidence: `/tmp/whip-ui-goal-20260906-172/raw/tasks.editor.edit.xml`, the linked `tasks.editor.edit` screenshot, and the direct Material `Switch` call sites in `TaskEditorDialog.kt`.
+- Root cause: Task and Habit editor rows visually paired label columns with independently interactive Material switches, while the canonical settings/routine rows already centralize label and state semantics.
+- Recommended solution: Add one shared labeled-switch semantics modifier, apply it to every standalone editor switch, cover the Task scheduling labels in Compose UI tests, and recapture the affected catalog family to prove the `NAF` nodes are gone.
+- Related: `FB-20260906-012`, `DEC-20260906-005`.
+- Status: Resolved and verified. The shared labeled-switch semantics cover Task and Habit editor switches; focused Compose checks pass and the exact 172-surface hierarchy set contains zero `NAF="true"` nodes.
+
+### FND-20260906-012 — Backup regression hard-codes the prior Room version
+
+- Severity/category: P1 whole-product regression integrity.
+- Observed: The first complete 958-test emulator inventory stops in three `BackupRepositoryTest` methods because they expect backup `databaseVersion` 24 while the shipped `BACKUP_DATABASE_VERSION` is 25.
+- Expected: Current-version backup assertions must follow the production version constant, while the incompatible-version test should derive a deliberately stale value from that same owner.
+- Why it matters / affected users: Portable backup, merge, restore, private recovery, and local CSV receipt boundaries are high-risk data paths. A stale literal prevents the full suite from proving those current paths even when the product behavior is correct.
+- Evidence: `scripts/check --full --emulator` batch 2 retained at `build/instrumentation-results-8g6YOq`; failures at `BackupRepositoryTest.kt:169`, `:318`, and `:367`; production constant `BACKUP_DATABASE_VERSION = 25`.
+- Root cause: The Room version advanced for elapsed-display storage, but backup test assertions copied the former current version instead of referencing the backup contract owner.
+- Recommended solution: Replace current-version literals with `BACKUP_DATABASE_VERSION`, derive the intentionally wrong version as `BACKUP_DATABASE_VERSION - 1`, rerun the backup class, then resume the complete inventory.
+- Related: `FB-20260906-009`, `FB-20260906-012`, `FND-20260906-005`.
+- Status: Resolved and verified. The backup class passes 26/26 in isolation and all 958 Android tests pass in the fresh complete campaign.
+
+### FND-20260906-013 — Background Google crash sheet can steal complete-suite focus
+
+- Severity/category: P1 emulator QA determinism and whole-product regression integrity.
+- Observed: After the backup contract repair, a complete emulator rerun entered ordinary batch 2 with `Application Error: com.google.android.googlequicksearchbox` focused. Catalog captures correctly rejected the non-Whip hierarchy and unrelated Compose tests then lost window focus, producing 11 correlated failures.
+- Expected: Every emulator batch starts awake, unlocked, and free of a pre-existing system application-error/ANR sheet; unrelated background-process dialogs remain suppressed for the scoped campaign and the prior emulator setting is restored afterward.
+- Why it matters / affected users: A healthy Whip build cannot earn or reuse complete-suite evidence when an unrelated stock-AVD process owns the window. Fast private QA becomes noisy and slow if the runner does not own this boundary.
+- Evidence: `adb shell dumpsys window` reported `mCurrentFocus=... Application Error: com.google.android.googlequicksearchbox`; failed campaign retained at `build/instrumentation-results-roVTb7`; UI catalog already applied the equivalent scoped guard successfully.
+- Root cause: `scripts/ui-catalog` guarded background error sheets for catalog-only campaigns, but the shared `scripts/android-test-engine` did not prepare or restore that emulator window state around its multi-batch runs.
+- Recommended solution: Centralize scoped wake/unlock/error-sheet handling in the shared Android engine before every batch, restore the prior `hide_error_dialogs` value on exit, and protect the behavior with deterministic harness fixtures.
+- Related: `FB-20260906-003`, `FB-20260906-012`, `DEC-20260906-003`.
+- Status: Resolved and verified. The shared engine scopes and restores the emulator error-dialog setting, prepares every batch, passes its deterministic fixture, and completed 12 fresh runner processes without focus loss.
+
+### FND-20260906-014 — Android target fixture pins a superseded release identity
+
+- Severity/category: P1 QA harness currency.
+- Observed: The Android target-guard fixture completes all device and batch-accounting assertions, then exits without its success footer because it still requires Whip 0.3.50/code 56 while current `main` and the owner phone are on 0.3.54/code 60.
+- Expected: The fixture's release identity assertion matches the current checked-in release or is updated in the same release change, so a successful harness run reports an explicit final pass.
+- Why it matters / affected users: A stale unrelated tail assertion makes the emulator-window guard repair appear to fail and obscures whether the actual safety fixtures passed.
+- Evidence: `scripts/test-android-target-guard` passed every guard/cache/failure fixture through “stale/partial/failed coverage rejection,” then exited 1 at its old version grep; `app/build.gradle.kts` declares 0.3.54/code 60.
+- Root cause: The private release sequence advanced four versions without updating the target fixture's release identity sentinel.
+- Recommended solution: Reconcile the sentinel with the current checked-in release and rerun the full fixture through its final footer.
+- Related: `FB-20260906-012`, `VER-20260906-021`.
+- Status: Resolved and verified. The sentinel now follows Whip 0.3.55/code 61 and the target-guard fixture reaches its final success footer.
+### FND-20260906-015 — Elapsed Goal card regression asserted obsolete text-node structure
+
+- Severity/category: P1 Goals accessibility-regression evidence.
+- Observed: `ProductivityCardDesignUiTest#goalSummaryKeepsElapsedTimerResetAndMilestoneControls` searched for a single `Text` node containing `2 days`, while `ElapsedGoalMetric` intentionally renders value and unit separately and exposes the combined phrase as its merged accessibility description.
+- Expected: The regression asserts the coherent user-accessible metric rather than a private child-node arrangement.
+- Why it matters / affected users: The full emulator campaign could not distinguish a UI regression from an obsolete test implementation detail.
+- Evidence: Isolated failure retained at `build/instrumentation-results-SmHzYq`; the merged accessibility description in `ElapsedGoalMetric`; corrected focused pass at `build/instrumentation-results-O6LduD`.
+- Root cause: The design regression retained the old single-text-node matcher after the elapsed metric was decomposed into responsive value/unit parts.
+- Recommended solution: Assert the merged `2 days` content description before and after scrolling so the regression follows the user-accessible contract.
+- Related: `FB-20260906-009`, `FB-20260906-012`, `FND-20260906-005`.
+- Status: Resolved and verified. The corrected matcher passes in isolation and inside the fresh 958-test campaign.

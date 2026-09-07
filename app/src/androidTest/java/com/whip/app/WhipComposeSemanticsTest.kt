@@ -144,6 +144,7 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithText("Medication 3").assertIsDisplayed()
             compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Complete Habit With Final Item"))
             compose.onNodeWithTag("habit-auto-complete-from-items").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Complete Habit With Final Item").assertIsDisplayed()
         }
     }
 

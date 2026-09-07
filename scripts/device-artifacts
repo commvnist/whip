@@ -6,6 +6,9 @@ readonly SHARED_ROOT="/storage/emulated/0"
 readonly DEBUG_ROOT="${SHARED_ROOT}/whip-debug"
 readonly RELEASE_ROOT="${SHARED_ROOT}/whip"
 readonly SHELL_DEBUG_ROOT="/data/local/tmp/whip-debug"
+readonly UI_CATALOG_ROOT="${SHARED_ROOT}/Download/whip-ui-catalog"
+readonly UI_CATALOG_RELATIVE_PATH="Download/whip-ui-catalog/"
+readonly DOWNLOADS_URI="content://media/external_primary/downloads"
 
 usage() {
     cat <<'EOF'
@@ -15,6 +18,8 @@ Usage:
   scripts/device-artifacts prepare
   scripts/device-artifacts capture NAME [HOST_OUTPUT]
   scripts/device-artifacts ui-dump NAME [HOST_OUTPUT]
+  scripts/device-artifacts ui-catalog-clear
+  scripts/device-artifacts ui-catalog-pull HOST_OUTPUT_DIRECTORY
   scripts/device-artifacts organize-legacy
   scripts/device-artifacts inventory
 
@@ -45,6 +50,12 @@ select_device() {
     fi
     [[ "${#connected[@]}" -eq 1 ]] || die "expected exactly one connected device; set WHIP_DEVICE"
     printf '%s\n' "${connected[0]}"
+}
+
+require_emulator() {
+    local serial="$1" qemu
+    qemu="$(adb -s "$serial" shell getprop ro.boot.qemu | tr -d '\r')"
+    [[ "$qemu" == 1 ]] || die "UI catalog artifacts require an emulator; '$serial' is physical hardware"
 }
 
 safe_name() {
@@ -85,6 +96,22 @@ ui_dump() {
         adb -s "$serial" pull "$remote_path" "$host_output"
     fi
     printf '%s\n' "$remote_path"
+}
+
+ui_catalog_clear() {
+    local serial="$1"
+    require_emulator "$serial"
+    adb -s "$serial" shell content delete \
+        --uri "$DOWNLOADS_URI" \
+        --where "relative_path=\\'${UI_CATALOG_RELATIVE_PATH}\\'" >/dev/null
+    adb -s "$serial" shell rm -rf -- "$UI_CATALOG_ROOT"
+}
+
+ui_catalog_pull() {
+    local serial="$1" host_output="$2"
+    require_emulator "$serial"
+    [[ -d "$host_output" ]] || die "UI catalog host output directory does not exist: $host_output"
+    adb -s "$serial" pull "$UI_CATALOG_ROOT/." "$host_output" >/dev/null
 }
 
 organize_legacy() {
@@ -159,12 +186,17 @@ main() {
     local command="${1:-}" serial
     case "$command" in
         -h|--help) usage ;;
-        prepare|capture|ui-dump|organize-legacy|inventory)
+        prepare|capture|ui-dump|ui-catalog-clear|ui-catalog-pull|organize-legacy|inventory)
             serial="$(select_device)"
             case "$command" in
                 prepare) prepare "$serial" ;;
                 capture) [[ -n "${2:-}" ]] || die "capture requires NAME"; capture "$serial" "$2" "${3:-}" ;;
                 ui-dump) [[ -n "${2:-}" ]] || die "ui-dump requires NAME"; ui_dump "$serial" "$2" "${3:-}" ;;
+                ui-catalog-clear) ui_catalog_clear "$serial" ;;
+                ui-catalog-pull)
+                    [[ -n "${2:-}" ]] || die "ui-catalog-pull requires HOST_OUTPUT_DIRECTORY"
+                    ui_catalog_pull "$serial" "$2"
+                    ;;
                 organize-legacy) organize_legacy "$serial" ;;
                 inventory) inventory "$serial" ;;
             esac

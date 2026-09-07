@@ -276,6 +276,33 @@ class EditorDependencyUxTest {
     }
 
     @Test
+    fun taskSchedulingSwitchesExposeTheirSettingNames() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                TaskEditorDialog(
+                    request = TaskEditorRequest(
+                        initialPlacement = TaskPlacement.Scheduled,
+                        sessionId = 63L,
+                    ),
+                    onDismiss = {},
+                    onSave = { _, _, _ -> },
+                    onRequestNotificationPermission = {},
+                )
+            }
+        }
+
+        listOf(
+            "task-repeat-toggle" to "Repeat",
+            "task-deadline-toggle" to "Separate Deadline",
+            "task-time-toggle" to "Time",
+        ).forEach { (tag, label) ->
+            compose.onNodeWithTag(tag)
+                .performScrollTo()
+                .assertContentDescriptionContains(label)
+        }
+    }
+
+    @Test
     fun inboxPlacementIsVisibleAndCannotSaveHiddenReminderData() {
         val saved = AtomicReference<TaskDraft?>(null)
         compose.setContent {

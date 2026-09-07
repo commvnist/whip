@@ -840,3 +840,12 @@
 - Constraints and consequences: Every authored unit, including zero values, stays visible; canonical order and calendar arithmetic are unchanged. The component must work in dark/light themes, 320 dp, and enlarged text without dangling separators.
 - Related: `FB-20260906-010`, `FND-20260906-007`, `DEC-20260906-007`.
 - Status: Accepted, implemented, visually verified across the fresh Goals family, and released in Whip 0.3.54/code 60; awaiting real-use validation.
+
+### DEC-20260906-010 — One guarded owner resolves every device artifact path
+
+- Context: The source-linked UI catalog correctly uses a scoped MediaStore Downloads collection so screenshots survive test-package removal, but its shell collector directly owned the matching device path and therefore failed Whip's current complete gate.
+- Decision: Keep capture production in the test-owned MediaStore collection, but move device-path resolution, exact collection cleanup, and host pulling into specialized `scripts/device-artifacts` operations. Those operations independently reject physical hardware; `scripts/ui-catalog` retains its earlier instrumentation guard and addresses the artifact owner only through the selected emulator identity.
+- Rejected alternatives: Exempt `scripts/ui-catalog` from the source guard, which would create a second device-path authority; move evidence to app-private storage, which is removed before export by the Gradle instrumentation lifecycle; weaken the complete gate because earlier captures happened to succeed.
+- Constraints and consequences: Cleanup remains limited to the exact `Download/whip-ui-catalog/` MediaStore collection and directory. General screenshots/UI dumps retain their existing explicitly selected-device behavior. The owner phone remains prohibited for catalog capture, cleanup, pull, and instrumentation.
+- Related: `FB-20260906-012`, `FND-20260906-009`, `DEC-20260906-005`.
+- Status: Accepted, implemented, fixture-verified, and exercised by the fresh 172-surface audit without any physical-device artifact operation.

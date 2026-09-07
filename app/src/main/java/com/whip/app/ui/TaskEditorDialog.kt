@@ -741,7 +741,12 @@ fun TaskEditorDialog(
                         }
                         Switch(
                             checked = scheduleKind == ScheduleKind.Recurring,
-                            modifier = Modifier.testTag("task-repeat-toggle"),
+                            modifier = Modifier
+                                .testTag("task-repeat-toggle")
+                                .whipLabeledSwitchSemantics(
+                                    label = "Repeat",
+                                    checked = scheduleKind == ScheduleKind.Recurring,
+                                ),
                             onCheckedChange = { enabled ->
                                 if (enabled && scheduleKind == ScheduleKind.Anytime) pendingRepeatEnable = true
                                 else setRepeatEnabled(enabled)
@@ -783,7 +788,13 @@ fun TaskEditorDialog(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            Switch(checked = hasDeadline, onCheckedChange = { hasDeadline = it })
+                            Switch(
+                                checked = hasDeadline,
+                                onCheckedChange = { hasDeadline = it },
+                                modifier = Modifier
+                                    .testTag("task-deadline-toggle")
+                                    .whipLabeledSwitchSemantics("Separate Deadline", hasDeadline),
+                            )
                         }
                         if (hasDeadline) {
                             ValueButton(
@@ -1161,6 +1172,10 @@ fun TaskEditorDialog(
                             Switch(
                                 checked = showSubtaskProgress,
                                 onCheckedChange = { showSubtaskProgress = it },
+                                modifier = Modifier.whipLabeledSwitchSemantics(
+                                    "Show Progress on Task Card",
+                                    showSubtaskProgress,
+                                ),
                             )
                         }
                         if (showSubtaskProgress) {
@@ -1193,6 +1208,10 @@ fun TaskEditorDialog(
                             Switch(
                                 checked = autoCompleteFromSteps,
                                 onCheckedChange = { autoCompleteFromSteps = it },
+                                modifier = Modifier.whipLabeledSwitchSemantics(
+                                    "Complete Task With Final Subtask",
+                                    autoCompleteFromSteps,
+                                ),
                             )
                         }
                     }
@@ -1473,7 +1492,9 @@ private fun TaskTimeSettings(
         Switch(
             checked = hasTime,
             onCheckedChange = onHasTimeChange,
-            modifier = Modifier.testTag("task-time-toggle"),
+            modifier = Modifier
+                .testTag("task-time-toggle")
+                .whipLabeledSwitchSemantics("Time", hasTime),
         )
     }
     if (!hasTime) return
@@ -1494,7 +1515,9 @@ private fun TaskTimeSettings(
         Switch(
             checked = reminderEnabled,
             onCheckedChange = onReminderEnabledChange,
-            modifier = Modifier.testTag("task-reminder-toggle"),
+            modifier = Modifier
+                .testTag("task-reminder-toggle")
+                .whipLabeledSwitchSemantics("Reminder", reminderEnabled),
         )
     }
     if (!reminderEnabled) return

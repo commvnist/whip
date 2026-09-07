@@ -98,8 +98,8 @@ and graphics state is released between runner processes. The graphics-heavy
 interaction class runs first against the fresh emulator; every `*Test.kt` class
 is still included, and the gate fails if a test file does not declare the
 matching top-level class. The whole-app data-epoch reset class runs alone and
-last. At the current 90-class baseline this is exactly 11 runner processes: one
-graphics process, nine batches of at most ten ordinary classes, and one reset
+last. At the current 95-class baseline this is exactly 12 runner processes: one
+graphics process, ten batches of at most ten ordinary classes, and one reset
 process.
 
 ## Systematic UI surface catalog
@@ -136,16 +136,25 @@ ANDROID_SERIAL=emulator-5554 scripts/ui-catalog capture \
 Capture first runs every unique catalog selector through the guarded targeted
 test engine. During that run it forces dark mode and suppresses unrelated stock
 AVD crash sheets, restoring both emulator settings on exit. Tests save a PNG
-and UI hierarchy XML under the debug app's private files directory; the script then pulls them into the requested repository
-evidence directory, verifies exact two-artifact accounting for every required
+and UI hierarchy XML through MediaStore into one exact emulator-owned Downloads
+collection. Cleanup and export are delegated to `scripts/device-artifacts`, which
+rejects physical hardware for these specialized catalog operations. The collector
+then verifies exact two-artifact accounting for every required
 surface, rejects uncatalogued output, fails if a non-Whip window or system error
-sheet obscures a capture, and writes hashes and byte sizes to
+sheet obscures a capture, rejects Android `NAF` markers for unlabeled interactive
+nodes, and writes hashes and byte sizes to
 `manifest.tsv`. It also writes a dependency-free `index.html` gallery with
 search plus family/kind filters and direct links to every PNG/XML pair. Rebuild
 that gallery without rerunning Android tests with
 `scripts/ui-catalog report CAPTURE_DIRECTORY`. The output directory must be
 empty. The physical owner phone is never a capture or test target; it is
 reserved for the final signed deployment.
+
+The shared Android test engine also suppresses unrelated background-process
+error sheets for the scoped campaign, wakes and unlocks the emulator before
+each batch, dismisses only a pre-existing application-error/ANR window, and
+restores the prior emulator setting on exit. Whip crashes still fail the Gradle
+task and the catalog's foreground hierarchy check.
 
 Review the accepted gallery using the criteria and closure rules in
 `docs/quality/UI_VISUAL_REVIEW_PROTOCOL.md`. A screenshot run proves inventory
@@ -254,7 +263,7 @@ Every product area has fast domain coverage and at least one persisted or UI
 path. New behavior must add its regression to the narrowest applicable suite
 and update this matrix if it introduces a new feature area.
 
-Current baseline: 1574 product tests—617 fast JVM tests and 957 Android
+Current baseline: 1575 product tests—617 fast JVM tests and 958 Android
 instrumentation tests—plus 9 Macrobenchmark/Baseline Profile scenarios, lint,
 debug/release/benchmark builds, and the disposable API 34 emulator suite. API
 26 and API 37 compatibility runs cover the minimum and target/latest platform;

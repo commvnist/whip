@@ -7,9 +7,6 @@ readonly PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 readonly CATALOG_FILE="${WHIP_UI_CATALOG_FILE:-${PROJECT_ROOT}/docs/quality/ui-surface-catalog.tsv}"
 readonly SOURCE_SNAPSHOT_FILE="${WHIP_UI_SOURCE_SNAPSHOT_FILE:-${PROJECT_ROOT}/docs/quality/ui-source-snapshot.tsv}"
 readonly SOURCE_ROOT="${WHIP_UI_SOURCE_ROOT:-${PROJECT_ROOT}/app/src/main/java/com/whip/app}"
-readonly DEVICE_CAPTURE_ROOT="/sdcard/Download/whip-ui-catalog"
-readonly DEVICE_CAPTURE_RELATIVE_PATH="Download/whip-ui-catalog/"
-readonly DEVICE_DOWNLOADS_URI="content://media/external_primary/downloads"
 capture_serial=''
 capture_previous_night_mode=''
 capture_previous_hide_error_dialogs=''
@@ -275,10 +272,7 @@ capture_catalog() {
     # Whip. Suppress those OS sheets during evidence collection, while the
     # hierarchy guard still rejects any overlay that reaches a captured frame.
     adb -s "$serial" shell settings put global hide_error_dialogs 1 >/dev/null
-    adb -s "$serial" shell content delete \
-        --uri "$DEVICE_DOWNLOADS_URI" \
-        --where "relative_path=\\'${DEVICE_CAPTURE_RELATIVE_PATH}\\'" >/dev/null
-    adb -s "$serial" shell rm -rf "$DEVICE_CAPTURE_ROOT"
+    WHIP_DEVICE="$serial" "${SCRIPT_DIR}/device-artifacts" ui-catalog-clear
 
     local -a selectors=()
     mapfile -t selectors < <(
@@ -293,7 +287,7 @@ capture_catalog() {
     ANDROID_SERIAL="$serial" "${SCRIPT_DIR}/qa-targeted" "${qa_args[@]}"
 
     mkdir -p "$output_dir/raw"
-    adb -s "$serial" pull "$DEVICE_CAPTURE_ROOT/." "$output_dir/raw" >/dev/null
+    WHIP_DEVICE="$serial" "${SCRIPT_DIR}/device-artifacts" ui-catalog-pull "$output_dir/raw"
     cp "$CATALOG_FILE" "$output_dir/catalog.tsv"
 
     local expected actual missing unexpected

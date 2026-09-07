@@ -67,6 +67,9 @@ internal fun captureVisualCatalogSurface(surfaceId: String) {
         check(" keeps stopping\"" !in hierarchy && " isn't responding\"" !in hierarchy) {
             "Visual catalog hierarchy for $surfaceId contains an Android crash or ANR sheet"
         }
+        check("NAF=\"true\"" !in hierarchy) {
+            "Visual catalog hierarchy for $surfaceId contains an unlabeled interactive node"
+        }
         hierarchyFile.inputStream().use { input ->
             insertCatalogAsset(surfaceId, "xml", "application/xml").use(input::copyTo)
         }

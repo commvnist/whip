@@ -1174,3 +1174,14 @@
 - Related: `FB-20260906-010`, `FB-20260906-011`, `FND-20260906-007`, `FND-20260906-008`, `DEC-20260906-003`, `DEC-20260906-008`, `DEC-20260906-009`, `IMP-20260906-020`, `VER-20260906-021`, `VER-20260906-022`.
 - Verification: `VER-20260906-022`.
 - Status: Released and device-verified as Whip 0.3.54/code 60; awaiting real-use feedback.
+
+### IMP-20260906-022 — Whole-app accessibility and fail-closed UX evidence closure
+
+- Behavior changed: Added one shared labeled-switch semantics modifier and applied it to standalone Task scheduling/progress/completion/reminder switches plus the Habit checklist auto-complete switch. Screen readers now receive each setting name and explicit On/Off state without altering the accepted visual hierarchy, layout, or interaction behavior.
+- QA/evidence changed: Made the 172-surface catalog reject any `NAF="true"` interactive node; centralized its exact MediaStore cleanup/pull behind the emulator-only device-artifact owner; corrected the elapsed-Goal E2E reference, current backup-version tests, elapsed-card accessibility assertion, release-version fixture, and documented 95-class runner topology. The shared Android engine now wakes/unlocks each batch, suppresses pre-existing unrelated application-error sheets for the scoped campaign, and restores the prior emulator setting on exit.
+- Important files/symbols: `whipLabeledSwitchSemantics`, `TaskEditorDialog`, `HabitEditorDialog`, `VisualCatalogCapture`, `scripts/ui-catalog`, `scripts/device-artifacts`, `scripts/android-test-engine`, `docs/quality/e2e-coverage.tsv`, and focused harness/UI regressions.
+- Persistence/migration/history impact: Presentation semantics, regression tests, and emulator-only QA tooling. Schema 46, data epoch 6, exact-match backup version 25, repository behavior, and owner data are unchanged. Release identity advances to Whip 0.3.55/code 61 for the authorized in-place private deployment.
+- Compatibility and limitations: Visual pixels are unchanged except the About-version line. Catalog operations remain forbidden on physical hardware; instrumentation remains emulator-only. This exhaustive private-development evidence is not a Play Store-qualified frozen candidate, and public publication still requires `scripts/candidate`.
+- Related: `FB-20260906-012`, `FND-20260906-009` through `FND-20260906-015`, `DEC-20260906-010`, `VER-20260906-023`.
+- Verification: `VER-20260906-023`.
+- Status: Implemented, complete-suite verified, semantically verified, and visually accepted; frozen-source owner-phone deployment remains pending.

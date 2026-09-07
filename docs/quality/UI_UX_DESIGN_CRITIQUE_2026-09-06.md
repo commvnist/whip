@@ -97,3 +97,35 @@ surfaces after source freeze. Whip 0.3.52/code 58 was subsequently installed
 in place and smoke-tested on the owner phone in `VER-20260906-018`, closing the
 overall delivery. The Play Store candidate suite remains intentionally
 excluded from this private-phone release.
+
+## Current-source 172-surface revalidation
+
+The later Count Time Since work added one authored elapsed-display surface, so
+`FB-20260906-012` re-audited the authoritative 172-row catalog instead of
+assuming that the accepted 171-surface result remained complete. The initial
+fresh export ran 62 tests with zero failures/skips, produced 172 PNG/XML pairs,
+and was reviewed across all 23 family contact sheets. Its pixels confirmed the
+same coherent navigation, page, editor, action, modal, destructive, and empty-
+state grammar described above; the restrained multi-unit Goal metric also fits
+that system. No new visual-design defect was found.
+
+The semantics review did find one cross-editor accessibility seam:
+`FND-20260906-011`. The Task editor's Repeat, Separate Deadline, and Time
+switches were visually labeled but the interactive nodes did not own those
+labels. A shared labeled-switch modifier now covers those controls and the
+corresponding standalone Task/Habit switches. The capture harness also fails
+closed on any future `NAF="true"` node.
+
+The exact Whip 0.3.55/code 61 replacement export is
+`/tmp/whip-ui-goal-final-20260906-172/index.html`; its manifest SHA-256 is
+`f430cfce8277d94bda6dad6c12c382e039144c64fd8fef0cb05e8ec2380549a3`.
+All 172 PNG/XML pairs are present, no hierarchy contains an unlabeled
+interactive node, and exact final Task/Habit/Goal/About inspection shows no
+pixel regression beyond the expected About-version line. The accompanying
+fresh complete matrix passed all 1,575 product tests with no failure, skip, or
+Android result reuse. `VER-20260906-023` is the detailed acceptance record.
+
+This revalidation closes with no known residual whole-app UX/UI/design defect.
+As before, the private-development result does not replace Play Store
+qualification, and subjective comfort remains appropriate to validate through
+normal owner use.

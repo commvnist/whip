@@ -10,6 +10,20 @@ readonly TEST_SNAPSHOT="${TEST_ROOT}/source-snapshot.tsv"
 readonly OUTPUT="${TEST_ROOT}/output"
 trap 'rm -rf -- "$TEST_ROOT"' EXIT
 
+grep -Fq 'device-artifacts" ui-catalog-clear' "${SCRIPT_DIR}/ui-catalog" || {
+    printf 'FAIL catalog cleanup bypasses the artifact owner\n' >&2
+    exit 1
+}
+grep -Fq 'device-artifacts" ui-catalog-pull' "${SCRIPT_DIR}/ui-catalog" || {
+    printf 'FAIL catalog export bypasses the artifact owner\n' >&2
+    exit 1
+}
+if rg -n '/sdcard|/storage/emulated/0|/data/local/tmp' "${SCRIPT_DIR}/ui-catalog"; then
+    printf 'FAIL catalog collector contains a direct device-root path\n' >&2
+    exit 1
+fi
+printf 'PASS catalog device artifacts use the guarded owner\n'
+
 mkdir -p "$TEST_SOURCE"
 printf '%s\n' \
     'package fixture' \

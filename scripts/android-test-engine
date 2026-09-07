@@ -73,6 +73,30 @@ emulator_api="$(adb -s "$test_serial" shell getprop ro.build.version.sdk | tr -d
     die "instrumentation requires an API 34+ emulator; $test_serial reports API $emulator_api"
 readonly emulator_api
 
+previous_hide_error_dialogs="$(adb -s "$test_serial" shell settings get global hide_error_dialogs | tr -d '\r')"
+[[ "$previous_hide_error_dialogs" =~ ^(null|0|1)$ ]] ||
+    die "could not determine emulator error-dialog setting: ${previous_hide_error_dialogs:-missing}"
+
+restore_emulator_window_environment() {
+    case "$previous_hide_error_dialogs" in
+        null) adb -s "$test_serial" shell settings delete global hide_error_dialogs >/dev/null || true ;;
+        0|1) adb -s "$test_serial" shell settings put global hide_error_dialogs "$previous_hide_error_dialogs" >/dev/null || true ;;
+    esac
+}
+
+prepare_emulator_window_environment() {
+    adb -s "$test_serial" shell input keyevent KEYCODE_WAKEUP >/dev/null
+    adb -s "$test_serial" shell wm dismiss-keyguard >/dev/null
+    if adb -s "$test_serial" shell dumpsys window | rg -q \
+        'mCurrentFocus=.*(Application Error|Application Not Responding)'; then
+        adb -s "$test_serial" shell input keyevent KEYCODE_BACK >/dev/null
+    fi
+}
+
+trap restore_emulator_window_environment EXIT
+adb -s "$test_serial" shell settings put global hide_error_dialogs 1 >/dev/null
+prepare_emulator_window_environment
+
 cd "$PROJECT_ROOT"
 
 mapfile -t instrumentation_test_files < <(find app/src/androidTest -name '*Test.kt' -type f | sort)
@@ -348,6 +372,7 @@ run_batch() {
     printf 'Android batch %s/%s (%s, %s selector(s)).\n' \
         "$batch_number" "$batch_total" "$kind" "$(tr ',' '\n' <<< "$selector_argument" | wc -l | tr -d ' ')"
     ANDROID_SERIAL="$test_serial" "${SCRIPT_DIR}/android-target-guard" instrumentation
+    prepare_emulator_window_environment
     require_unchanged_campaign "before batch $batch_number"
     clear_previous_outputs
     marker="${run_dir}/batch-${batch_number}.started"

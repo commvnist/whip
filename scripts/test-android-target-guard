@@ -35,6 +35,18 @@ case "$*" in
     '-s '*" shell getprop ro.product.cpu.abi")
         printf '%s\n' "${FAKE_ADB_ABI:-x86_64}"
         ;;
+    '-s '*" shell settings get global hide_error_dialogs")
+        printf '%s\n' "${FAKE_ADB_HIDE_ERROR_DIALOGS:-null}"
+        ;;
+    '-s '*" shell settings put global hide_error_dialogs 1"|\
+    '-s '*" shell settings delete global hide_error_dialogs"|\
+    '-s '*" shell input keyevent KEYCODE_WAKEUP"|\
+    '-s '*" shell input keyevent KEYCODE_BACK"|\
+    '-s '*" shell wm dismiss-keyguard")
+        ;;
+    '-s '*" shell dumpsys window")
+        printf '%s\n' "${FAKE_ADB_CURRENT_FOCUS:-mCurrentFocus=Window{fixture u0 fixture/.Activity}}"
+        ;;
     '-s '*" shell am force-stop commvne.com.whip.app.debug"|\
     '-s '*" shell am force-stop commvne.com.whip.app.debug.test")
         ;;
@@ -323,6 +335,8 @@ grep -Fq "readonly GRAPHICS_TEST_CLASS='com.whip.app.ui.InteractionControlUiTest
 grep -Fq "readonly DESTRUCTIVE_RESET_TEST_CLASS='com.whip.app.DataEpochResetIntegrationTest'" \
     "${SCRIPT_DIR}/android-test-engine"
 grep -Fq 'readonly INSTRUMENTATION_BATCH_SIZE=10' "${SCRIPT_DIR}/android-test-engine"
+grep -Fq 'settings put global hide_error_dialogs 1' "${SCRIPT_DIR}/android-test-engine"
+grep -Fq 'mCurrentFocus=.*(Application Error|Application Not Responding)' "${SCRIPT_DIR}/android-test-engine"
 grep -Fq 'android-test-engine' "${SCRIPT_DIR}/coverage"
 grep -Fq 'android-test-engine' "${SCRIPT_DIR}/qa-targeted"
 printf 'PASS shared Android batch topology contract\n'
@@ -607,8 +621,8 @@ expect_failure coverage-rejects-stale-results 'produced no fresh executable XML'
         "${COVERAGE_FIXTURE_ROOT}/scripts/coverage" --emulator
 printf 'PASS stale/partial/failed coverage rejection\n'
 
-grep -Fq 'versionCode = 56' "${PROJECT_ROOT}/app/build.gradle.kts"
-grep -Fq 'versionName = "0.3.50"' "${PROJECT_ROOT}/app/build.gradle.kts"
-printf 'PASS release version 0.3.50 (56)\n'
+grep -Fq 'versionCode = 61' "${PROJECT_ROOT}/app/build.gradle.kts"
+grep -Fq 'versionName = "0.3.55"' "${PROJECT_ROOT}/app/build.gradle.kts"
+printf 'PASS release version 0.3.55 (61)\n'
 
 printf 'All Android target guard regressions passed.\n'
