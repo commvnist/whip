@@ -1081,6 +1081,13 @@ internal fun ItemEditButton(
  * Keeping the surface, corner treatment, inset, and vertical rhythm here stops
  * each productivity area from gradually developing its own visual grammar.
  */
+internal object WhipCardGeometry {
+    val horizontalInset = 12.dp
+    val verticalInset = 10.dp
+    val contentGap = 6.dp
+    val summaryHeight = 68.dp
+}
+
 @Composable
 internal fun WhipItemCard(
     modifier: Modifier = Modifier,
@@ -1094,10 +1101,10 @@ internal fun WhipItemCard(
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(
-                horizontal = 12.dp,
-                vertical = 10.dp,
+                horizontal = WhipCardGeometry.horizontalInset,
+                vertical = WhipCardGeometry.verticalInset,
             ),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(WhipCardGeometry.contentGap),
             content = content,
         )
     }
@@ -1528,7 +1535,13 @@ internal fun DisclosureRow(
             },
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 16.dp, vertical = 10.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = WhipCardGeometry.summaryHeight)
+                .padding(
+                    horizontal = WhipCardGeometry.horizontalInset,
+                    vertical = WhipCardGeometry.verticalInset,
+                ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -1625,13 +1638,22 @@ internal fun NavigationRow(
         Row(
             Modifier
                 .fillMaxWidth()
-                .heightIn(min = 56.dp)
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .heightIn(min = WhipCardGeometry.summaryHeight)
+                .padding(
+                    horizontal = WhipCardGeometry.horizontalInset,
+                    vertical = WhipCardGeometry.verticalInset,
+                ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Column(Modifier.weight(1f)) {
-                Text(displayTitle, fontWeight = FontWeight.SemiBold)
+                Text(
+                    displayTitle,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 if (supportingContent != null) {
                     supportingContent()
                 } else supportingText?.let {

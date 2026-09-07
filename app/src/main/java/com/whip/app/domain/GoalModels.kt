@@ -432,6 +432,23 @@ data class ElapsedDisplay(val parts: List<ElapsedCounter>) {
     }
 
     fun label(): String = parts.joinToString(" · ", transform = ElapsedCounter::label)
+
+    /**
+     * Collection cards are an overview, so a deliberately broad elapsed format
+     * must not turn one Goal into a different card shape. Preserve every selected
+     * component when there are at most [maxParts]; otherwise keep the largest
+     * non-zero components. The full configured value remains available in the
+     * expanded card, details, and accessibility description.
+     */
+    fun compactLabel(maxParts: Int = 3): String {
+        require(maxParts > 0) { "Compact elapsed labels need at least one part" }
+        val visible = if (parts.size <= maxParts) {
+            parts
+        } else {
+            parts.filter { it.value != 0L }.ifEmpty { listOf(parts.last()) }.take(maxParts)
+        }
+        return visible.joinToString(" · ", transform = ElapsedCounter::label)
+    }
 }
 
 /** Formats an elapsed-time goal from instants, independent of calendar/time-zone presentation. */

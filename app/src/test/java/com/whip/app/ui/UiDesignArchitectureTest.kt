@@ -221,9 +221,13 @@ class UiDesignArchitectureTest {
             )
         }
         assertTrue(itemPatterns.contains("shape = MaterialTheme.shapes.medium"))
-        assertTrue(itemPatterns.contains("horizontal = 12.dp"))
-        assertTrue(itemPatterns.contains("vertical = 10.dp"))
-        assertTrue(itemPatterns.contains("verticalArrangement = Arrangement.spacedBy(6.dp)"))
+        assertTrue(itemPatterns.contains("val horizontalInset = 12.dp"))
+        assertTrue(itemPatterns.contains("val verticalInset = 10.dp"))
+        assertTrue(itemPatterns.contains("val contentGap = 6.dp"))
+        assertTrue(itemPatterns.contains("val summaryHeight = 68.dp"))
+        assertTrue(itemPatterns.contains("horizontal = WhipCardGeometry.horizontalInset"))
+        assertTrue(itemPatterns.contains("vertical = WhipCardGeometry.verticalInset"))
+        assertTrue(itemPatterns.contains("Arrangement.spacedBy(WhipCardGeometry.contentGap)"))
         val removedPreference = "compact" + "ItemLayout"
         val removedProvider = "Local" + "CompactItemLayout"
         val removedTag = "settings-compact" + "-item-layout"
@@ -397,7 +401,8 @@ class UiDesignArchitectureTest {
         assertTrue(metric.contains("part.value.toString()"))
         assertTrue(metric.contains("part.unitLabel()"))
         assertTrue(metric.contains("contentDescription = display.label()"))
-        assertTrue(goals.split("ElapsedGoalMetric(").size >= 6)
+        assertTrue(goals.split("ElapsedGoalMetric(").size >= 5)
+        assertTrue(goals.contains("elapsedStatus?.compactLabel() ?: compactStatus"))
     }
 
     @Test

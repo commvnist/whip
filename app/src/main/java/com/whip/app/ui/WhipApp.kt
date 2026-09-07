@@ -7813,20 +7813,11 @@ private fun HomeItemGroupHeading(
 }
 
 @Composable
-private fun HomeStatusCard(title: String, detail: String, onClick: (() -> Unit)? = null) {
-    WhipCollectionCard(
-        onClick = onClick,
-        onClickLabel = "Open $title",
-    ) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.SemiBold)
-                Text(detail, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            if (onClick != null) Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)
-        }
-    }
-}
+private fun HomeStatusCard(title: String, detail: String, onClick: () -> Unit) = NavigationRow(
+    title = title,
+    supportingText = detail,
+    onClick = onClick,
+)
 
 @Composable
 internal fun TodayHeader(

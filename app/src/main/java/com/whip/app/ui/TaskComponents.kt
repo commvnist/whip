@@ -113,7 +113,9 @@ fun TaskRow(
     val weekdayFormatter = rememberWhipWeekdayFormatter()
     val metadata = item.detailSegments(completed, weekdayFormatter)
     WhipItemCard(
-        modifier = Modifier.then(
+        modifier = Modifier
+            .testTag("task-card-${item.task.id}")
+            .then(
             when {
                 selectionMode && onSelectionToggle != null -> Modifier
                     .toggleable(
@@ -135,7 +137,7 @@ fun TaskRow(
                     .semantics { contentDescription = "Open task details for ${item.task.title}" }
                 else -> Modifier
             },
-        ),
+            ),
         containerColor = when {
             completed -> MaterialTheme.colorScheme.surfaceContainerLow
             item.isDeadlineOverdue -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f)
@@ -178,6 +180,12 @@ fun TaskRow(
                 }
             } else null,
             supportingContent = {
+                if (metadata.isNotEmpty()) {
+                    ProductivityItemSupportingText(
+                        text = metadata.joinToString(" · "),
+                        modifier = Modifier.testTag("task-metadata-${item.task.id}"),
+                    )
+                }
                 if (!reorderMode && item.task.notes.isNotBlank()) {
                     ProductivityItemSupportingText(
                         text = item.task.notes,
@@ -185,27 +193,15 @@ fun TaskRow(
                     )
                 }
             },
-            persistentSummaryContent = if (metadata.isEmpty()) null else ({
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth().testTag("task-metadata-${item.task.id}"),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    metadata.forEach { label ->
-                        Surface(
-                            shape = MaterialTheme.shapes.small,
-                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        ) {
-                            Text(
-                                label,
-                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+            summaryContent = {
+                if (metadata.isNotEmpty()) {
+                    ProductivityItemSupportingText(
+                        text = metadata.joinToString(" · "),
+                        modifier = Modifier.testTag("task-metadata-${item.task.id}"),
+                        maxLines = 1,
+                    )
                 }
-            }),
+            },
             expanded = disclosure.expanded,
             onExpansionToggle = disclosure.toggle.takeUnless { reorderMode },
             expansionTag = "task-expand-${item.task.id}",

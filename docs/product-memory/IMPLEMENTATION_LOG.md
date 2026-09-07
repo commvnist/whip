@@ -1404,3 +1404,15 @@
 - Related: `FB-20260907-008`, `FB-20260907-009`, `FB-20260907-010`, `FND-20260907-017`, `FND-20260907-018`, `FND-20260907-019`, `DEC-20260907-007`, `DEC-20260907-008`, `IMP-20260907-014`, `IMP-20260907-015`, `VER-20260907-015`, `VER-20260907-016`, `VER-20260907-017`.
 - Verification: `VER-20260907-017`.
 - Status: Released and device-verified as Whip 0.3.61/code 67; awaiting normal owner validation.
+
+### IMP-20260907-017 — Uniform card summaries and exact active-Set quick-save authorship
+
+- Behavior changed: Added one named card-geometry contract for equivalent collection summaries: 12 dp horizontal inset, 10 dp vertical inset, 6 dp content rhythm, 68 dp ordinary collapsed height, `titleMedium` semibold titles, concise title-column status, and stable action lanes. Task schedule/recurrence metadata is one compact overview line and expands to its complete value; elapsed Goals show at most three meaningful overview components while preserving the complete configured metric in expanded/detail and accessibility output. Home status cards now use the same navigation-row grammar.
+- Cross-product UI changed: Exercise, Machine, Category, Routine browse, Routine Builder placement, Workout History, and active-workout Exercise headers consume the shared inset/typography hierarchy where their roles are equivalent. Rich Machine facts, Routine evidence, history detail, charts, editors, and the active Set composer remain responsively sized instead of being forced into an arbitrary fixed height.
+- Active-workout behavior changed: `QuickSetAuthorshipBoundary` and `saveQuickSet` no longer reject an active Set merely because an unrelated earlier Set advanced the session revision. The frozen boundary now protects the exact Set UUID/update and exact workout-exercise UUID/update; completed/removed/replaced Sets, changed placement interpretation, and duplicate completion remain rejected.
+- Regression coverage: Added exact mixed-card height/status alignment, compact/full elapsed representation, expanded Task metadata, quick-boundary restoration, repository prior-Set-edit acceptance, duplicate/stale protection, and a real MainActivity → Gym → previous-Set editor → active composer → database journey. Stabilized existing fold, nested-action, and History viewport tests to assert the new hierarchy without weakening behavior.
+- Persistence/migration impact: No Room, data-epoch, backup-format, route, workout-calculation, Routine, or 5/3/1 progression change. Existing owner data is preserved.
+- QA/evidence: `VER-20260907-019`; exact whole-product review gallery `/tmp/whip-whole-ui-card-uniform-20260907/index.html`.
+- Commit/push: This record ships with the coherent implementation source; exact pushed source and release ancestry are reconciled in the following release record.
+- Related: `FB-20260907-011`, `FB-20260907-012`, `FND-20260907-020`, `FND-20260907-021`, `DEC-20260907-009`, `VER-20260907-018`, `VER-20260907-019`.
+- Status: Implemented, code-reviewed, fully emulator-accepted, semantically checked, and visually accepted; signed owner-phone release remains separate.

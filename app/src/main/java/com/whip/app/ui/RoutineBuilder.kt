@@ -3385,7 +3385,13 @@ private fun RoutinePlacementCard(
             else MaterialTheme.colorScheme.surfaceContainer,
         ),
     ) {
-        Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.padding(
+                horizontal = WhipCardGeometry.horizontalInset,
+                vertical = WhipCardGeometry.verticalInset,
+            ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             WhipReorderHandle(
                 label = exercise?.name ?: placement.exerciseNameSnapshot,
                 canMovePrevious = canMovePrevious,
@@ -3406,7 +3412,11 @@ private fun RoutinePlacementCard(
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
-                Text(exercise?.name ?: placement.exerciseNameSnapshot, fontWeight = FontWeight.Bold)
+                Text(
+                    exercise?.name ?: placement.exerciseNameSnapshot,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
                 Text(
                     listOfNotNull(
                         machine?.displayName ?: placement.machineNameSnapshot.takeIf(String::isNotBlank) ?: "No Machine / Free Weights",

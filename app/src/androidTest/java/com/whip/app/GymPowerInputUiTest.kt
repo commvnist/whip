@@ -1645,7 +1645,6 @@ class GymPowerInputUiTest {
                     preferredDistanceUnitId = "kilometre",
                     showRpe = false,
                     showRir = false,
-                    workoutRevision = 9,
                     onMoreDetails = {},
                     onSave = { boundary, draft, _ ->
                         committedBoundary = boundary
@@ -1675,7 +1674,8 @@ class GymPowerInputUiTest {
             val boundary = requireNotNull(committedBoundary)
             assertEquals("set-opened", boundary.setUuid)
             assertEquals(40, boundary.setUpdatedAtMillis)
-            assertEquals(9, boundary.workoutRevision)
+            assertEquals(workoutExercise.uuid, boundary.workoutExerciseUuid)
+            assertEquals(workoutExercise.updatedAtMillis, boundary.workoutExerciseUpdatedAtMillis)
             val draft = requireNotNull(committedDraft)
             assertEquals(62.5, draft.weight ?: error("Missing restored weight"), 0.0)
             assertEquals(8, draft.reps)

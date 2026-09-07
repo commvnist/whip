@@ -204,7 +204,8 @@ interface GymRepository {
         id: Long,
         expectedSetUuid: String,
         expectedSetUpdatedAtMillis: Long,
-        expectedWorkoutRevision: Long? = null,
+        expectedWorkoutExerciseUuid: String,
+        expectedWorkoutExerciseUpdatedAtMillis: Long,
         draft: WorkoutSetDraft,
         addNext: Boolean,
         autoStartRest: Boolean,
@@ -2078,7 +2079,8 @@ class RoomGymRepository(
         id: Long,
         expectedSetUuid: String,
         expectedSetUpdatedAtMillis: Long,
-        expectedWorkoutRevision: Long?,
+        expectedWorkoutExerciseUuid: String,
+        expectedWorkoutExerciseUpdatedAtMillis: Long,
         draft: WorkoutSetDraft,
         addNext: Boolean,
         autoStartRest: Boolean,
@@ -2089,9 +2091,13 @@ class RoomGymRepository(
             "This set changed before it could be saved; review the latest values and try again"
         }
         require(existing.deletedAtMillis == null) { "This set has already been removed" }
+        require(!existing.completed) { "This set has already been completed" }
         val (workoutExercise, session) = requireActivePlacement(existing.workoutExerciseId)
-        require(expectedWorkoutRevision == null || session.workoutRevision == expectedWorkoutRevision) {
-            "The workout changed before this quick save. Review the latest sets and try again."
+        require(
+            workoutExercise.uuid == expectedWorkoutExerciseUuid &&
+                workoutExercise.updatedAtMillis == expectedWorkoutExerciseUpdatedAtMillis
+        ) {
+            "This exercise changed before the set could be saved; review its equipment and details, then try again."
         }
         val exercise = requireNotNull(dao.getExercise(workoutExercise.exerciseId)) { "Exercise no longer exists" }
         val policyExercise = workoutExercise.toDomain().applyPolicySnapshot(exercise.toDomain())

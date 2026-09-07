@@ -3509,7 +3509,14 @@ internal fun WorkoutExerciseCard(
                         onMove = onMoveBy,
                     )
                 }
-                Text(item.exercise.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(
+                    item.exercise.name,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 if (!arranging) Box {
                     IconButton(
                         onClick = { actionMenuExpanded = true },
@@ -3724,7 +3731,6 @@ internal fun WorkoutExerciseCard(
                                 showRpe = showRpe,
                                 showRir = showRir,
                                 inputBlocked = sessionMutationSaving,
-                                workoutRevision = workoutRevision,
                                 suggestedSet = suggestedSet,
                                 onMoreDetails = { onEditSet(set) },
                                 onSave = onSaveQuickSet,
@@ -3984,7 +3990,8 @@ private val QuickSetAuthorshipBoundarySaver = listSaver<QuickSetAuthorshipBounda
             boundary.setUuid,
             boundary.setUpdatedAtMillis,
             boundary.workoutExerciseId,
-            boundary.workoutRevision,
+            boundary.workoutExerciseUuid,
+            boundary.workoutExerciseUpdatedAtMillis,
         )
     },
     restore = { saved ->
@@ -3993,7 +4000,8 @@ private val QuickSetAuthorshipBoundarySaver = listSaver<QuickSetAuthorshipBounda
             setUuid = saved[1] as String,
             setUpdatedAtMillis = saved[2] as Long,
             workoutExerciseId = saved[3] as Long,
-            workoutRevision = saved[4] as Long,
+            workoutExerciseUuid = saved[4] as String,
+            workoutExerciseUpdatedAtMillis = saved[5] as Long,
         )
     },
 )
@@ -4009,7 +4017,6 @@ internal fun QuickSetEntry(
     showRpe: Boolean,
     showRir: Boolean,
     inputBlocked: Boolean = false,
-    workoutRevision: Long = 0,
     suggestedSet: WorkoutSet? = null,
     onMoreDetails: () -> Unit,
     onSave: (QuickSetAuthorshipBoundary, WorkoutSetDraft, Boolean) -> Unit,
@@ -4029,7 +4036,8 @@ internal fun QuickSetEntry(
             setUuid = set.uuid,
             setUpdatedAtMillis = set.updatedAtMillis,
             workoutExerciseId = workoutExercise.id,
-            workoutRevision = workoutRevision,
+            workoutExerciseUuid = workoutExercise.uuid,
+            workoutExerciseUpdatedAtMillis = workoutExercise.updatedAtMillis,
         )
     }
     var weight by rememberSaveable(editorKey) {
@@ -4754,7 +4762,7 @@ private fun ExerciseLibraryContent(
         items(visible.size, key = { visible[it].id }) { index ->
             val exercise = visible[index]
             val reorderInteraction = rememberWhipReorderInteractionState()
-            Card(
+            WhipCollectionCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .whipReorderItem(
@@ -4767,7 +4775,13 @@ private fun ExerciseLibraryContent(
                         else Modifier.clickable(onClickLabel = "Open ${exercise.name}") { onOpen(exercise) },
                     ),
             ) {
-                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.padding(
+                        horizontal = WhipCardGeometry.horizontalInset,
+                        vertical = WhipCardGeometry.verticalInset,
+                    ),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     if (manualReorderEnabled) {
                         WhipReorderHandle(
                             label = exercise.name,
@@ -4785,7 +4799,8 @@ private fun ExerciseLibraryContent(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             (if (exercise.favorite) "★ " else "") + exercise.name,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
                         )
                         val unitDetail = if (exercise.trackingType in setOf(
                                 ExerciseTrackingType.WeightReps,
@@ -4807,6 +4822,7 @@ private fun ExerciseLibraryContent(
                         } else ""
                         Text(
                             exercise.trackingType.label.uiTitleCase() + unitDetail + trackedDetail,
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -4852,10 +4868,20 @@ private fun MachineLibraryContent(
         }
         items(visible, key = GymMachine::id) { machine ->
             WhipCollectionCard(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(
+                    Modifier.padding(
+                        horizontal = WhipCardGeometry.horizontalInset,
+                        vertical = WhipCardGeometry.verticalInset,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(machine.displayName, fontWeight = FontWeight.Bold)
+                            Text(
+                                machine.displayName,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
                             val linkedNames = machine.exerciseIds.mapNotNull { exerciseById[it]?.name }.sorted()
                             Text(
                                 when {
@@ -4863,6 +4889,8 @@ private fun MachineLibraryContent(
                                     linkedNames.size <= 3 -> linkedNames.joinToString(" · ")
                                     else -> linkedNames.take(3).joinToString(" · ") + " · +${linkedNames.size - 3} more"
                                 },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         ItemEditButton("machine", machine.displayName, onEdit = { onEdit(machine) })
@@ -6397,7 +6425,7 @@ private fun ExerciseCategoryContent(
         items(visible.size, key = { visible[it].id }) { index ->
             val category = visible[index]
             val reorderInteraction = rememberWhipReorderInteractionState()
-            Card(
+            WhipCollectionCard(
                 Modifier.fillMaxWidth().whipReorderItem(
                     reorderInteraction,
                     layoutPosition = index + 1,
@@ -6405,7 +6433,10 @@ private fun ExerciseCategoryContent(
                 ),
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(start = 14.dp, top = 10.dp, bottom = 10.dp),
+                    modifier = Modifier.fillMaxWidth().padding(
+                        horizontal = WhipCardGeometry.horizontalInset,
+                        vertical = WhipCardGeometry.verticalInset,
+                    ),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (reordering && !showArchived) {
@@ -6884,7 +6915,13 @@ internal fun WorkoutHistoryCard(
     val exerciseNames = workoutExercises.mapNotNull { exerciseById[it.exerciseId]?.name }
 
     WhipCollectionCard(modifier = modifier.fillMaxWidth().testTag("history-workout-card-${session.id}")) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(
+            modifier = Modifier.padding(
+                horizontal = WhipCardGeometry.horizontalInset,
+                vertical = WhipCardGeometry.verticalInset,
+            ),
+            verticalArrangement = Arrangement.spacedBy(WhipCardGeometry.contentGap),
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(
@@ -8766,14 +8803,20 @@ private fun RoutineContent(
                 roadmapPhaseIndex = roadmapPhaseIndex.coerceIn(0, (routine.programPhaseCount - 1).coerceAtLeast(0))
             }
             val reorderInteraction = rememberWhipReorderInteractionState()
-            Card(
+            WhipCollectionCard(
                 modifier = Modifier.fillMaxWidth().whipReorderItem(
                     reorderInteraction,
                     layoutPosition = routineIndex + 1,
                     layoutScope = "routine-browse",
                 ),
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(
+                    modifier = Modifier.padding(
+                        horizontal = WhipCardGeometry.horizontalInset,
+                        vertical = WhipCardGeometry.verticalInset,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (reordering && !showArchived) {
                             WhipReorderHandle(
@@ -8791,7 +8834,14 @@ private fun RoutineContent(
                                 },
                             )
                         }
-                        Text(routine.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text(
+                            routine.name,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                         if (!reordering && !ownsActiveWorkout) ItemEditButton("routine", routine.name, onEdit = {
                             editingRoutineId = routine.id
                             onEditorStateChange(true)
@@ -10069,6 +10119,7 @@ internal fun WorkoutSetEditorDialog(
                         },
                         increment = if (machineType == MachineLoadType.Mass) machineIncrement else exercise.weightIncrement,
                         allowedValues = machineValues.takeIf { machineType == MachineLoadType.Mass }.orEmpty(),
+                        modifier = Modifier.testTag("workout-set-editor-load"),
                     )
                     normalizedLoadKg?.let { totalKg ->
                         if (loadInterpretation in setOf(LoadInterpretation.PerHand, LoadInterpretation.PerSide)) {
@@ -10126,6 +10177,7 @@ internal fun WorkoutSetEditorDialog(
                         "Repetitions",
                         increment = exercise.repetitionIncrement.toDouble(),
                         integer = true,
+                        modifier = Modifier.testTag("workout-set-editor-reps"),
                     )
                 }
                 if (needsDistance) item { NumberField(distance, { distance = it }, "Distance ($distanceSymbol)") }

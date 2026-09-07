@@ -264,7 +264,8 @@ internal data class QuickSetAuthorshipBoundary(
     val setUuid: String,
     val setUpdatedAtMillis: Long,
     val workoutExerciseId: Long,
-    val workoutRevision: Long,
+    val workoutExerciseUuid: String,
+    val workoutExerciseUpdatedAtMillis: Long,
 )
 
 internal enum class GymSessionMutationKind {
@@ -1928,7 +1929,8 @@ class GymViewModel @JvmOverloads constructor(
                             id = boundary.setId,
                             expectedSetUuid = boundary.setUuid,
                             expectedSetUpdatedAtMillis = boundary.setUpdatedAtMillis,
-                            expectedWorkoutRevision = boundary.workoutRevision,
+                            expectedWorkoutExerciseUuid = boundary.workoutExerciseUuid,
+                            expectedWorkoutExerciseUpdatedAtMillis = boundary.workoutExerciseUpdatedAtMillis,
                             draft = draft,
                             addNext = addNext,
                             autoStartRest = app.settingsRepository.current().restTimerAutoStart,

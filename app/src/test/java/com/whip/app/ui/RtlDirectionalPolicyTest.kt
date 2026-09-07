@@ -22,7 +22,7 @@ class RtlDirectionalPolicyTest {
             "ItemControlPatterns.kt" to 2,
             "WhipPagePatterns.kt" to 1,
             "TaskComponents.kt" to 1,
-            "WhipApp.kt" to 6,
+            "WhipApp.kt" to 5,
         )
         expectedAutoMirroredUses.forEach { (name, expectedUses) ->
             val source = File(uiRoot, name).readText()

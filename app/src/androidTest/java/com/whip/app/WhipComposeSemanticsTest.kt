@@ -384,7 +384,7 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithTag("home-list").performScrollToNode(
                 hasTestTag("track-card-$trackId"),
             )
-            compose.onNodeWithTag("track-primary-action-$trackId").performClick()
+            compose.onNodeWithTag("track-primary-action-$trackId", useUnmergedTree = true).performClick()
             compose.onNodeWithContentDescription("Close Entry Editor").assertIsDisplayed()
         }
     }

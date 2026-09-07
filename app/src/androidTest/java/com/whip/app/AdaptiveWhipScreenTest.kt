@@ -1718,7 +1718,7 @@ class AdaptiveWhipScreenTest {
         ).assertCountEquals(2)
         compose.onNodeWithTag("support-pane-item-metric-41").assertIsDisplayed()
         compose.onNodeWithTag("goal-card-status-41", useUnmergedTree = true).assertIsDisplayed()
-        compose.onAllNodesWithText("1 day · 1 hour · 48 minutes").assertCountEquals(0)
+        compose.onAllNodesWithText("1 day · 1 hour · 48 minutes").assertCountEquals(1)
 
         val cardMetric = compose.onNodeWithTag("goal-card-status-41", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         val cardTitle = compose.onNodeWithTag("goal-card-title-41", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
@@ -1726,8 +1726,8 @@ class AdaptiveWhipScreenTest {
         check(kotlin.math.abs(cardMetric.left - cardTitle.left) <= 1f) {
             "Elapsed status must begin on the title column: metric=$cardMetric title=$cardTitle"
         }
-        check(cardMetric.top >= cardAction.bottom - 1f) {
-            "Elapsed status must sit below the constrained identity/action row: metric=$cardMetric action=$cardAction"
+        check(cardMetric.top >= cardTitle.bottom - 1f && cardMetric.bottom <= cardAction.bottom + 1f) {
+            "Elapsed status must follow the title within the shared action lane: metric=$cardMetric title=$cardTitle action=$cardAction"
         }
         compose.onAllNodesWithText("0% progress").assertCountEquals(0)
         captureVisualCatalogSurface("goals.elapsed.book-fold")

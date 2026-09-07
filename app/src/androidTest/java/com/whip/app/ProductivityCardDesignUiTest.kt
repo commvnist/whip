@@ -185,6 +185,15 @@ class ProductivityCardDesignUiTest {
         val supportingLefts = listOf("task-metadata-1", "habit-card-status-2", "goal-card-status-3").map(::left)
         titleLefts.forEach { assertEquals(titleLefts.first(), it, 0.5f) }
         supportingLefts.forEach { assertEquals(titleLefts.first(), it, 0.5f) }
+        val collapsedHeights = listOf("task-card-1", "habit-card-2", "goal-card-3").map(::height)
+        collapsedHeights.forEach {
+            assertEquals(
+                "Equivalent collapsed cards must share one summary height",
+                collapsedHeights.first().value,
+                it.value,
+                0.5f,
+            )
+        }
         listOf("task-expand-1", "habit-expand-2", "goal-expand-3").forEach { tag ->
             assertTrue("Disclosure action must retain a 48 dp target", height(tag) >= 48.dp)
             compose.onNodeWithTag(tag, useUnmergedTree = true).performClick()
@@ -251,7 +260,7 @@ class ProductivityCardDesignUiTest {
     }
 
     @Test
-    fun scheduledDateAndRecurrenceReflowWithoutTruncation() {
+    fun scheduledDateAndRecurrenceUseOneSummaryLineAndExpandWithoutTruncation() {
         val date = LocalDate.of(2026, 8, 27)
         val item = ScheduledTask(
             task = WhipTask(
@@ -289,7 +298,12 @@ class ProductivityCardDesignUiTest {
             }
         }
 
-        assertSchedulingMetadataFits("balanced")
+        val collapsed = compose.onNodeWithTag("task-metadata-18", useUnmergedTree = true)
+            .assertIsDisplayed()
+            .getUnclippedBoundsInRoot()
+        assertTrue("Collapsed Task metadata must remain one overview line", collapsed.bottom - collapsed.top <= 24.dp)
+        compose.onNodeWithTag("task-expand-18", useUnmergedTree = true).performClick()
+        assertSchedulingMetadataFits("expanded")
     }
 
     @Test
@@ -881,7 +895,11 @@ class ProductivityCardDesignUiTest {
             }
         }
 
-        compose.onNodeWithContentDescription("2 days").assertIsDisplayed()
+        compose.onNodeWithContentDescription("2 days", useUnmergedTree = true).assertIsDisplayed()
+        assertEquals(
+            "2 days",
+            compose.onNodeWithTag("goal-card-8").fetchSemanticsNode().config[SemanticsProperties.StateDescription],
+        )
         compose.onNodeWithContentDescription("Expand goal Days since smoking").assertExists()
         val resetLabelHeight = compose.onNodeWithText("Reset", useUnmergedTree = true)
             .getUnclippedBoundsInRoot().let { it.bottom - it.top }
@@ -893,10 +911,17 @@ class ProductivityCardDesignUiTest {
         val resetAction = compose.onNodeWithTag("goal-primary-action-8", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         assertTrue(kotlin.math.abs(elapsedMetric.left - elapsedTitle.left) <= 1f)
         assertTrue(elapsedMetric.left >= elapsedIdentity.right)
-        assertTrue(elapsedMetric.top >= resetAction.bottom - 1f)
+        assertTrue(elapsedMetric.top >= elapsedTitle.bottom - 1f)
+        assertTrue(elapsedMetric.bottom <= resetAction.bottom + 1f)
+        assertEquals(
+            "Elapsed and milestone Goals must share the collapsed card geometry",
+            height("goal-card-8").value,
+            height("goal-card-9").value,
+            0.5f,
+        )
         compose.onNodeWithText("Reset").performClick()
         compose.onNodeWithTag("goal-expand-8", useUnmergedTree = true).performClick()
-        compose.onNodeWithContentDescription("2 days").assertIsDisplayed()
+        compose.onNodeWithContentDescription("2 days", useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithText("Counting since", substring = true).assertIsDisplayed()
         compose.onNodeWithTag("goal-expand-8", useUnmergedTree = true).performClick()
         compose.onNodeWithText("0/1 milestones").performScrollTo().assertIsDisplayed()
@@ -904,7 +929,7 @@ class ProductivityCardDesignUiTest {
         compose.onAllNodesWithText("Celebrate").assertCountEquals(0)
 
         compose.onNodeWithTag("goal-expand-9", useUnmergedTree = true).performScrollTo().performClick()
-        compose.onNodeWithContentDescription("2 days").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("2 days", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription("Expand goal Days since smoking").assertExists()
         compose.onNodeWithContentDescription("Collapse goal Launch the product").assertExists()
         compose.onNodeWithText("Publish the release").performScrollTo().assertIsDisplayed()
@@ -1088,14 +1113,13 @@ class ProductivityCardDesignUiTest {
         val container = compose.onNodeWithTag("task-metadata-18", useUnmergedTree = true)
             .assertIsDisplayed()
             .getUnclippedBoundsInRoot()
-        listOf("Scheduled · Aug 27, 2026", "Repeats · Mon, Thu").forEach { label ->
-            val bounds = compose.onNodeWithText(label, useUnmergedTree = true)
-                .assertIsDisplayed()
-                .getUnclippedBoundsInRoot()
-            assertTrue("$mode metadata must start inside its full-width lane: $bounds vs $container", bounds.left >= container.left)
-            assertTrue("$mode metadata must end inside its full-width lane: $bounds vs $container", bounds.right <= container.right)
-            assertTrue("$mode metadata must have visible height: $bounds", bounds.bottom - bounds.top > 0.dp)
-        }
+        val bounds = compose.onNodeWithText(
+            "Scheduled · Aug 27, 2026 · Repeats · Mon, Thu",
+            useUnmergedTree = true,
+        ).assertIsDisplayed().getUnclippedBoundsInRoot()
+        assertTrue("$mode metadata must start inside its title lane: $bounds vs $container", bounds.left >= container.left)
+        assertTrue("$mode metadata must end inside its title lane: $bounds vs $container", bounds.right <= container.right)
+        assertTrue("$mode metadata must have visible height: $bounds", bounds.bottom - bounds.top > 0.dp)
     }
 
     private fun sampleHabit(date: LocalDate) = Habit(

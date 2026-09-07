@@ -25,6 +25,7 @@ import com.whip.app.domain.WorkoutGroupType
 import com.whip.app.domain.WorkoutSetDraft
 import com.whip.app.domain.WorkoutArrangementDraft
 import com.whip.app.domain.WorkoutSetOrderDraft
+import com.whip.app.domain.WorkoutSetMutationBoundary
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -850,6 +851,7 @@ class GymRepositoryTest {
         val setId = repository.addSet(placementId, WorkoutSetDraft(weight = 100.0, reps = 5))
         val before = repository.sessions.first().single { it.id == sessionId }
         val source = repository.sets.first().single { it.id == setId }
+        val placement = repository.workoutExercises.first().single { it.id == placementId }
 
         assertTrue(
             runCatching {
@@ -857,7 +859,8 @@ class GymRepositoryTest {
                     id = setId,
                     expectedSetUuid = source.uuid,
                     expectedSetUpdatedAtMillis = source.updatedAtMillis + 1,
-                    expectedWorkoutRevision = before.workoutRevision,
+                    expectedWorkoutExerciseUuid = placement.uuid,
+                    expectedWorkoutExerciseUpdatedAtMillis = placement.updatedAtMillis,
                     draft = WorkoutSetDraft(weight = 105.0, reps = 5),
                     addNext = true,
                     autoStartRest = true,
@@ -871,7 +874,8 @@ class GymRepositoryTest {
             id = setId,
             expectedSetUuid = source.uuid,
             expectedSetUpdatedAtMillis = source.updatedAtMillis,
-            expectedWorkoutRevision = before.workoutRevision,
+            expectedWorkoutExerciseUuid = placement.uuid,
+            expectedWorkoutExerciseUpdatedAtMillis = placement.updatedAtMillis,
             draft = WorkoutSetDraft(weight = 105.0, reps = 5),
             addNext = true,
             autoStartRest = true,
@@ -893,6 +897,59 @@ class GymRepositoryTest {
     }
 
     @Test
+    fun quickSaveAcceptsAnUnrelatedEarlierSetEditInTheSameWorkout() = runBlocking {
+        val exerciseId = repository.createExercise(ExerciseDraft(name = "Bench"))
+        val sessionId = repository.startWorkout("Edit then quick save")
+        val placementId = repository.addExerciseToWorkout(sessionId, exerciseId)
+        val earlierSetId = repository.addSet(
+            placementId,
+            WorkoutSetDraft(weight = 80.0, reps = 5, completed = true),
+        )
+        val activeSetId = repository.addSet(
+            placementId,
+            WorkoutSetDraft(weight = 82.5, reps = 5),
+        )
+        val reviewedSession = repository.sessions.first().single { it.id == sessionId }
+        val reviewedPlacement = repository.workoutExercises.first().single { it.id == placementId }
+        val reviewedEarlierSet = repository.sets.first().single { it.id == earlierSetId }
+        val reviewedActiveSet = repository.sets.first().single { it.id == activeSetId }
+
+        repository.updateSet(
+            WorkoutSetMutationBoundary(
+                sessionId = reviewedSession.id,
+                sessionUuid = reviewedSession.uuid,
+                workoutRevision = reviewedSession.workoutRevision,
+                workoutExerciseId = reviewedPlacement.id,
+                workoutExerciseUuid = reviewedPlacement.uuid,
+                setId = reviewedEarlierSet.id,
+                setUuid = reviewedEarlierSet.uuid,
+                setUpdatedAtMillis = reviewedEarlierSet.updatedAtMillis,
+                expectedDeletedAtMillis = null,
+                expectedRemovalReason = null,
+            ),
+            WorkoutSetDraft(weight = 85.0, reps = 6, completed = true),
+        )
+        val revisionAfterEarlierEdit = repository.sessions.first().single { it.id == sessionId }.workoutRevision
+        assertEquals(reviewedSession.workoutRevision + 1, revisionAfterEarlierEdit)
+
+        repository.saveQuickSet(
+            id = reviewedActiveSet.id,
+            expectedSetUuid = reviewedActiveSet.uuid,
+            expectedSetUpdatedAtMillis = reviewedActiveSet.updatedAtMillis,
+            expectedWorkoutExerciseUuid = reviewedPlacement.uuid,
+            expectedWorkoutExerciseUpdatedAtMillis = reviewedPlacement.updatedAtMillis,
+            draft = WorkoutSetDraft(weight = 87.5, reps = 7),
+            addNext = false,
+            autoStartRest = false,
+        )
+
+        val stored = repository.sets.first().associateBy { it.id }
+        assertEquals(85.0, stored.getValue(earlierSetId).enteredWeight ?: -1.0, 0.0)
+        assertTrue(stored.getValue(activeSetId).completed)
+        assertEquals(87.5, stored.getValue(activeSetId).enteredWeight ?: -1.0, 0.0)
+    }
+
+    @Test
     fun concurrentQuickSavesAdmitOnlyOneCommitForTheReviewedBoundary() = runBlocking {
         val exerciseId = repository.createExercise(ExerciseDraft(name = "Press"))
         val sessionId = repository.startWorkout("Concurrent quick save")
@@ -900,6 +957,7 @@ class GymRepositoryTest {
         val setId = repository.addSet(placementId, WorkoutSetDraft(weight = 50.0, reps = 5))
         val reviewedSession = repository.sessions.first().single { it.id == sessionId }
         val reviewedSet = repository.sets.first().single { it.id == setId }
+        val reviewedPlacement = repository.workoutExercises.first().single { it.id == placementId }
 
         val outcomes = listOf(52.5, 55.0).map { weight ->
             async(Dispatchers.Default) {
@@ -908,7 +966,8 @@ class GymRepositoryTest {
                         id = setId,
                         expectedSetUuid = reviewedSet.uuid,
                         expectedSetUpdatedAtMillis = reviewedSet.updatedAtMillis,
-                        expectedWorkoutRevision = reviewedSession.workoutRevision,
+                        expectedWorkoutExerciseUuid = reviewedPlacement.uuid,
+                        expectedWorkoutExerciseUpdatedAtMillis = reviewedPlacement.updatedAtMillis,
                         draft = WorkoutSetDraft(weight = weight, reps = 5),
                         addNext = false,
                         autoStartRest = false,

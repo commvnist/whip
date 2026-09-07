@@ -60,6 +60,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -846,7 +847,10 @@ fun GoalCard(
             .testTag("goal-card-${goal.id}")
             .then(
                 if (reorderMode) Modifier
-                else Modifier.semantics { contentDescription = "Open goal details for ${goal.name}" },
+                else Modifier.semantics {
+                    contentDescription = "Open goal details for ${goal.name}"
+                    stateDescription = elapsedStatus?.label() ?: compactStatus
+                },
             ),
     ) {
         ProductivityItemHeader(
@@ -866,21 +870,19 @@ fun GoalCard(
                 )
             },
             summaryContent = {
-                if (elapsedStatus == null) {
-                    ProductivityItemSupportingText(
-                        text = compactStatus,
-                        modifier = Modifier.testTag("goal-card-status-${goal.id}"),
-                        maxLines = 1,
-                    )
-                }
-            },
-            persistentSummaryContent = elapsedStatus?.let { display ->
-                {
-                    ElapsedGoalMetric(
-                        display = display,
-                        modifier = Modifier.testTag("goal-card-status-${goal.id}"),
-                    )
-                }
+                ProductivityItemSupportingText(
+                    text = elapsedStatus?.compactLabel() ?: compactStatus,
+                    modifier = Modifier
+                        .testTag("goal-card-status-${goal.id}")
+                        .then(
+                            elapsedStatus?.let { display ->
+                                Modifier.semantics(mergeDescendants = true) {
+                                    contentDescription = display.label()
+                                }
+                            } ?: Modifier,
+                        ),
+                    maxLines = 1,
+                )
             },
             expanded = disclosure.expanded,
             onExpansionToggle = disclosure.toggle.takeUnless { reorderMode },
@@ -905,6 +907,12 @@ fun GoalCard(
             }
         }
         if (goal.type == GoalType.ElapsedSince) {
+            elapsedStatus?.let { display ->
+                ElapsedGoalMetric(
+                    display = display,
+                    modifier = Modifier.testTag("goal-card-expanded-status-${goal.id}"),
+                )
+            }
             when {
                 elapsedStatus != null && goal.elapsedStartMillis != null -> Text(
                     if (projection.terminalSnapshot == null) {

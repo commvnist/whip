@@ -1,10 +1,12 @@
 package com.whip.app
 
 import android.content.Intent
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -23,6 +25,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.core.AppSettings
 import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.WorkoutSessionState
+import com.whip.app.domain.WorkoutSetDraft
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -221,16 +224,82 @@ class FirstClassWorkflowE2ETest {
             }
             checkNotNull(workoutFinished) { "Workout finish did not reach the repository" }
             compose.onNodeWithText("History").performClick()
-            // Expanded Fold layouts can show the History heading and its row at
-            // the same time. Either visible instance proves the saved workout
-            // reached History; a singular text lookup is invalid in that layout.
-            compose.onAllNodesWithText("Coverage Workout")[0].assertIsDisplayed()
+            compose.onNodeWithTag("history-workout-card-${session.id}")
+                .performScrollTo()
+                .assertIsDisplayed()
+            compose.onNode(
+                hasText("Coverage Workout") and
+                    hasAnyAncestor(hasTestTag("history-workout-card-${session.id}")),
+                useUnmergedTree = true,
+            ).assertIsDisplayed()
             check(
                 runBlocking {
                     app.gymRepository.workoutExercises.first()
                         .any { it.sessionId == session.id && it.exerciseId == workoutOnlyExerciseId }
                 },
             ) { "Workout-only exercise was not preserved with the finished workout" }
+        }
+    }
+
+    @Test
+    fun editingAnEarlierSetDoesNotInvalidateTheActiveSetComposer() {
+        val setup = runBlocking {
+            val exerciseId = app.gymRepository.createExercise(ExerciseDraft(name = "Bench Press"))
+            val sessionId = app.gymRepository.startWorkout("Sequential set edits")
+            val placementId = app.gymRepository.addExerciseToWorkout(sessionId, exerciseId)
+            val earlierSetId = app.gymRepository.addSet(
+                placementId,
+                WorkoutSetDraft(weight = 80.0, reps = 5, completed = true),
+            )
+            val activeSetId = app.gymRepository.addSet(
+                placementId,
+                WorkoutSetDraft(weight = 82.5, reps = 5),
+            )
+            Triple(earlierSetId, activeSetId, sessionId)
+        }
+
+        launch().use {
+            compose.waitForIdle()
+            compose.onNodeWithContentDescription("Gym tab").performClick()
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithTag("quick-set-load-${setup.second}").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText("1 Completed Set").performScrollTo().performClick()
+            compose.onNode(
+                hasText("Set 1", substring = true) and hasClickAction(),
+            ).performScrollTo().performClick()
+            compose.onNodeWithTag("workout-set-editor-load").performTextReplacement("85")
+            compose.onNodeWithTag("workout-set-editor-reps").performTextReplacement("6")
+            closeSoftKeyboard()
+            compose.onNodeWithText("Save").performClick()
+
+            runBlocking {
+                withTimeout(5_000) {
+                    app.gymRepository.sets.first { sets ->
+                        sets.single { set -> set.id == setup.first }.enteredWeight == 85.0
+                    }
+                }
+            }
+            compose.onNodeWithTag("quick-set-load-${setup.second}").performTextReplacement("87.5")
+            compose.onNodeWithTag("quick-set-reps-${setup.second}").performTextReplacement("7")
+            closeSoftKeyboard()
+            compose.onNodeWithTag("quick-set-save-next-${setup.second}").performScrollTo().performClick()
+
+            val completed = runBlocking {
+                withTimeoutOrNull(5_000) {
+                    app.gymRepository.sets.first { sets ->
+                        sets.single { set -> set.id == setup.second }.completed
+                    }.single { set -> set.id == setup.second }
+                }
+            }
+            checkNotNull(completed) { "Active Set save was rejected after an unrelated earlier Set edit" }
+            compose.onAllNodesWithText("changed before this quick save", substring = true).assertCountEquals(0)
+            check(
+                runBlocking {
+                    app.gymRepository.sessions.first().single { session -> session.id == setup.third }.state ==
+                        WorkoutSessionState.Active
+                },
+            )
         }
     }
 
