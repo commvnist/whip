@@ -822,3 +822,21 @@
 - Constraints and consequences: The exact start instant remains authoritative; changing display never creates progress history or changes outcome semantics. Terminal snapshots use the stored frozen duration from the Goal's exact start when available. No empty authored selection is valid; removing the final selected unit returns to Automatic.
 - Related: `FB-20260906-009`, `FND-20260906-005`.
 - Status: Accepted, implemented, focused-tested, visually verified, and released in Whip 0.3.53/code 59.
+
+### DEC-20260906-008 — Visible state acknowledges success; transient bars carry new information
+
+- Context: Whip already defaults routine operation success to Inline, yet explicit overrides and local Snackbar hosts still announce many saves and other immediately visible state changes.
+- Decision: Suppress passive success-only action bars app-wide. Show transient app feedback only for failures, post-commit warnings, or a meaningful recovery/continuation control such as Undo, Retry, Restore view, or Edit after quick capture. Keep Android reminders, alarms, foreground/ongoing notifications, and permission surfaces unchanged.
+- Rejected alternatives: Removing only “Goal saved,” which leaves the same interruption elsewhere; removing every Snackbar, which would hide failures and time-bounded recovery; replacing bars with decorative checkmarks or animations, which preserves noise without adding information.
+- Constraints and consequences: Success states must still update visibly and accessibility semantics must expose the new state. Post-commit warnings remain visible even though the primary action succeeded. Recoverable actions retain exact token ownership and arbitration.
+- Related: `FB-20260906-010`, `FND-20260906-008`.
+- Status: Accepted; implementation in progress.
+
+### DEC-20260906-009 — Elapsed time is one composed metric, not a headline treatment
+
+- Context: First-class visibility does not require every elapsed component to compete with the Goal name or page heading.
+- Decision: Render elapsed displays through one responsive composition across cards, editor preview, Insights, and details. Values use modest medium emphasis; unit words use the surrounding supporting-text role; components wrap atomically with consistent rhythm and one merged spoken label. Remove the redundant expanded-card duration and retain its start context instead.
+- Rejected alternatives: A single uniformly bold string; per-unit chips or tiles that turn time into controls; reducing the collection counter to one truncated line; bespoke typography per screen.
+- Constraints and consequences: Every authored unit, including zero values, stays visible; canonical order and calendar arithmetic are unchanged. The component must work in dark/light themes, 320 dp, and enlarged text without dangling separators.
+- Related: `FB-20260906-010`, `FND-20260906-007`, `DEC-20260906-007`.
+- Status: Accepted; implementation in progress.

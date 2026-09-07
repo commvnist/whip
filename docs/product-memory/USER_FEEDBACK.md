@@ -501,6 +501,6 @@ These records preserve durable user intent. “Released” means the change reac
 - User need: The new Count Time Since display feels bolted onto Goal cards because it is too bold and visually detached. Routine action-result bars such as “Goal saved” are also annoying because the changed screen already confirms what happened.
 - Acceptance criteria: Redesign elapsed counters across collection cards, Home, Overview, Insights, terminal states, and editor preview so they use Whip's established information hierarchy, restrained emphasis, coherent spacing, and responsive wrapping in every supported appearance; preserve every configured unit and accessibility label. Remove passive success-only app-action pop-ups across Whip when the committed result is already apparent; retain failures, warnings, recovery/choice prompts, meaningful Undo, and Android system reminders/ongoing notifications.
 - Affected users/workflows: Every routine create/edit/log/complete/archive action that currently emits redundant transient success feedback, plus all active and terminal Count Time Since Goal presentations.
-- Related: `FB-20260906-009`, `FND-20260906-005`, `DEC-20260906-007`.
+- Related: `FB-20260906-009`, `FND-20260906-005`, `FND-20260906-007`, `FND-20260906-008`, `DEC-20260906-007`, `DEC-20260906-008`, `DEC-20260906-009`.
 - Status: In progress.
 - Notes: Treat the phone report as authoritative subjective evidence. Development inspection, capture, and regression testing remain emulator-only.

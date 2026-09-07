@@ -1024,3 +1024,27 @@
 - Resolution: Corrected both selectors to their `com.whip.app.ui` package, passed the target-guard/cache/accounting fixture, and executed the repaired Goals profile successfully.
 - Related implementation: `IMP-20260906-018`, `VER-20260906-019`.
 - Status: Resolved and fixture/emulator-verified.
+
+### FND-20260906-007 — Elapsed duration bypasses Whip's information hierarchy
+
+- Severity/category: P1 real-use UI/visual-system regression.
+- Observed: The 0.3.53 elapsed value appears as separate bold primary-colored chunks on collapsed cards, as large headline text in Insights/details, and as an extra-bold editor preview. Expanding a Goal repeats the same duration immediately below its collection header.
+- Expected: The duration should read as one native Whip metric: restrained, consistently composed, responsive, accessible, and contextualized without duplication in every active and terminal appearance.
+- Why it matters / affected users: Count Time Since is intended for frequent motivational reading. Excess weight and repeated bespoke treatments make the feature feel added on instead of trustworthy and calm.
+- Evidence: Real-use report after `VER-20260906-020`; `ElapsedGoalPrimaryStatus` and direct elapsed `Text` call sites in `GoalScreens.kt`; accepted 0.3.53 Goal captures, especially `goals.active.populated`, `goals.insights.populated`, and `goals.editor.elapsed-display`.
+- Root cause: The first implementation made prominence synonymous with title/headline weight instead of reusing one elapsed-metric composition within the surrounding card hierarchy.
+- Recommended solution: Use one reusable responsive metric that gives values modest emphasis and units supporting emphasis, removes duplicate expanded-card output, and fits the established collection/information-card typography.
+- Related: `FB-20260906-009`, `FB-20260906-010`, `DEC-20260906-007`.
+- Status: Confirmed; remediation in progress.
+
+### FND-20260906-008 — Routine success actions inconsistently bypass quiet feedback
+
+- Severity/category: P1 app-wide interaction-noise regression.
+- Observed: `OperationStatus.Succeeded` defaults to inline acknowledgement, but 36 explicit Snackbar presentation sites plus direct Area/Tag/Track-entry hosts still emit transient bars for routine saves and visible state changes. Goal entity saves always select Snackbar, producing “Goal saved.”
+- Expected: A committed result already visible in the interface should be its own acknowledgement. A transient bar should appear only when it contains failure/warning information or a recovery/continuation action such as Undo, Retry, or restoring context.
+- Why it matters / affected users: Repetitive confirmations obscure bottom content, interrupt flow, and train users to dismiss feedback that may later contain an important warning.
+- Evidence: Real-use report after `VER-20260906-020`; `GoalViewModel.runEntitySaveOperation`, shared operation feedback effects, Area/Tag management hosts, and `presentTrackEntryMutationFeedback`.
+- Root cause: Quiet-by-default was adopted at helper boundaries, but authored-save, deletion, pinning, catalog, and local dialog paths retained older explicit Snackbar overrides without a single enforceable success-feedback taxonomy.
+- Recommended solution: Classify success feedback by information value: Inline for self-evident success, Snackbar only for warnings and recoverable actions, while keeping failures indefinite/dismissible and leaving Android system notifications unchanged.
+- Related: `FB-20260906-010`, `DEC-20260906-003`.
+- Status: Confirmed; remediation in progress.
