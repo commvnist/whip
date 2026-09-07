@@ -128,4 +128,5 @@ Android result reuse. `VER-20260906-023` is the detailed acceptance record.
 This revalidation closes with no known residual whole-app UX/UI/design defect.
 As before, the private-development result does not replace Play Store
 qualification, and subjective comfort remains appropriate to validate through
-normal owner use.
+normal owner use. The exact source was subsequently installed in place and
+device-verified as Whip 0.3.55/code 61 in `VER-20260906-024`.

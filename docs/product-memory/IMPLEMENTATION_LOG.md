@@ -1184,4 +1184,16 @@
 - Compatibility and limitations: Visual pixels are unchanged except the About-version line. Catalog operations remain forbidden on physical hardware; instrumentation remains emulator-only. This exhaustive private-development evidence is not a Play Store-qualified frozen candidate, and public publication still requires `scripts/candidate`.
 - Related: `FB-20260906-012`, `FND-20260906-009` through `FND-20260906-015`, `DEC-20260906-010`, `VER-20260906-023`.
 - Verification: `VER-20260906-023`.
-- Status: Implemented, complete-suite verified, semantically verified, and visually accepted; frozen-source owner-phone deployment remains pending.
+- Commit/push: Verified release source `001caf8` was pushed to `origin/main` before the signed build and owner-phone deployment.
+- Status: Implemented, complete-suite verified, semantically verified, visually accepted, and released in Whip 0.3.55/code 61.
+
+### IMP-20260906-023 — Signed Whip 0.3.55 whole-app audit owner-phone release
+
+- Behavior changed: Installed the whole-app accessibility and fail-closed evidence closure in place on the explicitly selected owner phone. Standalone Task/Habit editor switches now announce their setting identity and On/Off state; accepted visual behavior remains otherwise unchanged.
+- Important files/symbols: Release source `001caf8`, `app/build.gradle.kts`, signed `app-release.apk`, local `app-release.aab`, and `VER-20260906-024`.
+- Persistence/migration/history impact: Schema 46, data epoch 6, and exact-match backup version 25 are unchanged. Android first-install identity and existing owner data were preserved; no reset, clear, uninstall, downgrade, or fresh-start confirmation occurred.
+- Compatibility and limitations: The release follows the unusually comprehensive fresh 1,575-test and 172-surface private-development evidence in `VER-20260906-023`, then adds release-vital lint, signed build/install, and physical smoke. It is still not Play Store candidate evidence; public publication requires a fresh `scripts/candidate` run.
+- Commit/push: Release source `001caf8` was clean and synchronized with `origin/main` before signed build/install; the following reconciliation commit changes memory only.
+- Related: `FB-20260906-012`, `FND-20260906-011`, `DEC-20260906-010`, `IMP-20260906-022`, `VER-20260906-023`, `VER-20260906-024`.
+- Verification: `VER-20260906-024`.
+- Status: Released and device-verified as Whip 0.3.55/code 61; awaiting normal real-use feedback.
