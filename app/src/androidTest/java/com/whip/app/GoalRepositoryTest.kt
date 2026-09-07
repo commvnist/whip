@@ -18,6 +18,7 @@ import com.whip.app.domain.GoalPaceType
 import com.whip.app.domain.GoalStatus
 import com.whip.app.domain.GoalType
 import com.whip.app.domain.ElapsedDisplayUnit
+import com.whip.app.domain.ElapsedDisplayFormat
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.displayValue
 import com.whip.app.domain.measurementBoundary
@@ -230,21 +231,36 @@ class GoalRepositoryTest {
         assertEquals(8.0, goal.displayValue(goal.targetMin, listOf(unit)) ?: -1.0, 0.0)
     }
 
-    @Test fun elapsedGoalPersistsDisplayRejectsMeasurementsAndResetsExactStart() = runBlocking {
+    @Test fun elapsedGoalPersistsCompositeDisplayRejectsMeasurementsAndResetsExactStart() = runBlocking {
         val initial = FixedClock.now().minusSeconds(10 * 86_400)
+        val display = ElapsedDisplayFormat.selected(
+            ElapsedDisplayUnit.Months,
+            ElapsedDisplayUnit.Days,
+            ElapsedDisplayUnit.Hours,
+            ElapsedDisplayUnit.Minutes,
+        )
         val id = repository.create(
             GoalDraft(
                 name = "Recovery",
                 type = GoalType.ElapsedSince,
                 startDate = initial.atZone(ZoneId.of("UTC")).toLocalDate(),
                 elapsedStartMillis = initial.toEpochMilli(),
-                elapsedDisplayUnit = ElapsedDisplayUnit.Days,
+                elapsedDisplay = display,
             ),
         )
         val saved = repository.goals.first().single()
         assertEquals(initial.toEpochMilli(), saved.elapsedStartMillis)
-        assertEquals(ElapsedDisplayUnit.Days, saved.elapsedDisplayUnit)
+        assertEquals(display, saved.elapsedDisplay)
         assertTrue(runCatching { repository.recordMeasurement(id, 1.0) }.isFailure)
+
+        database.openHelper.writableDatabase.execSQL(
+            "UPDATE goals SET elapsedDisplayUnit = 'Days' WHERE id = ?",
+            arrayOf(id),
+        )
+        assertEquals(
+            ElapsedDisplayFormat.selected(ElapsedDisplayUnit.Days),
+            repository.get(id)?.elapsedDisplay,
+        )
 
         val reset = FixedClock.now().minusSeconds(3_600)
         repository.resetElapsedStart(id, reset)

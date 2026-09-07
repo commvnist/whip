@@ -94,8 +94,12 @@ import com.whip.app.domain.GoalProjection
 import com.whip.app.domain.GoalStatus
 import com.whip.app.domain.GoalType
 import com.whip.app.domain.withTypeSemantics
+import com.whip.app.domain.ElapsedDisplay
+import com.whip.app.domain.ElapsedDisplayFormat
 import com.whip.app.domain.ElapsedDisplayUnit
-import com.whip.app.domain.elapsedCounter
+import com.whip.app.domain.elapsedDisplay
+import com.whip.app.domain.elapsedDisplayLabel
+import com.whip.app.domain.elapsedDisplayValue
 import com.whip.app.domain.DEFAULT_GOAL_EMOJI
 import com.whip.app.domain.MeasurementEntry
 import com.whip.app.domain.MeasurementDefinition
@@ -491,6 +495,7 @@ fun GoalAreaContent(
                         projection,
                         customUnits = state.customUnits,
                         nowMillis = elapsedNowMillis,
+                        zoneId = state.activeZoneId,
                         onOpen = { actionsGoalId = projection.goal.id },
                         onEdit = { editingGoalId = projection.goal.id },
                         onRecord = { recordingGoalId = projection.goal.id },
@@ -780,19 +785,18 @@ internal inline fun EntitySaveCoordinator.leaveGoalActionSurface(transition: () 
 internal fun GoalProjection.collectionStatus(
     customUnits: List<UnitDefinition> = emptyList(),
     nowMillis: Long = System.currentTimeMillis(),
+    zoneId: ZoneId = ZoneId.systemDefault(),
 ): String {
     val goal = this.goal
     return when {
         terminalSnapshot != null && goal.type == GoalType.ElapsedSince ->
-            terminalSnapshot.elapsedDurationMillis
-                ?.let { elapsedCounter(0L, it, goal.elapsedDisplayUnit).label() }
-                ?: terminalSnapshot.status.inspectorLabel()
+            elapsedDisplayLabel(nowMillis, zoneId) ?: terminalSnapshot.status.inspectorLabel()
         terminalSnapshot != null && goal.type == GoalType.WeightedMilestones ->
             terminalSnapshot.milestoneOutcomeLabel()
                 ?: terminalSnapshot.progress?.let { "${(it * 100).toInt()}% complete" }
                 ?: terminalSnapshot.status.inspectorLabel()
         goal.type == GoalType.ElapsedSince && goal.elapsedStartMillis != null ->
-            elapsedCounter(goal.elapsedStartMillis, nowMillis, goal.elapsedDisplayUnit).label()
+            elapsedDisplayLabel(nowMillis, zoneId) ?: goal.type.displayLabel()
         goal.type == GoalType.WeightedMilestones ->
             "${milestones.count { it.completed }}/${milestones.size} milestones"
         progress != null -> "${(progress * 100).toInt()}% complete"
@@ -815,11 +819,13 @@ fun GoalCard(
     onResetElapsed: () -> Unit,
     onToggleMilestone: (GoalMilestoneBoundary, Boolean) -> Unit,
     nowMillis: Long = System.currentTimeMillis(),
+    zoneId: ZoneId = ZoneId.systemDefault(),
     reorderMode: Boolean = false,
 ) {
     val goal = projection.goal
     val disclosure = rememberItemDisclosure(itemKey = "goal:${goal.id}")
-    val compactStatus = projection.collectionStatus(customUnits, nowMillis)
+    val compactStatus = projection.collectionStatus(customUnits, nowMillis, zoneId)
+    val elapsedStatus = projection.elapsedDisplayValue(nowMillis, zoneId)
     val primaryAction: (@Composable () -> Unit)? = when {
         reorderMode -> null
         !goal.archived && goal.status == GoalStatus.Active &&
@@ -861,12 +867,16 @@ fun GoalCard(
                 )
             },
             summaryContent = {
-                Text(
-                    compactStatus,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
+                if (elapsedStatus != null) {
+                    ElapsedGoalPrimaryStatus(elapsedStatus, Modifier.testTag("goal-card-status-${goal.id}"))
+                } else {
+                    Text(
+                        compactStatus,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
             },
             expanded = disclosure.expanded,
             onExpansionToggle = disclosure.toggle.takeUnless { reorderMode },
@@ -874,6 +884,9 @@ fun GoalCard(
             primaryActionWidth = if (goal.type == GoalType.ElapsedSince) 80.dp else 64.dp,
             primaryAction = primaryAction,
         )
+        if (reorderMode && elapsedStatus != null) {
+            ElapsedGoalPrimaryStatus(elapsedStatus, Modifier.testTag("goal-card-status-${goal.id}"))
+        }
         if (!reorderMode && disclosure.expanded) {
         projection.progress?.let { progress ->
             val progressColor = if (progress >= 1.0) MaterialTheme.whipColors.success else MaterialTheme.whipColors.action
@@ -891,11 +904,10 @@ fun GoalCard(
             }
         }
         if (goal.type == GoalType.ElapsedSince) {
-            val frozenDuration = projection.terminalSnapshot?.elapsedDurationMillis
-            val started = goal.elapsedStartMillis.takeIf { projection.terminalSnapshot == null }
+            val elapsedLabel = projection.elapsedDisplayLabel(nowMillis, zoneId)
             when {
-                frozenDuration != null -> Text(
-                    elapsedCounter(0L, frozenDuration, goal.elapsedDisplayUnit).label(),
+                elapsedLabel != null -> Text(
+                    elapsedLabel,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -904,13 +916,6 @@ fun GoalCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                started != null -> {
-                Text(
-                    elapsedCounter(started, nowMillis, goal.elapsedDisplayUnit).label(),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                }
             }
         } else projection.consistency?.let { consistency ->
             Text(
@@ -1002,6 +1007,25 @@ fun GoalCard(
             }
         }
         if (goal.description.isNotBlank()) Text(goal.description, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun ElapsedGoalPrimaryStatus(display: ElapsedDisplay, modifier: Modifier = Modifier) {
+    FlowRow(
+        modifier = modifier.semantics(mergeDescendants = true) { contentDescription = display.label() },
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        display.parts.forEach { part ->
+            Text(
+                part.label(),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+            )
         }
     }
 }
@@ -1184,7 +1208,7 @@ private fun GoalInsightsContent(
                     if (projection.goal.type == GoalType.ElapsedSince) {
                         projection.goal.elapsedStartMillis?.let { started ->
                             Text(
-                                elapsedCounter(started, nowMillis, projection.goal.elapsedDisplayUnit).label(),
+                                projection.elapsedDisplayLabel(nowMillis, zoneId) ?: return@let,
                                 style = MaterialTheme.typography.headlineSmall,
                                 color = MaterialTheme.colorScheme.primary,
                             )
@@ -1259,7 +1283,7 @@ private fun GoalTemplateDialog(
             name = "Time since", icon = "⏱️", type = GoalType.ElapsedSince,
             startDate = today,
             elapsedStartMillis = today.atStartOfDay(defaults.zoneId()).toInstant().toEpochMilli(),
-            elapsedDisplayUnit = ElapsedDisplayUnit.Auto,
+            elapsedDisplay = ElapsedDisplayFormat.Automatic,
             paceType = GoalPaceType.None,
         ),
     )
@@ -1421,7 +1445,9 @@ internal fun GoalEditorDialog(
     var elapsedMinutes by rememberSaveable(editorKey) { mutableIntStateOf(initialElapsedMoment.hour * 60 + initialElapsedMoment.minute) }
     var elapsedMomentEdited by rememberSaveable(editorKey) { mutableStateOf(false) }
     var elapsedOffsetSeconds by rememberSaveable(editorKey) { mutableStateOf<Int?>(initialElapsedMoment.offset.totalSeconds) }
-    var elapsedDisplayUnit by rememberSaveable(editorKey) { mutableStateOf(goal?.elapsedDisplayUnit ?: initialDraft?.elapsedDisplayUnit ?: ElapsedDisplayUnit.Auto) }
+    var elapsedDisplayFormat by rememberSaveable(editorKey) {
+        mutableStateOf(goal?.elapsedDisplay ?: initialDraft?.elapsedDisplay ?: ElapsedDisplayFormat.Automatic)
+    }
     var showElapsedDatePicker by rememberSaveable(editorKey) { mutableStateOf(false) }
     var validationRequested by rememberSaveable(editorKey) { mutableStateOf(false) }
     val elapsedResolution = resolveExactLocalTime(elapsedDate, elapsedMinutes, editorZone)
@@ -1437,7 +1463,7 @@ internal fun GoalEditorDialog(
         name, description, areaId, area, tags, icon, type, unitId, dimension, precision,
         baseline, targetMin, targetMax, aggregation, pace, deadline,
         reminder, aggregationPeriod, rollingDays, consistencyPeriod, consistencyRequiredPeriods,
-        elapsedDate, elapsedMinutes, elapsedMomentEdited, elapsedOffsetSeconds, elapsedDisplayUnit,
+        elapsedDate, elapsedMinutes, elapsedMomentEdited, elapsedOffsetSeconds, elapsedDisplayFormat,
         milestoneDrafts.map { "${it.id}:${it.uuid}:${it.name}:${it.weight}:${it.reward}" },
     ).joinToString("\u001f")
     val initialFingerprint by rememberSaveable(editorKey) { mutableStateOf(editorFingerprint) }
@@ -1472,7 +1498,7 @@ internal fun GoalEditorDialog(
         consistencyPeriod = consistencyPeriod,
         consistencyRequiredPeriods = consistencyRequiredPeriods.toIntOrNull(),
         elapsedStartMillis = elapsedStartInstant?.toEpochMilli().takeIf { type == GoalType.ElapsedSince },
-        elapsedDisplayUnit = elapsedDisplayUnit,
+        elapsedDisplay = elapsedDisplayFormat,
     ).withTypeSemantics()
     val rawFieldProblems = buildList {
         if (goal == null && areas.count { !it.archived } > 1 && areaId == null) add("Choose an Area for this Goal")
@@ -1715,7 +1741,58 @@ internal fun GoalEditorDialog(
                             }
                         }
                     }
-                    item { GoalEnumDropdown("Counter Display", ElapsedDisplayUnit.entries, elapsedDisplayUnit, ElapsedDisplayUnit::displayLabel) { elapsedDisplayUnit = it } }
+                    item {
+                        WhipGroupedInformationCard(Modifier.testTag("elapsed-display-config")) {
+                            Text("Always-visible counter", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "Choose Automatic or any combination. Your counter stays prominent on Goal cards, Home, Insights, and details.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                WhipFilterChip(
+                                    selected = elapsedDisplayFormat.automatic,
+                                    onClick = { elapsedDisplayFormat = ElapsedDisplayFormat.Automatic },
+                                    label = { Text("Automatic") },
+                                    modifier = Modifier.testTag("elapsed-display-auto"),
+                                )
+                                ElapsedDisplayFormat.DISPLAY_ORDER.forEach { unit ->
+                                    WhipFilterChip(
+                                        selected = unit in elapsedDisplayFormat.units,
+                                        onClick = {
+                                            val selected = if (elapsedDisplayFormat.automatic) {
+                                                listOf(unit)
+                                            } else if (unit in elapsedDisplayFormat.units) {
+                                                elapsedDisplayFormat.units - unit
+                                            } else {
+                                                elapsedDisplayFormat.units + unit
+                                            }
+                                            elapsedDisplayFormat = if (selected.isEmpty()) {
+                                                ElapsedDisplayFormat.Automatic
+                                            } else {
+                                                ElapsedDisplayFormat.selected(selected)
+                                            }
+                                        },
+                                        label = { Text(unit.displayLabel()) },
+                                        modifier = Modifier.testTag("elapsed-display-${unit.name.lowercase()}"),
+                                    )
+                                }
+                            }
+                            elapsedStartInstant?.takeUnless { it.isAfter(Instant.ofEpochMilli(nowMillis)) }?.let { started ->
+                                Text("Preview", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    elapsedDisplay(started.toEpochMilli(), nowMillis, elapsedDisplayFormat, editorZone).label(),
+                                    modifier = Modifier.testTag("elapsed-display-preview"),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
+                        }
+                    }
                     if (elapsedStartInstant?.isAfter(Instant.ofEpochMilli(nowMillis)) == true) item {
                         Text(
                             "Start time cannot be in the future.",
@@ -2319,7 +2396,7 @@ internal fun GoalActionsDialog(
                         modifier = Modifier.testTag("goal-inspector-outcome-card"),
                     ) {
                         Text(
-                            projection.inspectorOutcome(nowMillis, customUnits),
+                            projection.inspectorOutcome(nowMillis, customUnits, zoneId),
                             modifier = Modifier.testTag("goal-inspector-outcome"),
                             style = MaterialTheme.typography.headlineSmall,
                             color = MaterialTheme.colorScheme.primary,
@@ -2341,10 +2418,10 @@ internal fun GoalActionsDialog(
                         val chartValues = insights.points.mapNotNull { it.progress ?: it.canonicalValue }
                         if (projection.goal.type == GoalType.ElapsedSince) {
                             val terminal = projection.terminalSnapshot
-                            val frozenDuration = terminal?.elapsedDurationMillis
-                            if (frozenDuration != null) {
+                            val elapsedLabel = projection.elapsedDisplayLabel(nowMillis, zoneId)
+                            if (elapsedLabel != null && terminal != null) {
                                 Text(
-                                    elapsedCounter(0L, frozenDuration, projection.goal.elapsedDisplayUnit).label(),
+                                    elapsedLabel,
                                     style = MaterialTheme.typography.headlineSmall,
                                     color = MaterialTheme.colorScheme.primary,
                                 )
@@ -2356,7 +2433,7 @@ internal fun GoalActionsDialog(
                                 )
                             } else projection.goal.elapsedStartMillis?.let { started ->
                                 Text(
-                                    elapsedCounter(started, nowMillis, projection.goal.elapsedDisplayUnit).label(),
+                                    projection.elapsedDisplayLabel(nowMillis, zoneId) ?: return@let,
                                     style = MaterialTheme.typography.headlineSmall,
                                     color = MaterialTheme.colorScheme.primary,
                                 )
@@ -2568,11 +2645,10 @@ internal fun GoalStatus.inspectorStatusTone(): WhipStatusTone = when (this) {
 private fun GoalProjection.inspectorOutcome(
     nowMillis: Long,
     customUnits: List<UnitDefinition>,
+    zoneId: ZoneId,
 ): String = when {
     terminalSnapshot != null && goal.type == GoalType.ElapsedSince ->
-        terminalSnapshot.elapsedDurationMillis
-            ?.let { elapsedCounter(0L, it, goal.elapsedDisplayUnit).label() }
-            ?: terminalSnapshot.status.inspectorLabel()
+        elapsedDisplayLabel(nowMillis, zoneId) ?: terminalSnapshot.status.inspectorLabel()
     terminalSnapshot != null && goal.type == GoalType.WeightedMilestones ->
         terminalSnapshot.milestoneOutcomeLabel()
             ?.replace("/", " of ")
@@ -2580,7 +2656,7 @@ private fun GoalProjection.inspectorOutcome(
             ?: terminalSnapshot.progress?.let { "${(it * 100).toInt()}% complete" }
             ?: terminalSnapshot.status.inspectorLabel()
     goal.type == GoalType.ElapsedSince && goal.elapsedStartMillis != null ->
-        elapsedCounter(goal.elapsedStartMillis, nowMillis, goal.elapsedDisplayUnit).label()
+        elapsedDisplayLabel(nowMillis, zoneId) ?: "Ready to begin"
     goal.type == GoalType.WeightedMilestones ->
         "${milestones.count { it.completed }} of ${milestones.size} milestones complete"
     progress != null -> "${(progress * 100).toInt()}% complete"

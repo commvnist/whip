@@ -179,8 +179,8 @@ add_profile() {
             )
             android_classes+=(
                 'com.whip.app.GoalRepositoryTest'
-                'com.whip.app.GoalSecondaryMutationUiTest'
-                'com.whip.app.ElapsedGoalTimeUiTest'
+                'com.whip.app.ui.GoalSecondaryMutationUiTest'
+                'com.whip.app.ui.ElapsedGoalTimeUiTest'
                 'com.whip.app.ProductivityCardDesignUiTest'
             )
             ;;

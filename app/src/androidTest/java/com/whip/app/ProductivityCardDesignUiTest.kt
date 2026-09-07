@@ -40,6 +40,7 @@ import com.whip.app.domain.GoalProjection
 import com.whip.app.domain.GoalStatus
 import com.whip.app.domain.GoalType
 import com.whip.app.domain.ElapsedDisplayUnit
+import com.whip.app.domain.ElapsedDisplayFormat
 import com.whip.app.domain.Habit
 import com.whip.app.domain.HabitChecklistItem
 import com.whip.app.domain.HabitDayProgress
@@ -827,7 +828,7 @@ class ProductivityCardDesignUiTest {
             name = "Days since smoking",
             type = GoalType.ElapsedSince,
             elapsedStartMillis = nowMillis - twoDaysMillis,
-            elapsedDisplayUnit = ElapsedDisplayUnit.Days,
+            elapsedDisplay = ElapsedDisplayFormat.selected(ElapsedDisplayUnit.Days),
         )
         val milestoneGoal = sampleGoal(date).copy(
             id = 9,
@@ -927,7 +928,7 @@ class ProductivityCardDesignUiTest {
                                     name = "Reset elapsed goal",
                                     type = GoalType.ElapsedSince,
                                     elapsedStartMillis = 1_800_000_000_000L - 86_400_000L,
-                                    elapsedDisplayUnit = ElapsedDisplayUnit.Days,
+                                    elapsedDisplay = ElapsedDisplayFormat.selected(ElapsedDisplayUnit.Days),
                                 ),
                                 currentValue = null,
                                 progress = null,

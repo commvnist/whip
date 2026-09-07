@@ -32,6 +32,7 @@ import com.whip.app.domain.GoalDraft
 import com.whip.app.domain.GoalType
 import com.whip.app.domain.GoalStatus
 import com.whip.app.domain.ElapsedDisplayUnit
+import com.whip.app.domain.ElapsedDisplayFormat
 import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.HabitChecklistItemDraft
 import com.whip.app.domain.HabitTrackingMode
@@ -521,13 +522,19 @@ class BackupRepositoryTest {
 
     @Test fun elapsedGoalBackupAndCsvPreserveItsAuthoritativeStartAndView() = runBlocking {
         val started = FixedClock.now().minusSeconds(12_345)
+        val display = ElapsedDisplayFormat.selected(
+            ElapsedDisplayUnit.Months,
+            ElapsedDisplayUnit.Weeks,
+            ElapsedDisplayUnit.Days,
+            ElapsedDisplayUnit.Minutes,
+        )
         goals.create(
             GoalDraft(
                 name = "Time Since",
                 type = GoalType.ElapsedSince,
                 startDate = FixedClock.today(),
                 elapsedStartMillis = started.toEpochMilli(),
-                elapsedDisplayUnit = ElapsedDisplayUnit.Hours,
+                elapsedDisplay = display,
             ),
         )
 
@@ -537,11 +544,11 @@ class BackupRepositoryTest {
 
         val restored = goals.goals.first().single()
         assertEquals(started.toEpochMilli(), restored.elapsedStartMillis)
-        assertEquals(ElapsedDisplayUnit.Hours, restored.elapsedDisplayUnit)
+        assertEquals(display, restored.elapsedDisplay)
         val csv = backups.exportGoalsCsv()
         assertTrue(csv.lineSequence().first().contains("elapsedStartMillis"))
         assertTrue(csv.contains(started.toEpochMilli().toString()))
-        assertTrue(csv.contains("Hours"))
+        assertTrue(csv.contains("Selected:Months|Weeks|Days|Minutes"))
     }
 
     @Test fun mergeReconcilesSameNameAreasAndRemapsAssignments() = runBlocking {

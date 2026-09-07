@@ -1750,7 +1750,11 @@ fun WhipScreen(
                         SupportPaneItem(
                             projection.goal.id.toString(),
                             projection.goal.name,
-                            projection.collectionStatus(goalState.customUnits, collectionStatusNowMillis),
+                            projection.collectionStatus(
+                                goalState.customUnits,
+                                collectionStatusNowMillis,
+                                goalState.activeZoneId,
+                            ),
                         )
                     },
                     emptyText = stringResource(R.string.support_goals_empty),
@@ -3737,7 +3741,7 @@ private fun buildAdaptiveSummary(
             } ?: "log"}"
         },
         goalContext = goalState.active.take(6).map { item ->
-            "${item.goal.name} · ${item.collectionStatus(goalState.customUnits, nowMillis)}"
+            "${item.goal.name} · ${item.collectionStatus(goalState.customUnits, nowMillis, goalState.activeZoneId)}"
         },
         gymContextTitle = when (gymDestination) {
             GymDestination.Workout -> "Workout Context"
@@ -5315,6 +5319,7 @@ private fun HomeContent(
                                 projection = projection,
                                 customUnits = goalState.customUnits,
                                 nowMillis = goalState.nowMillis,
+                                zoneId = goalState.activeZoneId,
                                 onOpen = { onOpenGoal(projection) },
                                 onEdit = { onEditGoal(projection) },
                                 onRecord = { onRecordGoal(projection) },
@@ -5330,6 +5335,7 @@ private fun HomeContent(
                                 projection = projection,
                                 customUnits = goalState.customUnits,
                                 nowMillis = goalState.nowMillis,
+                                zoneId = goalState.activeZoneId,
                                 onOpen = { onOpenGoal(projection) },
                                 onEdit = { onEditGoal(projection) },
                                 onRecord = { onRecordGoal(projection) },

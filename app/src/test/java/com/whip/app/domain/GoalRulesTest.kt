@@ -1,6 +1,8 @@
 package com.whip.app.domain
 
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -38,10 +40,57 @@ class GoalRulesTest {
         assertEquals(0, elapsedCounter(100, 0, ElapsedDisplayUnit.Minutes).value)
     }
 
+    @Test fun elapsedDisplaySupportsAnyCanonicalUnitCombinationWithCalendarMonths() {
+        val zone = ZoneId.of("America/Toronto")
+        val started = ZonedDateTime.of(2024, 1, 31, 10, 0, 0, 0, zone).toInstant().toEpochMilli()
+        val now = ZonedDateTime.of(2025, 3, 21, 15, 6, 0, 0, zone).toInstant().toEpochMilli()
+        val format = ElapsedDisplayFormat.selected(
+            ElapsedDisplayUnit.Minutes,
+            ElapsedDisplayUnit.Years,
+            ElapsedDisplayUnit.Days,
+            ElapsedDisplayUnit.Months,
+            ElapsedDisplayUnit.Hours,
+            ElapsedDisplayUnit.Weeks,
+        )
+
+        assertEquals(
+            listOf(
+                ElapsedDisplayUnit.Years,
+                ElapsedDisplayUnit.Months,
+                ElapsedDisplayUnit.Weeks,
+                ElapsedDisplayUnit.Days,
+                ElapsedDisplayUnit.Hours,
+                ElapsedDisplayUnit.Minutes,
+            ),
+            format.units,
+        )
+        assertEquals(
+            "1 year · 1 month · 3 weeks · 0 days · 5 hours · 6 minutes",
+            elapsedDisplay(started, now, format, zone).label(),
+        )
+    }
+
+    @Test fun elapsedDisplayStorageMigratesLegacyChoicesAndRejectsInvalidCombinations() {
+        assertEquals(ElapsedDisplayFormat.Automatic, ElapsedDisplayFormat.fromStorageValue("Auto"))
+        assertEquals(
+            ElapsedDisplayFormat.selected(ElapsedDisplayUnit.Days),
+            ElapsedDisplayFormat.fromStorageValue("Days"),
+        )
+        val selected = ElapsedDisplayFormat.selected(
+            ElapsedDisplayUnit.Months,
+            ElapsedDisplayUnit.Days,
+            ElapsedDisplayUnit.Minutes,
+        )
+        assertEquals("Selected:Months|Days|Minutes", selected.storageValue())
+        assertEquals(selected, ElapsedDisplayFormat.fromStorageValue(selected.storageValue()))
+        assertTrue(runCatching { ElapsedDisplayFormat.fromStorageValue("Selected:Days|Years") }.isFailure)
+        assertTrue(runCatching { ElapsedDisplayFormat.fromStorageValue("Selected:") }.isFailure)
+    }
+
     @Test fun elapsedGoalHasNoSyntheticProgressOrOutcome() {
         val elapsed = goal(type = GoalType.ElapsedSince).copy(
             elapsedStartMillis = 1_000,
-            elapsedDisplayUnit = ElapsedDisplayUnit.Days,
+            elapsedDisplay = ElapsedDisplayFormat.selected(ElapsedDisplayUnit.Days),
         )
         val projection = projectGoal(elapsed, emptyList(), emptyList(), today)
         assertNull(projection.currentValue)

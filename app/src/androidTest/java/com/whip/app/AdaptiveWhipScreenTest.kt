@@ -63,6 +63,7 @@ import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.ScheduledTask
 import com.whip.app.domain.WhipTask
 import com.whip.app.domain.ElapsedDisplayUnit
+import com.whip.app.domain.ElapsedDisplayFormat
 import com.whip.app.domain.Goal
 import com.whip.app.domain.GoalAggregation
 import com.whip.app.domain.GoalDirection
@@ -1650,7 +1651,7 @@ class AdaptiveWhipScreenTest {
             createdAtMillis = 1,
             updatedAtMillis = 1,
             elapsedStartMillis = nowMillis - 2L * 86_400_000L,
-            elapsedDisplayUnit = ElapsedDisplayUnit.Days,
+            elapsedDisplay = ElapsedDisplayFormat.selected(ElapsedDisplayUnit.Days),
         )
         val projection = GoalProjection(
             goal = goal,

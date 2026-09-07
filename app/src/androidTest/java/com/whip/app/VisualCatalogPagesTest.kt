@@ -14,6 +14,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.core.AppSettings
 import com.whip.app.core.AppThemeMode
 import com.whip.app.domain.ExerciseDraft
+import com.whip.app.domain.ElapsedDisplayFormat
+import com.whip.app.domain.ElapsedDisplayUnit
 import com.whip.app.domain.GoalDraft
 import com.whip.app.domain.GoalStatus
 import com.whip.app.domain.GoalType
@@ -371,6 +373,24 @@ class VisualCatalogPagesTest {
             ),
         )
         app.goalRepository.recordMeasurement(activeGoalId, 8.0, today, note = "Current progress")
+        val elapsedGoalId = app.goalRepository.create(
+            GoalDraft(
+                name = "Sober",
+                icon = "🌱",
+                type = GoalType.ElapsedSince,
+                startDate = today.minusDays(430),
+                elapsedStartMillis = app.clock.now().minusSeconds(430L * 86_400L + 5L * 3_600L + 34L * 60L).toEpochMilli(),
+                elapsedDisplay = ElapsedDisplayFormat.selected(
+                    ElapsedDisplayUnit.Years,
+                    ElapsedDisplayUnit.Months,
+                    ElapsedDisplayUnit.Weeks,
+                    ElapsedDisplayUnit.Days,
+                    ElapsedDisplayUnit.Hours,
+                    ElapsedDisplayUnit.Minutes,
+                ),
+            ),
+        )
+        app.goalRepository.setPinned(elapsedGoalId, true)
         app.goalRepository.create(
             GoalDraft(
                 name = "Build emergency savings",

@@ -71,6 +71,7 @@ route:goals-archived	goals.archived.populated	goals	page	populated	com.whip.app.
 route:goals-insights	goals.insights.populated	goals	page	populated	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Goal insights.
 editor:goal-create	goals.editor.create	goals	dialog	new goal	com.whip.app.ui.GoalSecondaryMutationUiTest#captureGoalComponentCatalog	capture	Goal creation form.
 editor:goal-edit	goals.editor.edit	goals	dialog	existing goal	com.whip.app.ui.GoalSecondaryMutationUiTest#captureGoalComponentCatalog	capture	Goal editing form.
+editor:goal-elapsed-display	goals.editor.elapsed-display	goals	dialog	multi-unit counter configured	com.whip.app.ui.ElapsedGoalTimeUiTest#editorPersistsAnyElapsedUnitCombinationAndShowsALivePreview	capture	Always-visible elapsed counter unit selection and live preview.
 dialog:goal-template	goals.template	goals	dialog	open	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Goal template chooser.
 dialog:goal-measurement	goals.measurement	goals	dialog	open	com.whip.app.ui.GoalSecondaryMutationUiTest#captureGoalComponentCatalog	capture	Goal progress measurement.
 dialog:goal-elapsed-reset	goals.elapsed-reset	goals	dialog	elapsed target	com.whip.app.ui.ElapsedGoalTimeUiTest#resetWithoutEditingPreservesTheExactInstantAndActionsRemainUsableAtLargeText	capture	Elapsed goal reset choice.

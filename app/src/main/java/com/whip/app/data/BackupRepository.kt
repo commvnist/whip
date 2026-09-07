@@ -33,6 +33,7 @@ import com.whip.app.domain.LoadInterpretation
 import com.whip.app.domain.MachineLevelDirection
 import com.whip.app.domain.MachineStackMode
 import com.whip.app.domain.HabitTrackingMode
+import com.whip.app.domain.ElapsedDisplayFormat
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.canonicalResistanceKg
 import java.security.MessageDigest
@@ -536,7 +537,7 @@ class RoomBackupRepository(
             row.requireEnum("direction", enumNames("Increase", "Decrease", "Neutral"), "Goal")
             row.requireEnum("paceType", enumNames("Linear", "None"), "Goal")
             row.requireEnum("consistencyPeriod", enumNames("Day", "Week", "Month"), "Goal")
-            row.requireEnum("elapsedDisplayUnit", enumNames("Auto", "Minutes", "Hours", "Days", "Weeks", "Years"), "Goal")
+            ElapsedDisplayFormat.fromStorageValue(row.getString("elapsedDisplayUnit"))
             row.requireEnum("status", enumNames("Active", "Paused", "Completed", "Abandoned", "Archived"), "Goal")
             val measurement = measurements[row.getString("measurementId")] ?: error("Backup Goal references a missing measurement")
             require(measurement.getString("dimension") == row.getString("dimension")) { "Backup Goal measurement uses another measurement type" }
@@ -1254,7 +1255,7 @@ private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
 private const val BACKUP_FORMAT = "whip-backup"
 internal const val ENVELOPE_VERSION = 3
 internal const val CURRENT_DATA_MODEL_EPOCH = 6
-internal const val BACKUP_DATABASE_VERSION = 24
+internal const val BACKUP_DATABASE_VERSION = 25
 
 internal fun validateBackupContract(
     envelopeVersion: Int,

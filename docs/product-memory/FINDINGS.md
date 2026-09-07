@@ -1008,4 +1008,19 @@
 - Evidence: `ElapsedDisplayUnit`, `GoalDraft.elapsedDisplayUnit`, `Goal.elapsedDisplayUnit`, `elapsedCounter`, the Goal editor's single “Counter Display” dropdown, scalar Room/backup mapping, and all elapsed rendering call sites in `GoalScreens.kt`.
 - Root cause: Storage, domain state, editing, and presentation share a scalar enum contract instead of a first-class multi-unit display definition.
 - Related: `FB-20260906-009`.
-- Status: Confirmed; remediation in progress.
+- Resolution: Added the first-class `ElapsedDisplayFormat`, calendar-aware composite formatting, legacy scalar decoding, multi-select editor with live preview, consistent surface rendering, and a wrapping always-visible collection-card metric.
+- Related implementation: `IMP-20260906-018`, `VER-20260906-019`.
+- Status: Resolved and emulator-verified; owner-phone release pending.
+
+### FND-20260906-006 — The Goals QA profile names nonexistent UI classes
+
+- Severity/category: P1 affected-test routing integrity.
+- Observed: The supported `goals` profile selected root-package names for `ElapsedGoalTimeUiTest` and `GoalSecondaryMutationUiTest`, while both production regression classes live in `com.whip.app.ui`.
+- Expected: The affected Goals profile must select the exact real classes so elapsed editor, reset, always-visible card, and secondary Goal mutation regressions execute through the fast emulator lane.
+- Why it matters / affected users: A package typo can make ordinary Goal verification miss the UI most directly changed by `FB-20260906-009`, undermining the fast-cycle contract without requiring a full suite.
+- Evidence: Two fail-closed targeted-profile attempts, `scripts/qa-targeted`, and the package declarations in `ElapsedGoalTimeUiTest.kt` and `GoalSecondaryMutationUiTest.kt`.
+- Root cause: The profile retained root-package names after both regressions moved into the UI package.
+- Related: `FB-20260906-003`, `FB-20260906-009`, `DEC-20260906-003`.
+- Resolution: Corrected both selectors to their `com.whip.app.ui` package, passed the target-guard/cache/accounting fixture, and executed the repaired Goals profile successfully.
+- Related implementation: `IMP-20260906-018`, `VER-20260906-019`.
+- Status: Resolved and fixture/emulator-verified.

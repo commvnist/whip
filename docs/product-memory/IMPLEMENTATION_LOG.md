@@ -1130,3 +1130,14 @@
 - Related: `FB-20260906-008`, `FND-20260906-002`, `FND-20260906-003`, `FND-20260906-004`, `DEC-20260906-005`, `DEC-20260906-006`, `VER-20260906-017`, `VER-20260906-018`.
 - Verification: `VER-20260906-018`.
 - Status: Released and device-verified as Whip 0.3.52/code 58; awaiting real-use feedback.
+
+### IMP-20260906-018 — First-class multi-unit Count Time Since display
+
+- Behavior changed: Replaced the scalar elapsed-display choice with `ElapsedDisplayFormat`: Automatic or any non-empty canonical combination of Years, Months, Weeks, Days, Hours, and Minutes. Authored combinations decompose calendar-aware human time in Whip's active zone while preserving the exact event instant; all selected components, including zeros, remain visible. The Goal editor now uses a coherent multi-select configuration card with live preview and explicit always-visible scope. Collapsed and reorder Goal cards render atomic wrapping metric components, while Home, adaptive support, Insights, Overview, terminal snapshots, and reset-adjacent views share the same configured value.
+- Persistence/migration/history impact: Room remains schema 46 and existing `Auto`, `Minutes`, `Hours`, `Days`, `Weeks`, and `Years` rows decode losslessly. New values use `Selected:` plus ordered unit identities inside the existing text column, avoiding an owner-data migration or reset. Exact-match portable backup advances to version 25 and validates/restores the same codec; elapsed display changes still create no progress history and do not alter outcome semantics.
+- QA/tooling changed: Added focused calendar/codec, editor/save, 320 dp/200%-text card, repository legacy-row, and composite backup coverage; expanded the visual catalog to 172 states with a dedicated elapsed-editor surface and representative first-class elapsed Goal card; repaired both stale root-package selectors in the supported Goals QA profile.
+- Important files/symbols: `ElapsedDisplayFormat`, `elapsedDisplay`, `GoalProjection.elapsedDisplayValue`, `ElapsedGoalPrimaryStatus`, `GoalEditorDialog`, `GoalRepository`, `BackupRepository`, `ElapsedGoalTimeUiTest`, `VisualCatalogPagesTest`, `docs/quality/ui-surface-catalog.tsv`, and `scripts/qa-targeted`.
+- Compatibility and limitations: Automatic intentionally retains the existing single best-fit duration behavior. Calendar composites use the current Whip zone, while the saved start remains one exact instant. No complete candidate suite or Play Store qualification was run; the requested private-phone release remains a separate fast deployment step.
+- Related: `FB-20260906-009`, `FND-20260906-005`, `FND-20260906-006`, `DEC-20260906-007`, `VER-20260906-019`.
+- Verification: `VER-20260906-019`.
+- Status: Implemented, focused-tested, readiness-verified, and visually accepted; owner-phone release pending.

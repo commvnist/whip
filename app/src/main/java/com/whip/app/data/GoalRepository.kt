@@ -22,7 +22,7 @@ import com.whip.app.domain.GoalProgressBoundary
 import com.whip.app.domain.GoalPaceType
 import com.whip.app.domain.GoalStatus
 import com.whip.app.domain.GoalType
-import com.whip.app.domain.ElapsedDisplayUnit
+import com.whip.app.domain.ElapsedDisplayFormat
 import com.whip.app.domain.DEFAULT_GOAL_EMOJI
 import com.whip.app.domain.normalizedIdentityEmoji
 import com.whip.app.domain.MeasurementEntry
@@ -560,7 +560,7 @@ private fun GoalDraft.toEntity(
         consistencyPeriod = consistencyPeriod.name,
         consistencyRequiredPeriods = consistencyRequiredPeriods, reminderMinutes = reminderMinutes,
         elapsedStartMillis = elapsedStartMillis,
-        elapsedDisplayUnit = elapsedDisplayUnit.name,
+        elapsedDisplayUnit = elapsedDisplay.storageValue(),
         status = status.name, archived = archived, pinned = pinned, position = position,
         createdAtMillis = createdAtMillis, updatedAtMillis = updatedAtMillis,
     )
@@ -581,7 +581,7 @@ internal fun GoalEntity.toDomain() = Goal(
     consistencyPeriod = GoalConsistencyPeriod.valueOf(consistencyPeriod),
     consistencyRequiredPeriods = consistencyRequiredPeriods,
     elapsedStartMillis = elapsedStartMillis,
-    elapsedDisplayUnit = ElapsedDisplayUnit.valueOf(elapsedDisplayUnit),
+    elapsedDisplay = ElapsedDisplayFormat.fromStorageValue(elapsedDisplayUnit),
 )
 internal fun GoalMilestoneEntity.toDomain() = GoalMilestone(id, uuid, goalId, name, position, weight, completed, completedAtMillis, reward, createdAtMillis, updatedAtMillis)
 
@@ -628,6 +628,6 @@ private fun Goal.toDraft(milestones: List<GoalMilestoneDraft>, unit: UnitDefinit
         consistencyPeriod = consistencyPeriod,
         consistencyRequiredPeriods = consistencyRequiredPeriods,
         elapsedStartMillis = elapsedStartMillis,
-        elapsedDisplayUnit = elapsedDisplayUnit,
+        elapsedDisplay = elapsedDisplay,
     )
 }

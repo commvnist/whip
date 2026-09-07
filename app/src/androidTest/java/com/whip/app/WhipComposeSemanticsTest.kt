@@ -26,6 +26,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.ElapsedDisplayUnit
+import com.whip.app.domain.ElapsedDisplayFormat
 import com.whip.app.domain.GoalDraft
 import com.whip.app.domain.GoalType
 import com.whip.app.domain.HabitDraft
@@ -176,7 +177,7 @@ class WhipComposeSemanticsTest {
                     type = GoalType.ElapsedSince,
                     startDate = app.clock.today(),
                     elapsedStartMillis = originalStart.toEpochMilli(),
-                    elapsedDisplayUnit = ElapsedDisplayUnit.Hours,
+                    elapsedDisplay = ElapsedDisplayFormat.selected(ElapsedDisplayUnit.Hours),
                 ),
             )
         }

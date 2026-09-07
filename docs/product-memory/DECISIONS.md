@@ -821,4 +821,4 @@
 - Rejected alternatives: A single new Months enum value, which leaves the core limitation intact; multiple independent Boolean columns, which would force a Room migration for a display-only evolution; fixed 30/365-day composite approximations, which make calendar-month and anniversary language misleading; hiding the combination in expanded details, which contradicts the motivational always-view requirement.
 - Constraints and consequences: The exact start instant remains authoritative; changing display never creates progress history or changes outcome semantics. Terminal snapshots use the stored frozen duration from the Goal's exact start when available. No empty authored selection is valid; removing the final selected unit returns to Automatic.
 - Related: `FB-20260906-009`, `FND-20260906-005`.
-- Status: Accepted; implementation in progress.
+- Status: Accepted, implemented, focused-tested, and visually verified; owner-phone release pending.

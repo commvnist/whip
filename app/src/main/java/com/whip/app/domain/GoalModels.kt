@@ -2,7 +2,9 @@ package com.whip.app.domain
 
 import java.io.Serializable
 import java.security.MessageDigest
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.DayOfWeek
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
@@ -25,7 +27,69 @@ enum class GoalStatus(val label: String) {
     Abandoned("Abandoned"),
     Archived("Archived"),
 }
-enum class ElapsedDisplayUnit { Auto, Minutes, Hours, Days, Weeks, Years }
+enum class ElapsedDisplayUnit { Auto, Minutes, Hours, Days, Weeks, Months, Years }
+
+/** Authored presentation for a Count Time Since Goal. Automatic keeps the
+ * compact best-fit behavior; a selected format keeps every chosen component
+ * visible in one stable, largest-to-smallest order. */
+data class ElapsedDisplayFormat(
+    val automatic: Boolean,
+    val units: List<ElapsedDisplayUnit>,
+) : Serializable {
+    init {
+        require(automatic == units.isEmpty()) { "Automatic and selected elapsed displays are mutually exclusive" }
+        require(units.none { it == ElapsedDisplayUnit.Auto }) { "Auto is not a selectable elapsed component" }
+        require(units == units.distinct()) { "Elapsed display units must be unique" }
+        require(units == DISPLAY_ORDER.filter(units::contains)) { "Elapsed display units must use canonical order" }
+    }
+
+    fun storageValue(): String = if (automatic) {
+        LEGACY_AUTO
+    } else {
+        SELECTED_PREFIX + units.joinToString(UNIT_SEPARATOR, transform = ElapsedDisplayUnit::name)
+    }
+
+    companion object {
+        private const val LEGACY_AUTO = "Auto"
+        private const val SELECTED_PREFIX = "Selected:"
+        private const val UNIT_SEPARATOR = "|"
+
+        val DISPLAY_ORDER = listOf(
+            ElapsedDisplayUnit.Years,
+            ElapsedDisplayUnit.Months,
+            ElapsedDisplayUnit.Weeks,
+            ElapsedDisplayUnit.Days,
+            ElapsedDisplayUnit.Hours,
+            ElapsedDisplayUnit.Minutes,
+        )
+
+        val Automatic = ElapsedDisplayFormat(automatic = true, units = emptyList())
+
+        fun selected(units: Iterable<ElapsedDisplayUnit>): ElapsedDisplayFormat {
+            val normalized = DISPLAY_ORDER.filter(units.toSet()::contains)
+            require(normalized.isNotEmpty()) { "Select at least one elapsed display unit" }
+            return ElapsedDisplayFormat(automatic = false, units = normalized)
+        }
+
+        fun selected(vararg units: ElapsedDisplayUnit): ElapsedDisplayFormat = selected(units.asIterable())
+
+        fun fromStorageValue(raw: String): ElapsedDisplayFormat {
+            if (raw == LEGACY_AUTO) return Automatic
+            if (!raw.startsWith(SELECTED_PREFIX)) {
+                val legacy = ElapsedDisplayUnit.valueOf(raw)
+                require(legacy != ElapsedDisplayUnit.Auto) { "Auto must use the automatic elapsed display" }
+                return selected(legacy)
+            }
+            val encodedUnits = raw.removePrefix(SELECTED_PREFIX).split(UNIT_SEPARATOR)
+            require(encodedUnits.none(String::isBlank)) { "Elapsed display selection is empty" }
+            val parsed = encodedUnits.map(ElapsedDisplayUnit::valueOf)
+            require(parsed.none { it == ElapsedDisplayUnit.Auto }) { "Auto cannot be combined with elapsed display units" }
+            require(parsed == parsed.distinct()) { "Elapsed display units must be unique" }
+            require(parsed == DISPLAY_ORDER.filter(parsed::contains)) { "Elapsed display units are out of order" }
+            return selected(parsed)
+        }
+    }
+}
 
 /** The goal type is the user-facing promise; storage and calculation choices
  * must not be allowed to contradict it. */
@@ -88,7 +152,7 @@ data class GoalDraft(
     val consistencyPeriod: GoalConsistencyPeriod = GoalConsistencyPeriod.Week,
     val consistencyRequiredPeriods: Int? = null,
     val elapsedStartMillis: Long? = null,
-    val elapsedDisplayUnit: ElapsedDisplayUnit = ElapsedDisplayUnit.Auto,
+    val elapsedDisplay: ElapsedDisplayFormat = ElapsedDisplayFormat.Automatic,
 ) : Serializable
 
 fun GoalDraft.withTypeSemantics(): GoalDraft = copy(
@@ -184,7 +248,7 @@ data class Goal(
     val consistencyPeriod: GoalConsistencyPeriod = GoalConsistencyPeriod.Week,
     val consistencyRequiredPeriods: Int? = null,
     val elapsedStartMillis: Long? = null,
-    val elapsedDisplayUnit: ElapsedDisplayUnit = ElapsedDisplayUnit.Auto,
+    val elapsedDisplay: ElapsedDisplayFormat = ElapsedDisplayFormat.Automatic,
 ) : Serializable
 
 /**
@@ -271,7 +335,7 @@ fun Goal.mutationBoundary(): GoalMutationBoundary = GoalMutationBoundary(
         startDate, deadline, aggregation, paceType, reminderMinutes, status,
         archived, pinned, position, createdAtMillis, updatedAtMillis,
         aggregationPeriod, rollingDays, consistencyPeriod,
-        consistencyRequiredPeriods, elapsedStartMillis, elapsedDisplayUnit,
+        consistencyRequiredPeriods, elapsedStartMillis, elapsedDisplay,
     ),
 )
 
@@ -360,6 +424,14 @@ data class ElapsedCounter(val value: Long, val unit: ElapsedDisplayUnit) {
     }
 }
 
+data class ElapsedDisplay(val parts: List<ElapsedCounter>) {
+    init {
+        require(parts.isNotEmpty()) { "Elapsed display must contain at least one part" }
+    }
+
+    fun label(): String = parts.joinToString(" · ", transform = ElapsedCounter::label)
+}
+
 /** Formats an elapsed-time goal from instants, independent of calendar/time-zone presentation. */
 fun elapsedCounter(startMillis: Long, nowMillis: Long, requested: ElapsedDisplayUnit): ElapsedCounter {
     val elapsedMillis = (nowMillis - startMillis).coerceAtLeast(0L)
@@ -378,10 +450,63 @@ fun elapsedCounter(startMillis: Long, nowMillis: Long, requested: ElapsedDisplay
         ElapsedDisplayUnit.Hours -> hour
         ElapsedDisplayUnit.Days -> day
         ElapsedDisplayUnit.Weeks -> 7L * day
+        ElapsedDisplayUnit.Months -> 30L * day
         ElapsedDisplayUnit.Years -> 365L * day
     }
     return ElapsedCounter(elapsedMillis / divisor, selected)
 }
+
+/** Formats an authored elapsed display using human calendar units in Whip's
+ * active zone while retaining exact instant arithmetic for hours and minutes. */
+fun elapsedDisplay(
+    startMillis: Long,
+    endMillis: Long,
+    format: ElapsedDisplayFormat,
+    zoneId: ZoneId,
+): ElapsedDisplay {
+    if (format.automatic) {
+        return ElapsedDisplay(listOf(elapsedCounter(startMillis, endMillis, ElapsedDisplayUnit.Auto)))
+    }
+    val clampedEndMillis = endMillis.coerceAtLeast(startMillis)
+    var cursor = Instant.ofEpochMilli(startMillis).atZone(zoneId)
+    val end = Instant.ofEpochMilli(clampedEndMillis).atZone(zoneId)
+    val parts = format.units.map { unit ->
+        val value = when (unit) {
+            ElapsedDisplayUnit.Years -> ChronoUnit.YEARS.between(cursor, end)
+            ElapsedDisplayUnit.Months -> ChronoUnit.MONTHS.between(cursor, end)
+            ElapsedDisplayUnit.Weeks -> ChronoUnit.WEEKS.between(cursor, end)
+            ElapsedDisplayUnit.Days -> ChronoUnit.DAYS.between(cursor, end)
+            ElapsedDisplayUnit.Hours -> ChronoUnit.HOURS.between(cursor, end)
+            ElapsedDisplayUnit.Minutes -> ChronoUnit.MINUTES.between(cursor, end)
+            ElapsedDisplayUnit.Auto -> error("Auto is not an elapsed display component")
+        }.coerceAtLeast(0L)
+        cursor = when (unit) {
+            ElapsedDisplayUnit.Years -> cursor.plusYears(value)
+            ElapsedDisplayUnit.Months -> cursor.plusMonths(value)
+            ElapsedDisplayUnit.Weeks -> cursor.plusWeeks(value)
+            ElapsedDisplayUnit.Days -> cursor.plusDays(value)
+            ElapsedDisplayUnit.Hours -> cursor.plusHours(value)
+            ElapsedDisplayUnit.Minutes -> cursor.plusMinutes(value)
+            ElapsedDisplayUnit.Auto -> cursor
+        }
+        ElapsedCounter(value, unit)
+    }
+    return ElapsedDisplay(parts)
+}
+
+fun GoalProjection.elapsedDisplayValue(nowMillis: Long, zoneId: ZoneId): ElapsedDisplay? {
+    if (goal.type != GoalType.ElapsedSince) return null
+    val startMillis = goal.elapsedStartMillis ?: return null
+    val endMillis = terminalSnapshot?.let { terminal ->
+        terminal.elapsedDurationMillis?.let { duration ->
+            runCatching { Math.addExact(startMillis, duration.coerceAtLeast(0L)) }.getOrDefault(Long.MAX_VALUE)
+        }
+    } ?: nowMillis.takeIf { terminalSnapshot == null } ?: return null
+    return elapsedDisplay(startMillis, endMillis, goal.elapsedDisplay, zoneId)
+}
+
+fun GoalProjection.elapsedDisplayLabel(nowMillis: Long, zoneId: ZoneId): String? =
+    elapsedDisplayValue(nowMillis, zoneId)?.label()
 
 data class GoalMilestoneDraft(
     val name: String,

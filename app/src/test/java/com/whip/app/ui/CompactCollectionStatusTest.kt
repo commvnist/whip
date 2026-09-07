@@ -1,6 +1,7 @@
 package com.whip.app.ui
 
 import com.whip.app.domain.ElapsedDisplayUnit
+import com.whip.app.domain.ElapsedDisplayFormat
 import com.whip.app.domain.Goal
 import com.whip.app.domain.GoalAggregation
 import com.whip.app.domain.GoalDirection
@@ -95,7 +96,7 @@ class CompactCollectionStatusTest {
             goal = goal().copy(
                 type = GoalType.ElapsedSince,
                 elapsedStartMillis = nowMillis - 2L * 86_400_000L,
-                elapsedDisplayUnit = ElapsedDisplayUnit.Days,
+                elapsedDisplay = ElapsedDisplayFormat.selected(ElapsedDisplayUnit.Days),
             ),
             progress = null,
         )

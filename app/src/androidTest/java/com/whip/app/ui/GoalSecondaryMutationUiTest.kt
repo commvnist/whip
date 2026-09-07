@@ -22,6 +22,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.captureVisualCatalogSurface
 import com.whip.app.data.GoalDeletionImpact
 import com.whip.app.domain.ElapsedDisplayUnit
+import com.whip.app.domain.ElapsedDisplayFormat
 import com.whip.app.domain.Goal
 import com.whip.app.domain.GoalAggregation
 import com.whip.app.domain.GoalClosureSnapshot
@@ -437,7 +438,7 @@ class GoalSecondaryMutationUiTest {
         createdAtMillis = 1,
         updatedAtMillis = 2,
         elapsedStartMillis = elapsedStartMillis,
-        elapsedDisplayUnit = ElapsedDisplayUnit.Days,
+        elapsedDisplay = ElapsedDisplayFormat.selected(ElapsedDisplayUnit.Days),
     )
 
     private fun projection(goal: Goal) = GoalProjection(
