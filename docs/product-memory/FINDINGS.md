@@ -1303,3 +1303,15 @@
 - Recommended solution: Treat the first device screenshot as a compositor synchronization probe, wait through a subsequent render boundary, export only the following screenshot, assert the requested Gym page before capture, and recapture/inspect the exact family and then the whole catalog.
 - Related: `FB-20260907-002`, `FND-20260906-002`, `DEC-20260906-005`.
 - Status: Confirmed; the affected whole-product catalog is excluded from final acceptance pending a verified repair.
+
+### FND-20260907-012 — Distinct-frame retry omits its attempt increment
+
+- Severity/category: P1 QA-harness boundedness and code-review defect.
+- Observed: Review of the newly pushed catalog synchronization repair found that its visually-distinct retry declares and bounds `renderAttempts` but never increments it. The successful Gym recapture escaped after the first retry, while a surface that remained visually stale would loop indefinitely instead of failing after the declared limit.
+- Expected: Every retry path advances its explicit attempt counter and fails with a diagnostic after the bounded render window.
+- Why it matters / affected users: An unbounded emulator capture can stall the fast QA lane and prevent a release from reaching a trustworthy conclusion.
+- Evidence: `VisualCatalogCapture.kt` in `e4ed209`; `renderAttempts < MAX_DISTINCT_RENDER_ATTEMPTS` guards the loop with no mutation in its body. The 46-surface run passed only because the next rendered frame became distinct.
+- Root cause: The counter increment was omitted while the first implementation combined screenshot recycling, forced drawing, and fingerprint recomputation in one loop.
+- Recommended solution: Increment once per rejected frame, compile, run the exact stale-frame-sensitive Gym journey, and repeat the family capture before accepting the repair.
+- Related: `FB-20260907-002`, `FND-20260907-011`, `DEC-20260906-005`.
+- Status: Confirmed during code review; release remains blocked pending the bounded repair and replacement evidence.
