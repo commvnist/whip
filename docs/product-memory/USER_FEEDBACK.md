@@ -602,8 +602,8 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Trace the duplicate to its action owners rather than hiding one label cosmetically; audit screens, dialogs, sheets, menus, cards, docked actions, and responsive branches for simultaneously visible controls that invoke the same outcome; distinguish legitimate repeated navigation in separate contexts from adjacent duplicate decisions; preserve the strongest context-appropriate action and all domain behavior; add executable duplicate-action regressions; perform focused emulator interaction, semantic/accessibility, responsive, and fresh visual QA; fix confirmed related cases and push a coherent verified source change.
 - Affected users/workflows: Gym Routine details and active-workout recovery, plus any Whip surface where duplicated commands weaken hierarchy, consume space, create uncertainty, or cause assistive technology to announce the same decision twice.
 - Related: `FB-20260906-008`, `FND-20260906-004`, `DEC-20260906-006`.
-- Status: Implemented and emulator-verified in current source; not released to the owner phone.
-- Notes: The installed Whip 0.3.60 phone release remains unchanged because this request did not separately authorize a release. See `IMP-20260907-013` and `VER-20260907-014`.
+- Status: Released in place as part of Whip 0.3.61/code 67 after the later broader release authorization; see `IMP-20260907-013`, `IMP-20260907-016`, `VER-20260907-014`, and `VER-20260907-017`.
+- Notes: The original request did not separately authorize a release, so Whip 0.3.60 initially remained installed. `FB-20260907-008` later authorized the combined higher-version release.
 
 ### FB-20260907-008 — Remove Gym set density mode and converge the complete product
 
@@ -612,7 +612,7 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Remove the Gym compact-set toggle and every rendering, settings, persistence, backup, documentation, and test branch it owns; preserve useful set classification, prescription, effort, completion, editing, and accessibility information in one responsive row grammar; critically inspect the complete current surface catalog and common journeys for hierarchy, spacing, typography, component, terminology, action, responsive, theme, accessibility, and interaction inconsistencies; implement all well-supported findings while preserving intentional domain workflows and owner data; code-review and verify with focused automation, two explicitly selected disposable emulators, fresh semantic/accessibility and visual evidence, and a proportionate full-product regression; commit and push clean source; then create a higher-version signed private release and install it in place on the explicitly selected owner phone through the fast non-Play Store lane, without reset, clear, uninstall, downgrade, or physical-device instrumentation, and verify identity, version/artifact, cold launch, foreground process, and bounded fatal/persistence logs.
 - Affected users/workflows: Workout execution and set editing, Gym defaults, 5/3/1 and general Routine sessions, settings and portable backups, the complete Whip surface inventory and navigation, and owner-phone upgrade validation.
 - Related: `FB-20260903-016`, `FB-20260907-002`, `FB-20260907-003`, `FB-20260907-006`, `FB-20260907-007`, `FND-20260903-026`, `DEC-20260903-014`, `DEC-20260903-015`.
-- Status: Completed through the user-authorized signed APK handoff in `IMP-20260907-015` / `VER-20260907-016`; physical installation was explicitly deferred by `FB-20260907-009` because the phone became unavailable.
+- Status: Released in place as Whip 0.3.61/code 67 through `IMP-20260907-016` / `VER-20260907-017`, after the interim APK handoff and later owner-phone reconnection.
 - Notes: “One consistent look” means equivalent information and controls share a predictable grammar. Workout execution may retain domain-appropriate high-signal controls, but it must not preserve a second user-selectable density dialect.
 
 ### FB-20260907-009 — Deliver the accepted release as an APK instead of installing it
@@ -622,5 +622,15 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Preserve the already accepted product and exact clean pushed release source; build and verify the signed private APK; give the artifact a clear versioned filename; document version, package, signer, and hash evidence; do not claim device installation or device-runtime verification.
 - Affected users/workflows: Private release delivery only. Product behavior and owner data are unchanged until the APK is manually installed in place.
 - Related: `FB-20260907-008`, `IMP-20260907-014`, `IMP-20260907-015`, `VER-20260907-015`, `VER-20260907-016`.
-- Status: Completed; Whip 0.3.61/code 67 was supplied as a signed private APK, and the owner phone remains device-verified only through 0.3.60/code 66 until manual installation.
-- Notes: This replaces only the physical-install portion of `FB-20260907-008`; it does not broaden the release to the Play Store or qualify a frozen public candidate.
+- Status: Released; Whip 0.3.61/code 67 was supplied as a signed private APK, then installed only after the user separately provided a reachable target in `FB-20260907-010`.
+- Notes: This replaced the physical-install portion of `FB-20260907-008` while the phone was unavailable; the later explicit install request superseded that temporary limitation. Neither request broadens the release to the Play Store or qualifies a frozen public candidate.
+
+### FB-20260907-010 — Install the delivered Whip 0.3.61 APK on the reconnected owner phone
+
+- Date/source: 2026-09-07, direct user follow-up after providing a new wireless-debugging endpoint.
+- User need: Install the already signed Whip 0.3.61/code 67 private APK on the now-reachable owner phone.
+- Acceptance criteria: Connect only to the user-selected physical target; verify target identity and the pre-install package/version/first-install state; perform an in-place signed release installation without reset, clear, uninstall, downgrade, or instrumentation; verify installed version and APK hash, preserved first-install identity, successful cold launch, foreground Activity, live process, and absence of relevant fatal or persistence errors in a bounded post-launch scan.
+- Affected users/workflows: Owner-phone upgrade from Whip 0.3.60/code 66 to the accepted single-density Gym and whole-product consistency release.
+- Related: `FB-20260907-008`, `FB-20260907-009`, `IMP-20260907-014`, `IMP-20260907-015`, `IMP-20260907-016`, `VER-20260907-015`, `VER-20260907-016`, `VER-20260907-017`.
+- Status: Released; the signed 0.3.61/code 67 APK was installed in place with identity preserved and passed the guarded device smoke.
+- Notes: The transient device address is intentionally not stored in durable product memory.

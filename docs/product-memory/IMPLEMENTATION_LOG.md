@@ -1364,11 +1364,11 @@
 - Systemic review: Production action strings/callback owners and the current visual catalog were audited for simultaneously visible repeated outcomes. The remaining destructive-dialog recovery actions each belong to one dialog; Workout History permits one expanded owner; repeated entity actions target different records; and the global Search shortcut and local editable filter have distinct focus-versus-filter roles. No other same-outcome double-button defect was confirmed.
 - Regression coverage: The persisted four-day 5/3/1 journey now starts a real workout, requires exactly one visible “Open Active Workout” semantic node, captures `gym.routine.active-blocked`, and opens the active workout through that sole action. The declared catalog increases from 175 to 176 states and Gym from 46 to 47 surfaces.
 - Persistence/migration/history impact: Presentation, navigation ownership, semantics, Android regression coverage, and catalog metadata only. Room schema 46, data epoch 6, exact-match backup version 25, existing data, and release identity are unchanged.
-- Compatibility and limitations: The accepted source has not been installed on the owner phone; Whip 0.3.60/code 66 remains installed. Public publication still requires a fresh frozen candidate, and subjective phone aesthetics remain for a separately requested release.
+- Compatibility and limitations: The accepted source was not installed at this implementation boundary, but was later included in the guarded Whip 0.3.61/code 67 owner-phone release in `IMP-20260907-016`. Public publication still requires a fresh frozen candidate, and subjective phone aesthetics remain for normal owner validation.
 - Commit/push: Product source, regression, catalog declaration, and this reconciliation are committed as one coherent change and pushed to `origin/main`.
 - Related: `FB-20260907-007`, `FND-20260907-016`, `DEC-20260907-006`, `VER-20260907-014`.
 - Verification: `VER-20260907-014`.
-- Status: Implemented, code-reviewed, emulator-accepted, semantically audited, and visually verified; not physically released.
+- Status: Implemented, code-reviewed, emulator-accepted, semantically audited, visually verified, and subsequently released through `IMP-20260907-016`.
 
 ### IMP-20260907-014 — One Gym set density and whole-product consistency remediation
 
@@ -1392,4 +1392,15 @@
 - Commit/push: Exact release source `07e5c70` was clean and synchronized with `origin/main` before the signed build; this memory-only reconciliation follows it.
 - Related: `FB-20260907-008`, `FB-20260907-009`, `FND-20260907-017`, `FND-20260907-018`, `FND-20260907-019`, `DEC-20260907-007`, `DEC-20260907-008`, `IMP-20260907-014`, `VER-20260907-015`, `VER-20260907-016`.
 - Verification: `VER-20260907-016`.
-- Status: Built, cryptographically verified, and delivered as Whip 0.3.61/code 67; physical installation intentionally deferred.
+- Status: Released as a cryptographically verified Whip 0.3.61/code 67 artifact and subsequently installed/device-verified through `IMP-20260907-016` / `VER-20260907-017` after explicit user reconnection.
+
+### IMP-20260907-016 — Whip 0.3.61 owner-phone in-place installation
+
+- Behavior changed: Installed the existing signed Whip 0.3.61/code 67 private APK in place on the explicitly selected physical Samsung owner phone after the user supplied a reachable wireless-debugging target. The accepted single-density Gym, shared-card, Track scope, and Routine recovery changes are now available for normal owner use.
+- Important files/symbols: Release source `07e5c70`, implementation source `40b9f96`, signed `app/build/outputs/apk/release/app-release.apk`, package `commvne.com.whip.app`, and `VER-20260907-017`.
+- Persistence/migration/history impact: Android performed a streamed `install -r`; package identity, established signer, and the original 2026-08-26 first-install timestamp were preserved. Room schema 46 and data epoch 6 are unchanged; exact-match backup version is 26. No reset, clear, uninstall, downgrade, fresh-start confirmation, or physical instrumentation occurred.
+- Compatibility and limitations: The installed APK exactly matches the previously verified handoff artifact. The guarded cold-launch, foreground, live-process, and bounded fatal/persistence-log checks passed. This is a private owner-phone release, not a frozen Play Store candidate; subjective real-use ergonomics remain awaiting owner validation.
+- Commit/push: Exact release source `07e5c70` and the prior artifact record are reachable on `origin/main`; this installation adds product-memory documentation only.
+- Related: `FB-20260907-008`, `FB-20260907-009`, `FB-20260907-010`, `FND-20260907-017`, `FND-20260907-018`, `FND-20260907-019`, `DEC-20260907-007`, `DEC-20260907-008`, `IMP-20260907-014`, `IMP-20260907-015`, `VER-20260907-015`, `VER-20260907-016`, `VER-20260907-017`.
+- Verification: `VER-20260907-017`.
+- Status: Released and device-verified as Whip 0.3.61/code 67; awaiting normal owner validation.
