@@ -185,6 +185,8 @@ import com.whip.app.domain.TaskEffort
 import com.whip.app.domain.TrackProjection
 import com.whip.app.domain.TrackEntryMutationKind
 import com.whip.app.domain.TrackEntryMutationReceipt
+import com.whip.app.domain.ElapsedDisplay
+import com.whip.app.domain.elapsedDisplayValue
 import com.whip.app.domain.HabitDayProgress
 import com.whip.app.core.zoneId
 import com.whip.app.core.supportedTrackedRecordTypes
@@ -1749,10 +1751,14 @@ fun WhipScreen(
                     supportingText = stringResource(R.string.support_goals_description),
                     items = goalState.active.take(12).map { projection ->
                         SupportPaneItem(
-                            projection.goal.id.toString(),
-                            projection.goal.name,
-                            projection.collectionStatus(
+                            id = projection.goal.id.toString(),
+                            title = projection.goal.name,
+                            supportingText = projection.collectionStatus(
                                 goalState.customUnits,
+                                collectionStatusNowMillis,
+                                goalState.activeZoneId,
+                            ),
+                            elapsedDisplay = projection.elapsedDisplayValue(
                                 collectionStatusNowMillis,
                                 goalState.activeZoneId,
                             ),
@@ -4370,7 +4376,12 @@ private fun TabletopNavigation(
     )
 }
 
-private data class SupportPaneItem(val id: String, val title: String, val supportingText: String)
+private data class SupportPaneItem(
+    val id: String,
+    val title: String,
+    val supportingText: String,
+    val elapsedDisplay: ElapsedDisplay? = null,
+)
 
 private val SupportPaneContentPadding = PaddingValues(
     horizontal = WhipSpacing.compact,
@@ -4585,9 +4596,18 @@ private fun DestinationSupportPane(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(items, key = SupportPaneItem::id) { item ->
+                    val elapsedDisplay = item.elapsedDisplay
                     NavigationRow(
                         title = item.title,
-                        supportingText = item.supportingText,
+                        supportingText = item.supportingText.takeIf { elapsedDisplay == null },
+                        supportingContent = elapsedDisplay?.let { display ->
+                            {
+                                ElapsedGoalMetric(
+                                    display = display,
+                                    modifier = Modifier.testTag("support-pane-item-metric-${item.id}"),
+                                )
+                            }
+                        },
                         onClick = { onOpen(item.id) },
                     )
                 }

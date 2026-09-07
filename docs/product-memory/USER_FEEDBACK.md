@@ -564,3 +564,13 @@ These records preserve durable user intent. “Released” means the change reac
 - Related: `DEC-20260904-003`, `DEC-20260906-003`, `DEC-20260906-005`, `IMP-20260902-018`, `IMP-20260906-003`.
 - Status: Verified.
 - Notes: Two emulators are a maximum, not a requirement. Physical-phone release protections and the fast non-Play Store lane remain unchanged.
+
+### FB-20260907-004 — Make elapsed Goal timers visually consistent and unconstrained
+
+- Date/source: 2026-09-07, direct user feedback with a real-use book-fold screenshot.
+- User need: The same Count Time Since duration should read as one consistent timer across the fold support pane and the main Goal cards, without awkward line breaks caused by the card's generic header/action layout.
+- Acceptance criteria: Audit every active/terminal/editor/Insights/detail/support-pane elapsed presentation and the shared card constraints; challenge the current card structure where it forces rich status into a narrow title lane; preserve authored unit combinations, calendar arithmetic, reset behavior, and accessibility; implement a reusable long-term presentation boundary rather than a screenshot-specific spacing tweak; verify compact, fold/adaptive, enlarged-text, semantics, and current Goal journeys with focused tests and fresh visual evidence.
+- Affected users/workflows: Count Time Since Goals on compact phones, foldables, tablets, Home, Goal lists, adaptive support panes, Insights, editor previews, details, terminal snapshots, and reset flows.
+- Related: `FB-20260906-009`, `FB-20260906-010`, `FND-20260906-007`, `DEC-20260906-009`.
+- Status: Verified.
+- Notes: Greenfield card changes are authorized where they improve the long-term feature system; production data and timer meaning must remain unchanged.

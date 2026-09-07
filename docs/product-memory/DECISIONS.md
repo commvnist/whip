@@ -887,3 +887,12 @@
 - Constraints and consequences: One-emulator commands stay compatible. A mismatched, duplicate, physical, offline, unauthorized, malformed, or third target fails before instrumentation. Every worker owns its AGP result/report/coverage tree, cache publication is atomic, failed-worker logs remain visible, and UI-catalog artifacts merge only after duplicate-name rejection. This changes development QA latency and evidence, not app behavior, schema, backups, release identity, or phone deployment policy.
 - Related: `FB-20260907-003`, `FND-20260907-013`, `DEC-20260904-003`, `DEC-20260906-003`, `DEC-20260906-005`, `IMP-20260907-008`, `VER-20260907-009`.
 - Status: Verified.
+
+### DEC-20260907-004 — Rich persistent status belongs outside the card action lane
+
+- Context: The same multi-unit Count Time Since value appeared side by side as a punctuated scalar support label and a composed card metric. The card metric also shared the weighted title column with identity, disclosure, and Reset, creating avoidable wrapping and disappearing when details expanded.
+- Decision: Preserve the shared productivity card shell, but add an optional persistent summary slot below its identity/action row. Rich status uses that full-width slot and remains present in collapsed, expanded, and reorder states; short scalar summaries retain the compact inline slot. Navigation rows likewise accept either scalar text or structured supporting content. Both the fold support pane and Goal cards render elapsed time through the existing `ElapsedGoalMetric`, including its canonical value/unit hierarchy, responsive atomic wrapping, and merged spoken label.
+- Rejected alternatives: Replace all productivity cards for one timer case; shrink or truncate selected units; remove or hide Reset; tune one screenshot with fixed widths; convert the composed metric back to a separator-delimited string; duplicate a fold-specific timer renderer.
+- Constraints and consequences: Elapsed start instants, authored unit combinations, calendar arithmetic, terminal snapshots, reset semantics, Goal persistence, schema 46, data epoch 6, and backup version 25 remain unchanged. The new card/navigation slots are reusable presentation boundaries and do not alter nonelapsed call sites unless explicitly adopted.
+- Related: `FB-20260907-004`, `FND-20260907-014`, `DEC-20260906-007`, `DEC-20260906-009`, `IMP-20260907-009`, `VER-20260907-010`.
+- Status: Verified.

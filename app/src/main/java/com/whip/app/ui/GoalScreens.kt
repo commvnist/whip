@@ -867,14 +867,20 @@ fun GoalCard(
                 )
             },
             summaryContent = {
-                if (elapsedStatus != null) {
-                    ElapsedGoalMetric(elapsedStatus, Modifier.testTag("goal-card-status-${goal.id}"))
-                } else {
+                if (elapsedStatus == null) {
                     Text(
                         compactStatus,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
+                    )
+                }
+            },
+            persistentSummaryContent = elapsedStatus?.let { display ->
+                {
+                    ElapsedGoalMetric(
+                        display = display,
+                        modifier = Modifier.testTag("goal-card-status-${goal.id}"),
                     )
                 }
             },
@@ -884,9 +890,6 @@ fun GoalCard(
             primaryActionWidth = if (goal.type == GoalType.ElapsedSince) 80.dp else 64.dp,
             primaryAction = primaryAction,
         )
-        if (reorderMode && elapsedStatus != null) {
-            ElapsedGoalMetric(elapsedStatus, Modifier.testTag("goal-card-status-${goal.id}"))
-        }
         if (!reorderMode && disclosure.expanded) {
         projection.progress?.let { progress ->
             val progressColor = if (progress >= 1.0) MaterialTheme.whipColors.success else MaterialTheme.whipColors.action
@@ -1015,7 +1018,7 @@ fun GoalCard(
 }
 
 @Composable
-private fun ElapsedGoalMetric(
+internal fun ElapsedGoalMetric(
     display: ElapsedDisplay,
     modifier: Modifier = Modifier,
     prominent: Boolean = false,
@@ -1023,7 +1026,9 @@ private fun ElapsedGoalMetric(
     val valueStyle = if (prominent) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.bodySmall
     val unitStyle = if (prominent) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodySmall
     FlowRow(
-        modifier = modifier.semantics(mergeDescendants = true) { contentDescription = display.label() },
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) { contentDescription = display.label() },
         horizontalArrangement = Arrangement.spacedBy(if (prominent) 12.dp else 8.dp),
         verticalArrangement = Arrangement.spacedBy(if (prominent) 4.dp else 2.dp),
     ) {

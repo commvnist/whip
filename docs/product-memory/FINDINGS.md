@@ -1327,3 +1327,15 @@
 - Recommended solution: Add an opt-in, maximum-two explicit emulator set; isolate every worker's AGP outputs and evidence; schedule graphics first, ordinary batches across workers, and reset last; merge only after exact worker success; extend candidate identity and fixtures rather than relaxing current checks.
 - Related: `FB-20260907-003`, `DEC-20260904-003`, `DEC-20260906-003`, `IMP-20260902-018`.
 - Status: Verified.
+
+### FND-20260907-014 — One elapsed metric is rendered through two incompatible layout grammars
+
+- Severity/category: P1 real-use consistency, responsive hierarchy, and foldable layout.
+- Observed: In the book-fold Goals workspace, the support pane renders `ElapsedDisplay.label()` as ordinary text with middle-dot separators, while the main `GoalCard` renders `ElapsedGoalMetric` without separators. The main card also places that multi-part metric inside the weighted title column of a single header row after reserving the identity, 48 dp disclosure, and 80 dp Reset lanes, so a card with adequate total width still wraps the final component onto another line.
+- Expected: The same elapsed definition should use one value/unit composition and spoken label everywhere. Rich multi-part status should receive the card's content width below the identity/action row, while short ordinary statuses may remain inline.
+- Why it matters / affected users: The screenshot presents the same timers side by side with different punctuation and line structure, making the UI look internally inconsistent and the main surface less considered than its secondary pane. Longer authored unit combinations and enlarged text amplify the defect.
+- Evidence: User-provided book-fold screenshot; `GoalCard` → `ProductivityItemHeader.summaryContent`; `DestinationSupportPane` → `NavigationRow(supportingText)`; `GoalProjection.collectionStatus`; `ElapsedGoalMetric`.
+- Root cause: The earlier elapsed redesign unified typography at direct Goal call sites but did not model structured supporting content in `NavigationRow`, and the shared productivity header offered only an inline summary slot inside its action-constrained title lane.
+- Recommended solution: Give shared headers an optional below-row collapsed-summary slot, give navigation rows an optional composable supporting slot, and route elapsed Goals in both surfaces through the same full-width `ElapsedGoalMetric`. Add a faithful fold visual contract so future scalar-text fallback or action-lane regression fails.
+- Related: `FB-20260907-004`, `FND-20260906-007`, `DEC-20260906-009`.
+- Status: Verified.

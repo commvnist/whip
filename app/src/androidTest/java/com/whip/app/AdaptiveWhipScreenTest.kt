@@ -1621,78 +1621,116 @@ class AdaptiveWhipScreenTest {
     }
 
     @Test
-    fun bookFoldGoalSupportPaneUsesTheSameTypeSpecificStatusAsCompactRows() {
-        val nowMillis = System.currentTimeMillis()
-        val goal = Goal(
-            id = 41,
-            uuid = "elapsed-goal-41",
-            measurementId = "elapsed-measurement-41",
-            name = "Quit Alcohol",
-            description = "",
-            area = "Main",
-            tags = emptyList(),
-            icon = "❤️",
-            type = GoalType.ElapsedSince,
-            dimension = UnitDimension.Count,
-            unitId = "count",
-            precision = 0,
-            baseline = null,
-            targetMin = null,
-            targetMax = null,
-            direction = GoalDirection.Increase,
-            startDate = LocalDate.of(2026, 8, 25),
-            deadline = null,
-            aggregation = GoalAggregation.Latest,
-            paceType = GoalPaceType.None,
-            reminderMinutes = null,
-            status = GoalStatus.Active,
-            pinned = false,
-            position = 0,
-            createdAtMillis = 1,
-            updatedAtMillis = 1,
-            elapsedStartMillis = nowMillis - 2L * 86_400_000L,
-            elapsedDisplay = ElapsedDisplayFormat.selected(ElapsedDisplayUnit.Days),
-        )
-        val projection = GoalProjection(
-            goal = goal,
-            currentValue = null,
-            progress = null,
-            deltaFromBaseline = null,
-            expectedProgress = null,
-            paceDelta = null,
-            forecastDate = null,
-            onPace = null,
-            milestones = emptyList(),
-            entries = emptyList(),
-        )
+    fun bookFoldGoalSupportPaneAndCardsShareOneUnconstrainedElapsedMetric() {
+        val nowMillis = 1_800_000_000_000L
+        fun elapsedProjection(id: Long, name: String, elapsedMinutes: Long): GoalProjection {
+            val goal = Goal(
+                id = id,
+                uuid = "elapsed-goal-$id",
+                measurementId = "elapsed-measurement-$id",
+                name = name,
+                description = "",
+                area = "Main",
+                tags = emptyList(),
+                icon = "❤️",
+                type = GoalType.ElapsedSince,
+                dimension = UnitDimension.Count,
+                unitId = "count",
+                precision = 0,
+                baseline = null,
+                targetMin = null,
+                targetMax = null,
+                direction = GoalDirection.Increase,
+                startDate = LocalDate.of(2026, 8, 25),
+                deadline = null,
+                aggregation = GoalAggregation.Latest,
+                paceType = GoalPaceType.None,
+                reminderMinutes = null,
+                status = GoalStatus.Active,
+                pinned = false,
+                position = id.toInt(),
+                createdAtMillis = 1,
+                updatedAtMillis = 1,
+                elapsedStartMillis = nowMillis - elapsedMinutes * 60_000L,
+                elapsedDisplay = ElapsedDisplayFormat.selected(
+                    ElapsedDisplayUnit.Days,
+                    ElapsedDisplayUnit.Hours,
+                    ElapsedDisplayUnit.Minutes,
+                ),
+            )
+            return GoalProjection(
+                goal = goal,
+                currentValue = null,
+                progress = null,
+                deltaFromBaseline = null,
+                expectedProgress = null,
+                paceDelta = null,
+                forecastDate = null,
+                onPace = null,
+                milestones = emptyList(),
+                entries = emptyList(),
+            )
+        }
+        val alcohol = elapsedProjection(41, "Quit Alcohol", 24L * 60L + 60L + 48L)
+        val nicotine = elapsedProjection(42, "Quit Nicotine", 11L * 60L + 48L)
+        val foldDensity = Density(density = 1.5f, fontScale = 1f)
         compose.setContent {
-            WhipTheme(dynamicColor = false) {
-                WhipScreen(
-                    state = TaskUiState(loading = false),
-                    goalState = GoalUiState(active = listOf(projection), loading = false),
-                    adaptiveLayout = WhipAdaptiveLayout.BookFold,
-                    foldInfo = WhipFoldInfo(
-                        orientation = WhipFoldOrientation.Vertical,
-                        leftPx = 700,
-                        topPx = 0,
-                        rightPx = 740,
-                        bottomPx = 1_800,
-                        separating = true,
-                        halfOpened = true,
-                    ),
-                    onSaveTask = { _, _, _ -> },
-                    onComplete = {},
-                    onSkip = {},
-                    onReschedule = { _, _ -> },
-                    onArchive = {},
-                    onReopen = {},
-                )
+            CompositionLocalProvider(LocalDensity provides foldDensity) {
+                WhipTheme(dynamicColor = false) {
+                    val goalViewModel: GoalViewModel = viewModel()
+                    WhipScreen(
+                        state = TaskUiState(loading = false),
+                        goalState = GoalUiState(
+                            active = listOf(alcohol, nicotine),
+                            nowMillis = nowMillis,
+                            loading = false,
+                        ),
+                        goalViewModel = goalViewModel,
+                        adaptiveLayout = WhipAdaptiveLayout.BookFold,
+                        foldInfo = WhipFoldInfo(
+                            orientation = WhipFoldOrientation.Vertical,
+                            leftPx = 430,
+                            topPx = 0,
+                            rightPx = 470,
+                            bottomPx = 1_800,
+                            separating = true,
+                            halfOpened = true,
+                        ),
+                        onSaveTask = { _, _, _ -> },
+                        onComplete = {},
+                        onSkip = {},
+                        onReschedule = { _, _ -> },
+                        onArchive = {},
+                        onReopen = {},
+                    )
+                }
             }
         }
 
         compose.onNodeWithContentDescription("Goals tab").performClick()
-        compose.onNodeWithText("2 days").assertIsDisplayed()
+        compose.onAllNodesWithContentDescription(
+            "1 day · 1 hour · 48 minutes",
+            useUnmergedTree = true,
+        ).assertCountEquals(2)
+        compose.onAllNodesWithContentDescription(
+            "0 days · 11 hours · 48 minutes",
+            useUnmergedTree = true,
+        ).assertCountEquals(2)
+        compose.onNodeWithTag("support-pane-item-metric-41").assertIsDisplayed()
+        compose.onNodeWithTag("goal-card-status-41", useUnmergedTree = true).assertIsDisplayed()
+        compose.onAllNodesWithText("1 day · 1 hour · 48 minutes").assertCountEquals(0)
+
+        val cardMetric = compose.onNodeWithTag("goal-card-status-41", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val cardIdentity = compose.onNodeWithTag("goal-icon-41", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val cardAction = compose.onNodeWithTag("goal-primary-action-41", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        check(kotlin.math.abs(cardMetric.left - cardIdentity.left) <= 1f) {
+            "Elapsed status must use the card content width: metric=$cardMetric identity=$cardIdentity"
+        }
+        check(cardMetric.top >= cardAction.bottom - 1f) {
+            "Elapsed status must sit below the constrained identity/action row: metric=$cardMetric action=$cardAction"
+        }
         compose.onAllNodesWithText("0% progress").assertCountEquals(0)
+        captureVisualCatalogSurface("goals.elapsed.book-fold")
     }
 
     @Test

@@ -876,7 +876,16 @@ class ProductivityCardDesignUiTest {
             .getUnclippedBoundsInRoot().let { it.bottom - it.top }
         assertTrue("Reset must remain on one line in the action lane: $resetLabelHeight", resetLabelHeight <= 24.dp)
         assertTrue(height("goal-primary-action-8") >= 48.dp)
+        val elapsedMetric = compose.onNodeWithTag("goal-card-status-8", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val elapsedIdentity = compose.onNodeWithTag("goal-icon-8", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val resetAction = compose.onNodeWithTag("goal-primary-action-8", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        assertTrue(kotlin.math.abs(elapsedMetric.left - elapsedIdentity.left) <= 1f)
+        assertTrue(elapsedMetric.top >= resetAction.bottom - 1f)
         compose.onNodeWithText("Reset").performClick()
+        compose.onNodeWithTag("goal-expand-8", useUnmergedTree = true).performClick()
+        compose.onNodeWithContentDescription("2 days").assertIsDisplayed()
+        compose.onNodeWithText("Counting since", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag("goal-expand-8", useUnmergedTree = true).performClick()
         compose.onNodeWithText("0/1 milestones").performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("Publish the release").assertCountEquals(0)
         compose.onAllNodesWithText("Celebrate").assertCountEquals(0)

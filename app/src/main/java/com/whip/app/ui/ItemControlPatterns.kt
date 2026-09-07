@@ -1110,6 +1110,8 @@ internal fun ProductivityItemCard(
  * The primary action uses a stable, label-aware trailing lane when present. This
  * keeps completion and other frequent actions at the logical trailing edge for
  * one-handed use without pretending those domain actions all mean the same thing.
+ * Rich status that must survive expansion belongs in [persistentSummaryContent]
+ * so it receives the card width instead of competing with those header controls.
  */
 @Composable
 internal fun ProductivityItemHeader(
@@ -1127,6 +1129,7 @@ internal fun ProductivityItemHeader(
     headlineAccessory: (@Composable RowScope.() -> Unit)? = null,
     supportingContent: @Composable ColumnScope.() -> Unit = {},
     summaryContent: @Composable ColumnScope.() -> Unit = {},
+    persistentSummaryContent: (@Composable ColumnScope.() -> Unit)? = null,
     expanded: Boolean = false,
     onExpansionToggle: (() -> Unit)? = null,
     expansionTag: String? = null,
@@ -1154,7 +1157,9 @@ internal fun ProductivityItemHeader(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (onExpansionToggle != null && !expanded) summaryContent()
+                if (onExpansionToggle != null && !expanded && persistentSummaryContent == null) {
+                    summaryContent()
+                }
             }
             if (onExpansionToggle != null) {
                 IconButton(
@@ -1182,6 +1187,7 @@ internal fun ProductivityItemHeader(
                 ) { action() }
             }
         }
+        persistentSummaryContent?.invoke(this)
         if (onExpansionToggle == null || expanded) {
             if (onExpansionToggle != null) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -1554,7 +1560,11 @@ internal fun NavigationRow(
     modifier: Modifier = Modifier,
     supportingText: String? = null,
     enabled: Boolean = true,
+    supportingContent: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
+    require(supportingText == null || supportingContent == null) {
+        "NavigationRow accepts text or structured supporting content, not both"
+    }
     val displayTitle = title.uiTitleCase()
     Card(
         modifier = modifier
@@ -1572,8 +1582,14 @@ internal fun NavigationRow(
         ) {
             Column(Modifier.weight(1f)) {
                 Text(displayTitle, fontWeight = FontWeight.SemiBold)
-                supportingText?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (supportingContent != null) {
+                    supportingContent()
+                } else supportingText?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
             Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)

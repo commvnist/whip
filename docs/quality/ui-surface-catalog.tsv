@@ -66,6 +66,7 @@ dialog:habit-delete	habits.permanent-delete	habits	dialog	with impact summary	co
 menu:habit-row	habits.row.menu	habits	menu	open	com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog	capture	Habit row overflow actions.
 route:goals-active	goals.active.populated	goals	page	populated	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Active goals.
 route:goals-active-empty	goals.active.empty	goals	page	empty	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Active goals empty state.
+state:goals-active-book-fold	goals.elapsed.book-fold	goals	page	book-fold multi-unit elapsed timers	com.whip.app.AdaptiveWhipScreenTest#bookFoldGoalSupportPaneAndCardsShareOneUnconstrainedElapsedMetric	capture	The support pane and main cards share one unconstrained elapsed-metric composition.
 route:goals-history	goals.history.populated	goals	page	populated	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Completed goal history.
 route:goals-archived	goals.archived.populated	goals	page	populated	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Archived goals.
 route:goals-insights	goals.insights.populated	goals	page	populated	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Goal insights.
