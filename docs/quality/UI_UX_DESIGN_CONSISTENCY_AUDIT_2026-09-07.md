@@ -110,4 +110,6 @@ backup boundary. Existing workouts, sets, routines, program history, and local
 owner data are not rewritten. This is private-development acceptance, not a
 frozen Play Store candidate; store publication still requires `scripts/candidate`.
 Subjective spacing and real-use training ergonomics remain open to normal owner
-feedback after installation.
+feedback after manual installation. Whip 0.3.61/code 67 was delivered as the
+signed private APK because the phone became unavailable; no physical-device
+install or runtime claim is part of this audit.

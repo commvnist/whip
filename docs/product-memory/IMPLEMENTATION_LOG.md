@@ -1378,7 +1378,18 @@
 - Regression coverage: Settings/persistence/backup tests reject resurrection of the retired density field; Gym UI proves visible passive-set context; visual-catalog tests lock the next-set geometry and both Track labels; navigation/source contracts follow the scoped Track name. Backup exact-match version advances 25→26; Room schema 46 and data epoch 6 are unchanged.
 - Compatibility and limitations: Existing workout, set, Routine, 5/3/1, history, calculation, and local-owner data are unchanged. Older backup archives are intentionally rejected at the clean exact-match contract. This is verified private-development source, not a frozen Play Store candidate; release installation remains a separate step.
 - Detailed audit: `docs/quality/UI_UX_DESIGN_CONSISTENCY_AUDIT_2026-09-07.md`.
-- Commit/push: Pending the coherent implementation commit following `VER-20260907-015`.
+- Commit/push: Accepted implementation source `40b9f96` and release source `07e5c70` are pushed to `origin/main`; the following release-memory reconciliation changes documentation only.
 - Related: `FB-20260907-008`, `FND-20260907-017`, `FND-20260907-018`, `FND-20260907-019`, `DEC-20260907-007`, `DEC-20260907-008`, `VER-20260907-015`.
 - Verification: `VER-20260907-015`.
-- Status: Implemented, code-reviewed, broad-tested, semantically verified, and visually accepted; higher-version phone release pending.
+- Status: Implemented, code-reviewed, broad-tested, semantically verified, visually accepted, and packaged through `IMP-20260907-015`; physical installation was explicitly replaced with APK delivery by `FB-20260907-009`.
+
+### IMP-20260907-015 — Signed Whip 0.3.61 private APK handoff
+
+- Behavior changed: Advanced Whip to 0.3.61/code 67 and built the accepted single-density Gym and whole-product consistency work as a signed private APK. The artifact was copied to the clearly versioned handoff path `/tmp/Whip-0.3.61-code67-private.apk` for direct delivery.
+- Important files/symbols: Release source `07e5c70`, implementation source `40b9f96`, `app/build.gradle.kts`, `app/build/outputs/apk/release/app-release.apk`, `/tmp/Whip-0.3.61-code67-private.apk`, and `VER-20260907-016`.
+- Persistence/migration/history impact: Room schema 46 and data epoch 6 remain unchanged; exact-match backup version is 26 because the retired Gym density field no longer belongs to the format. No phone data or installation was touched during this handoff.
+- Compatibility and limitations: The APK uses Whip's established private signer and package identity and is intended for an in-place manual upgrade. Because the phone became unavailable and the user explicitly requested the artifact instead, 0.3.61 was not installed, launched, or runtime-smoked on the physical device. Whip 0.3.60/code 66 remains the latest device-verified installation, and this private artifact is not a frozen Play Store candidate.
+- Commit/push: Exact release source `07e5c70` was clean and synchronized with `origin/main` before the signed build; this memory-only reconciliation follows it.
+- Related: `FB-20260907-008`, `FB-20260907-009`, `FND-20260907-017`, `FND-20260907-018`, `FND-20260907-019`, `DEC-20260907-007`, `DEC-20260907-008`, `IMP-20260907-014`, `VER-20260907-015`, `VER-20260907-016`.
+- Verification: `VER-20260907-016`.
+- Status: Built, cryptographically verified, and delivered as Whip 0.3.61/code 67; physical installation intentionally deferred.
