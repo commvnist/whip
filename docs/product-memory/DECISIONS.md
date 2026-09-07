@@ -857,4 +857,4 @@
 - Product boundary: Preserve 5/3/1 terminology, explicit Training Max authorship, optional Joker semantics, supplemental/assistance structure, progression eligibility, immutable History, and existing Routine data. This is guidance, presentation, and evidence work; it does not silently change programming choices or user data.
 - QA/release boundary: Iterate with routed JVM/UI tests and the Gym-only exact catalog on a disposable emulator. A clean pushed higher-version source may use the guarded fast owner-phone release lane; Play Store candidate qualification and phone instrumentation remain out of scope.
 - Related: `FB-20260906-013`, `FND-20260906-016`, `FND-20260906-017`, `FND-20260906-018`, `DEC-20260906-003`, `DEC-20260906-005`.
-- Status: Accepted for implementation.
+- Status: Implemented and verified in `IMP-20260906-024` and `VER-20260906-025`.

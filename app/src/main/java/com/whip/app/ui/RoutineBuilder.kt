@@ -1212,6 +1212,10 @@ private fun FiveThreeOneProgramSetupDialog(
         (supplement != FiveThreeOneSupplement.BoringButBig ||
             boringButBigPercent?.let { it.isFinite() && it in 1.0..100.0 } == true)
     val buildBlocker = when {
+        layout == FiveThreeOneProgramLayout.Custom && eligible.isEmpty() ->
+            "Add at least one active Weight + Reps exercise to choose a custom program."
+        layout != FiveThreeOneProgramLayout.Custom && eligible.size < roles.size ->
+            "Create the missing standard Weight + Reps exercises below, or choose your own exercises."
         !everyDerivedTrainingMaxIsApplied -> "Apply every calculated Training Max after changing its source max or percentage."
         requiredExerciseCount <= 0 || programExercises.size != requiredExerciseCount -> "Enter a Training Max and cycle increase above zero for every selected exercise."
         programExercises.map(FiveThreeOneProgramExercise::exerciseId).distinct().size != requiredExerciseCount -> "Choose each main exercise only once."
@@ -1372,7 +1376,12 @@ private fun FiveThreeOneProgramSetupDialog(
                     FiveThreeOneProgramLayout.entries.filter { choice ->
                         plan == FiveThreeOneProgramPlan.SingleCycle || choice != FiveThreeOneProgramLayout.Beginners
                     }.forEach { choice ->
-                        WhipFilterChip(layout == choice, { layoutName = choice.name }, { Text(choice.label) })
+                        WhipFilterChip(
+                            selected = layout == choice,
+                            onClick = { layoutName = choice.name },
+                            label = { Text(choice.label) },
+                            modifier = Modifier.testTag("five-three-one-layout-${choice.name}"),
+                        )
                     }
                 }
                 Text("Training Max progression", style = MaterialTheme.typography.labelLarge)
@@ -2051,7 +2060,13 @@ private fun FiveThreeOneProgramSetupDialog(
                         ),
                     )
                 },
-                modifier = Modifier.testTag("five-three-one-program-create"),
+                modifier = Modifier
+                    .testTag("five-three-one-program-create")
+                    .semantics {
+                        if (!valid && buildBlocker != null) {
+                            stateDescription = "Unavailable. $buildBlocker"
+                        }
+                    },
             ) { Text(if (replacingExistingRoutine) "Replace Draft with Program" else "Build Program") }
         },
         dismissButton = { WhipBackAction(label = "Back to routine outline", onClick = onDismiss) },

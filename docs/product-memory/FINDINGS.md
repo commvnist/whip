@@ -1146,7 +1146,7 @@
 - Root cause: Build validation checked the derived program-exercise list before checking whether the selected schedule had enough eligible source exercises to render the required inputs.
 - Recommended solution: Order blockers by feasible dependency, give the disabled primary action the same reason as a state description, and cover both standard and custom empty-library states.
 - Related: `FB-20260906-013`, `DEC-20260906-011`.
-- Status: Confirmed; implementation pending.
+- Status: Resolved. Setup now orders blockers by feasible dependency, distinguishes standard/custom empty-library recovery, and gives the disabled Build Program action the same reason through semantics. Covered by `VER-20260906-025`.
 
 ### FND-20260906-017 — Gym evidence stops short of a generated 5/3/1 workout
 
@@ -1158,7 +1158,7 @@
 - Root cause: Advanced 5/3/1 behavior grew behind well-tested component/repository seams, while the first-class journey and catalog fixtures remained generic.
 - Recommended solution: Add one real Gym/5/3/1 authoring-to-start journey, route it through the `gym531` fast profile, and make catalog fixtures represent blocked, ready, four-phase, and active-program states exactly.
 - Related: `FB-20260906-013`, `DEC-20260906-005`, `DEC-20260906-011`.
-- Status: Confirmed; implementation pending.
+- Status: Resolved. A real app-shell journey now creates, configures, persists, starts, and inspects a generated 5/3/1 workout; the Gym catalog distinguishes blocked/ready setup and shows real four-phase and active-workout states. Covered by `VER-20260906-025`.
 
 ### FND-20260906-018 — Cycle-review choices rely on chip color to explain the recorded decision
 
@@ -1170,4 +1170,4 @@
 - Root cause: The first implementation explained the advisory exception but treated selected chip styling and “Next TM” as sufficient confirmation for every other branch.
 - Recommended solution: Replace the number-only footer with a selected-decision summary that names Standard, Suggestion, Hold, Ignore, or Custom and states the resulting Training Max.
 - Related: `FB-20260906-013`, `DEC-20260906-011`.
-- Status: Confirmed; implementation pending.
+- Status: Resolved. Every cycle-review selection now produces a live textual decision summary naming its audit meaning and resulting Training Max, including the distinct Hold and Ignore meanings. Covered by `VER-20260906-025`.

@@ -8,6 +8,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -46,6 +47,8 @@ class FiveThreeOneCycleReviewUiTest {
         }
 
         captureVisualCatalogSurface("gym.531.review")
+        compose.onNodeWithTag("training-max-decision-summary-7")
+            .assertTextContains("Use the saved 5/3/1 standard increase", substring = true)
         compose.onNodeWithTag("training-max-choice-standard-7").performClick()
         compose.onNodeWithTag("apply-training-max-decisions").assertIsEnabled().performClick()
         compose.runOnIdle {
@@ -57,6 +60,8 @@ class FiveThreeOneCycleReviewUiTest {
 
         applied = null
         compose.onNodeWithTag("training-max-choice-suggestion-7").performClick()
+        compose.onNodeWithTag("training-max-decision-summary-7")
+            .assertTextContains("Use Whip's advisory suggestion", substring = true)
         compose.onNodeWithTag("apply-training-max-decisions").assertIsEnabled().performClick()
         compose.runOnIdle {
             val decision = requireNotNull(applied).single()
@@ -66,6 +71,8 @@ class FiveThreeOneCycleReviewUiTest {
 
         applied = null
         compose.onNodeWithTag("training-max-choice-ignore-7").performClick()
+        compose.onNodeWithTag("training-max-decision-summary-7")
+            .assertTextContains("recorded separately from a programming Hold", substring = true)
         compose.onNodeWithTag("apply-training-max-decisions").assertIsEnabled().performClick()
         compose.runOnIdle {
             val decision = requireNotNull(applied).single()
@@ -76,6 +83,8 @@ class FiveThreeOneCycleReviewUiTest {
         applied = null
         compose.onNodeWithTag("training-max-choice-custom-7").performClick()
         compose.onNodeWithTag("training-max-custom-delta-7").performTextReplacement("20")
+        compose.onNodeWithTag("training-max-decision-summary-7")
+            .assertTextContains("Enter a valid custom cycle change", substring = true)
         compose.onNodeWithTag("apply-training-max-decisions").assertIsNotEnabled()
         compose.onNodeWithTag("training-max-custom-delta-7").performTextReplacement("-10")
         compose.onNodeWithTag("apply-training-max-decisions").assertIsEnabled().performClick()

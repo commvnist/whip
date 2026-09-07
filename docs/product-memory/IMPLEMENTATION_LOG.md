@@ -1197,3 +1197,14 @@
 - Related: `FB-20260906-012`, `FND-20260906-011`, `DEC-20260906-010`, `IMP-20260906-022`, `VER-20260906-023`, `VER-20260906-024`.
 - Verification: `VER-20260906-024`.
 - Status: Released and device-verified as Whip 0.3.55/code 61; awaiting normal real-use feedback.
+
+### IMP-20260906-024 — Gym and 5/3/1 end-to-end UX and evidence closure
+
+- Behavior changed: The 5/3/1 setup status now follows feasible dependencies: an empty standard layout directs the user to create its missing Weight + Reps exercises or choose a custom layout, while an empty custom layout asks for one active Weight + Reps exercise. The disabled Build Program action exposes the same blocking reason to accessibility services. Cycle review now restates every Standard, Suggestion, Hold, Ignore, or Custom choice as a live textual decision with its recorded meaning and resulting Training Max.
+- QA/evidence changed: Added one real `MainActivity` journey that seeds the standard exercises, opens Gym, builds and saves a four-day 5/3/1 routine, observes the persisted structured program, starts its next day, and verifies generated cycle/week/day and Squat prescription context in the active workout. Expanded the source-linked catalog from 172 to 174 states and the Gym family from 44 to 46 states with distinct blocked setup and active 5/3/1 workout captures; corrected ready-setup and Program Structure fixtures to depict configured and genuine four-phase states.
+- Important files/symbols: `FiveThreeOneProgramSetupDialog`, `FiveThreeOneCycleReviewDialog`, `GymFiveThreeOneJourneyE2ETest`, `RoutineBuilderUiTest`, `FiveThreeOneCycleReviewUiTest`, `docs/quality/e2e-coverage.tsv`, `docs/quality/ui-surface-catalog.tsv`, and `scripts/qa-targeted`.
+- Persistence/migration/history impact: Guidance, accessibility semantics, presentation, tests, and QA metadata only. Routine generation, Training Max decisions, Room schema 46, data epoch 6, exact-match backup version 25, and existing owner data are unchanged. Release identity advances to Whip 0.3.56/code 62 for the authorized in-place private deployment.
+- Compatibility and limitations: The final fast Gym/5/3/1 profile, exact Gym-family gallery, catalog semantics guard, and affected readiness tier passed. No complete fresh suite, candidate qualification, physical instrumentation, phone reset, uninstall, downgrade, or Play Store publication occurred.
+- Related: `FB-20260906-013`, `FND-20260906-016`, `FND-20260906-017`, `FND-20260906-018`, `DEC-20260906-011`, `VER-20260906-025`.
+- Verification: `VER-20260906-025`.
+- Status: Implemented, focused-tested, semantically verified, and visually accepted; fast owner-phone release pending.

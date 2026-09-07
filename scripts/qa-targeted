@@ -224,6 +224,7 @@ add_profile() {
                 'com.whip.app.data.RoutineProgrammingTest'
             )
             android_classes+=(
+                'com.whip.app.GymFiveThreeOneJourneyE2ETest'
                 'com.whip.app.RoutineRepositoryTest'
                 'com.whip.app.RoutineBuilderUiTest'
                 'com.whip.app.FiveThreeOneCycleReviewUiTest'

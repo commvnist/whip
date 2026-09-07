@@ -101,6 +101,7 @@ menu:track-entry	tracks.entry.menu	tracks	menu	open	com.whip.app.VisualCatalogPa
 menu:track-reorder	tracks.reorder.menu	tracks	menu	open	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Track collection ordering actions.
 route:gym-workout-empty	gym.workout.empty	gym	page	no active workout	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Workout launch state.
 route:gym-workout-active	gym.workout.active	gym	page	active workout	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Active workout logging.
+state:531-workout-active	gym.531.workout.active	gym	page	active programmed workout	com.whip.app.GymFiveThreeOneJourneyE2ETest#generatedProgramPersistsStartsNextDayAndRendersProgrammedWorkout	capture	Generated 5/3/1 day with cycle, phase, prescription, and next-set context.
 route:gym-history	gym.history.populated	gym	page	populated	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Workout history.
 route:gym-progress	gym.progress.populated	gym	page	populated	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Gym progress dashboard.
 route:gym-library	gym.library.landing	gym	page	populated	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Gym library hub.
@@ -113,7 +114,8 @@ route:routine-builder	gym.routine-builder.outline	gym	page	outline	com.whip.app.
 route:routine-program	gym.routine-builder.program	gym	page	program structure	com.whip.app.RoutineBuilderUiTest#structuredMainExerciseUsesProgramStructureAndHidesGenericRewriteControls	capture	Routine program structure.
 route:routine-exercise-picker	gym.routine-builder.exercise-picker	gym	page	picker	com.whip.app.RoutineBuilderUiTest#twoHundredExerciseLibraryIsSearchableAndOnlySelectionsEnterOutline	capture	Routine exercise picker.
 route:routine-workout-picker	gym.routine-builder.workout-picker	gym	page	picker	com.whip.app.RoutineBuilderUiTest#emptyWorkoutPickerUsesTheSharedEmptyStateAndKeepsBackReachable	capture	Routine workout import picker.
-dialog:531-setup	gym.531.setup	gym	dialog	configured	com.whip.app.RoutineBuilderUiTest#blankRoutineSurfacesTopLevelFiveThreeOneEntry	capture	5/3/1 program setup.
+dialog:531-setup	gym.531.setup	gym	dialog	ready to build	com.whip.app.RoutineBuilderUiTest#leaderAnchorSetupShowsProgressiveReviewAndBuildsAssistanceAndJokers	capture	Configured 5/3/1 program review before build.
+state:531-setup-blocked	gym.531.setup-blocked	gym	dialog	empty library	com.whip.app.RoutineBuilderUiTest#blankRoutineSurfacesTopLevelFiveThreeOneEntry	capture	First-run 5/3/1 setup with an actionable exercise-library blocker.
 dialog:531-review	gym.531.review	gym	dialog	populated	com.whip.app.FiveThreeOneCycleReviewUiTest#defaultsToStandardAndValidatesSuggestionAndCustomDecision	capture	5/3/1 cycle review.
 dialog:rep-scheme	gym.rep-scheme	gym	dialog	configured	com.whip.app.RoutineBuilderUiTest#captureRepSchemeCatalog	capture	Rep prescription scheme editor.
 dialog:quick-machine	gym.quick-machine	gym	dialog	new machine	com.whip.app.RoutineBuilderUiTest#machineCanBeQuickCreatedForAPlacementWithoutLeavingBuilder	capture	Inline machine creation.

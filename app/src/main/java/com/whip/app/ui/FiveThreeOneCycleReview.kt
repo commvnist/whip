@@ -410,20 +410,34 @@ internal fun FiveThreeOneCycleReviewDialog(
                                     modifier = Modifier.fillMaxWidth().testTag("training-max-custom-delta-${exercise.exerciseId}"),
                                 )
                             }
-                            if (choices[exercise.exerciseId] == CycleReviewChoice.Ignore.name) {
-                                Text(
-                                    "Decline Whip's advisory recommendation for this cycle and keep the current Training Max. This is recorded separately from a programming Hold.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
+                            val selectedChoice = runCatching {
+                                CycleReviewChoice.valueOf(choices[exercise.exerciseId].orEmpty())
+                            }.getOrDefault(CycleReviewChoice.Hold)
                             val selectedDelta = decisions.firstOrNull { it.exerciseId == exercise.exerciseId }?.requestedDelta
-                            if (selectedDelta != null) {
-                                Text(
-                                    "Next TM ${editableNumericValue(exercise.currentTrainingMax + selectedDelta)} ${unitSymbol(exercise.unitId)}",
-                                    style = MaterialTheme.typography.labelLarge,
-                                )
-                            }
+                            Text(
+                                when {
+                                    selectedDelta == null -> "Decision · Enter a valid custom cycle change to continue."
+                                    selectedChoice == CycleReviewChoice.Standard ->
+                                        "Decision · Use the saved 5/3/1 standard increase. Next TM ${editableNumericValue(exercise.currentTrainingMax + selectedDelta)} ${unitSymbol(exercise.unitId)}."
+                                    selectedChoice == CycleReviewChoice.Suggestion ->
+                                        "Decision · Use Whip's advisory suggestion. Next TM ${editableNumericValue(exercise.currentTrainingMax + selectedDelta)} ${unitSymbol(exercise.unitId)}."
+                                    selectedChoice == CycleReviewChoice.Hold ->
+                                        "Decision · Programming Hold; keep the current TM at ${editableNumericValue(exercise.currentTrainingMax)} ${unitSymbol(exercise.unitId)}."
+                                    selectedChoice == CycleReviewChoice.Ignore ->
+                                        "Decision · Decline Whip's suggestion and keep ${editableNumericValue(exercise.currentTrainingMax)} ${unitSymbol(exercise.unitId)}; recorded separately from a programming Hold."
+                                    else ->
+                                        "Decision · Use a custom ${deltaLabel(selectedDelta)} change. Next TM ${editableNumericValue(exercise.currentTrainingMax + selectedDelta)} ${unitSymbol(exercise.unitId)}."
+                                },
+                                style = MaterialTheme.typography.labelLarge,
+                                color = if (selectedDelta == null) {
+                                    MaterialTheme.colorScheme.error
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
+                                modifier = Modifier
+                                    .testTag("training-max-decision-summary-${exercise.exerciseId}")
+                                    .semantics { liveRegion = LiveRegionMode.Polite },
+                            )
                         }
                     }
                 }

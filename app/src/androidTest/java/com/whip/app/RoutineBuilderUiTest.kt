@@ -7,6 +7,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsDisplayed
@@ -155,12 +156,21 @@ class RoutineBuilderUiTest {
         compose.onNodeWithText("Choose a program, configure its exercises, then review the exact work before building your routine.")
             .assertIsDisplayed()
         compose.onNodeWithTag("five-three-one-program-setup").assertIsDisplayed()
-        captureVisualCatalogSurface("gym.531.setup")
+        captureVisualCatalogSurface("gym.531.setup-blocked")
         compose.onNodeWithTag("five-three-one-plan-SingleCycle").assertIsSelected()
         compose.onNodeWithTag("five-three-one-program-status")
-            .assertTextContains("Still needed · Enter a Training Max and cycle increase above zero for every selected exercise.")
+            .assertTextContains("Still needed · Create the missing standard Weight + Reps exercises below, or choose your own exercises.")
+        compose.onNodeWithTag("five-three-one-program-create").assertIsNotEnabled()
+        assertEquals(
+            "Unavailable. Create the missing standard Weight + Reps exercises below, or choose your own exercises.",
+            compose.onNodeWithTag("five-three-one-program-create")
+                .fetchSemanticsNode().config[SemanticsProperties.StateDescription],
+        )
         compose.onNode(hasText("Choose Your Exercises") and hasClickAction()).assertIsDisplayed()
         compose.onNodeWithTag("five-three-one-create-standard-exercises").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("five-three-one-layout-Custom").performClick()
+        compose.onNodeWithTag("five-three-one-program-status")
+            .assertTextContains("Still needed · Add at least one active Weight + Reps exercise to choose a custom program.")
     }
 
     @Test
@@ -572,7 +582,18 @@ class RoutineBuilderUiTest {
                     gymState = GymUiState(exercises = listOf(bench), loading = false),
                     initial = RoutineDraft(
                         name = "Bench 5/3/1",
-                        program = RoutineProgramDraft(RoutineProgramKind.FiveThreeOne, phaseCount = 1),
+                        program = RoutineProgramDraft(
+                            kind = RoutineProgramKind.FiveThreeOne,
+                            phaseCount = 4,
+                            phaseLabels = listOf("5s Week", "3s Week", "5/3/1 Week", "Deload"),
+                            phaseRoles = listOf(
+                                RoutineProgramPhaseRole.Standard,
+                                RoutineProgramPhaseRole.Standard,
+                                RoutineProgramPhaseRole.Standard,
+                                RoutineProgramPhaseRole.Deload,
+                            ),
+                            trainingMaxAdvanceAfterPhaseIndices = setOf(3),
+                        ),
                         days = listOf(
                             RoutineDayDraft(
                                 "Bench",
@@ -665,6 +686,7 @@ class RoutineBuilderUiTest {
         compose.onNodeWithTag("five-three-one-assistance-SingleLegCore").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("five-three-one-program-timeline").performScrollTo()
             .assertTextContains("11 weeks", substring = true)
+        captureVisualCatalogSurface("gym.531.setup")
         compose.onNodeWithTag("five-three-one-program-create").assertIsEnabled().performClick()
         compose.onNodeWithTag("routine-builder-save").performClick()
 
