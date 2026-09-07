@@ -868,7 +868,7 @@ fun GoalCard(
             },
             summaryContent = {
                 if (elapsedStatus != null) {
-                    ElapsedGoalPrimaryStatus(elapsedStatus, Modifier.testTag("goal-card-status-${goal.id}"))
+                    ElapsedGoalMetric(elapsedStatus, Modifier.testTag("goal-card-status-${goal.id}"))
                 } else {
                     Text(
                         compactStatus,
@@ -885,7 +885,7 @@ fun GoalCard(
             primaryAction = primaryAction,
         )
         if (reorderMode && elapsedStatus != null) {
-            ElapsedGoalPrimaryStatus(elapsedStatus, Modifier.testTag("goal-card-status-${goal.id}"))
+            ElapsedGoalMetric(elapsedStatus, Modifier.testTag("goal-card-status-${goal.id}"))
         }
         if (!reorderMode && disclosure.expanded) {
         projection.progress?.let { progress ->
@@ -904,12 +904,15 @@ fun GoalCard(
             }
         }
         if (goal.type == GoalType.ElapsedSince) {
-            val elapsedLabel = projection.elapsedDisplayLabel(nowMillis, zoneId)
             when {
-                elapsedLabel != null -> Text(
-                    elapsedLabel,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                elapsedStatus != null && goal.elapsedStartMillis != null -> Text(
+                    if (projection.terminalSnapshot == null) {
+                        "Counting since ${elapsedGoalStartLabel(goal.elapsedStartMillis, zoneId)}"
+                    } else {
+                        "Recorded when this Goal was ${projection.terminalSnapshot.status.label.lowercase()}."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 projection.terminalSnapshot != null -> Text(
                     "Exact elapsed duration was not stored for this older closure.",
@@ -1012,20 +1015,35 @@ fun GoalCard(
 }
 
 @Composable
-private fun ElapsedGoalPrimaryStatus(display: ElapsedDisplay, modifier: Modifier = Modifier) {
+private fun ElapsedGoalMetric(
+    display: ElapsedDisplay,
+    modifier: Modifier = Modifier,
+    prominent: Boolean = false,
+) {
+    val valueStyle = if (prominent) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.bodySmall
+    val unitStyle = if (prominent) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodySmall
     FlowRow(
         modifier = modifier.semantics(mergeDescendants = true) { contentDescription = display.label() },
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (prominent) 12.dp else 8.dp),
+        verticalArrangement = Arrangement.spacedBy(if (prominent) 4.dp else 2.dp),
     ) {
         display.parts.forEach { part ->
-            Text(
-                part.label(),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    part.value.toString(),
+                    style = valueStyle,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                )
+                Spacer(Modifier.width(3.dp))
+                Text(
+                    part.unitLabel(),
+                    style = unitStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
         }
     }
 }
@@ -1207,13 +1225,17 @@ private fun GoalInsightsContent(
                     val chartValues = insights.points.mapNotNull { it.progress ?: it.canonicalValue }
                     if (projection.goal.type == GoalType.ElapsedSince) {
                         projection.goal.elapsedStartMillis?.let { started ->
-                            Text(
-                                projection.elapsedDisplayLabel(nowMillis, zoneId) ?: return@let,
-                                style = MaterialTheme.typography.headlineSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
+                            projection.elapsedDisplayValue(nowMillis, zoneId)?.let { display ->
+                                ElapsedGoalMetric(
+                                    display = display,
+                                    prominent = true,
+                                    modifier = Modifier.testTag("goal-insight-elapsed-${projection.goal.id}"),
+                                )
+                            } ?: return@let
                             Text(
                                 "Counting continuously since ${elapsedGoalStartLabel(started, zoneId)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     } else if (chartValues.size >= 2) {
@@ -1783,12 +1805,10 @@ internal fun GoalEditorDialog(
                             }
                             elapsedStartInstant?.takeUnless { it.isAfter(Instant.ofEpochMilli(nowMillis)) }?.let { started ->
                                 Text("Preview", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(
-                                    elapsedDisplay(started.toEpochMilli(), nowMillis, elapsedDisplayFormat, editorZone).label(),
+                                ElapsedGoalMetric(
+                                    display = elapsedDisplay(started.toEpochMilli(), nowMillis, elapsedDisplayFormat, editorZone),
                                     modifier = Modifier.testTag("elapsed-display-preview"),
-                                    style = MaterialTheme.typography.titleLarge,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Bold,
+                                    prominent = true,
                                 )
                             }
                         }
@@ -2392,16 +2412,41 @@ internal fun GoalActionsDialog(
                 if (section == GoalDetailSection.Overview) {
                 item {
                     EntityInspectorInformationGroup(
-                        title = "Outcome",
+                        title = if (projection.goal.type == GoalType.ElapsedSince) "Elapsed time" else "Outcome",
                         modifier = Modifier.testTag("goal-inspector-outcome-card"),
                     ) {
-                        Text(
-                            projection.inspectorOutcome(nowMillis, customUnits, zoneId),
-                            modifier = Modifier.testTag("goal-inspector-outcome"),
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold,
-                        )
+                        if (projection.goal.type == GoalType.ElapsedSince) {
+                            val terminal = projection.terminalSnapshot
+                            projection.elapsedDisplayValue(nowMillis, zoneId)?.let { display ->
+                                ElapsedGoalMetric(
+                                    display = display,
+                                    prominent = true,
+                                    modifier = Modifier.testTag("goal-inspector-outcome"),
+                                )
+                            } ?: Text(
+                                "Exact elapsed duration was not stored for this older closure.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            projection.goal.elapsedStartMillis?.let { started ->
+                                Text(
+                                    if (terminal == null) {
+                                        "Counting continuously since ${elapsedGoalStartLabel(started, zoneId)}"
+                                    } else {
+                                        "Recorded when this Goal was ${terminal.status.label.lowercase()}."
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        } else {
+                            Text(
+                                projection.inspectorOutcome(nowMillis, customUnits, zoneId),
+                                modifier = Modifier.testTag("goal-inspector-outcome"),
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
                         projection.goal.description.takeIf(String::isNotBlank)?.let {
                             Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
@@ -2410,79 +2455,54 @@ internal fun GoalActionsDialog(
                         }
                     }
                 }
-                item {
+                if (projection.goal.type != GoalType.ElapsedSince) item {
                     EntityInspectorInformationGroup(
-                        title = if (projection.goal.type == GoalType.ElapsedSince) "Elapsed Time" else "Progress Insight",
+                        title = "Progress Insight",
                         modifier = Modifier.testTag("goal-inspector-progress-card"),
                     ) {
                         val chartValues = insights.points.mapNotNull { it.progress ?: it.canonicalValue }
-                        if (projection.goal.type == GoalType.ElapsedSince) {
-                            val terminal = projection.terminalSnapshot
-                            val elapsedLabel = projection.elapsedDisplayLabel(nowMillis, zoneId)
-                            if (elapsedLabel != null && terminal != null) {
-                                Text(
-                                    elapsedLabel,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
-                                Text("Recorded when this Goal was ${terminal.status.label.lowercase()}.")
-                            } else if (terminal != null) {
-                                Text(
-                                    "Exact elapsed duration was not stored for this older closure.",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            } else projection.goal.elapsedStartMillis?.let { started ->
-                                Text(
-                                    projection.elapsedDisplayLabel(nowMillis, zoneId) ?: return@let,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
-                                Text("Started ${elapsedGoalStartLabel(started, zoneId)}")
-                            }
+                        if (chartValues.size >= 2) {
+                            GoalLineChart(
+                                values = chartValues,
+                                description = "${projection.goal.name} progress chart with ${chartValues.size} points from " +
+                                    "${insights.points.first().date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} to " +
+                                    insights.points.last().date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
+                            )
                         } else {
-                            if (chartValues.size >= 2) {
-                                GoalLineChart(
-                                    values = chartValues,
-                                    description = "${projection.goal.name} progress chart with ${chartValues.size} points from " +
-                                        "${insights.points.first().date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} to " +
-                                        insights.points.last().date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
-                                )
-                            } else {
-                                Text("More observations are needed for a trend line.")
-                            }
-                            val pace = listOfNotNull(
-                                insights.ratePerDay?.let { "Rate ${formatGoalValue(it, projection.goal.precision)} per day" },
-                                insights.forecastDate?.let {
-                                    "Forecast ${it.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} (${insights.confidence} confidence)"
-                                },
-                            ).joinToString(" · ")
-                            Text(
-                                pace.ifBlank { "Rate and forecast become available as history grows." },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            if (insights.targetMin != null || insights.targetMax != null) {
-                                val targetMinimum = insights.targetMin
-                                val targetMaximum = insights.targetMax ?: targetMinimum
-                                val targetRange = if (targetMinimum == targetMaximum) {
-                                    formatGoalValue(targetMinimum, projection.goal.precision)
-                                } else {
-                                    "${formatGoalValue(targetMinimum, projection.goal.precision)} to " +
-                                        formatGoalValue(targetMaximum, projection.goal.precision)
-                                }
-                                EntityInspectorFact("Target", targetRange)
-                            }
-                            Text(
-                                insights.dataQualityExplanation,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            DisclosureButton(
-                                label = "Trend data table",
-                                expanded = showAccessibleTable,
-                                onClick = { showAccessibleTable = !showAccessibleTable },
-                            )
+                            Text("More observations are needed for a trend line.")
                         }
+                        val pace = listOfNotNull(
+                            insights.ratePerDay?.let { "Rate ${formatGoalValue(it, projection.goal.precision)} per day" },
+                            insights.forecastDate?.let {
+                                "Forecast ${it.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} (${insights.confidence} confidence)"
+                            },
+                        ).joinToString(" · ")
+                        Text(
+                            pace.ifBlank { "Rate and forecast become available as history grows." },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (insights.targetMin != null || insights.targetMax != null) {
+                            val targetMinimum = insights.targetMin
+                            val targetMaximum = insights.targetMax ?: targetMinimum
+                            val targetRange = if (targetMinimum == targetMaximum) {
+                                formatGoalValue(targetMinimum, projection.goal.precision)
+                            } else {
+                                "${formatGoalValue(targetMinimum, projection.goal.precision)} to " +
+                                    formatGoalValue(targetMaximum, projection.goal.precision)
+                            }
+                            EntityInspectorFact("Target", targetRange)
+                        }
+                        Text(
+                            insights.dataQualityExplanation,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        DisclosureButton(
+                            label = "Trend data table",
+                            expanded = showAccessibleTable,
+                            onClick = { showAccessibleTable = !showAccessibleTable },
+                        )
                     }
                 }
                 if (showAccessibleTable) {

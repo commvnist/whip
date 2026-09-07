@@ -4,6 +4,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.WhipApplication
 import com.whip.app.core.EntitySaveReceipt
+import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
 import com.whip.app.core.PersistenceRequestState
 import com.whip.app.core.WhipResult
@@ -57,7 +58,8 @@ class EntitySaveViewModelIntegrationTest {
         assertEquals(1, success.value.warnings.size)
         assertTrue(success.value.warnings.single().contains("tag suggestions"))
         assertEquals(1, app.taskRepository.tasks.first().count { it.title == "Committed once" })
-        assertTrue(viewModel.operationFeedback.value.status is OperationStatus.Succeeded)
+        val operation = viewModel.operationFeedback.value.status as OperationStatus.Succeeded
+        assertEquals(OperationFeedbackPresentation.Snackbar, operation.feedbackPresentation)
     }
 
     @Test
@@ -263,7 +265,8 @@ class EntitySaveViewModelIntegrationTest {
         assertEquals(habitId, success.value.habitId)
         assertTrue(success.value.logId != null)
         assertEquals(listOf(3.0), app.habitRepository.logs.first().mapNotNull { it.value })
-        assertTrue(viewModel.operationStatus.value is OperationStatus.Succeeded)
+        val operation = viewModel.operationStatus.value as OperationStatus.Succeeded
+        assertEquals(OperationFeedbackPresentation.Inline, operation.feedbackPresentation)
     }
 
     @Test
@@ -336,5 +339,32 @@ class EntitySaveViewModelIntegrationTest {
         assertTrue(finished.result is WhipResult.Failure)
         assertTrue(app.goalRepository.goals.first().none { it.name == "Must not appear" })
         assertEquals(OperationStatus.Idle, viewModel.operationStatus.value)
+    }
+
+    @Test
+    fun successfulGoalSaveUsesVisibleStateInsteadOfAnActionSnackbar() = runBlocking {
+        val viewModel = GoalViewModel(app)
+        assertTrue(
+            viewModel.saveGoal(
+                id = null,
+                draft = GoalDraft(
+                    name = "Quietly saved goal",
+                    type = GoalType.ReachValue,
+                    targetMin = 10.0,
+                    startDate = LocalDate.of(2026, 9, 6),
+                ),
+                requestId = "quiet-goal-save",
+            ),
+        )
+
+        @Suppress("UNCHECKED_CAST")
+        val finished = withTimeout(5_000) {
+            viewModel.editorSaveState.first { it is PersistenceRequestState.Finished }
+        } as PersistenceRequestState.Finished<EntitySaveReceipt>
+
+        assertTrue(finished.result is WhipResult.Success)
+        val operation = viewModel.operationStatus.value as OperationStatus.Succeeded
+        assertEquals("Goal created", operation.message)
+        assertEquals(OperationFeedbackPresentation.Inline, operation.feedbackPresentation)
     }
 }

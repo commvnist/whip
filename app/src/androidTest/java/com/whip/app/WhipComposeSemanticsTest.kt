@@ -20,6 +20,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -388,7 +389,7 @@ class WhipComposeSemanticsTest {
     }
 
     @Test
-    fun directTaskAndHabitCompletionUseInlineFeedbackWithoutSnackbars() {
+    fun directTaskHabitAndGoalActionsUseVisibleStateInsteadOfSnackbars() {
         val app = ApplicationProvider.getApplicationContext<WhipApplication>()
         val today = app.clock.today()
         val (taskId, habitId) = runBlocking {
@@ -429,6 +430,19 @@ class WhipComposeSemanticsTest {
             }
             compose.onAllNodesWithText("Habit completed").assertCountEquals(0)
             compose.onNodeWithTag("habit-done-disclosure").assertIsDisplayed()
+
+            compose.onNodeWithContentDescription("Goals tab").performClick()
+            compose.onNodeWithContentDescription("Add goal").performClick()
+            compose.onNodeWithTag("goal-editor-name").performTextInput("Quiet save goal")
+            compose.onNodeWithTag("goal-editor-fields").performScrollToNode(hasTestTag("goal-editor-target"))
+            compose.onNodeWithTag("goal-editor-target").performTextInput("10")
+            compose.onNodeWithText("Save").performClick()
+            runBlocking {
+                withTimeout(5_000) {
+                    app.goalRepository.goals.first { goals -> goals.any { it.name == "Quiet save goal" } }
+                }
+            }
+            compose.onAllNodesWithText("Goal created").assertCountEquals(0)
         }
     }
 

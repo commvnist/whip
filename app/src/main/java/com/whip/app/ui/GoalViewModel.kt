@@ -515,7 +515,7 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 _operationStatus.value = OperationStatus.Succeeded(
                     message,
-                    OperationFeedbackPresentation.Snackbar,
+                    transientSuccessPresentation(hasWarnings = receipt.warnings.isNotEmpty()),
                 )
                 return WhipResult.Success(receipt)
             }
@@ -621,7 +621,10 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             fun successResult(receipt: EntitySaveReceipt): WhipResult.Success<EntitySaveReceipt> {
                 val message = if (receipt.warnings.isEmpty()) success else "$success · ${receipt.warnings.joinToString(" ")}"
-                _operationStatus.value = OperationStatus.Succeeded(message, OperationFeedbackPresentation.Snackbar)
+                _operationStatus.value = OperationStatus.Succeeded(
+                    message,
+                    transientSuccessPresentation(hasWarnings = receipt.warnings.isNotEmpty()),
+                )
                 return WhipResult.Success(receipt)
             }
             val result = try {

@@ -25,6 +25,7 @@ internal fun presentTrackEntryMutationFeedback(
     onUndoDismissed: (Long) -> Unit,
     presentFeedback: TrackTransientFeedbackPresenter,
 ) {
+    if (!shouldPresentTransientSuccess(receipt.warnings.isNotEmpty(), undoToken != null)) return
     val message = buildString {
         append(
             when (receipt.kind) {
@@ -133,9 +134,6 @@ internal fun TrackEntryUndoFeedbackEffects(
         when (val status = state.status) {
             OperationStatus.Idle, is OperationStatus.Running -> Unit
             is OperationStatus.Succeeded -> {
-                presentFeedback("track-entry-undo-success", 1, false) {
-                    snackbarHostState.showSnackbar(status.message, duration = SnackbarDuration.Long)
-                }
                 statusToken?.let(onStatusConsumed)
             }
             is OperationStatus.Failed -> {

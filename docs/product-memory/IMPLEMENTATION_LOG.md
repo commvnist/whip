@@ -1151,3 +1151,14 @@
 - Related: `FB-20260906-009`, `FND-20260906-005`, `DEC-20260906-007`, `IMP-20260906-018`, `VER-20260906-019`, `VER-20260906-020`.
 - Verification: `VER-20260906-020`.
 - Status: Released and device-verified as Whip 0.3.53/code 59; awaiting real-use feedback.
+
+### IMP-20260906-020 — Integrated elapsed metric and quiet app-action success
+
+- Behavior changed: Replaced the bolt-on elapsed treatments with one responsive `ElapsedGoalMetric` used by collection/reorder cards, Home-derived cards, Insights, editor preview, and Goal Overview. Numeric values use modest medium emphasis while unit labels use the surrounding supporting role; value/unit pairs wrap atomically and expose one merged full-duration accessibility label. Expanded cards now show start/terminal context instead of a duplicate counter, and elapsed Overview uses one information group rather than repeating a Progress card.
+- Feedback changed: Added one shared success-feedback classifier: routine committed actions whose new state is already visible are consumed inline, while failures, post-commit warnings, and meaningful token-owned Undo/Edit/Retry actions retain transient bars. Applied the policy across Goal, Habit, Task, Track, Gym, Area, Tag, and Track-entry mutation paths, including authored saves, creates, logs, pins, restores, catalog mutations, and non-recoverable deletion confirmations. Android reminders, alarms, permission UI, and ongoing/system notifications are unchanged.
+- Regression coverage: Added the classifier truth table and source-architecture guard, strengthened Goal editor/view-model tests, removed the duplicate elapsed detail assertion, retained large-text/all-unit coverage, and extended the real app-shell journey to create a Goal and prove no “Goal created” bar appears after persistence.
+- Persistence/migration/history impact: Presentation and transient-feedback behavior only. Goal arithmetic and selected-unit persistence, schema 46, data epoch 6, backup version 25, release identity, and owner data are unchanged.
+- Compatibility and limitations: Failure visibility and exact recovery-token ownership remain intact. Focused development checks and the Goals visual family are accepted, but no complete suite, candidate qualification, signed release build, phone-selected command, phone install, or Play Store publication occurred.
+- Related: `FB-20260906-010`, `FND-20260906-007`, `FND-20260906-008`, `DEC-20260906-008`, `DEC-20260906-009`, `VER-20260906-021`.
+- Verification: `VER-20260906-021`.
+- Status: Implemented, readiness-verified, and visually accepted on the disposable emulator; awaiting a future explicitly requested owner-phone release.

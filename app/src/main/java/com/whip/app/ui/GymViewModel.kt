@@ -819,7 +819,7 @@ class GymViewModel @JvmOverloads constructor(
                     _operationStatus.value = OperationStatus.Succeeded(
                         listOf("Exercise is already absent; deletion end state confirmed")
                             .plus(warnings).joinToString(" · "),
-                        OperationFeedbackPresentation.Snackbar,
+                        transientSuccessPresentation(hasWarnings = warnings.isNotEmpty()),
                     )
                     _orphanedGymDeletionRequestId.value = null
                     _gymDeletionState.value = PersistenceRequestState.Finished(
@@ -878,7 +878,7 @@ class GymViewModel @JvmOverloads constructor(
                     _operationStatus.value = OperationStatus.Succeeded(
                         listOf("Routine is already absent; deletion end state confirmed")
                             .plus(warnings).joinToString(" · "),
-                        OperationFeedbackPresentation.Snackbar,
+                        transientSuccessPresentation(hasWarnings = warnings.isNotEmpty()),
                     )
                     _orphanedGymDeletionRequestId.value = null
                     _gymDeletionState.value = PersistenceRequestState.Finished(
@@ -953,7 +953,7 @@ class GymViewModel @JvmOverloads constructor(
                     _operationStatus.value = OperationStatus.Succeeded(
                         listOf("Workout is already absent; deletion end state confirmed")
                             .plus(warnings).joinToString(" · "),
-                        OperationFeedbackPresentation.Snackbar,
+                        transientSuccessPresentation(hasWarnings = warnings.isNotEmpty()),
                     )
                     _orphanedGymDeletionRequestId.value = null
                     _gymDeletionState.value = PersistenceRequestState.Finished(
@@ -1195,7 +1195,7 @@ class GymViewModel @JvmOverloads constructor(
             ) {
                 _operationStatus.value = OperationStatus.Succeeded(
                     "Machine profile is already absent; deletion end state confirmed",
-                    OperationFeedbackPresentation.Snackbar,
+                    OperationFeedbackPresentation.Inline,
                 )
                 _orphanedGymDeletionRequestId.value = null
                 _gymDeletionState.value = PersistenceRequestState.Finished(
@@ -2279,7 +2279,6 @@ class GymViewModel @JvmOverloads constructor(
     fun setRoutinePinned(id: Long, pinned: Boolean) = runOperation(
         "Updating Home shortcut…",
         if (pinned) "Routine start shortcut added to Whip Home" else "Routine shortcut removed from Whip Home",
-        successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
     ) {
         routineRepository.setRoutinePinned(id, pinned)
         if (pinned) app.settingsRepository.revealHomeSection(HomeSection.Gym)
@@ -2378,7 +2377,7 @@ class GymViewModel @JvmOverloads constructor(
                 }
                 _operationStatus.value = OperationStatus.Succeeded(
                     message,
-                    OperationFeedbackPresentation.Snackbar,
+                    transientSuccessPresentation(hasWarnings = receipt.warnings.isNotEmpty()),
                 )
                 return WhipResult.Success(receipt)
             }
@@ -2470,7 +2469,7 @@ class GymViewModel @JvmOverloads constructor(
                 }) { "Whip data is unavailable while recovery is in progress" }
                 _operationStatus.value = OperationStatus.Succeeded(
                     success,
-                    OperationFeedbackPresentation.Snackbar,
+                    OperationFeedbackPresentation.Inline,
                 )
                 WhipResult.Success(receipt)
             } catch (cancelled: CancellationException) {
@@ -2591,7 +2590,10 @@ class GymViewModel @JvmOverloads constructor(
             } catch (committed: CommittedGymMutationCancellation) {
                 _operationStatus.value = OperationStatus.Succeeded(
                     "$success · Saved; a follow-up update was interrupted",
-                    successFeedbackPresentation,
+                    transientSuccessPresentation(
+                        hasWarnings = true,
+                        hasRecoveryAction = recoveryToken != null,
+                    ),
                     recoveryToken,
                 )
                 runCatching { onFinished(true) }

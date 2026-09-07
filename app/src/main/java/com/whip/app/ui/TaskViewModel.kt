@@ -770,7 +770,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         runOperation(
             "Updating Home priority…",
             if (pinned) "Task pinned · first on Whip Home when due" else "Task unpinned from Whip Home",
-            successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
         ) {
             repository.setPinned(taskId, pinned)
             if (pinned) {
@@ -909,7 +908,6 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         runOperation(
             "Updating ${items.size} tasks…",
             "${items.size} tasks ${if (pinned) "pinned to" else "unpinned from"} Whip Home",
-            successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
         ) {
             repository.setPinnedAll(items.map { it.task.id }, pinned)
             if (pinned) {
@@ -1113,6 +1111,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         var undoAction: TaskUndoAction? = null
             private set
         private val warnings = mutableListOf<String>()
+        val hasWarnings: Boolean get() = warnings.isNotEmpty()
 
         fun offerUndo(message: String, action: TaskUndoAction) {
             undoMessage = message
@@ -1160,7 +1159,13 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                     "$success · ${receipt.warnings.joinToString(" ")}"
                 }
                 _operationFeedback.value = TaskOperationFeedback(
-                    status = OperationStatus.Succeeded(message, OperationFeedbackPresentation.Snackbar),
+                    status = OperationStatus.Succeeded(
+                        message,
+                        transientSuccessPresentation(
+                            hasWarnings = receipt.warnings.isNotEmpty(),
+                            hasRecoveryAction = pendingUndoToken != null,
+                        ),
+                    ),
                     undoMessage = pendingUndoMessage,
                     undoToken = pendingUndoToken,
                     quickAddedTaskId = pendingQuickAddTaskId,
@@ -1230,7 +1235,10 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                     "$successMessage · ${receipt.warnings.joinToString(" ")}"
                 }
                 _operationFeedback.value = TaskOperationFeedback(
-                    status = OperationStatus.Succeeded(message, OperationFeedbackPresentation.Snackbar),
+                    status = OperationStatus.Succeeded(
+                        message,
+                        transientSuccessPresentation(hasWarnings = receipt.warnings.isNotEmpty()),
+                    ),
                 )
                 return WhipResult.Success(receipt)
             }
@@ -1301,7 +1309,10 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
                 _operationFeedback.value = TaskOperationFeedback(
                     status = OperationStatus.Succeeded(
                         operation.successMessage(successMessage),
-                        successFeedbackPresentation,
+                        transientSuccessPresentation(
+                            hasWarnings = operation.hasWarnings,
+                            hasRecoveryAction = successFeedbackPresentation == OperationFeedbackPresentation.Snackbar,
+                        ),
                     ),
                     undoMessage = pendingUndoMessage,
                     undoToken = pendingUndoToken,

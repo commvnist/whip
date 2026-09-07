@@ -1190,7 +1190,6 @@ class TrackViewModel private constructor(
     fun setPinned(id: Long, pinned: Boolean) = runOperation(
         "Updating Home Quick Log…",
         if (pinned) "Track added to Home Quick Log" else "Track removed from Home Quick Log",
-        successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
     ) {
         repository.setPinned(id, pinned)
         if (pinned) app.settingsRepository.revealHomeSection(HomeSection.Tracks)
@@ -1198,7 +1197,6 @@ class TrackViewModel private constructor(
     fun setPinned(ids: Collection<Long>, pinned: Boolean) = runOperation(
         "Updating Home Quick Log…",
         "${ids.size} Tracks ${if (pinned) "added to" else "removed from"} Home Quick Log",
-        successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
     ) {
         app.database.withTransaction { ids.distinct().forEach { repository.setPinned(it, pinned) } }
         if (pinned) app.settingsRepository.revealHomeSection(HomeSection.Tracks)
@@ -1232,7 +1230,7 @@ class TrackViewModel private constructor(
                 }
                 _operationStatus.value = OperationStatus.Succeeded(
                     message,
-                    OperationFeedbackPresentation.Snackbar,
+                    transientSuccessPresentation(hasWarnings = receipt.warnings.isNotEmpty()),
                 )
                 return WhipResult.Success(receipt)
             }
@@ -1527,7 +1525,7 @@ class TrackViewModel private constructor(
                         deletedEntry = deletedSnapshot,
                         status = OperationStatus.Succeeded(
                             "Entry restored",
-                            OperationFeedbackPresentation.Snackbar,
+                            OperationFeedbackPresentation.Inline,
                             expectedToken,
                         ),
                     )
@@ -2031,7 +2029,7 @@ class TrackViewModel private constructor(
                 }
                 _operationStatus.value = OperationStatus.Succeeded(
                     message,
-                    OperationFeedbackPresentation.Snackbar,
+                    transientSuccessPresentation(hasWarnings = receipt.warnings.isNotEmpty()),
                 )
                 return WhipResult.Success(receipt)
             }

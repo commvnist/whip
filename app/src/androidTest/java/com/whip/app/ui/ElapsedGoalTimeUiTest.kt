@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertContentDescriptionContains
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasTestTag
@@ -122,7 +123,12 @@ class ElapsedGoalTimeUiTest {
             compose.onNodeWithTag("elapsed-display-$unit").performClick()
         }
         compose.onNodeWithTag("goal-editor-fields").performScrollToNode(hasTestTag("elapsed-display-preview"))
-        compose.onNodeWithText("2 months · 0 weeks · 5 days · 4 hours · 34 minutes").assertIsDisplayed()
+        compose.onNodeWithTag("elapsed-display-preview")
+            .assertContentDescriptionContains(
+                "2 months · 0 weeks · 5 days · 4 hours · 34 minutes",
+                substring = true,
+            )
+            .assertIsDisplayed()
         captureVisualCatalogSurface("goals.editor.elapsed-display")
         compose.onNodeWithText("Save").performClick()
 

@@ -830,7 +830,7 @@
 - Rejected alternatives: Removing only “Goal saved,” which leaves the same interruption elsewhere; removing every Snackbar, which would hide failures and time-bounded recovery; replacing bars with decorative checkmarks or animations, which preserves noise without adding information.
 - Constraints and consequences: Success states must still update visibly and accessibility semantics must expose the new state. Post-commit warnings remain visible even though the primary action succeeded. Recoverable actions retain exact token ownership and arbitration.
 - Related: `FB-20260906-010`, `FND-20260906-008`.
-- Status: Accepted; implementation in progress.
+- Status: Accepted, implemented, and focused emulator-verified; awaiting real-use validation after a future requested release.
 
 ### DEC-20260906-009 — Elapsed time is one composed metric, not a headline treatment
 
@@ -839,4 +839,4 @@
 - Rejected alternatives: A single uniformly bold string; per-unit chips or tiles that turn time into controls; reducing the collection counter to one truncated line; bespoke typography per screen.
 - Constraints and consequences: Every authored unit, including zero values, stays visible; canonical order and calendar arithmetic are unchanged. The component must work in dark/light themes, 320 dp, and enlarged text without dangling separators.
 - Related: `FB-20260906-010`, `FND-20260906-007`, `DEC-20260906-007`.
-- Status: Accepted; implementation in progress.
+- Status: Accepted, implemented, and visually verified across the fresh Goals family; awaiting real-use validation after a future requested release.

@@ -7,6 +7,22 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
+/** A successful mutation only needs transient UI when it carries information
+ * that the resulting screen cannot communicate on its own. */
+internal fun shouldPresentTransientSuccess(
+    hasWarnings: Boolean,
+    hasRecoveryAction: Boolean = false,
+): Boolean = hasWarnings || hasRecoveryAction
+
+internal fun transientSuccessPresentation(
+    hasWarnings: Boolean,
+    hasRecoveryAction: Boolean = false,
+): OperationFeedbackPresentation = if (shouldPresentTransientSuccess(hasWarnings, hasRecoveryAction)) {
+    OperationFeedbackPresentation.Snackbar
+} else {
+    OperationFeedbackPresentation.Inline
+}
+
 private data class TransientFeedbackRequest(
     val source: String,
     val priority: Int,

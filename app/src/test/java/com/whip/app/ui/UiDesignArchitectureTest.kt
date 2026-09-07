@@ -363,7 +363,41 @@ class UiDesignArchitectureTest {
                     "$fileName must not make snackbars the default success behavior",
                     source.contains("successFeedbackPresentation: OperationFeedbackPresentation = OperationFeedbackPresentation.Snackbar"),
                 )
-            }
+        }
+    }
+
+    @Test
+    fun passiveSuccessBarsAreExcludedAndElapsedTimeUsesOneRestrainedComposition() {
+        val feedback = File(sourceRoot, "com/whip/app/ui/TransientFeedback.kt").readText()
+        assertTrue(feedback.contains("hasWarnings || hasRecoveryAction"))
+        assertTrue(feedback.contains("fun transientSuccessPresentation("))
+
+        listOf("HabitViewModel.kt", "GoalViewModel.kt", "TrackViewModel.kt").forEach { fileName ->
+            val source = File(sourceRoot, "com/whip/app/ui/$fileName").readText()
+            assertFalse(
+                "$fileName must not opt a routine success directly into a Snackbar",
+                source.contains("OperationFeedbackPresentation.Snackbar"),
+            )
+            assertTrue(
+                "$fileName must classify post-commit warnings through the shared policy",
+                source.contains("transientSuccessPresentation(hasWarnings ="),
+            )
+        }
+        val area = File(sourceRoot, "com/whip/app/ui/AreaManagementDialog.kt").readText()
+        assertTrue(area.contains("shouldPresentTransientSuccess("))
+        assertTrue(area.contains("hasRecoveryAction = receipt.kind == AreaMutationKind.Archive"))
+        val tag = File(sourceRoot, "com/whip/app/ui/TagManagementDialog.kt").readText()
+        assertTrue(tag.contains("if (receipt.kind == TagMutationKind.Archive) scope.launch"))
+
+        val goals = File(sourceRoot, "com/whip/app/ui/GoalScreens.kt").readText()
+        val metric = goals.substringAfter("private fun ElapsedGoalMetric(")
+            .substringBefore("internal fun ElapsedGoalResetDialog(")
+        assertFalse(metric.contains("FontWeight.Bold"))
+        assertFalse(metric.contains("color = MaterialTheme.colorScheme.primary"))
+        assertTrue(metric.contains("part.value.toString()"))
+        assertTrue(metric.contains("part.unitLabel()"))
+        assertTrue(metric.contains("contentDescription = display.label()"))
+        assertTrue(goals.split("ElapsedGoalMetric(").size >= 6)
     }
 
     @Test

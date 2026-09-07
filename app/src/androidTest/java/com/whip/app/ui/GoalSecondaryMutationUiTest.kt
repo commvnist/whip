@@ -4,12 +4,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertContentDescriptionContains
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -361,8 +364,9 @@ class GoalSecondaryMutationUiTest {
 
         compose.onNodeWithText("Archived").assertIsDisplayed()
         compose.onNodeWithTag("goal-inspector-outcome-card").assertIsDisplayed()
-        compose.onNodeWithTag("goal-inspector-progress-card").assertIsDisplayed()
-        compose.onNodeWithTag("goal-inspector-outcome").assertTextContains("19 days", substring = true)
+        compose.onAllNodesWithTag("goal-inspector-progress-card").assertCountEquals(0)
+        compose.onNodeWithTag("goal-inspector-outcome")
+            .assertContentDescriptionContains("19 days", substring = true)
         compose.onNodeWithText("Restore Goal").assertIsDisplayed()
         compose.onNodeWithText("History").performClick()
         compose.onNodeWithTag("goal-closure-history-1").assertTextContains("Completed on", substring = true)

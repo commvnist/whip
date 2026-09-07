@@ -574,7 +574,7 @@ class HabitViewModel(
                 }
                 _operationStatus.value = OperationStatus.Succeeded(
                     message,
-                    OperationFeedbackPresentation.Snackbar,
+                    transientSuccessPresentation(hasWarnings = receipt.warnings.isNotEmpty()),
                 )
                 return WhipResult.Success(receipt)
             }
@@ -702,7 +702,6 @@ class HabitViewModel(
     fun setPinned(id: Long, pinned: Boolean) = runOperation(
         "Updating Home priority…",
         if (pinned) "Habit pinned · first on Whip Home when due" else "Habit unpinned from Whip Home",
-        successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
     ) {
         repository.setPinned(id, pinned)
         if (pinned) app.settingsRepository.revealHomeSection(HomeSection.Habits)
@@ -1021,7 +1020,6 @@ class HabitViewModel(
                 _timerReviewPrompt.value = null
                 _operationStatus.value = OperationStatus.Succeeded(
                     "Timer discarded; no duration was logged",
-                    OperationFeedbackPresentation.Snackbar,
                 )
             } catch (cancelled: CancellationException) {
                 throw cancelled
@@ -1067,7 +1065,7 @@ class HabitViewModel(
                 _operationStatus.value = OperationStatus.Succeeded(
                     if (outcome.logId == null) "Timer stopped; no duration was logged"
                     else "Logged $duration for ${habit.name}.${warning?.let { " $it" }.orEmpty()}",
-                    OperationFeedbackPresentation.Snackbar,
+                    transientSuccessPresentation(hasWarnings = warning != null),
                 )
             }
             is HabitTimerStopOutcome.AlreadyCompleted -> _operationStatus.value = OperationStatus.Succeeded(
@@ -1143,8 +1141,7 @@ class HabitViewModel(
                 }
                 _operationStatus.value = OperationStatus.Succeeded(
                     message,
-                    if (requestId == null) OperationFeedbackPresentation.Inline
-                    else OperationFeedbackPresentation.Snackbar,
+                    transientSuccessPresentation(hasWarnings = receipt.warnings.isNotEmpty()),
                 )
                 return WhipResult.Success(receipt)
             }
@@ -1208,7 +1205,10 @@ class HabitViewModel(
         viewModelScope.launch {
             fun successResult(receipt: EntitySaveReceipt): WhipResult.Success<EntitySaveReceipt> {
                 val message = if (receipt.warnings.isEmpty()) success else "$success · ${receipt.warnings.joinToString(" ")}"
-                _operationStatus.value = OperationStatus.Succeeded(message, OperationFeedbackPresentation.Snackbar)
+                _operationStatus.value = OperationStatus.Succeeded(
+                    message,
+                    transientSuccessPresentation(hasWarnings = receipt.warnings.isNotEmpty()),
+                )
                 return WhipResult.Success(receipt)
             }
             val result = try {

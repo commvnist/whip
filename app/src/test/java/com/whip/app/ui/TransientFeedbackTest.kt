@@ -96,6 +96,23 @@ class TransientFeedbackTest {
     }
 
     @Test
+    fun successfulActionsOnlyUseTransientFeedbackForWarningsOrRecovery() {
+        assertFalse(shouldPresentTransientSuccess(hasWarnings = false, hasRecoveryAction = false))
+        assertEquals(
+            OperationFeedbackPresentation.Inline,
+            transientSuccessPresentation(hasWarnings = false, hasRecoveryAction = false),
+        )
+        assertEquals(
+            OperationFeedbackPresentation.Snackbar,
+            transientSuccessPresentation(hasWarnings = true, hasRecoveryAction = false),
+        )
+        assertEquals(
+            OperationFeedbackPresentation.Snackbar,
+            transientSuccessPresentation(hasWarnings = false, hasRecoveryAction = true),
+        )
+    }
+
+    @Test
     fun sameSourceRecoveryAtomicallyReplacesTheOlderRecovery() {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
         try {

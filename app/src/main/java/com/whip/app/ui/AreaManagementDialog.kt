@@ -128,7 +128,12 @@ internal fun AreaManagementDialog(
                 AreaMutationKind.DeleteKeepingItems -> "Area deleted; assigned items moved"
                 AreaMutationKind.DeleteWithItems -> "Area and assigned items permanently deleted"
             }
-            scope.launch {
+            if (
+                shouldPresentTransientSuccess(
+                    hasWarnings = receipt.warnings.isNotEmpty(),
+                    hasRecoveryAction = receipt.kind == AreaMutationKind.Archive,
+                )
+            ) scope.launch {
                 val message = listOfNotNull(
                     resultMessage,
                     receipt.warnings.joinToString(" ").takeIf(String::isNotBlank),

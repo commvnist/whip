@@ -418,10 +418,12 @@ private fun revisionToken(vararg values: Any?): String {
 }
 
 data class ElapsedCounter(val value: Long, val unit: ElapsedDisplayUnit) {
-    fun label(): String {
+    fun unitLabel(): String {
         val noun = unit.name.lowercase().removeSuffix("s")
-        return "$value $noun${if (value == 1L) "" else "s"}"
+        return "$noun${if (value == 1L) "" else "s"}"
     }
+
+    fun label(): String = "$value ${unitLabel()}"
 }
 
 data class ElapsedDisplay(val parts: List<ElapsedCounter>) {

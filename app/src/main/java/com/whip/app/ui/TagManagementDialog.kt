@@ -75,18 +75,12 @@ internal fun TagManagementDialog(
                 TagMutationKind.Restore -> if (completedContext == "create-restore") createOpen = false
             }
             pendingContext = null
-            scope.launch {
+            if (receipt.kind == TagMutationKind.Archive) scope.launch {
                 val result = snackbar.showSnackbar(
-                    message = when (receipt.kind) {
-                        TagMutationKind.Create -> "Tag created"
-                        TagMutationKind.Rename -> "Tag renamed everywhere"
-                        TagMutationKind.Merge -> "Tags merged everywhere"
-                        TagMutationKind.Archive -> "Tag archived"
-                        TagMutationKind.Restore -> "Tag restored"
-                    },
-                    actionLabel = "Undo".takeIf { receipt.kind == TagMutationKind.Archive },
+                    message = "Tag archived",
+                    actionLabel = "Undo",
                 )
-                if (result == SnackbarResult.ActionPerformed && receipt.kind == TagMutationKind.Archive) {
+                if (result == SnackbarResult.ActionPerformed) {
                     val requestId = coordinator.begin() ?: return@launch
                     pendingContext = "undo-archive"
                     if (!viewModel.setTagArchivedMutation(requestId, receipt.tagId, false)) {
