@@ -867,5 +867,5 @@
 - Interaction contract: Standard remains selected and described as recommended. Adaptive results are advisory, explain why they qualified or did not, and never mutate a Training Max until the user explicitly confirms a cycle-review choice. Cycle audit records continue to distinguish Standard, Suggestion, Hold, Ignore, and Custom.
 - Rejected alternatives: Make large AMRAPs automatically increase the Training Max; require RPE/RIR for every higher suggestion; let Joker completion alone corroborate a larger increase; use the most optimistic estimated-1RM formula or uncapped high-rep result; present adaptive progression as though it were canonical 5/3/1.
 - Constraints and consequences: The engine remains deterministic from snapshotted workout evidence, does not infer recovery/readiness, and cannot eliminate judgment. Conservative false negatives are preferred to compounding an aggressive Training Max. Existing routine settings and history remain compatible.
-- Related: `FB-20260907-001`, `FND-20260907-001`.
-- Status: Accepted, implemented, code-reviewed, and emulator-verified in `IMP-20260907-001` and `VER-20260907-001`; owner-phone release pending.
+- Related: `FB-20260907-001`, `FND-20260907-001`, `FND-20260907-002`, `FND-20260907-003`, `IMP-20260907-001`, `IMP-20260907-002`, `VER-20260907-001`, `VER-20260907-002`.
+- Status: Accepted, implemented, code-reviewed, emulator-verified, and released in Whip 0.3.57/code 63.

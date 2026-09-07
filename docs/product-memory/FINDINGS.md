@@ -1195,3 +1195,15 @@
 - Recommended solution: Use a non-error advisory color/container and render strength plus individual evidence lines with shared supporting-text hierarchy.
 - Related: `FB-20260907-001`, `FND-20260907-001`, `DEC-20260907-001`.
 - Status: Resolved with a neutral advisory badge and separated evidence hierarchy; visually and semantically accepted in `VER-20260907-001`.
+
+### FND-20260907-003 — Corroborated tier must prove the exact larger Training Max
+
+- Severity/category: P1 5/3/1 progression correctness and conservative-boundary integrity.
+- Observed: Final code review found that the repeated objective evidence was validated against the 1.25× next Training Max before favorable effort or a strong Joker could promote the suggestion to 1.5×. A narrow capacity band could therefore support the smaller alternative while receiving the larger one.
+- Expected: Corroboration may unlock consideration of 1.5× only when both conservative load-adjusted AMRAP estimates also support that exact next Training Max. Otherwise retain the valid 1.25× alternative and explain the cap.
+- Why it matters / affected users: The larger tier compounds Training Max faster; effort confidence must not substitute for objective capacity at the actual load being offered.
+- Evidence: Review of `assessAdaptiveEvidence`, a new counterexample with favorable effort and estimates between the tier thresholds, the exact domain rerun, and the final release-stamped 344-JVM/572-Android readiness gate.
+- Root cause: The first implementation computed one shared capacity gate for the rep-only tier and applied corroboration afterward without a second tier-specific capacity check.
+- Recommended solution: Persist whether both estimates support the corroborated next Training Max, require it alongside effort/Joker corroboration, retain 1.25× when it does not, and keep a stable rationale for that case.
+- Related: `FB-20260907-001`, `DEC-20260907-001`, `IMP-20260907-001`, `VER-20260907-001`.
+- Status: Resolved before release; the new counterexample and full acceptance gate pass.

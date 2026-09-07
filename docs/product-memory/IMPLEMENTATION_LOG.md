@@ -1228,6 +1228,17 @@
 - Regression coverage: Expanded pure rule-table/counterexample coverage for rep-only, effort-corroborated, strong/weak/grinder Joker, separate-session, intensity, conservative-capacity, timestamp, and regression boundaries; protected setup-to-draft persistence; changed repository audit expectation to the engine constant; and made the catalog's cycle-review fixture depict the 1.25× adaptive decision.
 - Persistence/migration/history impact: No Room schema, data epoch, or backup-format change. Existing routines retain their progression mode and opt-in value; existing cycle-decision history retains its recorded engine version and rationale. Only new reviews use engine version 2.
 - Compatibility and limitations: The adaptive mode remains advisory, opt-in, and user-confirmed. It does not infer recovery/readiness, and deliberately prefers conservative false negatives. The final review additionally prevents corroboration from selecting the 1.5× tier unless the conservative estimates support that exact next Training Max. Release identity is staged as Whip 0.3.57/code 63; Play Store candidate qualification remains out of scope for this private owner-phone release.
-- Related: `FB-20260907-001`, `FND-20260907-001`, `FND-20260907-002`, `DEC-20260907-001`, `VER-20260907-001`.
+- Related: `FB-20260907-001`, `FND-20260907-001`, `FND-20260907-002`, `FND-20260907-003`, `DEC-20260907-001`, `VER-20260907-001`.
 - Verification: `VER-20260907-001`.
-- Status: Implemented, code-reviewed, focused-tested, semantically verified, visually accepted, and awaiting the authorized owner-phone release.
+- Status: Implemented, code-reviewed, emulator-accepted, and released in Whip 0.3.57/code 63 through `IMP-20260907-002`.
+
+### IMP-20260907-002 — Signed Whip 0.3.57 adaptive 5/3/1 owner-phone release
+
+- Behavior changed: Advanced Whip to 0.3.57/code 63 and installed progression engine version 2 plus the Adaptive review decision UX in place on the explicitly selected owner phone through the fast private-development lane. Canonical Standard remains the default; the two bounded optional tiers and their conservative evidence explanations are now available for normal owner use.
+- Important files/symbols: Release source `59b42fc`, `app/build.gradle.kts`, `FiveThreeOneProgression`, `FiveThreeOneProgramSetupDialog`, `FiveThreeOneCycleReviewDialog`, signed `app-release.apk`, local `app-release.aab`, and `VER-20260907-002`.
+- Persistence/migration/history impact: Room schema 46, data epoch 6, and exact-match backup version 25 are unchanged. Android first-install identity and existing owner data were preserved; no reset, clear, uninstall, downgrade, or fresh-start confirmation occurred.
+- Compatibility and limitations: The release follows the release-stamped 344-JVM/572-Android readiness gate and exact 46-surface Gym gallery, then adds release-vital lint, R8/resource optimization, signed build/install, and physical smoke. It is a private owner-phone development release, not Play Store candidate evidence; public publication still requires a fresh `scripts/candidate` run.
+- Commit/push: Release source `59b42fc` was clean and synchronized with `origin/main` before signed build/install; the following reconciliation commit changes product memory only.
+- Related: `FB-20260907-001`, `FND-20260907-001`, `FND-20260907-002`, `FND-20260907-003`, `DEC-20260907-001`, `IMP-20260907-001`, `VER-20260907-001`, `VER-20260907-002`.
+- Verification: `VER-20260907-002`.
+- Status: Released and device-verified as Whip 0.3.57/code 63; awaiting normal real-use feedback.
