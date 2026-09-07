@@ -6,10 +6,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -58,6 +60,9 @@ class TrackEntryMutationUiTest {
         }
 
         compose.onNodeWithTag("track-entry-editor-list").assertIsDisplayed()
+        compose.onNodeWithText("Books").assertIsDisplayed()
+        compose.onNodeWithText("New Entry · Complete the reusable fields for this Track.").assertIsDisplayed()
+        compose.onAllNodesWithText("New Title").assertCountEquals(0)
         captureVisualCatalogSurface("tracks.entry.create")
     }
 

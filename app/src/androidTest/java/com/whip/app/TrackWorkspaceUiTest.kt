@@ -299,6 +299,32 @@ class TrackWorkspaceUiTest {
     }
 
     @Test
+    fun archivedTrackSummaryOmitsUnavailableAddAction() {
+        val projection = trackProjection(
+            id = 6,
+            name = "Archived Reading",
+            icon = "📚",
+            areaId = "personal",
+            area = "Personal",
+            entryId = 66,
+            title = "Finished book",
+            score = 4.0,
+            date = LocalDate.of(2026, 8, 24),
+            archived = true,
+        )
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                TrackRow(projection, {}, {}, {})
+            }
+        }
+
+        compose.onNodeWithTag("track-card-6").assertIsDisplayed()
+        compose.onAllNodesWithTag("track-primary-action-6", useUnmergedTree = true).assertCountEquals(0)
+        compose.onAllNodesWithContentDescription("Archived").assertCountEquals(0)
+        compose.onNodeWithTag("track-expand-6", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
     fun trackSelectionUsesOneCheckboxSemanticOwner() {
         val selected = mutableStateOf(false)
         val projection = trackProjection(

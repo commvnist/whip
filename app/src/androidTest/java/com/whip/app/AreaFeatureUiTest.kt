@@ -14,6 +14,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
@@ -29,6 +30,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.whip.app.captureVisualCatalogSurface
 import com.whip.app.WhipApplication
@@ -37,6 +39,7 @@ import com.whip.app.domain.AreaScope
 import com.whip.app.ui.theme.WhipTheme
 import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -260,6 +263,9 @@ class AreaFeatureUiTest {
         compose.onNodeWithText("Work · 3 items").assertIsDisplayed()
         compose.onAllNodesWithText("No area", substring = true).assertCountEquals(0)
         compose.onNodeWithText("Manage Areas").assertIsDisplayed()
+        val anchorHeight = compose.onNodeWithTag("workspace-area-action", useUnmergedTree = true)
+            .getUnclippedBoundsInRoot().let { it.bottom - it.top }
+        assertTrue("Area menu anchor must wrap its visible trigger: $anchorHeight", anchorHeight <= 56.dp)
         captureVisualCatalogSurface("organization.area-picker.menu")
     }
 

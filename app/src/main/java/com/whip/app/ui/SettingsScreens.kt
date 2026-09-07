@@ -1226,7 +1226,12 @@ internal fun SettingsContent(
             }
             AvailabilityNotice("Send test notification", testNotificationAvailability)
         }
-        item { WhipTextButton(onClick = { diagnosticRefresh++ }) { Text("Refresh Notification Status") } }
+        item {
+            WhipOutlinedButton(
+                onClick = { diagnosticRefresh++ },
+                modifier = Modifier.fillMaxWidth().testTag("refresh-notification-status"),
+            ) { Text("Refresh Notification Status") }
+        }
         item {
             val enabled = settings.quietStartMinutes != null && settings.quietEndMinutes != null
             val editingQuietHours = activeTypedSettingTag in setOf(

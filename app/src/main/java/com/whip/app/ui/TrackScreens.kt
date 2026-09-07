@@ -1583,7 +1583,6 @@ private fun TrackSummaryRow(
     onEnterSelection: (() -> Unit)?,
 ) {
     val disclosure = rememberItemDisclosure("track:${projection.track.id}")
-    val addLabel = if (projection.track.archived) "Archived" else projection.addEntryLabel()
     ProductivityItemCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -1631,12 +1630,13 @@ private fun TrackSummaryRow(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                IconButton(
-                    onClick = { onAddEntry(projection.track.id) },
-                    enabled = !projection.track.archived,
-                    modifier = Modifier.size(48.dp).testTag("track-primary-action-${projection.track.id}"),
-                ) {
-                    Icon(Icons.Outlined.Add, contentDescription = addLabel)
+                if (!projection.track.archived) {
+                    IconButton(
+                        onClick = { onAddEntry(projection.track.id) },
+                        modifier = Modifier.size(48.dp).testTag("track-primary-action-${projection.track.id}"),
+                    ) {
+                        Icon(Icons.Outlined.Add, contentDescription = projection.addEntryLabel())
+                    }
                 }
                 IconButton(
                     onClick = disclosure.toggle,
@@ -3549,7 +3549,16 @@ internal fun TrackEntryEditor(
                         testTag = "track-entry-save-problem",
                     )
                 }
-                item { WhipPageHeader(if (!editing) "New ${projection.primaryField.name}" else requireNotNull(editSnapshot).displayName, "Fields follow the reusable ${projection.track.name} structure.") }
+                item {
+                    WhipPageHeader(
+                        title = if (!editing) projection.track.name else requireNotNull(editSnapshot).displayName,
+                        supportingText = if (!editing) {
+                            "New Entry · Complete the reusable fields for this Track."
+                        } else {
+                            "Entry in ${projection.track.name} · Fields follow this Track's reusable structure."
+                        },
+                    )
+                }
                 items(projection.fields, key = TrackField::uuid) { field ->
                     val current = values[field.uuid] ?: TrackValueDraft(enteredUnitId = field.unitId)
                     val invalidNumber = field in invalidNumbers

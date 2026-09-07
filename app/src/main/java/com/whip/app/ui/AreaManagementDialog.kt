@@ -200,7 +200,11 @@ internal fun AreaManagementDialog(
                     Column(Modifier.weight(1f).testTag("area-destination-title")) {
                         Text(selectedArea?.name ?: "Areas", style = MaterialTheme.typography.headlineSmall)
                         Text(
-                            if (selectedArea == null) "Group related tasks, habits, goals, and tracks." else usageText(state.areaUsage[selectedArea.id] ?: AreaUsageCounts()),
+                            when {
+                                selectedArea == null -> "Group related tasks, habits, goals, and tracks."
+                                selectedArea.archived -> "Archived Area · ${usageText(state.areaUsage[selectedArea.id] ?: AreaUsageCounts())}"
+                                else -> "Active Area · ${usageText(state.areaUsage[selectedArea.id] ?: AreaUsageCounts())}"
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -735,12 +739,6 @@ private fun AreaDetailContent(
         contentPadding = androidx.compose.foundation.layout.PaddingValues(24.dp, 20.dp, 24.dp, 88.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        item {
-            WhipPageHeader(
-                title = area.name,
-                supportingText = if (area.archived) "Archived Area · ${usageText(usage)}" else "Active Area · ${usageText(usage)}",
-            )
-        }
         item {
             WhipSection("Identity", supportingText = "These changes preserve every assigned item and its history.") {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

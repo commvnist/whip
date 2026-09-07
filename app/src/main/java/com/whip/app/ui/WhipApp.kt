@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -3561,7 +3562,7 @@ internal fun AreaScopeMenu(
         is AreaScope.One -> selectedArea?.name ?: "All Areas"
     }
     val displayLabel = if (activeAreas.isEmpty()) "Main" else label
-    Box(Modifier.testTag("workspace-area-action")) {
+    Box(Modifier.wrapContentSize().testTag("workspace-area-action")) {
         WhipFilterChip(
             selected = scope != AreaScope.All,
             onClick = { expanded = true },
