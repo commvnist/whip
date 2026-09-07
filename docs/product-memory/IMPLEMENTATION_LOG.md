@@ -1369,3 +1369,16 @@
 - Related: `FB-20260907-007`, `FND-20260907-016`, `DEC-20260907-006`, `VER-20260907-014`.
 - Verification: `VER-20260907-014`.
 - Status: Implemented, code-reviewed, emulator-accepted, semantically audited, and visually verified; not physically released.
+
+### IMP-20260907-014 — One Gym set density and whole-product consistency remediation
+
+- Behavior changed: Removed the compact Gym set-row preference and its Settings, SharedPreferences, backup, composable, test-call, cause/effect, and documentation paths. Every workout exercise now uses the shared medium `WhipItemCard` surface and one 12×10 dp / 6 dp rhythm while retaining concise work-section, classification, planned, effort, and prescription context. The active composer remains a distinct input workspace.
+- Whole-product review changed: Re-reviewed all 176 declared surfaces as one system. The frequent next-set jump now has an explicit 48 dp minimum in its shortest state. Selected-Track analytics is named “Track Insights” beside the workspace aggregate “Insights,” removing adjacent scope ambiguity without deleting either capability.
+- Shared UI changed: Renamed the formerly productivity-specific collection surface to `WhipItemCard` and adopted it across Task, Habit, Goal, Track, and Gym call sites. Domain-specific headers, controls, charts, editors, and progression semantics remain caller-owned.
+- Regression coverage: Settings/persistence/backup tests reject resurrection of the retired density field; Gym UI proves visible passive-set context; visual-catalog tests lock the next-set geometry and both Track labels; navigation/source contracts follow the scoped Track name. Backup exact-match version advances 25→26; Room schema 46 and data epoch 6 are unchanged.
+- Compatibility and limitations: Existing workout, set, Routine, 5/3/1, history, calculation, and local-owner data are unchanged. Older backup archives are intentionally rejected at the clean exact-match contract. This is verified private-development source, not a frozen Play Store candidate; release installation remains a separate step.
+- Detailed audit: `docs/quality/UI_UX_DESIGN_CONSISTENCY_AUDIT_2026-09-07.md`.
+- Commit/push: Pending the coherent implementation commit following `VER-20260907-015`.
+- Related: `FB-20260907-008`, `FND-20260907-017`, `FND-20260907-018`, `FND-20260907-019`, `DEC-20260907-007`, `DEC-20260907-008`, `VER-20260907-015`.
+- Verification: `VER-20260907-015`.
+- Status: Implemented, code-reviewed, broad-tested, semantically verified, and visually accepted; higher-version phone release pending.

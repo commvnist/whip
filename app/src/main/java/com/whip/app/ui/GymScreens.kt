@@ -2998,6 +2998,7 @@ private fun WorkoutContent(
                                 set.prescriptionLabel(state.appSettings.gymWeightUnitId, state.appSettings.numberPrecision, exerciseItem.workoutExercise)?.let { " · $it" }.orEmpty(),
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .heightIn(min = 48.dp)
                                 .clickable(onClickLabel = "Jump to next incomplete set") {
                                     val blockIndex = workoutBlocks.indexOfFirst { block ->
                                         block.exercises.any { it.workoutExercise.id == exerciseItem.workoutExercise.id }
@@ -3193,7 +3194,6 @@ private fun WorkoutContent(
                     preferredWeightUnitId = state.appSettings.gymWeightUnitId,
                     preferredDistanceUnitId = state.appSettings.distanceUnitId,
                     numberPrecision = state.appSettings.numberPrecision,
-                    compactRows = state.appSettings.gymCompactSetRows,
                     showRpe = effectiveShowRpe,
                     showRir = (item.exercise.showRir ?: state.appSettings.showGymRir) && !effectiveShowRpe,
                     workoutRevision = session.workoutRevision,
@@ -3406,7 +3406,6 @@ internal fun WorkoutExerciseCard(
     preferredWeightUnitId: String,
     preferredDistanceUnitId: String,
     numberPrecision: Int,
-    compactRows: Boolean,
     showRpe: Boolean,
     showRir: Boolean,
     workoutRevision: Long = 0,
@@ -3487,7 +3486,7 @@ internal fun WorkoutExerciseCard(
             setRemovalError = null
         }
     }
-    Card(
+    WhipItemCard(
         modifier = Modifier.fillMaxWidth().then(
             if (arranging) Modifier.whipReorderItem(
                 reorderInteraction,
@@ -3496,7 +3495,6 @@ internal fun WorkoutExerciseCard(
             ) else Modifier,
         ),
     ) {
-        Column(modifier = Modifier.padding(if (compactRows) 9.dp else 14.dp), verticalArrangement = Arrangement.spacedBy(if (compactRows) 4.dp else 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (arranging) {
                     WhipReorderHandle(
@@ -3611,7 +3609,7 @@ internal fun WorkoutExerciseCard(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            WhipReorderLayout(itemSpacing = if (compactRows) 4.dp else 8.dp) {
+            WhipReorderLayout(itemSpacing = 6.dp) {
             orderedSets.withIndex()
                 .filter { (_, set) ->
                     arranging || !set.completed || completedSetsExpanded || !hasIncompleteSet
@@ -3779,19 +3777,20 @@ internal fun WorkoutExerciseCard(
                                     append("Set ${index + 1} · ")
                                     append(set.shortLabel(preferredWeightUnitId, preferredDistanceUnitId, numberPrecision, item.workoutExercise, item.exercise.weightUnitId).replace("Empty set", "Ready"))
                                 },
+                                style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.SemiBold,
                             )
-                            if (!compactRows) Text(
+                            Text(
                                 buildString {
                                     append(set.classification.uiLabel())
                                     if (set.planned) append(" · planned")
                                     set.rpe?.let { append(" · RPE $it") }
                                 },
-                                style = MaterialTheme.typography.labelSmall,
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             set.prescriptionLabel(preferredWeightUnitId, numberPrecision, item.workoutExercise)?.let { target ->
-                                Text("Target: $target", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary)
+                                Text("Target · $target", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
                             }
                         }
                         if (!arranging) Box {
@@ -3887,7 +3886,6 @@ internal fun WorkoutExerciseCard(
                     }
                 }
             }
-        }
     }
     removeConfirmationBoundary?.let { reviewedBoundary ->
         val savedSetCount = item.sets.count { it.deletedAtMillis == null }

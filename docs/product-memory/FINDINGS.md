@@ -1363,3 +1363,34 @@
 - Recommended solution: Let the active session's source Routine own one filled recovery action, provide one page fallback only when that source Routine is not visible, suppress day-start aliases while a session is active, and retain genuine Resolve Equipment actions only where editing is not locked. Add a four-day active-session semantics count and fresh Routine visual state.
 - Related: `FB-20260907-007`, `FND-20260906-004`, `DEC-20260906-006`.
 - Status: Verified; resolved by single-owner active-workout recovery in `IMP-20260907-013` and accepted in `VER-20260907-014`.
+
+### FND-20260907-017 — Gym retains the product's retired user-selectable row-density fork
+
+- Severity/category: P1 consistency, settings integrity, workout readability, and portable-state debt.
+- Observed: The rest of Whip converged on one summary-first collection density, but Gym still exposes “Use compact workout set rows.” The Boolean propagates from Settings through `AppSettings`, SharedPreferences, backup JSON, tests, and `WorkoutExerciseCard`, where it changes exercise padding and set spacing and suppresses classification, planned prescription, and RPE metadata.
+- Expected: Workout sets have one intentional, responsive presentation that preserves high-value lifting context while remaining efficiently scannable; no user preference, persisted key, backup field, or conditional UI branch should resurrect an alternate density language.
+- Why it matters / affected users: Equivalent sessions can currently look and communicate differently solely because of hidden historical state. Compact mode saves space by deleting useful decision context, comfortable mode spends more vertical space than the established product rhythm, and the obsolete preference enlarges settings and migration/test surface without a durable user benefit.
+- Evidence: `AppSettings.gymCompactSetRows`, the Planning > Gym Defaults toggle, backup export/import, `WorkoutContent` propagation, and `WorkoutExerciseCard`'s conditional padding/spacing/support text; contrasted with `DEC-20260903-014` and the current one-density productivity cards.
+- Scope: Presentation and portable/settings representation only. Set data, workout calculations, Routine progression, Room schema 46, and data epoch 6 are not implicated.
+- Related: `FB-20260907-008`, `FND-20260903-026`, `DEC-20260903-014`.
+- Status: Verified; the preference, persisted/backup representation, rendering branch, and documentation are removed, and one information-preserving design is accepted in `IMP-20260907-014` / `VER-20260907-015`.
+
+### FND-20260907-018 — The one-line next-set jump is shorter than Whip's touch-target floor
+
+- Severity/category: P1 workout accessibility, one-handed execution, and shared interaction geometry.
+- Observed: In the fresh `gym.workout.active` semantics evidence, the clickable “NEXT · Goblet Squat · Set 1” jump is 115 px high on the 420 dpi catalog device—about 44 dp. Its foundation `clickable` modifier has only 8 dp vertical padding and no minimum interactive height. The longer 5/3/1 version happens to exceed the floor only because its prescription wraps.
+- Expected: The next-set jump is at least 48 dp in every content-length state, without making multi-line programmed prescriptions less compact.
+- Why it matters / affected users: This is a frequent in-workout navigation target used with fatigue and often one-handed. Its accessibility changes with translated/exercise text length, so the shortest and most common state is the least forgiving.
+- Evidence: `gym.workout.active.png/xml`, `WorkoutContent`'s `next-set-focus` modifier, and contrast with Whip's established 48 dp action contract.
+- Related: `FB-20260907-008`, `DEC-20260903-015`.
+- Status: Verified; every next-set jump has an explicit 48 dp minimum and the short-state geometry regression passes in `VER-20260907-015`.
+
+### FND-20260907-019 — Track detail and workspace expose indistinguishable Insights destinations
+
+- Severity/category: P2 information architecture, navigation scope, and screen-reader clarity.
+- Observed: Track detail keeps the global Tracks/Activity/Archived/Insights destination bar visible above a subordinate Entries/Options/Insights bar. Both visible “Insights” controls are interactive but lead to different scopes: all visible Tracks versus the selected Track. The duplication appears in both `tracks.detail.entries` and `tracks.detail.options` semantic evidence.
+- Expected: The subordinate destination names its selected-Track scope while keeping the concise workspace destination unchanged.
+- Why it matters / affected users: Identical adjacent navigation labels make users infer scope from position alone and give screen-reader users two indistinguishable commands in the same hierarchy.
+- Evidence: Fresh `tracks.detail.entries.png/xml` and `tracks.detail.options.png/xml`; `TrackWorkspaceDestination.Insights` and `TrackDetailDestination.Insights` both currently use the label “Insights.”
+- Related: `FB-20260907-008`, `DEC-20260907-002`, `DEC-20260907-006`.
+- Status: Verified; the subordinate destination and page are “Track Insights,” with focused and whole-catalog acceptance in `VER-20260907-015`.

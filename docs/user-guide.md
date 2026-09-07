@@ -227,8 +227,9 @@ data row opens its exact value and source-workout details.
 Workout history provides both a chronological list and a navigable month
 calendar with per-day workout counts and filters.
 During a workout, Whip marks the next incomplete set and offers an explicit
-**Jump to Next Set** control. **Settings → Planning & Units → Gym Defaults**
-can use denser set rows. Workout Tools
+**Jump to Next Set** control. Every surrounding set row uses the same balanced
+density and keeps its work section, classification, planned state, effort, and
+prescription visible when that context exists. Workout Tools
 can save named bar/plate inventories; those presets are reusable in both the
 plate calculator and exercise setup. Every day in a pinned multi-day routine
 is directly startable from Home.

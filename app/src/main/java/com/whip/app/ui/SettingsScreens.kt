@@ -930,7 +930,6 @@ internal fun SettingsContent(
             )
         }
         item { SettingsToggle("Rest timer sound", settings.timerSound) { value -> viewModel.update { it.copy(timerSound = value) } }; SettingsToggle("Rest timer vibration", settings.timerVibration) { value -> viewModel.update { it.copy(timerVibration = value) } }; SettingsToggle("Keep workout screen awake by default", settings.keepScreenAwake) { value -> viewModel.update { it.copy(keepScreenAwake = value) } } }
-        item { SettingsToggle("Use compact workout set rows", settings.gymCompactSetRows) { value -> viewModel.update { it.copy(gymCompactSetRows = value) } } }
         item {
             SettingsToggle(
                 "Start rest timer when a set completes",

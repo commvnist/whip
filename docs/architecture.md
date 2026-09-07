@@ -94,14 +94,15 @@ occurrence per habit/day and has no separate missing-value record.
 
 ## Productivity collection design
 
-Tasks, Habits, and Goals share one collection-card grammar implemented by
-`ProductivityItemCard` and `ProductivityItemHeader`: identity emoji, title and
-context, an optional fixed-width primary-action lane, then a trailing edit
-action. Card inset, shape, color, headline typography, area placement, and
-vertical spacing are owned by those primitives. Progress and expanded content
-follow beneath the header. Home, planning, active/completed/archived lists, and
-insight cards reuse the same hierarchy; a domain may omit an action, but may not
-reorder the remaining elements.
+Whip collections and workout execution groups share one medium-density card
+surface implemented by `WhipItemCard`. Tasks, Habits, and Goals additionally
+share `ProductivityItemHeader`: identity emoji, title and context, an optional
+fixed-width primary-action lane, then a trailing edit action. Card inset, shape,
+color, headline typography, area placement, and vertical spacing are owned by
+those primitives. Progress and expanded content follow beneath the header.
+Home, planning, active/completed/archived lists, insight cards, Tracks, and Gym
+exercise groups reuse the same hierarchy; a domain may omit an action, but may
+not reorder the remaining elements.
 
 ## Adaptive presentation and visual semantics
 
@@ -134,7 +135,7 @@ files:
   "format": "whip-backup",
   "envelopeVersion": 3,
   "dataModelEpoch": 6,
-  "databaseVersion": 25,
+  "databaseVersion": 26,
   "exportedAt": "2026-08-18T00:00:00Z",
   "checksumSha256": "...",
   "tables": {},
@@ -143,7 +144,7 @@ files:
 ```
 
 The backup data version is intentionally independent of Room's schema version.
-Only envelope 3, data epoch 6, and backup data version 25 are accepted. Older
+Only envelope 3, data epoch 6, and backup data version 26 are accepted. Older
 and future complete archives are rejected before their tables are interpreted;
 the clean boundary deliberately provides no archive upgrade path. Import is
 parse -> authenticate/checksum -> validate -> preview -> recoverable commit.

@@ -59,7 +59,7 @@ class SettingsBehaviorUiTest {
     }
 
     @Test
-    fun appearanceHasNoDensityChoiceAndTasksUseSummaryDisclosure() {
+    fun settingsHaveNoDensityChoicesAndTasksUseSummaryDisclosure() {
         val taskId = runBlocking {
             app.taskRepository.create(
                 TaskDraft(
@@ -82,6 +82,13 @@ class SettingsBehaviorUiTest {
         openAppearanceSettings()
         compose.onAllNodesWithText("Use compact item rows").assertCountEquals(0)
         compose.onNodeWithText("Show advanced controls by default").assertIsDisplayed()
+
+        compose.onNodeWithContentDescription("Back to Settings").performClick()
+        selectSettingsCategory("Planning & Units")
+        compose.onAllNodesWithText("Use compact workout " + "set rows").assertCountEquals(0)
+        compose.onNodeWithTag("settings-list")
+            .performScrollToNode(androidx.compose.ui.test.hasText("Gym Defaults"))
+        compose.onNodeWithText("Gym Defaults").assertIsDisplayed()
     }
 
     @Test

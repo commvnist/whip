@@ -323,6 +323,7 @@ class BackupRepositoryTest {
         val exportedRoot = JSONObject(json)
         val exportedTables = exportedRoot.getJSONObject("tables")
         assertFalse(exportedRoot.getJSONObject("settings").has("compact" + "ItemLayout"))
+        assertFalse(exportedRoot.getJSONObject("settings").has("gymCompact" + "SetRows"))
         assertEquals(false, exportedTables.has("entity_tag_links"))
         assertEquals(true, exportedTables.has("goal_completion_snapshots"))
         assertEquals(true, exportedTables.has("goal_elapsed_reset_events"))

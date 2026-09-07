@@ -73,6 +73,7 @@ class AppSettingsPersistenceTest {
             .edit()
             .clear()
             .putBoolean("naturalLanguageTaskCapture", false)
+            .putBoolean("gymCompact" + "SetRows", true)
             .putString("savedReviewFilters", "connected")
             .putString("selectedReviewFilterName", "Connected")
             .commit()
@@ -81,9 +82,14 @@ class AppSettingsPersistenceTest {
         assertFalse(repository.current().naturalLanguageTaskCapture)
         assertTrue(preferences.contains("savedReviewFilters"))
         assertTrue(preferences.contains("selectedReviewFilterName"))
+        assertTrue(preferences.contains("gymCompact" + "SetRows"))
 
         repository.update { settings -> settings.copy(naturalLanguageTaskCapture = true) }
         assertTrue(SharedPreferencesSettingsRepository(context).current().naturalLanguageTaskCapture)
+
+        preferences.edit().remove("gymCompact" + "SetRows").commit()
+        repository.update { it.copy(defaultRestSeconds = 180) }
+        assertFalse(preferences.contains("gymCompact" + "SetRows"))
     }
 
     @Test
@@ -141,7 +147,6 @@ class AppSettingsPersistenceTest {
                 CustomIdentityEmoji("🦊", "Fox"),
                 CustomIdentityEmoji("🦄", "Unicorn"),
             ),
-            gymCompactSetRows = true,
             trackedGymRecords = listOf(
                 TrackedGymRecord("bench-uuid", PersonalRecordType.EstimatedOneRepMax),
                 TrackedGymRecord(

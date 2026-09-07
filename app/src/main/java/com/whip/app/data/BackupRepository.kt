@@ -1255,7 +1255,7 @@ private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
 private const val BACKUP_FORMAT = "whip-backup"
 internal const val ENVELOPE_VERSION = 3
 internal const val CURRENT_DATA_MODEL_EPOCH = 6
-internal const val BACKUP_DATABASE_VERSION = 25
+internal const val BACKUP_DATABASE_VERSION = 26
 
 internal fun validateBackupContract(
     envelopeVersion: Int,
@@ -1371,7 +1371,6 @@ private fun AppSettings.toJson(includeLocalRecoveryState: Boolean = false): JSON
     }))
     .put("homeTaskFilterName", homeTaskFilterName ?: JSONObject.NULL)
     .put("reviewSections", JSONArray(reviewSections.map(ReviewSection::name)))
-    .put("gymCompactSetRows", gymCompactSetRows)
     .put("platePresets", JSONArray(platePresets.map { preset ->
         JSONObject().put("name", preset.name).put("unitId", preset.unitId)
             .put("barWeight", preset.barWeight).put("plates", JSONArray(preset.plates))
@@ -1503,7 +1502,6 @@ private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
     },
     homeTaskFilterName = nullableString("homeTaskFilterName"),
     reviewSections = optJSONArray("reviewSections").enumNames<ReviewSection>().ifEmpty { ReviewSection.entries.toSet() },
-    gymCompactSetRows = optBoolean("gymCompactSetRows", false),
     platePresets = optJSONArray("platePresets").objects().mapNotNull { value ->
         val name = value.optString("name").takeIf(String::isNotBlank) ?: return@mapNotNull null
         val plates = value.optJSONArray("plates").doubles().filter { it > 0 }

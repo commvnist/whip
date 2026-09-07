@@ -261,7 +261,7 @@ class WhipNavigationTest {
             compose.onNodeWithContentDescription("Navigation Track, 0 Entries. Open Track").performClick()
             compose.onNodeWithTag("track-workspace-navigation").assertIsDisplayed()
             compose.onNodeWithTag("track-detail-navigation").assertIsDisplayed()
-            listOf("Entries", "Insights", "Options").forEach { destination ->
+            listOf("Entries", "Track Insights", "Options").forEach { destination ->
                 selectDestination("track-destination-$destination")
             }
             compose.onNodeWithText("Track Options").assertIsDisplayed()

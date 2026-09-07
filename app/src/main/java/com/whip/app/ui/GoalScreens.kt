@@ -837,7 +837,7 @@ fun GoalCard(
         }}
         else -> null
     }
-    ProductivityItemCard(
+    WhipItemCard(
         modifier = Modifier
             .then(
                 if (reorderMode) Modifier
@@ -1204,7 +1204,7 @@ private fun GoalInsightsContent(
         }
         items(projections, key = { "goal-insight-${it.goal.id}" }) { projection ->
             val insights = remember(projection) { buildGoalInsights(projection.goal, projection.entries, projection.milestones) }
-            ProductivityItemCard(
+            WhipItemCard(
                 modifier = Modifier
                     .clickable(onClickLabel = "Open ${projection.goal.name}") { onOpen(projection) }
                     .testTag("goal-insight-${projection.goal.id}"),

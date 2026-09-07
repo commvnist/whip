@@ -2,6 +2,7 @@ package com.whip.app
 
 import android.content.Intent
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -9,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.core.AppSettings
@@ -37,6 +39,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.Assert.assertTrue
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
@@ -257,6 +260,10 @@ class VisualCatalogPagesTest {
         selectTag("track-workspace-destination-Tracks")
         compose.onNodeWithTag("track-card-$activeTrackId").performClick()
         compose.waitForIdle()
+        compose.onNodeWithTag("track-workspace-destination-Insights")
+            .assertTextContains("Insights")
+        compose.onNodeWithTag("track-destination-Track Insights")
+            .assertTextContains("Track Insights")
         captureVisualCatalogSurface("tracks.detail.entries")
         compose.onNodeWithContentDescription("More Actions for The Dispossessed").performClick()
         compose.onNodeWithText("Delete Entry").assertIsDisplayed()
@@ -281,12 +288,17 @@ class VisualCatalogPagesTest {
         compose.waitForIdle()
         compose.onNodeWithText("Cancel").performClick()
         compose.waitForIdle()
-        selectTag("track-destination-Insights")
+        selectTag("track-destination-Track Insights")
         captureVisualCatalogSurface("tracks.detail.insights")
     }
 
     private fun captureGymPages() {
         openPrimary("Gym")
+        val nextSetHeight = compose.onNodeWithTag("next-set-focus").fetchSemanticsNode().boundsInRoot.height
+        assertTrue(
+            "Next-set jump is below Whip's 48 dp target floor: $nextSetHeight px",
+            nextSetHeight >= with(compose.density) { 48.dp.toPx() },
+        )
         captureVisualCatalogSurface("gym.workout.active")
         selectTag("gym-destination-History")
         captureVisualCatalogSurface("gym.history.populated")

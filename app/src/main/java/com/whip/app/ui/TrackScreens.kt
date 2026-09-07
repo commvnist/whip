@@ -200,7 +200,7 @@ private val stringSetSaver = listSaver<Set<String>, String>(
 internal enum class TrackDetailDestination(val label: String) {
     Entries("Entries"),
     Options("Options"),
-    Insights("Insights"),
+    Insights("Track Insights"),
 }
 
 /** Peer destinations for the Tracks workspace; Track detail navigation remains subordinate. */
@@ -1102,7 +1102,7 @@ private fun TrackActivityRow(
     val supporting = projection.fields.filter(TrackField::showInList).take(2).mapNotNull { field ->
         projection.formattedValue(entry, field, BuiltInUnits.all + customUnits).takeIf(String::isNotBlank)?.let { "${field.name} $it" }
     }
-    ProductivityItemCard(
+    WhipItemCard(
         modifier = Modifier.fillMaxWidth().clickable(
             onClickLabel = "Open Entry ${projection.primaryText(entry)}",
             onClick = onOpen,
@@ -1472,7 +1472,7 @@ internal fun TrackRow(
         )
         return
     }
-    ProductivityItemCard(
+    WhipItemCard(
         modifier = Modifier.fillMaxWidth()
             .whipReorderItem(
                 reorderInteraction,
@@ -1579,7 +1579,7 @@ private fun TrackSummaryRow(
     onEnterSelection: (() -> Unit)?,
 ) {
     val disclosure = rememberItemDisclosure("track:${projection.track.id}")
-    ProductivityItemCard(
+    WhipItemCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("track-card-${projection.track.id}")
@@ -2011,7 +2011,7 @@ private fun TrackEntryRow(
     val supporting = projection.fields.filter(TrackField::showInList).take(2).mapNotNull { field ->
         projection.formattedValue(entry, field, BuiltInUnits.all + customUnits).takeIf(String::isNotBlank)?.let { "${field.name} $it" }
     }
-    ProductivityItemCard(
+    WhipItemCard(
         modifier = Modifier.fillMaxWidth().clickable(
             onClickLabel = "Open Entry ${projection.primaryText(entry)}",
             onClick = onOpen,
@@ -2108,7 +2108,7 @@ private fun TrackInsightsPage(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            WhipPageHeader("Insights", "Clear summaries of recorded evidence—never a productivity score.") {
+            WhipPageHeader("Track Insights", "Clear summaries of recorded evidence—never a productivity score.") {
                 WhipPageIconAction(Icons.Outlined.FilterAlt, "Filter Insights", { filterOpen = true }, badgeCount = conditions.size, active = conditions.isNotEmpty())
             }
         }

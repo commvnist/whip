@@ -1075,13 +1075,14 @@ internal fun ItemEditButton(
 }
 
 /**
- * Shared collection-card surface for Tasks, Habits, and Goals.
+ * Shared medium-density item-card surface for Whip collections and execution
+ * groups. Domain-specific headers and controls remain owned by each caller.
  *
  * Keeping the surface, corner treatment, inset, and vertical rhythm here stops
  * each productivity area from gradually developing its own visual grammar.
  */
 @Composable
-internal fun ProductivityItemCard(
+internal fun WhipItemCard(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
     content: @Composable ColumnScope.() -> Unit,

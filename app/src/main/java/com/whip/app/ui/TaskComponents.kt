@@ -112,7 +112,7 @@ fun TaskRow(
     val disclosure = rememberItemDisclosure("task:${item.stableKey}")
     val weekdayFormatter = rememberWhipWeekdayFormatter()
     val metadata = item.detailSegments(completed, weekdayFormatter)
-    ProductivityItemCard(
+    WhipItemCard(
         modifier = Modifier.then(
             when {
                 selectionMode && onSelectionToggle != null -> Modifier

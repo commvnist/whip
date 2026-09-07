@@ -616,6 +616,7 @@ class SettingsResponsiveUiTest {
             .performScrollToNode(androidx.compose.ui.test.hasText("Theme"))
         compose.onNodeWithText("Theme", useUnmergedTree = true).assertIsDisplayed()
         compose.onAllNodesWithText("Use compact item rows").assertCountEquals(0)
+        compose.onAllNodesWithText("Use compact workout " + "set rows").assertCountEquals(0)
     }
 
     @Test

@@ -228,7 +228,6 @@ class GymPowerInputUiTest {
                                 preferredWeightUnitId = "kilogram",
                                 preferredDistanceUnitId = "kilometre",
                                 numberPrecision = 1,
-                                compactRows = false,
                                 showRpe = true,
                                 showRir = false,
                                 nextSetId = null,
@@ -1139,7 +1138,7 @@ class GymPowerInputUiTest {
     fun activeWorkoutUsesOneFocusedComposerWithExerciseAndSetReordering() {
         val exercise = testExercise().copy(name = "Bench press")
         val workoutExercise = testWorkoutExercise(exercise)
-        val first = testWorkoutSet(4, workoutExercise.id)
+        val first = testWorkoutSet(4, workoutExercise.id).copy(planned = true, rpe = 8.0)
         val second = testWorkoutSet(5, workoutExercise.id).copy(position = 1)
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides Density(compose.density.density, fontScale = 2f)) {
@@ -1150,7 +1149,6 @@ class GymPowerInputUiTest {
                     preferredWeightUnitId = "kilogram",
                     preferredDistanceUnitId = "kilometre",
                     numberPrecision = 1,
-                    compactRows = false,
                     showRpe = false,
                     showRir = false,
                     nextSetId = second.id,
@@ -1182,6 +1180,7 @@ class GymPowerInputUiTest {
         compose.onAllNodesWithContentDescription("Reorder set 1").assertCountEquals(1)
         compose.onAllNodesWithContentDescription("Reorder set 2").assertCountEquals(1)
         compose.onNodeWithText("Set 2", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Working · planned · RPE 8.0").assertIsDisplayed()
         compose.onNodeWithTag("quick-set-load-${second.id}").assertIsDisplayed()
         compose.onNodeWithTag("quick-set-reps-${second.id}").assertIsDisplayed()
         compose.onNodeWithTag("quick-set-save-next-${second.id}").assertIsDisplayed()
@@ -1205,7 +1204,6 @@ class GymPowerInputUiTest {
                     preferredWeightUnitId = "kilogram",
                     preferredDistanceUnitId = "kilometre",
                     numberPrecision = 1,
-                    compactRows = false,
                     showRpe = false,
                     showRir = false,
                     nextSetId = null,
@@ -1271,7 +1269,6 @@ class GymPowerInputUiTest {
                     preferredWeightUnitId = "kilogram",
                     preferredDistanceUnitId = "kilometre",
                     numberPrecision = 1,
-                    compactRows = false,
                     showRpe = false,
                     showRir = false,
                     nextSetId = null,
@@ -1331,7 +1328,6 @@ class GymPowerInputUiTest {
                     preferredWeightUnitId = "kilogram",
                     preferredDistanceUnitId = "kilometre",
                     numberPrecision = 1,
-                    compactRows = false,
                     showRpe = false,
                     showRir = false,
                     nextSetId = null,
@@ -1401,7 +1397,6 @@ class GymPowerInputUiTest {
                         preferredWeightUnitId = "kilogram",
                         preferredDistanceUnitId = "kilometre",
                         numberPrecision = 1,
-                        compactRows = false,
                         showRpe = false,
                         showRir = false,
                         nextSetId = null,
@@ -1524,7 +1519,6 @@ class GymPowerInputUiTest {
                     preferredWeightUnitId = "kilogram",
                     preferredDistanceUnitId = "kilometre",
                     numberPrecision = 1,
-                    compactRows = false,
                     showRpe = false,
                     showRir = false,
                     nextSetId = next.id,

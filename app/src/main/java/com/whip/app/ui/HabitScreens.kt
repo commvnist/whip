@@ -1067,7 +1067,7 @@ fun HabitProgressCard(
             ItemPrimaryTextButton(if (habit.trackingMode == HabitTrackingMode.Rating) "Rate" else "Log", onQuick)
         }}
     }
-    ProductivityItemCard(
+    WhipItemCard(
         modifier = Modifier
             .then(
                 if (reorderMode) Modifier
@@ -1577,7 +1577,7 @@ internal fun HabitInsights(state: HabitUiState, lowPressureMode: Boolean) {
             )
         }
         items(state.all, key = { it.habit.id }) { item ->
-            ProductivityItemCard {
+            WhipItemCard {
                     ProductivityItemHeader(
                         itemType = "habit",
                         itemName = item.habit.name,
@@ -1809,7 +1809,7 @@ private fun ArchivedHabitList(
             )
         }
         items(visible, key = Habit::id) { habit ->
-            ProductivityItemCard(
+            WhipItemCard(
                 modifier = Modifier
                     .clickable(onClickLabel = "Open habit details for ${habit.name}") { onOpen(habit) }
                     .semantics { contentDescription = "Open habit details for ${habit.name}" },

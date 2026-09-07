@@ -124,7 +124,6 @@ data class AppSettings(
     val savedTaskFilters: List<SavedTaskFilter> = emptyList(),
     val homeTaskFilterName: String? = null,
     val reviewSections: Set<ReviewSection> = ReviewSection.entries.toSet(),
-    val gymCompactSetRows: Boolean = false,
     val platePresets: List<PlatePreset> = emptyList(),
     val repPrescriptionSchemes: List<RepPrescriptionScheme> = emptyList(),
     val trackedGymRecords: List<TrackedGymRecord> = emptyList(),
@@ -288,7 +287,6 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
         homeTaskFilterName = preferences.getString("homeTaskFilterName", null),
         reviewSections = preferences.enumSet("reviewSections", ReviewSection.entries)
             .ifEmpty { ReviewSection.entries.toSet() },
-        gymCompactSetRows = preferences.getBoolean("gymCompactSetRows", false),
         platePresets = preferences.getString("platePresets", null).decodePlatePresets(),
         repPrescriptionSchemes = preferences.getString("repPrescriptionSchemes", null).decodeRepPrescriptionSchemes(),
         trackedGymRecords = preferences.getString("trackedGymRecords", null).decodeTrackedGymRecords(),
@@ -369,7 +367,6 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
             .putString("savedTaskFilters", value.savedTaskFilters.encodeTaskFilters())
             .putNullableString("homeTaskFilterName", value.homeTaskFilterName)
             .putStringSet("reviewSections", value.reviewSections.mapTo(mutableSetOf(), ReviewSection::name))
-            .putBoolean("gymCompactSetRows", value.gymCompactSetRows)
             .putString("platePresets", value.platePresets.encodePlatePresets())
             .putString("repPrescriptionSchemes", value.repPrescriptionSchemes.encodeRepPrescriptionSchemes())
             .putString("trackedGymRecords", value.trackedGymRecords.encodeTrackedGymRecords())
