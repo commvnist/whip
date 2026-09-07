@@ -534,3 +534,13 @@ These records preserve durable user intent. “Released” means the change reac
 - Related: `FB-20260831-001`, `FB-20260831-006`, `FB-20260831-007`, `FB-20260902-006`, `FB-20260903-006`, `FB-20260903-007`, `FB-20260903-011`, `FB-20260903-014`, `FB-20260903-015`, `DEC-20260903-006`, `DEC-20260903-007`, `VER-20260906-012`, `FB-20260906-012`, `FND-20260906-016` through `FND-20260906-018`, `DEC-20260906-011`, `IMP-20260906-024`, `IMP-20260906-025`, `VER-20260906-025`, `VER-20260906-026`.
 - Status: Released and device-verified as Whip 0.3.56/code 62; awaiting normal real-use feedback.
 - Notes: The accepted lane used fast private-development QA rather than Play Store candidate qualification. Emulator instrumentation and catalog capture remained isolated to the disposable emulator; the owner-phone install was in place with first-install identity and data preserved, without instrumentation or reset.
+
+### FB-20260907-001 — Let repeated strong AMRAPs inform an optional 5/3/1 increase
+
+- Date/source: 2026-09-07, direct user feedback following review of the existing 5/3/1 suggestion behavior.
+- User need: When a lifter records multiple convincingly strong AMRAPs, Whip should be able to offer a cautious above-standard alternative even when RPE/RIR was not recorded, while keeping Jim Wendler's standard fixed Training Max progression intact.
+- Acceptance criteria: Keep canonical 5/3/1 Standard fixed at the configured increase; make above-standard guidance explicitly optional and non-standard; require repeated objective evidence from separate successful non-deload workouts; normalize performance for load and cap high-rep inflation; reject thin, stale, inconsistent, failed, deleted, or incomplete evidence; cap rep-only guidance below fully corroborated guidance; never let one AMRAP, Joker, or Training Max test unlock acceleration; explain the evidence and uncertainty in plain language at setup and cycle review; add focused engine/UI regressions; perform code, UX/UI/design, emulator, and visual QA; address confirmed findings; then release a clean higher version in place to the explicitly selected owner phone through the fast non-Play Store lane.
+- Affected users/workflows: 5/3/1 Routine setup, logged PR/AMRAP and Joker sets, cycle-boundary progression review, Training Max decisions, audit history, accessibility, and owner-phone validation.
+- Related: `FB-20260906-005`, `FB-20260906-013`, `FND-20260907-001`, `DEC-20260907-001`.
+- Status: In progress.
+- Notes: RPE/RIR remains useful corroboration, not a prerequisite for the lower adaptive tier. Suggestions remain advisory and require an explicit user choice; no existing Training Max is rewritten automatically.

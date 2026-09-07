@@ -1171,3 +1171,15 @@
 - Recommended solution: Replace the number-only footer with a selected-decision summary that names Standard, Suggestion, Hold, Ignore, or Custom and states the resulting Training Max.
 - Related: `FB-20260906-013`, `DEC-20260906-011`.
 - Status: Resolved. Every cycle-review selection now produces a live textual decision summary naming its audit meaning and resulting Training Max, including the distinct Hold and Ignore meanings. Covered by `VER-20260906-025`.
+
+### FND-20260907-001 — 5/3/1 higher suggestions over-require subjective effort yet under-qualify Joker evidence
+
+- Severity/category: P1 5/3/1 progression integrity and decision UX.
+- Observed: The current higher-suggestion gate requires two PR sets with favorable RPE/RIR plus any completed Joker at roughly 97.5% of Training Max. It therefore ignores repeated objective AMRAP evidence when effort was not logged, treats a minimally completed or grinding Joker as corroboration, compares performance using a flat rep surplus rather than load-adjusted capacity, and describes the mode without consistently identifying it as non-standard.
+- Expected: Standard 5/3/1 always retains the configured fixed increase. The optional adaptive review may recognize repeated, load-adjusted AMRAP evidence without RPE/RIR, but only across separate successful exposures at meaningful intensities, with conservative high-rep handling and consistent estimated capacity. Rep-only evidence earns only a bounded cautious tier; the larger tier requires credible effort data or a genuinely strong Joker. Any required-work integrity problem retains priority.
+- Why it matters / affected users: The existing rule can suppress useful guidance for lifters who do not log effort while simultaneously granting excess weight to one weak Joker. Because Training Max changes compound across cycles, both false negatives and false positives damage trust in the review surface.
+- Evidence: `FiveThreeOneProgression.kt`, its focused domain tests, current setup/review copy, and independent critiques from a powerlifting-programming perspective and a strict Jim Wendler-principles perspective.
+- Root cause: The first heuristic used convenient available fields—rep surplus, effort, and Joker presence—without defining separate canonical/adaptive modes or a conservative normalized-performance contract.
+- Recommended solution: Implement `DEC-20260907-001`, expose the boundary in setup/review copy, and protect it with focused counterexamples plus emulator-only UI/visual review.
+- Related: `FB-20260907-001`, `DEC-20260907-001`.
+- Status: Confirmed; implementation in progress.
