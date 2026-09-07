@@ -295,13 +295,23 @@ class VisualCatalogPagesTest {
         selectTag("gym-destination-Library")
         captureVisualCatalogSurface("gym.library.landing")
 
-        listOf("Routines", "Exercises", "Machines", "Categories", "Tools").forEach { destination ->
+        mapOf(
+            "Routines" to "Routines",
+            "Exercises" to "Exercise Library",
+            "Machines" to "Machines",
+            "Categories" to "Exercise Categories",
+            "Tools" to "Workout Tools",
+        ).forEach { (destination, pageTitle) ->
             compose.onNodeWithTag("gym-library-list").performScrollToNode(
                 androidx.compose.ui.test.hasText(destination),
             )
             compose.onNodeWithTag("gym-library-$destination").performClick()
+            compose.onNodeWithText(pageTitle).assertIsDisplayed()
             compose.waitForIdle()
-            captureVisualCatalogSurface("gym.${destination.lowercase()}.populated".replace("tools.populated", "tools"))
+            captureVisualCatalogSurface(
+                surfaceId = "gym.${destination.lowercase()}.populated".replace("tools.populated", "tools"),
+                visuallyDistinctFrom = "gym.library.landing",
+            )
             if (destination == "Routines") {
                 compose.onNodeWithContentDescription("More options for routine Three Day Foundation").performClick()
                 compose.onNodeWithText("Duplicate").assertIsDisplayed()
