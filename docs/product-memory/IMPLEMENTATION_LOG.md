@@ -1276,3 +1276,14 @@
 - Related: `FB-20260907-002`, `FND-20260907-010`, `DEC-20260906-003`, `VER-20260907-005`.
 - Verification: `VER-20260907-005`.
 - Status: Implemented, shell-validated, and routing-fixture verified.
+
+### IMP-20260907-006 — Render-bound visual-catalog evidence
+
+- Behavior changed: Catalog capture now primes the device screenshot path, forces and awaits an actual draw from the single resumed Activity, and crosses subsequent display-frame boundaries before exporting pixels. Callers may require a new surface to differ materially from an earlier captured surface; the helper samples app content while excluding dynamic system bars, retries rejected frames for a bounded 600 ms, and fails instead of accepting stale pixels.
+- Gym evidence changed: Every Gym Library child now asserts its exact visible page title before capture and must be visually distinct from the captured Library landing page. This converts the observed Tools mismatch from a manual discovery into an executable pixel-state contract.
+- Persistence/migration/history impact: Android test and visual-evidence tooling only. App behavior, artifacts, Room schema 46, data epoch 6, backup version 25, and owner data are unchanged.
+- Compatibility and limitations: Pixel distinction is intentionally opt-in for transitions with a known different reference; ordinary captures retain render synchronization and hierarchy guards without making arbitrary visual-difference assumptions. Dynamic status/navigation bars are excluded from the fingerprint but remain present in exported device screenshots.
+- Commit/push: Render/state source `e4ed209` and bounded retry correction `7f2b3e2` were pushed to `origin/main` before this memory reconciliation.
+- Related: `FB-20260907-002`, `FND-20260906-002`, `FND-20260907-011`, `FND-20260907-012`, `DEC-20260906-005`, `VER-20260907-006`.
+- Verification: `VER-20260907-006`.
+- Status: Implemented, code-reviewed, exact-tested, and accepted across the complete Gym catalog family.

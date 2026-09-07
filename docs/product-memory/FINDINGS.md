@@ -1302,7 +1302,7 @@
 - Root cause: The current frame callbacks establish scheduling boundaries but not that SurfaceFlinger has presented the newly composed frame. `UiAutomation.takeScreenshot()` can therefore return the prior buffer even though the accessibility tree is current by the subsequent hierarchy dump.
 - Recommended solution: Treat the first device screenshot as a compositor synchronization probe, wait through a subsequent render boundary, export only the following screenshot, assert the requested Gym page before capture, and recapture/inspect the exact family and then the whole catalog.
 - Related: `FB-20260907-002`, `FND-20260906-002`, `DEC-20260906-005`.
-- Status: Confirmed; the affected whole-product catalog is excluded from final acceptance pending a verified repair.
+- Status: Resolved by the real-window draw boundary and explicit content-fingerprint distinction in `e4ed209`; exact and 46-surface replacement evidence passes in `VER-20260907-006`.
 
 ### FND-20260907-012 — Distinct-frame retry omits its attempt increment
 
@@ -1314,4 +1314,4 @@
 - Root cause: The counter increment was omitted while the first implementation combined screenshot recycling, forced drawing, and fingerprint recomputation in one loop.
 - Recommended solution: Increment once per rejected frame, compile, run the exact stale-frame-sensitive Gym journey, and repeat the family capture before accepting the repair.
 - Related: `FB-20260907-002`, `FND-20260907-011`, `DEC-20260906-005`.
-- Status: Confirmed during code review; release remains blocked pending the bounded repair and replacement evidence.
+- Status: Resolved in `7f2b3e2`; the exact journey and complete Gym family pass with a bounded retry in `VER-20260907-006`.

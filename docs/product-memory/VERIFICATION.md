@@ -1353,3 +1353,14 @@
 - Failed-then-repaired evidence: The first clean pushed `ANDROID_SERIAL=emulator-5554 scripts/check --ready --emulator` sent only `--emulator` to `qa-targeted` and exited 2. That run is excluded. The argument guard and dedicated clean-tree regression now cover the exact failure mode.
 - Related: `FB-20260907-002`, `FND-20260907-010`, `IMP-20260907-005`, `DEC-20260906-003`.
 - Status: Verified; the clean pushed private-release readiness route is accepted.
+
+### VER-20260907-006 — Catalog pixel/state synchronization verification
+
+- Scope/environment: Shared device-level screenshot/hierarchy capture helper and all 46 Gym catalog surfaces on disposable API 34 `emulator-5554`. The connected physical owner phone received no instrumentation, artifact operation, or installation.
+- Command or manual procedure: Repeated exact `VisualCatalogPagesTest#captureGymPageCatalog` execution during repair; final exact bounded-retry run; final `ANDROID_SERIAL=emulator-5554 scripts/ui-catalog capture --family gym /tmp/whip-ui-critical-gym-bounded-final-20260907`; exact PNG/XML accounting; `NAF="true"` scan; title/hierarchy inspection; original-resolution comparison of `gym.library.landing` and `gym.tools`; Kotlin Android-test compilation; code review; and `git diff --check`.
+- Result: The final exact journey passed 1/1 in `/root/repos/whip/build/instrumentation-results-LC1dL3`. The family campaign passed 24/24 fresh capture tests across three batches in `/root/repos/whip/build/instrumentation-results-UH8Osi`, exported exactly 46 PNG/XML pairs, and contains zero `NAF="true"` hierarchies. `gym.tools.png` now visibly presents Workout Tools and differs from the Library landing page; its XML independently contains Workout Tools, both calculator labels, and the visible controls. The bounded family manifest SHA-256 is `6cd312878061c2a3f278d3f70c135a4a4e9bb8ba705980663faf2d6281819937`.
+- Failed-then-repaired evidence: The provisional whole-product catalog paired Library pixels with Tools semantics. A first synchronization attempt remained stale under the busier family batch and was excluded. The content-fingerprint guard then produced correct replacement pixels, but code review found its attempt counter was not incremented; that intermediate source/evidence was also excluded. The counter was fixed before the final exact and family runs above.
+- Counts and exclusions: This validates the changed evidence seam and full affected visual family. Final whole-product catalog acceptance, signed phone release, frozen Play candidate, and physical instrumentation are excluded at this boundary.
+- Commit/push: Accepted catalog source `7f2b3e2` is pushed to `origin/main`; the following reconciliation changes memory only.
+- Related: `FB-20260907-002`, `FND-20260906-002`, `FND-20260907-011`, `FND-20260907-012`, `DEC-20260906-005`, `IMP-20260907-006`.
+- Status: Verified; pixel/state evidence is accepted for final whole-product recapture.
