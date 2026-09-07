@@ -1207,3 +1207,63 @@
 - Recommended solution: Persist whether both estimates support the corroborated next Training Max, require it alongside effort/Joker corroboration, retain 1.25× when it does not, and keep a stable rationale for that case.
 - Related: `FB-20260907-001`, `DEC-20260907-001`, `IMP-20260907-001`, `VER-20260907-001`.
 - Status: Resolved before release; the new counterexample and full acceptance gate pass.
+
+### FND-20260907-004 — New Track Entries present a fake identity before the user authors one
+
+- Severity/category: P2 editor hierarchy, state truth, and cross-family consistency.
+- Observed: The Add Entry editor renders a large `New <primary Field name>` heading, such as “New Title,” immediately above the empty required Title field. The phrase looks like an Entry name even though no identity value exists, repeats the field label, and hides the Track context the user needs while entering data.
+- Expected: A new Entry should identify its parent Track and describe the work as a new Entry; only an existing Entry should promote its saved authored identity to the page heading.
+- Why it matters / affected users: Logging is the primary Track action. A fabricated heading makes the highest-emphasis text least truthful and forces users to infer which reusable Track they are adding to.
+- Evidence: Fresh `tracks.entry.create` pixel/semantics capture from the exact 174-surface API 34 baseline and `TrackEntryEditor`'s `New ${projection.primaryField.name}` page header.
+- Root cause: The editor treated the first identity Field's schema label as though it were an authored Entry identity.
+- Recommended solution: Use the parent Track name as the new-entry heading with concise reusable-structure guidance; retain the saved composite identity for edit mode.
+- Related: `FB-20260907-002`, `DEC-20260907-002`.
+- Status: Confirmed; implementation in progress.
+
+### FND-20260907-005 — Archived Track rows retain an unavailable primary action
+
+- Severity/category: P2 action grammar, state truth, and visual balance.
+- Observed: Archived Track cards keep the same 48 dp plus button as active cards but disable and dim it. The row therefore advertises “add an Entry” in the history-only state even though the action cannot run.
+- Expected: Unavailable primary actions that have no immediate repair path should be omitted, leaving open/expand and restoration workflows as the only visible archived actions.
+- Why it matters / affected users: Archived collections are review surfaces. A disabled high-salience plus icon adds ambiguity and consumes scarce row width without helping the user restore the Track.
+- Evidence: Fresh `tracks.archived.populated` capture and the unconditional `IconButton` in `TrackSummaryRow`, where only `enabled` changes with archive state.
+- Root cause: The active summary-row structure was reused literally for archived state instead of changing the visible action set.
+- Recommended solution: Render the Entry add action only for active Tracks and protect the archived absence with Compose semantics coverage.
+- Related: `FB-20260907-002`, `DEC-20260907-002`.
+- Status: Confirmed; implementation in progress.
+
+### FND-20260907-006 — Area detail repeats identity and usage in adjacent hierarchy layers
+
+- Severity/category: P2 navigation hierarchy and information density.
+- Observed: Opening an Area shows its name and item counts in the workspace header, then immediately repeats the same name and counts as a second page header before the first actionable Identity section.
+- Expected: The stable workspace header should own the selected Area identity, status, and usage; detail content should begin with the first meaningful section.
+- Why it matters / affected users: Area management is already a consequential, vertically dense workspace. Duplicate identity consumes a large portion of the first viewport and delays rename, color, move, merge, archive, and delete actions.
+- Evidence: Fresh `organization.areas.detail` capture and the adjacent destination header plus `WhipPageHeader` in `AreaManagementDialog`/`AreaDetailContent`.
+- Root cause: Both the navigation frame and detail pane were allowed to own the same identity summary.
+- Recommended solution: Put Active/Archived status and usage in the destination header, remove the duplicate body header, and preserve every operation and its explanatory copy.
+- Related: `FB-20260907-002`, `DEC-20260907-002`.
+- Status: Confirmed; implementation in progress.
+
+### FND-20260907-007 — Reminder status recovery is visually detached from the state it repairs
+
+- Severity/category: P2 action hierarchy and recovery discoverability.
+- Observed: “Refresh Notification Status” appears as a lone uncontained text action between the disabled test-notification block and quiet-hours settings. It is also the named recovery action for post-save notification warnings, but its treatment reads like low-priority prose rather than a reliable system-state refresh.
+- Expected: Recovery actions named by warnings should use Whip's full-width secondary action grammar and remain clearly associated with the notification diagnostic controls.
+- Why it matters / affected users: Android notification state can change outside Whip. Users returning from system settings need an obvious, accessible way to reconcile the page without guessing that centered text is interactive.
+- Evidence: Fresh `settings.reminders` capture, `SettingsViewModel` warning copy, and the standalone `WhipTextButton` in `ReminderSettingsPage`.
+- Root cause: The recovery control was appended as a tertiary text button while surrounding notification actions evolved into bounded, full-width controls.
+- Recommended solution: Promote refresh to a full-width outlined action with a stable test identity; retain its diagnostic behavior and quiet success policy.
+- Related: `FB-20260907-002`, `DEC-20260907-002`.
+- Status: Confirmed; implementation in progress.
+
+### FND-20260907-008 — Area-menu catalog evidence detaches the popup from its trigger
+
+- Severity/category: P1 visual-QA fidelity and popup anchoring resilience.
+- Observed: The exact `organization.area-picker.menu` artifact places the scope trigger at the top of the screen and its menu near the bottom, separated by most of the viewport. The production composable's anchor `Box` accepts propagated minimum constraints, so a full-screen fixture can make the anchor bounds cover the screen even though the chip is visually small.
+- Expected: The popup anchor must wrap the visible trigger in both the real toolbar and faithful isolated hosts, so catalog pixels demonstrate the interaction users actually receive.
+- Why it matters / affected users: A detached menu is unusable if triggered by an equivalent constraint host, and misleading catalog evidence invalidates spatial review of an app-wide navigation control.
+- Evidence: Fresh screenshot and hierarchy for `organization.area-picker.menu`, the full-screen `AreaFeatureUiTest` host, and `AreaScopeMenu`'s unconstrained anchor `Box`.
+- Root cause: The anchor relies on ambient constraints rather than explicitly wrapping the filter chip.
+- Recommended solution: Make the anchor wrap its content, add a spatial regression, and recapture the exact Organization family before accepting the visual evidence.
+- Related: `FB-20260907-002`, `DEC-20260906-005`, `DEC-20260907-002`.
+- Status: Confirmed; implementation in progress. The baseline artifact is not accepted as popup-position evidence.

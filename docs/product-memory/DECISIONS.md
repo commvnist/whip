@@ -869,3 +869,12 @@
 - Constraints and consequences: The engine remains deterministic from snapshotted workout evidence, does not infer recovery/readiness, and cannot eliminate judgment. Conservative false negatives are preferred to compounding an aggressive Training Max. Existing routine settings and history remain compatible.
 - Related: `FB-20260907-001`, `FND-20260907-001`, `FND-20260907-002`, `FND-20260907-003`, `IMP-20260907-001`, `IMP-20260907-002`, `VER-20260907-001`, `VER-20260907-002`.
 - Status: Accepted, implemented, code-reviewed, emulator-verified, and released in Whip 0.3.57/code 63.
+
+### DEC-20260907-002 — High-emphasis UI must describe true state and available action
+
+- Context: The fresh whole-product catalog is broadly coherent, but its remaining friction clusters around hierarchy that repeats or fabricates identity, controls that stay visible after becoming unavailable, and a recovery action styled too weakly for warning copy that names it. The Area scope popup also demonstrates that spatial truth depends on an anchor whose bounds match its visible trigger.
+- Decision: Each surface has one owner for primary identity and summary. New entities identify their parent/context until the user authors an identity; archived or otherwise unavailable actions with no direct repair path are omitted rather than dimmed; warning-named recovery actions use the established full-width secondary control; popup anchors explicitly wrap the visible trigger. Preserve existing domain operations, data, persistence, and intentional dense workflows.
+- Rejected alternatives: Cosmetic color/spacing changes without fixing information ownership; disabling every unavailable action in place; inventing a placeholder Entry name; repeating selected Area identity in both frame and content; making diagnostic refresh a new primary action; accepting a detached catalog popup as a harmless test artifact.
+- Constraints and consequences: Active Track add, archived restoration, Track-entry validation/duplicate detection, Area operations, notification diagnostics, adaptive layouts, and popup menu contents remain unchanged. Changes require focused semantics/interaction tests, affected-family recaptures, and a fresh exact full catalog before release.
+- Related: `FB-20260907-002`, `FND-20260907-004`, `FND-20260907-005`, `FND-20260907-006`, `FND-20260907-007`, `FND-20260907-008`, `DEC-20260906-005`.
+- Status: Accepted; implementation in progress.
