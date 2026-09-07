@@ -1412,3 +1412,15 @@
 - Commit/push: Accepted product source `a8c430e` is pushed to `origin/main`; the following reconciliation changes product memory only.
 - Related: `FB-20260907-004`, `FND-20260907-014`, `DEC-20260907-004`, `IMP-20260907-009`.
 - Status: Verified.
+
+### VER-20260907-011 — Whip 0.3.59 fast owner-phone release
+
+- Scope/environment: Clean pushed release source `b4e2a53`; Whip 0.3.59/code 65; established private release signer; and the explicitly guarded physical Samsung SM-F976W owner phone. ADB showed only that phone before deployment, and no emulator or physical instrumentation was used during release.
+- Command or manual procedure: Pre-install release-target guard, package/version/first-install and installed-APK hash snapshot; version-aware `scripts/check`; commit/push and clean-source verification; guarded `WHIP_DEVICE=<selected-phone> scripts/device release-deploy`; release-vital lint, R8/resource optimization, signed APK/AAB assembly, streamed `adb install -r`, installed/local APK hash comparison, and deployment cold launch; then independent package/first-install inspection, build-tools signer verification, AAB archive test, log clear, forced cold launch, foreground/PID checks, and bounded PID-scoped fatal/AndroidRuntime/ANR/Room/SQLite/activity-start scan.
+- Result: The signed release build completed successfully in 1 minute 56 seconds and the streamed in-place install succeeded. Android reports 0.3.59/code 65 with `lastUpdateTime=2026-09-07 11:08:50`; `firstInstallTime=2026-08-26 17:59:24` is unchanged from 0.3.58. The deployment launch returned `Status: ok` in 117 ms; the independent cold launch returned `Status: ok` in 253 ms, left PID 23178 live, and resumed `MainActivity`. The bounded post-launch scan found zero relevant matches.
+- Counts and exclusions: Version staging reran the 344-test routed JVM profile and Play-asset validation successfully; clean-source release routing was a no-op as intended. Accepted product/UI evidence remains `VER-20260907-010` with 344 JVM, 573 Android, and the fresh 15-surface Goals campaign. No physical instrumentation, reset, clear, uninstall, downgrade, frozen Play candidate, or Play Store publication occurred.
+- Artifact/version/hash: APK SHA-256 `40f4a2f3052b67c270ff4e21e16b14d54a7238236129d474f57f2c4fae220041`; AAB SHA-256 `cd7e36b630a717a080c5d92f2d2ab7b1d2e3c169ae18f4512916539c6571fa00`; established single RSA signer certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`; APK Signature Scheme v2 verified; AAB archive integrity passed; installed base APK exactly matches the local signed APK.
+- Failures or residual risk: No release or smoke failure remains. Subjective foldable aesthetics await normal owner use; public distribution still requires a fresh frozen candidate.
+- Commit/push: Exact release source `b4e2a53` was pushed to `origin/main` before build/install; the following reconciliation changes product memory only.
+- Related: `FB-20260907-004`, `FB-20260907-005`, `FND-20260907-014`, `DEC-20260907-004`, `IMP-20260907-009`, `IMP-20260907-010`, `VER-20260907-010`.
+- Status: Released.

@@ -571,9 +571,9 @@ These records preserve durable user intent. “Released” means the change reac
 - User need: The same Count Time Since duration should read as one consistent timer across the fold support pane and the main Goal cards, without awkward line breaks caused by the card's generic header/action layout.
 - Acceptance criteria: Audit every active/terminal/editor/Insights/detail/support-pane elapsed presentation and the shared card constraints; challenge the current card structure where it forces rich status into a narrow title lane; preserve authored unit combinations, calendar arithmetic, reset behavior, and accessibility; implement a reusable long-term presentation boundary rather than a screenshot-specific spacing tweak; verify compact, fold/adaptive, enlarged-text, semantics, and current Goal journeys with focused tests and fresh visual evidence.
 - Affected users/workflows: Count Time Since Goals on compact phones, foldables, tablets, Home, Goal lists, adaptive support panes, Insights, editor previews, details, terminal snapshots, and reset flows.
-- Related: `FB-20260906-009`, `FB-20260906-010`, `FND-20260906-007`, `DEC-20260906-009`.
-- Status: Verified.
-- Notes: Greenfield card changes are authorized where they improve the long-term feature system; production data and timer meaning must remain unchanged.
+- Related: `FB-20260906-009`, `FB-20260906-010`, `FB-20260907-005`, `FND-20260906-007`, `FND-20260907-014`, `DEC-20260906-009`, `DEC-20260907-004`, `IMP-20260907-009`, `IMP-20260907-010`, `VER-20260907-010`, `VER-20260907-011`.
+- Status: Released.
+- Notes: Greenfield card changes were authorized where useful; the shared card shell was retained with a reusable rich-status boundary. Production data and timer meaning remain unchanged, and the result is installed in Whip 0.3.59/code 65.
 
 ### FB-20260907-005 — Release the elapsed-timer fix to the owner phone
 
@@ -581,6 +581,6 @@ These records preserve durable user intent. “Released” means the change reac
 - User need: Put the verified elapsed Goal presentation on the owner's phone for normal use.
 - Acceptance criteria: Advance to a higher private-release version; preserve signer, package identity, first-install identity, and existing data; commit and push the exact release source before installation; use the guarded fast non-Play Store lane against the explicitly selected physical phone; do not reset, clear, uninstall, downgrade, or run instrumentation on the phone; verify signed artifact identity/hash, installed version, in-place update, cold launch, foreground Activity, live process, and bounded fatal/AndroidRuntime/ANR/Room/SQLite errors.
 - Affected users/workflows: Owner-phone use of Count Time Since Goals, especially the book-fold support/main-card layout, plus release engineering and data-preserving upgrade behavior.
-- Related: `FB-20260907-004`, `DEC-20260907-004`, `IMP-20260907-009`, `VER-20260907-010`.
-- Status: In progress.
+- Related: `FB-20260907-004`, `DEC-20260907-004`, `IMP-20260907-009`, `IMP-20260907-010`, `VER-20260907-010`, `VER-20260907-011`.
+- Status: Released.
 - Notes: This is a private owner-phone release, not Play Store publication or frozen-candidate qualification.

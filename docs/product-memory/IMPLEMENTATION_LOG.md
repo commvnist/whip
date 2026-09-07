@@ -1322,3 +1322,14 @@
 - Related: `FB-20260907-004`, `FND-20260907-014`, `DEC-20260907-004`, `VER-20260907-010`.
 - Verification: `VER-20260907-010`.
 - Status: Verified.
+
+### IMP-20260907-010 — Signed Whip 0.3.59 elapsed-timer owner-phone release
+
+- Behavior changed: Advanced Whip to 0.3.59/code 65 and installed the unified elapsed Goal presentation in place on the explicitly selected owner phone through the fast private-development lane. Main cards and book-fold support rows now use one responsive timer grammar, and rich card status remains outside the title/action lane.
+- Important files/symbols: Release source `b4e2a53`, `app/build.gradle.kts`, `ProductivityItemHeader.persistentSummaryContent`, `NavigationRow.supportingContent`, `ElapsedGoalMetric`, signed `app-release.apk`, and `VER-20260907-011`.
+- Persistence/migration/history impact: Room schema 46, data epoch 6, and exact-match backup version 25 are unchanged. The existing Android installation and owner data were preserved; first-install identity did not change, and no reset, clear, uninstall, downgrade, or fresh-start confirmation occurred.
+- Compatibility and limitations: The release follows the broad two-emulator acceptance in `VER-20260907-010` plus a version-aware JVM check, release-vital lint, R8/resource optimization, signing, in-place installation, and independent phone smoke. This is a private owner-phone release, not frozen Play Store candidate evidence.
+- Commit/push: Clean release source `b4e2a53` was synchronized with `origin/main` before signed build/install; the following reconciliation changes product memory only.
+- Related: `FB-20260907-004`, `FB-20260907-005`, `FND-20260907-014`, `DEC-20260907-004`, `IMP-20260907-009`, `VER-20260907-010`, `VER-20260907-011`.
+- Verification: `VER-20260907-011`.
+- Status: Released.
