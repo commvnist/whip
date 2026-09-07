@@ -20,6 +20,14 @@ deployment and is never part of screenshot collection or instrumentation.
    ANDROID_SERIAL=emulator-5554 scripts/ui-catalog capture /tmp/whip-ui-review
    ```
 
+   To shorten a complete capture, opt into one matching secondary emulator;
+   both targets remain explicit and emulator-only:
+
+   ```bash
+   ANDROID_SERIAL=emulator-5554 WHIP_ANDROID_SECONDARY_SERIAL=emulator-5556 \
+     scripts/ui-catalog capture /tmp/whip-ui-review
+   ```
+
 3. Accept the set only when instrumentation reports zero failures/skips and the
    exporter reports the exact catalog count with no missing or unexpected PNG
    or semantics XML files.

@@ -17,7 +17,8 @@ usage() {
         '' \
         'Creation snapshots repository inputs, executes complete JVM and fresh Android' \
         'coverage, lint/static checks, and debug/release/AAB/benchmark builds, rejects' \
-        'source drift, and publishes evidence atomically. It never targets a phone.'
+        'source drift, and publishes evidence atomically. Set WHIP_ANDROID_SECONDARY_SERIAL' \
+        'to use one matching secondary emulator. It never targets a phone.'
 }
 
 die() {
@@ -110,9 +111,20 @@ verify_evidence() {
         die "candidate evidence checksum validation failed: $evidence_path"
     validate_retained_release_evidence "$evidence_path"
 
-    expected_manifest_fields=(
-        format status created_at input_sha256 jvm_tests android_tests android_fresh emulator_serial_sha256
-    )
+    evidence_format="$(awk -F '\t' '$1 == "format" { print $2 }' "${evidence_path}/manifest.tsv")"
+    case "$evidence_format" in
+        whip-frozen-candidate-v1)
+            expected_manifest_fields=(
+                format status created_at input_sha256 jvm_tests android_tests android_fresh emulator_serial_sha256
+            )
+            ;;
+        whip-frozen-candidate-v2)
+            expected_manifest_fields=(
+                format status created_at input_sha256 jvm_tests android_tests android_fresh emulator_count emulator_set_sha256
+            )
+            ;;
+        *) die 'candidate manifest is not a supported accepted authority' ;;
+    esac
     mapfile -t actual_manifest_fields < <(awk -F '\t' 'NF == 2 { print $1 }' "${evidence_path}/manifest.tsv")
     [[ "${#actual_manifest_fields[@]}" -eq "${#expected_manifest_fields[@]}" ]] ||
         die 'candidate manifest is missing or duplicating a required field'
@@ -120,23 +132,28 @@ verify_evidence() {
         [[ "${actual_manifest_fields[$field_index]}" == "${expected_manifest_fields[$field_index]}" ]] ||
             die 'candidate manifest is missing, duplicating, or reordering a required field'
     done
-    evidence_format="$(awk -F '\t' '$1 == "format" { print $2 }' "${evidence_path}/manifest.tsv")"
     evidence_status="$(awk -F '\t' '$1 == "status" { print $2 }' "${evidence_path}/manifest.tsv")"
     evidence_created_at="$(awk -F '\t' '$1 == "created_at" { print $2 }' "${evidence_path}/manifest.tsv")"
     evidence_input="$(awk -F '\t' '$1 == "input_sha256" { print $2 }' "${evidence_path}/manifest.tsv")"
     evidence_jvm_tests="$(awk -F '\t' '$1 == "jvm_tests" { print $2 }' "${evidence_path}/manifest.tsv")"
     evidence_android_tests="$(awk -F '\t' '$1 == "android_tests" { print $2 }' "${evidence_path}/manifest.tsv")"
     evidence_android_fresh="$(awk -F '\t' '$1 == "android_fresh" { print $2 }' "${evidence_path}/manifest.tsv")"
-    evidence_emulator="$(awk -F '\t' '$1 == "emulator_serial_sha256" { print $2 }' "${evidence_path}/manifest.tsv")"
-    [[ "$evidence_format" == 'whip-frozen-candidate-v1' &&
-        "$evidence_status" == 'accepted' &&
+    if [[ "$evidence_format" == 'whip-frozen-candidate-v1' ]]; then
+        evidence_emulator_count=1
+        evidence_emulator_set="$(awk -F '\t' '$1 == "emulator_serial_sha256" { print $2 }' "${evidence_path}/manifest.tsv")"
+    else
+        evidence_emulator_count="$(awk -F '\t' '$1 == "emulator_count" { print $2 }' "${evidence_path}/manifest.tsv")"
+        evidence_emulator_set="$(awk -F '\t' '$1 == "emulator_set_sha256" { print $2 }' "${evidence_path}/manifest.tsv")"
+    fi
+    [[ "$evidence_status" == 'accepted' &&
         "$evidence_created_at" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ &&
         "$evidence_input" =~ ^[0-9a-f]{64}$ &&
         "$evidence_jvm_tests" =~ ^[1-9][0-9]*$ &&
         "$evidence_android_tests" =~ ^[1-9][0-9]*$ &&
         "$evidence_android_fresh" == true &&
-        "$evidence_emulator" =~ ^[0-9a-f]{64}$ ]] ||
-        die 'candidate manifest is not a complete fresh accepted v1 authority'
+        "$evidence_emulator_count" =~ ^[12]$ &&
+        "$evidence_emulator_set" =~ ^[0-9a-f]{64}$ ]] ||
+        die 'candidate manifest is not a complete fresh accepted authority'
     [[ "$(sha256sum "${evidence_path}/inputs.tsv" | awk '{ print $1 }')" == "$evidence_input" ]] ||
         die 'candidate input manifest hash does not match the accepted input signature'
     [[ "$(tr -d '\n' < "${evidence_path}/android-campaign.sha256")" =~ ^[0-9a-f]{64}$ ]] ||
@@ -218,7 +235,9 @@ if [[ "${1:-}" == '-h' || "${1:-}" == '--help' || "${1:-}" == 'help' ]]; then
 fi
 [[ "$#" -eq 0 ]] || { usage >&2; die "unknown option $1"; }
 
-"${SCRIPT_DIR}/android-target-guard" instrumentation
+emulator_set="$("${SCRIPT_DIR}/android-emulator-set")"
+mapfile -t candidate_emulator_serials <<< "$emulator_set"
+readonly -a candidate_emulator_serials
 cd "$PROJECT_ROOT"
 
 mkdir -p "${EVIDENCE_ROOT}/runs"
@@ -303,14 +322,15 @@ done
 
 created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 printf '%s\t%s\n' \
-    format whip-frozen-candidate-v1 \
+    format whip-frozen-candidate-v2 \
     status accepted \
     created_at "$created_at" \
     input_sha256 "$input_signature" \
     jvm_tests "$jvm_test_count" \
     android_tests "$android_test_count" \
     android_fresh true \
-    emulator_serial_sha256 "$(printf '%s' "$ANDROID_SERIAL" | sha256sum | awk '{ print $1 }')" \
+    emulator_count "${#candidate_emulator_serials[@]}" \
+    emulator_set_sha256 "$(printf '%s\n' "${candidate_emulator_serials[@]}" | sha256sum | awk '{ print $1 }')" \
     > "${pending_dir}/manifest.tsv"
 
 (

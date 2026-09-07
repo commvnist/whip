@@ -22,6 +22,8 @@ usage() {
         '  ANDROID_SERIAL=emulator-N scripts/android-test-engine --mode coverage [--evidence-dir DIR]' \
         '  ANDROID_SERIAL=emulator-N scripts/android-test-engine --mode targeted --class CLASS[#METHOD] ...' \
         '' \
+        'Set WHIP_ANDROID_SECONDARY_SERIAL=emulator-M to use two matching emulators.' \
+        'The primary and optional secondary targets remain explicit and emulator-only.' \
         'Modes reusable, fresh, and coverage select the complete inventory. Coverage' \
         'and fresh never reuse execution; compilation and APK packaging stay incremental.'
 }
@@ -66,36 +68,47 @@ case "$mode" in
     *) die "unknown mode: $mode" ;;
 esac
 
-"${SCRIPT_DIR}/android-target-guard" instrumentation
-readonly test_serial="$ANDROID_SERIAL"
-emulator_api="$(adb -s "$test_serial" shell getprop ro.build.version.sdk | tr -d '\r')"
-[[ "$emulator_api" =~ ^[0-9]+$ ]] && ((emulator_api >= 34)) ||
-    die "instrumentation requires an API 34+ emulator; $test_serial reports API $emulator_api"
-readonly emulator_api
+emulator_set="$("${SCRIPT_DIR}/android-emulator-set")"
+mapfile -t test_serials <<< "$emulator_set"
+readonly -a test_serials
+readonly emulator_count="${#test_serials[@]}"
+((emulator_count >= 1 && emulator_count <= 2)) || die 'expected one or two validated Android emulators'
 
-previous_hide_error_dialogs="$(adb -s "$test_serial" shell settings get global hide_error_dialogs | tr -d '\r')"
-[[ "$previous_hide_error_dialogs" =~ ^(null|0|1)$ ]] ||
-    die "could not determine emulator error-dialog setting: ${previous_hide_error_dialogs:-missing}"
+previous_hide_error_dialogs=()
+for test_serial in "${test_serials[@]}"; do
+    previous_setting="$(adb -s "$test_serial" shell settings get global hide_error_dialogs | tr -d '\r')"
+    [[ "$previous_setting" =~ ^(null|0|1)$ ]] ||
+        die "could not determine emulator error-dialog setting: ${previous_setting:-missing}"
+    previous_hide_error_dialogs+=("$previous_setting")
+done
 
 restore_emulator_window_environment() {
-    case "$previous_hide_error_dialogs" in
-        null) adb -s "$test_serial" shell settings delete global hide_error_dialogs >/dev/null || true ;;
-        0|1) adb -s "$test_serial" shell settings put global hide_error_dialogs "$previous_hide_error_dialogs" >/dev/null || true ;;
-    esac
+    local index serial setting
+    for index in "${!test_serials[@]}"; do
+        serial="${test_serials[$index]}"
+        setting="${previous_hide_error_dialogs[$index]}"
+        case "$setting" in
+            null) adb -s "$serial" shell settings delete global hide_error_dialogs >/dev/null || true ;;
+            0|1) adb -s "$serial" shell settings put global hide_error_dialogs "$setting" >/dev/null || true ;;
+        esac
+    done
 }
 
 prepare_emulator_window_environment() {
-    adb -s "$test_serial" shell input keyevent KEYCODE_WAKEUP >/dev/null
-    adb -s "$test_serial" shell wm dismiss-keyguard >/dev/null
-    if adb -s "$test_serial" shell dumpsys window | rg -q \
+    local serial="$1"
+    adb -s "$serial" shell input keyevent KEYCODE_WAKEUP >/dev/null
+    adb -s "$serial" shell wm dismiss-keyguard >/dev/null
+    if adb -s "$serial" shell dumpsys window | rg -q \
         'mCurrentFocus=.*(Application Error|Application Not Responding)'; then
-        adb -s "$test_serial" shell input keyevent KEYCODE_BACK >/dev/null
+        adb -s "$serial" shell input keyevent KEYCODE_BACK >/dev/null
     fi
 }
 
 trap restore_emulator_window_environment EXIT
-adb -s "$test_serial" shell settings put global hide_error_dialogs 1 >/dev/null
-prepare_emulator_window_environment
+for test_serial in "${test_serials[@]}"; do
+    adb -s "$test_serial" shell settings put global hide_error_dialogs 1 >/dev/null
+    prepare_emulator_window_environment "$test_serial"
+done
 
 cd "$PROJECT_ROOT"
 
@@ -165,8 +178,12 @@ append_batch() {
 if [[ "${#graphics_selectors[@]}" -gt 0 ]]; then
     append_batch graphics "${graphics_selectors[@]}"
 fi
-for ((batch_start = 0; batch_start < ${#ordinary_selectors[@]}; batch_start += INSTRUMENTATION_BATCH_SIZE)); do
-    batch=("${ordinary_selectors[@]:batch_start:INSTRUMENTATION_BATCH_SIZE}")
+ordinary_batch_size="$INSTRUMENTATION_BATCH_SIZE"
+if ((emulator_count == 2 && ${#ordinary_selectors[@]} > 1 && ${#ordinary_selectors[@]} <= INSTRUMENTATION_BATCH_SIZE * 2)); then
+    ordinary_batch_size="$(((${#ordinary_selectors[@]} + 1) / 2))"
+fi
+for ((batch_start = 0; batch_start < ${#ordinary_selectors[@]}; batch_start += ordinary_batch_size)); do
+    batch=("${ordinary_selectors[@]:batch_start:ordinary_batch_size}")
     append_batch ordinary "${batch[@]}"
 done
 if [[ "${#reset_selectors[@]}" -gt 0 ]]; then
@@ -207,6 +224,7 @@ mapfile -t production_signature_files < <(
             build.gradle.kts \
             settings.gradle.kts \
             gradle.properties \
+            scripts/android-emulator-set \
             scripts/android-target-guard \
             scripts/android-test-engine
     } | sort -u
@@ -217,9 +235,10 @@ debug_apk_signature="$(sha256sum "$debug_apk" | awk '{ print $1 }')"
 android_test_apk_signature="$(sha256sum "$android_test_apk" | awk '{ print $1 }')"
 runner_identity="$(sed -nE 's/^[[:space:]]*testInstrumentationRunner[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' app/build.gradle.kts | head -n 1)"
 [[ -n "$runner_identity" ]] || die 'could not determine the instrumentation runner'
-emulator_fingerprint="$(adb -s "$test_serial" shell getprop ro.build.fingerprint | tr -d '\r')"
-emulator_abi="$(adb -s "$test_serial" shell getprop ro.product.cpu.abi | tr -d '\r')"
-[[ -n "$emulator_fingerprint" && -n "$emulator_abi" ]] || die 'could not fingerprint the selected emulator'
+primary_serial="${test_serials[0]}"
+emulator_api="$(adb -s "$primary_serial" shell getprop ro.build.version.sdk | tr -d '\r')"
+emulator_fingerprint="$(adb -s "$primary_serial" shell getprop ro.build.fingerprint | tr -d '\r')"
+emulator_abi="$(adb -s "$primary_serial" shell getprop ro.product.cpu.abi | tr -d '\r')"
 emulator_signature="$(printf '%s\n' "$emulator_api" "$emulator_fingerprint" "$emulator_abi" | sha256sum | awk '{ print $1 }')"
 runner_signature="$(printf '%s\n' "$runner_identity" "$debug_apk_signature" "$android_test_apk_signature" | sha256sum | awk '{ print $1 }')"
 
@@ -247,15 +266,15 @@ readonly run_dir
 aggregate_result="${run_dir}/aggregate.tsv"
 readonly aggregate_result
 printf 'batch\tkind\texpected_classes\texecuted_classes\texecuted\tfailures\tskipped\tcoverage_bytes\treused\tsignature\n' > "$aggregate_result"
+batch_rows_dir="${run_dir}/batch-rows"
+batch_logs_dir="${run_dir}/batch-logs"
+mkdir -p "$batch_rows_dir" "$batch_logs_dir"
+campaign_slot="$(basename "$run_dir" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9-')"
+[[ "$campaign_slot" =~ ^[a-z0-9][a-z0-9-]{0,79}$ ]] || die 'could not create a safe Android worker output slot'
 execution_data_dir="${run_dir}/execution-data"
 if [[ "$mode" == 'coverage' ]]; then mkdir -p "$execution_data_dir"; fi
 cache_dir="${PROJECT_ROOT}/build/instrumentation-batch-cache-v2"
 mkdir -p "$cache_dir"
-
-executed_test_total=0
-failed_test_total=0
-skipped_test_total=0
-reused_batch_total=0
 
 batch_signature_for() {
     local selector_argument="$1" base_class
@@ -275,7 +294,7 @@ expected_classes_for() {
 }
 
 reuse_batch() {
-    local batch_number="$1" kind="$2" selector_argument="$3" batch_signature="$4"
+    local batch_number="$1" kind="$2" selector_argument="$3" batch_signature="$4" row_file="$5"
     local cache_file="${cache_dir}/${batch_signature}.tsv"
     [[ "$mode" == 'reusable' && -s "$cache_file" ]] || return 1
     local cached_signature expected_count executed_count executed failures skipped
@@ -287,31 +306,25 @@ reuse_batch() {
         "$failures" == 0 && "$skipped" == 0 ]] || return 1
     current_expected_count="$(expected_classes_for "$selector_argument" | wc -l | tr -d ' ')"
     [[ "$expected_count" -eq "$current_expected_count" && "$executed_count" -eq "$current_expected_count" ]] || return 1
-    executed_test_total="$((executed_test_total + executed))"
-    reused_batch_total="$((reused_batch_total + 1))"
     printf '%s\t%s\t%s\t%s\t%s\t0\t0\t0\ttrue\t%s\n' \
-        "$batch_number" "$kind" "$expected_count" "$executed_count" "$executed" "$batch_signature" >> "$aggregate_result"
+        "$batch_number" "$kind" "$expected_count" "$executed_count" "$executed" "$batch_signature" > "$row_file"
     printf 'Android batch %s/%s reused (%s tests; signature %s).\n' \
         "$batch_number" "$batch_total" "$executed" "${batch_signature:0:12}"
 }
 
 clear_previous_outputs() {
-    local result_root='app/build/outputs/androidTest-results/connected'
-    local coverage_root='app/build/outputs/code_coverage/debugAndroidTest/connected'
-    if [[ -d "$result_root" ]]; then
-        find "$result_root" -type f -name 'TEST-*.xml' -delete
-    fi
-    if [[ -d "$coverage_root" ]]; then
-        find "$coverage_root" -type f -name '*.ec' -delete
-    fi
+    local output_root="$1"
+    mkdir -p "$output_root"
+    find "$output_root" -mindepth 1 -delete
 }
 
 capture_batch() {
     local batch_number="$1" kind="$2" selector_argument="$3" marker="$4" gradle_status="$5" batch_signature="$6"
+    local output_root="$7" row_file="$8"
     local batch_report_dir="${run_dir}/batch-${batch_number}"
     mkdir -p "$batch_report_dir"
     mapfile -t result_xml_files < <(
-        find app/build/outputs/androidTest-results/connected -name 'TEST-*.xml' -type f -newer "$marker" 2>/dev/null | sort
+        find "$output_root/results" -name 'TEST-*.xml' -type f -newer "$marker" 2>/dev/null | sort
     )
     [[ "${#result_xml_files[@]}" -gt 0 ]] ||
         die "Android batch $batch_number produced no fresh executable XML; results retained in $run_dir"
@@ -340,7 +353,7 @@ capture_batch() {
     coverage_bytes=0
     if [[ "$mode" == 'coverage' ]]; then
         mapfile -t coverage_files < <(
-            find app/build/outputs/code_coverage/debugAndroidTest/connected -name '*.ec' -type f -newer "$marker" 2>/dev/null | sort
+            find "$output_root/coverage" -name '*.ec' -type f -newer "$marker" 2>/dev/null | sort
         )
         [[ "${#coverage_files[@]}" -eq 1 && -s "${coverage_files[0]:-}" ]] ||
             die "coverage batch $batch_number requires exactly one nonempty fresh .ec file; found ${#coverage_files[@]}; results retained in $run_dir"
@@ -350,31 +363,35 @@ capture_batch() {
         [[ -s "$copied_coverage_file" ]] || die "copied coverage data is empty for batch $batch_number"
         coverage_bytes="$(wc -c < "$copied_coverage_file" | tr -d ' ')"
     fi
-    executed_test_total="$((executed_test_total + executed))"
-    failed_test_total="$((failed_test_total + failures))"
-    skipped_test_total="$((skipped_test_total + skipped))"
     printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\tfalse\t%s\n' \
         "$batch_number" "$kind" "$expected_count" "$executed_count" "$executed" \
-        "$failures" "$skipped" "$coverage_bytes" "$batch_signature" >> "$aggregate_result"
+        "$failures" "$skipped" "$coverage_bytes" "$batch_signature" > "$row_file"
     if [[ "$mode" == 'reusable' ]]; then
+        cache_tmp="${cache_dir}/.${batch_signature}.$$.tmp"
         printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
             "$batch_signature" "$expected_count" "$executed_count" "$executed" "$failures" "$skipped" \
-            > "${cache_dir}/${batch_signature}.tsv"
+            > "$cache_tmp"
+        mv -- "$cache_tmp" "${cache_dir}/${batch_signature}.tsv"
     fi
 }
 
 run_batch() {
-    local batch_number="$1" kind="$2" selector_argument="$3" batch_signature marker gradle_status
+    local batch_number="$1" kind="$2" selector_argument="$3" worker_index="$4"
+    local test_serial="${test_serials[$worker_index]}"
+    local worker_slot="${campaign_slot}-worker-$((worker_index + 1))"
+    local output_root="${PROJECT_ROOT}/app/build/whip-android-workers/${worker_slot}"
+    local row_file="${batch_rows_dir}/batch-${batch_number}.tsv"
+    local batch_signature marker gradle_status
     batch_signature="$(batch_signature_for "$selector_argument")"
-    if reuse_batch "$batch_number" "$kind" "$selector_argument" "$batch_signature"; then
+    if reuse_batch "$batch_number" "$kind" "$selector_argument" "$batch_signature" "$row_file"; then
         return
     fi
     printf 'Android batch %s/%s (%s, %s selector(s)).\n' \
         "$batch_number" "$batch_total" "$kind" "$(tr ',' '\n' <<< "$selector_argument" | wc -l | tr -d ' ')"
     ANDROID_SERIAL="$test_serial" "${SCRIPT_DIR}/android-target-guard" instrumentation
-    prepare_emulator_window_environment
+    prepare_emulator_window_environment "$test_serial"
     require_unchanged_campaign "before batch $batch_number"
-    clear_previous_outputs
+    clear_previous_outputs "$output_root"
     marker="${run_dir}/batch-${batch_number}.started"
     : > "$marker"
     # Exact cleanup makes existence invocation-owned; the margin keeps strict
@@ -388,17 +405,102 @@ run_batch() {
         "-Pandroid.testInstrumentationRunnerArguments.class=${selector_argument}"
     )
     set +e
-    ANDROID_SERIAL="$test_serial" ./gradlew "${gradle_args[@]}"
+    ANDROID_SERIAL="$test_serial" WHIP_ANDROID_TEST_SLOT="$worker_slot" ./gradlew "${gradle_args[@]}"
     gradle_status="$?"
     set -e
     require_unchanged_campaign "during batch $batch_number"
-    capture_batch "$batch_number" "$kind" "$selector_argument" "$marker" "$gradle_status" "$batch_signature"
+    capture_batch "$batch_number" "$kind" "$selector_argument" "$marker" "$gradle_status" "$batch_signature" "$output_root" "$row_file"
     adb -s "$test_serial" shell am force-stop commvne.com.whip.app.debug >/dev/null
     adb -s "$test_serial" shell am force-stop commvne.com.whip.app.debug.test >/dev/null
+    printf 'Android batch %s/%s accepted on emulator worker %s.\n' \
+        "$batch_number" "$batch_total" "$((worker_index + 1))"
 }
 
-for ((batch_index = 0; batch_index < batch_total; batch_index++)); do
-    run_batch "$((batch_index + 1))" "${batch_labels[$batch_index]}" "${batch_arguments[$batch_index]}"
+run_batch_index() {
+    local batch_index="$1" worker_index="$2"
+    run_batch "$((batch_index + 1))" "${batch_labels[$batch_index]}" "${batch_arguments[$batch_index]}" "$worker_index"
+}
+
+if ((emulator_count == 1)); then
+    for ((batch_index = 0; batch_index < batch_total; batch_index++)); do
+        run_batch_index "$batch_index" 0
+    done
+else
+    next_batch_index=0
+    if [[ "${batch_labels[0]}" == graphics ]]; then
+        run_batch_index 0 0
+        next_batch_index=1
+    fi
+    ordinary_indices=()
+    while ((next_batch_index < batch_total)) && [[ "${batch_labels[$next_batch_index]}" == ordinary ]]; do
+        ordinary_indices+=("$next_batch_index")
+        next_batch_index="$((next_batch_index + 1))"
+    done
+    worker_one_indices=()
+    worker_two_indices=()
+    for index in "${!ordinary_indices[@]}"; do
+        if ((index % 2 == 0)); then
+            worker_one_indices+=("${ordinary_indices[$index]}")
+        else
+            worker_two_indices+=("${ordinary_indices[$index]}")
+        fi
+    done
+    run_worker() {
+        local worker_index="$1"
+        shift
+        local index log_file
+        for index in "$@"; do
+            log_file="${batch_logs_dir}/batch-$((index + 1)).log"
+            if ! run_batch_index "$index" "$worker_index" > "$log_file" 2>&1; then
+                return 1
+            fi
+        done
+    }
+    worker_pids=()
+    if ((${#worker_one_indices[@]} > 0)); then
+        run_worker 0 "${worker_one_indices[@]}" &
+        worker_pids+=("$!")
+    fi
+    if ((${#worker_two_indices[@]} > 0)); then
+        run_worker 1 "${worker_two_indices[@]}" &
+        worker_pids+=("$!")
+    fi
+    worker_failed=false
+    for worker_pid in "${worker_pids[@]}"; do
+        if ! wait "$worker_pid"; then worker_failed=true; fi
+    done
+    if [[ "$worker_failed" == true ]]; then
+        for index in "${ordinary_indices[@]}"; do
+            row_file="${batch_rows_dir}/batch-$((index + 1)).tsv"
+            [[ -s "$row_file" ]] && continue
+            log_file="${batch_logs_dir}/batch-$((index + 1)).log"
+            [[ -f "$log_file" ]] && tail -n 240 "$log_file" >&2
+        done
+        die "parallel Android worker failed; results retained in $run_dir"
+    fi
+    for index in "${ordinary_indices[@]}"; do
+        grep -E '^Android batch .* (reused|accepted)' "${batch_logs_dir}/batch-$((index + 1)).log" || true
+    done
+    while ((next_batch_index < batch_total)); do
+        run_batch_index "$next_batch_index" 0
+        next_batch_index="$((next_batch_index + 1))"
+    done
+fi
+
+executed_test_total=0
+failed_test_total=0
+skipped_test_total=0
+reused_batch_total=0
+for ((batch_number = 1; batch_number <= batch_total; batch_number++)); do
+    row_file="${batch_rows_dir}/batch-${batch_number}.tsv"
+    [[ -s "$row_file" ]] || die "Android batch $batch_number produced no aggregate row; results retained in $run_dir"
+    IFS=$'\t' read -r recorded_batch _ _ _ executed failures skipped _ reused _ < "$row_file"
+    [[ "$recorded_batch" -eq "$batch_number" ]] || die "Android batch $batch_number aggregate identity changed"
+    executed_test_total="$((executed_test_total + executed))"
+    failed_test_total="$((failed_test_total + failures))"
+    skipped_test_total="$((skipped_test_total + skipped))"
+    [[ "$reused" != true ]] || reused_batch_total="$((reused_batch_total + 1))"
+    cat "$row_file" >> "$aggregate_result"
 done
 
 if [[ "$full_inventory" == true ]]; then
@@ -414,7 +516,7 @@ if [[ "$mode" == 'coverage' ]]; then
     [[ "${#copied_coverage_files[@]}" -eq "$batch_total" ]] ||
         die "expected $batch_total copied coverage files, found ${#copied_coverage_files[@]}"
     require_unchanged_campaign 'before coverage report generation'
-    ANDROID_SERIAL="$test_serial" ./gradlew :app:createBatchedDebugAndroidTestCoverageReport \
+    ANDROID_SERIAL="$primary_serial" ./gradlew :app:createBatchedDebugAndroidTestCoverageReport \
         --no-build-cache --no-configuration-cache --console=plain \
         "-PwhipAndroidCoverageExecutionDataDir=${execution_data_dir}" \
         "-PwhipAndroidCoverageExpectedBatchCount=${batch_total}"
@@ -434,5 +536,5 @@ if [[ -n "$evidence_dir" ]]; then
     printf '%s\n' "$campaign_signature" > "${evidence_dir}/android-campaign.sha256"
 fi
 
-printf 'Android instrumentation accepted %s tests with zero failures/skips across %s batches (%s reused). Evidence: %s\n' \
-    "$executed_test_total" "$batch_total" "$reused_batch_total" "$run_dir"
+printf 'Android instrumentation accepted %s tests with zero failures/skips across %s batches on %s emulator(s) (%s reused). Evidence: %s\n' \
+    "$executed_test_total" "$batch_total" "$emulator_count" "$reused_batch_total" "$run_dir"

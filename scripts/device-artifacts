@@ -111,6 +111,9 @@ ui_catalog_pull() {
     local serial="$1" host_output="$2"
     require_emulator "$serial"
     [[ -d "$host_output" ]] || die "UI catalog host output directory does not exist: $host_output"
+    if ! adb -s "$serial" shell test -d "$UI_CATALOG_ROOT"; then
+        return
+    fi
     adb -s "$serial" pull "$UI_CATALOG_ROOT/." "$host_output" >/dev/null
 }
 

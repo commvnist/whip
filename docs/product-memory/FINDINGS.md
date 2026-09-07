@@ -1315,3 +1315,15 @@
 - Recommended solution: Increment once per rejected frame, compile, run the exact stale-frame-sensitive Gym journey, and repeat the family capture before accepting the repair.
 - Related: `FB-20260907-002`, `FND-20260907-011`, `DEC-20260906-005`.
 - Status: Resolved in `7f2b3e2`; the exact journey and complete Gym family pass with a bounded retry in `VER-20260907-006`.
+
+### FND-20260907-013 — Android batches are independent but the runner serializes them through shared outputs
+
+- Severity/category: P2 QA turnaround and evidence isolation.
+- Observed: `scripts/android-test-engine` assigns bounded independent class batches but executes every batch serially on one `ANDROID_SERIAL`. Separate concurrent invocations clear and read the same AGP connected-result and coverage directories, so manually pointing them at different emulators can delete or misattribute one another's fresh XML or execution data. Candidate metadata also records one emulator serial hash.
+- Expected: Up to two explicitly guarded disposable emulators should execute eligible independent batches concurrently, with invocation-owned device/output identities and one fail-closed aggregate, while one-emulator behavior remains compatible.
+- Why it matters / affected users: Broad affected profiles, complete fresh Android runs, coverage, and catalog campaigns spend avoidable wall time in emulator execution. Unsafe ad-hoc parallelism would be worse than serial execution because apparently complete evidence could be mixed or lost.
+- Evidence: `scripts/android-test-engine` `clear_previous_outputs`, `run_batch`, and the sequential batch loop; `app/build.gradle.kts` connected-test task outputs; `scripts/candidate` manifest and aggregate verification; `scripts/ui-catalog` capture ownership.
+- Root cause: The original shared runner correctly centralized batching/freshness but coupled every batch to one selected serial and AGP's default shared connected-test output locations.
+- Recommended solution: Add an opt-in, maximum-two explicit emulator set; isolate every worker's AGP outputs and evidence; schedule graphics first, ordinary batches across workers, and reset last; merge only after exact worker success; extend candidate identity and fixtures rather than relaxing current checks.
+- Related: `FB-20260907-003`, `DEC-20260904-003`, `DEC-20260906-003`, `IMP-20260902-018`.
+- Status: Verified.

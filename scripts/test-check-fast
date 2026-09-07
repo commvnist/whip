@@ -15,7 +15,8 @@ mkdir -p "${PROJECT}/scripts" "${PROJECT}/app/src/main/java/com/whip/app/domain"
 cp -- "${SCRIPT_DIR}/check" "${SCRIPT_DIR}/change-router" "${SCRIPT_DIR}/qa-targeted" "${PROJECT}/scripts/"
 chmod 755 "${PROJECT}/scripts/"*
 printf '%s\n' '#!/usr/bin/env bash' 'exit 0' > "${PROJECT}/scripts/android-target-guard"
-chmod 755 "${PROJECT}/scripts/android-target-guard"
+printf '%s\n' '#!/usr/bin/env bash' 'printf "%s\\n" "$ANDROID_SERIAL"' > "${PROJECT}/scripts/android-emulator-set"
+chmod 755 "${PROJECT}/scripts/android-target-guard" "${PROJECT}/scripts/android-emulator-set"
 printf '%s\n' 'package com.whip.app.domain' 'object HabitRules' > \
     "${PROJECT}/app/src/main/java/com/whip/app/domain/HabitRules.kt"
 printf '%s\n' 'package com.whip.app.domain' 'class HabitRulesTest' > \

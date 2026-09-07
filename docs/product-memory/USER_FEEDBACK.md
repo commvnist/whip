@@ -554,3 +554,13 @@ These records preserve durable user intent. “Released” means the change reac
 - Related: `FB-20260906-012`, `FB-20260907-001`, `FND-20260907-004` through `FND-20260907-012`, `DEC-20260907-002`, `IMP-20260907-003` through `IMP-20260907-007`, `VER-20260907-003` through `VER-20260907-008`.
 - Status: Implemented, code-reviewed, whole-product emulator-accepted, and released in place as Whip 0.3.58/code 64; awaiting normal real-use feedback.
 - Notes: Earlier audits were used only as context; the accepted evidence is current and fresh where state fidelity matters. Development instrumentation/catalog capture stayed emulator-only. The owner phone was not reset, cleared, uninstalled, downgraded, or instrumented; Play Store candidate qualification remains out of scope.
+
+### FB-20260907-003 — Use up to two emulators for faster Android QA
+
+- Date/source: 2026-09-07, direct user request after discussing emulator-bound QA latency.
+- User need: Let Whip use as many as two disposable emulators so independent Android test work can complete faster without weakening the fast-QA safety or evidence model.
+- Acceptance criteria: Keep one-emulator commands compatible; make the second emulator explicit and opt-in; reject missing, duplicate, physical, offline, unauthorized, incompatible, or third targets; never instrument the owner phone; build shared APK inputs once; isolate concurrent result, report, coverage, and cache ownership; retain graphics-first and destructive-reset-last boundaries; aggregate every requested class and testcase exactly once with zero failures/skips; preserve fresh/candidate source-drift and atomic-evidence guarantees; add deterministic harness regressions and clear operator documentation.
+- Affected users/workflows: Development `check`/`qa-targeted` Android execution, complete emulator compatibility runs, fresh coverage/candidate qualification, and systematic UI-catalog capture where safe parallel work is available.
+- Related: `DEC-20260904-003`, `DEC-20260906-003`, `DEC-20260906-005`, `IMP-20260902-018`, `IMP-20260906-003`.
+- Status: Verified.
+- Notes: Two emulators are a maximum, not a requirement. Physical-phone release protections and the fast non-Play Store lane remain unchanged.

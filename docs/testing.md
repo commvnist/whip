@@ -10,6 +10,9 @@ scripts/check
 scripts/check --ready
 # Run only affected Android tests when UI/device behavior actually changed.
 ANDROID_SERIAL=emulator-5554 scripts/check --emulator
+# Optionally split independent Android batches across two matching emulators.
+ANDROID_SERIAL=emulator-5554 WHIP_ANDROID_SECONDARY_SERIAL=emulator-5556 \
+  scripts/check --emulator
 # Complete JVM/static/release-build compatibility gate; no device is required.
 scripts/check --full
 
@@ -70,12 +73,16 @@ Android inventory, and `--emulator --fresh-emulator` explicitly disables batch
 reuse. None of these compatibility forms creates frozen-candidate evidence;
 only an explicit `scripts/candidate` command can do that.
 
-All instrumentation entry points require one explicit `ANDROID_SERIAL`. The
-selected target must report `device` state and `ro.boot.qemu=1`; physical,
-offline, unauthorized, ambiguous, blank, managed, and other non-connected test
-targets fail closed. The root Gradle guard applies the same rule to direct app
-and benchmark `connected*AndroidTest` tasks, while Android-test compilation and
-assembly remain device-independent.
+All instrumentation entry points require one explicit primary
+`ANDROID_SERIAL`. Set `WHIP_ANDROID_SECONDARY_SERIAL` to opt into at most one
+additional emulator. Both targets must report `device` state and
+`ro.boot.qemu=1`, run API 34 or newer, and have the same API, system-image
+fingerprint, and ABI. Physical, offline, unauthorized, ambiguous, blank,
+managed, mismatched, and other non-connected test targets fail closed. Whip
+never discovers or selects a second target automatically. The root Gradle guard
+applies the same emulator-only rule to direct app and benchmark
+`connected*AndroidTest` tasks, which still take exactly one `ANDROID_SERIAL`;
+Android-test compilation and assembly remain device-independent.
 
 `scripts/android-test-engine` is the sole Android inventory, batching, signature,
 and result-accounting implementation used by check and coverage. Reusable
@@ -86,21 +93,22 @@ invalidates every batch. Each cached record must prove the exact
 requested/executed class count, nonzero tests, and zero failures/skips. Fresh
 and coverage modes never consume that cache.
 
-Android instrumentation resets only the separate
+Android instrumentation builds the app and test APKs once, then assigns each
+runner process an invocation-owned AGP results, report, and coverage directory.
+With two targets, the graphics-heavy batch runs first on the primary emulator,
+ordinary batches are balanced across both emulators, and the whole-app reset
+batch runs last on the primary. Android instrumentation resets only the separate
 `commvne.com.whip.app.debug` app, so it can run beside the signed
 `commvne.com.whip.app` release
-without replacing release data. The gate refuses physical hardware and requires
-exactly one connected disposable API 34+ emulator, preventing a test from
-clearing or otherwise disturbing a personal phone. `--device` remains an alias
-for compatibility but has the same emulator-only guard. Execution remains
-deliberately opt-in. Instrumentation classes run in bounded batches so Compose
-and graphics state is released between runner processes. The graphics-heavy
-interaction class runs first against the fresh emulator; every `*Test.kt` class
-is still included, and the gate fails if a test file does not declare the
-matching top-level class. The whole-app data-epoch reset class runs alone and
-last. At the current 95-class baseline this is exactly 12 runner processes: one
-graphics process, ten batches of at most ten ordinary classes, and one reset
-process.
+without replacing release data. The gate refuses physical hardware, preventing
+a test from clearing or otherwise disturbing a personal phone. `--device`
+remains an alias for compatibility but has the same emulator-only guard.
+Execution remains deliberately opt-in. Instrumentation classes run in bounded
+batches so Compose and graphics state is released between runner processes.
+Every `*Test.kt` class is still included, and the gate fails if a test file does
+not declare the matching top-level class. At the current 96-class baseline this
+is exactly 12 runner processes: one graphics process, ten batches of at most ten
+ordinary classes, and one reset process.
 
 ## Systematic UI surface catalog
 
@@ -126,11 +134,14 @@ scripts/ui-catalog lint --allow-pending  # while building new capture journeys
 scripts/ui-catalog lint                  # completion gate; no pending selectors
 ```
 
-The actual evidence pass is emulator-only and requires one explicit target:
+The actual evidence pass is emulator-only and requires an explicit primary
+target. An optional matching secondary target uses the same guarded split:
 
 ```bash
 ANDROID_SERIAL=emulator-5554 scripts/ui-catalog capture \
   docs/ux-audits/catalog-YYYY-MM-DD/baseline
+ANDROID_SERIAL=emulator-5554 WHIP_ANDROID_SECONDARY_SERIAL=emulator-5556 \
+  scripts/ui-catalog capture docs/ux-audits/catalog-YYYY-MM-DD/baseline
 ```
 
 Capture first runs every unique catalog selector through the guarded targeted
@@ -138,8 +149,10 @@ test engine. During that run it forces dark mode and suppresses unrelated stock
 AVD crash sheets, restoring both emulator settings on exit. Tests save a PNG
 and UI hierarchy XML through MediaStore into one exact emulator-owned Downloads
 collection. Cleanup and export are delegated to `scripts/device-artifacts`, which
-rejects physical hardware for these specialized catalog operations. The collector
-then verifies exact two-artifact accounting for every required
+rejects physical hardware for these specialized catalog operations. With two
+emulators, each worker collection is pulled separately and merged only after
+duplicate artifact names have been rejected. The collector then verifies exact
+two-artifact accounting for every required
 surface, rejects uncatalogued output, fails if a non-Whip window or system error
 sheet obscures a capture, rejects Android `NAF` markers for unlabeled interactive
 nodes, and writes hashes and byte sizes to
@@ -177,6 +190,9 @@ inside the checksummed evidence directory. Verification semantically rechecks
 the retained manifest for retired location permissions and the retained release
 metadata for the expected application ID and source version code, including
 when a checksum inventory has been recomputed after tampering.
+New candidate evidence uses format v2 and binds the accepted emulator count and
+ordered emulator-set hash; verification continues to accept intact historical
+v1 evidence.
 
 Emulator screenshots, UI hierarchy dumps, traces, and other inspection
 artifacts must be created with `scripts/device-artifacts`. The tool stores
@@ -263,7 +279,7 @@ Every product area has fast domain coverage and at least one persisted or UI
 path. New behavior must add its regression to the narrowest applicable suite
 and update this matrix if it introduces a new feature area.
 
-Current baseline: 1575 product tests—617 fast JVM tests and 958 Android
+Current baseline: 1581 product tests—621 fast JVM tests and 960 Android
 instrumentation tests—plus 9 Macrobenchmark/Baseline Profile scenarios, lint,
 debug/release/benchmark builds, and the disposable API 34 emulator suite. API
 26 and API 37 compatibility runs cover the minimum and target/latest platform;
@@ -271,7 +287,7 @@ the gate must not claim configurations that were not run.
 
 `scripts/coverage` generates AGP/JaCoCo's deterministic report and enforces the
 audited domain/core floors. `scripts/coverage --emulator` additionally runs the
-complete suite using the same 11-process graphics-first/ten-class/reset-last
+complete suite using the same 12-process graphics-first/ten-class/reset-last
 topology as `scripts/check`. Every nested connected task revalidates its explicit
 emulator target. After every process the script requires fresh XML proving the
 exact requested class set, nonzero execution, and zero failures/skips, plus

@@ -51,6 +51,7 @@ printf '%s\t%s\n' \
     android_fresh true \
     emulator_serial_sha256 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
     > "${run_dir}/manifest.tsv"
+cp -- "${run_dir}/manifest.tsv" "${TEST_ROOT}/legacy-manifest.tsv"
 for artifact in \
     app/build/outputs/apk/debug/app-debug.apk \
     app/build/outputs/apk/release/app-release.apk \
@@ -137,6 +138,29 @@ rewrite_checksums() {
     )
 }
 
+printf '%s\t%s\n' \
+    format whip-frozen-candidate-v2 \
+    status accepted \
+    created_at 2026-09-04T12:00:00Z \
+    input_sha256 "$input_signature" \
+    jvm_tests 1 \
+    android_tests 2 \
+    android_fresh true \
+    emulator_count 2 \
+    emulator_set_sha256 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc \
+    > "${run_dir}/manifest.tsv"
+rewrite_checksums
+expect_success matching-two-emulator-v2-evidence "${PROJECT}/scripts/candidate" verify
+sed 's/^emulator_count\t2$/emulator_count\t3/' \
+    "${run_dir}/manifest.tsv" > "${TEST_ROOT}/invalid-v2-manifest.tsv"
+mv -- "${TEST_ROOT}/invalid-v2-manifest.tsv" "${run_dir}/manifest.tsv"
+rewrite_checksums
+expect_failure rejects-more-than-two-candidate-emulators \
+    'candidate manifest is not a complete fresh accepted authority' \
+    "${PROJECT}/scripts/candidate" verify
+cp -- "${TEST_ROOT}/legacy-manifest.tsv" "${run_dir}/manifest.tsv"
+rewrite_checksums
+
 mv -- "${run_dir}/android-coverage.xml" "${TEST_ROOT}/android-coverage.xml"
 rewrite_checksums
 expect_failure rejects-missing-required-file 'candidate evidence required file is missing or empty: android-coverage.xml' \
@@ -212,7 +236,7 @@ rewrite_checksums
 sed 's/^android_fresh\ttrue$/android_fresh\tfalse/' \
     "${TEST_ROOT}/manifest.tsv" > "${run_dir}/manifest.tsv"
 rewrite_checksums
-expect_failure rejects-nonfresh-manifest 'candidate manifest is not a complete fresh accepted v1 authority' \
+expect_failure rejects-nonfresh-manifest 'candidate manifest is not a complete fresh accepted authority' \
     "${PROJECT}/scripts/candidate" verify
 cp -- "${TEST_ROOT}/manifest.tsv" "${run_dir}/manifest.tsv"
 rewrite_checksums

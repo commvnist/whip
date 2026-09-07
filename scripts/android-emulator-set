@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+die() {
+    printf 'error: %s\n' "$*" >&2
+    exit 1
+}
+
+[[ -v ANDROID_SERIAL ]] || die 'set ANDROID_SERIAL to one explicit primary emulator serial'
+readonly primary_serial="$ANDROID_SERIAL"
+readonly secondary_serial="${WHIP_ANDROID_SECONDARY_SERIAL:-}"
+
+serials=("$primary_serial")
+if [[ -n "$secondary_serial" ]]; then
+    serials+=("$secondary_serial")
+fi
+[[ "${#serials[@]}" -le 2 ]] || die 'Whip supports at most two explicit Android emulators'
+[[ "${serials[0]}" != "${serials[1]:-}" ]] || die 'primary and secondary emulator serials must be different'
+
+reference_identity=''
+for serial in "${serials[@]}"; do
+    ANDROID_SERIAL="$serial" "${SCRIPT_DIR}/android-target-guard" instrumentation
+    api="$(adb -s "$serial" shell getprop ro.build.version.sdk | tr -d '\r')"
+    fingerprint="$(adb -s "$serial" shell getprop ro.build.fingerprint | tr -d '\r')"
+    abi="$(adb -s "$serial" shell getprop ro.product.cpu.abi | tr -d '\r')"
+    [[ "$api" =~ ^[0-9]+$ && "$api" -ge 34 ]] ||
+        die "instrumentation requires an API 34+ emulator; $serial reports API ${api:-missing}"
+    [[ -n "$fingerprint" && -n "$abi" ]] ||
+        die "could not fingerprint Android emulator '$serial'"
+    identity="${api}"$'\t'"${fingerprint}"$'\t'"${abi}"
+    if [[ -z "$reference_identity" ]]; then
+        reference_identity="$identity"
+    elif [[ "$identity" != "$reference_identity" ]]; then
+        die 'primary and secondary emulators must use the same API, system-image fingerprint, and ABI'
+    fi
+done
+
+printf '%s\n' "${serials[@]}"

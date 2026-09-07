@@ -228,7 +228,25 @@ tasks.register<JacocoReport>("createBatchedDebugAndroidTestCoverageReport") {
 
 val androidTargetGuard = rootProject.layout.projectDirectory.file("scripts/android-target-guard")
 val explicitAndroidSerial = providers.environmentVariable("ANDROID_SERIAL")
+val androidTestOutputSlot = providers.environmentVariable("WHIP_ANDROID_TEST_SLOT")
 val commandPath = providers.environmentVariable("PATH")
+
+gradle.projectsEvaluated {
+    if (androidTestOutputSlot.isPresent) {
+        val outputSlot = androidTestOutputSlot.get()
+        if (!outputSlot.matches(Regex("[a-z0-9][a-z0-9-]{0,95}"))) {
+            throw GradleException("WHIP_ANDROID_TEST_SLOT must be a bounded lowercase worker identifier.")
+        }
+        tasks.withType<DeviceProviderInstrumentTestTask>().configureEach {
+            val workerRoot = layout.buildDirectory.dir("whip-android-workers/$outputSlot")
+            resultsDir.set(workerRoot.map { it.dir("results") })
+            xmlResultsDirectory.set(workerRoot.map { it.dir("xml-results") })
+            reportsDir.set(workerRoot.map { it.dir("reports") })
+            additionalTestOutputDir.set(workerRoot.map { it.dir("additional-output") })
+            coverageDirectory.set(workerRoot.map { it.dir("coverage") })
+        }
+    }
+}
 
 tasks.withType<TestSuiteTestTask>().configureEach {
     notCompatibleWithConfigurationCache(

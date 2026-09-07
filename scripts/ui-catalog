@@ -7,9 +7,9 @@ readonly PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 readonly CATALOG_FILE="${WHIP_UI_CATALOG_FILE:-${PROJECT_ROOT}/docs/quality/ui-surface-catalog.tsv}"
 readonly SOURCE_SNAPSHOT_FILE="${WHIP_UI_SOURCE_SNAPSHOT_FILE:-${PROJECT_ROOT}/docs/quality/ui-source-snapshot.tsv}"
 readonly SOURCE_ROOT="${WHIP_UI_SOURCE_ROOT:-${PROJECT_ROOT}/app/src/main/java/com/whip/app}"
-capture_serial=''
-capture_previous_night_mode=''
-capture_previous_hide_error_dialogs=''
+capture_serials=()
+capture_previous_night_modes=()
+capture_previous_hide_error_dialogs=()
 
 usage() {
     cat <<'EOF'
@@ -25,6 +25,8 @@ Usage:
 The catalog is docs/quality/ui-surface-catalog.tsv. Capture is emulator-only,
 runs every unique catalog test selector, pulls app-private PNG/XML evidence,
 and fails if any required surface is missing or any uncatalogued artifact exists.
+Set WHIP_ANDROID_SECONDARY_SERIAL=emulator-5556 to distribute selectors across
+two matching emulators and merge their disjoint evidence.
 Each accepted capture includes a searchable, dependency-free index.html review gallery.
 EOF
 }
@@ -35,15 +37,19 @@ die() {
 }
 
 restore_capture_environment() {
-    if [[ -n "$capture_serial" && "$capture_previous_night_mode" =~ ^(yes|no|auto)$ ]]; then
-        adb -s "$capture_serial" shell cmd uimode night "$capture_previous_night_mode" >/dev/null || true
-    fi
-    if [[ -n "$capture_serial" ]]; then
-        case "$capture_previous_hide_error_dialogs" in
-            null) adb -s "$capture_serial" shell settings delete global hide_error_dialogs >/dev/null || true ;;
-            0|1) adb -s "$capture_serial" shell settings put global hide_error_dialogs "$capture_previous_hide_error_dialogs" >/dev/null || true ;;
+    local index serial night_mode hide_error_dialogs
+    for index in "${!capture_serials[@]}"; do
+        serial="${capture_serials[$index]}"
+        night_mode="${capture_previous_night_modes[$index]:-}"
+        hide_error_dialogs="${capture_previous_hide_error_dialogs[$index]:-}"
+        if [[ "$night_mode" =~ ^(yes|no|auto)$ ]]; then
+            adb -s "$serial" shell cmd uimode night "$night_mode" >/dev/null || true
+        fi
+        case "$hide_error_dialogs" in
+            null) adb -s "$serial" shell settings delete global hide_error_dialogs >/dev/null || true ;;
+            0|1) adb -s "$serial" shell settings put global hide_error_dialogs "$hide_error_dialogs" >/dev/null || true ;;
         esac
-    fi
+    done
 }
 
 family_for_file() {
@@ -252,27 +258,32 @@ EOF
 capture_catalog() {
     local output_dir="$1" allow_pending="$2" selected_family="$3"
     lint_catalog "$allow_pending"
-    "${SCRIPT_DIR}/android-target-guard" instrumentation
+    local emulator_set
+    emulator_set="$("${SCRIPT_DIR}/android-emulator-set")"
+    mapfile -t capture_serials <<< "$emulator_set"
     [[ ! -e "$output_dir" || -d "$output_dir" ]] || die "output path is not a directory: $output_dir"
     mkdir -p "$output_dir"
     [[ -z "$(find "$output_dir" -mindepth 1 -maxdepth 1 -print -quit)" ]] ||
         die "output directory must be empty: $output_dir"
 
-    local serial="$ANDROID_SERIAL"
-    capture_serial="$serial"
-    capture_previous_night_mode="$(adb -s "$serial" shell cmd uimode night | sed -n 's/^Night mode: //p' | tr -d '\r')"
-    [[ "$capture_previous_night_mode" =~ ^(yes|no|auto)$ ]] ||
-        die "could not determine emulator night mode: ${capture_previous_night_mode:-missing}"
-    capture_previous_hide_error_dialogs="$(adb -s "$serial" shell settings get global hide_error_dialogs | tr -d '\r')"
-    [[ "$capture_previous_hide_error_dialogs" =~ ^(null|0|1)$ ]] ||
-        die "could not determine emulator error-dialog setting: ${capture_previous_hide_error_dialogs:-missing}"
     trap restore_capture_environment EXIT
-    adb -s "$serial" shell cmd uimode night yes >/dev/null
-    # Background Google processes on the stock AVD can crash independently of
-    # Whip. Suppress those OS sheets during evidence collection, while the
-    # hierarchy guard still rejects any overlay that reaches a captured frame.
-    adb -s "$serial" shell settings put global hide_error_dialogs 1 >/dev/null
-    WHIP_DEVICE="$serial" "${SCRIPT_DIR}/device-artifacts" ui-catalog-clear
+    local serial night_mode hide_error_dialogs
+    for serial in "${capture_serials[@]}"; do
+        night_mode="$(adb -s "$serial" shell cmd uimode night | sed -n 's/^Night mode: //p' | tr -d '\r')"
+        [[ "$night_mode" =~ ^(yes|no|auto)$ ]] ||
+            die "could not determine emulator night mode: ${night_mode:-missing}"
+        capture_previous_night_modes+=("$night_mode")
+        hide_error_dialogs="$(adb -s "$serial" shell settings get global hide_error_dialogs | tr -d '\r')"
+        [[ "$hide_error_dialogs" =~ ^(null|0|1)$ ]] ||
+            die "could not determine emulator error-dialog setting: ${hide_error_dialogs:-missing}"
+        capture_previous_hide_error_dialogs+=("$hide_error_dialogs")
+        adb -s "$serial" shell cmd uimode night yes >/dev/null
+        # Background Google processes on the stock AVD can crash independently of
+        # Whip. Suppress those OS sheets during evidence collection, while the
+        # hierarchy guard still rejects any overlay that reaches a captured frame.
+        adb -s "$serial" shell settings put global hide_error_dialogs 1 >/dev/null
+        WHIP_DEVICE="$serial" "${SCRIPT_DIR}/device-artifacts" ui-catalog-clear
+    done
 
     local -a selectors=()
     mapfile -t selectors < <(
@@ -284,10 +295,23 @@ capture_catalog() {
     local -a qa_args=()
     local selector
     for selector in "${selectors[@]}"; do qa_args+=(--android "$selector"); done
-    ANDROID_SERIAL="$serial" "${SCRIPT_DIR}/qa-targeted" "${qa_args[@]}"
+    "${SCRIPT_DIR}/qa-targeted" "${qa_args[@]}"
 
     mkdir -p "$output_dir/raw"
-    WHIP_DEVICE="$serial" "${SCRIPT_DIR}/device-artifacts" ui-catalog-pull "$output_dir/raw"
+    local index worker_raw source_file destination_file
+    for index in "${!capture_serials[@]}"; do
+        serial="${capture_serials[$index]}"
+        worker_raw="$output_dir/raw-worker-$((index + 1))"
+        mkdir -p "$worker_raw"
+        WHIP_DEVICE="$serial" "${SCRIPT_DIR}/device-artifacts" ui-catalog-pull "$worker_raw"
+        while IFS= read -r source_file; do
+            destination_file="$output_dir/raw/${source_file##*/}"
+            [[ ! -e "$destination_file" ]] ||
+                die "catalog workers produced duplicate evidence: ${source_file##*/}"
+            mv -- "$source_file" "$destination_file"
+        done < <(find "$worker_raw" -maxdepth 1 -type f | sort)
+        find "$worker_raw" -depth -type d -empty -delete
+    done
     cp "$CATALOG_FILE" "$output_dir/catalog.tsv"
 
     local expected actual missing unexpected
@@ -322,9 +346,9 @@ capture_catalog() {
     printf 'Captured %s catalog surfaces into %s.\n' "$(($(wc -l < "$output_dir/manifest.tsv") - 1))" "$output_dir"
     restore_capture_environment
     trap - EXIT
-    capture_serial=''
-    capture_previous_night_mode=''
-    capture_previous_hide_error_dialogs=''
+    capture_serials=()
+    capture_previous_night_modes=()
+    capture_previous_hide_error_dialogs=()
 }
 
 main() {

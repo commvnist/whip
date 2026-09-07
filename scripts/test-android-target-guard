@@ -16,6 +16,7 @@ cat > "${FAKE_BIN}/adb" <<'FAKE_ADB'
 #!/usr/bin/env bash
 set -euo pipefail
 printf '%s\n' "$*" >> "${FAKE_ADB_LOG:?}"
+serial="${2:-}"
 case "$*" in
     '-s '*" get-state")
         printf '%s\n' "${FAKE_ADB_STATE:-device}"
@@ -24,16 +25,32 @@ case "$*" in
         if [[ "${FAKE_ADB_QEMU_STATUS:-0}" -ne 0 ]]; then
             exit "$FAKE_ADB_QEMU_STATUS"
         fi
-        printf '%s\n' "${FAKE_ADB_QEMU:-1}"
+        if [[ "$serial" == "${FAKE_ADB_SECONDARY_SERIAL:-}" ]]; then
+            printf '%s\n' "${FAKE_ADB_SECONDARY_QEMU:-${FAKE_ADB_QEMU:-1}}"
+        else
+            printf '%s\n' "${FAKE_ADB_QEMU:-1}"
+        fi
         ;;
     '-s '*" shell getprop ro.build.version.sdk")
-        printf '%s\n' "${FAKE_ADB_API:-34}"
+        if [[ "$serial" == "${FAKE_ADB_SECONDARY_SERIAL:-}" ]]; then
+            printf '%s\n' "${FAKE_ADB_SECONDARY_API:-${FAKE_ADB_API:-34}}"
+        else
+            printf '%s\n' "${FAKE_ADB_API:-34}"
+        fi
         ;;
     '-s '*" shell getprop ro.build.fingerprint")
-        printf '%s\n' "${FAKE_ADB_FINGERPRINT:-fixture/fingerprint}"
+        if [[ "$serial" == "${FAKE_ADB_SECONDARY_SERIAL:-}" ]]; then
+            printf '%s\n' "${FAKE_ADB_SECONDARY_FINGERPRINT:-${FAKE_ADB_FINGERPRINT:-fixture/fingerprint}}"
+        else
+            printf '%s\n' "${FAKE_ADB_FINGERPRINT:-fixture/fingerprint}"
+        fi
         ;;
     '-s '*" shell getprop ro.product.cpu.abi")
-        printf '%s\n' "${FAKE_ADB_ABI:-x86_64}"
+        if [[ "$serial" == "${FAKE_ADB_SECONDARY_SERIAL:-}" ]]; then
+            printf '%s\n' "${FAKE_ADB_SECONDARY_ABI:-${FAKE_ADB_ABI:-x86_64}}"
+        else
+            printf '%s\n' "${FAKE_ADB_ABI:-x86_64}"
+        fi
         ;;
     '-s '*" shell settings get global hide_error_dialogs")
         printf '%s\n' "${FAKE_ADB_HIDE_ERROR_DIALOGS:-null}"
@@ -176,6 +193,31 @@ expect_failure failed-qemu-instrumentation 'could not verify whether' \
 expect_success connected-emulator \
     env ANDROID_SERIAL=emulator-5554 FAKE_ADB_QEMU=1 PATH="$GUARDED_PATH" \
         "${SCRIPT_DIR}/android-target-guard" instrumentation
+
+: > "$ADB_LOG"
+expect_success matching-two-emulator-set \
+    env ANDROID_SERIAL=emulator-5554 WHIP_ANDROID_SECONDARY_SERIAL=emulator-5556 \
+        FAKE_ADB_SECONDARY_SERIAL=emulator-5556 PATH="$GUARDED_PATH" \
+        "${SCRIPT_DIR}/android-emulator-set"
+grep -Fqx 'emulator-5554' "$OUTPUT_FILE" && grep -Fqx 'emulator-5556' "$OUTPUT_FILE" || {
+    printf 'FAIL matching emulator set did not emit both explicit targets\n' >&2
+    exit 1
+}
+expect_failure duplicate-emulator-set 'must be different' \
+    env ANDROID_SERIAL=emulator-5554 WHIP_ANDROID_SECONDARY_SERIAL=emulator-5554 PATH="$GUARDED_PATH" \
+        "${SCRIPT_DIR}/android-emulator-set"
+expect_failure third-emulator-in-secondary-slot 'one valid device serial' \
+    env ANDROID_SERIAL=emulator-5554 'WHIP_ANDROID_SECONDARY_SERIAL=emulator-5556,emulator-5558' \
+        PATH="$GUARDED_PATH" "${SCRIPT_DIR}/android-emulator-set"
+expect_failure physical-secondary-emulator 'refusing instrumentation' \
+    env ANDROID_SERIAL=emulator-5554 WHIP_ANDROID_SECONDARY_SERIAL=emulator-5556 \
+        FAKE_ADB_SECONDARY_SERIAL=emulator-5556 FAKE_ADB_SECONDARY_QEMU=0 PATH="$GUARDED_PATH" \
+        "${SCRIPT_DIR}/android-emulator-set"
+expect_failure mismatched-secondary-emulator 'must use the same API, system-image fingerprint, and ABI' \
+    env ANDROID_SERIAL=emulator-5554 WHIP_ANDROID_SECONDARY_SERIAL=emulator-5556 \
+        FAKE_ADB_SECONDARY_SERIAL=emulator-5556 FAKE_ADB_SECONDARY_FINGERPRINT=fixture/other \
+        PATH="$GUARDED_PATH" "${SCRIPT_DIR}/android-emulator-set"
+printf 'PASS explicit compatible two-emulator set guard\n'
 
 expect_failure missing-release-target 'set WHIP_DEVICE' \
     env -u WHIP_DEVICE PATH="$GUARDED_PATH" "${SCRIPT_DIR}/android-target-guard" release
@@ -338,6 +380,7 @@ grep -Fq 'readonly INSTRUMENTATION_BATCH_SIZE=10' "${SCRIPT_DIR}/android-test-en
 grep -Fq "touch -d '1 second ago'" "${SCRIPT_DIR}/android-test-engine"
 grep -Fq 'settings put global hide_error_dialogs 1' "${SCRIPT_DIR}/android-test-engine"
 grep -Fq 'mCurrentFocus=.*(Application Error|Application Not Responding)' "${SCRIPT_DIR}/android-test-engine"
+grep -Fq 'whip-android-workers' "${PROJECT_ROOT}/app/build.gradle.kts"
 grep -Fq 'android-test-engine' "${SCRIPT_DIR}/coverage"
 grep -Fq 'android-test-engine' "${SCRIPT_DIR}/qa-targeted"
 printf 'PASS shared Android batch topology contract\n'
@@ -354,7 +397,7 @@ mkdir -p \
     "${COVERAGE_FIXTURE_ROOT}/app/src/androidTest/java/com/whip/app" \
     "${COVERAGE_FIXTURE_ROOT}/gradle"
 cp "${SCRIPT_DIR}/coverage" "${SCRIPT_DIR}/android-target-guard" \
-    "${SCRIPT_DIR}/android-test-engine" \
+    "${SCRIPT_DIR}/android-emulator-set" "${SCRIPT_DIR}/android-test-engine" \
     "${COVERAGE_FIXTURE_ROOT}/scripts/"
 printf 'testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"\n' \
     > "${COVERAGE_FIXTURE_ROOT}/app/build.gradle.kts"
@@ -404,7 +447,7 @@ if [[ " $* " == *' :app:createDebugUnitTestCoverageReport '* ]]; then
     exit 0
 fi
 if [[ " $* " == *' :app:connectedDebugAndroidTest '* ]]; then
-    [[ "${ANDROID_SERIAL:-}" == 'emulator-5554' ]] || {
+    [[ "${ANDROID_SERIAL:-}" == 'emulator-5554' || "${ANDROID_SERIAL:-}" == 'emulator-5556' ]] || {
         printf 'connected coverage task was not pinned\n' >&2
         exit 90
     }
@@ -426,8 +469,9 @@ if [[ " $* " == *' :app:connectedDebugAndroidTest '* ]]; then
     printf 'connected\t%s\t%s\n' "$ANDROID_SERIAL" "$class_argument" \
         >> "$FAKE_COVERAGE_GRADLE_LOG"
 
-    result_dir='app/build/outputs/androidTest-results/connected/debug'
-    coverage_dir='app/build/outputs/code_coverage/debugAndroidTest/connected/fake(AVD)'
+    worker_slot="${WHIP_ANDROID_TEST_SLOT:?}"
+    result_dir="app/build/whip-android-workers/${worker_slot}/results"
+    coverage_dir="app/build/whip-android-workers/${worker_slot}/coverage/fake(AVD)"
     mkdir -p "$result_dir" "$coverage_dir"
     result_xml="${result_dir}/TEST-fixture.xml"
     printf '<testsuite>\n' > "$result_xml"
@@ -460,9 +504,9 @@ if [[ " $* " == *' :app:connectedDebugAndroidTest '* ]]; then
             : > "$coverage_file"
             ;;
         multiple)
-            mkdir -p 'app/build/outputs/code_coverage/debugAndroidTest/connected/second(AVD)'
+            mkdir -p "app/build/whip-android-workers/${worker_slot}/coverage/second(AVD)"
             printf 'second\n' \
-                > 'app/build/outputs/code_coverage/debugAndroidTest/connected/second(AVD)/coverage.ec'
+                > "app/build/whip-android-workers/${worker_slot}/coverage/second(AVD)/coverage.ec"
             ;;
         stale)
             touch -d '2000-01-01 00:00:00 UTC' "$result_xml" "$coverage_file"
@@ -545,6 +589,38 @@ grep -Fq 'CoverageGate.java e2e app/build/reports/coverage/androidTest/debug/con
     exit 1
 }
 printf 'PASS fresh 11-process coverage accounting and report union\n'
+
+: > "$COVERAGE_GRADLE_LOG"
+expect_success targeted-two-emulator-parallel-accounting \
+    env ANDROID_SERIAL=emulator-5554 WHIP_ANDROID_SECONDARY_SERIAL=emulator-5556 \
+        FAKE_ADB_SECONDARY_SERIAL=emulator-5556 PATH="$GUARDED_PATH" \
+        "${COVERAGE_FIXTURE_ROOT}/scripts/android-test-engine" --mode targeted \
+        --class com.whip.app.CoverageProbe01Test --class com.whip.app.CoverageProbe02Test
+[[ "$(grep -c '^connected' "$COVERAGE_GRADLE_LOG")" -eq 2 &&
+    "$(grep -c $'^connected\temulator-5554\t' "$COVERAGE_GRADLE_LOG")" -eq 1 &&
+    "$(grep -c $'^connected\temulator-5556\t' "$COVERAGE_GRADLE_LOG")" -eq 1 ]] || {
+    printf 'FAIL two-emulator engine: selectors were not distributed once across both targets\n' >&2
+    exit 1
+}
+parallel_run_dir="$(sed -nE 's/^Android instrumentation accepted .* Evidence: (.*)$/\1/p' "$OUTPUT_FILE" | tail -n 1)"
+[[ -s "${parallel_run_dir}/aggregate.tsv" &&
+    "$(awk -F '\t' 'NR > 1 { tests += $5; failures += $6; skipped += $7; rows++ } END { print rows ":" tests ":" failures ":" skipped }' "${parallel_run_dir}/aggregate.tsv")" == '2:2:0:0' ]] || {
+    printf 'FAIL two-emulator engine: aggregate is incomplete or nonzero\n' >&2
+    exit 1
+}
+grep -Fq 'across 2 batches on 2 emulator(s)' "$OUTPUT_FILE" || {
+    printf 'FAIL two-emulator engine: completion did not disclose worker count\n' >&2
+    exit 1
+}
+printf 'PASS targeted two-emulator distribution and exact aggregate\n'
+
+: > "$COVERAGE_GRADLE_LOG"
+expect_failure parallel-two-emulator-surfaces-batch-diagnostics 'got status/tests/failures/skips 0/1/1/0' \
+    env ANDROID_SERIAL=emulator-5554 WHIP_ANDROID_SECONDARY_SERIAL=emulator-5556 \
+        FAKE_ADB_SECONDARY_SERIAL=emulator-5556 FAKE_COVERAGE_MODE=failure PATH="$GUARDED_PATH" \
+        "${COVERAGE_FIXTURE_ROOT}/scripts/android-test-engine" --mode targeted \
+        --class com.whip.app.CoverageProbe01Test --class com.whip.app.CoverageProbe02Test
+printf 'PASS parallel worker failure diagnostics\n'
 
 : > "$COVERAGE_GRADLE_LOG"
 expect_success reusable-engine-populates-exact-cache \

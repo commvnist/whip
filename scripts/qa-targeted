@@ -31,6 +31,7 @@ usage() {
         'Profiles: shell, tasks, habits, goals, tracks, gym, gym531, settings, all' \
         'Without --emulator, profiles run their JVM tests and compile Android tests.' \
         '--jvm-only is the fastest edit/test loop and skips Android-test compilation.' \
+        'Set WHIP_ANDROID_SECONDARY_SERIAL to use one matching secondary emulator.' \
         'Android execution refuses physical devices. Use scripts/check for final gates.'
 }
 
@@ -273,7 +274,7 @@ fi
 
 if [[ "$run_emulator" == true &&
     ("$all_android" == true || "${#android_classes[@]}" -gt 0) ]]; then
-    "${SCRIPT_DIR}/android-target-guard" instrumentation
+    "${SCRIPT_DIR}/android-emulator-set" >/dev/null
 fi
 
 cd "$PROJECT_ROOT"

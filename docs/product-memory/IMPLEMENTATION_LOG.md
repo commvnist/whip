@@ -1298,3 +1298,15 @@
 - Related: `FB-20260907-002`, `FND-20260907-004` through `FND-20260907-012`, `DEC-20260907-002`, `IMP-20260907-003` through `IMP-20260907-006`, `VER-20260907-007`, `VER-20260907-008`.
 - Verification: `VER-20260907-007`, `VER-20260907-008`.
 - Status: Released and device-verified as Whip 0.3.58/code 64; awaiting normal real-use feedback.
+
+### IMP-20260907-008 — Explicit two-emulator Android QA scheduling and evidence isolation
+
+- Behavior changed: Added `scripts/android-emulator-set` as the single maximum-two target authority. Existing `ANDROID_SERIAL` commands remain valid; setting `WHIP_ANDROID_SECONDARY_SERIAL` opts into one matching disposable emulator. The shared Android engine builds once, gives each worker an invocation-owned AGP output slot, splits small targeted selections when useful, runs graphics first and reset last on primary, balances ordinary batches across both workers, publishes cache rows atomically, and assembles the final aggregate only after every worker succeeds.
+- Evidence/release changed: Check, targeted QA, coverage, candidate creation, and UI-catalog capture now validate the same explicit set. Candidate format v2 records emulator count and an ordered-set hash while verification retains v1 compatibility. Catalog capture prepares/restores both emulators, pulls their collections independently, rejects duplicate artifact names, and performs the existing exact accounting after merge. Usage and testing documentation now describe the opt-in lane and current 1,581-test/96-class inventory.
+- Important files/symbols: `scripts/android-emulator-set`, `scripts/android-test-engine`, `WHIP_ANDROID_TEST_SLOT` in `app/build.gradle.kts`, `scripts/candidate`, `scripts/ui-catalog`, `scripts/device-artifacts`, and the target/candidate/check/catalog fixtures.
+- Persistence/migration/history impact: Test/release harness and documentation only. Whip production behavior, Room schema 46, data epoch 6, exact-match backup version 25, 0.3.58/code 64 release identity, installed app, and owner data are unchanged.
+- Compatibility and limitations: Maximum concurrency is two and remains operator-selected; Whip does not auto-discover targets. The emulators must match to keep device-dependent evidence comparable. Graphics and reset boundaries stay serial by design, so the speedup applies to independent ordinary batches. A full frozen Play Store candidate was not created because no store release was requested.
+- Commit/push: Pending the verified implementation commit; the final source SHA will be reconciled after push.
+- Related: `FB-20260907-003`, `FND-20260907-013`, `DEC-20260907-003`, `VER-20260907-009`.
+- Verification: `VER-20260907-009`.
+- Status: Verified.

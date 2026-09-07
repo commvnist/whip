@@ -15,6 +15,7 @@ usage() {
         '  scripts/coverage --emulator  Also run complete fresh Android E2E coverage' \
         '' \
         'Android coverage is a compatibility entry point for candidate diagnostics.' \
+        'Set WHIP_ANDROID_SECONDARY_SERIAL to use one matching secondary emulator.' \
         'The release authority is ANDROID_SERIAL=emulator-N scripts/candidate.'
 }
 
@@ -28,7 +29,7 @@ while (($#)); do
 done
 
 if [[ "$run_emulator" == true ]]; then
-    "${SCRIPT_DIR}/android-target-guard" instrumentation
+    "${SCRIPT_DIR}/android-emulator-set" >/dev/null
 fi
 
 cd "$PROJECT_ROOT"
