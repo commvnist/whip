@@ -502,7 +502,7 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Redesign elapsed counters across collection cards, Home, Overview, Insights, terminal states, and editor preview so they use Whip's established information hierarchy, restrained emphasis, coherent spacing, and responsive wrapping in every supported appearance; preserve every configured unit and accessibility label. Remove passive success-only app-action pop-ups across Whip when the committed result is already apparent; retain failures, warnings, recovery/choice prompts, meaningful Undo, and Android system reminders/ongoing notifications.
 - Affected users/workflows: Every routine create/edit/log/complete/archive action that currently emits redundant transient success feedback, plus all active and terminal Count Time Since Goal presentations.
 - Related: `FB-20260906-009`, `FND-20260906-005`, `FND-20260906-007`, `FND-20260906-008`, `DEC-20260906-007`, `DEC-20260906-008`, `DEC-20260906-009`.
-- Status: Implemented, focused-tested, and visually accepted on the disposable emulator; not yet released to the owner phone.
+- Status: Implemented, focused-tested, visually accepted, and released in place as Whip 0.3.54/code 60; awaiting real-use feedback.
 - Notes: Treat the phone report as authoritative subjective evidence. Development inspection, capture, and regression testing remain emulator-only.
 
 ### FB-20260906-011 — Release the integrated counter and quiet-feedback correction
@@ -512,5 +512,5 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Advance to a higher monotonic private release identity; use the fast owner-phone lane rather than candidate/full-suite qualification; build signed APK/AAB outputs from clean pushed source; explicitly target the connected physical phone; install in place without reset, clear, uninstall, downgrade, or phone instrumentation; verify signer, archive integrity, installed version/hash, preserved first-install identity, cold launch, foreground activity, live process, and bounded fatal/ANR/Room/SQLite/activity-start logs.
 - Affected users/workflows: Owner-only development installation, Count Time Since review, and routine app actions across Whip.
 - Related: `FB-20260906-010`, `DEC-20260906-003`, `IMP-20260906-020`, `VER-20260906-021`.
-- Status: In progress.
+- Status: Released and device-verified as Whip 0.3.54/code 60; awaiting user validation.
 - Notes: The complete fresh candidate remains reserved for an explicitly requested Play Store release.

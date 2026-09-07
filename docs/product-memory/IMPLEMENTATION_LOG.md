@@ -1162,4 +1162,15 @@
 - Commit/push: Implementation source `7ab2255` was pushed to `origin/main` before final memory reconciliation.
 - Related: `FB-20260906-010`, `FND-20260906-007`, `FND-20260906-008`, `DEC-20260906-008`, `DEC-20260906-009`, `VER-20260906-021`.
 - Verification: `VER-20260906-021`.
-- Status: Implemented, readiness-verified, and visually accepted on the disposable emulator; awaiting a future explicitly requested owner-phone release.
+- Status: Implemented, readiness-verified, visually accepted, and released in Whip 0.3.54/code 60; awaiting real-use feedback.
+
+### IMP-20260906-021 — Signed Whip 0.3.54 integrated-metric owner-phone release
+
+- Behavior changed: Advanced Whip to 0.3.54/code 60 and installed the integrated Count Time Since metric plus quiet routine-action feedback in place on the explicitly selected owner phone through the fast private-development lane.
+- Important files/symbols: `app/build.gradle.kts`, implementation source `7ab2255`, release source `2de0170`, signed `app-release.apk`, local `app-release.aab`, and `VER-20260906-022`.
+- Persistence/migration/history impact: Schema 46, data epoch 6, and exact-match backup version 25 are unchanged. Android first-install identity and existing app data were preserved; no reset, clear, uninstall, downgrade, or fresh-start confirmation occurred.
+- Compatibility and limitations: The release reuses the accepted focused behavior/UI checks and Goals-family evidence, then adds release-vital lint, R8/resource optimization, signed artifact build/install, and physical smoke. It is a private owner-phone development release, not Play Store candidate evidence; public publication still requires one fresh `scripts/candidate` run.
+- Commit/push: Implementation source `7ab2255` and release source `2de0170` were pushed to `origin/main` before the signed build and deployment.
+- Related: `FB-20260906-010`, `FB-20260906-011`, `FND-20260906-007`, `FND-20260906-008`, `DEC-20260906-003`, `DEC-20260906-008`, `DEC-20260906-009`, `IMP-20260906-020`, `VER-20260906-021`, `VER-20260906-022`.
+- Verification: `VER-20260906-022`.
+- Status: Released and device-verified as Whip 0.3.54/code 60; awaiting real-use feedback.

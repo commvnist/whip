@@ -1037,7 +1037,7 @@
 - Related: `FB-20260906-009`, `FB-20260906-010`, `DEC-20260906-007`.
 - Resolution: Replaced every elapsed call site with one responsive `ElapsedGoalMetric`; values use medium emphasis, units use supporting color/weight, component pairs wrap atomically, and the merged full duration remains the spoken label. Collection expansion now adds start/terminal context instead of repeating the duration, and Overview owns one elapsed information group rather than a second Progress card.
 - Related implementation: `IMP-20260906-020`, `VER-20260906-021`.
-- Status: Resolved, focused-tested, and visually verified on the disposable emulator; awaiting real-use validation after a future requested release.
+- Status: Resolved, emulator-verified, and released in Whip 0.3.54/code 60; awaiting real-use validation.
 
 ### FND-20260906-008 — Routine success actions inconsistently bypass quiet feedback
 
@@ -1051,4 +1051,4 @@
 - Related: `FB-20260906-010`, `DEC-20260906-003`.
 - Resolution: Added one `hasWarnings || hasRecoveryAction` policy and applied it across Goal, Habit, Task, Track, Gym, Area, Tag, and Track-entry success paths. Self-evident successful actions are consumed inline; failures, post-commit warnings, and token-owned Undo/Edit/Retry affordances remain transient.
 - Related implementation: `IMP-20260906-020`, `VER-20260906-021`.
-- Status: Resolved and focused emulator-verified; the existing Android notification/reminder system is intentionally unchanged.
+- Status: Resolved, focused emulator-verified, and released in Whip 0.3.54/code 60; the existing Android notification/reminder system is intentionally unchanged.
