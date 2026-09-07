@@ -1267,3 +1267,15 @@
 - Recommended solution: Make the anchor wrap its content, add a spatial regression, and recapture the exact Organization family before accepting the visual evidence.
 - Related: `FB-20260907-002`, `DEC-20260906-005`, `DEC-20260907-002`.
 - Status: Resolved in `bac0dec`; the bounded anchor regression and replacement Organization-family artifact are accepted in `VER-20260907-003`. The detached baseline artifact remains excluded as popup-position evidence.
+
+### FND-20260907-009 — Fast Android QA can reject a real result written in the marker's clock tick
+
+- Severity/category: P1 fast-QA reliability and evidence freshness.
+- Observed: The release-version target-guard campaign reached reusable Android batch 9, where the fake Gradle runner had created executable XML after exact output cleanup, but the engine reported “no fresh executable XML.” The marker and replacement file can share a coarse filesystem timestamp, and `find -newer` treats equality as stale.
+- Expected: The engine must continue rejecting genuinely stale output while accepting results produced by the current invocation, including near-instant synthetic and cached build paths, without adding per-batch sleep latency.
+- Why it matters / affected users: A false stale-result rejection makes the fast private QA lane flaky and encourages redundant reruns precisely when the selected tests are fastest.
+- Evidence: Failed `scripts/test-android-target-guard` reusable-engine fixture retained under `/tmp/tmp.qzd7VohQfD/coverage-project/build/instrumentation-results-PkKfyX`; `android-test-engine` creates its marker immediately before Gradle and uses strict `find -newer` after deleting prior XML/coverage outputs.
+- Root cause: The freshness boundary assumes file modification times have finer granularity than the interval between marker creation and a fast result write.
+- Recommended solution: Backdate the just-created marker by a small fixed margin after exact prior-output deletion, retain strict `-newer` checks so deliberately stale fixtures still fail, and rerun the complete cache/freshness guard.
+- Related: `FB-20260907-002`, `DEC-20260906-003`, `DEC-20260906-005`, `DEC-20260906-010`.
+- Status: Confirmed; harness repair in progress. The failed run is not acceptance evidence.
