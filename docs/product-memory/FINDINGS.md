@@ -1291,3 +1291,15 @@
 - Recommended solution: Append `--emulator` only when the targeted runner already has work, add a clean-tree `--ready --emulator` fixture, and retain the existing behavior for full-Android and fresh-emulator modes.
 - Related: `FB-20260907-002`, `DEC-20260906-003`, `IMP-20260907-004`.
 - Status: Resolved in `36f2d14`; clean-tree emulator readiness and surrounding routing fixtures pass in `VER-20260907-005`. The failed invocation remains excluded from acceptance evidence.
+
+### FND-20260907-011 — Catalog pixels can precede their paired semantics state
+
+- Severity/category: P1 visual-evidence integrity and render synchronization.
+- Observed: The fresh 0.3.58 whole-product catalog labels `gym.tools.png` as Workout Tools but its pixels still show the Gym Library landing page, while the paired `gym.tools.xml` already describes the visible Workout Tools page and controls. Exact artifact accounting, two Choreographer callbacks, and an idle boundary all passed.
+- Expected: A catalog PNG and its paired accessibility hierarchy must describe the same asserted application state; a successful file/count gate must never accept a preceding rendered frame under the requested identity.
+- Why it matters / affected users: Mismatched evidence can hide a real visual defect or manufacture one, invalidating the end-to-end design review and weakening every later release decision based on the gallery.
+- Evidence: `/tmp/whip-ui-critical-final-20260907-v0358/raw/gym.tools.png` shows the Library landing page; its XML places `Workout Tools`, both calculators, and their controls on screen. `VisualCatalogPagesTest#captureGymPageCatalog` transitions from Library to Tools immediately before `captureVisualCatalogSurface`; the helper takes the screenshot before dumping the newer hierarchy.
+- Root cause: The current frame callbacks establish scheduling boundaries but not that SurfaceFlinger has presented the newly composed frame. `UiAutomation.takeScreenshot()` can therefore return the prior buffer even though the accessibility tree is current by the subsequent hierarchy dump.
+- Recommended solution: Treat the first device screenshot as a compositor synchronization probe, wait through a subsequent render boundary, export only the following screenshot, assert the requested Gym page before capture, and recapture/inspect the exact family and then the whole catalog.
+- Related: `FB-20260907-002`, `FND-20260906-002`, `DEC-20260906-005`.
+- Status: Confirmed; the affected whole-product catalog is excluded from final acceptance pending a verified repair.
