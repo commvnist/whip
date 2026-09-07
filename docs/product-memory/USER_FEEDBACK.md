@@ -634,3 +634,13 @@ These records preserve durable user intent. “Released” means the change reac
 - Related: `FB-20260907-008`, `FB-20260907-009`, `IMP-20260907-014`, `IMP-20260907-015`, `IMP-20260907-016`, `VER-20260907-015`, `VER-20260907-016`, `VER-20260907-017`.
 - Status: Released; the signed 0.3.61/code 67 APK was installed in place with identity preserved and passed the guarded device smoke.
 - Notes: The transient device address is intentionally not stored in durable product memory.
+
+### FB-20260907-011 — Workout set edits fail after changing previous and active sets together
+
+- Date/source: 2026-09-07, direct owner feedback from normal use of Whip 0.3.61/code 67.
+- User need: Editing an earlier exercise/set and then changing the active set's weight and reps must not leave the workout unable to save behind an unclear notification.
+- Acceptance criteria: Reconstruct the previous-set plus active-set edit sequence on disposable test state; identify the exact surfaced notification, validation boundary, and persisted-versus-draft state involved; determine whether the failure protects a valid invariant or is an unintended conflict; assess message/action clarity and data-loss risk; report the confirmed cause and a bounded repair recommendation without mutating the physical phone.
+- Affected users/workflows: Active Gym workout execution, editing completed/previous sets, modifying the current active set, and saving the combined workout state.
+- Related: `FND-20260901-025`, `FND-20260907-020`, `DEC-20260901-023`, `IMP-20260901-016`, `VER-20260901-018`, `VER-20260907-018`.
+- Status: Confirmed; a previous Set save advances the whole workout revision while the active quick-entry composer retains its opening revision, so its otherwise valid draft is deterministically rejected as stale.
+- Notes: The owner could not recall the notification text, so the investigation must derive it from executable state and source rather than assuming its wording.
