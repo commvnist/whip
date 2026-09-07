@@ -62,6 +62,7 @@ internal fun captureVisualCatalogSurface(
         fingerprint.meanChannelDifference(referenceFingerprint) < MIN_DISTINCT_CONTENT_DIFFERENCE &&
         renderAttempts < MAX_DISTINCT_RENDER_ATTEMPTS
     ) {
+        renderAttempts += 1
         screenshot.recycle()
         SystemClock.sleep(DISTINCT_RENDER_RETRY_MILLIS)
         waitForWindowDraw(surfaceId)
