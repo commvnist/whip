@@ -1306,7 +1306,7 @@
 - Important files/symbols: `scripts/android-emulator-set`, `scripts/android-test-engine`, `WHIP_ANDROID_TEST_SLOT` in `app/build.gradle.kts`, `scripts/candidate`, `scripts/ui-catalog`, `scripts/device-artifacts`, and the target/candidate/check/catalog fixtures.
 - Persistence/migration/history impact: Test/release harness and documentation only. Whip production behavior, Room schema 46, data epoch 6, exact-match backup version 25, 0.3.58/code 64 release identity, installed app, and owner data are unchanged.
 - Compatibility and limitations: Maximum concurrency is two and remains operator-selected; Whip does not auto-discover targets. The emulators must match to keep device-dependent evidence comparable. Graphics and reset boundaries stay serial by design, so the speedup applies to independent ordinary batches. A full frozen Play Store candidate was not created because no store release was requested.
-- Commit/push: Pending the verified implementation commit; the final source SHA will be reconciled after push.
+- Commit/push: Harness source `3711d5b` was pushed to `origin/main`; the following reconciliation changes memory only.
 - Related: `FB-20260907-003`, `FND-20260907-013`, `DEC-20260907-003`, `VER-20260907-009`.
 - Verification: `VER-20260907-009`.
 - Status: Verified.
