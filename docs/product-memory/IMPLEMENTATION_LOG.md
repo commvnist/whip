@@ -1207,4 +1207,15 @@
 - Compatibility and limitations: The final fast Gym/5/3/1 profile, exact Gym-family gallery, catalog semantics guard, and affected readiness tier passed. No complete fresh suite, candidate qualification, physical instrumentation, phone reset, uninstall, downgrade, or Play Store publication occurred.
 - Related: `FB-20260906-013`, `FND-20260906-016`, `FND-20260906-017`, `FND-20260906-018`, `DEC-20260906-011`, `VER-20260906-025`.
 - Verification: `VER-20260906-025`.
-- Status: Implemented, focused-tested, semantically verified, and visually accepted; fast owner-phone release pending.
+- Status: Implemented, focused-tested, semantically verified, visually accepted, and released in Whip 0.3.56/code 62.
+
+### IMP-20260906-025 — Signed Whip 0.3.56 Gym/5/3/1 owner-phone release
+
+- Behavior changed: Advanced Whip to 0.3.56/code 62 and installed the end-to-end Gym/5/3/1 UX closure in place on the explicitly selected owner phone through the fast private-development lane. First-run setup guidance, disabled-action semantics, textual cycle decisions, and the verified generated-program workflow are now in normal-use release code.
+- Important files/symbols: Release source `9006233`, `app/build.gradle.kts`, `FiveThreeOneProgramSetupDialog`, `FiveThreeOneCycleReviewDialog`, signed `app-release.apk`, local `app-release.aab`, and `VER-20260906-026`.
+- Persistence/migration/history impact: Schema 46, data epoch 6, and exact-match backup version 25 are unchanged. Android first-install identity and existing owner data were preserved; no reset, clear, uninstall, downgrade, or fresh-start confirmation occurred.
+- Compatibility and limitations: The release follows the accepted focused 170-test Gym/5/3/1 profile, 46-state Gym visual/semantics review, and affected readiness tier, then adds release-vital lint, R8/resource optimization, signed build/install, and physical smoke. It is a private owner-phone development release, not Play Store candidate evidence; public publication still requires a fresh `scripts/candidate` run.
+- Commit/push: Release source `9006233` was clean and synchronized with `origin/main` before signed build/install; the following reconciliation commit changes memory only.
+- Related: `FB-20260906-013`, `FND-20260906-016`, `FND-20260906-017`, `FND-20260906-018`, `DEC-20260906-011`, `IMP-20260906-024`, `VER-20260906-025`, `VER-20260906-026`.
+- Verification: `VER-20260906-026`.
+- Status: Released and device-verified as Whip 0.3.56/code 62; awaiting normal real-use feedback.
