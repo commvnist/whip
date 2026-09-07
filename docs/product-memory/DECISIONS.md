@@ -877,4 +877,4 @@
 - Rejected alternatives: Cosmetic color/spacing changes without fixing information ownership; disabling every unavailable action in place; inventing a placeholder Entry name; repeating selected Area identity in both frame and content; making diagnostic refresh a new primary action; accepting a detached catalog popup as a harmless test artifact.
 - Constraints and consequences: Active Track add, archived restoration, Track-entry validation/duplicate detection, Area operations, notification diagnostics, adaptive layouts, and popup menu contents remain unchanged. Changes require focused semantics/interaction tests, affected-family recaptures, and a fresh exact full catalog before release.
 - Related: `FB-20260907-002`, `FND-20260907-004`, `FND-20260907-005`, `FND-20260907-006`, `FND-20260907-007`, `FND-20260907-008`, `DEC-20260906-005`.
-- Status: Accepted; implementation in progress.
+- Status: Accepted, implemented in `bac0dec`, and focused emulator-verified in `VER-20260907-003`.

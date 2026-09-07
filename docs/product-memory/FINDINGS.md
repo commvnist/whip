@@ -1218,7 +1218,7 @@
 - Root cause: The editor treated the first identity Field's schema label as though it were an authored Entry identity.
 - Recommended solution: Use the parent Track name as the new-entry heading with concise reusable-structure guidance; retain the saved composite identity for edit mode.
 - Related: `FB-20260907-002`, `DEC-20260907-002`.
-- Status: Confirmed; implementation in progress.
+- Status: Resolved in `bac0dec`; focused behavior, semantics, and Track-family pixels are accepted in `VER-20260907-003`.
 
 ### FND-20260907-005 — Archived Track rows retain an unavailable primary action
 
@@ -1230,7 +1230,7 @@
 - Root cause: The active summary-row structure was reused literally for archived state instead of changing the visible action set.
 - Recommended solution: Render the Entry add action only for active Tracks and protect the archived absence with Compose semantics coverage.
 - Related: `FB-20260907-002`, `DEC-20260907-002`.
-- Status: Confirmed; implementation in progress.
+- Status: Resolved in `bac0dec`; focused behavior, semantics, and Track-family pixels are accepted in `VER-20260907-003`.
 
 ### FND-20260907-006 — Area detail repeats identity and usage in adjacent hierarchy layers
 
@@ -1242,7 +1242,7 @@
 - Root cause: Both the navigation frame and detail pane were allowed to own the same identity summary.
 - Recommended solution: Put Active/Archived status and usage in the destination header, remove the duplicate body header, and preserve every operation and its explanatory copy.
 - Related: `FB-20260907-002`, `DEC-20260907-002`.
-- Status: Confirmed; implementation in progress.
+- Status: Resolved in `bac0dec`; focused behavior and Organization-family pixels are accepted in `VER-20260907-003`.
 
 ### FND-20260907-007 — Reminder status recovery is visually detached from the state it repairs
 
@@ -1254,7 +1254,7 @@
 - Root cause: The recovery control was appended as a tertiary text button while surrounding notification actions evolved into bounded, full-width controls.
 - Recommended solution: Promote refresh to a full-width outlined action with a stable test identity; retain its diagnostic behavior and quiet success policy.
 - Related: `FB-20260907-002`, `DEC-20260907-002`.
-- Status: Confirmed; implementation in progress.
+- Status: Resolved in `bac0dec`; focused Settings behavior and pixels are accepted in `VER-20260907-003`.
 
 ### FND-20260907-008 — Area-menu catalog evidence detaches the popup from its trigger
 
@@ -1266,4 +1266,4 @@
 - Root cause: The anchor relies on ambient constraints rather than explicitly wrapping the filter chip.
 - Recommended solution: Make the anchor wrap its content, add a spatial regression, and recapture the exact Organization family before accepting the visual evidence.
 - Related: `FB-20260907-002`, `DEC-20260906-005`, `DEC-20260907-002`.
-- Status: Confirmed; implementation in progress. The baseline artifact is not accepted as popup-position evidence.
+- Status: Resolved in `bac0dec`; the bounded anchor regression and replacement Organization-family artifact are accepted in `VER-20260907-003`. The detached baseline artifact remains excluded as popup-position evidence.

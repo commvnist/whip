@@ -1242,3 +1242,15 @@
 - Related: `FB-20260907-001`, `FND-20260907-001`, `FND-20260907-002`, `FND-20260907-003`, `DEC-20260907-001`, `IMP-20260907-001`, `VER-20260907-001`, `VER-20260907-002`.
 - Verification: `VER-20260907-002`.
 - Status: Released and device-verified as Whip 0.3.57/code 63; awaiting normal real-use feedback.
+
+### IMP-20260907-003 — Whole-product state-truth and action-hierarchy cleanup
+
+- Behavior changed: New Track Entry editors now lead with the parent Track name and identify the work as a new Entry instead of fabricating `New <Field>` identity text. Existing Entry editors retain their saved composite identity. Archived Track summaries omit the unavailable add control while preserving open, expand, selection, restore, and history behavior.
+- Hierarchy changed: Area detail status and usage moved into the selected-destination header, and the repeated body identity block was removed so Identity actions begin in the first viewport. Reminder status refresh now uses Whip's full-width secondary action grammar with a stable semantic test identity. The Area scope popup anchor explicitly wraps the visible chip, preventing inherited full-screen minimum constraints from detaching its menu.
+- Regression coverage: Added new-entry hierarchy assertions, archived-action absence coverage, and a bounded Area-menu anchor regression. Existing Area-management catalog behavior remains asserted. No domain mutation, repository, persistence, notification-delivery, Track schema, archive lifecycle, or Area operation changed.
+- Persistence/migration/history impact: Presentation, semantics, and popup geometry only. Room schema 46, data epoch 6, exact-match backup version 25, existing owner data, and release identity remain unchanged at this implementation boundary.
+- Compatibility and limitations: The implementation preserves compact/adaptive app-shell behavior and all domain-specific workflows. Focused emulator tests and the three affected visual families are accepted; final whole-product recapture, release stamping, signed build, and phone deployment remain separate acceptance steps.
+- Commit/push: Product source `bac0dec` was pushed to `origin/main` before this memory reconciliation.
+- Related: `FB-20260907-002`, `FND-20260907-004` through `FND-20260907-008`, `DEC-20260907-002`, `VER-20260907-003`.
+- Verification: `VER-20260907-003`.
+- Status: Implemented, code-reviewed, focused-tested, semantically verified, and visually accepted across affected families.
