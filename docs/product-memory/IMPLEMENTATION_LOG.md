@@ -1140,4 +1140,14 @@
 - Compatibility and limitations: Automatic intentionally retains the existing single best-fit duration behavior. Calendar composites use the current Whip zone, while the saved start remains one exact instant. No complete candidate suite or Play Store qualification was run; the requested private-phone release remains a separate fast deployment step.
 - Related: `FB-20260906-009`, `FND-20260906-005`, `FND-20260906-006`, `DEC-20260906-007`, `VER-20260906-019`.
 - Verification: `VER-20260906-019`.
-- Status: Implemented, focused-tested, readiness-verified, and visually accepted; owner-phone release pending.
+- Status: Implemented, focused-tested, readiness-verified, visually accepted, and released in Whip 0.3.53/code 59.
+
+### IMP-20260906-019 — Signed Whip 0.3.53 multi-unit elapsed-display owner-phone release
+
+- Behavior changed: Advanced Whip to 0.3.53/code 59 and installed the first-class Count Time Since display in place on the explicitly selected owner phone through the fast private-development lane. Authors can retain Automatic or choose any combination of Years, Months, Weeks, Days, Hours, and Minutes, with the configured duration kept prominent across Goal collection and detail surfaces.
+- Persistence/migration/history impact: Schema 46 and data epoch 6 remain unchanged; the exact-match backup contract is version 25. Legacy elapsed-display strings decode in place, Android first-install identity was preserved, and no reset, clear, uninstall, downgrade, or fresh-start confirmation occurred.
+- Compatibility and limitations: The release uses the accepted focused Goals checks, 14-surface visual review, affected readiness gate, release-vital lint, signed artifact build/install, and physical smoke. It is a private owner-phone development release, not Play Store candidate evidence; public publication still requires one fresh `scripts/candidate` run.
+- Commit/push: Feature commit `1e940cd` and release source `a23fb6b` were pushed to `origin/main` before the signed build and deployment.
+- Related: `FB-20260906-009`, `FND-20260906-005`, `DEC-20260906-007`, `IMP-20260906-018`, `VER-20260906-019`, `VER-20260906-020`.
+- Verification: `VER-20260906-020`.
+- Status: Released and device-verified as Whip 0.3.53/code 59; awaiting real-use feedback.

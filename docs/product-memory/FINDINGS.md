@@ -1010,7 +1010,7 @@
 - Related: `FB-20260906-009`.
 - Resolution: Added the first-class `ElapsedDisplayFormat`, calendar-aware composite formatting, legacy scalar decoding, multi-select editor with live preview, consistent surface rendering, and a wrapping always-visible collection-card metric.
 - Related implementation: `IMP-20260906-018`, `VER-20260906-019`.
-- Status: Resolved and emulator-verified; owner-phone release pending.
+- Status: Resolved, emulator-verified, and released in Whip 0.3.53/code 59.
 
 ### FND-20260906-006 — The Goals QA profile names nonexistent UI classes
 

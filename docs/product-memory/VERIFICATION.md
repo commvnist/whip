@@ -1224,4 +1224,14 @@
 - Counts and exclusions: Current source declares 615 JVM plus 956 Android tests (1,571 total). This is focused development/readiness and visual-family evidence, not a complete product suite or Play Store candidate. No release build, phone deployment, data reset, uninstall, or publication occurred.
 - Artifact/evidence: `/tmp/whip-goals-elapsed-review-accepted-2/index.html`, paired raw evidence and manifest in that directory, plus the instrumentation directories above.
 - Related: `FB-20260906-009`, `FND-20260906-005`, `FND-20260906-006`, `DEC-20260906-007`, `IMP-20260906-018`.
-- Status: Verified and visually accepted; fast owner-phone release pending.
+- Status: Verified, visually accepted, and included in the device-verified Whip 0.3.53/code 59 release.
+
+### VER-20260906-020 — Whip 0.3.53 fast owner-phone release
+
+- Scope/environment: Clean pushed release source `a23fb6b`; Whip 0.3.53/code 59; signed release build on WSL; explicitly selected physical Samsung SM-F976W owner phone at `192.168.2.187:37279`. The disposable emulator was shut down before the first physical-device interaction.
+- Command or manual procedure: Guarded `WHIP_DEVICE=192.168.2.187:37279 scripts/device release-deploy`; release-vital lint, R8/resource optimization, signed APK/AAB assembly; installed/local APK hash comparison; post-install package/version/first-install inspection; cold launch and foreground check; APK signer verification; AAB archive test; live-process check; and bounded PID-scoped fatal/ANR/Room/SQLite/activity-start log scan.
+- Result: The fast clean-source check found no changed repository inputs and correctly reran no product tests. The signed APK/AAB build completed in 1 minute 7 seconds. Streamed `adb install -r` succeeded; Android reports 0.3.53/code 59; installed/local APK hashes match; and first install remains `2026-08-26 17:59:24`, proving an in-place upgrade. Forced cold launch returned `Status: ok` in 121 ms with `MainActivity` resumed. PID 26078 remained live and the bounded log scan found zero fatal, AndroidRuntime, ANR, Room, SQLite, or activity-start matches.
+- Artifact/version/hash: APK SHA-256 `ca0b6358eb3786f17553fca15f2ab69fec2fe72c1c543491d483cdc48be5f3f2`; AAB SHA-256 `8067b31799eb2d7257865eaeb41ad09d80d804ae6521dfdc752c345ddd32147b`; established single RSA signer certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`; APK Signature Scheme v2 verified; AAB archive integrity passed.
+- Counts and exclusions: No reset, clear, uninstall, downgrade, fresh-start confirmation, physical instrumentation, complete product suite, candidate qualification, or Play Store publication occurred. Accepted development evidence remains `VER-20260906-019`; a Play Store release requires a fresh candidate run.
+- Related: `FB-20260906-009`, `DEC-20260906-003`, `DEC-20260906-007`, `IMP-20260906-018`, `IMP-20260906-019`, `VER-20260906-019`.
+- Status: Released and device-verified; awaiting real-use feedback.
