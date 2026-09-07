@@ -1310,3 +1310,15 @@
 - Related: `FB-20260907-003`, `FND-20260907-013`, `DEC-20260907-003`, `VER-20260907-009`.
 - Verification: `VER-20260907-009`.
 - Status: Verified.
+
+### IMP-20260907-009 — Unified unconstrained elapsed Goal presentation
+
+- Behavior changed: Active Count Time Since cards now keep the authored multi-unit counter visible below the identity/action row in collapsed, expanded, and reorder states. The book-fold support pane uses the same responsive value/unit composition instead of a separator-delimited scalar string, so side-by-side timers share one visual and spoken grammar while wrapping only for their actual pane widths.
+- Shared UI changed: `ProductivityItemHeader` now offers a reusable full-width persistent-summary slot without changing existing compact scalar summaries. `NavigationRow` now accepts mutually exclusive scalar or structured supporting content. `ElapsedGoalMetric` owns width and merged accessibility semantics wherever it is used.
+- Regression coverage: The fold regression renders two real Goal cards plus their support rows, verifies identical timer semantics, rejects scalar fallback, checks full-width/action-lane geometry, and contributes `goals.elapsed.book-fold` to the exact visual catalog. Existing card coverage now proves the timer survives expansion while Reset and milestone behavior remain intact.
+- Persistence/migration/history impact: Presentation and test/catalog coverage only. Elapsed start instants, authored display selections, calendar decomposition, reset behavior, terminal history, Room schema 46, data epoch 6, backup version 25, and existing user data are unchanged.
+- Compatibility and limitations: The shared card shell was retained because its structure is sound once rich status has a proper slot. Other entity families keep their existing hierarchy unless they explicitly adopt the new slot. This source is not installed on the owner phone; installed release identity remains Whip 0.3.58/code 64.
+- Commit/push: Product source `a8c430e` was pushed to `origin/main`; the following reconciliation changes product memory only.
+- Related: `FB-20260907-004`, `FND-20260907-014`, `DEC-20260907-004`, `VER-20260907-010`.
+- Verification: `VER-20260907-010`.
+- Status: Verified.
