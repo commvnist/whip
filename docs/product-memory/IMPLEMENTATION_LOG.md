@@ -1356,3 +1356,16 @@
 - Related: `FB-20260907-006`, `FND-20260907-015`, `DEC-20260907-005`, `IMP-20260907-011`, `VER-20260907-012`, `VER-20260907-013`.
 - Verification: `VER-20260907-013`.
 - Status: Released and device-verified as Whip 0.3.60/code 66; awaiting normal real-use feedback.
+
+### IMP-20260907-013 — Single-owner active-workout recovery in Routine detail
+
+- Behavior changed: An active workout's visible source Routine now owns one full-width “Open Active Workout” action. If the source Routine is absent because the view is filtered, archived differently, or the workout is ad hoc, Routine detail renders one page-level fallback instead. Programmed next-day and per-day actions no longer rewrite themselves into recovery aliases; unavailable start actions are absent while a session is active.
+- Preserved behavior: Day-specific Resolve Equipment remains available on another editable Routine because it is a distinct task, while the active source Routine retains its existing edit/program-position lock. Starting a Routine, out-of-order program behavior, program advancement, history, deletion-dialog recovery, and the single-expanded-card Workout History action are unchanged.
+- Systemic review: Production action strings/callback owners and the current visual catalog were audited for simultaneously visible repeated outcomes. The remaining destructive-dialog recovery actions each belong to one dialog; Workout History permits one expanded owner; repeated entity actions target different records; and the global Search shortcut and local editable filter have distinct focus-versus-filter roles. No other same-outcome double-button defect was confirmed.
+- Regression coverage: The persisted four-day 5/3/1 journey now starts a real workout, requires exactly one visible “Open Active Workout” semantic node, captures `gym.routine.active-blocked`, and opens the active workout through that sole action. The declared catalog increases from 175 to 176 states and Gym from 46 to 47 surfaces.
+- Persistence/migration/history impact: Presentation, navigation ownership, semantics, Android regression coverage, and catalog metadata only. Room schema 46, data epoch 6, exact-match backup version 25, existing data, and release identity are unchanged.
+- Compatibility and limitations: The accepted source has not been installed on the owner phone; Whip 0.3.60/code 66 remains installed. Public publication still requires a fresh frozen candidate, and subjective phone aesthetics remain for a separately requested release.
+- Commit/push: Product source, regression, catalog declaration, and this reconciliation are committed as one coherent change and pushed to `origin/main`.
+- Related: `FB-20260907-007`, `FND-20260907-016`, `DEC-20260907-006`, `VER-20260907-014`.
+- Verification: `VER-20260907-014`.
+- Status: Implemented, code-reviewed, emulator-accepted, semantically audited, and visually verified; not physically released.

@@ -906,3 +906,16 @@
 - Constraints and consequences: Preserve all open/edit/complete/log/reset/add/selection/reorder behavior, authored data, schema 46, data epoch 6, and backup version 25. Logical `start` alignment must mirror in RTL, and large text may wrap vertically without truncating controls or reverting to another anchor. Acceptance requires explicit geometry/semantics regressions plus fresh affected-family pixels on disposable emulators.
 - Related: `FB-20260907-006`, `FND-20260907-015`, `DEC-20260903-014`, `DEC-20260907-004`.
 - Status: Verified; implemented in `IMP-20260907-011` and accepted in `VER-20260907-012`.
+
+### DEC-20260907-006 — Global recovery actions have one visible owner
+
+- Context: Routine cards expose distinct next-day and out-of-order day actions, but an active session currently rewrites every one into “Open Active Workout.” The same global outcome therefore occupies several local action slots at once.
+- Position A: Keep every slot and vary styling or wording so the repetition looks less obvious.
+- Position B: Disable every day action in place and rely only on the Gym Workout destination for recovery.
+- Evidence and constraints: Users need an explicit path back to interrupted work, especially after navigating into Library. The active source Routine is the most stable contextual owner when visible; focused/archived/ad-hoc states can hide that source. Equipment repair on another Routine remains a genuine distinct action, while editing the source Routine is already locked during its active workout.
+- Failure modes: Position A preserves duplicate outcomes and accessibility noise. Position B weakens recovery discoverability and leaves a page full of unavailable controls. A page-only action can scroll away immediately after starting from a card; a source-card-only action disappears when the source is filtered or an ad-hoc workout is active.
+- Decision: Render exactly one filled Open Active Workout action on the visible source Routine; if no visible Routine owns the active session, render one page-level fallback. Do not rewrite next/day start controls into recovery aliases. Hide unavailable start controls while any session is active, but retain a day-specific Resolve Equipment action for a different editable Routine where that distinct work is still valid.
+- Why this is superior for Whip: Recovery remains explicit and close to its context without multiplying commands, day actions keep truthful meanings, active-source editing constraints stay coherent, and filtered/ad-hoc cases retain a safe fallback.
+- Consequences / reversal conditions: Starting, program advancement, active-session identity, equipment repair, Room schema 46, data epoch 6, and backup version 25 do not change. Revisit only if Gym adopts a persistent app-level active-workout affordance that remains visible across Library scrolling and can replace both owners.
+- Related: `FB-20260907-007`, `FND-20260907-016`, `DEC-20260906-006`.
+- Status: Verified; implemented in `IMP-20260907-013` and accepted in `VER-20260907-014`.

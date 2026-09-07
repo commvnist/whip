@@ -1,6 +1,7 @@
 package com.whip.app
 
 import android.content.Intent
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasAnyAncestor
@@ -9,6 +10,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -99,9 +101,12 @@ class GymFiveThreeOneJourneyE2ETest {
                 }
             }
             compose.waitUntil(5_000) {
-                compose.onAllNodesWithTag("routine-start-next-${routine.id}").fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithTag("routine-active-workout-action").fetchSemanticsNodes().isNotEmpty()
             }
-            compose.onNodeWithTag("routine-start-next-${routine.id}").performScrollTo().performClick()
+            compose.onAllNodesWithText("Open Active Workout").assertCountEquals(1)
+            compose.onNodeWithTag("routine-active-workout-action").performScrollTo()
+            captureVisualCatalogSurface("gym.routine.active-blocked")
+            compose.onNodeWithTag("routine-active-workout-action").performClick()
             compose.waitUntil(5_000) {
                 compose.onAllNodesWithTag("active-workout-program-context").fetchSemanticsNodes().isNotEmpty()
             }

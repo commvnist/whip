@@ -8644,6 +8644,9 @@ private fun RoutineContent(
     val visible = source.filter {
         focusedRoutineId == null || it.id == focusedRoutineId
     }
+    val visibleOwnsActiveWorkout = state.activeSession?.sourceRoutineId?.let { activeRoutineId ->
+        visible.any { it.id == activeRoutineId }
+    } == true
     BackHandler(enabled = reordering) { reordering = false }
     DisposableEffect(reordering) {
         onReorderModeChange(reordering)
@@ -8700,6 +8703,16 @@ private fun RoutineContent(
                 }
             }
         }
+        if (!reordering && state.activeSession != null && !visibleOwnsActiveWorkout) item {
+            WhipButton(
+                onClick = onOpenActiveWorkout,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("routine-active-workout-action"),
+            ) {
+                Text("Open Active Workout")
+            }
+        }
         if (!reordering && focusedRoutineId == null && (state.archivedRoutines.isNotEmpty() || showArchived)) {
         item { ToggleRow("Show archived", showArchived) { showArchived = it } }
         }
@@ -8743,7 +8756,7 @@ private fun RoutineContent(
                     placement.routineDayId == day.id && placement.progressionPercentages.isNotEmpty()
                 }
             }
-            val editingBlockedByActiveWorkout = state.activeSession?.sourceRoutineId == routine.id
+            val ownsActiveWorkout = state.activeSession?.sourceRoutineId == routine.id
             val nextProgramDay = days.firstOrNull { it.position == routine.nextProgramDayPosition }
                 ?: days.getOrNull(routine.nextProgramDayPosition)
                 ?: days.firstOrNull()
@@ -8781,7 +8794,7 @@ private fun RoutineContent(
                             )
                         }
                         Text(routine.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        if (!reordering && !editingBlockedByActiveWorkout) ItemEditButton("routine", routine.name, onEdit = {
+                        if (!reordering && !ownsActiveWorkout) ItemEditButton("routine", routine.name, onEdit = {
                             editingRoutineId = routine.id
                             onEditorStateChange(true)
                         })
@@ -8793,7 +8806,7 @@ private fun RoutineContent(
                                 WhipMenuItem(label = "Duplicate", onClick = { actionMenuId = null; viewModel.duplicateRoutine(routine.id) })
                                 WhipMenuItem(label = if (routine.pinned) "Unpin from Whip Home" else "Pin to Whip Home", onClick = { actionMenuId = null; viewModel.setRoutinePinned(routine.id, !routine.pinned) })
                                 WhipMenuItem(label = if (routine.archived) "Restore" else "Archive", onClick = { actionMenuId = null; viewModel.setRoutineArchived(routine.id, !routine.archived) })
-                                if (programmed && !editingBlockedByActiveWorkout) {
+                                if (programmed && !ownsActiveWorkout) {
                                     WhipMenuItem(
                                         label = "Set Program Position",
                                         onClick = { actionMenuId = null; positionRoutineId = routine.id },
@@ -8811,7 +8824,7 @@ private fun RoutineContent(
                                             },
                                         )
                                     }
-                                } else if (hasStaticLoadCycle && !editingBlockedByActiveWorkout) {
+                                } else if (hasStaticLoadCycle && !ownsActiveWorkout) {
                                     WhipMenuItem(
                                         label = "Reset Load Cycle",
                                         onClick = { actionMenuId = null; resetRoutineId = routine.id },
@@ -8827,7 +8840,7 @@ private fun RoutineContent(
                         }
                     }
                     if (routine.notes.isNotBlank()) Text(routine.notes)
-                    if (editingBlockedByActiveWorkout) {
+                    if (ownsActiveWorkout) {
                         Text(
                             "Finish or discard the active workout before editing this routine or changing its program position.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -8928,31 +8941,40 @@ private fun RoutineContent(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    if (!reordering && programmed && nextProgramDay != null) {
+                    if (!reordering && ownsActiveWorkout) {
+                        WhipButton(
+                            onClick = onOpenActiveWorkout,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("routine-active-workout-action"),
+                        ) {
+                            Text("Open Active Workout")
+                        }
+                    } else if (!reordering && programmed && nextProgramDay != null) {
                         val nextDayExercises = state.routineExercises.filter { it.routineDayId == nextProgramDay.id }
                         val nextNeedsEquipment = nextDayExercises.any {
                             it.equipmentBindingState == RoutineEquipmentBindingState.NeedsEquipment
                         }
-                        WhipButton(
-                            onClick = {
-                                when {
-                                    state.activeSession != null -> onOpenActiveWorkout()
-                                    nextNeedsEquipment -> {
-                                        editingRoutineId = routine.id
-                                        onEditorStateChange(true)
+                        if (state.activeSession == null || nextNeedsEquipment) {
+                            WhipButton(
+                                onClick = {
+                                    when {
+                                        nextNeedsEquipment -> {
+                                            editingRoutineId = routine.id
+                                            onEditorStateChange(true)
+                                        }
+                                        else -> viewModel.startRoutine(routine.id, null)
                                     }
-                                    else -> viewModel.startRoutine(routine.id, null)
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth().testTag("routine-start-next-${routine.id}"),
-                        ) {
-                            Text(
-                                when {
-                                    state.activeSession != null -> "Open Active Workout"
-                                    nextNeedsEquipment -> "Resolve Equipment for Next · ${nextProgramDay.name}"
-                                    else -> "Start Next · ${nextProgramDay.name}"
                                 },
-                            )
+                                modifier = Modifier.fillMaxWidth().testTag("routine-start-next-${routine.id}"),
+                            ) {
+                                Text(
+                                    when {
+                                        nextNeedsEquipment -> "Resolve Equipment for Next · ${nextProgramDay.name}"
+                                        else -> "Start Next · ${nextProgramDay.name}"
+                                    },
+                                )
+                            }
                         }
                     }
                     if (!reordering) days.forEach { day ->
@@ -8993,24 +9015,26 @@ private fun RoutineContent(
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         }
-                        if (!programmed || day.id != nextProgramDay?.id) WhipTextButton(onClick = {
-                            when {
-                                needsEquipment.isNotEmpty() -> {
-                                    editingRoutineId = routine.id
-                                    onEditorStateChange(true)
-                                }
-                                state.activeSession != null -> onOpenActiveWorkout()
-                                else -> viewModel.startRoutine(routine.id, day.id)
-                            }
-                        }) {
-                            Text(
+                        val dayActionAvailable = state.activeSession == null ||
+                            (needsEquipment.isNotEmpty() && !ownsActiveWorkout)
+                        if ((!programmed || day.id != nextProgramDay?.id) && dayActionAvailable) {
+                            WhipTextButton(onClick = {
                                 when {
-                                    needsEquipment.isNotEmpty() -> "Resolve Equipment for ${day.name}"
-                                    state.activeSession != null -> "Open Active Workout"
-                                    programmed -> "Start Out of Order · ${day.name} · ${quantityLabel(count, "exercise")}"
-                                    else -> "Start ${day.name} · ${quantityLabel(count, "exercise")}"
-                                },
-                            )
+                                    needsEquipment.isNotEmpty() -> {
+                                        editingRoutineId = routine.id
+                                        onEditorStateChange(true)
+                                    }
+                                    else -> viewModel.startRoutine(routine.id, day.id)
+                                }
+                            }) {
+                                Text(
+                                    when {
+                                        needsEquipment.isNotEmpty() -> "Resolve Equipment for ${day.name}"
+                                        programmed -> "Start Out of Order · ${day.name} · ${quantityLabel(count, "exercise")}"
+                                        else -> "Start ${day.name} · ${quantityLabel(count, "exercise")}"
+                                    },
+                                )
+                            }
                         }
                     }
                 }

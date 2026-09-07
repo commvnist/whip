@@ -594,3 +594,13 @@ These records preserve durable user intent. “Released” means the change reac
 - Related: `FB-20260903-016`, `FB-20260907-004`, `FND-20260903-026`, `FND-20260907-015`, `DEC-20260903-014`, `DEC-20260907-004`, `DEC-20260907-005`, `IMP-20260907-011`, `IMP-20260907-012`, `VER-20260907-012`, `VER-20260907-013`.
 - Status: Released in place as Whip 0.3.60/code 66 after code review, two-emulator acceptance, fresh affected-family visual review, and guarded owner-phone verification; awaiting normal real-use feedback.
 - Notes: Maximal uniformity means one semantic grammar for equivalent information, while genuinely different controls or domain evidence remain explicit rather than cosmetically forced into sameness. The existing card shell was retained because the constraint was the internal reading grid, not the container.
+
+### FB-20260907-007 — Eliminate duplicate visible actions
+
+- Date/source: 2026-09-07, direct user feedback with an owner-phone Gym Routine screenshot from Whip 0.3.60.
+- User need: A surface must not present the same action twice, as the Routine detail currently does with two adjacent “Open Active Workout” buttons; find and correct other visual double-button errors of the same category across Whip.
+- Acceptance criteria: Trace the duplicate to its action owners rather than hiding one label cosmetically; audit screens, dialogs, sheets, menus, cards, docked actions, and responsive branches for simultaneously visible controls that invoke the same outcome; distinguish legitimate repeated navigation in separate contexts from adjacent duplicate decisions; preserve the strongest context-appropriate action and all domain behavior; add executable duplicate-action regressions; perform focused emulator interaction, semantic/accessibility, responsive, and fresh visual QA; fix confirmed related cases and push a coherent verified source change.
+- Affected users/workflows: Gym Routine details and active-workout recovery, plus any Whip surface where duplicated commands weaken hierarchy, consume space, create uncertainty, or cause assistive technology to announce the same decision twice.
+- Related: `FB-20260906-008`, `FND-20260906-004`, `DEC-20260906-006`.
+- Status: Implemented and emulator-verified in current source; not released to the owner phone.
+- Notes: The installed Whip 0.3.60 phone release remains unchanged because this request did not separately authorize a release. See `IMP-20260907-013` and `VER-20260907-014`.
