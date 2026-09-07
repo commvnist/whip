@@ -1254,3 +1254,14 @@
 - Related: `FB-20260907-002`, `FND-20260907-004` through `FND-20260907-008`, `DEC-20260907-002`, `VER-20260907-003`.
 - Verification: `VER-20260907-003`.
 - Status: Implemented, code-reviewed, focused-tested, semantically verified, and visually accepted across affected families.
+
+### IMP-20260907-004 — Coarse-clock-safe fast Android evidence freshness
+
+- Behavior changed: The shared Android test engine still deletes exact prior result/coverage outputs and requires strict `find -newer` freshness, but now moves the new invocation marker one second into the past before Gradle starts. Current near-instant output is accepted even on a coarse filesystem clock, while intentionally stale year-2000 XML/coverage fixtures remain rejected.
+- QA changed: The target-guard source contract now requires the timestamp margin. Its complete synthetic coverage, reusable-cache, selective invalidation, corrupt-cache, class-mismatch, zero/failure/skip, multiple/empty coverage, stale-result, physical-target, and release-version campaign passes without adding any sleep to the 11-batch loop.
+- Persistence/migration/history impact: Test harness only. App behavior, release artifacts, Room schema 46, data epoch 6, backup version 25, and owner data are unchanged.
+- Compatibility and limitations: The safety argument depends on exact pre-run output cleanup, which remains in the same guarded batch function. The strict freshness predicate was not weakened and physical instrumentation remains rejected.
+- Commit/push: Harness source `be084e1` was pushed to `origin/main` before this memory reconciliation.
+- Related: `FB-20260907-002`, `FND-20260907-009`, `DEC-20260906-003`, `DEC-20260906-005`, `DEC-20260906-010`, `VER-20260907-004`.
+- Verification: `VER-20260907-004`.
+- Status: Implemented, shell-validated, fixture-verified, and ready for the final release-stamped acceptance gate.

@@ -1335,3 +1335,12 @@
 - Counts and exclusions: Catalog lint reports 174 required states, zero platform exceptions, and zero pending selectors. This is focused private-development evidence; final fresh whole-product acceptance, signed release build, owner-phone deployment, and post-install smoke remained pending at this verification boundary. No reset, clear, uninstall, downgrade, physical instrumentation, Play Store candidate, or publication occurred.
 - Related: `FB-20260907-002`, `FND-20260907-004` through `FND-20260907-008`, `DEC-20260907-002`, `IMP-20260907-003`.
 - Status: Focused behavior, accessibility, and affected-family visual acceptance passed; final whole-product release acceptance remains pending.
+
+### VER-20260907-004 — Fast Android evidence freshness verification
+
+- Scope/environment: Shared Android instrumentation engine, reusable batch cache, freshness rejection, device-target guard, and staged Whip 0.3.58/code 64 release identity. The campaign uses only synthetic fixture ADB/Gradle binaries and performs no real-device instrumentation or app install.
+- Command or manual procedure: `bash -n scripts/android-test-engine scripts/test-android-target-guard`; then a complete `scripts/test-android-target-guard` replacement run after the marker-margin repair.
+- Result: Every target, Gradle-task, 11-process coverage, reusable-cache population/reuse/selective invalidation/all-production invalidation/corrupt-cache, class-set, nonzero/failure/skip, multiple/empty coverage, stale-result, and release-version assertion passed. The deliberately stale fixture is still rejected, proving the change did not accept historical output. Whip 0.3.58/code 64 is the exact guarded staged identity.
+- Failed-then-repaired evidence: The first pre-repair version-staging campaign failed at reusable batch 9 because executable XML shared the marker's timestamp tick. Its retained output is excluded. The source now backdates the marker only after exact cleanup; the replacement complete campaign passed with no sleep or skipped assertion.
+- Related: `FB-20260907-002`, `FND-20260907-009`, `IMP-20260907-004`, `DEC-20260906-010`.
+- Status: Verified; fast Android evidence freshness and physical-target boundaries are accepted.

@@ -1278,4 +1278,4 @@
 - Root cause: The freshness boundary assumes file modification times have finer granularity than the interval between marker creation and a fast result write.
 - Recommended solution: Backdate the just-created marker by a small fixed margin after exact prior-output deletion, retain strict `-newer` checks so deliberately stale fixtures still fail, and rerun the complete cache/freshness guard.
 - Related: `FB-20260907-002`, `DEC-20260906-003`, `DEC-20260906-005`, `DEC-20260906-010`.
-- Status: Confirmed; harness repair in progress. The failed run is not acceptance evidence.
+- Status: Resolved in `be084e1`; the complete cache/freshness/target guard passes in `VER-20260907-004`. The failed run remains excluded from acceptance evidence.
