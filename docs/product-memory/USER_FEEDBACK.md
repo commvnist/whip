@@ -574,3 +574,13 @@ These records preserve durable user intent. “Released” means the change reac
 - Related: `FB-20260906-009`, `FB-20260906-010`, `FND-20260906-007`, `DEC-20260906-009`.
 - Status: Verified.
 - Notes: Greenfield card changes are authorized where they improve the long-term feature system; production data and timer meaning must remain unchanged.
+
+### FB-20260907-005 — Release the elapsed-timer fix to the owner phone
+
+- Date/source: 2026-09-07, direct user follow-up after accepting the implemented timer-layout fix.
+- User need: Put the verified elapsed Goal presentation on the owner's phone for normal use.
+- Acceptance criteria: Advance to a higher private-release version; preserve signer, package identity, first-install identity, and existing data; commit and push the exact release source before installation; use the guarded fast non-Play Store lane against the explicitly selected physical phone; do not reset, clear, uninstall, downgrade, or run instrumentation on the phone; verify signed artifact identity/hash, installed version, in-place update, cold launch, foreground Activity, live process, and bounded fatal/AndroidRuntime/ANR/Room/SQLite errors.
+- Affected users/workflows: Owner-phone use of Count Time Since Goals, especially the book-fold support/main-card layout, plus release engineering and data-preserving upgrade behavior.
+- Related: `FB-20260907-004`, `DEC-20260907-004`, `IMP-20260907-009`, `VER-20260907-010`.
+- Status: In progress.
+- Notes: This is a private owner-phone release, not Play Store publication or frozen-candidate qualification.
