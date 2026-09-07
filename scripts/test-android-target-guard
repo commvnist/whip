@@ -335,6 +335,7 @@ grep -Fq "readonly GRAPHICS_TEST_CLASS='com.whip.app.ui.InteractionControlUiTest
 grep -Fq "readonly DESTRUCTIVE_RESET_TEST_CLASS='com.whip.app.DataEpochResetIntegrationTest'" \
     "${SCRIPT_DIR}/android-test-engine"
 grep -Fq 'readonly INSTRUMENTATION_BATCH_SIZE=10' "${SCRIPT_DIR}/android-test-engine"
+grep -Fq "touch -d '1 second ago'" "${SCRIPT_DIR}/android-test-engine"
 grep -Fq 'settings put global hide_error_dialogs 1' "${SCRIPT_DIR}/android-test-engine"
 grep -Fq 'mCurrentFocus=.*(Application Error|Application Not Responding)' "${SCRIPT_DIR}/android-test-engine"
 grep -Fq 'android-test-engine' "${SCRIPT_DIR}/coverage"

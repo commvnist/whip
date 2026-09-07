@@ -377,6 +377,9 @@ run_batch() {
     clear_previous_outputs
     marker="${run_dir}/batch-${batch_number}.started"
     : > "$marker"
+    # Exact cleanup makes existence invocation-owned; the margin keeps strict
+    # freshness checks reliable on filesystems with coarse timestamp ticks.
+    touch -d '1 second ago' "$marker"
     gradle_args=(
         :app:connectedDebugAndroidTest
         --no-build-cache
