@@ -1413,6 +1413,17 @@
 - Regression coverage: Added exact mixed-card height/status alignment, compact/full elapsed representation, expanded Task metadata, quick-boundary restoration, repository prior-Set-edit acceptance, duplicate/stale protection, and a real MainActivity → Gym → previous-Set editor → active composer → database journey. Stabilized existing fold, nested-action, and History viewport tests to assert the new hierarchy without weakening behavior.
 - Persistence/migration impact: No Room, data-epoch, backup-format, route, workout-calculation, Routine, or 5/3/1 progression change. Existing owner data is preserved.
 - QA/evidence: `VER-20260907-019`; exact whole-product review gallery `/tmp/whip-whole-ui-card-uniform-20260907/index.html`.
-- Commit/push: This record ships with the coherent implementation source; exact pushed source and release ancestry are reconciled in the following release record.
+- Commit/push: Accepted implementation source `a9d16d0` and release source `70506ab` are pushed to `origin/main`; the following release-memory reconciliation changes documentation only.
 - Related: `FB-20260907-011`, `FB-20260907-012`, `FND-20260907-020`, `FND-20260907-021`, `DEC-20260907-009`, `VER-20260907-018`, `VER-20260907-019`.
-- Status: Implemented, code-reviewed, fully emulator-accepted, semantically checked, and visually accepted; signed owner-phone release remains separate.
+- Status: Implemented, code-reviewed, fully emulator-accepted, semantically checked, visually accepted, and subsequently released through `IMP-20260907-018`.
+
+### IMP-20260907-018 — Signed Whip 0.3.62 owner-phone release
+
+- Behavior changed: Advanced Whip to 0.3.62/code 68, built the accepted uniform-card and active quick-save implementation with the established private signer, and installed it in place on the explicitly selected physical Samsung owner phone. The shared summary geometry and repaired prior-Set-edit → active-Set completion workflow are now available for normal use.
+- Important files/symbols: Implementation source `a9d16d0`, release source `70506ab`, signed `app/build/outputs/apk/release/app-release.apk`, bundle `app/build/outputs/bundle/release/app-release.aab`, package `commvne.com.whip.app`, and `VER-20260907-020`.
+- Persistence/migration/history impact: Android performed a streamed `install -r`; package/signing identity and the original 2026-08-26 first-install timestamp were preserved. Room schema 46, data epoch 6, and exact-match backup version 26 are unchanged. No reset, clear, uninstall, downgrade, fresh-start confirmation, or physical instrumentation occurred.
+- Compatibility and limitations: APK hash `9420ca4fba4908531a454d515df28cdb297896859717b10f2bf2e5955ef0ece3`; AAB hash `c13deb209926268cbb5ad4a0c0f5e22ad71d797e63dac3e6084b7f6b737ee744`; established signer certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`. This is a private owner-phone release, not a frozen Play Store candidate; normal real-use aesthetics and ergonomics remain the final subjective validation.
+- Commit/push: Exact release source `70506ab` and implementation source `a9d16d0` were clean, synchronized, and reachable from `origin/main` before build/install; this release record is documentation-only.
+- Related: `FB-20260907-011`, `FB-20260907-012`, `FND-20260907-020`, `FND-20260907-021`, `DEC-20260907-009`, `IMP-20260907-017`, `VER-20260907-019`, `VER-20260907-020`.
+- Verification: `VER-20260907-020`.
+- Status: Released and device-verified as Whip 0.3.62/code 68; awaiting normal owner validation.
