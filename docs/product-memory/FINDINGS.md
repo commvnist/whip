@@ -1290,4 +1290,4 @@
 - Root cause: Argument construction tests only the requested emulator mode, not whether a runnable profile/selector remains.
 - Recommended solution: Append `--emulator` only when the targeted runner already has work, add a clean-tree `--ready --emulator` fixture, and retain the existing behavior for full-Android and fresh-emulator modes.
 - Related: `FB-20260907-002`, `DEC-20260906-003`, `IMP-20260907-004`.
-- Status: Confirmed; routing repair in progress. The failed readiness invocation is not acceptance evidence.
+- Status: Resolved in `36f2d14`; clean-tree emulator readiness and surrounding routing fixtures pass in `VER-20260907-005`. The failed invocation remains excluded from acceptance evidence.

@@ -1265,3 +1265,14 @@
 - Related: `FB-20260907-002`, `FND-20260907-009`, `DEC-20260906-003`, `DEC-20260906-005`, `DEC-20260906-010`, `VER-20260907-004`.
 - Verification: `VER-20260907-004`.
 - Status: Implemented, shell-validated, fixture-verified, and ready for the final release-stamped acceptance gate.
+
+### IMP-20260907-005 — Clean-tree emulator readiness no-op routing
+
+- Behavior changed: `scripts/check` now forwards `--emulator` to the targeted runner only when a runnable profile or selector remains after filtering the `docs` sentinel. Clean/doc-only readiness still performs the explicit emulator target guard, diff check, and readiness completion, but it no longer invokes `qa-targeted` with an empty request.
+- Regression coverage: `scripts/test-check-fast` now creates a guarded emulator fixture, commits its earlier production edit to produce a genuinely clean tree, runs `check --ready --emulator`, proves no Gradle/test work ran, and asserts both the no-change route and successful readiness result. Existing fast, explicit readiness, candidate-boundary, full-gate, and router fixtures remain green.
+- Persistence/migration/history impact: Shell routing only. App behavior, artifacts, version identity, Room schema 46, data epoch 6, backup version 25, and owner data are unchanged.
+- Compatibility and limitations: Nonempty emulator routes, `--all-android`, `--fresh-emulator`, static readiness, and candidate-required reporting retain their existing behavior. The clean route is a no-op only because accepted evidence was already produced before the source became clean and pushed.
+- Commit/push: Routing source `36f2d14` was pushed to `origin/main` before this memory reconciliation.
+- Related: `FB-20260907-002`, `FND-20260907-010`, `DEC-20260906-003`, `VER-20260907-005`.
+- Verification: `VER-20260907-005`.
+- Status: Implemented, shell-validated, and routing-fixture verified.

@@ -1344,3 +1344,12 @@
 - Failed-then-repaired evidence: The first pre-repair version-staging campaign failed at reusable batch 9 because executable XML shared the marker's timestamp tick. Its retained output is excluded. The source now backdates the marker only after exact cleanup; the replacement complete campaign passed with no sleep or skipped assertion.
 - Related: `FB-20260907-002`, `FND-20260907-009`, `IMP-20260907-004`, `DEC-20260906-010`.
 - Status: Verified; fast Android evidence freshness and physical-target boundaries are accepted.
+
+### VER-20260907-005 — Clean-tree emulator readiness routing verification
+
+- Scope/environment: Proportionate change router/check/targeted-runner seam, including a synthetic explicitly guarded emulator and a clean committed fixture tree. No real-device instrumentation or app installation occurred.
+- Command or manual procedure: `bash -n scripts/check scripts/test-check-fast`; `scripts/test-check-fast`; `scripts/test-change-router`; `scripts/test-check-full`; and route explanation for `scripts/check`.
+- Result: The fast fixture proves ordinary changed production, explicit readiness, candidate-required build input, and clean-tree `--ready --emulator` paths. The clean route emits `profile:docs`, performs no Gradle/test work, and exits with the accepted readiness message. All docs/JVM/Android/domain/shared UI/build/deletion/rename/harness/catalog/unknown path routes pass, and the complete-local-gate fixture remains green.
+- Failed-then-repaired evidence: The first clean pushed `ANDROID_SERIAL=emulator-5554 scripts/check --ready --emulator` sent only `--emulator` to `qa-targeted` and exited 2. That run is excluded. The argument guard and dedicated clean-tree regression now cover the exact failure mode.
+- Related: `FB-20260907-002`, `FND-20260907-010`, `IMP-20260907-005`, `DEC-20260906-003`.
+- Status: Verified; the clean pushed private-release readiness route is accepted.
