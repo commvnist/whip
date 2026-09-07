@@ -1159,6 +1159,7 @@
 - Regression coverage: Added the classifier truth table and source-architecture guard, strengthened Goal editor/view-model tests, removed the duplicate elapsed detail assertion, retained large-text/all-unit coverage, and extended the real app-shell journey to create a Goal and prove no “Goal created” bar appears after persistence.
 - Persistence/migration/history impact: Presentation and transient-feedback behavior only. Goal arithmetic and selected-unit persistence, schema 46, data epoch 6, backup version 25, release identity, and owner data are unchanged.
 - Compatibility and limitations: Failure visibility and exact recovery-token ownership remain intact. Focused development checks and the Goals visual family are accepted, but no complete suite, candidate qualification, signed release build, phone-selected command, phone install, or Play Store publication occurred.
+- Commit/push: Implementation source `7ab2255` was pushed to `origin/main` before final memory reconciliation.
 - Related: `FB-20260906-010`, `FND-20260906-007`, `FND-20260906-008`, `DEC-20260906-008`, `DEC-20260906-009`, `VER-20260906-021`.
 - Verification: `VER-20260906-021`.
 - Status: Implemented, readiness-verified, and visually accepted on the disposable emulator; awaiting a future explicitly requested owner-phone release.
