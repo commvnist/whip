@@ -194,7 +194,7 @@ done < "$route_file"
 if [[ "$android_all" == true ]]; then
     qa_args+=(--all-android)
     [[ "$run_emulator" != true || "$fresh_emulator" == true ]] || qa_args+=(--emulator)
-elif [[ "$run_emulator" == true && "$fresh_emulator" != true ]]; then
+elif [[ "$run_emulator" == true && "$fresh_emulator" != true && "${#qa_args[@]}" -gt 0 ]]; then
     qa_args+=(--emulator)
 fi
 

@@ -14,6 +14,8 @@ mkdir -p "${PROJECT}/scripts" "${PROJECT}/app/src/main/java/com/whip/app/domain"
     "${PROJECT}/app/src/test/java/com/whip/app/domain" "$FAKE_BIN"
 cp -- "${SCRIPT_DIR}/check" "${SCRIPT_DIR}/change-router" "${SCRIPT_DIR}/qa-targeted" "${PROJECT}/scripts/"
 chmod 755 "${PROJECT}/scripts/"*
+printf '%s\n' '#!/usr/bin/env bash' 'exit 0' > "${PROJECT}/scripts/android-target-guard"
+chmod 755 "${PROJECT}/scripts/android-target-guard"
 printf '%s\n' 'package com.whip.app.domain' 'object HabitRules' > \
     "${PROJECT}/app/src/main/java/com/whip/app/domain/HabitRules.kt"
 printf '%s\n' 'package com.whip.app.domain' 'class HabitRulesTest' > \
@@ -56,5 +58,17 @@ env WHIP_FAST_FIXTURE_GRADLE_LOG="$GRADLE_LOG" PATH="${FAKE_BIN}:${PATH}" \
 grep -Fq ':app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug' "$GRADLE_LOG"
 grep -Fq 'Affected-change readiness gate passed.' "$OUTPUT"
 grep -Fq 'qualify these inputs with a fresh scripts/candidate run only when preparing a store release' "$OUTPUT"
+
+(
+    cd "$PROJECT"
+    git add app/src/main/java/com/whip/app/domain/HabitRules.kt
+    git commit -qm accepted-source
+)
+: > "$GRADLE_LOG"
+env WHIP_FAST_FIXTURE_GRADLE_LOG="$GRADLE_LOG" PATH="${FAKE_BIN}:${PATH}" \
+    ANDROID_SERIAL=emulator-5554 "${PROJECT}/scripts/check" --ready --emulator > "$OUTPUT"
+[[ ! -s "$GRADLE_LOG" ]]
+grep -Fq 'Route N (no changes) -> profile:docs' "$OUTPUT"
+grep -Fq 'Affected-change readiness gate passed.' "$OUTPUT"
 
 printf 'PASS fast-default-explicit-readiness-and-store-boundary\n'
