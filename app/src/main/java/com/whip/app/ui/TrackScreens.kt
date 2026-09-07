@@ -1116,14 +1116,12 @@ private fun TrackActivityRow(
             WhipIdentityEmoji(projection.track.icon)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(projection.primaryText(entry), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(
-                    listOf(projection.track.name, projection.track.area, entry.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
+                ProductivityItemSupportingText(
+                    text = listOf(projection.track.name, projection.track.area, entry.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
                         .filter(String::isNotBlank).joinToString(" · "),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
                 )
-                if (supporting.isNotEmpty()) Text(supporting.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
+                if (supporting.isNotEmpty()) ProductivityItemSupportingText(supporting.joinToString(" · "), maxLines = 2)
             }
             ItemEditButton("Entry", projection.primaryText(entry), onEdit)
             Box {
@@ -1458,7 +1456,7 @@ internal fun TrackRow(
     selected: Boolean = false,
     onSelectionToggle: (() -> Unit)? = null,
     onEnterSelection: (() -> Unit)? = null,
-    compact: Boolean = false,
+    @Suppress("UNUSED_PARAMETER") compact: Boolean = false,
 ) {
     val reorderInteraction = rememberWhipReorderInteractionState()
     val selectable = selectionMode && onSelectionToggle != null
@@ -1515,10 +1513,7 @@ internal fun TrackRow(
                 }
             },
     ) {
-        Column(
-            Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(if (compact) 2.dp else 8.dp),
-        ) {
+        Column(Modifier.fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (reordering && onMove != null) {
                     WhipReorderHandle(
@@ -1539,11 +1534,20 @@ internal fun TrackRow(
                     Text(
                         projection.track.name,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Text("${projection.track.area} · ${quantityLabel(projection.entries.size, "Entry")}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    ProductivityItemSupportingText(
+                        text = "${projection.track.area} · ${quantityLabel(projection.entries.size, "Entry")}",
+                        maxLines = 1,
+                    )
+                    latest?.let {
+                        ProductivityItemSupportingText(
+                            text = "Latest: ${projection.primaryText(it)} · ${it.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
+                            maxLines = 2,
+                        )
+                    }
                 }
                 if (selectable) {
                     Checkbox(
@@ -1559,14 +1563,6 @@ internal fun TrackRow(
                         modifier = Modifier.testTag("track-edit-action-${projection.track.id}"),
                     )
                 }
-            }
-            latest?.let {
-                Text(
-                    "Latest: ${projection.primaryText(it)} · ${it.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
             }
         }
     }
@@ -1604,81 +1600,45 @@ private fun TrackSummaryRow(
                 }
             },
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                WhipIdentityEmoji(projection.track.icon)
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        projection.track.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+        ProductivityItemHeader(
+            itemType = "Track",
+            itemName = projection.track.name,
+            emoji = projection.track.icon,
+            areaId = projection.track.areaId.takeIf(String::isNotBlank),
+            areaName = projection.track.area,
+            onEdit = { onEdit(projection.track.id) },
+            identityModifier = Modifier.testTag("track-icon-${projection.track.id}"),
+            titleModifier = Modifier.testTag("track-card-title-${projection.track.id}"),
+            primaryActionModifier = Modifier.testTag("track-primary-action-${projection.track.id}"),
+            editModifier = Modifier.testTag("track-edit-action-${projection.track.id}"),
+            summaryContent = {
+                ProductivityItemSupportingText(
+                    text = "${projection.track.area} · ${quantityLabel(projection.entries.size, "Entry")}",
+                    modifier = Modifier.testTag("track-card-status-${projection.track.id}"),
+                    maxLines = 1,
+                )
+            },
+            supportingContent = {
+                latest?.let {
+                    ProductivityItemSupportingText(
+                        text = "Latest: ${projection.primaryText(it)} · ${it.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
                         maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        "${projection.track.area} · ${quantityLabel(projection.entries.size, "Entry")}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 }
-                if (!projection.track.archived) {
+            },
+            expanded = disclosure.expanded,
+            onExpansionToggle = disclosure.toggle,
+            expansionTag = "track-expand-${projection.track.id}",
+            primaryActionWidth = 48.dp,
+            primaryAction = if (projection.track.archived) null else ({
                     IconButton(
                         onClick = { onAddEntry(projection.track.id) },
-                        modifier = Modifier.size(48.dp).testTag("track-primary-action-${projection.track.id}"),
+                        modifier = Modifier.size(48.dp),
                     ) {
                         Icon(Icons.Outlined.Add, contentDescription = projection.addEntryLabel())
                     }
-                }
-                IconButton(
-                    onClick = disclosure.toggle,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .testTag("track-expand-${projection.track.id}")
-                        .semantics {
-                            contentDescription = "${if (disclosure.expanded) "Collapse" else "Expand"} Track ${projection.track.name}"
-                            stateDescription = if (disclosure.expanded) "Expanded" else "Collapsed"
-                        },
-                ) {
-                    Icon(
-                        if (disclosure.expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-                        contentDescription = null,
-                    )
-                }
-            }
-            if (disclosure.expanded) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().testTag("track-expanded-${projection.track.id}"),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    latest?.let {
-                        Text(
-                            "Latest: ${projection.primaryText(it)} · ${it.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    WhipTextButton(
-                        onClick = { onEdit(projection.track.id) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .testTag("track-edit-action-${projection.track.id}")
-                            .semantics { contentDescription = "Edit Track ${projection.track.name}" },
-                    ) { Icon(Icons.Outlined.Edit, contentDescription = null); Spacer(Modifier.width(6.dp)); Text("Edit") }
-                }
-            }
-        }
+                }),
+        )
     }
 }
 
@@ -2060,7 +2020,10 @@ private fun TrackEntryRow(
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(projection.primaryText(entry), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text((supporting + entry.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))).joinToString(" · "), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
+                ProductivityItemSupportingText(
+                    text = (supporting + entry.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))).joinToString(" · "),
+                    maxLines = 2,
+                )
             }
             IconButton(enabled = editable, onClick = onEdit) { Icon(Icons.Outlined.Edit, contentDescription = "Edit Entry ${projection.primaryText(entry)}") }
             Box {

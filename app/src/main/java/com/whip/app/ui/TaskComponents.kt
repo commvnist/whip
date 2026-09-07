@@ -150,6 +150,7 @@ fun TaskRow(
             areaName = item.task.area,
             onEdit = onEdit.takeUnless { selectionMode || reorderMode },
             identityModifier = Modifier.testTag("task-icon-${item.task.id}"),
+            titleModifier = Modifier.testTag("task-card-title-${item.task.id}"),
             primaryActionModifier = Modifier.testTag("task-primary-action-${item.task.id}"),
             editModifier = Modifier.testTag("task-edit-action-${item.task.id}"),
             titleCompleted = completed,
@@ -176,6 +177,35 @@ fun TaskRow(
                     }
                 }
             } else null,
+            supportingContent = {
+                if (!reorderMode && item.task.notes.isNotBlank()) {
+                    ProductivityItemSupportingText(
+                        text = item.task.notes,
+                        maxLines = 2,
+                    )
+                }
+            },
+            persistentSummaryContent = if (metadata.isEmpty()) null else ({
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth().testTag("task-metadata-${item.task.id}"),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    metadata.forEach { label ->
+                        Surface(
+                            shape = MaterialTheme.shapes.small,
+                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        ) {
+                            Text(
+                                label,
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }),
             expanded = disclosure.expanded,
             onExpansionToggle = disclosure.toggle.takeUnless { reorderMode },
             expansionTag = "task-expand-${item.task.id}",
@@ -206,41 +236,6 @@ fun TaskRow(
                 }
             }),
         )
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 56.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth().testTag("task-metadata-${item.task.id}"),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                metadata.forEach { label ->
-                    Surface(
-                        shape = MaterialTheme.shapes.small,
-                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    ) {
-                        Text(
-                            label,
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-            if (!reorderMode && disclosure.expanded && item.task.notes.isNotBlank()) {
-                Text(
-                    item.task.notes,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
         if (!reorderMode && disclosure.expanded && item.task.showSubtaskProgress && item.totalSubtasks > 0) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

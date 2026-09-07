@@ -1092,11 +1092,12 @@ fun HabitProgressCard(
             areaName = habit.area,
             onEdit = onEdit.takeUnless { reorderMode },
             identityModifier = Modifier.testTag("habit-icon-${habit.id}"),
+            titleModifier = Modifier.testTag("habit-card-title-${habit.id}"),
             primaryActionModifier = Modifier.testTag("habit-primary-action-${habit.id}"),
             editModifier = Modifier.testTag("habit-edit-action-${habit.id}"),
             supportingContent = {
-                Text(
-                    if (habit.timerStartedAtMillis != null) {
+                ProductivityItemSupportingText(
+                    text = if (habit.timerStartedAtMillis != null) {
                         if (habit.timerNeedsReview) {
                             "Timer needs review · ${formatElapsedDuration(timerElapsedSeconds)} estimated"
                         } else "Timer running · ${formatElapsedDuration(timerElapsedSeconds)} elapsed"
@@ -1105,15 +1106,12 @@ fun HabitProgressCard(
                     } else {
                         "${habit.trackingMode.uiLabel()} · ${item.streak} $streakUnit streak · ${(item.completionRate * 100).toInt()}% / $rateWindow"
                     },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
             summaryContent = {
-                Text(
-                    compactStatus,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                ProductivityItemSupportingText(
+                    text = compactStatus,
+                    modifier = Modifier.testTag("habit-card-status-${habit.id}"),
                     maxLines = 1,
                 )
             },
@@ -1589,10 +1587,8 @@ internal fun HabitInsights(state: HabitUiState, lowPressureMode: Boolean) {
                         onEdit = null,
                         identityModifier = Modifier.testTag("habit-insight-icon-${item.habit.id}"),
                         supportingContent = {
-                            Text(
-                                item.habit.trackingMode.uiLabel(),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ProductivityItemSupportingText(
+                                text = item.habit.trackingMode.uiLabel(),
                             )
                         },
                     )
@@ -1828,10 +1824,8 @@ private fun ArchivedHabitList(
                     identityModifier = Modifier.testTag("habit-icon-${habit.id}"),
                     editModifier = Modifier.testTag("habit-edit-action-${habit.id}"),
                     supportingContent = {
-                        Text(
-                            "Archived",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ProductivityItemSupportingText(
+                            text = "Archived",
                         )
                     },
                 )

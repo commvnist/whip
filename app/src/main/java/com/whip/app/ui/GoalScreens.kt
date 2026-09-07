@@ -857,21 +857,19 @@ fun GoalCard(
             areaName = goal.area,
             onEdit = onEdit.takeUnless { reorderMode },
             identityModifier = Modifier.testTag("goal-icon-${goal.id}"),
+            titleModifier = Modifier.testTag("goal-card-title-${goal.id}"),
             primaryActionModifier = Modifier.testTag("goal-primary-action-${goal.id}"),
             editModifier = Modifier.testTag("goal-edit-action-${goal.id}"),
             supportingContent = {
-                Text(
-                    goal.type.displayLabel(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                ProductivityItemSupportingText(
+                    text = goal.type.displayLabel(),
                 )
             },
             summaryContent = {
                 if (elapsedStatus == null) {
-                    Text(
-                        compactStatus,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ProductivityItemSupportingText(
+                        text = compactStatus,
+                        modifier = Modifier.testTag("goal-card-status-${goal.id}"),
                         maxLines = 1,
                     )
                 }
@@ -1220,10 +1218,8 @@ private fun GoalInsightsContent(
                         onEdit = null,
                         identityModifier = Modifier.testTag("goal-insight-icon-${projection.goal.id}"),
                         supportingContent = {
-                            Text(
-                                projection.goal.type.displayLabel(),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ProductivityItemSupportingText(
+                                text = projection.goal.type.displayLabel(),
                             )
                         },
                     )

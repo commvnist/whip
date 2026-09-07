@@ -584,3 +584,13 @@ These records preserve durable user intent. “Released” means the change reac
 - Related: `FB-20260907-004`, `DEC-20260907-004`, `IMP-20260907-009`, `IMP-20260907-010`, `VER-20260907-010`, `VER-20260907-011`.
 - Status: Released.
 - Notes: This is a private owner-phone release, not Play Store publication or frozen-candidate qualification.
+
+### FB-20260907-006 — Make card reading order maximally uniform
+
+- Date/source: 2026-09-07, direct user feedback with an owner-phone Home screenshot after the 0.3.59 release.
+- User need: Task, Habit, Goal, Track, and related cards should share an immediately learnable reading order instead of placing secondary text under different anchors, centering some content, or varying equivalent typography, sizing, and emphasis.
+- Acceptance criteria: Audit shared and bespoke collection cards plus Home variants for identity, title, status, metadata, badges, disclosure, primary action, expanded details, typography, horizontal anchors, vertical rhythm, and accessibility order; identify other defects of the same category beyond the screenshot; define and implement the strongest reusable hierarchy that preserves domain-specific actions and rich content; verify compact, adaptive/fold, large-text, RTL, semantics, and affected families through focused tests and fresh visual evidence; code-review and repair regressions; commit and push; then advance to a higher signed private release and install it in place on the explicitly selected owner phone with preserved identity/data and full guarded smoke verification.
+- Affected users/workflows: Home summaries and Task, Habit, Goal, and Track collections, including active/completed/archived rows, rich elapsed status, schedule/repeat metadata, progress/streak summaries, tags/badges, and expanded details.
+- Related: `FB-20260903-016`, `FB-20260907-004`, `FND-20260903-026`, `FND-20260907-015`, `DEC-20260903-014`, `DEC-20260907-004`, `DEC-20260907-005`, `IMP-20260907-011`, `VER-20260907-012`.
+- Status: Implemented, code-reviewed, emulator-accepted, and visually verified; private owner-phone release is in progress.
+- Notes: Maximal uniformity means one semantic grammar for equivalent information, while genuinely different controls or domain evidence remain explicit rather than cosmetically forced into sameness.

@@ -1721,10 +1721,10 @@ class AdaptiveWhipScreenTest {
         compose.onAllNodesWithText("1 day · 1 hour · 48 minutes").assertCountEquals(0)
 
         val cardMetric = compose.onNodeWithTag("goal-card-status-41", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
-        val cardIdentity = compose.onNodeWithTag("goal-icon-41", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val cardTitle = compose.onNodeWithTag("goal-card-title-41", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         val cardAction = compose.onNodeWithTag("goal-primary-action-41", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
-        check(kotlin.math.abs(cardMetric.left - cardIdentity.left) <= 1f) {
-            "Elapsed status must use the card content width: metric=$cardMetric identity=$cardIdentity"
+        check(kotlin.math.abs(cardMetric.left - cardTitle.left) <= 1f) {
+            "Elapsed status must begin on the title column: metric=$cardMetric title=$cardTitle"
         }
         check(cardMetric.top >= cardAction.bottom - 1f) {
             "Elapsed status must sit below the constrained identity/action row: metric=$cardMetric action=$cardAction"

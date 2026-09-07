@@ -1333,3 +1333,14 @@
 - Related: `FB-20260907-004`, `FB-20260907-005`, `FND-20260907-014`, `DEC-20260907-004`, `IMP-20260907-009`, `VER-20260907-010`, `VER-20260907-011`.
 - Verification: `VER-20260907-011`.
 - Status: Released.
+
+### IMP-20260907-011 — One title-column grammar across productivity cards
+
+- Behavior changed: Task, Habit, Goal, and ordinary Track collection cards now read through the same identity → title/support → disclosure → primary-action hierarchy. A reusable logical 44 dp identity gutter aligns persistent status, metadata, Area context, and expanded identity-owned evidence under the title rather than the card edge or a locally guessed inset. Equivalent supporting copy uses one `bodySmall`/secondary-color role, while Task schedule chips retain categorical containment with reduced `labelSmall` emphasis.
+- Domain changes: Task schedule/repeat metadata and notes now use the shared header contract; Habit and nonelapsed Goal status share the support role; elapsed Goal metrics remain persistent but move from the emoji edge to the title edge; ordinary Track summaries adopt `ProductivityItemHeader`, place disclosure before Add, and use semibold titles. Track selection/reorder, Activity, and Entry structures retain their domain interactions while matching the same title/support typography and alignment.
+- Regression coverage: Added cross-domain title/status geometry contracts, elapsed-title alignment, Track action-order/alignment checks, and a direct shared-header compact/expanded contract. Hardened the Habit timer-review catalog fixture to wait for the entered value and enabled Stop & Log action before committing, removing a UI-synchronization race without changing production behavior.
+- Persistence/migration/history impact: Presentation, semantics, and tests only. Card actions and domain mutations are unchanged; Room schema 46, data epoch 6, exact-match backup version 25, release identity, and existing user data are unchanged at this boundary.
+- Compatibility and limitations: The established medium card shell remains because the defect was internal information geometry, not container shape. Full-width progress, charts, authored evidence, selection/reorder controls, and responsive wrapping remain intentional exceptions. The preserved `TrackRow.compact` internal argument no longer changes hierarchy but remains source-compatible with direct component tests.
+- Related: `FB-20260907-006`, `FND-20260907-015`, `DEC-20260907-005`, `VER-20260907-012`.
+- Verification: `VER-20260907-012`.
+- Status: Implemented, code-reviewed, emulator-accepted, and visually verified; awaiting the authorized private phone release.

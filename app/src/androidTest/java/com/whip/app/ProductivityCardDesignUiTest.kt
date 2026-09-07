@@ -15,7 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.junit4.StateRestorationTester
@@ -176,6 +178,13 @@ class ProductivityCardDesignUiTest {
         identityLefts.forEach { assertEquals(identityLefts.first(), it, 0.5f) }
         actionRights.forEach { assertEquals(actionRights.first(), it, 0.5f) }
         assertTrue(identityLefts.first() < actionRights.first())
+        val titleLefts = listOf("Read report", "Read daily", "Read 50 books").map { title ->
+            compose.onNodeWithText(title, useUnmergedTree = true)
+                .getUnclippedBoundsInRoot().left.value
+        }
+        val supportingLefts = listOf("task-metadata-1", "habit-card-status-2", "goal-card-status-3").map(::left)
+        titleLefts.forEach { assertEquals(titleLefts.first(), it, 0.5f) }
+        supportingLefts.forEach { assertEquals(titleLefts.first(), it, 0.5f) }
         listOf("task-expand-1", "habit-expand-2", "goal-expand-3").forEach { tag ->
             assertTrue("Disclosure action must retain a 48 dp target", height(tag) >= 48.dp)
             compose.onNodeWithTag(tag, useUnmergedTree = true).performClick()
@@ -807,8 +816,10 @@ class ProductivityCardDesignUiTest {
 
         captureVisualCatalogSurface("habits.timer-review")
         compose.onNodeWithText("Review Meditation Timer").assertIsDisplayed()
-        compose.onNodeWithTag("habit-timer-review-minutes").performTextReplacement("2.5")
-        compose.onNodeWithTag("habit-timer-review-stop").performClick()
+        compose.onNodeWithTag("habit-timer-review-minutes")
+            .performTextReplacement("2.5")
+        compose.onNodeWithTag("habit-timer-review-minutes").assertTextContains("2.5")
+        compose.onNodeWithTag("habit-timer-review-stop").assertIsEnabled().performClick()
         compose.runOnIdle { assertEquals(150.0, stoppedSeconds ?: -1.0, 0.0) }
         compose.onNodeWithTag("habit-timer-review-continue").performClick()
         compose.runOnIdle { assertEquals(150.0, continuedSeconds ?: -1.0, 0.0) }
@@ -878,8 +889,10 @@ class ProductivityCardDesignUiTest {
         assertTrue(height("goal-primary-action-8") >= 48.dp)
         val elapsedMetric = compose.onNodeWithTag("goal-card-status-8", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         val elapsedIdentity = compose.onNodeWithTag("goal-icon-8", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val elapsedTitle = compose.onNodeWithText("Days since smoking", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         val resetAction = compose.onNodeWithTag("goal-primary-action-8", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
-        assertTrue(kotlin.math.abs(elapsedMetric.left - elapsedIdentity.left) <= 1f)
+        assertTrue(kotlin.math.abs(elapsedMetric.left - elapsedTitle.left) <= 1f)
+        assertTrue(elapsedMetric.left >= elapsedIdentity.right)
         assertTrue(elapsedMetric.top >= resetAction.bottom - 1f)
         compose.onNodeWithText("Reset").performClick()
         compose.onNodeWithTag("goal-expand-8", useUnmergedTree = true).performClick()

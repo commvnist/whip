@@ -1339,3 +1339,15 @@
 - Recommended solution: Give shared headers an optional below-row collapsed-summary slot, give navigation rows an optional composable supporting slot, and route elapsed Goals in both surfaces through the same full-width `ElapsedGoalMetric`. Add a faithful fold visual contract so future scalar-text fallback or action-lane regression fails.
 - Related: `FB-20260907-004`, `FND-20260906-007`, `DEC-20260906-009`.
 - Status: Verified.
+
+### FND-20260907-015 — Collection cards do not share one secondary-information anchor
+
+- Severity/category: P1 cross-product hierarchy, scanability, and responsive consistency.
+- Observed: Home renders Task scheduling chips under a separately guessed 56 dp inset, Habit status inside the title column, and elapsed Goal status from the card content edge. Track summaries independently reimplement the header with bold titles, reversed action/disclosure order, and expanded supporting text at another anchor. Equivalent supporting copy also alternates between implicit body text, `labelSmall`, and `labelMedium` without a reusable semantic role.
+- Expected: Every collection card should read identity, title, concise status/metadata, disclosure, primary action, then expanded evidence in a stable order. Content belonging to the item identity should begin on the title column's logical start edge in compact, fold, enlarged-text, and RTL layouts; true full-width evidence may deliberately break that grid.
+- Why it matters / affected users: Repeated cards are learned spatially. Moving the status origin and emphasis between domains makes Home look assembled from unrelated widgets, slows comparison, and compounds wrapping differences on narrow or enlarged-text layouts.
+- Evidence: Owner-phone Home screenshot in `FB-20260907-006`; `ProductivityItemHeader` inline versus persistent slots; `TaskRow`'s independent `padding(start = 56.dp)` metadata column; bespoke `TrackSummaryRow`, selection/reorder `TrackRow`, `TrackActivityRow`, and `TrackEntryRow` typography/action structures.
+- Root cause: Whip standardized the card shell and top-level density before defining a reusable internal text grid and supporting-text role. Later rich elapsed status added a full-width escape hatch, while Tasks and Tracks retained local geometry.
+- Recommended solution: Keep the shared card shell, name the identity-to-title gutter once, align identity-owned persistent and expanded support through it, move Task metadata/notes into the shared header contract, migrate ordinary Track summaries to that header, and normalize equivalent title/support typography across Track modes and entry summaries. Preserve full-width progress, charts, and authored evidence where their semantics justify it.
+- Related: `FB-20260907-006`, `FND-20260903-026`, `FND-20260907-014`, `DEC-20260903-014`, `DEC-20260907-004`.
+- Status: Verified; resolved by the shared title-column grid and supporting-text role in `IMP-20260907-011`, with geometry, semantics, two-emulator, and 100-surface visual evidence in `VER-20260907-012`.

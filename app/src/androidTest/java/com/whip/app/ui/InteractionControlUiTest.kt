@@ -943,6 +943,42 @@ class InteractionControlUiTest {
     }
 
     @Test
+    fun productivityHeaderAlignsPersistentAndExpandedSupportToTheTitleColumn() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                Box(Modifier.width(320.dp)) {
+                    ProductivityItemHeader(
+                        itemType = "goal",
+                        itemName = "Consistent reading order",
+                        emoji = "🎯",
+                        areaId = null,
+                        areaName = "Main",
+                        onEdit = null,
+                        titleModifier = Modifier.testTag("aligned-header-title"),
+                        persistentSummaryContent = {
+                            Box(Modifier.fillMaxWidth().height(12.dp).testTag("aligned-header-persistent"))
+                        },
+                        supportingContent = {
+                            Box(Modifier.fillMaxWidth().height(12.dp).testTag("aligned-header-support"))
+                        },
+                        expanded = true,
+                        onExpansionToggle = {},
+                    )
+                }
+            }
+        }
+
+        val title = compose.onNodeWithTag("aligned-header-title", useUnmergedTree = true)
+            .fetchSemanticsNode().boundsInRoot
+        val persistent = compose.onNodeWithTag("aligned-header-persistent", useUnmergedTree = true)
+            .fetchSemanticsNode().boundsInRoot
+        val support = compose.onNodeWithTag("aligned-header-support", useUnmergedTree = true)
+            .fetchSemanticsNode().boundsInRoot
+        assertEquals(title.left, persistent.left, 1f)
+        assertEquals(title.left, support.left, 1f)
+    }
+
+    @Test
     fun datePickerTodayUsesTheConfiguredWhipDate() {
         val configuredToday = LocalDate.of(2035, 1, 2)
         var selectedDate: LocalDate? = null

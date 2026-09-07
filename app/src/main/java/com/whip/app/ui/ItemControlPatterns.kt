@@ -1103,6 +1103,45 @@ internal fun ProductivityItemCard(
 }
 
 /**
+ * Logical start edge for text that belongs to a productivity item's identity.
+ *
+ * The 36 dp emoji plus its 8 dp gap form one shared reading grid. Keeping this
+ * value here prevents persistent status and expanded context from drifting away
+ * from the title when they need more width than the action-constrained header.
+ */
+internal val ProductivityItemTextStartInset = 44.dp
+
+@Composable
+internal fun ProductivityItemAlignedColumn(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(start = ProductivityItemTextStartInset),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+        content = content,
+    )
+}
+
+@Composable
+internal fun ProductivityItemSupportingText(
+    text: String,
+    modifier: Modifier = Modifier,
+    maxLines: Int = Int.MAX_VALUE,
+) {
+    Text(
+        text = text,
+        modifier = modifier,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = maxLines,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
+
+/**
  * Shared collection-card header hierarchy:
  *
  *     identity emoji -> title/context -> edit -> primary action
@@ -1123,6 +1162,7 @@ internal fun ProductivityItemHeader(
     onEdit: (() -> Unit)?,
     modifier: Modifier = Modifier,
     identityModifier: Modifier = Modifier,
+    titleModifier: Modifier = Modifier,
     primaryActionModifier: Modifier = Modifier,
     editModifier: Modifier = Modifier,
     titleCompleted: Boolean = false,
@@ -1149,7 +1189,7 @@ internal fun ProductivityItemHeader(
             Column(Modifier.weight(1f)) {
                 Text(
                     text = itemName,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = titleModifier.fillMaxWidth(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = completionTextColor(titleCompleted),
@@ -1187,18 +1227,22 @@ internal fun ProductivityItemHeader(
                 ) { action() }
             }
         }
-        persistentSummaryContent?.invoke(this)
+        persistentSummaryContent?.let { summary ->
+            ProductivityItemAlignedColumn(content = summary)
+        }
         if (onExpansionToggle == null || expanded) {
             if (onExpansionToggle != null) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             BoxWithConstraints(Modifier.fillMaxWidth()) {
                 val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
                 if (stacked) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        headlineAccessory?.let { accessory ->
-                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { accessory() }
+                        ProductivityItemAlignedColumn {
+                            headlineAccessory?.let { accessory ->
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { accessory() }
+                            }
+                            if (areaId != null) AreaBadge(areaId, areaName)
+                            supportingContent()
                         }
-                        if (areaId != null) AreaBadge(areaId, areaName)
-                        supportingContent()
                         if (onExpansionToggle != null && onEdit != null) {
                             WhipTextButton(
                                 onClick = onEdit,
@@ -1216,7 +1260,12 @@ internal fun ProductivityItemHeader(
                     }
                 } else {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Column(
+                            Modifier
+                                .weight(1f)
+                                .padding(start = ProductivityItemTextStartInset),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
                             headlineAccessory?.let { accessory ->
                                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { accessory() }
                             }
