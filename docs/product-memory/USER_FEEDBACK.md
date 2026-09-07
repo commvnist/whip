@@ -504,3 +504,13 @@ These records preserve durable user intent. “Released” means the change reac
 - Related: `FB-20260906-009`, `FND-20260906-005`, `FND-20260906-007`, `FND-20260906-008`, `DEC-20260906-007`, `DEC-20260906-008`, `DEC-20260906-009`.
 - Status: Implemented, focused-tested, and visually accepted on the disposable emulator; not yet released to the owner phone.
 - Notes: Treat the phone report as authoritative subjective evidence. Development inspection, capture, and regression testing remain emulator-only.
+
+### FB-20260906-011 — Release the integrated counter and quiet-feedback correction
+
+- Date/source: 2026-09-06, direct user request after focused implementation and emulator acceptance.
+- User need: Install the corrected Count Time Since presentation and quiet routine-action feedback on the owner's development phone for real use.
+- Acceptance criteria: Advance to a higher monotonic private release identity; use the fast owner-phone lane rather than candidate/full-suite qualification; build signed APK/AAB outputs from clean pushed source; explicitly target the connected physical phone; install in place without reset, clear, uninstall, downgrade, or phone instrumentation; verify signer, archive integrity, installed version/hash, preserved first-install identity, cold launch, foreground activity, live process, and bounded fatal/ANR/Room/SQLite/activity-start logs.
+- Affected users/workflows: Owner-only development installation, Count Time Since review, and routine app actions across Whip.
+- Related: `FB-20260906-010`, `DEC-20260906-003`, `IMP-20260906-020`, `VER-20260906-021`.
+- Status: In progress.
+- Notes: The complete fresh candidate remains reserved for an explicitly requested Play Store release.
