@@ -1287,3 +1287,14 @@
 - Related: `FB-20260907-002`, `FND-20260906-002`, `FND-20260907-011`, `FND-20260907-012`, `DEC-20260906-005`, `VER-20260907-006`.
 - Verification: `VER-20260907-006`.
 - Status: Implemented, code-reviewed, exact-tested, and accepted across the complete Gym catalog family.
+
+### IMP-20260907-007 — Signed Whip 0.3.58 whole-product UX owner-phone release
+
+- Behavior changed: Advanced Whip to 0.3.58/code 64 and installed the cohesive UX cleanup in place on the explicitly selected owner phone. New Track Entries identify their parent Track, archived Track rows omit an impossible add action, Area detail removes repeated identity, Area popups remain attached to their trigger, and Reminder status refresh uses the established secondary-action grammar.
+- QA/release changed: The private lane also includes coarse-clock-safe Android result freshness, clean-tree emulator readiness, and render-bound catalog evidence with an executable Gym page-pixel distinction. These change development confidence, not production behavior.
+- Persistence/migration/history impact: Room schema 46, data epoch 6, and exact-match backup version 25 are unchanged. Android first-install identity and existing owner data were preserved; no reset, clear, uninstall, downgrade, or fresh-start confirmation occurred.
+- Compatibility and limitations: The release follows proportionate whole-product private-development evidence and release-vital lint/R8/resource optimization. It is not a frozen Play Store candidate; public publication still requires a fresh `scripts/candidate` run. Subjective aesthetic acceptance remains open to normal owner-use feedback.
+- Commit/push: Clean release source `0eca86d` was synchronized with `origin/main` before signed build/install; the following reconciliation changes memory only.
+- Related: `FB-20260907-002`, `FND-20260907-004` through `FND-20260907-012`, `DEC-20260907-002`, `IMP-20260907-003` through `IMP-20260907-006`, `VER-20260907-007`, `VER-20260907-008`.
+- Verification: `VER-20260907-007`, `VER-20260907-008`.
+- Status: Released and device-verified as Whip 0.3.58/code 64; awaiting normal real-use feedback.
