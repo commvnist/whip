@@ -494,3 +494,13 @@ These records preserve durable user intent. “Released” means the change reac
 - Related: `FND-20260906-005`, `DEC-20260906-007`, `FB-20260906-005`.
 - Status: Implemented, focused-tested, visually accepted, and released in place as Whip 0.3.53/code 59; awaiting real-use feedback.
 - Notes: The physical phone remains excluded from development testing and may be used only for the final explicitly requested deployment. Complete Play Store candidate qualification is out of scope.
+
+### FB-20260906-010 — Integrate elapsed counters and remove redundant action confirmations
+
+- Date/source: 2026-09-06, direct real-use feedback after Whip 0.3.53.
+- User need: The new Count Time Since display feels bolted onto Goal cards because it is too bold and visually detached. Routine action-result bars such as “Goal saved” are also annoying because the changed screen already confirms what happened.
+- Acceptance criteria: Redesign elapsed counters across collection cards, Home, Overview, Insights, terminal states, and editor preview so they use Whip's established information hierarchy, restrained emphasis, coherent spacing, and responsive wrapping in every supported appearance; preserve every configured unit and accessibility label. Remove passive success-only app-action pop-ups across Whip when the committed result is already apparent; retain failures, warnings, recovery/choice prompts, meaningful Undo, and Android system reminders/ongoing notifications.
+- Affected users/workflows: Every routine create/edit/log/complete/archive action that currently emits redundant transient success feedback, plus all active and terminal Count Time Since Goal presentations.
+- Related: `FB-20260906-009`, `FND-20260906-005`, `DEC-20260906-007`.
+- Status: In progress.
+- Notes: Treat the phone report as authoritative subjective evidence. Development inspection, capture, and regression testing remain emulator-only.
