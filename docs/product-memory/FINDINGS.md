@@ -1135,3 +1135,39 @@
 - Recommended solution: Assert the merged `2 days` content description before and after scrolling so the regression follows the user-accessible contract.
 - Related: `FB-20260906-009`, `FB-20260906-012`, `FND-20260906-005`.
 - Status: Resolved and verified. The corrected matcher passes in isolation and inside the fresh 958-test campaign.
+
+### FND-20260906-016 — Empty-library 5/3/1 setup names an impossible next action
+
+- Severity/category: P1 first-run Gym usability and accessibility.
+- Observed: Opening Set Up 5/3/1 with no Weight + Reps exercises disables Build Program and announces “Enter a Training Max and cycle increase,” even though the corresponding fields do not exist until exercises are created. The actionable “Create at least four…” explanation appears much later in the long setup surface, while the disabled header action does not expose its blocking reason.
+- Expected: The status and disabled primary action identify the first feasible recovery step for the selected layout: create the missing standard exercises or add a custom Weight + Reps exercise, then configure Training Maxes.
+- Why it matters / affected users: New Gym users are stopped at the first 5/3/1 decision with instructions they cannot follow; screen-reader users encounter a disabled Build Program action without nearby actionable context.
+- Evidence: Fresh `gym.531.setup` screenshot and semantics hierarchy in `/tmp/whip-ui-gym-e2e-baseline-20260906`, plus the current `buildBlocker` ordering in `FiveThreeOneProgramSetupDialog`.
+- Root cause: Build validation checked the derived program-exercise list before checking whether the selected schedule had enough eligible source exercises to render the required inputs.
+- Recommended solution: Order blockers by feasible dependency, give the disabled primary action the same reason as a state description, and cover both standard and custom empty-library states.
+- Related: `FB-20260906-013`, `DEC-20260906-011`.
+- Status: Confirmed; implementation pending.
+
+### FND-20260906-017 — Gym evidence stops short of a generated 5/3/1 workout
+
+- Severity/category: P1 end-to-end QA coverage and visual-evidence fidelity.
+- Observed: The focused Gym matrix separately proves routine-builder output, repository progression, and generic workout execution, but no real Activity journey creates a 5/3/1 routine, persists it, starts its next programmed day, and verifies the generated program context in the active workout. The catalog's Program Structure image uses a one-phase placeholder named “Phase 1,” and the sole setup image is the empty-library blocked state despite being cataloged as configured.
+- Expected: One executable UI-to-repository-to-UI journey crosses the authoring/start seam, and the visual catalog includes both the blocked setup and a ready configured setup plus a genuine four-phase 5/3/1 Program Structure/active-workout state.
+- Why it matters / affected users: Local component and repository checks can all pass while route wiring, persistence refresh, generated labels, or the Start Next transition fails. Placeholder captures also hide the actual density and hierarchy of the program users will operate.
+- Evidence: `docs/quality/e2e-coverage.tsv`, the 44-surface Gym baseline, `RoutineBuilderUiTest`, `FirstClassWorkflowE2ETest`, and the focused 169-test baseline.
+- Root cause: Advanced 5/3/1 behavior grew behind well-tested component/repository seams, while the first-class journey and catalog fixtures remained generic.
+- Recommended solution: Add one real Gym/5/3/1 authoring-to-start journey, route it through the `gym531` fast profile, and make catalog fixtures represent blocked, ready, four-phase, and active-program states exactly.
+- Related: `FB-20260906-013`, `DEC-20260906-005`, `DEC-20260906-011`.
+- Status: Confirmed; implementation pending.
+
+### FND-20260906-018 — Cycle-review choices rely on chip color to explain the recorded decision
+
+- Severity/category: P1 5/3/1 decision clarity and accessible review.
+- Observed: The cycle-review card presents Standard, Suggestion, Hold, Ignore recommendation, and Custom as a dense chip group, followed only by the numeric next Training Max. Hold and Ignore both produce zero change but have different audit meaning; only Ignore receives an explanation, and the selected action is not restated in the review summary.
+- Expected: Every selected choice produces a concise textual decision summary explaining both its Training Max effect and its recorded meaning, independent of chip color or position.
+- Why it matters / affected users: Lifters making an infrequent cycle-boundary decision can confirm the right number while recording the wrong intent, especially with enlarged text, color-vision differences, or screen readers.
+- Evidence: Fresh `gym.531.review` screenshot/semantics, `CycleReviewChoice`, and the decision mapping in `FiveThreeOneCycleReviewDialog`.
+- Root cause: The first implementation explained the advisory exception but treated selected chip styling and “Next TM” as sufficient confirmation for every other branch.
+- Recommended solution: Replace the number-only footer with a selected-decision summary that names Standard, Suggestion, Hold, Ignore, or Custom and states the resulting Training Max.
+- Related: `FB-20260906-013`, `DEC-20260906-011`.
+- Status: Confirmed; implementation pending.
