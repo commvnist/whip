@@ -1279,3 +1279,15 @@
 - Recommended solution: Backdate the just-created marker by a small fixed margin after exact prior-output deletion, retain strict `-newer` checks so deliberately stale fixtures still fail, and rerun the complete cache/freshness guard.
 - Related: `FB-20260907-002`, `DEC-20260906-003`, `DEC-20260906-005`, `DEC-20260906-010`.
 - Status: Resolved in `be084e1`; the complete cache/freshness/target guard passes in `VER-20260907-004`. The failed run remains excluded from acceptance evidence.
+
+### FND-20260907-010 — Clean-tree emulator readiness forwards an empty test request
+
+- Severity/category: P1 release-loop reliability and fast-QA routing.
+- Observed: On the clean pushed Whip 0.3.58 source, `scripts/check --ready --emulator` correctly routes “no changed repository inputs” to `profile:docs`, removes that sentinel from targeted-test arguments, then unconditionally appends `--emulator`. `qa-targeted` receives only the mode flag, prints usage, and exits 2.
+- Expected: A clean/doc-only route should perform no targeted test invocation, still honor the explicit device guard and readiness bookkeeping, and exit successfully; nonempty Android routes must continue forwarding `--emulator`.
+- Why it matters / affected users: The signed private-release lane deliberately starts from a clean pushed source after accepted affected evidence. Rejecting that exact state forces redundant changes or misleading reruns and breaks the documented fast cycle.
+- Evidence: Failed release-stamped `ANDROID_SERIAL=emulator-5554 scripts/check --ready --emulator`; route output shows `Profile: docs`, all execution/static flags false, followed by the `qa-targeted` usage error. `scripts/check` appends the emulator flag after it has filtered the docs sentinel.
+- Root cause: Argument construction tests only the requested emulator mode, not whether a runnable profile/selector remains.
+- Recommended solution: Append `--emulator` only when the targeted runner already has work, add a clean-tree `--ready --emulator` fixture, and retain the existing behavior for full-Android and fresh-emulator modes.
+- Related: `FB-20260907-002`, `DEC-20260906-003`, `IMP-20260907-004`.
+- Status: Confirmed; routing repair in progress. The failed readiness invocation is not acceptance evidence.
