@@ -128,6 +128,7 @@ internal fun GymUiState.activeFiveThreeOneCycleReview(): FiveThreeOneCycleReview
                         FiveThreeOneEvidenceRow(
                             kind = kind,
                             exposureId = evidenceSession.uuid,
+                            performedAtMillis = evidenceSession.startedAt.toEpochMilli(),
                             trainingMaxAtExposure = snapshotTm,
                             completed = set.completed,
                             deleted = set.deletedAtMillis != null,
@@ -153,6 +154,7 @@ internal fun GymUiState.activeFiveThreeOneCycleReview(): FiveThreeOneCycleReview
                     FiveThreeOneEvidenceRow(
                         kind = FiveThreeOneEvidenceKind.RequiredMain,
                         exposureId = session.uuid,
+                        performedAtMillis = session.startedAt.toEpochMilli(),
                         trainingMaxAtExposure = currentTm,
                         completed = true,
                         failure = true,
@@ -284,7 +286,7 @@ internal fun FiveThreeOneCycleReviewDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
-                    "Nothing changes until you apply these per-exercise decisions. 5/3/1 standard uses the saved increase; Whip suggestions are advisory.",
+                    "Nothing changes until you apply these per-exercise decisions. The saved increase is 5/3/1 Standard and remains recommended; Adaptive review suggestions are advisory and non-standard.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -332,18 +334,38 @@ internal fun FiveThreeOneCycleReviewDialog(
                                 color = if (exercise.eligible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                             )
                             if (recommendation.category == FiveThreeOneProgressionCategory.CautiousHigherIncrease) {
-                                Text(
-                                    "Whip suggestion · non-standard 5/3/1 option",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.error,
-                                )
+                                Surface(
+                                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    shape = MaterialTheme.shapes.small,
+                                ) {
+                                    Text(
+                                        "Adaptive review · optional non-standard 5/3/1 alternative",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        modifier = Modifier
+                                            .padding(horizontal = 8.dp, vertical = 5.dp)
+                                            .testTag("training-max-adaptive-label-${exercise.exerciseId}"),
+                                    )
+                                }
                             }
-                            Text(
-                                "Evidence strength: ${fiveThreeOneEvidenceStrength(recommendation.confidence)} · " +
-                                    recommendation.reasons.joinToString(" "),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                                modifier = Modifier.testTag("training-max-evidence-${exercise.exerciseId}"),
+                            ) {
+                                Text(
+                                    "Evidence strength · ${fiveThreeOneEvidenceStrength(recommendation.confidence)}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                recommendation.reasons.forEach { reason ->
+                                    Text(
+                                        "• $reason",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
                             FlowRow(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 verticalArrangement = Arrangement.spacedBy(6.dp),

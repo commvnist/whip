@@ -1058,6 +1058,7 @@ class RoomGymRepository(
                         FiveThreeOneEvidenceRow(
                             kind = kind,
                             exposureId = evidenceSession.uuid,
+                            performedAtMillis = evidenceSession.startedAtMillis,
                             trainingMaxAtExposure = placement.trainingMaxValueSnapshot,
                             completed = set.completed,
                             deleted = set.deletedAtMillis != null,
@@ -1086,6 +1087,7 @@ class RoomGymRepository(
                         FiveThreeOneEvidenceRow(
                             kind = FiveThreeOneEvidenceKind.RequiredMain,
                             exposureId = evidenceSession.uuid,
+                            performedAtMillis = evidenceSession.startedAtMillis,
                             trainingMaxAtExposure = currentTrainingMax,
                             completed = true,
                             failure = true,

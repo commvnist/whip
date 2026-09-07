@@ -1127,6 +1127,7 @@ class RoutineBuilderStateTest {
                 classicFinalSetAmrap = true,
                 boringButBigPercent = 50.0,
                 progressionMode = com.whip.app.domain.RoutineProgressionMode.PerformanceInformed,
+                allowNonStandardHigherSuggestions = true,
                 bbbExerciseByMainExerciseId = mapOf(
                     bench.exerciseId to deadlift.exerciseId,
                     deadlift.exerciseId to zercher.exerciseId,
@@ -1137,6 +1138,7 @@ class RoutineBuilderStateTest {
 
         assertEquals(11, built.programPhaseCount)
         assertEquals(setOf(2, 6, 10), built.trainingMaxAdvanceAfterPhaseIndices)
+        assertTrue(built.allowNonStandardHigherSuggestions)
         assertEquals(
             listOf(
                 "Leader",

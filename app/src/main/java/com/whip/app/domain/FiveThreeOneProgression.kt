@@ -20,6 +20,8 @@ data class FiveThreeOneEvidenceRow(
     val kind: FiveThreeOneEvidenceKind,
     /** Stable session/boundary identity so repeated evidence means independent exposures. */
     val exposureId: String? = null,
+    /** Session start time used to compare the most recent independent exposures. */
+    val performedAtMillis: Long? = null,
     /** Training Max snapshotted when this work was prescribed. */
     val trainingMaxAtExposure: Double? = null,
     val completed: Boolean,
@@ -64,7 +66,7 @@ data class FiveThreeOneProgressionRecommendation(
 
 /** Pure, deterministic recommendations for one exercise at the end of a 5/3/1 cycle. */
 object FiveThreeOneProgression {
-    const val ENGINE_VERSION: String = "five-three-one-progression/1"
+    const val ENGINE_VERSION: String = "five-three-one-progression/2"
 
     fun recommend(
         evidence: List<FiveThreeOneEvidenceRow>,
@@ -157,32 +159,49 @@ object FiveThreeOneProgression {
             )
         }
 
-        val strongComparablePrSets = successfulRequired.filter { row ->
-            row.kind == FiveThreeOneEvidenceKind.PrSet && row.isStrongComparablePrSet(input.currentTrainingMax)
-        }.mapNotNull(FiveThreeOneEvidenceRow::exposureId).distinct().size
-        val highRepPrSetsWithoutEffort = successfulRequired.count { row ->
-            row.kind == FiveThreeOneEvidenceKind.PrSet && row.isComparablePrSet(input.currentTrainingMax) &&
-                requireNotNull(row.actualReps) - requireNotNull(row.prescribedReps) >= STRONG_REP_SURPLUS &&
-                row.rpe == null && row.rir == null
-        }
-        val successfulJoker = input.evidence.any { row -> row.isSuccessfulJoker(input.currentTrainingMax) }
-        val neutralJoker = input.evidence.any { row ->
-            row.kind == FiveThreeOneEvidenceKind.Joker && !row.isSuccessfulJoker(input.currentTrainingMax)
-        }
-        val higherEvidence = strongComparablePrSets >= STRONG_PR_SET_COUNT && successfulJoker
+        val adaptiveAssessment = assessAdaptiveEvidence(
+            successfulRequired = successfulRequired,
+            currentTrainingMax = input.currentTrainingMax,
+            standardIncrement = input.standardIncrement,
+        )
+        val strongJoker = input.evidence.any { row -> row.isStrongJoker(input.currentTrainingMax) }
+        val hasCorroboration = adaptiveAssessment.recentEvidence.all(AdaptivePrEvidence::hasFavorableEffort) || strongJoker
+        val fullyCorroborated = adaptiveAssessment.qualifies &&
+            adaptiveAssessment.supportsCorroboratedTier &&
+            hasCorroboration
 
-        if (higherEvidence && input.allowNonStandardHigher) {
+        if (adaptiveAssessment.qualifies && input.allowNonStandardHigher) {
+            val factor = if (fullyCorroborated) CORROBORATED_HIGHER_INCREMENT_FACTOR else REP_ONLY_HIGHER_INCREMENT_FACTOR
             return recommendation(
                 category = FiveThreeOneProgressionCategory.CautiousHigherIncrease,
-                suggestedDelta = input.standardIncrement * HIGHER_INCREMENT_FACTOR,
+                suggestedDelta = input.standardIncrement * factor,
                 standardDelta = input.standardIncrement,
-                confidence = 0.90,
-                reasons = listOf(
-                    "All required work met its prescribed reps and load.",
-                    "$strongComparablePrSets strong, comparable PR sets exceeded their rep targets.",
-                    "A completed Joker set met its prescribed reps and load.",
-                    "The optional higher increase is enabled and capped at 1.5 times the standard increase.",
-                ),
+                confidence = if (fullyCorroborated) 0.90 else 0.80,
+                reasons = buildList {
+                    add("All required work met its prescribed reps and load.")
+                    add(
+                        "Two recent PR/AMRAP performances from separate sessions used at least 85% of Training Max, " +
+                            "including one at 90% or more; conservative load-adjusted estimates supported the proposed next Training Max without a material drop.",
+                    )
+                    when {
+                        hasCorroboration && !adaptiveAssessment.supportsCorroboratedTier ->
+                            add(
+                                "Favorable effort or Joker corroboration was present, but conservative load-adjusted estimates supported only the 1.25-times alternative.",
+                            )
+                        adaptiveAssessment.recentEvidence.all(AdaptivePrEvidence::hasFavorableEffort) ->
+                            add(
+                                "Both AMRAPs included favorable RPE or RIR corroboration; the non-standard adaptive alternative is capped at 1.5 times the standard increase.",
+                            )
+                        strongJoker ->
+                            add(
+                                "A Joker at or above Training Max convincingly beat its rep target without grinder evidence; the non-standard adaptive alternative is capped at 1.5 times the standard increase.",
+                            )
+                        else ->
+                            add(
+                                "RPE, RIR, or Joker evidence is not required for this rep-only tier; the non-standard alternative is capped at 1.25 times the standard increase.",
+                            )
+                    }
+                },
             )
         }
 
@@ -193,13 +212,10 @@ object FiveThreeOneProgression {
             confidence = 0.85,
             reasons = buildList {
                 add("All required work met its prescribed reps and load.")
-                when {
-                    higherEvidence -> add("Higher-increase evidence was present, but the optional non-standard increase is disabled.")
-                    highRepPrSetsWithoutEffort > 0 -> add(
-                        "$highRepPrSetsWithoutEffort strong-rep PR ${if (highRepPrSetsWithoutEffort == 1) "set lacked" else "sets lacked"} RPE or RIR; " +
-                            "higher alternatives require effort evidence from separate sessions.",
-                    )
-                    neutralJoker -> add("Skipped, deleted, incomplete, or failed Joker work was treated as neutral.")
+                if (adaptiveAssessment.qualifies) {
+                    add("Qualifying adaptive evidence was present, but above-standard alternatives are disabled.")
+                } else if (input.allowNonStandardHigher) {
+                    add(adaptiveAssessment.explanation)
                 }
                 add("Use the configured standard increase.")
             },
@@ -219,6 +235,9 @@ object FiveThreeOneProgression {
             }
             require(row.actualReps == null || row.actualReps >= 0) {
                 "Evidence row ${index + 1} actual reps cannot be negative"
+            }
+            require(row.performedAtMillis == null || row.performedAtMillis >= 0L) {
+                "Evidence row ${index + 1} performance time cannot be negative"
             }
             require(row.prescribedLoad == null || row.prescribedLoad.isFinite() && row.prescribedLoad > 0.0) {
                 "Evidence row ${index + 1} prescribed load must be finite and positive"
@@ -273,26 +292,104 @@ object FiveThreeOneProgression {
     private fun FiveThreeOneEvidenceRow.isMarginalSuccess(): Boolean =
         rpe?.let { it >= MARGINAL_RPE } == true || rir?.let { it <= MARGINAL_RIR } == true
 
-    private fun FiveThreeOneEvidenceRow.isStrongComparablePrSet(currentTrainingMax: Double): Boolean {
-        val repSurplus = requireNotNull(actualReps) - requireNotNull(prescribedReps)
-        val strongEffort = rpe?.let { it <= STRONG_RPE } == true || rir?.let { it >= STRONG_RIR } == true
-        return isComparablePrSet(currentTrainingMax) && repSurplus >= STRONG_REP_SURPLUS && strongEffort
+    private fun assessAdaptiveEvidence(
+        successfulRequired: List<FiveThreeOneEvidenceRow>,
+        currentTrainingMax: Double,
+        standardIncrement: Double,
+    ): AdaptiveEvidenceAssessment {
+        val byExposure = successfulRequired.mapIndexedNotNull { index, row -> row.adaptivePrEvidence(index) }
+            .groupBy(AdaptivePrEvidence::exposureId)
+            .map { (_, rows) -> rows.maxWith(compareBy<AdaptivePrEvidence> { it.conservativeEstimatedOneRepMax }.thenBy { it.inputIndex }) }
+            .sortedWith(compareBy<AdaptivePrEvidence> { it.performedAtMillis ?: Long.MIN_VALUE }.thenBy { it.inputIndex })
+        if (byExposure.size < STRONG_PR_SET_COUNT) {
+            return AdaptiveEvidenceAssessment(
+                explanation = "Adaptive alternatives require two strong PR/AMRAP performances from separate sessions.",
+            )
+        }
+
+        val recent = byExposure.takeLast(STRONG_PR_SET_COUNT)
+        if (recent.none { it.trainingMaxFraction + LOAD_TOLERANCE >= HIGH_INTENSITY_TM_FRACTION }) {
+            return AdaptiveEvidenceAssessment(
+                recentEvidence = recent,
+                explanation = "At least one of the two recent strong AMRAPs must use 90% or more of its snapshotted Training Max.",
+            )
+        }
+        val proposedNextTrainingMax = currentTrainingMax + standardIncrement * REP_ONLY_HIGHER_INCREMENT_FACTOR
+        if (recent.any { evidence ->
+                evidence.conservativeEstimatedOneRepMax * TRAINING_MAX_OF_E1RM_FACTOR + LOAD_TOLERANCE < proposedNextTrainingMax
+            }
+        ) {
+            return AdaptiveEvidenceAssessment(
+                recentEvidence = recent,
+                explanation = "The two recent AMRAPs did not both support the proposed next Training Max after conservative load adjustment.",
+            )
+        }
+        val earlier = recent.first().conservativeEstimatedOneRepMax
+        val later = recent.last().conservativeEstimatedOneRepMax
+        if (later + LOAD_TOLERANCE < earlier * MIN_LATER_ESTIMATE_FRACTION) {
+            return AdaptiveEvidenceAssessment(
+                recentEvidence = recent,
+                explanation = "The later load-adjusted AMRAP estimate dropped materially, so the standard increase remains the safer choice.",
+            )
+        }
+        val corroboratedNextTrainingMax = currentTrainingMax + standardIncrement * CORROBORATED_HIGHER_INCREMENT_FACTOR
+        val supportsCorroboratedTier = recent.all { evidence ->
+            evidence.conservativeEstimatedOneRepMax * TRAINING_MAX_OF_E1RM_FACTOR + LOAD_TOLERANCE >= corroboratedNextTrainingMax
+        }
+        return AdaptiveEvidenceAssessment(
+            qualifies = true,
+            supportsCorroboratedTier = supportsCorroboratedTier,
+            recentEvidence = recent,
+            explanation = "Repeated load-adjusted AMRAP evidence supports a cautious adaptive alternative.",
+        )
     }
 
-    private fun FiveThreeOneEvidenceRow.isComparablePrSet(currentTrainingMax: Double): Boolean {
-        val targetLoad = requireNotNull(prescribedLoad)
-        return targetLoad >= currentTrainingMax * MIN_COMPARABLE_TM_FRACTION &&
-            targetLoad <= currentTrainingMax * MAX_COMPARABLE_TM_FRACTION
+    private fun FiveThreeOneEvidenceRow.adaptivePrEvidence(inputIndex: Int): AdaptivePrEvidence? {
+        if (kind != FiveThreeOneEvidenceKind.PrSet) return null
+        val id = exposureId?.takeIf(String::isNotBlank) ?: return null
+        val snapshotTrainingMax = trainingMaxAtExposure?.takeIf { it.isFinite() && it > 0.0 } ?: return null
+        val targetReps = prescribedReps ?: return null
+        val performedReps = actualReps ?: return null
+        val performedLoad = actualLoad ?: return null
+        if (performedReps - targetReps < STRONG_REP_SURPLUS) return null
+        val fraction = performedLoad / snapshotTrainingMax
+        if (fraction + LOAD_TOLERANCE < MIN_ADAPTIVE_TM_FRACTION ||
+            fraction - LOAD_TOLERANCE > MAX_ADAPTIVE_TM_FRACTION
+        ) return null
+        val cappedReps = performedReps.coerceAtMost(MAX_ESTIMATED_REPS)
+        if (cappedReps <= 0) return null
+        val epley = performedLoad * (1.0 + cappedReps / 30.0)
+        val brzycki = performedLoad * 36.0 / (37.0 - cappedReps)
+        return AdaptivePrEvidence(
+            exposureId = id,
+            performedAtMillis = performedAtMillis,
+            inputIndex = inputIndex,
+            trainingMaxFraction = fraction,
+            conservativeEstimatedOneRepMax = minOf(epley, brzycki),
+            hasFavorableEffort = hasFavorableEffort(),
+        )
     }
 
-    private fun FiveThreeOneEvidenceRow.isSuccessfulJoker(currentTrainingMax: Double): Boolean {
+    private fun FiveThreeOneEvidenceRow.hasFavorableEffort(): Boolean = when {
+        rpe != null && rir != null -> rpe <= STRONG_RPE && rir >= STRONG_RIR
+        rpe != null -> rpe <= STRONG_RPE
+        rir != null -> rir >= STRONG_RIR
+        else -> false
+    }
+
+    private fun FiveThreeOneEvidenceRow.isStrongJoker(currentTrainingMax: Double): Boolean {
         if (kind != FiveThreeOneEvidenceKind.Joker || deleted || !completed || failure) return false
         val targetReps = prescribedReps ?: return false
         val performedReps = actualReps ?: return false
         val targetLoad = prescribedLoad ?: return false
         val performedLoad = actualLoad ?: return false
-        return performedReps >= targetReps && performedLoad + LOAD_TOLERANCE >= targetLoad &&
-            targetLoad + LOAD_TOLERANCE >= currentTrainingMax * MIN_MEANINGFUL_JOKER_TM_FRACTION
+        val contradictoryEffort = rpe != null && rir != null && abs(rpe + rir - 10.0) > EFFORT_CONSISTENCY_TOLERANCE
+        val repSurplus = performedReps - targetReps
+        val convincinglyExceededTarget = repSurplus >= STRONG_REP_SURPLUS ||
+            (repSurplus >= 1 && hasFavorableEffort())
+        return !contradictoryEffort && !isMarginalSuccess() && convincinglyExceededTarget &&
+            performedLoad + LOAD_TOLERANCE >= targetLoad &&
+            performedLoad + LOAD_TOLERANCE >= currentTrainingMax
     }
 
     private fun FiveThreeOneEvidenceKind.displayName(): String = when (this) {
@@ -327,12 +424,32 @@ object FiveThreeOneProgression {
     private const val MARGINAL_RIR = 0.5
     private const val STRONG_RPE = 8.5
     private const val STRONG_RIR = 1.5
-    private const val MIN_COMPARABLE_TM_FRACTION = 0.80
-    private const val MAX_COMPARABLE_TM_FRACTION = 1.10
-    private const val MIN_MEANINGFUL_JOKER_TM_FRACTION = 0.975
+    private const val MIN_ADAPTIVE_TM_FRACTION = 0.85
+    private const val HIGH_INTENSITY_TM_FRACTION = 0.90
+    private const val MAX_ADAPTIVE_TM_FRACTION = 1.10
+    private const val MAX_ESTIMATED_REPS = 12
+    private const val TRAINING_MAX_OF_E1RM_FACTOR = 0.90
+    private const val MIN_LATER_ESTIMATE_FRACTION = 0.95
     private const val TRAINING_MAX_TEST_LOAD_TOLERANCE = 0.025
     private const val EFFORT_CONSISTENCY_TOLERANCE = 1.0
     private const val LOAD_TOLERANCE = 1e-9
     private const val LOWER_INCREMENT_FACTOR = 0.5
-    private const val HIGHER_INCREMENT_FACTOR = 1.5
+    private const val REP_ONLY_HIGHER_INCREMENT_FACTOR = 1.25
+    private const val CORROBORATED_HIGHER_INCREMENT_FACTOR = 1.5
 }
+
+private data class AdaptiveEvidenceAssessment(
+    val qualifies: Boolean = false,
+    val supportsCorroboratedTier: Boolean = false,
+    val recentEvidence: List<AdaptivePrEvidence> = emptyList(),
+    val explanation: String,
+)
+
+private data class AdaptivePrEvidence(
+    val exposureId: String,
+    val performedAtMillis: Long?,
+    val inputIndex: Int,
+    val trainingMaxFraction: Double,
+    val conservativeEstimatedOneRepMax: Double,
+    val hasFavorableEffort: Boolean,
+)

@@ -1182,4 +1182,16 @@
 - Root cause: The first heuristic used convenient available fields—rep surplus, effort, and Joker presence—without defining separate canonical/adaptive modes or a conservative normalized-performance contract.
 - Recommended solution: Implement `DEC-20260907-001`, expose the boundary in setup/review copy, and protect it with focused counterexamples plus emulator-only UI/visual review.
 - Related: `FB-20260907-001`, `DEC-20260907-001`.
-- Status: Confirmed; implementation in progress.
+- Status: Resolved in progression engine version 2 and verified by `VER-20260907-001`.
+
+### FND-20260907-002 — Adaptive cycle rationale reads like an error paragraph
+
+- Severity/category: P1 5/3/1 decision clarity and visual hierarchy.
+- Observed: The emulator capture of an above-standard cycle suggestion joins every evidence reason into one long paragraph and colors the “optional non-standard” label with Whip's error role. The numeric choices remain reachable, but the evidence is slow to scan and the red treatment implies a validation failure rather than an advisory programming alternative.
+- Expected: Distinguish the advisory mode without warning/error semantics, show evidence strength as its own compact label, and present each rationale as a separate readable line while preserving the always-visible decision summary and footer actions.
+- Why it matters / affected users: Cycle review is an infrequent, consequential decision. Lifters should be able to compare Standard and the adaptive alternative without decoding a prose block or mistaking the option for an app error, including at enlarged text.
+- Evidence: Fresh API 34 `gym.531.review` visual and semantics capture after the adaptive-engine implementation; the focused 200%-text footer-reachability test.
+- Root cause: The earlier review had only short reasons and reused one concatenated `Text`; the first non-standard badge used the error color as emphasis rather than semantic status.
+- Recommended solution: Use a non-error advisory color/container and render strength plus individual evidence lines with shared supporting-text hierarchy.
+- Related: `FB-20260907-001`, `FND-20260907-001`, `DEC-20260907-001`.
+- Status: Resolved with a neutral advisory badge and separated evidence hierarchy; visually and semantically accepted in `VER-20260907-001`.

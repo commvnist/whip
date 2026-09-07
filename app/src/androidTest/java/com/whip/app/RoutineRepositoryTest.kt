@@ -11,6 +11,7 @@ import com.whip.app.data.RoomGymRepository
 import com.whip.app.data.RoomRoutineRepository
 import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.ExerciseDraft
+import com.whip.app.domain.FiveThreeOneProgression
 import com.whip.app.domain.GymMachineDraft
 import com.whip.app.domain.LoadInterpretation
 import com.whip.app.domain.MachineLoadType
@@ -1573,7 +1574,7 @@ class RoutineRepositoryTest {
         val audit = routines.trainingMaxDecisions.first().single()
         assertEquals("StandardIncrease", audit.recommendationCategory)
         assertFalse(audit.reasons.any { it.contains("forged") })
-        assertEquals("five-three-one-progression/1", audit.engineVersion)
+        assertEquals(FiveThreeOneProgression.ENGINE_VERSION, audit.engineVersion)
     }
 
     @Test

@@ -11,6 +11,8 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertTextContains
@@ -156,7 +158,6 @@ class RoutineBuilderUiTest {
         compose.onNodeWithText("Choose a program, configure its exercises, then review the exact work before building your routine.")
             .assertIsDisplayed()
         compose.onNodeWithTag("five-three-one-program-setup").assertIsDisplayed()
-        captureVisualCatalogSurface("gym.531.setup-blocked")
         compose.onNodeWithTag("five-three-one-plan-SingleCycle").assertIsSelected()
         compose.onNodeWithTag("five-three-one-program-status")
             .assertTextContains("Still needed · Create the missing standard Weight + Reps exercises below, or choose your own exercises.")
@@ -167,6 +168,15 @@ class RoutineBuilderUiTest {
                 .fetchSemanticsNode().config[SemanticsProperties.StateDescription],
         )
         compose.onNode(hasText("Choose Your Exercises") and hasClickAction()).assertIsDisplayed()
+        compose.onNodeWithTag("five-three-one-progression-adaptive").performScrollTo().performClick()
+        compose.onNodeWithTag("five-three-one-progression-explanation")
+            .assertTextContains("Standard stays the recommended 5/3/1 increase", substring = true)
+        compose.onNodeWithTag("five-three-one-setup-allow-higher-suggestions")
+            .performScrollTo()
+            .assertIsOff()
+            .performClick()
+            .assertIsOn()
+        captureVisualCatalogSurface("gym.531.setup-blocked")
         compose.onNodeWithTag("five-three-one-create-standard-exercises").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("five-three-one-layout-Custom").performClick()
         compose.onNodeWithTag("five-three-one-program-status")

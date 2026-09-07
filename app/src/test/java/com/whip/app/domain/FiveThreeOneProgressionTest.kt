@@ -144,12 +144,19 @@ class FiveThreeOneProgressionTest {
     }
 
     @Test
-    fun strongPrSetsNeedComparableLoadRepSurplusAndEffortEvidence() {
+    fun adaptivePrSetsNeedRepSurplusMeaningfulLoadAndSeparateSessions() {
         val weakCases = listOf(
             higherEvidence().map { if (it.kind == FiveThreeOneEvidenceKind.PrSet) it.copy(actualReps = it.prescribedReps!! + 1) else it },
-            higherEvidence().map { if (it.kind == FiveThreeOneEvidenceKind.PrSet) it.copy(rpe = null, rir = null) else it },
             higherEvidence().map { if (it.kind == FiveThreeOneEvidenceKind.PrSet) it.copy(prescribedLoad = 200.0, actualLoad = 200.0) else it },
-            higherEvidence().filterNot { it.kind == FiveThreeOneEvidenceKind.Joker },
+            higherEvidence().map { if (it.kind == FiveThreeOneEvidenceKind.PrSet) it.copy(exposureId = "one-session") else it },
+            higherEvidence().filterNot { it.exposureId == "session-pr-2" },
+            higherEvidence().map { row ->
+                if (row.kind == FiveThreeOneEvidenceKind.PrSet) {
+                    row.copy(prescribedLoad = 255.0, actualLoad = 255.0, actualReps = 12)
+                } else {
+                    row
+                }
+            },
         )
 
         weakCases.forEach { evidence ->
@@ -160,14 +167,85 @@ class FiveThreeOneProgressionTest {
     }
 
     @Test
+    fun repeatedLoadAdjustedAmrapsUnlockBoundedRepOnlyTierWithoutEffort() {
+        val result = recommend(repOnlyEvidence(), allowHigher = true)
+
+        assertEquals(FiveThreeOneProgressionCategory.CautiousHigherIncrease, result.category)
+        assertEquals(12.5, result.suggestedDelta, 0.0)
+        assertEquals(0.80, result.confidence, 0.0)
+        assertTrue(result.reasons.any { it.contains("RPE, RIR, or Joker evidence is not required") })
+        assertTrue(result.reasons.last().contains("1.25 times"))
+    }
+
+    @Test
+    fun largerAdaptiveTierNeedsFavorableEffortOnBothAmrapsOrOneStrongJoker() {
+        val oneEffort = repOnlyEvidence().map { row ->
+            if (row.exposureId == "session-pr-1") row.copy(rpe = 8.0) else row
+        }
+        val bothEffort = repOnlyEvidence().map { row ->
+            if (row.kind == FiveThreeOneEvidenceKind.PrSet) row.copy(rpe = 8.0) else row
+        }
+        val mixedDualEffort = repOnlyEvidence().map { row ->
+            if (row.kind == FiveThreeOneEvidenceKind.PrSet) row.copy(rpe = 8.5, rir = 0.6) else row
+        }
+        val strongJoker = repOnlyEvidence() + joker()
+        val merelyCompletedJoker = repOnlyEvidence() + joker().copy(actualReps = 3)
+        val uncorroboratedSingleExtraRepJoker = repOnlyEvidence() + joker().copy(actualReps = 4, rpe = null, rir = null)
+        val grinderJoker = repOnlyEvidence() + joker().copy(rpe = 9.5, rir = 0.5)
+
+        assertEquals(12.5, recommend(oneEffort, true).suggestedDelta, 0.0)
+        assertEquals(15.0, recommend(bothEffort, true).suggestedDelta, 0.0)
+        assertEquals(12.5, recommend(mixedDualEffort, true).suggestedDelta, 0.0)
+        assertEquals(15.0, recommend(strongJoker, true).suggestedDelta, 0.0)
+        assertEquals(12.5, recommend(merelyCompletedJoker, true).suggestedDelta, 0.0)
+        assertEquals(12.5, recommend(uncorroboratedSingleExtraRepJoker, true).suggestedDelta, 0.0)
+        assertEquals(12.5, recommend(grinderJoker, true).suggestedDelta, 0.0)
+    }
+
+    @Test
+    fun corroborationCannotExceedTheTierSupportedByConservativeEstimates() {
+        val evidence = higherEvidence().map { row ->
+            if (row.exposureId == "session-pr-1") row.copy(actualReps = 11) else row
+        }
+
+        val result = recommend(evidence, allowHigher = true)
+
+        assertEquals(FiveThreeOneProgressionCategory.CautiousHigherIncrease, result.category)
+        assertEquals(12.5, result.suggestedDelta, 0.0)
+        assertEquals(0.80, result.confidence, 0.0)
+        assertTrue(result.reasons.last().contains("supported only the 1.25-times alternative"))
+    }
+
+    @Test
+    fun recentAmrapsMustBothSupportNextTrainingMaxWithoutMaterialRegression() {
+        val insufficientCapacity = repOnlyEvidence().map { row ->
+            if (row.exposureId == "session-pr-2") row.copy(actualReps = 9) else row
+        }
+        val regressed = repOnlyEvidence().map { row ->
+            when (row.exposureId) {
+                "session-pr-1" -> row.copy(prescribedLoad = 285.0, actualLoad = 285.0, actualReps = 12)
+                "session-pr-2" -> row.copy(prescribedLoad = 270.0, actualLoad = 270.0, actualReps = 10)
+                else -> row
+            }
+        }
+
+        val insufficientResult = recommend(insufficientCapacity, allowHigher = true)
+        val regressedResult = recommend(regressed, allowHigher = true)
+
+        assertEquals(FiveThreeOneProgressionCategory.StandardIncrease, insufficientResult.category)
+        assertTrue(insufficientResult.reasons.any { it.contains("did not both support") })
+        assertEquals(FiveThreeOneProgressionCategory.StandardIncrease, regressedResult.category)
+        assertTrue(regressedResult.reasons.any { it.contains("dropped materially") })
+    }
+
+    @Test
     fun reasonsAreStableAndOrderedByDecisionPriority() {
         val higher = recommend(higherEvidence(), allowHigher = true)
         assertEquals(
             listOf(
                 "All required work met its prescribed reps and load.",
-                "2 strong, comparable PR sets exceeded their rep targets.",
-                "A completed Joker set met its prescribed reps and load.",
-                "The optional higher increase is enabled and capped at 1.5 times the standard increase.",
+                "Two recent PR/AMRAP performances from separate sessions used at least 85% of Training Max, including one at 90% or more; conservative load-adjusted estimates supported the proposed next Training Max without a material drop.",
+                "Both AMRAPs included favorable RPE or RIR corroboration; the non-standard adaptive alternative is capped at 1.5 times the standard increase.",
             ),
             higher.reasons,
         )
@@ -200,6 +278,7 @@ class FiveThreeOneProgressionTest {
             { recommend(listOf(passing().copy(rpe = 10.1))) },
             { recommend(listOf(passing().copy(rir = -0.1))) },
             { recommend(listOf(passing().copy(actualReps = -1))) },
+            { recommend(listOf(passing().copy(performedAtMillis = -1))) },
         )
 
         invalidCalls.forEachIndexed { index, call ->
@@ -220,25 +299,14 @@ class FiveThreeOneProgressionTest {
     }
 
     @Test
-    fun repeatedEvidenceRequiresSeparateSessionsAndJokerMustMeaningfullyOverload() {
+    fun repeatedFailureEvidenceRequiresSeparateSessions() {
         val sameSessionMisses = recommend(
             listOf(
                 passing().copy(actualReps = 4),
                 passing().copy(actualLoad = 250.0),
             ),
         )
-        val sameSessionStrongPrs = higherEvidence().map { row ->
-            if (row.kind == FiveThreeOneEvidenceKind.PrSet) row.copy(exposureId = "one-session") else row
-        }
-        val lightJoker = higherEvidence().map { row ->
-            if (row.kind == FiveThreeOneEvidenceKind.Joker) {
-                row.copy(prescribedLoad = 250.0, actualLoad = 250.0)
-            } else row
-        }
-
         assertEquals(FiveThreeOneProgressionCategory.Hold, sameSessionMisses.category)
-        assertEquals(FiveThreeOneProgressionCategory.StandardIncrease, recommend(sameSessionStrongPrs, true).category)
-        assertEquals(FiveThreeOneProgressionCategory.StandardIncrease, recommend(lightJoker, true).category)
     }
 
     @Test
@@ -276,6 +344,7 @@ class FiveThreeOneProgressionTest {
     ) = FiveThreeOneEvidenceRow(
         kind = kind,
         exposureId = "session-main",
+        performedAtMillis = 1_000,
         trainingMaxAtExposure = 300.0,
         completed = true,
         prescribedReps = 5,
@@ -287,10 +356,11 @@ class FiveThreeOneProgressionTest {
     private fun joker() = FiveThreeOneEvidenceRow(
         kind = FiveThreeOneEvidenceKind.Joker,
         exposureId = "session-joker",
+        performedAtMillis = 3_000,
         trainingMaxAtExposure = 300.0,
         completed = true,
         prescribedReps = 3,
-        actualReps = 3,
+        actualReps = 5,
         prescribedLoad = 305.0,
         actualLoad = 305.0,
         rpe = 9.0,
@@ -302,10 +372,11 @@ class FiveThreeOneProgressionTest {
         FiveThreeOneEvidenceRow(
             kind = FiveThreeOneEvidenceKind.PrSet,
             exposureId = "session-pr-1",
+            performedAtMillis = 1_000,
             trainingMaxAtExposure = 300.0,
             completed = true,
             prescribedReps = 5,
-            actualReps = 8,
+            actualReps = 12,
             prescribedLoad = 255.0,
             actualLoad = 255.0,
             rpe = 8.0,
@@ -314,10 +385,11 @@ class FiveThreeOneProgressionTest {
         FiveThreeOneEvidenceRow(
             kind = FiveThreeOneEvidenceKind.PrSet,
             exposureId = "session-pr-2",
+            performedAtMillis = 2_000,
             trainingMaxAtExposure = 300.0,
             completed = true,
             prescribedReps = 3,
-            actualReps = 6,
+            actualReps = 10,
             prescribedLoad = 270.0,
             actualLoad = 270.0,
             rpe = 8.5,
@@ -325,4 +397,8 @@ class FiveThreeOneProgressionTest {
         ),
         joker(),
     )
+
+    private fun repOnlyEvidence(): List<FiveThreeOneEvidenceRow> = higherEvidence()
+        .filterNot { it.kind == FiveThreeOneEvidenceKind.Joker }
+        .map { row -> if (row.kind == FiveThreeOneEvidenceKind.PrSet) row.copy(rpe = null, rir = null) else row }
 }

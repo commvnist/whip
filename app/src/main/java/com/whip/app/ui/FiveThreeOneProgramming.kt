@@ -103,6 +103,7 @@ internal data class FiveThreeOneProgramRequest(
     val classicFinalSetAmrap: Boolean,
     val boringButBigPercent: Double,
     val progressionMode: RoutineProgressionMode,
+    val allowNonStandardHigherSuggestions: Boolean = false,
     /** Main exercise ID -> BBB exercise ID. Equal IDs mean same-exercise BBB. */
     val bbbExerciseByMainExerciseId: Map<Long, Long> = emptyMap(),
     val assistance: List<FiveThreeOneAssistanceChoice> = emptyList(),
@@ -1037,7 +1038,7 @@ internal fun buildFiveThreeOneProgramState(
         programTemplateKey = templateKey.name,
         programTemplateRevision = FIVE_THREE_ONE_ONCE_PER_EXERCISE_PROTOCOL_REVISION,
         progressionMode = request.progressionMode.name,
-        allowNonStandardHigherSuggestions = false,
+        allowNonStandardHigherSuggestions = request.allowNonStandardHigherSuggestions,
         programPhaseCount = phases.size,
         programPhaseLabels = phases.map(FiveThreeOneGeneratedPhase::label),
         programPhaseRoles = phases.map { it.role.name },

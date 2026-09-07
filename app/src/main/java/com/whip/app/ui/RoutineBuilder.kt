@@ -996,6 +996,7 @@ private fun FiveThreeOneProgramSetupDialog(
     var assistanceExerciseIds by rememberSaveable { mutableStateOf(List(3) { 0L }) }
     var manuallyChangedAssistanceIndices by rememberSaveable { mutableStateOf<List<Int>>(emptyList()) }
     var progressionModeName by rememberSaveable { mutableStateOf(RoutineProgressionMode.Standard.name) }
+    var allowNonStandardHigherSuggestions by rememberSaveable { mutableStateOf(false) }
     var exercisePickerIndex by rememberSaveable { mutableStateOf<Int?>(null) }
     val layout = FiveThreeOneProgramLayout.valueOf(layoutName)
     val plan = FiveThreeOneProgramPlan.valueOf(planName)
@@ -1388,25 +1389,39 @@ private fun FiveThreeOneProgramSetupDialog(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     WhipFilterChip(
                         selected = progressionModeName == RoutineProgressionMode.Standard.name,
-                        onClick = { progressionModeName = RoutineProgressionMode.Standard.name },
+                        onClick = {
+                            progressionModeName = RoutineProgressionMode.Standard.name
+                            allowNonStandardHigherSuggestions = false
+                        },
                         label = { Text("5/3/1 standard · recommended") },
+                        modifier = Modifier.testTag("five-three-one-progression-standard"),
                     )
                     WhipFilterChip(
                         selected = progressionModeName == RoutineProgressionMode.PerformanceInformed.name,
                         onClick = { progressionModeName = RoutineProgressionMode.PerformanceInformed.name },
-                        label = { Text("Review each cycle") },
+                        label = { Text("Adaptive review · non-standard") },
+                        modifier = Modifier.testTag("five-three-one-progression-adaptive"),
                     )
                 }
                 Text(
                     if (progressionModeName == RoutineProgressionMode.Standard.name) {
                         "Automatically apply each exercise's saved standard increase after completed Main work. Every boundary is recorded in Training Max history."
                     } else {
-                        "At each boundary, Whip shows per-exercise evidence and waits for Standard, suggestion, custom, decrease, or Hold. Log RPE or RIR for effort-sensitive suggestions."
+                        "At each boundary, Whip shows evidence and waits for your decision. Standard stays the recommended 5/3/1 increase; adaptive suggestions never apply automatically."
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.testTag("five-three-one-progression-explanation"),
                 )
+                if (progressionModeName == RoutineProgressionMode.PerformanceInformed.name) {
+                    RoutineLabeledSwitchRow(
+                        label = "Allow above-standard suggestions",
+                        checked = allowNonStandardHigherSuggestions,
+                        onCheckedChange = { allowNonStandardHigherSuggestions = it },
+                        supportingText = "Optional and non-standard. Two strong load-adjusted AMRAPs can support a small alternative without RPE/RIR; stronger corroboration can support more.",
+                        testTag = "five-three-one-setup-allow-higher-suggestions",
+                    )
+                }
                 if (layout == FiveThreeOneProgramLayout.Beginners) {
                     Text(
                         "Mon Squat + Bench · Wed Deadlift + Press · Fri Bench + Squat. FSL 5 × 5 is included. Choose one Push, Pull, and Single-leg/Core movement each day; target 50–100 total reps in each category.",
@@ -2055,6 +2070,7 @@ private fun FiveThreeOneProgramSetupDialog(
                             classicFinalSetAmrap = classicFinalSetAmrap,
                             boringButBigPercent = boringButBigPercent ?: 50.0,
                             progressionMode = RoutineProgressionMode.valueOf(progressionModeName),
+                            allowNonStandardHigherSuggestions = allowNonStandardHigherSuggestions,
                             bbbExerciseByMainExerciseId = bbbExerciseByMainExerciseId,
                             assistance = assistanceChoices,
                         ),
@@ -2174,19 +2190,19 @@ private fun RoutineProgramStructurePage(
                                 )
                             }
                         },
-                        label = { Text("5/3/1 standard") },
+                        label = { Text("5/3/1 standard · recommended") },
                     )
                     WhipFilterChip(
                         selected = builder.progressionMode == RoutineProgressionMode.PerformanceInformed.name,
                         onClick = {
                             onBuilderChange { it.copy(progressionMode = RoutineProgressionMode.PerformanceInformed.name) }
                         },
-                        label = { Text("Performance review") },
+                        label = { Text("Adaptive review · non-standard") },
                     )
                 }
                 Text(
                     if (builder.progressionMode == RoutineProgressionMode.PerformanceInformed.name) {
-                        "At a cycle boundary, review each exercise independently. Nothing changes until you choose the suggestion, the saved standard increase, a custom value, or Hold. Log RPE or RIR on PR and Joker sets when you want effort-sensitive lower or higher suggestions."
+                        "At a cycle boundary, review each exercise independently. Standard remains the recommended 5/3/1 increase, and nothing changes until you choose. Repeated strong AMRAPs can inform an adaptive suggestion; RPE/RIR adds confidence."
                     } else {
                         "Use the saved per-exercise 5/3/1 increase at each boundary. Required Main work can still hold only the affected exercise."
                     },
@@ -2195,12 +2211,12 @@ private fun RoutineProgramStructurePage(
                 )
                 if (builder.progressionMode == RoutineProgressionMode.PerformanceInformed.name) {
                     RoutineLabeledSwitchRow(
-                        label = "Show cautiously higher alternatives",
+                        label = "Allow above-standard suggestions",
                         checked = builder.allowNonStandardHigherSuggestions,
                         onCheckedChange = { checked ->
                             onBuilderChange { it.copy(allowNonStandardHigherSuggestions = checked) }
                         },
-                        supportingText = "Whip suggestion · non-standard 5/3/1 option. It requires repeated strong evidence and is never selected automatically.",
+                        supportingText = "Optional and non-standard. Two strong load-adjusted AMRAPs can support a small alternative without RPE/RIR; favorable effort or a strong Joker can support more. Never selected automatically.",
                         testTag = "five-three-one-allow-higher-suggestions",
                     )
                 }

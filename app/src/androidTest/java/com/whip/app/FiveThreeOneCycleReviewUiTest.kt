@@ -47,6 +47,8 @@ class FiveThreeOneCycleReviewUiTest {
         }
 
         captureVisualCatalogSurface("gym.531.review")
+        compose.onNodeWithTag("training-max-adaptive-label-7")
+            .assertTextContains("Adaptive review · optional non-standard", substring = true)
         compose.onNodeWithTag("training-max-decision-summary-7")
             .assertTextContains("Use the saved 5/3/1 standard increase", substring = true)
         compose.onNodeWithTag("training-max-choice-standard-7").performClick()
@@ -66,7 +68,7 @@ class FiveThreeOneCycleReviewUiTest {
         compose.runOnIdle {
             val decision = requireNotNull(applied).single()
             assertEquals(TrainingMaxDecisionAction.UseSuggestion, decision.action)
-            assertEquals(5.0, decision.requestedDelta, 0.0)
+            assertEquals(12.5, decision.requestedDelta, 0.0)
         }
 
         applied = null
@@ -82,7 +84,7 @@ class FiveThreeOneCycleReviewUiTest {
 
         applied = null
         compose.onNodeWithTag("training-max-choice-custom-7").performClick()
-        compose.onNodeWithTag("training-max-custom-delta-7").performTextReplacement("20")
+        compose.onNodeWithTag("training-max-custom-delta-7").performTextReplacement("21")
         compose.onNodeWithTag("training-max-decision-summary-7")
             .assertTextContains("Enter a valid custom cycle change", substring = true)
         compose.onNodeWithTag("apply-training-max-decisions").assertIsNotEnabled()
@@ -162,12 +164,16 @@ class FiveThreeOneCycleReviewUiTest {
                 standardDelta = 10.0,
                 eligible = true,
                 recommendation = FiveThreeOneProgressionRecommendation(
-                    category = FiveThreeOneProgressionCategory.LowerIncrease,
-                    suggestedDelta = 5.0,
+                    category = FiveThreeOneProgressionCategory.CautiousHigherIncrease,
+                    suggestedDelta = 12.5,
                     standardDelta = 10.0,
-                    confidence = 0.7,
-                    reasons = listOf("All required work passed.", "Effort evidence was marginal."),
-                    engineVersion = "five-three-one-progression/1",
+                    confidence = 0.8,
+                    reasons = listOf(
+                        "All required work met its prescribed reps and load.",
+                        "Two recent PR/AMRAP performances from separate sessions used at least 85% of Training Max, including one at 90% or more; conservative load-adjusted estimates supported the proposed next Training Max without a material drop.",
+                        "RPE, RIR, or Joker evidence is not required for this rep-only tier; the non-standard alternative is capped at 1.25 times the standard increase.",
+                    ),
+                    engineVersion = "five-three-one-progression/2",
                 ),
             ),
         ),
