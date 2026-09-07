@@ -1341,6 +1341,18 @@
 - Regression coverage: Added cross-domain title/status geometry contracts, elapsed-title alignment, Track action-order/alignment checks, and a direct shared-header compact/expanded contract. Hardened the Habit timer-review catalog fixture to wait for the entered value and enabled Stop & Log action before committing, removing a UI-synchronization race without changing production behavior.
 - Persistence/migration/history impact: Presentation, semantics, and tests only. Card actions and domain mutations are unchanged; Room schema 46, data epoch 6, exact-match backup version 25, release identity, and existing user data are unchanged at this boundary.
 - Compatibility and limitations: The established medium card shell remains because the defect was internal information geometry, not container shape. Full-width progress, charts, authored evidence, selection/reorder controls, and responsive wrapping remain intentional exceptions. The preserved `TrackRow.compact` internal argument no longer changes hierarchy but remains source-compatible with direct component tests.
+- Commit/push: Accepted implementation source `b87d9ff` was pushed to `origin/main`; release identity was then advanced separately in clean source `eb6a17a`.
 - Related: `FB-20260907-006`, `FND-20260907-015`, `DEC-20260907-005`, `VER-20260907-012`.
 - Verification: `VER-20260907-012`.
-- Status: Implemented, code-reviewed, emulator-accepted, and visually verified; awaiting the authorized private phone release.
+- Status: Implemented, code-reviewed, emulator-accepted, visually verified, and released through `IMP-20260907-012`.
+
+### IMP-20260907-012 — Signed Whip 0.3.60 card-hierarchy owner-phone release
+
+- Behavior changed: Advanced Whip to 0.3.60/code 66 and installed the unified Task, Habit, Goal, and Track card reading grid in place on the explicitly selected owner phone through the fast private-development lane. Equivalent card information now shares title-column alignment, title/support typography, disclosure/action order, and expanded-context placement in normal use.
+- Important files/symbols: Release source `eb6a17a`, implementation source `b87d9ff`, `app/build.gradle.kts`, `ProductivityItemHeader`, `ProductivityItemAlignedColumn`, `ProductivityItemSupportingText`, Task/Habit/Goal/Track card call sites, signed `app-release.apk`, local `app-release.aab`, and `VER-20260907-013`.
+- Persistence/migration/history impact: Room schema 46, data epoch 6, and exact-match backup version 25 are unchanged. Android first-install identity and the existing installation were preserved; no reset, clear, uninstall, downgrade, fresh-start confirmation, or physical instrumentation occurred.
+- Compatibility and limitations: This private owner-phone release uses the accepted 344-JVM/574-Android two-emulator gate and fresh exact 100-surface affected-family review, followed by release-vital lint, R8/resource optimization, signed artifact validation, in-place install, and independent phone smoke. It is not a frozen Play Store candidate; normal use remains the final subjective aesthetic validation.
+- Commit/push: Exact release source `eb6a17a` was clean and synchronized with `origin/main` before signed build/install; the following reconciliation changes product memory only.
+- Related: `FB-20260907-006`, `FND-20260907-015`, `DEC-20260907-005`, `IMP-20260907-011`, `VER-20260907-012`, `VER-20260907-013`.
+- Verification: `VER-20260907-013`.
+- Status: Released and device-verified as Whip 0.3.60/code 66; awaiting normal real-use feedback.
