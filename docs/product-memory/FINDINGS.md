@@ -1466,3 +1466,15 @@
 - Recommended solution: Move collapsible summaries below the header in the shared component, make the information lane full width from the emoji edge, remove forced one-line limits from the four equivalent card families, and remove the title-gutter inset from expanded information. Preserve responsive content-driven height, equal card padding, action order, touch targets, and role-specific rich content.
 - Related: `FB-20260907-015`, `FND-20260907-021`, `DEC-20260907-005`, `DEC-20260907-009`.
 - Status: Verified.
+
+### FND-20260907-026 — Active-workout Sets lack a bounded reading hierarchy
+
+- Severity/category: P1 Gym execution readability, information hierarchy, responsive layout, and accessibility.
+- Observed: Inside an otherwise consistent Exercise card, every passive Set is an unbounded row. Work section, Set number, load/reps, classification, planned state, effort, and a potentially multi-line prescription share the width left by an overflow action and completion control. In a programmed 5/3/1 workout, adjacent Sets become a continuous text stream and load/reps wrap unpredictably, making Set boundaries and reading order difficult to scan.
+- Expected: Each Set has a calm nested boundary and a stable identity → values → status/effort → target hierarchy. Frequently read load/reps and long prescriptions use full-width rows, controls remain obvious and at least 48 dp, and the focused input composer stays visually distinct.
+- Why it matters / affected users: Active lifting is a high-distraction, one-handed workflow. Poor Set separation increases the chance of reading, editing, or completing the wrong Set, particularly with many Main and Supplemental Sets, narrow phones, or enlarged text.
+- Evidence: Owner-phone screenshot in `FB-20260907-016`; `WorkoutExerciseCard`'s passive `Row`; the existing nested but differently structured `HistoricalWorkoutSetRow`; focused 320 dp/200% Compose geometry; and the fresh 47-surface Gym catalog. The audit also found the completed-Set checkbox exposed only a 24 dp semantic node until explicitly sized.
+- Root cause: The earlier single-density convergence standardized the outer Exercise card and retained more information, but kept Set contents as direct rows and rejected nested surfaces before real-use evidence showed that the extra information no longer fit that structure.
+- Recommended solution: Keep one density and the shared outer `WhipItemCard`; use a light `surfaceContainerHigh` nested Set surface with 12 dp horizontal/10 dp vertical inset and 8 dp sibling separation; give programmed section + Set identity the header, load/reps its own emphasized row, and status/effort and target their own supporting rows; retain exact edit/menu/completion/reorder callbacks and the tinted active composer. Do not extend the change to Routine editors or History rows that already have a clear bounded hierarchy.
+- Related: `FB-20260907-008`, `FB-20260907-016`, `FND-20260907-017`, `DEC-20260907-007`, `DEC-20260907-012`, `IMP-20260907-025`, `VER-20260907-027`.
+- Status: Verified; resolved by `IMP-20260907-025` and accepted in `VER-20260907-027`.

@@ -3616,7 +3616,7 @@ internal fun WorkoutExerciseCard(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            WhipReorderLayout(itemSpacing = 6.dp) {
+            WhipReorderLayout(itemSpacing = WhipSpacing.sibling) {
             orderedSets.withIndex()
                 .filter { (_, set) ->
                     arranging || !set.completed || completedSetsExpanded || !hasIncompleteSet
@@ -3624,9 +3624,27 @@ internal fun WorkoutExerciseCard(
                 .forEach { (index, set) ->
                 key(set.id) {
                 if (set.deletedAtMillis != null) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Set ${index + 1} removed", modifier = Modifier.weight(1f))
-                        if (!arranging) WhipTextButton(onClick = { onUndoDeleteSet(set.id) }) { Text("Undo") }
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().testTag("workout-set-card-${set.id}"),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        shape = MaterialTheme.shapes.small,
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(
+                                horizontal = WhipCardGeometry.horizontalInset,
+                                vertical = WhipCardGeometry.verticalInset,
+                            ),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                "Set ${index + 1} · Removed",
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            if (!arranging) WhipTextButton(onClick = { onUndoDeleteSet(set.id) }) { Text("Undo") }
+                        }
                     }
                 } else if (set.id == nextSetId) {
                     val setReorderInteraction = rememberWhipReorderInteractionState()
@@ -3667,28 +3685,13 @@ internal fun WorkoutExerciseCard(
                                         onMove = { delta -> reorderVisibleSet(set, delta) },
                                     )
                                 }
-                                Column(modifier = Modifier.weight(1f)) {
-                                    val executionLabel = when {
-                                        set.optionalWorkKindSnapshot == RoutineOptionalWorkKind.Joker -> "Optional · Joker"
-                                        set.workSectionSnapshot == RoutineWorkSection.Main -> "Main Work"
-                                        set.workSectionSnapshot == RoutineWorkSection.Supplemental -> "Supplemental Work"
-                                        set.workSectionSnapshot == RoutineWorkSection.Assistance -> "Assistance Work"
-                                        else -> "Up Next"
-                                    }
-                                    Text(
-                                        "$executionLabel · Set ${index + 1}${set.classification.uiLabel().takeUnless { it == "Working" }?.let { " · $it" }.orEmpty()}",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.primary,
-                                    )
-                                    set.prescriptionLabel(preferredWeightUnitId, numberPrecision, item.workoutExercise)?.let { target ->
-                                        Text(
-                                            "Target · $target",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                }
+                                Text(
+                                    set.workoutExecutionIdentityLabel(item.workoutExercise, index + 1),
+                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
                                 if (!arranging) Box {
                                     IconButton(
                                         onClick = { setMenuId = set.id },
@@ -3721,6 +3724,21 @@ internal fun WorkoutExerciseCard(
                                     )
                                 }
                             }
+                            Text(
+                                listOfNotNull(
+                                    "Up next",
+                                    set.classification.uiLabel().takeUnless { it == "Working" },
+                                ).joinToString(" · "),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            set.prescriptionLabel(preferredWeightUnitId, numberPrecision, item.workoutExercise)?.let { target ->
+                                Text(
+                                    "Target · $target",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                )
+                            }
                             QuickSetEntry(
                                 set = set,
                                 exercise = item.exercise,
@@ -3739,7 +3757,7 @@ internal fun WorkoutExerciseCard(
                     }
                 } else {
                     val setReorderInteraction = rememberWhipReorderInteractionState()
-                    Row(
+                    Surface(
                         modifier = Modifier
                             .fillMaxWidth()
                             .then(
@@ -3753,93 +3771,111 @@ internal fun WorkoutExerciseCard(
                                 if (!arranging) Modifier.clickable(onClickLabel = "Edit set ${index + 1}") {
                                     onEditSet(set)
                                 } else Modifier,
-                            ),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        val visibleIndex = visibleReorderSets.indexOfFirst { it.id == set.id }
-                        if (arranging) {
-                            WhipReorderHandle(
-                                label = "set ${index + 1}",
-                                canMovePrevious = visibleIndex > 0,
-                                canMoveNext = visibleIndex in 0 until visibleReorderSets.lastIndex,
-                                position = visibleIndex + 1,
-                                total = visibleReorderSets.size,
-                                interactionState = setReorderInteraction,
-                                moveWholeItem = true,
-                                layoutScope = "workout-sets-${item.workoutExercise.id}",
-                                onMove = { delta -> reorderVisibleSet(set, delta) },
                             )
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                buildString {
-                                    if (set.optionalWorkKindSnapshot == RoutineOptionalWorkKind.Joker) append("Optional Joker · ")
-                                    else when (set.workSectionSnapshot) {
-                                        RoutineWorkSection.Main -> append("Main · ")
-                                        RoutineWorkSection.Supplemental -> append("Supplemental · ")
-                                        RoutineWorkSection.Assistance -> append("Assistance · ")
-                                        else -> Unit
+                            .testTag("workout-set-card-${set.id}"),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        shape = MaterialTheme.shapes.small,
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(
+                                horizontal = WhipCardGeometry.horizontalInset,
+                                vertical = WhipCardGeometry.verticalInset,
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(WhipCardGeometry.contentGap),
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                val visibleIndex = visibleReorderSets.indexOfFirst { it.id == set.id }
+                                if (arranging) {
+                                    WhipReorderHandle(
+                                        label = "set ${index + 1}",
+                                        canMovePrevious = visibleIndex > 0,
+                                        canMoveNext = visibleIndex in 0 until visibleReorderSets.lastIndex,
+                                        position = visibleIndex + 1,
+                                        total = visibleReorderSets.size,
+                                        interactionState = setReorderInteraction,
+                                        moveWholeItem = true,
+                                        layoutScope = "workout-sets-${item.workoutExercise.id}",
+                                        onMove = { delta -> reorderVisibleSet(set, delta) },
+                                    )
+                                }
+                                Text(
+                                    set.workoutExecutionIdentityLabel(item.workoutExercise, index + 1),
+                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                                if (!arranging) Box {
+                                    IconButton(
+                                        onClick = { setMenuId = set.id },
+                                        enabled = !sessionMutationSaving,
+                                        modifier = Modifier.size(48.dp),
+                                    ) {
+                                        Icon(Icons.Outlined.MoreVert, contentDescription = "Manage set ${index + 1}", modifier = Modifier.size(26.dp))
                                     }
-                                    append("Set ${index + 1} · ")
-                                    append(set.shortLabel(preferredWeightUnitId, preferredDistanceUnitId, numberPrecision, item.workoutExercise, item.exercise.weightUnitId).replace("Empty set", "Ready"))
-                                },
-                                style = MaterialTheme.typography.bodyLarge,
+                                    WorkoutSetActionsMenu(
+                                        expanded = setMenuId == set.id,
+                                        enabled = !sessionMutationSaving,
+                                        onDismiss = { setMenuId = null },
+                                        onDuplicate = { setMenuId = null; onDuplicateSet(set.id) },
+                                        removeLabel = if (set.requiredForProgressionSnapshot &&
+                                            set.workSectionSnapshot == RoutineWorkSection.Main
+                                        ) "Mark Main Set Not Performed" else "Remove Set",
+                                        onRemove = {
+                                            setMenuId = null
+                                            onClearSessionMutationError()
+                                            if (set.requiredForProgressionSnapshot &&
+                                                set.workSectionSnapshot == RoutineWorkSection.Main
+                                            ) {
+                                                setRemovalConfirmationBoundary = captureSetBoundary(set.id)
+                                            } else captureSetBoundary(set.id)?.let(onDeleteSet)
+                                        },
+                                    )
+                                }
+                                if (set.completed && !arranging) {
+                                    WhipCompletionCheckbox(
+                                        checked = true,
+                                        onCheckedChange = { onCompleteSet(set.id, false) },
+                                        modifier = Modifier.size(48.dp).semantics {
+                                            contentDescription = "Mark set ${index + 1} incomplete"
+                                        },
+                                    )
+                                } else if (!arranging) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .semantics { contentDescription = "Incomplete set ${index + 1}; enter its required values to save" },
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(Icons.Outlined.RadioButtonUnchecked, contentDescription = null)
+                                    }
+                                }
+                            }
+                            Text(
+                                set.shortLabel(
+                                    preferredWeightUnitId,
+                                    preferredDistanceUnitId,
+                                    numberPrecision,
+                                    item.workoutExercise,
+                                    item.exercise.weightUnitId,
+                                ).replace("Empty set", "Enter set values"),
+                                modifier = Modifier.testTag("workout-set-values-${set.id}"),
+                                style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
-                                buildString {
-                                    append(set.classification.uiLabel())
-                                    if (set.planned) append(" · planned")
-                                    set.rpe?.let { append(" · RPE $it") }
-                                },
+                                set.workoutExecutionStatusLabel(),
+                                modifier = Modifier.testTag("workout-set-status-${set.id}"),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             set.prescriptionLabel(preferredWeightUnitId, numberPrecision, item.workoutExercise)?.let { target ->
-                                Text("Target · $target", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
-                            }
-                        }
-                        if (!arranging) Box {
-                            IconButton(
-                                onClick = { setMenuId = set.id },
-                                enabled = !sessionMutationSaving,
-                                modifier = Modifier.size(48.dp),
-                            ) {
-                                Icon(Icons.Outlined.MoreVert, contentDescription = "Manage set ${index + 1}", modifier = Modifier.size(26.dp))
-                            }
-                            WorkoutSetActionsMenu(
-                                expanded = setMenuId == set.id,
-                                enabled = !sessionMutationSaving,
-                                onDismiss = { setMenuId = null },
-                                onDuplicate = { setMenuId = null; onDuplicateSet(set.id) },
-                                removeLabel = if (set.requiredForProgressionSnapshot &&
-                                    set.workSectionSnapshot == RoutineWorkSection.Main
-                                ) "Mark Main Set Not Performed" else "Remove Set",
-                                onRemove = {
-                                    setMenuId = null
-                                    onClearSessionMutationError()
-                                    if (set.requiredForProgressionSnapshot &&
-                                        set.workSectionSnapshot == RoutineWorkSection.Main
-                                    ) {
-                                        setRemovalConfirmationBoundary = captureSetBoundary(set.id)
-                                    } else captureSetBoundary(set.id)?.let(onDeleteSet)
-                                },
-                            )
-                        }
-                        if (set.completed && !arranging) {
-                            WhipCompletionCheckbox(
-                                checked = true,
-                                onCheckedChange = { onCompleteSet(set.id, false) },
-                                modifier = Modifier.semantics { contentDescription = "Mark set ${index + 1} incomplete" },
-                            )
-                        } else if (!arranging) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .semantics { contentDescription = "Incomplete set ${index + 1}; enter its required values to save" },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(Icons.Outlined.RadioButtonUnchecked, contentDescription = null)
+                                Text(
+                                    "Target · $target",
+                                    modifier = Modifier.testTag("workout-set-target-${set.id}"),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                )
                             }
                         }
                     }
@@ -3960,6 +3996,34 @@ internal fun WorkoutExerciseCard(
         )
     }
 }
+
+private fun WorkoutSet.workoutExecutionIdentityLabel(
+    workoutExercise: WorkoutExercise,
+    setNumber: Int,
+): String = listOfNotNull(
+    when {
+        optionalWorkKindSnapshot == RoutineOptionalWorkKind.Joker -> "Optional Joker"
+        workSectionSnapshot == RoutineWorkSection.Main -> "Main"
+        workSectionSnapshot == RoutineWorkSection.Supplemental -> "Supplemental"
+        workSectionSnapshot == RoutineWorkSection.Assistance -> workoutExercise.assistanceLabel() ?: "Assistance"
+        workSectionSnapshot == RoutineWorkSection.Optional -> "Optional"
+        else -> null
+    },
+    "Set $setNumber",
+).joinToString(" · ")
+
+private fun WorkoutSet.workoutExecutionStatusLabel(): String = buildList {
+    add(classification.uiLabel())
+    add(
+        when {
+            completed -> "Performed"
+            planned -> "Planned"
+            else -> "Not completed"
+        },
+    )
+    rpe?.let { add("RPE ${formatNumber(it, 1)}") }
+    rir?.let { add("RIR ${formatNumber(it, 1)}") }
+}.joinToString(" · ")
 
 @Composable
 private fun WorkoutSetActionsMenu(

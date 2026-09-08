@@ -1491,3 +1491,15 @@
 - Related: `FB-20260907-015`, `FND-20260907-025`, `DEC-20260907-011`, `VER-20260907-026`.
 - Verification: `VER-20260907-026`.
 - Status: Verified.
+
+### IMP-20260907-025 — Nested active-workout Set hierarchy
+
+- Behavior changed: Passive, incomplete, completed, and removed active-workout Sets now occupy light nested surfaces inside the Exercise card instead of flowing together as bare rows. Programmed section and Set number form the identity row; entered/planned values, status/classification/effort, and prescription each receive their own full-width reading row. General Sets omit the redundant “Workout” prefix.
+- Active/interactions: The active quick-entry composer remains a distinct primary-tinted workspace but now shares the same identity-first ordering and gives its target full width. Exact whole-card editing, overflow menus, completed/incomplete controls, required-Main removal review, undo, completion collapsing, and Set/exercise reordering retain their callbacks and ordering. The completed checkbox is explicitly 48 dp after focused semantics evidence exposed its prior 24 dp node.
+- Design system: The outer Exercise stays the medium `WhipItemCard`; nested Sets use `surfaceContainerHigh`, the small Whip shape, shared 12 dp horizontal/10 dp vertical padding, 6 dp internal evidence rhythm, and 8 dp sibling spacing. No new density setting, persistence, schema, or heavy elevation layer was added.
+- Scope review: Workout History already uses bounded Set surfaces and Routine setup is an authored editor rather than an equivalent passive stream; both remain unchanged. Rest timer, next-set focus, program progression, 5/3/1 generation, and historical truth are unaffected.
+- Important files/symbols: `WorkoutExerciseCard`, `workoutExecutionIdentityLabel`, `workoutExecutionStatusLabel`, and `GymPowerInputUiTest#passiveWorkoutSetCardSeparatesIdentityValuesStatusAndTargetAtLargeText`.
+- Persistence/product impact: Presentation, semantics, and focused Android regression coverage only. Room schema 46, data epoch 6, exact backup version 26, workout/set data, package/version identity, and owner installation are unchanged. No release or physical-phone operation is part of this follow-up.
+- Related: `FB-20260907-016`, `FND-20260907-026`, `DEC-20260907-012`, `VER-20260907-027`.
+- Verification: `VER-20260907-027`.
+- Status: Implemented, code-reviewed, and emulator-verified.

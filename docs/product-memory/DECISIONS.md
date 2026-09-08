@@ -929,7 +929,7 @@
 - Why this is superior for Whip: It combines space efficiency with the information a lifter needs to judge a set, removes a product-wide visual fork and its long-lived state burden, and aligns ordinary geometry with Whip without flattening workout execution into a generic task row.
 - Consequences / reversal conditions: Existing workouts, sets, calculations, Routine/5/3/1 progression, and local installation data are unchanged. Older backup formats remain intentionally rejected by the exact-match restore gate. Reintroduce a density preference only if measured use demonstrates a distinct workflow that responsive layout and the balanced row cannot serve.
 - Related: `FB-20260907-008`, `FND-20260907-017`, `DEC-20260903-014`, `DEC-20260903-015`.
-- Status: Verified; implemented in `IMP-20260907-014` and accepted in `VER-20260907-015`.
+- Status: Partially superseded by `DEC-20260907-012` only for the rejection of light nested passive-Set surfaces; the verified one-density, persistence, preserved-information, progression, and distinct-composer decisions remain active.
 
 ### DEC-20260907-008 — Repeated interaction labels require either one owner or explicit scope
 
@@ -974,3 +974,14 @@
 - Consequences / reversal conditions: This supersedes only `DEC-20260907-009`'s requirement that ordinary productivity status occupy the title column and target 68 dp. The shared 68 dp token remains valid for one-band navigation/status cards. Data, actions, accessibility meaning, persistence, and specialized rich surfaces do not change. Revisit only if measured scrolling cost outweighs verified comprehension at compact width and large text.
 - Related: `FB-20260907-015`, `FND-20260907-025`, `DEC-20260907-005`, `DEC-20260907-009`.
 - Status: Verified.
+
+### DEC-20260907-012 — Workout Sets use light nested surfaces and full-width evidence rows
+
+- Context: The one-density decision in `DEC-20260907-007` removed a harmful presentation fork and preserved lifting context, but its direct passive rows now place too much information and two controls into one visual stream. Owner real-use evidence specifically authorizes nested Set cards when they improve long-term readability.
+- Decision: Preserve one density and the outer Exercise `WhipItemCard`, then render each passive or removed Set as a subordinate `surfaceContainerHigh` surface using the small Whip shape, shared 12 dp horizontal/10 dp vertical content inset and 6 dp content rhythm, and an 8 dp sibling gap. Order content as optional programmed section + Set number, full-width entered/planned load and reps, classification + performed/planned state + effort, then full-width target. Keep 48 dp menu/completion targets in the identity row and the entire passive surface as the exact Set editor target. Keep the active composer on its existing primary-tinted surface, but align its identity and target ordering with the passive cards.
+- Responsive/accessibility boundary: Text grows and wraps rather than truncating; the load/reps and target rows are not width-constrained by actions. General/ad-hoc Sets omit a meaningless section prefix. Reorder, incomplete, removed/undo, optional Joker, Main/Supplemental/Assistance, exact edit/menu/completion, and completion-collapse behavior retain their current semantics.
+- Rejected alternatives: Reintroduce compact/comfortable modes; place every detail in one heading; add outlines/elevation that create a heavy card stack; flatten the focused input composer into a passive Set; or restyle Routine editors and already-bounded History Sets merely for literal component reuse.
+- Why this is superior for Whip: It makes Set boundaries and priority visible at a glance without hiding training evidence, separates reading from actions, remains recognizably part of the Exercise, and scales to longer prescriptions and larger text without reviving persistent density state.
+- Supersession: This supersedes only `DEC-20260907-007`'s rejected-alternative position against nested passive Set surfaces. Its one-density, preserved-information, persistence, progression, and active-composer decisions remain active.
+- Related: `FB-20260907-016`, `FND-20260907-026`, `DEC-20260907-007`, `IMP-20260907-025`, `VER-20260907-027`.
+- Status: Verified; implemented in `IMP-20260907-025` and accepted in `VER-20260907-027`.

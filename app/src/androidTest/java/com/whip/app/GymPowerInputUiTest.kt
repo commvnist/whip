@@ -1180,7 +1180,7 @@ class GymPowerInputUiTest {
         compose.onAllNodesWithContentDescription("Reorder set 1").assertCountEquals(1)
         compose.onAllNodesWithContentDescription("Reorder set 2").assertCountEquals(1)
         compose.onNodeWithText("Set 2", substring = true).assertIsDisplayed()
-        compose.onNodeWithText("Working · planned · RPE 8.0").assertIsDisplayed()
+        compose.onNodeWithText("Working · Planned · RPE 8").assertIsDisplayed()
         compose.onNodeWithTag("quick-set-load-${second.id}").assertIsDisplayed()
         compose.onNodeWithTag("quick-set-reps-${second.id}").assertIsDisplayed()
         compose.onNodeWithTag("quick-set-save-next-${second.id}").assertIsDisplayed()
@@ -1189,6 +1189,83 @@ class GymPowerInputUiTest {
         check(firstBounds.bottom <= focusedBounds.top) {
             "Up Next composer must remain in set order instead of being extracted above set 1: first=$firstBounds focused=$focusedBounds"
         }
+    }
+
+    @Test
+    fun passiveWorkoutSetCardSeparatesIdentityValuesStatusAndTargetAtLargeText() {
+        val exercise = testExercise().copy(name = "Flat barbell bench press")
+        val workoutExercise = testWorkoutExercise(exercise)
+        val completed = testWorkoutSet(14, workoutExercise.id).copy(
+            classification = WorkoutSetClassification.Amrap,
+            completed = true,
+            completedAtMillis = 2,
+            rpe = 9.5,
+            workSectionSnapshot = RoutineWorkSection.Main,
+            prescribedCanonicalWeightKg = 50.0,
+            prescribedEnteredWeight = 50.0,
+            prescribedWeightUnitId = "kilogram",
+            prescribedRepetitions = 5,
+            prescriptionSourceLabel = "85.0% of explicit training max",
+        )
+        var editedSetId: Long? = null
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(compose.density.density, fontScale = 2f)) {
+                WhipTheme(dynamicColor = false) {
+                    androidx.compose.foundation.layout.Box(Modifier.width(320.dp)) {
+                        WorkoutExerciseCard(
+                            item = WorkoutExerciseUi(workoutExercise, exercise, listOf(completed), emptyList(), 0, null, null),
+                            preferredWeightUnitId = "kilogram",
+                            preferredDistanceUnitId = "kilometre",
+                            numberPrecision = 1,
+                            showRpe = true,
+                            showRir = false,
+                            nextSetId = null,
+                            nextInGroup = false,
+                            canMoveUp = false,
+                            canMoveDown = false,
+                            onMoveUp = {},
+                            onMoveDown = {},
+                            onRemoveExercise = {},
+                            onSubstituteExercise = {},
+                            onAddSet = {},
+                            onEditSet = { editedSetId = it.id },
+                            onEditNotes = {},
+                            onCompleteSet = { _, _ -> },
+                            onSaveQuickSet = { _, _, _ -> },
+                            onDuplicateSet = {},
+                            onDeleteSet = {},
+                            onUndoDeleteSet = {},
+                            onReorderSets = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        val card = compose.onNodeWithTag("workout-set-card-${completed.id}").assertIsDisplayed()
+        val identity = compose.onNodeWithText("Main · Set 1", useUnmergedTree = true)
+            .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val values = compose.onNodeWithTag("workout-set-values-${completed.id}", useUnmergedTree = true).assertTextContains("50 kg × 5 reps")
+            .fetchSemanticsNode().boundsInRoot
+        val status = compose.onNodeWithTag("workout-set-status-${completed.id}", useUnmergedTree = true)
+            .assertTextContains("AMRAP · Performed · RPE 9.5").fetchSemanticsNode().boundsInRoot
+        val target = compose.onNodeWithText(
+            "explicit training max",
+            substring = true,
+            useUnmergedTree = true,
+        ).fetchSemanticsNode().boundsInRoot
+        check(identity.bottom <= values.top && values.bottom <= status.top && status.bottom <= target.top) {
+            "Set-card hierarchy must remain vertically scannable at 200% text: identity=$identity values=$values status=$status target=$target"
+        }
+        val density = compose.density.density
+        val menu = compose.onNodeWithContentDescription("Manage set 1").fetchSemanticsNode().boundsInRoot
+        val completion = compose.onNodeWithContentDescription("Mark set 1 incomplete").fetchSemanticsNode().boundsInRoot
+        check(menu.width >= 48f * density && menu.height >= 48f * density) { "Set menu target must remain at least 48 dp: $menu" }
+        check(completion.width >= 48f * density && completion.height >= 48f * density) {
+            "Set completion target must remain at least 48 dp: $completion"
+        }
+        card.performClick()
+        compose.runOnIdle { assertEquals(completed.id, editedSetId) }
     }
 
     @Test
