@@ -1598,3 +1598,14 @@
 - Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-010`, `DEC-20260908-004`.
 - Verification: `VER-20260908-007`.
 - Status: Verified; commit/push follows this memory reconciliation while final whole-product acceptance remains in progress.
+
+### IMP-20260908-008 — Gold-standard whole-product emulator-only completion
+
+- Product result: Completed the equal-depth audit and implementation goal across Tracks, Tasks, Habits, Goals, Home/shared shell, search, Areas/Tags, Settings, backup/recovery, Health/reminders, Gym, Routines, and 5/3/1. The accepted product changes make archived Track history truthfully read-only, route archived search results to an exact inspector, expose scoped Track Entry and current-Task-list search, clarify shared custom-color and settled-empty-search evidence, and give backup import a responsive safe-versus-destructive decision hierarchy without weakening domain-specific workflows.
+- QA result: Hardened the source-linked catalog so declared Habit/Goal/Gym states are semantically proven, accessibility hierarchy export is current, distinct declared surfaces cannot silently share one PNG, and standalone Gym evidence paints production-faithful application backgrounds. The final whole-product visual review accepted all 185 surfaces against hierarchy, role consistency, spacing, truncation, action ownership, empty/error/loading truth, accessibility, and responsive behavior.
+- Review result: No supported P0/P1/major P2 remains after the final functional, semantic, visual, and code review. Equivalent collection cards retain one summary grammar; specialized editors, charts, calendars, pickers, workout execution, History, destructive reviews, and 5/3/1 authorship remain deliberate capability-based variants rather than forced visual sameness.
+- Persistence/release impact: No Room schema, data epoch, backup format, package/version identity, or owner data changed. No version bump, signed release, Play Store candidate/publication, physical-phone query, installation, launch, reset, clear, uninstall, downgrade, or instrumentation occurred.
+- Commit/push: The seven coherent implementation/evidence commits from `720ef11` through exact accepted product source `3dd9268` are reachable from `origin/main`; this final durable-memory reconciliation is documentation-only.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-002` through `FND-20260908-010`, `IMP-20260908-001` through `IMP-20260908-007`.
+- Verification: `VER-20260908-008`.
+- Status: Implemented, code-reviewed, fully emulator-accepted, visually accepted, committed, and pushed; normal future owner feedback and any separately requested release remain outside this goal.
