@@ -1576,3 +1576,15 @@
 - Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-006`, `FND-20260908-007`, `DEC-20260908-005`, `DEC-20260908-006`.
 - Verification: `VER-20260908-005`.
 - Status: Verified; commit/push follows this memory reconciliation.
+
+### IMP-20260908-006 — Responsive backup decision hierarchy and edited Settings headings
+
+- Behavior changed: Backup preview now presents a scannable export summary followed by separately explained, full-width restore choices. Additive `Merge New Data` is the filled primary action; destructive `Replace Everything` is an error-toned outlined action and still opens the existing independent final confirmation; Cancel is the sole footer action. Organization and About no longer repeat their destination title as the first section heading and begin directly with the Areas and Whip cards.
+- Important files/symbols: `SettingsContent`, `BackupRestorePreviewDialogs`, `merge-new-data`, `request-replace-everything`, `SafetyChoiceUiTest`, `SettingsBehaviorUiTest`, and `WhipComposeSemanticsTest`.
+- Persistence/migration/history impact: None. Merge compatibility, stable-ID handling, relationship remapping, atomic commits, Replace snapshots/rollback, settings replacement, request ownership, schema 46, data epoch 6, and exact backup format 26 are unchanged.
+- Compatibility and limitations: Restore choices scroll inside a bounded dialog body and remain reachable at 320 dp/200% text. The summary uses the existing locale/zone timestamp and preview facts. No release/version change or physical-device operation occurred.
+- Test inventory: One responsive Android regression increases current source inventory to 1,588 tests: 621 JVM and 967 Android; `docs/testing.md` and `INDEX.md` are reconciled to that exact source count.
+- Commit/push: Included in the owned Settings/recovery source chunk; exact pushed SHA is authoritative in Git history.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-008`, `FND-20260908-009`, `DEC-20260908-007`, `DEC-20260908-008`.
+- Verification: `VER-20260908-006`.
+- Status: Verified; commit/push follows this memory reconciliation.

@@ -1067,3 +1067,25 @@
 - Consequences / reversal conditions: Only settled-empty presentation and exact copy assertions change. Revisit if search and filtering become one combined control with a different recovery vocabulary.
 - Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-007`.
 - Status: Verified in `IMP-20260908-005` / `VER-20260908-005`.
+
+### DEC-20260908-007 — Backup import choices belong in the explanatory body, not a three-action footer
+
+- Context: `FND-20260908-008` found that the backup preview compresses three consequential actions into AlertDialog footer space and separates each action from the text that explains it.
+- Position A: Keep all actions in the footer and reduce type, wording, or spacing until they fit.
+- Position B: Leave only Cancel in the footer and pair each restore mode with its own concise description and full-width action in the scrollable body.
+- Evidence and constraints: Merge is the safer additive default; Replace is destructive, snapshots first, and already has a separate final confirmation; compact width and 200% text must remain usable; compatibility may disable both restore actions; persistence and recovery behavior must not change.
+- Failure modes: Smaller controls reduce readability and touch clarity; stacked footer buttons still detach explanation from choice; making Replace visually primary overstates it; removing the final confirmation weakens recovery safety.
+- Decision: Adopt Position B. Present a compact backup summary followed by `Merge New Data` as the filled primary action and `Replace Everything` as an error-toned outlined action, each directly beneath its consequence copy. Keep Cancel as the sole footer action and retain the existing final destructive confirmation.
+- Why this is superior for Whip: The layout scales vertically, connects each decision to its outcome, makes the safer option easiest to recognize, and preserves an explicit but subordinate destructive route.
+- Consequences / reversal conditions: Visual hierarchy, tags, and responsive tests change; restore transactions, compatibility checks, duplicate handling, snapshots, and confirmation ownership remain unchanged. Revisit only if restore becomes a guided multi-page workflow with comparable safety and recovery clarity.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-008`.
+- Status: Verified in `IMP-20260908-006` / `VER-20260908-006`.
+
+### DEC-20260908-008 — Settings page titles are not repeated as immediate section headings
+
+- Context: `FND-20260908-009` found two compact Settings destinations whose first section heading exactly repeats the fixed page title.
+- Decision: A Settings destination title establishes the page once. The first content may begin directly with its card or control identity; section headings are retained only for meaningful subdivisions within that destination.
+- Why this is superior for Whip: It removes noise without flattening information architecture, saves scarce vertical space, and makes remaining headings stronger navigational landmarks.
+- Consequences / reversal conditions: Organization begins with the Areas card and About begins with the Whip identity card. Wide Settings retains its sidebar-level destination context. Revisit only if detail content becomes independently embeddable without a visible destination title.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-009`.
+- Status: Verified in `IMP-20260908-006` / `VER-20260908-006`.

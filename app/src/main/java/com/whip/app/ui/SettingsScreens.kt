@@ -994,7 +994,6 @@ internal fun SettingsContent(
         }
 
         if (section == SettingsSection.Organization) {
-        item { SettingsHeading("Organization") }
         item {
             WhipSettingsSectionCard {
                     Text("Areas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -1636,7 +1635,6 @@ internal fun SettingsContent(
         }
         }
         if (section == SettingsSection.AboutDiagnostics) {
-        item { SettingsHeading("About Whip") }
         item {
             WhipSettingsSectionCard {
                     Text("Whip", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -1904,6 +1902,7 @@ internal fun WideSettingsSectionSidebar(
 
 @Composable
 internal fun BackupRestorePreviewDialogs(
+    modifier: Modifier = Modifier,
     preview: BackupPreview,
     busy: Boolean,
     zoneId: ZoneId = ZoneId.systemDefault(),
@@ -1929,36 +1928,91 @@ internal fun BackupRestorePreviewDialogs(
     }
     if (!confirmReplacement) {
         PaneAwareAlertDialog(
+            modifier = modifier,
             onDismissRequest = { if (!busy) onCancel() },
             title = { Text("Import This Whip Backup?") },
             text = {
                 val exportedAt = formatSettingsTimestamp(preview.exportedAt, zoneId, locale)
-                Text(
-                    "Exported $exportedAt\n${preview.totalRecords} records in ${preview.tableCounts.count { it.value > 0 }} tables\n" +
-                        "Preferences: ${if (preview.settingsIncluded) "included" else "not included"}\n" +
-                        "${preview.duplicateStableIds} stable IDs already exist.\n\n" +
-                        (preview.compatibilityMessage ?: "MERGE adds records that are not already present, remaps their relationships, keeps current settings, and commits atomically. Re-importing the same file is safe.\n\nREPLACE snapshots the current database and preferences first, then replaces all local data, settings, and scheduled work; interruption rolls back to that snapshot."),
-                )
-            },
-            confirmButton = {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    WhipTextButton(
-                        enabled = preview.restoreCompatible && !busy,
-                        onClick = onMerge,
-                    ) { Text(if (preview.restoreCompatible) "Merge New Data" else "Update Required") }
-                    WhipTextButton(
-                        enabled = preview.restoreCompatible && !busy,
-                        onClick = { confirmReplacement = true },
-                        modifier = Modifier.testTag("request-replace-everything").semantics {
-                            stateDescription = destructiveActionDescription
-                        },
-                        colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error,
-                        ),
-                    ) { Text(replaceEverythingLabel) }
+                WhipDialogBody(
+                    modifier = Modifier
+                        .heightIn(max = 520.dp)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    Text(
+                        "Backup Summary",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                    Text("Exported $exportedAt")
+                    Text(
+                        "${preview.totalRecords} records · " +
+                            "${preview.tableCounts.count { it.value > 0 }} populated tables · " +
+                            "preferences ${if (preview.settingsIncluded) "included" else "not included"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        "${preview.duplicateStableIds} stable IDs already exist on this device.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    preview.compatibilityMessage?.let { message ->
+                        Text(
+                            message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                    WhipGroupedInformationCard {
+                        Text(
+                            "Merge New Data",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.semantics { heading() },
+                        )
+                        Text(
+                            "Adds records that are not already present, remaps their relationships, and keeps current settings. Re-importing the same file is safe.",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        WhipButton(
+                            modifier = Modifier.fillMaxWidth().testTag("merge-new-data"),
+                            enabled = preview.restoreCompatible && !busy,
+                            onClick = onMerge,
+                        ) { Text(if (preview.restoreCompatible) "Merge New Data" else "Update Required") }
+                    }
+                    WhipGroupedInformationCard {
+                        Text(
+                            replaceEverythingLabel,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.semantics { heading() },
+                        )
+                        Text(
+                            "Creates a recovery snapshot first, then replaces all local data, settings, and scheduled work. An interruption rolls back to that snapshot.",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        WhipOutlinedButton(
+                            enabled = preview.restoreCompatible && !busy,
+                            onClick = { confirmReplacement = true },
+                            modifier = Modifier.fillMaxWidth().testTag("request-replace-everything").semantics {
+                                stateDescription = destructiveActionDescription
+                            },
+                            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error,
+                            ),
+                        ) { Text(replaceEverythingLabel) }
+                    }
                 }
             },
-            dismissButton = { WhipTextButton(onClick = onCancel, enabled = !busy) { Text(cancelLabel) } },
+            confirmButton = {},
+            dismissButton = {
+                WhipTextButton(
+                    enabled = !busy,
+                    onClick = onCancel,
+                ) { Text(cancelLabel) }
+            },
         )
     } else {
         PermanentDeleteDialog(

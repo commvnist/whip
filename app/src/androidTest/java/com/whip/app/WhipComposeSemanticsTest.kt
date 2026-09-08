@@ -119,7 +119,7 @@ class WhipComposeSemanticsTest {
             compose.onAllNodesWithText("FitNotes", substring = true).assertCountEquals(0)
             returnToSettingsIndexIfCompact()
             openSettingsSection("About Whip")
-            compose.onNodeWithTag("settings-list").performScrollToNode(hasText("About Whip"))
+            compose.onNodeWithTag("settings-list").performScrollToNode(hasTestTag("about-build-identity"))
             compose.onNodeWithTag("about-build-identity").assertIsDisplayed()
         }
     }

@@ -261,6 +261,9 @@ class SettingsBehaviorUiTest {
         compose.onNodeWithTag("workspace-settings-action").performClick()
         expectedControl.forEach { (section, control) ->
             selectSettingsCategory(section)
+            if (section == "Organization" || section == "About Whip") {
+                compose.onAllNodesWithText(section).assertCountEquals(1)
+            }
             compose.onNodeWithTag("settings-list").performScrollToNode(androidx.compose.ui.test.hasText(control))
             compose.onNodeWithText(control).assertIsDisplayed()
             if (compose.onAllNodesWithContentDescription("Back to Settings").fetchSemanticsNodes().isNotEmpty()) {

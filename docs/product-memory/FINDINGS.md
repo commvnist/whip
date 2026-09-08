@@ -1412,6 +1412,30 @@
 - Related: `FB-20260908-001`, `FB-20260908-002`, `DEC-20260908-006`.
 - Status: Verified; the settled empty state now names search and Filters while incomplete-source presentation stays distinct. See `IMP-20260908-005` and `VER-20260908-005`.
 
+### FND-20260908-008 — Backup import forces consequential choices into one cramped footer
+
+- Severity/category: P1 restore safety, compact-dialog hierarchy, accessibility, and decision comprehension.
+- Observed: The backup preview presents Cancel, Merge New Data, and Replace Everything as three peer footer actions. At phone width those labels wrap or crowd each other, while the behavioral difference between merge and replacement is buried in one uppercase paragraph inside a single undifferentiated text block.
+- Expected: Backup facts are easy to scan, Merge and Replace are visibly separate choices with their own concise consequence copy, the recommended non-destructive action is primary, and the destructive path remains visually explicit plus independently confirmed.
+- Why it matters / affected users: Restore is rare, high-risk, and often performed during recovery. Crowded peer actions make the safest path harder to identify and increase the chance of selecting a destructive operation under stress or enlarged text.
+- Evidence: Fresh exact `settings.backup-preview` catalog capture at 360 dp; `BackupRestorePreviewDialogs` places two text buttons in a four-dp `FlowRow` beside the AlertDialog Cancel action and concatenates summary/choice explanations into one `Text`.
+- Root cause: A conventional two-action AlertDialog footer was extended to three decisions without changing the information architecture or allocating responsive action space.
+- Recommended solution: Keep Cancel as the dialog exit, move Merge and Replace into separately explained full-width body actions, make Merge the primary choice, retain error tone and the existing second confirmation for Replace, and prove reachability/non-overlap at 320 dp with 200% text.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `DEC-20260908-007`.
+- Status: Verified; the preview now separates summary, primary Merge, destructive Replace, and Cancel, with full-width 320 dp/200% text coverage and unchanged restore ownership. See `IMP-20260908-006` and `VER-20260908-006`.
+
+### FND-20260908-009 — Settings detail pages repeat their page title as the first section heading
+
+- Severity/category: P2 Settings hierarchy, information efficiency, and cross-section consistency.
+- Observed: Compact Organization renders `Organization` in the page header and immediately repeats `Organization` as its first list heading; About does the same with `About Whip`. Other Settings pages begin with a meaningful subgroup such as Theme, Notifications, or Health Connect.
+- Expected: The page title establishes destination context once; section headings divide the content only when they add a distinct grouping concept.
+- Why it matters / affected users: Immediate duplicated headings add vertical cost, weaken the meaning of all section labels, and make two destinations feel less edited than the rest of Settings, especially on compact or enlarged-text layouts.
+- Evidence: Fresh `settings.organization` and `settings.about-diagnostics` catalog captures plus the `SettingsContent` section branches.
+- Root cause: The first subsection inherited the same label as its parent destination instead of relying on the fixed page header and content-card title.
+- Recommended solution: Remove only the redundant first headings; retain `Areas` and `Whip` as the first content identities and keep all meaningful later subgroup headings.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `DEC-20260908-008`.
+- Status: Verified; Organization and About now begin with their meaningful content identities while the page header remains the sole destination label. See `IMP-20260908-006` and `VER-20260908-006`.
+
 ### FND-20260907-014 — One elapsed metric is rendered through two incompatible layout grammars
 
 - Severity/category: P1 real-use consistency, responsive hierarchy, and foldable layout.
