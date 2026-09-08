@@ -1328,6 +1328,30 @@
 - Related: `FB-20260907-003`, `DEC-20260904-003`, `DEC-20260906-003`, `IMP-20260902-018`.
 - Status: Verified.
 
+### FND-20260908-001 — Initial compact Track duplicate-render signal was not reproducible
+
+- Severity/category: Rejected P1 interaction-ownership signal; audit-evidence reconciliation.
+- Observed: A streamed source excerpt initially appeared to contain two adjacent `trackDetail(selected)` calls in the compact selected-Track branch. Authoritative inspection of both the working file and `git show HEAD:app/src/main/java/com/whip/app/ui/TrackScreens.kt`, followed by line-specific `git blame`, shows one call only and no production diff.
+- Expected: Findings that would justify structural UI changes must survive exact source and runtime reconciliation before implementation.
+- Why it matters / affected users: Treating a truncated or duplicated terminal excerpt as source truth could create an unnecessary production change and a false durable record. The underlying one-owner requirement remains valuable as a regression assertion because visually coincident Compose trees can be difficult to spot.
+- Evidence: Current `TrackScreens.kt`, Git object `HEAD:app/src/main/java/com/whip/app/ui/TrackScreens.kt`, `git blame -L 548,558`, clean production diff, and the fresh 22-surface Track catalog.
+- Root cause: The initial streamed inspection output was misleading; the repository does not contain the suspected duplicate invocation.
+- Recommended solution: Make no production change for this signal. Retain a focused assertion that compact archived routing exposes exactly one `track-detail-navigation` owner while implementing the separately confirmed archive-policy fix.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-002`, `DEC-20260908-001`.
+- Status: Rejected after authoritative source reconciliation.
+
+### FND-20260908-002 — Archived Track history still exposes Entry mutation controls and lacks exact catalog coverage
+
+- Severity/category: P1 historical-state truth, destructive-action ownership, search routing, and audit completeness.
+- Observed: The archived Entries page says the Track must be restored before adding or editing Entries, but each archived Entry still renders a disabled Edit icon plus an enabled More menu whose only action is `Delete Entry`. Global search of an archived Entry also opens the writable Entry route, which shows a blocking `Track Archived` page instead of the exact read-only historical record in the Archived workspace. The catalog's archived fixture contains zero Entries and captures only the collection, so neither contradiction is represented in its 22 surfaces.
+- Expected: Archived Track history is read-only until restoration: mutation controls are omitted rather than disabled or partially available. Selecting an archived Entry search result opens that exact Entry as read-only evidence in the Archived Track context. The catalog includes a populated archived-detail state proving these rules.
+- Why it matters / affected users: The interface simultaneously claims history protection and offers permanent deletion, wastes action width, creates an avoidable search dead end, and lets incomplete visual evidence masquerade as archived-workflow coverage.
+- Evidence: `TrackEntriesPage` passes `editable = false`, but `TrackEntryRow` gates only Edit and renders Delete unconditionally; `TrackAreaContent` sends all `openEntryIdRequest` values to `TrackEditorIntent.Entry` and forces Tracks; `VisualCatalogPagesTest` archives `Archived Mood Log` without an Entry; `ui-surface-catalog.tsv` has no archived Track-detail surface.
+- Root cause: Entry-row action capability, search-result destination, and catalog fixtures evolved independently from the later read-only archived policy.
+- Recommended solution: Gate the complete mutation action cluster on writability; route archived Entry requests to one read-only details owner under Archived; add a populated archived Track/detail catalog surface and focused action/route tests.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260907-005`, `FND-20260902-005`, `DEC-20260902-006`.
+- Status: Verified; resolved by `IMP-20260908-001` and accepted in `VER-20260908-001`.
+
 ### FND-20260907-014 — One elapsed metric is rendered through two incompatible layout grammars
 
 - Severity/category: P1 real-use consistency, responsive hierarchy, and foldable layout.

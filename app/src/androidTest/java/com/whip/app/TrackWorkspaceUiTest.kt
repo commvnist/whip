@@ -119,6 +119,22 @@ class TrackWorkspaceUiTest {
         }
         compose.onNodeWithTag("unified-search-result-TrackEntry-11").assertIsDisplayed()
 
+        compose.onNodeWithTag("unified-search-query").performTextReplacement("Prior dosage")
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithTag("unified-search-result-TrackEntry-22").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("unified-search-result-TrackEntry-22").performClick()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithContentDescription("Close Track Entry details").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("track-workspace-destination-Archived").assertIsSelected()
+        compose.onAllNodesWithTag("track-detail-navigation").assertCountEquals(1)
+        compose.onNodeWithText("Track Archived").assertIsDisplayed()
+        compose.onAllNodesWithContentDescription("Edit Entry Prior dosage").assertCountEquals(0)
+        compose.onAllNodesWithContentDescription("More Actions for Prior dosage").assertCountEquals(0)
+        compose.onNodeWithContentDescription("Close Track Entry details").performClick()
+
+        compose.onNodeWithContentDescription("Search Tracks & Entries").performClick()
         compose.onNodeWithTag("unified-search-query").performTextReplacement("Medication Archive")
         compose.waitUntil(10_000) {
             compose.onAllNodesWithTag("unified-search-result-Track-2").fetchSemanticsNodes().isNotEmpty()

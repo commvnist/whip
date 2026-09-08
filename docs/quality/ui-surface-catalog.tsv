@@ -87,6 +87,7 @@ state:tracks-card-expanded	tracks.all.expanded	tracks	page	expanded card	com.whi
 route:tracks-all-empty	tracks.all.empty	tracks	page	empty	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Tracks empty state.
 route:tracks-activity	tracks.activity.populated	tracks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Cross-track activity.
 route:tracks-archived	tracks.archived.populated	tracks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Archived tracks.
+state:track-archived-detail	tracks.archived.detail.entries	tracks	page	read-only history	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Populated archived Track detail with read-only Entry actions.
 route:tracks-insights	tracks.insights.populated	tracks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Cross-track insights.
 route:track-entries	tracks.detail.entries	tracks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Track entry list.
 route:track-options	tracks.detail.options	tracks	page	configured	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Track configuration summary.

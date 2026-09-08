@@ -314,6 +314,7 @@ internal fun TrackAreaContent(
     var deleteEntrySessionId by rememberSaveable { mutableLongStateOf(0L) }
     var deleteEntryOpeningDataGeneration by rememberSaveable { mutableStateOf<Long?>(null) }
     var deleteEntryCandidate by rememberSaveable { mutableStateOf<TrackEntryDeleteCandidate?>(null) }
+    var requestedReadOnlyEntryId by rememberSaveable { mutableStateOf<Long?>(null) }
     var importTrackId by rememberSaveable { mutableStateOf<Long?>(null) }
     var replacingCsvFile by rememberSaveable { mutableStateOf(false) }
     var exportTrackId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -433,6 +434,7 @@ internal fun TrackAreaContent(
         val requestedId = openTrackIdRequest ?: return@LaunchedEffect
         val requested = state.track(requestedId)
         if (requested != null) {
+            requestedReadOnlyEntryId = null
             workspaceDestination = if (requested.track.archived) {
                 TrackWorkspaceDestination.Archived
             } else {
@@ -453,10 +455,17 @@ internal fun TrackAreaContent(
     }
     LaunchedEffect(openEntryIdRequest, state.projections) {
         val entryId = openEntryIdRequest ?: return@LaunchedEffect
-        state.projections.firstOrNull { projection -> projection.entries.any { it.entry.id == entryId } }?.let {
-            workspaceDestination = TrackWorkspaceDestination.Tracks
-            selectedTrackId = it.track.id
-            onEditorRequest(TrackEditorIntent.Entry(it.track.id, entryId))
+        state.projections.firstOrNull { projection -> projection.entries.any { it.entry.id == entryId } }?.let { projection ->
+            selectedTrackId = projection.track.id
+            destination = TrackDetailDestination.Entries
+            if (projection.track.archived) {
+                workspaceDestination = TrackWorkspaceDestination.Archived
+                requestedReadOnlyEntryId = entryId
+            } else {
+                workspaceDestination = TrackWorkspaceDestination.Tracks
+                requestedReadOnlyEntryId = null
+                onEditorRequest(TrackEditorIntent.Entry(projection.track.id, entryId))
+            }
         }
         onOpenEntryRequestConsumed()
     }
@@ -510,6 +519,10 @@ internal fun TrackAreaContent(
             viewModel = viewModel,
             customUnits = customUnits,
             dialogModifier = dialogModifier,
+            requestedReadOnlyEntryId = requestedReadOnlyEntryId,
+            onReadOnlyEntryRequestConsumed = { entryId ->
+                if (requestedReadOnlyEntryId == entryId) requestedReadOnlyEntryId = null
+            },
             onImport = {
                 if (viewModel.cancelCsvImport()) {
                     importTrackId = projection.track.id
@@ -1662,6 +1675,8 @@ private fun TrackDetailPage(
     viewModel: TrackViewModel,
     customUnits: List<UnitDefinition>,
     dialogModifier: Modifier,
+    requestedReadOnlyEntryId: Long? = null,
+    onReadOnlyEntryRequestConsumed: (Long) -> Unit = {},
 ) {
     Column(Modifier.fillMaxSize().padding(innerPadding)) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -1712,6 +1727,8 @@ private fun TrackDetailPage(
                 { query -> viewModel.searchEntryIds(projection.track.id, query) },
                 { offset, limit -> viewModel.entryPage(projection.track.id, offset, limit) },
                 dialogModifier,
+                requestedReadOnlyEntryId,
+                onReadOnlyEntryRequestConsumed,
             )
             TrackDetailDestination.Insights -> TrackInsightsPage(projection, customUnits, today, dialogModifier)
             TrackDetailDestination.Options -> TrackOptionsPage(
@@ -1739,6 +1756,8 @@ private fun TrackEntriesPage(
     searchEntryIds: suspend (String) -> Set<Long> = { emptySet() },
     loadEntryPage: suspend (Int, Int) -> TrackEntryPage,
     dialogModifier: Modifier = Modifier,
+    requestedReadOnlyEntryId: Long? = null,
+    onReadOnlyEntryRequestConsumed: (Long) -> Unit = {},
 ) {
     var query by rememberSaveable(projection.track.id) { mutableStateOf("") }
     var sort by rememberSaveable(projection.track.id) { mutableStateOf(TrackSort.EntryDate) }
@@ -1766,6 +1785,13 @@ private fun TrackEntriesPage(
             options = projection.options,
             entries = projection.entries,
         )
+    }
+    LaunchedEffect(requestedReadOnlyEntryId, projection.entries) {
+        val entryId = requestedReadOnlyEntryId ?: return@LaunchedEffect
+        if (projection.entries.any { it.entry.id == entryId }) {
+            viewEntryId = entryId
+            onReadOnlyEntryRequestConsumed(entryId)
+        }
     }
     suspend fun reloadPage() {
         val generation = ++pageLoadGeneration
@@ -2024,16 +2050,18 @@ private fun TrackEntryRow(
                     maxLines = 2,
                 )
             }
-            IconButton(enabled = editable, onClick = onEdit) { Icon(Icons.Outlined.Edit, contentDescription = "Edit Entry ${projection.primaryText(entry)}") }
-            Box {
-                IconButton(onClick = { moreOpen = true }) { Icon(Icons.Outlined.MoreVert, contentDescription = "More Actions for ${projection.primaryText(entry)}") }
-                DropdownMenu(moreOpen, { moreOpen = false }) {
-                    WhipMenuItem(
-                        label = "Delete Entry",
-                        icon = Icons.Outlined.DeleteOutline,
-                        role = WhipMenuItemRole.Destructive,
-                        onClick = { moreOpen = false; onDelete() },
-                    )
+            if (editable) {
+                IconButton(onClick = onEdit) { Icon(Icons.Outlined.Edit, contentDescription = "Edit Entry ${projection.primaryText(entry)}") }
+                Box {
+                    IconButton(onClick = { moreOpen = true }) { Icon(Icons.Outlined.MoreVert, contentDescription = "More Actions for ${projection.primaryText(entry)}") }
+                    DropdownMenu(moreOpen, { moreOpen = false }) {
+                        WhipMenuItem(
+                            label = "Delete Entry",
+                            icon = Icons.Outlined.DeleteOutline,
+                            role = WhipMenuItemRole.Destructive,
+                            onClick = { moreOpen = false; onDelete() },
+                        )
+                    }
                 }
             }
         }

@@ -998,3 +998,16 @@
 - Consequences / reversal conditions: Presentation, semantics, and test/catalog evidence change; persistence, workout calculations, order, progression, and saved history do not. Revisit only if real History use shows that a different information priority materially improves comparison without harming cross-destination recognition.
 - Related: `FB-20260907-017`, `FND-20260907-027`, `DEC-20260907-012`.
 - Status: Verified; implemented in `IMP-20260907-026` and accepted in `VER-20260907-028`.
+
+### DEC-20260908-001 — Archived Track mutation capability and discovery follow one state owner
+
+- Context: `FND-20260908-002` found that archived Entry rows and search routing only partially apply the read-only-history policy. The initial duplicate-render signal in `FND-20260908-001` did not survive authoritative source reconciliation and requires no production change.
+- Position A: Patch each visible symptom independently—leave disabled Edit visible, retain Delete, and keep archived search results on the editor's blocking page.
+- Position B: Enforce one archived-state rule across capability, routing, and evidence: one complete writable action cluster only when the Track is writable, and one read-only exact-record route for archived Entry discovery.
+- Evidence and constraints: Archived Tracks deliberately preserve reviewable history while requiring restoration before mutation. Search must land on the selected fact. Active Entry editing/deletion, exact repository boundaries, archive identity, and completed history remain unchanged.
+- Failure modes: Hiding only Edit leaves destructive mutation available; disabling More leaves a dead high-salience control; routing every archived result only to the Track list loses exact Entry context; making archived history writable contradicts the established lifecycle boundary.
+- Decision: Adopt Position B. Omit the entire Entry mutation cluster for archived Tracks; route an archived Entry request to its read-only inspector within Archived detail; and require a populated archived-detail catalog regression with one compact detail-owner assertion.
+- Why this is superior for Whip: The same state truth controls pixels, semantics, navigation, and mutation availability, eliminating partial policies while preserving low-friction access to historical evidence.
+- Consequences / reversal conditions: Active Track behavior is unchanged. Archived Entry changes require explicit Track restoration. Reconsider only if Whip introduces a separately designed historical-correction mode with explicit semantics and exact repository policy.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-001`, `FND-20260908-002`.
+- Status: Accepted.

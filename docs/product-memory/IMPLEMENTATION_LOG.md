@@ -1525,3 +1525,13 @@
 - Related: `FB-20260907-017`, `FND-20260907-027`, `FND-20260907-028`, `DEC-20260907-013`, `IMP-20260907-026`, `VER-20260907-028`, `VER-20260907-029`.
 - Verification: `VER-20260907-029`.
 - Status: Released and device-verified; normal owner use remains the final subjective validation channel.
+
+### IMP-20260908-001 — Read-only archived Track evidence and exact search routing
+
+- Behavior changed: Archived Track Entry rows now omit the complete Edit/More/Delete mutation cluster. Selecting an archived Entry from unified search opens the exact read-only Entry inspector in the Archived Track workspace instead of sending the user to a blocked writable editor. Active Track and Entry search/edit/delete behavior is unchanged.
+- QA/catalog changed: The representative archived Track now contains a real Entry, and `tracks.archived.detail.entries` adds an explicit read-only-history surface to the catalog, increasing the declared inventory from 181 to 182. The focused route regression also proves one compact `track-detail-navigation` owner and no archived Entry mutation actions.
+- Review correction: An initial streamed source excerpt appeared to show a duplicated compact detail call, but current source, `git show`, and line-specific blame proved only one owner. `FND-20260908-001` was rejected and durable memory corrected before production changes.
+- Persistence/product impact: Presentation, in-app routing state, and Android QA fixtures only. Room schema 46, data epoch 6, exact backup version 26, Track definitions, Entries, CSV behavior, package/version identity, and user data are unchanged. No physical phone was queried or mutated.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-001`, `FND-20260908-002`, `DEC-20260908-001`, `VER-20260908-001`.
+- Verification: `VER-20260908-001`.
+- Status: Implemented, code-reviewed, two-emulator accepted, and visually verified; the wider whole-product goal remains in progress.

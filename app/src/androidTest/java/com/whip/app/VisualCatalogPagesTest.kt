@@ -1,11 +1,13 @@
 package com.whip.app
 
 import android.content.Intent
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -135,7 +137,7 @@ class VisualCatalogPagesTest {
         val seeded = seedRepresentativeData()
         launch().use {
             waitForHome("Plan the week")
-            captureTrackPages(seeded.activeTrackId)
+            captureTrackPages(seeded.activeTrackId, seeded.archivedTrackId)
         }
     }
 
@@ -258,7 +260,7 @@ class VisualCatalogPagesTest {
         captureVisualCatalogSurface("goals.insights.populated")
     }
 
-    private fun captureTrackPages(activeTrackId: Long) {
+    private fun captureTrackPages(activeTrackId: Long, archivedTrackId: Long) {
         openPrimary("Tracks")
         captureVisualCatalogSurface("tracks.all.populated")
         compose.onNodeWithContentDescription("Expand Track Reading Log").performClick()
@@ -278,6 +280,11 @@ class VisualCatalogPagesTest {
         captureVisualCatalogSurface("tracks.activity.menu")
         selectTag("track-workspace-destination-Archived")
         captureVisualCatalogSurface("tracks.archived.populated")
+        compose.onNodeWithTag("track-card-$archivedTrackId").performClick()
+        compose.waitForIdle()
+        compose.onAllNodesWithContentDescription("Edit Entry Archived mood").assertCountEquals(0)
+        compose.onAllNodesWithContentDescription("More Actions for Archived mood").assertCountEquals(0)
+        captureVisualCatalogSurface("tracks.archived.detail.entries")
         selectTag("track-workspace-destination-Insights")
         captureVisualCatalogSurface("tracks.insights.populated")
         selectTag("track-workspace-destination-Tracks")
@@ -502,6 +509,15 @@ class VisualCatalogPagesTest {
                 ),
             ),
         )
+        val archivedPreparation = checkNotNull(app.trackRepository.prepareEntryCreate(archivedTrackId))
+        val archivedPrimaryField = archivedPreparation.form.fields.single()
+        app.trackRepository.addEntry(
+            archivedPreparation.request,
+            TrackEntryDraft(
+                entryDate = today.minusDays(1),
+                values = mapOf(archivedPrimaryField.uuid to TrackValueDraft(textValue = "Archived mood")),
+            ),
+        )
         app.trackRepository.setArchived(archivedTrackId, true)
 
         val strengthCategoryId = app.gymRepository.createCategory("Strength")
@@ -538,7 +554,7 @@ class VisualCatalogPagesTest {
                 ),
             ),
         )
-        SeededCatalogData(activeTrackId)
+        SeededCatalogData(activeTrackId, archivedTrackId)
     }
 
     private fun launch() = launchMainActivity(
@@ -566,5 +582,5 @@ class VisualCatalogPagesTest {
         compose.waitForIdle()
     }
 
-    private data class SeededCatalogData(val activeTrackId: Long)
+    private data class SeededCatalogData(val activeTrackId: Long, val archivedTrackId: Long)
 }
