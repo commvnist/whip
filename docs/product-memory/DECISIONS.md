@@ -985,3 +985,16 @@
 - Supersession: This supersedes only `DEC-20260907-007`'s rejected-alternative position against nested passive Set surfaces. Its one-density, preserved-information, persistence, progression, and active-composer decisions remain active.
 - Related: `FB-20260907-016`, `FND-20260907-026`, `DEC-20260907-007`, `IMP-20260907-025`, `VER-20260907-027`.
 - Status: Verified; implemented in `IMP-20260907-025` and accepted in `VER-20260907-027`.
+
+### DEC-20260907-013 — Active and historical Sets share one core information grammar
+
+- Context: Active execution and completed History show the same persisted Set at different lifecycle stages. The active surface needs edit, menu, completion, and quick-entry controls; History is read-only and additionally exposes rest, tempo, unilateral, note, equipment, and program-snapshot evidence.
+- Position A: Preserve the existing History layout because it is already bounded, accepting its separate surface tokens and information order as a contextual difference.
+- Position B: Share the passive Set surface and core identity → values → status/effort → target grammar across Workout and History, then append genuinely historical evidence without importing active controls.
+- Evidence and constraints: `FND-20260907-027` confirms that History's differences are implementation chronology rather than a distinct user task. The active hierarchy already passes narrow/large-text, exact-edit, touch-target, 5/3/1, and general-workout coverage. Historical truth, removal/substitution outcomes, prescription snapshots, notes, and completed values must remain unchanged.
+- Failure modes: Flattening History into an editable card would imply unsupported actions; dropping “Performed” or removal outcomes would blur historical truth; putting every history field at primary emphasis would recreate the original cramped scan; adding another density or appearance preference would revive a rejected design fork.
+- Decision: Adopt Position B. Use one reusable `surfaceContainerHigh` small Set surface with Whip's 12×10 dp inset and 6 dp rhythm for passive active Sets, removed Sets, and historical Sets. History uses program section + Set number as identity, performed values as the primary line, classification + performed/removal + RPE/RIR as status, then target; rest/tempo/unilateral and note remain subordinate history-only rows. The active composer stays a distinct tinted input workspace.
+- Why this is superior for Whip: The Set remains immediately recognizable across execution and review while each destination still communicates its real capabilities. Shared implementation tokens also make future spacing or contrast changes propagate instead of drifting again.
+- Consequences / reversal conditions: Presentation, semantics, and test/catalog evidence change; persistence, workout calculations, order, progression, and saved history do not. Revisit only if real History use shows that a different information priority materially improves comparison without harming cross-destination recognition.
+- Related: `FB-20260907-017`, `FND-20260907-027`, `DEC-20260907-012`.
+- Status: Verified; implemented in `IMP-20260907-026` and accepted in `VER-20260907-028`.

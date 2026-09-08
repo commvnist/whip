@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -36,7 +37,6 @@ import com.whip.app.domain.TrackFieldDraft
 import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.TrackValueDraft
 import com.whip.app.domain.WorkoutSetDraft
-import java.time.DayOfWeek
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
@@ -395,7 +395,7 @@ class VisualCatalogPagesTest {
                 scheduleKind = ScheduleKind.Recurring,
                 recurrence = RecurrenceRule(
                     unit = RecurrenceUnit.Weeks,
-                    weekdays = setOf(DayOfWeek.MONDAY, DayOfWeek.THURSDAY),
+                    weekdays = setOf(today.dayOfWeek, today.plusDays(3).dayOfWeek),
                     startDate = today,
                 ),
             ),
@@ -548,8 +548,11 @@ class VisualCatalogPagesTest {
 
     private fun waitForHome(expectedText: String = "Build Your Day") {
         compose.waitUntil(15_000L) {
-            compose.onAllNodesWithText(expectedText).fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithTag("home-list").fetchSemanticsNodes().isNotEmpty()
         }
+        compose.onNodeWithTag("home-list").performScrollToNode(
+            androidx.compose.ui.test.hasText(expectedText),
+        )
         compose.onNodeWithText(expectedText).assertIsDisplayed()
     }
 

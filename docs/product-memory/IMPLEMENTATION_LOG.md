@@ -1504,3 +1504,14 @@
 - Related: `FB-20260907-016`, `FND-20260907-026`, `DEC-20260907-012`, `VER-20260907-027`.
 - Verification: `VER-20260907-027`.
 - Status: Implemented, code-reviewed, and emulator-verified.
+
+### IMP-20260907-026 — One Set grammar across active execution and History
+
+- Behavior changed: Active passive/removed Sets and completed-workout History Sets now consume one `WorkoutSetInformationSurface`: `surfaceContainerHigh`, Whip's small shape, shared 12×10 dp inset, and 6 dp internal rhythm. History follows the same identity → values → status/effort → target order as the active workout, then appends read-only rest, tempo, unilateral, and note evidence.
+- Preserved distinctions: The active quick-entry composer remains a primary-tinted input workspace with edit, overflow, completion, and reorder controls. History remains read-only and preserves performed values, RPE/RIR, prescriptions, removal/substitution outcomes, equipment/setup, notes, and program snapshots. Exercise cards, Routine authorship surfaces, 5/3/1 generation/progression, and calculations are unchanged.
+- QA support changed: Added a 320 dp/200% expanded-History hierarchy/inset regression and a dedicated `gym.history.expanded` catalog owner. Hardened catalog startup against taller lazy-list cards and emulator weekday rollover, and corrected the remaining elapsed-Goal regression to Whip's owner-approved emoji-edge information row.
+- Persistence/product impact: Presentation, semantics, and Android QA only. Room schema 46, data epoch 6, exact backup version 26, package/version identity, workout data, completed history, and owner data are unchanged.
+- Commit/push: This coherent implementation/evidence chunk is committed and pushed before separate release versioning; its exact pushed identity is reconciled in the subsequent release record.
+- Related: `FB-20260907-015`, `FB-20260907-016`, `FB-20260907-017`, `FND-20260907-027`, `FND-20260907-028`, `DEC-20260907-011`, `DEC-20260907-013`, `VER-20260907-028`.
+- Verification: `VER-20260907-028`.
+- Status: Implemented, code-reviewed, two-emulator accepted, and visually verified; release remains in progress.

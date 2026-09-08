@@ -932,10 +932,9 @@ class ProductivityCardDesignUiTest {
         val elapsedIdentity = compose.onNodeWithTag("goal-icon-8", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         val elapsedTitle = compose.onNodeWithText("Days since smoking", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         val resetAction = compose.onNodeWithTag("goal-primary-action-8", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
-        assertTrue(kotlin.math.abs(elapsedMetric.left - elapsedTitle.left) <= 1f)
-        assertTrue(elapsedMetric.left >= elapsedIdentity.right)
-        assertTrue(elapsedMetric.top >= elapsedTitle.bottom - 1f)
-        assertTrue(elapsedMetric.bottom <= resetAction.bottom + 1f)
+        assertTrue(kotlin.math.abs(elapsedMetric.left - elapsedIdentity.left) <= 1f)
+        assertTrue(elapsedMetric.left <= elapsedTitle.left)
+        assertTrue(elapsedMetric.top >= maxOf(elapsedTitle.bottom, resetAction.bottom) - 1f)
         assertEquals(
             "Elapsed and milestone Goals must share the collapsed card geometry",
             height("goal-card-8").value,

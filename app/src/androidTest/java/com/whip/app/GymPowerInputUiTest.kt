@@ -1874,13 +1874,18 @@ class GymPowerInputUiTest {
         compose.onNodeWithText("Repeat Workout").assertExists()
         compose.onNodeWithText("Equipment: Rack A", substring = true).assertIsDisplayed()
         compose.onNodeWithText("Setup: Safety 8 · Bench 3").assertIsDisplayed()
+        compose.onNodeWithTag("history-set-identity-${sets.first().id}")
+            .assertTextContains("Set 1")
         compose.onNodeWithTag("history-set-performed-${sets.first().id}")
-            .assertTextContains("Performed · 85 kg × 7 reps")
+            .assertTextContains("85 kg × 7 reps")
+        compose.onNodeWithTag("history-set-status-${sets.first().id}")
+            .assertTextContains("AMRAP · Performed · RPE 9 · RIR 1")
         compose.onNodeWithTag("history-set-target-${sets.first().id}")
             .assertTextContains("85% TM", substring = true)
             .assertTextContains("82.5 kg entered", substring = true)
             .assertTextContains("5+ reps", substring = true)
-        compose.onNodeWithText("RPE 9 · RIR 1 · 3:00 rest · Tempo 3-1-1").assertIsDisplayed()
+        compose.onNodeWithTag("history-set-details-${sets.first().id}")
+            .assertTextContains("3:00 rest · Tempo 3-1-1")
         compose.onNodeWithText("Note · Strong set").assertIsDisplayed()
         compose.onAllNodesWithText("Copy Flat Barbell Bench Press Sets").assertCountEquals(0)
         compose.onAllNodesWithText("Edit Details").assertCountEquals(0)
@@ -1902,6 +1907,105 @@ class GymPowerInputUiTest {
             "Program snapshot · 5/3/1 · Cycle 3 · Anchor 1 · Anchor · Day 2 · Day progression 5 · Did not advance program progress",
             workoutProgramSnapshotLabel(session),
         )
+    }
+
+    @Test
+    fun historicalSetCardSharesActiveHierarchyAndInsetsAtLargeText() {
+        val exercise = testExercise().copy(id = 1, name = "Flat Barbell Bench Press")
+        val placement = testWorkoutExercise(exercise).copy(
+            id = 10,
+            exerciseId = exercise.id,
+            placementKindSnapshot = RoutinePlacementKind.MainExercise,
+        )
+        val set = testWorkoutSet(1, placement.id).copy(
+            completed = true,
+            classification = WorkoutSetClassification.Amrap,
+            enteredWeight = 85.0,
+            canonicalWeightKg = 85.0,
+            repetitions = 7,
+            rpe = 9.0,
+            rir = 1.0,
+            restSeconds = 180,
+            tempo = "3-1-1",
+            note = "Strong set",
+            workSectionSnapshot = RoutineWorkSection.Main,
+            prescribedEnteredWeight = 82.5,
+            prescribedWeightUnitId = "kilogram",
+            prescribedRepetitions = 5,
+            prescribedRepetitionsMax = 5,
+            prescriptionSourceLabel = "85% of explicit training max",
+        )
+        val session = testHistorySession()
+        var responsiveReview by mutableStateOf(true)
+        compose.setContent {
+            CompositionLocalProvider(
+                LocalDensity provides Density(
+                    compose.density.density,
+                    fontScale = if (responsiveReview) 2f else 1f,
+                ),
+            ) {
+                WhipTheme(darkTheme = true, dynamicColor = false) {
+                    androidx.compose.foundation.layout.Box(
+                        if (responsiveReview) Modifier.width(320.dp) else Modifier.fillMaxSize(),
+                    ) {
+                        WorkoutHistoryCard(
+                            session = session,
+                            workoutExercises = listOf(placement),
+                            sets = listOf(set),
+                            exerciseById = mapOf(exercise.id to exercise),
+                            expanded = true,
+                            archivedView = true,
+                            hasActiveWorkout = false,
+                            menuExpanded = false,
+                            onToggleExpanded = {},
+                            onMenuExpandedChange = {},
+                            onRepeatWorkout = {},
+                            onOpenActiveWorkout = {},
+                            onEditDetails = {},
+                            onResume = {},
+                            onSaveAsRoutine = {},
+                            onShare = {},
+                            onRestore = {},
+                            onDelete = {},
+                            onReuseExercise = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        val card = compose.onNodeWithTag("history-set-card-${set.id}").assertIsDisplayed()
+            .fetchSemanticsNode().boundsInRoot
+        val identity = compose.onNodeWithTag("history-set-identity-${set.id}", useUnmergedTree = true)
+            .assertTextContains("Main · Set 1").fetchSemanticsNode().boundsInRoot
+        val values = compose.onNodeWithTag("history-set-performed-${set.id}", useUnmergedTree = true)
+            .assertTextContains("85 kg × 7 reps").fetchSemanticsNode().boundsInRoot
+        val status = compose.onNodeWithTag("history-set-status-${set.id}", useUnmergedTree = true)
+            .assertTextContains("AMRAP · Performed · RPE 9 · RIR 1").fetchSemanticsNode().boundsInRoot
+        val target = compose.onNodeWithTag("history-set-target-${set.id}", useUnmergedTree = true)
+            .assertTextContains("explicit training max", substring = true).fetchSemanticsNode().boundsInRoot
+        val details = compose.onNodeWithTag("history-set-details-${set.id}", useUnmergedTree = true)
+            .assertTextContains("3:00 rest · Tempo 3-1-1").fetchSemanticsNode().boundsInRoot
+        val note = compose.onNodeWithTag("history-set-note-${set.id}", useUnmergedTree = true)
+            .assertTextContains("Note · Strong set").fetchSemanticsNode().boundsInRoot
+        check(
+            identity.bottom <= values.top &&
+                values.bottom <= status.top &&
+                status.bottom <= target.top &&
+                target.bottom <= details.top &&
+                details.bottom <= note.top,
+        ) {
+            "Historical Set hierarchy must match the active Set core at 200% text: " +
+                "identity=$identity values=$values status=$status target=$target details=$details note=$note"
+        }
+        val leadingInsetDp = (identity.left - card.left) / compose.density.density
+        check(leadingInsetDp in 11f..13f) {
+            "Historical Set must use the shared 12 dp leading inset: card=$card identity=$identity inset=$leadingInsetDp"
+        }
+
+        compose.runOnIdle { responsiveReview = false }
+        compose.waitForIdle()
+        captureVisualCatalogSurface("gym.history.expanded")
     }
 
     @Test

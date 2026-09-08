@@ -109,6 +109,7 @@ route:gym-workout-active	gym.workout.active	gym	page	active workout	com.whip.app
 state:531-workout-active	gym.531.workout.active	gym	page	active programmed workout	com.whip.app.GymFiveThreeOneJourneyE2ETest#generatedProgramPersistsStartsNextDayAndRendersProgrammedWorkout	capture	Generated 5/3/1 day with cycle, phase, prescription, and next-set context.
 state:routine-active-blocked	gym.routine.active-blocked	gym	page	active workout recovery	com.whip.app.GymFiveThreeOneJourneyE2ETest#generatedProgramPersistsStartsNextDayAndRendersProgrammedWorkout	capture	Routine detail exposes exactly one contextual path back to the active workout.
 route:gym-history	gym.history.populated	gym	page	populated	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Workout history.
+state:gym-history-expanded	gym.history.expanded	gym	page	expanded workout details	com.whip.app.GymPowerInputUiTest#historicalSetCardSharesActiveHierarchyAndInsetsAtLargeText	capture	Expanded workout history with passive Set evidence.
 route:gym-progress	gym.progress.populated	gym	page	populated	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Gym progress dashboard.
 route:gym-library	gym.library.landing	gym	page	populated	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Gym library hub.
 route:gym-routines	gym.routines.populated	gym	page	populated	com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog	capture	Routine library.
