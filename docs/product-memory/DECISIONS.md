@@ -950,3 +950,14 @@
 - Constraints and consequences: Data, calculations, routes, completion/log/reset/start behavior, Room schema 46, data epoch 6, and backup format 26 remain unchanged. Acceptance requires exact collapsed-height/alignment tests, large-text growth checks, representative Gym/Routine visuals, and a fresh Home catalog state.
 - Related: `FB-20260907-012`, `FND-20260907-021`, `DEC-20260907-004`, `DEC-20260907-005`, `DEC-20260907-007`.
 - Status: Verified; implemented in `IMP-20260907-017` and accepted in `VER-20260907-019`.
+
+### DEC-20260907-010 — Structural program choices must expose comparable consequences before selection
+
+- Context: 5/3/1 schedule layout changes the number and composition of training days, forced versus selected Supplemental work, assistance guidance, and whether arbitrary Exercises are allowed. The prior chip row communicated only names.
+- Decision: Render each available 5/3/1 layout as a selected choice card with concise, parallel supporting copy derived from the exact generator contract. Keep selected/state semantics and stable tags. When a long-term Leader/Anchor plan excludes the standalone Beginners layout, state that it is available under Classic cycle instead of silently hiding the reason.
+- Evidence and constraints: Four-Day generates one Squat, Bench Press, Deadlift, and Overhead Press day; Beginners generates three full-body days, forces FSL 5 × 5, and uses 50-rep automatic assistance drafts with 50–100-rep guidance; Custom creates one day per ordered compatible Exercise and does not require the standard four. Program generation, saved data, percentages, progression, history, schema 46, data epoch 6, and backup 26 must not change.
+- Failure modes: Overlong tutorial prose would bury the next action; a selected-only description would still prevent comparison; disabling an unsupported choice without explanation would look broken; copy that diverges from generation would be worse than no copy.
+- Why this is superior for Whip: The component weight now matches decision weight, all options are comparable at a glance, and users can choose confidently without external 5/3/1 knowledge while the editor remains scrollable and fully customizable.
+- Consequences / reversal conditions: The setup becomes modestly taller but more legible and interruption-resilient. Revisit only if an equally discoverable compact comparison pattern is proven on 320 dp/200% text.
+- Related: `FB-20260907-013`, `FB-20260907-014`, `FND-20260907-022`.
+- Status: Implemented and verified in `IMP-20260907-019` / `VER-20260907-021`.

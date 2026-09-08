@@ -41,10 +41,22 @@ internal enum class FiveThreeOneSupplement(val label: String) {
     BoringButStrong("Boring But Strong · 10 × 5"),
 }
 
-internal enum class FiveThreeOneProgramLayout(val label: String) {
-    FourDay("4-Day 5/3/1"),
-    Beginners("5/3/1 for Beginners"),
-    Custom("Choose Your Exercises"),
+internal enum class FiveThreeOneProgramLayout(
+    val label: String,
+    val supportingText: String,
+) {
+    FourDay(
+        "4-Day 5/3/1",
+        "4 days · Squat, Bench Press, Deadlift, and Overhead Press once each. Uses your chosen Main and Supplemental work; assistance stays editable by day.",
+    ),
+    Beginners(
+        "5/3/1 for Beginners",
+        "3 full-body days · Squat + Bench, Deadlift + Press, then Bench + Squat. Includes FSL 5 × 5 and guides 50–100 Push, Pull, and Single-leg/Core reps per day.",
+    ),
+    Custom(
+        "Choose Your Exercises",
+        "1 day per selected Weight + Reps exercise, in your order. Use any compatible exercises; the standard four are not required.",
+    ),
 }
 
 internal enum class FiveThreeOneProgramPlan(val label: String, val supportingText: String) {

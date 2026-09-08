@@ -1427,3 +1427,15 @@
 - Related: `FB-20260907-011`, `FB-20260907-012`, `FND-20260907-020`, `FND-20260907-021`, `DEC-20260907-009`, `IMP-20260907-017`, `VER-20260907-019`, `VER-20260907-020`.
 - Verification: `VER-20260907-020`.
 - Status: Released and device-verified as Whip 0.3.62/code 68; awaiting normal owner validation.
+
+### IMP-20260907-019 — Comparable 5/3/1 program-layout choices
+
+- Behavior changed: The 5/3/1 Routine Builder now explains each available schedule before selection. Four-Day states its four once-weekly main Exercises and editable Main/Supplemental structure; Beginners states its three full-body pairings, included FSL 5 × 5, and 50–100-rep assistance guidance; Custom states its one-day-per-selected-Exercise contract and freedom from the standard four.
+- Shared UI changed: Program presets and schedule layouts now consume one `FiveThreeOneProgramChoiceCard` rather than mixing explanatory cards with bare filter chips. Both groups share full-width geometry, title/support hierarchy, selected color, accessibility selected/state semantics, and stable test tags. Duplicated selected-only explanatory paragraphs were removed.
+- Compatibility boundary: A long-term Leader/Anchor plan continues to exclude the standalone Beginners template, but the UI now explains that Beginners is available by choosing Classic cycle. The exact generator remains authoritative; no schedule, percentage, Supplemental work, assistance generation, Training Max progression, or history behavior changed.
+- Regression coverage: `RoutineBuilderUiTest` requires all three Classic schedule choices and their exact supporting descriptions, requires Four-Day to be selected by default, and verifies at compact width/enlarged text that a long-term plan omits Beginners while exposing the recovery explanation.
+- Persistence/migration/history impact: Presentation model, Compose UI, and Android UI assertions only. Room schema 46, data epoch 6, exact-match backup version 26, current Routines, completed workouts, and owner data are unchanged.
+- QA/evidence: `VER-20260907-021`; focused accepted Gym gallery `/tmp/whip-gold-standard-531-layout-final2-20260907/index.html`.
+- Related: `FB-20260907-013`, `FB-20260907-014`, `FND-20260907-022`, `DEC-20260907-010`, `VER-20260907-021`.
+- Verification: `VER-20260907-021`.
+- Status: Implemented, code-reviewed, two-emulator accepted, and visually verified; whole-product acceptance and release remain in progress.

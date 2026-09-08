@@ -1345,24 +1345,15 @@ private fun FiveThreeOneProgramSetupDialog(
                 }
                 Text("1 · Program preset", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 FiveThreeOneProgramPlan.entries.forEach { choice ->
-                    OutlinedCard(
+                    FiveThreeOneProgramChoiceCard(
+                        label = choice.label,
+                        supportingText = choice.supportingText,
+                        selected = plan == choice,
                         onClick = { planName = choice.name },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .testTag("five-three-one-plan-${choice.name}")
-                            .semantics {
-                                selected = plan == choice
-                                stateDescription = if (plan == choice) "Selected" else "Not selected"
-                            },
-                        colors = CardDefaults.outlinedCardColors(
-                            containerColor = if (plan == choice) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
-                        ),
-                    ) {
-                        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(choice.label, fontWeight = FontWeight.SemiBold)
-                            Text(choice.supportingText, style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
+                            .testTag("five-three-one-plan-${choice.name}"),
+                    )
                 }
                 if (plan != FiveThreeOneProgramPlan.SingleCycle) {
                     Text(
@@ -1373,17 +1364,26 @@ private fun FiveThreeOneProgramSetupDialog(
                     )
                 }
                 Text("2 · Schedule and exercises", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FiveThreeOneProgramLayout.entries.filter { choice ->
-                        plan == FiveThreeOneProgramPlan.SingleCycle || choice != FiveThreeOneProgramLayout.Beginners
-                    }.forEach { choice ->
-                        WhipFilterChip(
-                            selected = layout == choice,
-                            onClick = { layoutName = choice.name },
-                            label = { Text(choice.label) },
-                            modifier = Modifier.testTag("five-three-one-layout-${choice.name}"),
-                        )
-                    }
+                FiveThreeOneProgramLayout.entries.filter { choice ->
+                    plan == FiveThreeOneProgramPlan.SingleCycle || choice != FiveThreeOneProgramLayout.Beginners
+                }.forEach { choice ->
+                    FiveThreeOneProgramChoiceCard(
+                        label = choice.label,
+                        supportingText = choice.supportingText,
+                        selected = layout == choice,
+                        onClick = { layoutName = choice.name },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("five-three-one-layout-${choice.name}"),
+                    )
+                }
+                if (plan != FiveThreeOneProgramPlan.SingleCycle) {
+                    Text(
+                        "5/3/1 for Beginners is a complete three-day Classic cycle layout. Choose Classic cycle above to use it.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag("five-three-one-beginners-plan-boundary"),
+                    )
                 }
                 Text("Training Max progression", style = MaterialTheme.typography.labelLarge)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1420,19 +1420,6 @@ private fun FiveThreeOneProgramSetupDialog(
                         onCheckedChange = { allowNonStandardHigherSuggestions = it },
                         supportingText = "Optional and non-standard. Two strong load-adjusted AMRAPs can support a small alternative without RPE/RIR; stronger corroboration can support more.",
                         testTag = "five-three-one-setup-allow-higher-suggestions",
-                    )
-                }
-                if (layout == FiveThreeOneProgramLayout.Beginners) {
-                    Text(
-                        "Mon Squat + Bench · Wed Deadlift + Press · Fri Bench + Squat. FSL 5 × 5 is included. Choose one Push, Pull, and Single-leg/Core movement each day; target 50–100 total reps in each category.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                } else if (layout == FiveThreeOneProgramLayout.Custom) {
-                    Text(
-                        "Choose one or more of your Weight + Reps exercises. Each selected exercise becomes its own training day in this order; the exercise does not need to be one of the four standard 5/3/1 exercises.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 if (layout == FiveThreeOneProgramLayout.Custom && eligible.isEmpty()) {
@@ -2108,6 +2095,42 @@ private fun FiveThreeOneProgramSetupDialog(
             },
             onCreate = onCreateExercise,
         )
+    }
+}
+
+@Composable
+private fun FiveThreeOneProgramChoiceCard(
+    label: String,
+    supportingText: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedCard(
+        onClick = onClick,
+        modifier = modifier.semantics {
+            this.selected = selected
+            stateDescription = if (selected) "Selected" else "Not selected"
+        },
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = if (selected) {
+                MaterialTheme.colorScheme.secondaryContainer
+            } else {
+                MaterialTheme.colorScheme.surface
+            },
+        ),
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(label, fontWeight = FontWeight.SemiBold)
+            Text(
+                supportingText,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

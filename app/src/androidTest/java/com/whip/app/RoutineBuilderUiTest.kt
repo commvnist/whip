@@ -64,6 +64,7 @@ import com.whip.app.domain.WorkoutSetDraft
 import com.whip.app.domain.massToKilograms
 import com.whip.app.ui.GymUiState
 import com.whip.app.ui.ExercisePickerDialog
+import com.whip.app.ui.FiveThreeOneProgramLayout
 import com.whip.app.ui.LocalWhipDialogPlacement
 import com.whip.app.ui.RoutineBuilderScreen
 import com.whip.app.ui.WhipDialogPlacement
@@ -159,6 +160,11 @@ class RoutineBuilderUiTest {
             .assertIsDisplayed()
         compose.onNodeWithTag("five-three-one-program-setup").assertIsDisplayed()
         compose.onNodeWithTag("five-three-one-plan-SingleCycle").assertIsSelected()
+        FiveThreeOneProgramLayout.entries.forEach { choice ->
+            compose.onNodeWithTag("five-three-one-layout-${choice.name}").assertExists()
+            compose.onNodeWithText(choice.supportingText).assertExists()
+        }
+        compose.onNodeWithTag("five-three-one-layout-FourDay").assertIsSelected()
         compose.onNodeWithTag("five-three-one-program-status")
             .assertTextContains("Still needed · Create the missing standard Weight + Reps exercises below, or choose your own exercises.")
         compose.onNodeWithTag("five-three-one-program-create").assertIsNotEnabled()
@@ -1225,6 +1231,11 @@ class RoutineBuilderUiTest {
             .performScrollTo()
             .assertIsDisplayed()
             .performClick()
+        compose.onAllNodes(hasTestTag("five-three-one-layout-Beginners")).assertCountEquals(0)
+        compose.onNodeWithTag("five-three-one-beginners-plan-boundary")
+            .performScrollTo()
+            .assertIsDisplayed()
+            .assertTextContains("Choose Classic cycle above to use it.", substring = true)
         compose.onNodeWithTag("five-three-one-protocol-PersonalRecordTest")
             .performScrollTo()
             .assertIsDisplayed()

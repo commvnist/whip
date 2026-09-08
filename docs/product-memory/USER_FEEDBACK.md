@@ -654,3 +654,23 @@ These records preserve durable user intent. “Released” means the change reac
 - Related: `FB-20260907-006`, `FB-20260907-008`, `FB-20260907-011`, `FND-20260907-015`, `FND-20260907-017`, `FND-20260907-020`, `DEC-20260907-005`, `DEC-20260907-007`, `DEC-20260907-008`, `IMP-20260907-011`, `IMP-20260907-014`, `VER-20260907-012`, `VER-20260907-015`, `VER-20260907-018`.
 - Status: Released and device-verified in place as Whip 0.3.62/code 68 with owner installation identity and data preserved.
 - Notes: Greenfield UI changes are authorized where they materially improve the long-term system. “Uniform size” is interpreted as shared geometry for equivalent information states, plus predictable responsive growth for richer content—not clipping or padding every card to one fixed pixel height regardless of content.
+
+### FB-20260907-013 — Complete Whip to a whole-product gold standard
+
+- Date/source: 2026-09-07, direct user goal supplied as an attached implementation specification.
+- User need: Treat the complete current Whip product as one coherent system and continue evidence-driven audit, root-cause remediation, regression testing, visual/accessibility review, durable recording, and release work until correctness, usability, design, customization, historical truth, and recovery are credibly exceptional rather than merely present or test-passing.
+- Acceptance criteria: Reconcile the complete current surface and journey inventory against source and reproducible emulator behavior; re-verify `FB-20260907-011` and `FB-20260907-012`; resolve every confirmed P0/P1 and implement or evidence-reject every major P2; preserve owner data, installation identity, completed history, and canonical 5/3/1 semantics; maintain one responsive design grammar without reviving density dialects or duplicate actions; protect contextual navigation, drafts, lifecycle recovery, accessibility, and adaptive layouts; add executable regressions for repaired defects; use proportionate fast QA with up to two disposable emulators and a fresh complete visual/semantic campaign; commit and push coherent verified batches; then build a higher-version signed private APK/AAB and install it in place on the explicitly selected owner phone with guarded identity, hash, launch, process, and bounded fatal/persistence verification, or provide the verified APK if the phone is unavailable.
+- Affected users/workflows: All Whip users and product areas, including first-use and returning Home, Tasks, Habits, Goals, Tracks, taxonomy, reminders, timers, focus, Gym, Routines, active workouts, History, Progress, 5/3/1, Settings, Health Connect, backup/restore/reset, widgets, notifications, external capture, compact/fold/tablet layouts, large text, RTL, keyboard, screen-reader, interruption, error, and recovery paths.
+- Related: `FB-20260907-002`, `FB-20260907-011`, `FB-20260907-012`, `FND-20260907-020`, `FND-20260907-021`, `DEC-20260907-009`, `IMP-20260907-017`, `IMP-20260907-018`, `VER-20260907-019`, `VER-20260907-020`.
+- Status: In progress.
+- Notes: Current 0.3.62/code 68 and its prior complete QA are the baseline, not proof of this new run. Instrumentation and destructive test state remain emulator-only; public Play Store qualification is out of scope.
+
+### FB-20260907-014 — Explain 4-Day 5/3/1 versus 5/3/1 for Beginners in the builder
+
+- Date/source: 2026-09-07, direct user question during normal evaluation of the 5/3/1 Routine Builder, reconciled into the current whole-product goal.
+- User need: Understand the practical difference between the 4-Day and Beginners layouts before selecting one, without needing external knowledge or trial-building both programs.
+- Acceptance criteria: Present comparable concise consequences for every schedule choice before selection, including weekly day/exercise structure, built-in Supplemental work, assistance expectations, arbitrary-Exercise behavior, and any plan compatibility boundary; keep the exact generated program authoritative; preserve compact/large-text scrollability and accessible selected-state semantics.
+- Affected users/workflows: New and returning 5/3/1 users choosing a Routine schedule, especially beginners and users deciding between a standard four-day template, the three-day Beginners template, and arbitrary custom Exercises.
+- Related: `FB-20260906-013`, `FB-20260907-013`, `FND-20260907-022`, `DEC-20260907-010`.
+- Status: Implemented, focused-tested on both disposable emulators, and visually accepted; included in the active whole-product release candidate.
+- Notes: The builder now presents all available layouts as parallel explanatory choice cards before selection. A long-term Leader/Anchor choice explicitly points users back to Classic cycle for the standalone Beginners layout.
