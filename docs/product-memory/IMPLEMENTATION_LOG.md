@@ -1514,4 +1514,14 @@
 - Commit/push: This coherent implementation/evidence chunk is committed and pushed before separate release versioning; its exact pushed identity is reconciled in the subsequent release record.
 - Related: `FB-20260907-015`, `FB-20260907-016`, `FB-20260907-017`, `FND-20260907-027`, `FND-20260907-028`, `DEC-20260907-011`, `DEC-20260907-013`, `VER-20260907-028`.
 - Verification: `VER-20260907-028`.
-- Status: Implemented, code-reviewed, two-emulator accepted, and visually verified; release remains in progress.
+- Status: Implemented, code-reviewed, two-emulator accepted, visually verified, and released in Whip 0.3.64/code 70 through `IMP-20260907-027`.
+
+### IMP-20260907-027 — Whip 0.3.64 cross-Gym consistency private release
+
+- Behavior changed: Advanced Whip from 0.3.63/code 69 to 0.3.64/code 70 and shipped the shared active/History Set information grammar, dedicated expanded-History regression/catalog state, and deterministic catalog/card QA corrections accepted in `VER-20260907-028`.
+- Artifact/signing: The signed optimized APK is `app/build/outputs/apk/release/app-release.apk` with direct handoff copy `/tmp/Whip-0.3.64-code70-private.apk`, SHA-256 `64052035aed2d77ec3afb618b84a6cbb84b42638cd7fd2213259657845fe34f1`, and size 4,308,945 bytes. The AAB SHA-256 is `01d063d867c99b76119810d396ca45ef9272b304fbe424caf5322cb99ff72cd3`, size 11,597,936 bytes, with clean archive integrity. Package remains `commvne.com.whip.app`; APK Signature Scheme v2 verifies with the established RSA-4096 signer certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`.
+- Persistence/history impact: Android performed streamed `install -r`; `firstInstallTime=2026-08-26 17:59:24` is unchanged and `lastUpdateTime=2026-09-08 00:45:20`. Room schema 46, data epoch 6, exact backup version 26, package identity, signer, installed data, completed history, and Routine/5/3/1 state are preserved. No reset, clear, uninstall, downgrade, fresh-start confirmation, or physical instrumentation occurred.
+- Commit/push: Accepted implementation/evidence source `565bc1a` and exact release source `33a01d6` were clean, pushed, and equal to `origin/main` before construction and installation; this release-evidence reconciliation is documentation-only.
+- Related: `FB-20260907-017`, `FND-20260907-027`, `FND-20260907-028`, `DEC-20260907-013`, `IMP-20260907-026`, `VER-20260907-028`, `VER-20260907-029`.
+- Verification: `VER-20260907-029`.
+- Status: Released and device-verified; normal owner use remains the final subjective validation channel.
