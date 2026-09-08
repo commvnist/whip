@@ -1364,6 +1364,18 @@
 - Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260831-018`, `FND-20260902-005`, `DEC-20260902-006`.
 - Status: Verified; resolved by `IMP-20260908-002` and accepted in `VER-20260908-002`.
 
+### FND-20260908-004 — Task saved-filter text query is persisted but cannot be authored
+
+- Severity/category: P2 discoverability, saved-filter completeness, dead state, and task-list efficiency.
+- Observed: The Task workspace owns a `textQuery` that filters Task titles, notes, and step text; renders an active `Query` chip; blocks unsafe manual reorder while active; persists in saved filters and exact backup; and is restored when a saved filter is selected. No Task page, menu, or filter-dialog control can set it. Only a query that already arrived through restored persistence can exercise the path.
+- Expected: The existing Task filter dialog exposes a clearly scoped current-list query that users can author, clear, and save with the rest of the filter recipe. Shell-level Task search remains the cross-state discovery owner.
+- Why it matters / affected users: Users cannot narrow a busy Today, Inbox, Upcoming, Completed, or Archived list by known words without abandoning context for global search. The UI also advertises durable saved-filter capability while making one of its persisted criteria impossible to create, leaving behavior and backup branches without ordinary interaction evidence.
+- Evidence: `TaskWorkspaceContent`'s `textQuery`, `SavedTaskFilter`, `ScheduledTask.matches`, active-filter and reorder constraints, filter reset/apply/save paths, current Task dialog semantics, and the fresh 184-surface two-emulator baseline in `/tmp/whip-whole-product-audit-baseline-20260908`.
+- Root cause: Text-query support was added to the saved-filter/domain model without a corresponding authoring control in the consolidated Task filter surface.
+- Recommended solution: Add one full-width current-list search field at the top of `Sort, Group & Filter Tasks`, with explicit scope, searchable-content guidance, and one-tap clearing; add dialog and filtered-list catalog states plus interaction semantics.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-003`, `DEC-20260902-006`.
+- Status: Verified; resolved by `IMP-20260908-003` and accepted in `VER-20260908-003`.
+
 ### FND-20260907-014 — One elapsed metric is rendered through two incompatible layout grammars
 
 - Severity/category: P1 real-use consistency, responsive hierarchy, and foldable layout.

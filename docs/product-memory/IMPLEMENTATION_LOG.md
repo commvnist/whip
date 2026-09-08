@@ -1545,3 +1545,13 @@
 - Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-003`, `DEC-20260908-002`, `VER-20260908-002`.
 - Verification: `VER-20260908-002`.
 - Status: Implemented, code-reviewed, two-emulator accepted, and visually verified; the whole-product goal remains in progress.
+
+### IMP-20260908-003 — Authorable current-list query in Task filters
+
+- Behavior changed: `Sort, Group & Filter Tasks` now starts with a full-width `Search Current List` field. It searches Task titles, notes, and step text through the existing matching path, names its local scope, offers one-tap clearing, and surfaces the existing active `Query` chip after application.
+- Scope boundary: The field completes the current-list and saved-filter recipe for Today, Inbox, Upcoming, Completed, and Archived. Shell-level Task search remains the cross-state discovery owner, and manual reorder remains correctly unavailable while narrowing criteria are active.
+- QA/catalog changed: Added `tasks.filter` and `tasks.today.filtered`, increasing the source-linked catalog from 184 to 186 surfaces. Focused semantics now authors a query and proves the matching Task remains reachable; the catalog journey also resets the query before continuing through every other Task destination.
+- Persistence/product impact: Compose UI and visual/interaction QA only. The pre-existing `SavedTaskFilter.textQuery`, Room schema 46, data epoch 6, exact backup version 26, Task data, package/version identity, and owner installation are unchanged. No physical phone was queried or mutated.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-004`, `DEC-20260908-003`, `VER-20260908-003`.
+- Verification: `VER-20260908-003`.
+- Status: Implemented, code-reviewed, two-emulator accepted, and visually verified; the whole-product goal remains in progress.

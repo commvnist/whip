@@ -1021,3 +1021,13 @@
 - Consequences / reversal conditions: The catalog gains one active local-search surface and real repository proof. Reconsider only if Whip replaces search/filter/sort with one unified per-collection query model that preserves both scopes and exact result routing.
 - Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-003`, `DEC-20260902-006`.
 - Status: Accepted.
+
+### DEC-20260908-003 — Task query belongs to the current-list filter recipe
+
+- Context: `FND-20260908-004` found a complete persisted Task-query path that cannot be authored. Tasks already consolidate sort, grouping, criteria, and saved recipes in one dialog, while the shell search deliberately owns broad Task-and-step discovery.
+- Options considered: Delete the dormant query from persistence; add an always-visible page field beside global search and the existing filter action; or expose the query as the first criterion in the existing Task filter dialog.
+- Decision: Put one full-width `Search Current List` field at the top of `Sort, Group & Filter Tasks`. It searches title, notes, and step text, offers immediate clearing, participates in the existing active-filter row and saved-filter model, and leaves global search unchanged.
+- Why this is superior for Whip: The placement makes the scope and persistence model self-evident, avoids competing search controls in the page chrome, and completes rather than fragments the established Task-filter workflow.
+- Consequences / reversal conditions: Every Task destination gains local narrowing through the same dialog. Manual reorder remains unavailable while a query is active. Reconsider only if Whip replaces dialog filters and shell search with a unified query model that preserves current-list scope, cross-state discovery, and saved recipes.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-004`, `DEC-20260902-006`.
+- Status: Accepted.

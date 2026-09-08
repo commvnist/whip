@@ -6865,6 +6865,25 @@ private fun TaskAreaContent(
                     modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    OutlinedTextField(
+                        value = textQuery,
+                        onValueChange = { textQuery = it },
+                        label = { Text("Search Current List") },
+                        placeholder = { Text("Titles, notes, or step text") },
+                        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                        trailingIcon = if (textQuery.isNotBlank()) {
+                            {
+                                IconButton(onClick = { textQuery = "" }) {
+                                    Icon(
+                                        Icons.Outlined.Close,
+                                        contentDescription = "Clear current-list search",
+                                    )
+                                }
+                            }
+                        } else null,
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().testTag("task-filter-query"),
+                    )
                     val sortOptions = when (destination) {
                         TaskDestination.Completed -> listOf("Smart", "Completion Date", "Priority", "Title")
                         TaskDestination.Archived -> listOf("Smart", "Archived Date", "Priority", "Title")

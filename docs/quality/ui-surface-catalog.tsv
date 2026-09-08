@@ -25,6 +25,8 @@ guard:launch-queue	shared.launch-queue-overflow	shared	dialog	queue full	com.whi
 guard:permanent-delete	shared.permanent-delete	shared	dialog	destructive confirmation	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Canonical permanent delete shell.
 route:tasks-today	tasks.today.populated	tasks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Today task list.
 state:tasks-card-expanded	tasks.today.expanded	tasks	page	expanded card	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Expanded Task information and action alignment.
+dialog:task-filter	tasks.filter	tasks	dialog	open	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Current-list Task query with sort, group, filters, and saved-filter controls.
+state:tasks-today-filtered	tasks.today.filtered	tasks	page	query active	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Today narrowed by a visible current-list query filter.
 route:tasks-today-empty	tasks.today.empty	tasks	page	empty	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Today task empty state.
 route:tasks-inbox	tasks.inbox.populated	tasks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Inbox task list.
 route:tasks-upcoming-list	tasks.upcoming.list	tasks	page	list	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Upcoming list planning view.
