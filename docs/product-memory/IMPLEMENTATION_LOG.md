@@ -1487,7 +1487,7 @@
 - Expanded-state result: Collapsed-only summaries are replaced by the richer expanded block instead of being duplicated. Persistent elapsed Goal status remains exactly once, and expanded Area badges, supporting text, and compact-width Edit actions now use the same identity edge. Existing action order, touch targets, card shell, click ownership, selection/reorder behavior, and domain-specific rich content are preserved.
 - Important files/symbols: `ProductivityItemHeader`, `ProductivityItemInformationColumn`, `ProductivityItemSupportingText`, `TaskRow`, `HabitProgressCard`, `GoalCard`, `TrackSummaryRow`, their geometry regressions, and `VisualCatalogPagesTest`. Four explicit expanded-card catalog states increase the declared inventory from 176 to 180; the representative Task fixture now exercises the complete “Scheduled · Sep 7, 2026 · Repeats · Mon, Thu” label.
 - Persistence/product impact: Presentation and QA catalog only. Room schema 46, data epoch 6, exact backup version 26, package/version identity, Tasks/Habits/Goals/Tracks, history, and owner data are unchanged. No physical-phone instrumentation, installation, reset, clear, uninstall, downgrade, or release occurred.
-- Commit/push: Implementation and evidence are ready for a coherent source commit; the exact pushed commit is recorded by the following memory reconciliation.
+- Commit/push: Exact implementation and evidence source `5207c88` is reachable on `origin/main`; this documentation-only reconciliation records that pushed identity.
 - Related: `FB-20260907-015`, `FND-20260907-025`, `DEC-20260907-011`, `VER-20260907-026`.
 - Verification: `VER-20260907-026`.
 - Status: Verified.
