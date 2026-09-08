@@ -734,3 +734,13 @@ These records preserve durable user intent. “Released” means the change reac
 - Related: `FB-20260908-001`, `FB-20260908-002`, `IMP-20260908-008`, `VER-20260908-008`, `DEC-20260906-003`.
 - Status: Released and device-verified.
 - Notes: Completed by `IMP-20260908-009` / `VER-20260908-009` as private Whip 0.3.65/code 71. The signed APK installed in place on the selected Samsung with package, signer, first-install identity, and owner data preserved; this was not Play Store candidate qualification or publication.
+
+### FB-20260908-004 — Qualify and publish the current Whip release through Google Play
+
+- Date/source: 2026-09-08, direct owner request immediately after the 0.3.65 private-phone release.
+- User need: Turn the current accepted Whip build into a Google Play release now, and keep the owner phone on the exact matching or higher build if qualification requires any application-source correction.
+- Acceptance criteria: Freeze and run one fresh `scripts/candidate` qualification against exact clean pushed source using up to the approved two explicit matching disposable emulators; require complete fresh JVM/Android coverage, static/lint/build gates, release APK/AAB/benchmark artifacts, source-drift rejection, and atomic checksummed evidence; independently verify the release bundle identity, version, signing, integrity, and store assets; upload the qualified AAB to Google Play and release it to the production track unless Play Console exposes a genuine blocking policy/account decision; do not claim publication from a local artifact alone; if any application source changes, advance to a higher version, repeat qualification, and install that exact signed update in place on the selected owner phone with the existing identity/data/smoke safeguards; record the candidate, Play Console result, and any remaining review/rollout state durably.
+- Affected users/workflows: All Play Store users, the complete Whip product, store listing/release state, and version parity with the owner's existing installation.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FB-20260908-003`, `DEC-20260904-003`, `DEC-20260906-003`, `IMP-20260908-008`, `IMP-20260908-009`, `VER-20260908-008`, `VER-20260908-009`.
+- Status: In progress.
+- Notes: Production publication is explicitly authorized. Existing 0.3.65/code 71 remains the intended candidate unless fresh qualification proves a source change is required.
