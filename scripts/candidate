@@ -6,6 +6,9 @@ readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 readonly EVIDENCE_ROOT="${PROJECT_ROOT}/build/candidate-evidence"
 readonly RELEASE_APP_ID='commvne.com.whip.app'
+readonly RELEASE_KEYSTORE="${WHIP_RELEASE_KEYSTORE_FILE:-/root/.android/whip/whip-release.jks}"
+readonly RELEASE_PASSWORD_FILE="${WHIP_RELEASE_PASSWORD_FILE:-/root/.android/whip/release-password.txt}"
+readonly RELEASE_KEY_ALIAS="${WHIP_RELEASE_KEY_ALIAS:-whip}"
 
 usage() {
     printf '%s\n' \
@@ -24,6 +27,34 @@ usage() {
 die() {
     printf 'error: %s\n' "$*" >&2
     exit 1
+}
+
+resolve_apksigner() {
+    if command -v apksigner >/dev/null 2>&1; then
+        command -v apksigner
+        return
+    fi
+    local sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/root/Android/Sdk}}"
+    local resolved
+    resolved="$(find "${sdk_root}/build-tools" -mindepth 2 -maxdepth 2 -name apksigner -type f -perm -u+x 2>/dev/null |
+        sort -V | tail -n 1)"
+    [[ -n "$resolved" ]] || die 'apksigner is unavailable; install Android SDK build tools'
+    printf '%s\n' "$resolved"
+}
+
+verify_release_artifact_signatures() {
+    local release_apk="$1" release_bundle="$2" apksigner_path bundle_result
+    apksigner_path="$(resolve_apksigner)"
+    "$apksigner_path" verify "$release_apk" >/dev/null 2>&1 ||
+        die 'candidate release APK signature verification failed'
+    command -v jarsigner >/dev/null 2>&1 || die 'jarsigner is unavailable'
+    command -v keytool >/dev/null 2>&1 || die 'keytool is unavailable'
+    bundle_result="$(jarsigner -verify "$release_bundle" 2>&1)" ||
+        die 'candidate release bundle signature verification failed'
+    [[ "$bundle_result" == *'jar verified.'* && "$bundle_result" != *'jar is unsigned.'* ]] ||
+        die 'candidate release bundle is unsigned'
+    keytool -printcert -jarfile "$release_bundle" >/dev/null 2>&1 ||
+        die 'candidate release bundle signer certificate is unreadable'
 }
 
 evidence_path=''
@@ -179,6 +210,8 @@ verify_evidence() {
     release_bundle_artifact=false
     benchmark_artifact=false
     declare -A artifact_paths=()
+    release_apk_path=''
+    release_bundle_path=''
     while IFS=$'\t' read -r recorded_hash artifact_path extra; do
         [[ -z "${extra:-}" && "$recorded_hash" =~ ^[0-9a-f]{64}$ &&
             -n "$artifact_path" && -z "${artifact_paths[$artifact_path]+x}" ]] ||
@@ -187,8 +220,14 @@ verify_evidence() {
         artifact_count="$((artifact_count + 1))"
         case "$artifact_path" in
             app/build/outputs/apk/debug/app-debug.apk) debug_artifact=true ;;
-            app/build/outputs/apk/release/*.apk) release_apk_artifact=true ;;
-            app/build/outputs/bundle/release/app-release.aab) release_bundle_artifact=true ;;
+            app/build/outputs/apk/release/app-release.apk)
+                release_apk_artifact=true
+                release_apk_path="$artifact_path"
+                ;;
+            app/build/outputs/bundle/release/app-release.aab)
+                release_bundle_artifact=true
+                release_bundle_path="$artifact_path"
+                ;;
             benchmark/build/outputs/apk/*.apk|benchmark/build/outputs/apk/*/*.apk) benchmark_artifact=true ;;
             *) die "candidate artifact path is not canonical: $artifact_path" ;;
         esac
@@ -203,6 +242,11 @@ verify_evidence() {
     [[ "$artifact_count" -eq 4 && "$debug_artifact" == true &&
         "$release_apk_artifact" == true && "$release_bundle_artifact" == true &&
         "$benchmark_artifact" == true ]] || die 'candidate artifact inventory is not canonical and complete'
+    if [[ "$source_only" != true ]]; then
+        verify_release_artifact_signatures \
+            "${PROJECT_ROOT}/${release_apk_path}" \
+            "${PROJECT_ROOT}/${release_bundle_path}"
+    fi
 
     "${SCRIPT_DIR}/repository-state" verify "$evidence_input" >/dev/null
     printf 'Accepted frozen-candidate evidence matches repository inputs%s: %s\n' \
@@ -239,6 +283,11 @@ emulator_set="$("${SCRIPT_DIR}/android-emulator-set")"
 mapfile -t candidate_emulator_serials <<< "$emulator_set"
 readonly -a candidate_emulator_serials
 cd "$PROJECT_ROOT"
+
+[[ -f "$RELEASE_KEYSTORE" ]] || die "release keystore not found at '$RELEASE_KEYSTORE'"
+[[ -f "$RELEASE_PASSWORD_FILE" ]] || die "release password file not found at '$RELEASE_PASSWORD_FILE'"
+IFS= read -r release_password < "$RELEASE_PASSWORD_FILE"
+[[ -n "$release_password" ]] || die 'release password file is empty'
 
 mkdir -p "${EVIDENCE_ROOT}/runs"
 pending_dir="$(mktemp -d "${EVIDENCE_ROOT}/.pending-XXXXXX")"
@@ -282,6 +331,10 @@ fi
 git diff --check
 require_frozen_inputs 'during static checks'
 
+WHIP_KEYSTORE_FILE="$RELEASE_KEYSTORE" \
+WHIP_KEYSTORE_PASSWORD="$release_password" \
+WHIP_KEY_ALIAS="$RELEASE_KEY_ALIAS" \
+WHIP_KEY_PASSWORD="$release_password" \
 ./gradlew \
     :app:createDebugUnitTestCoverageReport \
     :app:compileDebugAndroidTestKotlin \
@@ -299,13 +352,14 @@ merged_manifest="$(find app/build/intermediates/merged_manifests/debug -name And
     die 'debug merged manifest was not produced'
 cp -- "$merged_manifest" "${pending_dir}/merged-manifest.xml"
 
-release_apk="$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' -type f -print -quit)"
+release_apk='app/build/outputs/apk/release/app-release.apk'
 release_bundle='app/build/outputs/bundle/release/app-release.aab'
 release_metadata='app/build/outputs/apk/release/output-metadata.json'
 for release_artifact in "$release_apk" "$release_bundle" "$release_metadata"; do
     [[ -n "$release_artifact" && -s "$release_artifact" ]] ||
         die "expected release artifact is missing or empty: $release_artifact"
 done
+verify_release_artifact_signatures "$release_apk" "$release_bundle"
 cp -- "$release_metadata" "${pending_dir}/release-output-metadata.json"
 validate_retained_release_evidence "$pending_dir"
 require_frozen_inputs 'during JVM/static/build gates'

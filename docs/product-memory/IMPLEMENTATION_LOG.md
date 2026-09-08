@@ -1619,3 +1619,14 @@
 - Related: `FB-20260908-001`, `FB-20260908-002`, `FB-20260908-003`, `IMP-20260908-008`, `VER-20260908-008`, `VER-20260908-009`, `DEC-20260906-003`.
 - Verification: `VER-20260908-009`.
 - Status: Released and independently device-verified; normal owner use remains the final subjective validation channel.
+
+### IMP-20260908-010 — Signed frozen-candidate authority and Whip 0.3.66 staging
+
+- Release-gate behavior changed: `scripts/candidate` now requires the established protected release keystore/password boundary, passes it only to the release build, requires the canonical `app-release.apk` and `app-release.aab`, verifies APK signing with `apksigner`, verifies AAB signing and its readable certificate with `jarsigner`/`keytool`, and repeats those checks when retained artifacts are fully verified. Unsigned or wildcard fallback artifacts can no longer become accepted Play Store evidence.
+- Regression coverage changed: `scripts/test-candidate-evidence` supplies isolated signer doubles and proves both unsigned APK and unsigned AAB rejection while preserving source/artifact/checksum/manifest/freshness rejection coverage. The release assertion in `scripts/test-android-target-guard` now tracks staged Whip 0.3.66/code 72.
+- Version/release impact: Advanced application identity from 0.3.65/code 71 to 0.3.66/code 72 because the owner requires any source-adjusted store candidate to be re-released to the phone. Application behavior, package `commvne.com.whip.app`, Room schema 46, data epoch 6, exact backup version 26, and user data are unchanged.
+- Rejected evidence: The nominally accepted 0.3.65 evidence at `/root/repos/whip/build/candidate-evidence/runs/20260908T145545Z-2042661-739285e43ffd` is explicitly invalid for publication because it records `app-release-unsigned.apk` and an unsigned AAB. It remains preserved as failure evidence and must not be uploaded or cited as release authority.
+- Important files/symbols: `scripts/candidate`, `verify_release_artifact_signatures`, `scripts/test-candidate-evidence`, `scripts/test-android-target-guard`, and `app/build.gradle.kts`.
+- Related: `FB-20260908-004`, `FND-20260908-011`, `DEC-20260908-009`, `DEC-20260904-003`, `DEC-20260906-003`.
+- Verification: `VER-20260908-010`.
+- Status: Implemented and harness-verified; exact source commit/push, fresh signed candidate, owner-phone parity release, and Play Console publication remain in progress.

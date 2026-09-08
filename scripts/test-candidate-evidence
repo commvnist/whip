@@ -9,6 +9,7 @@ readonly OUTPUT="${TEST_ROOT}/output"
 trap 'rm -rf -- "$TEST_ROOT"' EXIT
 
 mkdir -p \
+    "${TEST_ROOT}/bin" \
     "${PROJECT}/scripts" \
     "${PROJECT}/app/build/outputs/apk/debug" \
     "${PROJECT}/app/build/outputs/apk/release" \
@@ -17,6 +18,27 @@ mkdir -p \
     "${PROJECT}/build/candidate-evidence/runs"
 cp -- "${SCRIPT_DIR}/candidate" "${SCRIPT_DIR}/repository-state" "${PROJECT}/scripts/"
 chmod 755 "${PROJECT}/scripts/candidate" "${PROJECT}/scripts/repository-state"
+printf '%s\n' \
+    '#!/usr/bin/env bash' \
+    'artifact="${!#}"' \
+    'grep -Fxq "signed release artifact" "$artifact"' \
+    > "${TEST_ROOT}/bin/apksigner"
+printf '%s\n' \
+    '#!/usr/bin/env bash' \
+    'artifact="${!#}"' \
+    'if grep -Fxq "signed bundle artifact" "$artifact"; then' \
+    '    printf "jar verified.\\n"' \
+    'else' \
+    '    printf "jar is unsigned.\\n"' \
+    'fi' \
+    > "${TEST_ROOT}/bin/jarsigner"
+printf '%s\n' \
+    '#!/usr/bin/env bash' \
+    'artifact="${!#}"' \
+    'grep -Fxq "signed bundle artifact" "$artifact"' \
+    > "${TEST_ROOT}/bin/keytool"
+chmod 755 "${TEST_ROOT}/bin/apksigner" "${TEST_ROOT}/bin/jarsigner" "${TEST_ROOT}/bin/keytool"
+export PATH="${TEST_ROOT}/bin:${PATH}"
 printf 'build/\n' > "${PROJECT}/.gitignore"
 printf 'frozen source\n' > "${PROJECT}/source.txt"
 printf '%s\n' 'android {' '    defaultConfig {' '        versionCode = 53' '    }' '}' \
@@ -31,8 +53,8 @@ printf '%s\n' 'android {' '    defaultConfig {' '        versionCode = 53' '    
 )
 
 printf 'debug artifact\n' > "${PROJECT}/app/build/outputs/apk/debug/app-debug.apk"
-printf 'release artifact\n' > "${PROJECT}/app/build/outputs/apk/release/app-release.apk"
-printf 'bundle artifact\n' > "${PROJECT}/app/build/outputs/bundle/release/app-release.aab"
+printf 'signed release artifact\n' > "${PROJECT}/app/build/outputs/apk/release/app-release.apk"
+printf 'signed bundle artifact\n' > "${PROJECT}/app/build/outputs/bundle/release/app-release.aab"
 printf 'benchmark artifact\n' > "${PROJECT}/benchmark/build/outputs/apk/benchmark/benchmark-benchmark.apk"
 input_manifest="${TEST_ROOT}/inputs.tsv"
 (cd "$PROJECT" && scripts/repository-state manifest "$input_manifest")
@@ -151,6 +173,34 @@ printf '%s\t%s\n' \
     > "${run_dir}/manifest.tsv"
 rewrite_checksums
 expect_success matching-two-emulator-v2-evidence "${PROJECT}/scripts/candidate" verify
+
+cp -- "${run_dir}/artifacts.tsv" "${TEST_ROOT}/signed-artifacts.tsv"
+printf 'unsigned release artifact\n' > "${PROJECT}/app/build/outputs/apk/release/app-release.apk"
+unsigned_apk_hash="$(sha256sum "${PROJECT}/app/build/outputs/apk/release/app-release.apk" | awk '{ print $1 }')"
+awk -F '\t' -v OFS='\t' -v replacement="$unsigned_apk_hash" \
+    '$2 == "app/build/outputs/apk/release/app-release.apk" { $1 = replacement } { print }' \
+    "${TEST_ROOT}/signed-artifacts.tsv" > "${run_dir}/artifacts.tsv"
+rewrite_checksums
+expect_failure rejects-unsigned-release-apk \
+    'candidate release APK signature verification failed' \
+    "${PROJECT}/scripts/candidate" verify
+printf 'signed release artifact\n' > "${PROJECT}/app/build/outputs/apk/release/app-release.apk"
+cp -- "${TEST_ROOT}/signed-artifacts.tsv" "${run_dir}/artifacts.tsv"
+rewrite_checksums
+
+printf 'unsigned bundle artifact\n' > "${PROJECT}/app/build/outputs/bundle/release/app-release.aab"
+unsigned_bundle_hash="$(sha256sum "${PROJECT}/app/build/outputs/bundle/release/app-release.aab" | awk '{ print $1 }')"
+awk -F '\t' -v OFS='\t' -v replacement="$unsigned_bundle_hash" \
+    '$2 == "app/build/outputs/bundle/release/app-release.aab" { $1 = replacement } { print }' \
+    "${TEST_ROOT}/signed-artifacts.tsv" > "${run_dir}/artifacts.tsv"
+rewrite_checksums
+expect_failure rejects-unsigned-release-bundle \
+    'candidate release bundle is unsigned' \
+    "${PROJECT}/scripts/candidate" verify
+printf 'signed bundle artifact\n' > "${PROJECT}/app/build/outputs/bundle/release/app-release.aab"
+cp -- "${TEST_ROOT}/signed-artifacts.tsv" "${run_dir}/artifacts.tsv"
+rewrite_checksums
+
 sed 's/^emulator_count\t2$/emulator_count\t3/' \
     "${run_dir}/manifest.tsv" > "${TEST_ROOT}/invalid-v2-manifest.tsv"
 mv -- "${TEST_ROOT}/invalid-v2-manifest.tsv" "${run_dir}/manifest.tsv"

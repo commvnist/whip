@@ -1089,3 +1089,12 @@
 - Consequences / reversal conditions: Organization begins with the Areas card and About begins with the Whip identity card. Wide Settings retains its sidebar-level destination context. Revisit only if detail content becomes independently embeddable without a visible destination title.
 - Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-009`.
 - Status: Verified in `IMP-20260908-006` / `VER-20260908-006`.
+
+### DEC-20260908-009 — Play Store candidate authority includes cryptographic upload readiness
+
+- Context: `FND-20260908-011` proved that complete tests, coverage, lint, builds, frozen inputs, and checksummed evidence can still produce an unusable public candidate when Gradle constructs unsigned release artifacts.
+- Decision: `scripts/candidate` must load Whip's established release/upload signing boundary before any public candidate build, require the exact canonical signed APK and AAB paths, cryptographically verify both artifacts before evidence publication, and repeat signature verification whenever retained artifacts are checked. An unsigned fallback is a failed candidate regardless of all other green evidence.
+- Why this is superior for Whip: Candidate acceptance then means the exact frozen bundle is both behaviorally qualified and uploadable, closing the gap between QA authority and Play Console reality without exposing credentials or weakening emulator-only instrumentation.
+- Consequences / reversal conditions: Candidate creation now requires the protected local keystore/password files already used by private releases; source-only evidence verification may omit local artifacts, but full verification cannot. Revisit only if signing moves to a separately attested remote build service whose signed output and certificate identity are bound into the same frozen evidence.
+- Related: `FB-20260908-004`, `FND-20260908-011`, `DEC-20260904-003`, `DEC-20260906-003`.
+- Status: Accepted, implemented, and harness-verified; fresh signed-candidate requalification is pending.

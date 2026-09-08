@@ -1460,6 +1460,18 @@
 - Related: `FB-20260907-004`, `FND-20260906-007`, `DEC-20260906-009`.
 - Status: Verified.
 
+### FND-20260908-011 — Frozen candidate accepts unsigned Play Store artifacts
+
+- Severity/category: P0 · public-release integrity, signing, and candidate-authority correctness.
+- Observed: The fresh 0.3.65/code 71 `scripts/candidate` run completed all 621 JVM and 967 Android tests and atomically published accepted evidence, but its artifact manifest selected `app-release-unsigned.apk`; independent `jarsigner`/`keytool` verification reported the candidate AAB as unsigned. The candidate invoked Gradle without the release-signing environment used by `scripts/device release-deploy` and treated any release APK plus any bundle as sufficient.
+- Expected: A Play Store candidate cannot be accepted unless its exact canonical release APK and AAB are signed with Whip's configured release/upload key, independently signature-verified, checksummed, and bound to the frozen source. Verification must reject unsigned or differently named fallback artifacts even when all tests and coverage pass.
+- Why it matters / affected users: Google Play rejects unsigned bundles, and an accepted evidence package that cannot be uploaded is not release authority. More importantly, silently accepting unsigned artifacts breaks the trust boundary between complete QA and publication.
+- Evidence: Rejected evidence `/root/repos/whip/build/candidate-evidence/runs/20260908T145545Z-2042661-739285e43ffd`; its `artifacts.tsv` records `app-release-unsigned.apk` and AAB SHA-256 `7e790296620803fa7970eb5756f8d0b57d62f009640e7393c894326d2bb3f633`; `jarsigner -verify` reports `jar is unsigned`, and `keytool -printcert -jarfile` reports no manifest.
+- Root cause: Private phone construction injects the keystore, alias, and password into Gradle, while the Play-only candidate path never loaded those credentials. Artifact discovery then used the first wildcard-matching APK and had no cryptographic acceptance check.
+- Recommended solution: Make candidate creation require the established release keystore/password boundary, build with that signing environment, require the exact `app-release.apk`, verify APK and AAB signatures before publishing evidence, reverify signatures with retained artifacts, and add unsigned-artifact rejection fixtures. Supersede the rejected evidence with a new full fresh candidate after advancing the public version.
+- Related: `FB-20260908-004`, `DEC-20260904-003`, `DEC-20260906-003`, `VER-20260908-008`, `VER-20260908-009`.
+- Status: Implemented and harness-verified; complete signed-candidate requalification is pending.
+
 ### FND-20260907-015 — Collection cards do not share one secondary-information anchor
 
 - Severity/category: P1 cross-product hierarchy, scanability, and responsive consistency.
