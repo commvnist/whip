@@ -1588,3 +1588,13 @@
 - Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-008`, `FND-20260908-009`, `DEC-20260908-007`, `DEC-20260908-008`.
 - Verification: `VER-20260908-006`.
 - Status: Verified; commit/push follows this memory reconciliation.
+
+### IMP-20260908-007 — Truthful residual Gym catalog states and production-faithful hosts
+
+- QA behavior changed: Routine Builder capture owners now prove the exact equipment chooser, quick-machine editor, rep-prescription editor, and classification menu before capture; sequential states also use the catalog's pixel-distinctness guard. Standalone rest, destructive review, required-Main confirmation, Workout History menu, expanded History, and Workout deletion owners now paint Whip's full dark application background instead of exposing the transparent Compose test canvas.
+- Product audit result: The complete Gym/Routines/5/3/1 source, domain, persistence, interaction, responsive, and visual review found no supported production behavior or design change beyond the evidence defects. Active execution and completed History retain the accepted shared nested-Set grammar; Routine authorship, machine interpretation, exact Set mutations, immutable history/prescriptions, generated Four-Day/Beginners/Custom programs, bounded adaptive Training Max review, deletion recovery, timers, and progress analytics remain intact.
+- Important files/symbols: `RoutineBuilderUiTest`, `GymPowerInputUiTest`, `WorkoutDeletionUiTest`, `gym.machine.choice`, `gym.quick-machine`, `gym.rep-scheme`, `gym.classification.menu`, and the standalone component catalog hosts.
+- Persistence/product impact: Android test state/evidence only. No production source, Room schema 46, data epoch 6, exact backup format 26, workout/Routine/5/3/1 data, calculations, package/version identity, or user data changed. No release or physical-phone operation occurred.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-010`, `DEC-20260908-004`.
+- Verification: `VER-20260908-007`.
+- Status: Verified; commit/push follows this memory reconciliation while final whole-product acceptance remains in progress.

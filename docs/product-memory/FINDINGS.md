@@ -1436,6 +1436,18 @@
 - Related: `FB-20260908-001`, `FB-20260908-002`, `DEC-20260908-008`.
 - Status: Verified; Organization and About now begin with their meaningful content identities while the page header remains the sole destination label. See `IMP-20260908-006` and `VER-20260908-006`.
 
+### FND-20260908-010 — Residual Gym catalog captures do not prove their declared state or theme
+
+- Severity/category: P1 QA truth, visual-state fidelity, and whole-product audit reliability.
+- Observed: In the fresh 48-surface Gym catalog, `gym.machine.choice` shows the preceding Routine placement editor, `gym.quick-machine` shows the equipment chooser, `gym.rep-scheme` shows the preceding Routine placement editor, and `gym.classification.menu` shows the rep-scheme dialog without its classification menu. Separately, standalone History and Gym confirmation/deletion/rest-dialog owners leave the Compose host transparent, so the deterministic dark-theme catalog exposes a white or gray test background around otherwise dark content.
+- Expected: Every declared Gym surface is captured only after an exact semantic assertion proves that state; sequential states fail if they never render distinctly; and component-hosted catalog evidence paints the same dark app background as production before dialogs or partial-width cards are shown.
+- Why it matters / affected users: These files are the audit evidence used to accept machine authoring, rep-scheme classification, History, rest controls, and destructive recovery. Existing filenames, hashes, and passing tests can otherwise claim coverage for a state that was never inspected, while artificial backgrounds obscure real contrast and modal hierarchy.
+- Evidence: Fresh gallery `/tmp/whip-goal-gym-audit-20260908/index.html`; exact PNG/XML content for the eight affected surfaces; immediate transition/capture sequences in `RoutineBuilderUiTest`; transparent component hosts in `GymPowerInputUiTest` and `WorkoutDeletionUiTest`; and the already accepted catalog contract in `DEC-20260908-004`.
+- Root cause: The residual Gym owners rely on generic idle synchronization without asserting the destination that a click should produce, and `WhipTheme` correctly supplies tokens but does not paint a root surface for standalone component tests.
+- Recommended solution: Assert the chooser/editor/dialog/menu state before every sequential capture, use the catalog's distinct-from guard for adjacent states, and wrap standalone catalog components in a full-size Material background without changing production UI behavior.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-005`, `DEC-20260908-004`.
+- Status: Verified; exact state assertions, adjacent-state distinctness guards, and production-faithful standalone hosts now make all 48 Gym captures truthful. See `IMP-20260908-007` and `VER-20260908-007`.
+
 ### FND-20260907-014 — One elapsed metric is rendered through two incompatible layout grammars
 
 - Severity/category: P1 real-use consistency, responsive hierarchy, and foldable layout.

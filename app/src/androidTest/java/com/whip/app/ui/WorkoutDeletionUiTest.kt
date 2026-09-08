@@ -2,7 +2,10 @@ package com.whip.app.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -113,17 +116,22 @@ class WorkoutDeletionUiTest {
     ) {
         compose.setContent {
             WhipTheme(dynamicColor = false) {
-                WorkoutPermanentDeleteDialog(
-                    workoutName = impact?.displayName.orEmpty(),
-                    impact = impact,
-                    targetMissing = false,
-                    preparing = impact == null && errorMessage == null,
-                    deleting = false,
-                    errorMessage = errorMessage,
-                    onDismiss = {},
-                    onReviewUpdatedImpact = onReviewUpdatedImpact,
-                    onConfirm = onConfirm,
-                )
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
+                    WorkoutPermanentDeleteDialog(
+                        workoutName = impact?.displayName.orEmpty(),
+                        impact = impact,
+                        targetMissing = false,
+                        preparing = impact == null && errorMessage == null,
+                        deleting = false,
+                        errorMessage = errorMessage,
+                        onDismiss = {},
+                        onReviewUpdatedImpact = onReviewUpdatedImpact,
+                        onConfirm = onConfirm,
+                    )
+                }
             }
         }
     }

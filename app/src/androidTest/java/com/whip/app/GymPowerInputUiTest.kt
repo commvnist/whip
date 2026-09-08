@@ -588,18 +588,23 @@ class GymPowerInputUiTest {
         )
         compose.setContent {
             WhipTheme(darkTheme = true, dynamicColor = false) {
-                RestTimerCard(
-                    session = session,
-                    remaining = null,
-                    selectedSeconds = 120,
-                    presetSeconds = DEFAULT_REST_TIMER_PRESET_SECONDS,
-                    notificationPermissionRequested = true,
-                    onSelectedSecondsChange = {},
-                    onPresetSecondsChange = {},
-                    onStart = { _, _ -> },
-                    onAdjust = { _, _ -> },
-                    onStop = {},
-                )
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
+                    RestTimerCard(
+                        session = session,
+                        remaining = null,
+                        selectedSeconds = 120,
+                        presetSeconds = DEFAULT_REST_TIMER_PRESET_SECONDS,
+                        notificationPermissionRequested = true,
+                        onSelectedSecondsChange = {},
+                        onPresetSecondsChange = {},
+                        onStart = { _, _ -> },
+                        onAdjust = { _, _ -> },
+                        onStop = {},
+                    )
+                }
             }
         }
 
@@ -716,37 +721,42 @@ class GymPowerInputUiTest {
                 LocalWhipDialogPlacement provides WhipDialogPlacement(maxWidth = 320.dp),
             ) {
                 WhipTheme(darkTheme = true, dynamicColor = false) {
-                    MachinePermanentDeleteDialog(
-                        modifier = Modifier.width(320.dp),
-                        machineName = "Downtown cable stack",
-                        impact = MachineDeletionImpact(
-                            machineId = 1,
-                            machineUuid = "machine-1",
-                            displayName = "Downtown cable stack",
-                            configurationVersion = 2,
-                            historicalPlacements = 9,
-                            completedSessions = 9,
-                            setCount = 46,
-                            firstWorkoutDate = LocalDate.of(2026, 1, 1),
-                            lastWorkoutDate = LocalDate.of(2026, 8, 1),
-                            activePlacements = 1,
-                            routineReferences = 2,
-                            routineNames = listOf("Push A", "Upper"),
-                            currentPersonalRecords = 3,
-                            siblingVersions = 2,
-                            revisionToken = "revision",
-                        ),
-                        targetMissing = false,
-                        preparing = false,
-                        deleting = false,
-                        errorMessage = null,
-                        onDismiss = {},
-                        onReviewUpdatedImpact = {},
-                        onConfirm = {},
-                        onReviewRoutines = {},
-                        onOpenActiveWorkout = {},
-                        onBackUpFirst = {},
-                    )
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background,
+                    ) {
+                        MachinePermanentDeleteDialog(
+                            modifier = Modifier.width(320.dp),
+                            machineName = "Downtown cable stack",
+                            impact = MachineDeletionImpact(
+                                machineId = 1,
+                                machineUuid = "machine-1",
+                                displayName = "Downtown cable stack",
+                                configurationVersion = 2,
+                                historicalPlacements = 9,
+                                completedSessions = 9,
+                                setCount = 46,
+                                firstWorkoutDate = LocalDate.of(2026, 1, 1),
+                                lastWorkoutDate = LocalDate.of(2026, 8, 1),
+                                activePlacements = 1,
+                                routineReferences = 2,
+                                routineNames = listOf("Push A", "Upper"),
+                                currentPersonalRecords = 3,
+                                siblingVersions = 2,
+                                revisionToken = "revision",
+                            ),
+                            targetMissing = false,
+                            preparing = false,
+                            deleting = false,
+                            errorMessage = null,
+                            onDismiss = {},
+                            onReviewUpdatedImpact = {},
+                            onConfirm = {},
+                            onReviewRoutines = {},
+                            onOpenActiveWorkout = {},
+                            onBackUpFirst = {},
+                        )
+                    }
                 }
             }
         }
@@ -803,19 +813,24 @@ class GymPowerInputUiTest {
                 LocalWhipDialogPlacement provides WhipDialogPlacement(maxWidth = 320.dp),
             ) {
                 WhipTheme(darkTheme = true, dynamicColor = false) {
-                    ExercisePermanentDeleteDialog(
-                        modifier = Modifier.width(320.dp),
-                        exerciseName = "Zercher squat",
-                        impact = exerciseDeletionImpact(activePlacements = 1, trainingMaxDecisionCount = 3),
-                        targetMissing = false,
-                        preparing = false,
-                        deleting = false,
-                        errorMessage = null,
-                        onDismiss = {},
-                        onReviewUpdatedImpact = {},
-                        onOpenActiveWorkout = { openedWorkout = true },
-                        onConfirm = {},
-                    )
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background,
+                    ) {
+                        ExercisePermanentDeleteDialog(
+                            modifier = Modifier.width(320.dp),
+                            exerciseName = "Zercher squat",
+                            impact = exerciseDeletionImpact(activePlacements = 1, trainingMaxDecisionCount = 3),
+                            targetMissing = false,
+                            preparing = false,
+                            deleting = false,
+                            errorMessage = null,
+                            onDismiss = {},
+                            onReviewUpdatedImpact = {},
+                            onOpenActiveWorkout = { openedWorkout = true },
+                            onConfirm = {},
+                        )
+                    }
                 }
             }
         }
@@ -839,28 +854,33 @@ class GymPowerInputUiTest {
     fun routineDeleteDialogBlocksActiveSourceAndKeepsWorkoutAndTrainingMaxHistory() {
         compose.setContent {
             WhipTheme(darkTheme = true, dynamicColor = false) {
-                RoutinePermanentDeleteDialog(
-                    routineName = "Custom 5/3/1",
-                    impact = RoutineDeletionImpact(
-                        routineId = 8,
-                        displayName = "Custom 5/3/1",
-                        activeSession = true,
-                        dayCount = 3,
-                        routinePlacementCount = 3,
-                        routineSetCount = 36,
-                        preservedWorkoutHistoryCount = 11,
-                        trainingMaxDecisionCount = 6,
-                        revisionToken = "routine-revision",
-                    ),
-                    targetMissing = false,
-                    preparing = false,
-                    deleting = false,
-                    errorMessage = null,
-                    onDismiss = {},
-                    onReviewUpdatedImpact = {},
-                    onOpenActiveWorkout = {},
-                    onConfirm = {},
-                )
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
+                    RoutinePermanentDeleteDialog(
+                        routineName = "Custom 5/3/1",
+                        impact = RoutineDeletionImpact(
+                            routineId = 8,
+                            displayName = "Custom 5/3/1",
+                            activeSession = true,
+                            dayCount = 3,
+                            routinePlacementCount = 3,
+                            routineSetCount = 36,
+                            preservedWorkoutHistoryCount = 11,
+                            trainingMaxDecisionCount = 6,
+                            revisionToken = "routine-revision",
+                        ),
+                        targetMissing = false,
+                        preparing = false,
+                        deleting = false,
+                        errorMessage = null,
+                        onDismiss = {},
+                        onReviewUpdatedImpact = {},
+                        onOpenActiveWorkout = {},
+                        onConfirm = {},
+                    )
+                }
             }
         }
 
@@ -1340,33 +1360,38 @@ class GymPowerInputUiTest {
         var submittedBoundary: WorkoutSetMutationBoundary? = null
         compose.setContent {
             WhipTheme(dynamicColor = false) {
-                val currentBoundary = latestBoundary.value
-                WorkoutExerciseCard(
-                    item = WorkoutExerciseUi(workoutExercise, exercise, listOf(mainSet), emptyList(), 0, null, null),
-                    preferredWeightUnitId = "kilogram",
-                    preferredDistanceUnitId = "kilometre",
-                    numberPrecision = 1,
-                    showRpe = false,
-                    showRir = false,
-                    nextSetId = null,
-                    nextInGroup = false,
-                    canMoveUp = false,
-                    canMoveDown = false,
-                    onMoveUp = {},
-                    onMoveDown = {},
-                    onRemoveExercise = {},
-                    onSubstituteExercise = {},
-                    onAddSet = {},
-                    onEditSet = {},
-                    onEditNotes = {},
-                    onCompleteSet = { _, _ -> },
-                    onSaveQuickSet = { _, _, _ -> },
-                    onDuplicateSet = {},
-                    captureSetBoundary = { currentBoundary },
-                    onDeleteSet = { submittedBoundary = it },
-                    onUndoDeleteSet = {},
-                    onReorderSets = {},
-                )
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
+                    val currentBoundary = latestBoundary.value
+                    WorkoutExerciseCard(
+                        item = WorkoutExerciseUi(workoutExercise, exercise, listOf(mainSet), emptyList(), 0, null, null),
+                        preferredWeightUnitId = "kilogram",
+                        preferredDistanceUnitId = "kilometre",
+                        numberPrecision = 1,
+                        showRpe = false,
+                        showRir = false,
+                        nextSetId = null,
+                        nextInGroup = false,
+                        canMoveUp = false,
+                        canMoveDown = false,
+                        onMoveUp = {},
+                        onMoveDown = {},
+                        onRemoveExercise = {},
+                        onSubstituteExercise = {},
+                        onAddSet = {},
+                        onEditSet = {},
+                        onEditNotes = {},
+                        onCompleteSet = { _, _ -> },
+                        onSaveQuickSet = { _, _, _ -> },
+                        onDuplicateSet = {},
+                        captureSetBoundary = { currentBoundary },
+                        onDeleteSet = { submittedBoundary = it },
+                        onUndoDeleteSet = {},
+                        onReorderSets = {},
+                    )
+                }
             }
         }
 
@@ -1836,27 +1861,32 @@ class GymPowerInputUiTest {
             var expanded by remember { mutableStateOf(false) }
             var menuExpanded by remember { mutableStateOf(false) }
             WhipTheme(darkTheme = true, dynamicColor = false) {
-                WorkoutHistoryCard(
-                    session = session,
-                    workoutExercises = placements,
-                    sets = sets,
-                    exerciseById = exercises.associateBy(Exercise::id),
-                    expanded = expanded,
-                    archivedView = false,
-                    hasActiveWorkout = false,
-                    menuExpanded = menuExpanded,
-                    onToggleExpanded = { expanded = !expanded },
-                    onMenuExpandedChange = { menuExpanded = it },
-                    onRepeatWorkout = {},
-                    onOpenActiveWorkout = {},
-                    onEditDetails = {},
-                    onResume = {},
-                    onSaveAsRoutine = {},
-                    onShare = {},
-                    onRestore = {},
-                    onDelete = {},
-                    onReuseExercise = {},
-                )
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
+                    WorkoutHistoryCard(
+                        session = session,
+                        workoutExercises = placements,
+                        sets = sets,
+                        exerciseById = exercises.associateBy(Exercise::id),
+                        expanded = expanded,
+                        archivedView = false,
+                        hasActiveWorkout = false,
+                        menuExpanded = menuExpanded,
+                        onToggleExpanded = { expanded = !expanded },
+                        onMenuExpandedChange = { menuExpanded = it },
+                        onRepeatWorkout = {},
+                        onOpenActiveWorkout = {},
+                        onEditDetails = {},
+                        onResume = {},
+                        onSaveAsRoutine = {},
+                        onShare = {},
+                        onRestore = {},
+                        onDelete = {},
+                        onReuseExercise = {},
+                    )
+                }
             }
         }
 
@@ -1945,30 +1975,35 @@ class GymPowerInputUiTest {
                 ),
             ) {
                 WhipTheme(darkTheme = true, dynamicColor = false) {
-                    androidx.compose.foundation.layout.Box(
-                        if (responsiveReview) Modifier.width(320.dp) else Modifier.fillMaxSize(),
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background,
                     ) {
-                        WorkoutHistoryCard(
-                            session = session,
-                            workoutExercises = listOf(placement),
-                            sets = listOf(set),
-                            exerciseById = mapOf(exercise.id to exercise),
-                            expanded = true,
-                            archivedView = true,
-                            hasActiveWorkout = false,
-                            menuExpanded = false,
-                            onToggleExpanded = {},
-                            onMenuExpandedChange = {},
-                            onRepeatWorkout = {},
-                            onOpenActiveWorkout = {},
-                            onEditDetails = {},
-                            onResume = {},
-                            onSaveAsRoutine = {},
-                            onShare = {},
-                            onRestore = {},
-                            onDelete = {},
-                            onReuseExercise = {},
-                        )
+                        androidx.compose.foundation.layout.Box(
+                            if (responsiveReview) Modifier.width(320.dp) else Modifier.fillMaxSize(),
+                        ) {
+                            WorkoutHistoryCard(
+                                session = session,
+                                workoutExercises = listOf(placement),
+                                sets = listOf(set),
+                                exerciseById = mapOf(exercise.id to exercise),
+                                expanded = true,
+                                archivedView = true,
+                                hasActiveWorkout = false,
+                                menuExpanded = false,
+                                onToggleExpanded = {},
+                                onMenuExpandedChange = {},
+                                onRepeatWorkout = {},
+                                onOpenActiveWorkout = {},
+                                onEditDetails = {},
+                                onResume = {},
+                                onSaveAsRoutine = {},
+                                onShare = {},
+                                onRestore = {},
+                                onDelete = {},
+                                onReuseExercise = {},
+                            )
+                        }
                     }
                 }
             }

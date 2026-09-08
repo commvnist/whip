@@ -1589,9 +1589,16 @@ class RoutineBuilderUiTest {
 
         compose.onNodeWithText("Machine bench", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("routine-equipment-picker").performClick()
+        compose.onNodeWithText("Choose Equipment").assertIsDisplayed()
+        compose.onNodeWithText("Quick-Create Machine for This Exercise").assertIsDisplayed()
         captureVisualCatalogSurface("gym.machine.choice")
-        compose.onNodeWithText("Quick-Create Machine for This Exercise").assertIsDisplayed().performClick()
-        captureVisualCatalogSurface("gym.quick-machine")
+        compose.onNodeWithText("Quick-Create Machine for This Exercise").performClick()
+        compose.onNodeWithTag("routine-quick-machine-name").assertIsDisplayed()
+        compose.onNodeWithTag("routine-quick-machine-create").assertIsDisplayed()
+        captureVisualCatalogSurface(
+            "gym.quick-machine",
+            visuallyDistinctFrom = "gym.machine.choice",
+        )
         compose.onNodeWithTag("routine-quick-machine-name").performTextInput("Home stack")
         compose.onNodeWithTag("routine-quick-machine-create").performClick()
 
@@ -1804,9 +1811,16 @@ class RoutineBuilderUiTest {
 
         compose.onNodeWithText("Bench", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("routine-add-rep-scheme").performClick()
+        compose.onNodeWithText("Add Rep Prescription Scheme").assertIsDisplayed()
+        compose.onNodeWithTag("rep-scheme-classification").assertIsDisplayed()
         captureVisualCatalogSurface("gym.rep-scheme")
         compose.onNodeWithTag("rep-scheme-classification").performClick()
-        captureVisualCatalogSurface("gym.classification.menu")
+        compose.onNodeWithText("Warm-up").assertIsDisplayed()
+        compose.onNodeWithText("AMRAP").assertIsDisplayed()
+        captureVisualCatalogSurface(
+            "gym.classification.menu",
+            visuallyDistinctFrom = "gym.rep-scheme",
+        )
     }
 
     private fun exercise(
