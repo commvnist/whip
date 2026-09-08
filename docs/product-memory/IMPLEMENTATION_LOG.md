@@ -1500,6 +1500,7 @@
 - Scope review: Workout History already uses bounded Set surfaces and Routine setup is an authored editor rather than an equivalent passive stream; both remain unchanged. Rest timer, next-set focus, program progression, 5/3/1 generation, and historical truth are unaffected.
 - Important files/symbols: `WorkoutExerciseCard`, `workoutExecutionIdentityLabel`, `workoutExecutionStatusLabel`, and `GymPowerInputUiTest#passiveWorkoutSetCardSeparatesIdentityValuesStatusAndTargetAtLargeText`.
 - Persistence/product impact: Presentation, semantics, and focused Android regression coverage only. Room schema 46, data epoch 6, exact backup version 26, workout/set data, package/version identity, and owner installation are unchanged. No release or physical-phone operation is part of this follow-up.
+- Commit/push: Exact implementation and accepted evidence source `ef73b42` is clean and reachable from `origin/main`; this reconciliation changes durable documentation only.
 - Related: `FB-20260907-016`, `FND-20260907-026`, `DEC-20260907-012`, `VER-20260907-027`.
 - Verification: `VER-20260907-027`.
 - Status: Implemented, code-reviewed, and emulator-verified.
