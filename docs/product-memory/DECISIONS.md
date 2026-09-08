@@ -1097,4 +1097,4 @@
 - Why this is superior for Whip: Candidate acceptance then means the exact frozen bundle is both behaviorally qualified and uploadable, closing the gap between QA authority and Play Console reality without exposing credentials or weakening emulator-only instrumentation.
 - Consequences / reversal conditions: Candidate creation now requires the protected local keystore/password files already used by private releases; source-only evidence verification may omit local artifacts, but full verification cannot. Revisit only if signing moves to a separately attested remote build service whose signed output and certificate identity are bound into the same frozen evidence.
 - Related: `FB-20260908-004`, `FND-20260908-011`, `DEC-20260904-003`, `DEC-20260906-003`.
-- Status: Accepted, implemented, and harness-verified; fresh signed-candidate requalification is pending.
+- Status: Accepted, implemented, and verified by the signed 0.3.66 candidate in `VER-20260908-012`.

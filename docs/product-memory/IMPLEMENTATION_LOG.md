@@ -1629,7 +1629,7 @@
 - Important files/symbols: `scripts/candidate`, `verify_release_artifact_signatures`, `scripts/test-candidate-evidence`, `scripts/test-android-target-guard`, and `app/build.gradle.kts`.
 - Related: `FB-20260908-004`, `FND-20260908-011`, `DEC-20260908-009`, `DEC-20260904-003`, `DEC-20260906-003`.
 - Verification: `VER-20260908-010`.
-- Status: Implemented and harness-verified; exact source commit/push, fresh signed candidate, owner-phone parity release, and Play Console publication remain in progress.
+- Status: Implemented and verified. Exact source was pushed, the signed 0.3.66 candidate passed, and owner-phone parity completed in `VER-20260908-012`; direct bundle handoff superseded Play Console publication.
 
 ### IMP-20260908-011 — Candidate tag-merge regression isolation
 
@@ -1638,4 +1638,14 @@
 - Failed evidence: The incomplete signed-candidate workspace at `/root/repos/whip/build/candidate-evidence/.pending-WiF6Wy` failed closed on the former five-second exact-global-list predicate. It is diagnostic failure evidence and is not eligible for upload.
 - Related: `FB-20260908-004`, `FND-20260908-012`, `IMP-20260908-010`, `VER-20260908-011`.
 - Verification: `VER-20260908-011`; one entirely fresh frozen candidate remains mandatory.
-- Status: Implemented and focused-stress verified; commit/push and complete candidate requalification remain in progress.
+- Status: Implemented, pushed in exact candidate source `65a6b3b`, and verified by the complete fresh candidate in `VER-20260908-012`.
+
+### IMP-20260908-012 — Whip 0.3.66 signed Play-bundle handoff and owner-phone parity
+
+- Release delivered: Qualified Whip 0.3.66/code 72 from exact pushed candidate source `65a6b3b` and produced the directly deliverable bundle `build/releases/Whip-0.3.66-code72-Play.aab`. The owner explicitly retained Play Console upload and publication, so no store mutation occurred.
+- Candidate/artifact result: Atomic evidence is `/root/repos/whip/build/candidate-evidence/runs/20260908T160827Z-2302537-d3b9c9c26dee`, input SHA-256 `d3b9c9c26deec86890e8163aa268b0472a3997e5baecf32dec43529872f8fe0e`. Signed AAB SHA-256 is `a75ec4c1650db4672cb583c6391934d172c6684800e8495c174c4839cfcfeeb6`, size 11,605,209 bytes. Matching signed APK SHA-256 is `ad37e283cc65dedf3167fff97d1d7144c004d466dc341c2a523a3f8ee2ff7fc1`, size 4,325,365 bytes. Both archives pass integrity; APK v2 and AAB JAR signing verify with established certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`.
+- Phone parity: Installed the exact matching signed APK with streamed `install -r` on selected Samsung `SM-F976W` at `192.168.2.187:39787`. Package remained `commvne.com.whip.app`; version is 0.3.66/code 72; `firstInstallTime=2026-08-26 17:59:24` remained unchanged; `lastUpdateTime=2026-09-08 12:09:50`. No reset, clear, uninstall, downgrade, or physical instrumentation occurred.
+- Persistence/product impact: Candidate/signing/test corrections and version identity only; app behavior and stored model remain unchanged. Room schema 46, data epoch 6, exact backup format 26, installed data, completed history, Routines, and 5/3/1 state were preserved.
+- Related: `FB-20260908-004`, `FB-20260908-005`, `FND-20260908-011`, `FND-20260908-012`, `DEC-20260908-009`, `IMP-20260908-010`, `IMP-20260908-011`.
+- Verification: `VER-20260908-012`.
+- Status: Candidate-qualified, directly handed off, and device-verified; Play upload/publication intentionally remains owner-managed.

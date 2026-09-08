@@ -742,5 +742,15 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Freeze and run one fresh `scripts/candidate` qualification against exact clean pushed source using up to the approved two explicit matching disposable emulators; require complete fresh JVM/Android coverage, static/lint/build gates, release APK/AAB/benchmark artifacts, source-drift rejection, and atomic checksummed evidence; independently verify the release bundle identity, version, signing, integrity, and store assets; upload the qualified AAB to Google Play and release it to the production track unless Play Console exposes a genuine blocking policy/account decision; do not claim publication from a local artifact alone; if any application source changes, advance to a higher version, repeat qualification, and install that exact signed update in place on the selected owner phone with the existing identity/data/smoke safeguards; record the candidate, Play Console result, and any remaining review/rollout state durably.
 - Affected users/workflows: All Play Store users, the complete Whip product, store listing/release state, and version parity with the owner's existing installation.
 - Related: `FB-20260908-001`, `FB-20260908-002`, `FB-20260908-003`, `DEC-20260904-003`, `DEC-20260906-003`, `IMP-20260908-008`, `IMP-20260908-009`, `VER-20260908-008`, `VER-20260908-009`.
-- Status: In progress.
-- Notes: Production publication is explicitly authorized. Existing 0.3.65/code 71 remains the intended candidate unless fresh qualification proves a source change is required.
+- Status: Superseded in part and otherwise fulfilled by `FB-20260908-005`, `IMP-20260908-012`, and `VER-20260908-012`.
+- Notes: Qualification exposed source changes, so Whip advanced to 0.3.66/code 72 and the matching phone update completed. The owner then explicitly replaced Play Console upload/publication with direct delivery of the qualified bundle; no store upload was performed.
+
+### FB-20260908-005 — Deliver the qualified Play bundle without uploading it
+
+- Date/source: 2026-09-08, direct owner refinement during 0.3.66 candidate qualification.
+- User need: Stop Play Console work and send the signed, candidate-qualified Android App Bundle directly for owner-managed upload.
+- Acceptance criteria: Complete the already-running fresh frozen candidate; independently verify exact AAB version, checksum, archive integrity, and signing; provide an unambiguous named `.aab` handoff; do not upload or publish it; retain the earlier requirement to update the selected owner phone because source changed.
+- Affected users/workflows: Owner-managed Google Play upload and parity of the selected Samsung installation with the handed-off bundle.
+- Related: `FB-20260908-004`, `IMP-20260908-010`, `IMP-20260908-011`, `IMP-20260908-012`, `VER-20260908-012`.
+- Status: Fulfilled.
+- Notes: The exact handoff is `build/releases/Whip-0.3.66-code72-Play.aab`; no Play Console upload or publication occurred.

@@ -1470,7 +1470,7 @@
 - Root cause: Private phone construction injects the keystore, alias, and password into Gradle, while the Play-only candidate path never loaded those credentials. Artifact discovery then used the first wildcard-matching APK and had no cryptographic acceptance check.
 - Recommended solution: Make candidate creation require the established release keystore/password boundary, build with that signing environment, require the exact `app-release.apk`, verify APK and AAB signatures before publishing evidence, reverify signatures with retained artifacts, and add unsigned-artifact rejection fixtures. Supersede the rejected evidence with a new full fresh candidate after advancing the public version.
 - Related: `FB-20260908-004`, `DEC-20260904-003`, `DEC-20260906-003`, `VER-20260908-008`, `VER-20260908-009`.
-- Status: Implemented and harness-verified; complete signed-candidate requalification is pending.
+- Status: Verified; resolved by the signed 0.3.66 candidate in `VER-20260908-012`.
 
 ### FND-20260907-015 — Collection cards do not share one secondary-information anchor
 
@@ -1642,6 +1642,6 @@
 - Expected: The regression should prove the mutation's actual contract: the receipt publishes the exact requested identities, the source is removed, and the destination remains. It must not require that no unrelated Tag can exist in the shared instrumentation process.
 - Why it matters / affected users: The product mutation remained correct, but an over-broad global-list predicate could reject an otherwise valid frozen public candidate after a long fresh campaign and obscure the difference between a product failure and shared-process test state.
 - Root cause: The assertion coupled an owned merge contract to exclusive repository contents and an asynchronous exact-list emission. That assumption is stronger than product behavior and vulnerable to unrelated late work in a long Android batch.
-- Resolution: Read the post-receipt repository snapshot and independently assert source absence and destination presence while retaining the exact receipt assertions. Ten consecutive focused executions passed; the exact fresh failed batch and complete signed candidate remain required before acceptance.
+- Resolution: Read the post-receipt repository snapshot and independently assert source absence and destination presence while retaining the exact receipt assertions. Ten consecutive focused executions passed, then the exact 76-test batch and complete 967-test fresh candidate passed in `VER-20260908-012`.
 - Related: `FB-20260908-004`, `IMP-20260908-010`, `VER-20260908-010`, `VER-20260908-011`.
-- Status: Implemented and focused-stress verified; full candidate requalification is pending.
+- Status: Verified; full candidate requalification passed in `VER-20260908-012`.
