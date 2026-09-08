@@ -90,6 +90,8 @@ route:tracks-archived	tracks.archived.populated	tracks	page	populated	com.whip.a
 state:track-archived-detail	tracks.archived.detail.entries	tracks	page	read-only history	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Populated archived Track detail with read-only Entry actions.
 route:tracks-insights	tracks.insights.populated	tracks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Cross-track insights.
 route:track-entries	tracks.detail.entries	tracks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Track entry list.
+state:track-entry-search	tracks.detail.search	tracks	page	local search	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Scoped per-Track Entry search with a matching result.
+state:track-entry-search-empty	tracks.detail.search.empty	tracks	page	local search empty	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Scoped per-Track Entry search with explicit no-match guidance.
 route:track-options	tracks.detail.options	tracks	page	configured	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Track configuration summary.
 route:track-insights	tracks.detail.insights	tracks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Single-track insights.
 route:track-unavailable	tracks.detail.unavailable	tracks	page	missing target	com.whip.app.TrackDefinitionMutationUiTest#captureTrackUnavailableCatalog	capture	Unavailable deep-link target.

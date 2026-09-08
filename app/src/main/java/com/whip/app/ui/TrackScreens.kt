@@ -1759,6 +1759,7 @@ private fun TrackEntriesPage(
     requestedReadOnlyEntryId: Long? = null,
     onReadOnlyEntryRequestConsumed: (Long) -> Unit = {},
 ) {
+    var searchVisible by rememberSaveable(projection.track.id) { mutableStateOf(false) }
     var query by rememberSaveable(projection.track.id) { mutableStateOf("") }
     var sort by rememberSaveable(projection.track.id) { mutableStateOf(TrackSort.EntryDate) }
     var sortDirection by rememberSaveable(projection.track.id) { mutableStateOf(SortDirection.Descending) }
@@ -1857,6 +1858,15 @@ private fun TrackEntriesPage(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.End,
             ) {
+                WhipPageIconAction(
+                    Icons.Outlined.Search,
+                    "Search Entries in ${projection.track.name}",
+                    {
+                        searchVisible = !searchVisible
+                        if (!searchVisible) query = ""
+                    },
+                    active = searchVisible || query.isNotBlank(),
+                )
                 WhipPageIconAction(Icons.Outlined.FilterAlt, "Filter Entries", { filterOpen = true }, badgeCount = conditions.size, active = conditions.isNotEmpty())
                 WhipPageIconAction(
                     Icons.AutoMirrored.Outlined.Sort,
@@ -1864,6 +1874,22 @@ private fun TrackEntriesPage(
                     { sortOpen = true },
                 )
             }
+        }
+        if (searchVisible) item {
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier.fillMaxWidth().testTag("track-entry-search"),
+                label = { Text("Search Entries") },
+                placeholder = { Text("Any recorded value") },
+                singleLine = true,
+                leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                trailingIcon = if (query.isNotEmpty()) {{
+                    IconButton(onClick = { query = "" }) {
+                        Icon(Icons.Outlined.Close, contentDescription = "Clear Search")
+                    }
+                }} else null,
+            )
         }
         if (conditions.isNotEmpty()) item {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

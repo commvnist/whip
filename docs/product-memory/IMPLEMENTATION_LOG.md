@@ -1535,3 +1535,13 @@
 - Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-001`, `FND-20260908-002`, `DEC-20260908-001`, `VER-20260908-001`.
 - Verification: `VER-20260908-001`.
 - Status: Implemented, code-reviewed, two-emulator accepted, and visually verified; the wider whole-product goal remains in progress.
+
+### IMP-20260908-002 — Reachable scoped search within one Track's Entries
+
+- Behavior changed: Every Track Entries page now exposes a compact Search action beside Filter and Sort. The accessible action names the current Track, expands a full-width `Search Entries` field, shows active state, supports one-tap clearing, and clears the query when closed. Matching, filtering, sorting, paging-mode switching, and no-match guidance continue through the pre-existing indexed repository path.
+- Scope boundary: This local search narrows the Track already being reviewed; shell-level `Search Tracks & Entries` remains the sole owner of cross-Track and archived discovery. Archived Entries can be searched and inspected but remain read-only under `IMP-20260908-001`.
+- QA/catalog changed: Added matching and explicit no-match Track-detail surfaces, increasing the declared catalog from 182 to 184. The real repository catalog journey exercises the field and result state, while the complete Tracks profile reconfirms FTS/fallback, large-history paging, filters, sorting, editors, CSV, lifecycle recovery, archive/history, and integrity boundaries.
+- Persistence/product impact: Compose UI and visual QA inventory only. Room schema 46, data epoch 6, exact backup version 26, Entry index/schema/content, Track/Entry identity, package/version, and user data are unchanged. No physical phone was queried or mutated.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-003`, `DEC-20260908-002`, `VER-20260908-002`.
+- Verification: `VER-20260908-002`.
+- Status: Implemented, code-reviewed, two-emulator accepted, and visually verified; the whole-product goal remains in progress.

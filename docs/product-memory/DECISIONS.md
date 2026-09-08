@@ -1011,3 +1011,13 @@
 - Consequences / reversal conditions: Active Track behavior is unchanged. Archived Entry changes require explicit Track restoration. Reconsider only if Whip introduces a separately designed historical-correction mode with explicit semantics and exact repository policy.
 - Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-001`, `FND-20260908-002`.
 - Status: Accepted.
+
+### DEC-20260908-002 — Local Entry search remains distinct from global Track discovery
+
+- Context: `FND-20260908-003` found that per-Track query, FTS, fallback, sorting, paging, and no-match logic are present but unreachable. Whip's existing `DEC-20260902-006` intentionally keeps local collection filtering separate from global Tracks & Entries discovery.
+- Options considered: Delete the dormant local query path and require global search; add another always-visible field competing with the shell search; or expose a compact scoped action beside Entry Filter and Sort that expands an in-page field only when requested.
+- Decision: Use the scoped expandable action. Its accessible label names the current Track, its field names Entries, closing it clears the query, and existing filter/sort/no-match behavior remains one coherent local collection state.
+- Why this is superior for Whip: Global search answers “where is this fact across Tracks?” while local search answers “which Entries in the Track I am reviewing match?” The compact action preserves page breathing room until needed and reuses the already bounded repository path.
+- Consequences / reversal conditions: The catalog gains one active local-search surface and real repository proof. Reconsider only if Whip replaces search/filter/sort with one unified per-collection query model that preserves both scopes and exact result routing.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-003`, `DEC-20260902-006`.
+- Status: Accepted.

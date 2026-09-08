@@ -1352,6 +1352,18 @@
 - Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260907-005`, `FND-20260902-005`, `DEC-20260902-006`.
 - Status: Verified; resolved by `IMP-20260908-001` and accepted in `VER-20260908-001`.
 
+### FND-20260908-003 — Per-Track Entry search is implemented but unreachable
+
+- Severity/category: P2 discoverability, dead state, large-history efficiency, and durable-memory drift.
+- Observed: `TrackEntriesPage` owns a saved query, debounced repository FTS lookup, bounded fallback, filtered sorting, no-match guidance, and paging-mode switch, but renders no action or field capable of changing the query. The Entries page exposes only Filter and Sort. Durable search policy explicitly preserves local per-Track Entry search, while the current catalog has no local-search state.
+- Expected: A Track's Entries page exposes one clearly scoped local search owner near Filter and Sort, makes its active state obvious, provides immediate clearing, and truthfully drives the existing indexed query path without competing with global cross-Track search.
+- Why it matters / affected users: Users with long logs cannot narrow one Track in context even though Whip pays the implementation and state complexity cost; filtering is a heavier substitute, and the dormant branch can decay without visual or interaction evidence.
+- Evidence: `TrackEntriesPage` query/search effects and `TrackRepository.searchEntryIds`; current active-detail screenshot and semantics; `DEC-20260902-006`, which deliberately distinguishes global cross-Track discovery from local collection filtering; current 182-surface catalog.
+- Root cause: The local search UI was never connected when the original Entries implementation landed, while later Track-list search cleanup correctly removed only the separate cross-Track dead query and assumed per-Track search remained reachable.
+- Recommended solution: Add a scoped Search Entries action and responsive text field using the existing query path; preserve Filter/Sort and archive read-only behavior; add a real-repository catalog interaction/capture and no-match semantics coverage.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260831-018`, `FND-20260902-005`, `DEC-20260902-006`.
+- Status: Verified; resolved by `IMP-20260908-002` and accepted in `VER-20260908-002`.
+
 ### FND-20260907-014 — One elapsed metric is rendered through two incompatible layout grammars
 
 - Severity/category: P1 real-use consistency, responsive hierarchy, and foldable layout.

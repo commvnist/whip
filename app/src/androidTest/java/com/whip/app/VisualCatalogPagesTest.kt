@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
@@ -295,6 +296,14 @@ class VisualCatalogPagesTest {
         compose.onNodeWithTag("track-destination-Track Insights")
             .assertTextContains("Track Insights")
         captureVisualCatalogSurface("tracks.detail.entries")
+        compose.onNodeWithContentDescription("Search Entries in Reading Log").performClick()
+        compose.onNodeWithTag("track-entry-search").performTextReplacement("Dispossessed")
+        compose.onNodeWithText("The Dispossessed").assertIsDisplayed()
+        captureVisualCatalogSurface("tracks.detail.search")
+        compose.onNodeWithTag("track-entry-search").performTextReplacement("No such book")
+        compose.onNodeWithText("No Matching Entries").assertIsDisplayed()
+        captureVisualCatalogSurface("tracks.detail.search.empty")
+        compose.onNodeWithContentDescription("Search Entries in Reading Log").performClick()
         compose.onNodeWithContentDescription("More Actions for The Dispossessed").performClick()
         compose.onNodeWithText("Delete Entry").assertIsDisplayed()
         compose.waitForIdle()
