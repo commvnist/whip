@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertContentDescriptionContains
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -356,13 +357,17 @@ class ActivityHistoryUiTest {
             }
         }
 
-        compose.onNodeWithText("Options").performClick()
+        compose.onNodeWithTag("habit-detail-section-Options").performClick()
+        compose.onNodeWithTag("habit-detail-section-Options").assertIsSelected()
+        compose.onNodeWithTag("entity-inspector-content-options").assertIsDisplayed()
+        compose.onNodeWithText("Schedule and availability").assertIsDisplayed()
         captureVisualCatalogSurface("habits.inspector.options")
-        captureVisualCatalogSurface("habits.actions")
         compose.onNodeWithTag("entity-inspector-action-pause-8").performScrollTo().assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(8L, editedPauseId) }
 
-        compose.onNodeWithText("History").performClick()
+        compose.onNodeWithTag("habit-detail-section-History").performClick()
+        compose.onNodeWithTag("habit-detail-section-History").assertIsSelected()
+        compose.onNodeWithTag("entity-inspector-content-history").assertIsDisplayed()
         compose.onNodeWithText("Habit History").assertIsDisplayed()
         captureVisualCatalogSurface("habits.inspector.history")
         compose.onNodeWithTag("entity-inspector-action-pause-history-9")

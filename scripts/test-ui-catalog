@@ -121,4 +121,18 @@ grep -Fq 'raw/shared.demo.page.xml' "${CAPTURE_FIXTURE}/index.html" || {
 }
 printf 'PASS dependency-free review report\n'
 
+printf '%s\n' \
+    $'shared.demo.dialog\tdeadbeef\t1\tfeedface\t1' \
+    >> "${CAPTURE_FIXTURE}/manifest.tsv"
+touch "${CAPTURE_FIXTURE}/raw/shared.demo.dialog.png" "${CAPTURE_FIXTURE}/raw/shared.demo.dialog.xml"
+if "${SCRIPT_DIR}/ui-catalog" report "$CAPTURE_FIXTURE" > "$OUTPUT" 2>&1; then
+    printf 'FAIL review accepted pixel-identical evidence for distinct surfaces\n' >&2
+    exit 1
+fi
+grep -Fq 'capture produced pixel-identical evidence for distinct surfaces: shared.demo.page, shared.demo.dialog' "$OUTPUT" || {
+    printf 'FAIL pixel-identical evidence rejection was not explained\n' >&2
+    exit 1
+}
+printf 'PASS pixel-identical catalog evidence fails closed\n'
+
 printf 'All UI catalog fixtures passed.\n'

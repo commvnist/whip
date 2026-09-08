@@ -65,7 +65,6 @@ dialog:habit-timer	habits.timer-review	habits	dialog	elapsed timer	com.whip.app.
 dialog:habit-history	habits.history-log	habits	dialog	view log	com.whip.app.ActivityHistoryUiTest#pastCheckInAsksWhatHappenedWithoutExposingStateOrValueStorageFields	capture	Habit history log detail.
 dialog:habit-history-edit	habits.history-log-edit	habits	dialog	edit log	com.whip.app.ActivityHistoryUiTest#editedHistoryDraftWaitsForItsExactOutcomeAndSurvivesFailure	capture	Editable past habit log.
 dialog:habit-pause	habits.pause-create	habits	dialog	new pause	com.whip.app.ui.VisualCatalogHabitComponentsTest#captureHabitComponentCatalog	capture	Habit pause scheduling.
-dialog:habit-actions	habits.actions	habits	dialog	open	com.whip.app.ActivityHistoryUiTest#inspectorMakesScheduledPausesEditableAndHistoricalSkipsUndoable	capture	Habit action menu dialog.
 dialog:habit-delete	habits.permanent-delete	habits	dialog	with impact summary	com.whip.app.ui.HabitDeletionUiTest#captureHabitDeletionCatalog	capture	Permanent habit deletion.
 menu:habit-row	habits.row.menu	habits	menu	open	com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog	capture	Habit row overflow actions.
 route:goals-active	goals.active.populated	goals	page	populated	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Active goals.

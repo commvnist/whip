@@ -1555,3 +1555,13 @@
 - Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-004`, `DEC-20260908-003`, `VER-20260908-003`.
 - Verification: `VER-20260908-003`.
 - Status: Implemented, code-reviewed, two-emulator accepted, and visually verified; the whole-product goal remains in progress.
+
+### IMP-20260908-004 — Truthful visual-catalog state and accessibility evidence
+
+- QA behavior changed: Catalog capture now sends a final accessibility content-change signal, evicts the platform accessibility cache on API 34+, refreshes the connected active-window tree, and only then exports hierarchy XML. Completed family/whole-product captures also fail closed when two declared surfaces have byte-identical PNG evidence.
+- Owner coverage changed: The Habit inspector owner proves the exact Options and History selected/content states before capture; the Goal page owner proves its overflow menu is displayed. The non-state-changing `habits.actions` alias was removed, leaving the canonical Options inspector and row-overflow menu as the two truthful action surfaces.
+- Catalog impact: The Task additions remain, while removal of the duplicate Habit alias changes the declared inventory from 186 to 185 distinct PNG/XML surface pairs. No product surface, user-facing behavior, or accessibility semantics were removed.
+- Persistence/product impact: Android test infrastructure, catalog accounting, and durable evidence only. Room schema 46, data epoch 6, exact backup version 26, package/version identity, app behavior, and user data are unchanged. Only disposable emulator execution occurred; no physical phone was queried or mutated.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-005`, `DEC-20260908-004`, `VER-20260908-004`.
+- Verification: `VER-20260908-004`.
+- Status: Implemented, code-reviewed, harness-verified, and accepted against complete Habit and Goal families; the whole-product goal remains in progress.

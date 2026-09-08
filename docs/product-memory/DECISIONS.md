@@ -1031,3 +1031,13 @@
 - Consequences / reversal conditions: Every Task destination gains local narrowing through the same dialog. Manual reorder remains unavailable while a query is active. Reconsider only if Whip replaces dialog filters and shell search with a unified query model that preserves current-list scope, cross-state discovery, and saved recipes.
 - Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-004`, `DEC-20260902-006`.
 - Status: Accepted.
+
+### DEC-20260908-004 — Catalog acceptance requires distinct pixels and current accessibility state
+
+- Context: `FND-20260908-005` found that the catalog can count a stale state twice, capture an unopened menu, and pair current screenshots with a preceding page's cached accessibility hierarchy.
+- Options considered: Rely on manual gallery review; add one-off waits to the two exposed tests; or strengthen both state owners and the shared collector so false evidence fails closed.
+- Decision: Use exact semantic assertions at transition-heavy owners, remove catalog aliases that represent no distinct current surface, force a final accessibility window-content event plus API-supported cache eviction and connected-tree refresh immediately before hierarchy export, and reject any completed capture whose PNG hash is shared by two declared surfaces.
+- Why this is superior for Whip: State-specific assertions prove intent, the collector fixes the cross-cutting cache boundary, and hash uniqueness prevents future coverage inflation without judging subjective similarity. Exact pixel identity cannot represent two distinct user-visible states.
+- Consequences / reversal conditions: Purely semantic variants must also provide a visible state if they are to count as separate visual catalog surfaces; nonvisual accessibility contracts remain ordinary interaction tests. Reconsider only if the catalog explicitly models a separate nonvisual evidence class with its own acceptance rules.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-005`, `DEC-20260906-005`.
+- Status: Accepted.

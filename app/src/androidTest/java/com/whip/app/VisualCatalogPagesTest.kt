@@ -259,6 +259,7 @@ class VisualCatalogPagesTest {
         compose.onNodeWithContentDescription("Collapse goal Sober").performClick()
         compose.waitForIdle()
         compose.onNodeWithContentDescription("More Goal Actions").performClick()
+        compose.onNodeWithTag("goal-browse-templates-menu-action").assertIsDisplayed()
         captureVisualCatalogSurface("goals.row.menu")
         compose.onNodeWithTag("goal-browse-templates-menu-action").performClick()
         compose.waitForIdle()

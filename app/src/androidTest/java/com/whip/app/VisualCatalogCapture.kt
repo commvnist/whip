@@ -2,11 +2,13 @@ package com.whip.app
 
 import android.content.ContentValues
 import android.graphics.Bitmap
+import android.os.Build
 import android.os.Environment
 import android.os.SystemClock
 import android.provider.MediaStore
 import android.view.Choreographer
 import android.view.ViewTreeObserver
+import android.view.accessibility.AccessibilityEvent
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
@@ -88,6 +90,7 @@ internal fun captureVisualCatalogSurface(
         screenshot.recycle()
     }
 
+    refreshAccessibilityHierarchy(surfaceId)
     val hierarchyFile = File(instrumentation.targetContext.cacheDir, "$surfaceId.xml")
     try {
         UiDevice.getInstance(instrumentation).dumpWindowHierarchy(hierarchyFile)
@@ -198,6 +201,50 @@ private fun waitForWindowDraw(surfaceId: String) {
     }
     check(windowDrawn.await(5L, TimeUnit.SECONDS)) {
         "The active window did not draw the requested state for $surfaceId"
+    }
+}
+
+private fun refreshAccessibilityHierarchy(surfaceId: String) {
+    val instrumentation = InstrumentationRegistry.getInstrumentation()
+    instrumentation.runOnMainSync {
+        val activity = checkNotNull(
+            ActivityLifecycleMonitorRegistry.getInstance()
+                .getActivitiesInStage(Stage.RESUMED)
+                .singleOrNull(),
+        ) { "Expected one resumed Activity while refreshing accessibility for $surfaceId" }
+        activity.window.decorView.sendAccessibilityEvent(
+            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED,
+        )
+    }
+    instrumentation.uiAutomation.waitForIdle(250L, 5_000L)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        instrumentation.uiAutomation.clearCache()
+    }
+    val root = checkNotNull(instrumentation.uiAutomation.rootInActiveWindow) {
+        "Android did not expose an accessibility root for $surfaceId"
+    }
+    check(root.refresh()) {
+        "Android could not refresh the accessibility hierarchy for $surfaceId"
+    }
+
+    // UiAutomator's hierarchy dumper asks UiAutomation for the window roots
+    // again, and that call can reuse descendant nodes cached before a fast
+    // Compose destination change. Refresh the connected tree so the cache that
+    // the dumper reads represents the same rendered state as the screenshot.
+    val pending = ArrayDeque<android.view.accessibility.AccessibilityNodeInfo>()
+    pending.add(root)
+    var refreshedNodes = 0
+    while (pending.isNotEmpty()) {
+        val node = pending.removeFirst()
+        refreshedNodes += 1
+        repeat(node.childCount) { index ->
+            node.getChild(index)?.let { child ->
+                if (child.refresh()) pending.add(child)
+            }
+        }
+    }
+    check(refreshedNodes > 1) {
+        "Android exposed an empty accessibility hierarchy for $surfaceId"
     }
 }
 

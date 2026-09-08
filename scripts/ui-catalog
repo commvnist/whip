@@ -191,6 +191,26 @@ lint_catalog() {
     fi
 }
 
+validate_distinct_capture_pixels() {
+    local manifest="$1"
+    local duplicate_pngs
+    duplicate_pngs="$(
+        awk -F '\t' '
+            NR > 1 {
+                count[$2]++
+                ids[$2] = ids[$2] (ids[$2] == "" ? "" : ", ") $1
+            }
+            END {
+                for (hash in count) {
+                    if (count[hash] > 1) print ids[hash]
+                }
+            }
+        ' "$manifest" | sort
+    )"
+    [[ -z "$duplicate_pngs" ]] ||
+        die "capture produced pixel-identical evidence for distinct surfaces: ${duplicate_pngs//$'\n'/; }"
+}
+
 write_review_report() {
     local capture_dir="$1"
     local report="$capture_dir/index.html"
@@ -198,6 +218,7 @@ write_review_report() {
     local manifest="$capture_dir/manifest.tsv"
     [[ -f "$capture_catalog" ]] || die "capture catalog not found: $capture_catalog"
     [[ -f "$manifest" ]] || die "capture manifest not found: $manifest"
+    validate_distinct_capture_pixels "$manifest"
 
     local surface_count
     surface_count="$(($(wc -l < "$manifest") - 1))"

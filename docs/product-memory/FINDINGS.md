@@ -1376,6 +1376,18 @@
 - Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-003`, `DEC-20260902-006`.
 - Status: Verified; resolved by `IMP-20260908-003` and accepted in `VER-20260908-003`.
 
+### FND-20260908-005 — The visual catalog accepts stale and duplicate state evidence
+
+- Severity/category: P1 QA truth, accessibility evidence, state-fidelity, and audit completeness.
+- Observed: The fresh whole-product baseline labels `habits.inspector.options` as the Options tab, but its PNG and XML show Today selected and today's check-in content. The same exact PNG/XML is also counted as the legacy `habits.actions` surface immediately afterward. `goals.row.menu` is byte-identical to `goals.active.populated`, even though its owner proceeds to a menu action after capture. Several rapid destination captures have current PNGs but XML frozen on the preceding destination—for example Goal History semantics are exported for History, Archived, and Insights, and Appearance semantics are exported for every Settings section.
+- Expected: Every declared surface is a distinct, truthful user-visible state; test owners prove the intended transition before capture; exact pixel duplicates fail closed; and the accessibility hierarchy is refreshed after the final rendered state rather than copied from an earlier window-content cache.
+- Why it matters / affected users: A passing 184/184 catalog can overstate coverage while omitting the exact Options/menu experience under review, and stale XML makes semantic/accessibility inspection point at the wrong page. Product defects can therefore survive an apparently exhaustive acceptance gate.
+- Evidence: Exact SHA-256 duplicate groups in `/tmp/whip-whole-product-audit-baseline-20260908/manifest.tsv`; original-resolution PNGs and XML for the surfaces above; immediate-click capture sequences in `ActivityHistoryUiTest` and `VisualCatalogPagesTest`; and hierarchy capture timing in `VisualCatalogCapture.kt`.
+- Root cause: Some owners capture immediately after an interaction without asserting the new selected/content state; the collector samples pixels after render synchronization but dumps UIAutomator hierarchy without a final accessibility-window invalidation/refresh; manifest assembly has no pixel-duplicate rejection; and a pre-inspector legacy Habit action alias remained counted beside the canonical Options tab.
+- Recommended solution: Assert exact selected/content/menu semantics before capture; remove the redundant legacy Habit surface; explicitly invalidate and refresh the accessibility window before dumping; reject byte-identical PNG evidence in a completed catalog; and add harness regression coverage.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `DEC-20260906-005`, `VER-20260908-003`.
+- Status: Verified; exact state assertions, removal of the redundant Habit alias, accessibility-cache eviction, recursive hierarchy refresh, and a completed-capture PNG duplicate guard now fail closed. See `IMP-20260908-004` and `VER-20260908-004`.
+
 ### FND-20260907-014 — One elapsed metric is rendered through two incompatible layout grammars
 
 - Severity/category: P1 real-use consistency, responsive hierarchy, and foldable layout.
