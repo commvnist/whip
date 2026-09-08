@@ -1634,3 +1634,14 @@
 - Resolution: Seed the recurring Task on the emulator's current weekday plus a second relative weekday; wait for and scroll the Home collection to the expected loaded evidence; bind the expanded-History catalog state to its dedicated owner; and assert elapsed Goal information below the header at the emoji edge. Exact replacements, the final Gym gallery, and device-independent readiness pass in `VER-20260907-028`.
 - Related: `FB-20260907-015`, `FB-20260907-017`, `DEC-20260907-011`, `DEC-20260907-013`.
 - Status: Verified.
+
+### FND-20260908-012 — Tag merge regression asserted exclusive global state after the owned mutation completed
+
+- Severity/category: P1 release-evidence reliability and Android integration-test isolation.
+- Observed: The fresh signed 0.3.66 candidate failed closed in Android batch 10 when `TagMutationViewModelTest.mergePublishesTheExactSourceAndDestination` timed out waiting five seconds for the complete global Tag list to equal only the destination ID. The owned merge had already returned a successful receipt with the exact source and destination IDs. The exact test then passed in isolation.
+- Expected: The regression should prove the mutation's actual contract: the receipt publishes the exact requested identities, the source is removed, and the destination remains. It must not require that no unrelated Tag can exist in the shared instrumentation process.
+- Why it matters / affected users: The product mutation remained correct, but an over-broad global-list predicate could reject an otherwise valid frozen public candidate after a long fresh campaign and obscure the difference between a product failure and shared-process test state.
+- Root cause: The assertion coupled an owned merge contract to exclusive repository contents and an asynchronous exact-list emission. That assumption is stronger than product behavior and vulnerable to unrelated late work in a long Android batch.
+- Resolution: Read the post-receipt repository snapshot and independently assert source absence and destination presence while retaining the exact receipt assertions. Ten consecutive focused executions passed; the exact fresh failed batch and complete signed candidate remain required before acceptance.
+- Related: `FB-20260908-004`, `IMP-20260908-010`, `VER-20260908-010`, `VER-20260908-011`.
+- Status: Implemented and focused-stress verified; full candidate requalification is pending.

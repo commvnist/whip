@@ -64,13 +64,9 @@ class TagMutationViewModelTest {
         assertEquals(TagMutationKind.Merge, receipt.kind)
         assertEquals(sourceId, receipt.tagId)
         assertEquals(targetId, receipt.relatedTagId)
-        val remainingIds = withTimeout(5_000) {
-            app.measurementRepository.tags
-                .filter { tags -> tags.map { it.id } == listOf(targetId) }
-                .first()
-                .map { it.id }
-        }
-        assertEquals(listOf(targetId), remainingIds)
+        val remainingIds = app.measurementRepository.tags.first().map { it.id }
+        assertFalse(remainingIds.contains(sourceId))
+        assertTrue(remainingIds.contains(targetId))
     }
 
     @Test

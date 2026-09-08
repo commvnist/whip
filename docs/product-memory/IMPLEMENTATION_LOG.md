@@ -1630,3 +1630,12 @@
 - Related: `FB-20260908-004`, `FND-20260908-011`, `DEC-20260908-009`, `DEC-20260904-003`, `DEC-20260906-003`.
 - Verification: `VER-20260908-010`.
 - Status: Implemented and harness-verified; exact source commit/push, fresh signed candidate, owner-phone parity release, and Play Console publication remain in progress.
+
+### IMP-20260908-011 — Candidate tag-merge regression isolation
+
+- QA behavior changed: `TagMutationViewModelTest.mergePublishesTheExactSourceAndDestination` now verifies the owned postcondition—exact receipt identities, removed source, retained destination—without requiring the entire shared-process Tag repository to contain no unrelated records.
+- Product/release impact: Android test source only. Application behavior, release APK/AAB contents apart from source provenance, Whip 0.3.66/code 72 identity, package/signer, Room schema 46, data epoch 6, backup format 26, and user data are unchanged.
+- Failed evidence: The incomplete signed-candidate workspace at `/root/repos/whip/build/candidate-evidence/.pending-WiF6Wy` failed closed on the former five-second exact-global-list predicate. It is diagnostic failure evidence and is not eligible for upload.
+- Related: `FB-20260908-004`, `FND-20260908-012`, `IMP-20260908-010`, `VER-20260908-011`.
+- Verification: `VER-20260908-011`; one entirely fresh frozen candidate remains mandatory.
+- Status: Implemented and focused-stress verified; commit/push and complete candidate requalification remain in progress.

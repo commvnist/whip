@@ -1742,3 +1742,12 @@
 - Counts/exclusions: This verifies the corrected harness behavior only. The rejected run's otherwise successful 1,588-test results cannot qualify its unsigned artifacts, and no partial reuse is allowed for the replacement Play Store candidate.
 - Related: `FB-20260908-004`, `FND-20260908-011`, `DEC-20260908-009`, `IMP-20260908-010`.
 - Status: Verified at the harness boundary; one complete fresh signed candidate remains required.
+
+### VER-20260908-011 — Candidate tag-merge regression diagnosis and focused stress
+
+- Scope/environment: The single Android regression that rejected the first signed 0.3.66 candidate attempt, using explicit disposable API 34 x86_64 `emulator-5554`. No physical phone was queried, selected, installed on, launched, reset, cleared, uninstalled, downgraded, or instrumented.
+- Failed-candidate result: The fresh candidate passed signing and build gates plus its first nine distributed Android batches, then batch 10 reported 76 tests with one failure and zero skips: `TagMutationViewModelTest.mergePublishesTheExactSourceAndDestination` timed out after its successful exact merge receipt while waiting for exclusive global Tag-list equality. Incomplete evidence is retained at `/root/repos/whip/build/candidate-evidence/.pending-WiF6Wy` and is not acceptance evidence.
+- Diagnostic/correction result: The exact pre-change test passed alone, confirming a batch-sensitive assertion boundary. The corrected test preserves exact source/destination receipt checks and directly proves source removal plus destination retention. It passed ten consecutive fresh Gradle instrumentation invocations with zero failures/skips; `git diff --check` passed.
+- Exclusions/residual risk: Direct manual replay of the surrounding visual batch was contaminated by a platform window left open by a prior notification-shade test, so it was stopped and excluded rather than misrepresented as product evidence. Only a clean complete `scripts/candidate` run can close the release boundary.
+- Related: `FB-20260908-004`, `FND-20260908-012`, `IMP-20260908-011`, `VER-20260908-010`.
+- Status: Focused correction verified; complete fresh signed candidate pending.
