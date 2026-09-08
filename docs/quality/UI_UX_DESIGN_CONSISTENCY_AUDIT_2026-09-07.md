@@ -115,3 +115,21 @@ signed private APK because the phone was unavailable; after the user restored
 connectivity, that exact artifact installed in place and passed the guarded
 device smoke recorded in `VER-20260907-017`. The physical verification remains
 release evidence rather than part of the emulator-based audit itself.
+
+## Gold-standard completion addendum
+
+The later whole-product completion run re-audited the same 176-state inventory
+from the clean, device-verified Whip 0.3.62/code 68 baseline. It confirmed the
+shared card and active-workout authorship fixes and found one additional product
+P2: the 5/3/1 builder rendered consequential Four-Day, Beginners, and custom
+schedule choices as unexplained chips. They now use one explanatory selected-card
+grammar that makes weekly structure, included supplemental work, assistance, and
+custom-exercise consequences comparable before selection; long-term plans also
+explain the standalone Beginners/Classic boundary.
+
+The final source passed all 621 JVM tests and all 963 Android tests fresh across
+two matching disposable emulators. The final exact catalog passed 65/65 owning
+tests and exported 176 PNG/XML pairs, all manually reviewed, with manifest
+SHA-256 `0e3cfb73b7743c8e686e7c7ea9c6788440cee4b91cd5976867e7c217ea5c547d`.
+See `IMP-20260907-022` and `VER-20260907-024` for complete evidence and explicit
+exclusions. No additional supported P0/P1/P2 remained after that review.

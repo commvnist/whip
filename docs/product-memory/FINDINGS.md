@@ -1453,4 +1453,4 @@
 - Root cause: `performClick` synchronizes Compose work, while IME dismissal and the full-window dialog's platform relayout complete asynchronously. The test asserted viewport intersection immediately instead of waiting for the stable visible state it intends to verify.
 - Recommended solution: Poll for the overlay's actual displayed assertion with a bounded five-second timeout before and after Back. Keep the visible-state requirement, submitted-count check, retained draft, retry-enabled failure state, and all production behavior unchanged; then rerun the exact class and complete fresh inventory.
 - Related: `FB-20260907-013`, `VER-20260907-023`.
-- Status: Focused verified in `IMP-20260907-021` / `VER-20260907-023`; complete fresh Android replacement remains pending.
+- Status: Verified. The focused replacement and complete class passed in `VER-20260907-023`, then the clean-source 963/963 Android replacement passed in `VER-20260907-024`.

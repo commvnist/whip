@@ -1458,4 +1458,14 @@
 - Persistence/product impact: Android test synchronization and durable QA memory only. No Room schema, data epoch, backup format, owner data, or release identity changed.
 - Related: `FB-20260907-013`, `FND-20260907-024`, `VER-20260907-023`.
 - Verification: `VER-20260907-023`.
-- Status: Implemented, focused-reviewed, and emulator-verified; complete fresh replacement remains pending.
+- Status: Implemented and fully emulator-verified; the complete clean-source 963-test replacement and final 176-surface acceptance passed in `VER-20260907-024`.
+
+### IMP-20260907-022 — Whole-product gold-standard acceptance candidate
+
+- Behavior changed: Completed the fresh whole-product audit from the device-verified 0.3.62 baseline. The only supported product P2 found in this run was the unexplained 5/3/1 schedule selector, now replaced by comparable explanatory choice cards for Four-Day, Beginners, and custom layouts. The complete gate also exposed and resolved stale test-inventory documentation and a loaded-suite Goal overlay synchronization race without changing production behavior.
+- Review result: Re-reviewed the complete declared 176-surface catalog across Shared, Tasks, Habits, Goals, Tracks, Gym/Routines/5/3/1, Settings, and Organization. Equivalent surfaces retain one responsive design grammar; specialized charts, editors, active workout input, pickers, and destructive reviews remain deliberate role-specific exceptions. No additional supported P0/P1/P2 remained after final visual, semantic, source, and behavior review.
+- Persistence/product impact: The 5/3/1 change is presentation-only and keeps exact generated program semantics authoritative. Room schema 46, data epoch 6, exact backup version 26, user data, completed history, routine/program state, and release identity are unchanged.
+- Commit/push: Product and regression changes are clean and reachable on `origin/main` at `95761df`; release versioning follows as a separate auditable chunk.
+- Related: `FB-20260907-013`, `FB-20260907-014`, `FND-20260907-022`, `FND-20260907-023`, `FND-20260907-024`, `DEC-20260907-010`, `IMP-20260907-019`, `IMP-20260907-020`, `IMP-20260907-021`, `VER-20260907-024`.
+- Verification: `VER-20260907-024`.
+- Status: Implemented, code-reviewed, and accepted for the higher-version private release lane.
