@@ -91,6 +91,11 @@ internal fun WhipColorField(
     }
 }
 
+private fun colorPickerPreviewName(value: Long?): String = when (value) {
+    null -> "Default"
+    else -> WhipColorPresets.firstOrNull { it.argb == opaqueColor(value) }?.name ?: "Custom"
+}
+
 /** One palette and one custom-color workflow shared by Areas, Habits, Goals, and Gym. */
 @Composable
 internal fun WhipColorPickerDialog(
@@ -149,9 +154,14 @@ internal fun WhipColorPickerDialog(
                 ) {
                     ColorPreview(selectedColor, Modifier.size(42.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(colorDisplayName(selectedColor), fontWeight = FontWeight.SemiBold)
+                        Text(
+                            colorPickerPreviewName(selectedColor),
+                            modifier = Modifier.testTag("color-picker-preview-name"),
+                            fontWeight = FontWeight.SemiBold,
+                        )
                         Text(
                             selectedColor?.let(::colorArgbToRgbHex) ?: "Uses the app default",
+                            modifier = Modifier.testTag("color-picker-preview-value"),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

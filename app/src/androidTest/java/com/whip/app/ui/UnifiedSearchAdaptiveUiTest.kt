@@ -133,10 +133,30 @@ class UnifiedSearchAdaptiveUiTest {
         compose.onNodeWithText("Couldn't load · Habits").assertIsDisplayed()
         compose.onNodeWithText("Results may be incomplete.").assertIsDisplayed()
         compose.onNodeWithText("No matches from loaded data yet.").assertIsDisplayed()
-        compose.onAllNodesWithText("No matching items").assertCountEquals(0)
+        compose.onAllNodesWithText("No matching items. Try another search or adjust Filters.")
+            .assertCountEquals(0)
         val announcement = compose.onNodeWithTag("unified-search-result-announcement")
             .fetchSemanticsNode().config
         assertFalse(announcement.contains(SemanticsProperties.ContentDescription))
+    }
+
+    @Test
+    fun settledEmptyStateNamesBothAvailableRecoveryActions() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                Box(Modifier.width(320.dp).height(480.dp)) {
+                    SearchWorkspaceForTest(
+                        modifier = Modifier.fillMaxSize(),
+                        resultCount = 0,
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithText("No matching items. Try another search or adjust Filters.")
+            .assertIsDisplayed()
+        compose.onNodeWithTag("unified-search-query").assertIsDisplayed()
+        compose.onNodeWithTag("search-filter-disclosure").assertIsDisplayed()
     }
 
     @Test

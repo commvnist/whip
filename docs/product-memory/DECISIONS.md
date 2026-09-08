@@ -1041,3 +1041,29 @@
 - Consequences / reversal conditions: Purely semantic variants must also provide a visible state if they are to count as separate visual catalog surfaces; nonvisual accessibility contracts remain ordinary interaction tests. Reconsider only if the catalog explicitly models a separate nonvisual evidence class with its own acceptance rules.
 - Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-005`, `DEC-20260906-005`.
 - Status: Accepted.
+
+### DEC-20260908-005 — Color identity and exact value separate only where the layout supports both
+
+- Context: `FND-20260908-006` found that the shared color picker repeats custom hex text because its two-line preview consumes a compact single-line formatter.
+- Position A: Change `colorDisplayName` globally to return only `Custom`, removing the duplicate in the dialog but also stripping exact identity from collapsed fields and accessibility descriptions.
+- Position B: Preserve the compact combined formatter for one-slot summaries and spoken identity, while giving the dialog's two-line preview a role-specific kind label above one exact value/explanation line.
+- Evidence and constraints: Areas, Habits, Goals, and Gym share the picker; preset names and exact RGB values are both useful; the existing field and `Color preview` semantics identify custom colors precisely; no persistence or color math changes are needed.
+- Failure modes: Removing the field's hex makes different custom colors indistinguishable by text; retaining the combined title repeats information; hiding the exact value behind Custom Color harms review; changing preview semantics would weaken existing accessibility identification.
+- Decision: Adopt Position B. The visual preview renders `Default`/preset name/`Custom` as identity and app-default guidance or one hex value as support. Existing combined field and color-swatch semantics remain exact. Stable preview tags expose the visible hierarchy to regression tests.
+- Why this is superior for Whip: Each context carries the same information once at the hierarchy its layout can support, improving scanability without trading away precision or accessibility.
+- Consequences / reversal conditions: Presentation and test semantics change only inside the two-line preview; saved values, preset selection, exact editing, and caller behavior remain unchanged. Revisit only if the color system gains another identity dimension that needs a richer preview model.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-006`.
+- Status: Verified in `IMP-20260908-005` / `VER-20260908-005`.
+
+### DEC-20260908-006 — Settled empty search states name the controls that recover them
+
+- Context: `FND-20260908-007` found that Unified Search reports a definitive zero result without connecting the user to the still-visible query and Filters recovery controls.
+- Position A: Keep `No matching items` as a minimal status and rely on control proximity.
+- Position B: Use one concise, actionable sentence for the settled empty state while retaining separate incomplete/loading language.
+- Evidence and constraints: Query editing and Filters are always available in compact and wide workspaces; filters may be collapsed; partial source failures cannot truthfully claim an exhaustive no-match result; copy must remain readable at compact width and 200% text.
+- Failure modes: Generic `Try again` copy does not identify what changes the result; implying a load failure is inaccurate; tutorial-length guidance overwhelms the empty surface; reusing definitive copy during partial loading hides uncertainty.
+- Decision: Adopt Position B: `No matching items. Try another search or adjust Filters.` Use it only after selected sources have settled, and retain the existing partial-data message for incomplete results.
+- Why this is superior for Whip: The message turns a dead result into two obvious next actions without adding controls, changing search logic, or obscuring data completeness.
+- Consequences / reversal conditions: Only settled-empty presentation and exact copy assertions change. Revisit if search and filtering become one combined control with a different recovery vocabulary.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-007`.
+- Status: Verified in `IMP-20260908-005` / `VER-20260908-005`.

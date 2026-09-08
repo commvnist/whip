@@ -1565,3 +1565,14 @@
 - Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-005`, `DEC-20260908-004`, `VER-20260908-004`.
 - Verification: `VER-20260908-004`.
 - Status: Implemented, code-reviewed, harness-verified, and accepted against complete Habit and Goal families; the whole-product goal remains in progress.
+
+### IMP-20260908-005 — Intentional shared color and search-empty hierarchies
+
+- Behavior changed: The shared two-line color preview now separates `Default`, a preset name, or `Custom` from its supporting app-default explanation or exact hex value, eliminating repeated custom hex text across Area, Habit, Goal, and Gym dialogs. Single-slot fields and spoken color-preview descriptions retain `Custom · #RRGGBB` precision. A fully settled Unified Search with zero results now says `No matching items. Try another search or adjust Filters.`; incomplete/loading source states retain their uncertainty-specific copy.
+- Important files/symbols: `WhipColorPickerDialog`, `colorPickerPreviewName`, `color-picker-preview-name`, `color-picker-preview-value`, `search_no_matches`, `InteractionControlUiTest`, `UnifiedSearchAdaptiveUiTest`, and `VisualCatalogSharedShellTest`.
+- Persistence/migration/history impact: None. Stored ARGB values, preset identities, color math, search indexing/filtering, routing, schema 46, data epoch 6, and backup format 26 are unchanged.
+- Compatibility and limitations: The change is shared by every existing color-picker caller and both compact/wide search layouts. It intentionally does not alter the compact field string or color-preview content description, because those contexts need exact identity in one slot. No release/version change or physical-device operation occurred.
+- Commit/push: Included in the owned shared-shell/organization source chunk; exact pushed SHA is authoritative in Git history.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-006`, `FND-20260908-007`, `DEC-20260908-005`, `DEC-20260908-006`.
+- Verification: `VER-20260908-005`.
+- Status: Verified; commit/push follows this memory reconciliation.

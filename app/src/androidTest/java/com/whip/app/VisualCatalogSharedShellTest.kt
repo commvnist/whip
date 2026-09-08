@@ -80,7 +80,8 @@ class VisualCatalogSharedShellTest {
 
             compose.onNodeWithTag("unified-search-query").performTextReplacement("No such Whip result")
             compose.waitUntil(10_000L) {
-                compose.onAllNodesWithText("No matching items").fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithText("No matching items. Try another search or adjust Filters.")
+                    .fetchSemanticsNodes().isNotEmpty()
             }
             compose.waitForIdle()
             captureVisualCatalogSurface("shared.search.empty")

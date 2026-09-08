@@ -1388,6 +1388,30 @@
 - Related: `FB-20260908-001`, `FB-20260908-002`, `DEC-20260906-005`, `VER-20260908-003`.
 - Status: Verified; exact state assertions, removal of the redundant Habit alias, accessibility-cache eviction, recursive hierarchy refresh, and a completed-capture PNG duplicate guard now fail closed. See `IMP-20260908-004` and `VER-20260908-004`.
 
+### FND-20260908-006 — Shared custom-color preview repeats one value as two labels
+
+- Severity/category: P2 product-wide visual hierarchy, information efficiency, and shared-component consistency.
+- Observed: When a non-preset color is selected, the shared color-picker preview renders `Custom · #RRGGBB` as its primary identity and repeats `#RRGGBB` immediately below it. Expanding Custom Color then exposes the same hex again in the editor. The duplication appears in every Area, Habit, Goal, and Gym caller because it originates in the shared dialog.
+- Expected: The preview separates color kind from exact value: `Default` plus its app-default explanation, a named preset plus its hex value, or `Custom` plus its hex value. Field summaries and accessibility descriptions may retain the compact combined `Custom · #RRGGBB` form where only one text slot exists.
+- Why it matters / affected users: Repeating an exact value wastes scarce dialog space, weakens the label/value hierarchy, and makes a polished shared control read like assembled implementation output rather than intentional product language.
+- Evidence: Fresh `shared.color-picker` and `organization.area.color` catalog review; `WhipColorPickerDialog` calls `colorDisplayName(selectedColor)` above a second `colorArgbToRgbHex(selectedColor)` line; `colorDisplayName` already embeds the hex for custom colors.
+- Root cause: One compact display formatter was reused for both single-line field/accessibility summaries and a two-line preview that has room to separate identity from value.
+- Recommended solution: Give the dialog preview a role-specific kind label while preserving the existing combined field and spoken descriptions; add exact preview-name/value semantics and regression assertions for default, preset, and custom states.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `DEC-20260908-005`.
+- Status: Verified; the dialog preview now renders one role label and one exact value/explanation while compact fields and accessibility retain exact custom identity. See `IMP-20260908-005` and `VER-20260908-005`.
+
+### FND-20260908-007 — Unified Search's settled empty state offers no recovery path
+
+- Severity/category: P2 search usability, empty-state guidance, and interruption recovery.
+- Observed: A settled zero-result search shows `Results · 0` and only `No matching items`, despite the adjacent query and Filters controls being the two available recovery paths. The loading/failure branch explains partial evidence, but the ordinary no-match branch does not tell a user what to try next.
+- Expected: The empty state remains concise while naming both direct recovery actions: change the search terms or adjust Filters. Partial/loading truth stays distinct and does not falsely claim a definitive empty result.
+- Why it matters / affected users: Zero results are a common corrective moment. A bare status forces users to infer which state is constraining the list, disproportionately slowing first-time, interrupted, and attention-limited workflows.
+- Evidence: Fresh `shared.search.empty` catalog state; `UnifiedSearchDialog` settled-empty branch; `search_no_matches` string resource; visible query and Filters controls in compact and wide layouts.
+- Root cause: The string reports an outcome but was not designed as an actionable empty-state message when filters and source scope were consolidated into the same workspace.
+- Recommended solution: Replace only the settled-empty copy with one short recovery sentence that names search and Filters; preserve the incomplete-source copy and add exact adaptive/catalog assertions.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `DEC-20260908-006`.
+- Status: Verified; the settled empty state now names search and Filters while incomplete-source presentation stays distinct. See `IMP-20260908-005` and `VER-20260908-005`.
+
 ### FND-20260907-014 — One elapsed metric is rendered through two incompatible layout grammars
 
 - Severity/category: P1 real-use consistency, responsive hierarchy, and foldable layout.

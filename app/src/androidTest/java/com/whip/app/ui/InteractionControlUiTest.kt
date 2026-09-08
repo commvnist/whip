@@ -697,14 +697,20 @@ class InteractionControlUiTest {
 
         compose.onNodeWithContentDescription("Color: Default. Choose color.").performClick()
         compose.onNodeWithTag("color-picker-dialog").assertIsDisplayed()
+        compose.onNodeWithTag("color-picker-preview-name").assertTextEquals("Default")
+        compose.onNodeWithTag("color-picker-preview-value").assertTextEquals("Uses the app default")
         compose.onNodeWithTag("color-preset-default").assertIsSelected()
         compose.onNodeWithTag("color-preset-blue").performClick().assertIsSelected()
+        compose.onNodeWithTag("color-picker-preview-name").assertTextEquals("Blue")
+        compose.onNodeWithTag("color-picker-preview-value").assertTextEquals("#315CB5")
         compose.onNodeWithTag("custom-color-toggle").performClick()
         compose.onNodeWithTag("custom-color-hex").performTextReplacement("#123456")
         compose.waitUntil(10_000) {
             compose.onAllNodesWithContentDescription("Color preview: Custom · #123456")
                 .fetchSemanticsNodes().isNotEmpty()
         }
+        compose.onNodeWithTag("color-picker-preview-name").assertTextEquals("Custom")
+        compose.onNodeWithTag("color-picker-preview-value").assertTextEquals("#123456")
         compose.onNodeWithTag("color-picker-apply").assertIsDisplayed().performClick()
 
         compose.waitUntil(10_000) {
