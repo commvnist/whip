@@ -674,3 +674,13 @@ These records preserve durable user intent. “Released” means the change reac
 - Related: `FB-20260906-013`, `FB-20260907-013`, `FND-20260907-022`, `DEC-20260907-010`.
 - Status: Implemented, focused-tested on both disposable emulators, and visually accepted; included in the active whole-product release candidate.
 - Notes: The builder now presents all available layouts as parallel explanatory choice cards before selection. A long-term Leader/Anchor choice explicitly points users back to Classic cycle for the standalone Beginners layout.
+
+### FB-20260907-015 — Give collection-card metadata its own full-width row
+
+- Date/source: 2026-09-07, direct owner feedback after normal use of Whip 0.3.63/code 69 and explicit clarification that titles remain left-aligned.
+- User need: Preserve the newly consistent cards, but stop squeezing status and scheduling information into the title/action lane. The emoji, left-aligned title, expand/collapse control, and completion or primary action should form one vertically centered header row; supporting information should occupy a separate row below it so values such as “Scheduled · Sep 7, 2026 · Repeats · Mon, Thu” remain readable rather than ellipsized.
+- Acceptance criteria: Apply one shared two-row grammar to equivalent Task, Habit, Goal, and Track collection cards; keep title text left-aligned and vertically centered with the identity and trailing controls; start the information row at the emoji's leading edge and use the full card content width; permit truthful responsive wrapping instead of forced one-line truncation; preserve equal top/bottom card padding and 48 dp controls; inspect and adjust expanded cards so metadata is neither duplicated nor misaligned and actions remain reachable at compact width and enlarged text; add exact geometry/content regressions and visually inspect affected collapsed and expanded surfaces.
+- Affected users/workflows: Home and Task/Habit/Goal/Track collections, expanded inline detail, selection and reorder states, long scheduling/recurrence labels, elapsed Goal status, compact phones, fold panes, and enlarged text.
+- Related: `FB-20260907-006`, `FB-20260907-012`, `FND-20260907-021`, `DEC-20260907-005`, `DEC-20260907-009`, `IMP-20260907-017`, `VER-20260907-019`.
+- Status: Investigating.
+- Notes: The requested alignment is start/left alignment within the title slot, not horizontally centered title text. A modest increase in collapsed height is explicitly accepted in exchange for complete, calmer information presentation.
