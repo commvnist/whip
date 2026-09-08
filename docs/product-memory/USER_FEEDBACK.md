@@ -732,5 +732,5 @@ These records preserve durable user intent. “Released” means the change reac
 - Acceptance criteria: Advance to the next higher private version; preserve package/signer identity, first-install identity, app data, history, routines, and 5/3/1 state; run the established fast private-phone readiness lane against the already complete emulator acceptance; commit and push exact release source before construction; build signed optimized APK/AAB artifacts; install the APK in place with no reset, clear, uninstall, downgrade, or physical instrumentation; verify version, artifact hash equality, signer continuity, successful cold launch, foreground MainActivity, live process, and absence of relevant fatal, persistence, database, or startup errors.
 - Affected users/workflows: The complete accepted Whip product and the owner's existing local data on the selected Samsung phone.
 - Related: `FB-20260908-001`, `FB-20260908-002`, `IMP-20260908-008`, `VER-20260908-008`, `DEC-20260906-003`.
-- Status: In progress.
-- Notes: This is a private owner-phone release, not Play Store candidate qualification or publication.
+- Status: Released and device-verified.
+- Notes: Completed by `IMP-20260908-009` / `VER-20260908-009` as private Whip 0.3.65/code 71. The signed APK installed in place on the selected Samsung with package, signer, first-install identity, and owner data preserved; this was not Play Store candidate qualification or publication.

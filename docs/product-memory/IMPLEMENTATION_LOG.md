@@ -1609,3 +1609,13 @@
 - Related: `FB-20260908-001`, `FB-20260908-002`, `FND-20260908-002` through `FND-20260908-010`, `IMP-20260908-001` through `IMP-20260908-007`.
 - Verification: `VER-20260908-008`.
 - Status: Implemented, code-reviewed, fully emulator-accepted, visually accepted, committed, and pushed; normal future owner feedback and any separately requested release remain outside this goal.
+
+### IMP-20260908-009 — Whip 0.3.65 whole-product overhaul private release
+
+- Behavior released: Advanced Whip from 0.3.64/code 70 to 0.3.65/code 71 and released the accepted whole-product overhaul from `IMP-20260908-008`, including exact archived Track inspection, scoped Track Entry and Task-list search, truthful color/search evidence, responsive backup decisions, and the fully accepted shared card, Gym Set, Routine, and 5/3/1 design system.
+- Artifact/signing: The signed optimized APK is `app/build/outputs/apk/release/app-release.apk` with direct handoff copy `/tmp/Whip-0.3.65-code71-private.apk`, SHA-256 `1e28139b74e07656e6d032b29cfad978bf6dfde1c1d697fd8816f41a22cd60e3`, and size 4,325,365 bytes. The signed AAB SHA-256 is `00b96c64d24732edd657a51ca59a10b7015ade80066918219c0d4bbad41ce100`, size 11,605,206 bytes. Both archives pass integrity checks; APK Signature Scheme v2 verifies with the established RSA-4096 certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`.
+- Persistence/history impact: Android performed streamed `install -r` on the explicitly selected Samsung `SM-F976W` at `192.168.2.187:39787`. `firstInstallTime=2026-08-26 17:59:24` is unchanged and `lastUpdateTime=2026-09-08 10:23:00`. Package `commvne.com.whip.app`, signer identity, Room schema 46, data epoch 6, exact backup version 26, installed data, completed history, routines, and 5/3/1 state were preserved. No reset, clear, uninstall, downgrade, fresh-start confirmation, Play Store action, or physical instrumentation occurred.
+- Commit/push: Exact release source `347257f` was clean, pushed, and equal to `origin/main` before artifact construction and installation. The earlier exact accepted product source is `3dd9268`; this release-evidence reconciliation is documentation-only.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `FB-20260908-003`, `IMP-20260908-008`, `VER-20260908-008`, `VER-20260908-009`, `DEC-20260906-003`.
+- Verification: `VER-20260908-009`.
+- Status: Released and independently device-verified; normal owner use remains the final subjective validation channel.
