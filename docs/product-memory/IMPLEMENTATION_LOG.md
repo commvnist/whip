@@ -1480,3 +1480,14 @@
 - Related: `FB-20260907-013`, `FB-20260907-014`, `IMP-20260907-022`, `VER-20260907-024`, `VER-20260907-025`.
 - Verification: `VER-20260907-025`.
 - Status: Released and device-verified; normal owner use remains the final subjective validation channel.
+
+### IMP-20260907-024 — Full-width productivity-card information rows
+
+- Behavior changed: Task, Habit, Goal, and ordinary Track collection cards now separate identity and actions from supporting information. Emoji, start-aligned title, disclosure, and completion/Log/Reset/Add action share one vertically centered 48 dp header row; concise metadata occupies a second content-driven row from the emoji edge to the card content edge and may wrap instead of ellipsizing.
+- Expanded-state result: Collapsed-only summaries are replaced by the richer expanded block instead of being duplicated. Persistent elapsed Goal status remains exactly once, and expanded Area badges, supporting text, and compact-width Edit actions now use the same identity edge. Existing action order, touch targets, card shell, click ownership, selection/reorder behavior, and domain-specific rich content are preserved.
+- Important files/symbols: `ProductivityItemHeader`, `ProductivityItemInformationColumn`, `ProductivityItemSupportingText`, `TaskRow`, `HabitProgressCard`, `GoalCard`, `TrackSummaryRow`, their geometry regressions, and `VisualCatalogPagesTest`. Four explicit expanded-card catalog states increase the declared inventory from 176 to 180; the representative Task fixture now exercises the complete “Scheduled · Sep 7, 2026 · Repeats · Mon, Thu” label.
+- Persistence/product impact: Presentation and QA catalog only. Room schema 46, data epoch 6, exact backup version 26, package/version identity, Tasks/Habits/Goals/Tracks, history, and owner data are unchanged. No physical-phone instrumentation, installation, reset, clear, uninstall, downgrade, or release occurred.
+- Commit/push: Implementation and evidence are ready for a coherent source commit; the exact pushed commit is recorded by the following memory reconciliation.
+- Related: `FB-20260907-015`, `FND-20260907-025`, `DEC-20260907-011`, `VER-20260907-026`.
+- Verification: `VER-20260907-026`.
+- Status: Verified.

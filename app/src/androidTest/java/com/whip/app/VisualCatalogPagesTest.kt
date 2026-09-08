@@ -23,6 +23,8 @@ import com.whip.app.domain.GoalStatus
 import com.whip.app.domain.GoalType
 import com.whip.app.domain.GymMachineDraft
 import com.whip.app.domain.HabitDraft
+import com.whip.app.domain.RecurrenceRule
+import com.whip.app.domain.RecurrenceUnit
 import com.whip.app.domain.RoutineDayDraft
 import com.whip.app.domain.RoutineDraft
 import com.whip.app.domain.RoutineExerciseDraft
@@ -34,6 +36,7 @@ import com.whip.app.domain.TrackFieldDraft
 import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.TrackValueDraft
 import com.whip.app.domain.WorkoutSetDraft
+import java.time.DayOfWeek
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
@@ -185,6 +188,11 @@ class VisualCatalogPagesTest {
     private fun captureTaskPages() {
         openPrimary("Tasks")
         captureVisualCatalogSurface("tasks.today.populated")
+        compose.onNodeWithContentDescription("Expand task Plan the week").performClick()
+        compose.waitForIdle()
+        captureVisualCatalogSurface("tasks.today.expanded")
+        compose.onNodeWithContentDescription("Collapse task Plan the week").performClick()
+        compose.waitForIdle()
         selectTag("task-destination-Inbox")
         captureVisualCatalogSurface("tasks.inbox.populated")
         selectTag("task-destination-Upcoming")
@@ -205,6 +213,11 @@ class VisualCatalogPagesTest {
     private fun captureHabitPages() {
         openPrimary("Habits")
         captureVisualCatalogSurface("habits.today.populated")
+        compose.onNodeWithContentDescription("Expand habit Morning medication").performClick()
+        compose.waitForIdle()
+        captureVisualCatalogSurface("habits.today.expanded")
+        compose.onNodeWithContentDescription("Collapse habit Morning medication").performClick()
+        compose.waitForIdle()
         compose.onNodeWithContentDescription("More Habit Actions").performClick()
         compose.onNodeWithText("Browse Templates").assertIsDisplayed()
         compose.waitForIdle()
@@ -225,6 +238,11 @@ class VisualCatalogPagesTest {
     private fun captureGoalPages() {
         openPrimary("Goals")
         captureVisualCatalogSurface("goals.active.populated")
+        compose.onNodeWithContentDescription("Expand goal Sober").performClick()
+        compose.waitForIdle()
+        captureVisualCatalogSurface("goals.active.expanded")
+        compose.onNodeWithContentDescription("Collapse goal Sober").performClick()
+        compose.waitForIdle()
         compose.onNodeWithContentDescription("More Goal Actions").performClick()
         captureVisualCatalogSurface("goals.row.menu")
         compose.onNodeWithTag("goal-browse-templates-menu-action").performClick()
@@ -243,6 +261,11 @@ class VisualCatalogPagesTest {
     private fun captureTrackPages(activeTrackId: Long) {
         openPrimary("Tracks")
         captureVisualCatalogSurface("tracks.all.populated")
+        compose.onNodeWithContentDescription("Expand Track Reading Log").performClick()
+        compose.waitForIdle()
+        captureVisualCatalogSurface("tracks.all.expanded")
+        compose.onNodeWithContentDescription("Collapse Track Reading Log").performClick()
+        compose.waitForIdle()
         compose.onNodeWithContentDescription("More Track Options").performClick()
         compose.onNodeWithText("Select Tracks").assertIsDisplayed()
         compose.waitForIdle()
@@ -366,7 +389,17 @@ class VisualCatalogPagesTest {
 
     private fun seedRepresentativeData(): SeededCatalogData = runBlocking {
         val today = app.clock.today()
-        app.taskRepository.create(TaskDraft("Plan the week", scheduleKind = ScheduleKind.Once, date = today))
+        app.taskRepository.create(
+            TaskDraft(
+                "Plan the week",
+                scheduleKind = ScheduleKind.Recurring,
+                recurrence = RecurrenceRule(
+                    unit = RecurrenceUnit.Weeks,
+                    weekdays = setOf(DayOfWeek.MONDAY, DayOfWeek.THURSDAY),
+                    startDate = today,
+                ),
+            ),
+        )
         app.taskRepository.create(TaskDraft("Sort the inbox"))
         app.taskRepository.create(
             TaskDraft("Prepare design review", scheduleKind = ScheduleKind.Once, date = today.plusDays(5)),

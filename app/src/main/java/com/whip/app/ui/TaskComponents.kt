@@ -198,7 +198,6 @@ fun TaskRow(
                     ProductivityItemSupportingText(
                         text = metadata.joinToString(" · "),
                         modifier = Modifier.testTag("task-metadata-${item.task.id}"),
-                        maxLines = 1,
                     )
                 }
             },

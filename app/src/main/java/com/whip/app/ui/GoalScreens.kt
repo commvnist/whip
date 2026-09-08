@@ -881,7 +881,6 @@ fun GoalCard(
                                 }
                             } ?: Modifier,
                         ),
-                    maxLines = 1,
                 )
             },
             expanded = disclosure.expanded,

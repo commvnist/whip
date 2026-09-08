@@ -1615,7 +1615,6 @@ private fun TrackSummaryRow(
                 ProductivityItemSupportingText(
                     text = "${projection.track.area} · ${quantityLabel(projection.entries.size, "Entry")}",
                     modifier = Modifier.testTag("track-card-status-${projection.track.id}"),
-                    maxLines = 1,
                 )
             },
             supportingContent = {

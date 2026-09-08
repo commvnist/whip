@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsDisplayed
@@ -27,10 +28,12 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.domain.Goal
@@ -184,7 +187,26 @@ class ProductivityCardDesignUiTest {
         }
         val supportingLefts = listOf("task-metadata-1", "habit-card-status-2", "goal-card-status-3").map(::left)
         titleLefts.forEach { assertEquals(titleLefts.first(), it, 0.5f) }
-        supportingLefts.forEach { assertEquals(titleLefts.first(), it, 0.5f) }
+        supportingLefts.forEach { assertEquals(identityLefts.first(), it, 0.5f) }
+        listOf(
+            listOf("task-icon-1", "task-card-title-1", "task-expand-1", "task-primary-action-1"),
+            listOf("habit-icon-2", "habit-card-title-2", "habit-expand-2", "habit-primary-action-2"),
+            listOf("goal-icon-3", "goal-card-title-3", "goal-expand-3", "goal-primary-action-3"),
+        ).forEach { rowTags ->
+            val centers = rowTags.map(::verticalCenter)
+            centers.drop(1).forEach { center ->
+                assertEquals("Header content must share one vertical center: $rowTags", centers.first(), center, 0.5f)
+            }
+        }
+        val taskCard = compose.onNodeWithTag("task-card-1", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val taskHeader = compose.onNodeWithTag("task-primary-action-1", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val taskInformation = compose.onNodeWithTag("task-metadata-1", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertEquals(
+            "Card top and bottom padding must remain balanced",
+            taskHeader.top.value - taskCard.top.value,
+            taskCard.bottom.value - taskInformation.bottom.value,
+            0.5f,
+        )
         val collapsedHeights = listOf("task-card-1", "habit-card-2", "goal-card-3").map(::height)
         collapsedHeights.forEach {
             assertEquals(
@@ -260,7 +282,7 @@ class ProductivityCardDesignUiTest {
     }
 
     @Test
-    fun scheduledDateAndRecurrenceUseOneSummaryLineAndExpandWithoutTruncation() {
+    fun scheduledDateAndRecurrenceUseFullWidthSummaryAndExpandWithoutDuplication() {
         val date = LocalDate.of(2026, 8, 27)
         val item = ScheduledTask(
             task = WhipTask(
@@ -301,7 +323,8 @@ class ProductivityCardDesignUiTest {
         val collapsed = compose.onNodeWithTag("task-metadata-18", useUnmergedTree = true)
             .assertIsDisplayed()
             .getUnclippedBoundsInRoot()
-        assertTrue("Collapsed Task metadata must remain one overview line", collapsed.bottom - collapsed.top <= 24.dp)
+        assertTrue("Complete compact Task metadata must have visible height", collapsed.bottom - collapsed.top > 0.dp)
+        assertSchedulingMetadataFits("collapsed")
         compose.onNodeWithTag("task-expand-18", useUnmergedTree = true).performClick()
         assertSchedulingMetadataFits("expanded")
     }
@@ -1104,21 +1127,47 @@ class ProductivityCardDesignUiTest {
         .getUnclippedBoundsInRoot()
         .let { it.bottom - it.top }
 
+    private fun verticalCenter(tag: String): Float = compose
+        .onNodeWithTag(tag, useUnmergedTree = true)
+        .getUnclippedBoundsInRoot()
+        .let { (it.top.value + it.bottom.value) / 2f }
+
     private fun contentDescriptionHeight(description: String) = compose
         .onNodeWithContentDescription(description)
         .getUnclippedBoundsInRoot()
         .let { it.bottom - it.top }
 
     private fun assertSchedulingMetadataFits(mode: String) {
-        val container = compose.onNodeWithTag("task-metadata-18", useUnmergedTree = true)
+        val bounds = compose.onNodeWithTag("task-metadata-18", useUnmergedTree = true)
             .assertIsDisplayed()
             .getUnclippedBoundsInRoot()
-        val bounds = compose.onNodeWithText(
+        val card = compose.onNodeWithTag("task-card-18", useUnmergedTree = true)
+            .getUnclippedBoundsInRoot()
+        val identity = compose.onNodeWithTag("task-icon-18", useUnmergedTree = true)
+            .getUnclippedBoundsInRoot()
+        compose.onAllNodesWithText(
             "Scheduled · Aug 27, 2026 · Repeats · Mon, Thu",
             useUnmergedTree = true,
-        ).assertIsDisplayed().getUnclippedBoundsInRoot()
-        assertTrue("$mode metadata must start inside its title lane: $bounds vs $container", bounds.left >= container.left)
-        assertTrue("$mode metadata must end inside its title lane: $bounds vs $container", bounds.right <= container.right)
+        ).assertCountEquals(1)
+        val layouts = mutableListOf<TextLayoutResult>()
+        compose.onNodeWithTag("task-metadata-18", useUnmergedTree = true)
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { action -> action(layouts) }
+        assertEquals("$mode metadata must expose one text layout", 1, layouts.size)
+        val layout = layouts.single()
+        val lastLine = layout.lineCount - 1
+        assertTrue(
+            "$mode metadata must render every character without ellipsis: " +
+                "lines=${layout.lineCount}, visibleEnd=${layout.getLineEnd(lastLine, visibleEnd = true)}, " +
+                "textLength=${layout.layoutInput.text.length}, " +
+                "ellipsis=${(0 until layout.lineCount).map(layout::isLineEllipsized)}",
+            (0 until layout.lineCount).none(layout::isLineEllipsized) &&
+                layout.getLineEnd(lastLine, visibleEnd = true) == layout.layoutInput.text.length,
+        )
+        assertEquals("$mode metadata must begin at the emoji edge", identity.left.value, bounds.left.value, 0.5f)
+        assertTrue(
+            "$mode metadata must end inside the card content edge: $bounds vs $card",
+            bounds.right <= card.right - 12.dp,
+        )
         assertTrue("$mode metadata must have visible height: $bounds", bounds.bottom - bounds.top > 0.dp)
     }
 

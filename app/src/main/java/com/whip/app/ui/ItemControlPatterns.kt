@@ -108,6 +108,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -1110,24 +1111,13 @@ internal fun WhipItemCard(
     }
 }
 
-/**
- * Logical start edge for text that belongs to a productivity item's identity.
- *
- * The 36 dp emoji plus its 8 dp gap form one shared reading grid. Keeping this
- * value here prevents persistent status and expanded context from drifting away
- * from the title when they need more width than the action-constrained header.
- */
-internal val ProductivityItemTextStartInset = 44.dp
-
 @Composable
-internal fun ProductivityItemAlignedColumn(
+internal fun ProductivityItemInformationColumn(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(start = ProductivityItemTextStartInset),
+        modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(2.dp),
         content = content,
     )
@@ -1152,13 +1142,16 @@ internal fun ProductivityItemSupportingText(
 /**
  * Shared collection-card header hierarchy:
  *
- *     identity emoji -> title/context -> edit -> primary action
+ *     identity emoji -> left-aligned title -> disclosure/edit -> primary action
+ *     full-width information
  *
  * The primary action uses a stable, label-aware trailing lane when present. This
  * keeps completion and other frequent actions at the logical trailing edge for
  * one-handed use without pretending those domain actions all mean the same thing.
- * Rich status that must survive expansion belongs in [persistentSummaryContent]
- * so it receives the card width instead of competing with those header controls.
+ * The title row is vertically centered independently of supporting information.
+ * Collapsed summaries and persistent rich status use the full content width from
+ * the identity edge, rather than competing with the trailing controls. Expanded
+ * information keeps that same leading edge.
  */
 @Composable
 internal fun ProductivityItemHeader(
@@ -1176,7 +1169,7 @@ internal fun ProductivityItemHeader(
     titleCompleted: Boolean = false,
     headlineAccessory: (@Composable RowScope.() -> Unit)? = null,
     supportingContent: @Composable ColumnScope.() -> Unit = {},
-    summaryContent: @Composable ColumnScope.() -> Unit = {},
+    summaryContent: (@Composable ColumnScope.() -> Unit)? = null,
     persistentSummaryContent: (@Composable ColumnScope.() -> Unit)? = null,
     expanded: Boolean = false,
     onExpansionToggle: (() -> Unit)? = null,
@@ -1194,21 +1187,17 @@ internal fun ProductivityItemHeader(
         ) {
             Box(identityModifier) { WhipIdentityEmoji(emoji) }
             Spacer(Modifier.width(8.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = itemName,
-                    modifier = titleModifier.fillMaxWidth(),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = completionTextColor(titleCompleted),
-                    textDecoration = completionTextDecoration(titleCompleted),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (onExpansionToggle != null && !expanded && persistentSummaryContent == null) {
-                    summaryContent()
-                }
-            }
+            Text(
+                text = itemName,
+                modifier = titleModifier.weight(1f),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = completionTextColor(titleCompleted),
+                textDecoration = completionTextDecoration(titleCompleted),
+                textAlign = TextAlign.Start,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
             if (onExpansionToggle != null) {
                 IconButton(
                     onClick = onExpansionToggle,
@@ -1235,8 +1224,13 @@ internal fun ProductivityItemHeader(
                 ) { action() }
             }
         }
+        if (onExpansionToggle != null && !expanded && persistentSummaryContent == null) {
+            summaryContent?.let { summary ->
+                ProductivityItemInformationColumn(content = summary)
+            }
+        }
         persistentSummaryContent?.let { summary ->
-            ProductivityItemAlignedColumn(content = summary)
+            ProductivityItemInformationColumn(content = summary)
         }
         if (onExpansionToggle == null || expanded) {
             if (onExpansionToggle != null) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -1244,7 +1238,7 @@ internal fun ProductivityItemHeader(
                 val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
                 if (stacked) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        ProductivityItemAlignedColumn {
+                        ProductivityItemInformationColumn {
                             headlineAccessory?.let { accessory ->
                                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { accessory() }
                             }
@@ -1269,9 +1263,7 @@ internal fun ProductivityItemHeader(
                 } else {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                         Column(
-                            Modifier
-                                .weight(1f)
-                                .padding(start = ProductivityItemTextStartInset),
+                            Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(2.dp),
                         ) {
                             headlineAccessory?.let { accessory ->

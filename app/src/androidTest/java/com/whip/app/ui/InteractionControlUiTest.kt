@@ -943,7 +943,7 @@ class InteractionControlUiTest {
     }
 
     @Test
-    fun productivityHeaderAlignsPersistentAndExpandedSupportToTheTitleColumn() {
+    fun productivityHeaderAlignsPersistentAndExpandedInformationToTheIdentityEdge() {
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 Box(Modifier.width(320.dp)) {
@@ -954,6 +954,7 @@ class InteractionControlUiTest {
                         areaId = null,
                         areaName = "Main",
                         onEdit = null,
+                        identityModifier = Modifier.testTag("aligned-header-identity"),
                         titleModifier = Modifier.testTag("aligned-header-title"),
                         persistentSummaryContent = {
                             Box(Modifier.fillMaxWidth().height(12.dp).testTag("aligned-header-persistent"))
@@ -968,14 +969,17 @@ class InteractionControlUiTest {
             }
         }
 
+        val identity = compose.onNodeWithTag("aligned-header-identity", useUnmergedTree = true)
+            .fetchSemanticsNode().boundsInRoot
         val title = compose.onNodeWithTag("aligned-header-title", useUnmergedTree = true)
             .fetchSemanticsNode().boundsInRoot
         val persistent = compose.onNodeWithTag("aligned-header-persistent", useUnmergedTree = true)
             .fetchSemanticsNode().boundsInRoot
         val support = compose.onNodeWithTag("aligned-header-support", useUnmergedTree = true)
             .fetchSemanticsNode().boundsInRoot
-        assertEquals(title.left, persistent.left, 1f)
-        assertEquals(title.left, support.left, 1f)
+        assertEquals(identity.left, persistent.left, 1f)
+        assertEquals(identity.left, support.left, 1f)
+        assertTrue("The title remains start-aligned after the emoji", title.left > identity.left)
     }
 
     @Test

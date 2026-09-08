@@ -24,6 +24,7 @@ guard:unsaved	shared.unsaved-changes	shared	dialog	dirty editor	com.whip.app.ui.
 guard:launch-queue	shared.launch-queue-overflow	shared	dialog	queue full	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Queued editor launch guard.
 guard:permanent-delete	shared.permanent-delete	shared	dialog	destructive confirmation	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Canonical permanent delete shell.
 route:tasks-today	tasks.today.populated	tasks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Today task list.
+state:tasks-card-expanded	tasks.today.expanded	tasks	page	expanded card	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Expanded Task information and action alignment.
 route:tasks-today-empty	tasks.today.empty	tasks	page	empty	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Today task empty state.
 route:tasks-inbox	tasks.inbox.populated	tasks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Inbox task list.
 route:tasks-upcoming-list	tasks.upcoming.list	tasks	page	list	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Upcoming list planning view.
@@ -46,6 +47,7 @@ dialog:pending-task-editor	tasks.pending-editor-launch	tasks	dialog	queued	com.w
 menu:task-row	tasks.row.menu	tasks	menu	open	com.whip.app.ui.VisualCatalogTaskComponentsTest#captureTaskWorkspaceControlCatalog	capture	Task list overflow actions.
 menu:task-area-scope	tasks.area-scope.menu	tasks	menu	open	com.whip.app.ui.VisualCatalogTaskComponentsTest#captureTaskWorkspaceControlCatalog	capture	Task area filter.
 route:habits-today	habits.today.populated	habits	page	populated	com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog	capture	Daily habit check-ins.
+state:habits-card-expanded	habits.today.expanded	habits	page	expanded card	com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog	capture	Expanded Habit information and action alignment.
 route:habits-today-empty	habits.today.empty	habits	page	empty	com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog	capture	Daily habit empty state.
 route:habits-all	habits.all.populated	habits	page	populated	com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog	capture	All habits.
 route:habits-archived	habits.archived.populated	habits	page	populated	com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog	capture	Archived habits.
@@ -65,6 +67,7 @@ dialog:habit-actions	habits.actions	habits	dialog	open	com.whip.app.ActivityHist
 dialog:habit-delete	habits.permanent-delete	habits	dialog	with impact summary	com.whip.app.ui.HabitDeletionUiTest#captureHabitDeletionCatalog	capture	Permanent habit deletion.
 menu:habit-row	habits.row.menu	habits	menu	open	com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog	capture	Habit row overflow actions.
 route:goals-active	goals.active.populated	goals	page	populated	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Active goals.
+state:goals-card-expanded	goals.active.expanded	goals	page	expanded card	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Expanded Goal information and action alignment.
 route:goals-active-empty	goals.active.empty	goals	page	empty	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Active goals empty state.
 state:goals-active-book-fold	goals.elapsed.book-fold	goals	page	book-fold multi-unit elapsed timers	com.whip.app.AdaptiveWhipScreenTest#bookFoldGoalSupportPaneAndCardsShareOneUnconstrainedElapsedMetric	capture	The support pane and main cards share one unconstrained elapsed-metric composition.
 route:goals-history	goals.history.populated	goals	page	populated	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Completed goal history.
@@ -80,6 +83,7 @@ dialog:goal-actions	goals.actions	goals	dialog	open	com.whip.app.ui.GoalSecondar
 dialog:goal-delete	goals.permanent-delete	goals	dialog	with impact summary	com.whip.app.ui.GoalSecondaryMutationUiTest#captureGoalComponentCatalog	capture	Permanent goal deletion.
 menu:goal-row	goals.row.menu	goals	menu	open	com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog	capture	Goal row overflow actions.
 route:tracks-all	tracks.all.populated	tracks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Track definitions.
+state:tracks-card-expanded	tracks.all.expanded	tracks	page	expanded card	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Expanded Track information and action alignment.
 route:tracks-all-empty	tracks.all.empty	tracks	page	empty	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Tracks empty state.
 route:tracks-activity	tracks.activity.populated	tracks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Cross-track activity.
 route:tracks-archived	tracks.archived.populated	tracks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog	capture	Archived tracks.

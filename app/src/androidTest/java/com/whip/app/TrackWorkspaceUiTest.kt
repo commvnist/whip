@@ -271,12 +271,14 @@ class TrackWorkspaceUiTest {
         }
 
         val summaryHeight = compose.onNodeWithTag("track-card-3").getUnclippedBoundsInRoot().let { it.bottom - it.top }
-        assertTrue("Collapsed Track summary row should be list-sized: $summaryHeight", summaryHeight <= 80.dp)
+        assertTrue("Two-row Track summary should remain bounded: $summaryHeight", summaryHeight <= 96.dp)
         val titleBounds = compose.onNodeWithTag("track-card-title-3", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val identityBounds = compose.onNodeWithTag("track-icon-3", useUnmergedTree = true).getUnclippedBoundsInRoot()
         val statusBounds = compose.onNodeWithText("Personal · 1 Entry", useUnmergedTree = true).getUnclippedBoundsInRoot()
         val disclosureBounds = compose.onNodeWithTag("track-expand-3", useUnmergedTree = true).getUnclippedBoundsInRoot()
         val primaryBounds = compose.onNodeWithTag("track-primary-action-3", useUnmergedTree = true).getUnclippedBoundsInRoot()
-        assertEquals(titleBounds.left.value, statusBounds.left.value, 0.5f)
+        assertTrue("Track title must remain after the emoji", titleBounds.left > identityBounds.left)
+        assertEquals(identityBounds.left.value, statusBounds.left.value, 0.5f)
         assertTrue("Track disclosure must precede its primary action", disclosureBounds.right <= primaryBounds.left)
         assertTrue(
             "Track primary action must retain a 48 dp target",

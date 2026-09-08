@@ -1112,7 +1112,6 @@ fun HabitProgressCard(
                 ProductivityItemSupportingText(
                     text = compactStatus,
                     modifier = Modifier.testTag("habit-card-status-${habit.id}"),
-                    maxLines = 1,
                 )
             },
             expanded = disclosure.expanded,

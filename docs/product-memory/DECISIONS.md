@@ -949,7 +949,7 @@
 - Rejected alternatives: Force every card in every state to a fixed pixel height; preserve chip/metric bands and merely adjust padding; hide authored elapsed units from accessibility/details; flatten active workout inputs or 5/3/1 program evidence into generic list rows.
 - Constraints and consequences: Data, calculations, routes, completion/log/reset/start behavior, Room schema 46, data epoch 6, and backup format 26 remain unchanged. Acceptance requires exact collapsed-height/alignment tests, large-text growth checks, representative Gym/Routine visuals, and a fresh Home catalog state.
 - Related: `FB-20260907-012`, `FND-20260907-021`, `DEC-20260907-004`, `DEC-20260907-005`, `DEC-20260907-007`.
-- Status: Verified; implemented in `IMP-20260907-017` and accepted in `VER-20260907-019`.
+- Status: Superseded.
 
 ### DEC-20260907-010 — Structural program choices must expose comparable consequences before selection
 
@@ -961,3 +961,16 @@
 - Consequences / reversal conditions: The setup becomes modestly taller but more legible and interruption-resilient. Revisit only if an equally discoverable compact comparison pattern is proven on 320 dp/200% text.
 - Related: `FB-20260907-013`, `FB-20260907-014`, `FND-20260907-022`.
 - Status: Implemented and verified in `IMP-20260907-019` / `VER-20260907-021`.
+
+### DEC-20260907-011 — Productivity cards use a centered header row and full-width information row
+
+- Context: The shared 68 dp collapsed-card target made adjacent cards uniform, but achieved that by squeezing status into the title/action lane and forcing one-line ellipsis. Owner use confirms that complete scheduling and repeat context is more valuable than preserving the shortest possible row.
+- Position A: Keep status under the title and tune abbreviations, font size, or action widths to preserve the 68 dp shape.
+- Position B: Separate identity/title/actions from information. Keep the title start-aligned and vertically centered in a 48 dp header row, then render complete supporting information below from the emoji's leading edge, allowing content-driven wrapping and modest height growth.
+- Evidence and constraints: The four equivalent Task/Habit/Goal/Track cards already share `ProductivityItemHeader`, 10 dp top/bottom card inset, 48 dp controls, and stable action order. Metadata values are bounded but often exceed the remaining title-column width. Expanded cards must not repeat the same Task metadata merely to reveal its clipped suffix.
+- Failure modes: Horizontally centered titles would break scan alignment; retaining `maxLines=1` would only move the ellipsis; padding the information to the title edge would surrender 44 dp; always showing both summary and expanded detail could duplicate facts; forcing equal fixed height would clip wrapping or create voids.
+- Decision: Adopt Position B for equivalent productivity collection cards. Collapsed summary and any persistent status use a full-width information lane below the header. Expanded detail also starts at the identity edge; a non-persistent collapsed summary is replaced by richer expanded information, while persistent content remains visible exactly once. Card height is content-driven, with equal 10 dp outer vertical padding and the existing 48 dp action floor.
+- Why this is superior for Whip: It preserves the established card shell and action consistency while making the reading order literal: who/what and actions first, complete state second, deeper detail after expansion. Users gain information without smaller type, unexplained abbreviations, or routine extra taps.
+- Consequences / reversal conditions: This supersedes only `DEC-20260907-009`'s requirement that ordinary productivity status occupy the title column and target 68 dp. The shared 68 dp token remains valid for one-band navigation/status cards. Data, actions, accessibility meaning, persistence, and specialized rich surfaces do not change. Revisit only if measured scrolling cost outweighs verified comprehension at compact width and large text.
+- Related: `FB-20260907-015`, `FND-20260907-025`, `DEC-20260907-005`, `DEC-20260907-009`.
+- Status: Verified.

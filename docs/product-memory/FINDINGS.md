@@ -1454,3 +1454,15 @@
 - Recommended solution: Poll for the overlay's actual displayed assertion with a bounded five-second timeout before and after Back. Keep the visible-state requirement, submitted-count check, retained draft, retry-enabled failure state, and all production behavior unchanged; then rerun the exact class and complete fresh inventory.
 - Related: `FB-20260907-013`, `VER-20260907-023`.
 - Status: Verified. The focused replacement and complete class passed in `VER-20260907-023`, then the clean-source 963/963 Android replacement passed in `VER-20260907-024`.
+
+### FND-20260907-025 — Card metadata still competes with header actions and truncates
+
+- Severity/category: P1 · collection-card readability, responsive hierarchy, and cross-domain consistency.
+- Observed: `ProductivityItemHeader` places collapsed `summaryContent` inside the title column between a 36 dp identity, 48 dp disclosure, and 48–80 dp primary-action lane. Task, Habit, Goal, and Track call sites additionally force that content to one line. On the owner's phone, a truthful Task summary such as “Scheduled · Sep 7, 2026 · Repeats · Mon, Thu” is therefore ellipsized to “Scheduled · Sep 7, 2026 · R…”. Because title and summary share the same header column, their combined block—not the left-aligned title itself—is vertically centered against the emoji and controls.
+- Expected: Identity, left-aligned title, disclosure, and primary action form one vertically centered header row. Status/metadata receives a separate full-content-width row below it, beginning at the identity edge and wrapping as needed. Expanded information follows the same leading edge without duplicating the collapsed summary.
+- Why it matters / affected users: Scheduling and repeat rules are decision-relevant, not decorative. Truncation makes every scan require expansion, while the title's off-center baseline weakens the predictable card grammar the owner explicitly values.
+- Evidence: Owner screenshot and direct feedback on installed 0.3.63; `ProductivityItemHeader`; one-line `summaryContent` in `TaskRow`, `HabitProgressCard`, `GoalCard`, and `TrackSummaryRow`; existing `ProductivityCardDesignUiTest` geometry contracts.
+- Root cause: The prior equal-height refinement optimized all ordinary cards toward a 68 dp one-band summary and reused the title lane for status. That constraint conflicts with complete metadata and with vertical centering of the actual title row.
+- Recommended solution: Move collapsible summaries below the header in the shared component, make the information lane full width from the emoji edge, remove forced one-line limits from the four equivalent card families, and remove the title-gutter inset from expanded information. Preserve responsive content-driven height, equal card padding, action order, touch targets, and role-specific rich content.
+- Related: `FB-20260907-015`, `FND-20260907-021`, `DEC-20260907-005`, `DEC-20260907-009`.
+- Status: Verified.
