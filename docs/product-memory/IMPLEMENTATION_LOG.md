@@ -1449,3 +1449,13 @@
 - Related: `FB-20260907-013`, `FND-20260907-023`, `VER-20260907-019`, `VER-20260907-022`.
 - Verification: `VER-20260907-022`.
 - Status: Implemented and complete-gate verified.
+
+### IMP-20260907-021 — Deterministic Goal saving-overlay lifecycle regression
+
+- Test behavior changed: The large-text Goal progress failure regression now waits up to five seconds for the saving overlay to be genuinely displayed before and after hardware Back. It retains the stronger viewport-visible assertion instead of weakening the contract to node existence.
+- Preserved contract: The test still proves one submission, blocked dismissal during persistence, retained `123.5` draft after failure, visible owned error, and an enabled retry. Production `GoalMeasurementDialog`, saving-overlay focus/semantics, repositories, and user behavior are unchanged.
+- Evidence: The original assertion passed five isolated repeats before modification, identifying suite-load synchronization rather than a deterministic product failure. The corrected assertion then passed five repeats and the complete eight-test `GoalSecondaryMutationUiTest` class on the same previously failing emulator.
+- Persistence/product impact: Android test synchronization and durable QA memory only. No Room schema, data epoch, backup format, owner data, or release identity changed.
+- Related: `FB-20260907-013`, `FND-20260907-024`, `VER-20260907-023`.
+- Verification: `VER-20260907-023`.
+- Status: Implemented, focused-reviewed, and emulator-verified; complete fresh replacement remains pending.

@@ -204,9 +204,16 @@ class GoalSecondaryMutationUiTest {
 
         compose.onNodeWithTag("goal-measurement-value").performTextReplacement("123.5")
         compose.onNodeWithTag("goal-measurement-save").performClick()
-        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        fun waitForSavingOverlay() {
+            compose.waitUntil(5_000) {
+                runCatching {
+                    compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+                }.isSuccess
+            }
+        }
+        waitForSavingOverlay()
         pressBack()
-        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        waitForSavingOverlay()
         compose.runOnIdle {
             assertEquals(1, submissions)
             saving = false

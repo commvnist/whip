@@ -1442,3 +1442,15 @@
 - Recommended solution: Reconcile only the current testing-guide baseline to 1,584/621/963, preserve historical counts in immutable verification records, and rerun the complete compatibility gate.
 - Related: `FB-20260907-013`, `VER-20260907-019`.
 - Status: Verified; the current guide now matches the executable 1,584/621/963 inventory and the complete compatibility gate passes in `IMP-20260907-020` / `VER-20260907-022`.
+
+### FND-20260907-024 — Goal saving-overlay regression races IME window relayout under suite load
+
+- Severity/category: P2 · Android QA determinism and lifecycle/accessibility evidence.
+- Observed: The first fresh 963-test Android campaign failed one `GoalSecondaryMutationUiTest` assertion because the saving overlay existed after the click but was briefly outside `assertIsDisplayed` during the large-text dialog's IME-clear/window-recenter transition. The exact test passed five consecutive isolated runs on the same failing emulator.
+- Expected: The regression should still require the blocking overlay to become visibly displayed and remain visible after Back, but synchronize to the bounded window transition rather than assuming it completes in the same idle boundary as the click callback.
+- Why it matters / affected users: A flaky assertion makes whole-product release evidence expensive and ambiguous. Weakening it to existence-only would also lose the intended visual/back-blocking contract.
+- Evidence: Failed batch 9 in `/root/repos/whip/build/instrumentation-results-rwVCOA`; exact 5/5 replacements ending in `/root/repos/whip/build/instrumentation-results-dXuymw`; `GoalMeasurementDialog`, `ProductivityEditorDialog`, and `PersistenceSavingOverlay` focus/IME behavior.
+- Root cause: `performClick` synchronizes Compose work, while IME dismissal and the full-window dialog's platform relayout complete asynchronously. The test asserted viewport intersection immediately instead of waiting for the stable visible state it intends to verify.
+- Recommended solution: Poll for the overlay's actual displayed assertion with a bounded five-second timeout before and after Back. Keep the visible-state requirement, submitted-count check, retained draft, retry-enabled failure state, and all production behavior unchanged; then rerun the exact class and complete fresh inventory.
+- Related: `FB-20260907-013`, `VER-20260907-023`.
+- Status: Focused verified in `IMP-20260907-021` / `VER-20260907-023`; complete fresh Android replacement remains pending.
