@@ -133,3 +133,9 @@ tests and exported 176 PNG/XML pairs, all manually reviewed, with manifest
 SHA-256 `0e3cfb73b7743c8e686e7c7ea9c6788440cee4b91cd5976867e7c217ea5c547d`.
 See `IMP-20260907-022` and `VER-20260907-024` for complete evidence and explicit
 exclusions. No additional supported P0/P1/P2 remained after that review.
+
+Whip 0.3.63/code 69 was then built and signed from exact pushed source
+`fe943ec`, installed in place on the explicitly selected owner phone, and
+verified for signer and installed-hash equality, preserved first-install
+identity, cold launch, foreground Activity, live process, and clean bounded
+fatal/persistence logs. See `IMP-20260907-023` and `VER-20260907-025`.

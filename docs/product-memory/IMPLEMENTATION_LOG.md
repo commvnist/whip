@@ -1469,3 +1469,14 @@
 - Related: `FB-20260907-013`, `FB-20260907-014`, `FND-20260907-022`, `FND-20260907-023`, `FND-20260907-024`, `DEC-20260907-010`, `IMP-20260907-019`, `IMP-20260907-020`, `IMP-20260907-021`, `VER-20260907-024`.
 - Verification: `VER-20260907-024`.
 - Status: Implemented, code-reviewed, and accepted for the higher-version private release lane.
+
+### IMP-20260907-023 — Whip 0.3.63 gold-standard private release
+
+- Behavior changed: Advanced Whip from 0.3.62/code 68 to 0.3.63/code 69, built a signed optimized private APK and AAB from exact pushed source `fe943ec`, and installed the APK in place on the explicitly selected physical Samsung owner phone at `192.168.2.187:39787`.
+- Artifact: The signed APK is `/root/repos/whip/app/build/outputs/apk/release/app-release.apk` and the identical direct-handoff copy is `/tmp/Whip-0.3.63-code69-private.apk`; SHA-256 is `1a942de2faa79c569134b436778d6a3bb026cc0abb0a3b8fddd793e9fa04f7df` and size is 4,308,945 bytes. The AAB SHA-256 is `7078e508db7d295ec8b291d44dfbeb0a16df604402cf3634e8f02248084c0f37`, size is 11,596,536 bytes, and archive integrity passes.
+- Signing/package: Package remains `commvne.com.whip.app`; the APK verifies with APK Signature Scheme v2, one RSA-4096 signer, and established certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`.
+- Persistence/history impact: Android used streamed `install -r`; `firstInstallTime=2026-08-26 17:59:24` is unchanged, while `lastUpdateTime` advanced to `2026-09-07 21:58:23`. Room schema 46, data epoch 6, exact backup version 26, package identity, signer, installed data, completed history, and Routine/5/3/1 state are preserved. No reset, clear, uninstall, downgrade, or physical instrumentation occurred.
+- Commit/push: Acceptance source `95761df`, acceptance memory `ff8f010`, and exact release source `fe943ec` were clean and pushed before construction and installation; this release-evidence reconciliation changes documentation only.
+- Related: `FB-20260907-013`, `FB-20260907-014`, `IMP-20260907-022`, `VER-20260907-024`, `VER-20260907-025`.
+- Verification: `VER-20260907-025`.
+- Status: Released and device-verified; normal owner use remains the final subjective validation channel.
