@@ -1439,3 +1439,13 @@
 - Related: `FB-20260907-013`, `FB-20260907-014`, `FND-20260907-022`, `DEC-20260907-010`, `VER-20260907-021`.
 - Verification: `VER-20260907-021`.
 - Status: Implemented, code-reviewed, two-emulator accepted, and visually verified; whole-product acceptance and release remain in progress.
+
+### IMP-20260907-020 — Current test-inventory documentation reconciliation
+
+- Behavior changed: Reconciled the current feature-coverage baseline in `docs/testing.md` from 1,581/621/960 to the executable 1,584 product tests: 621 JVM and 963 Android instrumentation tests. Historical verification records remain unchanged because they truthfully describe earlier source states.
+- QA behavior: The existing complete gate continues to fail closed when its counted source inventory and the current testing guide disagree. No guard was relaxed, bypassed, or waived.
+- Persistence/product impact: Documentation only. No production code, tests, Room schema, data epoch, backup format, user data, or release identity changed.
+- Commit/push: This reconciliation is committed and pushed as its own auditable QA-maintenance chunk before the final whole-product Android and visual replacement campaigns.
+- Related: `FB-20260907-013`, `FND-20260907-023`, `VER-20260907-019`, `VER-20260907-022`.
+- Verification: `VER-20260907-022`.
+- Status: Implemented and complete-gate verified.

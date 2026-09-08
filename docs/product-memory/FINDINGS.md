@@ -1430,3 +1430,15 @@
 - Recommended solution: Give each layout stable, truthfully generated supporting copy and render available layouts as selected choice cards consistent with the Program preset section. Explain that Beginners is a Classic-cycle template when a long-term preset is active. Remove duplicated post-selection prose, retain selected semantics/test tags, and add comparison plus compact-large-text regressions.
 - Related: `FB-20260907-013`, `FB-20260907-014`, `DEC-20260907-010`.
 - Status: Verified; resolved by the shared explanatory program-choice card and exact compact/large-text behavior in `IMP-20260907-019` / `VER-20260907-021`.
+
+### FND-20260907-023 — The executable test inventory and testing guide disagree
+
+- Severity/category: P2 · QA trustworthiness, release readiness, and documentation accuracy.
+- Observed: The first complete compatibility gate on current source failed closed because `docs/testing.md` still claimed 1,581 product tests—621 JVM plus 960 Android—while the executable inventory and durable index correctly report 1,584: 621 JVM plus 963 Android.
+- Expected: The human testing guide, executable inventory guard, and current durable snapshot agree exactly so a green release gate represents current scope rather than stale documentation.
+- Why it matters / affected users: Stale counts make test-growth evidence ambiguous and block otherwise valid complete gates. Ignoring the mismatch would weaken the fail-closed quality contract.
+- Evidence: `scripts/check --full` exact failure on clean pushed implementation source `e24e9cb`; source inventory; `docs/product-memory/INDEX.md`; `docs/testing.md` feature-coverage baseline.
+- Root cause: The three Android regressions added during the prior card/quick-save campaign updated the durable index but not the parallel current-baseline sentence in the testing guide.
+- Recommended solution: Reconcile only the current testing-guide baseline to 1,584/621/963, preserve historical counts in immutable verification records, and rerun the complete compatibility gate.
+- Related: `FB-20260907-013`, `VER-20260907-019`.
+- Status: Verified; the current guide now matches the executable 1,584/621/963 inventory and the complete compatibility gate passes in `IMP-20260907-020` / `VER-20260907-022`.

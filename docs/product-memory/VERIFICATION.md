@@ -1540,3 +1540,12 @@
 - Counts and exclusions: This is focused acceptance for the confirmed P2. The active whole-product run separately reconfirmed 3/3 named prior-Set/card regressions and captured/reviewed the 176-surface baseline; complete fresh JVM/Android replacement gates, final exact whole-product capture, signed release, and physical-device smoke remain pending.
 - Related: `FB-20260907-013`, `FB-20260907-014`, `FND-20260907-022`, `DEC-20260907-010`, `IMP-20260907-019`.
 - Status: Verified; the 5/3/1 choice-comprehension defect is closed and accepted for whole-product release.
+
+### VER-20260907-022 — Test-inventory reconciliation and complete compatibility gate
+
+- Scope/environment: Current human/executable product-test inventory agreement; complete JVM behavior and deterministic coverage; Android-test compilation; debug and release lint; debug/release APK, release AAB, and benchmark packaging; R8/resource optimization; release manifest/version checks; Play assets; and static source guards. No Android instrumentation or physical-device mutation was part of this device-independent gate.
+- Command or manual procedure: First `scripts/check --full` on clean pushed implementation source `e24e9cb`; source inventory and current-documentation comparison; exact current-baseline update in `docs/testing.md`; `git diff --check`; then complete `scripts/check --full` replacement.
+- Result: The first run failed before Gradle because the testing guide claimed 1,581/621/960 while source contained 1,584/621/963. After reconciliation, the complete gate passed all 621 JVM tests, Android-test compilation for the 963-test inventory, debug/release lint, all required builds, release optimization, manifest/version and Play-asset checks. Coverage passed at 82.39% deterministic-domain lines (4,369/5,303), 57.21% deterministic-domain branches (2,475/4,326), and 68.56% core settings/policy lines (567/827).
+- Failures/exclusions: The stale-documentation failure is retained as the evidence that the guard works; it was corrected at the documentation source rather than waived. This compatibility gate does not execute the 963 Android tests, create frozen Play Store candidate evidence, install a physical package, or claim runtime device behavior.
+- Related: `FB-20260907-013`, `FND-20260907-023`, `IMP-20260907-020`, `VER-20260907-019`.
+- Status: Verified; the current inventory contract and complete device-independent compatibility gate are clean.
