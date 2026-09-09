@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="2" errors="0" skipped="0" time="13.513" timestamp="2026-09-09T23:00:49" hostname="localhost">
+  <testsuite name="com.whip.app.ui.TrackEntryDeleteRecoveryUiTest" tests="2" failures="2" errors="0" skipped="0" time="12.441" timestamp="2026-09-09T23:00:49" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="recoveredDeletionConflictRemainsReachableAtLargeText" classname="com.whip.app.ui.TrackEntryDeleteRecoveryUiTest" time="7.714">
+      <failure>java.lang.AssertionError: Semantic Node has no parent layout with a Scroll SemanticsAction
+at androidx.compose.ui.test.ActionsKt.scrollToNode(Actions.kt:98)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:83)
+at com.whip.app.ui.TrackEntryDeleteRecoveryUiTest.verifyRecovery(TrackEntryDeleteRecoveryUiTest.kt:121)
+at com.whip.app.ui.TrackEntryDeleteRecoveryUiTest.recoveredDeletionConflictRemainsReachableAtLargeText(TrackEntryDeleteRecoveryUiTest.kt:62)
+</failure>
+    </testcase>
+    <testcase name="newOwnerCannotReplaceTheRestoredDeletionRevision" classname="com.whip.app.ui.TrackEntryDeleteRecoveryUiTest" time="4.727">
+      <failure>java.lang.AssertionError: Semantic Node has no parent layout with a Scroll SemanticsAction
+at androidx.compose.ui.test.ActionsKt.scrollToNode(Actions.kt:98)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:83)
+at com.whip.app.ui.TrackEntryDeleteRecoveryUiTest.verifyRecovery(TrackEntryDeleteRecoveryUiTest.kt:121)
+at com.whip.app.ui.TrackEntryDeleteRecoveryUiTest.newOwnerCannotReplaceTheRestoredDeletionRevision(TrackEntryDeleteRecoveryUiTest.kt:59)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

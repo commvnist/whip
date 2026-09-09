@@ -57,12 +57,14 @@ class TrackDraftSavedStateJourneyTest {
 
     @Test fun savedEntriesDoNotAccumulateDraftPayloadsInActivityState() = verifySavedState(3)
 
-    private fun verifySavedState(completedSessions: Int) {
+    @Test fun rowDeletionReviewKeepsSavedStateWithinPlatformTransport() = verifySavedState(0, rowDeletion = true)
+
+    private fun verifySavedState(completedSessions: Int, rowDeletion: Boolean = false) {
         val original = buildString {
-            repeat(12_000) { index ->
+            repeat(if (rowDeletion) 25_000 else 12_000) { index ->
                 append("Observation $index: check the route, weather and conditions on the next walk.\n")
             }
-        }.take(600_000) + "KEEP-END"
+        }.take(if (rowDeletion) 1_200_000 else 600_000) + "KEEP-END"
         val before = runBlocking {
             app.backupRepository.deleteAllData()
             app.settingsRepository.update {
@@ -110,10 +112,19 @@ class TrackDraftSavedStateJourneyTest {
             compose.onNodeWithContentDescription("Tracks tab").performClick()
             compose.onNodeWithTag("track-list").performScrollToNode(hasTestTag("track-card-${before.track.id}"))
             compose.onNodeWithTag("track-card-${before.track.id}").performClick()
-            repeat(maxOf(1, completedSessions)) { index ->
+            if (rowDeletion) {
+                compose.onNodeWithContentDescription("More Actions for River trail").performClick()
+                compose.onNodeWithText("Delete Entry").performClick()
+                compose.waitUntil(10_000) {
+                    compose.onAllNodesWithTag("track-entry-row-delete-confirmation").fetchSemanticsNodes().isNotEmpty()
+                }
+            } else repeat(maxOf(1, completedSessions)) { index ->
                 compose.onNodeWithTag("track-entry-list")
                     .performScrollToNode(hasContentDescription("Edit Entry River trail"))
                 compose.onNodeWithContentDescription("Edit Entry River trail").performClick()
+                compose.waitUntil(10_000) {
+                    compose.onAllNodesWithTag("track-entry-editor-list").fetchSemanticsNodes().isNotEmpty()
+                }
                 compose.onNodeWithTag("track-entry-editor-list").performScrollToNode(hasTestTag(tag))
                 compose.onNodeWithTag(tag).performClick().performTextReplacement("Changed $index: $original")
                 closeSoftKeyboard()
@@ -133,7 +144,7 @@ class TrackDraftSavedStateJourneyTest {
                 InstrumentationRegistry.getInstrumentation().callActivityOnSaveInstanceState(activity, state)
             }
             val size = parcelBytes(state)
-            Log.i("WhipDraftState", "acceptedChars=${original.length}; completedSessions=$completedSessions; activityStateBytes=$size")
+            Log.i("WhipDraftState", "acceptedChars=${original.length}; completedSessions=$completedSessions; rowDeletion=$rowDeletion; activityStateBytes=$size")
             state.keySet().sorted().forEach { key ->
                 val part = Bundle(state)
                 part.keySet().filter { it != key }.forEach(part::remove)
@@ -145,7 +156,10 @@ class TrackDraftSavedStateJourneyTest {
             )
             scenario.onActivity { activity ->
                 val owner = ViewModelProvider(activity)[TrackEditorSessionViewModel.KEY, TrackEditorSessionViewModel::class.java]
-                if (completedSessions == 0) {
+                if (rowDeletion) {
+                    assertNull(owner.routeState.value)
+                    assertTrue(owner.saveCheckpoint().isEmpty)
+                } else if (completedSessions == 0) {
                     val checkpoint = owner.saveCheckpoint()
                     val recovered = TrackEditorSessionViewModel(app, SavedStateHandle(mapOf(
                         TrackEditorSessionViewModel.STATE_KEY to checkpoint,

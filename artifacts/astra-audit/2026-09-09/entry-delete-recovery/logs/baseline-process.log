@@ -1,0 +1,6 @@
+{"oldPid": "4240", "newPid": "4429", "taskId": "34", "remainingEntries": 0, "remainingNote": ""}
+Traceback (most recent call last):
+  File "/root/repos/whip/build/astra-entry-delete-state-20260909/process_delete_review.py", line 116, in <module>
+    assert rows == '1' and value == 'Newer note written after review', "Recovered review deleted a newer unreviewed Entry revision"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Recovered review deleted a newer unreviewed Entry revision

@@ -200,6 +200,7 @@ add_profile() {
                 'com.whip.app.TrackDraftSavedStateJourneyTest'
                 'com.whip.app.TrackDraftRecoveryUiTest'
                 'com.whip.app.ui.TrackEditorCheckpointTest'
+                'com.whip.app.ui.TrackEntryDeleteRecoveryUiTest'
                 'com.whip.app.TrackDefinitionIntegrityTest'
                 'com.whip.app.TrackEntryIntegrityTest'
                 'com.whip.app.TrackCsvImportIntegrityTest'

@@ -1,0 +1,26 @@
+--------- beginning of main
+09-09 19:17:34.409  3700  3713 I WhipDraftState: acceptedChars=600008; completedSessions=3; rowDeletion=false; activityStateBytes=27988
+09-09 19:17:34.410  3700  3713 I WhipDraftState: stateKey=@android:autofillResetNeeded; bytes=88
+09-09 19:17:34.410  3700  3713 I WhipDraftState: stateKey=android:fragments; bytes=396
+09-09 19:17:34.410  3700  3713 I WhipDraftState: stateKey=android:lastAutofillId; bytes=76
+09-09 19:17:34.410  3700  3713 I WhipDraftState: stateKey=android:state; bytes=56
+09-09 19:17:34.410  3700  3713 I WhipDraftState: stateKey=android:viewHierarchyState; bytes=220
+09-09 19:17:34.411  3700  3713 I WhipDraftState: stateKey=androidx.lifecycle.BundlableSavedStateRegistry.key; bytes=27080
+09-09 19:17:34.411  3700  3713 I WhipDraftState: stateKey=whip.launch.delivery_counter; bytes=92
+09-09 19:17:34.411  3700  3713 I WhipDraftState: stateKey=whip.launch.pending_requests; bytes=92
+09-09 19:17:39.753  3700  3713 I WhipDraftState: acceptedChars=1200008; completedSessions=0; rowDeletion=true; activityStateBytes=29816
+09-09 19:17:39.754  3700  3713 I WhipDraftState: stateKey=android:fragments; bytes=396
+09-09 19:17:39.754  3700  3713 I WhipDraftState: stateKey=android:lastAutofillId; bytes=76
+09-09 19:17:39.754  3700  3713 I WhipDraftState: stateKey=android:viewHierarchyState; bytes=220
+09-09 19:17:39.756  3700  3713 I WhipDraftState: stateKey=androidx.lifecycle.BundlableSavedStateRegistry.key; bytes=29020
+09-09 19:17:39.756  3700  3713 I WhipDraftState: stateKey=whip.launch.delivery_counter; bytes=92
+09-09 19:17:39.756  3700  3713 I WhipDraftState: stateKey=whip.launch.pending_requests; bytes=92
+09-09 19:17:47.959  3700  3713 I WhipDraftState: acceptedChars=600008; completedSessions=0; rowDeletion=false; activityStateBytes=29920
+09-09 19:17:47.959  3700  3713 I WhipDraftState: stateKey=@android:autofillResetNeeded; bytes=88
+09-09 19:17:47.959  3700  3713 I WhipDraftState: stateKey=android:fragments; bytes=396
+09-09 19:17:47.959  3700  3713 I WhipDraftState: stateKey=android:lastAutofillId; bytes=76
+09-09 19:17:47.959  3700  3713 I WhipDraftState: stateKey=android:state; bytes=56
+09-09 19:17:47.959  3700  3713 I WhipDraftState: stateKey=android:viewHierarchyState; bytes=220
+09-09 19:17:47.962  3700  3713 I WhipDraftState: stateKey=androidx.lifecycle.BundlableSavedStateRegistry.key; bytes=29012
+09-09 19:17:47.962  3700  3713 I WhipDraftState: stateKey=whip.launch.delivery_counter; bytes=92
+09-09 19:17:47.962  3700  3713 I WhipDraftState: stateKey=whip.launch.pending_requests; bytes=92

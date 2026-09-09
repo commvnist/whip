@@ -1,0 +1,125 @@
+{
+  "scope": "Final retained native hierarchies; NAF is a narrow unlabeled-node check, not a TalkBack audit.",
+  "trees": [
+    {
+      "path": "api26/tracks.entry-delete.conflict.large.xml",
+      "nodes": 40,
+      "naf": 0
+    },
+    {
+      "path": "api26/tracks.entry-delete.conflict.ordinary.xml",
+      "nodes": 40,
+      "naf": 0
+    },
+    {
+      "path": "api26/tracks.entry-delete.latest.large.xml",
+      "nodes": 47,
+      "naf": 0
+    },
+    {
+      "path": "api26/tracks.entry-delete.latest.ordinary.xml",
+      "nodes": 49,
+      "naf": 0
+    },
+    {
+      "path": "api26/tracks.entry-delete.review.large.xml",
+      "nodes": 41,
+      "naf": 0
+    },
+    {
+      "path": "api26/tracks.entry-delete.review.ordinary.xml",
+      "nodes": 41,
+      "naf": 0
+    },
+    {
+      "path": "api26/tracks.entry-delete.undo.large.xml",
+      "nodes": 40,
+      "naf": 0
+    },
+    {
+      "path": "api34/raw/tracks.entry-delete.conflict.large.xml",
+      "nodes": 44,
+      "naf": 0
+    },
+    {
+      "path": "api34/raw/tracks.entry-delete.conflict.ordinary.xml",
+      "nodes": 44,
+      "naf": 0
+    },
+    {
+      "path": "api34/raw/tracks.entry-delete.latest.large.xml",
+      "nodes": 53,
+      "naf": 0
+    },
+    {
+      "path": "api34/raw/tracks.entry-delete.latest.ordinary.xml",
+      "nodes": 53,
+      "naf": 0
+    },
+    {
+      "path": "api34/raw/tracks.entry-delete.review.large.xml",
+      "nodes": 45,
+      "naf": 0
+    },
+    {
+      "path": "api34/raw/tracks.entry-delete.review.ordinary.xml",
+      "nodes": 45,
+      "naf": 0
+    },
+    {
+      "path": "api37/tracks.entry-delete.conflict.large.xml",
+      "nodes": 48,
+      "naf": 0
+    },
+    {
+      "path": "api37/tracks.entry-delete.conflict.ordinary.xml",
+      "nodes": 48,
+      "naf": 0
+    },
+    {
+      "path": "api37/tracks.entry-delete.latest.large.xml",
+      "nodes": 57,
+      "naf": 0
+    },
+    {
+      "path": "api37/tracks.entry-delete.latest.ordinary.xml",
+      "nodes": 57,
+      "naf": 0
+    },
+    {
+      "path": "api37/tracks.entry-delete.review.large.xml",
+      "nodes": 49,
+      "naf": 0
+    },
+    {
+      "path": "api37/tracks.entry-delete.review.ordinary.xml",
+      "nodes": 49,
+      "naf": 0
+    },
+    {
+      "path": "process-api37/after-confirm.xml",
+      "nodes": 16,
+      "naf": 0
+    },
+    {
+      "path": "process-api37/before.xml",
+      "nodes": 17,
+      "naf": 0
+    },
+    {
+      "path": "process-api37/recovered.xml",
+      "nodes": 17,
+      "naf": 0
+    },
+    {
+      "path": "process-api37/review-latest.xml",
+      "nodes": 25,
+      "naf": 0
+    },
+    {
+      "path": "process-api37/undo.xml",
+      "nodes": 142,
+      "naf": 0
+    }
+  ]
+}

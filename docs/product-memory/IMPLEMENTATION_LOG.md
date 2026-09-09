@@ -1,5 +1,15 @@
 # Implementation history
 
+### IMP-20260909-026 — Preserve Entry deletion authority through recovery
+
+- Behavior: Row Delete Entry reviews retain a compact original Track/Entry identity and semantic revision boundary across new-owner recovery. Complete historical values and editor-only contract arrays stay out of saved review state; Unicode-safe display excerpts do not modify history. A recovered review cannot silently authorize a newer Entry revision.
+- Recovery UX: A conflict explains that deletion did not complete and offers Review Entry only for the same current Track/Entry UUIDs. The action opens current read-only history and closes the stale review. Unavailable targets can close; transient failures can retry the original authority. One scrolling heading/message keeps the fixed actions reachable at 320 dp/200% text and resets reading when an error appears.
+- Implementation: TrackEntryDeleteCandidate and TrackScreens preparation/routing; a compact-boundary JVM regression, actual Activity saved-state check, two new-owner ordinary/enlarged journeys, and extended repository stale/form/missing/deletion/Undo checks. New tests join the permanent Tracks profile. Fixture navigation waits for the interactive editor and explicitly scrolls to compact Track/Entry rows.
+- Persistence/compatibility: Existing deletion transactions, request outcomes and exact same-process Undo remain. No schema, portable backup, application version or stored historical-value change; no new checkpoint files are needed for deletion.
+- Verification: Final 65 JVM / 94 fresh Android neighbors; 19 focused tests on each API 26/37; two canonical owners/six states; real API 37 process death, protected newer note, current inspection and exact Entry UUID/note after fresh Delete/Undo; 345 JVM readiness tests plus compilation/lint/packaging/static and wrapper checks. All 47 retained images have scoped review, including 24 final images/hierarchies with zero NAF nodes.
+- Related/evidence: FND-20260909-028, DEC-20260909-024, VER-20260909-027, FB-20260908-006; `artifacts/astra-audit/2026-09-09/entry-delete-recovery/README.md`. Failed baselines and interrupted/development runs remain distinct from final acceptance.
+- Status/limits: Verified for this deletion/recovery flow; commit and normal upstream push recorded by Git history. Complete Tracks and app-wide quality work remain active. No physical-phone operation or release.
+
 ### IMP-20260909-025 — Preserve large Track drafts through private session recovery
 
 - Behavior: TrackEditorSessionViewModel owns the root Track route and both pure editor state holders. Complete, versioned/checksummed private checkpoints retain exact opening snapshots, definition decisions, Entry values/date and raw Number input. Android receives a compact owner/hash/generation reference. Unchanged checkpoints are reused; Save/discard/Activity finish clear the session. Configuration/background destruction retain recoverability.

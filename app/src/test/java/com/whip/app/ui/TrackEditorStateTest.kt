@@ -36,6 +36,33 @@ import org.junit.Test
 
 class TrackEditorStateTest {
     @Test
+    fun deletionReviewBoundsHiddenPayloadAndUnicodeExcerptsWithoutChangingAuthority() {
+        val opening = testEditSnapshot()
+        val longName = "🧭".repeat(200_000)
+        val longSnapshot = opening.copy(
+            displayName = longName,
+            form = opening.form.copy(track = opening.form.track.copy(name = longName, description = longName)),
+            draft = opening.draft.copy(values = mapOf("title" to TrackValueDraft(textValue = longName))),
+            boundary = opening.boundary.copy(formBoundary = opening.boundary.formBoundary.copy(
+                fieldContracts = List(10_000) { opening.boundary.formBoundary.fieldContracts.single() },
+            )),
+        )
+        val review = TrackEntryDeleteCandidate.from(longSnapshot, 11, 5)
+        assertEquals("🧭".repeat(160) + "…", review.displayName)
+        assertEquals(review.displayName, review.trackName)
+        assertEquals(opening.boundary, review.boundary.copy(formBoundary = opening.boundary.formBoundary))
+        assertEquals(opening.draft.entryDate, review.entryDate)
+        assertEquals(opening.populatedValueCount, review.populatedValueCount)
+        assertTrue(review.boundary.formBoundary.fieldContracts.isEmpty())
+        assertEquals(longName, longSnapshot.draft.values.getValue("title").textValue)
+        val bytes = java.io.ByteArrayOutputStream().use { output ->
+            java.io.ObjectOutputStream(output).use { it.writeObject(review) }
+            output.toByteArray()
+        }
+        assertTrue("Deletion review must remain compact; ${bytes.size} bytes", bytes.size < 8 * 1024)
+    }
+
+    @Test
     fun definitionConflictCanOnlyReachTheExactOwningEditorSession() {
         val boundary = TrackDefinitionBoundary(8, "track-8", 1, "revision")
         val current = TrackDefinitionReviewUiState(

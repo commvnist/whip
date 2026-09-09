@@ -5,6 +5,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
@@ -262,12 +264,6 @@ internal sealed interface TrackEditorRoute : Serializable {
     ) : TrackEditorRoute
 }
 
-internal data class TrackEntryDeleteCandidate(
-    val sessionId: Long,
-    val openingDataGeneration: Long,
-    val snapshot: TrackEntryEditSnapshot,
-) : Serializable
-
 @Composable
 internal fun TrackAreaContent(
     state: TrackUiState,
@@ -399,7 +395,9 @@ internal fun TrackAreaContent(
         }
     }
     LaunchedEffect(deleteEntryId, deleteEntrySessionId) {
-        deleteEntryId?.let { viewModel.prepareEntryDelete(deleteEntrySessionId, it) }
+        if (deleteEntryCandidate == null) {
+            deleteEntryId?.let { viewModel.prepareEntryDelete(deleteEntrySessionId, it) }
+        }
     }
     LaunchedEffect(
         deleteEntryId,
@@ -409,11 +407,11 @@ internal fun TrackAreaContent(
     ) {
         val snapshot = entryDeletePreparationState.snapshot
         if (
-            snapshot != null &&
+            deleteEntryCandidate == null && snapshot != null &&
             entryDeletePreparationState.sessionId == deleteEntrySessionId &&
             entryDeletePreparationState.entryId == deleteEntryId
         ) {
-            deleteEntryCandidate = TrackEntryDeleteCandidate(
+            deleteEntryCandidate = TrackEntryDeleteCandidate.from(
                 sessionId = deleteEntrySessionId,
                 openingDataGeneration = deleteEntryOpeningDataGeneration ?: userDataGeneration,
                 snapshot = snapshot,
@@ -739,6 +737,22 @@ internal fun TrackAreaContent(
         modifier = dialogModifier,
         onPersisted = onEntryMutationPersisted,
         onClose = ::closeEntryDelete,
+        onReviewEntry = deleteEntryCandidate?.let { candidate ->
+            state.track(candidate.boundary.formBoundary.trackId)?.takeIf { projection ->
+                projection.track.uuid == candidate.boundary.formBoundary.trackUuid &&
+                    projection.entries.any {
+                        it.entry.id == candidate.boundary.entryId && it.entry.uuid == candidate.boundary.entryUuid
+                    }
+            }?.let { projection ->
+                {
+                    closeEntryDelete()
+                    selectedTrackId = projection.track.id
+                    workspaceDestination = if (projection.track.archived) TrackWorkspaceDestination.Archived else TrackWorkspaceDestination.Tracks
+                    destination = TrackDetailDestination.Entries
+                    requestedReadOnlyEntryId = candidate.boundary.entryId
+                }
+            }
+        },
     )
     val importProjection = csvImportState.trackId?.let(state::track)
     val csvCommitIdentity = csvImportState.commitIdentityOrNull()
@@ -845,6 +859,7 @@ private fun TrackEntryDeleteRoute(
     modifier: Modifier,
     onPersisted: (TrackEntryMutationReceipt) -> Unit,
     onClose: () -> Unit,
+    onReviewEntry: (() -> Unit)?,
 ) {
     candidate ?: return
     val requestNamespace = "track-entry-delete-${candidate.sessionId}-g${candidate.openingDataGeneration}"
@@ -859,15 +874,17 @@ private fun TrackEntryDeleteRoute(
         onPersisted = { receipt ->
             if (
                 receipt.kind == com.whip.app.domain.TrackEntryMutationKind.Delete &&
-                receipt.entryId == candidate.snapshot.boundary.entryId &&
-                receipt.entryUuid == candidate.snapshot.boundary.entryUuid
+                receipt.entryId == candidate.boundary.entryId &&
+                receipt.entryUuid == candidate.boundary.entryUuid
             ) {
                 onPersisted(receipt)
                 onClose()
             }
         },
     )
-    val snapshot = candidate.snapshot
+    val conflict by viewModel.entryConflictState.collectAsStateWithLifecycle()
+    val hasConflict = coordinator.errorMessage != null &&
+        conflict?.requestId?.startsWith("$requestNamespace:") == true
     PaneAwareAlertDialog(
         modifier = modifier,
         testTag = "track-entry-row-delete-confirmation",
@@ -878,26 +895,40 @@ private fun TrackEntryDeleteRoute(
             coordinator.clear()
             onClose()
         },
-        title = { Text("Delete ${snapshot.displayName}?") },
+        title = null,
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                PersistenceFailureNotice(
-                    coordinator.errorMessage,
-                    testTag = "track-entry-row-delete-problem",
-                )
-                Text(
-                    "This removes the Entry dated ${snapshot.draft.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} " +
-                        "from ${snapshot.form.track.name}, including ${quantityLabel(snapshot.populatedValueCount, "saved value")}.",
-                )
-                Text("You can use Undo immediately after deletion.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            androidx.compose.runtime.key(coordinator.errorMessage) {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    WhipDialogHeading(if (coordinator.errorMessage == null) "Delete ${candidate.displayName}?" else "Entry Could Not Be Deleted")
+                    val problem = coordinator.errorMessage
+                    if (problem != null) {
+                        Text(problem, modifier = Modifier.testTag("track-entry-row-delete-problem").semantics {
+                            liveRegion = LiveRegionMode.Polite
+                        })
+                    } else {
+                        Text(
+                            "This removes the Entry dated ${candidate.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} " +
+                                "from ${candidate.trackName}, including ${quantityLabel(candidate.populatedValueCount, "saved value")}.",
+                        )
+                        Text("You can use Undo immediately after deletion.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
         },
         confirmButton = {
-            WhipTextButton(
+            if (hasConflict) {
+                if (onReviewEntry != null) WhipTextButton(onClick = {
+                    coordinator.clear()
+                    onReviewEntry()
+                }) { Text("Review Entry") }
+            } else WhipTextButton(
                 enabled = !coordinator.saving,
                 onClick = {
                     val requestId = coordinator.begin()
-                    if (requestId != null && !viewModel.deleteEntry(snapshot.boundary, requestId)) {
+                    if (requestId != null && !viewModel.deleteEntry(candidate.boundary, requestId)) {
                         coordinator.finishFailure("Another Entry change is already finishing.")
                     }
                 },
@@ -910,7 +941,7 @@ private fun TrackEntryDeleteRoute(
                     coordinator.clear()
                     onClose()
                 },
-            ) { Text("Keep Entry") }
+            ) { Text(if (hasConflict && onReviewEntry == null) "Close" else "Keep Entry") }
         },
     )
 }

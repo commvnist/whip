@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="0" errors="0" skipped="0" time="21.119" timestamp="2026-09-09T22:42:37" hostname="localhost">
+  <testsuite name="com.whip.app.ui.TrackEntryDeleteRecoveryUiTest" tests="2" failures="0" errors="0" skipped="0" time="19.8" timestamp="2026-09-09T22:42:37" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="recoveredDeletionConflictRemainsReachableAtLargeText" classname="com.whip.app.ui.TrackEntryDeleteRecoveryUiTest" time="11.63" />
+    <testcase name="newOwnerCannotReplaceTheRestoredDeletionRevision" classname="com.whip.app.ui.TrackEntryDeleteRecoveryUiTest" time="8.17" />
+  </testsuite>
+</testsuites>

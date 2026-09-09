@@ -276,15 +276,16 @@ class TrackEntryIntegrityTest {
 
         assertEntryConflict(
             TrackEntryConflictKind.EntryChanged,
-            runCatching { tracks.deleteEntry(staleDelete.boundary) }.exceptionOrNull(),
+            runCatching { tracks.deleteEntry(com.whip.app.ui.TrackEntryDeleteCandidate.from(staleDelete, 1, 0).boundary) }.exceptionOrNull(),
         )
         val current = requireNotNull(tracks.prepareEntryEdit(entryId))
-        val deleted = tracks.deleteEntry(current.boundary)
+        val compactBoundary = com.whip.app.ui.TrackEntryDeleteCandidate.from(current, 1, 0).boundary
+        val deleted = tracks.deleteEntry(compactBoundary)
         assertTrue(deleted.changed)
         assertNotNull(deleted.deletedEntry)
         assertEntryConflict(
             TrackEntryConflictKind.OutcomeUnknown,
-            runCatching { tracks.deleteEntry(current.boundary) }.exceptionOrNull(),
+            runCatching { tracks.deleteEntry(compactBoundary) }.exceptionOrNull(),
         )
     }
 
@@ -408,10 +409,14 @@ class TrackEntryIntegrityTest {
         assertEquals(valueDate, edit.draft.values.getValue(requireNotNull(fields["When"]).uuid).dateValue)
         assertEquals(false, edit.draft.values.getValue(requireNotNull(fields["Confirmed"]).uuid).booleanValue)
 
-        val deleted = requireNotNull(tracks.deleteEntry(edit.boundary).deletedEntry)
+        val compactBoundary = com.whip.app.ui.TrackEntryDeleteCandidate.from(edit, 1, 0).boundary
+        val deleted = requireNotNull(tracks.deleteEntry(compactBoundary).deletedEntry)
         val restored = tracks.restoreEntry(deleted)
         assertEquals(6, restored.affectedValueCount)
         assertEquals(draft.entryDate, requireNotNull(tracks.prepareEntryEdit(restored.entryId)).draft.entryDate)
+        val reopened = requireNotNull(tracks.prepareEntryEdit(restored.entryId))
+        assertEquals(edit.draft, reopened.draft)
+        assertEquals(edit.boundary.entryUuid, reopened.boundary.entryUuid)
     }
 
     @Test
@@ -514,7 +519,7 @@ class TrackEntryIntegrityTest {
         )
         assertEntryConflict(
             TrackEntryConflictKind.EntryChanged,
-            runCatching { tracks.deleteEntry(staleDelete.boundary) }.exceptionOrNull(),
+            runCatching { tracks.deleteEntry(com.whip.app.ui.TrackEntryDeleteCandidate.from(staleDelete, 1, 0).boundary) }.exceptionOrNull(),
         )
         assertNotNull(database.trackDao().getEntry(secondId))
 

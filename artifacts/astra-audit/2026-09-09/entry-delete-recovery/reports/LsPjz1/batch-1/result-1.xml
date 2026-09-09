@@ -1,0 +1,138 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="65" failures="0" errors="0" skipped="0" time="145.062" timestamp="2026-09-09T23:10:46" hostname="localhost">
+  <testsuite name="com.whip.app.RecoveryBoundaryIntegrationTest" tests="6" failures="0" errors="0" skipped="0" time="3.993" timestamp="2026-09-09T23:10:46" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="secondaryActivityShowsRecoveryGateInsteadOfReadingWhipSettings" classname="com.whip.app.RecoveryBoundaryIntegrationTest" time="2.204" />
+    <testcase name="failedLiveRestoreRebuildsCurrentReminderStateAndReturnsReady" classname="com.whip.app.RecoveryBoundaryIntegrationTest" time="0.454" />
+    <testcase name="replaceRestoreInvalidatesActivityViewModelUndoActionsFromTheOldGeneration" classname="com.whip.app.RecoveryBoundaryIntegrationTest" time="0.253" />
+    <testcase name="resetAllDrainsAnAdmittedGymMutationThenDeletesItAndInvalidatesOldOwnership" classname="com.whip.app.RecoveryBoundaryIntegrationTest" time="0.151" />
+    <testcase name="widgetConfigurationSaveCannotCrossAClosedRecoveryBoundary" classname="com.whip.app.RecoveryBoundaryIntegrationTest" time="0.051" />
+    <testcase name="blockedRecoveryPreventsWorkerNotificationAndWidgetDataAccess" classname="com.whip.app.RecoveryBoundaryIntegrationTest" time="0.88" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackCsvImportIntegrityTest" tests="15" failures="0" errors="0" skipped="0" time="37.014" timestamp="2026-09-09T23:10:46" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="previewSnapshotCannotBlessAFormMutationThatOccursBeforePreparation" classname="com.whip.app.TrackCsvImportIntegrityTest" time="0.102" />
+    <testcase name="deterministicEntryCollisionWithoutReceiptFailsClosedAndPreservesTheCollidingFact" classname="com.whip.app.TrackCsvImportIntegrityTest" time="0.052" />
+    <testcase name="malformedOrForgedSecondRowRollsBackTheWholeBatch" classname="com.whip.app.TrackCsvImportIntegrityTest" time="0.078" />
+    <testcase name="reusedBatchWithChangedPayloadOrRowsRejectsButFreshBatchMayDuplicateContent" classname="com.whip.app.TrackCsvImportIntegrityTest" time="0.103" />
+    <testcase name="missingTargetAndReusedNumericIdWithDifferentStableIdentityAreDistinguished" classname="com.whip.app.TrackCsvImportIntegrityTest" time="0.076" />
+    <testcase name="requestAndCommittedReceiptIdentityTamperingFailClosedAcrossTheFullEnvelope" classname="com.whip.app.TrackCsvImportIntegrityTest" time="0.177" />
+    <testcase name="emptyAndOverLimitDirectRepositoryCallsFailBeforeWriting" classname="com.whip.app.TrackCsvImportIntegrityTest" time="0.453" />
+    <testcase name="concurrentExactRetrySerializesToOneCommitWithoutDuplicateRows" classname="com.whip.app.TrackCsvImportIntegrityTest" time="0.102" />
+    <testcase name="archiveFieldChoiceAndUnitRacesRejectWithoutPartialImports" classname="com.whip.app.TrackCsvImportIntegrityTest" time="0.177" />
+    <testcase name="firstCommitAndExactRetryReturnOneDurableReceiptAndOneBatchOfRows" classname="com.whip.app.TrackCsvImportIntegrityTest" time="0.076" />
+    <testcase name="retryAfterEditDeleteAndAllDeleteNeverRewritesOrResurrectsCommittedHistory" classname="com.whip.app.TrackCsvImportIntegrityTest" time="0.152" />
+    <testcase name="failureAfterTheFirstRowWritesRollsBackEntriesValuesSearchAndReceipt" classname="com.whip.app.TrackCsvImportIntegrityTest" time="0.076" />
+    <testcase name="identicalRowsInOneBatchKeepDistinctDeterministicIdentities" classname="com.whip.app.TrackCsvImportIntegrityTest" time="0.077" />
+    <testcase name="exactMaximumCellCustomUnitBatchRemainsBoundedSearchableAndIdempotent" classname="com.whip.app.TrackCsvImportIntegrityTest" time="35.237" />
+    <testcase name="committedBatchIndexesAllRowsAndPersistsExactReceiptEntryAndValueCounts" classname="com.whip.app.TrackCsvImportIntegrityTest" time="0.076" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackDefinitionIntegrityTest" tests="9" failures="0" errors="0" skipped="0" time="0.411" timestamp="2026-09-09T23:10:46" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="numberDimensionChangeWithHistoryRollsBackDefinitionAndSearch" classname="com.whip.app.TrackDefinitionIntegrityTest" time="0.051" />
+    <testcase name="archivedUnitCanBeRetainedButCannotBeNewlySelected" classname="com.whip.app.TrackDefinitionIntegrityTest" time="0.051" />
+    <testcase name="staleDefinitionCannotDeleteAFieldAddedByAnotherSave" classname="com.whip.app.TrackDefinitionIntegrityTest" time="0.026" />
+    <testcase name="sameDimensionDefaultUnitCanChangeWithoutRewritingHistory" classname="com.whip.app.TrackDefinitionIntegrityTest" time="0.052" />
+    <testcase name="nondestructiveSaveDoesNotConflictWithConcurrentEntryImport" classname="com.whip.app.TrackDefinitionIntegrityTest" time="0.051" />
+    <testcase name="archivedAreaCanBeRetainedButCannotReceiveANewTrack" classname="com.whip.app.TrackDefinitionIntegrityTest" time="0.026" />
+    <testcase name="sameCountValueEditInvalidatesFieldRemovalReviewAndRollsBackMetadata" classname="com.whip.app.TrackDefinitionIntegrityTest" time="0.077" />
+    <testcase name="reviewedChoiceDeletionRejectsValueAddedAfterReviewAndPreservesEverything" classname="com.whip.app.TrackDefinitionIntegrityTest" time="0.051" />
+    <testcase name="derivedAreaRenameDoesNotFalseConflictButAreaMoveDoes" classname="com.whip.app.TrackDefinitionIntegrityTest" time="0.026" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackDefinitionMutationUiTest" tests="8" failures="0" errors="0" skipped="0" time="21.336" timestamp="2026-09-09T23:10:46" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="openingNumberFieldRetainsItsAuthoredUnitAndPrecision" classname="com.whip.app.TrackDefinitionMutationUiTest" time="1.915" />
+    <testcase name="savingTrackConsumesBackAndExposesOneAccessibleBlockingSurface" classname="com.whip.app.TrackDefinitionMutationUiTest" time="2.164" />
+    <testcase name="unavailableEntryRouteExplainsNoMutationAndAlwaysProvidesAnExit" classname="com.whip.app.TrackDefinitionMutationUiTest" time="0.807" />
+    <testcase name="asynchronousDefinitionConflictScrollsToAndAnnouncesItsRecoveryAction" classname="com.whip.app.TrackDefinitionMutationUiTest" time="3.394" />
+    <testcase name="exactRemovalReviewKeepsLongImpactAndActionsReachableAtTwoHundredPercentText" classname="com.whip.app.TrackDefinitionMutationUiTest" time="3.852" />
+    <testcase name="freshAddedNumberFieldUsesCurrentUnitAndPrecisionPreferences" classname="com.whip.app.TrackDefinitionMutationUiTest" time="5.71" />
+    <testcase name="captureTrackUnavailableCatalog" classname="com.whip.app.TrackDefinitionMutationUiTest" time="2.162" />
+    <testcase name="missingEditTargetIsNotReinterpretedAsCreateButRecoveryFailureRemainsRetryable" classname="com.whip.app.TrackDefinitionMutationUiTest" time="1.332" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackDeletionUiTest" tests="1" failures="0" errors="0" skipped="0" time="3.473" timestamp="2026-09-09T23:10:46" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="deletionReviewSurvivesRecreationAndClosesOnlyAfterExactCommit" classname="com.whip.app.TrackDeletionUiTest" time="3.473" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackDraftRecoveryUiTest" tests="2" failures="0" errors="0" skipped="0" time="9.806" timestamp="2026-09-09T23:10:46" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="recoveryNoticesRemainReadableAtLargeText" classname="com.whip.app.TrackDraftRecoveryUiTest" time="5.182" />
+    <testcase name="recoveryNoticesDistinguishLiveAndUnavailableDrafts" classname="com.whip.app.TrackDraftRecoveryUiTest" time="4.624" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackDraftSavedStateJourneyTest" tests="3" failures="0" errors="0" skipped="0" time="41.228" timestamp="2026-09-09T23:10:46" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="savedEntriesDoNotAccumulateDraftPayloadsInActivityState" classname="com.whip.app.TrackDraftSavedStateJourneyTest" time="29.453" />
+    <testcase name="rowDeletionReviewKeepsSavedStateWithinPlatformTransport" classname="com.whip.app.TrackDraftSavedStateJourneyTest" time="3.075" />
+    <testcase name="largeAcceptedEntryKeepsSavedStateWithinPlatformTransport" classname="com.whip.app.TrackDraftSavedStateJourneyTest" time="8.7" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackEntryIntegrityTest" tests="14" failures="0" errors="0" skipped="0" time="1.074" timestamp="2026-09-09T23:10:46" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="malformedTypePayloadAndChangedSelectedUnitAreRejectedWithoutRows" classname="com.whip.app.TrackEntryIntegrityTest" time="0.076" />
+    <testcase name="staleDeleteRejectsAndMissingDeleteIsOutcomeUnknown" classname="com.whip.app.TrackEntryIntegrityTest" time="0.077" />
+    <testcase name="updateAndDeleteRejectMissingReidentifiedParentsAndChangedFormsWithoutMutation" classname="com.whip.app.TrackEntryIntegrityTest" time="0.152" />
+    <testcase name="restoreRetryRejectsSameEntryIdentityUnderReincarnatedTrack" classname="com.whip.app.TrackEntryIntegrityTest" time="0.051" />
+    <testcase name="staleEntryUpdateRejectsWithoutErasingConcurrentOptionalValue" classname="com.whip.app.TrackEntryIntegrityTest" time="0.102" />
+    <testcase name="restoreRejectsMissingReidentifiedParentAndDifferentEntryHistory" classname="com.whip.app.TrackEntryIntegrityTest" time="0.127" />
+    <testcase name="committedCreateRetrySurvivesNewRequiredFieldAndArchive" classname="com.whip.app.TrackEntryIntegrityTest" time="0.051" />
+    <testcase name="createRejectsBlankIdentityMissingOrChangedParentChangedFormAndArchivedTrack" classname="com.whip.app.TrackEntryIntegrityTest" time="0.077" />
+    <testcase name="stableCreateIsIdempotentButDifferentContentOrTrackCollidesAndFreshIdentityDuplicates" classname="com.whip.app.TrackEntryIntegrityTest" time="0.051" />
+    <testcase name="everyEntryValueTypeRoundTripsThroughPreparationMutationAndUndo" classname="com.whip.app.TrackEntryIntegrityTest" time="0.077" />
+    <testcase name="undoAllowsUnitRenameAndArchiveButRejectsConversionChange" classname="com.whip.app.TrackEntryIntegrityTest" time="0.051" />
+    <testcase name="restoreRejectsMalformedSnapshotAndLiveValueIdentityCollisionAtomically" classname="com.whip.app.TrackEntryIntegrityTest" time="0.051" />
+    <testcase name="restoreValidatesChoiceAndScaleBeforeWriting" classname="com.whip.app.TrackEntryIntegrityTest" time="0.052" />
+    <testcase name="achievedUpdateRetryWinsBeforeLaterFormChangeAndArchiveButNewMutationDoesNot" classname="com.whip.app.TrackEntryIntegrityTest" time="0.079" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackEntryMutationUiTest" tests="5" failures="0" errors="0" skipped="0" time="10.015" timestamp="2026-09-09T23:10:46" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="deletingEntryRequiresExactReviewAndFailureKeepsTheConfirmationOpen" classname="com.whip.app.TrackEntryMutationUiTest" time="0.958" />
+    <testcase name="captureTrackEntryDeleteCatalog" classname="com.whip.app.TrackEntryMutationUiTest" time="3.12" />
+    <testcase name="savingEntryShieldsInputAndFailureKeepsTheUsersDraft" classname="com.whip.app.TrackEntryMutationUiTest" time="1.308" />
+    <testcase name="captureTrackEntryEditCatalog" classname="com.whip.app.TrackEntryMutationUiTest" time="2.44" />
+    <testcase name="captureTrackEntryCreateCatalog" classname="com.whip.app.TrackEntryMutationUiTest" time="2.189" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackImportedTextJourneyE2ETest" tests="2" failures="0" errors="0" skipped="0" time="14.962" timestamp="2026-09-09T23:10:46" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="importedShortTextSurvivesEditingRecreationAndSave" classname="com.whip.app.TrackImportedTextJourneyE2ETest" time="6.788" />
+    <testcase name="importedLongTextSurvivesEditingRecreationAndSave" classname="com.whip.app.TrackImportedTextJourneyE2ETest" time="8.174" />
+  </testsuite>
+</testsuites>

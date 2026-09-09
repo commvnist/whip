@@ -1,5 +1,16 @@
 # Durable findings
 
+### FND-20260909-028 — Recovered Entry deletion replaces the reviewed revision and carries hidden large values
+
+- Severity/category: P1 history integrity and lifecycle recovery.
+- Observed: On clean `ee0cbc7`, the real row Delete Entry review saves 631,024 Activity bytes for an accepted 600,008-character non-primary note. A separate actual API 37 process-death journey opens a small Entry's review, verifies PID 4240 gone, changes only its note in the controlled synthetic database, and returns as PID 4429. The unchanged-looking review silently acquires the newer revision; confirming Delete removes the newer Entry (zero rows), instead of rejecting the stale review.
+- Root cause: `TrackAreaContent` stores the full edit snapshot in `rememberSaveable`; its recovery effects always prepare again and overwrite the saved candidate. The repository correctly checks the supplied exact revision, but the UI has replaced the user's original boundary. Most saved payload is not needed to display or authorize deletion.
+- Additional observed review defect: The API 26 320 dp/200%-text review clips the Undo explanation below its non-scrolling body. A strengthened reading assertion finds no parent scroll action; source confirms the plain Column owns no scrolling. Give the heading and message a shared scroll container with fixed actions, and reset it when the review becomes a conflict. This is a P2 accessibility issue within the same deletion flow.
+- Expected: A restored review retains its original identity/revision and cannot authorize unseen concurrent changes. Saved review state contains only bounded presentation and exact deletion authority; actual history stays unchanged until its own current review is confirmed. Existing request outcomes and exact same-process Undo remain intact.
+- Evidence: VER-20260909-027 and `artifacts/astra-audit/2026-09-09/entry-delete-recovery/README.md` retain the failed baselines, process proofs, individual image reviews and final checks. Strengthened baseline `x80ix7` measures 1,231,024 Activity bytes for an accepted 1,200,008-character note; final API 34 saves 28,584 bytes. These are collected-state measurements, not an induced Binder crash.
+- Resolution: Keep one compact original deletion authority across recovery, protect newer revisions, offer direct inspection of the current exact-identity Entry after conflict, and scroll the complete heading/message above fixed actions. Final actual process replacement protects the newer note and fresh Delete/Undo restores the same Entry UUID and note. All 94 Android neighbors, 19 focused checks on each API 26/37, six final canonical states and 345 JVM readiness checks pass.
+- Related/status: Verified in IMP-20260909-026 / VER-20260909-027 under FB-20260908-006 / VER-20260909-016; separate from editor recovery FND-20260909-027. Complete Tracks and whole-product acceptance remain open.
+
 ### FND-20260909-027 — Track editor snapshots exceed Android saved-state transport and accumulate after Save
 
 - Severity/category: P1 interruption/recovery integrity.
