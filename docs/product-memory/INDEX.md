@@ -53,6 +53,8 @@ This is the canonical cross-session entry point for Whip product and engineering
 
 ## Mission state and future direction
 
+- The fresh platform pass found and repaired the legacy emulator identity gap: instrumentation and catalog artifacts now share the canonical guard, which checks `ro.kernel.qemu` when the modern property is absent. Guard/catalog fixtures and real API 26 target validation pass; this does not itself establish API 26 product acceptance. See `FND-20260909-001`, `IMP-20260909-001`, and `VER-20260909-001`.
+
 - **Active: `FB-20260908-006` — Astra whole-product quality evolution.** Baseline is clean `4f4a5dc` / application 0.3.66; fresh source/runtime/design coverage and implementation are tracked in [the active audit](../quality/ASTRA_PRODUCT_AUDIT_2026-09-08.md). Earlier completed passes remain historical evidence, not acceptance for this goal. Use one agent and at most two disposable emulators; no physical-phone operations or release/publication. Completion is unproven until the new coverage matrix, justified improvements, and final whole-product checks are complete.
 - First verified chunk: Home has responsive summaries, truthful neutral-skip progress, retained timer recovery, and one clear-day Review action; matched captures move the first Task card 250 pixels upward without changing its geometry. `IMP-20260908-014` / `VER-20260908-014` record 348 routed JVM checks, 161 fresh Android regressions, and the corrected 26-state shared capture. Source inventory is now 625 JVM / 969 Android and 188 catalog states; full new-source acceptance remains pending. **Next: `FND-20260908-015`**, main-activity system-bar contrast under an explicit app theme opposite Android's theme.
 

@@ -9,6 +9,7 @@ readonly SHELL_DEBUG_ROOT="/data/local/tmp/whip-debug"
 readonly UI_CATALOG_ROOT="${SHARED_ROOT}/Download/whip-ui-catalog"
 readonly UI_CATALOG_RELATIVE_PATH="Download/whip-ui-catalog/"
 readonly DOWNLOADS_URI="content://media/external_primary/downloads"
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 usage() {
     cat <<'EOF'
@@ -53,9 +54,7 @@ select_device() {
 }
 
 require_emulator() {
-    local serial="$1" qemu
-    qemu="$(adb -s "$serial" shell getprop ro.boot.qemu | tr -d '\r')"
-    [[ "$qemu" == 1 ]] || die "UI catalog artifacts require an emulator; '$serial' is physical hardware"
+    ANDROID_SERIAL="$1" "${SCRIPT_DIR}/android-target-guard" instrumentation
 }
 
 safe_name() {

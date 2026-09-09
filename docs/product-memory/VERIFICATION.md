@@ -1,5 +1,14 @@
 # Verification and release evidence
 
+### VER-20260909-001 — Legacy emulator identity and guard regression acceptance
+
+- Scope: Canonical instrumentation/release target validation and catalog artifact ownership. The running API 26 AVD reports `ro.kernel.qemu=1`, no `ro.boot.qemu`, and console identity `whip_api26_small`.
+- Commands/results: `scripts/test-android-target-guard` passed all fixtures, including the new legacy-positive, absent/negative/failed identity, legacy release rejection, and artifact-owner cases; log `/tmp/whip-astra-legacy-guard.log`. `scripts/test-ui-catalog` passed all fixtures; log `/tmp/whip-astra-legacy-catalog.log`. `bash -n scripts/android-target-guard scripts/device-artifacts scripts/test-android-target-guard` and `git diff --check` passed.
+- Real target verification: `ANDROID_SERIAL=emulator-5556 scripts/android-target-guard instrumentation` accepts the explicitly running API 26 emulator. The earlier pre-fix theme launch stopped before instrumentation in `/tmp/whip-astra-theme-api26.log`.
+- Limits: This verifies the guard repair; it does not claim API 26 product acceptance. No physical-device action, release, publication, or bypass was performed. Ongoing theme changes remain a separate worktree chunk.
+- Related: `FND-20260909-001`, `IMP-20260909-001`.
+- Status: Verified.
+
 ### VER-20260908-014 — Home summary correction and hierarchy acceptance
 
 - Scope/environment: Two explicit matching disposable API 34 emulators; Home summary, skip neutrality/undo/recreation, adaptive context, large-text/RTL, neighboring shell/Habit/core journeys, and source readiness. This is a bounded implementation chunk within active `FB-20260908-006`, not whole-product acceptance.

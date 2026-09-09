@@ -1,5 +1,14 @@
 # Implementation history
 
+### IMP-20260909-001 — Recognize legacy emulators in the canonical Android target guard
+
+- Behavior changed: When `ro.boot.qemu` is absent, the guard checks `ro.kernel.qemu`; instrumentation still requires a connected explicit target with positive emulator identity. Legacy emulators also remain excluded from release actions. Catalog artifact operations now reuse the canonical guard.
+- Important files: `scripts/android-target-guard`, `scripts/device-artifacts`, `scripts/test-android-target-guard`.
+- Compatibility: This restores API 26 verification access; no guard override, product behavior, data, or release changed. The guard fixtures cover missing/negative/failed legacy reads and both instrumentation/artifact ownership.
+- Related: `FB-20260908-006`, `FND-20260909-001`.
+- Verification: `VER-20260909-001`.
+- Status: Verified.
+
 ### IMP-20260908-014 — Make Home progress truthful and daily actions easier to reach
 
 - Behavior changed: Home now presents responsive Task/Habit summaries beside one another where readable, stacks them for narrow/enlarged text, and places secondary Review alongside its heading. A clear day owns one Review action. Skipped and unavailable Habits no longer depress the scored completion denominator or masquerade as remaining scheduled work; neutral skips are explicit and unresolved timers still count as attention. Adaptive Habit context uses real status instead of generic `log` text. English numeric phrases retain their reading direction inside RTL layouts. Summary counts are withheld while the corresponding domain is loading/failed.

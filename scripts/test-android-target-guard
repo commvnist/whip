@@ -18,6 +18,12 @@ set -euo pipefail
 printf '%s\n' "$*" >> "${FAKE_ADB_LOG:?}"
 serial="${2:-}"
 case "$*" in
+    'devices')
+        printf 'List of devices attached\nemulator-5556\tdevice\n'
+        ;;
+    '-s '*" shell test -d /storage/emulated/0/Download/whip-ui-catalog")
+        exit 1
+        ;;
     '-s '*" get-state")
         printf '%s\n' "${FAKE_ADB_STATE:-device}"
         ;;
@@ -26,10 +32,16 @@ case "$*" in
             exit "$FAKE_ADB_QEMU_STATUS"
         fi
         if [[ "$serial" == "${FAKE_ADB_SECONDARY_SERIAL:-}" ]]; then
-            printf '%s\n' "${FAKE_ADB_SECONDARY_QEMU:-${FAKE_ADB_QEMU:-1}}"
+            printf '%s\n' "${FAKE_ADB_SECONDARY_QEMU-${FAKE_ADB_QEMU-1}}"
         else
-            printf '%s\n' "${FAKE_ADB_QEMU:-1}"
+            printf '%s\n' "${FAKE_ADB_QEMU-1}"
         fi
+        ;;
+    '-s '*" shell getprop ro.kernel.qemu")
+        if [[ "${FAKE_ADB_LEGACY_QEMU_STATUS:-0}" -ne 0 ]]; then
+            exit "$FAKE_ADB_LEGACY_QEMU_STATUS"
+        fi
+        printf '%s\n' "${FAKE_ADB_LEGACY_QEMU-0}"
         ;;
     '-s '*" shell getprop ro.build.version.sdk")
         if [[ "$serial" == "${FAKE_ADB_SECONDARY_SERIAL:-}" ]]; then
@@ -193,6 +205,29 @@ expect_failure failed-qemu-instrumentation 'could not verify whether' \
 expect_success connected-emulator \
     env ANDROID_SERIAL=emulator-5554 FAKE_ADB_QEMU=1 PATH="$GUARDED_PATH" \
         "${SCRIPT_DIR}/android-target-guard" instrumentation
+
+expect_success legacy-connected-emulator \
+    env ANDROID_SERIAL=emulator-5556 FAKE_ADB_QEMU= FAKE_ADB_LEGACY_QEMU=1 PATH="$GUARDED_PATH" \
+        "${SCRIPT_DIR}/android-target-guard" instrumentation
+expect_failure legacy-emulator-release 'refusing release action on emulator' \
+    env WHIP_DEVICE=emulator-5556 FAKE_ADB_QEMU= FAKE_ADB_LEGACY_QEMU=1 PATH="$GUARDED_PATH" \
+        "${SCRIPT_DIR}/android-target-guard" release
+expect_failure absent-emulator-properties 'refusing instrumentation' \
+    env ANDROID_SERIAL=emulator-5556 FAKE_ADB_QEMU= FAKE_ADB_LEGACY_QEMU= PATH="$GUARDED_PATH" \
+        "${SCRIPT_DIR}/android-target-guard" instrumentation
+expect_failure negative-legacy-emulator-property 'refusing instrumentation' \
+    env ANDROID_SERIAL=emulator-5556 FAKE_ADB_QEMU= FAKE_ADB_LEGACY_QEMU=0 PATH="$GUARDED_PATH" \
+        "${SCRIPT_DIR}/android-target-guard" instrumentation
+expect_failure failed-legacy-identity-read 'could not verify whether' \
+    env ANDROID_SERIAL=emulator-5556 FAKE_ADB_QEMU= FAKE_ADB_LEGACY_QEMU_STATUS=74 PATH="$GUARDED_PATH" \
+        "${SCRIPT_DIR}/android-target-guard" instrumentation
+mkdir -p "${TEST_ROOT}/catalog-pull"
+expect_success catalog-legacy-emulator \
+    env WHIP_DEVICE=emulator-5556 FAKE_ADB_QEMU= FAKE_ADB_LEGACY_QEMU=1 PATH="$GUARDED_PATH" \
+        "${SCRIPT_DIR}/device-artifacts" ui-catalog-pull "${TEST_ROOT}/catalog-pull"
+expect_failure catalog-unverified-target 'refusing instrumentation' \
+    env WHIP_DEVICE=emulator-5556 FAKE_ADB_QEMU= FAKE_ADB_LEGACY_QEMU= PATH="$GUARDED_PATH" \
+        "${SCRIPT_DIR}/device-artifacts" ui-catalog-pull "${TEST_ROOT}/catalog-pull"
 
 : > "$ADB_LOG"
 expect_success matching-two-emulator-set \

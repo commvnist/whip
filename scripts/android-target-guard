@@ -37,6 +37,14 @@ if ! qemu_state="$(adb -s "$serial" shell getprop ro.boot.qemu 2>/dev/null)"; th
     die "could not verify whether '$serial' is an emulator or physical device"
 fi
 qemu_state="${qemu_state//$'\r'/}"
+# Android 8 emulator images expose the legacy property instead of ro.boot.qemu.
+# An absent modern property is not evidence that the target is physical hardware.
+if [[ -z "$qemu_state" ]]; then
+    if ! qemu_state="$(adb -s "$serial" shell getprop ro.kernel.qemu 2>/dev/null)"; then
+        die "could not verify whether '$serial' is an emulator or physical device"
+    fi
+    qemu_state="${qemu_state//$'\r'/}"
+fi
 case "$guard_kind" in
     instrumentation)
         [[ "$qemu_state" == '1' ]] ||

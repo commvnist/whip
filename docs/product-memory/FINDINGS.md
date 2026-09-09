@@ -1,5 +1,14 @@
 # Durable findings
 
+### FND-20260909-001 — Emulator guard overlooks the Android 8 emulator identity property
+
+- Severity/category: P2, platform verification infrastructure.
+- Observed: The real running `whip_api26_small` emulator reports `ro.kernel.qemu=1` and no `ro.boot.qemu`. The instrumentation and catalog guards check only the newer property, so the API 26 contrast run is rejected before execution. The release guard would also misclassify this legacy emulator.
+- Evidence: Explicit `emulator-5556` console reports AVD `whip_api26_small`; running QEMU process and API 26 properties confirm its identity. `/tmp/whip-astra-theme-api26.log` records the rejection. `scripts/android-target-guard` and `scripts/device-artifacts:require_emulator` contain the incomplete check.
+- Expected/solution: When the modern property is absent, query the legacy property and still require a positive emulator value for instrumentation. Failed identity reads and absent/non-emulator values remain rejected. Catalog operations should reuse that same guard; legacy emulators must also remain excluded from release actions.
+- Related: `FB-20260908-006`, `FND-20260908-015`, API 26 platform acceptance.
+- Status: Verified in `IMP-20260909-001` / `VER-20260909-001`; legacy positive identity is supported without bypassing target validation.
+
 ### FND-20260908-015 — Main activity system-bar icons do not follow Whip's selected theme
 
 - Severity/category: P2, appearance and accessibility.
