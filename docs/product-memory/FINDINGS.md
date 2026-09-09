@@ -1,5 +1,38 @@
 # Durable findings
 
+### FND-20260908-015 — Main activity system-bar icons do not follow Whip's selected theme
+
+- Severity/category: P2, appearance and accessibility.
+- Observed: A dark Whip screen launched while Android remained light rendered black status-bar time/icons on the dark application background. Fresh catalog captures force Android dark, masking this mismatch. `MainActivity` calls default `enableEdgeToEdge()` once, then resolves Whip's own theme without updating the window's icon appearance. The external-activity host already updates both bar appearances from the selected theme.
+- Expected: Status/navigation icon contrast follows the actual displayed Whip theme, including explicit Light/Dark overrides, System mode, live preference changes, and recreation.
+- Evidence: `artifacts/astra-audit/2026-09-08/home/system-bars-mismatch.png`; `MainActivity.kt:onCreate/NormalWhipContent` and `ExternalWhipActivityHost.kt`. A controlled opposite-theme runtime regression is still required before remediation.
+- Root cause: Main and external activity window theming have separate ownership; the main path retains the system-derived bar style.
+- Recommended solution: Reuse the proven selected-theme bar styling at the main/root activity boundary and cover both opposite-theme combinations without forcing Android night mode during the assertion.
+- Related: `FB-20260908-006`.
+- Status: Confirmed.
+
+### FND-20260908-013 — Home summary treats neutral skipped Habits as unfinished work
+
+- Severity/category: P2, cross-surface state truth and daily progress.
+- Observed: `HomeContent` passes every Today Habit into the progress denominator, and `buildAdaptiveSummary` counts every `successful != true` Habit as due. A persisted Skip remains scheduled and normally has no successful check-in, so it depresses Home completion and appears unfinished in the wide support pane. The support context also labels it `log`. Unavailable Habits retained for timer recovery can enter the same tally.
+- Expected: Skips remain visible as neutral outcomes and never become completion or unfinished scheduled work. Active timer recovery remains reachable even when no check-in is expected. Phone and adaptive summaries derive consistent counts from the same daily states.
+- Evidence: `WhipApp.kt:HomeContent/TodayHeader/buildAdaptiveSummary`, `HabitViewModel.kt:buildHabitUiState/buildProgress`, `HabitScreens.kt:dailyHabitSections`, `HabitModels.kt:HabitDayState`; runtime regression and before/after evidence pending.
+- Root cause: Home summaries independently use raw list size and nullable success instead of the established daily-state distinctions.
+- Recommended solution: One narrow daily summary projection for scored completed/remaining work plus explicit skipped/recovery counts, shared by Home and adaptive summary; verify skip/undo and completed/pending/recovery combinations.
+- Related: `FB-20260908-006`, `FND-20260902-002`, `DEC-20260902-003`.
+- Status: Verified in `IMP-20260908-014` / `VER-20260908-014`; neutral outcomes and recovery attention now share one projection.
+
+### FND-20260908-014 — Home repeats orientation and review controls ahead of everyday actions
+
+- Severity/category: P2, supported design opportunity and duplicate action ownership.
+- Observed: The current populated Home stacks two full-width summary links and a prominent Review navigation card before its actionable lists. On a clear day with review evidence, it also renders both that card and the empty-state Review action. The unchanged-source baseline screenshot places the first Task card roughly halfway down the compact viewport.
+- Expected: Daily actions become visible sooner, summary destinations stay understandable and reachable, and clear-day review has one owner. Larger text must wrap rather than compress or clip labels/counts.
+- Evidence: `shared.home.populated` reference capture at `/tmp/whip-whole-product-final-20260908-v1/raw/shared.home.populated.png`; `HomeContent` and `TodayHeader` source confirms order and duplicate clear-day branch. Fresh baseline capture pending.
+- Root cause: Independently accumulated summary and review blocks compete with the main daily workflow.
+- Recommended solution: Inspect a compact responsive summary layout and a quieter Review entry integrated into the header; leave clear-day Review to its explanatory empty state. Preserve Home customization and existing collection-card grammar.
+- Related: `FB-20260908-006`, `FND-20260908-013`.
+- Status: Verified in `IMP-20260908-014` / `VER-20260908-014`. Rendered layout is accepted for this chunk; subjective owner validation and the wider goal remain outstanding.
+
 ### FND-20260831-001 — Configurable behavior lacked its prerequisite control
 
 - Severity/category: P0 control integrity and domain correctness.

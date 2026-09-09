@@ -724,7 +724,7 @@ class AdaptiveWhipScreenTest {
         // pane so the page header and task content remain in the viewport.
         compose.onNodeWithTag("page-title").assertIsDisplayed()
         compose.onNodeWithTag("task-quick-capture").assertIsDisplayed()
-        compose.onAllNodesWithContentDescription("Habits Remaining: 0. Open Habits").assertCountEquals(0)
+        compose.onAllNodesWithContentDescription("Habits Needing Attention: 0. Open Habits").assertCountEquals(0)
         compose.onNodeWithContentDescription("Gym tab").performClick()
         compose.onNodeWithTag("workspace-top-app-bar").assertIsDisplayed()
         compose.onNodeWithTag("workspace-search-action").assertIsDisplayed()

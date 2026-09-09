@@ -4,9 +4,26 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.style.ResolvedTextDirection
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.assertCountEquals
@@ -17,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.ui.theme.WhipTheme
 import com.whip.app.core.HomeSection
+import com.whip.app.captureVisualCatalogSurface
 import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.abs
@@ -57,6 +75,66 @@ class HomeDestinationLinksTest {
     }
 
     @Test
+    fun todaySummaryKeepsNeutralOutcomesAndActionsReadableAtLargeTextAndRtl() {
+        val expandedText = mutableStateOf(false)
+        val opens = AtomicInteger()
+        compose.setContent {
+            val density = LocalDensity.current.density
+            CompositionLocalProvider(
+                LocalDensity provides Density(density, if (expandedText.value) 2f else 1f),
+                LocalLayoutDirection provides if (expandedText.value) LayoutDirection.Rtl else LayoutDirection.Ltr,
+            ) {
+                WhipTheme(darkTheme = true, dynamicColor = false) {
+                    Surface(Modifier.fillMaxSize()) {
+                        Box {
+                            Column(Modifier.width(if (expandedText.value) 320.dp else 360.dp).verticalScroll(rememberScrollState())) {
+                                TodayHeader(
+                                    date = LocalDate.of(2026, 9, 8),
+                                    taskTotal = 125,
+                                    habitSummary = HomeHabitSummary(completed = 3, total = 4, skipped = 2, timersToReview = 1),
+                                    onOpenTasks = { opens.incrementAndGet() },
+                                    onOpenHabits = { opens.incrementAndGet() },
+                                    onOpenReview = { opens.incrementAndGet() },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        val compactTasks = compose.onNodeWithTag("home-tasks-today-record").fetchSemanticsNode().boundsInRoot
+        val compactHabits = compose.onNodeWithTag("home-habit-progress-record").fetchSemanticsNode().boundsInRoot
+        check(compactTasks.right < compactHabits.left)
+        assertNear(compactTasks.top, compactHabits.top, "Compact summaries share one row")
+        assertNear(compactTasks.height, compactHabits.height, "Compact summaries share one height")
+
+        compose.runOnIdle { expandedText.value = true }
+        compose.onNodeWithText("Review & Trends").performScrollTo().assertIsDisplayed().performClick()
+        compose.onNodeWithTag("home-tasks-today-record").performScrollTo().assertIsDisplayed().performClick()
+        compose.onNodeWithTag("home-habit-progress-record").performScrollTo().assertIsDisplayed().performClick()
+        compose.onNodeWithContentDescription(
+            "Habit progress: 3 of 4 complete. 2 skipped. 1 timer to review. Open Habits Today",
+        ).assertIsDisplayed()
+        val tile = compose.onNodeWithTag("home-habit-progress-record").fetchSemanticsNode().boundsInRoot
+        listOf("Habit progress", "3 of 4 complete", "2 skipped · 1 timer to review").forEach { label ->
+            val text = compose.onNodeWithText(label, useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+            check(text.left >= tile.left && text.right <= tile.right && text.bottom <= tile.bottom) {
+                "Large-text summary must contain all of '$label'"
+            }
+            if (label.first().isDigit()) {
+                val layouts = mutableListOf<TextLayoutResult>()
+                compose.onNodeWithText(label, useUnmergedTree = true)
+                    .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+                check(layouts.single().getParagraphDirection(0) == ResolvedTextDirection.Ltr) {
+                    "Numeric English phrases must retain their reading order in an RTL layout"
+                }
+            }
+        }
+        check(opens.get() == 3)
+        captureVisualCatalogSurface("shared.home.summary-large-rtl")
+    }
+
+    @Test
     fun conditionalTodayRecordsAndVisibleDestinationsHideEmptyShortcuts() {
         val taskTotal = mutableIntStateOf(2)
         val habitCompleted = mutableIntStateOf(0)
@@ -69,8 +147,7 @@ class HomeDestinationLinksTest {
                     TodayHeader(
                         date = LocalDate.of(2026, 8, 29),
                         taskTotal = taskTotal.intValue,
-                        habitCompleted = habitCompleted.intValue,
-                        habitTotal = habitTotal.intValue,
+                        habitSummary = HomeHabitSummary(completed = habitCompleted.intValue, total = habitTotal.intValue),
                         onOpenTasks = { taskOpens.incrementAndGet() },
                         onOpenHabits = { habitOpens.incrementAndGet() },
                     )

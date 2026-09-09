@@ -1,5 +1,16 @@
 # Durable product and engineering decisions
 
+### DEC-20260908-010 — Home gives daily action priority and shares truthful Habit summaries
+
+- Context: Home's raw Habit counts disagree with neutral-skip semantics, and accumulated summary/review blocks delay its actionable collections.
+- Position A: Patch the count expressions and retain all existing stacked presentation. This repairs arithmetic but preserves competing hierarchy and duplicate clear-day Review ownership.
+- Position B: Introduce a narrow daily Habit summary shared by phone/adaptive presentation, compact the two daily shortcuts into responsive summary surfaces, and integrate the secondary Review entry with the Home heading. Let the clear-day explanatory state own its sole Review action.
+- Decision: Evaluate and implement B as one bounded Home improvement. Scored completed/remaining Habits exclude skipped and unavailable states; skipped outcomes are separately named and unresolved timer recovery remains reachable. Stack summaries at narrow effective widths or enlarged text, preserve 48 dp actions, retain all configured Home sections and collection-card behavior, and verify original-size rendered output before accepting the layout.
+- Why this is superior for Whip: Daily work appears sooner while progress, neutral outcomes, and review/navigation remain understandable. It corrects one shared projection instead of accumulating independent special cases; no data-model or whole-app architecture replacement is needed.
+- Consequences / reversal conditions: Rework the presentation if compact/large-text/RTL evidence shows worse readability or daily action access. Preserve explicit owner preferences for collection-card hierarchy and single action ownership.
+- Related: `FB-20260908-006`, `FND-20260908-013`, `FND-20260908-014`.
+- Status: Verified through `IMP-20260908-014` / `VER-20260908-014`.
+
 ### DEC-20260831-001 — Structured strength programs accept arbitrary compatible lifts
 
 - Context: 5/3/1 defaults traditionally emphasize four lifts, but Whip users want other schedules and lifts.

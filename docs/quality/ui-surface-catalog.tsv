@@ -6,6 +6,9 @@ route:domain-failure	shared.domain.failure	shared	page	load failed	com.whip.app.
 route:health-rationale	settings.health.rationale	settings	page	permission rationale	com.whip.app.health.HealthPermissionsRationaleUiTest#captureHealthPermissionsRationaleCatalog	capture	Health Connect permission education.
 route:home	shared.home.populated	shared	page	populated today	com.whip.app.VisualCatalogPagesTest#captureSharedPageCatalog	capture	Home priorities and destination links.
 route:home-empty	shared.home.empty	shared	page	empty today	com.whip.app.VisualCatalogPagesTest#captureSharedPageCatalog	capture	Home empty state.
+state:home-clear-review	shared.home.clear-review	shared	page	completed work and clear today	com.whip.app.VisualCatalogPagesTest#captureSharedPageCatalog	capture	Clear-day explanation owns the sole Review action.
+state:home-skipped	shared.home.skipped	shared	page	completed and skipped habits	com.whip.app.HabitSkipJourneyE2ETest#homeProgressKeepsSkippedHabitsNeutralAcrossRecreationAndUndo	capture	Skipped outcomes stay explicit and outside scored Home progress; survives recreation and undo.
+component:home-summary-large-rtl	shared.home.summary-large-rtl	shared	page	320dp 200-percent text RTL	com.whip.app.ui.HomeDestinationLinksTest#todaySummaryKeepsNeutralOutcomesAndActionsReadableAtLargeTextAndRtl	capture	Home summary retains neutral outcomes and timer recovery with large text and RTL.
 action:global-add	shared.global-add.menu	shared	menu	open	com.whip.app.VisualCatalogSharedShellTest#captureSharedShellCatalog	capture	Cross-domain create menu.
 action:global-search	shared.search.results	shared	dialog	query with results	com.whip.app.VisualCatalogSharedShellTest#captureSharedShellCatalog	capture	Unified search and result grouping.
 action:global-search-empty	shared.search.empty	shared	dialog	no results	com.whip.app.VisualCatalogSharedShellTest#captureSharedShellCatalog	capture	Unified search empty result state.

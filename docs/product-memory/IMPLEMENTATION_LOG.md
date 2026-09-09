@@ -1,5 +1,15 @@
 # Implementation history
 
+### IMP-20260908-014 — Make Home progress truthful and daily actions easier to reach
+
+- Behavior changed: Home now presents responsive Task/Habit summaries beside one another where readable, stacks them for narrow/enlarged text, and places secondary Review alongside its heading. A clear day owns one Review action. Skipped and unavailable Habits no longer depress the scored completion denominator or masquerade as remaining scheduled work; neutral skips are explicit and unresolved timers still count as attention. Adaptive Habit context uses real status instead of generic `log` text. English numeric phrases retain their reading direction inside RTL layouts. Summary counts are withheld while the corresponding domain is loading/failed.
+- Important files: `ui/HomeTodayHeader.kt`, `WhipApp.kt`, `values/strings.xml`, `HomeHabitSummaryTest`, `HomeDestinationLinksTest`, `HabitSkipJourneyE2ETest`, `VisualCatalogPagesTest`, `AdaptiveWhipScreenTest`, and the expanded visual catalog. Reviewable before/after evidence: [Home evidence](../../artifacts/astra-audit/2026-09-08/home/README.md).
+- Persistence/migration/history impact: Presentation/projection only; data, history, schema 46, epoch 6, backup 26, and release 0.3.66/code 72 remain unchanged. The owner phone was not accessed.
+- Compatibility and limitations: Preserves existing Home sections/filters, collection-card geometry, completion/edit/disclosure actions, neutral-skip semantics, and timer recovery. The fresh audit remains active; `FND-20260908-015` records a separate system-bar theme mismatch exposed by this work. Home customization and sparse-use design opportunities still require review.
+- Related: `FB-20260908-006`, `FND-20260908-013`, `FND-20260908-014`, `DEC-20260908-010`, `VER-20260908-014`.
+- Verification: Four new JVM policy tests; reproduced failing then passing persisted skip/recreation/undo; 348-test routed readiness with lint/build; 161 fresh Android shell/Habit/core/interaction/adaptive/accessibility regressions across two emulators; corrected five-owner, 26-surface shared capture; manual Home/skip/RTL/clear-day image and hierarchy review; final fixture-only readiness and Git/catalog checks.
+- Status: Verified; subjective owner validation remains outstanding, and no release is part of this goal.
+
 ### IMP-20260908-013 — Establish the fresh Astra audit scope and evidence matrix
 
 - Behavior changed: No application behavior changed. Preserved the owner's complete objective, recorded the new active goal independently of completed audits, and created area, source-owner, and 185-surface review matrices with unverified initial states.

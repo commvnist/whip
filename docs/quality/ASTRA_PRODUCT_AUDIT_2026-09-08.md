@@ -9,7 +9,7 @@ Full objective: [preserved goal](ASTRA_QUALITY_GOAL_2026-09-08.md).
 - Current source has 159 main Kotlin files, including 67,391 lines across the UI package. Architecture is local-first Room/Flow with domain-owned projections, Jetpack Compose, and shared adaptive presentation.
 - Read `docs/architecture.md`, `docs/testing.md`, the memory index, latest whole-product feedback/verification, and visual-review protocol. Old accepted design is a hypothesis for this review, not a constraint beyond explicit owner requirements.
 - Catalog lint passes: 185 capture rows, zero pending selectors, zero platform exceptions. This proves current declared inventory consistency only. Platform journeys and UI owners absent from the catalog still require discovery/review.
-- Fresh baseline capture started on explicit API 34 emulators `emulator-5554` and `emulator-5556`; evidence directory `/tmp/whip-astra-baseline-20260908`, log `/tmp/whip-astra-baseline-20260908.log`. Results remain pending.
+- Fresh baseline capture passed 66/66 owning tests with zero failures/skips/reuse across seven batches on explicit API 34 emulators `emulator-5554` and `emulator-5556`. It exported all 185 PNG/XML pairs to `/tmp/whip-astra-baseline-20260908`; execution evidence is `build/instrumentation-results-khC0SB`, with log `/tmp/whip-astra-baseline-20260908.log`. This proves capture completeness, not fresh design or complete behavioral acceptance of every family.
 - Original baseline source inventory and per-surface review state are preserved beside this file. All review statuses start unverified; no historical pass is copied forward.
 
 ## Acceptance and operating contract
@@ -29,29 +29,40 @@ Each row requires source/domain review, live journey review, visual/state review
 
 | Area | Main source owners / journeys | Review state | Findings / implementation / verification |
 | --- | --- | --- | --- |
-| First run and recovery | FirstRunSetupDialog, StartupRecoveryScreen, DataEpochGate, launch and recovery | Investigating | Baseline pending |
-| Shell, Home, adaptive navigation | WhipApp, WhipNavigationPolicy, WhipPagePatterns, shared controls | Investigating | Baseline pending |
-| Tasks | WhipApp.TaskAreaContent, TaskEditorDialog, TaskComponents, TaskViewModel/Repository; recurrence, subtasks, planning, filters, bulk actions, focus | Investigating | Baseline pending |
-| Habits | HabitScreens, HabitViewModel/Repository, MeasurementRepository; cadence, timers, checklists, skips/pauses/history | Investigating | Baseline pending |
-| Goals | GoalScreens, GoalViewModel/Repository; goal types, milestones, elapsed time, contributions/history | Investigating | Baseline pending |
-| Tracks | TrackScreens, TrackViewModel/Repository, TrackEditorViewModels; fields, entries, units/precision, queries, history, archive, CSV | Investigating | Baseline pending |
-| Gym execution/history/progress | GymScreens, GymViewModel/Repository, GymAnalytics; live sets, rest, prior context, completion/copy/deletion | Investigating | Baseline pending |
-| Exercise and machine library | GymScreens, GymExercisePicker, GymCatalogMutationUi; create/edit/profile/version/archive/delete | Investigating | Baseline pending |
-| Routines and 5/3/1 | RoutineBuilder, FiveThreeOneBuilder/Programming/CycleReview, RoutineRepository; setup, execution, progression, review | Investigating | Baseline pending |
-| Search, Review and Insights | UnifiedSearchDialog, ReviewDialog, TrackAnalytics, CrossDomainInsights; scope/filter/drilldown/evidence | Investigating | Baseline pending |
-| Areas and Tags | AreaManagementDialog, AreaPicker, AreaScopeFilters, TagManagementDialog and repositories; organization lifecycle | Investigating | Baseline pending |
-| Settings and units | SettingsScreens/ViewModel, AppSettings, UnitSelectionField, DisplayUnits; immediate/committed settings, defaults/custom units | Investigating | Baseline pending |
-| Backup, restore, import/export | BackupRepository, PortableBackupManager, RestoreRecoveryManager, TrackCsv; preview, merge/replace, encryption, recovery | Investigating | Baseline pending |
-| Health Connect | HealthConnectManager, reconciliation and rationale; optional permissions, provider truth, sync/failure | Investigating | Baseline pending |
-| Timers, reminders, notifications | focus/habit/rest timers, reminder workers/rules and action receivers; interruption, stale delivery, timezone | Investigating | Baseline pending |
-| Widgets and external capture | WhipWidgetProvider, WidgetContent, configuration, MainActivity/launch delivery; creation, actions, queued drafts | Investigating | Baseline pending |
-| Shared components and forms | ItemControlPatterns, ProductivityEditorComponents, EntityInspector, date/time/color/emoji/unit controls | Investigating | Baseline pending |
-| Platform, accessibility, performance | manifest, adaptive/window hosting, semantics, keyboard/RTL, API compatibility, large data and benchmarks | Investigating | Baseline pending |
+| First run and recovery | FirstRunSetupDialog, StartupRecoveryScreen, DataEpochGate, launch and recovery | Investigating | Baseline catalog captured; substantive review pending |
+| Shell, Home, adaptive navigation | WhipApp, WhipNavigationPolicy, WhipPagePatterns, shared controls | In progress | Home summary chunk verified in IMP/VER-20260908-014; FND-20260908-015 and broader review remain open |
+| Tasks | WhipApp.TaskAreaContent, TaskEditorDialog, TaskComponents, TaskViewModel/Repository; recurrence, subtasks, planning, filters, bulk actions, focus | Investigating | Baseline catalog captured; substantive review pending |
+| Habits | HabitScreens, HabitViewModel/Repository, MeasurementRepository; cadence, timers, checklists, skips/pauses/history | Investigating | Baseline catalog captured; substantive review pending |
+| Goals | GoalScreens, GoalViewModel/Repository; goal types, milestones, elapsed time, contributions/history | Investigating | Baseline catalog captured; substantive review pending |
+| Tracks | TrackScreens, TrackViewModel/Repository, TrackEditorViewModels; fields, entries, units/precision, queries, history, archive, CSV | Investigating | Baseline catalog captured; substantive review pending |
+| Gym execution/history/progress | GymScreens, GymViewModel/Repository, GymAnalytics; live sets, rest, prior context, completion/copy/deletion | Investigating | Baseline catalog captured; substantive review pending |
+| Exercise and machine library | GymScreens, GymExercisePicker, GymCatalogMutationUi; create/edit/profile/version/archive/delete | Investigating | Baseline catalog captured; substantive review pending |
+| Routines and 5/3/1 | RoutineBuilder, FiveThreeOneBuilder/Programming/CycleReview, RoutineRepository; setup, execution, progression, review | Investigating | Baseline catalog captured; substantive review pending |
+| Search, Review and Insights | UnifiedSearchDialog, ReviewDialog, TrackAnalytics, CrossDomainInsights; scope/filter/drilldown/evidence | Investigating | Baseline catalog captured; substantive review pending |
+| Areas and Tags | AreaManagementDialog, AreaPicker, AreaScopeFilters, TagManagementDialog and repositories; organization lifecycle | Investigating | Baseline catalog captured; substantive review pending |
+| Settings and units | SettingsScreens/ViewModel, AppSettings, UnitSelectionField, DisplayUnits; immediate/committed settings, defaults/custom units | Investigating | Baseline catalog captured; substantive review pending |
+| Backup, restore, import/export | BackupRepository, PortableBackupManager, RestoreRecoveryManager, TrackCsv; preview, merge/replace, encryption, recovery | Investigating | Baseline catalog captured; substantive review pending |
+| Health Connect | HealthConnectManager, reconciliation and rationale; optional permissions, provider truth, sync/failure | Investigating | Baseline catalog captured; substantive review pending |
+| Timers, reminders, notifications | focus/habit/rest timers, reminder workers/rules and action receivers; interruption, stale delivery, timezone | Investigating | Baseline catalog captured; substantive review pending |
+| Widgets and external capture | WhipWidgetProvider, WidgetContent, configuration, MainActivity/launch delivery; creation, actions, queued drafts | Investigating | Baseline catalog captured; substantive review pending |
+| Shared components and forms | ItemControlPatterns, ProductivityEditorComponents, EntityInspector, date/time/color/emoji/unit controls | Investigating | Baseline catalog captured; substantive review pending |
+| Platform, accessibility, performance | manifest, adaptive/window hosting, semantics, keyboard/RTL, API compatibility, large data and benchmarks | Investigating | Baseline catalog captured; substantive review pending |
 
 ## Prioritized findings and design direction
 
-Pending fresh runtime critique. Do not invent changes to populate the backlog.
+1. `FND-20260908-013`: Neutral skipped-Habit scoring and adaptive unfinished counts are verified in `IMP/VER-20260908-014`. A fresh persisted regression reproduced `1 of 2` for one completed/one skipped Habit; four new policy tests and the skip/recreation/undo journey pass, with 161 fresh shell/Habit/core/adaptive/accessibility Android tests and 348 routed JVM readiness tests.
+2. `FND-20260908-014`: A compact responsive Home header and single clear-day Review owner are verified in `IMP/VER-20260908-014`. The first Task card moves from y=1232 to y=982 in matched 1080×2400 captures while retaining its geometry/actions. Large-text RTL review caught and corrected numeric phrase reordering and an unpainted fixture background. The first clear-day capture was rejected because onboarding obscured the state; the repaired fixture and replacement 26-state shared capture pass, and the corrected clear-day pixels/XML were inspected. [Preserved before/after evidence](../../artifacts/astra-audit/2026-09-08/home/README.md).
+3. Investigate semantic notice color: `WhipNoticeTone.Informative` and `Success` currently share the same green container despite different roles. Requires current pixels and neighboring-state comparison before deciding a change.
+4. **Next confirmed correction: `FND-20260908-015`.** Main-activity system-bar contrast follows Android rather than an explicit Whip theme override; external activities already synchronize it correctly. The targeted Home run exposed the dark-on-dark icons that forced-dark catalog capture hides. Reproduce both mismatch directions and live theme changes, then fix the activity boundary.
+
+Initial design direction: put the user's next action near the top; use compact, readable summaries that state outcomes accurately; reserve prominent surfaces and semantic color for decisions/status that need attention; preserve the established collection-card and editor roles unless a concrete benefit supports changing them.
+
+## Discovery follow-ups
+
+- First-run customization and its expanded optional preferences are separate meaningful states absent from the starting catalog. Add their visual/state evidence during the remaining shared review.
+- Review Home section customization, scoped/saved filters, all-finished states, and sparse returning use beyond the current header improvement. In particular, assess whether global header shortcuts should respect hidden Home sections and whether empty per-domain prompts distract from another domain's daily actions. These are unverified opportunities, not accepted product changes.
+- Inspect platform-owned permissions/providers/widgets/notifications and light/dynamic themes explicitly; zero catalog exceptions does not mean those journeys have been covered.
 
 ## Completion audit
 
-All area reviews, per-surface reviews, additional-state discovery, implementation, before/after review, comprehensive functional/static/build checks, adaptive/accessibility/platform evidence, and final design acceptance remain incomplete.
+The first Home correction is verified and ready for owner feedback. Whole-product area and per-surface review, additional-state discovery, remaining justified improvements, comprehensive final functional/static/build checks, full adaptive/accessibility/platform evidence, and final design acceptance remain incomplete. The goal remains active; continue with the system-bar mismatch and remaining shared review, then every area in the matrix at equal depth.

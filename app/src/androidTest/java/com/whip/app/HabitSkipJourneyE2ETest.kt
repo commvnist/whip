@@ -64,6 +64,41 @@ class HabitSkipJourneyE2ETest {
     fun cleanUp() = runBlocking { app.backupRepository.deleteAllData() }
 
     @Test
+    fun homeProgressKeepsSkippedHabitsNeutralAcrossRecreationAndUndo() {
+        val today = app.clock.today()
+        runBlocking {
+            val completed = app.habitRepository.create(HabitDraft(name = "Completed Habit", startDate = today))
+            app.habitRepository.setCheckOff(completed, today, true)
+            app.habitRepository.skipDay(habitId, today)
+        }
+        val intent = Intent(app, MainActivity::class.java).putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
+        launchMainActivity(intent).use { scenario ->
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithTag("home-habit-progress-record").fetchSemanticsNodes().isNotEmpty()
+            }
+            captureVisualCatalogSurface("shared.home.skipped")
+            compose.onNodeWithContentDescription(
+                "Habit progress: 1 of 1 complete. 1 skipped. Open Habits Today",
+            ).assertIsDisplayed()
+
+            scenario.recreate()
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithContentDescription(
+                    "Habit progress: 1 of 1 complete. 1 skipped. Open Habits Today",
+                ).fetchSemanticsNodes().isNotEmpty()
+            }
+            runBlocking { app.habitRepository.undoSkip(habitId, today) }
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithContentDescription(
+                    "Habit progress: 1 of 2 complete. Open Habits Today",
+                ).fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithTag("home-habit-progress-record").performClick()
+            compose.onNodeWithTag("habit-card-$habitId").assertIsDisplayed()
+        }
+    }
+
+    @Test
     fun skipIsOneVisibleNeutralStateWithHistoryInsightsAndUndo() {
         val intent = Intent(app, MainActivity::class.java).putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
         launchMainActivity(intent).use {

@@ -3728,7 +3728,7 @@ private fun buildAdaptiveSummary(
     return AdaptiveSummary(
         date = taskState.currentDate,
         dueTasks = taskState.today.size,
-        dueHabits = habitState.today.count { it.successful != true },
+        dueHabits = habitState.today.homeHabitSummary().attentionCount,
         activeGoals = goalState.active.size,
         pinnedTracks = trackState.pinned.size,
         activeWorkout = gymState.activeSession != null,
@@ -3742,10 +3742,7 @@ private fun buildAdaptiveSummary(
         hasAnyUserData = homeHasAnyUserData(taskState, habitState, goalState, trackState, gymState),
         taskContext = listOfNotNull(selectedTaskTitle) + taskState.today.take(6).map { it.task.title },
         habitContext = habitState.today.take(6).map { item ->
-            val target = item.habit.targetMax ?: item.habit.targetMin
-            "${item.habit.name} · ${if (item.successful == true) "done" else target?.let {
-                "${formatHabitValue(item.value, item.habit.precision)}/${formatHabitValue(it, item.habit.precision)}"
-            } ?: "log"}"
+            "${item.habit.name} · ${if (item.habit.timerNeedsReview) "Timer needs review" else item.compactCollectionStatus()}"
         },
         goalContext = goalState.active.take(6).map { item ->
             "${item.goal.name} · ${item.collectionStatus(goalState.customUnits, nowMillis, goalState.activeZoneId)}"
@@ -5141,16 +5138,15 @@ private fun HomeContent(
         item {
             TodayHeader(
                 date = state.currentDate,
-                taskTotal = state.today.size,
-                habitCompleted = habitState.today.count { it.successful == true },
-                habitTotal = habitState.today.size,
+                taskTotal = if (!state.loading && state.errorMessage == null) state.today.size else 0,
+                habitSummary = if (!habitState.loading && habitState.errorMessage == null) {
+                    habitState.today.homeHabitSummary()
+                } else HomeHabitSummary(),
                 onOpenTasks = onOpenTasks,
                 onOpenHabits = onOpenHabits,
                 showFullHeader = showFullHeader,
+                onOpenReview = onOpenReview.takeIf { hasReviewEvidence && (hasHomeContent || !emptyStateEligible) },
             )
-        }
-        if (hasReviewEvidence) {
-            item { NavigationRow("Review & Trends", onOpenReview, supportingText = "Reflect on outcomes and recent progress.") }
         }
         if (!hasHomeContent && emptyStateEligible) {
             if (hasReviewEvidence) {
@@ -7838,88 +7834,6 @@ private fun HomeStatusCard(title: String, detail: String, onClick: () -> Unit) =
     onClick = onClick,
 )
 
-@Composable
-internal fun TodayHeader(
-    date: LocalDate,
-    taskTotal: Int,
-    habitCompleted: Int,
-    habitTotal: Int,
-    onOpenTasks: () -> Unit,
-    onOpenHabits: () -> Unit,
-    showFullHeader: Boolean = true,
-) {
-    val habitProgress = if (habitTotal == 0) 0f else habitCompleted.toFloat() / habitTotal
-    Column(
-        modifier = Modifier.padding(top = 12.dp, bottom = 12.dp),
-    ) {
-        if (showFullHeader) {
-            Text(
-                date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.labelLarge,
-            )
-            Spacer(Modifier.height(4.dp))
-            Text("Home", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(16.dp))
-        }
-        if (taskTotal > 0) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .testTag("home-tasks-today-record")
-                    .clickable(onClickLabel = "Open Tasks Today", onClick = onOpenTasks)
-                    .semantics {
-                        contentDescription = "Tasks Due Today: $taskTotal. Open Tasks Today"
-                    },
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("Tasks Due Today", style = MaterialTheme.typography.titleSmall)
-                Text(
-                    taskTotal.toString(),
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f).padding(start = 8.dp),
-                )
-                Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)
-            }
-        }
-        if (taskTotal > 0 && habitTotal > 0) Spacer(Modifier.height(4.dp))
-        if (habitTotal > 0) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("home-habit-progress-record")
-                    .clickable(onClickLabel = "Open Habits Today", onClick = onOpenHabits)
-                    .semantics {
-                        contentDescription = "Habit Progress: $habitCompleted of $habitTotal. Open Habits Today"
-                    },
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Habit Progress", style = MaterialTheme.typography.titleSmall)
-                    Text(
-                        "$habitCompleted of $habitTotal",
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1f).padding(start = 8.dp),
-                    )
-                    Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)
-                }
-                LinearProgressIndicator(
-                    progress = { habitProgress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(10.dp)
-                        .clip(CircleShape),
-                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                )
-            }
-        }
-    }
-}
 
 private fun taskDestinationSupportingText(destination: TaskDestination, count: Int): String {
     val description = when (destination) {

@@ -75,7 +75,7 @@
     <string name="home_support_introduction_message">Home gathers the work and routines that need your attention now. Start with Tasks or Habits; Goals, Tracks, and Gym join in as you use them.</string>
     <string name="home_support_introduction_nudge">Start small. Add only what helps.</string>
     <string name="home_support_privacy_note">Private by default. Your data stays on this device unless you choose to export or sync it.</string>
-    <string name="home_support_habits_remaining">Habits Remaining</string>
+    <string name="home_support_habits_remaining">Habits Needing Attention</string>
     <string name="home_support_pinned_tracks">Pinned Tracks</string>
     <string name="home_support_workout">Workout</string>
     <string name="state_in_progress">In progress</string>

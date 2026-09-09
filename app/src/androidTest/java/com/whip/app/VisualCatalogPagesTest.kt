@@ -84,6 +84,24 @@ class VisualCatalogPagesTest {
             waitForHome("Plan the week")
             captureVisualCatalogSurface("shared.home.populated")
         }
+        runBlocking {
+            app.backupRepository.deleteAllData()
+            app.settingsRepository.update {
+                AppSettings(setupCompleted = true, themeMode = AppThemeMode.Dark, dynamicColor = false)
+            }
+            val today = app.clock.today()
+            val taskId = app.taskRepository.create(TaskDraft("Finished work", scheduleKind = ScheduleKind.Once, date = today))
+            app.taskRepository.completeOccurrence(taskId, today)
+        }
+        launch().use {
+            waitForHome("Review Progress")
+            compose.onAllNodesWithText("Welcome to Whip").assertCountEquals(0)
+            compose.onAllNodesWithText("Review & Trends").assertCountEquals(0)
+            compose.onAllNodesWithText("Review Progress").assertCountEquals(1)
+            captureVisualCatalogSurface("shared.home.clear-review")
+            compose.onNodeWithText("Review Progress").performClick()
+            compose.onNodeWithContentDescription("Close Review & Trends").assertIsDisplayed()
+        }
     }
 
     @Test
