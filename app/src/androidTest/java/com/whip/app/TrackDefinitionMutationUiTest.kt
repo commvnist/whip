@@ -47,12 +47,14 @@ import com.whip.app.ui.theme.WhipTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
+import org.junit.rules.RuleChain
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class TrackDefinitionMutationUiTest {
-    @get:Rule val compose = createComposeRule()
+    private val compose = createComposeRule()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     @Test
     fun captureTrackUnavailableCatalog() {
@@ -159,6 +161,7 @@ class TrackDefinitionMutationUiTest {
     }
 
     @Test
+    @AndroidFontScale
     fun exactRemovalReviewKeepsLongImpactAndActionsReachableAtTwoHundredPercentText() {
         val draft = TrackDraft(
             name = "Health log",
@@ -224,6 +227,9 @@ class TrackDefinitionMutationUiTest {
                 }
             }
         }
+
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("tracks.definition-removal.large")
 
         compose.onNodeWithTag("track-definition-removal-review").assertIsDisplayed()
         val bounds = compose.onNodeWithTag("track-definition-removal-review").getUnclippedBoundsInRoot()

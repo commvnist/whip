@@ -1,5 +1,9 @@
 package com.whip.app.ui
 
+import com.whip.app.AndroidFontScale
+import com.whip.app.AndroidFontScaleRule
+import com.whip.app.assertDialogFontScale
+
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -41,10 +45,12 @@ import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
+import org.junit.rules.RuleChain
 import org.junit.Test
 
 class AreaFeatureUiTest {
-    @get:Rule val compose = createComposeRule()
+    private val compose = createComposeRule()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     @Test
     fun captureAreaManagementCatalog() {
@@ -452,6 +458,7 @@ class AreaFeatureUiTest {
     }
 
     @Test
+    @AndroidFontScale
     fun areaChoicesUseOneSemanticRadioNodeAndScrollWithoutMovingDialogActions() {
         val targets = (1..40).map { area("area-$it", "Area $it") }
         compose.setContent {
@@ -469,6 +476,9 @@ class AreaFeatureUiTest {
                 }
             }
         }
+
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("organization.move-area.large")
 
         compose.onNodeWithTag("move-area-choice-list")
             .performScrollToNode(hasContentDescription("Move to Area 40"))

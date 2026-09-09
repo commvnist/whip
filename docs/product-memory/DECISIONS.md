@@ -1,5 +1,14 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-007 — Prioritize CSV recovery before the mapping form
+
+- Context: Actual enlarged text exposes a zero-valid-row recovery action below the mapping form; failed-session recovery already appears near the error. Generic setup guidance competes with the active failure message.
+- Alternatives: Scrolling the test would prove reachability but preserve poor recovery discovery. A new multi-step import wizard would disrupt an existing coherent preview and its retained mapping/retry lifecycle without a demonstrated benefit.
+- Decision: Keep the current preview. Use one early file-recovery action for error and zero/invalid-preview states, retain its existing Choose Another File versus Replace File meaning, and show mapping guidance as secondary text only when no authoritative error is active. Keep frozen mapping review scrollable and explicit.
+- Compatibility: No change to mapping identity, preview editing policy, allowed imports, receipts, retry/replacement callbacks, persistence, or historical data. Completed and unavailable-target states retain their existing action ownership.
+- Related: `FND-20260909-008`, `FND-20260909-006`, `DEC-20260901-022`, `VER-20260909-008`.
+- Status: Verified in `IMP/VER-20260909-008`; recovery priority, exact callback, frozen mapping access, and normal preview behavior pass.
+
 ### DEC-20260909-006 — Inspector identity gets a full-width row when space is constrained
 
 - Context: Actual 200% text exposes word splitting and ellipsis caused by keeping the emoji, identity column, Edit, and Close in one row. This is shared by Task/Habit/Goal/Gym inspectors.
@@ -16,7 +25,7 @@
 - Decision: Use a shared, method-scoped JUnit rule to set Android's font scale before activity launch and restore the original value after teardown. Correct affected dialog tests and assert their rendered TextLayoutResult scale inside the actual dialog. Keep inline geometry fixtures explicit; extend real-dialog coverage where only an inline component was previously exercised.
 - Evidence/compatibility: First run already proves this ordering works; changing font scale after activity launch recreates the activity and can lose test content. No production density override or font-scaling workaround is authorized by this verification change. Any newly exposed product defect gets its own finding and proportionate remediation.
 - Related: `FB-20260908-006`, `FND-20260909-006`.
-- Status: In progress.
+- Status: Implemented and verified for the 32 inventoried fixtures in `VER-20260909-007/008`. Broader real-window coverage discovery and newly exposed layout findings remain in progress.
 
 ### DEC-20260909-004 — Each dialog owns contrast from the rendered Whip theme
 

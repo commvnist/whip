@@ -56,13 +56,14 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
+import org.junit.rules.RuleChain
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class ProductivityDefaultsUiTest {
-    @get:Rule
-    val compose = createComposeRule()
+    private val compose = createComposeRule()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     private val app: WhipApplication
         get() = ApplicationProvider.getApplicationContext()
@@ -352,6 +353,7 @@ class ProductivityDefaultsUiTest {
     }
 
     @Test
+    @AndroidFontScale
     fun onboardingKeepsItsActionsReachableAtLargeText() {
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides Density(compose.density.density, fontScale = 2f)) {
@@ -360,6 +362,9 @@ class ProductivityDefaultsUiTest {
                 }
             }
         }
+
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("shared.first-run.welcome-large")
 
         compose.onNodeWithText("Welcome to Whip").assertIsDisplayed()
         compose.onNodeWithText("Customize").assertIsDisplayed()

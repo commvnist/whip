@@ -1,5 +1,10 @@
 package com.whip.app.ui
 
+import com.whip.app.AndroidFontScale
+import com.whip.app.AndroidFontScaleRule
+import com.whip.app.assertDialogFontScale
+import com.whip.app.captureVisualCatalogSurface
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
@@ -40,10 +45,12 @@ import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
+import org.junit.rules.RuleChain
 import org.junit.Test
 
 class EditorDependencyUxTest {
-    @get:Rule val compose = createComposeRule()
+    private val compose = createComposeRule()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     @Test
     fun untouchedTaskTitleStaysNeutralUntilSaveExplainsTheRequirement() {
@@ -67,6 +74,7 @@ class EditorDependencyUxTest {
     }
 
     @Test
+    @AndroidFontScale
     fun shortenedSharedDraftWarningIsReachableFromTheFocusedTitleAtLargeText() {
         val largeText = Density(compose.density.density, fontScale = 2f)
         compose.setContent {
@@ -85,6 +93,9 @@ class EditorDependencyUxTest {
                 }
             }
         }
+
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("tasks.editor.shared-large")
 
         compose.onNodeWithTag("shared-task-capture-shortened").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("task-editor-title").assert(
@@ -488,6 +499,7 @@ class EditorDependencyUxTest {
     }
 
     @Test
+    @AndroidFontScale
     fun largeTextDatePickerUsesReachableWheelsAndFullHeightActions() {
         val largeText = Density(compose.density.density, fontScale = 2f)
         compose.setContent {
@@ -502,6 +514,9 @@ class EditorDependencyUxTest {
                 }
             }
         }
+
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("shared.date-picker.large")
 
         compose.onNodeWithTag("date-picker-wheel-selector").assertIsDisplayed()
         compose.onNodeWithContentDescription("Year picker").assertIsDisplayed()

@@ -1,5 +1,9 @@
 package com.whip.app.ui
 
+import com.whip.app.AndroidFontScale
+import com.whip.app.AndroidFontScaleRule
+import com.whip.app.assertDialogFontScale
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,12 +32,14 @@ import com.whip.app.ui.theme.WhipTheme
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Rule
+import org.junit.rules.RuleChain
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class WorkoutDeletionUiTest {
-    @get:Rule val compose = createComposeRule()
+    private val compose = createComposeRule()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     @Test
     fun exactReviewDistinguishesRemovedRecalculatedAndPreservedHistory() {
@@ -76,6 +82,7 @@ class WorkoutDeletionUiTest {
     }
 
     @Test
+    @AndroidFontScale
     fun activeWorkoutIsBlockedAndActionsRemainReachableAtLargeText() {
         val active = impact().copy(state = WorkoutSessionState.Active.name)
         compose.setContent {
@@ -101,6 +108,9 @@ class WorkoutDeletionUiTest {
                 }
             }
         }
+
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("gym.workout.delete-blocked.large")
 
         compose.onNodeWithTag("workout-delete-impact-list").performScrollToNode(hasText("Active Workout"))
         compose.onNodeWithText("Active Workout").assertIsDisplayed()

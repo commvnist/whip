@@ -73,13 +73,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
+import org.junit.rules.RuleChain
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class RoutineBuilderUiTest {
-    @get:Rule
-    val compose = createComposeRule()
+    private val compose = createComposeRule()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     @Test
     fun sharedExercisePickerAlwaysOffersSearchAndSeededCreation() {
@@ -1192,6 +1193,7 @@ class RoutineBuilderUiTest {
     }
 
     @Test
+    @AndroidFontScale
     fun leaderAnchorSetupRemainsNavigableAtCompactWidthAndLargeText() {
         val exercises = listOf(
             exercise(1, "Squat"),
@@ -1227,6 +1229,8 @@ class RoutineBuilderUiTest {
             hasText("Set Up 5/3/1") and hasClickAction() and
                 hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
         ).performScrollTo().performClick()
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("gym.531.setup.large")
         compose.onNodeWithTag("five-three-one-plan-ForeverBbbLeaderAnchor")
             .performScrollTo()
             .assertIsDisplayed()

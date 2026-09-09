@@ -1,0 +1,35 @@
+surface_id	visual_review
+goals.editor.large	Full-screen title, Save, Basics, Name, Emoji and initial Goal type remain readable; deeper form uses existing scroll.
+goals.elapsed-reset	Complete reset meaning, exact time context, date/time controls and both footer actions fit; callback precision is exercised.
+goals.measurement.large	Goal identity, observed value, optional note and date read clearly; retained draft and blocked saving behavior pass.
+gym.531.cycle-review.large	Cycle title, advisory explanation and first exercise evidence remain readable above full-width Apply; long review scrolls.
+gym.531.setup.large	Program header and disabled Build remain visible; explanation and first preset fit. Full programming design review remains open.
+gym.exercise.delete-retry.large	Stale-impact error and Review Updated Impact lead the scrollable impact list; footer actions remain visible.
+gym.exercise.permanent-delete	Active-workout warning and route lead the impact list; long labels wrap and guarded deletion remains exercised.
+gym.machine.delete-retry.large	Unverified outcome and Retry Verification remain fully visible; long destructive action wraps.
+gym.machine.permanent-delete	Long title and Removed/Kept impact are readable; existing list scroll reaches Needs Attention and Active Workout.
+gym.workout.delete-blocked.large	Active-workout explanation leads the readable impact list; blocked deletion and preserved programming guarantees pass.
+habits.editor.large	Full-screen identity and Save remain clear; fields and tracking explanation flow without overlap.
+habits.inspector.today	Full-width identity, status, tabs, Today overview and docked Check In are readable at actual enlarged text.
+habits.pause.large-error	Retained-draft error, pause meaning and date actions fit above footer; duplicate recovery wording merits later copy review.
+organization.move-area.large	Introductory content fills the short initial viewport before any destination choice; scroll/selection pass, discovery remains open under FND-20260909-009.
+settings.custom-unit.large	Name, Symbol, Dimension and fixed actions remain readable with IME; scrolling reaches Factor as asserted.
+settings.delete-retry.large	Three-line fixed heading leaves roughly one body line above Cancel/Retry; FND-20260909-009 remains open.
+settings.number-editor.discard-large	Complete unsaved-setting explanation and separate Keep Editing/Discard actions fit at actual text scale.
+settings.number-editor.large	Value, label, guidance and disabled unchanged Save fit; validation and dismissal guard are exercised. Exterior is an isolated test host.
+settings.restore-confirm.large	Replacement meaning and impact remain readable with both fixed actions; this is the second destructive gate.
+settings.restore-preview.large	Short preview initially shows summary without import choices; scrolling passes, initial discovery remains open under FND-20260909-009.
+shared.date-picker.large	Selected full date, wheel headings and actions fit; September's adjacent wheel label is ellipsized and needs broader picker review.
+shared.first-run.welcome-large	Welcome meaning, three benefits, default setup explanation and both actions are readable.
+tasks.batch-delete	Single selected Task, exact impact, backup advice and both destructive-review actions fit.
+tasks.bulk-archive.large	Long titles scroll while Cancel/Archive 8 remain readable; preserved history is exercised.
+tasks.bulk-archive.single-large	Single selected Task, archive meaning and retained history fit with both actions.
+tasks.bulk-edit	Enabled-field and series/occurrence meaning are readable; form scrolls with disabled unchanged Apply fixed.
+tasks.bulk-selection	One selected Task has visible Complete/Edit/overflow/Done actions; six named destinations remain readable.
+tasks.editor.large	Full-screen title and Save remain clear; Name, Emoji and schedule introduction fit with deeper controls scrolling.
+tasks.editor.shared-large	Captured Create Task header overlaps Android status icons with IME open; investigate settled bounds and real journey under FND-20260909-010.
+tasks.templates.extreme	At actual 320% text, initial title/instruction leave no choice visible; FND-20260909-009 remains open despite successful scrolling.
+tracks.csv-import	Secondary mapping guidance and normal preview remain readable; minor singular copy defect ('1 rows') remains for Track review.
+tracks.csv-import.empty-large	Recovery action now immediately follows empty-file error, ahead of retained file/date/mapping context; disabled Import remains truthful.
+tracks.csv-import.frozen-large	Error and Replace File lead retained file/date context; existing list scroll reaches frozen mapping review; Import remains disabled.
+tracks.definition-removal.large	Exact review meaning, first two Field impacts and Keep Editing/Apply remain readable; existing scroll reaches long impact.

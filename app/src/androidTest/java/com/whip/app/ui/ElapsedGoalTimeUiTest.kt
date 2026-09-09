@@ -1,5 +1,9 @@
 package com.whip.app.ui
 
+import com.whip.app.AndroidFontScale
+import com.whip.app.AndroidFontScaleRule
+import com.whip.app.assertDialogFontScale
+
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
@@ -36,14 +40,17 @@ import java.time.LocalDate
 import java.time.ZoneId
 import org.junit.Assert.assertEquals
 import org.junit.Rule
+import org.junit.rules.RuleChain
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class ElapsedGoalTimeUiTest {
-    @get:Rule val compose = createComposeRule()
+    private val compose = createComposeRule()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     @Test
+    @AndroidFontScale
     fun resetWithoutEditingPreservesTheExactInstantAndActionsRemainUsableAtLargeText() {
         val original = Instant.parse("2026-08-30T14:15:45.321Z")
         var saved: Instant? = null
@@ -66,6 +73,8 @@ class ElapsedGoalTimeUiTest {
                 }
             }
         }
+
+        compose.assertDialogFontScale()
 
         captureVisualCatalogSurface("goals.elapsed-reset")
         val surface = compose.onNodeWithTag("elapsed-reset-dialog").assertIsDisplayed()

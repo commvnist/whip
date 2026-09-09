@@ -1,5 +1,34 @@
 # Durable findings
 
+### FND-20260909-010 — Shared Task capture shows header overlap during keyboard presentation
+
+- Severity/category: P2, editor window insets and accessibility; stable reproduction pending.
+- Observed: The corrected actual-200%-text `tasks.editor.shared-large` capture shows Create Task and its exit icon underneath the Android status bar while the title field and keyboard are visible. The neighboring unfocused Task editor has a clear inset. Reachability and shortened-draft semantics still pass.
+- Evidence: Personally inspected `build/astra-dialog-font-20260909/final-capture/raw/tasks.editor.shared-large.png`, preserved in the dialog-font-coverage directory; owner `com.whip.app.ui.EditorDependencyUxTest#shortenedSharedDraftWarningIsReachableFromTheFocusedTitleAtLargeText`, `build/instrumentation-results-cwzA28`.
+- Next: Distinguish a captured window transition from persistent inset loss using settled bounds and a real shared-capture journey. Inspect the Task dialog's keyboard/window ownership before choosing a fix; do not accept this frame as correct layout.
+- Related: `FB-20260908-006`, `FND-20260909-006`, `VER-20260909-008`.
+- Status: Investigating.
+
+### FND-20260909-009 — Large fixed headings leave short dialogs too little reading space
+
+- Severity/category: P2, shared dialog layout and accessibility.
+- Observed: At actual Android 320% text, the 300×460 dp Task Templates fixture initially shows its two-line title and only part of the opening instruction, with no choice visible. At actual 200% text, a 320×360 dp destructive recovery fixture shows its three-line title, roughly one line of body, and two actions. Scrolling tests pass, but that alone does not establish a useful reading viewport.
+- Evidence: Personally inspected `build/astra-dialog-font-20260909/initial-captures/tasks.templates.extreme.png` and `settings.delete-retry.large.png`; both rendered-scale assertions and scoped reachability tests pass in `build/instrumentation-results-eA4lhh`. `PaneAwareAlertDialog`/`ProductivityEditorDialog` retain separate title/body/action slots; TaskRecipeDialog and PermanentDeleteDialog own their scrollable bodies.
+- Expected: Preserve readable enlarged text, complete content, context, and reachable actions while adapting the vertical layout to short windows. Evaluate a shared constrained-height treatment against a local template fix before changing the pattern; do not shrink the user's requested font scale to satisfy geometry.
+- Neighbor review: Fresh `organization.move-area.large` and `settings.restore-preview.large` also show their introductory content without any initial choice. Their existing scroll and selection tests pass. Include initial choice discovery in the constrained-dialog review; a scrolling header alone may not resolve verbose introductory content.
+- Related: `FB-20260908-006`, `FND-20260909-006`, `VER-20260909-008`.
+- Status: Confirmed; remediation and final visual acceptance pending.
+
+### FND-20260909-008 — CSV file recovery sits below mapping controls when no rows can be imported
+
+- Severity/category: P2, Track import recovery and information hierarchy.
+- Observed: At actual Android 200% text and 320 dp, a preview with zero valid rows shows its error, a long generic mapping explanation, file context, and mapping controls; Choose Another File is below the viewport while the footer shows disabled Import 0 Entries. Error-phase recovery already appears above the form, producing inconsistent priority for the same user need.
+- Evidence: Corrected `TrackCsvImportUiTest.largeTextKeepsFileDateMappingAndRecoveryActionReachable` fails its recovery visibility assertion in `build/instrumentation-results-eA4lhh`; personally inspected `build/astra-dialog-font-20260909/initial-captures/tracks.csv-import.empty-large.png` and the frozen-error neighbor. `TrackScreens.kt:TrackCsvImportDialog` places zero/invalid-preview recovery after all mapping Fields.
+- Expected: Put the available file-recovery action beside the authoritative error/preview problem, retain file/date/mapping context and exact import guards, and keep routine mapping guidance from competing with an active error.
+- Separate fixture issues: The frozen mapping toggle is below the LazyColumn viewport and must be found by scrolling its owner; Machine deletion impact likewise requires scrolling at actual enlarged text. These failures alone do not prove product controls are unreachable.
+- Related: `FB-20260908-006`, `FND-20260909-006`, `DEC-20260909-007`, `VER-20260909-008`.
+- Status: Verified in `IMP/VER-20260909-008`; one early recovery action, secondary guidance, all 14 CSV UI regressions, and inspected empty/frozen/normal preview evidence pass. Broader Track import audit remains open.
+
 ### FND-20260909-007 — Inspector actions squeeze large-text identity into a narrow column
 
 - Severity/category: P2, shared identity hierarchy and accessibility.
@@ -17,7 +46,7 @@
 - Expected/solution: Configure the disposable emulator's actual Android font scale, restore it after the test, and assert the rendered text scale before accepting accessibility evidence. Review other dialog fixtures using this outer-provider pattern; do not retroactively claim their dialog content was enlarged.
 - Evidence: `FirstRunSetupPersistenceUiTest`; `/tmp/whip-astra-first-run-focused2.log`. Four other request-lifecycle tests passed in that run. Earlier unasserted first-run large-text screenshots are rejected as enlarged-text evidence.
 - Related: `FB-20260908-006`, first-run and whole-product accessibility matrix.
-- Status: In progress. First run and three additional inspector/nested-choice fixtures now use the shared Android font rule and assert actual rendered 2.0 text in `VER-20260909-007`. The 32-fixture inventory in `docs/quality/astra-dialog-font-review-2026-09-09.tsv` distinguishes these four verified cases from 28 remaining investigations; inline-only geometry coverage remains separate.
+- Status: In progress. All 32 inventoried fixtures now configure and assert actual Android dialog text scale: four in `VER-20260909-007`, the remaining 28 in `VER-20260909-008` (including one at 3.2). Font fidelity is verified, while visual acceptance remains separate: `FND-20260909-009/010` are open. Expand real-window coverage where only inline components were tested, including Unified Search; inline-only geometry coverage remains separate.
 
 ### FND-20260909-002 — First-run completion does not wait for a durable save result
 

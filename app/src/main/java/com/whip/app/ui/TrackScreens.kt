@@ -2491,7 +2491,12 @@ internal fun TrackCsvImportDialog(
                         color = MaterialTheme.colorScheme.error,
                     )
                 } }
-                if (!targetUnavailable && state.phase == TrackCsvImportPhase.Error) item {
+                if (
+                    !targetUnavailable && !completed && (
+                        state.phase == TrackCsvImportPhase.Error ||
+                            preview?.validRows == 0 || preview?.invalidRows?.let { it > 0 } == true
+                        )
+                ) item {
                     WhipOutlinedButton(
                         enabled = !saving,
                         onClick = onChooseAnother,
@@ -2499,13 +2504,19 @@ internal fun TrackCsvImportDialog(
                     ) {
                         Text(
                             stringResource(
-                                if (state.requiresNewFile) R.string.track_csv_replace_file
+                                if (state.phase == TrackCsvImportPhase.Error && state.requiresNewFile) R.string.track_csv_replace_file
                                 else R.string.track_csv_choose_another_file,
                             ),
                         )
                     }
                 }
-                if (!completed) item { Text(stringResource(R.string.track_csv_mapping_description)) }
+                if (!completed && error == null && retryablePersistenceError == null) item {
+                    Text(
+                        stringResource(R.string.track_csv_mapping_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 item {
                     WhipGroupedInformationCard {
                         Text(
@@ -2578,19 +2589,6 @@ internal fun TrackCsvImportDialog(
                                 enabled = canEditPreview,
                             )
                         }
-                    }
-                }
-                if (
-                    !targetUnavailable && state.phase != TrackCsvImportPhase.Error && (
-                        preview?.validRows == 0 || preview?.invalidRows?.let { it > 0 } == true
-                        )
-                ) item {
-                    WhipOutlinedButton(
-                        enabled = !saving,
-                        onClick = onChooseAnother,
-                        modifier = Modifier.fillMaxWidth().testTag("track-csv-replace-file"),
-                    ) {
-                        Text(stringResource(R.string.track_csv_choose_another_file))
                     }
                 }
                 preview?.let { result ->

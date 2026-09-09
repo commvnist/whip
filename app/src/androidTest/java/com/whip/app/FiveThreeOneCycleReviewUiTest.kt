@@ -25,13 +25,14 @@ import com.whip.app.ui.FiveThreeOneExerciseCycleReview
 import com.whip.app.ui.theme.WhipTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
+import org.junit.rules.RuleChain
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class FiveThreeOneCycleReviewUiTest {
-    @get:Rule
-    val compose = createComposeRule()
+    private val compose = createComposeRule()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     @Test
     fun defaultsToStandardAndValidatesSuggestionAndCustomDecision() {
@@ -98,6 +99,7 @@ class FiveThreeOneCycleReviewUiTest {
     }
 
     @Test
+    @AndroidFontScale
     fun applyActionRemainsReachableAtTwoHundredPercentText() {
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
@@ -110,6 +112,9 @@ class FiveThreeOneCycleReviewUiTest {
                 }
             }
         }
+
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("gym.531.cycle-review.large")
 
         compose.onNodeWithTag("training-max-review-7").assertIsDisplayed()
         compose.onNodeWithTag("apply-training-max-decisions").assertIsDisplayed().assertIsEnabled()

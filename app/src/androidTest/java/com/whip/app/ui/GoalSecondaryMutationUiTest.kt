@@ -1,5 +1,9 @@
 package com.whip.app.ui
 
+import com.whip.app.AndroidFontScale
+import com.whip.app.AndroidFontScaleRule
+import com.whip.app.assertDialogFontScale
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -49,12 +53,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
+import org.junit.rules.RuleChain
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class GoalSecondaryMutationUiTest {
-    @get:Rule val compose = createComposeRule()
+    private val compose = createComposeRule()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     @Test
     fun captureGoalComponentCatalog() {
@@ -175,6 +181,7 @@ class GoalSecondaryMutationUiTest {
     }
 
     @Test
+    @AndroidFontScale
     fun progressFailureKeepsDraftAndSavingBlocksBackAndDuplicateSubmit() {
         var saving by mutableStateOf(false)
         var error by mutableStateOf<String?>(null)
@@ -201,6 +208,9 @@ class GoalSecondaryMutationUiTest {
                 }
             }
         }
+
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("goals.measurement.large")
 
         compose.onNodeWithTag("goal-measurement-value").performTextReplacement("123.5")
         compose.onNodeWithTag("goal-measurement-save").performClick()

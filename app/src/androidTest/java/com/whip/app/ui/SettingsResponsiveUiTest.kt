@@ -1,5 +1,9 @@
 package com.whip.app.ui
 
+import com.whip.app.AndroidFontScale
+import com.whip.app.AndroidFontScaleRule
+import com.whip.app.assertDialogFontScale
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -63,10 +67,12 @@ import java.time.ZoneId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
+import org.junit.rules.RuleChain
 import org.junit.Test
 
 class SettingsResponsiveUiTest {
-    @get:Rule val compose = createComposeRule()
+    private val compose = createComposeRule()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     @androidx.compose.runtime.Composable
     private fun <T> immediateMutation(onPersist: (T) -> Unit): TypedSettingMutation<T> {
@@ -433,6 +439,7 @@ class SettingsResponsiveUiTest {
     }
 
     @Test
+    @AndroidFontScale
     fun boundedLargeTextEditorAnnouncesErrorsAndGuardsHardwareDismissal() {
         var committed by mutableIntStateOf(120)
         compose.setContent {
@@ -452,6 +459,8 @@ class SettingsResponsiveUiTest {
         }
 
         compose.onNodeWithTag("settings-field-default-rest-time-seconds").performClick()
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("settings.number-editor.large")
         compose.onNodeWithTag("settings-field-default-rest-time-seconds-input")
             .performTextReplacement("9".repeat(20_000))
         compose.onNodeWithTag("settings-field-default-rest-time-seconds-input").performImeAction()
@@ -482,6 +491,8 @@ class SettingsResponsiveUiTest {
             keyUp(Key.Escape)
         }
         compose.onNodeWithText("Discard Unsaved Changes?").assertIsDisplayed()
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("settings.number-editor.discard-large")
         compose.onNodeWithText("Keep Editing").performClick()
         compose.onNodeWithTag("settings-field-default-rest-time-seconds-input").assertIsFocused()
         compose.onNodeWithTag("settings-field-default-rest-time-seconds-input").performKeyInput {
@@ -755,6 +766,7 @@ class SettingsResponsiveUiTest {
     }
 
     @Test
+    @AndroidFontScale
     fun destructiveCopyAndActionsRemainReachableInAShortLargeTextWindow() {
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides Density(1f, fontScale = 2f)) {
@@ -778,6 +790,9 @@ class SettingsResponsiveUiTest {
                 }
             }
         }
+
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("settings.delete-retry.large")
 
         compose.onNodeWithText("Deletion could not finish. Your recovery marker is still active.")
             .performScrollTo()
@@ -823,6 +838,7 @@ class SettingsResponsiveUiTest {
     }
 
     @Test
+    @AndroidFontScale
     fun customUnitFactorAndActionsRemainReachableAtTwoHundredPercentText() {
         compose.setContent {
             CompositionLocalProvider(
@@ -839,6 +855,9 @@ class SettingsResponsiveUiTest {
                 }
             }
         }
+
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("settings.custom-unit.large")
 
         compose.onNodeWithTag("custom-unit-factor").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("custom-unit-confirm").assertIsDisplayed()

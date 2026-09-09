@@ -66,13 +66,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
+import org.junit.rules.RuleChain
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class ActivityHistoryUiTest {
-    @get:Rule
-    val compose = createComposeRule()
+    private val compose = createComposeRule()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     private val today = LocalDate.of(2026, 8, 30)
 
@@ -386,6 +387,7 @@ class ActivityHistoryUiTest {
     }
 
     @Test
+    @AndroidFontScale
     fun habitTodayUsesOneResponsiveOverviewAndExplainedSecondaryAction() {
         var skipped = false
         val largeText = Density(compose.density.density, fontScale = 2f)
@@ -403,6 +405,8 @@ class ActivityHistoryUiTest {
                 }
             }
         }
+
+        compose.assertDialogFontScale()
 
         captureVisualCatalogSurface("habits.inspector.today")
         compose.onNodeWithTag("habit-today-overview").assertIsDisplayed()
@@ -603,6 +607,7 @@ class ActivityHistoryUiTest {
     }
 
     @Test
+    @AndroidFontScale
     fun pauseEditorRemainsScrollableAndActionableAt320DpAndTwoHundredPercentText() {
         val largeText = Density(compose.density.density, fontScale = 2f)
         compose.setContent {
@@ -622,6 +627,9 @@ class ActivityHistoryUiTest {
                 }
             }
         }
+
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("habits.pause.large-error")
 
         val dialog = compose.onNodeWithTag("habit-pause-dialog").getUnclippedBoundsInRoot()
         assertTrue(dialog.right - dialog.left <= 321.dp)

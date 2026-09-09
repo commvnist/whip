@@ -1,5 +1,9 @@
 package com.whip.app.ui
 
+import com.whip.app.AndroidFontScale
+import com.whip.app.AndroidFontScaleRule
+import com.whip.app.assertDialogFontScale
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
@@ -55,10 +59,12 @@ import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
+import org.junit.rules.RuleChain
 import org.junit.Test
 
 class SafetyChoiceUiTest {
-    @get:Rule val compose = createComposeRule()
+    private val compose = createComposeRule()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     @Test
     fun captureWorkoutEditorAndGroupCatalog() {
@@ -174,6 +180,7 @@ class SafetyChoiceUiTest {
     }
 
     @Test
+    @AndroidFontScale
     fun backupRestoreChoicesStayFullWidthAndReachableAtCompactLargeText() {
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides Density(1f, fontScale = 2f)) {
@@ -192,6 +199,9 @@ class SafetyChoiceUiTest {
                 }
             }
         }
+
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("settings.restore-preview.large")
 
         compose.onNodeWithTag("merge-new-data")
             .performScrollTo()
@@ -216,6 +226,8 @@ class SafetyChoiceUiTest {
 
         compose.onNodeWithTag("request-replace-everything").performClick()
         compose.onNodeWithText("Replace Everything With This Backup?").assertIsDisplayed()
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("settings.restore-confirm.large")
     }
 
     @Test

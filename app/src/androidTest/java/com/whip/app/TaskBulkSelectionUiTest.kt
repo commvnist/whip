@@ -49,13 +49,15 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
 import org.junit.Rule
+import org.junit.rules.RuleChain
 import org.junit.Test
 
 class TaskBulkSelectionUiTest {
-    @get:Rule
-    val compose = createComposeRule()
+    private val compose = createComposeRule()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     @Test
+    @AndroidFontScale
     fun activeSelectionKeepsPrimaryActionsVisibleAndSecondaryActionsInOverflow() {
         val today = LocalDate.of(2026, 8, 25)
         val item = scheduledTask(1, "Visible bulk actions", today)
@@ -95,6 +97,7 @@ class TaskBulkSelectionUiTest {
             compose.onNodeWithTag("task-selection-$action").assertIsDisplayed().assertIsEnabled()
         }
         compose.onNodeWithTag("task-selection-edit").performClick()
+        compose.assertDialogFontScale()
         compose.onNodeWithText("Edit 1 Task").assertIsDisplayed()
         compose.waitForIdle()
         captureVisualCatalogSurface("tasks.bulk-edit")
@@ -105,6 +108,7 @@ class TaskBulkSelectionUiTest {
         compose.onNodeWithText("Delete Permanently").assertIsDisplayed()
 
         compose.onNodeWithTag("task-selection-delete").performClick()
+        compose.assertDialogFontScale()
         compose.onNodeWithText("Delete 1 Task Permanently?").assertIsDisplayed()
         compose.waitForIdle()
         captureVisualCatalogSurface("tasks.batch-delete")
@@ -114,7 +118,9 @@ class TaskBulkSelectionUiTest {
 
         compose.onNodeWithTag("task-selection-more").performClick()
         compose.onNodeWithTag("task-selection-archive").performClick()
+        compose.assertDialogFontScale()
         compose.onNodeWithText("Archive 1 Task?").assertIsDisplayed()
+        captureVisualCatalogSurface("tasks.bulk-archive.single-large")
         compose.onNodeWithText("Archive 1").performClick()
         compose.runOnIdle { assertEquals(listOf(item), archived.get()) }
     }
@@ -607,6 +613,7 @@ class TaskBulkSelectionUiTest {
     }
 
     @Test
+    @AndroidFontScale
     fun bulkArchiveImpactRemainsScrollableAtTwoHundredPercentText() {
         val today = LocalDate.of(2026, 8, 25)
         val items = (1L..8L).map { id ->
@@ -635,6 +642,8 @@ class TaskBulkSelectionUiTest {
         compose.onNodeWithText("Select All").performClick()
         compose.onNodeWithTag("task-selection-more").performClick()
         compose.onNodeWithTag("task-selection-archive").performClick()
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("tasks.bulk-archive.large")
 
         compose.onNodeWithText("Archive 8 Tasks?").assertIsDisplayed()
         compose.onNodeWithTag("task-bulk-archive-impact").performTouchInput { swipeUp() }

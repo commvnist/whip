@@ -107,6 +107,7 @@ import com.whip.app.data.ExerciseDeletionImpact
 import com.whip.app.data.RoutineDeletionImpact
 import com.whip.app.ui.theme.WhipTheme
 import org.junit.Rule
+import org.junit.rules.RuleChain
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.Assert.assertEquals
@@ -117,8 +118,8 @@ import java.time.Instant
 
 @RunWith(AndroidJUnit4::class)
 class GymPowerInputUiTest {
-    @get:Rule
-    val compose = createComposeRule()
+    private val compose = createComposeRule()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     @Test
     fun captureWorkoutComponentCatalog() {
@@ -714,6 +715,7 @@ class GymPowerInputUiTest {
     }
 
     @Test
+    @AndroidFontScale
     fun machineDeleteDialogExplainsPreservedHistoryAndBlocksActiveUse() {
         compose.setContent {
             CompositionLocalProvider(
@@ -761,15 +763,21 @@ class GymPowerInputUiTest {
             }
         }
 
+        compose.assertDialogFontScale()
+
         captureVisualCatalogSurface("gym.machine.permanent-delete")
         compose.onNodeWithText("Delete “Downtown cable stack” v2 Permanently?").assertIsDisplayed()
+        compose.onNodeWithTag("machine-delete-impact-list").performScrollToNode(hasText("Kept"))
         compose.onNodeWithText("Kept").assertIsDisplayed()
+        compose.onNodeWithTag("machine-delete-impact-list").performScrollToNode(hasText("Needs Attention"))
         compose.onNodeWithText("Needs Attention").assertIsDisplayed()
+        compose.onNodeWithTag("machine-delete-impact-list").performScrollToNode(hasText("Active Workout"))
         compose.onNodeWithText("Active Workout").assertIsDisplayed()
         compose.onNodeWithTag("machine-delete-confirm").assertIsNotEnabled()
     }
 
     @Test
+    @AndroidFontScale
     fun machineDeleteDialogMakesAnUnverifiedOutcomeRetryableAtNarrowLargeText() {
         var retried = false
         compose.setContent {
@@ -798,6 +806,9 @@ class GymPowerInputUiTest {
             }
         }
 
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("gym.machine.delete-retry.large")
+
         compose.onNodeWithTag("machine-delete-error").assertIsDisplayed()
         compose.onNodeWithText("Retry Verification").performClick()
         compose.runOnIdle { assertTrue(retried) }
@@ -805,6 +816,7 @@ class GymPowerInputUiTest {
     }
 
     @Test
+    @AndroidFontScale
     fun exerciseDeleteDialogBlocksActiveUseAndPreservesTrainingMaxAuditHistory() {
         var openedWorkout = false
         compose.setContent {
@@ -834,6 +846,8 @@ class GymPowerInputUiTest {
                 }
             }
         }
+
+        compose.assertDialogFontScale()
 
         captureVisualCatalogSurface("gym.exercise.permanent-delete")
         val dialog = compose.onNodeWithTag("exercise-delete-dialog").getUnclippedBoundsInRoot()
@@ -891,6 +905,7 @@ class GymPowerInputUiTest {
     }
 
     @Test
+    @AndroidFontScale
     fun exerciseDeleteDialogKeepsStaleImpactFailureInlineAndRetryable() {
         var reviews = 0
         compose.setContent {
@@ -911,6 +926,9 @@ class GymPowerInputUiTest {
                 }
             }
         }
+
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("gym.exercise.delete-retry.large")
 
         compose.onNodeWithTag("exercise-delete-error").assertIsDisplayed()
         compose.onNodeWithText("Review Updated Impact").performClick()

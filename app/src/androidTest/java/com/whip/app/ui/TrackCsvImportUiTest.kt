@@ -1,5 +1,9 @@
 package com.whip.app.ui
 
+import com.whip.app.AndroidFontScale
+import com.whip.app.AndroidFontScaleRule
+import com.whip.app.assertDialogFontScale
+
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,13 +44,16 @@ import com.whip.app.domain.TrackProjection
 import com.whip.app.ui.theme.WhipTheme
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
+import org.junit.rules.RuleChain
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class TrackCsvImportUiTest {
-    @get:Rule val compose = createComposeRule()
+    private val compose = createComposeRule()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     @Test
     fun captureTrackCsvImportCatalog() {
@@ -138,7 +145,9 @@ class TrackCsvImportUiTest {
     }
 
     @Test
+    @AndroidFontScale
     fun largeTextKeepsFileDateMappingAndRecoveryActionReachable() {
+        var replacements = 0
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 val density = LocalDensity.current
@@ -163,7 +172,7 @@ class TrackCsvImportUiTest {
                         persistenceError = null,
                         onMappingChange = {},
                         onRetry = {},
-                        onChooseAnother = {},
+                        onChooseAnother = { replacements++ },
                         onDismiss = {},
                         onImport = {},
                     )
@@ -171,9 +180,17 @@ class TrackCsvImportUiTest {
             }
         }
 
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("tracks.csv-import.empty-large")
+
         compose.onNodeWithText("runs.csv").assertIsDisplayed()
         compose.onNodeWithText("1 Field mapped").assertIsDisplayed()
         compose.onNodeWithTag("track-csv-replace-file").assertIsDisplayed()
+        val recovery = compose.onNodeWithTag("track-csv-replace-file").fetchSemanticsNode().boundsInRoot
+        val file = compose.onNodeWithText("runs.csv").fetchSemanticsNode().boundsInRoot
+        assertTrue("File recovery must precede the mapping context", recovery.bottom <= file.top)
+        compose.onNodeWithTag("track-csv-replace-file").performClick()
+        compose.runOnIdle { assertEquals(1, replacements) }
         compose.onNodeWithTag("track-csv-import-confirm").assertIsNotEnabled()
     }
 
@@ -429,6 +446,7 @@ class TrackCsvImportUiTest {
     }
 
     @Test
+    @AndroidFontScale
     fun constrainedMultiFieldErrorIsVisibleBeforeFrozenMappingControls() {
         val form = multiFieldForm()
         val headers = form.fields.map(TrackField::name)
@@ -465,9 +483,14 @@ class TrackCsvImportUiTest {
             }
         }
 
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("tracks.csv-import.frozen-large")
+
         compose.onNodeWithText(domainError).assertIsDisplayed()
         compose.onNodeWithTag("track-csv-replace-file").assertIsDisplayed()
-        compose.onNodeWithText("Review Field Mapping (5 mapped)").performScrollTo().performClick()
+        compose.onNodeWithTag("track-csv-import-content")
+            .performScrollToNode(hasText("Review Field Mapping (5 mapped)"))
+        compose.onNodeWithText("Review Field Mapping (5 mapped)").assertIsDisplayed().performClick()
         compose.onNodeWithTag("track-csv-import-content").performScrollToNode(hasText("Frozen Field 5"))
         compose.onAllNodesWithText("Frozen Field 5").assertCountEquals(2)
     }

@@ -78,13 +78,14 @@ import com.whip.app.domain.TrackProjection
 import com.whip.app.domain.UnitDimension
 import java.time.LocalDate
 import org.junit.Rule
+import org.junit.rules.RuleChain
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class AdaptiveWhipScreenTest {
-    @get:Rule
-    val compose = createComposeRule()
+    private val compose = createComposeRule()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     @Test
     fun adaptiveHomeWaitsForVisibleDomainsBeforeShowingAStableEmptyState() {
@@ -1452,6 +1453,7 @@ class AdaptiveWhipScreenTest {
     }
 
     @Test
+    @AndroidFontScale
     fun compactTaskEditorRemainsReachableAtTwoHundredPercentText() {
         val density = Density(compose.density.density, fontScale = 2f)
         compose.setContent {
@@ -1479,6 +1481,8 @@ class AdaptiveWhipScreenTest {
 
         compose.onNodeWithContentDescription("Add task, habit, goal, track, or workout").assertIsDisplayed().performClick()
         compose.onNodeWithText("New Task").assertIsDisplayed().performClick()
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("tasks.editor.large")
         compose.onNodeWithTag("task-editor-title").assertIsDisplayed()
         compose.onNodeWithTag("task-editor-more-details").performScrollTo().assertIsDisplayed().performClick()
         compose.onNodeWithText("Planning").performScrollTo().assertIsDisplayed()
@@ -1492,6 +1496,7 @@ class AdaptiveWhipScreenTest {
     }
 
     @Test
+    @AndroidFontScale
     fun compactHabitEditorRemainsReachableAtTwoHundredPercentText() {
         val density = Density(compose.density.density, fontScale = 2f)
         compose.setContent {
@@ -1515,6 +1520,8 @@ class AdaptiveWhipScreenTest {
         }
         compose.onNodeWithContentDescription("Add task, habit, goal, track, or workout").performClick()
         compose.onNodeWithText("New Habit").performClick()
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("habits.editor.large")
         compose.onNodeWithTag("habit-editor-name").assertIsDisplayed()
         compose.onNodeWithText("Save").assertIsDisplayed()
         compose.onNodeWithTag("habit-editor-fields")
@@ -1527,6 +1534,7 @@ class AdaptiveWhipScreenTest {
     }
 
     @Test
+    @AndroidFontScale
     fun compactGoalEditorRemainsReachableAtTwoHundredPercentText() {
         val density = Density(compose.density.density, fontScale = 2f)
         compose.setContent {
@@ -1550,6 +1558,8 @@ class AdaptiveWhipScreenTest {
         }
         compose.onNodeWithContentDescription("Add task, habit, goal, track, or workout").performClick()
         compose.onNodeWithText("New Goal").performClick()
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("goals.editor.large")
         compose.onNodeWithTag("goal-editor-name").assertIsDisplayed()
         compose.onNodeWithText("Save").assertIsDisplayed()
         compose.onNodeWithContentDescription("Cancel Goal editing").performClick()

@@ -1,5 +1,10 @@
 package com.whip.app.ui
 
+import com.whip.app.AndroidFontScale
+import com.whip.app.AndroidFontScaleRule
+import com.whip.app.assertDialogFontScale
+import com.whip.app.captureVisualCatalogSurface
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
@@ -32,13 +37,14 @@ import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
+import org.junit.rules.RuleChain
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class SharedConsistencyUiTest {
-    @get:Rule
-    val compose = createComposeRule()
+    private val compose = createComposeRule()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     @Test
     fun statusAndEmptyStateExposeSeverityAnnouncementAndHierarchy() {
@@ -111,6 +117,7 @@ class SharedConsistencyUiTest {
     }
 
     @Test
+    @AndroidFontScale(3.2f)
     fun taskTemplatesKeepTheFinalRecipeReachableAtExtremeTextAndShortHeight() {
         val largeText = Density(compose.density.density, fontScale = 3.2f)
         compose.setContent {
@@ -125,6 +132,9 @@ class SharedConsistencyUiTest {
                 }
             }
         }
+
+        compose.assertDialogFontScale(3.2f)
+        captureVisualCatalogSurface("tasks.templates.extreme")
 
         compose.onNodeWithTag("task-template-list").performScrollToNode(
             hasContentDescription("Break Complex Work into Subtasks", substring = true),

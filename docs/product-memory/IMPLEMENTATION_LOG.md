@@ -1,5 +1,14 @@
 # Implementation history
 
+### IMP-20260909-008 — Verify remaining dialog text scaling and prioritize CSV recovery
+
+- Behavior: Track CSV preview presents its file-recovery action immediately after the active error, ahead of file/date/mapping controls. Routine mapping guidance is secondary and hidden while an authoritative error is present. Empty, invalid, failed, completed, and unavailable-target states retain their action guards and existing replacement meanings.
+- Verification infrastructure: Twenty-eight existing methods across 17 Android classes now use the shared pre-launch font rule and assert real dialog TextLayoutResult scaling. Correct three fully qualified selectors to their declared Kotlin packages. Offscreen Machine impact and frozen CSV mapping assertions scroll their actual list owners.
+- Inventory: Twenty-six new catalog states bring the catalog and audit matrix to 238; source inventory remains 625 JVM / 983 Android. All 32 font-review entries now have verified scale evidence. Preserve 34 fresh state pairs, CSV before/after comparisons, and per-state review notes under `artifacts/astra-audit/2026-09-09/dialog-font-coverage/`.
+- Compatibility: No domain, persistence, schema, backup, version, release, or history change. No production font override; the emulator setting restores to 1.0. CSV regression asserts visible action order and one replacement callback.
+- Related: `FB-20260908-006`, `FND-20260909-006/008/009/010`, `DEC-20260909-005/007`, `VER-20260909-008`.
+- Status: Verified; 15 focused Android tests, 29 catalog owners / 34 inspected states, and 344 JVM readiness checks with Android-test compilation/debug build/lint pass. Short-dialog reading space and the shared Task keyboard frame remain open findings, not accepted layouts.
+
 ### IMP-20260909-007 — Give enlarged inspector identity room and verify real dialog text scaling
 
 - Behavior: Narrow or enlarged-text inspector headers place emoji and trailing Edit/Close actions above full-width title, context, and status. Roomy headers retain their existing arrangement; tabs, scrollable body, primary action, and domain callbacks retain their roles.
