@@ -5161,6 +5161,7 @@ private fun HomeContent(
             } else if (showGettingStarted) {
                 item {
                     HomeGettingStarted(
+                        preferredSections = visibleHomeSections,
                         onOpenTasks = onOpenTasks,
                         onOpenHabits = onOpenHabits,
                         onOpenGoals = onOpenGoals,
@@ -5557,6 +5558,7 @@ private fun HomeDomainLoadingStatus(domain: String) {
 
 @Composable
 private fun HomeGettingStarted(
+    preferredSections: List<HomeSection>,
     onOpenTasks: () -> Unit,
     onOpenHabits: () -> Unit,
     onOpenGoals: () -> Unit,
@@ -5582,6 +5584,7 @@ private fun HomeGettingStarted(
             )
         }
         HomeDestinationLinks(
+            preferredSections = preferredSections,
             onOpenTasks = onOpenTasks,
             onOpenHabits = onOpenHabits,
             onOpenGoals = onOpenGoals,
@@ -5615,7 +5618,8 @@ private data class HomeComponentItem(
 /*
  * Home's first-run component guide intentionally shows every primary tool,
  * even when a user has hidden some sections from the populated Home feed.
- * Section visibility controls the dashboard, not what Whip teaches here.
+ * Selected sections lead the guide in their saved order; other tools remain
+ * discoverable in the secondary group.
  */
 @Composable
 internal fun HomeDestinationLinks(
@@ -5625,9 +5629,10 @@ internal fun HomeDestinationLinks(
     onOpenTracks: () -> Unit,
     onOpenGym: () -> Unit,
     sections: List<HomeSection> = HomeSection.entries,
+    preferredSections: List<HomeSection> = DEFAULT_FIRST_RUN_HOME_SECTIONS.toList(),
     modifier: Modifier = Modifier,
 ) {
-    val destinations = sections.distinct().map { section ->
+    val destinations = sections.distinct().associateWith { section ->
         when (section) {
             HomeSection.Tasks -> HomeComponentItem(
                 title = "Tasks",
@@ -5661,8 +5666,8 @@ internal fun HomeDestinationLinks(
             )
         }
     }
-    val startingComponents = destinations.filter { it.title == "Tasks" || it.title == "Habits" }
-    val expandingComponents = destinations - startingComponents.toSet()
+    val startingComponents = preferredSections.distinct().mapNotNull(destinations::get)
+    val expandingComponents = destinations.filterKeys { it !in preferredSections }.values.toList()
     Column(
         modifier = modifier.fillMaxWidth().testTag("home-destination-links"),
         verticalArrangement = Arrangement.spacedBy(16.dp),

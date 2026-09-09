@@ -48,3 +48,8 @@ status-icon mismatch remains tracked under `FND-20260909-004`. The
 priority mismatch after choosing Tracks/Gym (`FND-20260909-005`). Broader
 dialog accessibility and whole-product acceptance remain pending. No owner
 phone, release version, or publication was involved.
+
+Follow-up: the configured-Home priority mismatch is resolved and verified in
+the [next Home chunk](../home-priority/README.md). Its before image above remains
+the historical baseline; the dialog contrast and broader accessibility items
+are still open.

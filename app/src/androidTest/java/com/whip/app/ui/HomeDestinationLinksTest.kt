@@ -16,6 +16,8 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
@@ -72,6 +74,46 @@ class HomeDestinationLinksTest {
         listOf(tasks, habits, goals, tracks, gym).zipWithNext().forEach { (first, second) ->
             assertNear(first.width, second.width, "All destination controls must have equal width")
         }
+    }
+
+    @Test
+    fun selectedSectionsLeadInTheirSavedOrderWhileEveryToolRemainsReachable() {
+        val preferred = mutableStateOf(listOf(HomeSection.Gym, HomeSection.Tracks))
+        val opened = mutableListOf<HomeSection>()
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                Column(Modifier.width(320.dp).verticalScroll(rememberScrollState())) {
+                    HomeDestinationLinks(
+                        onOpenTasks = { opened += HomeSection.Tasks },
+                        onOpenHabits = { opened += HomeSection.Habits },
+                        onOpenGoals = { opened += HomeSection.Goals },
+                        onOpenTracks = { opened += HomeSection.Tracks },
+                        onOpenGym = { opened += HomeSection.Gym },
+                        preferredSections = preferred.value,
+                    )
+                }
+            }
+        }
+        fun assertOrder(order: List<HomeSection>) {
+            val bounds = order.map { section ->
+                compose.onNodeWithTag("home-destination-${section.name.lowercase()}").getUnclippedBoundsInRoot()
+            }
+            check(bounds.zipWithNext().all { (first, second) -> first.bottom < second.top }) {
+                "Empty Home must preserve the selected priority and retain secondary discovery"
+            }
+        }
+        assertOrder(listOf(HomeSection.Gym, HomeSection.Tracks, HomeSection.Tasks, HomeSection.Habits, HomeSection.Goals))
+        HomeSection.entries.forEach { section ->
+            compose.onNodeWithTag("home-destination-${section.name.lowercase()}").performScrollTo().performClick()
+        }
+        compose.runOnIdle {
+            check(opened == HomeSection.entries)
+            preferred.value = listOf(HomeSection.Goals)
+        }
+        assertOrder(listOf(HomeSection.Goals, HomeSection.Tasks, HomeSection.Habits, HomeSection.Tracks, HomeSection.Gym))
+        compose.runOnIdle { preferred.value = HomeSection.entries.reversed() }
+        assertOrder(HomeSection.entries.reversed())
+        compose.onAllNodesWithText("Add when useful").assertCountEquals(0)
     }
 
     @Test

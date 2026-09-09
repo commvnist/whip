@@ -45,7 +45,8 @@
 - Expected/solution: Empty Home should prioritize the user's selected sections while retaining access to other capabilities. Review the shared empty-Home source and sparse/scoped cases before choosing the layout.
 - Related: `FB-20260908-006`, Home customization discovery follow-up.
 - Source reconciliation: `WhipApp.kt:HomeGettingStarted/HomeDestinationLinks` deliberately teaches every tool, which remains a useful discoverability guarantee. Its starting group is nevertheless hard-coded from Task/Habit titles and receives no selected Home sections. Preserve all-tool access while making the starting priority reflect the user's choices.
-- Status: Confirmed in source and runtime; remediation pending.
+- Baseline regression: The real setup/recreation order assertion fails on unchanged production in `build/instrumentation-results-82viwG` (`/tmp/whip-astra-home-priority-before.log`). The selected sections now feed the starting group by stable identity and saved order; six focused tests, 18 adjacent Android tests, 344 JVM readiness checks, and 39 fresh shared captures pass. Selected/all-section Home pixels are preserved and inspected.
+- Status: Verified in `IMP-20260909-005` / `VER-20260909-005`.
 
 ### FND-20260909-001 — Emulator guard overlooks the Android 8 emulator identity property
 

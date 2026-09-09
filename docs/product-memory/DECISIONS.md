@@ -1,5 +1,13 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-003 — Empty Home prioritizes selected sections while teaching every tool
+
+- Context: The real Tracks/Gym setup journey stores the right dashboard choices but still introduces Tasks/Habits first. Existing source and Settings coverage deliberately preserve discovery of every primary tool, including hidden dashboard sections.
+- Alternatives: Hiding all unselected introductions would lose that discovery guarantee. Keeping hard-coded Task/Habit priority contradicts the preceding setup decision. A new onboarding wizard or additional preference would duplicate existing intent.
+- Decision: Feed the current ordered visible Home sections into the existing starting group. Keep all other tools in the secondary group, preserving their actions and descriptions. Derive priority from stable `HomeSection` identity, not display titles; no new setting or migration.
+- Related: `FB-20260908-006`, `FND-20260909-005`.
+- Status: Verified in `VER-20260909-005`; selected order, single/all choices, all-tool discovery, actual setup/reopening, and affected Home pixels pass.
+
 ### DEC-20260909-002 — Keep first run concise and own its confirmed completion
 
 - Context: First run already provides a one-action recommended path and optional customization, but uses an oversized editor shell and an unconfirmed settings write.

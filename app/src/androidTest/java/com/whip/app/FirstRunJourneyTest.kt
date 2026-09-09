@@ -9,6 +9,8 @@ import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
@@ -71,9 +73,11 @@ class FirstRunJourneyTest {
             compose.waitUntil(10_000) { app.settingsRepository.current().setupCompleted }
             compose.waitUntil(10_000) { compose.onAllNodesWithText("Customize Whip").fetchSemanticsNodes().isEmpty() }
             captureVisualCatalogSurface("shared.first-run.configured-home")
+            assertChosenHomeSectionsLeadTheGuide()
 
             scenario.recreate()
             compose.waitForIdle()
+            assertChosenHomeSectionsLeadTheGuide()
             val stored = SharedPreferencesSettingsRepository(app).current()
             assertTrue(stored.setupCompleted)
             assertEquals(HomeSection.entries.toSet() - setOf(HomeSection.Tracks, HomeSection.Gym), stored.hiddenHomeSections)
@@ -109,4 +113,11 @@ class FirstRunJourneyTest {
     }
 
     private fun setupChoice(text: String) = compose.onNode(hasText(text) and hasAnyAncestor(isDialog()))
+
+    private fun assertChosenHomeSectionsLeadTheGuide() {
+        val tracks = compose.onNodeWithTag("home-destination-tracks").getUnclippedBoundsInRoot()
+        val gym = compose.onNodeWithTag("home-destination-gym").getUnclippedBoundsInRoot()
+        val tasks = compose.onNodeWithTag("home-destination-tasks").getUnclippedBoundsInRoot()
+        assertTrue("The chosen Tracks/Gym sections must lead the empty-Home guide", tracks.bottom < gym.top && gym.bottom < tasks.top)
+    }
 }

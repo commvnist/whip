@@ -1,5 +1,16 @@
 # Verification and release evidence
 
+### VER-20260909-005 — Selected-section Home priority and retained discovery
+
+- Baseline: `ANDROID_SERIAL=emulator-5554 scripts/qa-targeted --android com.whip.app.FirstRunJourneyTest --emulator` failed the new selected-priority assertion on unchanged production in `build/instrumentation-results-82viwG`; log `/tmp/whip-astra-home-priority-before.log`. The recommended journey passed. The previously preserved real Tracks/Gym setup image shows Task/Habit priority.
+- Focused result: `ANDROID_SERIAL=emulator-5554 scripts/qa-targeted --android com.whip.app.FirstRunJourneyTest --android com.whip.app.ui.HomeDestinationLinksTest --emulator` passed **6/6**, zero failures/skips/reuse, in `build/instrumentation-results-grcYBS`; log `/tmp/whip-astra-home-priority-focused.log`. It checks actual setup and reopening, ordered/single/all selections, every destination callback, unchanged card geometry, conditional shortcuts, and the neighboring large-text/RTL Home summary.
+- Readiness: `scripts/check --ready` passed **344 JVM tests**, zero failures/errors/skips, Android-test compilation, debug lint/build, static assets, and diff checks; log `/tmp/whip-astra-home-priority-ready.log`. Anchored source count confirms 625 JVM / 981 Android tests, not a full 1,606-test execution.
+- Shared capture: `ANDROID_SERIAL=emulator-5554 scripts/ui-catalog capture --family shared /tmp/whip-astra-home-priority-shared-20260909` passed **12 owners / 39 exact PNG/XML pairs**, two batches, zero failures/skips/reuse, in `build/instrumentation-results-dzU3Xa`; log `/tmp/whip-astra-home-priority-shared.log`. Manifest SHA-256 `e62da49c6336098b5e8f02a5ddb607e4450776a5e417d1a34e015f998c12cd73`. Personally inspected the real selected Tracks/Gym Home and the all-sections empty Home, preserving both in `artifacts/astra-audit/2026-09-09/home-priority/`.
+- Adjacent result: `ANDROID_SERIAL=emulator-5554 scripts/qa-targeted --android com.whip.app.SettingsBehaviorUiTest --android com.whip.app.WhipNavigationTest --android com.whip.app.CoreFeatureJourneyE2ETest --emulator` passed **18/18**, zero failures/skips/reuse, in `build/instrumentation-results-jDcOWM`; log `/tmp/whip-astra-home-priority-regression.log`. Includes hidden-Goal discovery, reset/first run, navigation, and persisted cross-feature journeys.
+- Limits: One disposable API 34 emulator; no physical-device action, release/version change, or publication. This closes the selected-priority finding, not the remaining dialog contrast/font-scale evidence, sparse/wide Home questions, or whole-product review.
+- Related: `IMP-20260909-005`, `FND-20260909-005`, `DEC-20260909-003`.
+- Status: Verified for this chunk; full goal remains active.
+
 ### VER-20260909-004 — First-run durable completion, recovery, and bounded-layout acceptance
 
 - Baseline: The committed two-test journey checkpoint is `2f5bc03` on `origin/main` (`VER-20260909-003`). Before images were personally inspected and preserved in `artifacts/astra-audit/2026-09-09/first-run/`. Source confirmed the unowned `apply` completion path and fixed 92%-window dialog height.

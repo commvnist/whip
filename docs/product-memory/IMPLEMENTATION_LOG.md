@@ -1,5 +1,15 @@
 # Implementation history
 
+### IMP-20260909-005 — Let selected Home sections lead the getting-started guide
+
+- Behavior changed: Empty Home's starting group follows the currently visible Home sections in their saved order. Every other tool remains discoverable below. Group membership uses stable `HomeSection` identity instead of Task/Habit display titles; an all-selected Home has no empty secondary group.
+- Important files: `ui/WhipApp.kt:HomeContent/HomeGettingStarted/HomeDestinationLinks`, `FirstRunJourneyTest`, and `ui/HomeDestinationLinksTest`. Current source inventory is 625 JVM / 981 Android / 201 catalog states.
+- Compatibility: No new setting, schema/backup change, data mutation, release, or card-geometry change. The existing hidden-section discovery guarantee remains exercised by Settings and destination-action tests.
+- Evidence: [Selected Home priority](../../artifacts/astra-audit/2026-09-09/home-priority/README.md). The preceding first-run save/layout chunk is committed and reachable on `origin/main` as `025f29d`.
+- Related: `FB-20260908-006`, `FND-20260909-005`, `DEC-20260909-003`.
+- Verification: `VER-20260909-005`.
+- Status: Verified for empty-Home priority; broader Home/adaptive and whole-product review remain active.
+
 ### IMP-20260909-004 — Confirm first-run saves and keep setup actions near their content
 
 - Behavior changed: `FirstRunSetupHost` owns a saveable request and draft until confirmed completion. `SettingsViewModel.completeSetup` now uses the existing durable typed-settings boundary. Pending saves block duplicate input, failures retain choices, lost requests explain interruption and allow retry, and optional notification permission follows the matching success receipt. Completed setup does not consume another Settings editor's result.
