@@ -1,5 +1,15 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-015 — Archived history uses a compact status with contextual restoration
+
+- Context: FND-20260909-017 shows that a prominent empty-state explanation spends scarce height ahead of populated history, especially at 200% text.
+- Alternatives: Shorten only the existing centered hero; replace the entire nested Track navigation; or replace this status with a compact, wrapping status/action row. Shorter hero copy still carries oversized empty-state spacing. A navigation redesign reaches unrelated active/history/Insights behavior before its complete review.
+- Decision: Use concise “Archived · Read-only” text and the existing Restore Track command in one naturally wrapping row above history tools. Use ordinary body typography and established 48 dp text-button behavior. Restoration follows the same ViewModel/repository action as Options; all Entry controls remain governed by the persisted archived state. Keep Options restoration available.
+- Benefit/tradeoff: Records and scoped search appear earlier, and restoration is available where the restriction is visible. One useful contextual shortcut replaces long instructions; no new domain capability or generic notice component is needed. No persistence, data, schema or release change. Existing archived read-only guarantees in DEC-20260908-001 remain in force.
+- Representative-flow refinement: The compact status alone does not give the API 26/200%-text query a visible native target. When a single-pane Track detail has less than 440 dp of workspace height, omit the outer workspace tabs and retain the existing Back, identity and inner destinations. Collection pages and wide split panes keep workspace tabs. This bounded adaptive change is preferable to shrinking text or replacing all navigation; the tradeoff is one Back step to another workspace destination on short detail. Selection, local draft ownership and archived routing remain unchanged.
+- Related: FND-20260909-017, FB-20260908-006, VER-20260909-016.
+- Status: Verified in IMP-20260909-017 / VER-20260909-018 for archive status/restoration and bounded short-detail navigation. Native API 26/34/37 journeys, neighboring/readiness checks and scoped original-image review pass. FND-20260909-018 retains the remaining native keyboard/very short enlarged-history reading constraints for the next improvement.
+
 ### DEC-20260909-014 — Track Insights share unit-aware numeric presentation
 
 - Context: FND-20260909-016 proves canonical measurements are mislabeled as display units in workspace summaries; per-Track presentation has its own conversion and precision path. A temperature Sum also applies an affine offset to an aggregate, and workspace Scale totals imply an additive meaning absent from per-Track Scale Insights.

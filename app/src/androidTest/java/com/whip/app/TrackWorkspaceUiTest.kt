@@ -129,7 +129,7 @@ class TrackWorkspaceUiTest {
         }
         compose.onNodeWithTag("track-workspace-destination-Archived").assertIsSelected()
         compose.onAllNodesWithTag("track-detail-navigation").assertCountEquals(1)
-        compose.onNodeWithText("Track Archived").assertIsDisplayed()
+        compose.onNodeWithText("Archived · Read-only").assertIsDisplayed()
         compose.onAllNodesWithContentDescription("Edit Entry Prior dosage").assertCountEquals(0)
         compose.onAllNodesWithContentDescription("More Actions for Prior dosage").assertCountEquals(0)
         compose.onNodeWithContentDescription("Close Track Entry details").performClick()

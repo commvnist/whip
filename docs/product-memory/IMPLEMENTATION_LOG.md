@@ -1,5 +1,14 @@
 # Implementation history
 
+### IMP-20260909-017 — Prioritize archived history and contextual restoration
+
+- Behavior: Replace the centered archive hero with a naturally wrapping read-only status and the existing Restore Track command. On single-pane Track detail with less than 440 dp of workspace height, retain the existing Back/identity/inner destinations and omit the redundant workspace tab row. Collections and wide split panes retain workspace tabs. On the API 34 phone the first Entry title moves up 221 pixels at ordinary text and 444 pixels at actual 200% text.
+- Sources: `TrackScreens.kt`, updated archived-state assertion in `TrackWorkspaceUiTest`, and two real `TrackHistoryJourneyE2ETest` tests. The new journey browses 30 persisted Entries, searches with a real keyboard, recreates, inspects an exact read-only record, returns to Archived, reopens and restores, then verifies unchanged Field/Choice/Entry graphs and restored Edit availability.
+- Inventory/evidence: All 28 original Track baseline frames now have individual review notes and retained evidence in `track-baseline/`. Eight new native history states and one actual-font owner expand the coverage inventory. Current baseline labels now distinguish an empty filter draft, a new date condition and missing Entry. Final before/after/platform evidence lives in `artifacts/astra-audit/2026-09-09/track-history/`.
+- Compatibility: The existing ViewModel/repository owns restoration and archived Entry capabilities. No schema, stored Entry, unit, version, release or physical-device changes. The short-detail navigation tradeoff is one Back step to another workspace destination.
+- Related: FND-20260909-017, DEC-20260909-015, VER-20260909-016/018, FB-20260908-006.
+- Status: Verified for this bounded archive/status/navigation improvement: both native journeys pass on API 26/34/37; 64 JVM / 97 Android neighbors, 344 JVM readiness tests, compile/build/lint/static checks pass. Thirty retained original before/final images were individually reviewed with the limits recorded in track-history/review.tsv. Eight new catalog states and one actual-font owner bring the current inventory to 275 states / 36 font fixtures. FND-20260909-018 explicitly retains the native keyboard and very short enlarged-history viewport problems; no whole-Track acceptance is claimed.
+
 ### IMP-20260909-016 — Present Track summaries in the correct unit and precision
 
 - Behavior: Workspace and per-Track Insights share `TrackInsightNumberFormat`. Canonical measurements convert to the Field unit with configured precision; fine Scale increments and fractional averages remain visible. Absolute temperatures and differences use the appropriate conversion. Temperature and Scale totals are omitted while useful averages, ranges and trends remain. One mile plus one kilometre now shows 1.621 mi, replacing the workspace's incorrect 2609.34 mi.

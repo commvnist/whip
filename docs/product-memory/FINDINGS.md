@@ -1,5 +1,25 @@
 # Durable findings
 
+### FND-20260909-018 — Native inline Track search pans identity under system bars
+
+- Severity/category: P2, native keyboard layout and readable context.
+- Observed: After explicit native field input and waiting for the input-method window, the API 26 320×533 dp/200%-text Track history query is partly covered by the keyboard, and Track identity draws behind the status clock/icons. The personally reviewed API 34 enlarged query also shows page panning. Semantics-only search/recreation tests can pass despite this geometry.
+- Evidence: `build/astra-tracks-20260909/history-api26-short-images/tracks.history.search.large.png` and XML, from passing `history-api26-short.log`; native keyboard begins around y=426 while the query node extends to y=450. MainActivity does not explicitly request resize; native input-method diagnostics report ADJUST_PAN. The fresh history fixture now waits for the actual native keyboard rather than inferring it from text input.
+- Expected: Inline search keeps its query and context readable above system windows, with reachable results and a clear way back at ordinary and enlarged text. Inspect the shared activity/inset ownership and neighboring inline inputs before choosing a correction; no blanket main-window policy change is yet justified by source alone.
+- Related reading constraint: After browsing to Entry 12 on API 26 at 200% text, the fixed identity/inner tabs and global navigation leave the Entry date partly outside the body viewport. The archive notice improvement is useful but does not establish complete short-window reading quality. Evaluate scrollable/compact identity and native keyboard ownership together in the next representative flow. The API 26 fixture also exposes an unsupported boot-emoji glyph; retain that as a platform/emoji review limit rather than changing synthetic content to hide it.
+- Related: FB-20260908-006, FND-20260909-017, VER-20260909-016/018, FND-20260909-014.
+- Status: Confirmed. This remains open after the separate archive-status/short-detail improvement; passing lookup/restoration is not native keyboard-layout acceptance.
+
+### FND-20260909-017 — Archived Track guidance displaces the history it explains
+
+- Severity/category: P2, information hierarchy and enlarged-text efficiency; a supported design opportunity.
+- Observed: Original archived-detail baseline and the real 30-Entry history journey both show a centered empty-state-style notice before search and records. On API 34 at actual 200% text, only the top of the first Entry reaches the initial viewport. Restoring requires leaving history for Options despite being the status's only relevant action.
+- Evidence: `artifacts/astra-audit/2026-09-09/track-history/before/tracks.history.archived.{ordinary,large}.png`, individually inspected, run `1oomPx`. Existing history remains searchable and restorable; the finding is excessive introductory hierarchy, not lost data. Keyboard and short-window behavior are being checked separately and must not be inferred from unsettled captures.
+- Expected: Archived history should lead with useful records, state its read-only boundary concisely, and offer the existing reversible Restore action near that status. Entry mutation remains unavailable until restoration persists.
+- Short-window follow-up: The API 26 320×533 dp/200%-text native opening and search-ready frames show almost the entire body consumed by fixed global navigation, workspace tabs and Track title/tabs. After the compact notice alone, the query still has no native visible bounds. Keep a Back route while freeing the redundant workspace tab row on short single-pane detail; this is a confirmed viewport constraint, not merely a missed test selector.
+- Related: FB-20260908-006, DEC-20260908-001, VER-20260909-016, DEC-20260909-015.
+- Status: Verified for the compact status, contextual restoration and short-detail navigation improvement in IMP-20260909-017 / VER-20260909-018. Both native journeys pass on API 26/34/37, as do 64 JVM / 97 Android neighbors and 344 JVM readiness tests. Thirty original before/final images have scoped personal review. FND-20260909-018 separately retains the native query and very short enlarged-history viewport limits; this does not accept every Track state or complete the broader audit.
+
 ### FND-20260909-016 — Track workspace summaries label canonical measurements as display units
 
 - Severity/category: P2, derived numeric truth and cross-page consistency.

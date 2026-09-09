@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="0" errors="0" skipped="0" time="37.362" timestamp="2026-09-09T15:44:36" hostname="localhost">
+  <testsuite name="com.whip.app.VisualCatalogPagesTest" tests="1" failures="0" errors="0" skipped="0" time="36.421" timestamp="2026-09-09T15:44:36" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="captureTrackPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="36.421" />
+  </testsuite>
+</testsuites>

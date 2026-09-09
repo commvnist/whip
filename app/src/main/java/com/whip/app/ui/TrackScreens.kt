@@ -538,8 +538,12 @@ internal fun TrackAreaContent(
             },
         )
     }
-    Column(Modifier.fillMaxSize().padding(innerPadding)) {
-        DestinationTabBar(
+    BoxWithConstraints(Modifier.fillMaxSize().padding(innerPadding)) {
+      // On short single-pane detail, Back provides the collection route without
+      // spending the history viewport on a second fixed destination bar.
+      val showWorkspaceNavigation = selected == null || maxWidth >= 760.dp || maxHeight >= 440.dp
+      Column(Modifier.fillMaxSize()) {
+        if (showWorkspaceNavigation) DestinationTabBar(
             selected = workspaceDestination,
             destinations = TrackWorkspaceDestination.entries,
             onSelect = { selectedDestination ->
@@ -600,6 +604,7 @@ internal fun TrackAreaContent(
                 )
             }
         }
+      }
     }
 
     deleteTrackId?.let { id ->
@@ -1729,6 +1734,7 @@ private fun TrackDetailPage(
                 dialogModifier,
                 requestedReadOnlyEntryId,
                 onReadOnlyEntryRequestConsumed,
+                onRestore = { onSetArchived(false) },
             )
             TrackDetailDestination.Insights -> TrackInsightsPage(projection, customUnits, today, dialogModifier)
             TrackDetailDestination.Options -> TrackOptionsPage(
@@ -1758,6 +1764,7 @@ private fun TrackEntriesPage(
     dialogModifier: Modifier = Modifier,
     requestedReadOnlyEntryId: Long? = null,
     onReadOnlyEntryRequestConsumed: (Long) -> Unit = {},
+    onRestore: () -> Unit,
 ) {
     var searchVisible by rememberSaveable(projection.track.id) { mutableStateOf(false) }
     var query by rememberSaveable(projection.track.id) { mutableStateOf("") }
@@ -1841,16 +1848,24 @@ private fun TrackEntriesPage(
             .let { entries -> projection.sortedEntries(entries, sort, sortField, sortDirection) }
     }
     LazyColumn(
-        Modifier.fillMaxSize(),
+        Modifier.fillMaxSize().testTag("track-entry-list"),
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (projection.track.archived) item {
-            WhipEmptyState(
-                title = "Track Archived",
-                supportingText = "History remains available. Restore this Track from Options before adding or editing Entries.",
-                modifier = Modifier.fillMaxWidth(),
-            )
+            FlowRow(
+                modifier = Modifier.fillMaxWidth().testTag("track-archived-status"),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    "Archived · Read-only",
+                    modifier = Modifier.align(Alignment.CenterVertically),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                WhipTextButton(onClick = onRestore) { Text("Restore Track") }
+            }
         }
         item {
             Row(
