@@ -458,11 +458,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun completeSetup(
+        requestId: String,
         selectedSections: Set<HomeSection>,
         powerMode: Boolean,
         usePounds: Boolean,
         lowPressureMode: Boolean,
-    ) = update { current ->
+    ) = updateTypedSetting(requestId) { current ->
         current.copy(
             setupCompleted = true,
             powerMode = powerMode,

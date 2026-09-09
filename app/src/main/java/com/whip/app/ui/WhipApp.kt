@@ -2868,20 +2868,20 @@ private fun FirstRunSetupRoute(
     settingsViewModel: SettingsViewModel?,
     onRequestNotificationPermission: () -> Unit,
 ) {
-    if (settingsState.settings.setupCompleted || settingsViewModel == null) return
-    FirstRunSetupDialog(
-        onComplete = { sections, power, pounds, lowPressure, notifications ->
-            settingsViewModel.completeSetup(sections, power, pounds, lowPressure)
-            if (notifications) onRequestNotificationPermission()
-        },
-        onUseDefaults = {
-            settingsViewModel.completeSetup(
-                DEFAULT_FIRST_RUN_HOME_SECTIONS,
-                powerMode = false,
-                usePounds = false,
-                lowPressureMode = false,
-            )
-        },
+    if (settingsViewModel == null) return
+    val mutationState by settingsViewModel.typedSettingMutationState.collectAsStateWithLifecycle()
+    FirstRunSetupHost(
+        setupCompleted = settingsState.settings.setupCompleted,
+        mutation = TypedSettingMutation(
+            state = mutationState,
+            consume = settingsViewModel::consumeTypedSettingMutation,
+            submit = { requestId, draft ->
+                settingsViewModel.completeSetup(
+                    requestId, draft.selectedSections, draft.powerMode, draft.usePounds, draft.lowPressureMode,
+                )
+            },
+        ),
+        onRequestNotificationPermission = onRequestNotificationPermission,
     )
 }
 

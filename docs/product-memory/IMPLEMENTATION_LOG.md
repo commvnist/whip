@@ -1,5 +1,16 @@
 # Implementation history
 
+### IMP-20260909-004 — Confirm first-run saves and keep setup actions near their content
+
+- Behavior changed: `FirstRunSetupHost` owns a saveable request and draft until confirmed completion. `SettingsViewModel.completeSetup` now uses the existing durable typed-settings boundary. Pending saves block duplicate input, failures retain choices, lost requests explain interruption and allow retry, and optional notification permission follows the matching success receipt. Completed setup does not consume another Settings editor's result.
+- Design: The existing recommended/customize structure uses a content-sized bounded dialog, with a scrollable body and fixed wrapping actions. Empty Home selection explains why saving is disabled; errors scroll into view. At the matched real-app viewport, the gap between the welcome explanation and button label decreases from 1,126 to 76 pixels.
+- Important files: `ui/FirstRunSetupDialog.kt`, `ui/SettingsViewModel.kt`, `ui/WhipApp.kt`, `ui/FirstRunSetupPersistenceUiTest.kt`, and eight newly registered catalog states. Source inventory: 625 JVM / 980 Android / 201 catalog states.
+- Compatibility: No schema, backup, release, default-choice, or feature-availability change. Failure cases use controlled outcomes in the production host; successful real-activity journeys exercise the actual settings repository. Process interruption is modeled through restored UI state with a lost request, not an actual process-kill campaign.
+- Evidence: [First-run before/after](../../artifacts/astra-audit/2026-09-09/first-run/README.md).
+- Related: `FB-20260908-006`, `FND-20260909-002`, `FND-20260909-003`, `DEC-20260909-002`; separate follow-ups `FND-20260909-004` through `FND-20260909-006` remain open.
+- Verification: `VER-20260909-004`.
+- Status: Verified for setup persistence ownership and layout; wider goal remains active.
+
 ### IMP-20260909-003 — Preserve real first-run setup journey coverage
 
 - Behavior changed: Added two real-activity tests for recommended setup and customized Tracks/Gym setup. The customized journey retains selections through recreation and checks stored Home visibility, advanced controls, low-pressure presentation, and pound units after completion; the recommended journey checks Tasks/Habits and kilogram defaults. Both verify that no notification permission request is recorded.

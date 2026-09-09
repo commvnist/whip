@@ -1,5 +1,52 @@
 # Durable findings
 
+### FND-20260909-006 — Outer font-scale overrides do not prove dialog large-text coverage
+
+- Severity/category: P2, accessibility verification fidelity.
+- Observed: A first-run test provided `LocalDensity(fontScale = 2f)` outside the dialog and passed reachability assertions, but rendered pixels looked normal. A direct assertion against the title's `TextLayoutResult.layoutInput.density.fontScale` failed with actual 1.0 in `build/instrumentation-results-ZdZefu`.
+- Expected/solution: Configure the disposable emulator's actual Android font scale, restore it after the test, and assert the rendered text scale before accepting accessibility evidence. Review other dialog fixtures using this outer-provider pattern; do not retroactively claim their dialog content was enlarged.
+- Evidence: `FirstRunSetupPersistenceUiTest`; `/tmp/whip-astra-first-run-focused2.log`. Four other request-lifecycle tests passed in that run. Earlier unasserted first-run large-text screenshots are rejected as enlarged-text evidence.
+- Related: `FB-20260908-006`, first-run and whole-product accessibility matrix.
+- Status: In progress. The first-run fixture now asserts actual Android 2.0 text and passes in `VER-20260909-004`; broader dialog-fixture review remains pending.
+
+### FND-20260909-002 — First-run completion does not wait for a durable save result
+
+- Severity/category: P1, authored setup persistence and recovery.
+- Observed: `SettingsViewModel.completeSetup` uses immediate `update`, whose SharedPreferences write uses `apply`. `FirstRunSetupRoute` dismisses as soon as the observed `setupCompleted` flag changes and requests optional notification permission immediately after starting the write. There is no owned pending result, save failure, or retry state.
+- Expected: Preserve setup choices and block duplicate submission until an exact durable success; failure keeps the draft and offers retry. Notification permission follows confirmed completion only.
+- Evidence: `ui/SettingsViewModel.kt:completeSetup/update/updateTypedSetting`, `core/AppSettings.kt:SharedPreferencesSettingsRepository`, `ui/WhipApp.kt:FirstRunSetupRoute`. `VER-20260909-003` proves success/recreation only; no disk failure has been induced.
+- Root cause/solution: First run bypasses the existing confirmed typed-settings mutation boundary. Reuse that boundary and a saveable request coordinator; do not infer success from a transient preference publication.
+- Related: `FB-20260908-006`, `DEC-20260909-002`.
+- Status: Verified in `IMP-20260909-004` / `VER-20260909-004`; exact success, failure, recreation, retry, and permission timing are covered.
+
+### FND-20260909-003 — First-run dialog stretches short content far from its actions
+
+- Severity/category: P2, supported hierarchy and reachability improvement.
+- Observed: Real API 34 welcome/customization captures show a large unused vertical region before the bottom actions. The shared dialog is explicitly asked for stable 92%-window height even though first run has no keyboard-driven editor requiring it. Expanded optional preferences also scroll within a separately capped body while unused space remains beneath it.
+- Evidence: `/tmp/whip-astra-first-run-before2/shared.first-run.welcome-real (1).png`, `shared.first-run.customize (1).png`, and `shared.first-run.optional.png`, personally inspected; `FirstRunSetupDialog.kt:stableHeight/heightIn`.
+- Expected/solution: Size the two-step dialog to its content within the existing viewport limit, keeping the actions outside the scrollable body and reachable at large text.
+- Related: `FB-20260908-006`, `DEC-20260909-002`.
+- Status: Verified in `IMP-20260909-004` / `VER-20260909-004`; content-sized layout, fixed reachable actions, and actual Android 200% text/320 dp/RTL states are inspected and exercised.
+
+### FND-20260909-004 — Shared dialog windows retain Android's system-bar icon theme
+
+- Severity/category: P2, shared appearance/accessibility.
+- Observed: Dark first-run dialog on light Android has black status icons against its dark exterior, while the resulting Home correctly has white icons. The activity fix does not style the separate Compose Dialog window.
+- Evidence: Personally inspected first-run welcome/customize versus configured-Home captures in `/tmp/whip-astra-first-run-before2`; `ProductivityEditorComponents.kt:ProductivityEditorDialog` has no dialog-window appearance owner.
+- Expected/solution: Apply rendered-theme contrast to the shared dialog window, including full-pane editors and legacy navigation behavior; verify both theme directions and return to the activity.
+- Related: `FB-20260908-006`, `FND-20260908-015`.
+- Status: Confirmed; separate shared-window remediation pending.
+
+### FND-20260909-005 — Empty Home ignores the user's chosen starting sections
+
+- Severity/category: P2, setup-to-everyday-use consistency.
+- Observed: After selecting only Tracks and Gym in setup, empty Home still puts Tasks and Habits under “Start here” and relegates Tracks/Gym to “Add when useful.” Stored hidden sections are correct, as asserted by the real first-run journey.
+- Evidence: Personally inspected `/tmp/whip-astra-first-run-before2/shared.first-run.configured-home.png`; `FirstRunJourneyTest` and `VER-20260909-003` establish selected/stored Tracks/Gym context.
+- Expected/solution: Empty Home should prioritize the user's selected sections while retaining access to other capabilities. Review the shared empty-Home source and sparse/scoped cases before choosing the layout.
+- Related: `FB-20260908-006`, Home customization discovery follow-up.
+- Source reconciliation: `WhipApp.kt:HomeGettingStarted/HomeDestinationLinks` deliberately teaches every tool, which remains a useful discoverability guarantee. Its starting group is nevertheless hard-coded from Task/Habit titles and receives no selected Home sections. Preserve all-tool access while making the starting priority reflect the user's choices.
+- Status: Confirmed in source and runtime; remediation pending.
+
 ### FND-20260909-001 — Emulator guard overlooks the Android 8 emulator identity property
 
 - Severity/category: P2, platform verification infrastructure.

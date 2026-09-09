@@ -1,5 +1,14 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-002 — Keep first run concise and own its confirmed completion
+
+- Context: First run already provides a one-action recommended path and optional customization, but uses an oversized editor shell and an unconfirmed settings write.
+- Alternatives: A replacement full-screen wizard would add navigation and design churn to a short, optional choice. Retaining fixed editor height preserves the observed empty space and awkward action separation. A content-sized version of the existing two-step dialog retains familiar choices and accessibility while removing that gap.
+- Decision: Keep the recommended/customize structure; use the shared bounded content-sized dialog, with a scrollable body and fixed reachable actions. Route submission through the existing durable typed-settings boundary and saveable request coordinator, showing saving and retryable errors. Preserve draft ownership even if observed preferences temporarily publish `setupCompleted`; request notification permission only after the matching success receipt.
+- Compatibility: No schema, backup, default-selection, or feature-availability changes. Retry applies the same selected settings; process interruption retains the draft with a clear retry message. Dialog-window contrast and empty-Home prioritization are tracked separately.
+- Related: `FB-20260908-006`, `FND-20260909-002`, `FND-20260909-003`.
+- Status: Verified for setup layout and request ownership in `VER-20260909-004`; separate window/Home and broader accessibility follow-ups remain active.
+
 ### DEC-20260909-001 — Activity themes own content and Android bar contrast together
 
 - Context: `FND-20260908-015` reproduces both opposite-theme failures in the real main activity. Widget/Health hosting already adjusts icon flags, but its recovery branch bypasses that adjustment; Android 8–9 also retain an Android-derived navigation scrim.
