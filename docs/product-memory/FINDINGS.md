@@ -1,5 +1,14 @@
 # Durable findings
 
+### FND-20260909-012 — Targeted QA routing infers a test package from its directory
+
+- Severity/category: P2, verification tooling correctness.
+- Observed: `scripts/check --explain` on the Area UI change emits `com.whip.app.AreaFeatureUiTest`; the class declares `package com.whip.app.ui`. Explicitly targeted runtime uses the correct declaration and passes. Prior dialog-font work likewise corrected stale package-derived selectors for this class and EditorDependencyUxTest.
+- Evidence: `build/astra-area-cleanup-20260909/routing.log`, declared source package, and the focused accepted `com.whip.app.ui.AreaFeatureUiTest` run. The router output itself has not executed instrumentation; do not count this as another failed runtime batch.
+- Next: Resolve changed Kotlin tests by declared package/class and verify routing fixtures, while retaining exact selection and fail-closed instrumentation validation. Readiness without emulator execution does not exercise the incorrect selector.
+- Related: FB-20260908-006, VER-20260909-008, VER-20260909-010.
+- Status: Confirmed; tooling correction pending.
+
 ### FND-20260909-011 — Area deletion explanation crowds the first destination
 
 - Severity/category: P2, organization cleanup and choice discovery.
@@ -7,7 +16,7 @@
 - Evidence: Personally inspected `organization.area.permanent-delete` in the 92-state short-dialog capture; original PNG/XML and notes are retained in `artifacts/astra-audit/2026-09-09/short-dialogs/`. The existing callback test passes, which does not establish a complete visible choice.
 - Source/next: `PermanentAreaDeleteDialog` places its full explanation before destinations in the shared 200 dp ordinary-text viewport. Review concise impact copy and reading space while preserving move-versus-delete consequences, history, filter/widget resets, and exact callbacks; add complete initial-choice bounds and enlarged-text evidence.
 - Related: `FB-20260908-006`, `FND-20260909-009`, `VER-20260909-009`.
-- Status: Confirmed; correction and proportionate verification remain pending.
+- Status: Verified in IMP/VER-20260909-010: full initial-choice bounds, concise accurate counts, enlarged retained-choice retry, and empty saved-view cleanup pass; all seven final renders and proportionate readiness/regression checks are accepted for this scope.
 
 ### FND-20260909-010 — Shared Task capture shows header overlap during keyboard presentation
 
@@ -28,7 +37,7 @@
 - Neighbor review: Fresh `organization.move-area.large` and `settings.restore-preview.large` also show their introductory content without any initial choice. Their existing scroll and selection tests pass. Include initial choice discovery in the constrained-dialog review; a scrolling header alone may not resolve verbose introductory content.
 - Root cause/correction: Fixed title height competes with the reading viewport, the template introduction precedes every choice, backup choice names repeat above their actions, and `WhipChoiceList` caps content at 200 dp regardless of font size. The focused correction gives three long-content callers a heading inside their existing scroll owner, prioritizes error/choices, shortens template names, and scales the shared choice-list cap within parent bounds. Nine focused checks pass with full first-choice/error bounds and exact draft behavior; seven focused images have been inspected.
 - Related: `FB-20260908-006`, `FND-20260909-006`, `VER-20260909-008`.
-- Status: Verified for the four observed destructive/template/Area-move/backup layouts in IMP/VER-20260909-009. Focused/adjacent tests, final visual review, and readiness pass. The ordinary Area-deletion neighbor remains open in FND-20260909-011.
+- Status: Verified for the four observed destructive/template/Area-move/backup layouts in IMP/VER-20260909-009. Focused/adjacent tests, final visual review, and readiness pass. The later Area-deletion neighbor is also verified in IMP/VER-20260909-010.
 
 ### FND-20260909-008 — CSV file recovery sits below mapping controls when no rows can be imported
 

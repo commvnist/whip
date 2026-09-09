@@ -861,33 +861,44 @@ internal fun PermanentAreaDeleteDialog(
 ) {
     var replacementId by rememberSaveable(area.id) { mutableStateOf<String?>(null) }
     val replacement = replacementAreas.firstOrNull { it.id == replacementId }
-    val explanation = if (usage.total == 0) {
-        "This area is empty. Deleting it cannot be undone."
-    } else {
-        "Choose what happens to ${usage.total} assigned items: ${usage.tasks} tasks, ${usage.habits} habits, ${usage.goals} goals, and ${usage.tracks} Tracks containing ${usage.trackEntries} Entries. " +
-            "Moving them keeps the items and their history. Deleting the items cannot be undone. " +
-            "Saved filters and widgets using this area will reset to All areas."
-    }
+    val title = "Delete ${area.name} Permanently?"
     PaneAwareAlertDialog(
         modifier = modifier.testTag("permanent-area-delete-dialog"),
         onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text("Delete ${area.name} Permanently?") },
+        paneTitle = title,
+        title = null,
         text = {
-            WhipChoiceList(Modifier.testTag("delete-area-choice-list")) {
-                item { Text(explanation) }
+            WhipChoiceList(Modifier.testTag("delete-area-choice-list"), maxHeight = 520.dp) {
+                item { WhipDialogHeading(title) }
+                error?.let { message ->
+                    item { Text(message, color = MaterialTheme.colorScheme.error) }
+                }
+                item {
+                    Text(
+                        if (usage.total == 0) "This Area is empty. Deleting it cannot be undone." else usageText(usage),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 if (usage.total > 0) {
-                    item { Text("Move items to", style = MaterialTheme.typography.labelLarge) }
+                    item { Text("Move items to keep their history", style = MaterialTheme.typography.labelLarge) }
                     items(replacementAreas, key = Area::id) { target ->
                         WhipSingleChoiceRow(
                             label = target.name,
                             selected = replacementId == target.id,
+                            enabled = !saving,
                             onSelect = { replacementId = target.id },
                             accessibilityLabel = stringResource(R.string.area_move_items_to_accessibility, target.name),
                         )
                     }
+                    item { Text("Moving them keeps the items and their history. Deleting the items cannot be undone.") }
                 }
-                error?.let { message ->
-                    item { Text(message, color = MaterialTheme.colorScheme.error) }
+                item {
+                    Text(
+                        "Saved filters and widgets using this Area will reset to All areas.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         },

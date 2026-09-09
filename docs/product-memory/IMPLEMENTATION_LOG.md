@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260909-010 — Make Area deletion choices and cleanup consequences readable
+
+- Behavior: Area deletion opts into a larger parent-bounded choice list with a scrolling heading. Nonzero impact counts use existing singular/plural wording. The preservation destinations precede extended details; deletion permanence and saved filter/widget resets remain explicit, including empty Areas. Saving also disables destination changes.
+- Source/compatibility: `AreaManagementDialog.kt` and an optional `WhipChoiceList.maxHeight` in `WhipPagePatterns.kt`. The default choice cap is unchanged for neighbors. Destination identity, exact callbacks, repository transactions, lifecycle receipts, data/history, schema, version, and release state are preserved.
+- Inventory: Strengthen the existing ordinary first-choice regression and add enlarged busy/failure/retry plus empty-cleanup tests. Three new states bring the catalog/matrix to 244; source inventory is 625 JVM / 986 Android.
+- Related: FND-20260909-011, DEC-20260909-009, VER-20260909-010, DEC-20260902-008.
+- Status: Verified; the reproduced ordinary bounds failure is corrected, all 3 focused / 73 adjacent Android tests and 5 capture owners pass, all 7 final states are personally reviewed, and 344 JVM readiness tests plus compile/build/lint/static checks pass. Complete organization and whole-product acceptance remain open.
+
 ### IMP-20260909-009 — Preserve reading space and initial choices in enlarged dialogs
 
 - Behavior: Long destructive, Task-template, and backup-preview headings participate in the existing content scroll while actions remain outside it. Destructive retry errors lead the impact details. Template names are concise and guidance follows choices. Backup choices expose each action once with its supporting meaning; record count/export date stay ahead of choices, complete metadata remains below, and compatibility errors stay prominent. Shared choice-list height grows with text size within parent constraints.

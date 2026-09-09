@@ -1,5 +1,14 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-009 — Give Area cleanup a readable impact summary and visible preservation choice
+
+- Context: FND-20260909-011 exposes a partially clipped first destination at ordinary text despite a passing callback test. The generic 200 dp choice cap includes a long explanation and zero-count categories.
+- Alternatives/decision: Increasing every choice dialog would add unnecessary height to simple selections. A replacement wizard would change the established request-owned cleanup flow. Keep this dialog and its exact actions; opt its existing list into a larger parent-bounded cap and scrolling heading, summarize nonzero counts with existing quantity wording, and place destinations ahead of extended cleanup details. Keep permanent-deletion meaning explicit and the filter/widget-reset disclosure reachable, including for empty Areas.
+- Compatibility: Preserve exact destination identity, move-versus-delete callbacks, saving/dismissal guards, repository authority, item history, and lifecycle receipts from DEC-20260902-008. No schema or data mutation changes.
+- Verification: Require complete initial-choice bounds at ordinary and actual 200% text, last-choice access, stable actions, accurate nonzero impact copy, and inspected normal/enlarged/empty renders with existing Area regressions.
+- Related: FND-20260909-011, FB-20260908-006.
+- Status: Verified in IMP/VER-20260909-010 for scoped layout, retained choices, cleanup disclosure, and neighboring behavior.
+
 ### DEC-20260909-008 — Let long dialog context scroll and give choices enough height
 
 - Context: FND-20260909-009 shows a one-line reading viewport in short destructive dialogs, no initial template choice at 320% text, and hidden Area/backup choices. Source review also finds the shared choice list capped at 200 dp regardless of text size.
@@ -8,7 +17,7 @@
 - Compatibility: Preserve callbacks, draft values, exact backup merge/replacement guards, busy/retry behavior, domain/history semantics, and requested font scale. Only known long-content callers opt into scrolling headings; ordinary dialogs keep their fixed title.
 - Verification: Require useful body bounds, visible initial choices, full error readability after scrolling, stable actions, exact chosen template, affected ordinary/large-text pixels, and neighboring dialog/backup regressions before propagation or acceptance.
 - Related: `FB-20260908-006`, `FND-20260909-009`, `DEC-20260909-005`.
-- Status: Verified for the scoped callers in IMP/VER-20260909-009; broader dialog and Area-deletion review remains open.
+- Status: Verified for the scoped callers in IMP/VER-20260909-009; Area deletion was subsequently verified in IMP/VER-20260909-010. Broader dialog review remains open.
 
 ### DEC-20260909-007 — Prioritize CSV recovery before the mapping form
 

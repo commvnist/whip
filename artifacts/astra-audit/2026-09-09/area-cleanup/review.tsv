@@ -1,0 +1,8 @@
+surface_id	scoped_status	visual_review
+organization.area.permanent-delete	Verified	Ordinary text shows the complete destination, concise correctly pluralized impact summary, preserved-history and permanent-deletion meaning, saved-view cleanup, and all actions.
+organization.area.permanent-delete.large	Verified	At actual 200% text and 320 by 600 dp, the first two destinations fit above fixed Cancel, Move Items and Delete Area, and Delete Area and 4 Items.
+organization.area.permanent-delete.large-retry	Verified	After scrolling to the retry error at 200% text, its complete message and summary are readable; fixed actions remain available and the tested exact destination is retained.
+organization.area.permanent-delete.empty	Verified	Empty Area deletion keeps its permanent consequence and saved-filter/widget cleanup readable, with Cancel and Delete Area.
+organization.move-area.large	Verified	The neighboring Area move still shows four initial enlarged destinations and fixed actions; its default list cap is unchanged.
+shared.choice.large	Verified	The shared default choice list still shows six enlarged initial choices and clear Cancel/Continue; final-choice reachability passes.
+shared.choice.nested-large	Verified	Nested enlarged confirmation retains its complete readable body and stacked actions above the dimmed parent.

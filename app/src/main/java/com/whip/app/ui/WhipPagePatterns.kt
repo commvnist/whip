@@ -68,6 +68,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 
 internal object WhipSpacing {
     val micro = 4.dp
@@ -846,10 +847,11 @@ internal fun WhipMultiChoiceRow(
 @Composable
 internal fun WhipChoiceList(
     modifier: Modifier = Modifier,
+    maxHeight: Dp = 200.dp,
     content: LazyListScope.() -> Unit,
 ) {
     LazyColumn(
-        modifier = modifier.fillMaxWidth().heightIn(max = 200.dp * LocalDensity.current.fontScale.coerceAtLeast(1f)),
+        modifier = modifier.fillMaxWidth().heightIn(max = maxHeight * LocalDensity.current.fontScale.coerceAtLeast(1f)),
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
         content = content,
     )

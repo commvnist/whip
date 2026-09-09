@@ -5,6 +5,8 @@ import com.whip.app.AndroidFontScaleRule
 import com.whip.app.assertDialogFontScale
 
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
@@ -15,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
@@ -425,7 +428,11 @@ class AreaFeatureUiTest {
         }
 
         captureVisualCatalogSurface("organization.area.permanent-delete")
+        val initialChoice = compose.onNodeWithContentDescription("Move items to Personal").getUnclippedBoundsInRoot()
+        val viewport = compose.onNodeWithTag("delete-area-choice-list").getUnclippedBoundsInRoot()
+        assertTrue("The complete first destination must fit before scrolling", initialChoice.top >= viewport.top && initialChoice.bottom <= viewport.bottom)
         compose.onNodeWithText("Delete Client Delta Permanently?").assertIsDisplayed()
+        compose.onNodeWithText("4 items · 2 tasks · 1 habit · 1 goal").assertIsDisplayed()
         compose.onNodeWithText("Moving them keeps the items and their history.", substring = true).assertIsDisplayed()
         compose.onNodeWithText("Deleting the items cannot be undone.", substring = true).assertIsDisplayed()
         compose.onNodeWithContentDescription("Move items to Personal").performClick()
@@ -433,6 +440,77 @@ class AreaFeatureUiTest {
         assertEquals("move-personal", choice.get())
         compose.onNodeWithText("Delete Area and 4 Items").assertIsDisplayed().performClick()
         assertEquals("delete", choice.get())
+    }
+
+    @Test
+    @AndroidFontScale
+    fun permanentDeleteKeepsLargeTextChoicesAndRetryOwned() {
+        var saving by mutableStateOf(false)
+        var error by mutableStateOf<String?>(null)
+        val moved = mutableListOf<String>()
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                PermanentAreaDeleteDialog(
+                    modifier = Modifier.width(320.dp).height(600.dp),
+                    area = area("client-delta", "Client Delta"),
+                    usage = AreaUsageCounts(tasks = 2, habits = 1, goals = 1),
+                    replacementAreas = (1..40).map { area("area-$it", "Area $it") },
+                    saving = saving,
+                    error = error,
+                    onDismiss = {},
+                    onMoveItems = { moved += it; saving = true },
+                    onDeleteItems = { error("The move action must preserve items") },
+                )
+            }
+        }
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("organization.area.permanent-delete.large")
+        val viewport = compose.onNodeWithTag("delete-area-choice-list").getUnclippedBoundsInRoot()
+        val first = compose.onNodeWithContentDescription("Move items to Area 1").getUnclippedBoundsInRoot()
+        assertTrue("The first preservation choice must fit at 200% text", first.top >= viewport.top && first.bottom <= viewport.bottom)
+        val cancel = compose.onNodeWithText("Cancel").getUnclippedBoundsInRoot()
+        compose.onNodeWithTag("delete-area-choice-list").performScrollToNode(hasContentDescription("Move items to Area 40"))
+        compose.onNodeWithContentDescription("Move items to Area 40").assertIsDisplayed().performClick().assertIsSelected()
+        compose.onNodeWithText("Move Items and Delete Area").performClick()
+        compose.onNodeWithText("Cancel").assertIsNotEnabled()
+        compose.onNodeWithContentDescription("Move items to Area 40").assertIsNotEnabled()
+        compose.onNodeWithText("Deleting…").assertIsNotEnabled()
+        compose.onNodeWithText("Delete Area and 4 Items").assertIsNotEnabled()
+        compose.runOnIdle {
+            assertEquals(listOf("area-40"), moved)
+            saving = false
+            error = "Could not delete this Area. Your destination is still selected."
+        }
+        compose.onNodeWithTag("delete-area-choice-list").performScrollToNode(hasText("Could not delete this Area. Your destination is still selected."))
+        captureVisualCatalogSurface("organization.area.permanent-delete.large-retry")
+        compose.onNodeWithText("Could not delete this Area. Your destination is still selected.").assertIsDisplayed()
+        assertEquals(cancel, compose.onNodeWithText("Cancel").getUnclippedBoundsInRoot())
+        compose.onNodeWithTag("delete-area-choice-list").performScrollToNode(hasContentDescription("Move items to Area 40"))
+        compose.onNodeWithContentDescription("Move items to Area 40").assertIsSelected()
+        compose.onNodeWithText("Move Items and Delete Area").performClick()
+        compose.runOnIdle { assertEquals(listOf("area-40", "area-40"), moved) }
+    }
+
+    @Test
+    fun emptyAreaDeletionStillExplainsSavedViewCleanup() {
+        var deleted = false
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                PermanentAreaDeleteDialog(
+                    area = area("empty", "Empty Project"),
+                    usage = AreaUsageCounts(),
+                    replacementAreas = emptyList(),
+                    onDismiss = {},
+                    onMoveItems = { error("Empty Areas need no move destination") },
+                    onDeleteItems = { deleted = true },
+                )
+            }
+        }
+        captureVisualCatalogSurface("organization.area.permanent-delete.empty")
+        compose.onNodeWithText("This Area is empty. Deleting it cannot be undone.").assertIsDisplayed()
+        compose.onNodeWithText("Saved filters and widgets using this Area will reset to All areas.").assertIsDisplayed()
+        compose.onNodeWithText("Delete Area").performClick()
+        compose.runOnIdle { assertTrue(deleted) }
     }
 
     @Test
