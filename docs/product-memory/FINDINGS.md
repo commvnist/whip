@@ -1,5 +1,23 @@
 # Durable findings
 
+### FND-20260909-021 — Short enlarged Date picker cannot settle in the real Entry journey
+
+- Severity/category: P2, shared date selection and responsive layout.
+- Observed: Two successive actual-200% API 26 Track journeys reach the Date picker and time out waiting to press Set because Compose reports pending recompositions. The native screenshot `build/astra-authoring-20260909/api26-live.png` shows the picker with wheel content cut off after its selected row and no visible Today/Show Calendar controls. Ordinary authoring passes. This is independent of the corrected nested Field input, which has already passed by this point.
+- Source: The Date picker puts all instructions, selected-date text, three fixed-height wheels and secondary actions into a non-scrolling Column. On a short enlarged window the parent reduces the wheel viewport below its designed 144 dp. Its centered-item selection observes that constrained layout. Exact recomposition causality remains under verification; no unintended persisted date is claimed.
+- Expected/approach: Let the dialog body scroll while retaining fixed Cancel/Set. Keep full-size wheel viewports, preserve selection until an intentional change, and make secondary actions reachable. Extend the real journey to check the opening date and full native Year-wheel height before committing it.
+- Related: FB-20260908-006, VER-20260909-022, DEC-20260909-019.
+- Resolution/status: Verified in IMP-20260909-021 / VER-20260909-022. Scrolling the existing Date body preserves full wheel geometry and removes the reproduced idle failure. Both journeys now pass on API 26/34/37 with unchanged opening date, full native Year wheel and persisted Date; 110 neighboring Android and 344 JVM readiness checks pass. Exact internal recomposition causality is not asserted. Retained before/final evidence: `artifacts/astra-audit/2026-09-09/track-authoring/`.
+
+### FND-20260909-020 — Enlarged nested Track Field input clips its floating label
+
+- Severity/category: P2, input visibility and large-text authoring.
+- Observed: In the real nested Number Field editor after Activity recreation, API 26 at 320×533 dp and actual 200% text paints only the lower portion of `Field Name *` above `Distance`. The ordinary journey passes; the enlarged journey fails its whole native input assertion (109 visible pixels versus 132 expected), with the keyboard starting at y=426. Original PNG and XML under `build/astra-authoring-20260909/api26-before/` corroborate actual clipping; this is distinct from the previously rejected icon/outline hypotheses.
+- Cause: The Field list consumes only 72% of its already constrained dialog-body allowance and the Field Name has no viewport-driven whole-input relocation. Fixed title/actions plus the keyboard leave less visible list height than the enlarged field and floating label need.
+- Expected: Keep the complete focused Field Name and its label visible while preserving Cancel/Save, native text size and nested draft recovery. Reuse the existing focused-input visibility helper; verify ordinary/enlarged authoring across small, phone and wide devices before accepting the layout.
+- Related: FB-20260908-006, VER-20260909-016/022, FND-20260909-018, DEC-20260909-018.
+- Resolution/status: Verified in IMP-20260909-021 / VER-20260909-022. Keep the 72% body bound, move the Field title into its scrolling list, preserve accessible pane identity/fixed actions and reuse whole-input relocation. Complete native input/label bounds and ordinary/enlarged authoring pass on API 26/34/37; all final originals are reviewed. The rejected full-height intermediate and unrelated Date failure remain documented separately.
+
 ### FND-20260909-019 — Small enlarged Track history is crowded out by fixed navigation
 
 - Severity/category: P2, information hierarchy and large-text reading.

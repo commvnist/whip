@@ -3261,18 +3261,28 @@ private fun TrackFieldEditor(
     fun requestDismiss() {
         if (dirty) discardConfirm = true else onDismiss()
     }
+    var fieldViewport by remember { mutableStateOf(IntSize.Zero) }
+    val nameVisibility = rememberFocusedInputVisibility(fieldViewport)
+    val fieldEditorTitle = if (initial.id == null && initial.uuid == null) "Add Field" else "Edit Field"
     PaneAwareAlertDialog(
         onDismissRequest = ::requestDismiss,
-        title = { Text(if (initial.id == null && initial.uuid == null) "Add Field" else "Edit Field") },
+        title = null,
+        paneTitle = fieldEditorTitle,
+        testTag = "track-field-editor",
         text = {
-            WhipReorderLazyColumn(Modifier.fillMaxWidth().fillMaxHeight(0.72f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            WhipReorderLazyColumn(
+                Modifier.fillMaxWidth().fillMaxHeight(0.72f).onSizeChanged { fieldViewport = it }
+                    .testTag("track-field-editor-list"),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                item { WhipDialogHeading(fieldEditorTitle) }
                 item {
                     OutlinedTextField(
                         name,
                         { name = it.take(80) },
                         label = { Text("Field Name *") },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth().testTag("track-field-name"),
+                        modifier = Modifier.fillMaxWidth().then(nameVisibility).testTag("track-field-name"),
                     )
                 }
                 item {

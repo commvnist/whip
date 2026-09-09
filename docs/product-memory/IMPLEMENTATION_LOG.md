@@ -1,5 +1,14 @@
 # Implementation history
 
+### IMP-20260909-021 — Keep nested Track input and short Date selection usable
+
+- Behavior: The Field editor scrolls its heading with configuration, retains an accessible pane title and fixed Cancel/Save, and relocates the whole focused Field Name when its viewport changes. The shared Date picker scrolls its body so its three-row wheels keep their designed height on short enlarged windows; Cancel/Set remain fixed.
+- User benefit: The small actual-200% Field Name and floating label remain visible above the native keyboard. The reproduced short Date-picker idle failure is eliminated while the opening date, explicit confirmation and persisted value remain intact.
+- Journey: Two real-app tests author all seven Field types, configure units/precision, reorder/remove Choice options, configure fractional Scale, recover/discard nested drafts, validate and save an Entry, recreate an invalid numeric edit, correct it and reopen the same persisted Entry. Assertions use a transactional snapshot after observable commits and ignore only refreshed revision timestamps for untouched values; this does not claim to fix the open observable-projection coherence lead.
+- Verification: Both ordinary/actual-200% journeys pass on API 26/34/37; 64 JVM / 110 Android neighboring tests and 344 JVM readiness tests pass with compilation/lint/packaging/static guards. All 62 retained original images have individual review; 54 final native hierarchies contain zero unlabeled interactive nodes. Eighteen catalog/matrix states raise the total to 299, with 38 actual-font fixtures and 1,628 source tests.
+- Related/evidence: FND-20260909-020/021, DEC-20260909-018/019, VER-20260909-022, FB-20260908-006; `artifacts/astra-audit/2026-09-09/track-authoring/README.md`.
+- Status: Verified for this recovered authoring/input/Date chunk. No data/schema/backup/version or release changes. Complete Tracks and whole-product acceptance remain open; Entry introduction, wide form composition, remaining validation/CSV/source and projection-consumer review continue.
+
 ### IMP-20260909-020 — Give short Track detail room for saved history
 
 - Behavior: In a compact content window under 600 dp high, a resolved selected Track uses its local detail flow: Back, compact identity, Edit, destinations, history tools and contextual Restore remain, while the global content bars yield. Returning to the collection restores the full named primary navigation and global Area/search/settings controls. Normal phone and wide layouts retain their existing navigation.

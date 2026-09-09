@@ -15,6 +15,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -102,7 +104,10 @@ fun WhipDatePickerDialog(
         inputBlockedLabel = savingLabel,
         title = { Text("Choose Date") },
         text = {
-            Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
+            ) {
                 PersistenceFailureNotice(persistenceError, testTag = "date-picker-save-problem")
                 Text(displayedDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)), Modifier.testTag("date-picker-selected-date"), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                 HorizontalDivider()

@@ -1,5 +1,20 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-019 — Date selection keeps full wheel geometry in a scrolling body
+
+- Context: FND-20260909-021 reproduces failure to settle in a short enlarged real-app Date picker; its non-scrolling body constrains the nominal three-row wheel viewports.
+- Alternatives: Shrink wheel rows/text, force a different date input mode, or let existing content scroll inside the already bounded dialog. Select scrolling content: it retains native text size, existing calendar/wheel interaction and explicit Set/Cancel while removing the wheel measurement constraint. Secondary actions may require scrolling on short screens; their meaning and availability remain intact.
+- Acceptance: The complete ordinary/enlarged Track journey must settle, retain today's opening selection, show the full native 144 dp Year wheel when brought into view, and persist the chosen Date through recreation. Check existing Date picker and neighboring editor suites, plus API 26/34/37 rendered states. No stored date, timezone, calendar or locale semantics change.
+- Status: Verified in IMP-20260909-021 / VER-20260909-022. Ordinary/actual-200% complete journeys pass on API 26/34/37 with stable selection, native wheel bounds and typed persistence; 110 neighboring Android checks and readiness pass. Short screens may require scrolling to the secondary controls.
+
+### DEC-20260909-018 — Use the available nested Field body for focused input
+
+- Context: FND-20260909-020 confirms that the small enlarged Field dialog clips its focused floating label. The body is reduced a second time by a 72% height constraint.
+- Alternatives: Replace the Field editor with a separate full-screen flow; move its title into scrolling content; or retain the existing dialog and use its available body with the shared whole-input relocation helper. Begin with the last option: it removes the avoidable constraint while preserving the familiar title, fixed actions and nested draft ownership. A separate flow introduces navigation changes without evidence they are needed; a scrolling title remains a fallback if the measured body still cannot fit one input.
+- Tradeoff/acceptance: The Field dialog can occupy more of its existing 92%-bounded window, giving configuration and focused input more space. Keep native font scaling, complete field/label bounds and Cancel/Save above the keyboard. Verify full authoring, typed persistence, discard/recreation and ordinary/enlarged API 26/34/37 renders. Do not change shared window policy or persisted Track contracts.
+- Representative evidence: Using all available height passes the native Field/label check, but the API 26 enlarged card extends behind status icons. Select the bounded-height alternative with the title inside the scrolling list, preserving its accessible pane identity and fixed actions. Keep whole-input relocation and the existing 72% body bound. A later Date-picker idle timeout in that run occurs at Entry authoring, after Field configuration has succeeded; it does not establish a Field sizing loop.
+- Status: Verified with the bounded scrolling-title alternative in IMP-20260909-021 / VER-20260909-022. Final ordinary/enlarged API 26/34/37 journeys preserve complete Field Name/label, native font size, fixed actions, draft recovery and typed persistence. Shared window policy remains unchanged; broader form composition remains open.
+
 ### DEC-20260909-017 — Short phone Track detail prioritizes its local reading flow
 
 - Context: FND-20260909-019 confirms that the 320×533 dp/200%-text archive opens with barely any record content. Its fixed global Area/search bar, named two-row app navigation, Track identity and two destination levels spend more height than the history itself.

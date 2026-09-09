@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="1" errors="0" skipped="0" time="51.392" timestamp="2026-09-09T18:10:55" hostname="localhost">
+  <testsuite name="com.whip.app.TrackAuthoringJourneyE2ETest" tests="2" failures="1" errors="0" skipped="0" time="50.62" timestamp="2026-09-09T18:10:55" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api26_small(AVD) - 8.0.0" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="mixedTrackCanBeAuthoredRecoveredAndUsedAtLargeText" classname="com.whip.app.TrackAuthoringJourneyE2ETest" time="10.716">
+      <failure>java.lang.AssertionError: Whole Field input above keyboard: Rect(51, 152 - 430, 261) versus DpRect(left=34.0.dp, top=87.333336.dp, right=286.66666.dp, bottom=175.33333.dp) and Rect(0, 426 - 480, 800)
+at org.junit.Assert.fail(Assert.java:89)
+at org.junit.Assert.assertTrue(Assert.java:42)
+at com.whip.app.TrackAuthoringJourneyE2ETest.assertNativeInputVisible(TrackAuthoringJourneyE2ETest.kt:239)
+at com.whip.app.TrackAuthoringJourneyE2ETest.verifyAuthoring(TrackAuthoringJourneyE2ETest.kt:75)
+at com.whip.app.TrackAuthoringJourneyE2ETest.mixedTrackCanBeAuthoredRecoveredAndUsedAtLargeText(TrackAuthoringJourneyE2ETest.kt:46)
+</failure>
+    </testcase>
+    <testcase name="mixedTrackCanBeAuthoredRecoveredAndUsed" classname="com.whip.app.TrackAuthoringJourneyE2ETest" time="39.904" />
+  </testsuite>
+</testsuites>
