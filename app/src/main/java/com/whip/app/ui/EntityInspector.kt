@@ -40,7 +40,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
+import com.whip.app.ui.theme.WhipDialog
 import androidx.compose.ui.window.DialogProperties
 import com.whip.app.ui.theme.whipColors
 
@@ -101,7 +101,7 @@ internal fun EntityInspector(
     } else modifier
     val paneDescription = "$entityType details for $title"
     val sectionStateHolder = rememberSaveableStateHolder()
-    Dialog(
+    WhipDialog(
         onDismissRequest = { if (!inputBlocked) onDismiss() },
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {

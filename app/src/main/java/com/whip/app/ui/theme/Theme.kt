@@ -93,6 +93,8 @@ private val DarkColors = darkColorScheme(
     surfaceContainerHighest = Color(0xFF35332F),
 )
 
+internal val LocalWhipDarkTheme = staticCompositionLocalOf<Boolean?> { null }
+
 @Composable
 fun WhipTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -112,7 +114,10 @@ fun WhipTheme(
     }
     val semanticColors = systemColorScheme.toWhipSemanticColors()
 
-    CompositionLocalProvider(LocalWhipSemanticColors provides semanticColors) {
+    CompositionLocalProvider(
+        LocalWhipSemanticColors provides semanticColors,
+        LocalWhipDarkTheme provides darkTheme,
+    ) {
         MaterialTheme(
             colorScheme = systemColorScheme,
             shapes = WhipShapes,

@@ -1,5 +1,14 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-004 — Each dialog owns contrast from the rendered Whip theme
+
+- Context: Activity appearance updates cannot reach separate Compose dialog windows. Source discovery finds four window creators: shared productivity dialogs, Task editing, Entity Inspector, and Unified Search.
+- Alternatives: Copying window effects into four owners would duplicate platform policy. Changing only the shared editor would leave three independent windows wrong. Replacing dialog layouts would disrupt working navigation, keyboard, draft, and dismissal behavior without addressing the cause more directly.
+- Decision: Expose the resolved dark/light choice through the pure Whip theme, and use one small themed dialog boundary at all four window creators. Apply the same icon/legacy-scrim policy as activities to that dialog's own window. Preserve each caller's dimensions and DialogProperties.
+- User benefit/compatibility: Status and navigation controls stay readable when Whip differs from Android, including live theme changes and reopening. No data, history, preferences, or domain changes; modern automatic navigation contrast and existing keyboard/dismissal behavior remain in place.
+- Related: `FB-20260908-006`, `FND-20260909-004`, `DEC-20260909-001`.
+- Status: Verified in `VER-20260909-006` on API 26/34/37 with actual screenshots, neighboring Android regression, and readiness checks.
+
 ### DEC-20260909-003 — Empty Home prioritizes selected sections while teaching every tool
 
 - Context: The real Tracks/Gym setup journey stores the right dashboard choices but still introduces Tasks/Habits first. Existing source and Settings coverage deliberately preserve discovery of every primary tool, including hidden dashboard sections.

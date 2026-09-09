@@ -1,5 +1,14 @@
 # Implementation history
 
+### IMP-20260909-006 — Dialog windows follow Whip's selected theme
+
+- Behavior: Dialog status/navigation appearance follows the rendered Whip theme independently of Android's theme. The dark welcome, Search, and shared primary editor now keep visible status icons; theme changes and recreation update the owned window, and dismissal retains the activity appearance.
+- Source: `ui/theme/WhipDialog.kt`, `Theme.kt:LocalWhipDarkTheme`, and `WhipActivityTheme.kt:applyWhipWindowAppearance`. All four native dialog creators in ProductivityEditorComponents, TaskEditorDialog, EntityInspector, and UnifiedSearchDialog use the shared boundary with their existing DialogProperties and content.
+- Verification/inventory: Two real `DialogThemeContrastTest` journeys cover shared alert/primary, Task, inspector, Search, live changes, recreation, and return. Catalog discovery recognizes themed calls without losing their owners; its fixture protects that contract. Six theme-specific states bring the catalog to 207; the source inventory is 625 JVM / 983 Android tests. Exact changed scope is recorded in `VER-20260909-006`.
+- Compatibility: No preference, persistence, schema, backup, history, layout, dismissal, or release change. Shared legacy scrims apply only below API 29; newer Android retains automatic navigation contrast handling.
+- Related: `FB-20260908-006`, `FND-20260909-004`, `DEC-20260909-004`.
+- Status: Verified on API 26/34/37 with 100 neighboring Android regressions, 344 JVM readiness checks, debug build/lint, and inspected fresh window/first-run captures. Whole-product acceptance remains pending.
+
 ### IMP-20260909-005 — Let selected Home sections lead the getting-started guide
 
 - Behavior changed: Empty Home's starting group follows the currently visible Home sections in their saved order. Every other tool remains discoverable below. Group membership uses stable `HomeSection` identity instead of Task/Habit display titles; an all-selected Home has no empty secondary group.

@@ -67,7 +67,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.absoluteOffset
-import androidx.compose.ui.window.Dialog
+import com.whip.app.ui.theme.WhipDialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.graphics.RectangleShape
 import com.whip.app.core.EntitySaveReceipt
@@ -465,7 +465,7 @@ internal fun ProductivityEditorDialog(
     dismissOnBackPress: Boolean = true,
     dismissOnClickOutside: Boolean = true,
 ) {
-    Dialog(
+    WhipDialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(
             usePlatformDefaultWidth = false,

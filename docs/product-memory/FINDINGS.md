@@ -35,7 +35,9 @@
 - Evidence: Personally inspected first-run welcome/customize versus configured-Home captures in `/tmp/whip-astra-first-run-before2`; `ProductivityEditorComponents.kt:ProductivityEditorDialog` has no dialog-window appearance owner.
 - Expected/solution: Apply rendered-theme contrast to the shared dialog window, including full-pane editors and legacy navigation behavior; verify both theme directions and return to the activity.
 - Related: `FB-20260908-006`, `FND-20260908-015`.
-- Status: Confirmed; separate shared-window remediation pending.
+- Baseline regression: Both real opposite-theme journeys fail their collected window-appearance assertions on unchanged production in `build/instrumentation-results-WFa0ym`; `/tmp/whip-astra-dialog-theme-before.log`. All four native window creators are exercised, including shared alert/full-pane layouts, live first-run theme changes, recreation, and return to activity. The dark welcome pixels visibly lose status contrast; other windows can appear correct through the underlying activity despite their own mismatched flags. Do not equate a flag mismatch with an observed failure in every screenshot.
+- Implementation: `WhipDialog` now applies the resolved Whip theme to its own window, sharing the activity icon/legacy-scrim policy. All four owners use it with unchanged caller properties; catalog discovery recognizes the wrapper. Six focused dialog/activity tests pass on API 34 in `build/instrumentation-results-gs3g7n`.
+- Status: Verified in `IMP/VER-20260909-006`: API 26/34/37 journeys and inspected pixels, 100 neighboring Android regressions, 344 JVM readiness checks, and 45 fresh shared captures pass. Broader dialog-font evidence remains separate under `FND-20260909-006`.
 
 ### FND-20260909-005 — Empty Home ignores the user's chosen starting sections
 

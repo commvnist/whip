@@ -101,7 +101,7 @@ discover_modal_calls() {
                 }
                 if (function_name == "") function_name = "file"
                 if (!declaration && $0 ~ /PaneAwareAlertDialog[[:space:]]*\(/) emit("dialog")
-                else if (!declaration && $0 ~ /(^|[^A-Za-z0-9_])Dialog[[:space:]]*\(/) emit("dialog")
+                else if (!declaration && $0 ~ /(^|[^A-Za-z0-9_])(Dialog|WhipDialog)[[:space:]]*\(/) emit("dialog")
                 if (!declaration && $0 ~ /(^|[^A-Za-z0-9_])(DropdownMenu|ExposedDropdownMenu)[[:space:]]*\(/) emit("menu")
             }
         ' "$file"

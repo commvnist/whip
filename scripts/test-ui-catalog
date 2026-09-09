@@ -35,7 +35,16 @@ printf '%s\n' \
     '@Composable' \
     'fun DemoDialog() {' \
     '    Dialog(' \
+    '    WhipDialog(' \
     '}' > "${TEST_SOURCE}/Demo.kt"
+
+WHIP_UI_SOURCE_ROOT="$TEST_SOURCE" \
+    "${SCRIPT_DIR}/ui-catalog" discover > "$OUTPUT"
+grep -Fq $'call:Demo.DemoDialog.dialog-002\tshared\tdialog\t' "$OUTPUT" || {
+    printf 'FAIL themed dialog window disappeared from discovery\n' >&2
+    exit 1
+}
+printf 'PASS native and themed dialog window discovery\n'
 
 WHIP_UI_SOURCE_ROOT="$TEST_SOURCE" \
     "${SCRIPT_DIR}/ui-catalog" source-snapshot > "$TEST_SNAPSHOT"

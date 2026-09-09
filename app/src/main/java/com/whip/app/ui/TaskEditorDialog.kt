@@ -76,7 +76,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.window.Dialog
+import com.whip.app.ui.theme.WhipDialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -444,7 +444,7 @@ fun TaskEditorDialog(
         if (!persistenceError.isNullOrBlank()) editorScrollState.scrollTo(0)
     }
 
-    Dialog(
+    WhipDialog(
         onDismissRequest = { if (!saving) requestDismiss() },
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
