@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="0" errors="0" skipped="0" time="22.318" timestamp="2026-09-09T14:05:40" hostname="localhost">
+  <testsuite name="com.whip.app.TaskEditorJourneyE2ETest" tests="2" failures="0" errors="0" skipped="0" time="21.561" timestamp="2026-09-09T14:05:40" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api26_small(AVD) - 8.0.0" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="existingTaskCanBeReadEditedRecreatedSavedAndReopenedAtLargeText" classname="com.whip.app.TaskEditorJourneyE2ETest" time="11.717" />
+    <testcase name="existingTaskCanBeReadEditedRecreatedSavedAndReopened" classname="com.whip.app.TaskEditorJourneyE2ETest" time="9.844" />
+  </testsuite>
+</testsuites>

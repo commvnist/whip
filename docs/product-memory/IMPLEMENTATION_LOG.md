@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260909-015 — Verify existing Task editing through interruption and reopening
+
+- Change: Add ordinary and actual-200%-text real-app journeys in `TaskEditorJourneyE2ETest`. They scroll Home to the persisted Task, open its inspector/editor, check complete native label/field/header visibility around the software keyboard, edit, recreate the draft, save, and recreate/reopen. Exact entity comparison protects untouched Task values.
+- Product judgment: Fresh API 26 ordinary/enlarged journeys show readable focused fields on unchanged production. The earlier status-only frame does not establish a settled Task defect. Preserve existing focus/layout behavior; do not impose an unrequested keyboard-closed contract or add speculative focus/timing workarounds.
+- Inventory: Eight discovered native states and one actual-font owner supplement existing new/shared-Task coverage. No production, schema, version, release or physical-device change.
+- Related: FB-20260908-006, FND-20260909-010/013/015, VER-20260909-015.
+- Status: Verified for this existing-Task native edit/interruption journey. Both tests pass on API 26/34/37; the two-owner/eight-state final capture, 18 individually inspected platform/catalog frames, and 344 JVM readiness checks pass. Evidence: `artifacts/astra-audit/2026-09-09/task-edit-journey/README.md`. Full Task/wide-form and whole-product review remain open.
+
 ### IMP-20260909-014 — Keep status icons readable over dimmed light dialogs
 
 - Behavior: The shared WhipDialog boundary uses light status icons over its dimmed exterior. Search explicitly retains content-theme icons over the opaque background it paints through the inset. Activity status appearance, navigation icons/scrims, dim amount, layout, focus and dismissal behavior remain unchanged.
