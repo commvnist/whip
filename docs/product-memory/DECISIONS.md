@@ -1,5 +1,14 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-013 — Choose dialog status icons from their actual backdrop
+
+- Context: FND-20260909-015 proves that light content can have a darkened status backdrop. A single content-theme flag cannot represent both the dimmed exterior and Search's opaque painted inset.
+- Alternatives: Reducing all dialog dimming would weaken modal focus throughout Whip. Painting full backgrounds or replacing window/inset layouts would change the existing overlay and keyboard behavior. Copying local icon fixes would repeat policy across owners.
+- Decision: Let the shared dialog boundary use light status icons over its existing dimmed exterior. Callers that paint the status inset with their content background explicitly opt into content-theme icons; Search is the current caller. Keep activity appearance, navigation icons/scrims, native dim amount and all layout/dismissal behavior unchanged.
+- Benefit/compatibility: Correct the observed clock/icon contrast without changing the product composition or data. This refines the status-backdrop assumption in DEC-20260909-004; its shared ownership and navigation policy remain. Require actual native pixel contrast across all owners, theme changes/recreation, API 26/34/37 and keyboard neighbors.
+- Related: FND-20260909-015, DEC-20260909-004/012, VER-20260909-014.
+- Status: Verified for native status contrast on API 26/34/37 with neighboring regression, final visual review and readiness.
+
 ### DEC-20260909-012 — Keep Search inside its actual native viewport
 
 - Context: FND-20260909-014 exposes status-bar overlap, keyboard-hidden results and query focus loss during responsive reflow despite prior inline visibility checks.
@@ -83,7 +92,7 @@
 - Decision: Expose the resolved dark/light choice through the pure Whip theme, and use one small themed dialog boundary at all four window creators. Apply the same icon/legacy-scrim policy as activities to that dialog's own window. Preserve each caller's dimensions and DialogProperties.
 - User benefit/compatibility: Status and navigation controls stay readable when Whip differs from Android, including live theme changes and reopening. No data, history, preferences, or domain changes; modern automatic navigation contrast and existing keyboard/dismissal behavior remain in place.
 - Related: `FB-20260908-006`, `FND-20260909-004`, `DEC-20260909-001`.
-- Status: Verified in `VER-20260909-006` on API 26/34/37 with actual screenshots, neighboring Android regression, and readiness checks.
+- Status: Verified in `VER-20260909-006` on API 26/34/37 with actual screenshots, neighboring Android regression, and readiness checks. DEC-20260909-013 subsequently refines the status-backdrop assumption after native pixels expose low contrast on dimmed light windows; shared ownership and navigation policy remain intact.
 
 ### DEC-20260909-003 — Empty Home prioritizes selected sections while teaching every tool
 

@@ -1,5 +1,14 @@
 # Implementation history
 
+### IMP-20260909-014 — Keep status icons readable over dimmed light dialogs
+
+- Behavior: The shared WhipDialog boundary uses light status icons over its dimmed exterior. Search explicitly retains content-theme icons over the opaque background it paints through the inset. Activity status appearance, navigation icons/scrims, dim amount, layout, focus and dismissal behavior remain unchanged.
+- Sources: `ui/theme/WhipDialog.kt`, `WhipActivityTheme.kt`, the explicit Search backdrop argument in `UnifiedSearchDialog.kt`; existing `DialogThemeContrastTest` now measures dominant native status foreground/background contrast and captures the four previously missing light owners.
+- Compatibility: No authored data, history, schema, version, preference or release change. DEC-20260909-013 refines the earlier assumption that dialog content and status backdrops always share a theme.
+- Verification: Six focused API 34 tests, 103 neighboring Android / 56 JVM tests, four theme/native Search/shared-Task journeys on each API 26/37, four owners / 15 final catalog states, 19 personally inspected final images and 344 JVM readiness checks pass. Welcome contrast improves from 2.4143:1 to 6.1932:1. Evidence: `artifacts/astra-audit/2026-09-09/dialog-status/README.md`. The separately observed API 26 existing-Task title/keyboard viewport remains a journey follow-up.
+- Related: FND-20260909-015, DEC-20260909-013, VER-20260909-014, FB-20260908-006.
+- Status: Verified for this native status-contrast correction; whole-product acceptance remains open.
+
 ### IMP-20260909-013 — Keep Search usable inside short keyboard-constrained windows
 
 - Change: Unified Search paints its existing background through the native window and explicitly consumes system-bar and keyboard insets. One stable controls/divider/results parent structure preserves query focus across Wide/Compact reflow. Below 440 dp of workspace height, its title/exit and query remain fixed while scope/actions, filters, result count and results share the existing lazy list. Short query spacing uses the existing micro token; taller compact and wide controls keep their arrangement. Settled result announcements remain available on the short pane even when its heading scrolls away.

@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="4" failures="0" errors="0" skipped="0" time="86.195" timestamp="2026-09-09T13:42:29" hostname="localhost">
+  <testsuite name="com.whip.app.DialogThemeContrastTest" tests="2" failures="0" errors="0" skipped="0" time="42.947" timestamp="2026-09-09T13:42:29" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api37_large(AVD) - 17" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="lightDialogsOnDarkAndroidFollowThemeAcrossEveryWindowOwner" classname="com.whip.app.DialogThemeContrastTest" time="22.691" />
+    <testcase name="darkDialogsOnLightAndroidFollowThemeAcrossEveryWindowOwner" classname="com.whip.app.DialogThemeContrastTest" time="20.256" />
+  </testsuite>
+  <testsuite name="com.whip.app.GlobalSearchRoutingTest" tests="1" failures="0" errors="0" skipped="0" time="19.007" timestamp="2026-09-09T13:42:29" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api37_large(AVD) - 17" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="largeTextSearchRetainsQueryFiltersAndResultsAcrossRecreation" classname="com.whip.app.GlobalSearchRoutingTest" time="19.007" />
+  </testsuite>
+  <testsuite name="com.whip.app.PlatformEntrySurfaceE2ETest" tests="1" failures="0" errors="0" skipped="0" time="23.128" timestamp="2026-09-09T13:42:29" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api37_large(AVD) - 17" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="oversizedSharedTextIsBoundedBeforeRecreationAndExplainsTheShortenedDraft" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="23.128" />
+  </testsuite>
+</testsuites>

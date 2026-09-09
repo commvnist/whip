@@ -1,5 +1,16 @@
 # Durable findings
 
+### FND-20260909-015 — Light dialog status icons lose contrast over the dimmed backdrop
+
+- Severity/category: P2, shared native status-bar readability.
+- Observed: Personally inspected the final native-Search neighboring light welcome capture. Its status band has dominant background RGB (98,97,94) and icon/text RGB (39,39,38), giving 2.4143:1 contrast. The light dialog body is readable; the system clock/icons are subdued. Existing theme tests pass because they assert appearance flags and legacy navigation scrims, not rendered status contrast.
+- Evidence: `artifacts/astra-audit/2026-09-09/native-search/final/platform.dialog.light-on-dark.png`; original-size Pillow pixel counts across the native 132-pixel status band. Baseline source is clean pushed `1ee7a935588f3f2ab5048116b961819217e05230`.
+- Cause/next: WhipDialog copies the content theme to status icons while its transparent exterior reveals Android's dimmed underlying page. Search now paints its own opaque inset background and has a different actual backdrop. Extend the existing native tests to measure rendered clock contrast and capture every light dialog owner before selecting the shared correction.
+- Related: FND-20260909-004/014, DEC-20260909-004, FB-20260908-006, VER-20260909-014.
+- Status: Verified for the observed native status-contrast defect in IMP/VER-20260909-014. Final production passes six focused API 34 tests, 103 neighboring Android / 56 JVM tests, four native journeys on each API 26/37, 15 final catalog states, 19 personally inspected final images and readiness. Whole-product and the separately observed API 26 existing-Task viewport review remain open.
+
+- Fresh API 34 reproduction: Both opposite-theme methods fail native pixel contrast on unchanged production in `build/instrumentation-results-JSF7Xc`. Light welcome (initial/recreated/live/restored) and the light Task editor measure 2.4143:1 with native dimAmount 0.6. Inspected light inspector and shared Habit captures already show white icons over the dimmed backdrop; Search correctly shows dark icons over its painted cream inset. Do not claim a visible failure for those passing neighbors.
+
 ### FND-20260909-014 — Native Search can place controls and results behind system windows
 
 - Severity/category: P2, Search accessibility and native viewport ownership.

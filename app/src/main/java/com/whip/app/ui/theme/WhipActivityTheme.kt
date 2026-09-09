@@ -23,9 +23,13 @@ internal fun WhipActivityTheme(
     WhipTheme(darkTheme = darkTheme, dynamicColor = dynamicColor, content = content)
 }
 
-internal fun applyWhipWindowAppearance(window: Window, darkTheme: Boolean) {
+internal fun applyWhipWindowAppearance(
+    window: Window,
+    darkTheme: Boolean,
+    darkStatusBarBackdrop: Boolean = darkTheme,
+) {
     WindowCompat.getInsetsController(window, window.decorView).apply {
-        isAppearanceLightStatusBars = !darkTheme
+        isAppearanceLightStatusBars = !darkStatusBarBackdrop
         isAppearanceLightNavigationBars = !darkTheme
     }
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {

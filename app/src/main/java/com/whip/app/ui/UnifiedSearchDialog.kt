@@ -551,6 +551,7 @@ internal fun UnifiedSearchDialog(
     WhipDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+        statusBarUsesContentBackground = true,
     ) {
         BackHandler(onBack = onDismiss)
         Box(
