@@ -26,12 +26,16 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.domain.Area
+import com.whip.app.domain.TaskDraft
+import com.whip.app.domain.ScheduleKind
 import com.whip.app.ui.theme.WhipTheme
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -119,6 +123,7 @@ class SharedConsistencyUiTest {
     @Test
     @AndroidFontScale(3.2f)
     fun taskTemplatesKeepTheFinalRecipeReachableAtExtremeTextAndShortHeight() {
+        var chosen: TaskDraft? = null
         val largeText = Density(compose.density.density, fontScale = 3.2f)
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides largeText) {
@@ -127,7 +132,7 @@ class SharedConsistencyUiTest {
                         today = LocalDate.of(2026, 8, 29),
                         modifier = Modifier.width(300.dp).height(460.dp),
                         onDismiss = {},
-                        onChoose = {},
+                        onChoose = { chosen = it },
                     )
                 }
             }
@@ -136,13 +141,52 @@ class SharedConsistencyUiTest {
         compose.assertDialogFontScale(3.2f)
         captureVisualCatalogSurface("tasks.templates.extreme")
 
+        val initialChoice = compose.onNodeWithContentDescription("Inbox Task", substring = true)
+            .assertIsDisplayed().getUnclippedBoundsInRoot()
+        val viewport = compose.onNodeWithTag("task-template-list").getUnclippedBoundsInRoot()
+        assertTrue("The first template must be fully visible before scrolling", initialChoice.bottom <= viewport.bottom)
+        val cancelBefore = compose.onNodeWithText("Cancel").getUnclippedBoundsInRoot()
         compose.onNodeWithTag("task-template-list").performScrollToNode(
-            hasContentDescription("Break Complex Work into Subtasks", substring = true),
+            hasContentDescription("Task with Subtasks", substring = true),
         )
+        captureVisualCatalogSurface("tasks.templates.extreme.last")
         compose.onNodeWithContentDescription(
-            "Break Complex Work into Subtasks",
+            "Task with Subtasks",
             substring = true,
-        ).assertIsDisplayed()
+        ).assertIsDisplayed().performClick()
         compose.onNodeWithText("Cancel").assertIsDisplayed()
+        assertEquals(cancelBefore, compose.onNodeWithText("Cancel").getUnclippedBoundsInRoot())
+        compose.runOnIdle { assertEquals(listOf("Plan", "Do the work", "Review"), chosen?.steps?.map { it.title }) }
+    }
+
+    @Test
+    fun templateChoiceReturnsToAnEditableScheduledTask() {
+        val today = LocalDate.of(2026, 9, 9)
+        var saved: TaskDraft? = null
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                TaskEditorDialog(
+                    request = TaskEditorRequest(sessionId = 2_211L),
+                    today = today,
+                    onDismiss = {},
+                    onSave = { _, draft, _ -> saved = draft },
+                    onRequestNotificationPermission = {},
+                )
+            }
+        }
+        compose.onNodeWithText("Use a Template").performScrollTo().performClick()
+        compose.onNodeWithText("Task Templates").assertIsDisplayed()
+        captureVisualCatalogSurface("tasks.templates.normal")
+        compose.onNodeWithContentDescription("Task on a Date", substring = true).performClick()
+        compose.runOnIdle { assertEquals(null, saved) }
+        compose.onNodeWithText("Dated Task").assertIsDisplayed()
+        compose.onNodeWithText("Save").performClick()
+        compose.runOnIdle {
+            assertEquals("Dated Task", saved?.title)
+            assertEquals(today, saved?.date)
+            assertEquals(ScheduleKind.Once, saved?.scheduleKind)
+            assertEquals(30, saved?.durationMinutes)
+            assertEquals(false, saved?.inbox)
+        }
     }
 }

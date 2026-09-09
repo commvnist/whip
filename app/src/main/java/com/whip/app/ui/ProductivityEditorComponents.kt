@@ -453,7 +453,7 @@ internal fun ProductivityEditorDialog(
     modifier: Modifier,
     testTag: String?,
     onDismissRequest: () -> Unit,
-    title: @Composable () -> Unit,
+    title: (@Composable () -> Unit)?,
     text: @Composable () -> Unit,
     confirmButton: @Composable () -> Unit,
     dismissButton: @Composable () -> Unit,
@@ -504,7 +504,7 @@ internal fun ProductivityEditorDialog(
                     ) {
                         WhipEditorHeader(
                             navigationAction = dismissButton,
-                            title = title,
+                            title = { title?.invoke() },
                             actions = { confirmButton() },
                         )
                         Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp)) {
@@ -518,7 +518,9 @@ internal fun ProductivityEditorDialog(
                             .then(if (inputBlocked) Modifier.clearAndSetSemantics {} else Modifier),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        Box(Modifier.semantics { heading() }) { title() }
+                        title?.let { headingContent ->
+                            Box(Modifier.semantics { heading() }) { headingContent() }
+                        }
                         Box(Modifier.weight(1f, fill = stableHeight)) { text() }
                         FlowRow(
                             modifier = Modifier.fillMaxWidth(),
@@ -540,13 +542,15 @@ internal fun ProductivityEditorDialog(
 /**
  * Alert-style content hosted in a full-window dialog so a pane offset is never
  * clipped by a platform window that was sized around the unshifted card.
+ * Pass a null title when the content includes [WhipDialogHeading] in its own
+ * scroll container, allowing long context to scroll while actions stay visible.
  */
 @Composable
 internal fun PaneAwareAlertDialog(
     modifier: Modifier = Modifier,
     testTag: String? = null,
     onDismissRequest: () -> Unit,
-    title: @Composable () -> Unit,
+    title: (@Composable () -> Unit)?,
     text: @Composable () -> Unit,
     confirmButton: @Composable () -> Unit,
     dismissButton: @Composable () -> Unit = {},
@@ -594,6 +598,12 @@ internal fun WhipDialogBody(
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         content = content,
     )
+}
+
+/** A dialog heading that participates in the caller's content scrolling. */
+@Composable
+internal fun WhipDialogHeading(text: String) {
+    Text(text, modifier = Modifier.semantics { heading() })
 }
 
 internal fun formatClockMinutes(minutes: Int): String = "%02d:%02d".format(minutes / 60, minutes % 60)

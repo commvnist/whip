@@ -1,10 +1,20 @@
 # Durable findings
 
+### FND-20260909-011 — Area deletion explanation crowds the first destination
+
+- Severity/category: P2, organization cleanup and choice discovery.
+- Observed: The fresh ordinary-text Area deletion capture clips the bottom of its first destination row below a verbose impact summary; the copy also says “1 habits” and “1 goals” and includes zero-count categories. Move/merge neighbors expose their first choices clearly.
+- Evidence: Personally inspected `organization.area.permanent-delete` in the 92-state short-dialog capture; original PNG/XML and notes are retained in `artifacts/astra-audit/2026-09-09/short-dialogs/`. The existing callback test passes, which does not establish a complete visible choice.
+- Source/next: `PermanentAreaDeleteDialog` places its full explanation before destinations in the shared 200 dp ordinary-text viewport. Review concise impact copy and reading space while preserving move-versus-delete consequences, history, filter/widget resets, and exact callbacks; add complete initial-choice bounds and enlarged-text evidence.
+- Related: `FB-20260908-006`, `FND-20260909-009`, `VER-20260909-009`.
+- Status: Confirmed; correction and proportionate verification remain pending.
+
 ### FND-20260909-010 — Shared Task capture shows header overlap during keyboard presentation
 
 - Severity/category: P2, editor window insets and accessibility; stable reproduction pending.
 - Observed: The corrected actual-200%-text `tasks.editor.shared-large` capture shows Create Task and its exit icon underneath the Android status bar while the title field and keyboard are visible. The neighboring unfocused Task editor has a clear inset. Reachability and shortened-draft semantics still pass.
 - Evidence: Personally inspected `build/astra-dialog-font-20260909/final-capture/raw/tasks.editor.shared-large.png`, preserved in the dialog-font-coverage directory; owner `com.whip.app.ui.EditorDependencyUxTest#shortenedSharedDraftWarningIsReachableFromTheFocusedTitleAtLargeText`, `build/instrumentation-results-cwzA28`.
+- Hierarchy corroboration: The independent initial corrected run and final catalog both clip Create Task to `[158,132][635,149]` and omit Cancel Task editing from the accessibility hierarchy, versus the unfocused editor's full title `[158,158][635,275]` and exit node. The focused export contains a copy of that earlier generation, not a third independent reproduction. This is more than a screenshot-only anomaly; settled real-journey diagnosis remains next.
 - Next: Distinguish a captured window transition from persistent inset loss using settled bounds and a real shared-capture journey. Inspect the Task dialog's keyboard/window ownership before choosing a fix; do not accept this frame as correct layout.
 - Related: `FB-20260908-006`, `FND-20260909-006`, `VER-20260909-008`.
 - Status: Investigating.
@@ -16,8 +26,9 @@
 - Evidence: Personally inspected `build/astra-dialog-font-20260909/initial-captures/tasks.templates.extreme.png` and `settings.delete-retry.large.png`; both rendered-scale assertions and scoped reachability tests pass in `build/instrumentation-results-eA4lhh`. `PaneAwareAlertDialog`/`ProductivityEditorDialog` retain separate title/body/action slots; TaskRecipeDialog and PermanentDeleteDialog own their scrollable bodies.
 - Expected: Preserve readable enlarged text, complete content, context, and reachable actions while adapting the vertical layout to short windows. Evaluate a shared constrained-height treatment against a local template fix before changing the pattern; do not shrink the user's requested font scale to satisfy geometry.
 - Neighbor review: Fresh `organization.move-area.large` and `settings.restore-preview.large` also show their introductory content without any initial choice. Their existing scroll and selection tests pass. Include initial choice discovery in the constrained-dialog review; a scrolling header alone may not resolve verbose introductory content.
+- Root cause/correction: Fixed title height competes with the reading viewport, the template introduction precedes every choice, backup choice names repeat above their actions, and `WhipChoiceList` caps content at 200 dp regardless of font size. The focused correction gives three long-content callers a heading inside their existing scroll owner, prioritizes error/choices, shortens template names, and scales the shared choice-list cap within parent bounds. Nine focused checks pass with full first-choice/error bounds and exact draft behavior; seven focused images have been inspected.
 - Related: `FB-20260908-006`, `FND-20260909-006`, `VER-20260909-008`.
-- Status: Confirmed; remediation and final visual acceptance pending.
+- Status: Verified for the four observed destructive/template/Area-move/backup layouts in IMP/VER-20260909-009. Focused/adjacent tests, final visual review, and readiness pass. The ordinary Area-deletion neighbor remains open in FND-20260909-011.
 
 ### FND-20260909-008 — CSV file recovery sits below mapping controls when no rows can be imported
 

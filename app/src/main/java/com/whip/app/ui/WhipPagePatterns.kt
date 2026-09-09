@@ -849,7 +849,7 @@ internal fun WhipChoiceList(
     content: LazyListScope.() -> Unit,
 ) {
     LazyColumn(
-        modifier = modifier.fillMaxWidth().heightIn(max = 200.dp),
+        modifier = modifier.fillMaxWidth().heightIn(max = 200.dp * LocalDensity.current.fontScale.coerceAtLeast(1f)),
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
         content = content,
     )

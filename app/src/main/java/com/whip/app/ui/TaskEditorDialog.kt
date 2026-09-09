@@ -1574,12 +1574,12 @@ internal fun TaskRecipeDialog(
     onChoose: (TaskDraft) -> Unit,
 ) {
     val recipes = listOf(
-        "Capture Something for Later" to TaskDraft(title = "New Task", inbox = true),
-        "Do Something on a Date" to TaskDraft(
+        "Inbox Task" to TaskDraft(title = "New Task", inbox = true),
+        "Task on a Date" to TaskDraft(
             title = "Dated Task", scheduleKind = ScheduleKind.Once, date = today,
             inbox = false, durationMinutes = 30,
         ),
-        "Repeat on Chosen Weekdays" to TaskDraft(
+        "Weekly Task" to TaskDraft(
             title = "Weekly Task",
             scheduleKind = ScheduleKind.Recurring,
             recurrence = RecurrenceRule(
@@ -1589,7 +1589,7 @@ internal fun TaskRecipeDialog(
             ),
             inbox = false,
         ),
-        "Break Complex Work into Subtasks" to TaskDraft(
+        "Task with Subtasks" to TaskDraft(
             title = "Complex Task",
             steps = listOf(
                 TaskStepDraft(title = "Plan", position = 0),
@@ -1606,7 +1606,8 @@ internal fun TaskRecipeDialog(
     PaneAwareAlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
-        title = { Text("Task Templates") },
+        paneTitle = "Task Templates",
+        title = null,
         text = {
             LazyColumn(
                 modifier = Modifier
@@ -1615,14 +1616,12 @@ internal fun TaskRecipeDialog(
                     .testTag("task-template-list"),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                item {
-                    Text("Choose the closest shape. Whip fills the editor so you can review and change everything before saving.")
-                }
+                item { WhipDialogHeading("Task Templates") }
                 items(recipes, key = { it.first }) { (label, draft) ->
                     val description = when (label) {
-                        "Capture Something for Later" -> "An unscheduled Inbox Task."
-                        "Do Something on a Date" -> "A one-time Task scheduled today with a 30-minute estimate."
-                        "Repeat on Chosen Weekdays" -> "A weekly series starting on today’s weekday."
+                        "Inbox Task" -> "An unscheduled Inbox Task."
+                        "Task on a Date" -> "A one-time Task scheduled today with a 30-minute estimate."
+                        "Weekly Task" -> "A weekly series starting on today’s weekday."
                         else -> "A three-step Task with progress and a High Effort estimate."
                     }
                     WhipOutlinedButton(
@@ -1641,6 +1640,13 @@ internal fun TaskRecipeDialog(
                             if (!useCompactTemplateRows) Text(description, style = MaterialTheme.typography.bodySmall)
                         }
                     }
+                }
+                item {
+                    Text(
+                        "Every template opens an editable draft. Review it before saving.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         },

@@ -480,6 +480,9 @@ class AreaFeatureUiTest {
         compose.assertDialogFontScale()
         captureVisualCatalogSurface("organization.move-area.large")
 
+        val firstChoice = compose.onNodeWithContentDescription("Move to Area 1").assertIsDisplayed().getUnclippedBoundsInRoot()
+        val viewport = compose.onNodeWithTag("move-area-choice-list").getUnclippedBoundsInRoot()
+        assertTrue("The first destination must fit before scrolling", firstChoice.bottom <= viewport.bottom)
         compose.onNodeWithTag("move-area-choice-list")
             .performScrollToNode(hasContentDescription("Move to Area 40"))
         compose.onNodeWithContentDescription("Move to Area 40").assertIsDisplayed().performClick().assertIsSelected()

@@ -7,6 +7,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -30,15 +31,15 @@ fun PermanentDeleteDialog(
         modifier = modifier,
         onDismissRequest = { if (!busy) onDismiss() },
         paneTitle = title,
-        title = { Text(title) },
+        title = null,
         text = {
             WhipDialogBody(
                 modifier = Modifier
                     .heightIn(max = 520.dp)
+                    .testTag("permanent-delete-content")
                     .verticalScroll(rememberScrollState()),
             ) {
-                Text(message)
-                impacts.filter(String::isNotBlank).forEach { Text("• $it") }
+                WhipDialogHeading(title)
                 error?.let {
                     Text(
                         it,
@@ -47,6 +48,8 @@ fun PermanentDeleteDialog(
                         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
                     )
                 }
+                Text(message)
+                impacts.filter(String::isNotBlank).forEach { Text("• $it") }
                 Text(
                     "Export a backup first if you may need this history.",
                     style = MaterialTheme.typography.bodySmall,

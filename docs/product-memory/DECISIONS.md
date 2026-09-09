@@ -1,5 +1,15 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-008 — Let long dialog context scroll and give choices enough height
+
+- Context: FND-20260909-009 shows a one-line reading viewport in short destructive dialogs, no initial template choice at 320% text, and hidden Area/backup choices. Source review also finds the shared choice list capped at 200 dp regardless of text size.
+- Alternatives: A forced full-screen replacement would ignore deliberate small-window constraints and alter every modal journey. Shrinking requested text or touch targets would undermine accessibility. Wrapping existing scroll containers in another vertical scroller risks competing gestures and unbounded lazy-list measurement.
+- Decision: Keep the existing dialog/window/action shell and make its fixed title optional. Long destructive, template, and backup content can include an accessible heading in their existing single scroll owner, preserving pane context and fixed actions. Give shared choice lists a font-aware height cap bounded by their parent. Use concise template names, place optional template guidance after choices, and simplify the backup choice hierarchy while retaining all preview/compatibility details and its second replacement gate.
+- Compatibility: Preserve callbacks, draft values, exact backup merge/replacement guards, busy/retry behavior, domain/history semantics, and requested font scale. Only known long-content callers opt into scrolling headings; ordinary dialogs keep their fixed title.
+- Verification: Require useful body bounds, visible initial choices, full error readability after scrolling, stable actions, exact chosen template, affected ordinary/large-text pixels, and neighboring dialog/backup regressions before propagation or acceptance.
+- Related: `FB-20260908-006`, `FND-20260909-009`, `DEC-20260909-005`.
+- Status: Verified for the scoped callers in IMP/VER-20260909-009; broader dialog and Area-deletion review remains open.
+
 ### DEC-20260909-007 — Prioritize CSV recovery before the mapping form
 
 - Context: Actual enlarged text exposes a zero-valid-row recovery action below the mapping form; failed-session recovery already appears near the error. Generic setup guidance competes with the active failure message.

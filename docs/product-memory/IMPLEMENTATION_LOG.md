@@ -1,5 +1,14 @@
 # Implementation history
 
+### IMP-20260909-009 — Preserve reading space and initial choices in enlarged dialogs
+
+- Behavior: Long destructive, Task-template, and backup-preview headings participate in the existing content scroll while actions remain outside it. Destructive retry errors lead the impact details. Template names are concise and guidance follows choices. Backup choices expose each action once with its supporting meaning; record count/export date stay ahead of choices, complete metadata remains below, and compatibility errors stay prominent. Shared choice-list height grows with text size within parent constraints.
+- Source: `ProductivityEditorComponents.kt` permits an optional fixed title and provides `WhipDialogHeading`; `PermanentDeleteDialog.kt`, `TaskEditorDialog.kt`, `SettingsScreens.kt`, and `WhipPagePatterns.kt` apply the scoped changes. Ordinary titles and primary-editor chrome retain their roles.
+- Verification/inventory: Strengthened four actual-large-text fixtures with useful reading bounds, complete initial choices/error visibility, stable actions, and exact Subtask draft. One new editor-to-template-to-Save journey verifies the dated editable draft. Three captures expand the catalog/matrix to 241; current source is 625 JVM / 984 Android. Correct the testing guide's stale 1606/625/981 sentence to 1609/625/984.
+- Compatibility: Existing single scroll owners, requested text scale, destructive/busy guards, replacement second gate, merge compatibility, authored values and history are preserved. No schema, backup format, version, release, or physical-device change.
+- Related: `FB-20260908-006`, `FND-20260909-009`, `DEC-20260909-008`, `VER-20260909-009`.
+- Status: Verified: 9 focused and 86 adjacent Android tests, 38 catalog owners / 92 captures plus 2-owner / 4-state final backup replacement, and 344 JVM readiness tests with compile/build/lint/static checks pass. Sixteen final states were personally reviewed; fifteen have scoped layout acceptance and Area deletion remains FND-20260909-011.
+
 ### IMP-20260909-008 — Verify remaining dialog text scaling and prioritize CSV recovery
 
 - Behavior: Track CSV preview presents its file-recovery action immediately after the active error, ahead of file/date/mapping controls. Routine mapping guidance is secondary and hidden while an authoritative error is present. Empty, invalid, failed, completed, and unavailable-target states retain their action guards and existing replacement meanings.

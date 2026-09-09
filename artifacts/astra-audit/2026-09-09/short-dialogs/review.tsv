@@ -1,0 +1,17 @@
+surface_id	scoped_status	capture_generation	visual_review
+tasks.templates.normal	Verified	final-capture	Four concise choices and descriptions fit with Cancel; the real editor opens the template and receives an editable dated draft before the Save callback.
+tasks.templates.extreme	Verified	final-capture	At actual 320% text the first Inbox Task choice is fully visible before scrolling; the heading scrolls with the list and Cancel remains fixed.
+tasks.templates.extreme.last	Verified	final-capture	After scrolling at 320% text, the final Task with Subtasks choice is readable; selection returns the unchanged three-step draft and Cancel retains its bounds.
+settings.delete-retry.large	Verified	final-capture	At actual 200% text and a 360 dp window, the scrolling region grows from 59 dp to 200 dp; the initial recovery message begins above fixed Cancel/Retry.
+settings.delete-retry.large-message	Verified	final-capture	The complete recovery error fits after scrolling; Cancel and Retry remain fixed and readable.
+organization.move-area.large	Verified	final-capture	At actual 200% text, four initial Area choices are visible below the explanation; the final choice remains reachable and actions remain fixed.
+shared.permanent-delete	Verified	final-capture	Ordinary destructive heading, meaning, impacts, backup advice, and actions remain readable in the existing single content scroll.
+shared.choice.large	Verified	final-capture	Six enlarged initial choices are visible with readable Cancel/Continue; the tested last choice remains reachable.
+shared.choice.nested-large	Verified	final-capture	Nested enlarged confirmation keeps its complete body and stacked actions readable above the dimmed parent.
+settings.backup-preview	Verified	backup-final-capture	Both choices, their distinct meanings, record/export context, and all metadata fit at ordinary text; duplicate choice headings are removed.
+settings.restore-preview	Verified	backup-final-capture	Ordinary replacement second gate keeps recovery meaning, complete impacts, backup advice, and both actions readable.
+settings.restore-preview.large	Verified	backup-final-capture	Record count/export date and the complete Merge action are visible before scrolling at actual 200% text; descriptive content continues in the existing scroll.
+settings.restore-confirm.large	Verified	backup-final-capture	The enlarged replacement second gate keeps its heading, recovery meaning, initial impacts, and both actions readable; remaining impacts stay scrollable.
+organization.area.move-items	Verified	final-capture	Ordinary move keeps its destination visible, source/history meaning readable, and action disabled until a destination is chosen.
+organization.area.permanent-delete	Investigating	final-capture	Unaccepted neighbor: the verbose impact summary nearly fills the ordinary 200 dp choice viewport and clips the bottom of the first destination row; count grammar also needs review. FND-20260909-011.
+organization.tag.merge	Verified	final-capture	Ordinary merge shows its destination and history meaning; confirm remains disabled until a destination is selected.

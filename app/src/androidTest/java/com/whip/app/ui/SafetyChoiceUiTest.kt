@@ -203,6 +203,10 @@ class SafetyChoiceUiTest {
         compose.assertDialogFontScale()
         captureVisualCatalogSurface("settings.restore-preview.large")
 
+        compose.onNodeWithText("3 records · Exported", substring = true).assertIsDisplayed()
+        val initialMerge = compose.onNodeWithTag("merge-new-data").assertIsDisplayed().getUnclippedBoundsInRoot()
+        val previewViewport = compose.onNodeWithTag("backup-preview-content").getUnclippedBoundsInRoot()
+        assertTrue("The first import choice must be fully visible before scrolling", initialMerge.bottom <= previewViewport.bottom)
         compose.onNodeWithTag("merge-new-data")
             .performScrollTo()
             .assertIsDisplayed()

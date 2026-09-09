@@ -1930,30 +1930,22 @@ internal fun BackupRestorePreviewDialogs(
         PaneAwareAlertDialog(
             modifier = modifier,
             onDismissRequest = { if (!busy) onCancel() },
-            title = { Text("Import This Whip Backup?") },
+            paneTitle = "Import This Whip Backup?",
+            title = null,
             text = {
                 val exportedAt = formatSettingsTimestamp(preview.exportedAt, zoneId, locale)
+                val recordLabel = if (preview.totalRecords == 1) "record" else "records"
+                val populatedTables = preview.tableCounts.count { it.value > 0 }
+                val tableLabel = if (populatedTables == 1) "table" else "tables"
                 WhipDialogBody(
                     modifier = Modifier
                         .heightIn(max = 520.dp)
+                        .testTag("backup-preview-content")
                         .verticalScroll(rememberScrollState()),
                 ) {
+                    WhipDialogHeading("Import This Whip Backup?")
                     Text(
-                        "Backup Summary",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.semantics { heading() },
-                    )
-                    Text("Exported $exportedAt")
-                    Text(
-                        "${preview.totalRecords} records · " +
-                            "${preview.tableCounts.count { it.value > 0 }} populated tables · " +
-                            "preferences ${if (preview.settingsIncluded) "included" else "not included"}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        "${preview.duplicateStableIds} stable IDs already exist on this device.",
+                        "${preview.totalRecords} $recordLabel · Exported $exportedAt",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1965,34 +1957,17 @@ internal fun BackupRestorePreviewDialogs(
                         )
                     }
                     WhipGroupedInformationCard {
-                        Text(
-                            "Merge New Data",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.semantics { heading() },
-                        )
-                        Text(
-                            "Adds records that are not already present, remaps their relationships, and keeps current settings. Re-importing the same file is safe.",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
                         WhipButton(
                             modifier = Modifier.fillMaxWidth().testTag("merge-new-data"),
                             enabled = preview.restoreCompatible && !busy,
                             onClick = onMerge,
                         ) { Text(if (preview.restoreCompatible) "Merge New Data" else "Update Required") }
-                    }
-                    WhipGroupedInformationCard {
                         Text(
-                            replaceEverythingLabel,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.semantics { heading() },
-                        )
-                        Text(
-                            "Creates a recovery snapshot first, then replaces all local data, settings, and scheduled work. An interruption rolls back to that snapshot.",
+                            "Adds records that are not already present, remaps their relationships, and keeps current settings. Re-importing the same file is safe.",
                             style = MaterialTheme.typography.bodySmall,
                         )
+                    }
+                    WhipGroupedInformationCard {
                         WhipOutlinedButton(
                             enabled = preview.restoreCompatible && !busy,
                             onClick = { confirmReplacement = true },
@@ -2003,7 +1978,30 @@ internal fun BackupRestorePreviewDialogs(
                                 contentColor = MaterialTheme.colorScheme.error,
                             ),
                         ) { Text(replaceEverythingLabel) }
+                        Text(
+                            "Creates a recovery snapshot first, then replaces all local data, settings, and scheduled work. An interruption rolls back to that snapshot.",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
                     }
+                    Text(
+                        "Backup Details",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                    Text(
+                        "$populatedTables populated $tableLabel · " +
+                            "preferences ${if (preview.settingsIncluded) "included" else "not included"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        "${preview.duplicateStableIds} " +
+                            (if (preview.duplicateStableIds == 1) "stable ID already exists" else "stable IDs already exist") +
+                            " on this device.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             },
             confirmButton = {},
