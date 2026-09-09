@@ -1,5 +1,15 @@
 # Durable findings
 
+### FND-20260909-016 — Track workspace summaries label canonical measurements as display units
+
+- Severity/category: P2, derived numeric truth and cross-page consistency.
+- Source observation: `TrackWorkspaceInsightsPage` aggregates `canonicalNumber` but appends the Field default-unit symbol directly and formats with a generic two-decimal formatter. For a distance Field displayed in miles, metre-based canonical values are therefore labeled as miles. `TrackInsightsPage` converts ordinary values and uses Field precision, so the two pages disagree. Its Sum also applies an offset-unit conversion once to an aggregate, which needs explicit review for affine units.
+- Expected: Equivalent recorded evidence has the same correct unit and configured precision across Track summaries. Unit conversion must distinguish individual readings, totals and differences; persisted entered/canonical values remain unchanged.
+- Correction: DEC-20260909-014 shares canonical-to-display conversion and Field precision, distinguishes absolute readings from differences, and omits temperature/Scale totals. Real persisted mixed-unit, temperature and fine Scale journeys now verify both pages and recreation. Broad enlarged-text/adaptive coverage remains part of the ongoing Tracks review.
+- Related: FB-20260908-006, FB-20260908-002, VER-20260909-016, DEC-20260901-021/022.
+- Runtime evidence: The persisted mixed-distance journey fails on unchanged production in `build/instrumentation-results-0AW1e8`. Its personally reviewed `tracks.insights.mixed-units` image reports Total 2609.34 mi and Average 1304.67 mi for one mile plus one kilometre; correct three-place values are 1.621 mi and 0.811 mi. The existing catalog fixture has only text Fields, while the separate workspace test uses Scale data. Neither established numeric-unit correctness.
+- Status: Verified in IMP-20260909-016 / VER-20260909-017: five focused JVM cases, 69 neighboring JVM / 56 Android tests, final API 34/37 journeys, eight personally inspected final images and 349 JVM readiness checks pass. Persisted values remain unchanged; whole Tracks and whole-product acceptance remain open.
+
 ### FND-20260909-015 — Light dialog status icons lose contrast over the dimmed backdrop
 
 - Severity/category: P2, shared native status-bar readability.

@@ -1,5 +1,14 @@
 # Implementation history
 
+### IMP-20260909-016 — Present Track summaries in the correct unit and precision
+
+- Behavior: Workspace and per-Track Insights share `TrackInsightNumberFormat`. Canonical measurements convert to the Field unit with configured precision; fine Scale increments and fractional averages remain visible. Absolute temperatures and differences use the appropriate conversion. Temperature and Scale totals are omitted while useful averages, ranges and trends remain. One mile plus one kilometre now shows 1.621 mi, replacing the workspace's incorrect 2609.34 mi.
+- Sources: `ui/TrackInsightNumberFormat.kt`, `ui/TrackScreens.kt`, five JVM formatter cases, and two real persisted `TrackInsightsJourneyE2ETest` journeys. The test fixture verifies recreation, real scrolling and complete native numeric bounds, settling Compose before native capture.
+- Compatibility: No Entry, unit definition, persisted aggregation, schema, version or release change. Four new catalog states cover measurements absent from the existing text-only catalog fixture; overlapping temperature/Scale frames are represented once per page.
+- Verification: 69 neighboring JVM / 56 Android tests, final two-owner/four-state captures on each API 34/37, eight individually inspected final images, and 349 JVM readiness tests plus compile/build/lint/static checks pass. Preserve the failing original workspace image and fixture failures honestly in VER-20260909-017. Evidence: `artifacts/astra-audit/2026-09-09/track-numeric-insights/README.md`.
+- Related: FND-20260909-016, DEC-20260909-014, VER-20260909-016/017, FB-20260908-006.
+- Status: Verified for numeric truth and scoped ordinary-text readability. Whole Tracks source/journey/design/accessibility review continues; date-window semantics and wider composition remain separate follow-ups.
+
 ### IMP-20260909-015 — Verify existing Task editing through interruption and reopening
 
 - Change: Add ordinary and actual-200%-text real-app journeys in `TaskEditorJourneyE2ETest`. They scroll Home to the persisted Task, open its inspector/editor, check complete native label/field/header visibility around the software keyboard, edit, recreate the draft, save, and recreate/reopen. Exact entity comparison protects untouched Task values.

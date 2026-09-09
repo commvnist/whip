@@ -1,5 +1,14 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-014 — Track Insights share unit-aware numeric presentation
+
+- Context: FND-20260909-016 proves canonical measurements are mislabeled as display units in workspace summaries; per-Track presentation has its own conversion and precision path. A temperature Sum also applies an affine offset to an aggregate, and workspace Scale totals imply an additive meaning absent from per-Track Scale Insights.
+- Alternatives: Patch only the missing workspace conversion; replace the Insights pages with a new analytics model; or share a small presentation contract while preserving existing evidence, navigation and aggregation boundaries. The first leaves precision and offset inconsistencies; a new analytics product adds unnecessary disruption.
+- Decision: Use one numeric presentation helper for Number/Scale Insights. Convert canonical Number values to the Field's current unit, honor Number precision, retain enough fractional places for Scale averages and configured increments, and format locale correctly. Differences divide by the conversion factor without applying an absolute offset. Missing/nonfinite values render as unavailable. Totals remain for Number quantities with zero-offset units, excluding Temperature; Scale and temperature readings retain averages/ranges/latest/trend without a misleading total.
+- Benefit/tradeoff: Equivalent evidence reads consistently across workspace and per-Track summaries. Omitting non-additive totals removes a misleading statistic while preserving recorded values and useful comparisons. No Entry mutation, unit definition, persisted aggregation, schema, migration or release change is needed. Date-window and broader Track design findings remain separate follow-ups.
+- Related: FND-20260909-016, FB-20260908-006, VER-20260909-016.
+- Status: Verified in IMP-20260909-016 / VER-20260909-017 with mixed-unit/temperature/Scale journeys, neighboring regression, native API 34/37 image review and readiness. Broader Tracks review remains open.
+
 ### DEC-20260909-013 — Choose dialog status icons from their actual backdrop
 
 - Context: FND-20260909-015 proves that light content can have a darkened status backdrop. A single content-theme flag cannot represent both the dimmed exterior and Search's opaque painted inset.

@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="1" errors="0" skipped="0" time="232.114" timestamp="2026-09-09T14:48:52" hostname="localhost">
+  <testsuite name="com.whip.app.TrackInsightsJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="221.154" timestamp="2026-09-09T14:48:52" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api37_large(AVD) - 17" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="temperatureAndFineScaleInsightsPreserveReadingsWithoutTotals" classname="com.whip.app.TrackInsightsJourneyE2ETest" time="221.154">
+      <failure></failure>
+    </testcase>
+  </testsuite>
+  <system-err>Test run failed to complete. Instrumentation run failed due to Process crashed.
+</system-err>
+</testsuites>

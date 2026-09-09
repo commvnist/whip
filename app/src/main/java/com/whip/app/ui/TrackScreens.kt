@@ -1158,7 +1158,7 @@ private data class TrackNumericSummary(
     val projection: TrackProjection,
     val field: TrackField,
     val values: List<Double>,
-    val unitLabel: String,
+    val numberFormat: TrackInsightNumberFormat,
 )
 
 @Composable
@@ -1180,12 +1180,11 @@ private fun TrackWorkspaceInsightsPage(
         projection.fields.filter { it.type == TrackFieldType.Number || it.type == TrackFieldType.Scale }.mapNotNull { field ->
             val values = projection.entries.mapNotNull { entry ->
                 entry.value(field.id)?.let { value ->
-                    if (field.type == TrackFieldType.Number) value.canonicalNumber ?: value.enteredNumber else value.scaleValue
+                    if (field.type == TrackFieldType.Number) value.canonicalNumber else value.scaleValue
                 }
             }
             values.takeIf(List<Double>::isNotEmpty)?.let {
-                val unitLabel = field.unitId?.let { id -> units.firstOrNull { it.id == id }?.symbol }.orEmpty()
-                TrackNumericSummary(projection, field, values, unitLabel)
+                TrackNumericSummary(projection, field, values, TrackInsightNumberFormat(field, units))
             }
         }
     }
@@ -1245,14 +1244,15 @@ private fun TrackWorkspaceInsightsPage(
                 if (numericSummaries.isNotEmpty()) {
                     item { Text("Numeric Summaries", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
                     items(numericSummaries, key = { "numeric-${it.projection.track.id}-${it.field.id}" }) { summary ->
-                        val suffix = summary.unitLabel.takeIf(String::isNotBlank)?.let { " $it" }.orEmpty()
                         InsightCard(
                             "${summary.projection.track.icon} ${summary.projection.track.name} · ${summary.field.name}",
-                            listOf(
-                                "Entries" to summary.values.size.toString(),
-                                "Total" to "${summary.values.sum().formatCompact()}$suffix",
-                                "Average" to "${summary.values.average().formatCompact()}$suffix",
-                            ),
+                            buildList {
+                                add("Entries" to summary.values.size.toString())
+                                if (summary.numberFormat.showTotal) {
+                                    add("Total" to summary.numberFormat.format(summary.values.sum()))
+                                }
+                                add("Average" to summary.numberFormat.format(summary.values.average()))
+                            },
                         )
                     }
                 }
@@ -2156,7 +2156,7 @@ private fun TrackInsightsPage(
     val scoped = projection.copy(entries = projection.matchingEntries(conditions, conditionMode))
     val dates = scoped.entries.map { it.entry.entryDate }
     LazyColumn(
-        Modifier.fillMaxSize(),
+        Modifier.fillMaxSize().testTag("track-insights-list"),
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -2196,41 +2196,37 @@ private fun TrackInsightsPage(
             val lines = when (field.type) {
                 TrackFieldType.Number -> {
                     val nums = values.mapNotNull { it.canonicalNumber }
-                    val unit = (BuiltInUnits.all + customUnits).firstOrNull { it.id == field.unitId }
+                    val numberFormat = TrackInsightNumberFormat(field, BuiltInUnits.all + customUnits)
                     val dated = scoped.entries.mapNotNull { entry -> entry.value(field.id)?.canonicalNumber?.let { entry to it } }
                         .sortedWith(compareBy<Pair<TrackEntryProjection, Double>> { it.first.entry.entryDate }.thenBy { it.first.entry.createdAtMillis })
-                    fun display(value: Double?): String = value?.let { canonical ->
-                        val number = unit?.fromCanonical(canonical) ?: canonical
-                        number.formatForField(field.precision) + unit?.symbol?.takeIf(String::isNotBlank)?.let { " $it" }.orEmpty()
-                    } ?: "—"
                     val change = dated.takeIf { it.size >= 2 }?.let { rows -> rows.last().second - rows.first().second }
                     val changeDisplay = change?.let { canonicalDelta ->
-                        val delta = unit?.let { canonicalDelta / it.toCanonicalFactor } ?: canonicalDelta
-                        val arrow = if (delta > 0) "↑" else if (delta < 0) "↓" else "→"
-                        "$arrow ${kotlin.math.abs(delta).formatForField(field.precision)}${unit?.symbol?.takeIf(String::isNotBlank)?.let { " $it" }.orEmpty()}"
+                        val arrow = if (canonicalDelta > 0) "↑" else if (canonicalDelta < 0) "↓" else "→"
+                        "$arrow ${numberFormat.formatDifference(kotlin.math.abs(canonicalDelta))}"
                     } ?: "—"
-                    listOf(
-                        "Recorded" to nums.size.toString(),
-                        "Sum" to display(nums.takeIf { it.isNotEmpty() }?.sum()),
-                        "Average" to display(nums.takeIf { it.isNotEmpty() }?.average()),
-                        "Minimum" to display(nums.minOrNull()),
-                        "Maximum" to display(nums.maxOrNull()),
-                        "Latest" to display(dated.lastOrNull()?.second),
-                        "First-to-Latest Trend" to changeDisplay,
-                    )
+                    buildList {
+                        add("Recorded" to nums.size.toString())
+                        if (numberFormat.showTotal) add("Sum" to numberFormat.format(nums.takeIf { it.isNotEmpty() }?.sum()))
+                        add("Average" to numberFormat.format(nums.takeIf { it.isNotEmpty() }?.average()))
+                        add("Minimum" to numberFormat.format(nums.minOrNull()))
+                        add("Maximum" to numberFormat.format(nums.maxOrNull()))
+                        add("Latest" to numberFormat.format(dated.lastOrNull()?.second))
+                        add("First-to-Latest Trend" to changeDisplay)
+                    }
                 }
                 TrackFieldType.Scale -> {
                     val nums = values.mapNotNull { it.scaleValue }
+                    val numberFormat = TrackInsightNumberFormat(field, emptyList())
                     val dated = scoped.entries.mapNotNull { entry -> entry.value(field.id)?.scaleValue?.let { entry to it } }
                         .sortedWith(compareBy<Pair<TrackEntryProjection, Double>> { it.first.entry.entryDate }.thenBy { it.first.entry.createdAtMillis })
                     val change = dated.takeIf { it.size >= 2 }?.let { it.last().second - it.first().second }
                     listOf(
                         "Recorded" to nums.size.toString(),
-                        "Average" to nums.averageOrDash(),
-                        "Minimum" to nums.minOrNull().formatOrDash(),
-                        "Maximum" to nums.maxOrNull().formatOrDash(),
-                        "Latest" to dated.lastOrNull()?.second.formatOrDash(),
-                        "First-to-Latest Trend" to (change?.let { "${if (it > 0) "↑" else if (it < 0) "↓" else "→"} ${kotlin.math.abs(it).formatCompact()}" } ?: "—"),
+                        "Average" to numberFormat.format(nums.takeIf { it.isNotEmpty() }?.average()),
+                        "Minimum" to numberFormat.format(nums.minOrNull()),
+                        "Maximum" to numberFormat.format(nums.maxOrNull()),
+                        "Latest" to numberFormat.format(dated.lastOrNull()?.second),
+                        "First-to-Latest Trend" to (change?.let { "${if (it > 0) "↑" else if (it < 0) "↓" else "→"} ${numberFormat.formatDifference(kotlin.math.abs(it))}" } ?: "—"),
                     )
                 }
                 TrackFieldType.SingleChoice -> scoped.optionsFor(field.id).map { option ->
@@ -4225,9 +4221,6 @@ internal fun TrackCondition.summaryValue(
     else -> ""
 }
 
-private fun List<Double>.sumOrDash(): String = takeIf { it.isNotEmpty() }?.sum().formatOrDash()
-private fun List<Double>.averageOrDash(): String = takeIf { it.isNotEmpty() }?.average().formatOrDash()
-private fun Double?.formatOrDash(): String = this?.formatCompact() ?: "—"
 private fun Int.withPercentage(total: Int): String = "$this · ${if (total == 0) 0 else this * 100 / total}%"
 private fun Double.formatCompact(): String = if (this % 1.0 == 0.0) toLong().toString() else "%.2f".format(this).trimEnd('0').trimEnd('.')
 internal fun Double.formatForField(precision: Int): String = String.format(Locale.getDefault(), "%.${precision.coerceIn(0, 6)}f", this)
