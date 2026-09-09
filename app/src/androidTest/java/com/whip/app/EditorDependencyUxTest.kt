@@ -1,5 +1,8 @@
 package com.whip.app.ui
 
+import android.view.accessibility.AccessibilityWindowInfo
+import androidx.test.espresso.Espresso.closeSoftKeyboard
+import androidx.test.platform.app.InstrumentationRegistry
 import com.whip.app.AndroidFontScale
 import com.whip.app.AndroidFontScaleRule
 import com.whip.app.assertDialogFontScale
@@ -276,6 +279,17 @@ class EditorDependencyUxTest {
             }
         }
 
+        // Let initial title focus finish before scrolling and tapping a lower control.
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        compose.waitUntil(10_000) {
+            automation.windows.any { it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD }
+        }
+        closeSoftKeyboard()
+        compose.waitUntil(10_000) {
+            automation.windows.none { it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD }
+        }
+        compose.onNodeWithText("Inbox keeps this Task unscheduled", substring = true)
+            .performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("task-repeat-toggle").performScrollTo().performClick()
         compose.onNodeWithText("Schedule and Repeat").performClick()
         compose.onNodeWithTag("task-schedule-consequence").assertIsDisplayed()

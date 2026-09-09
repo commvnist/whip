@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="0" errors="0" skipped="0" time="5.365" timestamp="2026-09-09T20:06:16" hostname="localhost">
+  <testsuite name="com.whip.app.ui.EditorDependencyUxTest" tests="1" failures="0" errors="0" skipped="0" time="4.443" timestamp="2026-09-09T20:06:16" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="repeatSettingsStayBetweenScheduleChoiceAndPlanningFields" classname="com.whip.app.ui.EditorDependencyUxTest" time="4.443" />
+  </testsuite>
+</testsuites>

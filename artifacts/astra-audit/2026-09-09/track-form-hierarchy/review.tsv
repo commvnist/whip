@@ -1,0 +1,84 @@
+artifact	surface	observation
+before-api26	track-start.large	Generic Identity instructions occupy most opening; Track Name begins low and Fields are off-screen. Save remains fixed.
+before-api26	entry-start.large	Repeated Track headline and instructions leave only Name visible at the bottom; Distance is off-screen.
+before-api26	track-name.large	Focused Track Name, floating label and character counter fit above real IME; single-line text scrolls horizontally.
+before-api26	entry-name.large	Focused Name and floating label fit above real IME; trailing introductory text remains above the input.
+before-api26	track-start.ordinary	Description and Emoji follow generic Identity guidance before any Entry Fields; Name and Save are readable.
+before-api26	entry-start.ordinary	Track headline and introduction precede Name/Distance; both inputs visible but core choices low.
+before-api26	track-name.ordinary	Whole focused Track Name/label/counter above IME, with scrolled Identity guidance above.
+before-api26	entry-name.ordinary	Whole Name and label above IME, with introductory copy remaining above.
+before-api26	definition.ordinary	Field cards/reorder/edit readable; lengthy guidance occupies extra opening space.
+before-api26	definition.large	Name and Distance cards retain wrapped labels and actions; remaining guidance scrolls above.
+before-api26	entry-validation.ordinary	Required-field summary visible; repeated introduction delays the first invalid input.
+before-api26	entry-validation.large	Complete required summary visible; repeated Track headline/instructions push invalid inputs off-screen.
+before-api26	entry-reopened.ordinary	Reopened Entry repeats its stored Name in a headline; corrected Distance 2.25 is visible.
+before-api26	entry-reopened.large	Viewport scrolled to Distance 2.25; Name partly above viewport, matching deliberate field scrolling rather than input loss.
+before-api26-diagnostic	track-name-large-ime-absent	Rejected typing evidence: focused Track Name is shown but no native keyboard is present.
+before-api37	track-start.ordinary	Full-window Name/Description/Emoji precede Fields; Save and Field edit actions are far from their labels.
+before-api37	track-start.large	Full-window Name/Description/Emoji precede Fields; Save and Field edit actions are far from their labels.
+before-api37	entry-start.ordinary	Repeated Track headline/instructions and full-window fields; Scale endpoints and choice indicators widely separated.
+before-api37	entry-start.large	Repeated Track headline/instructions and full-window fields; Scale endpoints and choice indicators widely separated.
+before-api37	definition.ordinary	All seven type cards retain labels and edits, but each spans virtually the full 1280 dp width.
+before-api37	track-name.ordinary	Complete focused Track Name/label/counter above real IME, but full-width serial form and optional metadata dominate.
+before-api37	track-name.large	Complete focused Track Name/label/counter above real IME, but full-width serial form and optional metadata dominate.
+before-api37	entry-name.large	Focused Name/label above real IME; required Distance summary and repeated Track introduction consume preceding space.
+before-api37	entry-name.ordinary	Focused Name/label above real IME; validation, repeated identity and wide controls precede it.
+before-api37	definition.large	Large-text type cards and edit controls span full width; lower Rained card requires scrolling.
+before-api37	entry-validation.large	Full required summary and both invalid fields visible, separated by repeated Track introduction.
+before-api37	entry-validation.ordinary	Required summary and inline errors readable, with repeated introduction between them.
+before-api37	entry-reopened.ordinary	Stored Entry name repeats in headline; corrected Distance 2.25, Trail and 3.5 Scale remain visible across full-width controls.
+before-api37	entry-reopened.large	Stored Entry name repeats in headline; corrected Distance 2.25, Trail and 3.5 Scale remain visible across full-width controls.
+final-api37	track-start.ordinary	Name and Entry Fields precede optional Details; centered form keeps Save and Field edit near content, with clear side margins.
+final-api37	track-start.large	Name and Entry Fields precede optional Details; centered form keeps Save and Field edit near content, with clear side margins.
+final-api37	entry-start.large	Concise Track context leads directly to complete Name and Distance inputs; unit, Choice and Scale remain coherent within centered column.
+final-api37	track-name.ordinary	Whole focused Track Name and label/counter above native IME; Fields appear immediately below in aligned column.
+final-api37	track-name.large	Whole focused Track Name and label/counter above native IME; Fields appear immediately below in aligned column.
+final-api37	entry-start.ordinary	Concise Track context; seven-type flow exposes Name, Distance, Choice, Scale, Notes and Date with bounded controls.
+final-api37	entry-name.ordinary	Whole Name/label above native IME; concise context and remaining required Distance problem visible in aligned column.
+final-api37	entry-name.large	Whole Name/label above native IME; concise context and remaining required Distance problem visible in aligned column.
+final-api37	definition.large	Readable Name, Distance, Terrain and fractional Scale cards follow concise setup; reorder/edit controls align within form.
+final-api37	definition.ordinary	Authored Name and seven ordered type cards use bounded widths; lower cards remain reachable by scrolling.
+final-api37	entry-validation.ordinary	Required summary and inline Name/Distance errors remain complete; concise context reduces separation from inputs.
+final-api37	entry-validation.large	Required summary and inline Name/Distance errors remain complete; concise context reduces separation from inputs.
+final-api37	entry-types.ordinary	Fractional Scale, full Notes, chosen Date and Yes state fit together; Entry Date keeps separate historical meaning.
+final-api37	entry-types.large	Scale 3.5, complete two-line Notes, selected Date and Yes remain readable in bounded form; lower Entry Date support scrolls.
+final-api37	entry-number.large	Invalid 1..5 and specific Distance error persist after recreation; unchanged Choice, Scale and Notes remain visible.
+final-api37	entry-number.ordinary	Invalid 1..5 retained with specific error after recreation; unrelated values and Yes selection remain readable.
+final-api37	entry-reopened.ordinary	Corrected Distance 2.25, stored Name, Trail and 3.5 visible; one concise Track context replaces repeated Entry headline.
+final-api37	entry-reopened.large	Corrected Distance 2.25, stored Name, Trail and 3.5 visible; one concise Track context replaces repeated Entry headline.
+final-api37	details-reopened.ordinary	Saved full Description, default Emoji, Main Area and both Tags reopen under Details/Organization in the same form.
+final-api37	details-reopened.large	Saved description wraps completely after Fields; Emoji is reachable below and Tags are separately scrolled/asserted by journey.
+final-api34	track-start.ordinary	Track Name, Entry Fields and Add Field now precede optional Details; responsive Save and core labels remain readable.
+final-api34	track-start.large	Track Name, Entry Fields and Add Field now precede optional Details; responsive Save and core labels remain readable.
+final-api34	entry-start.large	Two-line Track context and complete Name/Distance labels and inputs fit initially; Choice and Scale follow.
+final-api34	track-name.ordinary	Track Name, floating label and counter remain fully above native keyboard; large single-line content scrolls horizontally.
+final-api34	track-name.large	Track Name, floating label and counter remain fully above native keyboard; large single-line content scrolls horizontally.
+final-api34	entry-name.large	Complete focused Name and floating label above keyboard; remaining Distance error is visible above concise Track context.
+final-api34	entry-start.ordinary	Concise context leads to complete primary inputs; typed controls and Date follow with clear labels.
+final-api34	entry-name.ordinary	Native IME, complete focused Name/label and fixed Add/exit visible; original image re-view confirms intact header.
+final-api34	entry-validation.large	Required summary, Name/Distance fields and specific errors all remain readable at 200% text.
+final-api34	entry-validation.ordinary	Required-field summary and inline Name/Distance messages are clear and specific.
+final-api34	entry-reopened.ordinary	Reopened Name, corrected 2.25-mile Distance, Trail and 3.5 Scale preserved; concise Track context remains.
+final-api34	entry-reopened.large	Reopened Name, corrected 2.25-mile Distance, Trail and 3.5 Scale preserved; concise Track context remains.
+final-api34	details-reopened.ordinary	Full saved Description, Emoji, Main Area and outdoors/weekend Tags reopen below Fields.
+final-api34	details-reopened.large	Description is fully wrapped and legible below Details; Tags remain a separate scroll/assertion in journey.
+final-api26	track-start.ordinary	Name, first Field and Add Field fit in smallest ordinary opening; optional metadata follows below.
+final-api26	track-start.large	Track Name appears much earlier; Entry Fields heading and start of first card now visible at 200%. Add Field remains scrollable.
+final-api26	entry-start.ordinary	Compact Track context and complete Name/Distance controls fit with unit and Choice.
+final-api26	entry-start.large	Complete initial Name and Distance inputs and labels fit at 200%; two-line Track context retains identity.
+final-api26	track-name.ordinary	Whole focused Track Name/label/counter visible above native IME; existing single-line horizontal scrolling retained.
+final-api26	track-name.large	Whole focused Track Name/label/counter visible above native IME; existing single-line horizontal scrolling retained.
+final-api26	entry-name.ordinary	Whole Name/label fits above IME; scroll leaves trailing required-summary line above concise context.
+final-api26	entry-name.large	Whole focused Name/label fits above IME; context is partly scrolled as expected in the short viewport.
+final-api26	definition.ordinary	Name and first two authored Field cards fit with fixed Save and concise Fields guidance.
+final-api26	definition.large	Scrolled Distance card has full name/type/reorder/edit; adjacent cards continue above/below viewport.
+final-api26	entry-validation.ordinary	Required summary plus both invalid inputs fit; concise context avoids old repeated headline.
+final-api26	entry-validation.large	Full required summary plus first invalid Name input now fit; remaining Distance is reachable by scrolling.
+final-api26	entry-types.ordinary	Complete Notes and selected Visit date/Yes readable; distinct Entry Date remains below.
+final-api26	entry-types.large	Selected Visit date and Yes/No wrap correctly; Notes extend above scrolled viewport, not lost.
+final-api26	entry-number.ordinary	Recreated invalid 1..5, unit and specific validation remain visible; Trail is unchanged and Save remains fixed.
+final-api26	entry-number.large	Recreated invalid 1..5, unit and specific validation remain visible; Trail is unchanged and Save remains fixed.
+final-api26	entry-reopened.ordinary	Stored Name and corrected Distance 2.25 reopen with complete labels; concise context retains Track identity.
+final-api26	entry-reopened.large	Stored Name and corrected Distance 2.25 reopen with complete labels; concise context retains Track identity.
+final-api26	details-reopened.ordinary	Full saved Description and Emoji reopen below Fields; Tags verified after scrolling.
+final-api26	details-reopened.large	Whole saved description wraps within five lines at 200%; fixed Save/exit remain available.

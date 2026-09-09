@@ -1,0 +1,9 @@
+phase	form	font	input_bounds	label_bounds
+before	track	ordinary	[30,394][450,520]	[54,430][199,466]
+final	track	ordinary	[30,274][450,400]	[54,310][199,346]
+before	entry	ordinary	[30,483][450,579]	[54,519][134,555]
+final	entry	ordinary	[30,319][450,415]	[54,355][134,391]
+before	track	large	[30,532][450,718]	[54,577][306,640]
+final	track	large	[30,298][450,484]	[54,343][306,406]
+before	entry	large	[30,653][450,785]	[54,698][194,761]
+final	entry	large	[30,421][450,553]	[54,466][194,529]

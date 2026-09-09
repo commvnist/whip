@@ -2889,9 +2889,10 @@ internal fun TrackEditor(
         title = if (editing) "Edit Track" else "Create Track",
         modifier = modifier.testTag("track-editor-surface"),
     ) {
-        Box(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Scaffold(
-            modifier = if (busy) Modifier.clearAndSetSemantics {} else Modifier,
+            modifier = Modifier.widthIn(max = 720.dp)
+                .then(if (busy) Modifier.clearAndSetSemantics {} else Modifier),
             topBar = {
                 WhipEditorHeader(
                     title = { Text(if (editing) "Edit Track" else "Create Track") },
@@ -2971,28 +2972,10 @@ internal fun TrackEditor(
                 }
                 validationError?.let { message -> item { FormValidationSummary(listOf(message), visible = true, testTag = "track-save-problem") } }
                 item {
-                    ProductivityIdentitySection(
-                        title = "Identity",
-                        supportingText = "Name this structured log and choose a simple visual identifier.",
-                        identityFields = {
                     OutlinedTextField(draft.name, { value -> stateHolder.updateDraft { it.copy(name = value.replace('\n', ' ').replace('\r', ' ').take(100)) } }, label = { Text("Track Name *") }, singleLine = true, isError = validationError != null && draft.name.isBlank(), modifier = Modifier.fillMaxWidth().testTag("track-editor-name"), supportingText = if (validationError != null && draft.name.isBlank()) {{ Text("Track name is required") }} else {{ Text("${draft.name.length}/100") }})
-                    OutlinedTextField(draft.description, { value -> stateHolder.updateDraft { it.copy(description = value.take(500)) } }, label = { Text("Description") }, minLines = 2, maxLines = 5, modifier = Modifier.fillMaxWidth())
-                        },
-                        emojiPicker = {
-                    WhipEmojiPicker(
-                        value = draft.icon,
-                        defaultEmoji = DEFAULT_TRACK_EMOJI,
-                        onValueChange = { emoji -> stateHolder.updateDraft { it.copy(icon = emoji) } },
-                        modifier = Modifier.fillMaxWidth(),
-                        customEmojis = customIdentityEmojis,
-                        onSaveEmoji = onSaveIdentityEmoji,
-                        onRemoveSavedEmoji = onRemoveSavedIdentityEmoji,
-                    )
-                        },
-                    )
                 }
                 item { HorizontalDivider() }
-                item { EditorSectionHeader("Entry Fields", "Every Entry follows this order. One or more Entry Identity Fields create its readable name.") }
+                item { EditorSectionHeader("Entry Fields", "Choose what to record in each Entry.") }
                 itemsIndexed(fields, key = { index, field -> field.uuid ?: field.id?.toString() ?: "new-field-$index-${field.name}" }) { index, field ->
                     val reorderInteraction = rememberWhipReorderInteractionState()
                     Card(
@@ -3026,6 +3009,27 @@ internal fun TrackEditor(
                     }
                 }
                 item { WhipOutlinedButton(onClick = { addingField = true }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Outlined.Add, null); Spacer(Modifier.width(8.dp)); Text("Add Field") } }
+                item { HorizontalDivider() }
+                item {
+                    ProductivityIdentitySection(
+                        title = "Details",
+                        supportingText = "Add an optional description and choose an icon.",
+                        identityFields = {
+                            OutlinedTextField(draft.description, { value -> stateHolder.updateDraft { it.copy(description = value.take(500)) } }, label = { Text("Description") }, minLines = 2, maxLines = 5, modifier = Modifier.fillMaxWidth())
+                        },
+                        emojiPicker = {
+                            WhipEmojiPicker(
+                                value = draft.icon,
+                                defaultEmoji = DEFAULT_TRACK_EMOJI,
+                                onValueChange = { emoji -> stateHolder.updateDraft { it.copy(icon = emoji) } },
+                                modifier = Modifier.fillMaxWidth(),
+                                customEmojis = customIdentityEmojis,
+                                onSaveEmoji = onSaveIdentityEmoji,
+                                onRemoveSavedEmoji = onRemoveSavedIdentityEmoji,
+                            )
+                        },
+                    )
+                }
                 item { HorizontalDivider() }
                 item {
                     ProductivityOrganizationSection(
@@ -3561,9 +3565,10 @@ internal fun TrackEntryEditor(
         if (!editing) "Add Entry" else "Edit Entry",
         modifier.testTag("track-entry-editor-surface"),
     ) {
-        Box(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Scaffold(
-            modifier = if (saving) Modifier.clearAndSetSemantics {} else Modifier,
+            modifier = Modifier.widthIn(max = 720.dp)
+                .then(if (saving) Modifier.clearAndSetSemantics {} else Modifier),
             topBar = { WhipEditorHeader(
                 title = { Text(if (!editing) "Add Entry" else "Edit Entry") },
                 navigationAction = { IconButton(enabled = !saving, onClick = ::requestDismiss) { Icon(Icons.Outlined.Close, "Close Entry Editor") } },
@@ -3611,13 +3616,13 @@ internal fun TrackEntryEditor(
                     )
                 }
                 item {
-                    WhipPageHeader(
-                        title = if (!editing) projection.track.name else requireNotNull(editSnapshot).displayName,
-                        supportingText = if (!editing) {
-                            "New Entry · Complete the reusable fields for this Track."
-                        } else {
-                            "Entry in ${projection.track.name} · Fields follow this Track's reusable structure."
-                        },
+                    Text(
+                        text = "Track: ${projection.track.name}",
+                        modifier = Modifier.testTag("track-entry-context"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 items(projection.fields, key = TrackField::uuid) { field ->

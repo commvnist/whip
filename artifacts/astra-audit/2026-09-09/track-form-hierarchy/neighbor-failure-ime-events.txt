@@ -1,0 +1,13 @@
+09-09 16:04:15.042   541  2451 I ImeTracker: commvne.com.whip.app.debug:9610db81: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_UNSPECIFIED_WINDOW
+09-09 16:04:15.042   541  2451 I ImeTracker: commvne.com.whip.app.debug:9610db81: onCancelled at PHASE_SERVER_SHOULD_HIDE
+09-09 16:04:15.347   541   808 I ImeTracker: commvne.com.whip.app.debug:d371d062: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_UNSPECIFIED_WINDOW
+09-09 16:04:15.347   541   808 I ImeTracker: commvne.com.whip.app.debug:d371d062: onCancelled at PHASE_SERVER_SHOULD_HIDE
+09-09 16:04:15.395 11756 11756 I ImeTracker: commvne.com.whip.app.debug:10e45c57: onRequestShow at ORIGIN_CLIENT_SHOW_SOFT_INPUT reason SHOW_SOFT_INPUT_BY_INSETS_API
+09-09 16:04:15.395 11756 11756 D InsetsController: show(ime(), fromIme=false)
+09-09 16:04:15.466 11756 11756 I ImeTracker: commvne.com.whip.app.debug:2d5a2335: onRequestShow at ORIGIN_CLIENT_SHOW_SOFT_INPUT reason SHOW_SOFT_INPUT
+09-09 16:04:15.508   541  1985 I ImeTracker: commvne.com.whip.app.debug:10e45c57: onFailed at PHASE_WM_SHOW_IME_RUNNER
+09-09 16:04:15.514 11756 11756 D InsetsController: show(ime(), fromIme=true)
+09-09 16:04:15.544 11756 11756 I ImeTracker: commvne.com.whip.app.debug:2d5a2335: onShown
+09-09 16:04:16.048 11756 11756 I ImeTracker: commvne.com.whip.app.debug:d9b6c3cf: onRequestHide at ORIGIN_CLIENT_HIDE_SOFT_INPUT reason HIDE_SOFT_INPUT
+09-09 16:04:16.048 11756 11756 I ImeTracker: commvne.com.whip.app.debug:d9b6c3cf: onFailed at PHASE_CLIENT_VIEW_SERVED
+09-09 16:04:16.050 11756 11777 E TestRunner: failed: repeatSettingsStayBetweenScheduleChoiceAndPlanningFields(com.whip.app.ui.EditorDependencyUxTest)

@@ -1,5 +1,14 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-021 — Prioritize recording structure in a readable Track authoring column
+
+- Context: FND-20260909-023 shows generic guidance and optional appearance delaying the core form, plus wide single-column controls spanning the whole window.
+- Alternatives: Only shorten copy; split arbitrary Fields into multiple columns or a new stepped flow; or retain existing authoring/state ownership while reorganizing priorities and bounding the complete header/body. Copy alone leaves wide control distances and optional metadata ahead of Fields. A stepped or automatic multi-column flow adds navigation/ordering complexity to arbitrary ordered Field types without evidence it improves this task.
+- Selected representative: Keep the full-screen overlay and responsive WhipEditorHeader, center a form up to 720 dp wide, put Track Name and Entry Fields before optional Description/Emoji, and replace the Entry's repeated headline/instructions with concise Track context. Keep existing organization, value-type controls, fixed commit/exit, draft owners and nested configuration. Context remains semantically complete when visual wrapping is bounded.
+- Benefit/tradeoff: Core input and field setup appear earlier; related labels, editing controls and commit remain nearby on wide screens. Wide layouts intentionally retain side whitespace instead of stretching serial fields. The order of optional Track metadata changes; no capability, data/schema, validation rule or navigation step is removed.
+- Acceptance: Inspect actual opening, keyboard, Field setup, validation, Date, saving and reopening at ordinary/200% text on small/phone/wide devices. Require complete first Entry inputs and focused primary names/labels, nearby header/body geometry and unchanged typed persistence/recovery. Extend the pattern to other forms only after this representative flow is accepted and their distinct needs are reviewed.
+- Status: Verified for this representative Track/Entry composition in IMP-20260909-023 / VER-20260909-024. Ordinary/actual-200% full journeys pass on API 26/34/37, including initial/focused native inputs, aligned bounded forms, typed persistence, draft recovery and metadata reopening. All 83 retained originals have scoped review. Other forms require their own source/journey assessment before propagation.
+
 ### DEC-20260909-020 — Publish a coherent transactional Track graph
 
 - Context: FND-20260909-022 reproduces mixed Track/Field revisions and Entries without committed required values in the live Flow. UI delays or filtering only missing children cannot establish a coherent revision and could hide valid optional/empty states.

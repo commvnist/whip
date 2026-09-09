@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="17" failures="0" errors="0" skipped="0" time="33.701" timestamp="2026-09-09T20:09:43" hostname="localhost">
+  <testsuite name="com.whip.app.ui.EditorDependencyUxTest" tests="17" failures="0" errors="0" skipped="0" time="32.619" timestamp="2026-09-09T20:09:43" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="shortenedSharedDraftWarningIsReachableFromTheFocusedTitleAtLargeText" classname="com.whip.app.ui.EditorDependencyUxTest" time="5.799" />
+    <testcase name="duplicateWeekdayReminderTimeDisablesAdd" classname="com.whip.app.ui.EditorDependencyUxTest" time="1.461" />
+    <testcase name="smartCaptureHighlightsPreviewsAndAppliesEverySupportedDetailBeforeSave" classname="com.whip.app.ui.EditorDependencyUxTest" time="2.569" />
+    <testcase name="datePickerShieldsPendingPersistenceAndKeepsAnInlineFailureRetryable" classname="com.whip.app.ui.EditorDependencyUxTest" time="1.209" />
+    <testcase name="taskEditorChoosesAndSavesSharedIdentityEmoji" classname="com.whip.app.ui.EditorDependencyUxTest" time="2.416" />
+    <testcase name="datePickerJumpUsesYearMonthDayWheelsAndClampsInvalidDays" classname="com.whip.app.ui.EditorDependencyUxTest" time="2.316" />
+    <testcase name="repeatSettingsStayBetweenScheduleChoiceAndPlanningFields" classname="com.whip.app.ui.EditorDependencyUxTest" time="2.971" />
+    <testcase name="duplicateGeneralReminderTimeDisablesAdd" classname="com.whip.app.ui.EditorDependencyUxTest" time="0.681" />
+    <testcase name="dependentSettingsNoticeExplainsItsRelationshipToAccessibilityServices" classname="com.whip.app.ui.EditorDependencyUxTest" time="0.404" />
+    <testcase name="datePickerHonorsWhipWeekStartAndExposesFullDateSemantics" classname="com.whip.app.ui.EditorDependencyUxTest" time="0.933" />
+    <testcase name="untouchedTaskTitleStaysNeutralUntilSaveExplainsTheRequirement" classname="com.whip.app.ui.EditorDependencyUxTest" time="1.132" />
+    <testcase name="inboxPlacementIsVisibleAndCannotSaveHiddenReminderData" classname="com.whip.app.ui.EditorDependencyUxTest" time="1.565" />
+    <testcase name="taskSchedulingSwitchesExposeTheirSettingNames" classname="com.whip.app.ui.EditorDependencyUxTest" time="1.309" />
+    <testcase name="movingScheduledTaskToInboxPreviewsAndClearsConsequences" classname="com.whip.app.ui.EditorDependencyUxTest" time="2.117" />
+    <testcase name="largeTextDatePickerUsesReachableWheelsAndFullHeightActions" classname="com.whip.app.ui.EditorDependencyUxTest" time="2.941" />
+    <testcase name="datePickerSupportsSundayFirstAndReturnsTheExplicitSelection" classname="com.whip.app.ui.EditorDependencyUxTest" time="1.284" />
+    <testcase name="optionalReminderStartsUnsetAndUnavailableCadenceExplainsHowToEnableIt" classname="com.whip.app.ui.EditorDependencyUxTest" time="1.512" />
+  </testsuite>
+</testsuites>

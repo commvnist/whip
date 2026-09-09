@@ -39,6 +39,8 @@ class TrackAuthoringJourneyE2ETest {
     private val device get() = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
     private val trackName = "Weekend walks and trail notes"
     private val entryName = "River trail after the rain"
+    private val trackDescription = "Record routes, conditions and useful notes for the next walk."
+    private val trackTags = listOf("outdoors", "weekend")
 
     @After fun clean() = runBlocking { app.backupRepository.deleteAllData() }
 
@@ -60,7 +62,12 @@ class TrackAuthoringJourneyE2ETest {
             compose.onNodeWithContentDescription("Tracks tab").performClick()
             scroll("track-list", hasText("Create First Track")).performClick()
             compose.waitUntil(10_000) { compose.onAllNodesWithTag("track-editor-name").fetchSemanticsNodes().isNotEmpty() }
+            capture("tracks.authoring.track-start.$scale")
+            assertReadableEditorColumn("track-editor-list")
             compose.onNodeWithTag("track-editor-name").performClick().performTextReplacement(trackName)
+            waitForNativeKeyboard()
+            capture("tracks.authoring.track-name.$scale")
+            assertNativeInputVisible("track-editor-name", trackName, "Track Name *")
             closeSoftKeyboard()
 
             addField("Distance", "Number")
@@ -120,9 +127,15 @@ class TrackAuthoringJourneyE2ETest {
             compose.onNodeWithText("Discard Changes").performClick()
             scroll("track-editor-list", hasContentDescription("Edit Field Distance")).assertIsDisplayed()
             capture("tracks.authoring.definition.$scale")
+            scroll("track-editor-list", hasText("Description")).performClick().performTextReplacement(trackDescription)
+            closeSoftKeyboard()
+            scroll("track-editor-list", hasText("Tags")).performClick().performTextReplacement(trackTags.joinToString(", "))
+            closeSoftKeyboard()
             compose.onNodeWithText("Save").performClick()
 
             val definition = awaitProjection { it.fields.size == 7 }
+            assertEquals(trackDescription, definition.track.description)
+            assertEquals(trackTags, definition.track.tags)
             assertEquals(listOf("Name", "Distance", "Terrain", "Effort", "Notes", "Visit date", "Rained"), definition.fields.map { it.name })
             assertEquals(TrackFieldType.entries.toSet(), definition.fields.map { it.type }.toSet())
             val distance = definition.fields.single { it.name == "Distance" }
@@ -135,6 +148,10 @@ class TrackAuthoringJourneyE2ETest {
             assertEquals(0.5, definition.fields.single { it.name == "Effort" }.scaleStep, 0.0)
             scenario.recreate()
             compose.onNodeWithContentDescription("Add entry to $trackName").performClick()
+            capture("tracks.authoring.entry-start.$scale")
+            assertReadableEditorColumn("track-entry-editor-list")
+            assertWholeNativeField("track-entry-short-text-${definition.primaryField.uuid}", "Name *")
+            assertWholeNativeField("track-entry-number-${distance.uuid}", "Distance * (mi)")
             compose.onNodeWithText("Add", substring = false).performClick()
             scroll("track-entry-editor-list", hasTestTag("track-entry-save-problem")).assertIsDisplayed()
             capture("tracks.authoring.entry-validation.$scale")
@@ -142,6 +159,9 @@ class TrackAuthoringJourneyE2ETest {
             fun entryField(name: String, prefix: String) = scroll("track-entry-editor-list",
                 hasTestTag("track-entry-$prefix-${definition.fields.single { it.name == name }.uuid}"))
             entryField("Name", "short-text").performClick().performTextReplacement(entryName)
+            waitForNativeKeyboard()
+            capture("tracks.authoring.entry-name.$scale")
+            assertNativeInputVisible("track-entry-short-text-${definition.primaryField.uuid}", entryName, "Name *")
             closeSoftKeyboard()
             entryField("Distance", "number").performClick().performTextReplacement("1.25")
             closeSoftKeyboard()
@@ -214,6 +234,12 @@ class TrackAuthoringJourneyE2ETest {
             entryField("Distance", "number").assertTextContains("2.25")
             capture("tracks.authoring.entry-reopened.$scale")
             compose.onNodeWithContentDescription("Close Entry Editor").performClick()
+            compose.onNodeWithTag("track-destination-Options").performClick()
+            compose.onNodeWithText("Edit Track").performScrollTo().performClick()
+            scroll("track-editor-list", hasText("Description")).assertTextContains(trackDescription)
+            capture("tracks.authoring.details-reopened.$scale")
+            scroll("track-editor-list", hasText("Tags")).assertTextContains(trackTags.joinToString(", "))
+            compose.onNodeWithContentDescription("Close Track Editor").performClick()
         }
     }
 
@@ -236,15 +262,43 @@ class TrackAuthoringJourneyE2ETest {
         withTimeout(10_000) {
             val observed = app.trackRepository.projections.first { rows -> rows.any { it.track.name == trackName && predicate(it) } }
                 .single { it.track.name == trackName }
-            // Table flows invalidate independently. Assert durable contents from one transaction.
+            // Check the committed repository contents as well as observing the live projection.
             checkNotNull(app.trackRepository.projection(observed.track.id))
         }
     }
 
-    private fun assertNativeInputVisible(tag: String, enteredText: String) {
+    private fun waitForNativeKeyboard() {
         compose.waitUntil(10_000) {
             InstrumentationRegistry.getInstrumentation().uiAutomation.windows.any { it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD }
         }
+    }
+
+    private fun assertReadableEditorColumn(listTag: String) {
+        val body = compose.onNodeWithTag(listTag).getUnclippedBoundsInRoot()
+        val header = compose.onNodeWithTag("editor-header").getUnclippedBoundsInRoot()
+        val available = compose.onNodeWithTag("full-screen-destination-content").getUnclippedBoundsInRoot()
+        assertTrue("Serial authoring should have a readable width: $body", (body.right - body.left).value <= 800f)
+        assertEquals("Header and fields share their leading edge", body.left.value, header.left.value, 1f)
+        assertEquals("Header and fields share their trailing edge", body.right.value, header.right.value, 1f)
+        assertEquals("Form is centered inside the available content", (available.left.value + available.right.value) / 2f,
+            (body.left.value + body.right.value) / 2f, 1f)
+    }
+
+    private fun assertWholeNativeField(tag: String, labelText: String) {
+        compose.onNodeWithTag(tag).assertIsDisplayed()
+        refreshAccessibilityHierarchy("Track primary field visibility")
+        val label = device.findObject(By.text(labelText))
+        val native = label?.parent?.takeIf { it.className == "android.widget.EditText" }?.visibleBounds
+        val layout = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot()
+        assertTrue("Whole $labelText input: $native versus $layout", native != null &&
+            native.height() >= (layout.bottom - layout.top).value * app.resources.displayMetrics.density - 1f)
+        val labelLayout = compose.onNodeWithText(labelText, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertTrue("Whole $labelText label", label != null &&
+            label.visibleBounds.height() >= (labelLayout.bottom - labelLayout.top).value * app.resources.displayMetrics.density - 1f)
+    }
+
+    private fun assertNativeInputVisible(tag: String, enteredText: String, labelText: String = "Field Name *") {
+        waitForNativeKeyboard()
         refreshAccessibilityHierarchy("Track authoring input")
         val native = device.findObject(By.clazz("android.widget.EditText").text(enteredText))?.visibleBounds
         val layout = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot()
@@ -252,9 +306,9 @@ class TrackAuthoringJourneyE2ETest {
         InstrumentationRegistry.getInstrumentation().uiAutomation.windows.single { it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD }.getBoundsInScreen(ime)
         assertTrue("Whole Field input above keyboard: $native versus $layout and $ime",
             native != null && native.bottom <= ime.top && native.height() >= (layout.bottom - layout.top).value * app.resources.displayMetrics.density - 1f)
-        val labelLayout = compose.onNodeWithText("Field Name *", useUnmergedTree = true).getUnclippedBoundsInRoot()
-        val label = device.findObject(By.text("Field Name *"))?.visibleBounds
-        assertTrue("Whole Field Name label: $label versus $labelLayout",
+        val labelLayout = compose.onNodeWithText(labelText, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val label = device.findObject(By.text(labelText))?.visibleBounds
+        assertTrue("Whole $labelText label: $label versus $labelLayout",
             label != null && label.height() >= (labelLayout.bottom - labelLayout.top).value * app.resources.displayMetrics.density - 1f)
     }
 

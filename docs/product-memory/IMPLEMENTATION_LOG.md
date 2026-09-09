@@ -1,5 +1,14 @@
 # Implementation history
 
+### IMP-20260909-023 — Prioritize Track inputs and keep wide forms readable
+
+- Behavior: Track Name and Entry Fields precede optional Description/Emoji; the Entry form uses concise Track context above editable identity. Each full editor header/body is centered in a column up to 720 dp wide, retaining full-screen ownership and fixed responsive exit/commit. All seven ordered Field types, organization, nested configuration, validation and existing draft/persistence ownership remain intact.
+- User benefit: Small ordinary/enlarged Track Name moves up 120/234 pixels and Entry Name 164/232 pixels without shrinking native text or inputs. Both initial Entry inputs fit fully, focused primary names/labels remain above the keyboard, and wide labels/controls stay near their associated actions. Optional metadata remains authored, persisted and accessible on reopening.
+- Regression: Extend both existing real-app journeys with native opening/typing bounds, centered header/body checks, Description/Tags authorship and Track-editor reopening. Neighboring verification exposed an initial-IME race in the Task Repeat fixture; wait for its native viewport and verify Inbox before the same touch interaction and original scheduling assertions. No Task production behavior changes.
+- Verification: Both complete ordinary/actual-200% journeys pass on API 26/34/37. All 83 retained originals have individual review, with 54 final hierarchies free of NAF nodes. The 64-test JVM Tracks profile and 114 distinct neighboring Android tests pass; the corrected 17-test editor batch passes three fresh repetitions. Readiness passes 344 JVM tests, Android compilation, lint, debug packaging and static guards. Original failed/invalid invocations remain separately recorded.
+- Related/evidence: FND-20260909-023/024, DEC-20260909-021, VER-20260909-024, FB-20260908-006; `artifacts/astra-audit/2026-09-09/track-form-hierarchy/README.md`. Production changes are confined to `TrackScreens.kt`; tests are `TrackAuthoringJourneyE2ETest.kt` and `EditorDependencyUxTest.kt`.
+- Status/limits: Verified for the representative form and neighboring fixture. Ten newly inventoried states bring catalog/matrix to 309; source tests stay 630 JVM / 1000 Android and actual-font fixtures stay 38. No schema, data format, version, physical-device or release changes. Remaining Field validation, oversized imported-text editing, CSV/recovery, large histories and complete product/accessibility review stay open.
+
 ### IMP-20260909-022 — Keep live Track definitions and Entries consistent
 
 - Behavior: Track projections observe invalidation of Tracks, Fields, Choices, Entries and Values, then load all five ordered tables in one transaction. Domain conversion/grouping happens outside the transaction. Live identity/summary consumers receive one committed graph instead of combinations of different table revisions.

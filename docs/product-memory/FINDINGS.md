@@ -1,5 +1,23 @@
 # Durable findings
 
+### FND-20260909-024 — Task repeat-order fixture races initial keyboard presentation
+
+- Severity/category: P2 verification reliability; observed during Track-form neighboring regression.
+- Observed: The 97-test Track/adaptive batch passes, but EditorDependencyUxTest's separate 17-test batch misses `Schedule and Repeat` immediately after a coordinate tap on the scrolled Repeat switch. The unchanged exact method then passes three fresh isolated executions. Its failure log shows native keyboard presentation during the first second of the test; the fixture scrolls/taps immediately after setting content while the editor requests initial title focus asynchronously.
+- Expected: Establish the Inbox precondition and a settled native viewport before tapping Repeat, preserving the actual touch path, scheduling confirmation and subsequent Repeat/Planning assertions.
+- Cause/limits: A native keyboard/viewport timing race is the supported explanation; the failed report alone cannot prove the precise displaced tap coordinates. Task placement and scheduling production logic are unchanged by the Track-form work. Do not infer a deterministic scheduling regression from this intermittent test failure.
+- Correction: Await the actual initial IME, close it, await its removal, confirm Inbox explanation, then scroll/tap the same Repeat switch and keep all original behavioral assertions. No product behavior or test outcome requirement is relaxed.
+- Related/status: Verified in IMP-20260909-023 / VER-20260909-024 under FB-20260908-006. The corrected complete 17-test editor batch passes three fresh runs (51 executions, 17 distinct tests), zero failures/errors/skips/reuse. Original failed evidence and three unchanged isolated passes remain retained; this establishes fixture reliability for the exercised sequence, not precise failed-tap coordinates.
+
+### FND-20260909-023 — Track authoring spends its opening on guidance and stretches wide controls
+
+- Severity/category: P2 design opportunity, authoring hierarchy and adaptive composition.
+- Observed: In the current API 26 actual-200% opening, Track Name occupies native y=532–718 and Entry Name y=653–785 in an 800-pixel window. Track Identity guidance, Description and Emoji precede the core Entry Fields even at ordinary text. The Entry opening repeats its Track identity plus generic instructions; editing repeats the original Entry name above editable Name. Retained wide authoring frames show full-window fields, distant Field Edit controls and Scale endpoints across a 1280 dp window.
+- User impact: Users reach the actual recording structure late, and repeated context crowds the first Entry inputs toward or below the initial viewport. On wide screens, long label/control spans weaken association and make a serial form harder to scan. This is a justified usability improvement despite passing persistence journeys; it is not a claim of clipped stored text or data loss.
+- Expected: Give Track Name and Entry Fields priority, retain optional Description/Emoji/organization, use one concise Track context in the Entry form, and keep each form's header/commit and fields in one readable column. Preserve all authored values, field order, nested configuration, native text size, keyboard access, validation and save/recovery.
+- Evidence/related: Native opening/typing baseline under `build/astra-track-forms-20260909/`, prior `track-authoring` originals, FB-20260908-006, DEC-20260902-016, DEC-20260909-021, VER-20260909-024.
+- Resolution/status: Verified in IMP-20260909-023 / VER-20260909-024. Track Name and Entry Fields precede optional metadata, Entry uses concise Track context, and each complete header/body is centered up to 720 dp. Both full journeys pass on API 26/34/37. All 83 retained originals have individual review; the small ordinary/enlarged Name inputs move up 120/234 pixels for Track and 164/232 pixels for Entry without shrinking native input or label size. Remaining Field/CSV and whole-product review stay open.
+
 ### FND-20260909-022 — Live Track projections mix committed table revisions
 
 - Severity/category: P2, live data consistency and truthful identity/summary rendering.
