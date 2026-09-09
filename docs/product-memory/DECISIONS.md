@@ -1,5 +1,13 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-010 — Resolve exact test routes from declared Kotlin packages
+
+- Context: FND-20260909-012 shows the changed-path router disagrees with the instrumentation inventory when a package differs from its directory. Renaming existing files would conceal the routing defect and create unnecessary source churn.
+- Decision: Read the package declaration and verify the filename's top-level class, following the existing instrumentation inventory contract. Retain deterministic deduplication, deleted-test profile routing, and release authority. Missing or unsupported changed source must fall back to the full relevant test source set rather than invent an exact selector.
+- Verification: Reproduce the two existing mismatched Android packages, exercise a JVM package/directory mismatch and unavailable/unsupported source in isolated fixtures, retain rename/delete cases, and verify the check wrapper executes the correctly routed real Area class.
+- Related: FND-20260909-012, DEC-20260904-003, DEC-20260906-002.
+- Status: Verified in IMP/VER-20260909-011; exact declared packages and broader unresolved-source fallback pass without weakening release or instrumentation authority.
+
 ### DEC-20260909-009 — Give Area cleanup a readable impact summary and visible preservation choice
 
 - Context: FND-20260909-011 exposes a partially clipped first destination at ordinary text despite a passing callback test. The generic 200 dp choice cap includes a long explanation and zero-count categories.

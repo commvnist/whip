@@ -5,13 +5,14 @@ set -euo pipefail
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly TEST_ROOT="$(mktemp -d)"
 readonly OUTPUT="${TEST_ROOT}/output"
+router="${SCRIPT_DIR}/change-router"
 trap 'rm -rf -- "$TEST_ROOT"' EXIT
 
 route_fixture() {
     local name="$1"
     shift
     printf '%s\n' "$@" > "${TEST_ROOT}/changes.tsv"
-    if ! "${SCRIPT_DIR}/change-router" --changes-file "${TEST_ROOT}/changes.tsv" --format tsv > "$OUTPUT"; then
+    if ! "$router" --changes-file "${TEST_ROOT}/changes.tsv" --format tsv > "$OUTPUT"; then
         printf 'FAIL %s: router failed\n' "$name" >&2
         sed -n '1,160p' "$OUTPUT" >&2
         exit 1
@@ -50,6 +51,13 @@ route_fixture android-test-only $'M\tapp/src/androidTest/java/com/whip/app/TaskR
 require_line android-test-only $'ANDROID\tcom.whip.app.TaskRepositoryTest'
 require_line android-test-only $'JVM_ALL\tfalse'
 require_line android-test-only $'CANDIDATE\tfalse'
+
+route_fixture android-declared-package $'M\tapp/src/androidTest/java/com/whip/app/AreaFeatureUiTest.kt'
+require_line android-declared-package $'ANDROID\tcom.whip.app.ui.AreaFeatureUiTest'
+reject_line android-declared-package $'ANDROID\tcom.whip.app.AreaFeatureUiTest'
+
+route_fixture editor-declared-package $'M\tapp/src/androidTest/java/com/whip/app/EditorDependencyUxTest.kt'
+require_line editor-declared-package $'ANDROID\tcom.whip.app.ui.EditorDependencyUxTest'
 
 route_fixture domain $'M\tapp/src/main/java/com/whip/app/domain/HabitRules.kt'
 require_line domain $'PROFILE\thabits'
@@ -101,5 +109,29 @@ grep -Fq 'Frozen candidate required: false' "$OUTPUT" || {
     exit 1
 }
 printf 'PASS change gate consumes deterministic routes\n'
+
+mkdir -p "${TEST_ROOT}/project/scripts" "${TEST_ROOT}/project/app/src/test/kotlin/misplaced" \
+    "${TEST_ROOT}/project/app/src/androidTest/java/misplaced"
+cp -- "${SCRIPT_DIR}/change-router" "${TEST_ROOT}/project/scripts/change-router"
+router="${TEST_ROOT}/project/scripts/change-router"
+printf '%s\n' 'package fixture.actual' 'internal class DeclaredPackageTest' > \
+    "${TEST_ROOT}/project/app/src/test/kotlin/misplaced/DeclaredPackageTest.kt"
+route_fixture jvm-declared-package $'M\tapp/src/test/kotlin/misplaced/DeclaredPackageTest.kt'
+require_line jvm-declared-package $'JVM\tfixture.actual.DeclaredPackageTest'
+reject_line jvm-declared-package $'JVM\tmisplaced.DeclaredPackageTest'
+
+route_fixture missing-android-source $'M\tapp/src/androidTest/java/misplaced/MissingTest.kt'
+require_line missing-android-source $'ANDROID_ALL\ttrue'
+reject_line missing-android-source $'ANDROID\tmisplaced.MissingTest'
+
+printf '%s\n' 'package fixture.actual' 'class DifferentNameTest' > \
+    "${TEST_ROOT}/project/app/src/test/kotlin/misplaced/UnsupportedTest.kt"
+route_fixture unsupported-jvm-source $'M\tapp/src/test/kotlin/misplaced/UnsupportedTest.kt'
+require_line unsupported-jvm-source $'JVM_ALL\ttrue'
+reject_line unsupported-jvm-source $'JVM\tfixture.actual.UnsupportedTest'
+
+route_fixture renamed-test $'R100\tapp/src/test/kotlin/misplaced/OldTaskTest.kt\tapp/src/test/kotlin/misplaced/DeclaredPackageTest.kt'
+require_line renamed-test $'PROFILE\ttasks'
+require_line renamed-test $'JVM\tfixture.actual.DeclaredPackageTest'
 
 printf 'All change-router fixtures passed.\n'

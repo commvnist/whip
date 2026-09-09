@@ -121,15 +121,16 @@ profile_for_name() {
     esac
 }
 
-selector_from_path() {
-    local path="$1" relative
-    case "$path" in
-        */java/*) relative="${path#*/java/}" ;;
-        */kotlin/*) relative="${path#*/kotlin/}" ;;
-        *) return 1 ;;
-    esac
-    relative="${relative%.kt}"
-    printf '%s\n' "${relative//\//.}"
+selector_from_source() {
+    local path="$1" test_package test_class
+    [[ -f "$path" ]] || return 1
+    test_package="$(sed -nE 's/^package[[:space:]]+([^[:space:]]+).*/\1/p' "$path" | head -n 1)"
+    test_class="$(basename "$path" .kt)"
+    [[ "$test_package" =~ ^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$ ]] || return 1
+    [[ "$test_class" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || return 1
+    # Match the instrumentation inventory's filename/top-level-class contract.
+    grep -Eq "^(internal[[:space:]]+)?class[[:space:]]+${test_class}([[:space:]:<{]|$)" "$path" || return 1
+    printf '%s.%s\n' "$test_package" "$test_class"
 }
 
 route_named_profile() {
@@ -159,25 +160,25 @@ route_path() {
             add_route "$status" "$path" 'profile:docs' 'documentation-only path'
             ;;
         app/src/test/*)
-            if [[ "$status" != D* && "$path" == *Test.kt ]] && selector="$(selector_from_path "$path")"; then
+            if [[ "$status" != D* && "$path" == *Test.kt ]] && selector="$(selector_from_source "$path")"; then
                 jvm_selectors["$selector"]=1
                 add_route "$status" "$path" "jvm:$selector" 'exact JVM test class'
-            elif [[ "$path" == *Test.kt ]]; then
+            elif [[ "$status" == D* && "$path" == *Test.kt ]]; then
                 route_named_profile "$status" "$path"
             else
                 jvm_all=true
-                add_route "$status" "$path" 'jvm:all' 'shared JVM test support'
+                add_route "$status" "$path" 'jvm:all' 'shared or unresolved JVM test source'
             fi
             ;;
         app/src/androidTest/*)
-            if [[ "$status" != D* && "$path" == *Test.kt ]] && selector="$(selector_from_path "$path")"; then
+            if [[ "$status" != D* && "$path" == *Test.kt ]] && selector="$(selector_from_source "$path")"; then
                 android_selectors["$selector"]=1
                 add_route "$status" "$path" "android:$selector" 'exact Android test class'
-            elif [[ "$path" == *Test.kt ]]; then
+            elif [[ "$status" == D* && "$path" == *Test.kt ]]; then
                 route_named_profile "$status" "$path"
             else
                 android_all=true
-                add_route "$status" "$path" 'android:all' 'shared Android test support'
+                add_route "$status" "$path" 'android:all' 'shared or unresolved Android test source'
             fi
             ;;
         app/src/main/*)

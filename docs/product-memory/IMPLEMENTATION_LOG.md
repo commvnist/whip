@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260909-011 — Route changed tests by their declared package
+
+- Behavior: `scripts/change-router` reads the Kotlin package and verifies its filename/top-level-class contract before emitting an exact selector. Missing or unsupported changed source broadens to all tests in the relevant source set; deleted tests retain feature-profile routing.
+- Verification infrastructure: `scripts/test-change-router` covers both existing misplaced Android classes plus isolated JVM package mismatch, missing Android source, unsupported JVM class identity, and renamed tests. Existing deterministic profile, deduplication, documentation, and release-boundary fixtures remain intact.
+- Compatibility: No app source, data/schema, product test count, catalog state, version, physical-device, or release change. Instrumentation still validates the exact selected class independently.
+- Related: FND-20260909-012, DEC-20260909-010, VER-20260909-011.
+- Status: Verified; 18 routing fixtures, fast/full check-wrapper fixtures, the 19-test real Area wrapper integration, and routed readiness pass. The full app audit remains active.
+
 ### IMP-20260909-010 — Make Area deletion choices and cleanup consequences readable
 
 - Behavior: Area deletion opts into a larger parent-bounded choice list with a scrolling heading. Nonzero impact counts use existing singular/plural wording. The preservation destinations precede extended details; deletion permanence and saved filter/widget resets remain explicit, including empty Areas. Saving also disables destination changes.

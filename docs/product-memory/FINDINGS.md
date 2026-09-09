@@ -7,7 +7,7 @@
 - Evidence: `build/astra-area-cleanup-20260909/routing.log`, declared source package, and the focused accepted `com.whip.app.ui.AreaFeatureUiTest` run. The router output itself has not executed instrumentation; do not count this as another failed runtime batch.
 - Next: Resolve changed Kotlin tests by declared package/class and verify routing fixtures, while retaining exact selection and fail-closed instrumentation validation. Readiness without emulator execution does not exercise the incorrect selector.
 - Related: FB-20260908-006, VER-20260909-008, VER-20260909-010.
-- Status: Confirmed; tooling correction pending.
+- Status: Verified in IMP/VER-20260909-011. Source-declared selectors, unavailable/unsupported-source fallback, rename/delete routing, 18 harness fixtures, the fresh 19-test check-wrapper integration, and readiness pass.
 
 ### FND-20260909-011 — Area deletion explanation crowds the first destination
 

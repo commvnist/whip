@@ -1,5 +1,15 @@
 # Verification and release evidence
 
+### VER-20260909-011 — Declared-package QA routing
+
+- Baseline: Clean pushed `3ec48ec9ceba22c6efb56f811b894c3a60196c87`. Adding the Area package expectation to `scripts/test-change-router` reproduced the incorrect `com.whip.app.AreaFeatureUiTest` selector; the fixture failed before any instrumentation. Log `build/astra-qa-routing-20260909/before.log`.
+- Correction: Source package and filename/top-level-class validation now replace folder-derived selectors. Unsupported or unavailable changed sources broaden rather than invent a class; deletion and rename routes remain explicit.
+- Harness: `scripts/test-change-router`, `scripts/test-check-fast`, and `scripts/test-check-full` pass. The router covers 18 routing/check-explain fixtures; fast/readiness/store boundaries and the complete-local-gate contract remain intact. Logs `router.log`, `fast.log`, and `full.log` in the same directory.
+- Real integration: `ANDROID_SERIAL=emulator-5554 scripts/check --path app/src/androidTest/java/com/whip/app/AreaFeatureUiTest.kt --emulator` routes the declared `com.whip.app.ui.AreaFeatureUiTest` and passes 19/19 Android tests, zero failures/skips/reuse, in `build/instrumentation-results-lbm7qj`; log `integration.log`. This validates the wrapper-to-instrumentation path rather than only checking printed selectors.
+- Related: FND-20260909-012, DEC-20260909-010, IMP-20260909-011.
+- Readiness: `scripts/check --ready` passes the routed 18-fixture harness, source/static checks, Android-test compilation, debug build, and lint; log `ready.log`. Product Gradle outputs are incrementally up to date, and no new JVM product test run is claimed for this tooling-only change. The real Android integration above is fresh and unreused.
+- Status: Verified for declared-package routing and its wrapper boundary. App source, 625-JVM/986-Android inventory, 244 catalog states, version, and whole-product acceptance are unchanged. No physical-device or release action.
+
 ### VER-20260909-010 — Area cleanup reading space and retained choice
 
 - Baseline: Clean pushed `e62d72f28f9c210fe2258ce2ee8e27415be2e729`, verified equal to upstream. Its ordinary Area-deletion PNG/XML is preserved in the short-dialog evidence directory.
