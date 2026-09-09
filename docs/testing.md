@@ -75,14 +75,24 @@ only an explicit `scripts/candidate` command can do that.
 
 All instrumentation entry points require one explicit primary
 `ANDROID_SERIAL`. Set `WHIP_ANDROID_SECONDARY_SERIAL` to opt into at most one
-additional emulator. Both targets must report `device` state and
-`ro.boot.qemu=1`, run API 34 or newer, and have the same API, system-image
+additional emulator. Both targets must report `device` state and positive
+emulator identity (`ro.boot.qemu=1`, with `ro.kernel.qemu` checked when the modern
+property is absent), run API 34 or newer, and have the same API, system-image
 fingerprint, and ABI. Physical, offline, unauthorized, ambiguous, blank,
 managed, mismatched, and other non-connected test targets fail closed. Whip
 never discovers or selects a second target automatically. The root Gradle guard
 applies the same emulator-only rule to direct app and benchmark
 `connected*AndroidTest` tasks, which still take exactly one `ANDROID_SERIAL`;
 Android-test compilation and assembly remain device-independent.
+
+For a focused API 26 compatibility case, use the guarded direct Gradle lane:
+`ANDROID_SERIAL=emulator-5556 ./gradlew --no-configuration-cache :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=fully.qualified.TestClass`.
+Its single explicit target still passes `android-target-guard`; the fast batching
+lane retains its API 34 minimum. The general catalog exporter uses MediaStore
+Downloads (Android 10+). `ActivityThemeContrastTest` retains private external-file
+screenshots on API 26; add
+`-Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true` when collecting
+those files, since normal Gradle test teardown removes the test installation.
 
 `scripts/android-test-engine` is the sole Android inventory, batching, signature,
 and result-accounting implementation used by check and coverage. Reusable
@@ -279,7 +289,7 @@ Every product area has fast domain coverage and at least one persisted or UI
 path. New behavior must add its regression to the narrowest applicable suite
 and update this matrix if it introduces a new feature area.
 
-Current source inventory: 1594 product tests—625 fast JVM tests and 969 Android
+Current source inventory: 1598 product tests—625 fast JVM tests and 973 Android
 instrumentation tests—plus 9 Macrobenchmark/Baseline Profile scenarios, lint,
 debug/release/benchmark builds, and the disposable API 34 emulator suite. API
 26 and API 37 compatibility runs cover the minimum and target/latest platform;

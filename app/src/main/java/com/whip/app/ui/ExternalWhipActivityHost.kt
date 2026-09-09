@@ -3,13 +3,11 @@ package com.whip.app.ui
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.core.view.WindowCompat
 import com.whip.app.WhipApplication
 import com.whip.app.core.AppThemeMode
 import com.whip.app.startup.StartupRecoveryState
-import com.whip.app.ui.theme.WhipTheme
+import com.whip.app.ui.theme.WhipActivityTheme
 
 /** Common visual host for external Android entry activities; feature behavior stays with each activity. */
 @Composable
@@ -21,7 +19,7 @@ internal fun ExternalWhipActivityHost(
 ) {
     val startupState = app.startupRecoveryState.collectAsStateWithLifecycle().value
     if (startupState != StartupRecoveryState.Ready) {
-        WhipTheme(darkTheme = isSystemInDarkTheme(), dynamicColor = false) {
+        WhipActivityTheme(activity = activity) {
             StartupRecoveryScreen(
                 state = startupState,
                 onRetry = app::retryStartupRecovery,
@@ -39,13 +37,7 @@ internal fun ExternalWhipActivityHost(
         AppThemeMode.Light -> false
         AppThemeMode.Dark -> true
     }
-    SideEffect {
-        WindowCompat.getInsetsController(activity.window, activity.window.decorView).apply {
-            isAppearanceLightStatusBars = !darkTheme
-            isAppearanceLightNavigationBars = !darkTheme
-        }
-    }
-    WhipTheme(darkTheme = darkTheme, dynamicColor = settings.dynamicColor) {
+    WhipActivityTheme(activity = activity, darkTheme = darkTheme, dynamicColor = settings.dynamicColor) {
         WhipFullScreenSurface(title = title) { content() }
     }
 }

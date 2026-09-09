@@ -1,5 +1,15 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-001 — Activity themes own content and Android bar contrast together
+
+- Context: `FND-20260908-015` reproduces both opposite-theme failures in the real main activity. Widget/Health hosting already adjusts icon flags, but its recovery branch bypasses that adjustment; Android 8–9 also retain an Android-derived navigation scrim.
+- Position A: Copy the external host's icon updates into MainActivity and handle recovery and older scrims independently.
+- Position B: Share a small `WhipActivityTheme` wrapper at each real activity content boundary, including recovery, while keeping reusable `WhipTheme` free of window side effects.
+- Decision: B. One resolved theme drives the rendered content and both bar appearances; preserve AndroidX's legacy scrim values and modern automatic navigation contrast protection. Existing edge-to-edge layout setup remains with each activity.
+- Consequences: No changes to preferences, data, history, navigation, or domain logic. The shared wrapper requires an explicit activity, so component previews and isolated test surfaces cannot accidentally restyle unrelated windows.
+- Related: `FB-20260908-006`, `FND-20260908-015`.
+- Status: Verified for this theme boundary on API 26/34/37 in `VER-20260909-002`; the broader whole-product platform audit remains pending.
+
 ### DEC-20260908-010 — Home gives daily action priority and shares truthful Habit summaries
 
 - Context: Home's raw Habit counts disagree with neutral-skip semantics, and accumulated summary/review blocks delay its actionable collections.

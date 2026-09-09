@@ -30,7 +30,7 @@ import com.whip.app.ui.WhipApp
 import com.whip.app.ui.WhipFoldInfo
 import com.whip.app.ui.WhipFoldOrientation
 import com.whip.app.ui.StartupRecoveryScreen
-import com.whip.app.ui.theme.WhipTheme
+import com.whip.app.ui.theme.WhipActivityTheme
 import java.util.ArrayDeque
 import com.whip.app.startup.StartupRecoveryState
 import kotlinx.coroutines.flow.map
@@ -163,7 +163,7 @@ class MainActivity : ComponentActivity() {
             StartupRecoveryState.FreshStartRequired,
             StartupRecoveryState.FreshStartResetting,
             is StartupRecoveryState.FreshStartBlocked,
-            is StartupRecoveryState.Blocked -> WhipTheme(darkTheme = isSystemInDarkTheme(), dynamicColor = false) {
+            is StartupRecoveryState.Blocked -> WhipActivityTheme(activity = this) {
                 StartupRecoveryScreen(
                     state = startupState,
                     onRetry = app::retryStartupRecovery,
@@ -209,7 +209,7 @@ class MainActivity : ComponentActivity() {
             AppThemeMode.Light -> false
             AppThemeMode.Dark -> true
         }
-        WhipTheme(darkTheme = darkTheme, dynamicColor = settingsState.settings.dynamicColor) {
+        WhipActivityTheme(activity = this, darkTheme = darkTheme, dynamicColor = settingsState.settings.dynamicColor) {
             val request = launchRequest.value
             WhipApp(
                 initialAction = request.action,

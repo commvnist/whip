@@ -1,5 +1,15 @@
 # Implementation history
 
+### IMP-20260909-002 — Keep Android window chrome readable in Whip's selected theme
+
+- Behavior changed: Main, widget-configuration, and Health-rationale activity content share `WhipActivityTheme`. Both system-bar icon appearances follow the rendered Whip theme; recovery follows Android's theme and returns to the stored Whip preference. Android 8–9 navigation scrims also follow the content; modern automatic contrast protection is preserved.
+- Important files: `MainActivity.kt`, `ExternalWhipActivityHost.kt`, `ui/theme/WhipActivityTheme.kt`, `ActivityThemeContrastTest.kt`. Five opposite-theme/recovery states expand the catalog and active surface matrix to 193 states. Source inventory is 625 JVM plus 973 Android tests.
+- Compatibility: No settings, Room schema, backup version, domain/history, navigation, or release change. The pure component `WhipTheme` retains its existing behavior. The Android 8 test branch exports screenshots to private external files because the general catalog uses Android 10+ MediaStore Downloads.
+- Evidence: `artifacts/astra-audit/2026-09-09/theme/README.md`; matched before/after API 34 captures plus small API 26 and wide API 37 images.
+- Related: `FB-20260908-006`, `FND-20260908-015`, `DEC-20260909-001`; supporting guard fix `81c4213` is separately committed and reachable from `origin/main`.
+- Verification: `VER-20260909-002`.
+- Status: Verified. Broader shared/Home and whole-product review remains active.
+
 ### IMP-20260909-001 — Recognize legacy emulators in the canonical Android target guard
 
 - Behavior changed: When `ro.boot.qemu` is absent, the guard checks `ro.kernel.qemu`; instrumentation still requires a connected explicit target with positive emulator identity. Legacy emulators also remain excluded from release actions. Catalog artifact operations now reuse the canonical guard.

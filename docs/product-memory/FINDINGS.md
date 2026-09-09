@@ -14,11 +14,11 @@
 - Severity/category: P2, appearance and accessibility.
 - Observed: A dark Whip screen launched while Android remained light rendered black status-bar time/icons on the dark application background. Fresh catalog captures force Android dark, masking this mismatch. `MainActivity` calls default `enableEdgeToEdge()` once, then resolves Whip's own theme without updating the window's icon appearance. The external-activity host already updates both bar appearances from the selected theme.
 - Expected: Status/navigation icon contrast follows the actual displayed Whip theme, including explicit Light/Dark overrides, System mode, live preference changes, and recreation.
-- Evidence: `artifacts/astra-audit/2026-09-08/home/system-bars-mismatch.png`; `MainActivity.kt:onCreate/NormalWhipContent` and `ExternalWhipActivityHost.kt`. A controlled opposite-theme runtime regression is still required before remediation.
+- Evidence: `artifacts/astra-audit/2026-09-08/home/system-bars-mismatch.png`; `MainActivity.kt:onCreate/NormalWhipContent` and `ExternalWhipActivityHost.kt`. The controlled regression reproduced both opposite-theme failures in `build/instrumentation-results-RAdydS`; before/after and API 26/37 evidence is preserved in `artifacts/astra-audit/2026-09-09/theme/README.md`.
 - Root cause: Main and external activity window theming have separate ownership; the main path retains the system-derived bar style.
 - Recommended solution: Reuse the proven selected-theme bar styling at the main/root activity boundary and cover both opposite-theme combinations without forcing Android night mode during the assertion.
 - Related: `FB-20260908-006`.
-- Status: Confirmed.
+- Status: Verified in `IMP-20260909-002` / `VER-20260909-002`; one activity theme wrapper handles main/external/recovery content and older navigation scrims.
 
 ### FND-20260908-013 — Home summary treats neutral skipped Habits as unfinished work
 
