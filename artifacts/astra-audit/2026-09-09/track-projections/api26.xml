@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="0" errors="0" skipped="0" time="0.734" timestamp="2026-09-09T19:00:56" hostname="localhost">
+  <testsuite name="com.whip.app.TrackProjectionConsistencyTest" tests="2" failures="0" errors="0" skipped="0" time="0.318" timestamp="2026-09-09T19:00:56" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api26_small(AVD) - 8.0.0" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="definitionEmissionsKeepTrackFieldsAndChoicesInTheSameRevision" classname="com.whip.app.TrackProjectionConsistencyTest" time="0.191" />
+    <testcase name="entryEmissionsAlwaysIncludeTheirCommittedRequiredValuesAndChoices" classname="com.whip.app.TrackProjectionConsistencyTest" time="0.127" />
+  </testsuite>
+</testsuites>

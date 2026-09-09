@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260909-022 — Keep live Track definitions and Entries consistent
+
+- Behavior: Track projections observe invalidation of Tracks, Fields, Choices, Entries and Values, then load all five ordered tables in one transaction. Domain conversion/grouping happens outside the transaction. Live identity/summary consumers receive one committed graph instead of combinations of different table revisions.
+- Preservation: Retain current display/history ordering, the non-empty Field guard and public per-table streams. CSV export and mutation/preparation boundaries already use transactions and remain unchanged. Five bulk reads avoid per-Track query multiplication; full large-history responsiveness is still an audit requirement.
+- Regression: Two observer tests validate every collected graph during definition creation/rapid concurrent renaming and Entry creation, including required Title/Choice values and newest-first order. Both failed before the correction. They now belong to the permanent Tracks profile, which selects 64 JVM / 58 Android tests.
+- Verification: Final regressions pass on API 26/34/37; API 34's broader campaign passes 64 JVM / 64 Android tests including ordinary/enlarged authoring and history/recovery, plus two ordinary-text numeric Insights journeys. Readiness passes 344 JVM tests, both check-wrapper fixtures, Android compilation, lint, packaging and static guards. Evidence: `artifacts/astra-audit/2026-09-09/track-projections/README.md`.
+- Related/status: FND-20260909-022, DEC-20260909-020, VER-20260909-023, FB-20260908-006. Verified for live projection coherence; no UI/asset/schema/data-format/version or physical-device changes. Source inventory is 1,630 tests; 299 catalog/matrix states and 38 font fixtures remain. Whole Tracks and whole-product acceptance remain open.
+
 ### IMP-20260909-021 — Keep nested Track input and short Date selection usable
 
 - Behavior: The Field editor scrolls its heading with configuration, retains an accessible pane title and fixed Cancel/Save, and relocates the whole focused Field Name when its viewport changes. The shared Date picker scrolls its body so its three-row wheels keep their designed height on short enlarged windows; Cancel/Set remain fixed.

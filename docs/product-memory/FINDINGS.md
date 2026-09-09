@@ -1,5 +1,14 @@
 # Durable findings
 
+### FND-20260909-022 — Live Track projections mix committed table revisions
+
+- Severity/category: P2, live data consistency and truthful identity/summary rendering.
+- Observed: Two fresh API 34 tests fail against `194ffa0`: definition emission pairs Track `Reading 1` with Fields `Title 0`/`Genre 0`; Entry emission includes an Entry before its required Title value. Both cases reproduce in the strengthened final baseline, 2 tests / 2 failures / zero errors or skips. Earlier seven-type authoring also saw committed Fields before Choice options.
+- Cause/impact: `RoomTrackRepository.projections` combines five independently invalidated queries and only filters out empty Field lists. A Room write transaction does not make independent Flow emissions arrive together. Live Track lists/history/Insights consume this graph; `primaryText` falls back to Untitled Entry when values/Choices are missing. Persisted graphs, CSV export and Entry preparation/mutation already use transactional snapshots; no stored-data loss or malformed export is established.
+- Approach: Observe invalidation of all five participating tables, then read their complete rows in one transaction before projecting outside it. Preserve ordering and the existing non-empty Field guard; use five bulk reads rather than per-Track queries.
+- Related: FB-20260908-006, VER-20260909-022/023, DEC-20260909-020.
+- Resolution/status: Verified in IMP-20260909-022 / VER-20260909-023. A single invalidation-triggered transaction reads all five tables before mapping; every observed definition/Entry graph and newest-first order now pass on API 26/34/37. Final 64 JVM / 64 Android neighboring journeys, 344 JVM readiness and both check-wrapper fixtures pass. Source and retained reports are in `artifacts/astra-audit/2026-09-09/track-projections/`; complete large-history performance remains open.
+
 ### FND-20260909-021 — Short enlarged Date picker cannot settle in the real Entry journey
 
 - Severity/category: P2, shared date selection and responsive layout.

@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="2" errors="0" skipped="0" time="0.736" timestamp="2026-09-09T18:50:08" hostname="localhost">
+  <testsuite name="com.whip.app.TrackProjectionConsistencyTest" tests="2" failures="2" errors="0" skipped="0" time="0.271" timestamp="2026-09-09T18:50:08" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="definitionEmissionsKeepTrackFieldsAndChoicesInTheSameRevision" classname="com.whip.app.TrackProjectionConsistencyTest" time="0.143">
+      <failure>java.lang.AssertionError: Fields must match the emitted Track revision expected:&lt;[Title 1, Genre 1]&gt; but was:&lt;[Title 0, Genre 0]&gt;
+at org.junit.Assert.fail(Assert.java:89)
+at org.junit.Assert.failNotEquals(Assert.java:835)
+at org.junit.Assert.assertEquals(Assert.java:120)
+at com.whip.app.TrackProjectionConsistencyTest$awaitCoherent$2.invokeSuspend(TrackProjectionConsistencyTest.kt:103)
+at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source:1)
+at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:47)
+at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source:1)
+at com.whip.app.TrackProjectionConsistencyTest.definitionEmissionsKeepTrackFieldsAndChoicesInTheSameRevision(TrackProjectionConsistencyTest.kt:51)
+</failure>
+    </testcase>
+    <testcase name="entryEmissionsAlwaysIncludeTheirCommittedRequiredValuesAndChoices" classname="com.whip.app.TrackProjectionConsistencyTest" time="0.128">
+      <failure>java.lang.AssertionError: Published Entry 2 needs its required Title
+at org.junit.Assert.fail(Assert.java:89)
+at org.junit.Assert.assertTrue(Assert.java:42)
+at org.junit.Assert.assertNotNull(Assert.java:713)
+at com.whip.app.TrackProjectionConsistencyTest$awaitCoherent$2.invokeSuspend(TrackProjectionConsistencyTest.kt:109)
+at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source:1)
+at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:47)
+at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source:1)
+at com.whip.app.TrackProjectionConsistencyTest.entryEmissionsAlwaysIncludeTheirCommittedRequiredValuesAndChoices(TrackProjectionConsistencyTest.kt:68)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

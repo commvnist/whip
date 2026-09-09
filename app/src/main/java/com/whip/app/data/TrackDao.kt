@@ -28,8 +28,20 @@ interface TrackDao {
     @Query("SELECT * FROM tracks WHERE id = :id")
     suspend fun getTrack(id: Long): TrackEntity?
 
-    @Query("SELECT * FROM tracks")
+    @Query("SELECT * FROM tracks ORDER BY pinned DESC, position, name")
     suspend fun getAllTracks(): List<TrackEntity>
+
+    @Query("SELECT * FROM track_fields ORDER BY trackId, position")
+    suspend fun getAllFields(): List<TrackFieldEntity>
+
+    @Query("SELECT * FROM track_choice_options ORDER BY fieldId, position")
+    suspend fun getAllOptions(): List<TrackChoiceOptionEntity>
+
+    @Query("SELECT * FROM track_entries ORDER BY entryEpochDay DESC, createdAtMillis DESC, id DESC")
+    suspend fun getAllEntries(): List<TrackEntryEntity>
+
+    @Query("SELECT * FROM track_values ORDER BY entryId, fieldId")
+    suspend fun getAllValues(): List<TrackValueEntity>
 
     @Query("SELECT * FROM track_fields WHERE id = :id")
     suspend fun getField(id: Long): TrackFieldEntity?

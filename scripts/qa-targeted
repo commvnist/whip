@@ -195,6 +195,7 @@ add_profile() {
             )
             android_classes+=(
                 'com.whip.app.TrackRepositoryTest'
+                'com.whip.app.TrackProjectionConsistencyTest'
                 'com.whip.app.TrackDefinitionIntegrityTest'
                 'com.whip.app.TrackEntryIntegrityTest'
                 'com.whip.app.TrackCsvImportIntegrityTest'

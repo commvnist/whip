@@ -1,5 +1,13 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-020 — Publish a coherent transactional Track graph
+
+- Context: FND-20260909-022 reproduces mixed Track/Field revisions and Entries without committed required values in the live Flow. UI delays or filtering only missing children cannot establish a coherent revision and could hide valid optional/empty states.
+- Decision: Follow the existing Gym invalidation/snapshot pattern. Observe all five Track tables, bulk-read their rows inside one transaction, then assemble domain projections outside the transaction. Keep current SQL ordering and public per-table Flows. CSV export and mutation boundaries retain their existing transactional implementation.
+- Tradeoff: Every relevant invalidation reloads five whole-table lists, including unchanged tables. This replaces independently scheduled table reads and avoids per-Track query multiplication; projection assembly already materializes the entire Track graph. Large-history responsiveness remains a separate audit requirement. Do not introduce a schema, polling delay or UI-specific synchronization rule.
+- Acceptance: Every collected definition/Entry update must remain coherent during public writes, including concurrent observation and rapid renaming. Verify live collection order, existing Track repository/definition/Entry/CSV/workspace behavior and full real-app authoring/recovery. Check the supported platform endpoints and affected static/build/readiness gates.
+- Status: Verified in IMP-20260909-022 / VER-20260909-023. Both consistency/order regressions pass on API 26/34/37; 64 JVM / 64 Android neighbors, 344 JVM readiness tests and check-wrapper fixtures pass. No schema or stored-data contract changes; complete large-history responsiveness remains open.
+
 ### DEC-20260909-019 — Date selection keeps full wheel geometry in a scrolling body
 
 - Context: FND-20260909-021 reproduces failure to settle in a short enlarged real-app Date picker; its non-scrolling body constrains the nominal three-row wheel viewports.

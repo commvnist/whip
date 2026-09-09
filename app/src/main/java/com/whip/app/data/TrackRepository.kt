@@ -64,7 +64,6 @@ import com.whip.app.domain.validated
 import java.security.MessageDigest
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -154,6 +153,14 @@ interface TrackRepository {
     suspend fun rebuildSearchIndex(trackId: Long? = null)
 }
 
+private data class TrackProjectionRows(
+    val tracks: List<TrackEntity>,
+    val fields: List<TrackFieldEntity>,
+    val options: List<TrackChoiceOptionEntity>,
+    val entries: List<TrackEntryEntity>,
+    val values: List<TrackValueEntity>,
+)
+
 class RoomTrackRepository(
     private val database: WhipDatabase,
     private val clock: WhipClock,
@@ -170,22 +177,34 @@ class RoomTrackRepository(
     override val options: Flow<List<TrackChoiceOption>> = dao.observeOptions().map { rows -> rows.map(TrackChoiceOptionEntity::toDomain) }
     override val entries: Flow<List<TrackEntry>> = dao.observeEntries().map { rows -> rows.map(TrackEntryEntity::toDomain) }
     override val values: Flow<List<TrackFieldValue>> = dao.observeValues().map { rows -> rows.map(TrackValueEntity::toDomain) }
-    override val projections: Flow<List<TrackProjection>> = combine(
-        tracks,
-        fields,
-        options,
-        entries,
-        values,
-    ) { allTracks, allFields, allOptions, allEntries, allValues ->
+    override val projections: Flow<List<TrackProjection>> = database.invalidationTracker.createFlow(
+        "tracks",
+        "track_fields",
+        "track_choice_options",
+        "track_entries",
+        "track_values",
+    ).map {
+        // Independent table Flows can mix revisions even when every write is atomic.
+        // Read one committed graph, then release the transaction before projecting it.
+        val snapshot = database.withTransaction {
+            TrackProjectionRows(
+                dao.getAllTracks(),
+                dao.getAllFields(),
+                dao.getAllOptions(),
+                dao.getAllEntries(),
+                dao.getAllValues(),
+            )
+        }
+        val allTracks = snapshot.tracks.map(TrackEntity::toDomain)
+        val allFields = snapshot.fields.map(TrackFieldEntity::toDomain)
+        val allOptions = snapshot.options.map(TrackChoiceOptionEntity::toDomain)
+        val allEntries = snapshot.entries.map(TrackEntryEntity::toDomain)
+        val allValues = snapshot.values.map(TrackValueEntity::toDomain)
         val fieldsByTrack = allFields.groupBy(TrackField::trackId)
         val fieldIdsByTrack = fieldsByTrack.mapValues { (_, rows) -> rows.mapTo(mutableSetOf(), TrackField::id) }
         val entriesByTrack = allEntries.groupBy(TrackEntry::trackId)
         val valuesByEntry = allValues.groupBy(TrackFieldValue::entryId)
-        // Each Track is committed with at least one Field, but Room invalidates
-        // the joined tables independently. Never publish the short-lived
-        // half-projection between those emissions: every consumer assumes a
-        // usable primary Field and a live UI could otherwise crash immediately
-        // after creating or changing a Track.
+        // Preserve the guard for stored Tracks without a usable Field definition.
         allTracks.mapNotNull { track ->
             val trackFields = fieldsByTrack[track.id].orEmpty()
             if (trackFields.isEmpty()) return@mapNotNull null
