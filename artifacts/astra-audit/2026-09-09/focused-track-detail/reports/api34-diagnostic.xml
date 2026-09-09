@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="2" errors="0" skipped="0" time="44.186" timestamp="2026-09-09T17:32:33" hostname="localhost">
+  <testsuite name="com.whip.app.TrackHistoryJourneyE2ETest" tests="2" failures="2" errors="0" skipped="0" time="43.183" timestamp="2026-09-09T17:32:33" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedHistoryCanBeSearchedRecreatedAndRestoredAtLargeText" classname="com.whip.app.TrackHistoryJourneyE2ETest" time="23.409">
+      <failure>java.lang.IllegalStateException: Visual catalog hierarchy for tracks.history.restored.large contains an unlabeled interactive node
+at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface(VisualCatalogCapture.kt:107)
+at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface$default(VisualCatalogCapture.kt:26)
+at com.whip.app.TrackHistoryJourneyE2ETest.capture(TrackHistoryJourneyE2ETest.kt:201)
+at com.whip.app.TrackHistoryJourneyE2ETest.verifyHistory(TrackHistoryJourneyE2ETest.kt:167)
+at com.whip.app.TrackHistoryJourneyE2ETest.archivedHistoryCanBeSearchedRecreatedAndRestoredAtLargeText(TrackHistoryJourneyE2ETest.kt:63)
+</failure>
+    </testcase>
+    <testcase name="archivedHistoryCanBeSearchedRecreatedAndRestored" classname="com.whip.app.TrackHistoryJourneyE2ETest" time="19.774">
+      <failure>java.lang.AssertionError: Semantic Node has no parent layout with a Scroll SemanticsAction
+at androidx.compose.ui.test.ActionsKt.scrollToNode(Actions.kt:98)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:83)
+at com.whip.app.TrackHistoryJourneyE2ETest.verifyHistory(TrackHistoryJourneyE2ETest.kt:172)
+at com.whip.app.TrackHistoryJourneyE2ETest.archivedHistoryCanBeSearchedRecreatedAndRestored(TrackHistoryJourneyE2ETest.kt:60)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

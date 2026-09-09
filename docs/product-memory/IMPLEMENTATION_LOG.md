@@ -1,5 +1,14 @@
 # Implementation history
 
+### IMP-20260909-020 — Give short Track detail room for saved history
+
+- Behavior: In a compact content window under 600 dp high, a resolved selected Track uses its local detail flow: Back, compact identity, Edit, destinations, history tools and contextual Restore remain, while the global content bars yield. Returning to the collection restores the full named primary navigation and global Area/search/settings controls. Normal phone and wide layouts retain their existing navigation.
+- Capability: Active focused Tracks expose a local 48 dp Add Entry action with the same Track-qualified description and editor owner as the global Add action. Archived Tracks continue to suppress Entry creation until restoration persists. Stable content parents preserve selection, query and lifecycle state.
+- Accessibility: Restored active Entry Edit/More labels now belong to their interactive buttons, so partially visible actions retain identity when their icon children scroll out of the viewport. Visible icons and callback behavior are unchanged; the final native catalog gate verifies the discovered clipping state.
+- Verification: Both ordinary/actual-200% journeys pass on API 26/34/37, including complete first-title/date bounds, native query/Back, older records, recreation, unchanged history, named navigation after Back, Add Entry open/cancel and Options/Insights/Entries return. The broader recovered-layout run passed 64 JVM / 111 Android tests; after the action-label correction, final Tracks coverage passed 64 JVM / 56 Android tests. All 39 retained originals have individual review; final readiness passes 344 JVM checks, Android compilation, lint, packaging and static guards. Evidence: `artifacts/astra-audit/2026-09-09/focused-track-detail/README.md`.
+- Related: FND-20260909-019, DEC-20260909-017, VER-20260909-021, FB-20260908-006.
+- Status: Verified for this coherent history/navigation/accessibility chunk. No data/schema/backup/version or release changes. Whole Tracks review remains VER-20260909-016.
+
 ### IMP-20260909-019 — Correct the Track visual review using byte and pixel evidence
 
 - Outcome: Reconcile the missing-icon, Area-clipping, overlapping-row and touching-label review hypotheses against original PNG pixels and native bounds. Correct the affected evidence notes explicitly; original images remain byte-identical. No production or permanent test/capture-harness behavior changes.

@@ -1819,12 +1819,16 @@ fun WhipScreen(
             }
         },
     ) { scaffoldModifier ->
+      BoxWithConstraints(scaffoldModifier.fillMaxSize()) {
+      val focusedTrackDetail = adaptiveLayout == WhipAdaptiveLayout.Compact && maxHeight < 600.dp &&
+          appDestination == AppDestination.Tracks && trackViewModel != null &&
+          selectedTrackState.value?.let(trackState::track) != null
       val inlineKeyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
       Scaffold(
         // The active content owns keyboard space; persistent side navigation stays put.
-        modifier = scaffoldModifier.fillMaxSize().imePadding(),
+        modifier = Modifier.fillMaxSize().imePadding(),
         topBar = {
-            if (!gymRoutineEditorOpen && !inlineKeyboardVisible) TopAppBar(
+            if (!gymRoutineEditorOpen && !inlineKeyboardVisible && !focusedTrackDetail) TopAppBar(
                 modifier = Modifier.testTag("workspace-top-app-bar"),
                 title = {
                     Row(
@@ -1994,7 +1998,7 @@ fun WhipScreen(
             )
         },
         bottomBar = {
-            if (!gymRoutineEditorOpen && !inlineKeyboardVisible && (adaptiveLayout == WhipAdaptiveLayout.Compact || contentPaneIsExpanded)) {
+            if (!gymRoutineEditorOpen && !inlineKeyboardVisible && !focusedTrackDetail && (adaptiveLayout == WhipAdaptiveLayout.Compact || contentPaneIsExpanded)) {
                 WhipBottomNavigation(
                     selected = appDestination,
                     onSelect = ::selectPrimaryDestination,
@@ -2397,6 +2401,7 @@ fun WhipScreen(
                     onEditorRequest = ::openTrackEditor,
                     onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
                     selectedTrackState = selectedTrackState,
+                    focusedDetail = focusedTrackDetail,
                     workspaceDestinationState = trackWorkspaceDestinationState,
                     destinationState = trackDetailDestinationState,
                     dialogModifier = paneDialogModifier,
@@ -2428,6 +2433,7 @@ fun WhipScreen(
             }
         }
       }
+    }
     }
 
     if (areaManagerOpen && settingsViewModel != null) {

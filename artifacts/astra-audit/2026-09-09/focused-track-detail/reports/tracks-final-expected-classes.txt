@@ -1,0 +1,5 @@
+com.whip.app.TrackCsvImportIntegrityTest
+com.whip.app.TrackDefinitionIntegrityTest
+com.whip.app.TrackEntryIntegrityTest
+com.whip.app.TrackRepositoryTest
+com.whip.app.TrackWorkspaceUiTest

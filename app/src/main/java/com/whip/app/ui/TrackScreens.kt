@@ -291,6 +291,7 @@ internal fun TrackAreaContent(
     onEditorRequest: (TrackEditorIntent) -> Unit = {},
     onCreateArea: (String, Long?, (Result<String>) -> Unit) -> Unit,
     selectedTrackState: MutableState<Long?>? = null,
+    focusedDetail: Boolean = false,
     workspaceDestinationState: MutableState<TrackWorkspaceDestination>? = null,
     destinationState: MutableState<TrackDetailDestination>? = null,
     dialogModifier: Modifier = Modifier,
@@ -505,6 +506,7 @@ internal fun TrackAreaContent(
     @Composable fun trackDetail(projection: TrackProjection) {
         TrackDetailPage(
             projection = projection,
+            focusedDetail = focusedDetail,
             innerPadding = PaddingValues(),
             destination = destination,
             onDestinationChange = { destination = it },
@@ -543,7 +545,7 @@ internal fun TrackAreaContent(
     BoxWithConstraints(Modifier.fillMaxSize().padding(innerPadding)) {
       // On short single-pane detail, Back provides the collection route without
       // spending the history viewport on a second fixed destination bar.
-      val showWorkspaceNavigation = selected == null || maxWidth >= 760.dp || maxHeight >= 440.dp
+      val showWorkspaceNavigation = selected == null || (!focusedDetail && (maxWidth >= 760.dp || maxHeight >= 440.dp))
       Column(Modifier.fillMaxSize()) {
         if (showWorkspaceNavigation) DestinationTabBar(
             selected = workspaceDestination,
@@ -1664,6 +1666,7 @@ private fun TrackSummaryRow(
 @Composable
 private fun TrackDetailPage(
     projection: TrackProjection,
+    focusedDetail: Boolean,
     innerPadding: PaddingValues,
     destination: TrackDetailDestination,
     onDestinationChange: (TrackDetailDestination) -> Unit,
@@ -1686,7 +1689,7 @@ private fun TrackDetailPage(
     onReadOnlyEntryRequestConsumed: (Long) -> Unit = {},
 ) {
     BoxWithConstraints(Modifier.fillMaxSize().padding(innerPadding)) {
-      val shortDetail = maxHeight < 440.dp
+      val shortDetail = focusedDetail || maxHeight < 440.dp
       Column(Modifier.fillMaxSize()) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val narrowHeader = maxWidth < 280.dp
@@ -1717,6 +1720,11 @@ private fun TrackDetailPage(
                     )
                 }
                 if (!narrowHeader) ItemEditButton("Track", projection.track.name, onEditTrack)
+                if (focusedDetail && !projection.track.archived) {
+                    IconButton(onClick = onAddEntry, modifier = Modifier.size(48.dp).testTag("track-detail-add-entry")) {
+                        Icon(Icons.Outlined.Add, contentDescription = "Add entry to ${projection.track.name}")
+                    }
+                }
             }
         }
         DestinationTabBar(
@@ -2104,9 +2112,15 @@ private fun TrackEntryRow(
                 )
             }
             if (editable) {
-                IconButton(onClick = onEdit) { Icon(Icons.Outlined.Edit, contentDescription = "Edit Entry ${projection.primaryText(entry)}") }
+                IconButton(
+                    onClick = onEdit,
+                    modifier = Modifier.semantics { contentDescription = "Edit Entry ${projection.primaryText(entry)}" },
+                ) { Icon(Icons.Outlined.Edit, contentDescription = null) }
                 Box {
-                    IconButton(onClick = { moreOpen = true }) { Icon(Icons.Outlined.MoreVert, contentDescription = "More Actions for ${projection.primaryText(entry)}") }
+                    IconButton(
+                        onClick = { moreOpen = true },
+                        modifier = Modifier.semantics { contentDescription = "More Actions for ${projection.primaryText(entry)}" },
+                    ) { Icon(Icons.Outlined.MoreVert, contentDescription = null) }
                     DropdownMenu(moreOpen, { moreOpen = false }) {
                         WhipMenuItem(
                             label = "Delete Entry",

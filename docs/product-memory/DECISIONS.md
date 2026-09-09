@@ -1,5 +1,14 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-017 — Short phone Track detail prioritizes its local reading flow
+
+- Context: FND-20260909-019 confirms that the 320×533 dp/200%-text archive opens with barely any record content. Its fixed global Area/search bar, named two-row app navigation, Track identity and two destination levels spend more height than the history itself.
+- Alternatives: Shorten only the archive copy or reduce spacing; move restoration back into Options; or give the existing inline detail a focused presentation in short phone windows. Copy/spacing alone cannot recover enough height for a complete two-line record and date. Hiding Restore would undo its useful contextual placement. Select a focused detail presentation when the compact content window is shorter than 600 dp, retaining a clear Back route, compact Track identity and local destinations while the collection restores the full named app navigation.
+- User benefit/tradeoff: Saved records become useful immediately and remain readable during browsing. Switching app areas or global scope/search from this short detail requires Back first. The existing local Entry search remains direct, and active Tracks must retain a local Add Entry action because the global Add bar is absent. Normal phone and wide layouts keep their existing navigation. This is a bounded child-flow exception to DEC-20260902-005, not an icon-only replacement for named navigation.
+- Ownership: Use stable content parents across size, keyboard and selection changes. Keep current Track selection, destination, query, archive/restoration and historical records. A missing selection must never suppress the global navigation without a local exit.
+- Acceptance: Complete first archived record title/date without preliminary scrolling on the short enlarged device; native identity/Back/query bounds; local Add Entry after restoration; Back restores Archived and named primary destinations; recreation and saved-history preservation; ordinary/large API 26/34/37 and affected neighboring/build checks.
+- Status: Verified for the bounded short-detail flow in VER-20260909-021. All three platform journeys preserve navigation, active Add Entry, local destinations and exact history; broader Track design and normal-use validation remain open.
+
 ### DEC-20260909-016 — Inline inputs own keyboard space without panning the application
 
 - Context: FND-20260909-018 shows a partly covered native query and Track identity beneath status icons. The activity leaves adjustment unspecified; the content Scaffold imports but does not apply IME padding. Persistent wide navigation intentionally stays outside keyboard avoidance. At 200% text the short Track detail also spends much of its body on a two-line headline and repeated count/Area metadata.

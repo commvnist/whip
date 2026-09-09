@@ -12,6 +12,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -95,6 +96,8 @@ class TrackHistoryJourneyE2ETest {
             compose.waitUntil(15_000) { compose.onAllNodesWithTag("track-entry-list").fetchSemanticsNodes().isNotEmpty() }
             compose.waitUntil(15_000) { compose.onAllNodesWithTag("track-entry-page-loading").fetchSemanticsNodes().isEmpty() }
             capture("tracks.history.archived.$suffix")
+            assertNativeTextFullyVisible("Neighbourhood walk 1")
+            assertNativeTextFullyVisible(app.clock.today().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
             compose.onNodeWithTag("track-entry-list").performScrollToNode(hasText("Neighbourhood walk 12"))
             compose.onNodeWithText("Neighbourhood walk 12").assertIsDisplayed()
             capture("tracks.history.records.$suffix")
@@ -128,7 +131,6 @@ class TrackHistoryJourneyE2ETest {
             }
             compose.onNodeWithTag("track-entry-list").performScrollToNode(hasTestTag("track-entry-search"))
             compose.onNodeWithTag("track-entry-search").assertTextContains("River trail")
-            compose.onNodeWithTag("workspace-top-app-bar").assertIsDisplayed()
             capture("tracks.history.search-result.$suffix")
             scenario.recreate()
             compose.onNodeWithTag("track-entry-list").performScrollToNode(hasTestTag("track-entry-search"))
@@ -141,6 +143,16 @@ class TrackHistoryJourneyE2ETest {
             compose.onNodeWithContentDescription("Close Track Entry details").performClick()
             compose.onNodeWithContentDescription("Back to Tracks").performClick()
             compose.onNodeWithTag("track-workspace-destination-Archived").assertIsSelected()
+            compose.waitUntil(10_000) {
+                InstrumentationRegistry.getInstrumentation().uiAutomation.windows.none {
+                    it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
+                }
+            }
+            compose.onNodeWithTag("workspace-top-app-bar").assertIsDisplayed()
+            listOf("Home", "Tasks", "Habits", "Goals", "Tracks", "Gym").forEach { destination ->
+                val description = if (destination == "Home") "Go to Home" else "$destination tab"
+                compose.onNodeWithContentDescription(description).assertIsDisplayed()
+            }
             compose.onNodeWithTag("track-list").performScrollToNode(hasTestTag("track-card-$trackId"))
             compose.onNodeWithTag("track-card-$trackId").performClick()
 
@@ -152,12 +164,33 @@ class TrackHistoryJourneyE2ETest {
             scenario.recreate()
             compose.onNodeWithTag("track-entry-list").performScrollToNode(hasText("Neighbourhood walk 1"))
             compose.onNodeWithContentDescription("Edit Entry Neighbourhood walk 1").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Add entry to $trackName").assertIsDisplayed()
+            capture("tracks.history.restored.$suffix")
+            compose.onNodeWithContentDescription("Add entry to $trackName").performClick()
+            compose.onNodeWithTag("track-entry-editor-surface").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Close Entry Editor").performClick()
+            compose.onNodeWithContentDescription("Back to Tracks").assertIsDisplayed()
+            clickDetailDestination("Options")
+            compose.onNodeWithText("Edit Track").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithContentDescription("Back to Tracks").assertIsDisplayed()
+            clickDetailDestination("Track Insights")
+            compose.onNodeWithTag("track-insights-list").performScrollToNode(hasText("All Entries"))
+            compose.onNodeWithText("All Entries").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Back to Tracks").assertIsDisplayed()
+            clickDetailDestination("Entries")
+            compose.onNodeWithTag("track-entry-list").assertIsDisplayed()
             val after = runBlocking { requireNotNull(app.trackRepository.projection(trackId)) }
             assertFalse(after.track.archived)
             assertEquals(before.fields, after.fields)
             assertEquals(before.options, after.options)
             assertEquals(before.entries, after.entries)
         }
+    }
+
+    private fun clickDetailDestination(destination: String) {
+        val node = compose.onNodeWithTag("track-destination-$destination")
+        if (!node.isDisplayed()) node.performScrollTo()
+        node.performClick()
     }
 
     private fun capture(id: String) {

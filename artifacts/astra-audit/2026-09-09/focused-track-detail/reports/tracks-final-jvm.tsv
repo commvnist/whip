@@ -1,0 +1,6 @@
+suite	tests	failures	errors	skipped
+com.whip.app.domain.TrackCsvBatchIdentityTest	9	0	0	0
+com.whip.app.domain.TrackDomainTest	9	0	0	0
+com.whip.app.ui.TrackCsvReliabilityPolicyTest	21	0	0	0
+com.whip.app.ui.TrackEditorStateTest	13	0	0	0
+com.whip.app.ui.UnifiedSearchRulesTest	12	0	0	0

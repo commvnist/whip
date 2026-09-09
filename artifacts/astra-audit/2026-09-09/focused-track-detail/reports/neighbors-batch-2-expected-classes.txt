@@ -1,0 +1,3 @@
+com.whip.app.TrackRepositoryTest
+com.whip.app.TrackWorkspaceUiTest
+com.whip.app.WhipNavigationTest

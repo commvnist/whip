@@ -1,0 +1,10 @@
+com.whip.app.AdaptiveWhipScreenTest
+com.whip.app.GlobalSearchRoutingTest
+com.whip.app.ImeNavigationRailE2ETest
+com.whip.app.InlineTaskCaptureE2ETest
+com.whip.app.ProductivityCreationJourneyE2ETest
+com.whip.app.ProductivityDefaultsUiTest
+com.whip.app.TaskEditorJourneyE2ETest
+com.whip.app.TrackCsvImportIntegrityTest
+com.whip.app.TrackDefinitionIntegrityTest
+com.whip.app.TrackEntryIntegrityTest
