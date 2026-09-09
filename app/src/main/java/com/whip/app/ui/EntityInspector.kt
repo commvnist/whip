@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -32,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.paneTitle
@@ -197,75 +199,104 @@ private fun EntityInspectorHeader(
     onEdit: (() -> Unit)?,
     editLabel: String,
 ) {
-    Row(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("entity-inspector-header")
             .padding(start = 16.dp, top = 12.dp, end = 8.dp, bottom = 12.dp),
-        verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        WhipIdentityEmoji(
-            emoji = emoji,
-            modifier = Modifier.padding(top = 3.dp),
-        )
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(top = 3.dp),
-            verticalArrangement = Arrangement.spacedBy(3.dp),
-        ) {
-            Text(
-                title,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("entity-inspector-title")
-                    .semantics { heading() },
-                style = MaterialTheme.typography.titleLarge,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                listOf(entityType, context).filter(String::isNotBlank).joinToString(" · "),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            WhipStatusBadge(
-                label = status,
-                tone = statusTone,
-                modifier = Modifier.testTag("entity-inspector-status"),
-            )
-        }
-        if (onEdit != null) {
-            IconButton(
-                onClick = onEdit,
-                modifier = Modifier
-                    .size(48.dp)
-                    .testTag("entity-inspector-edit")
-                    .semantics { contentDescription = editLabel },
-            ) {
-                Icon(
-                    Icons.Outlined.Edit,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        val expandedIdentity = maxWidth < 336.dp * LocalDensity.current.fontScale.coerceIn(1f, 2f)
+        if (expandedIdentity) {
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    WhipIdentityEmoji(emoji = emoji)
+                    Spacer(Modifier.weight(1f))
+                    EntityInspectorHeaderActions(entityType, onDismiss, onEdit, editLabel)
+                }
+                EntityInspectorIdentity(
+                    entityType, title, context, status, statusTone,
+                    Modifier.fillMaxWidth().padding(end = 8.dp),
                 )
             }
+        } else {
+            Row(
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                WhipIdentityEmoji(emoji = emoji, modifier = Modifier.padding(top = 3.dp))
+                EntityInspectorIdentity(
+                    entityType, title, context, status, statusTone,
+                    Modifier.weight(1f).padding(top = 3.dp),
+                )
+                EntityInspectorHeaderActions(entityType, onDismiss, onEdit, editLabel)
+            }
         }
+    }
+}
+
+@Composable
+private fun EntityInspectorIdentity(
+    entityType: String,
+    title: String,
+    context: String,
+    status: String,
+    statusTone: WhipStatusTone,
+    modifier: Modifier,
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(
+            title,
+            modifier = Modifier.fillMaxWidth().testTag("entity-inspector-title").semantics { heading() },
+            style = MaterialTheme.typography.titleLarge,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            listOf(entityType, context).filter(String::isNotBlank).joinToString(" · "),
+            modifier = Modifier.testTag("entity-inspector-context"),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        WhipStatusBadge(label = status, tone = statusTone, modifier = Modifier.testTag("entity-inspector-status"))
+    }
+}
+
+@Composable
+private fun EntityInspectorHeaderActions(
+    entityType: String,
+    onDismiss: () -> Unit,
+    onEdit: (() -> Unit)?,
+    editLabel: String,
+) {
+    if (onEdit != null) {
         IconButton(
-            onClick = onDismiss,
+            onClick = onEdit,
             modifier = Modifier
                 .size(48.dp)
-                .testTag("entity-inspector-close")
-                .semantics { contentDescription = "Close $entityType details" },
+                .testTag("entity-inspector-edit")
+                .semantics { contentDescription = editLabel },
         ) {
             Icon(
-                Icons.Outlined.Close,
+                Icons.Outlined.Edit,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+    IconButton(
+        onClick = onDismiss,
+        modifier = Modifier
+            .size(48.dp)
+            .testTag("entity-inspector-close")
+            .semantics { contentDescription = "Close $entityType details" },
+    ) {
+        Icon(Icons.Outlined.Close, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

@@ -1,6 +1,5 @@
 package com.whip.app.ui
 
-import android.os.SystemClock
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
@@ -9,7 +8,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
@@ -20,12 +18,12 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.test.platform.app.InstrumentationRegistry
-import androidx.test.uiautomator.UiDevice
+import com.whip.app.AndroidFontScale
+import com.whip.app.AndroidFontScaleRule
+import com.whip.app.assertDialogFontScale
 import com.whip.app.captureVisualCatalogSurface
 import com.whip.app.core.HomeSection
 import com.whip.app.core.PersistenceRequestState
@@ -36,32 +34,10 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
-import org.junit.rules.TestRule
-import org.junit.runners.model.Statement
 
 class FirstRunSetupPersistenceUiTest {
     private val compose = createComposeRule()
-    @get:Rule val rules: RuleChain = RuleChain.outerRule(TestRule { base, description ->
-        object : Statement() {
-            override fun evaluate() {
-                if (description.methodName != "customizationAndSaveFailureStayReachableAtLargeTextInRtl") {
-                    base.evaluate()
-                    return
-                }
-                val original = device.executeShellCommand("settings get system font_scale").trim()
-                try {
-                    device.executeShellCommand("settings put system font_scale 2.0")
-                    awaitFontScale(2f)
-                    base.evaluate()
-                } finally {
-                    device.executeShellCommand(
-                        if (original == "null") "settings delete system font_scale" else "settings put system font_scale $original",
-                    )
-                    awaitFontScale(original.toFloatOrNull() ?: 1f)
-                }
-            }
-        }
-    }).around(compose)
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
     private val restoration by lazy { StateRestorationTester(compose) }
     private var state by mutableStateOf<PersistenceRequestState<SettingsMutationReceipt>>(PersistenceRequestState.Idle)
     private var completed by mutableStateOf(false)
@@ -69,16 +45,6 @@ class FirstRunSetupPersistenceUiTest {
     private var permissionRequests = 0
     private val requests = mutableListOf<Pair<String, FirstRunSetupDraft>>()
     private val consumed = mutableListOf<String>()
-    private val instrumentation = InstrumentationRegistry.getInstrumentation()
-    private val device = UiDevice.getInstance(instrumentation)
-
-    private fun awaitFontScale(expected: Float) {
-        val deadline = SystemClock.elapsedRealtime() + 10_000
-        while (kotlin.math.abs(instrumentation.targetContext.resources.configuration.fontScale - expected) >= 0.01f) {
-            check(SystemClock.elapsedRealtime() < deadline) { "Android did not apply font scale $expected" }
-            SystemClock.sleep(50)
-        }
-    }
 
     private fun show(rtl: Boolean = false) {
         restoration.setContent {
@@ -230,14 +196,11 @@ class FirstRunSetupPersistenceUiTest {
     }
 
     @Test
+    @AndroidFontScale
     fun customizationAndSaveFailureStayReachableAtLargeTextInRtl() {
         show(rtl = true)
         compose.onNodeWithText("Customize").performClick()
-        compose.onNodeWithText("Customize Whip").performSemanticsAction(SemanticsActions.GetTextLayoutResult) { getResults ->
-            val results = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
-            getResults(results)
-            assertEquals(2f, results.single().layoutInput.density.fontScale, 0.01f)
-        }
+        compose.assertDialogFontScale()
         compose.onNodeWithText("Tasks").performScrollTo().performClick()
         compose.onNodeWithText("Habits").performScrollTo().performClick()
         compose.onNodeWithText("Choose at least one Home section.").performScrollTo().assertIsDisplayed()

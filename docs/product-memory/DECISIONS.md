@@ -1,5 +1,23 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-006 — Inspector identity gets a full-width row when space is constrained
+
+- Context: Actual 200% text exposes word splitting and ellipsis caused by keeping the emoji, identity column, Edit, and Close in one row. This is shared by Task/Habit/Goal/Gym inspectors.
+- Alternatives: Shrinking text/targets would defeat accessibility. Expanding every inspector to a full screen would change navigation and body behavior. Reusing the authored-editor header directly would change trailing exit placement and add unrelated save-action structure.
+- Decision: Keep the existing roomy header. At narrow effective widths, place emoji and trailing actions in the top row, followed by full-width title, context, and status. Use the established width/font-aware threshold; preserve two-line title/context bounds, semantic labels, existing actions, tabs, body scrolling, and primary-action dock.
+- Compatibility: This supersedes only historical assumptions that the inspector header remains visually fixed, such as the scoped boundary in `DEC-20260906-004`; those records' completed history and domain decisions remain valid. No authored data or domain behavior changes.
+- Related: `FB-20260908-006`, `FND-20260909-007`, `DEC-20260909-005`.
+- Status: Verified in `IMP/VER-20260909-007`; scoped readability, scrolling, stable actions, and normal-header evidence pass.
+
+### DEC-20260909-005 — Dialog accessibility tests verify the actual Android text scale
+
+- Context: `FND-20260909-006` establishes that an outer Compose density override is replaced inside a native dialog. Existing fixtures mix real dialogs, inline screens, and inline screens that open dialogs; their names alone cannot determine coverage.
+- Alternatives: Teaching production dialogs to inherit a fake test density would change app behavior to satisfy the fixture. Blindly changing every density test would disturb useful deterministic inline-layout contracts. Relying only on the system setting would still leave rendered-text coverage unproven.
+- Decision: Use a shared, method-scoped JUnit rule to set Android's font scale before activity launch and restore the original value after teardown. Correct affected dialog tests and assert their rendered TextLayoutResult scale inside the actual dialog. Keep inline geometry fixtures explicit; extend real-dialog coverage where only an inline component was previously exercised.
+- Evidence/compatibility: First run already proves this ordering works; changing font scale after activity launch recreates the activity and can lose test content. No production density override or font-scaling workaround is authorized by this verification change. Any newly exposed product defect gets its own finding and proportionate remediation.
+- Related: `FB-20260908-006`, `FND-20260909-006`.
+- Status: In progress.
+
 ### DEC-20260909-004 — Each dialog owns contrast from the rendered Whip theme
 
 - Context: Activity appearance updates cannot reach separate Compose dialog windows. Source discovery finds four window creators: shared productivity dialogs, Task editing, Entity Inspector, and Unified Search.

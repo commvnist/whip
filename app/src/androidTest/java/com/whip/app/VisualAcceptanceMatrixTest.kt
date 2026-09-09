@@ -35,13 +35,14 @@ import com.whip.app.ui.WhipTextButton
 import com.whip.app.ui.theme.WhipTheme
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 
 /** Screenshot-backed structural matrix; physical review owns device-specific golden approval. */
 @RunWith(AndroidJUnit4::class)
 class VisualAcceptanceMatrixTest {
-    @get:Rule
-    val compose = createComposeRule()
+    private val compose = createComposeRule()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     @Test
     fun primaryAdaptiveThemeFontAndRtlMatrixHasAnOpaqueConformingSurface() {
@@ -137,6 +138,7 @@ class VisualAcceptanceMatrixTest {
     }
 
     @Test
+    @AndroidFontScale
     fun longChoiceAndNestedDialogStatesKeepTheirFinalItemsAndActionsReachable() {
         val nestedOpen = mutableStateOf(false)
         val twoX = Density(compose.density.density, fontScale = 2f)
@@ -193,6 +195,8 @@ class VisualAcceptanceMatrixTest {
             }
         }
 
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("shared.choice.large")
         compose.onNodeWithTag("matrix-choice-list").performScrollToIndex(30)
         compose.onNodeWithTag("matrix-choice-31").assertIsDisplayed()
         val parent = compose.onNodeWithTag("matrix-choice-dialog").fetchSemanticsNode().boundsInRoot
@@ -203,6 +207,8 @@ class VisualAcceptanceMatrixTest {
 
         compose.onNodeWithTag("matrix-choice-continue").performClick()
         compose.onNodeWithTag("matrix-nested-dialog").assertIsDisplayed()
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("shared.choice.nested-large", visuallyDistinctFrom = "shared.choice.large")
         val nested = compose.onNodeWithTag("matrix-nested-dialog").fetchSemanticsNode().boundsInRoot
         val confirm = compose.onNodeWithTag("matrix-nested-confirm").fetchSemanticsNode().boundsInRoot
         val cancel = compose.onNodeWithTag("matrix-nested-cancel").fetchSemanticsNode().boundsInRoot

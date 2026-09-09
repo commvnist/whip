@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
@@ -27,6 +28,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Density
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -43,15 +46,17 @@ import com.whip.app.ui.theme.WhipTheme
 import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicInteger
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class EntityInspectorUiTest {
-    @get:Rule
-    val compose = createComposeRule()
+    private val compose = createComposeRule()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     @Test
     fun taskInspectorKeepsIdentityNavigationAndPrimaryActionStable() {
@@ -137,6 +142,7 @@ class EntityInspectorUiTest {
     }
 
     @Test
+    @AndroidFontScale
     fun taskSubtasksKeepCompletionTrailingSpacedAndResponsive() {
         val toggleCount = AtomicInteger()
         val item = ScheduledTask(
@@ -202,6 +208,11 @@ class EntityInspectorUiTest {
             }
         }
 
+        compose.assertDialogFontScale()
+        assertHeaderTextFits("Prepare launch notes")
+        captureVisualCatalogSurface("shared.inspector.task-large")
+        compose.onNodeWithTag("task-subtask-convert-77", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        captureVisualCatalogSurface("shared.inspector.subtask-large", visuallyDistinctFrom = "shared.inspector.task-large")
         val text = compose.onNodeWithTag("task-subtask-text-77", useUnmergedTree = true).getUnclippedBoundsInRoot()
         val check = compose.onNodeWithTag("task-subtask-check-77", useUnmergedTree = true).assertIsDisplayed().getUnclippedBoundsInRoot()
         val convert = compose.onNodeWithTag("task-subtask-convert-77", useUnmergedTree = true).assertIsDisplayed().getUnclippedBoundsInRoot()
@@ -253,6 +264,7 @@ class EntityInspectorUiTest {
     }
 
     @Test
+    @AndroidFontScale
     fun compactLargeTextInspectorKeepsOverviewAndOptionsDirect() {
         val largeText = Density(compose.density.density, fontScale = 2f)
         compose.setContent {
@@ -278,9 +290,32 @@ class EntityInspectorUiTest {
             }
         }
 
+        compose.assertDialogFontScale()
+        captureVisualCatalogSurface("shared.inspector.compact-large")
+        assertHeaderTextFits("Barbell row", maxLines = 1)
+        assertHeaderTextFits("Exercise · Weight and reps")
+        assertHeaderTextFits("Available", maxLines = 1)
         compose.onNodeWithTag("entity-inspector-section-overview").assertIsDisplayed()
         compose.onNodeWithTag("entity-inspector-section-options").assertIsDisplayed()
         compose.onAllNodesWithContentDescription("More Exercise options").assertCountEquals(0)
+    }
+
+    private fun assertHeaderTextFits(text: String, maxLines: Int = 2) {
+        compose.onNodeWithText(text, useUnmergedTree = true)
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { getResults ->
+                val results = mutableListOf<TextLayoutResult>()
+                getResults(results)
+                val layout = results.single()
+                // A wrap-content badge can retain a wider paragraph constraint than its
+                // measured text. Check painted lines rather than that unused paragraph width.
+                assertFalse("Inspector identity must remain readable: $text", layout.didOverflowHeight)
+                assertTrue("Short inspector labels should not split mid-word: $text", layout.lineCount <= maxLines)
+                repeat(layout.lineCount) { line ->
+                    assertFalse("Inspector identity must not be ellipsized: $text", layout.isLineEllipsized(line))
+                    assertTrue("Inspector text must fit its start edge: $text", layout.getLineLeft(line) >= -1f)
+                    assertTrue("Inspector text must fit its end edge: $text", layout.getLineRight(line) <= layout.size.width + 1f)
+                }
+            }
     }
 
     @Test

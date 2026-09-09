@@ -1,5 +1,14 @@
 # Implementation history
 
+### IMP-20260909-007 — Give enlarged inspector identity room and verify real dialog text scaling
+
+- Behavior: Narrow or enlarged-text inspector headers place emoji and trailing Edit/Close actions above full-width title, context, and status. Roomy headers retain their existing arrangement; tabs, scrollable body, primary action, and domain callbacks retain their roles.
+- Source: `ui/EntityInspector.kt`; shared `AndroidFontScaleRule` configures Android before Compose activity launch and restores the setting after teardown. EntityInspector, nested-choice, and first-run persistence tests assert actual rendered dialog text scale. Inspector assertions check painted line bounds rather than unused paragraph width in wrap-content status badges.
+- Inventory/evidence: Five explicit dialog states expand the catalog/matrix from 207 to 212. The source count remains 625 JVM / 983 Android tests. The 32-fixture review inventory records four corrected fixtures and 28 still requiring actual dialog scaling verification; passing other old outer-density fixtures does not close that backlog.
+- Compatibility: No data, schema, backup, history, version, or release change. Task Subtask conversion is reached through the existing body scroll; no new navigation or callback behavior is introduced.
+- Related: `FB-20260908-006`, `FND-20260909-006/007`, `DEC-20260909-005/006`, `VER-20260909-007`.
+- Status: Verified; 31 focused Android tests, 17 catalog owners / 50 exact states, and 344 JVM readiness checks with Android-test compilation/debug build/lint pass. Whole-product acceptance remains pending.
+
 ### IMP-20260909-006 — Dialog windows follow Whip's selected theme
 
 - Behavior: Dialog status/navigation appearance follows the rendered Whip theme independently of Android's theme. The dark welcome, Search, and shared primary editor now keep visible status icons; theme changes and recreation update the owned window, and dismissal retains the activity appearance.

@@ -1,5 +1,15 @@
 # Durable findings
 
+### FND-20260909-007 — Inspector actions squeeze large-text identity into a narrow column
+
+- Severity/category: P2, shared identity hierarchy and accessibility.
+- Observed: With actual Android 200% text, the 280 dp Exercise inspector splits “Barbell” and “Available” mid-word and truncates “Exercise · Weight and reps.” A 340 dp Task inspector truncates “Prepare launch notes.” The fixed emoji/title/Edit/Close row leaves the identity column too little width.
+- Evidence: Corrected `EntityInspectorUiTest` renders in `build/instrumentation-results-lRrKkv`; personally inspected `/tmp/whip-astra-dialog-font-shared-evidence/shared.inspector.compact-large.png` and `shared.inspector.task-large.png`. The rendered font-scale assertion passes. The old tests falsely provided 2.0 outside the native dialog; three baseline scale assertions instead measured 1.0 in `8lwuBH`.
+- Expected/solution: Let the identity, context, and status use the available width at narrow widths/enlarged text, preserving named 48 dp Edit/Close actions, stable tabs, scrollable body, and docked primary action.
+- Separate fixture issue: The Subtask conversion is initially below the body viewport at real 2.0 text. Deliberate scrolling exposes the existing action, and the completion callback passes; no product scrolling change was needed.
+- Related: `FB-20260908-006`, `FND-20260909-006`, `DEC-20260909-006`.
+- Status: Verified in `IMP/VER-20260909-007`; the 31-test regression and fresh 50-state shared capture pass. Preserved before/after evidence is in `artifacts/astra-audit/2026-09-09/dialog-font/README.md`.
+
 ### FND-20260909-006 — Outer font-scale overrides do not prove dialog large-text coverage
 
 - Severity/category: P2, accessibility verification fidelity.
@@ -7,7 +17,7 @@
 - Expected/solution: Configure the disposable emulator's actual Android font scale, restore it after the test, and assert the rendered text scale before accepting accessibility evidence. Review other dialog fixtures using this outer-provider pattern; do not retroactively claim their dialog content was enlarged.
 - Evidence: `FirstRunSetupPersistenceUiTest`; `/tmp/whip-astra-first-run-focused2.log`. Four other request-lifecycle tests passed in that run. Earlier unasserted first-run large-text screenshots are rejected as enlarged-text evidence.
 - Related: `FB-20260908-006`, first-run and whole-product accessibility matrix.
-- Status: In progress. The first-run fixture now asserts actual Android 2.0 text and passes in `VER-20260909-004`; broader dialog-fixture review remains pending.
+- Status: In progress. First run and three additional inspector/nested-choice fixtures now use the shared Android font rule and assert actual rendered 2.0 text in `VER-20260909-007`. The 32-fixture inventory in `docs/quality/astra-dialog-font-review-2026-09-09.tsv` distinguishes these four verified cases from 28 remaining investigations; inline-only geometry coverage remains separate.
 
 ### FND-20260909-002 — First-run completion does not wait for a durable save result
 
