@@ -1,5 +1,14 @@
 # Implementation history
 
+### IMP-20260909-003 — Preserve real first-run setup journey coverage
+
+- Behavior changed: Added two real-activity tests for recommended setup and customized Tracks/Gym setup. The customized journey retains selections through recreation and checks stored Home visibility, advanced controls, low-pressure presentation, and pound units after completion; the recommended journey checks Tasks/Habits and kilogram defaults. Both verify that no notification permission request is recorded.
+- Important files: `app/src/androidTest/java/com/whip/app/FirstRunJourneyTest.kt`; current source inventory reconciled to 625 JVM / 975 Android tests.
+- Compatibility and limitations: Test-only checkpoint requested by the owner. Production behavior, data formats, and release remain unchanged. Exploratory captures are not yet registered or visually accepted catalog states; the canonical inventory remains 193. These success journeys do not prove disk-write failure handling or process-death durability.
+- Related: `FB-20260908-006`, `FB-20260831-014`.
+- Verification: `VER-20260909-003`.
+- Status: Verified for the two targeted journeys; first-run audit remains open.
+
 ### IMP-20260909-002 — Keep Android window chrome readable in Whip's selected theme
 
 - Behavior changed: Main, widget-configuration, and Health-rationale activity content share `WhipActivityTheme`. Both system-bar icon appearances follow the rendered Whip theme; recovery follows Android's theme and returns to the stored Whip preference. Android 8–9 navigation scrims also follow the content; modern automatic contrast protection is preserved.

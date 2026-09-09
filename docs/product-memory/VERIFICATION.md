@@ -1,5 +1,15 @@
 # Verification and release evidence
 
+### VER-20260909-003 — First-run baseline success journeys
+
+- Scope/environment: Two new real-activity Android tests on the explicit disposable API 34 emulator. The tests cover recommended defaults, optional customization, draft retention through activity recreation, stored settings after completion, and no notification permission request when not selected.
+- Command/result: `ANDROID_SERIAL=emulator-5554 scripts/qa-targeted --android com.whip.app.FirstRunJourneyTest --emulator` passed **2/2**, zero failures/skips/reuse, in `build/instrumentation-results-MQLM5C`; log `/tmp/whip-astra-first-run-before2.log`. The retained XML and aggregate were rechecked before committing.
+- Fixture corrections: The initial run in `build/instrumentation-results-PuurB3` failed because an unscoped Tasks selector matched the dialog and underlying Home/navigation. Scope now requires a dialog ancestor. Customization capture also waits for its title and Compose idle, with a pixel-distinctness guard against a stale welcome frame.
+- Commit readiness: `scripts/check --ready` passed the routed Android-test compilation and diff check; log `/tmp/whip-first-run-commit-ready.log`. This test/documentation-only route selected no JVM execution, product lint, or packaging. An anchored source annotation count independently confirmed 625 JVM / 975 Android tests.
+- Counts and exclusions: Declared source now contains 625 JVM and 975 Android tests; this was only a two-test execution. Four exploratory capture IDs remain outside the 193-state canonical catalog, and this checkpoint does not claim their visual acceptance. Persistence failure, process death, and complete first-run review remain pending. No production edit, physical-phone action, release, or publication.
+- Related: `IMP-20260909-003`, `FB-20260908-006`.
+- Status: Verified for these success journeys.
+
 ### VER-20260909-002 — Theme boundary and opposite-theme platform acceptance
 
 - Baseline: Unchanged production failed both opposite-theme status-icon assertions in `build/instrumentation-results-RAdydS` (`/tmp/whip-astra-theme-before3.log`). Two earlier draft fixtures failed before the intended assertion (empty Home wait; non-void setup method); those were repaired before accepting the baseline. Preserved before images and LF-normalized XML are under `artifacts/astra-audit/2026-09-09/theme/`.
