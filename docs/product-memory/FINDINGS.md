@@ -1,5 +1,14 @@
 # Durable findings
 
+### FND-20260909-019 — Track visual review still exposes crowded navigation and inconsistent frames
+
+- Severity/category: P2, design/accessibility and visual-evidence investigation.
+- Observed: Original final images in `artifacts/astra-audit/2026-09-09/inline-keyboard/` retain several concerns beyond the verified keyboard correction. The 320×533 dp/200% archive opening has barely any initial record space. Enlarged wide Track destinations read as adjacent labels with inadequate separation in several frames. Some phone frames clip the Main Area outline at the left edge. The API 34 ordinary archive appears to overlap lower Entry rows; API 26 enlarged and API 37 ordinary inspectors omit a painted Close icon in their original frames, despite functional journey completion. Other frames show these controls normally.
+- Evidence limits: These are personal observations of original PNGs, not yet proof of persistent runtime defects or regressions caused by IMP-20260909-018. Query/Back bounds pass at their tested native state. Passing semantics and capture accounting do not resolve inconsistent painting. Do not replace concerning images silently or accept all geometry on the strength of the keyboard checks.
+- Next: Reproduce the affected states with a settled native frame sequence and compare window hierarchy, drawing and current source; distinguish transition/capture behavior from a product layout defect. Review the enlarged initial history composition, repeated wide context/counts and destination spacing as complete workflows before choosing further changes.
+- Related: FB-20260908-006, FND-20260909-017/018, VER-20260909-016/019, `docs/quality/ASTRA_TRACKS_REVIEW_2026-09-09.md`.
+- Status: Investigating. Broad Tracks and whole-product acceptance remain open.
+
 ### FND-20260909-018 — Native inline Track search pans identity under system bars
 
 - Severity/category: P2, native keyboard layout and readable context.
@@ -7,8 +16,9 @@
 - Evidence: `build/astra-tracks-20260909/history-api26-short-images/tracks.history.search.large.png` and XML, from passing `history-api26-short.log`; native keyboard begins around y=426 while the query node extends to y=450. MainActivity does not explicitly request resize; native input-method diagnostics report ADJUST_PAN. The fresh history fixture now waits for the actual native keyboard rather than inferring it from text input.
 - Expected: Inline search keeps its query and context readable above system windows, with reachable results and a clear way back at ordinary and enlarged text. Inspect the shared activity/inset ownership and neighboring inline inputs before choosing a correction; no blanket main-window policy change is yet justified by source alone.
 - Related reading constraint: After browsing to Entry 12 on API 26 at 200% text, the fixed identity/inner tabs and global navigation leave the Entry date partly outside the body viewport. The archive notice improvement is useful but does not establish complete short-window reading quality. Evaluate scrollable/compact identity and native keyboard ownership together in the next representative flow. The API 26 fixture also exposes an unsupported boot-emoji glyph; retain that as a platform/emoji review limit rather than changing synthetic content to hide it.
+- Shared-input extension: Direct ordinary/enlarged Task Quick Capture journeys with settled native input reproduce clipped field bounds after the activity inset correction (`keyboard-task-before.log`, 2/2 failures). Personally inspected API 26 originals show the ordinary field partly outside its list viewport and the enlarged field entirely displaced by fixed Today heading/support copy. The passing broad creation tests did not enforce these native bounds. Apply whole-focused-field visibility at both lazy-list owners and collapse the repeated Task introduction during Quick Capture typing; keep workspace selection and restore its tools when the keyboard closes.
 - Related: FB-20260908-006, FND-20260909-017, VER-20260909-016/018, FND-20260909-014.
-- Status: Confirmed. This remains open after the separate archive-status/short-detail improvement; passing lookup/restoration is not native keyboard-layout acceptance.
+- Status: Verified for the native keyboard, whole-field/label and short older-record constraints in IMP-20260909-018 / VER-20260909-019. Four final journeys pass on each API 26/34/37, with fresh neighbors/readiness and scoped original-image review. Initial enlarged history density and frame-specific navigation/painting concerns remain separately Investigating in FND-20260909-019 and VER-20260909-016.
 
 ### FND-20260909-017 — Archived Track guidance displaces the history it explains
 

@@ -154,12 +154,12 @@ class ProductivityDefaultsUiTest {
         }
 
         compose.onNodeWithContentDescription("Tasks tab").performClick()
-        compose.onNodeWithText("Quick Capture to Today").assertIsDisplayed()
+        compose.onNodeWithText("Task for Today").assertIsDisplayed()
         compose.onNodeWithTag("task-quick-capture").performTextInput("Captured from Today")
         compose.onNodeWithContentDescription("Add task now").performClick()
 
         compose.onNodeWithTag("task-destination-Inbox").performClick()
-        compose.onNodeWithText("Quick Capture to Inbox").assertIsDisplayed()
+        compose.onNodeWithText("Task for Inbox").assertIsDisplayed()
         compose.onNodeWithTag("task-quick-capture").performTextInput("Captured from Inbox")
         compose.onNodeWithContentDescription("Add task now").performClick()
 
@@ -201,11 +201,11 @@ class ProductivityDefaultsUiTest {
         }
 
         compose.onNodeWithContentDescription("Tasks tab").performClick()
-        compose.onNodeWithText("Quick Capture to Today").assertIsDisplayed()
+        compose.onNodeWithText("Task for Today").assertIsDisplayed()
         compose.onNodeWithText("Today Is Clear").performScrollTo().assertIsDisplayed()
 
         compose.onNodeWithTag("task-destination-Inbox").performClick()
-        compose.onNodeWithText("Quick Capture to Inbox").assertIsDisplayed()
+        compose.onNodeWithText("Task for Inbox").assertIsDisplayed()
         compose.onNodeWithText("Inbox Is Clear").performScrollTo().assertIsDisplayed()
     }
 

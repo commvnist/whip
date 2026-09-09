@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.absoluteOffset
@@ -82,6 +83,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
@@ -1816,10 +1819,12 @@ fun WhipScreen(
             }
         },
     ) { scaffoldModifier ->
+      val inlineKeyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
       Scaffold(
-        modifier = scaffoldModifier.fillMaxSize(),
+        // The active content owns keyboard space; persistent side navigation stays put.
+        modifier = scaffoldModifier.fillMaxSize().imePadding(),
         topBar = {
-            if (!gymRoutineEditorOpen) TopAppBar(
+            if (!gymRoutineEditorOpen && !inlineKeyboardVisible) TopAppBar(
                 modifier = Modifier.testTag("workspace-top-app-bar"),
                 title = {
                     Row(
@@ -1989,7 +1994,7 @@ fun WhipScreen(
             )
         },
         bottomBar = {
-            if (!gymRoutineEditorOpen && (adaptiveLayout == WhipAdaptiveLayout.Compact || contentPaneIsExpanded)) {
+            if (!gymRoutineEditorOpen && !inlineKeyboardVisible && (adaptiveLayout == WhipAdaptiveLayout.Compact || contentPaneIsExpanded)) {
                 WhipBottomNavigation(
                     selected = appDestination,
                     onSelect = ::selectPrimaryDestination,
@@ -5870,6 +5875,10 @@ private fun TaskAreaContent(
     var dayPlanCandidateKeys by rememberSaveable { mutableStateOf<Set<String>?>(null) }
     var taskToolsExpanded by rememberSaveable { mutableStateOf(false) }
     var quickCapture by rememberSaveable { mutableStateOf("") }
+    var quickCaptureViewport by remember { mutableStateOf(IntSize.Zero) }
+    var quickCaptureFocused by remember { mutableStateOf(false) }
+    val quickCaptureVisibility = rememberFocusedInputVisibility(quickCaptureViewport) { quickCaptureFocused = it }
+    val quickCaptureHasKeyboard = quickCaptureFocused && WindowInsets.ime.getBottom(LocalDensity.current) > 0
     var connectedQuickCaptureSubmitting by remember { mutableStateOf(false) }
     var submittedQuickCapture by rememberSaveable { mutableStateOf("") }
     val quickCaptureCoordinator = rememberPersistenceRequestCoordinator(
@@ -6236,7 +6245,7 @@ private fun TaskAreaContent(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            if (!selectionMode) WhipPageHeader(
+            if (!selectionMode && !quickCaptureHasKeyboard) WhipPageHeader(
                     title = destination.label,
                     supportingText = taskDestinationSupportingText(destination, visibleTasks.size),
                 ) {
@@ -6494,7 +6503,8 @@ private fun TaskAreaContent(
             }
         }
         WhipReorderLazyColumn(
-            modifier = Modifier.weight(1f).testTag("task-workspace-list"),
+            modifier = Modifier.weight(1f).testTag("task-workspace-list")
+                .onSizeChanged { quickCaptureViewport = it },
             contentPadding = WhipPageContentPadding,
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
@@ -6516,7 +6526,7 @@ private fun TaskAreaContent(
                         value = quickCapture,
                         onValueChange = { quickCapture = it },
                         enabled = !quickCaptureSubmitting,
-                        label = { Text("Quick Capture to ${destination.label}") },
+                        label = { Text("Task for ${destination.label}") },
                         placeholder = {
                             Text(
                                 if (appSettings.naturalLanguageTaskCapture) {
@@ -6544,6 +6554,7 @@ private fun TaskAreaContent(
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .then(quickCaptureVisibility)
                             .semantics {
                                 quickCaptureStateDescription?.let { stateDescription = it }
                             }

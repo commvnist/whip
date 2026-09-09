@@ -204,7 +204,7 @@ private fun waitForWindowDraw(surfaceId: String) {
     }
 }
 
-private fun refreshAccessibilityHierarchy(surfaceId: String) {
+internal fun refreshAccessibilityHierarchy(surfaceId: String) {
     val instrumentation = InstrumentationRegistry.getInstrumentation()
     instrumentation.runOnMainSync {
         val activity = checkNotNull(

@@ -79,6 +79,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
@@ -1683,11 +1685,15 @@ private fun TrackDetailPage(
     requestedReadOnlyEntryId: Long? = null,
     onReadOnlyEntryRequestConsumed: (Long) -> Unit = {},
 ) {
-    Column(Modifier.fillMaxSize().padding(innerPadding)) {
+    BoxWithConstraints(Modifier.fillMaxSize().padding(innerPadding)) {
+      val shortDetail = maxHeight < 440.dp
+      Column(Modifier.fillMaxSize()) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val constrainedHeader = maxWidth < 280.dp
+            val narrowHeader = maxWidth < 280.dp
+            val constrainedHeader = shortDetail || narrowHeader
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = if (constrainedHeader) 4.dp else 12.dp, vertical = 6.dp),
+                Modifier.fillMaxWidth().testTag("track-detail-header")
+                    .padding(horizontal = if (constrainedHeader) 4.dp else 12.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(if (constrainedHeader) 2.dp else 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -1697,19 +1703,20 @@ private fun TrackDetailPage(
                 Column(Modifier.weight(1f)) {
                     Text(
                         projection.track.name,
+                        modifier = Modifier.testTag("track-detail-title"),
                         style = if (constrainedHeader) MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         maxLines = if (constrainedHeader) 1 else 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Text(
+                    if (!shortDetail) Text(
                         if (constrainedHeader) quantityLabel(projection.entries.size, "Entry") else "${quantityLabel(projection.entries.size, "Entry")} · ${projection.track.area}",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                if (!constrainedHeader) ItemEditButton("Track", projection.track.name, onEditTrack)
+                if (!narrowHeader) ItemEditButton("Track", projection.track.name, onEditTrack)
             }
         }
         DestinationTabBar(
@@ -1748,6 +1755,7 @@ private fun TrackDetailPage(
                 onDeleteTrack,
             )
         }
+      }
     }
 }
 
@@ -1768,6 +1776,8 @@ private fun TrackEntriesPage(
 ) {
     var searchVisible by rememberSaveable(projection.track.id) { mutableStateOf(false) }
     var query by rememberSaveable(projection.track.id) { mutableStateOf("") }
+    var historyViewport by remember { mutableStateOf(IntSize.Zero) }
+    val queryVisibility = rememberFocusedInputVisibility(historyViewport)
     var sort by rememberSaveable(projection.track.id) { mutableStateOf(TrackSort.EntryDate) }
     var sortDirection by rememberSaveable(projection.track.id) { mutableStateOf(SortDirection.Descending) }
     var sortFieldId by rememberSaveable(projection.track.id) { mutableStateOf<Long?>(null) }
@@ -1848,7 +1858,8 @@ private fun TrackEntriesPage(
             .let { entries -> projection.sortedEntries(entries, sort, sortField, sortDirection) }
     }
     LazyColumn(
-        Modifier.fillMaxSize().testTag("track-entry-list"),
+        Modifier.fillMaxSize().testTag("track-entry-list")
+            .onSizeChanged { historyViewport = it },
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -1894,7 +1905,8 @@ private fun TrackEntriesPage(
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
-                modifier = Modifier.fillMaxWidth().testTag("track-entry-search"),
+                modifier = Modifier.fillMaxWidth().then(queryVisibility)
+                    .testTag("track-entry-search"),
                 label = { Text("Search Entries") },
                 placeholder = { Text("Any recorded value") },
                 singleLine = true,

@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="4" failures="0" errors="0" skipped="0" time="58.036" timestamp="2026-09-09T16:36:01" hostname="localhost">
+  <testsuite name="com.whip.app.InlineTaskCaptureE2ETest" tests="2" failures="0" errors="0" skipped="0" time="24.099" timestamp="2026-09-09T16:36:01" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="inlineTaskDraftSurvivesRecreationAndSavesWithTheNativeKeyboardAtLargeText" classname="com.whip.app.InlineTaskCaptureE2ETest" time="12.813" />
+    <testcase name="inlineTaskDraftSurvivesRecreationAndSavesWithTheNativeKeyboard" classname="com.whip.app.InlineTaskCaptureE2ETest" time="11.286" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackHistoryJourneyE2ETest" tests="2" failures="0" errors="0" skipped="0" time="32.997" timestamp="2026-09-09T16:36:01" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedHistoryCanBeSearchedRecreatedAndRestoredAtLargeText" classname="com.whip.app.TrackHistoryJourneyE2ETest" time="16.633" />
+    <testcase name="archivedHistoryCanBeSearchedRecreatedAndRestored" classname="com.whip.app.TrackHistoryJourneyE2ETest" time="16.364" />
+  </testsuite>
+</testsuites>

@@ -1,6 +1,7 @@
 package com.whip.app
 
 import android.content.Intent
+import android.graphics.Rect
 import android.os.Build
 import android.view.accessibility.AccessibilityWindowInfo
 import androidx.compose.ui.test.assertCountEquals
@@ -10,6 +11,7 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -24,6 +26,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.By
 import com.whip.app.core.AppSettings
 import com.whip.app.core.AppThemeMode
 import com.whip.app.domain.TrackDraft
@@ -32,10 +35,13 @@ import com.whip.app.domain.TrackFieldDraft
 import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.TrackValueDraft
 import java.io.File
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
@@ -92,6 +98,8 @@ class TrackHistoryJourneyE2ETest {
             compose.onNodeWithTag("track-entry-list").performScrollToNode(hasText("Neighbourhood walk 12"))
             compose.onNodeWithText("Neighbourhood walk 12").assertIsDisplayed()
             capture("tracks.history.records.$suffix")
+            val olderDate = app.clock.today().minusDays(11).format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+            assertNativeTextFullyVisible(olderDate)
 
             compose.onNodeWithTag("track-entry-list").performScrollToNode(
                 hasContentDescription("Search Entries in $trackName"))
@@ -106,10 +114,22 @@ class TrackHistoryJourneyE2ETest {
             compose.waitForIdle()
             compose.onNodeWithTag("track-entry-search").performTextReplacement("River trail")
             capture("tracks.history.search.$suffix")
+            assertNativeQueryAboveKeyboard()
             compose.onNodeWithTag("track-entry-list").performScrollToNode(hasText("River trail after the rain"))
             compose.onNodeWithText("River trail after the rain").assertIsDisplayed()
+            assertNativeTextFullyVisible("River trail after the rain")
             compose.onAllNodesWithContentDescription("Edit Entry River trail after the rain").assertCountEquals(0)
 
+            device.pressBack()
+            compose.waitUntil(10_000) {
+                InstrumentationRegistry.getInstrumentation().uiAutomation.windows.none {
+                    it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
+                }
+            }
+            compose.onNodeWithTag("track-entry-list").performScrollToNode(hasTestTag("track-entry-search"))
+            compose.onNodeWithTag("track-entry-search").assertTextContains("River trail")
+            compose.onNodeWithTag("workspace-top-app-bar").assertIsDisplayed()
+            capture("tracks.history.search-result.$suffix")
             scenario.recreate()
             compose.onNodeWithTag("track-entry-list").performScrollToNode(hasTestTag("track-entry-search"))
             compose.onNodeWithTag("track-entry-search").assertTextContains("River trail")
@@ -154,5 +174,39 @@ class TrackHistoryJourneyE2ETest {
             check(device.takeScreenshot(File(directory, "$id.png")))
             device.dumpWindowHierarchy(File(directory, "$id.xml"))
         }
+    }
+
+    private fun assertNativeTextFullyVisible(text: String) {
+        compose.waitForIdle()
+        InstrumentationRegistry.getInstrumentation().uiAutomation.waitForIdle(750L, 5_000L)
+        device.waitForIdle()
+        refreshAccessibilityHierarchy("Track history text")
+        val layout = compose.onNodeWithText(text, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val native = device.findObjects(By.text(text)).singleOrNull()?.visibleBounds
+        val density = app.resources.displayMetrics.density
+        assertTrue("Complete history text $text: $native versus $layout",
+            native != null && native.height() >= (layout.bottom - layout.top).value * density - 1f)
+    }
+
+    private fun assertNativeQueryAboveKeyboard() {
+        val ime = Rect()
+        checkNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.windows.firstOrNull {
+            it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
+        }).getBoundsInScreen(ime)
+        val native = device.findObject(By.res("track-entry-search"))?.visibleBounds
+        val layout = compose.onNodeWithTag("track-entry-search").getUnclippedBoundsInRoot()
+        val density = app.resources.displayMetrics.density
+        assertTrue("Complete native Track query above keyboard: $native versus $ime; layout $layout",
+            native != null && native.bottom <= ime.top && native.height() >= (layout.bottom - layout.top).value * density - 1f)
+        assertNativeTextFullyVisible("Search Entries")
+        val title = device.findObject(By.res("track-detail-title"))?.visibleBounds
+        val titleLayout = compose.onNodeWithTag("track-detail-title").getUnclippedBoundsInRoot()
+        val status = checkNotNull(device.findObject(By.res("com.android.systemui:id/status_bar"))).visibleBounds
+        assertTrue("Track identity must remain below status icons: $title versus $status and $titleLayout",
+            title != null && title.top >= status.bottom &&
+                title.height() >= (titleLayout.bottom - titleLayout.top).value * density - 1f)
+        val back = device.findObject(By.desc("Back to Tracks"))?.visibleBounds
+        assertTrue("Back must remain reachable above the keyboard: $back versus $ime",
+            back != null && back.top >= status.bottom && back.bottom <= ime.top && back.height() >= 48 * density - 1)
     }
 }
