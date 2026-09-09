@@ -1,0 +1,3 @@
+source_keys	surface_id	family	kind	state	capture_selector	disposition	notes
+route:tracks-imported-text-short-reopened	tracks.imported-text.short.reopened	tracks	dialog	Long imported Short Text reopened after two edits and recreations	com.whip.app.TrackImportedTextJourneyE2ETest#importedShortTextSurvivesEditingRecreationAndSave	capture	Complete persisted suffix and added supplementary Unicode retained; VER-20260909-025.
+route:tracks-imported-text-long-reopened	tracks.imported-text.long.reopened	tracks	dialog	Long imported multiline text reopened after two edits and recreations	com.whip.app.TrackImportedTextJourneyE2ETest#importedLongTextSurvivesEditingRecreationAndSave	capture	Complete persisted suffix and added supplementary Unicode retained; VER-20260909-025.

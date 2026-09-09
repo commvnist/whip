@@ -1,5 +1,20 @@
 # Durable findings
 
+### FND-20260909-026 — Entry-create catalog assertion retains the former introduction
+
+- Severity/category: P2 verification drift.
+- Observed: Supplemental TrackEntryMutationUiTest executes five tests in `2hAMSj`; create-catalog alone fails looking for standalone `Books`. Its next assertion also names the generic introduction removed by the verified form hierarchy in `7166a40`. Other four tests pass, including saving/failure shielding and deletion review/failure. No new product identity regression is established.
+- Correction: Require the current `Add Entry` screen title and exact `track-entry-context` value `Track: Books`, preserving the absent invented `New Title` assertion and existing catalog capture. This aligns expected presentation with DEC-20260909-021 while retaining identity guarantees.
+- Related/status: Verified in IMP-20260909-024 / VER-20260909-025. Corrected `p4sYkm` passes all five tests, zero failures/errors/skips/reuse, and all three fresh fixture frames have personal review. The earlier form journey acceptance remains scoped; it did not execute this isolated catalog fixture.
+
+### FND-20260909-025 — Editing imported Track text silently discards its suffix
+
+- Severity/category: P1 historical data integrity.
+- Observed: Baseline `7166a40` accepts complete CSV values through parsing and the public preparation/receipt transaction. Two real-app tests then change only the leading character, recreate, Save and reopen the same Entry. Short Text persists 300 of 618 characters; Long Text persists 5,000 of 6,478. Both fail with zero skipped/error tests in `rTghLu`; identity/date/other primary text remain intact. This confirms stored-data loss, not merely visual truncation.
+- Cause: `TrackEntryField` applies `take(300)` / `take(5_000)` to every proposed edit. These are UI-only ceilings: the domain and repository accept the original longer values. Saving faithfully commits the already-truncated draft.
+- Expected: Editing existing accepted text preserves its complete unedited suffix, permits intentional corrections/additions and retains explicit recreation/save ownership. Keep single-line versus multiline presentation and established whitespace normalization; no automatic repair can reconstruct text already discarded by earlier saves.
+- Resolution/status: Verified in IMP-20260909-024 / VER-20260909-025 under FB-20260908-006. Removing input-only truncation preserves complete corrections and further Unicode additions through Activity recreation, Save and reopen on API 26/34/37. Final 64 JVM / 67 distinct Android neighboring tests and 344 JVM readiness checks pass. Existing extreme-value saved-state capacity remains a separate risk to assess, not justification for silent truncation.
+
 ### FND-20260909-024 — Task repeat-order fixture races initial keyboard presentation
 
 - Severity/category: P2 verification reliability; observed during Track-form neighboring regression.

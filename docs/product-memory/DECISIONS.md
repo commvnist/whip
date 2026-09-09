@@ -1,5 +1,13 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-022 — Track text edits preserve the complete accepted value
+
+- Context: FND-20260909-025 proves data loss from input-only character ceilings that CSV/domain/repository contracts do not share.
+- Alternatives: Enforce those limits on all imports and historical edits; grandfather each original length while rejecting growth; or remove the unilateral input truncation. Retrofitting the limits rejects already-valid history and changes import semantics. Grandfathered lengths allow corrections but arbitrarily prohibit additions to the same saved note. Neither limit is an established domain contract or a total draft-memory budget.
+- Decision: Pass the complete proposed Short/Long Text value to the existing Entry draft owner. Keep single-line/multiline presentation, exact form/Entry concurrency protection, explicit Save, CSV receipts and established outer-whitespace normalization. No schema, migration, stored-data rewrite or new arbitrary character policy.
+- Acceptance/limits: Reproduce the old loss, then verify complete same-length edits, supplementary-Unicode additions, recreation, save/reopening, unchanged neighboring values and supported API endpoints. This fixes silent truncation; it does not establish unlimited performance or extreme saved-state capacity. Continue realistic large-value/draft review under the whole Tracks audit.
+- Status: Verified in IMP-20260909-024 / VER-20260909-025. Both complete preservation/addition journeys pass on API 26/34/37; 64 JVM / 67 distinct Android neighbors, 344 JVM readiness and both check-wrapper fixtures pass. Extreme-value capacity and full import/recovery acceptance remain open.
+
 ### DEC-20260909-021 — Prioritize recording structure in a readable Track authoring column
 
 - Context: FND-20260909-023 shows generic guidance and optional appearance delaying the core form, plus wide single-column controls spanning the whole window.

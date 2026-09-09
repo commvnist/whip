@@ -1,5 +1,14 @@
 # Implementation history
 
+### IMP-20260909-024 — Preserve complete imported Track text during editing
+
+- Behavior: Short/Long Text Entry controls pass complete proposed text to the existing draft owner. Removing their input-only 300/5,000-character truncation prevents a small correction from silently discarding the suffix of accepted historical text. Single-line/multiline presentation, exact form/Entry mutation ownership, explicit Save, CSV receipts and established whitespace normalization remain unchanged.
+- Regression: Two real-app journeys parse/import 618/6,478-character values through public CSV preparation/receipt transactions, edit one leading character, recreate, save and reopen. Both fail against `7166a40`, persisting only 300/5,000 characters. Both now preserve complete values and a further space/compass addition through another recreation/save/reopen, with stable Entry identity/date/other primary text. They join the permanent Tracks profile.
+- Neighboring fixture: TrackEntryMutationUiTest's create capture now asserts the current Add Entry title and exact Track: Books context instead of the obsolete introduction, retaining the no-invented-title and existing mutation/failure guarantees.
+- Verification: Final journeys pass 2/2 on API 26/34/37; 64 JVM / 67 distinct Android neighbors and 344 JVM readiness tests pass, including both check-wrapper fixtures, Android compilation, lint, packaging and static guards. All nine final originals have individual review; native hierarchies have zero NAF nodes. Retain both failed baseline journeys and the stale-assertion failure separately.
+- Related/evidence: FND-20260909-025/026, DEC-20260909-022, VER-20260909-025, FB-20260908-006; `artifacts/astra-audit/2026-09-09/imported-track-text/README.md`. Production change is confined to `TrackScreens.kt`; regressions live in `TrackImportedTextJourneyE2ETest.kt` and the existing mutation fixture, with permanent routing in `scripts/qa-targeted`.
+- Status/limits: Verified for complete accepted-text editing. Inventory is 630 JVM / 1002 Android tests, 311 catalog/matrix states and 38 actual-font fixtures. No schema, data format, version, physical-device or release change. Previously discarded text cannot be reconstructed automatically; extreme-value saved-state capacity and complete import/recovery/product review remain open.
+
 ### IMP-20260909-023 — Prioritize Track inputs and keep wide forms readable
 
 - Behavior: Track Name and Entry Fields precede optional Description/Emoji; the Entry form uses concise Track context above editable identity. Each full editor header/body is centered in a column up to 720 dp wide, retaining full-screen ownership and fixed responsive exit/commit. All seven ordered Field types, organization, nested configuration, validation and existing draft/persistence ownership remain intact.

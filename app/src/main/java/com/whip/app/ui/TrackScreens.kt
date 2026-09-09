@@ -3778,7 +3778,7 @@ internal fun TrackEntryField(
         when (field.type) {
             TrackFieldType.ShortText -> OutlinedTextField(
                 value.textValue.orEmpty(),
-                { onValue(value.copy(textValue = it.take(300))) },
+                { onValue(value.copy(textValue = it)) },
                 label = { Text(field.name + if (field.required) " *" else "") },
                 singleLine = true,
                 isError = showError,
@@ -3789,7 +3789,7 @@ internal fun TrackEntryField(
             )
             TrackFieldType.LongText -> OutlinedTextField(
                 value.textValue.orEmpty(),
-                { onValue(value.copy(textValue = it.take(5_000))) },
+                { onValue(value.copy(textValue = it)) },
                 label = { Text(field.name + if (field.required) " *" else "") },
                 minLines = 3,
                 maxLines = 8,
