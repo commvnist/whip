@@ -1,0 +1,19 @@
+diff --git a/app/src/androidTest/java/com/whip/app/TrackHistoryJourneyE2ETest.kt b/app/src/androidTest/java/com/whip/app/TrackHistoryJourneyE2ETest.kt
+index 11f9d0e..d054f23 100644
+--- a/app/src/androidTest/java/com/whip/app/TrackHistoryJourneyE2ETest.kt
++++ b/app/src/androidTest/java/com/whip/app/TrackHistoryJourneyE2ETest.kt
+@@ -176,0 +177,14 @@
++        if (InstrumentationRegistry.getArguments().getString("whipFrameDiagnostic") == "true" &&
++            (id.contains(".archived.") || id.contains(".inspector.") || id.contains(".search-result."))) {
++            val directory = checkNotNull(app.getExternalFilesDir("track-frame-diagnostic"))
++            check(directory.isDirectory || directory.mkdirs())
++            repeat(3) { sample ->
++                if (sample > 0) android.os.SystemClock.sleep(750L)
++                check(device.takeScreenshot(File(directory, "$id.native-$sample.png")))
++                device.dumpWindowHierarchy(File(directory, "$id.native-$sample.xml"))
++            }
++            compose.mainClock.advanceTimeBy(2_000L)
++            compose.waitForIdle()
++            check(device.takeScreenshot(File(directory, "$id.compose-advanced.png")))
++            device.dumpWindowHierarchy(File(directory, "$id.compose-advanced.xml"))
++        }

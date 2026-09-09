@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260909-019 — Correct the Track visual review using byte and pixel evidence
+
+- Outcome: Reconcile the missing-icon, Area-clipping, overlapping-row and touching-label review hypotheses against original PNG pixels and native bounds. Correct the affected evidence notes explicitly; original images remain byte-identical. No production or permanent test/capture-harness behavior changes.
+- Investigation: Existing ordinary/enlarged Track journeys pass with an opt-in four-frame diagnostic overlay on both API 26/34. Stable image hashes, complete X-shaped icon pixels, normal margins and separated native text intervals reject those hypotheses. Remove the overlay from live source and retain its patch with reproducible evidence.
+- Remaining product work: The smallest enlarged archive still shows barely any initial record content; FND-20260909-019 is narrowed to that supported composition opportunity. Whole Tracks remains open.
+- Related: FND-20260909-019, VER-20260909-020, FB-20260908-006.
+- Status: Verified for this evidence correction; product/test source remains exactly `6c95190`.
+
 ### IMP-20260909-018 — Keep inline input and short Track history readable
 
 - Behavior: MainActivity requests resize, and the active content Scaffold consumes keyboard space while persistent side navigation retains its position. Global content chrome yields while an inline keyboard is visible. Short Track detail keeps Back, a compact one-line title, width-appropriate Edit and inner destinations; repeated count/Area metadata yields to history. The existing archive/restore operation and stored records are unchanged.
