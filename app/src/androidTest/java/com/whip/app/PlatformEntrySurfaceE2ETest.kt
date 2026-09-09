@@ -2,10 +2,13 @@ package com.whip.app
 
 import android.content.Intent
 import android.appwidget.AppWidgetManager
+import android.os.Build
+import android.view.accessibility.AccessibilityWindowInfo
 import android.text.SpannedString
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -15,11 +18,14 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.UiDevice
 import com.whip.app.domain.AreaScope
 import com.whip.app.core.AreaOpeningMode
 import com.whip.app.core.SharedTaskCapturePolicy
@@ -27,18 +33,21 @@ import com.whip.app.core.WhipLaunchActions
 import com.whip.app.health.HealthPermissionsRationaleActivity
 import com.whip.app.widget.WhipWidgetConfigureActivity
 import com.whip.app.widget.WhipWidgetProvider
+import java.io.File
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
+import org.junit.rules.RuleChain
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class PlatformEntrySurfaceE2ETest {
-    @get:Rule
-    val compose = createEmptyComposeRule()
+    private val compose = createEmptyComposeRule()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     private lateinit var app: WhipApplication
 
@@ -228,6 +237,7 @@ class PlatformEntrySurfaceE2ETest {
     }
 
     @Test
+    @AndroidFontScale
     fun oversizedSharedTextIsBoundedBeforeRecreationAndExplainsTheShortenedDraft() {
         val oversized = buildString {
             append("😀".repeat(500))
@@ -238,14 +248,33 @@ class PlatformEntrySurfaceE2ETest {
 
         ActivityScenario.launch<MainActivity>(sharedTextIntent(oversized)).use { scenario ->
             waitForTaskEditor()
-            compose.onNodeWithTag("shared-task-capture-shortened").assertIsDisplayed()
+            compose.assertDialogFontScale()
+            captureSharedEditor("tasks.editor.share-ime.large")
+            compose.assertEditorHeaderVisibleWithKeyboard("Create Task", "Cancel Task editing")
+            compose.onNodeWithTag("shared-task-capture-shortened").performScrollTo().assertIsDisplayed()
             compose.onNodeWithTag("task-editor-title").assertTextContains("200/200")
 
             scenario.recreate()
 
             waitForTaskEditor()
-            compose.onNodeWithTag("shared-task-capture-shortened").assertIsDisplayed()
+            captureSharedEditor("tasks.editor.share-ime.recreated-large")
+            compose.assertEditorHeaderVisibleWithKeyboard("Create Task", "Cancel Task editing")
+            compose.onNodeWithTag("shared-task-capture-shortened").performScrollTo().assertIsDisplayed()
             compose.onNodeWithTag("task-editor-title").assertTextContains("200/200")
+            compose.onNodeWithTag("task-editor-title").performScrollTo().performTextReplacement("Reviewed shared Task")
+            compose.onNodeWithText("Save").performClick()
+            compose.waitUntil(15_000) { compose.onAllNodesWithTag("task-editor-surface").fetchSemanticsNodes().isEmpty() }
+            assertEquals("Reviewed shared Task", runBlocking { app.taskRepository.tasks.first().single().title })
+            scenario.recreate()
+            compose.onNodeWithContentDescription("Tasks tab").performClick()
+            compose.onNodeWithTag("task-destination-Inbox").performClick()
+            compose.waitUntil(10_000) { compose.onAllNodesWithTag("task-quick-capture").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("task-workspace-list")
+                .performScrollToNode(hasContentDescription("Open task details for Reviewed shared Task"))
+            compose.onNodeWithContentDescription("Open task details for Reviewed shared Task").performClick()
+            compose.onNodeWithTag("entity-inspector-edit").performClick()
+            waitForTaskEditor()
+            compose.onNodeWithTag("task-editor-title").assertTextContains("Reviewed shared Task")
         }
     }
 
@@ -473,6 +502,31 @@ class PlatformEntrySurfaceE2ETest {
             compose.onNodeWithText("Close").performClick()
             compose.waitUntil(5_000) { scenario.state == Lifecycle.State.DESTROYED }
         }
+    }
+
+    private fun captureSharedEditor(id: String) {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        // Keyboard presentation is asynchronous platform work, outside Compose idling.
+        compose.waitUntil(10_000) {
+            instrumentation.uiAutomation.windows.any { it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD }
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            captureVisualCatalogSurface(id)
+        } else {
+            // The catalog's scoped Downloads storage requires API 29. Keep the same
+            // real journey and native assertions on older supported Android versions.
+            val device = UiDevice.getInstance(instrumentation)
+            compose.waitForIdle()
+            instrumentation.uiAutomation.waitForIdle(750L, 5_000L)
+            device.waitForIdle()
+            val directory = checkNotNull(app.getExternalFilesDir("task-ime"))
+            check(directory.isDirectory || directory.mkdirs())
+            check(device.takeScreenshot(File(directory, "$id.png")))
+            device.dumpWindowHierarchy(File(directory, "$id.xml"))
+        }
+        val label = compose.onNodeWithText("Task *", useUnmergedTree = true).fetchSemanticsNode()
+        assertTrue("The focused Task label must remain fully visible: ${label.boundsInRoot} versus ${label.size}",
+            label.boundsInRoot.height >= label.size.height - 1f)
     }
 
     private fun sharedTextIntent(text: CharSequence) = Intent(app, MainActivity::class.java)

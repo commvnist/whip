@@ -280,6 +280,7 @@ class ProductivityCreationJourneyE2ETest {
             check(smartTask.tags == setOf("work"))
             check(!smartTask.inbox)
 
+            waitForQuickCaptureReady()
             compose.onNodeWithTag("task-quick-capture").performTextReplacement(
                 "TRT every Monday and Thursday",
             )
@@ -297,6 +298,7 @@ class ProductivityCreationJourneyE2ETest {
                 weekdayTask.recurrence?.weekdays ==
                     setOf(DayOfWeek.MONDAY, DayOfWeek.THURSDAY),
             )
+            waitForQuickCaptureReady()
 
             openPlanningSettings()
             compose.onNodeWithTag("settings-list")
@@ -318,6 +320,7 @@ class ProductivityCreationJourneyE2ETest {
             check(literalTask.scheduleKind == ScheduleKind.Once)
             check(literalTask.date == today)
 
+            waitForQuickCaptureReady()
             openPlanningSettings()
             compose.onNodeWithTag("settings-list")
                 .performScrollToNode(hasTestTag("settings-smart-task-capture"))
@@ -345,6 +348,18 @@ class ProductivityCreationJourneyE2ETest {
             check(recurrence.interval == 2)
             check(recurrence.startDate == seriesStart)
         }
+    }
+
+    private fun waitForQuickCaptureReady() {
+        // Room may publish the saved Task before its owned UI result clears the
+        // draft and reenables input. Wait for the visible completion boundary.
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithTag("task-quick-capture").fetchSemanticsNodes().singleOrNull()?.config?.let {
+                !it.contains(SemanticsProperties.Disabled) &&
+                    it.getOrElse(SemanticsProperties.EditableText) { androidx.compose.ui.text.AnnotatedString("pending") }.text.isEmpty()
+            } == true
+        }
+        compose.onNodeWithTag("task-quick-capture").assertIsEnabled()
     }
 
     private fun selectDestination(testTag: String) {

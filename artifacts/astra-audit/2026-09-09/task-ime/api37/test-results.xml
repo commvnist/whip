@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="6" failures="0" errors="0" skipped="0" time="79.123" timestamp="2026-09-09T11:51:35" hostname="localhost">
+  <testsuite name="com.whip.app.DialogThemeContrastTest" tests="2" failures="0" errors="0" skipped="0" time="32.07" timestamp="2026-09-09T11:51:35" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api37_large(AVD) - 17" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="lightDialogsOnDarkAndroidFollowThemeAcrossEveryWindowOwner" classname="com.whip.app.DialogThemeContrastTest" time="13.969" />
+    <testcase name="darkDialogsOnLightAndroidFollowThemeAcrossEveryWindowOwner" classname="com.whip.app.DialogThemeContrastTest" time="18.101" />
+  </testsuite>
+  <testsuite name="com.whip.app.EditorStateRecreationTest" tests="3" failures="0" errors="0" skipped="0" time="22.03" timestamp="2026-09-09T11:51:35" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api37_large(AVD) - 17" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="dirtyTaskEditorSurvivesActivityRecreation" classname="com.whip.app.EditorStateRecreationTest" time="6.297" />
+    <testcase name="dirtyTaskEditorRequiresExplicitDiscardOnSystemBack" classname="com.whip.app.EditorStateRecreationTest" time="8.335" />
+    <testcase name="taskEditorFooterAcceptsAPhysicalTapWhileTheImeIsOpen" classname="com.whip.app.EditorStateRecreationTest" time="7.398" />
+  </testsuite>
+  <testsuite name="com.whip.app.PlatformEntrySurfaceE2ETest" tests="1" failures="0" errors="0" skipped="0" time="23.834" timestamp="2026-09-09T11:51:35" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api37_large(AVD) - 17" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="oversizedSharedTextIsBoundedBeforeRecreationAndExplainsTheShortenedDraft" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="23.834" />
+  </testsuite>
+</testsuites>

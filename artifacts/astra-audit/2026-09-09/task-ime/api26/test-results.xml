@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="0" errors="0" skipped="0" time="16.078" timestamp="2026-09-09T11:44:52" hostname="localhost">
+  <testsuite name="com.whip.app.PlatformEntrySurfaceE2ETest" tests="1" failures="0" errors="0" skipped="0" time="15.407" timestamp="2026-09-09T11:44:52" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api26_small(AVD) - 8.0.0" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="oversizedSharedTextIsBoundedBeforeRecreationAndExplainsTheShortenedDraft" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="15.407" />
+  </testsuite>
+</testsuites>

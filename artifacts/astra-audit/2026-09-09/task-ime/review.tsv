@@ -1,0 +1,19 @@
+environment	surface_id	scoped_status	visual_review
+API 34	tasks.editor.shared-large	Verified	Actual 200% text: full title/exit below status icons; complete shortened-content warning, focused title, counter and Save above keyboard.
+API 34	tasks.editor.share-ime.large	Verified	Real cold shared Task retains full header, complete warning, emoji title, required label, 200/200 counter and Save above the native keyboard.
+API 34	tasks.editor.share-ime.recreated-large	Verified	Recreated shared draft retains the same readable header, disclosure and complete field above the keyboard; subsequent edit/save/reopen passes.
+API 34	tasks.editor.large	Verified	Empty new Task at actual 200% text retains header, required marker, complete focused label/counter and emoji selection above keyboard; advanced fields remain scrollable.
+API 34	habits.editor.ime-large	Verified	Focused Habit name and software keyboard retain full title/exit and Save; existing primary shell needs no propagation of the Task fix for this case.
+API 34	goals.editor.ime-large	Verified	Later Goal target with numeric keyboard retains full header/exit and Save; target, starting value and unit context remain readable in the scrolled body.
+API 34	habits.editor.large	Verified	Unfocused enlarged Habit retains readable identity, tracking guidance, fixed header and Save; lower choices use the existing scroll.
+API 34	goals.editor.large	Verified	Unfocused enlarged Goal retains readable identity, type and supporting meaning with fixed header/Save; lower fields use the existing scroll.
+API 34	platform.dialog.task-editor-dark	Verified	Ordinary dark Task editor keeps clear status/navigation bars, complete Edit/exit/Save header and readable form; existing Task receives no automatic keyboard.
+API 34	platform.dialog.dark-on-light	Verified	Neighbor welcome retains visible system icons, readable body and both setup actions on light Android; theme regression only.
+API 34	platform.dialog.inspector-dark	Verified	Neighbor inspector retains identity, Edit/Close, tabs, context and completion dock with matching system-bar contrast.
+API 34	platform.dialog.search-dark	Verified	Ordinary Search neighbor retains clear title/close, query, scope, filters and prompt; native large-text Search coverage remains separate.
+API 34	platform.dialog.primary-editor-dark	Verified	Ordinary shared Habit editor retains readable header, identity, tracking choices and schedule with matching bars.
+API 26	tasks.editor.share-ime.large	Verified	At 320 by 533 dp and actual 200% text, full header and floating Task label/counter fit above keyboard; earlier clipped label is corrected.
+API 26	tasks.editor.share-ime.recreated-large	Verified	Awaited native keyboard after recreation retains full header and field label; saved Task is reopened through the scrolled Inbox list.
+API 37	tasks.editor.share-ime.large	Verified	Wide actual 200% Task retains full header, shortened-share disclosure and focused label/counter above keyboard, including Gboard's own font-size notice.
+API 37	tasks.editor.share-ime.recreated-large	Verified	Wide recreated Task retains native keyboard and full readable header/field; extra viewport shows emoji choice. Whole wide-form design remains open.
+API 37	platform.dialog.task-editor-dark	Verified	Newest ordinary dark Task generation keeps complete header and form with readable status/navigation bars; pane/keyboard regression scope only.

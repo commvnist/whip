@@ -6494,7 +6494,7 @@ private fun TaskAreaContent(
             }
         }
         WhipReorderLazyColumn(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).testTag("task-workspace-list"),
             contentPadding = WhipPageContentPadding,
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {

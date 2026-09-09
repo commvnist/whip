@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -1523,6 +1524,9 @@ class AdaptiveWhipScreenTest {
         compose.assertDialogFontScale()
         captureVisualCatalogSurface("habits.editor.large")
         compose.onNodeWithTag("habit-editor-name").assertIsDisplayed()
+        compose.onNodeWithTag("habit-editor-name").performClick()
+        captureVisualCatalogSurface("habits.editor.ime-large")
+        compose.assertEditorHeaderVisibleWithKeyboard("Create Habit", "Cancel Habit editing")
         compose.onNodeWithText("Save").assertIsDisplayed()
         compose.onNodeWithTag("habit-editor-fields")
             .performScrollToNode(hasText("Reminders & Schedule Options"))
@@ -1530,6 +1534,7 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithTag("habit-schedule-options").assertIsDisplayed().performClick()
         compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("First Day of Week"))
         compose.onNodeWithText("First Day of Week").assertIsDisplayed()
+        compose.assertEditorHeaderVisibleWithKeyboard("Create Habit", "Cancel Habit editing")
         compose.onNodeWithContentDescription("Cancel Habit editing").performClick()
     }
 
@@ -1561,6 +1566,10 @@ class AdaptiveWhipScreenTest {
         compose.assertDialogFontScale()
         captureVisualCatalogSurface("goals.editor.large")
         compose.onNodeWithTag("goal-editor-name").assertIsDisplayed()
+        compose.onNodeWithTag("goal-editor-fields").performScrollToNode(hasTestTag("goal-editor-target"))
+        compose.onNodeWithTag("goal-editor-target").performClick()
+        captureVisualCatalogSurface("goals.editor.ime-large")
+        compose.assertEditorHeaderVisibleWithKeyboard("Create Goal", "Cancel Goal editing")
         compose.onNodeWithText("Save").assertIsDisplayed()
         compose.onNodeWithContentDescription("Cancel Goal editing").performClick()
     }

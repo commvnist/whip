@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.offset
@@ -60,6 +61,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.focus.FocusRequester
@@ -181,7 +183,6 @@ fun TaskEditorDialog(
     persistenceError: String? = null,
     pendingTaskRequestWaiting: Boolean = false,
 ) {
-    val keyboard = LocalSoftwareKeyboardController.current
     val weekdayFormatter = rememberWhipWeekdayFormatter()
     val titleFocusRequester = remember { FocusRequester() }
     val captureLines = request.initialCapture.lines().map(String::trim).filter(String::isNotBlank)
@@ -319,13 +320,6 @@ fun TaskEditorDialog(
     var pendingRepeatEnable by rememberSaveable(editorKey) { mutableStateOf(false) }
     var validationRequested by rememberSaveable(editorKey) { mutableStateOf(false) }
 
-    LaunchedEffect(editorKey) {
-        if (request.task == null) {
-            titleFocusRequester.requestFocus()
-            keyboard?.show()
-        }
-    }
-
     val initialOffsets = initial.reminderOffsetsMinutes.toSet().ifEmpty {
         setOf(0).takeIf { initial.reminderEnabled }.orEmpty()
     }
@@ -446,10 +440,20 @@ fun TaskEditorDialog(
 
     WhipDialog(
         onDismissRequest = { if (!saving) requestDismiss() },
-        properties = DialogProperties(usePlatformDefaultWidth = false),
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
+        val dialogWindow = LocalWindowInfo.current
+        val keyboard = LocalSoftwareKeyboardController.current
+        var initialFocusRequested by remember(editorKey) { mutableStateOf(false) }
+        LaunchedEffect(editorKey, dialogWindow.isWindowFocused) {
+            if (request.task == null && dialogWindow.isWindowFocused && !initialFocusRequested) {
+                titleFocusRequester.requestFocus()
+                keyboard?.show()
+                initialFocusRequested = true
+            }
+        }
         BoxWithConstraints(
-            modifier = Modifier.fillMaxSize().imePadding(),
+            modifier = Modifier.fillMaxSize().systemBarsPadding().imePadding(),
             contentAlignment = Alignment.Center,
         ) {
             val editorWidth = minOf(maxWidth, paneMaxWidth)
@@ -527,8 +531,9 @@ fun TaskEditorDialog(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(horizontal = 20.dp, vertical = 14.dp)
-                        .verticalScroll(editorScrollState),
+                        .padding(horizontal = 20.dp)
+                        .verticalScroll(editorScrollState)
+                        .padding(vertical = 14.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     Text("* Required field", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

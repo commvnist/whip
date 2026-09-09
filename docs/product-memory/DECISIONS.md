@@ -1,5 +1,16 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-011 — Give the Task editor explicit system-bar and keyboard inset ownership
+
+- Context: FND-20260909-010 is reproduced after idle/render synchronization: Android clips the editor heading and omits its exit while Compose still measures a full title. The current Task dialog combines platform-fitted decor with explicit IME padding. The local Compose DialogWrapper bytecode sets unspecified soft-input adjustment for fitted decor, allowing Android to move the window around the focused field.
+- Alternatives/decision: Shrinking text or removing the shared-draft warning would hide the symptom. Forcing a soft-input flag from a separate side effect would compete with DialogWrapper updates. First verify a local correction using the existing Compose window API: disable platform decor fitting and consume system-bar plus IME insets at the Task root, preserving the fixed header and scrollable body. Reproduce and inspect neighboring primary editors before deciding whether they need the same treatment.
+- Compatibility/verification: Preserve pane positioning, actual font scale, draft/focus behavior, warning semantics, Save/Cancel, and persistence ownership. Require complete native title/exit bounds, keyboard-visible focused input, real shared-capture lifecycle coverage, ordinary/enlarged and API boundary evidence before acceptance. No schema/version/release change.
+- Related: FND-20260909-010, FND-20260909-006, FB-20260908-006.
+- Neighbor/lifecycle refinement: The Habit name and later Goal target maintain full native headers with their existing primary shell, so no shared-primary change is justified by these cases. Real cold shared-Task launch instead exposes a missing initial keyboard focus (FND-20260909-013). Request it once from the actual dialog after its window is focused, preserving editing and child-dialog return behavior.
+- Platform refinement: Read the keyboard controller from the actual dialog composition alongside its focus effect. The early API 26 recreation capture initially suggested lost keyboard presentation; explicit native-window waiting subsequently proves it opens. Reject the ineffective production frame delay. Preserve the real-keyboard assertion and synchronize capture to actual platform state.
+- Small-window geometry: The fixed outer vertical form padding clips 21 of the Task label's 48 pixels on the short API 26 window at actual 200% text. Keep horizontal inset and vertical edge spacing, but put vertical padding inside scrolling content to recover usable viewport space. Require full focused-label bounds before accepting the correction.
+- Status: Verified in IMP/VER-20260909-012. Native header/label bounds, cold/recreated focus, durable save/reopen, neighboring editors, API 26/34/37, inspected captures and readiness pass. This is a scoped Task correction; wider product design review remains active.
+
 ### DEC-20260909-010 — Resolve exact test routes from declared Kotlin packages
 
 - Context: FND-20260909-012 shows the changed-path router disagrees with the instrumentation inventory when a package differs from its directory. Renaming existing files would conceal the routing defect and create unnecessary source churn.

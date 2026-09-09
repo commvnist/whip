@@ -1,0 +1,13 @@
+# Task editing above the keyboard
+
+Evidence for FND-20260909-010/013, DEC-20260909-011, and IMP/VER-20260909-012. Baseline is clean pushed `56817b9`; all device work used disposable API 26, 34, and 37 emulators, with at most two running concurrently.
+
+The Task dialog now owns system-bar and keyboard insets explicitly. Its initial focus request and keyboard controller belong to the actual dialog window. Vertical form padding scrolls with the content, giving the focused field room on short screens while preserving edge spacing. Habit and Goal retain their existing window behavior after their keyboard/header checks passed.
+
+Compare the matching dark [before](before-dark/tasks.editor.shared-large.png) and [after](final/tasks.editor.shared-large.png): Create Task and its exit no longer overlap the status bar. The full shared-content warning, focused title, counter, and Save action remain readable. A settled native assertion reproduced only 17 visible title pixels out of 117 before correction. The small-screen follow-through also reproduced a floating Task label clipped to 27 of 48 pixels; compare [intermediate API 26](intermediate-small-window/tasks.editor.share-ime.large.png) with [final API 26](api26/tasks.editor.share-ime.large.png).
+
+The real shared-Task journey checks cold launch, activity recreation, native keyboard/header and focused-label bounds, retained shortened-content disclosure, edited durable save, and a second recreation followed by Inbox inspector/reopening. API 26 needed an explicit wait for native keyboard presentation; the ineffective production frame delay was removed. Test fixes also wait for visible Quick Capture save completion and scroll stable form/list owners without changing persistence behavior.
+
+Verification passed: 87 neighboring Android tests; the real API 26 journey; six API 37 platform tests; six catalog owners producing 13 exact states; and 344 JVM readiness tests with Android compilation, debug build, and lint. All 13 final API 34 images and five selected API 26/37 images were personally inspected. [review.tsv](review.tsv) records the scoped conclusions. Exact commands, failures, corrections, and run paths are in VER-20260909-012.
+
+PNG bytes are original. XML only normalizes CRLF to LF; `capture-manifest.tsv` retains the original export hashes and `SHA256SUMS` hashes the preserved files. `intermediate-cold-launch` documents the local missing-focus observation, not an established pre-existing release defect. This accepts the scoped Task insets/focus and checked neighbors; complete Task, wide-form, Search, accessibility, and whole-product design acceptance remain open. No schema, version, physical-device, or release action occurred.

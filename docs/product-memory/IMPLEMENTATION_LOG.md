@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260909-012 — Keep the Task editor header visible above the keyboard
+
+- Behavior: Task's dialog explicitly consumes system-bar and IME insets. Initial focus and the keyboard controller belong to the actual dialog window, once per new editor instance. Vertical form padding now scrolls with content, preserving edge spacing while keeping the focused label readable on short windows.
+- Verification infrastructure: Native header/exit and focused-label bounds supplement actual Android text-scale assertions. The real oversized-share journey covers cold launch, recreation, edited durable save and Inbox inspector/reopening; Task list scrolling uses a stable tag. Existing Quick Capture tests now wait for the visible enabled/cleared state after persistence, and the Inbox test scrolls to its explanation. Four new states bring the catalog to 248; 33 fixtures verify actual font scale. Product source counts remain 625 JVM / 986 Android.
+- Compatibility: Draft values, shortened-share meaning, Save/Cancel, existing-task focus and request/persistence ownership remain intact. Habit/Goal retain their primary shell after native keyboard/header checks passed. No schema, backup, version, release, or physical-device change.
+- Related: FND-20260909-010, FND-20260909-013, DEC-20260909-011, VER-20260909-012.
+- Status: Verified for scoped Task insets/focus and checked neighbors: 87 adjacent Android tests, API 26/34/37 journeys, 13 final catalog images plus five platform images personally inspected, and 344 JVM readiness checks with compile/build/lint pass. Full product acceptance remains open.
+
 ### IMP-20260909-011 — Route changed tests by their declared package
 
 - Behavior: `scripts/change-router` reads the Kotlin package and verifies its filename/top-level-class contract before emitting an exact selector. Missing or unsupported changed source broadens to all tests in the relevant source set; deleted tests retain feature-profile routing.

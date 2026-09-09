@@ -3,6 +3,7 @@ package com.whip.app.ui
 import com.whip.app.AndroidFontScale
 import com.whip.app.AndroidFontScaleRule
 import com.whip.app.assertDialogFontScale
+import com.whip.app.assertEditorHeaderVisibleWithKeyboard
 import com.whip.app.captureVisualCatalogSurface
 
 import androidx.compose.foundation.layout.Column
@@ -97,6 +98,7 @@ class EditorDependencyUxTest {
         compose.assertDialogFontScale()
         captureVisualCatalogSurface("tasks.editor.shared-large")
 
+        compose.assertEditorHeaderVisibleWithKeyboard("Create Task", "Cancel Task editing")
         compose.onNodeWithTag("shared-task-capture-shortened").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("task-editor-title").assert(
             SemanticsMatcher("announces shortened shared content from the focused title") { node ->
@@ -331,7 +333,7 @@ class EditorDependencyUxTest {
         }
 
         compose.onNodeWithTag("task-editor-title").performTextInput("Unscheduled Errand")
-        compose.onNodeWithText("Inbox keeps this Task unscheduled", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Inbox keeps this Task unscheduled", substring = true).performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("Anytime").assertCountEquals(0)
         compose.onAllNodesWithTag("task-time-toggle").assertCountEquals(0)
         compose.onNodeWithText("Save").performClick()

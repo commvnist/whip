@@ -1,5 +1,14 @@
 # Durable findings
 
+### FND-20260909-013 — Shared Task cold launch can miss its initial keyboard focus
+
+- Severity/category: P2, editor launch lifecycle and input readiness.
+- Observed during the local Task inset correction: The real oversized-share ActivityScenario capture shows an unfocused title and no software keyboard, while the isolated already-running-host fixture opens the keyboard. This is a newly observed verification gap; its pre-existing status is not established.
+- Evidence: `build/astra-task-ime-20260909/neighbor-before/tasks.editor.share-ime.large.png` and XML (title `focused=false`), personally inspected; `build/instrumentation-results-wcFnTm` fails the real-keyboard assertion. The Habit and Goal keyboard neighbors pass their native bounds checks without a primary-shell change.
+- Correction: Task's initial focus effect and keyboard controller now belong to the actual dialog composition, once its window is focused and once per new editor instance. Existing-task focus behavior and child-dialog return remain intact. API 26 capture additionally waits for actual asynchronous keyboard presentation; no production timing delay remains.
+- Related: FND-20260909-010, DEC-20260909-011, VER-20260909-012.
+- Status: Verified for the locally observed launch issue in VER-20260909-012. The real cold/recreated/save/reopen journey passes on API 26/34/37, with 87 adjacent Android regressions and inspected native captures. Pre-existing release status remains unestablished.
+
 ### FND-20260909-012 — Targeted QA routing infers a test package from its directory
 
 - Severity/category: P2, verification tooling correctness.
@@ -20,13 +29,15 @@
 
 ### FND-20260909-010 — Shared Task capture shows header overlap during keyboard presentation
 
-- Severity/category: P2, editor window insets and accessibility; stable reproduction pending.
+- Severity/category: P2, editor window insets and accessibility; stable reproduction confirmed.
 - Observed: The corrected actual-200%-text `tasks.editor.shared-large` capture shows Create Task and its exit icon underneath the Android status bar while the title field and keyboard are visible. The neighboring unfocused Task editor has a clear inset. Reachability and shortened-draft semantics still pass.
 - Evidence: Personally inspected `build/astra-dialog-font-20260909/final-capture/raw/tasks.editor.shared-large.png`, preserved in the dialog-font-coverage directory; owner `com.whip.app.ui.EditorDependencyUxTest#shortenedSharedDraftWarningIsReachableFromTheFocusedTitleAtLargeText`, `build/instrumentation-results-cwzA28`.
 - Hierarchy corroboration: The independent initial corrected run and final catalog both clip Create Task to `[158,132][635,149]` and omit Cancel Task editing from the accessibility hierarchy, versus the unfocused editor's full title `[158,158][635,275]` and exit node. The focused export contains a copy of that earlier generation, not a third independent reproduction. This is more than a screenshot-only anomaly; settled real-journey diagnosis remains next.
-- Next: Distinguish a captured window transition from persistent inset loss using settled bounds and a real shared-capture journey. Inspect the Task dialog's keyboard/window ownership before choosing a fix; do not accept this frame as correct layout.
+- Resolution: Settled native bounds reproduced persistent header clipping. Explicit Task system-bar/IME inset ownership, dialog-owned initial focus, and vertical padding within the scrollable content keep the header and focused label complete on the checked platforms.
+- Fresh settled reproduction: On clean app source `56817b9`, the strengthened actual-font fixture fails after the capture's idle/render synchronization: Android exposes only 17 pixels of the title versus its 117-pixel Compose layout (`[158,132][635,149]`), and the exit is absent. Run `build/instrumentation-results-VSZtOq`, log `build/astra-task-ime-20260909/before2.log`. An initial diagnostic compile used an unavailable DpRect height property; corrected to bottom-minus-top before instrumentation. Window/keyboard ownership diagnosis is in progress.
+- Small-window follow-through: During the inset correction, actual 200% text on the 320×533 dp API 26 emulator exposes only 27 of the focused Task label's 48 layout pixels. The real native-keyboard journey reproduces this with a complete-label assertion (`api26-v5.log`). Fixed outer vertical form padding reduces the short scroll viewport; move that padding into scrolling content so the focused field can fit while retaining edge spacing.
 - Related: `FB-20260908-006`, `FND-20260909-006`, `VER-20260909-008`.
-- Status: Investigating.
+- Status: Verified in IMP/VER-20260909-012 for the reproduced header and focused-label defects. API 26/34/37 journeys, 87 adjacent Android tests, 13 inspected final catalog states, and 344 JVM readiness checks pass; whole Task and product acceptance remain open.
 
 ### FND-20260909-009 — Large fixed headings leave short dialogs too little reading space
 
