@@ -2788,7 +2788,8 @@ internal fun TrackEditor(
     val dataGeneration by app.userDataGeneration.collectAsStateWithLifecycle()
     val editing = targetTrackId != null
     val token = "track-${targetTrackId ?: "new"}-$sessionId-g$dataGeneration"
-    val stateHolder: TrackEditorViewModel = viewModel(key = "track-editor-$token")
+    val session = trackEditorSessionViewModel()
+    val stateHolder = session.definition
     val savedState by stateHolder.state.collectAsStateWithLifecycle()
     val initialDraft = remember(targetTrackId, sessionId, dataGeneration) {
         openingDraft ?: TrackDraft(
@@ -3493,7 +3494,8 @@ internal fun TrackEntryEditor(
     }
     val editing = editSnapshot != null
     val token = "entry-${form.track.id}-${editSnapshot?.boundary?.entryId ?: "new"}-$sessionId-g$dataGeneration"
-    val stateHolder: TrackEntryEditorViewModel = viewModel(key = "track-$token")
+    val session = trackEditorSessionViewModel()
+    val stateHolder = session.entry
     val savedState by stateHolder.state.collectAsStateWithLifecycle()
     val initialDraft = remember(token, editSnapshot, today) {
         editSnapshot?.draft ?: TrackEntryDraft(

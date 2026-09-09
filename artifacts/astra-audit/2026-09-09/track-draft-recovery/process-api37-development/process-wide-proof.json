@@ -1,0 +1,17 @@
+{
+  "databaseIntegrity": "ok",
+  "entry": [
+    [
+      1,
+      "2f80d1c0-70a0-8284-a4e6-573575ab643a",
+      20705
+    ]
+  ],
+  "savedName": "River trail recovered",
+  "sourceChars": 600008,
+  "sourceSha256": "aa7e3dc9e922a2879405389d7aeac87e2db94b800ae0373233910ea3a6c5ee09",
+  "exactSourceEqual": true,
+  "oldPid": 4628,
+  "newPid": 4894,
+  "checkpointFilesAfterSave": 0
+}

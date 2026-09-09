@@ -1,5 +1,15 @@
 # Durable findings
 
+### FND-20260909-027 — Track editor snapshots exceed Android saved-state transport and accumulate after Save
+
+- Severity/category: P1 interruption/recovery integrity.
+- Observed: API 34 measures the real MainActivity state at 1,233,552 bytes for an open editor containing an accepted 600,008-character CSV value and a changed draft. After three successful edits of the same Entry, with every editor closed, state grows to 1,830,080 bytes. Strengthened `qjNt50` executes both regressions and fails both, zero errors/skips; the real CSV envelope also accepts the one-row/two-column payload. An earlier one-test measurement independently found the same open-editor size.
+- Cause: Root rememberSaveable retains the full opening Entry snapshot while each session-keyed TrackEntryEditorViewModel places its complete draft in an Activity-owned SavedStateHandle. Successful route closure clears TrackViewModel preparation but leaves those separate draft ViewModels registered. They retain previously completed drafts as additional saved-state payloads.
+- Limit/evidence: Android documents a shared 1 MB Binder buffer. These measured bundles already exceed the whole buffer; the baseline diagnostic intentionally collects state without transporting it and establishes no actual Binder crash. Final process-death recovery is separately verified below. VER-20260909-026 retains platform sources and exact size evidence.
+- Expected/approach: One active Track editor session owns its route, opening boundaries and draft states. Persist complete immutable checkpoints privately and keep only a compact recovery reference in Android state. Clear completed/discarded session state, preserve exact draft/conflict ownership on restoration, and expose recovery failure rather than substituting an empty or current saved value.
+- Resolution: One session owns route and draft states; compact Android references point to complete private checkpoints. Save/discard/finish clear state, reset/restore invalidate files and stale writers, and recovery failures distinguish unavailable authorship from a retained live draft.
+- Related/status: Verified in IMP-20260909-025 / VER-20260909-026 under FB-20260908-006. Final API 34 state is 28,688 bytes open / 26,760 after three completed editors; full content and identity survive actual process death and Save. Final 64 JVM / 90 Android neighbors, API 26/37 checks, 15 inspected final images and 344 JVM readiness checks pass. Remaining Track/app review stays open.
+
 ### FND-20260909-026 — Entry-create catalog assertion retains the former introduction
 
 - Severity/category: P2 verification drift.

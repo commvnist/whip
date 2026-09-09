@@ -981,7 +981,8 @@ fun WhipScreen(
     var addTrackEntryRequestedForId by rememberSaveable { mutableStateOf<Long?>(null) }
     val trackEditorSessionState: MutableState<Long> = rememberSaveable { mutableLongStateOf(0L) }
     var trackEditorSessionId by trackEditorSessionState
-    val trackEditorRouteState: MutableState<TrackEditorRoute?> = rememberSaveable { mutableStateOf(null) }
+    val trackEditorSession = trackEditorSessionViewModel()
+    val trackEditorRouteState = trackEditorSession.routeState
     var trackEditorRoute by trackEditorRouteState
     val selectedTrackState: MutableState<Long?> = rememberSaveable { mutableStateOf(null) }
     val trackWorkspaceDestinationState: MutableState<TrackWorkspaceDestination> = rememberSaveable {
@@ -3010,6 +3011,8 @@ private fun TrackEditorRouteHost(
     onDefinitionPersisted: (EntitySaveReceipt) -> Unit,
     onEntryPersisted: (TrackEntryMutationReceipt) -> Unit,
 ) {
+    val session = trackEditorSessionViewModel()
+    TrackEditorRecoveryNotice(session)
     val route = routeState.value
     route ?: return
     if (!trackEditorRouteMatchesGeneration(route, userDataGeneration)) {

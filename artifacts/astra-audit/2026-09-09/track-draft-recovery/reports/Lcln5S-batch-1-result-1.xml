@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="1" errors="0" skipped="0" time="15.818" timestamp="2026-09-09T20:56:31" hostname="localhost">
+  <testsuite name="com.whip.app.TrackDraftSavedStateJourneyTest" tests="1" failures="1" errors="0" skipped="0" time="14.864" timestamp="2026-09-09T20:56:31" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="largeAcceptedEntryKeepsSavedStateWithinPlatformTransport" classname="com.whip.app.TrackDraftSavedStateJourneyTest" time="14.864">
+      <failure>java.lang.AssertionError: Entry state must fit below Android's entire shared 1 MiB Binder buffer; measured 1233552 bytes
+at org.junit.Assert.fail(Assert.java:89)
+at org.junit.Assert.assertTrue(Assert.java:42)
+at com.whip.app.TrackDraftSavedStateJourneyTest.largeAcceptedEntryKeepsSavedStateWithinPlatformTransport(TrackDraftSavedStateJourneyTest.kt:106)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

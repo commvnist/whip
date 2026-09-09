@@ -1,0 +1,18 @@
+{
+  "serial": "emulator-5554",
+  "oldPid": "26116",
+  "newPid": "26385",
+  "taskId": "2829",
+  "entry": [
+    [
+      1,
+      "44606220-88e6-80ad-8ded-ba0b4bc7ba15",
+      20705
+    ]
+  ],
+  "savedName": "River trail final-recovery",
+  "sourceChars": 600008,
+  "exactSourceEqual": true,
+  "sourceSha256": "aa7e3dc9e922a2879405389d7aeac87e2db94b800ae0373233910ea3a6c5ee09",
+  "checkpointFilesAfterSave": 0
+}

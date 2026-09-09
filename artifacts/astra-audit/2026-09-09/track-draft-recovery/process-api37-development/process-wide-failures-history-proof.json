@@ -1,0 +1,7 @@
+{
+  "tracks": true,
+  "track_fields": true,
+  "track_entries": true,
+  "track_values": true,
+  "track_csv_import_receipts": true
+}

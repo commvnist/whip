@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="25" failures="0" errors="0" skipped="0" time="19.765" timestamp="2026-09-09T21:54:47" hostname="localhost">
+  <testsuite name="com.whip.app.TrackRepositoryTest" tests="11" failures="0" errors="0" skipped="0" time="3.92" timestamp="2026-09-09T21:54:47" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="csvSizeGuardCountsAsciiTwoByteThreeByteAndSurrogateUtf8Exactly" classname="com.whip.app.TrackRepositoryTest" time="0.065" />
+    <testcase name="crudSearchCsvAndDestructiveChoiceConfirmationPreserveIdentity" classname="com.whip.app.TrackRepositoryTest" time="0.177" />
+    <testcase name="replacingAChoiceRetargetsEntriesWithoutChangingTheirIdentity" classname="com.whip.app.TrackRepositoryTest" time="0.127" />
+    <testcase name="csvExportEscapesAndFormatsEveryValueTypeAtItsExactUtf8Boundary" classname="com.whip.app.TrackRepositoryTest" time="0.127" />
+    <testcase name="identityOnlyEditSkipsSchemaInvalidation" classname="com.whip.app.TrackRepositoryTest" time="0.101" />
+    <testcase name="reorderNormalizesOmittedArchivedTracksWithoutDuplicatePositions" classname="com.whip.app.TrackRepositoryTest" time="0.077" />
+    <testcase name="projectionsNeverExposeATrackBeforeItsRequiredFields" classname="com.whip.app.TrackRepositoryTest" time="0.076" />
+    <testcase name="largeTrackHistoryIsReadThroughStableBoundedRepositoryPages" classname="com.whip.app.TrackRepositoryTest" time="2.965" />
+    <testcase name="duplicatePreservesCompleteTypedDefinitionWithFreshIdentitiesAndNoHistory" classname="com.whip.app.TrackRepositoryTest" time="0.076" />
+    <testcase name="compositeEntryIdentityAndInlineLabelRoundTripWithoutSilentClearing" classname="com.whip.app.TrackRepositoryTest" time="0.052" />
+    <testcase name="fractionalScaleRoundTripsThroughStorageCsvAnalyticsAndSchemaEdits" classname="com.whip.app.TrackRepositoryTest" time="0.077" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackWorkspaceUiTest" tests="7" failures="0" errors="0" skipped="0" time="14.139" timestamp="2026-09-09T21:54:47" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="trackSelectionUsesOneCheckboxSemanticOwner" classname="com.whip.app.TrackWorkspaceUiTest" time="1.534" />
+    <testcase name="tracksAndEntriesHaveOneExplicitSearchOwnerAndArchivedResultsReturnToArchive" classname="com.whip.app.TrackWorkspaceUiTest" time="5.813" />
+    <testcase name="activityFiltersAndCrossTrackInsightsUseVisibleTrackData" classname="com.whip.app.TrackWorkspaceUiTest" time="3.329" />
+    <testcase name="adaptiveMasterPaneReorderKeepsItsDedicatedControls" classname="com.whip.app.TrackWorkspaceUiTest" time="0.51" />
+    <testcase name="tracksWorkspaceRemainsNavigableInRtlAtTwoHundredPercentText" classname="com.whip.app.TrackWorkspaceUiTest" time="1.412" />
+    <testcase name="archivedTrackSummaryOmitsUnavailableAddAction" classname="com.whip.app.TrackWorkspaceUiTest" time="0.504" />
+    <testcase name="trackSummaryRowsKeepLatestAddAndEditActions" classname="com.whip.app.TrackWorkspaceUiTest" time="1.037" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.TrackEditorCheckpointTest" tests="7" failures="0" errors="0" skipped="0" time="0.838" timestamp="2026-09-09T21:54:47" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="unchangedSavesReuseFilesAndFreshRestorePrunesOnlyOlderCheckpoints" classname="com.whip.app.ui.TrackEditorCheckpointTest" time="0.48" />
+    <testcase name="missingOrIncompatibleCheckpointCannotSilentlyBecomeANewEntry" classname="com.whip.app.ui.TrackEditorCheckpointTest" time="0.051" />
+    <testcase name="corruptCheckpointShowsRecoveryFailureAndCanBeRetriedWithoutSubstitution" classname="com.whip.app.ui.TrackEditorCheckpointTest" time="0.076" />
+    <testcase name="checkpointKeepsLongTextInvalidNumberAndEffectiveDateExactly" classname="com.whip.app.ui.TrackEditorCheckpointTest" time="0.052" />
+    <testcase name="writeFailurePreservesLiveDraftAndCannotRecoverAnOlderValueAsCurrent" classname="com.whip.app.ui.TrackEditorCheckpointTest" time="0.101" />
+    <testcase name="newOwnerRecoversExactDefinitionBoundaryAndAuthoredChoices" classname="com.whip.app.ui.TrackEditorCheckpointTest" time="0.026" />
+    <testcase name="completionClearsBothHoldersAndOnlyItsOwnFiles" classname="com.whip.app.ui.TrackEditorCheckpointTest" time="0.052" />
+  </testsuite>
+</testsuites>

@@ -1,0 +1,7 @@
+Starting: Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=commvne.com.whip.app.debug/com.whip.app.MainActivity }
+Status: ok
+LaunchState: COLD
+Activity: commvne.com.whip.app.debug/com.whip.app.MainActivity
+TotalTime: 2525
+WaitTime: 2530
+Complete

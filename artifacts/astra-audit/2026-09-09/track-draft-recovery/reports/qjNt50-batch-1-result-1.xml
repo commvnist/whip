@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="2" errors="0" skipped="0" time="45.163" timestamp="2026-09-09T21:01:35" hostname="localhost">
+  <testsuite name="com.whip.app.TrackDraftSavedStateJourneyTest" tests="2" failures="2" errors="0" skipped="0" time="44.097" timestamp="2026-09-09T21:01:35" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="savedEntriesDoNotAccumulateDraftPayloadsInActivityState" classname="com.whip.app.TrackDraftSavedStateJourneyTest" time="34.648">
+      <failure>java.lang.AssertionError: Entry state must fit below Android's entire shared 1 MiB Binder buffer; measured 1830080 bytes
+at org.junit.Assert.fail(Assert.java:89)
+at org.junit.Assert.assertTrue(Assert.java:42)
+at com.whip.app.TrackDraftSavedStateJourneyTest.verifySavedState(TrackDraftSavedStateJourneyTest.kt:124)
+at com.whip.app.TrackDraftSavedStateJourneyTest.savedEntriesDoNotAccumulateDraftPayloadsInActivityState(TrackDraftSavedStateJourneyTest.kt:48)
+</failure>
+    </testcase>
+    <testcase name="largeAcceptedEntryKeepsSavedStateWithinPlatformTransport" classname="com.whip.app.TrackDraftSavedStateJourneyTest" time="9.449">
+      <failure>java.lang.AssertionError: Entry state must fit below Android's entire shared 1 MiB Binder buffer; measured 1233552 bytes
+at org.junit.Assert.fail(Assert.java:89)
+at org.junit.Assert.assertTrue(Assert.java:42)
+at com.whip.app.TrackDraftSavedStateJourneyTest.verifySavedState(TrackDraftSavedStateJourneyTest.kt:124)
+at com.whip.app.TrackDraftSavedStateJourneyTest.largeAcceptedEntryKeepsSavedStateWithinPlatformTransport(TrackDraftSavedStateJourneyTest.kt:46)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

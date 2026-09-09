@@ -34,6 +34,8 @@ internal class TrackEditorViewModel(
     )
     val state = mutableState.asStateFlow()
 
+    internal fun restore(state: TrackEditorState) = set(state)
+
     fun initialize(token: String, initialDraft: TrackDraft, dataGeneration: Long = 0L) {
         if (
             mutableState.value.token == token &&
@@ -113,6 +115,8 @@ internal class TrackEntryEditorViewModel(
         savedStateHandle.get<TrackEntryEditorState>(STATE_KEY) ?: TrackEntryEditorState(),
     )
     val state = mutableState.asStateFlow()
+
+    internal fun restore(state: TrackEntryEditorState) = set(state)
 
     fun initialize(token: String, initialDraft: TrackEntryDraft, dataGeneration: Long = 0L) {
         if (

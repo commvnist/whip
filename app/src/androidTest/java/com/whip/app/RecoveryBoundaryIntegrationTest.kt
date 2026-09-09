@@ -48,6 +48,17 @@ class RecoveryBoundaryIntegrationTest {
         val app = ApplicationProvider.getApplicationContext<WhipApplication>()
         app.backupRepository.deleteAllData()
         val initialGeneration = app.currentUserDataGeneration()
+        val checkpointOwner = com.whip.app.ui.TrackEditorSessionViewModel(app, androidx.lifecycle.SavedStateHandle())
+        checkpointOwner.routeState.value = com.whip.app.ui.TrackEditorRoute.Entry(
+            trackId = 7, openingDataGeneration = initialGeneration, sessionId = 1,
+        )
+        checkpointOwner.entry.initialize("entry-7-1", com.whip.app.domain.TrackEntryDraft(
+            entryDate = app.clock.today(),
+            values = mapOf("note" to com.whip.app.domain.TrackValueDraft(textValue = "Old private draft")),
+        ), initialGeneration)
+        val oldCheckpoint = checkpointOwner.saveCheckpoint()
+        val checkpointDirectory = File(app.noBackupFilesDir, TRACK_EDITOR_CHECKPOINT_DIRECTORY)
+        assertTrue(checkpointDirectory.walkTopDown().any { it.isFile })
         val mutationAdmitted = kotlinx.coroutines.CompletableDeferred<Unit>()
         val releaseMutation = kotlinx.coroutines.CompletableDeferred<Unit>()
         val mutation = async {
@@ -73,6 +84,15 @@ class RecoveryBoundaryIntegrationTest {
         assertTrue(app.gymRepository.exercises.first().isEmpty())
         assertEquals(initialGeneration + 1L, app.currentUserDataGeneration())
         assertEquals(StartupRecoveryState.Ready, app.startupRecoveryState.value)
+        assertFalse(checkpointDirectory.exists())
+        assertTrue(checkpointOwner.saveCheckpoint().isEmpty)
+        assertNull(checkpointOwner.entry.state.value.draft)
+        val restoredOldOwner = com.whip.app.ui.TrackEditorSessionViewModel(app, androidx.lifecycle.SavedStateHandle(mapOf(
+            com.whip.app.ui.TrackEditorSessionViewModel.STATE_KEY to oldCheckpoint,
+        )))
+        assertNull(restoredOldOwner.routeState.value)
+        assertNull(restoredOldOwner.recoveryProblem)
+        assertFalse(checkpointDirectory.exists())
     }
 
     @Test

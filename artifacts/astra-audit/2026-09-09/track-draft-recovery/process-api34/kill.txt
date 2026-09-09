@@ -1,0 +1,1 @@
+pidof empty after am kill; old process absent

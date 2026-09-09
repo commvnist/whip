@@ -93,6 +93,8 @@ import com.whip.app.core.zoneId
 import com.whip.app.core.calendarContextAt
 import com.whip.app.core.calendarContextFlow
 
+internal const val TRACK_EDITOR_CHECKPOINT_DIRECTORY = "track-editor-checkpoints"
+
 @OptIn(FlowPreview::class)
 class WhipApplication : Application(), Configuration.Provider {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -571,6 +573,10 @@ class WhipApplication : Application(), Configuration.Provider {
             "Could not persist the restore data generation"
         }
         mutableUserDataGeneration.value = next
+        val drafts = java.io.File(noBackupFilesDir, TRACK_EDITOR_CHECKPOINT_DIRECTORY)
+        check(!drafts.exists() || drafts.deleteRecursively()) {
+            "Could not remove previous Track draft recovery files"
+        }
         return next
     }
 

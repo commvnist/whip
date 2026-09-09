@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="6" failures="0" errors="0" skipped="0" time="1.619" timestamp="2026-09-09T21:27:54" hostname="localhost">
+  <testsuite name="com.whip.app.ui.TrackEditorCheckpointTest" tests="6" failures="0" errors="0" skipped="0" time="0.804" timestamp="2026-09-09T21:27:54" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="unchangedSavesReuseFilesAndFreshRestorePrunesOnlyOlderCheckpoints" classname="com.whip.app.ui.TrackEditorCheckpointTest" time="0.444" />
+    <testcase name="corruptCheckpointShowsRecoveryFailureAndCanBeRetriedWithoutSubstitution" classname="com.whip.app.ui.TrackEditorCheckpointTest" time="0.052" />
+    <testcase name="checkpointKeepsLongTextInvalidNumberAndEffectiveDateExactly" classname="com.whip.app.ui.TrackEditorCheckpointTest" time="0.079" />
+    <testcase name="writeFailurePreservesLiveDraftAndCannotRecoverAnOlderValueAsCurrent" classname="com.whip.app.ui.TrackEditorCheckpointTest" time="0.127" />
+    <testcase name="newOwnerRecoversExactDefinitionBoundaryAndAuthoredChoices" classname="com.whip.app.ui.TrackEditorCheckpointTest" time="0.0" />
+    <testcase name="completionClearsBothHoldersAndOnlyItsOwnFiles" classname="com.whip.app.ui.TrackEditorCheckpointTest" time="0.102" />
+  </testsuite>
+</testsuites>

@@ -1,0 +1,1 @@
+Killed app process; replaced sole private checkpoint with invalid bytes. Saved database untouched.

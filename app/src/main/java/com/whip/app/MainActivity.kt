@@ -251,6 +251,18 @@ class MainActivity : ComponentActivity() {
         super.onSaveInstanceState(outState)
     }
 
+    override fun onDestroy() {
+        // A finishing Activity cannot be restored. Configuration changes and
+        // background destruction must retain the checkpoint for Android recovery.
+        if (isFinishing) {
+            androidx.lifecycle.ViewModelProvider(this)[
+                com.whip.app.ui.TrackEditorSessionViewModel.KEY,
+                com.whip.app.ui.TrackEditorSessionViewModel::class.java,
+            ].routeState.value = null
+        }
+        super.onDestroy()
+    }
+
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         acceptLaunchIntent(intent)
