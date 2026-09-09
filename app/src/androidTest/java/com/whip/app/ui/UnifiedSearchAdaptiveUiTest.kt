@@ -6,12 +6,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -39,6 +41,28 @@ import org.junit.runner.RunWith
 class UnifiedSearchAdaptiveUiTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun wideToShortWorkspaceRetainsTheFocusedQuery() {
+        val height = mutableStateOf(520.dp)
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 1f)) {
+                WhipTheme(dynamicColor = false) {
+                    Box(Modifier.width(900.dp).height(height.value)) {
+                        SearchWorkspaceForTest(Modifier.fillMaxSize())
+                    }
+                }
+            }
+        }
+        compose.onNodeWithTag("unified-search-wide-workspace").assertIsDisplayed()
+        compose.onNodeWithTag("unified-search-query").performClick().assertIsFocused()
+        compose.runOnIdle { height.value = 360.dp }
+        compose.onNodeWithTag("unified-search-compact-workspace").assertIsDisplayed()
+        compose.onNodeWithTag("unified-search-query").assertIsFocused()
+        compose.runOnIdle { height.value = 520.dp }
+        compose.onNodeWithTag("unified-search-wide-workspace").assertIsDisplayed()
+        compose.onNodeWithTag("unified-search-query").assertIsFocused()
+    }
 
     @Test
     fun compact320By480AtTwoXKeepsStickyQueryCloseAndScrollableResultsReachable() {

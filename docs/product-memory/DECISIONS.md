@@ -1,5 +1,16 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-012 — Keep Search inside its actual native viewport
+
+- Context: FND-20260909-014 exposes status-bar overlap, keyboard-hidden results and query focus loss during responsive reflow despite prior inline visibility checks.
+- Decision: Retain the Search workspace and engine. Paint its full existing background and explicitly consume native system-bar/IME insets. Below the existing 440 dp workspace boundary, keep title/exit and query fixed while context, filters, count and results share one list. Keep one stable controls/divider/results structure and vary only measured row/column placement so the query never changes parents.
+- Benefit/tradeoff: Short windows gain reachable results and choices without shrinking text or touch targets; controls require scrolling only where fixed controls otherwise consume the viewport. Taller compact and wide arrangements keep their existing policy. Micro vertical query spacing supplies room for the full 84 dp two-line title observed on API 26. Settled complete-result announcements remain on the pane when their heading scrolls away.
+- Alternatives: Insets alone left no result space. A replacement search flow/engine would not address this defect. Window-owned focus/keyboard requests were insufficient, and movable content still lost focus while reparenting. Both attempts were removed; the original one-time opening focus remains without retries or reopening a deliberately hidden keyboard. Native status pixels, not icon flags alone, exposed the need to paint the inset backdrop.
+- Compatibility: Preserve indexing budgets, incomplete-result truth, local/global scope, filters, exact routing and persistence; no data/schema/version change.
+- Verification: Actual Android 200% text, native title/exit/result bounds and status-backdrop pixels, scope/Match Any/recreation/exact routing on API 26/34/37, deterministic wide→short→wide focus, neighboring regressions, inspected images and readiness pass in VER-20260909-013.
+- Related: FND-20260909-014, DEC-20260909-011, IMP/VER-20260909-013.
+- Status: Verified for this Search correction; complete product review remains open.
+
 ### DEC-20260909-011 — Give the Task editor explicit system-bar and keyboard inset ownership
 
 - Context: FND-20260909-010 is reproduced after idle/render synchronization: Android clips the editor heading and omits its exit while Compose still measures a full title. The current Task dialog combines platform-fitted decor with explicit IME padding. The local Compose DialogWrapper bytecode sets unspecified soft-input adjustment for fitted decor, allowing Android to move the window around the focused field.

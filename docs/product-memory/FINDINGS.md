@@ -1,5 +1,18 @@
 # Durable findings
 
+### FND-20260909-014 — Native Search can place controls and results behind system windows
+
+- Severity/category: P2, Search accessibility and native viewport ownership.
+- Observed: The real 200% Search journey passes on API 34, but the API 26 320×533 dp capture places the heading in the status bar and hides Filters/results beneath the keyboard. Compose reports the Task result displayed even though native pixels show no result. The later filtered capture times out awaiting the keyboard after popup selection; this does not establish a separate product focus defect.
+- Evidence: Personally inspected `build/astra-native-search-20260909/api26-before-captures/shared.search.native-large.png` and native XML; direct guarded run `astra-search-api26-before`, `api26-before.log`. API 34 baseline passes 1/1 in `build/instrumentation-results-ubCH8g`; all three phone-sized native frames were inspected.
+- Cause/correction: Fitted decor plus IME padding misowns native insets; fixed controls starve short windows; separate Wide/Compact query parents lose focus during reflow. Explicit painted insets, short-window context/results scrolling and one stable parent structure resolve these observed defects while preserving query, scope, filters, exact routing and lifecycle state.
+- Related: FND-20260909-006/010, VER-20260909-013, FB-20260908-006.
+- Status: Verified for native Search on API 26/34/37; final 99 adjacent Android tests, 56 JVM tests, 19 personally inspected final images and readiness pass in VER-20260909-013. Whole-area/product acceptance remains open.
+
+- Local visual refinement: After explicit insets, API 34/37 light Search exposes the dimmed underlying status-bar background beneath its dark icons. The Search root is transparent outside its content padding. Paint the full Search backdrop with its existing background color so system bars have the same theme owner as the workspace; compare actual status-band pixels with the clear header background. This is part of the local inset correction.
+- Local lifecycle observation: A later API 37 sequence times out for ten seconds awaiting the recreated Search keyboard, after cold and filtered captures passed. The earlier four-test sequence passed, so this is intermittent in local verification. A window-owned focus/keyboard request was attempted after `build/instrumentation-results-y2gMnS` but proved insufficient and was removed; see the diagnosed reflow cause below.
+- Confirmed reflow cause: The new deterministic `wideToShortWorkspaceRetainsTheFocusedQuery` test fails when the same focused query crosses Wide to Compact. The field is separately composed in both branches and loses its focus on replacement. Movable content also loses focus while reparenting and was rejected. The verified correction keeps the query under one stable parent and changes only child measurement/placement; the original one-time opening focus remains. The native failure capture confirms the same unfocused-field outcome.
+
 ### FND-20260909-013 — Shared Task cold launch can miss its initial keyboard focus
 
 - Severity/category: P2, editor launch lifecycle and input readiness.
@@ -77,7 +90,7 @@
 - Expected/solution: Configure the disposable emulator's actual Android font scale, restore it after the test, and assert the rendered text scale before accepting accessibility evidence. Review other dialog fixtures using this outer-provider pattern; do not retroactively claim their dialog content was enlarged.
 - Evidence: `FirstRunSetupPersistenceUiTest`; `/tmp/whip-astra-first-run-focused2.log`. Four other request-lifecycle tests passed in that run. Earlier unasserted first-run large-text screenshots are rejected as enlarged-text evidence.
 - Related: `FB-20260908-006`, first-run and whole-product accessibility matrix.
-- Status: In progress. All 32 inventoried fixtures now configure and assert actual Android dialog text scale: four in `VER-20260909-007`, the remaining 28 in `VER-20260909-008` (including one at 3.2). Font fidelity is verified, while visual acceptance remains separate: `FND-20260909-009/010` are open. Expand real-window coverage where only inline components were tested, including Unified Search; inline-only geometry coverage remains separate.
+- Status: In progress. All 34 inventoried fixtures configure and assert actual Android dialog text scale: four in VER-20260909-007, 28 in VER-20260909-008 (including one at 3.2), shared Task in VER-20260909-012 and native Search in VER-20260909-013. The scoped layout findings FND-20260909-009/010/014 are verified. Continue discovering real-window gaps where only inline components were tested; font fidelity and scoped visual acceptance remain separate from whole-product coverage.
 
 ### FND-20260909-002 — First-run completion does not wait for a durable save result
 

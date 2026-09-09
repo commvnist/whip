@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260909-013 — Keep Search usable inside short keyboard-constrained windows
+
+- Change: Unified Search paints its existing background through the native window and explicitly consumes system-bar and keyboard insets. One stable controls/divider/results parent structure preserves query focus across Wide/Compact reflow. Below 440 dp of workspace height, its title/exit and query remain fixed while scope/actions, filters, result count and results share the existing lazy list. Short query spacing uses the existing micro token; taller compact and wide controls keep their arrangement. Settled result announcements remain available on the short pane even when its heading scrolls away.
+- Sources: `UnifiedSearchDialog.kt`; real app regression in `GlobalSearchRoutingTest.kt` and deterministic bidirectional reflow regression in `UnifiedSearchAdaptiveUiTest.kt`; shared native header helper now accepts a stable title tag for Search's duplicate visible label. The new journey verifies actual Android 200% text, a fully visible native result title, scope/Match Any, recreation and exact persisted Task routing.
+- Compatibility: Search engine/index budgets, partial-result meaning, scope, filters, result identity and persistence remain unchanged. No schema/version or release action.
+- Related: FND-20260909-014, DEC-20260909-012, VER-20260909-013, FB-20260908-006.
+- Status: Verified. Final 56 JVM / 99 adjacent Android tests, native API 26/34/37 journeys, four owners / 13 final catalog states, all 19 final platform/catalog images personally reviewed, and 344 JVM readiness checks pass. Preserved evidence: `artifacts/astra-audit/2026-09-09/native-search/README.md`; whole-product acceptance remains open.
+
 ### IMP-20260909-012 — Keep the Task editor header visible above the keyboard
 
 - Behavior: Task's dialog explicitly consumes system-bar and IME insets. Initial focus and the keyboard controller belong to the actual dialog window, once per new editor instance. Vertical form padding now scrolls with content, preserving edge spacing while keeping the focused label readable on short windows.

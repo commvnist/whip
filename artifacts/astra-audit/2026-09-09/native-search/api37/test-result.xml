@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="3" failures="0" errors="0" skipped="0" time="53.039" timestamp="2026-09-09T12:58:51" hostname="localhost">
+  <testsuite name="com.whip.app.DialogThemeContrastTest" tests="2" failures="0" errors="0" skipped="0" time="31.996" timestamp="2026-09-09T12:58:51" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api37_large(AVD) - 17" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="lightDialogsOnDarkAndroidFollowThemeAcrossEveryWindowOwner" classname="com.whip.app.DialogThemeContrastTest" time="13.849" />
+    <testcase name="darkDialogsOnLightAndroidFollowThemeAcrossEveryWindowOwner" classname="com.whip.app.DialogThemeContrastTest" time="18.147" />
+  </testsuite>
+  <testsuite name="com.whip.app.GlobalSearchRoutingTest" tests="1" failures="0" errors="0" skipped="0" time="19.987" timestamp="2026-09-09T12:58:51" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api37_large(AVD) - 17" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="largeTextSearchRetainsQueryFiltersAndResultsAcrossRecreation" classname="com.whip.app.GlobalSearchRoutingTest" time="19.987" />
+  </testsuite>
+</testsuites>

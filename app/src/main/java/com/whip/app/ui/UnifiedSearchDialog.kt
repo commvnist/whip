@@ -15,8 +15,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -45,6 +45,8 @@ import com.whip.app.domain.AreaScope
 import com.whip.app.domain.formatTrackScaleValue
 import com.whip.app.domain.matches
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -548,11 +550,11 @@ internal fun UnifiedSearchDialog(
     )
     WhipDialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
         BackHandler(onBack = onDismiss)
         Box(
-            modifier = Modifier.fillMaxSize().imePadding(),
+            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).systemBarsPadding().imePadding(),
             contentAlignment = Alignment.Center,
         ) {
             val workspaceModifier = if (modifier == Modifier) {
@@ -618,63 +620,23 @@ internal fun UnifiedSearchWorkspace(
     BoxWithConstraints(modifier.fillMaxSize().testTag("unified-search-workspace")) {
         val workspaceLayout = unifiedSearchWorkspaceLayout(maxWidth, maxHeight)
         val availableWidth = maxWidth
+        val scrollContext = maxHeight < 440.dp
         Column(Modifier.fillMaxSize()) {
             UnifiedSearchHeader(onDismiss)
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            Box(Modifier.weight(1f).fillMaxWidth()) {
-                when (workspaceLayout) {
-                    UnifiedSearchWorkspaceLayout.Wide -> {
-                        val controlsWidth = (availableWidth * 0.36f).coerceIn(320.dp, 400.dp)
-                        Row(Modifier.fillMaxSize().testTag("unified-search-wide-workspace")) {
-                        Surface(
-                            modifier = Modifier.width(controlsWidth).fillMaxHeight().testTag("unified-search-controls-pane"),
-                            color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        ) {
-                            Column(Modifier.fillMaxSize()) {
-                                UnifiedSearchStickyControls(
-                                    model = model,
-                                    queryModifier = queryModifier,
-                                    onQueryChange = onQueryChange,
-                                    onSubmit = onSubmit,
-                                    onSearchAllWhip = onSearchAllWhip,
-                                    onToggleAreaScope = onToggleAreaScope,
-                                    onToggleFilters = onToggleFilters,
-                                )
-                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                                LazyColumn(
-                                    modifier = Modifier.fillMaxSize().testTag("unified-search-filter-pane"),
-                                    contentPadding = PaddingValues(WhipSpacing.standard),
-                                ) {
-                                    item {
-                                        UnifiedSearchFilters(
-                                            model = model,
-                                            onDomainsChange = onDomainsChange,
-                                            onRequireAllTermsChange = onRequireAllTermsChange,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        Spacer(
-                            Modifier
-                                .width(1.dp)
-                                .fillMaxHeight()
-                                .background(MaterialTheme.colorScheme.outlineVariant)
-                                .testTag("unified-search-pane-divider"),
-                        )
-                        UnifiedSearchResultsPane(
-                            model = model,
-                            modifier = Modifier.weight(1f).fillMaxHeight().testTag("unified-search-results-pane"),
-                            includeFilters = false,
-                            onDomainsChange = onDomainsChange,
-                            onRequireAllTermsChange = onRequireAllTermsChange,
-                            onSelect = onSelect,
-                            onShowMore = onShowMore,
-                        )
-                        }
-                    }
-                    UnifiedSearchWorkspaceLayout.Compact -> {
-                        Column(Modifier.fillMaxSize().testTag("unified-search-compact-workspace")) {
+            val wide = workspaceLayout == UnifiedSearchWorkspaceLayout.Wide
+            UnifiedSearchBodyLayout(
+                wide = wide,
+                controlsWidth = (availableWidth * 0.36f).coerceIn(320.dp, 400.dp),
+                modifier = Modifier.weight(1f).fillMaxWidth().testTag(
+                    if (wide) "unified-search-wide-workspace" else "unified-search-compact-workspace",
+                ),
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth().testTag("unified-search-controls-pane"),
+                    color = if (wide) MaterialTheme.colorScheme.surfaceContainerLow else MaterialTheme.colorScheme.background,
+                ) {
+                    Column(if (wide) Modifier.fillMaxSize() else Modifier.fillMaxWidth()) {
                         UnifiedSearchStickyControls(
                             model = model,
                             queryModifier = queryModifier,
@@ -683,21 +645,70 @@ internal fun UnifiedSearchWorkspace(
                             onSearchAllWhip = onSearchAllWhip,
                             onToggleAreaScope = onToggleAreaScope,
                             onToggleFilters = onToggleFilters,
+                            includeContext = !scrollContext,
                         )
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                        UnifiedSearchResultsPane(
-                            model = model,
-                            modifier = Modifier.weight(1f).fillMaxWidth().testTag("unified-search-results-pane"),
-                            includeFilters = true,
-                            onDomainsChange = onDomainsChange,
-                            onRequireAllTermsChange = onRequireAllTermsChange,
-                            onSelect = onSelect,
-                            onShowMore = onShowMore,
-                        )
+                        if (wide) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize().testTag("unified-search-filter-pane"),
+                                contentPadding = PaddingValues(WhipSpacing.standard),
+                            ) {
+                                item {
+                                    UnifiedSearchFilters(model, onDomainsChange, onRequireAllTermsChange)
+                                }
+                            }
                         }
                     }
                 }
+                Spacer(Modifier.background(MaterialTheme.colorScheme.outlineVariant).testTag("unified-search-pane-divider"))
+                UnifiedSearchResultsPane(
+                    model = model,
+                    modifier = Modifier.fillMaxSize().testTag("unified-search-results-pane"),
+                    includeFilters = !wide,
+                    scrollingControls = if (scrollContext) ({
+                        UnifiedSearchContextControls(model, onSearchAllWhip, onToggleAreaScope, onToggleFilters)
+                    }) else null,
+                    onDomainsChange = onDomainsChange,
+                    onRequireAllTermsChange = onRequireAllTermsChange,
+                    onSelect = onSelect,
+                    onShowMore = onShowMore,
+                )
             }
+        }
+    }
+}
+
+/** Reposition stable children instead of detaching the focused query during responsive reflow. */
+@Composable
+private fun UnifiedSearchBodyLayout(
+    wide: Boolean,
+    controlsWidth: Dp,
+    modifier: Modifier,
+    content: @Composable () -> Unit,
+) {
+    Layout(content = content, modifier = modifier) { children, constraints ->
+        val width = constraints.maxWidth
+        val height = constraints.maxHeight
+        val controls = children[0].measure(
+            if (wide) Constraints.fixed(controlsWidth.roundToPx().coerceAtMost(width), height)
+            else Constraints(minWidth = width, maxWidth = width, maxHeight = height),
+        )
+        val thickness = 1.dp.roundToPx()
+        val divider = children[1].measure(
+            if (wide) Constraints.fixed(thickness.coerceAtMost(width - controls.width), height)
+            else Constraints.fixed(width, thickness.coerceAtMost(height - controls.height)),
+        )
+        val results = children[2].measure(
+            if (wide) Constraints.fixed(width - controls.width - divider.width, height)
+            else Constraints.fixed(width, height - controls.height - divider.height),
+        )
+        layout(width, height) {
+            controls.placeRelative(0, 0)
+            divider.placeRelative(if (wide) controls.width else 0, if (wide) 0 else controls.height)
+            results.placeRelative(
+                if (wide) controls.width + divider.width else 0,
+                if (wide) 0 else controls.height + divider.height,
+            )
         }
     }
 }
@@ -732,11 +743,15 @@ private fun UnifiedSearchStickyControls(
     onSearchAllWhip: () -> Unit,
     onToggleAreaScope: () -> Unit,
     onToggleFilters: () -> Unit,
+    includeContext: Boolean = true,
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = WhipSpacing.screenCompact, vertical = WhipSpacing.compact)
+            .padding(
+                horizontal = WhipSpacing.screenCompact,
+                vertical = if (includeContext) WhipSpacing.compact else WhipSpacing.micro,
+            )
             .testTag("unified-search-sticky-controls"),
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
@@ -750,6 +765,23 @@ private fun UnifiedSearchStickyControls(
             keyboardActions = KeyboardActions(onSearch = { onSubmit() }),
             modifier = queryModifier.fillMaxWidth().testTag("unified-search-query"),
         )
+        if (includeContext) {
+            UnifiedSearchContextControls(model, onSearchAllWhip, onToggleAreaScope, onToggleFilters)
+        }
+    }
+}
+
+@Composable
+private fun UnifiedSearchContextControls(
+    model: UnifiedSearchWorkspaceModel,
+    onSearchAllWhip: () -> Unit,
+    onToggleAreaScope: () -> Unit,
+    onToggleFilters: () -> Unit,
+) {
+    Column(
+        Modifier.fillMaxWidth().testTag("unified-search-context-controls"),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
+    ) {
         Text(
             stringResource(R.string.search_scope, model.scopeLabel),
             style = MaterialTheme.typography.labelMedium,
@@ -903,10 +935,40 @@ private fun UnifiedSearchFilters(
 }
 
 @Composable
+private fun UnifiedSearchResultHeading(model: UnifiedSearchWorkspaceModel, inScrollingList: Boolean = false) {
+    val resultsComplete = model.searchSettled && model.dataStatus.complete
+    val resultsLabel = when {
+        model.queryStarted && !model.searchSettled -> stringResource(R.string.search_searching)
+        model.queryStarted && !resultsComplete && model.matchingResultCount > 0 ->
+            stringResource(R.string.search_partial_results, model.matchingResultCount)
+        model.queryStarted && !resultsComplete -> stringResource(R.string.search_results_incomplete)
+        model.queryStarted -> stringResource(R.string.search_results_count, model.matchingResultCount)
+        else -> stringResource(R.string.search_results)
+    }
+    Text(
+        resultsLabel,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = if (inScrollingList) 0.dp else WhipSpacing.screenCompact, vertical = WhipSpacing.compact)
+            .semantics {
+                heading()
+                if (!inScrollingList && resultsComplete && model.resultAnnouncement.isNotBlank()) {
+                    liveRegion = LiveRegionMode.Polite
+                    contentDescription = model.resultAnnouncement
+                }
+            }
+            .testTag("unified-search-result-announcement"),
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.SemiBold,
+    )
+}
+
+@Composable
 private fun UnifiedSearchResultsPane(
     model: UnifiedSearchWorkspaceModel,
     modifier: Modifier,
     includeFilters: Boolean,
+    scrollingControls: (@Composable () -> Unit)? = null,
     onDomainsChange: (Set<SearchDomain>) -> Unit,
     onRequireAllTermsChange: (Boolean) -> Unit,
     onSelect: (WhipSearchResult) -> Unit,
@@ -916,32 +978,13 @@ private fun UnifiedSearchResultsPane(
     LaunchedEffect(model.filtersExpanded) {
         if (includeFilters) resultsListState.scrollToItem(0)
     }
-    Column(modifier) {
-        val resultsComplete = model.searchSettled && model.dataStatus.complete
-        val resultsLabel = when {
-            model.queryStarted && !model.searchSettled -> stringResource(R.string.search_searching)
-            model.queryStarted && !resultsComplete && model.matchingResultCount > 0 ->
-                stringResource(R.string.search_partial_results, model.matchingResultCount)
-            model.queryStarted && !resultsComplete -> stringResource(R.string.search_results_incomplete)
-            model.queryStarted -> stringResource(R.string.search_results_count, model.matchingResultCount)
-            else -> stringResource(R.string.search_results)
+    Column(modifier.semantics {
+        if (scrollingControls != null && model.searchSettled && model.dataStatus.complete && model.resultAnnouncement.isNotBlank()) {
+            liveRegion = LiveRegionMode.Polite
+            contentDescription = model.resultAnnouncement
         }
-        Text(
-            resultsLabel,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = WhipSpacing.screenCompact, vertical = WhipSpacing.compact)
-                .semantics {
-                    heading()
-                    if (resultsComplete && model.resultAnnouncement.isNotBlank()) {
-                        liveRegion = LiveRegionMode.Polite
-                        contentDescription = model.resultAnnouncement
-                    }
-                }
-                .testTag("unified-search-result-announcement"),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
+    }) {
+        if (scrollingControls == null) UnifiedSearchResultHeading(model)
         LazyColumn(
             modifier = Modifier.fillMaxSize().testTag("unified-search-results-list"),
             state = resultsListState,
@@ -951,6 +994,14 @@ private fun UnifiedSearchResultsPane(
                 bottom = WhipSpacing.screenExpanded,
             ),
         ) {
+            if (scrollingControls != null) {
+                item(key = "search-scope-controls") {
+                    scrollingControls()
+                }
+                item(key = "search-result-heading") {
+                    UnifiedSearchResultHeading(model, inScrollingList = true)
+                }
+            }
             if (includeFilters && (model.filtersExpanded || model.activeFilterCount > 0)) {
                 item(key = "filters") {
                     UnifiedSearchFilters(

@@ -1,11 +1,17 @@
 package com.whip.app
 
 import android.content.Intent
+import android.os.Build
+import android.view.accessibility.AccessibilityWindowInfo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -15,11 +21,16 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.By
+import android.graphics.Rect
+import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.GoalDraft
 import com.whip.app.domain.GoalStatus
@@ -31,14 +42,168 @@ import com.whip.app.domain.RoutineExerciseDraft
 import com.whip.app.domain.TrackDraft
 import com.whip.app.domain.TrackFieldDraft
 import com.whip.app.domain.TrackFieldType
+import com.whip.app.domain.TaskDraft
+import com.whip.app.domain.ScheduleKind
+import java.io.File
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
+import org.junit.rules.RuleChain
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class GlobalSearchRoutingTest {
-    @get:Rule val compose = createEmptyComposeRule()
+    private val compose = createEmptyComposeRule()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
+
+    @Test
+    @AndroidFontScale
+    fun largeTextSearchRetainsQueryFiltersAndResultsAcrossRecreation() {
+        val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+        val taskId = runBlocking {
+            app.backupRepository.deleteAllData()
+            app.settingsRepository.update { it.copy(setupCompleted = true, dynamicColor = false) }
+            app.trackRepository.create(TrackDraft(
+                name = "Native search journal",
+                fields = listOf(TrackFieldDraft("Title", TrackFieldType.ShortText, primary = true)),
+            ))
+            app.taskRepository.create(TaskDraft(
+                title = "Native search report", scheduleKind = ScheduleKind.Once, date = app.clock.today(),
+            ))
+        }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            compose.waitUntil(15_000) { compose.onAllNodesWithTag("workspace-search-action").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithContentDescription("Tasks tab").performClick()
+            compose.onNodeWithTag("workspace-search-action").performClick()
+            waitForSearchQuery()
+            compose.onNodeWithTag("unified-search-query").performTextReplacement("Native search")
+            waitForResultCount(1)
+            awaitKeyboard()
+            compose.onNodeWithTag("unified-search-results-list")
+                .performScrollToNode(hasTestTag("unified-search-result-Task-$taskId"))
+            compose.onNode(
+                hasText("Native search report") and hasAnyAncestor(hasTestTag("unified-search-results-list")),
+                useUnmergedTree = true,
+            ).performScrollTo()
+            captureNativeSearch(app, "shared.search.native-large")
+            assertNativeResultAboveKeyboard("Native search report")
+
+            scrollControlIntoView("unified-search-all-whip")
+            compose.onNodeWithTag("unified-search-all-whip").performClick()
+            waitForResultCount(2)
+            scrollControlIntoView("search-filter-disclosure")
+            compose.onNodeWithTag("search-filter-disclosure").performClick()
+            val filterListTag = if (compose.onAllNodesWithTag("unified-search-filter-pane").fetchSemanticsNodes().isNotEmpty()) {
+                "unified-search-filter-pane"
+            } else "unified-search-results-list"
+            compose.onNodeWithTag(filterListTag).performScrollToNode(hasTestTag("search-terms-Match All"))
+            if (compose.onAllNodesWithTag("search-terms-Match Any").fetchSemanticsNodes().isEmpty()) {
+                compose.onNodeWithTag("search-terms-Match All").performClick()
+            }
+            compose.onNodeWithTag("search-terms-Match Any").performClick()
+            compose.onNodeWithTag("unified-search-query").performClick()
+            compose.onNodeWithTag("unified-search-query").performTextReplacement("Native missing")
+            waitForResultCount(2)
+            compose.onNodeWithTag(filterListTag).performScrollToNode(hasTestTag("search-terms-Match Any"))
+            captureNativeSearch(app, "shared.search.native-filters-large")
+
+            scenario.recreate()
+            waitForSearchQuery()
+            awaitKeyboard()
+            compose.onNodeWithTag("unified-search-query").assertTextContains("Native missing")
+            scrollControlIntoView("search-filter-disclosure")
+            compose.onNodeWithText("Filters (2)").assertIsDisplayed()
+            waitForResultCount(2)
+            captureNativeSearch(app, "shared.search.native-recreated-large")
+            compose.onNodeWithTag("search-filter-disclosure").performClick()
+            compose.onNodeWithTag("unified-search-results-list")
+                .performScrollToNode(hasTestTag("unified-search-result-Task-$taskId"))
+            compose.onNodeWithTag("unified-search-result-Task-$taskId").performClick()
+            compose.waitUntil(10_000) { compose.onAllNodesWithTag("entity-inspector-header").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNode(hasText("Native search report") and hasAnyAncestor(hasTestTag("entity-inspector-header")))
+                .assertIsDisplayed()
+        }
+    }
+
+    private fun waitForSearchQuery() {
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("unified-search-query").fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    private fun assertNativeResultAboveKeyboard(title: String) {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val device = UiDevice.getInstance(instrumentation)
+        device.waitForIdle()
+        val ime = Rect()
+        checkNotNull(instrumentation.uiAutomation.windows.firstOrNull {
+            it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
+        }).getBoundsInScreen(ime)
+        val result = device.findObjects(By.text(title)).singleOrNull()?.visibleBounds
+        val layout = compose.onNode(
+            hasText(title) and hasAnyAncestor(hasTestTag("unified-search-results-list")),
+            useUnmergedTree = true,
+        ).getUnclippedBoundsInRoot()
+        val density = instrumentation.targetContext.resources.displayMetrics.density
+        val pane = compose.onNodeWithTag("unified-search-results-pane").getUnclippedBoundsInRoot()
+        assertTrue("Result must be visibly reachable above the keyboard: $result versus $ime; title $layout; pane $pane; density $density",
+            result != null && result.height() >= (layout.bottom - layout.top).value * density - 1f && result.bottom <= ime.top)
+    }
+
+    private fun waitForResultCount(count: Int) {
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText("Results · $count").fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodes(hasContentDescription("$count search result", substring = true)).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun scrollControlIntoView(tag: String) {
+        if (compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty() || !compose.onNodeWithTag(tag).isDisplayed()) {
+            compose.onNodeWithTag("unified-search-results-list").performScrollToNode(hasTestTag(tag))
+        }
+    }
+
+    private fun awaitKeyboard() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        compose.waitUntil(10_000) {
+            instrumentation.uiAutomation.windows.any { it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD }
+        }
+        compose.waitForIdle()
+        instrumentation.uiAutomation.waitForIdle(750L, 5_000L)
+        UiDevice.getInstance(instrumentation).waitForIdle()
+    }
+
+    private fun captureNativeSearch(app: WhipApplication, id: String) {
+        awaitKeyboard()
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            captureVisualCatalogSurface(id)
+        } else {
+            val device = UiDevice.getInstance(instrumentation)
+            compose.waitForIdle()
+            instrumentation.uiAutomation.waitForIdle(750L, 5_000L)
+            device.waitForIdle()
+            val directory = checkNotNull(app.getExternalFilesDir("native-search"))
+            check(directory.isDirectory || directory.mkdirs())
+            check(device.takeScreenshot(File(directory, "$id.png")))
+            device.dumpWindowHierarchy(File(directory, "$id.xml"))
+        }
+        compose.assertDialogFontScale()
+        compose.assertEditorHeaderVisibleWithKeyboard("Search", "Close Search", titleTag = "unified-search-title")
+        val device = UiDevice.getInstance(instrumentation)
+        val status = device.findObject(By.res("com.android.systemui", "status_bar"))?.visibleBounds
+        val title = checkNotNull(device.findObject(By.text("Search"))).visibleBounds
+        assertTrue("Search heading must stay below the status bar: $title versus $status",
+            status == null || title.top >= status.bottom)
+        if (status != null && status.height() > 0) {
+            val bitmap = checkNotNull(instrumentation.uiAutomation.takeScreenshot())
+            try {
+                assertEquals("Search must paint its status-bar backdrop with the workspace background",
+                    bitmap.getPixel(bitmap.width / 2, title.top - 1),
+                    bitmap.getPixel(bitmap.width / 2, status.centerY()))
+            } finally {
+                bitmap.recycle()
+            }
+        }
+    }
 
     @Test fun everyNonTaskSearchDomainLandsOnTheExactActiveOrArchivedRecord() {
         runBlocking {

@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="0" errors="0" skipped="0" time="13.089" timestamp="2026-09-09T13:06:02" hostname="localhost">
+  <testsuite name="com.whip.app.GlobalSearchRoutingTest" tests="1" failures="0" errors="0" skipped="0" time="12.393" timestamp="2026-09-09T13:06:02" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api26_small(AVD) - 8.0.0" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="largeTextSearchRetainsQueryFiltersAndResultsAcrossRecreation" classname="com.whip.app.GlobalSearchRoutingTest" time="12.393" />
+  </testsuite>
+</testsuites>
