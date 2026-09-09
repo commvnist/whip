@@ -1,5 +1,14 @@
 # Verification and release evidence
 
+### VER-20260908-013 — Astra audit baseline and tracking checks
+
+- Scope/environment: Clean `main` at `4f4a5dc`; documentation/coverage-tracking setup only. Two explicit disposable API 34 emulators were started for the new runtime campaign.
+- Command or manual procedure: `git status --short --branch`; `scripts/ui-catalog lint`; `scripts/ui-catalog discover`; `scripts/check --ready`; inspect `app/build/test-results/testDebugUnitTest/TEST-*.xml`; matrix structural checks; `git diff --check`.
+- Result: Catalog lint passes with 185 captures, zero pending selectors/exceptions. Readiness passes 344 executed JVM tests with zero failures/errors/skips, Android-test compilation, debug lint/build, and static checks. This is the routed subset, not the full 621-JVM suite. Source/matrix inventory is a review starting point, not product acceptance.
+- Counts/exclusions: No Android execution is claimed by this record; fresh baseline capture has a separate live process and pending result. No candidate, physical-device operation, release/version bump, or owner-data change.
+- Related: `FB-20260908-006`, `IMP-20260908-013`.
+- Status: Verified.
+
 ### VER-20260831-001 — Gym remediation test evidence
 
 - Scope/environment: JVM domain/repository/UI-rule suite plus targeted Android UI journeys on a disposable emulator; release Android sources compiled.

@@ -1,5 +1,14 @@
 # Implementation history
 
+### IMP-20260908-013 — Establish the fresh Astra audit scope and evidence matrix
+
+- Behavior changed: No application behavior changed. Preserved the owner's complete objective, recorded the new active goal independently of completed audits, and created area, source-owner, and 185-surface review matrices with unverified initial states.
+- Important files: `docs/quality/ASTRA_PRODUCT_AUDIT_2026-09-08.md`, `ASTRA_QUALITY_GOAL_2026-09-08.md`, `astra-source-baseline-2026-09-08.tsv`, `astra-surface-review-2026-09-08.tsv`, and the feedback/index ledgers.
+- Persistence/migration/history impact: None. Application source remains 0.3.66/code 72 at baseline `4f4a5dc`.
+- Related: `FB-20260908-006`, `VER-20260908-013`.
+- Verification: Routed readiness, catalog/source discovery, matrix structure, and Git whitespace checks. Fresh runtime capture is running separately and is not claimed as complete.
+- Status: Verified.
+
 ### IMP-20260831-001 — Gym and 5/3/1 first-class remediation released
 
 - Behavior changed: Added arbitrary-lift 5/3/1 creation; distinct actual/e1RM/TM semantics and adjustable derivation; ordinary-routine TM controls; typed Main/Supplemental/Assistance/Optional work; additive Jokers; performance-informed cycle review; workout-only exercises; contextual picker return; adaptive routine panes; honest no-history state; accessible timers; and timer-boundary correction.

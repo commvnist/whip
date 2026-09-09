@@ -2,6 +2,15 @@
 
 These records preserve durable user intent. “Released” means the change reached a device build; it does not erase later user validation or regression findings.
 
+### FB-20260908-006 — Fresh whole-product quality goal with justified design freedom
+
+- Date/source: 2026-09-08, owner-provided goal attachment in the Astra audit task.
+- User need: Elevate the complete existing Whip app through fresh UX, UI, visual-design, functionality, accessibility, reliability, and engineering judgment; deliver implemented and verified improvements rather than an audit report alone.
+- Acceptance criteria: Inventory every distinct surface and consequential state from source and runtime, including additional discoveries beyond the existing catalog; give every feature equal source, behavior, persistence, and visual depth; inspect complete journeys and realistic/adaptive/error states; challenge earlier design decisions while preserving explicit owner needs, useful capabilities, data, history, and domain meaning; justify consequential local redesigns against incremental alternatives; implement confirmed critical/high-impact defects and justified material improvements; keep before/after evidence and requirement-level coverage; use at most two disposable emulators, focused development checks, and final whole-product regression/build/lint/accessibility/adaptive/visual review; maintain memory and commit/push coherent verified chunks. Single-agent implementation; physical-phone operations and release/publication remain separate follow-ups.
+- Related: `FB-20260908-001`, `FB-20260908-002`, `DEC-20260902-001`, [active audit](../quality/ASTRA_PRODUCT_AUDIT_2026-09-08.md).
+- Status: In progress.
+- Notes: Starts from clean `4f4a5dc` on `main`. Prior completed audit evidence is reference only and does not satisfy this new goal's fresh review. The complete attached objective is preserved in the linked goal document.
+
 ### FB-20260831-001 — Arbitrary lifts in 5/3/1
 
 - User need: Build 5/3/1 around personally selected lifts rather than the traditional four only; Bench Press, Deadlift, and Zercher Squat is the concrete example.
