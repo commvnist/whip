@@ -794,13 +794,13 @@ internal fun GoalProjection.collectionStatus(
             elapsedDisplayLabel(nowMillis, zoneId) ?: terminalSnapshot.status.inspectorLabel()
         terminalSnapshot != null && goal.type == GoalType.WeightedMilestones ->
             terminalSnapshot.milestoneOutcomeLabel()
-                ?: terminalSnapshot.progress?.let { "${(it * 100).toInt()}% complete" }
+                ?: terminalSnapshot.progress?.let { "${formatGoalProgressPercent(it)} complete" }
                 ?: terminalSnapshot.status.inspectorLabel()
         goal.type == GoalType.ElapsedSince && goal.elapsedStartMillis != null ->
             elapsedDisplayLabel(nowMillis, zoneId) ?: goal.type.displayLabel()
         goal.type == GoalType.WeightedMilestones ->
             "${milestones.count { it.completed }}/${milestones.size} milestones"
-        progress != null -> "${(progress * 100).toInt()}% complete"
+        progress != null -> "${formatGoalProgressPercent(progress)} complete"
         consistency != null -> with(requireNotNull(consistency)) {
             "$successfulPeriods/$requiredPeriods ${period.periodLabel} periods"
         }
@@ -899,7 +899,7 @@ fun GoalCard(
                             modifier = Modifier.weight(1f),
                             color = progressColor,
                         )
-                        Text("${(progress * 100).toInt()}% complete", style = MaterialTheme.typography.labelSmall, color = progressColor)
+                        Text("${formatGoalProgressPercent(progress)} complete", style = MaterialTheme.typography.labelSmall, color = progressColor)
                     }
                 }
                 if (goal.type == GoalType.ElapsedSince) {
@@ -1251,7 +1251,7 @@ private fun GoalInsightsContent(
                     } else Text("Log at least two observations for a trend line.")
                     if (projection.goal.type != GoalType.ElapsedSince) Text(
                         listOfNotNull(
-                            projection.progress?.let { "${(it * 100).toInt()}% complete" },
+                            projection.progress?.let { "${formatGoalProgressPercent(it)} complete" },
                             projection.onPace?.let { if (it) "On pace" else "Behind pace" },
                             insights.ratePerDay?.let { "Rate ${formatGoalValue(it, projection.goal.precision)} per day" },
                             insights.forecastDate?.let { "Forecast $it" },
@@ -2514,7 +2514,7 @@ internal fun GoalActionsDialog(
                     items(insights.points.takeLast(visibleMeasurements), key = { "insight-${it.date}" }) { point ->
                         Text(
                             "${point.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}: value ${formatGoalValue(point.canonicalValue, projection.goal.precision)}, " +
-                                "progress ${point.progress?.let { "${(it * 100).toInt()}%" } ?: "not applicable"}, ${point.recordedEntries} update${if (point.recordedEntries == 1) "" else "s"}",
+                                "progress ${point.progress?.let { formatGoalProgressPercent(it) } ?: "not applicable"}, ${point.recordedEntries} update${if (point.recordedEntries == 1) "" else "s"}",
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
@@ -2678,13 +2678,13 @@ private fun GoalProjection.inspectorOutcome(
         terminalSnapshot.milestoneOutcomeLabel()
             ?.replace("/", " of ")
             ?.replace(" milestones", " milestones complete")
-            ?: terminalSnapshot.progress?.let { "${(it * 100).toInt()}% complete" }
+            ?: terminalSnapshot.progress?.let { "${formatGoalProgressPercent(it)} complete" }
             ?: terminalSnapshot.status.inspectorLabel()
     goal.type == GoalType.ElapsedSince && goal.elapsedStartMillis != null ->
         elapsedDisplayLabel(nowMillis, zoneId) ?: "Ready to begin"
     goal.type == GoalType.WeightedMilestones ->
         "${milestones.count { it.completed }} of ${milestones.size} milestones complete"
-    progress != null -> "${(progress * 100).toInt()}% complete"
+    progress != null -> "${formatGoalProgressPercent(progress)} complete"
     consistency != null -> with(requireNotNull(consistency)) {
         "$successfulPeriods of $requiredPeriods ${period.periodLabel} periods complete"
     }
@@ -2728,7 +2728,7 @@ internal fun GoalClosureSnapshot.accessibleHistoryDescription(
             DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM),
         )}",
     )
-    progress?.let { add("${(it * 100).toInt()}% progress") }
+    progress?.let { add("${formatGoalProgressPercent(it)} progress") }
     elapsedDurationMillis?.let { duration ->
         add("elapsed ${formatGoalDuration(duration)}")
     }

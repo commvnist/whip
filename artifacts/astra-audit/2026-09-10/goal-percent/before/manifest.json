@@ -1,0 +1,22 @@
+[
+  {
+    "file": "goals.progress.endpoints.xml",
+    "original": "goals.progress.endpoints.xml",
+    "sha256": "eaf42ada1b5ba79cb7e937611f6a6745c9764b40f5f20ced1cd274b0450a3801"
+  },
+  {
+    "file": "goals.progress.endpoints.png",
+    "original": "goals.progress.endpoints.png",
+    "sha256": "5689be1b9cafb522c306f71ae732c0cf5236cc1be63e93aef5bb6ae37cf0784c"
+  },
+  {
+    "file": "goals.progress.home.xml",
+    "original": "goals.progress.home.xml",
+    "sha256": "5711a17f3ed1d906ec9dd0efa6b8120fbe0efc7c521e2cc4a9825600bd359271"
+  },
+  {
+    "file": "goals.progress.home.png",
+    "original": "goals.progress.home.png",
+    "sha256": "5b99148843a6b6a953d48b0ec1126cd4695d8e8aa19dc175489964c2e9bef398"
+  }
+]

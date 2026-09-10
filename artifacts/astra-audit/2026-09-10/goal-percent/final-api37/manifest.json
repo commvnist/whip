@@ -1,0 +1,92 @@
+[
+  {
+    "file": "goals.progress.near-target.xml",
+    "original": "goals.progress.near-target.xml",
+    "sha256": "eb6770a9ed1437a79f5fdded772532655b54ae7a478af2d5cab2ee27fbe19460"
+  },
+  {
+    "file": "goals.progress.near-target.png",
+    "original": "goals.progress.near-target.png",
+    "sha256": "3411baca03acf4d6508ac70e21a7812036ae612df6ffe8ea3ba49168ab59b7b5"
+  },
+  {
+    "file": "goals.progress.endpoints.xml",
+    "original": "goals.progress.endpoints.xml",
+    "sha256": "a23e20ea12d91020233955a4e5f4917bf09a8002db84898ac6a9776829e7e336"
+  },
+  {
+    "file": "goals.progress.endpoints.png",
+    "original": "goals.progress.endpoints.png",
+    "sha256": "706809b87a3456ab094cfb25da0f1b5cfe0873dea708df72808d1805e9fc45a1"
+  },
+  {
+    "file": "goals.progress.archived-history.xml",
+    "original": "goals.progress.archived-history.xml",
+    "sha256": "0a53e3725c33c2b7c43733b415a8e1b454a23b3a4d185f96a081bd2916be78ae"
+  },
+  {
+    "file": "goals.progress.archived-history.png",
+    "original": "goals.progress.archived-history.png",
+    "sha256": "a52d23715213a2863752ea87e1471d16088ff3882bdddd9008564d424ae11161"
+  },
+  {
+    "file": "goals.progress.closure.xml",
+    "original": "goals.progress.closure.xml",
+    "sha256": "87a5c9e215a2d5e46ecfabff9e3d717974a2ad6e833d73a44ec41c3605aa6f2c"
+  },
+  {
+    "file": "goals.progress.closure.png",
+    "original": "goals.progress.closure.png",
+    "sha256": "88f77c8aa5d1970e9d3dfe6200cbf05ca24dc0bf3e87b9b44c77fef293696880"
+  },
+  {
+    "file": "goals.progress.insights.xml",
+    "original": "goals.progress.insights.xml",
+    "sha256": "330a0132ab62bf6360f0026f08eb2d65b35fdfbded8a5f0b6943a87ac3d15047"
+  },
+  {
+    "file": "goals.progress.insights.png",
+    "original": "goals.progress.insights.png",
+    "sha256": "b98eb718893ae0536645ded0eeedd675884a6027a294ab04cf15e12f55b920bd"
+  },
+  {
+    "file": "goals.progress.trend-table.xml",
+    "original": "goals.progress.trend-table.xml",
+    "sha256": "13f44c3030594825fe374cf3821ae12d515a091d8c4a0a068a47a250e8007ef5"
+  },
+  {
+    "file": "goals.progress.trend-table.png",
+    "original": "goals.progress.trend-table.png",
+    "sha256": "3db4973e2cdd2e1d846b4ec1ac11848408b7c6b80471efdd03d0e222ca59ea16"
+  },
+  {
+    "file": "goals.progress.overview.xml",
+    "original": "goals.progress.overview.xml",
+    "sha256": "5ac0bf8dd056e38cbf5c50cabb2e2e2651ccd1d7a45f6271c24a34220ca83554"
+  },
+  {
+    "file": "goals.progress.overview.png",
+    "original": "goals.progress.overview.png",
+    "sha256": "0b7745a554fb665ca2b1edd6905c0b813d9bc55b83b2c17f4b7ee74594e8f470"
+  },
+  {
+    "file": "goals.progress.expanded.xml",
+    "original": "goals.progress.expanded.xml",
+    "sha256": "e1d2abe3b52c33cd936aaa86f5647f8949e026c5582e312a1fb8c441531c5d48"
+  },
+  {
+    "file": "goals.progress.expanded.png",
+    "original": "goals.progress.expanded.png",
+    "sha256": "9e9c74ed5df2ba28abad97217e2a8a9d14c05c84e39b1987c2bf70d3fd2a0308"
+  },
+  {
+    "file": "goals.progress.home.xml",
+    "original": "goals.progress.home.xml",
+    "sha256": "5b39abc199d1c99cb83716e68f42331c7d69413c6f8672b56a6a05ed06820271"
+  },
+  {
+    "file": "goals.progress.home.png",
+    "original": "goals.progress.home.png",
+    "sha256": "1c4d593c6a6fcd719430e94e8a558da2e210f8f5c261410ac49bbd53524827a1"
+  }
+]

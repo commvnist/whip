@@ -4,7 +4,7 @@
 
 - Severity/category: P2 ordinary numeric comprehension.
 - Observed: The Review source journey saves 0.05 against a target of 10 and correctly shows its 0.005 normalized Review score, but the original Goal inspector says 0% complete. Personally inspected API 34 original and GoalScreens repeated `(progress * 100).toInt()` paths confirm this separate presentation defect.
-- Status: Confirmed; prioritize a shared Goal percentage presentation rule after the independently verified Review outcome chunk. Preserve domain scoring and distinguish small positive progress from zero across cards, inspectors and history. Existing original-source capture is evidence of the defect, not full Goal acceptance.
+- Status: Verified in IMP/VER-20260910-012. One locale-aware Goal percentage rule replaces eight integer conversions across Home/collection/expanded cards, Insights, inspector outcomes, trend data and frozen closure history. Two native journeys on API 34/37 preserve a small beginning and distinguish nearly reached from exact completion, including archive and Activity recreation. Domain scoring and actual measurement precision remain intact. Evidence: `artifacts/astra-audit/2026-09-10/goal-percent/README.md`; whole Goal/app acceptance remains open.
 
 ### FND-20260910-017 — Small positive Review Goal contributions display as zero
 

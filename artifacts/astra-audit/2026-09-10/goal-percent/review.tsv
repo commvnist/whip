@@ -1,0 +1,21 @@
+file	NAF_nodes	observation
+before/goals.progress.home.png	0	Unchanged-production Home reports 0% for a saved 0.05 against a target of 10: actual progress is 0.5%.
+before/goals.progress.endpoints.png	0	Unchanged-production collection reports the tiny beginning as 0% and nearly reached target as 99%, alongside true zero and complete cases.
+final-api34/goals.progress.home.png	0	Home retains a visible 0.5% Goal summary beside the familiar quick progress action.
+final-api34/goals.progress.expanded.png	0	The shared productivity builder shows one complete progress label, bar, actual measurement and final Edit action without duplicate summary.
+final-api34/goals.progress.overview.png	0	Goal inspector outcome reads 0.5%; original measurement precision and Record Progress action remain intact.
+final-api34/goals.progress.trend-table.png	0	The accessible trend row retains progress 0.5% after Activity recreation with date, actual value and update count.
+final-api34/goals.progress.insights.png	0	Goal Insights shows the same 0.5% with the saved observation; the record opens the original inspector.
+final-api34/goals.progress.closure.png	0	Abandoned Goal history preserves 0.5% progress and the original closure outcome; ordinary history controls remain reachable.
+final-api34/goals.progress.archived-history.png	0	Archived history preserves the same closure after Activity recreation; archive context and source identity remain visible.
+final-api34/goals.progress.endpoints.png	0	Four collection cards distinguish a tiny beginning, nearly reached target, exact zero and exact target as <0.1%, >99.9%, 0% and 100%.
+final-api34/goals.progress.near-target.png	0	Recreated original inspector says >99.9% and retains Active status; display rounding does not invent completion.
+final-api37/goals.progress.home.png	0	Home retains a visible 0.5% Goal summary beside the familiar quick progress action.
+final-api37/goals.progress.expanded.png	0	The shared productivity builder shows one complete progress label, bar, actual measurement and final Edit action without duplicate summary.
+final-api37/goals.progress.overview.png	0	Goal inspector outcome reads 0.5%; original measurement precision and Record Progress action remain intact.
+final-api37/goals.progress.trend-table.png	0	The accessible trend row retains progress 0.5% after Activity recreation with date, actual value and update count.
+final-api37/goals.progress.insights.png	0	Goal Insights shows the same 0.5% with the saved observation; the record opens the original inspector.
+final-api37/goals.progress.closure.png	0	Abandoned Goal history preserves 0.5% progress and the original closure outcome; ordinary history controls remain reachable.
+final-api37/goals.progress.archived-history.png	0	Archived history preserves the same closure after Activity recreation; archive context and source identity remain visible.
+final-api37/goals.progress.endpoints.png	0	Four collection cards distinguish a tiny beginning, nearly reached target, exact zero and exact target as <0.1%, >99.9%, 0% and 100%.
+final-api37/goals.progress.near-target.png	0	Recreated original inspector says >99.9% and retains Active status; display rounding does not invent completion.

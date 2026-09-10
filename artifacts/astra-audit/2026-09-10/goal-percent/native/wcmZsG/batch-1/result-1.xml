@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="2" errors="0" skipped="0" time="9.166" timestamp="2026-09-10T11:48:25" hostname="localhost">
+  <testsuite name="com.whip.app.GoalProgressJourneyE2ETest" tests="2" failures="2" errors="0" skipped="0" time="8.24" timestamp="2026-09-10T11:48:25" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="smallProgressStaysVisibleThroughHomeDetailsAndArchivedHistory" classname="com.whip.app.GoalProgressJourneyE2ETest" time="4.617">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Text + EditableText = [0.5% complete])
+Semantics of the node:
+Node #202 at (l=85.0, t=908.0, r=995.0, b=945.0)px, Tag: 'goal-card-status-1'
+Text = '[0% complete]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 4 siblings
+Selector used: (TestTag = 'goal-card-status-1')
+
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertTextEquals(Assertions.kt:207)
+at androidx.compose.ui.test.AssertionsKt.assertTextEquals$default(Assertions.kt:203)
+at com.whip.app.GoalProgressJourneyE2ETest.assertCard(GoalProgressJourneyE2ETest.kt:103)
+at com.whip.app.GoalProgressJourneyE2ETest.smallProgressStaysVisibleThroughHomeDetailsAndArchivedHistory(GoalProgressJourneyE2ETest.kt:28)
+</failure>
+    </testcase>
+    <testcase name="tinyAndNearlyCompleteGoalsRemainDistinctFromTheirEndpoints" classname="com.whip.app.GoalProgressJourneyE2ETest" time="3.623">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Text + EditableText = [&lt;0.1% complete])
+Semantics of the node:
+Node #497 at (l=85.0, t=931.0, r=995.0, b=968.0)px, Tag: 'goal-card-status-2'
+Text = '[0% complete]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 4 siblings
+Selector used: (TestTag = 'goal-card-status-2')
+
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertTextEquals(Assertions.kt:207)
+at androidx.compose.ui.test.AssertionsKt.assertTextEquals$default(Assertions.kt:203)
+at com.whip.app.GoalProgressJourneyE2ETest.assertCard(GoalProgressJourneyE2ETest.kt:103)
+at com.whip.app.GoalProgressJourneyE2ETest.tinyAndNearlyCompleteGoalsRemainDistinctFromTheirEndpoints(GoalProgressJourneyE2ETest.kt:91)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

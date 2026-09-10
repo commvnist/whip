@@ -1,0 +1,137 @@
+[
+  {
+    "file": "before/goals.progress.home.xml",
+    "original": "5711a17f3ed1d906ec9dd0efa6b8120fbe0efc7c521e2cc4a9825600bd359271",
+    "retained": "010c58a8f13226a8ef012fce6957a3b35455d33203d0bc6fc04d7ea668726659"
+  },
+  {
+    "file": "before/goals.progress.endpoints.xml",
+    "original": "eaf42ada1b5ba79cb7e937611f6a6745c9764b40f5f20ced1cd274b0450a3801",
+    "retained": "4f8bf16050679996800eab8900976b1884a09838af9b3b7faf385c3c67ef18fb"
+  },
+  {
+    "file": "final-api34/goals.progress.home.xml",
+    "original": "dea5a72b58b472d5e4ba47c883d5386c7a0598df326146f973cfdc348767d5bd",
+    "retained": "10caca2e5a241dc280477f6b40b0bc5ca9f235f9ae834a98823d8d0bf010f460"
+  },
+  {
+    "file": "final-api34/goals.progress.expanded.xml",
+    "original": "9e6806f6395fe99d1f03f774d075b268c0a22e354d0fe979ad6430f79d9e4e88",
+    "retained": "69d42e5a238223b2587d2f98653dc7a72f323ad17000de6cfffd0d6ce062f39f"
+  },
+  {
+    "file": "final-api34/goals.progress.overview.xml",
+    "original": "64fe5eaac17bf58d88e840f3169465fb9553939a62f36926f4779835ddc98f9f",
+    "retained": "bb0d5f3de10e66e7065cd7a430a84f3a33b28dd122aca28bc7621c5b6e56d0dc"
+  },
+  {
+    "file": "final-api34/goals.progress.trend-table.xml",
+    "original": "f70ac19df69d751cebc3cd97975a7b5811819177a0e0ac03825dadf05b352cb3",
+    "retained": "abb533fc8a83d611444379faa8230aabe08d538c2e7acbab388abf35ce5473ae"
+  },
+  {
+    "file": "final-api34/goals.progress.insights.xml",
+    "original": "efe3168d1903a58b54200e6ec528980c939bc3e85e46bbf1b8fb412cb929ec76",
+    "retained": "a2131d5affff989f68a8fa150624a7b1d8fb3913d7aa23f90544d716ce785be4"
+  },
+  {
+    "file": "final-api34/goals.progress.closure.xml",
+    "original": "4fc11f5db989e3c9481fdccb6120bb56dee5790397e4ad1521570959120b904f",
+    "retained": "ed73a91b34821452253aa19e7db4caa000e4d93bf99aa72883cc4f978fdcd530"
+  },
+  {
+    "file": "final-api34/goals.progress.archived-history.xml",
+    "original": "936316346a7fc051db951d07431d336deadb88e751b3a2187a36e6f2852b8001",
+    "retained": "c2a8c69c843be9ae63c23f56b759dbfaa9c0cedb9e791d5e419d55624582d7e8"
+  },
+  {
+    "file": "final-api34/goals.progress.endpoints.xml",
+    "original": "b4a46c0bb53eb756077a96e11bb5e492c601760a62a30eab252e3badaf720f23",
+    "retained": "7104ee80a77a2c2fca56774c12d571d55892884a8f44605bedd05b202c943f42"
+  },
+  {
+    "file": "final-api34/goals.progress.near-target.xml",
+    "original": "95ebf66881b190dc77281e47dbc4e9ba6f190dcb74536a3cd4a17f7395b153b9",
+    "retained": "2a2ae0db04ad188b0362e6632fd7b01d7feb2decff5a9ec30566a92a78c8d52f"
+  },
+  {
+    "file": "final-api37/goals.progress.home.xml",
+    "original": "5b39abc199d1c99cb83716e68f42331c7d69413c6f8672b56a6a05ed06820271",
+    "retained": "8fe761e2a242d020c9a63fe588f895305e722051b273705a8d100944f084884d"
+  },
+  {
+    "file": "final-api37/goals.progress.expanded.xml",
+    "original": "e1d2abe3b52c33cd936aaa86f5647f8949e026c5582e312a1fb8c441531c5d48",
+    "retained": "91e604ed79125cc8c25a4e77d7c3d50db0190b1f89aa944379a1fe3b9392e1e3"
+  },
+  {
+    "file": "final-api37/goals.progress.overview.xml",
+    "original": "5ac0bf8dd056e38cbf5c50cabb2e2e2651ccd1d7a45f6271c24a34220ca83554",
+    "retained": "3c60691f275dc975ac50137a6f5b4484bc573c16bd59d8f607db4541d100f621"
+  },
+  {
+    "file": "final-api37/goals.progress.trend-table.xml",
+    "original": "13f44c3030594825fe374cf3821ae12d515a091d8c4a0a068a47a250e8007ef5",
+    "retained": "db135f61485e36d46f356a768ea45d1d2fc9ed850242700335772b5505badff9"
+  },
+  {
+    "file": "final-api37/goals.progress.insights.xml",
+    "original": "330a0132ab62bf6360f0026f08eb2d65b35fdfbded8a5f0b6943a87ac3d15047",
+    "retained": "1a0eef54a82410a3d919e1bf409365a760d68d37556891a8700513e9cede8d74"
+  },
+  {
+    "file": "final-api37/goals.progress.closure.xml",
+    "original": "87a5c9e215a2d5e46ecfabff9e3d717974a2ad6e833d73a44ec41c3605aa6f2c",
+    "retained": "c62332b6de050efdb514b277c0fa646c30b8808b3a5bde71256d32f17e59bc28"
+  },
+  {
+    "file": "final-api37/goals.progress.archived-history.xml",
+    "original": "0a53e3725c33c2b7c43733b415a8e1b454a23b3a4d185f96a081bd2916be78ae",
+    "retained": "925e41585bc1024d80e05228bc40debff8875ae5d7d2ad71b6bd784fb0d52184"
+  },
+  {
+    "file": "final-api37/goals.progress.endpoints.xml",
+    "original": "a23e20ea12d91020233955a4e5f4917bf09a8002db84898ac6a9776829e7e336",
+    "retained": "e461f422996a49e0032a03c4cd3b72ad1c259376cac53b4b285a2f4a1d607180"
+  },
+  {
+    "file": "final-api37/goals.progress.near-target.xml",
+    "original": "eb6770a9ed1437a79f5fdded772532655b54ae7a478af2d5cab2ee27fbe19460",
+    "retained": "5281554e774de85a097f99d3a0981b9979c2bd43c5d61ab49258a6cf4d5034a8"
+  },
+  {
+    "file": "native/7U93OZ/batch-1/result-1.xml",
+    "original": "b3e4d1c6c06b1faff885d4c23b31a1a59ec3ef3fb5ab8b3ef40b1d8d07282e50",
+    "retained": "7931188dae6cd19922e516dff253063e035547f991787d00444d272704150c1f"
+  },
+  {
+    "file": "native/dqwsyP/batch-1/result-1.xml",
+    "original": "ccb05236af3c58f7ac0850e69b985c525ff35c40c77ce96978b69c6892a40fdc",
+    "retained": "2cdbc77d914cb079e1ec24fd5cece38b17aa322d960e7f0d84714cc37f2a12d4"
+  },
+  {
+    "file": "native/hBuE4M/batch-1/result-1.xml",
+    "original": "357bad50b495f3eb750164139b2f635e2fae353b869de5c9566c00cb8665ab3c",
+    "retained": "ca4c786ede7827d8616028bec72d60b4b81c6d0037fc3528bea646d2203c4809"
+  },
+  {
+    "file": "native/igkxBs/batch-1/result-1.xml",
+    "original": "64d7adbd112ef0c0d927aa70422dae3e7639df36cad0f26f7de80440c53af16b",
+    "retained": "6b7917436a1672f6408939c4f7fd352131087d1f26a2c926b0298ec76759bee8"
+  },
+  {
+    "file": "native/kQ4sKx/batch-1/result-1.xml",
+    "original": "f9ec8604b2c8a7c94fd295d5b0c64c26b382929d505a870d9bc8509a53b3b2c3",
+    "retained": "76914d2a9f25bdeaed6fc2f23cdb983bb1312f6825204f5c8dfb29b4e7dfbade"
+  },
+  {
+    "file": "native/uybwCo/batch-1/result-1.xml",
+    "original": "c47b5cf59edb74e50380136f54ee5b9d0ff0651b3ee60baf2fc91e7a026c462a",
+    "retained": "a5b51e6f69ef6e12b2a3aadfde63b949e102947e416fbb12628dad34a7d8fecc"
+  },
+  {
+    "file": "native/wcmZsG/batch-1/result-1.xml",
+    "original": "5acbcd8c306ac2f58b5b66da7950e8349d3e3f57d701a8751d00a9eb71f172bb",
+    "retained": "761197f9eef6735088b0eab55114feeac5aa49311aff7bb7a5b6de8b167eef66"
+  }
+]

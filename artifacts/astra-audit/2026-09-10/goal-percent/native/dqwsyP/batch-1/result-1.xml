@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="0" errors="0" skipped="0" time="28.529" timestamp="2026-09-10T12:05:17" hostname="localhost">
+  <testsuite name="com.whip.app.GoalProgressJourneyE2ETest" tests="2" failures="0" errors="0" skipped="0" time="27.525" timestamp="2026-09-10T12:05:17" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="smallProgressStaysVisibleThroughHomeDetailsAndArchivedHistory" classname="com.whip.app.GoalProgressJourneyE2ETest" time="20.915" />
+    <testcase name="tinyAndNearlyCompleteGoalsRemainDistinctFromTheirEndpoints" classname="com.whip.app.GoalProgressJourneyE2ETest" time="6.61" />
+  </testsuite>
+</testsuites>

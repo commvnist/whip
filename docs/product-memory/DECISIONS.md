@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-012 — Goal percentages preserve small progress and exact endpoints
+
+- Evidence: FND-20260910-019 and eight independent GoalScreens integer conversions cover collection/Home summaries, expanded cards, Insights, inspector outcomes, trend data and closure history. Existing domain calculations already retain the fractional progress; DEC-20260831-017 requires closure outcomes to remain frozen.
+- Decision: Use one locale-aware Goal percentage formatter with up to one decimal place. Positive progress below 0.1% reads below that threshold; progress above 99.9% but below 100% reads above 99.9%. Exact zero and complete progress retain 0% and 100%. Keep milestone counts, elapsed duration and actual measurement precision as separate domain facts.
+- Alternatives/tradeoffs: Integer truncation conceals early progress; displaying many decimals everywhere adds noise; copying Review's normalized-score formatter would conflate a score with a percent. One concise Goal presentation rule removes duplicated conversions without changing calculations, repository state, closure truth or shared item layout.
+- Status: Verified in VER-20260910-012: 69 API 34 checks, nine API 37 methods, 371 JVM readiness checks and 20 personally inspected original images. Native Home/collection/insight/closure/archive journeys and recreation preserve the percentage and saved outcome. Ordinary 100% UX remains the priority; broader app audit remains active.
+
 ### DEC-20260910-011 — Review cards expose their contributing outcomes before source navigation
 
 - Evidence: FND-20260910-016 reproduces four empty general destinations after nonempty Review totals. Existing per-entity inspectors already expose domain details and archived history.

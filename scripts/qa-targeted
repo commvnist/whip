@@ -187,9 +187,11 @@ add_profile() {
                 'com.whip.app.domain.GoalRulesTest'
                 'com.whip.app.ui.GoalMutationCommitTest'
                 'com.whip.app.ui.ElapsedGoalPresentationTest'
+                'com.whip.app.ui.GoalProgressPresentationTest'
             )
             android_classes+=(
                 'com.whip.app.GoalRepositoryTest'
+                'com.whip.app.GoalProgressJourneyE2ETest'
                 'com.whip.app.ui.GoalSecondaryMutationUiTest'
                 'com.whip.app.ui.ElapsedGoalTimeUiTest'
                 'com.whip.app.ProductivityCardDesignUiTest'

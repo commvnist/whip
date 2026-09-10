@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260910-012 — Preserve meaningful Goal percentages throughout the app
+
+- Behavior: A saved 0.05 against a target of 10 now reads 0.5% across Home, collections, expanded cards, Insights, inspector outcomes, the accessible trend table and closure history. Positive values below 0.1% and values above 99.9% but below complete remain distinct from exact zero and 100%. Locale controls decimal and percent spacing; ordinary values use at most one decimal without unnecessary zeros.
+- Architecture: GoalProgressPresentation owns the percentage rule; eight GoalScreens conversions delegate to it. Existing productivity builders still own layout. Milestone counts, exact elapsed duration, actual measurement precision, domain calculations, lifecycle and frozen closures remain domain-owned; no universal numeric builder or schema change is introduced.
+- Verification/status: Verified under FND-20260910-019, DEC/VER-20260910-012 and FB-20260910-001/002. Three JVM presentation methods and two real MainActivity/repository journeys are added to the Goals profile; nine catalog states capture the complete small-progress and endpoint paths. Final 69 API 34 checks, nine API 37 methods, 371 JVM readiness checks, compilation/lint/debug packaging and 20 original visual reviews pass. No source/APK drift. Evidence: `artifacts/astra-audit/2026-09-10/goal-percent/README.md`.
+- Compatibility/remaining work: No migration, data epoch, backup, version or release change. Shared wide reading measure and substantive remaining app/matrix reviews continue. This is one verified ordinary-UX correction, not whole-product acceptance.
+
 ### IMP-20260910-011 — Review totals lead to their contributing outcomes and original sources
 
 - Behavior: All four Review cards open a consistent in-context list of the selected period's contributing outcomes. WhipRecordItem owns item layout; context carries archive status and recurring scheduled/original dates. Counts, correlations and rows share one projection of existing domain calculations. Mixed active/archived history remains Area-scoped; Gym remains global and Tracks remain separate evidence. Only available sources contribute rows, and scoped retry preserves the selected list. Back restores Review; recreation retains selected details and existing period/section choices.

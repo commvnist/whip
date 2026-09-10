@@ -1,0 +1,92 @@
+[
+  {
+    "file": "goals.progress.near-target.xml",
+    "original": "goals.progress.near-target (5).xml",
+    "sha256": "95ebf66881b190dc77281e47dbc4e9ba6f190dcb74536a3cd4a17f7395b153b9"
+  },
+  {
+    "file": "goals.progress.near-target.png",
+    "original": "goals.progress.near-target (5).png",
+    "sha256": "818dbaf4be67a1b9b6e49e2c5c96df9d36c887d753d52ea4f0ade23a9c5afcf4"
+  },
+  {
+    "file": "goals.progress.endpoints.xml",
+    "original": "goals.progress.endpoints (6).xml",
+    "sha256": "b4a46c0bb53eb756077a96e11bb5e492c601760a62a30eab252e3badaf720f23"
+  },
+  {
+    "file": "goals.progress.endpoints.png",
+    "original": "goals.progress.endpoints (6).png",
+    "sha256": "243753c22510b27032b5b86cd2d188014683d4b4b84a5585e5ddf2ae286a22dd"
+  },
+  {
+    "file": "goals.progress.archived-history.xml",
+    "original": "goals.progress.archived-history (1).xml",
+    "sha256": "936316346a7fc051db951d07431d336deadb88e751b3a2187a36e6f2852b8001"
+  },
+  {
+    "file": "goals.progress.archived-history.png",
+    "original": "goals.progress.archived-history (1).png",
+    "sha256": "480918d5484acb583240a13ce02af1c70ad739a573ef01bcb77a009ca40fb418"
+  },
+  {
+    "file": "goals.progress.closure.xml",
+    "original": "goals.progress.closure (1).xml",
+    "sha256": "4fc11f5db989e3c9481fdccb6120bb56dee5790397e4ad1521570959120b904f"
+  },
+  {
+    "file": "goals.progress.closure.png",
+    "original": "goals.progress.closure (1).png",
+    "sha256": "c7658348cdf9bf4f45b0b0e0c3fa93f8f9a06ba33e8f934a9e8219476a2e41f7"
+  },
+  {
+    "file": "goals.progress.insights.xml",
+    "original": "goals.progress.insights (3).xml",
+    "sha256": "efe3168d1903a58b54200e6ec528980c939bc3e85e46bbf1b8fb412cb929ec76"
+  },
+  {
+    "file": "goals.progress.insights.png",
+    "original": "goals.progress.insights (3).png",
+    "sha256": "3e45275a0b516b77a854a22272101a006f71cd1a407bab40c6ff7acdbf9e59f0"
+  },
+  {
+    "file": "goals.progress.trend-table.xml",
+    "original": "goals.progress.trend-table (3).xml",
+    "sha256": "f70ac19df69d751cebc3cd97975a7b5811819177a0e0ac03825dadf05b352cb3"
+  },
+  {
+    "file": "goals.progress.trend-table.png",
+    "original": "goals.progress.trend-table (3).png",
+    "sha256": "58f80597083baa4689799da12bd5b8e043d650a09a0522aa6f46561f2075219e"
+  },
+  {
+    "file": "goals.progress.overview.xml",
+    "original": "goals.progress.overview (3).xml",
+    "sha256": "64fe5eaac17bf58d88e840f3169465fb9553939a62f36926f4779835ddc98f9f"
+  },
+  {
+    "file": "goals.progress.overview.png",
+    "original": "goals.progress.overview (3).png",
+    "sha256": "b50934157ddb654b6cbc0d4a3b6736e222a08852463751e4fd82d499b425859f"
+  },
+  {
+    "file": "goals.progress.expanded.xml",
+    "original": "goals.progress.expanded (4).xml",
+    "sha256": "9e6806f6395fe99d1f03f774d075b268c0a22e354d0fe979ad6430f79d9e4e88"
+  },
+  {
+    "file": "goals.progress.expanded.png",
+    "original": "goals.progress.expanded (4).png",
+    "sha256": "03d56812b2669e8bf4ada4eee6ee853c4a4c21a0ef0977634a4f9bb2f90badeb"
+  },
+  {
+    "file": "goals.progress.home.xml",
+    "original": "goals.progress.home (6).xml",
+    "sha256": "dea5a72b58b472d5e4ba47c883d5386c7a0598df326146f973cfdc348767d5bd"
+  },
+  {
+    "file": "goals.progress.home.png",
+    "original": "goals.progress.home (6).png",
+    "sha256": "3352904f495b389498f6e90382def290a6248fc8d57d549ef724758e92a52835"
+  }
+]

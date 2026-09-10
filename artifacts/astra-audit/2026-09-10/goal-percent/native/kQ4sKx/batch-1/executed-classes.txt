@@ -1,0 +1,8 @@
+com.whip.app.ActivityHistoryUiTest
+com.whip.app.GoalProgressJourneyE2ETest
+com.whip.app.GoalRepositoryTest
+com.whip.app.ProductivityCardDesignUiTest
+com.whip.app.ProductivityItemBuilderJourneyE2ETest
+com.whip.app.ReviewOutcomeJourneyE2ETest
+com.whip.app.ui.ElapsedGoalTimeUiTest
+com.whip.app.ui.GoalSecondaryMutationUiTest

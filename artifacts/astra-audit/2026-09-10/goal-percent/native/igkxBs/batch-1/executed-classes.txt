@@ -1,0 +1,2 @@
+com.whip.app.GoalProgressJourneyE2ETest
+com.whip.app.ReviewOutcomeJourneyE2ETest

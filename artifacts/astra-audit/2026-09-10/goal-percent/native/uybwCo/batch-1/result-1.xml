@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="7" failures="1" errors="0" skipped="0" time="43.24" timestamp="2026-09-10T11:53:36" hostname="localhost">
+  <testsuite name="com.whip.app.GoalProgressJourneyE2ETest" tests="2" failures="1" errors="0" skipped="0" time="12.959" timestamp="2026-09-10T11:53:36" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="smallProgressStaysVisibleThroughHomeDetailsAndArchivedHistory" classname="com.whip.app.GoalProgressJourneyE2ETest" time="5.196">
+      <failure>java.lang.AssertionError: Failed to assert count of nodes.
+Reason: Expected '2' nodes but found '1' node that satisfies: ((Text + InputText + EditableText contains '0.5% complete' (ignoreCase: false)) &amp;&amp; (hasAnyAncestorThat(TestTag = 'goal-card-1')))
+Node found:
+Node #267 at (l=810.0, t=1123.0, r=995.0, b=1157.0)px
+Text = '[0.5% complete]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 9 siblings
+
+at androidx.compose.ui.test.AssertionsKt.assertCountEquals(Assertions.kt:311)
+at com.whip.app.GoalProgressJourneyE2ETest.smallProgressStaysVisibleThroughHomeDetailsAndArchivedHistory(GoalProgressJourneyE2ETest.kt:34)
+</failure>
+    </testcase>
+    <testcase name="tinyAndNearlyCompleteGoalsRemainDistinctFromTheirEndpoints" classname="com.whip.app.GoalProgressJourneyE2ETest" time="7.763" />
+  </testsuite>
+  <testsuite name="com.whip.app.ReviewOutcomeJourneyE2ETest" tests="5" failures="0" errors="0" skipped="0" time="29.331" timestamp="2026-09-10T11:53:36" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedTaskOutcomesOpenTheirOriginalTask" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="6.46" />
+    <testcase name="mixedTaskHistoryKeepsAreaScopeAndDistinctOccurrences" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="5.957" />
+    <testcase name="archivedGoalProgressOpensItsOriginalGoal" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="5.933" />
+    <testcase name="archivedHabitOutcomesOpenTheirOriginalHabit" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="5.778" />
+    <testcase name="finishedWorkoutOutcomesOpenTheirOriginalSession" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="5.203" />
+  </testsuite>
+</testsuites>
