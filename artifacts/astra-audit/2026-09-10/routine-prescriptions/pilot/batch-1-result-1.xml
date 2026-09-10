@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="36" failures="0" errors="0" skipped="0" time="173.529" timestamp="2026-09-10T16:33:19" hostname="localhost">
+  <testsuite name="com.whip.app.GymFiveThreeOneJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="13.885" timestamp="2026-09-10T16:33:19" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="generatedProgramPersistsStartsNextDayAndRendersProgrammedWorkout" classname="com.whip.app.GymFiveThreeOneJourneyE2ETest" time="13.885" />
+  </testsuite>
+  <testsuite name="com.whip.app.RoutineAuthoringJourneyE2ETest" tests="2" failures="0" errors="0" skipped="0" time="49.547" timestamp="2026-09-10T16:33:19" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="authoredPrescriptionSurvivesRecoveryExecutionAndLaterRoutineEdits" classname="com.whip.app.RoutineAuthoringJourneyE2ETest" time="28.443" />
+    <testcase name="twoDayRoutinePreservesContextAndStartsTheChosenDay" classname="com.whip.app.RoutineAuthoringJourneyE2ETest" time="21.104" />
+  </testsuite>
+  <testsuite name="com.whip.app.RoutineBuilderUiTest" tests="33" failures="0" errors="0" skipped="0" time="108.973" timestamp="2026-09-10T16:33:19" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="blankRoutineSurfacesTopLevelFiveThreeOneEntry" classname="com.whip.app.RoutineBuilderUiTest" time="5.152" />
+    <testcase name="failedRoutineSaveKeepsTheCompleteDraftOpenForRetry" classname="com.whip.app.RoutineBuilderUiTest" time="1.209" />
+    <testcase name="splitPresetsUseConsistentTitleCapitalization" classname="com.whip.app.RoutineBuilderUiTest" time="0.907" />
+    <testcase name="programTrainingMaxBasisEditsMustBeAppliedBeforeSaveEvenWhenTheyRoundToSameValue" classname="com.whip.app.RoutineBuilderUiTest" time="3.674" />
+    <testcase name="machineCanBeQuickCreatedForAPlacementWithoutLeavingBuilder" classname="com.whip.app.RoutineBuilderUiTest" time="5.056" />
+    <testcase name="multiDayRoutineRoutesFiveThreeOneConversionThroughWholeProgramReview" classname="com.whip.app.RoutineBuilderUiTest" time="1.36" />
+    <testcase name="staticRoutineExposesTrainingMaxBeforeAnySetUsesIt" classname="com.whip.app.RoutineBuilderUiTest" time="1.385" />
+    <testcase name="twoHundredExerciseLibraryIsSearchableAndOnlySelectionsEnterOutline" classname="com.whip.app.RoutineBuilderUiTest" time="5.782" />
+    <testcase name="guidedFiveThreeOneBuilderPersistsCompleteExplicitBbbCycle" classname="com.whip.app.RoutineBuilderUiTest" time="2.869" />
+    <testcase name="captureRepSchemeCatalog" classname="com.whip.app.RoutineBuilderUiTest" time="5.252" />
+    <testcase name="ordinaryRoutineCanEnterAnExplicitTrainingMaxForPercentageSets" classname="com.whip.app.RoutineBuilderUiTest" time="1.687" />
+    <testcase name="exerciseListUsesTheRoutinePaneInsteadOfAOneRowNestedViewport" classname="com.whip.app.RoutineBuilderUiTest" time="0.931" />
+    <testcase name="routineEditRoundTripsSetUnitsBodyweightAndDayProgression" classname="com.whip.app.RoutineBuilderUiTest" time="0.78" />
+    <testcase name="customFiveThreeOneExerciseSelectionSearchesAFullExerciseLibrary" classname="com.whip.app.RoutineBuilderUiTest" time="3.151" />
+    <testcase name="emptyLibraryCreatesUniqueStandardExercisesAndBuildsExactFourDayProgram" classname="com.whip.app.RoutineBuilderUiTest" time="9.43" />
+    <testcase name="advancedMachineCreationReturnsFromSeededExerciseCreationWithBothDraftsPreserved" classname="com.whip.app.RoutineBuilderUiTest" time="3.431" />
+    <testcase name="singleDayRoutineHidesActionsThatCannotApply" classname="com.whip.app.RoutineBuilderUiTest" time="0.706" />
+    <testcase name="addingExerciseToExistingRoutineSavesWithoutLeavingTheEditedDay" classname="com.whip.app.RoutineBuilderUiTest" time="1.586" />
+    <testcase name="sharedExercisePickerAlwaysOffersSearchAndSeededCreation" classname="com.whip.app.RoutineBuilderUiTest" time="2.994" />
+    <testcase name="leaderAnchorSetupRemainsNavigableAtCompactWidthAndLargeText" classname="com.whip.app.RoutineBuilderUiTest" time="6.162" />
+    <testcase name="repSchemeLibraryStartsBlankAndPlusCreatesAReusableScheme" classname="com.whip.app.RoutineBuilderUiTest" time="3.926" />
+    <testcase name="exerciseCanBeCreatedWithoutDroppingRoutineDraft" classname="com.whip.app.RoutineBuilderUiTest" time="2.496" />
+    <testcase name="trainingMaxSourceChipsLoadMatchingActualAndEstimatedRecordsAndEditablePercentage" classname="com.whip.app.RoutineBuilderUiTest" time="2.495" />
+    <testcase name="leaderAnchorSetupShowsProgressiveReviewAndBuildsAssistanceAndJokers" classname="com.whip.app.RoutineBuilderUiTest" time="8.307" />
+    <testcase name="savedRepSchemeCanBeAppliedEditedAndDeleted" classname="com.whip.app.RoutineBuilderUiTest" time="3.071" />
+    <testcase name="emptyCustomFiveThreeOneCanCreateAndAddSeveralExercisesWithoutLeavingSetup" classname="com.whip.app.RoutineBuilderUiTest" time="5.09" />
+    <testcase name="structuredMainExerciseUsesProgramStructureAndHidesGenericRewriteControls" classname="com.whip.app.RoutineBuilderUiTest" time="2.965" />
+    <testcase name="trainingMaxSuggestionCopiesRoundedValueWithoutStayingLinked" classname="com.whip.app.RoutineBuilderUiTest" time="3.523" />
+    <testcase name="sharedExercisePickerOnlyUsesSubstituteLanguageWhenContextProvidesIt" classname="com.whip.app.RoutineBuilderUiTest" time="0.757" />
+    <testcase name="customFiveThreeOneBuildsBenchDeadliftAndZercherWithoutRequiringFourStandardExercises" classname="com.whip.app.RoutineBuilderUiTest" time="4.957" />
+    <testcase name="setupWizardRequiresReapplyBeforePersistingChangedTrainingMaxProvenance" classname="com.whip.app.RoutineBuilderUiTest" time="3.858" />
+    <testcase name="emptyWorkoutPickerUsesTheSharedEmptyStateAndKeepsBackReachable" classname="com.whip.app.RoutineBuilderUiTest" time="2.69" />
+    <testcase name="assistanceIntentNamesItsSourceAndPersistsOnTheRoutinePlacement" classname="com.whip.app.RoutineBuilderUiTest" time="1.334" />
+  </testsuite>
+</testsuites>

@@ -3608,15 +3608,6 @@ private fun RoutinePlacementEditor(
                 Text("This placement needs compatible equipment before the routine can start.", color = MaterialTheme.colorScheme.error)
             }
         }
-        item {
-            OutlinedTextField(
-                placement.notes,
-                { value -> onUpdate { it.copy(notes = value) } },
-                label = { Text("Exercise notes") },
-                modifier = Modifier.fillMaxWidth(),
-                maxLines = 3,
-            )
-        }
         if (placementKind == RoutinePlacementKind.MainExercise) item {
             OutlinedCard(Modifier.fillMaxWidth().testTag("routine-main-exercise-provenance")) {
                 Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -3693,164 +3684,6 @@ private fun RoutinePlacementEditor(
                     Text("Program-controlled main work", fontWeight = FontWeight.Bold)
                     Text(
                         "Use Program Structure to edit Training Maxes, cycle increases, phases, PR sets, 5s PRO, supplemental work, and optional Jokers. Toggling a Joker preserves your Main and Supplemental set details; choosing a different Main or Supplemental scheme intentionally regenerates that section.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-        if (supportsFiveThreeOne && !isStructuredFiveThreeOne && singleExerciseConversionAvailable) item {
-            WhipOutlinedButton(
-                onClick = { showFiveThreeOneBuilder = !showFiveThreeOneBuilder },
-                modifier = Modifier.fillMaxWidth().testTag("routine-five-three-one-toggle"),
-            ) {
-                Text(if (showFiveThreeOneBuilder) "Hide 5/3/1 Cycle Generator" else "Generate a 5/3/1 Cycle for This Exercise")
-            }
-            if (showFiveThreeOneBuilder) {
-                Text(
-                    "This converts the current routine into a canonical four-phase 5/3/1 cycle. Use Set Up 5/3/1 from an empty routine to choose several standard or custom exercises at once.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                FiveThreeOneBuilder(
-                    placementKey = placement.key,
-                    exerciseName = exercise.name,
-                    currentSets = placement.sets,
-                    unitId = programUnitId,
-                    increment = programIncrement,
-                    availableLoads = programAvailableLoads,
-                    suggestedTrainingMax = suggestedTrainingMax,
-                    initialTrainingMax = placement.trainingMaxValue.toWhipDoubleOrNull(),
-                    initialCycleIncrement = placement.cycleIncrementValue.toWhipDoubleOrNull(),
-                    initialMainWorkScheme = runCatching { RoutineMainWorkScheme.valueOf(placement.mainWorkScheme) }
-                        .getOrDefault(RoutineMainWorkScheme.Unspecified),
-                    initialSupplementalScheme = runCatching { RoutineSupplementalScheme.valueOf(placement.supplementalScheme) }
-                        .getOrDefault(RoutineSupplementalScheme.None),
-                    initialJokerSetsEnabled = placement.jokerSetsEnabled,
-                    onApply = onApplyFiveThreeOne,
-                )
-            }
-        }
-        if (supportsFiveThreeOne && !isStructuredFiveThreeOne && !singleExerciseConversionAvailable) item {
-            OutlinedCard(Modifier.fillMaxWidth().testTag("routine-five-three-one-whole-program-required")) {
-                Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Build the whole 5/3/1 program", fontWeight = FontWeight.Bold)
-                    Text(
-                        "This routine has several days. Converting only this exercise would leave other days without required Main work and block Training Max progression. Review a complete standard or custom-exercise program instead.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    WhipOutlinedButton(
-                        onClick = onCreateFiveThreeOneProgram,
-                        modifier = Modifier.fillMaxWidth().testTag("routine-five-three-one-replace-with-program"),
-                    ) { Text("Set Up Complete 5/3/1 Program") }
-                }
-            }
-        }
-        if (!isProgramControlledPlacement && exercise?.supportsRepPrescription() != false) item {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Saved Schemes · App-wide", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                IconButton(
-                    onClick = { editingSchemeId = null; showSchemeEditor = true },
-                    modifier = Modifier.testTag("routine-add-rep-scheme").semantics { contentDescription = "Add rep prescription scheme" },
-                ) { Icon(Icons.Filled.Add, contentDescription = null) }
-            }
-            if (gymState.appSettings.repPrescriptionSchemes.isEmpty()) {
-                Text(
-                    "No saved schemes yet. Tap + to add one.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.testTag("routine-rep-schemes-empty"),
-                )
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    gymState.appSettings.repPrescriptionSchemes.forEachIndexed { index, scheme ->
-                        val reorderInteraction = rememberWhipReorderInteractionState()
-                        Row(
-                            modifier = Modifier.whipReorderItem(
-                                reorderInteraction,
-                                layoutPosition = index + 1,
-                                layoutScope = "routine-prescription-schemes",
-                            ),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            WhipReorderHandle(
-                                label = "${scheme.name.ifBlank { "rep prescription" }} scheme",
-                                canMovePrevious = index > 0,
-                                canMoveNext = index < gymState.appSettings.repPrescriptionSchemes.lastIndex,
-                                position = index + 1,
-                                total = gymState.appSettings.repPrescriptionSchemes.size,
-                                interactionState = reorderInteraction,
-                                moveWholeItem = true,
-                                layoutScope = "routine-prescription-schemes",
-                                onMove = { delta ->
-                                    onReorderPrescriptionSchemes(
-                                        moveListItem(gymState.appSettings.repPrescriptionSchemes, index, delta),
-                                    )
-                                },
-                            )
-                            Box(Modifier.weight(1f)) {
-                                RepPrescriptionSchemeRow(
-                                    scheme = scheme,
-                                    onApply = { onUpdate { current -> current.copy(sets = applyRepPrescriptionScheme(current.sets, scheme)) } },
-                                    onEdit = { editingSchemeId = scheme.id; showSchemeEditor = true },
-                                    onDelete = { pendingDeleteSchemeId = scheme.id },
-                                )
-                            }
-                        }
-                    }
-                }
-                Text(
-                    "Apply a saved prescription here. Its name and order are shared across every Routine; editing or deleting it never changes Routines already using it.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        if (!isProgramControlledPlacement && exercise?.trackingType in setOf(ExerciseTrackingType.WeightReps, ExerciseTrackingType.WeightOnly, ExerciseTrackingType.WeightDuration)) {
-            item {
-                val workingLoad = placement.sets.firstOrNull { it.classification != WorkoutSetClassification.WarmUp.name }
-                    ?.load?.toWhipDoubleOrNull()
-                WhipOutlinedButton(
-                    enabled = workingLoad != null && workingLoad > 0.0,
-                    onClick = {
-                        onUpdate { current ->
-                            current.copy(sets = generateWarmupSets(current, requireNotNull(exercise), machine))
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth().testTag("routine-generate-warmups"),
-                ) { Text("Generate Equipment-Aware Warm-Ups") }
-                Text(
-                    if (workingLoad == null) "Enter the first working load, then Whip can add 40%, 60%, and 80% ramp sets."
-                    else "Loads snap to this exercise's increment or the selected machine's available settings.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        item {
-            RoutineLabeledSwitchRow(
-                label = "Show Advanced Prescription Fields",
-                checked = showAdvanced,
-                onCheckedChange = onShowAdvanced,
-                testTag = "routine-show-advanced",
-            )
-            if (showAdvanced) {
-                DependentSettingsNotice(
-                    message = "RPE, RIR, rest, tempo, notes, and unilateral controls are shown inside every set below.",
-                    testTag = "routine-advanced-consequence",
-                )
-            }
-            if (!isProgramControlledPlacement) {
-                RoutineLabeledSwitchRow(
-                    label = "Copy Previous Values When No Plan",
-                    checked = placement.copyPreviousWorkout,
-                    onCheckedChange = { checked -> onUpdate { it.copy(copyPreviousWorkout = checked) } },
-                    testTag = "routine-copy-previous",
-                )
-                if (placement.copyPreviousWorkout) {
-                    Text(
-                        "Unplanned fields start with values from the previous workout.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -3990,6 +3823,21 @@ private fun RoutinePlacementEditor(
                 }
             }
         }
+        item {
+            EditorSectionHeader("Set prescriptions")
+            RoutineLabeledSwitchRow(
+                label = "Show Advanced Prescription Fields",
+                checked = showAdvanced,
+                onCheckedChange = onShowAdvanced,
+                testTag = "routine-show-advanced",
+            )
+            if (showAdvanced) {
+                DependentSettingsNotice(
+                    message = "RPE, RIR, rest, tempo, notes, and unilateral controls are shown inside every set below.",
+                    testTag = "routine-advanced-consequence",
+                )
+            }
+        }
         val hasProgramPhases = placement.sets.any { it.routinePhaseIndex != null }
         if (hasProgramPhases) item {
             Text("Edit Program Phase", fontWeight = FontWeight.SemiBold)
@@ -4056,6 +3904,160 @@ private fun RoutinePlacementEditor(
                 modifier = Modifier.fillMaxWidth(),
             ) { Text("Add Set") }
         }
+        item {
+            OutlinedTextField(
+                placement.notes,
+                { value -> onUpdate { it.copy(notes = value) } },
+                label = { Text("Exercise notes") },
+                modifier = Modifier.fillMaxWidth(),
+                maxLines = 3,
+            )
+        }
+        if (!isProgramControlledPlacement) item { EditorSectionHeader("Prescription tools") }
+        if (!isProgramControlledPlacement && exercise?.supportsRepPrescription() != false) item {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Saved Schemes · App-wide", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                IconButton(
+                    onClick = { editingSchemeId = null; showSchemeEditor = true },
+                    modifier = Modifier.testTag("routine-add-rep-scheme").semantics { contentDescription = "Add rep prescription scheme" },
+                ) { Icon(Icons.Filled.Add, contentDescription = null) }
+            }
+            if (gymState.appSettings.repPrescriptionSchemes.isEmpty()) {
+                Text(
+                    "No saved schemes yet. Tap + to add one.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("routine-rep-schemes-empty"),
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    gymState.appSettings.repPrescriptionSchemes.forEachIndexed { index, scheme ->
+                        val reorderInteraction = rememberWhipReorderInteractionState()
+                        Row(
+                            modifier = Modifier.whipReorderItem(
+                                reorderInteraction,
+                                layoutPosition = index + 1,
+                                layoutScope = "routine-prescription-schemes",
+                            ),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            WhipReorderHandle(
+                                label = "${scheme.name.ifBlank { "rep prescription" }} scheme",
+                                canMovePrevious = index > 0,
+                                canMoveNext = index < gymState.appSettings.repPrescriptionSchemes.lastIndex,
+                                position = index + 1,
+                                total = gymState.appSettings.repPrescriptionSchemes.size,
+                                interactionState = reorderInteraction,
+                                moveWholeItem = true,
+                                layoutScope = "routine-prescription-schemes",
+                                onMove = { delta ->
+                                    onReorderPrescriptionSchemes(
+                                        moveListItem(gymState.appSettings.repPrescriptionSchemes, index, delta),
+                                    )
+                                },
+                            )
+                            Box(Modifier.weight(1f)) {
+                                RepPrescriptionSchemeRow(
+                                    scheme = scheme,
+                                    onApply = { onUpdate { current -> current.copy(sets = applyRepPrescriptionScheme(current.sets, scheme)) } },
+                                    onEdit = { editingSchemeId = scheme.id; showSchemeEditor = true },
+                                    onDelete = { pendingDeleteSchemeId = scheme.id },
+                                )
+                            }
+                        }
+                    }
+                }
+                Text(
+                    "Apply a saved prescription here. Its name and order are shared across every Routine; editing or deleting it never changes Routines already using it.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        if (!isProgramControlledPlacement && exercise?.trackingType in setOf(ExerciseTrackingType.WeightReps, ExerciseTrackingType.WeightOnly, ExerciseTrackingType.WeightDuration)) {
+            item {
+                val workingLoad = placement.sets.firstOrNull { it.classification != WorkoutSetClassification.WarmUp.name }
+                    ?.load?.toWhipDoubleOrNull()
+                WhipOutlinedButton(
+                    enabled = workingLoad != null && workingLoad > 0.0,
+                    onClick = {
+                        onUpdate { current ->
+                            current.copy(sets = generateWarmupSets(current, requireNotNull(exercise), machine))
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().testTag("routine-generate-warmups"),
+                ) { Text("Generate Equipment-Aware Warm-Ups") }
+                Text(
+                    if (workingLoad == null) "Enter the first working load, then Whip can add 40%, 60%, and 80% ramp sets."
+                    else "Loads snap to this exercise's increment or the selected machine's available settings.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        if (!isProgramControlledPlacement) item {
+            RoutineLabeledSwitchRow(
+                label = "Copy Previous Values When No Plan",
+                checked = placement.copyPreviousWorkout,
+                onCheckedChange = { checked -> onUpdate { it.copy(copyPreviousWorkout = checked) } },
+                testTag = "routine-copy-previous",
+            )
+            if (placement.copyPreviousWorkout) {
+                Text(
+                    "Unplanned fields start with values from the previous workout.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        if (supportsFiveThreeOne && !isStructuredFiveThreeOne && singleExerciseConversionAvailable) item {
+            WhipOutlinedButton(
+                onClick = { showFiveThreeOneBuilder = !showFiveThreeOneBuilder },
+                modifier = Modifier.fillMaxWidth().testTag("routine-five-three-one-toggle"),
+            ) {
+                Text(if (showFiveThreeOneBuilder) "Hide 5/3/1 Cycle Generator" else "Generate a 5/3/1 Cycle for This Exercise")
+            }
+            if (showFiveThreeOneBuilder) {
+                Text(
+                    "This converts the current routine into a canonical four-phase 5/3/1 cycle. Use Set Up 5/3/1 from an empty routine to choose several standard or custom exercises at once.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                FiveThreeOneBuilder(
+                    placementKey = placement.key,
+                    exerciseName = exercise.name,
+                    currentSets = placement.sets,
+                    unitId = programUnitId,
+                    increment = programIncrement,
+                    availableLoads = programAvailableLoads,
+                    suggestedTrainingMax = suggestedTrainingMax,
+                    initialTrainingMax = placement.trainingMaxValue.toWhipDoubleOrNull(),
+                    initialCycleIncrement = placement.cycleIncrementValue.toWhipDoubleOrNull(),
+                    initialMainWorkScheme = runCatching { RoutineMainWorkScheme.valueOf(placement.mainWorkScheme) }
+                        .getOrDefault(RoutineMainWorkScheme.Unspecified),
+                    initialSupplementalScheme = runCatching { RoutineSupplementalScheme.valueOf(placement.supplementalScheme) }
+                        .getOrDefault(RoutineSupplementalScheme.None),
+                    initialJokerSetsEnabled = placement.jokerSetsEnabled,
+                    onApply = onApplyFiveThreeOne,
+                )
+            }
+        }
+        if (supportsFiveThreeOne && !isStructuredFiveThreeOne && !singleExerciseConversionAvailable) item {
+            OutlinedCard(Modifier.fillMaxWidth().testTag("routine-five-three-one-whole-program-required")) {
+                Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Build the whole 5/3/1 program", fontWeight = FontWeight.Bold)
+                    Text(
+                        "This routine has several days. Converting only this exercise would leave other days without required Main work and block Training Max progression. Review a complete standard or custom-exercise program instead.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    WhipOutlinedButton(
+                        onClick = onCreateFiveThreeOneProgram,
+                        modifier = Modifier.fillMaxWidth().testTag("routine-five-three-one-replace-with-program"),
+                    ) { Text("Set Up Complete 5/3/1 Program") }
+                }
+            }
+        }
         if (showAdvanced) {
             item {
                 val programmed = programKind?.let { kind ->
@@ -4117,7 +4119,7 @@ private fun RoutinePlacementEditor(
                     }
             }
         }
-        item {
+        if (placement.groupKey != null || selectedDay.placements.any { it.key != placement.key }) item {
             Text("Superset", fontWeight = FontWeight.SemiBold)
             placement.groupKey?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {

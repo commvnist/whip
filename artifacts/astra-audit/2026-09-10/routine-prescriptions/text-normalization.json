@@ -1,0 +1,44 @@
+[
+  {
+    "file": "baseline-synchronized/batch-1-result-1.xml",
+    "original_sha256": "20429aacf2fe6626fceaf77dbd040c23dee3129751f68e823f904a845c47e889",
+    "artifact_sha256": "3a4f2ed8bbfc705857ab039b6a8867e0f6a752f6f6afddad4743e4e6934fda0a",
+    "original_archive": "baseline-synchronized/batch-1-result-1.xml.gz"
+  },
+  {
+    "file": "first-regressions/batch-1-result-1.xml",
+    "original_sha256": "156b323bb0682058ef57ae94a763ef4ec4921854ad9bd6a27f4dfec4a3524d35",
+    "artifact_sha256": "8a8177643974b4a17edf684d12f9410622adc36a19eab0cfdf915e3ecc0dae77",
+    "original_archive": "first-regressions/batch-1-result-1.xml.gz"
+  },
+  {
+    "file": "baseline/batch-1-result-1.xml",
+    "original_sha256": "57af7da241782eaa9d5a546ac66ce5d4ce50938812782a8701ee3c3f907b7f05",
+    "artifact_sha256": "35ee1909993e947511b2185d9c006be8dfb4d156f1a702e2a29e2ea0c5f7a6fe",
+    "original_archive": "baseline/batch-1-result-1.xml.gz"
+  },
+  {
+    "file": "pilot/batch-1-result-1.xml",
+    "original_sha256": "0742b7976e5a1d7e0fa6c6c19a590d54f72ae0f8fac4c08478427701368e73d3",
+    "artifact_sha256": "155e27d2a57c5a14d202f40c4f92885398c4d69011f212e063b9db77f78bf70f",
+    "original_archive": "pilot/batch-1-result-1.xml.gz"
+  },
+  {
+    "file": "baseline-failed/batch-1-result-1.xml",
+    "original_sha256": "b8c7442fe13f71f9a4b332902c4968fc74864111f7c2df376d63c7eac83cf49b",
+    "artifact_sha256": "7c588c25dcebad778ce7d371072979b0dcad38c1776d91b09cadfc4b5c6cd735",
+    "original_archive": "baseline-failed/batch-1-result-1.xml.gz"
+  },
+  {
+    "file": "final-android/batch-1-result-1.xml",
+    "original_sha256": "751a622add32d9d220c61e9cf3f73d952386483824a0f272194c00e8eb4f2d1c",
+    "artifact_sha256": "ab7f201a3ee2ee0d2f31b45d2ff8a4e8ff066e563df8fd751b264935f9d086c8",
+    "original_archive": "final-android/batch-1-result-1.xml.gz"
+  },
+  {
+    "file": "final-android/batch-2-result-1.xml",
+    "original_sha256": "8f170a27c7b020c67531246bd7fad588ef62f555e058c77028b01a2b3f6aafd9",
+    "artifact_sha256": "24998b348e21924b17bead3f439d973318ac491c6d1d57b569094d2618480e81",
+    "original_archive": "final-android/batch-2-result-1.xml.gz"
+  }
+]

@@ -1,0 +1,10 @@
+{
+  "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk": {
+    "before": "0071e690fb92c1b66918cd6705b1f30e0fc039758517afde7225feafe2e22b69",
+    "after": "80cfc26669539b8a35ff8bceb7df93a908aad1f0cddc6d99ce56f9b731f07fda"
+  },
+  "app/src/androidTest/java/com/whip/app/RoutineAuthoringJourneyE2ETest.kt": {
+    "before": "c920ade31abe25fae700a41b6541c6029ebcdd8fbf7cefc54884793f7261274f",
+    "after": "b8974505a1b23c37d0b50050498cbf75877b7603b054d27d9d54c5ef7201bbca"
+  }
+}

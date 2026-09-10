@@ -1326,6 +1326,7 @@ class RoutineBuilderUiTest {
         }
 
         compose.onNodeWithText("Bench", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasTestTag("routine-five-three-one-toggle"))
         compose.onNodeWithTag("routine-five-three-one-toggle").performClick()
         compose.onNodeWithTag("routine-placement-editor")
             .performScrollToNode(hasTestTag("five-three-one-training-max"))
@@ -1384,6 +1385,7 @@ class RoutineBuilderUiTest {
         }
 
         compose.onNodeWithText("Bench", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasTestTag("routine-five-three-one-whole-program-required"))
         compose.onNodeWithTag("routine-five-three-one-whole-program-required").assertIsDisplayed()
         compose.onAllNodes(hasTestTag("routine-five-three-one-toggle")).assertCountEquals(0)
         compose.onNodeWithTag("routine-five-three-one-replace-with-program").performClick()
@@ -1465,6 +1467,7 @@ class RoutineBuilderUiTest {
         ).assertIsDisplayed()
         compose.onNodeWithContentDescription("Manage Exercise 200").assertIsDisplayed()
         compose.onNodeWithContentDescription("Edit routine exercise Exercise 200").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasText("Hypertrophy · 3 × 8–10"))
         compose.onNodeWithText("Hypertrophy · 3 × 8–10").performClick()
         compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasText("Reps min"))
         compose.onNodeWithTag("routine-reps-min-3").assertTextContains("8")
@@ -1715,7 +1718,9 @@ class RoutineBuilderUiTest {
         }
 
         compose.onNodeWithText("Bench", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasTestTag("routine-rep-schemes-empty"))
         compose.onNodeWithTag("routine-rep-schemes-empty").assertIsDisplayed()
+        compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasTestTag("routine-add-rep-scheme"))
         compose.onNodeWithTag("routine-add-rep-scheme").performClick()
         compose.onNodeWithTag("rep-scheme-name").performTextInput("Strength")
         compose.onNodeWithTag("rep-scheme-set-count").performTextInput("5")
@@ -1772,6 +1777,7 @@ class RoutineBuilderUiTest {
         }
 
         compose.onNodeWithText("Bench", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasText("Volume · 3 × 8–12"))
         compose.onNodeWithText("Volume · 3 × 8–12").performClick()
         compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasText("Reps min"))
         compose.onNodeWithTag("routine-reps-min-1").assertTextContains("8")
@@ -1814,6 +1820,7 @@ class RoutineBuilderUiTest {
         }
 
         compose.onNodeWithText("Bench", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasTestTag("routine-add-rep-scheme"))
         compose.onNodeWithTag("routine-add-rep-scheme").performClick()
         compose.onNodeWithText("Add Rep Prescription Scheme").assertIsDisplayed()
         compose.onNodeWithTag("rep-scheme-classification").assertIsDisplayed()

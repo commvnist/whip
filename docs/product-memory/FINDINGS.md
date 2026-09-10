@@ -6,6 +6,14 @@
 - Observed: In the native two-day journey, opening Goblet Squat puts a large whole-program 5/3/1 conversion explanation, empty Saved Schemes, unavailable warm-up generation, advanced/copy controls and Training Max ahead of the first working Set. At 100% the actual prescription inputs are below the initial phone viewport. This persists in the unchanged specialized placement editor after the outline-only correction.
 - Source/next review: RoutinePlacementEditor in RoutineBuilder.kt. Compare a prescription-first reading order with progressive disclosure of conversion and bulk helpers, preserving program-controlled Main/Supplemental authority, explicit Training Max prerequisites, advanced fields and the warm-up working-load dependency. Repeated placement/action geometry may justify a specialized authoring builder after that review.
 - Related/status: Confirmed from VER-20260910-016 before/final recovered-placement and saved-in-place originals; FB-20260910-001/002, DEC-20260903-006. Not repaired by FND-20260910-025; continue as a separate coherent authoring increment.
+- Resolution/status: Verified by DEC/IMP/VER-20260910-017. Prescriptions precede ordinary guidance and bulk/conversion helpers; shared section headings distinguish their roles and the existing Training Max disclosure stays available. First Working label moves 840 pixels upward; load/range/Add Set fit at 100%. Native authored values, warm-up generation/removal, completed history and program/TM/scheme regressions pass on normal phone/wide. FND-20260910-027 and broader programmed/screen review remain open.
+
+### FND-20260910-027 — Ready rest timer and authored rest use different visible durations
+
+- Severity/category: P2 candidate interaction consistency; further review required.
+- Observed/source: The native prescription journey opens a Set authored with 90 seconds of rest while the ready timer displays 2:00. GymScreens passes the workout override or app default to RestTimerCard; GymRepository quick completion instead resolves override, completed Set rest, Exercise default and app default. History correctly retains 1:30. The difference is directly observed; whether the manual ready timer should follow upcoming or most recently completed work requires a complete rest/recovery journey and existing-contract review.
+- Expected/next: Make the chosen manual duration and automatic rest behavior understandable without overriding authored prescriptions or explicit workout choices. Review Start, quick completion, override, stop/restart and recovery before selecting a change. Do not treat this as a persistence defect or include a speculative timer rewrite in the placement hierarchy increment.
+- Related/status: Investigating; VER-20260910-017 baseline workout/History originals and source review. Continue the broader Gym UX/bug priority alongside builders.
 
 
 ### FND-20260910-025 — Routine outline gives optional setup more prominence than day authoring

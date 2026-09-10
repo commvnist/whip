@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.domain.FiveThreeOneProgressionTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-09-10T16:53:26.112Z" hostname="beast" time="0.028">
+  <properties/>
+  <testcase name="repeatedFailureEvidenceRequiresSeparateSessions" classname="com.whip.app.domain.FiveThreeOneProgressionTest" time="0.007"/>
+  <testcase name="contradictoryEffortAndIncompletePerformanceEvidenceIsInsufficient" classname="com.whip.app.domain.FiveThreeOneProgressionTest" time="0.002"/>
+  <testcase name="reasonsAreStableAndOrderedByDecisionPriority" classname="com.whip.app.domain.FiveThreeOneProgressionTest" time="0.006"/>
+  <testcase name="repeatedLoadAdjustedAmrapsUnlockBoundedRepOnlyTierWithoutEffort" classname="com.whip.app.domain.FiveThreeOneProgressionTest" time="0.0"/>
+  <testcase name="adaptivePrSetsNeedRepSurplusMeaningfulLoadAndSeparateSessions" classname="com.whip.app.domain.FiveThreeOneProgressionTest" time="0.0"/>
+  <testcase name="recentAmrapsMustBothSupportNextTrainingMaxWithoutMaterialRegression" classname="com.whip.app.domain.FiveThreeOneProgressionTest" time="0.001"/>
+  <testcase name="largerAdaptiveTierNeedsFavorableEffortOnBothAmrapsOrOneStrongJoker" classname="com.whip.app.domain.FiveThreeOneProgressionTest" time="0.001"/>
+  <testcase name="finiteAndRangeValidationRejectsInvalidInputs" classname="com.whip.app.domain.FiveThreeOneProgressionTest" time="0.004"/>
+  <testcase name="recommendationTableCoversEveryCategoryAndBoundary" classname="com.whip.app.domain.FiveThreeOneProgressionTest" time="0.004"/>
+  <testcase name="trainingMaxTestRequiresExplicitValidSnapshotLoadAndRepProtocol" classname="com.whip.app.domain.FiveThreeOneProgressionTest" time="0.001"/>
+  <testcase name="corroborationCannotExceedTheTierSupportedByConservativeEstimates" classname="com.whip.app.domain.FiveThreeOneProgressionTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

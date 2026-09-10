@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260910-017 — Put Routine prescriptions before supporting tools
+
+- Behavior: RoutinePlacementEditor presents Training Max and advanced-field access with the Set list before Exercise notes, saved schemes, warm-up generation, copy-previous behavior and 5/3/1 conversion. Existing EditorSectionHeader roles separate prescriptions from tools; no local scale rule or new form framework is added. Superset appears only when a peer or existing group provides an action. First Working label moves 840 pixels upward and the complete first prescription/Add Set fit on the ordinary phone.
+- Ownership/compatibility: Existing Set cards, full scrolling pane, field dependencies, program-controlled restrictions and all draft/domain/persistence callbacks remain intact. No schema, backup, epoch, version or history mutation change. This is bounded hierarchy reuse, not a universal authoring builder migration; shared wide reading policy remains open.
+- Verification/status: Verified under FND-20260910-026 / DEC/VER-20260910-017. New MainActivity journey preserves exact advanced Set values through recovery, duplicate/delete, generated/removed warm-ups, save/reopen, workout completion and a later Routine load edit. Existing fixtures scroll to the relocated helpers and target numbered Sets. Final 209 Android checks, seven API 37 methods, 371 JVM readiness checks and 25 accepted-scope original reviews pass. Evidence: artifacts/astra-audit/2026-09-10/routine-prescriptions/README.md. Continue FND-20260910-027 rest consistency and the broader quality audit; Git records commit/push delivery.
+
 ### IMP-20260910-016 — Prioritize Routine days and exercise authoring
 
 - Behavior: Guided 5/3/1 setup now uses the shared NavigationRow, optional Routine Notes use DisclosureRow below day content, and ordinary Add Exercises precedes placement records. Authored notes open by default and retain complete text. The first ordinary phone Add label moves 764 pixels upward. Empty optional list content no longer doubles spacing.

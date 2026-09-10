@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.ReviewCopyTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-09-10T16:53:27.207Z" hostname="beast" time="0.019">
+  <properties/>
+  <testcase name="trackEvidenceUsesThePeriodAndAllTracksRatherThanProductivityAreaScope" classname="com.whip.app.ui.ReviewCopyTest" time="0.012"/>
+  <testcase name="trackEvidenceCountsEntriesAndDistinctTracksForTheSelectedPeriod" classname="com.whip.app.ui.ReviewCopyTest" time="0.0"/>
+  <testcase name="trackEvidenceIsEmptyWhenTheSelectedPeriodHasNoEntries" classname="com.whip.app.ui.ReviewCopyTest" time="0.0"/>
+  <testcase name="crossYearReviewRangeKeepsBothYearsExplicit" classname="com.whip.app.ui.ReviewCopyTest" time="0.003"/>
+  <testcase name="sameYearReviewRangeDoesNotRepeatTheYear" classname="com.whip.app.ui.ReviewCopyTest" time="0.0"/>
+  <testcase name="trackEvidenceCopyUsesSingularAndPluralCounts" classname="com.whip.app.ui.ReviewCopyTest" time="0.003"/>
+  <testcase name="reviewPeriodAndSelectedSectionsChangeTheRenderedScope" classname="com.whip.app.ui.ReviewCopyTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

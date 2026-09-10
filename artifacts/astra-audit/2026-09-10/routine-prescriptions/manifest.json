@@ -1,0 +1,444 @@
+[
+  {
+    "file": "before/gym.routine-prescription.initial.png",
+    "run": "7nvicj",
+    "source_folder": "before-synchronized",
+    "original": "gym.routine-prescription.initial (2).png",
+    "sha256": "ed27b04fc9e04f793d33bb086622e947acc55ce75bfb36780e8e491e4d27f7a0",
+    "artifact_sha256": "ed27b04fc9e04f793d33bb086622e947acc55ce75bfb36780e8e491e4d27f7a0"
+  },
+  {
+    "file": "before/gym.routine-prescription.initial.xml",
+    "run": "7nvicj",
+    "source_folder": "before-synchronized",
+    "original": "gym.routine-prescription.initial (2).xml",
+    "sha256": "81c9b85d8557ea05574e2a8d1331f12c0c9fe45af0a8466b22e725908a4c758c",
+    "original_archive": "before/gym.routine-prescription.initial.xml.gz",
+    "artifact_sha256": "2bc385ae1f2915fdc26d03fb643b79d8776143918265b10e95b91c9d69112971"
+  },
+  {
+    "file": "before/gym.routine-prescription.advanced.png",
+    "run": "B6Rsmx",
+    "source_folder": "before",
+    "original": "gym.routine-prescription.advanced (1).png",
+    "sha256": "f9eda14928195617820be17309d3b923d0cfe033e2d656b6f8fab317dfbfe040",
+    "artifact_sha256": "f9eda14928195617820be17309d3b923d0cfe033e2d656b6f8fab317dfbfe040"
+  },
+  {
+    "file": "before/gym.routine-prescription.advanced.xml",
+    "run": "B6Rsmx",
+    "source_folder": "before",
+    "original": "gym.routine-prescription.advanced (1).xml",
+    "sha256": "2ac010b802545551d8c53ce73c03710d2447b108d15df1949e4bd6d8a71bb5df",
+    "original_archive": "before/gym.routine-prescription.advanced.xml.gz",
+    "artifact_sha256": "b03b2a1026ba6f1f59e48ca644d0594757ee6d01faa9227ee12b9e0e139ae977"
+  },
+  {
+    "file": "before/gym.routine-prescription.reopened.png",
+    "run": "B6Rsmx",
+    "source_folder": "before",
+    "original": "gym.routine-prescription.reopened (1).png",
+    "sha256": "97aa983b9ac682b6ee629f6aa37031adb45f0f88c4fda7d773976a7977eb0455",
+    "artifact_sha256": "97aa983b9ac682b6ee629f6aa37031adb45f0f88c4fda7d773976a7977eb0455"
+  },
+  {
+    "file": "before/gym.routine-prescription.reopened.xml",
+    "run": "B6Rsmx",
+    "source_folder": "before",
+    "original": "gym.routine-prescription.reopened (1).xml",
+    "sha256": "5111a3a1e510161b4cb7b0294922435940ce69fdc31c05f19ca4d5a1ccdad6b9",
+    "original_archive": "before/gym.routine-prescription.reopened.xml.gz",
+    "artifact_sha256": "54f557457f9b326994b686409b57b8207a3d3428e19e1065f0f2c1dac28cc817"
+  },
+  {
+    "file": "before/gym.routine-prescription.workout.png",
+    "run": "B6Rsmx",
+    "source_folder": "before",
+    "original": "gym.routine-prescription.workout.png",
+    "sha256": "4a40f52c78ceeca3477cdf77711077bbc7a44894e8dbd3df7a5bc433ed5d9c9e",
+    "artifact_sha256": "4a40f52c78ceeca3477cdf77711077bbc7a44894e8dbd3df7a5bc433ed5d9c9e"
+  },
+  {
+    "file": "before/gym.routine-prescription.workout.xml",
+    "run": "B6Rsmx",
+    "source_folder": "before",
+    "original": "gym.routine-prescription.workout.xml",
+    "sha256": "cf9a535147bb2625264b051fcb6087102d155a0d119caa10dc269cf94129f88d",
+    "original_archive": "before/gym.routine-prescription.workout.xml.gz",
+    "artifact_sha256": "c3e27742b4ea39289d84304e6d35cc4e42af726df9b104095ace246acda94a82"
+  },
+  {
+    "file": "before/gym.routine-prescription.history.png",
+    "run": "B6Rsmx",
+    "source_folder": "before",
+    "original": "gym.routine-prescription.history.png",
+    "sha256": "0a1f7201d78b674d3d5aa36991e17f30aee094e51c8d337a5a9d869c3262c661",
+    "artifact_sha256": "0a1f7201d78b674d3d5aa36991e17f30aee094e51c8d337a5a9d869c3262c661"
+  },
+  {
+    "file": "before/gym.routine-prescription.history.xml",
+    "run": "B6Rsmx",
+    "source_folder": "before",
+    "original": "gym.routine-prescription.history.xml",
+    "sha256": "1fbf52f44c0dc6de88af8d3c17586e886b56f7cf102bf2b0f0e51b7d0dda0695",
+    "original_archive": "before/gym.routine-prescription.history.xml.gz",
+    "artifact_sha256": "97af6a8c9434e2de3b965ef7707a21af54c833f75e1e28a31a25e507872f0f05"
+  },
+  {
+    "file": "phone/gym.routine-prescription.initial.png",
+    "run": "xsVeJy",
+    "source_folder": "phone-final",
+    "original": "gym.routine-prescription.initial (5).png",
+    "sha256": "5a88be579a901dbeab002792c46aa680526b778499380e1109613773243672e4",
+    "artifact_sha256": "5a88be579a901dbeab002792c46aa680526b778499380e1109613773243672e4"
+  },
+  {
+    "file": "phone/gym.routine-prescription.initial.xml",
+    "run": "xsVeJy",
+    "source_folder": "phone-final",
+    "original": "gym.routine-prescription.initial (5).xml",
+    "sha256": "1fce3f94b86c2ead5e2753bd81f317dd68626e96160247ab7b436edca13d7ac4",
+    "original_archive": "phone/gym.routine-prescription.initial.xml.gz",
+    "artifact_sha256": "4081e1e019ea8c8858caf7e0459146d01b2189a8a1e516e2be8f11f6fa0713c3"
+  },
+  {
+    "file": "phone/gym.routine-prescription.advanced.png",
+    "run": "xsVeJy",
+    "source_folder": "phone-final",
+    "original": "gym.routine-prescription.advanced (5).png",
+    "sha256": "90c70d5f3a50de5b3d437c712e908989bf841b7c7b5bac8a0cbe58e42284bb0b",
+    "artifact_sha256": "90c70d5f3a50de5b3d437c712e908989bf841b7c7b5bac8a0cbe58e42284bb0b"
+  },
+  {
+    "file": "phone/gym.routine-prescription.advanced.xml",
+    "run": "xsVeJy",
+    "source_folder": "phone-final",
+    "original": "gym.routine-prescription.advanced (5).xml",
+    "sha256": "ae8dfea96f3dd60c499cd7d1db0e1c2a7f4707764005d795b444530ffb0d5ad2",
+    "original_archive": "phone/gym.routine-prescription.advanced.xml.gz",
+    "artifact_sha256": "a782ae1fde65c819f47d91d8689fa997b3f5fbc40e6a7880525e4ebff1dd393b"
+  },
+  {
+    "file": "phone/gym.routine-prescription.reopened.png",
+    "run": "xsVeJy",
+    "source_folder": "phone-final",
+    "original": "gym.routine-prescription.reopened (4).png",
+    "sha256": "cca21d6bf5fae7662d598d7d610a069883a5b108982e5b86b4add0849e6239b8",
+    "artifact_sha256": "cca21d6bf5fae7662d598d7d610a069883a5b108982e5b86b4add0849e6239b8"
+  },
+  {
+    "file": "phone/gym.routine-prescription.reopened.xml",
+    "run": "xsVeJy",
+    "source_folder": "phone-final",
+    "original": "gym.routine-prescription.reopened (4).xml",
+    "sha256": "6a8d811c5fa57411251438e2942649c591f3d7a650e8f0d23745929edc583e61",
+    "original_archive": "phone/gym.routine-prescription.reopened.xml.gz",
+    "artifact_sha256": "a638575c1bc5f96bf7ab7d05a8d6b4024e64272609c62fb8498a6b756e3494b0"
+  },
+  {
+    "file": "phone/gym.routine-prescription.tools.png",
+    "run": "xsVeJy",
+    "source_folder": "phone-final",
+    "original": "gym.routine-prescription.tools (2).png",
+    "sha256": "61b39a191115bf3f755bca7cb58462320e0463afebcd86e1f159ddfcb8f21f03",
+    "artifact_sha256": "61b39a191115bf3f755bca7cb58462320e0463afebcd86e1f159ddfcb8f21f03"
+  },
+  {
+    "file": "phone/gym.routine-prescription.tools.xml",
+    "run": "xsVeJy",
+    "source_folder": "phone-final",
+    "original": "gym.routine-prescription.tools (2).xml",
+    "sha256": "a926c85dd8e1c44580eeaef8df12a6abce858f52b33e180e3f9a857fd16d57df",
+    "original_archive": "phone/gym.routine-prescription.tools.xml.gz",
+    "artifact_sha256": "9c4592e18976f9b5819116ef552d10a228ca46944c5bd0ce1846dfcf9549aff4"
+  },
+  {
+    "file": "phone/gym.routine-prescription.workout.png",
+    "run": "xsVeJy",
+    "source_folder": "phone-final",
+    "original": "gym.routine-prescription.workout (3).png",
+    "sha256": "f45fec08645496ef763d44c057b0ae0abc882095277c0536873b259af2995e26",
+    "artifact_sha256": "f45fec08645496ef763d44c057b0ae0abc882095277c0536873b259af2995e26"
+  },
+  {
+    "file": "phone/gym.routine-prescription.workout.xml",
+    "run": "xsVeJy",
+    "source_folder": "phone-final",
+    "original": "gym.routine-prescription.workout (3).xml",
+    "sha256": "ff7e5f1a8b9b002e342c7a376be867835da8bdbf6c172abf821f615dba3ff396",
+    "original_archive": "phone/gym.routine-prescription.workout.xml.gz",
+    "artifact_sha256": "86c22b16297347ba341b43eb7484364b23c46541f735f970b23e209639c671aa"
+  },
+  {
+    "file": "phone/gym.routine-prescription.history.png",
+    "run": "xsVeJy",
+    "source_folder": "phone-final",
+    "original": "gym.routine-prescription.history (3).png",
+    "sha256": "9d526896f666b833afc9196ecb63e3f47c92a2935c827fcb849783c4cdb29e09",
+    "artifact_sha256": "9d526896f666b833afc9196ecb63e3f47c92a2935c827fcb849783c4cdb29e09"
+  },
+  {
+    "file": "phone/gym.routine-prescription.history.xml",
+    "run": "xsVeJy",
+    "source_folder": "phone-final",
+    "original": "gym.routine-prescription.history (3).xml",
+    "sha256": "a942c9e1e7442d3a25d2e606ab0cac13ab0dbc9e94f4da308b288416ba3af8fa",
+    "original_archive": "phone/gym.routine-prescription.history.xml.gz",
+    "artifact_sha256": "3a175834ecc545dcfc0f898edfd660dea386d6f6f03c2c83309dbd2c6f7a143b"
+  },
+  {
+    "file": "phone/gym.routine-authoring.recovered-placement.png",
+    "run": "xsVeJy",
+    "source_folder": "phone-final-authoring",
+    "original": "gym.routine-authoring.recovered-placement (7).png",
+    "sha256": "9166c688cfccb2e8bf87f842762fe2814c3171dea6c98ab42718511b96ee60fa",
+    "artifact_sha256": "9166c688cfccb2e8bf87f842762fe2814c3171dea6c98ab42718511b96ee60fa"
+  },
+  {
+    "file": "phone/gym.routine-authoring.recovered-placement.xml",
+    "run": "xsVeJy",
+    "source_folder": "phone-final-authoring",
+    "original": "gym.routine-authoring.recovered-placement (7).xml",
+    "sha256": "76c8b5a48bffad78760b82aae669a2f92a83482c003c5bf05d65ab8a6ebf85de",
+    "original_archive": "phone/gym.routine-authoring.recovered-placement.xml.gz",
+    "artifact_sha256": "c4ec4ea1e7b348cd6dd8319019d2f81848fe882345f44c60050bf01ff67b0157"
+  },
+  {
+    "file": "phone/gym.routine-authoring.saved-in-place.png",
+    "run": "xsVeJy",
+    "source_folder": "phone-final-authoring",
+    "original": "gym.routine-authoring.saved-in-place (6).png",
+    "sha256": "cf13dbe2dd713d46f89561055b49409ae1ea6627724b10a38313169f6bb835a3",
+    "artifact_sha256": "cf13dbe2dd713d46f89561055b49409ae1ea6627724b10a38313169f6bb835a3"
+  },
+  {
+    "file": "phone/gym.routine-authoring.saved-in-place.xml",
+    "run": "xsVeJy",
+    "source_folder": "phone-final-authoring",
+    "original": "gym.routine-authoring.saved-in-place (6).xml",
+    "sha256": "3bb561ca265b571274b48c6ebff69634bf6896fa7eaa6164f5206e492ae58766",
+    "original_archive": "phone/gym.routine-authoring.saved-in-place.xml.gz",
+    "artifact_sha256": "1f415d6b58f4b9b684b292fe954ae61bb6649cd8c1e53409462064d6f609d61b"
+  },
+  {
+    "file": "phone/gym.routine.active-blocked.png",
+    "run": "xsVeJy",
+    "source_folder": "phone-final-neighbors",
+    "original": "gym.routine.active-blocked (7).png",
+    "sha256": "48b210f42e3d91f9e161af22aa37283b5e863698e35fc118d69e699bd8bc663a",
+    "artifact_sha256": "48b210f42e3d91f9e161af22aa37283b5e863698e35fc118d69e699bd8bc663a"
+  },
+  {
+    "file": "phone/gym.routine.active-blocked.xml",
+    "run": "xsVeJy",
+    "source_folder": "phone-final-neighbors",
+    "original": "gym.routine.active-blocked (7).xml",
+    "sha256": "097471f2a117b0d85bee775a363d6af738b2476f86a0a954112d6f6a537d0f15",
+    "original_archive": "phone/gym.routine.active-blocked.xml.gz",
+    "artifact_sha256": "1e0ad142b32a7afc23726c247b16db38390bac99b1c675676279205f6eda8897"
+  },
+  {
+    "file": "phone/gym.531.workout.active.png",
+    "run": "xsVeJy",
+    "source_folder": "phone-final-neighbors",
+    "original": "gym.531.workout.active (7).png",
+    "sha256": "0d2f31c69b75ba438c49e3c052dbc9ac80e6c4e51fe0b3bebc975a7514c5d6db",
+    "artifact_sha256": "0d2f31c69b75ba438c49e3c052dbc9ac80e6c4e51fe0b3bebc975a7514c5d6db"
+  },
+  {
+    "file": "phone/gym.531.workout.active.xml",
+    "run": "xsVeJy",
+    "source_folder": "phone-final-neighbors",
+    "original": "gym.531.workout.active (7).xml",
+    "sha256": "b5e31eb24db8000e542ae6fa17413387c95157dd628cef5875b83bd6f4efda68",
+    "original_archive": "phone/gym.531.workout.active.xml.gz",
+    "artifact_sha256": "e51ed08cc8f575df31dcab539652deb714520f221ee5ab0d9c62edc9f6678f98"
+  },
+  {
+    "file": "wide/gym.routine-prescription.initial.png",
+    "run": "API37_FINAL",
+    "source_folder": "wide",
+    "original": "gym.routine-prescription.initial.png",
+    "sha256": "23401c9eb2fe741344d7872e1262d8718724b3598d53d0287f6e7e4e45a52b76",
+    "artifact_sha256": "23401c9eb2fe741344d7872e1262d8718724b3598d53d0287f6e7e4e45a52b76"
+  },
+  {
+    "file": "wide/gym.routine-prescription.initial.xml",
+    "run": "API37_FINAL",
+    "source_folder": "wide",
+    "original": "gym.routine-prescription.initial.xml",
+    "sha256": "0fc7c4465abe7f9d45b6e51cd415fafa40fe98b1122f65f3df24bc0f5c379044",
+    "original_archive": "wide/gym.routine-prescription.initial.xml.gz",
+    "artifact_sha256": "37c2d97f34f96bcfdfa80efee68f6665d96f08da7d66012ff63125c4d5c9f9a6"
+  },
+  {
+    "file": "wide/gym.routine-prescription.advanced.png",
+    "run": "API37_FINAL",
+    "source_folder": "wide",
+    "original": "gym.routine-prescription.advanced.png",
+    "sha256": "7b7ffe4c850c474b32726fb073d01eb585e81c7fac617a019c8ebe969bf7fb85",
+    "artifact_sha256": "7b7ffe4c850c474b32726fb073d01eb585e81c7fac617a019c8ebe969bf7fb85"
+  },
+  {
+    "file": "wide/gym.routine-prescription.advanced.xml",
+    "run": "API37_FINAL",
+    "source_folder": "wide",
+    "original": "gym.routine-prescription.advanced.xml",
+    "sha256": "1014e9fcaf65dbb0b0138b6f4f7a37a1a54186c045821e992995ca5e79ba9eb6",
+    "original_archive": "wide/gym.routine-prescription.advanced.xml.gz",
+    "artifact_sha256": "efd3f39fdede3e1810de0b223e3add7fe9cb605ec6a779b1576d4678fced5c41"
+  },
+  {
+    "file": "wide/gym.routine-prescription.reopened.png",
+    "run": "API37_FINAL",
+    "source_folder": "wide",
+    "original": "gym.routine-prescription.reopened.png",
+    "sha256": "65db7f4d2d7f186f2be135731ba84a2084c516c2451ea25f0e21279dbe324362",
+    "artifact_sha256": "65db7f4d2d7f186f2be135731ba84a2084c516c2451ea25f0e21279dbe324362"
+  },
+  {
+    "file": "wide/gym.routine-prescription.reopened.xml",
+    "run": "API37_FINAL",
+    "source_folder": "wide",
+    "original": "gym.routine-prescription.reopened.xml",
+    "sha256": "07e0218748cef343cdcccb416457a73d5f730f1732b3e7349b43a1b38da55220",
+    "original_archive": "wide/gym.routine-prescription.reopened.xml.gz",
+    "artifact_sha256": "8a8fd022434b2c78ba6efa0175f2dd4a08101e4182f6cdbf2ff6f06da5034bcb"
+  },
+  {
+    "file": "wide/gym.routine-prescription.tools.png",
+    "run": "API37_FINAL",
+    "source_folder": "wide",
+    "original": "gym.routine-prescription.tools.png",
+    "sha256": "3f9a543e1d23a3c01374b552f88769ab1f526558ff1663ca83eb754375e0d158",
+    "artifact_sha256": "3f9a543e1d23a3c01374b552f88769ab1f526558ff1663ca83eb754375e0d158"
+  },
+  {
+    "file": "wide/gym.routine-prescription.tools.xml",
+    "run": "API37_FINAL",
+    "source_folder": "wide",
+    "original": "gym.routine-prescription.tools.xml",
+    "sha256": "1a9034fe7bdc2c96937d7cbbf4a855fc7b995cf7a087b39feaa97b621309cb2b",
+    "original_archive": "wide/gym.routine-prescription.tools.xml.gz",
+    "artifact_sha256": "3884dbec481666c83c2ea6df18dcaa6f44dcafc3250cd28fdae45ee474794fa3"
+  },
+  {
+    "file": "wide/gym.routine-prescription.workout.png",
+    "run": "API37_FINAL",
+    "source_folder": "wide",
+    "original": "gym.routine-prescription.workout.png",
+    "sha256": "95114b9791afe69622acd6e6a2c2549d0b028d03dd4c3f432ec87f11ea322554",
+    "artifact_sha256": "95114b9791afe69622acd6e6a2c2549d0b028d03dd4c3f432ec87f11ea322554"
+  },
+  {
+    "file": "wide/gym.routine-prescription.workout.xml",
+    "run": "API37_FINAL",
+    "source_folder": "wide",
+    "original": "gym.routine-prescription.workout.xml",
+    "sha256": "7dea9e101fed0b5480eb8cca335be72c64e184b8b578266bfcd05c12dfba4d9d",
+    "original_archive": "wide/gym.routine-prescription.workout.xml.gz",
+    "artifact_sha256": "3ce71a3e734302b3b0729a69830aba0ddf0397bac0c87e86d5233c9ba9982c29"
+  },
+  {
+    "file": "wide/gym.routine-prescription.history.png",
+    "run": "API37_FINAL",
+    "source_folder": "wide",
+    "original": "gym.routine-prescription.history.png",
+    "sha256": "7bf22d0621294cd3710ff01ea0d5ea489a74f95e215625e82437c34230fec451",
+    "artifact_sha256": "7bf22d0621294cd3710ff01ea0d5ea489a74f95e215625e82437c34230fec451"
+  },
+  {
+    "file": "wide/gym.routine-prescription.history.xml",
+    "run": "API37_FINAL",
+    "source_folder": "wide",
+    "original": "gym.routine-prescription.history.xml",
+    "sha256": "c23024da49790cb6484b7294c23a48112df997c8a7dfd60a999c4c88eba56716",
+    "original_archive": "wide/gym.routine-prescription.history.xml.gz",
+    "artifact_sha256": "cab51b346e085d36635d46d332a79c1bd7ea3ddddc25095b330928cea674b7f6"
+  },
+  {
+    "file": "wide/gym.routine-authoring.recovered-placement.png",
+    "run": "API37_FINAL",
+    "source_folder": "wide-authoring",
+    "original": "gym.routine-authoring.recovered-placement (1).png",
+    "sha256": "aaf7681e8bf7b52493c401e79e4639a2b5d185164986b4b50277d731c5259ab0",
+    "artifact_sha256": "aaf7681e8bf7b52493c401e79e4639a2b5d185164986b4b50277d731c5259ab0"
+  },
+  {
+    "file": "wide/gym.routine-authoring.recovered-placement.xml",
+    "run": "API37_FINAL",
+    "source_folder": "wide-authoring",
+    "original": "gym.routine-authoring.recovered-placement (1).xml",
+    "sha256": "d14ccce6b667a8ebc31f800843520d7ccf08574dce8ea012c614c70a17d93bdd",
+    "original_archive": "wide/gym.routine-authoring.recovered-placement.xml.gz",
+    "artifact_sha256": "dfb77ca8d18cde4aad3c34aa2ffd7401f17985e193f78cb0f870fea0fa5ea5b7"
+  },
+  {
+    "file": "wide/gym.routine-authoring.saved-in-place.png",
+    "run": "API37_FINAL",
+    "source_folder": "wide-authoring",
+    "original": "gym.routine-authoring.saved-in-place (1).png",
+    "sha256": "5706ad921bb38c6b211bce266794e7a2198e0b9a27fe1f16c95f321a87444685",
+    "artifact_sha256": "5706ad921bb38c6b211bce266794e7a2198e0b9a27fe1f16c95f321a87444685"
+  },
+  {
+    "file": "wide/gym.routine-authoring.saved-in-place.xml",
+    "run": "API37_FINAL",
+    "source_folder": "wide-authoring",
+    "original": "gym.routine-authoring.saved-in-place (1).xml",
+    "sha256": "abc1945a85b423b1ca2fd90b907902869d651687382138cae1c114f0d07ac4fc",
+    "original_archive": "wide/gym.routine-authoring.saved-in-place.xml.gz",
+    "artifact_sha256": "0171d6a62af5270befd5c9bd07bbae4a8e5f6552d7d2b9ad4da796875942615a"
+  },
+  {
+    "file": "wide/gym.routine.active-blocked.png",
+    "run": "API37_FINAL",
+    "source_folder": "wide-neighbors",
+    "original": "gym.routine.active-blocked (1).png",
+    "sha256": "31c8b346d534811ac8d73929b09e387622557a9924eab9c7c889d1a4881dc906",
+    "artifact_sha256": "31c8b346d534811ac8d73929b09e387622557a9924eab9c7c889d1a4881dc906"
+  },
+  {
+    "file": "wide/gym.routine.active-blocked.xml",
+    "run": "API37_FINAL",
+    "source_folder": "wide-neighbors",
+    "original": "gym.routine.active-blocked (1).xml",
+    "sha256": "1dce8a3341ba24b0fcc086287d26a4f43d02baa6bba13794ce9ec96965efaff5",
+    "original_archive": "wide/gym.routine.active-blocked.xml.gz",
+    "artifact_sha256": "c2a695f626baddd908286a2d0c4d244e0848c9d23ecbd525a02fc666c55592d8"
+  },
+  {
+    "file": "wide/gym.531.workout.active.png",
+    "run": "API37_FINAL",
+    "source_folder": "wide-neighbors",
+    "original": "gym.531.workout.active (1).png",
+    "sha256": "47e24e16f23892285847d89492fd914b777b9e0330615c28782a981ee4c7021a",
+    "artifact_sha256": "47e24e16f23892285847d89492fd914b777b9e0330615c28782a981ee4c7021a"
+  },
+  {
+    "file": "wide/gym.531.workout.active.xml",
+    "run": "API37_FINAL",
+    "source_folder": "wide-neighbors",
+    "original": "gym.531.workout.active (1).xml",
+    "sha256": "9cec078e74b79d803f0592f72c1ffbb86b07a973a75b21e9527373e1efac4d84",
+    "original_archive": "wide/gym.531.workout.active.xml.gz",
+    "artifact_sha256": "dcb769ad556e0c41d16eafea31d3bf1d5a13020b21f0db38201bb02053592c97"
+  },
+  {
+    "file": "rejected-initial/gym.routine-prescription.initial.png",
+    "run": "B6Rsmx",
+    "source_folder": "before",
+    "original": "gym.routine-prescription.initial (1).png",
+    "sha256": "ca75769dc59e6781eb1a155be7cf03b9051d45ed2a608a39ebff130585f517b2",
+    "artifact_sha256": "ca75769dc59e6781eb1a155be7cf03b9051d45ed2a608a39ebff130585f517b2"
+  },
+  {
+    "file": "rejected-initial/gym.routine-prescription.initial.xml",
+    "run": "B6Rsmx",
+    "source_folder": "before",
+    "original": "gym.routine-prescription.initial (1).xml",
+    "sha256": "12ee998285419af45aa304eefc42219b30a2f4448b1ceb70bd2ebc457917d25d",
+    "original_archive": "rejected-initial/gym.routine-prescription.initial.xml.gz",
+    "artifact_sha256": "aeaec79cad2226002484cbcfdff691e56f64ebad27ce2266ea0cf826f90e6a68"
+  }
+]
