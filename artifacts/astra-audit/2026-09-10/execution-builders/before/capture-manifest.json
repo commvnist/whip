@@ -1,0 +1,32 @@
+[
+  {
+    "file": "gym.execution-builder.skipped.xml",
+    "original": "gym.execution-builder.skipped.xml",
+    "sha256": "00ae5a5cb3926c138b6b616299fbd29e939fb18db45bf699748e4ac5750c9c7b"
+  },
+  {
+    "file": "gym.execution-builder.skipped.png",
+    "original": "gym.execution-builder.skipped.png",
+    "sha256": "6111a15173c4cf2877d75da57ce312755382a4326bb7e4ea650f552f31e25e2a"
+  },
+  {
+    "file": "gym.history.populated.xml",
+    "original": "gym.history.populated.xml",
+    "sha256": "63999478d0d9f56b75e9ed242b8ee513acca907bf99448bf5c607caed5fab886"
+  },
+  {
+    "file": "gym.history.populated.png",
+    "original": "gym.history.populated.png",
+    "sha256": "eeb188bdbcad467e5d3057208dc794e1a0472831ea1e80dce820fb2e4538f765"
+  },
+  {
+    "file": "gym.workout.active.xml",
+    "original": "gym.workout.active.xml",
+    "sha256": "477817bccbf7cd5f63822b9644469db5f7425b5d058affa4ed520e9d21389e61"
+  },
+  {
+    "file": "gym.workout.active.png",
+    "original": "gym.workout.active.png",
+    "sha256": "6296de65c330274b7ccdd005f6006276255ce75f9f0fcc8214ba1fbd30e018f7"
+  }
+]

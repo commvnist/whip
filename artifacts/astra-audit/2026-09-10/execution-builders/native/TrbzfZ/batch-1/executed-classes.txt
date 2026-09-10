@@ -1,0 +1,2 @@
+com.whip.app.ExecutionItemBuilderJourneyE2ETest
+com.whip.app.GymPowerInputUiTest

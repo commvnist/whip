@@ -394,7 +394,9 @@ class VisualCatalogPagesTest {
                 androidx.compose.ui.test.hasText(destination),
             )
             compose.onNodeWithTag("gym-library-$destination").performClick()
-            compose.onNodeWithText(pageTitle).assertIsDisplayed()
+            compose.onNode(
+                androidx.compose.ui.test.hasTestTag("page-title") and androidx.compose.ui.test.hasText(pageTitle),
+            ).assertIsDisplayed()
             compose.waitForIdle()
             captureVisualCatalogSurface(
                 surfaceId = "gym.${destination.lowercase()}.populated".replace("tools.populated", "tools"),

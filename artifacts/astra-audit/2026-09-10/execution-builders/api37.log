@@ -1,0 +1,134 @@
+INSTRUMENTATION_STATUS: class=com.whip.app.ExecutionItemBuilderJourneyE2ETest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=4
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.ExecutionItemBuilderJourneyE2ETest:
+INSTRUMENTATION_STATUS: test=skippedSetKeepsItsMeaningThenRestoresLogsAndReopensInHistory
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.ExecutionItemBuilderJourneyE2ETest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=4
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'Performed' (ignoreCase: false))
+Semantics of the node:
+Node #1032 at (l=914.0, t=1242.0, r=2464.0, b=1270.0)px, Tag: 'history-set-status-21'
+Text = '[Working · Performed]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 2 siblings
+Selector used: (TestTag = 'history-set-status-21')
+
+	at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+	at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+	at com.whip.app.ExecutionItemBuilderJourneyE2ETest.skippedSetKeepsItsMeaningThenRestoresLogsAndReopensInHistory(ExecutionItemBuilderJourneyE2ETest.kt:79)
+
+INSTRUMENTATION_STATUS: stream=
+Error in skippedSetKeepsItsMeaningThenRestoresLogsAndReopensInHistory(com.whip.app.ExecutionItemBuilderJourneyE2ETest):
+java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'Performed' (ignoreCase: false))
+Semantics of the node:
+Node #1032 at (l=914.0, t=1242.0, r=2464.0, b=1270.0)px, Tag: 'history-set-status-21'
+Text = '[Working · Performed]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 2 siblings
+Selector used: (TestTag = 'history-set-status-21')
+
+	at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+	at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+	at com.whip.app.ExecutionItemBuilderJourneyE2ETest.skippedSetKeepsItsMeaningThenRestoresLogsAndReopensInHistory(ExecutionItemBuilderJourneyE2ETest.kt:79)
+
+INSTRUMENTATION_STATUS: test=skippedSetKeepsItsMeaningThenRestoresLogsAndReopensInHistory
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=com.whip.app.GymPowerInputUiTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=4
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.GymPowerInputUiTest:
+INSTRUMENTATION_STATUS: test=passiveWorkoutSetCardSeparatesIdentityValuesStatusAndTargetAtLargeText
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.GymPowerInputUiTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=4
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=passiveWorkoutSetCardSeparatesIdentityValuesStatusAndTargetAtLargeText
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.whip.app.GymPowerInputUiTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=4
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=historicalSetCardSharesActiveHierarchyAndInsetsAtLargeText
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.GymPowerInputUiTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=4
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=historicalSetCardSharesActiveHierarchyAndInsetsAtLargeText
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.whip.app.VisualCatalogPagesTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=4
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.VisualCatalogPagesTest:
+INSTRUMENTATION_STATUS: test=captureGymPageCatalog
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.VisualCatalogPagesTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=4
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Failed to perform checkIsDisplayed check: Expected at most 1 node but found 2 nodes that satisfy (Text + InputText + EditableText contains 'Routines' (ignoreCase: false))
+	at androidx.compose.ui.test.AndroidAssertions_androidKt.checkIsDisplayed(AndroidAssertions.android.kt:35)
+	at androidx.compose.ui.test.AssertionsKt.isDisplayed(Assertions.kt:380)
+	at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:33)
+	at com.whip.app.VisualCatalogPagesTest.captureGymPages(VisualCatalogPagesTest.kt:397)
+	at com.whip.app.VisualCatalogPagesTest.captureGymPageCatalog(VisualCatalogPagesTest.kt:173)
+
+INSTRUMENTATION_STATUS: stream=
+Error in captureGymPageCatalog(com.whip.app.VisualCatalogPagesTest):
+java.lang.AssertionError: Failed to perform checkIsDisplayed check: Expected at most 1 node but found 2 nodes that satisfy (Text + InputText + EditableText contains 'Routines' (ignoreCase: false))
+	at androidx.compose.ui.test.AndroidAssertions_androidKt.checkIsDisplayed(AndroidAssertions.android.kt:35)
+	at androidx.compose.ui.test.AssertionsKt.isDisplayed(Assertions.kt:380)
+	at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:33)
+	at com.whip.app.VisualCatalogPagesTest.captureGymPages(VisualCatalogPagesTest.kt:397)
+	at com.whip.app.VisualCatalogPagesTest.captureGymPageCatalog(VisualCatalogPagesTest.kt:173)
+
+INSTRUMENTATION_STATUS: test=captureGymPageCatalog
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 37.04
+There were 2 failures:
+1) skippedSetKeepsItsMeaningThenRestoresLogsAndReopensInHistory(com.whip.app.ExecutionItemBuilderJourneyE2ETest)
+java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'Performed' (ignoreCase: false))
+Semantics of the node:
+Node #1032 at (l=914.0, t=1242.0, r=2464.0, b=1270.0)px, Tag: 'history-set-status-21'
+Text = '[Working · Performed]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 2 siblings
+Selector used: (TestTag = 'history-set-status-21')
+
+	at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+	at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+	at com.whip.app.ExecutionItemBuilderJourneyE2ETest.skippedSetKeepsItsMeaningThenRestoresLogsAndReopensInHistory(ExecutionItemBuilderJourneyE2ETest.kt:79)
+2) captureGymPageCatalog(com.whip.app.VisualCatalogPagesTest)
+java.lang.AssertionError: Failed to perform checkIsDisplayed check: Expected at most 1 node but found 2 nodes that satisfy (Text + InputText + EditableText contains 'Routines' (ignoreCase: false))
+	at androidx.compose.ui.test.AndroidAssertions_androidKt.checkIsDisplayed(AndroidAssertions.android.kt:35)
+	at androidx.compose.ui.test.AssertionsKt.isDisplayed(Assertions.kt:380)
+	at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:33)
+	at com.whip.app.VisualCatalogPagesTest.captureGymPages(VisualCatalogPagesTest.kt:397)
+	at com.whip.app.VisualCatalogPagesTest.captureGymPageCatalog(VisualCatalogPagesTest.kt:173)
+
+FAILURES!!!
+Tests run: 4,  Failures: 2
+
+
+INSTRUMENTATION_CODE: -1

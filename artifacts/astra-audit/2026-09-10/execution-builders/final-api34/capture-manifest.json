@@ -1,0 +1,52 @@
+[
+  {
+    "file": "gym.history.populated.xml",
+    "original": "gym.history.populated (2).xml",
+    "sha256": "4b6ec6b1309f343f534892681efbe8eaf016bb76c29efb305729e2b33c684dcf"
+  },
+  {
+    "file": "gym.history.populated.png",
+    "original": "gym.history.populated (2).png",
+    "sha256": "d9c332294af2ea3ff67ec889653f22b501890d397ada12fb2b25e529ac2681dd"
+  },
+  {
+    "file": "gym.workout.active.xml",
+    "original": "gym.workout.active (2).xml",
+    "sha256": "a5bd99b8d35bef32f795c7103a3b98e649a7e9eec25dacb37d7da0c560acf86e"
+  },
+  {
+    "file": "gym.workout.active.png",
+    "original": "gym.workout.active (2).png",
+    "sha256": "6c89f320caedd35c65c16d6c1c291e1d0ac2f8a038559adff1ce26e47591baad"
+  },
+  {
+    "file": "gym.execution-builder.history.xml",
+    "original": "gym.execution-builder.history (3).xml",
+    "sha256": "2d46dde2857d0af18a8a8e31a212d40ed1ada7541f6ab2a8484b9d05f5cd26ac"
+  },
+  {
+    "file": "gym.execution-builder.history.png",
+    "original": "gym.execution-builder.history (3).png",
+    "sha256": "d8f6b672d15a19ea76812c3c319a85183e9834d18dd5d91a8fb94e2be76b1d87"
+  },
+  {
+    "file": "gym.execution-builder.restored.xml",
+    "original": "gym.execution-builder.restored (5).xml",
+    "sha256": "44b44934f678d5a5cb51ec40d49fec9f8b0cdf40b71f3d877abc170f6ad54951"
+  },
+  {
+    "file": "gym.execution-builder.restored.png",
+    "original": "gym.execution-builder.restored (6).png",
+    "sha256": "4f25c2ec11298d2762a8e4b6f81f2a79e21d1af98031d8eb184e0ab3a1f0d3e4"
+  },
+  {
+    "file": "gym.execution-builder.skipped.xml",
+    "original": "gym.execution-builder.skipped (9).xml",
+    "sha256": "8bb0a7d5fe38c30a485bfad178c429fa13735d5b359d2c1d84bbcc5aa20c873a"
+  },
+  {
+    "file": "gym.execution-builder.skipped.png",
+    "original": "gym.execution-builder.skipped (9).png",
+    "sha256": "282daed997d2d5b2d639bd3f7daef71009a22bb495d8e94b55d70e849c9761e2"
+  }
+]

@@ -1,5 +1,19 @@
 # Durable findings
 
+### FND-20260910-009 — Partially occluded workout toolbar buttons lose accessible names
+
+- Severity/category: P2 normal-scroll accessibility and action identity.
+- Observed: DXG9Gg finishes 176/177 neighboring tests but the restored-Set capture rejects unlabeled controls. Deterministic native scroll reproduction dTLFNG/qGzPSs identifies Add Exercise and Arrange as clickable, enabled, visible nodes with empty text/content-desc at [53,767][529,778] and [550,767][1027,778]. The personally inspected original shows their lower edges beneath the sticky execution panel.
+- Root cause/remedy: The names live only on child Text nodes that scroll behind the panel. Put the unchanged names on the interactive buttons, keeping child presentation and existing actions. Preserve the catalog's unlabeled-node rejection and the normal scroll-position regression. This mirrors the verified Entry-action cause in FND-20260909-019.
+- Status: Verified under IMP/VER-20260910-007. Native final phone/wide journeys assert 4dp toolbar exposure and pass the unchanged strict unlabeled-node guard after names move to the buttons. Evidence: artifacts/astra-audit/2026-09-10/execution-builders/clipped-node-evidence.txt and clipped-before/gym.execution-builder.clipped-toolbar.png. No layout, persistence or navigation behavior change.
+
+### FND-20260910-008 — Active Set outcomes drift from History and core layout remains caller-owned
+
+- Severity/category: P2 execution comprehension and shared design ownership.
+- Observed: hAAVFj reaches a real workout with a persisted Skipped optional Set, then fails its visible Skipped assertion. The personally inspected original says Set 1 · Removed and omits the Optional identity. History already distinguishes removal reasons. Four active/passive/omitted/history paths independently assemble the same text hierarchy despite sharing the passive surface.
+- Root cause: WorkoutExerciseCard hard-codes Removed; HistoricalWorkoutSetRow maps the actual reason. Surface-only reuse does not own identity, values, outcome, target and details layout.
+- Remedy/status: Verified under FB-20260910-001/002 and DEC/IMP/VER-20260910-007. WhipExecutionItem owns these roles, preserving active input emphasis and precise callbacks. One domain outcome mapping serves active and historical Sets; historical-only details and execution/reorder boundaries remain intact. Native Undo/recreation/completion/History, 177 phone neighbors and four wide checks pass. Before/final evidence: artifacts/astra-audit/2026-09-10/execution-builders/README.md.
+
 ### FND-20260910-007 — Settings recreation fixture races the entered draft's applied state
 
 - Severity/category: P2 recovery and authorship.

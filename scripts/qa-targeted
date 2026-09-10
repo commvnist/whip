@@ -229,6 +229,7 @@ add_profile() {
                 'com.whip.app.GymRepositoryTest'
                 'com.whip.app.RoutineRepositoryTest'
                 'com.whip.app.GymPowerInputUiTest'
+                'com.whip.app.ExecutionItemBuilderJourneyE2ETest'
                 'com.whip.app.RoutineBuilderUiTest'
             )
             ;;

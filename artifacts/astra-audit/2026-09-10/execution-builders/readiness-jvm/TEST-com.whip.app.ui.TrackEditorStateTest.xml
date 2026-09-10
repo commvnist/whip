@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.TrackEditorStateTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-09-10T08:14:47.416Z" hostname="beast" time="0.021">
+  <properties/>
+  <testcase name="malformedOptionalNumberSurvivesRecreationWithoutBecomingAnIntentionalBlank" classname="com.whip.app.ui.TrackEditorStateTest" time="0.002"/>
+  <testcase name="editingTheDraftInvalidatesExactRemovalAuthorizationButKeepsUserReplacementIntent" classname="com.whip.app.ui.TrackEditorStateTest" time="0.002"/>
+  <testcase name="trackDefinitionRestoresAsOneTransaction" classname="com.whip.app.ui.TrackEditorStateTest" time="0.0"/>
+  <testcase name="historyContentVersionDetectsSameTimestampValueAndChoiceChanges" classname="com.whip.app.ui.TrackEditorStateTest" time="0.0"/>
+  <testcase name="admittingANewDeletionTerminallySupersedesThePreviousUndoSlot" classname="com.whip.app.ui.TrackEditorStateTest" time="0.001"/>
+  <testcase name="replacementChangeRetainsImpactForDisplayButNoLongerMatchesItsAuthorizationPlan" classname="com.whip.app.ui.TrackEditorStateTest" time="0.001"/>
+  <testcase name="restoredTrackWithSameIdCannotInheritDefinitionDraftFromEarlierGeneration" classname="com.whip.app.ui.TrackEditorStateTest" time="0.0"/>
+  <testcase name="restoredEntryWithSameIdCannotInheritTypedValuesFromEarlierGeneration" classname="com.whip.app.ui.TrackEditorStateTest" time="0.0"/>
+  <testcase name="entryRestoresEveryTypedValueAndDateTogether" classname="com.whip.app.ui.TrackEditorStateTest" time="0.001"/>
+  <testcase name="entryMutationReceiptCanOnlyCloseItsExactRouteAndGeneration" classname="com.whip.app.ui.TrackEditorStateTest" time="0.002"/>
+  <testcase name="entryRouteAvailabilityUsesAtomicPreparationInsteadOfLaggingLiveFlow" classname="com.whip.app.ui.TrackEditorStateTest" time="0.002"/>
+  <testcase name="deletionReviewBoundsHiddenPayloadAndUnicodeExcerptsWithoutChangingAuthority" classname="com.whip.app.ui.TrackEditorStateTest" time="0.009"/>
+  <testcase name="undoFailureCanOnlyRetryItsExactStillPendingDeletion" classname="com.whip.app.ui.TrackEditorStateTest" time="0.0"/>
+  <testcase name="definitionConflictCanOnlyReachTheExactOwningEditorSession" classname="com.whip.app.ui.TrackEditorStateTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

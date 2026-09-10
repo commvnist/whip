@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260910-007 — Build consistent Set layouts and preserve exact outcomes
+
+- Behavior: Active, passive, omitted and historical Sets declare one identity → values → status → target → evidence/input reading order. Skipped optional Sets now retain Optional identity and say Skipped; Undo, completion and History preserve the same Set and saved values. Add Exercise and Arrange retain accessible names when partially scrolled beneath the sticky execution panel.
+- Architecture: WhipExecutionItemBuilder owns Set geometry, text roles and passive/active emphasis; GymScreens retains outcome meaning, exact actions, reorder, input lifecycle and historical evidence. One outcome formatter distinguishes removal reasons in Workout and History. The old surface-only helper and duplicated text layouts are removed. No schema, backup, version, progression or persistence change.
+- Verification: Final 0IRv0l accepts 177 fresh API 34 Android tests with zero failures/skips/reuse, including Gym/5/3/1, earlier-Set correction, full workout completion and the new optional-Set Undo/recreation/45 kg × 6 reps/History journey. Four final API 37 methods pass in 53.223 seconds. The controlled 4dp toolbar exposure keeps the strict unlabeled-node guard. Fixture corrections and failed production reproductions remain separately recorded.
+- Status: Verified under FND-20260910-008/009 and DEC/VER-20260910-007. Readiness passes 346 JVM tests in 34 suites, compilation/lint/debug packaging in 2m25. Fourteen reviewed originals, native results, failed checkpoints and matching tested source/APK hashes are retained in artifacts/astra-audit/2026-09-10/execution-builders/README.md. Whole-app acceptance remains open; normal main/upstream delivery is recorded in Git history.
+
 ### IMP-20260910-006 — Build consistent Settings items from explicit interaction roles
 
 - Behavior: Switches, choices and typed settings share label/control alignment, complete current-value text and full-width explanations. A choice arrow, switch or edit pencil expresses the interaction. Natural height replaces a one-line selected-value preview and the mixed Current/value/explanation paragraph.

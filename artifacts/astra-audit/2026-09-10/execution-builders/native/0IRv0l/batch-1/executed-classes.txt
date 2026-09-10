@@ -1,0 +1,9 @@
+com.whip.app.ExecutionItemBuilderJourneyE2ETest
+com.whip.app.FirstClassWorkflowE2ETest
+com.whip.app.FiveThreeOneCycleReviewUiTest
+com.whip.app.GymFiveThreeOneJourneyE2ETest
+com.whip.app.GymPowerInputUiTest
+com.whip.app.GymRepositoryTest
+com.whip.app.RoutineBuilderUiTest
+com.whip.app.RoutineRepositoryTest
+com.whip.app.VisualCatalogPagesTest

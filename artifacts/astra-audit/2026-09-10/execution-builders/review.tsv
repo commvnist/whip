@@ -1,0 +1,15 @@
+file	NAF_nodes	observation
+final-api34/gym.execution-builder.history.png	0	Same Optional Set identity and performed 45 kg / 6 reps appear in read-only History; the other completed Set remains 42.5 kg / 5 reps.
+final-api34/gym.execution-builder.restored.png	0	Distinct active composer retains 45 kg / 6 reps after Activity recreation. Native geometry asserts the toolbar has only 4dp exposed beneath the sticky lane; Android hierarchy has no unlabeled interactive node.
+final-api34/gym.execution-builder.skipped.png	0	Optional identity and Skipped outcome are distinct readable rows, with exact Undo retained; adjacent performed Set keeps values and actions.
+final-api34/gym.history.populated.png	0	Populated History retains established navigation, options, title/date/exercise summary and disclosure. Initial viewport does not establish every lower/history editor state.
+final-api34/gym.workout.active.png	0	Existing active emphasis, suggested previous values, input layout, next focus and surrounding Gym hierarchy remain coherent at normal scale. Lower input content may require scrolling.
+final-api37/gym.execution-builder.history.png	0	Same Optional Set identity and performed 45 kg / 6 reps appear in read-only History; the other completed Set remains 42.5 kg / 5 reps.
+final-api37/gym.execution-builder.restored.png	0	Distinct active composer retains 45 kg / 6 reps after Activity recreation. Native geometry asserts the toolbar has only 4dp exposed beneath the sticky lane; Android hierarchy has no unlabeled interactive node.
+final-api37/gym.execution-builder.skipped.png	0	Optional identity and Skipped outcome are distinct readable rows, with exact Undo retained; adjacent performed Set keeps values and actions.
+final-api37/gym.history.populated.png	0	Populated History retains established navigation, options, title/date/exercise summary and disclosure. Initial viewport does not establish every lower/history editor state.
+final-api37/gym.workout.active.png	0	Existing active emphasis, suggested previous values, input layout, next focus and surrounding Gym hierarchy remain coherent at normal scale. Lower input content may require scrolling.
+before/gym.execution-builder.skipped.png	0	Native baseline: existing active/History design is coherent; skipped optional Set loses its Optional identity and says Removed.
+before/gym.history.populated.png	0	Native baseline: existing active/History design is coherent; skipped optional Set loses its Optional identity and says Removed.
+before/gym.workout.active.png	0	Native baseline: existing active/History design is coherent; skipped optional Set loses its Optional identity and says Removed.
+clipped-before/gym.execution-builder.clipped-toolbar.png	not retained	Controlled native pre-fix scroll; Add Exercise/Arrange expose only their lower edges. Exact unlabeled nodes are recorded in clipped-node-evidence.txt. No matching XML survived the strict guard.

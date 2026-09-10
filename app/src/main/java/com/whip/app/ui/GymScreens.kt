@@ -3145,7 +3145,8 @@ private fun WorkoutContent(
                             WhipOutlinedButton(
                                 onClick = onAddExercise,
                                 enabled = !sessionMutationSaving,
-                                modifier = Modifier.weight(1f).testTag("add-exercise-to-active-workout"),
+                                modifier = Modifier.weight(1f).testTag("add-exercise-to-active-workout")
+                                    .semantics { contentDescription = "Add Exercise" },
                             ) {
                                 Icon(Icons.Filled.Add, contentDescription = null)
                                 Spacer(Modifier.width(8.dp))
@@ -3154,7 +3155,8 @@ private fun WorkoutContent(
                             WhipOutlinedButton(
                                 onClick = ::beginArrangement,
                                 enabled = !sessionMutationSaving,
-                                modifier = Modifier.weight(1f).testTag("workout-arrange-open"),
+                                modifier = Modifier.weight(1f).testTag("workout-arrange-open")
+                                    .semantics { contentDescription = "Arrange" },
                             ) {
                                 Icon(Icons.Outlined.DragHandle, contentDescription = null)
                                 Spacer(Modifier.width(8.dp))
@@ -3625,22 +3627,13 @@ internal fun WorkoutExerciseCard(
                 .forEach { (index, set) ->
                 key(set.id) {
                 if (set.deletedAtMillis != null) {
-                    WorkoutSetInformationSurface(
+                    WhipExecutionItem(
+                        identity = set.workoutExecutionIdentityLabel(item.workoutExercise, index + 1),
                         modifier = Modifier.fillMaxWidth().testTag("workout-set-card-${set.id}"),
+                        emphasis = WhipExecutionEmphasis.Omitted,
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                "Set ${index + 1} · Removed",
-                                modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            if (!arranging) WhipTextButton(onClick = { onUndoDeleteSet(set.id) }) { Text("Undo") }
-                        }
+                        actions { if (!arranging) WhipTextButton(onClick = { onUndoDeleteSet(set.id) }) { Text("Undo") } }
+                        status(set.workoutExecutionStatusLabel(), Modifier.testTag("workout-set-status-${set.id}"))
                     }
                 } else if (set.id == nextSetId) {
                     val setReorderInteraction = rememberWhipReorderInteractionState()
@@ -3649,7 +3642,8 @@ internal fun WorkoutExerciseCard(
                     } ?: item.previousSets.maxByOrNull { previous ->
                         previous.completedAtMillis ?: previous.updatedAtMillis
                     }
-                    Surface(
+                    WhipExecutionItem(
+                        identity = set.workoutExecutionIdentityLabel(item.workoutExercise, index + 1),
                         modifier = Modifier.fillMaxWidth()
                             .then(
                                 if (arranging) Modifier.whipReorderItem(
@@ -3659,82 +3653,60 @@ internal fun WorkoutExerciseCard(
                                 ) else Modifier,
                             )
                             .testTag("active-set-composer"),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.34f),
-                        shape = MaterialTheme.shapes.small,
+                        emphasis = WhipExecutionEmphasis.Active,
                     ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                val visibleIndex = visibleReorderSets.indexOfFirst { it.id == set.id }
-                                if (arranging) {
-                                    WhipReorderHandle(
-                                        label = "set ${index + 1}",
-                                        canMovePrevious = visibleIndex > 0,
-                                        canMoveNext = visibleIndex in 0 until visibleReorderSets.lastIndex,
-                                        position = visibleIndex + 1,
-                                        total = visibleReorderSets.size,
-                                        interactionState = setReorderInteraction,
-                                        moveWholeItem = true,
-                                        layoutScope = "workout-sets-${item.workoutExercise.id}",
-                                        onMove = { delta -> reorderVisibleSet(set, delta) },
+                        leading {
+                            val visibleIndex = visibleReorderSets.indexOfFirst { it.id == set.id }
+                            if (arranging) {
+                                WhipReorderHandle(
+                                    label = "set ${index + 1}",
+                                    canMovePrevious = visibleIndex > 0,
+                                    canMoveNext = visibleIndex in 0 until visibleReorderSets.lastIndex,
+                                    position = visibleIndex + 1,
+                                    total = visibleReorderSets.size,
+                                    interactionState = setReorderInteraction,
+                                    moveWholeItem = true,
+                                    layoutScope = "workout-sets-${item.workoutExercise.id}",
+                                    onMove = { delta -> reorderVisibleSet(set, delta) },
+                                )
+                            }
+                        }
+                        actions {
+                            if (!arranging) Box {
+                                IconButton(
+                                    onClick = { setMenuId = set.id },
+                                    enabled = !sessionMutationSaving,
+                                    modifier = Modifier.size(48.dp),
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.MoreVert,
+                                        contentDescription = "Manage set ${index + 1}",
+                                        modifier = Modifier.size(26.dp),
                                     )
                                 }
-                                Text(
-                                    set.workoutExecutionIdentityLabel(item.workoutExercise, index + 1),
-                                    modifier = Modifier.weight(1f),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
-                                if (!arranging) Box {
-                                    IconButton(
-                                        onClick = { setMenuId = set.id },
-                                        enabled = !sessionMutationSaving,
-                                        modifier = Modifier.size(48.dp),
-                                    ) {
-                                        Icon(
-                                            Icons.Outlined.MoreVert,
-                                            contentDescription = "Manage set ${index + 1}",
-                                            modifier = Modifier.size(26.dp),
-                                        )
-                                    }
-                                    WorkoutSetActionsMenu(
-                                        expanded = setMenuId == set.id,
-                                        enabled = !sessionMutationSaving,
-                                        onDismiss = { setMenuId = null },
-                                        onDuplicate = { setMenuId = null; onDuplicateSet(set.id) },
-                                        removeLabel = if (set.requiredForProgressionSnapshot &&
+                                WorkoutSetActionsMenu(
+                                    expanded = setMenuId == set.id,
+                                    enabled = !sessionMutationSaving,
+                                    onDismiss = { setMenuId = null },
+                                    onDuplicate = { setMenuId = null; onDuplicateSet(set.id) },
+                                    removeLabel = if (set.requiredForProgressionSnapshot &&
+                                        set.workSectionSnapshot == RoutineWorkSection.Main
+                                    ) "Mark Main Set Not Performed" else "Remove Set",
+                                    onRemove = {
+                                        setMenuId = null
+                                        onClearSessionMutationError()
+                                        if (set.requiredForProgressionSnapshot &&
                                             set.workSectionSnapshot == RoutineWorkSection.Main
-                                        ) "Mark Main Set Not Performed" else "Remove Set",
-                                        onRemove = {
-                                            setMenuId = null
-                                            onClearSessionMutationError()
-                                            if (set.requiredForProgressionSnapshot &&
-                                                set.workSectionSnapshot == RoutineWorkSection.Main
-                                            ) {
-                                                setRemovalConfirmationBoundary = captureSetBoundary(set.id)
-                                            } else captureSetBoundary(set.id)?.let(onDeleteSet)
-                                        },
-                                    )
-                                }
-                            }
-                            Text(
-                                listOfNotNull(
-                                    "Up next",
-                                    set.classification.uiLabel().takeUnless { it == "Working" },
-                                ).joinToString(" · "),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            set.prescriptionLabel(preferredWeightUnitId, numberPrecision, item.workoutExercise)?.let { target ->
-                                Text(
-                                    "Target · $target",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.tertiary,
+                                        ) {
+                                            setRemovalConfirmationBoundary = captureSetBoundary(set.id)
+                                        } else captureSetBoundary(set.id)?.let(onDeleteSet)
+                                    },
                                 )
                             }
+                        }
+                        values(listOfNotNull("Up next", set.classification.uiLabel().takeUnless { it == "Working" }).joinToString(" · "))
+                        target(set.prescriptionLabel(preferredWeightUnitId, numberPrecision, item.workoutExercise))
+                        inputs {
                             QuickSetEntry(
                                 set = set,
                                 exercise = item.exercise,
@@ -3753,7 +3725,8 @@ internal fun WorkoutExerciseCard(
                     }
                 } else {
                     val setReorderInteraction = rememberWhipReorderInteractionState()
-                    WorkoutSetInformationSurface(
+                    WhipExecutionItem(
+                        identity = set.workoutExecutionIdentityLabel(item.workoutExercise, index + 1),
                         modifier = Modifier
                             .fillMaxWidth()
                             .then(
@@ -3770,7 +3743,7 @@ internal fun WorkoutExerciseCard(
                             )
                             .testTag("workout-set-card-${set.id}"),
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        leading {
                             val visibleIndex = visibleReorderSets.indexOfFirst { it.id == set.id }
                             if (arranging) {
                                 WhipReorderHandle(
@@ -3785,13 +3758,8 @@ internal fun WorkoutExerciseCard(
                                     onMove = { delta -> reorderVisibleSet(set, delta) },
                                 )
                             }
-                            Text(
-                                set.workoutExecutionIdentityLabel(item.workoutExercise, index + 1),
-                                modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
+                        }
+                        actions {
                             if (!arranging) Box {
                                 IconButton(
                                     onClick = { setMenuId = set.id },
@@ -3842,7 +3810,7 @@ internal fun WorkoutExerciseCard(
                                 }
                             }
                         }
-                        Text(
+                        values(
                             set.shortLabel(
                                 preferredWeightUnitId,
                                 preferredDistanceUnitId,
@@ -3850,24 +3818,13 @@ internal fun WorkoutExerciseCard(
                                 item.workoutExercise,
                                 item.exercise.weightUnitId,
                             ).replace("Empty set", "Enter set values"),
-                            modifier = Modifier.testTag("workout-set-values-${set.id}"),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
+                            Modifier.testTag("workout-set-values-${set.id}"),
                         )
-                        Text(
-                            set.workoutExecutionStatusLabel(),
-                            modifier = Modifier.testTag("workout-set-status-${set.id}"),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        status(set.workoutExecutionStatusLabel(), Modifier.testTag("workout-set-status-${set.id}"))
+                        target(
+                            set.prescriptionLabel(preferredWeightUnitId, numberPrecision, item.workoutExercise),
+                            Modifier.testTag("workout-set-target-${set.id}"),
                         )
-                        set.prescriptionLabel(preferredWeightUnitId, numberPrecision, item.workoutExercise)?.let { target ->
-                            Text(
-                                "Target · $target",
-                                modifier = Modifier.testTag("workout-set-target-${set.id}"),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.tertiary,
-                            )
-                        }
                     }
                 }
                 }
@@ -4002,39 +3959,23 @@ private fun WorkoutSet.workoutExecutionIdentityLabel(
     "Set $setNumber",
 ).joinToString(" · ")
 
-private fun WorkoutSet.workoutExecutionStatusLabel(): String = buildList {
+private fun WorkoutSet.workoutExecutionStatusLabel(
+    incompleteLabel: String = if (planned) "Planned" else "Not completed",
+): String = buildList {
     add(classification.uiLabel())
     add(
         when {
+            removalReason == WorkoutSetRemovalReason.Removed -> "Removed"
+            removalReason == WorkoutSetRemovalReason.Skipped -> "Skipped"
+            removalReason == WorkoutSetRemovalReason.ExerciseRemoved -> "Not performed · exercise removed"
+            removalReason == WorkoutSetRemovalReason.ExerciseSubstituted -> "Not performed · exercise replaced"
             completed -> "Performed"
-            planned -> "Planned"
-            else -> "Not completed"
+            else -> incompleteLabel
         },
     )
     rpe?.let { add("RPE ${formatNumber(it, 1)}") }
     rir?.let { add("RIR ${formatNumber(it, 1)}") }
 }.joinToString(" · ")
-
-@Composable
-private fun WorkoutSetInformationSurface(
-    modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape = MaterialTheme.shapes.small,
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(
-                horizontal = WhipCardGeometry.horizontalInset,
-                vertical = WhipCardGeometry.verticalInset,
-            ),
-            verticalArrangement = Arrangement.spacedBy(WhipCardGeometry.contentGap),
-            content = content,
-        )
-    }
-}
 
 @Composable
 private fun WorkoutSetActionsMenu(
@@ -7296,64 +7237,16 @@ private fun HistoricalWorkoutSetRow(
         set.tempo.takeIf(String::isNotBlank)?.let { add("Tempo $it") }
         if (set.unilateral) add("One side / limb")
     }.joinToString(" · ")
-    val removalLabel = when (set.removalReason) {
-        null -> null
-        WorkoutSetRemovalReason.Removed -> "Removed"
-        WorkoutSetRemovalReason.Skipped -> "Skipped"
-        WorkoutSetRemovalReason.ExerciseRemoved -> "Not performed · exercise removed"
-        WorkoutSetRemovalReason.ExerciseSubstituted -> "Not performed · exercise replaced"
-    }
-    WorkoutSetInformationSurface(
+    WhipExecutionItem(
+        identity = set.workoutExecutionIdentityLabel(workoutExercise, setNumber),
+        identityModifier = Modifier.testTag("history-set-identity-${set.id}"),
         modifier = Modifier.fillMaxWidth().testTag("history-set-card-${set.id}"),
     ) {
-        Text(
-            set.workoutExecutionIdentityLabel(workoutExercise, setNumber),
-            modifier = Modifier.testTag("history-set-identity-${set.id}"),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        Text(
-            if (set.completed) performed else "No completed values",
-            modifier = Modifier.testTag("history-set-performed-${set.id}"),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Text(
-            buildList {
-                add(set.classification.uiLabel())
-                add(removalLabel ?: if (set.completed) "Performed" else "Not performed")
-                set.rpe?.let { add("RPE ${formatNumber(it, 1)}") }
-                set.rir?.let { add("RIR ${formatNumber(it, 1)}") }
-            }.joinToString(" · "),
-            modifier = Modifier.testTag("history-set-status-${set.id}"),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        prescription?.let { target ->
-            Text(
-                "Target · $target",
-                modifier = Modifier.testTag("history-set-target-${set.id}"),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.tertiary,
-            )
-        }
-        if (historyDetails.isNotBlank()) {
-            Text(
-                historyDetails,
-                modifier = Modifier.testTag("history-set-details-${set.id}"),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        set.note.takeIf(String::isNotBlank)?.let { note ->
-            Text(
-                "Note · $note",
-                modifier = Modifier.testTag("history-set-note-${set.id}"),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        values(if (set.completed) performed else "No completed values", Modifier.testTag("history-set-performed-${set.id}"))
+        status(set.workoutExecutionStatusLabel(incompleteLabel = "Not performed"), Modifier.testTag("history-set-status-${set.id}"))
+        target(prescription, Modifier.testTag("history-set-target-${set.id}"))
+        detail(historyDetails, Modifier.testTag("history-set-details-${set.id}"))
+        detail(set.note.takeIf(String::isNotBlank)?.let { "Note · $it" }, Modifier.testTag("history-set-note-${set.id}"))
     }
 }
 

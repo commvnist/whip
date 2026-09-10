@@ -1,0 +1,249 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="177" failures="1" errors="0" skipped="0" time="296.651" timestamp="2026-09-10T07:58:31" hostname="localhost">
+  <testsuite name="com.whip.app.ExecutionItemBuilderJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="9.716" timestamp="2026-09-10T07:58:31" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="skippedSetKeepsItsMeaningThenRestoresLogsAndReopensInHistory" classname="com.whip.app.ExecutionItemBuilderJourneyE2ETest" time="9.716">
+      <failure>java.lang.IllegalStateException: Visual catalog hierarchy for gym.execution-builder.restored contains an unlabeled interactive node
+at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface(VisualCatalogCapture.kt:95)
+at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface$default(VisualCatalogCapture.kt:26)
+at com.whip.app.ExecutionItemBuilderJourneyE2ETest.skippedSetKeepsItsMeaningThenRestoresLogsAndReopensInHistory(ExecutionItemBuilderJourneyE2ETest.kt:55)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.FirstClassWorkflowE2ETest" tests="2" failures="0" errors="0" skipped="0" time="15.752" timestamp="2026-09-10T07:58:31" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="workoutCanBeCreatedLoggedFinishedAndFoundInHistoryThroughTheRealUi" classname="com.whip.app.FirstClassWorkflowE2ETest" time="9.186" />
+    <testcase name="editingAnEarlierSetDoesNotInvalidateTheActiveSetComposer" classname="com.whip.app.FirstClassWorkflowE2ETest" time="6.566" />
+  </testsuite>
+  <testsuite name="com.whip.app.FiveThreeOneCycleReviewUiTest" tests="3" failures="0" errors="0" skipped="0" time="9.253" timestamp="2026-09-10T07:58:31" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="changedEvidenceResetsAChoiceInsteadOfApplyingAnUnreviewedSuggestion" classname="com.whip.app.FiveThreeOneCycleReviewUiTest" time="1.309" />
+    <testcase name="defaultsToStandardAndValidatesSuggestionAndCustomDecision" classname="com.whip.app.FiveThreeOneCycleReviewUiTest" time="4.325" />
+    <testcase name="applyActionRemainsReachableAtTwoHundredPercentText" classname="com.whip.app.FiveThreeOneCycleReviewUiTest" time="3.619" />
+  </testsuite>
+  <testsuite name="com.whip.app.GymFiveThreeOneJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="10.192" timestamp="2026-09-10T07:58:31" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="generatedProgramPersistsStartsNextDayAndRendersProgrammedWorkout" classname="com.whip.app.GymFiveThreeOneJourneyE2ETest" time="10.192" />
+  </testsuite>
+  <testsuite name="com.whip.app.GymPowerInputUiTest" tests="37" failures="0" errors="0" skipped="0" time="105.572" timestamp="2026-09-10T07:58:31" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="progressWithoutCompletedWorkoutsDoesNotShowInventedTrendControls" classname="com.whip.app.GymPowerInputUiTest" time="0.808" />
+    <testcase name="numberedMachineDefaultsToCompactOneThroughTenRangeAndIncrement" classname="com.whip.app.GymPowerInputUiTest" time="2.768" />
+    <testcase name="previousSetSuggestionPopulatesPrimaryInputs" classname="com.whip.app.GymPowerInputUiTest" time="0.907" />
+    <testcase name="exerciseDeleteDialogKeepsStaleImpactFailureInlineAndRetryable" classname="com.whip.app.GymPowerInputUiTest" time="3.369" />
+    <testcase name="missingRoutineDeletionTargetIsAnnouncedAndCannotBeDeleted" classname="com.whip.app.GymPowerInputUiTest" time="1.559" />
+    <testcase name="routineDeleteDialogBlocksActiveSourceAndKeepsWorkoutAndTrainingMaxHistory" classname="com.whip.app.GymPowerInputUiTest" time="2.612" />
+    <testcase name="missingExerciseDeletionTargetOffersCloseInsteadOfDestructiveRetry" classname="com.whip.app.GymPowerInputUiTest" time="0.907" />
+    <testcase name="quickSetEntryPresentsInputsBeforeItsPrimarySaveAction" classname="com.whip.app.GymPowerInputUiTest" time="0.833" />
+    <testcase name="workoutHistoryCardUsesOneStableActionPerExerciseAndMovesSecondaryActionsToMenu" classname="com.whip.app.GymPowerInputUiTest" time="2.992" />
+    <testcase name="completedSetsStayQuietUntilTheUserExpandsThem" classname="com.whip.app.GymPowerInputUiTest" time="0.882" />
+    <testcase name="exerciseEditorExplainsInvalidDefaultsAndDoesNotSubmitThem" classname="com.whip.app.GymPowerInputUiTest" time="3.276" />
+    <testcase name="substitutingAnExerciseWithSavedSetsDisclosesReplacementBeforeOpeningPicker" classname="com.whip.app.GymPowerInputUiTest" time="1.459" />
+    <testcase name="pristineQuickSetDefersRequiredErrorsUntilCompletionAttempt" classname="com.whip.app.GymPowerInputUiTest" time="0.932" />
+    <testcase name="durationExerciseOnlyShowsApplicableAdvancedOptionsAndRepairsItsGraphDefault" classname="com.whip.app.GymPowerInputUiTest" time="2.892" />
+    <testcase name="groupedWorkoutExercisesMoveAsABlockAndReorderWithinTheirGroup" classname="com.whip.app.GymPowerInputUiTest" time="0.654" />
+    <testcase name="groupedExerciseUsesOneClearHeaderAndCanRemoveItsDesignation" classname="com.whip.app.GymPowerInputUiTest" time="1.186" />
+    <testcase name="destructiveFailureStaysInReviewAndCancelClearsItsOwnedError" classname="com.whip.app.GymPowerInputUiTest" time="2.023" />
+    <testcase name="machineDraftSurvivesCreatingAndLinkingAnExerciseAndSavesReverseLevels" classname="com.whip.app.GymPowerInputUiTest" time="7.191" />
+    <testcase name="convertingExerciseToPoundsUsesPoundHardwareRatherThanConvertedDecimals" classname="com.whip.app.GymPowerInputUiTest" time="5.576" />
+    <testcase name="quickSetShowsOnlyOneEffortScaleWhenConnectedPreferencesEnableBoth" classname="com.whip.app.GymPowerInputUiTest" time="1.042" />
+    <testcase name="genericGroupNamesNeverRepeatOrConflictWithTheSelectedType" classname="com.whip.app.GymPowerInputUiTest" time="0.832" />
+    <testcase name="quickSetKeepsItsDraftAndBoundaryThroughStateRestoration" classname="com.whip.app.GymPowerInputUiTest" time="2.093" />
+    <testcase name="routineEditReconstructionPreservesAdvancedProgrammingFields" classname="com.whip.app.GymPowerInputUiTest" time="1.345" />
+    <testcase name="machineDeleteDialogExplainsPreservedHistoryAndBlocksActiveUse" classname="com.whip.app.GymPowerInputUiTest" time="6.621" />
+    <testcase name="restoredUnverifiedMissingExerciseKeepsRetryVerificationInsteadOfAbandoningRecovery" classname="com.whip.app.GymPowerInputUiTest" time="2.406" />
+    <testcase name="restTimerStacksActionsAtLargeTextAndNamesEveryAction" classname="com.whip.app.GymPowerInputUiTest" time="1.072" />
+    <testcase name="passiveWorkoutSetCardSeparatesIdentityValuesStatusAndTargetAtLargeText" classname="com.whip.app.GymPowerInputUiTest" time="1.532" />
+    <testcase name="workoutHistoryExplainsReplacementAndUnperformedSetOutcome" classname="com.whip.app.GymPowerInputUiTest" time="1.09" />
+    <testcase name="requiredMainSetUsesExplicitNotPerformedWarningInsteadOfGenericRemoval" classname="com.whip.app.GymPowerInputUiTest" time="4.129" />
+    <testcase name="historicalSetCardSharesActiveHierarchyAndInsetsAtLargeText" classname="com.whip.app.GymPowerInputUiTest" time="2.797" />
+    <testcase name="captureRestDurationCatalog" classname="com.whip.app.GymPowerInputUiTest" time="2.911" />
+    <testcase name="readyRestTimerMakesWorkoutScopedDurationDiscoverableAndUsesIt" classname="com.whip.app.GymPowerInputUiTest" time="3.554" />
+    <testcase name="captureWorkoutComponentCatalog" classname="com.whip.app.GymPowerInputUiTest" time="18.179" />
+    <testcase name="activeWorkoutUsesOneFocusedComposerWithExerciseAndSetReordering" classname="com.whip.app.GymPowerInputUiTest" time="1.337" />
+    <testcase name="machineDeleteDialogMakesAnUnverifiedOutcomeRetryableAtNarrowLargeText" classname="com.whip.app.GymPowerInputUiTest" time="4.51" />
+    <testcase name="exerciseDeleteDialogBlocksActiveUseAndPreservesTrainingMaxAuditHistory" classname="com.whip.app.GymPowerInputUiTest" time="4.224" />
+    <testcase name="machineCanBeSavedWithoutExercises" classname="com.whip.app.GymPowerInputUiTest" time="3.072" />
+  </testsuite>
+  <testsuite name="com.whip.app.GymRepositoryTest" tests="52" failures="0" errors="0" skipped="0" time="4.481" timestamp="2026-09-10T07:58:31" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="emptyLibraryThenThreeByEightAtEightyKgPersists" classname="com.whip.app.GymRepositoryTest" time="0.277" />
+    <testcase name="archivingExerciseRetainsWorkoutHistory" classname="com.whip.app.GymRepositoryTest" time="0.051" />
+    <testcase name="regroupingOneMemberKeepsTheSurvivingOldGroupContiguous" classname="com.whip.app.GymRepositoryTest" time="0.127" />
+    <testcase name="deletingAWorkoutExerciseDissolvesItsRemainingSingletonGroup" classname="com.whip.app.GymRepositoryTest" time="0.128" />
+    <testcase name="discardedWorkoutCanBeRestoredWithItsHistory" classname="com.whip.app.GymRepositoryTest" time="0.051" />
+    <testcase name="createAndAuthorRequestsReplayWithoutDuplicatingCatalogExercises" classname="com.whip.app.GymRepositoryTest" time="0.126" />
+    <testcase name="substitutingAfterCompletedSetStillReplacesPlacementAndSnapshotsNewMachine" classname="com.whip.app.GymRepositoryTest" time="0.127" />
+    <testcase name="poundsNormalizeAndSetDeleteCanBeUndone" classname="com.whip.app.GymRepositoryTest" time="0.102" />
+    <testcase name="staleUngroupCannotDetachExerciseFromAReplacementGroup" classname="com.whip.app.GymRepositoryTest" time="0.152" />
+    <testcase name="quickSaveAcceptsAnUnrelatedEarlierSetEditInTheSameWorkout" classname="com.whip.app.GymRepositoryTest" time="0.152" />
+    <testcase name="restTimerAdjustmentsPreserveTheDisplayedSecondCount" classname="com.whip.app.GymRepositoryTest" time="0.052" />
+    <testcase name="arrangementRetainsTombstoneSlotAndUndoRestoresWithoutDuplicatePositions" classname="com.whip.app.GymRepositoryTest" time="0.127" />
+    <testcase name="staleArrangementCannotOverwriteAGroupCreatedAfterReview" classname="com.whip.app.GymRepositoryTest" time="0.177" />
+    <testcase name="workoutRestOverrideControlsAutomaticRestWithoutChangingExerciseDefault" classname="com.whip.app.GymRepositoryTest" time="0.076" />
+    <testcase name="substitutingBeforeAnyCompletedSetRetiresPlacementAndPreservesItsDraftOutcome" classname="com.whip.app.GymRepositoryTest" time="0.078" />
+    <testcase name="layoutUndoPreservesNewSetValuesButRejectsLaterStructuralAuthorshipAtomically" classname="com.whip.app.GymRepositoryTest" time="0.177" />
+    <testcase name="terminalSessionKeepsTimerCleanupPendingUntilSchedulerAcknowledgesIt" classname="com.whip.app.GymRepositoryTest" time="0.051" />
+    <testcase name="freshLevelSetsUseProfileScopedHistoryThenPlacementAndConfiguredEndpoints" classname="com.whip.app.GymRepositoryTest" time="0.202" />
+    <testcase name="removingAGroupMemberKeepsAValidPairThenDissolvesTheLastSingleton" classname="com.whip.app.GymRepositoryTest" time="0.152" />
+    <testcase name="exactSubstitutionRequestIsIdempotentWithoutRewritingRetainedSourceHistory" classname="com.whip.app.GymRepositoryTest" time="0.101" />
+    <testcase name="activeSessionAndTimerDeadlineAreStoredData" classname="com.whip.app.GymRepositoryTest" time="0.051" />
+    <testcase name="defaultAndDuplicatedWorkoutsSnapshotTheClockDateAndZoneWithoutRewritingHistory" classname="com.whip.app.GymRepositoryTest" time="0.051" />
+    <testcase name="copyingAnExerciseWithoutAnActiveWorkoutUsesTheClockDateAndZone" classname="com.whip.app.GymRepositoryTest" time="0.076" />
+    <testcase name="explicitHistoricalStartDerivesItsPhysicalDateInTheChosenZone" classname="com.whip.app.GymRepositoryTest" time="0.026" />
+    <testcase name="machineAssignmentRollsBackCreationAndCannotRetargetRemovedSetHistory" classname="com.whip.app.GymRepositoryTest" time="0.076" />
+    <testcase name="perHandAndPerSideLoadsNormalizeOnceAndKeepPlacementMeaning" classname="com.whip.app.GymRepositoryTest" time="0.152" />
+    <testcase name="groupRequestReplayIsIdempotentButChangedPayloadWithSameIdentityFailsClosed" classname="com.whip.app.GymRepositoryTest" time="0.052" />
+    <testcase name="restTimerDeliveryCompletesOnlyTheExactScheduledRevisionAndDeadline" classname="com.whip.app.GymRepositoryTest" time="0.051" />
+    <testcase name="historyCopyRejectsAnActiveTargetChangedAfterReviewWithoutWrites" classname="com.whip.app.GymRepositoryTest" time="0.077" />
+    <testcase name="historicalSetEditingUsesPlacementTrackingAndEnteredUnitSnapshots" classname="com.whip.app.GymRepositoryTest" time="0.076" />
+    <testcase name="historyCopyUsesExactSourceAndTargetAuthorshipAndReplaysOnce" classname="com.whip.app.GymRepositoryTest" time="0.077" />
+    <testcase name="optionalSkipAndUndoRequireTheExactReviewedTombstone" classname="com.whip.app.GymRepositoryTest" time="0.052" />
+    <testcase name="databaseRejectsASecondActiveWorkoutEvenWhenRepositoryChecksAreBypassed" classname="com.whip.app.GymRepositoryTest" time="0.052" />
+    <testcase name="machineCanBeCreatedUnattachedThenLinkedToMultipleExercises" classname="com.whip.app.GymRepositoryTest" time="0.051" />
+    <testcase name="poundEquipmentAndMachineStackValuesPersistWithoutDisplayRounding" classname="com.whip.app.GymRepositoryTest" time="0.026" />
+    <testcase name="normalizationRepairsConnectedSplitAndSingletonWorkoutGroups" classname="com.whip.app.GymRepositoryTest" time="0.076" />
+    <testcase name="regroupingDissolvesTheOldSingletonAndKeepsTheNewGroupContiguous" classname="com.whip.app.GymRepositoryTest" time="0.076" />
+    <testcase name="finishRejectsAWorkoutGraphThatChangedAfterReview" classname="com.whip.app.GymRepositoryTest" time="0.052" />
+    <testcase name="addedLoadCanRepresentNegativeAssistanceWithoutLosingRawEntry" classname="com.whip.app.GymRepositoryTest" time="0.051" />
+    <testcase name="exerciseDefaultsRejectInvalidRestAndPlateValuesBeforePersistence" classname="com.whip.app.GymRepositoryTest" time="0.027" />
+    <testcase name="workoutSnapshotPairsAnInitialSetWithItsCommittedSessionRevision" classname="com.whip.app.GymRepositoryTest" time="0.051" />
+    <testcase name="discardRejectsAWorkoutChangedAfterConfirmationReview" classname="com.whip.app.GymRepositoryTest" time="0.077" />
+    <testcase name="groupingNonAdjacentExercisesPersistsOneContiguousBlock" classname="com.whip.app.GymRepositoryTest" time="0.101" />
+    <testcase name="duplicatedWorkoutStartsWithCleanTimerAndProgressionState" classname="com.whip.app.GymRepositoryTest" time="0.027" />
+    <testcase name="quickSaveCommitsSetAppendTimerAndRevisionAsOneReviewedMutation" classname="com.whip.app.GymRepositoryTest" time="0.076" />
+    <testcase name="uniqueMachinesKeepOrdinalAndMassLoadsSemanticallySeparate" classname="com.whip.app.GymRepositoryTest" time="0.102" />
+    <testcase name="resumedWorkoutClearsOldEndAndCanFinishAgain" classname="com.whip.app.GymRepositoryTest" time="0.026" />
+    <testcase name="concurrentQuickSavesAdmitOnlyOneCommitForTheReviewedBoundary" classname="com.whip.app.GymRepositoryTest" time="0.052" />
+    <testcase name="repositoryCanonicalizesFieldsHiddenByExerciseAndMachineTypes" classname="com.whip.app.GymRepositoryTest" time="0.051" />
+    <testcase name="duplicateWorkoutExcludesEmptyRetiredPlacementsAndReusesRetainedPerformedWork" classname="com.whip.app.GymRepositoryTest" time="0.102" />
+    <testcase name="noOpStructureRepairDoesNotRewriteRowsOrAdvanceWorkoutRevision" classname="com.whip.app.GymRepositoryTest" time="0.051" />
+    <testcase name="exactAddRequestIsIdempotentAndAStaleDifferentRequestWritesNothing" classname="com.whip.app.GymRepositoryTest" time="0.051" />
+  </testsuite>
+  <testsuite name="com.whip.app.RoutineBuilderUiTest" tests="33" failures="0" errors="0" skipped="0" time="111.56" timestamp="2026-09-10T07:58:31" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="blankRoutineSurfacesTopLevelFiveThreeOneEntry" classname="com.whip.app.RoutineBuilderUiTest" time="5.431" />
+    <testcase name="failedRoutineSaveKeepsTheCompleteDraftOpenForRetry" classname="com.whip.app.RoutineBuilderUiTest" time="1.335" />
+    <testcase name="splitPresetsUseConsistentTitleCapitalization" classname="com.whip.app.RoutineBuilderUiTest" time="0.782" />
+    <testcase name="programTrainingMaxBasisEditsMustBeAppliedBeforeSaveEvenWhenTheyRoundToSameValue" classname="com.whip.app.RoutineBuilderUiTest" time="3.855" />
+    <testcase name="machineCanBeQuickCreatedForAPlacementWithoutLeavingBuilder" classname="com.whip.app.RoutineBuilderUiTest" time="5.253" />
+    <testcase name="multiDayRoutineRoutesFiveThreeOneConversionThroughWholeProgramReview" classname="com.whip.app.RoutineBuilderUiTest" time="1.586" />
+    <testcase name="staticRoutineExposesTrainingMaxBeforeAnySetUsesIt" classname="com.whip.app.RoutineBuilderUiTest" time="2.264" />
+    <testcase name="twoHundredExerciseLibraryIsSearchableAndOnlySelectionsEnterOutline" classname="com.whip.app.RoutineBuilderUiTest" time="6.03" />
+    <testcase name="guidedFiveThreeOneBuilderPersistsCompleteExplicitBbbCycle" classname="com.whip.app.RoutineBuilderUiTest" time="2.669" />
+    <testcase name="captureRepSchemeCatalog" classname="com.whip.app.RoutineBuilderUiTest" time="4.6" />
+    <testcase name="ordinaryRoutineCanEnterAnExplicitTrainingMaxForPercentageSets" classname="com.whip.app.RoutineBuilderUiTest" time="2.089" />
+    <testcase name="exerciseListUsesTheRoutinePaneInsteadOfAOneRowNestedViewport" classname="com.whip.app.RoutineBuilderUiTest" time="1.032" />
+    <testcase name="routineEditRoundTripsSetUnitsBodyweightAndDayProgression" classname="com.whip.app.RoutineBuilderUiTest" time="1.007" />
+    <testcase name="customFiveThreeOneExerciseSelectionSearchesAFullExerciseLibrary" classname="com.whip.app.RoutineBuilderUiTest" time="3.468" />
+    <testcase name="emptyLibraryCreatesUniqueStandardExercisesAndBuildsExactFourDayProgram" classname="com.whip.app.RoutineBuilderUiTest" time="9.617" />
+    <testcase name="advancedMachineCreationReturnsFromSeededExerciseCreationWithBothDraftsPreserved" classname="com.whip.app.RoutineBuilderUiTest" time="3.476" />
+    <testcase name="singleDayRoutineHidesActionsThatCannotApply" classname="com.whip.app.RoutineBuilderUiTest" time="0.781" />
+    <testcase name="addingExerciseToExistingRoutineSavesWithoutLeavingTheEditedDay" classname="com.whip.app.RoutineBuilderUiTest" time="1.584" />
+    <testcase name="sharedExercisePickerAlwaysOffersSearchAndSeededCreation" classname="com.whip.app.RoutineBuilderUiTest" time="2.946" />
+    <testcase name="leaderAnchorSetupRemainsNavigableAtCompactWidthAndLargeText" classname="com.whip.app.RoutineBuilderUiTest" time="6.285" />
+    <testcase name="repSchemeLibraryStartsBlankAndPlusCreatesAReusableScheme" classname="com.whip.app.RoutineBuilderUiTest" time="3.826" />
+    <testcase name="exerciseCanBeCreatedWithoutDroppingRoutineDraft" classname="com.whip.app.RoutineBuilderUiTest" time="2.596" />
+    <testcase name="trainingMaxSourceChipsLoadMatchingActualAndEstimatedRecordsAndEditablePercentage" classname="com.whip.app.RoutineBuilderUiTest" time="2.795" />
+    <testcase name="leaderAnchorSetupShowsProgressiveReviewAndBuildsAssistanceAndJokers" classname="com.whip.app.RoutineBuilderUiTest" time="8.573" />
+    <testcase name="savedRepSchemeCanBeAppliedEditedAndDeleted" classname="com.whip.app.RoutineBuilderUiTest" time="3.221" />
+    <testcase name="emptyCustomFiveThreeOneCanCreateAndAddSeveralExercisesWithoutLeavingSetup" classname="com.whip.app.RoutineBuilderUiTest" time="5.189" />
+    <testcase name="structuredMainExerciseUsesProgramStructureAndHidesGenericRewriteControls" classname="com.whip.app.RoutineBuilderUiTest" time="2.617" />
+    <testcase name="trainingMaxSuggestionCopiesRoundedValueWithoutStayingLinked" classname="com.whip.app.RoutineBuilderUiTest" time="2.931" />
+    <testcase name="sharedExercisePickerOnlyUsesSubstituteLanguageWhenContextProvidesIt" classname="com.whip.app.RoutineBuilderUiTest" time="0.781" />
+    <testcase name="customFiveThreeOneBuildsBenchDeadliftAndZercherWithoutRequiringFourStandardExercises" classname="com.whip.app.RoutineBuilderUiTest" time="4.859" />
+    <testcase name="setupWizardRequiresReapplyBeforePersistingChangedTrainingMaxProvenance" classname="com.whip.app.RoutineBuilderUiTest" time="4.054" />
+    <testcase name="emptyWorkoutPickerUsesTheSharedEmptyStateAndKeepsBackReachable" classname="com.whip.app.RoutineBuilderUiTest" time="2.467" />
+    <testcase name="assistanceIntentNamesItsSourceAndPersistsOnTheRoutinePlacement" classname="com.whip.app.RoutineBuilderUiTest" time="1.561" />
+  </testsuite>
+  <testsuite name="com.whip.app.RoutineRepositoryTest" tests="47" failures="0" errors="0" skipped="0" time="5.028" timestamp="2026-09-10T07:58:31" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="exactMachineLoadRemainsExactInsteadOfSilentlySnapping" classname="com.whip.app.RoutineRepositoryTest" time="0.202" />
+    <testcase name="trainingMaxEligibilityCanBeRestoredWithoutResettingProgramPosition" classname="com.whip.app.RoutineRepositoryTest" time="0.051" />
+    <testcase name="repBenchmarksPreserveEachLoadAfterSpecificTrackingTargetsWereRemoved" classname="com.whip.app.RoutineRepositoryTest" time="0.126" />
+    <testcase name="recordRebuildHonorsWarmupRecordAndVolumePolicies" classname="com.whip.app.RoutineRepositoryTest" time="0.328" />
+    <testcase name="assistanceCategoryAndWorkSectionRoundTripIntoWorkoutSnapshots" classname="com.whip.app.RoutineRepositoryTest" time="0.077" />
+    <testcase name="removingOrSubstitutingOneOfSeveralMainExercisesInvalidatesOnlyThatSessionTrainingMaxAdvance" classname="com.whip.app.RoutineRepositoryTest" time="0.227" />
+    <testcase name="performanceReviewEvidenceRequiresMatchingSourceProgramKindAtCommit" classname="com.whip.app.RoutineRepositoryTest" time="0.127" />
+    <testcase name="plannedRoutineMachineCanChangeBeforeCompletionAndRetargetsThePrescription" classname="com.whip.app.RoutineRepositoryTest" time="0.076" />
+    <testcase name="staticLoadCycleAdvancesOnlyAfterCompletedNonFailureWork" classname="com.whip.app.RoutineRepositoryTest" time="0.077" />
+    <testcase name="duplicatePlacementsAndRepRangesSurviveTemplateAndWorkoutCreation" classname="com.whip.app.RoutineRepositoryTest" time="0.026" />
+    <testcase name="performanceReviewNeverChangesTrainingMaxWithoutDecisionAndAuditsAcceptedChoice" classname="com.whip.app.RoutineRepositoryTest" time="0.127" />
+    <testcase name="levelRoutineDefaultsAreActualOnlyWhileExplicitSettingsRemainPrescribed" classname="com.whip.app.RoutineRepositoryTest" time="0.026" />
+    <testcase name="unilateralPercentagePrescriptionUsesTheSetSpecificLoadMultiplier" classname="com.whip.app.RoutineRepositoryTest" time="0.051" />
+    <testcase name="trainingMaxTestSetRequiresExplicitTestPhaseOneHundredPercentAndThreeToFiveReps" classname="com.whip.app.RoutineRepositoryTest" time="0.027" />
+    <testcase name="alternateBbbUsesOwnTrainingMaxSkipsEmptyPhasesAndStaysSynchronized" classname="com.whip.app.RoutineRepositoryTest" time="0.177" />
+    <testcase name="graphPresetCanBeRenamedUpdatedAndDeleted" classname="com.whip.app.RoutineRepositoryTest" time="0.026" />
+    <testcase name="repeatedFiveThreeOneMainExercisePlacementsCannotPersistDriftingTrainingMaxes" classname="com.whip.app.RoutineRepositoryTest" time="0.026" />
+    <testcase name="recordRebuildDeletesObsoleteRecordsAfterTheOnlyCompletedSetIsRemoved" classname="com.whip.app.RoutineRepositoryTest" time="0.077" />
+    <testcase name="emptyTrainingMaxBoundarySetNeverImplicitlyAdvancesAtFinalPhase" classname="com.whip.app.RoutineRepositoryTest" time="0.051" />
+    <testcase name="routineWaveAndReusableAlternativesSnapshotIntoEachStartedWorkout" classname="com.whip.app.RoutineRepositoryTest" time="0.077" />
+    <testcase name="activeRoutineWorkoutBlocksEveryProgramStateControl" classname="com.whip.app.RoutineRepositoryTest" time="0.026" />
+    <testcase name="repeatedMainExerciseHasExactlyOneTrainingMaxTestAcrossThePhase" classname="com.whip.app.RoutineRepositoryTest" time="0.029" />
+    <testcase name="unlinkingMachineExerciseMarksAffectedRoutineBindingForRepair" classname="com.whip.app.RoutineRepositoryTest" time="0.051" />
+    <testcase name="recordRebuildExcludesAssistedWorkUnlessEnabledAndDropsDiscardedSessions" classname="com.whip.app.RoutineRepositoryTest" time="0.052" />
+    <testcase name="editingProgramMetadataPreservesPositionAndMapsReorderedCurrentPhase" classname="com.whip.app.RoutineRepositoryTest" time="0.101" />
+    <testcase name="connectedBeginnersDeloadKeepsEverySavedRepeatedExerciseExposure" classname="com.whip.app.RoutineRepositoryTest" time="0.226" />
+    <testcase name="programmedRoutineAdvancesSafelyAcrossDaysPhasesAndTrainingMaxCycles" classname="com.whip.app.RoutineRepositoryTest" time="0.18" />
+    <testcase name="activeRoutineWorkoutBlocksTemplateMutationUntilFinishOrDiscard" classname="com.whip.app.RoutineRepositoryTest" time="0.101" />
+    <testcase name="graphPresetNormalizesExerciseIdsAndRejectsDanglingOrUnsupportedData" classname="com.whip.app.RoutineRepositoryTest" time="0.052" />
+    <testcase name="manualProgramTrainingMaxEditCreatesVisibleAuditEventWithoutRewritingWorkouts" classname="com.whip.app.RoutineRepositoryTest" time="0.051" />
+    <testcase name="archivedMachineRemainsUsableByExistingRoutine" classname="com.whip.app.RoutineRepositoryTest" time="0.051" />
+    <testcase name="configuredPhaseBoundaryAdvancesTrainingMaxAndSnapshotsPhaseRole" classname="com.whip.app.RoutineRepositoryTest" time="0.077" />
+    <testcase name="invalidSetPolicyPlacementAndDeterministicSchemeMismatchAreRejected" classname="com.whip.app.RoutineRepositoryTest" time="0.026" />
+    <testcase name="startingRoutineDoesNotMutateTemplate" classname="com.whip.app.RoutineRepositoryTest" time="0.026" />
+    <testcase name="performanceReviewRejectsStaleForgedAndActionMismatchedDecisions" classname="com.whip.app.RoutineRepositoryTest" time="0.152" />
+    <testcase name="recordRebuildTracksAuditableImprovementsAndHistoricalEdits" classname="com.whip.app.RoutineRepositoryTest" time="0.076" />
+    <testcase name="beginnersProtocolsSaveEditAndRunOncePerExerciseWithoutEmptyDays" classname="com.whip.app.RoutineRepositoryTest" time="0.753" />
+    <testcase name="activeSetPoliciesResolveLeaderAnchorAndDeloadSnapshotsWithoutLyingAboutJokers" classname="com.whip.app.RoutineRepositoryTest" time="0.177" />
+    <testcase name="applyingProtocolToOneConnectedPhaseDoesNotChangeAnotherPhasesRepeatedExposures" classname="com.whip.app.RoutineRepositoryTest" time="0.227" />
+    <testcase name="incompleteRequiredMainWorkAdvancesScheduleButHoldsTrainingMaxAtBoundary" classname="com.whip.app.RoutineRepositoryTest" time="0.052" />
+    <testcase name="partialFailureAndUnderPrescriptionMainWorkAllHoldTrainingMax" classname="com.whip.app.RoutineRepositoryTest" time="0.202" />
+    <testcase name="routinePreservesMachineIdentityAndNumberedSetting" classname="com.whip.app.RoutineRepositoryTest" time="0.051" />
+    <testcase name="changingTrainingMaxSourceToDerivedClearsTheStoredExplicitValue" classname="com.whip.app.RoutineRepositoryTest" time="0.027" />
+    <testcase name="exerciseAddedDuringRoutineWorkoutStaysSessionScopedAndRemainsInHistoryAndRecords" classname="com.whip.app.RoutineRepositoryTest" time="0.076" />
+    <testcase name="failedPersistedTrainingMaxTestRetainsPrescriptionIdentityAndSuggestsDecrease" classname="com.whip.app.RoutineRepositoryTest" time="0.051" />
+    <testcase name="saveWorkoutAsRoutineExcludesEmptyRetiredPlacementsAndKeepsPerformedRetiredWork" classname="com.whip.app.RoutineRepositoryTest" time="0.127" />
+    <testcase name="bodyweightDependentAndAssistedPercentagePrescriptionsAreRejected" classname="com.whip.app.RoutineRepositoryTest" time="0.026" />
+  </testsuite>
+  <testsuite name="com.whip.app.VisualCatalogPagesTest" tests="1" failures="0" errors="0" skipped="0" time="23.388" timestamp="2026-09-10T07:58:31" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="captureGymPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="23.388" />
+  </testsuite>
+</testsuites>

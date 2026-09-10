@@ -1,0 +1,18 @@
+{
+  "folder": "final-api34",
+  "reason": "An earlier rejected hierarchy left a PNG without XML; MediaStore suffix counters diverged. Final captures are adjacent in time and final accepted hierarchy retains both toolbar names.",
+  "files": [
+    {
+      "file": "gym.execution-builder.restored.png",
+      "original": "gym.execution-builder.restored (6).png",
+      "sha256": "4f25c2ec11298d2762a8e4b6f81f2a79e21d1af98031d8eb184e0ab3a1f0d3e4",
+      "modified_unix_seconds": 1789027771
+    },
+    {
+      "file": "gym.execution-builder.restored.xml",
+      "original": "gym.execution-builder.restored (5).xml",
+      "sha256": "44b44934f678d5a5cb51ec40d49fec9f8b0cdf40b71f3d877abc170f6ad54951",
+      "modified_unix_seconds": 1789027772
+    }
+  ]
+}

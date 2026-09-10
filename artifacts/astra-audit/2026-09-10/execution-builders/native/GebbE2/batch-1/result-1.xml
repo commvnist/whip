@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="4" failures="1" errors="0" skipped="0" time="17.753" timestamp="2026-09-10T07:50:31" hostname="localhost">
+  <testsuite name="com.whip.app.ExecutionItemBuilderJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="10.746" timestamp="2026-09-10T07:50:31" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="skippedSetKeepsItsMeaningThenRestoresLogsAndReopensInHistory" classname="com.whip.app.ExecutionItemBuilderJourneyE2ETest" time="10.746">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'Performed' (ignoreCase: false))
+Semantics of the node:
+Node #929 at (l=149.0, t=1703.0, r=952.0, b=1740.0)px, Tag: 'history-set-status-1'
+Text = '[Working · Performed]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 2 siblings
+Selector used: (TestTag = 'history-set-status-1')
+
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+at com.whip.app.ExecutionItemBuilderJourneyE2ETest.skippedSetKeepsItsMeaningThenRestoresLogsAndReopensInHistory(ExecutionItemBuilderJourneyE2ETest.kt:79)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.GymPowerInputUiTest" tests="3" failures="0" errors="0" skipped="0" time="5.898" timestamp="2026-09-10T07:50:31" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="passiveWorkoutSetCardSeparatesIdentityValuesStatusAndTargetAtLargeText" classname="com.whip.app.GymPowerInputUiTest" time="0.935" />
+    <testcase name="historicalSetCardSharesActiveHierarchyAndInsetsAtLargeText" classname="com.whip.app.GymPowerInputUiTest" time="2.362" />
+    <testcase name="machineCanBeSavedWithoutExercises" classname="com.whip.app.GymPowerInputUiTest" time="2.601" />
+  </testsuite>
+</testsuites>

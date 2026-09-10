@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.UnifiedSearchRulesTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-09-10T08:14:47.568Z" hostname="beast" time="0.023">
+  <properties/>
+  <testcase name="structuredFiltersCombineAndPlainTermsCanUseAllOrAny" classname="com.whip.app.ui.UnifiedSearchRulesTest" time="0.009"/>
+  <testcase name="tenThousandResultsPerDomainStayIndependentlyBounded" classname="com.whip.app.ui.UnifiedSearchRulesTest" time="0.006"/>
+  <testcase name="tenThousandHistoryValuesUseOneBoundedSelectorPass" classname="com.whip.app.ui.UnifiedSearchRulesTest" time="0.004"/>
+  <testcase name="completedTaskDatesUseTheActiveWhipZoneNearMidnight" classname="com.whip.app.ui.UnifiedSearchRulesTest" time="0.0"/>
+  <testcase name="boundedHistoryProjectionKeepsNewestValuesRegardlessOfInputOrder" classname="com.whip.app.ui.UnifiedSearchRulesTest" time="0.001"/>
+  <testcase name="statusDomainAndDateBoundsAreExplicit" classname="com.whip.app.ui.UnifiedSearchRulesTest" time="0.0"/>
+  <testcase name="adaptiveWorkspaceRequiresBothWideWidthAndAdequateHeight" classname="com.whip.app.ui.UnifiedSearchRulesTest" time="0.001"/>
+  <testcase name="readinessOnlyIncludesSourcesOwnedBySelectedDomains" classname="com.whip.app.ui.UnifiedSearchRulesTest" time="0.002"/>
+  <testcase name="exactAndPrefixTitlesRankAheadOfBroadDetailMatches" classname="com.whip.app.ui.UnifiedSearchRulesTest" time="0.0"/>
+  <testcase name="readinessGroupsSharedSourcesAndTreatsFailureAsIncomplete" classname="com.whip.app.ui.UnifiedSearchRulesTest" time="0.0"/>
+  <testcase name="perDomainIndexLimitKeepsLaterDomainsVisibleAndReportsPartialSources" classname="com.whip.app.ui.UnifiedSearchRulesTest" time="0.0"/>
+  <testcase name="globalAreaScopeIsDefaultButExplicitAreaQueryCanOverrideItLocally" classname="com.whip.app.ui.UnifiedSearchRulesTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

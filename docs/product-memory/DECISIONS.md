@@ -1,5 +1,11 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-007 — Execution builders own Set reading order while domain code owns outcomes and actions
+
+- Decision: Replace four separately assembled Set bodies with WhipExecutionItem: identity, optional leading/action slots, values, status, target, supporting evidence and specialized inputs. Keep the existing passive/active surface distinction and geometry. One Gym outcome formatter supplies classification, completion/removal and effort; History keeps its explicit Not performed fallback and its extra evidence.
+- Alternatives/tradeoffs: A local Removed-string fix leaves the recurring hierarchy with four owners. A universal record/form builder would blur active input and read-only evidence and impose unrelated state policy. This bounded family consolidates the existing successful Set design while correcting a demonstrated outcome inconsistency; omission cards gain contextual identity and a distinct status line.
+- Compatibility/status: Verified under FND-20260910-008/009 and IMP/VER-20260910-007. Refines DEC-20260907-012/013 without changing persistence, progression, exact boundaries, timers, reorder or available actions. The real optional-Set Undo/draft/recreation/completion/History journey, 177 phone neighbors, four wide methods and readiness pass. Builders own the four recurring item families; whole-app review and justified specialized bodies remain active.
+
 ### DEC-20260910-006 — Settings items declare their interaction and information roles
 
 - Decision: Introduce WhipSettingItem over existing theme/spacing tokens. Each item declares exactly one toggle, choice or typed edit plus optional explanation. The renderer owns a shared label/control header, a distinct complete current-value line when applicable, full-width explanation, natural height, single interactive semantics owner and identity-scoped choice menu. A down arrow opens choices, a pencil opens typed editing, and a switch changes a Boolean.

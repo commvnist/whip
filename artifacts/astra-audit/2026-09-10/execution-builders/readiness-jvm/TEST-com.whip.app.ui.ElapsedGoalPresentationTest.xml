@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.ElapsedGoalPresentationTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-09-10T08:14:46.198Z" hostname="beast" time="0.035">
+  <properties/>
+  <testcase name="elapsedStartLabelsUseTheExplicitWhipZone" classname="com.whip.app.ui.ElapsedGoalPresentationTest" time="0.035"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

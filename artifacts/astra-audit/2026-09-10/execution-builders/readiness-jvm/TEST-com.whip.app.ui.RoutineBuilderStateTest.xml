@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.RoutineBuilderStateTest" tests="35" skipped="0" failures="0" errors="0" timestamp="2026-09-10T08:14:46.911Z" hostname="beast" time="0.13">
+  <properties/>
+  <testcase name="generatedAssistanceIsDistinctEditableWorkOnEveryDay" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.008"/>
+  <testcase name="fivesProAndBbbCreateFiveRepMainWorkAndUniversalFiveByTenWork" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.0"/>
+  <testcase name="choosingAnAssistanceRoleClassifiesRequiredSetsAndRemovesIncompatibleJokers" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.081"/>
+  <testcase name="repeatedExerciseSynchronizationPreservesOneTrainingMaxTestOwnerPerPhase" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.001"/>
+  <testcase name="programPhaseMetadataAndNoAdvanceBoundarySurviveBuilderStateRecreation" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.007"/>
+  <testcase name="jokerToggleIsStrictlyAdditiveAndPreservesEverySupplementalSet" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.005"/>
+  <testcase name="repSchemeAppliesItsMeaningWithoutOverwritingIndependentSetInputs" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.001"/>
+  <testcase name="changingMassUnitsConvertsTrainingMaxIncrementAndAbsoluteSets" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.0"/>
+  <testcase name="placementReorderSupportsDuplicateExerciseIds" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.001"/>
+  <testcase name="customProgramPhasesCopyRemoveAndReindexPrescriptionsSafely" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.0"/>
+  <testcase name="movingOrCopyingOnePlacementBetweenDaysNeverCarriesAGroupDesignation" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.001"/>
+  <testcase name="programStructureJokerLadderAndSeventhWeekPresetAreAdditiveAndPhaseScoped" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.001"/>
+  <testcase name="removingAndRestoringAPlacementPreservesTheGroupInvariant" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.0"/>
+  <testcase name="leaderAnchorPresetSupportsArbitraryExercisesAlternateBbbAndJokerLadder" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.004"/>
+  <testcase name="draftSurvivesViewModelRecreationAndClearsOnlyWhenRequested" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.001"/>
+  <testcase name="phasePolicyRegenerationKeepsLeaderAnchorAndOtherPhasesIndependent" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.004"/>
+  <testcase name="programmedRoutineSummaryShowsActivePhaseWorkInsteadOfCycleAggregate" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.002"/>
+  <testcase name="compositionalFiveThreeOneSupportsSslBoringButStrongAndOptionalJokers" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.0"/>
+  <testcase name="kgAndPoundLoadsRoundToPracticalIncrementsOrMachineChoices" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.001"/>
+  <testcase name="groupingAndUngroupingNeverLeaveSingletonGroups" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.0"/>
+  <testcase name="wholeProgramBuilderCreatesHonestFourDayAndBeginnersSchedules" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.001"/>
+  <testcase name="groupedPlacementsBecomeContiguousAndOnlyMoveWithinTheirBlock" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.0"/>
+  <testcase name="recentMaxSuggestionCopiesOnceIntoAStableExplicitTrainingMax" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.001"/>
+  <testcase name="assistanceSuggestionsUseSignalsAndNeverInventMissingCategories" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.003"/>
+  <testcase name="generatedDeloadSupplementalDefaultsAreTemplateSpecific" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.0"/>
+  <testcase name="customProgramBuilderUsesAnyDistinctChosenExercisesInTheRequestedOrder" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.001"/>
+  <testcase name="dayTemplatesDuplicateAndReorderWithUniquePlacementKeys" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.0"/>
+  <testcase name="repeatedBeginnersExercisePlacementsStaySynchronizedAndUseUniqueSetKeys" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.0"/>
+  <testcase name="beginnersSeventhWeekProtocolsKeepRepeatedTemplatesSynchronizedAndBalanceExecutionOwners" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.004"/>
+  <testcase name="firstSetLastTracksTrainingPhasesAndDefaultsDeloadToMainWorkOnly" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.001"/>
+  <testcase name="classicFiveThreeOneBuildsAllFourPhasesWithExplicitAmrapTargets" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.0"/>
+  <testcase name="restoredRoutineWithSameIdCannotInheritDraftFromEarlierDataGeneration" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.0"/>
+  <testcase name="seventhWeekPresetsHaveExactEditableMatrices" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.0"/>
+  <testcase name="asynchronouslyCreatedStandardExercisesFillOnlyEmptyWizardSelections" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.0"/>
+  <testcase name="applyingSeventhWeekPresetOptsInOnlyTheSelectedConnectedPhase" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
