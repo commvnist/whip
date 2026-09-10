@@ -1,0 +1,10 @@
+com.whip.app.TrackEntryIntegrityTest
+com.whip.app.TrackFieldEditingJourneyE2ETest
+com.whip.app.TrackHistoryControlsJourneyE2ETest
+com.whip.app.TrackHistoryJourneyE2ETest
+com.whip.app.TrackImportedTextJourneyE2ETest
+com.whip.app.TrackInsightRecoveryJourneyE2ETest
+com.whip.app.TrackInsightWindowJourneyE2ETest
+com.whip.app.TrackInsightsJourneyE2ETest
+com.whip.app.TrackProjectionConsistencyTest
+com.whip.app.TrackRepositoryTest

@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-023 — Empty Insights explain the current view before offering recovery
+
+- Status: Verified in IMP/VER-20260910-023; FND-20260910-033.
+- Decision: Reuse WhipEmptyState before summary rendering when there is no evidence. Workspace empty states offer Create Track plus existing Archived access, or Open Tracks to record an Entry. Per-Track empty state offers Add Entry for active Tracks and View Entries for archived Tracks; unmatched filters retain their visible conditions and existing Clear All. Keep populated summaries, including zero recent periods, unchanged.
+- Alternatives/tradeoffs: Rewording the footer leaves the zero dashboard dominant and entryless Tracks unexplained. A new empty-state framework duplicates an established role. Use feature-owned state/callbacks and shared presentation; bound empty-state text centrally for wide reading. First-use and filtered emptiness remain distinct without inspecting hidden Areas or changing saved scope.
+- Compatibility: No calculation, schema, backup, history or release change. Existing editor request, archive navigation and filter saved state remain owners; no automatic data mutation or duplicate clear-filter action.
+
 ### DEC-20260910-022 — Shared summaries separate headline measures, facts and series
 
 - Status: Verified in IMP/VER-20260910-022; FND-20260910-031/032, FB-20260910-001/002.

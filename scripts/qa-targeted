@@ -224,6 +224,7 @@ add_profile() {
                 'com.whip.app.TrackHistoryControlsJourneyE2ETest'
                 'com.whip.app.TrackInsightsJourneyE2ETest'
                 'com.whip.app.TrackInsightWindowJourneyE2ETest'
+                'com.whip.app.TrackInsightRecoveryJourneyE2ETest'
                 'com.whip.app.ui.WhipSummaryBuilderTest'
                 'com.whip.app.TrackCollectionJourneyE2ETest'
                 'com.whip.app.RecordItemBuilderJourneyE2ETest'

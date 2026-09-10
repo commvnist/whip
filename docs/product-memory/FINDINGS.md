@@ -1,5 +1,12 @@
 # Durable findings
 
+### FND-20260910-033 — Empty Track Insights obscure scope and the next action
+
+- Status: Verified in IMP/VER-20260910-023; P2 ordinary UX and evidence comprehension. FB-20260910-001/002.
+- Evidence: O8RXUF passes three unchanged-production native journeys on 89a47688; matching wide passes three in 30.73s. Ten original phone/wide frames are personally reviewed. A selected Area with archived history renders zero Overview/Entry Frequency before No Track Insights Yet. Active Tracks without Entries have no explanation/action at all. An entryless or unmatched per-Track view renders zero counts and unavailable Field statistics.
+- Cause/expected: Rendering checks only load availability and active definition count. Distinguish no active Tracks in the current view, no Entries in active Tracks, and no matching Entries. Preserve meaningful zero recent counts when older/all-time evidence exists. Empty views should explain their scope and lead to existing create/record/archive/filter actions without changing data or Area preferences.
+- Related: DEC-20260910-010 establishes view-aware empty language; DEC-20260910-022 establishes shared summaries. All-time/archived history and explicit filter ownership remain authoritative.
+
 ### FND-20260910-031 — Future Entries inflate recent per-Track Insights
 
 - Status: Verified under IMP/VER-20260910-022; P2 derived-data correctness and cross-page consistency. FB-20260910-001/002.

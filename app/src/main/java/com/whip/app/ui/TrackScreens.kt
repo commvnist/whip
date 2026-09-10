@@ -601,6 +601,16 @@ internal fun TrackAreaContent(
                 TrackWorkspaceDestination.Insights -> TrackWorkspaceInsightsPage(
                     state = state,
                     customUnits = customUnits,
+                    onCreateTrack = { onEditorRequest(TrackEditorIntent.Definition(null)) },
+                    onOpenTracks = {
+                        selectedTrackId = null
+                        destination = TrackDetailDestination.Entries
+                        workspaceDestination = TrackWorkspaceDestination.Tracks
+                    },
+                    onOpenArchived = {
+                        selectedTrackId = null
+                        workspaceDestination = TrackWorkspaceDestination.Archived
+                    },
                     onOpenTrack = { id ->
                         workspaceDestination = TrackWorkspaceDestination.Tracks
                         selectedTrackId = id
@@ -1157,6 +1167,9 @@ private data class TrackNumericSummary(
 private fun TrackWorkspaceInsightsPage(
     state: TrackUiState,
     customUnits: List<UnitDefinition>,
+    onCreateTrack: () -> Unit,
+    onOpenTracks: () -> Unit,
+    onOpenArchived: () -> Unit,
     onOpenTrack: (Long) -> Unit,
     onRetryLoading: () -> Unit,
 ) {
@@ -1190,6 +1203,24 @@ private fun TrackWorkspaceInsightsPage(
             item { WhipPageHeader("Insights", "Patterns across visible Tracks.") }
             if (state.loading || state.errorMessage != null) item {
                 DomainLoadContent("Track Insights", PaddingValues(), state.errorMessage, onRetryLoading)
+            }
+            else if (activeTracks.isEmpty()) item {
+                WhipEmptyState(
+                    title = "No Active Tracks in This View",
+                    supportingText = "Create a Track, or change the Area above to find existing Tracks.",
+                    primaryActionLabel = "Create Track",
+                    onPrimaryAction = onCreateTrack,
+                    secondaryActionLabel = "View Archived".takeIf { state.archived.isNotEmpty() },
+                    onSecondaryAction = onOpenArchived.takeIf { state.archived.isNotEmpty() },
+                )
+            }
+            else if (totalEntries == 0) item {
+                WhipEmptyState(
+                    title = "No Entries to Summarize",
+                    supportingText = "Add an Entry to one of the visible Tracks to start seeing patterns.",
+                    primaryActionLabel = "Open Tracks",
+                    onPrimaryAction = onOpenTracks,
+                )
             }
             else {
                 item {
@@ -1242,12 +1273,6 @@ private fun TrackWorkspaceInsightsPage(
                             fact("Entries", summary.values.size.toString())
                         }
                     }
-                }
-                if (activeTracks.isEmpty()) item {
-                    WhipEmptyState(
-                        "No Track Insights Yet",
-                        "Create a Track and add Entries to see cross-Track patterns here.",
-                    )
                 }
             }
         }
@@ -1736,7 +1761,11 @@ private fun TrackDetailPage(
                 onReadOnlyEntryRequestConsumed,
                 onRestore = { onSetArchived(false) },
             )
-            TrackDetailDestination.Insights -> TrackInsightsPage(projection, customUnits, today, dialogModifier)
+            TrackDetailDestination.Insights -> TrackInsightsPage(
+                projection, customUnits, today, onAddEntry,
+                onOpenEntries = { onDestinationChange(TrackDetailDestination.Entries) },
+                dialogModifier = dialogModifier,
+            )
             TrackDetailDestination.Options -> TrackOptionsPage(
                 projection,
                 onEditTrack,
@@ -2155,6 +2184,8 @@ private fun TrackInsightsPage(
     projection: TrackProjection,
     customUnits: List<UnitDefinition>,
     today: LocalDate,
+    onAddEntry: () -> Unit,
+    onOpenEntries: () -> Unit,
     dialogModifier: Modifier = Modifier,
 ) {
     var filterOpen by rememberSaveable(projection.track.id) { mutableStateOf(false) }
@@ -2178,6 +2209,26 @@ private fun TrackInsightsPage(
                 onRemove = { index -> conditions = conditions.toMutableList().also { it.removeAt(index) } },
                 onClear = { conditions = emptyList() },
             )
+        }
+        if (scoped.entries.isEmpty()) {
+            item {
+                val hasEntries = projection.entries.isNotEmpty()
+                WhipEmptyState(
+                    title = if (hasEntries) "No Matching Entries" else "No Entries Yet",
+                    supportingText = when {
+                        hasEntries -> "Change a condition above, or Clear All to see every Entry."
+                        projection.track.archived -> "This archived Track has no recorded Entries. Restore it from Entries to start recording."
+                        else -> "Add your first Entry to see summaries of this Track."
+                    },
+                    primaryActionLabel = when {
+                        hasEntries -> null
+                        projection.track.archived -> "View Entries"
+                        else -> "Add Entry"
+                    },
+                    onPrimaryAction = if (projection.track.archived) onOpenEntries else onAddEntry,
+                )
+            }
+            return@LazyColumn
         }
         item {
             WhipSummaryCard(if (conditions.isEmpty()) "All Entries" else "Matching Entries") {

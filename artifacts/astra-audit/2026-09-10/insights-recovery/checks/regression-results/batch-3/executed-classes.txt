@@ -1,0 +1,8 @@
+com.whip.app.TrackWorkspaceUiTest
+com.whip.app.WhipAccessibilityChecksTest
+com.whip.app.ui.TrackCsvImportRecoveryViewModelTest
+com.whip.app.ui.TrackCsvImportUiTest
+com.whip.app.ui.TrackEditorCheckpointTest
+com.whip.app.ui.TrackEntryDeleteRecoveryUiTest
+com.whip.app.ui.WhipRecordItemTest
+com.whip.app.ui.WhipSummaryBuilderTest

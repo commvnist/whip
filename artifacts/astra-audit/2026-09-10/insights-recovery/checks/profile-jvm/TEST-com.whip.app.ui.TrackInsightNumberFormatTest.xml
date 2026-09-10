@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.TrackInsightNumberFormatTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-09-10T22:43:34.195Z" hostname="beast" time="0.006">
+  <properties/>
+  <testcase name="temperaturesConvertAbsoluteReadingsAndDifferencesWithoutOfferingTotals" classname="com.whip.app.ui.TrackInsightNumberFormatTest" time="0.002"/>
+  <testcase name="mixedDistancesHaveTheSameUnitAndPrecisionForTotalsAndAverages" classname="com.whip.app.ui.TrackInsightNumberFormatTest" time="0.0"/>
+  <testcase name="fieldPrecisionAndLocaleApplyToConvertedReadings" classname="com.whip.app.ui.TrackInsightNumberFormatTest" time="0.003"/>
+  <testcase name="scaleAveragesRetainFractionsAndFineIncrementsWithoutOfferingTotals" classname="com.whip.app.ui.TrackInsightNumberFormatTest" time="0.0"/>
+  <testcase name="missingUnitsEmptyEvidenceAndOverflowRemainUnavailable" classname="com.whip.app.ui.TrackInsightNumberFormatTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

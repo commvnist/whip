@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.InteractionConsistencyTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-09-10T22:57:45.252Z" hostname="beast" time="0.128">
+  <properties/>
+  <testcase name="sharedReorderMovementSupportsDropDistancesAndSafeBoundaries" classname="com.whip.app.ui.InteractionConsistencyTest" time="0.017"/>
+  <testcase name="unavailableDependentControlsAlwaysCarryRecoveryGuidance" classname="com.whip.app.ui.InteractionConsistencyTest" time="0.024"/>
+  <testcase name="interfaceChromeUsesTitleCaseWithoutDamagingAcronymsOrApostrophes" classname="com.whip.app.ui.InteractionConsistencyTest" time="0.0"/>
+  <testcase name="emptyOrMalformedWeekdayRemindersNeverBecomePhantomDays" classname="com.whip.app.ui.InteractionConsistencyTest" time="0.013"/>
+  <testcase name="storedIdentifiersHaveCanonicalUserFacingNames" classname="com.whip.app.ui.InteractionConsistencyTest" time="0.001"/>
+  <testcase name="gymNavigationHasFourPrimaryDestinationsAndAnExhaustiveLibrary" classname="com.whip.app.ui.InteractionConsistencyTest" time="0.0"/>
+  <testcase name="taskEffortChoicesUseParallelPlainLanguageLabels" classname="com.whip.app.ui.InteractionConsistencyTest" time="0.0"/>
+  <testcase name="habitValuesUseTheConfiguredPrecisionEverywhere" classname="com.whip.app.ui.InteractionConsistencyTest" time="0.073"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

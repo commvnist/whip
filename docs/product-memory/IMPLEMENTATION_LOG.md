@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260910-023 — Make empty Insights explain scope and lead to recording
+
+- Status: Verified in VER-20260910-023. FND-20260910-033 / DEC-20260910-023.
+- Behavior: Workspace Insights distinguishes no active Tracks in the current view from visible Tracks without Entries; Create Track respects the selected Area, View Archived retains older evidence, and Open Tracks returns to recording. Track Insights offers its actual Add Entry or archived View Entries route. Unmatched conditions retain the existing Clear All and show an explanation instead of zero/blank statistics. Populated summaries and zero recent windows remain unchanged.
+- Ownership: Reuse WhipEmptyState with centrally bounded 520 dp title/description reading; features own scope, conditions and callbacks. Existing editor request, navigation and persistence boundaries are unchanged. No schema, backup, calculation, version or release change.
+- Pilot: Kt0hFE passes thirteen phone checks including all four new native recovery journeys, both exact numeric journeys and seven workspace/availability/adaptive checks. Actual creation in Main, first Entry Save, unmatched-filter recreation/clear, read-only archived recovery and full retained projection equality pass. Final yN0488 passes 142 fresh Android checks in 52/48/42 batches with zero failures/skips/reuse; ten wide methods pass in 112.764s. The 73 profile / 385 readiness JVM checks, compilation/lint/build and catalog lint pass. All 519 inputs remain unchanged; thirty retained originals are personally reviewed. Evidence: artifacts/astra-audit/2026-09-10/insights-recovery/README.md. Inventory 655 JVM + 1088 Android = 1743; matrix 515 states, 346 Verified / 127 Investigating / 42 In progress. Remaining app/final gates stay open; Git records delivery.
+
 ### IMP-20260910-022 — Share Insights presentation and correct recent date windows
 
 - Status: Verified in VER-20260910-022. FND-20260910-031/032 and DEC-20260910-022. Evidence: artifacts/astra-audit/2026-09-10/insights-builders/README.md.

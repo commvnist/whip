@@ -1,0 +1,31 @@
+image	status	scope
+before-phone/tracks.detail.insights.no-entries.png	Personally reviewed original	Baseline: Zero dates/counts and unavailable Field statistics fill the entryless view.
+before-phone/tracks.insights.no-entries.png	Personally reviewed original	Baseline: Zero totals and frequency appear without any empty-state explanation or action.
+before-phone/tracks.insights.empty-area.png	Personally reviewed original	Baseline: Zero Overview and frequency dominate before a first-use explanation despite retained archived history.
+before-phone/tracks.detail.insights.recovered.png	Personally reviewed original	Baseline: Clearing conditions already preserves exact recorded evidence; this is retained.
+before-phone/tracks.detail.insights.no-matches.png	Personally reviewed original	Baseline: Visible conditions and Clear All exist, but empty statistics do not explain the unmatched view.
+before-wide/tracks.detail.insights.no-entries.png	Personally reviewed original	Baseline: Zero dates/counts and unavailable Field statistics fill the entryless view.
+before-wide/tracks.insights.no-entries.png	Personally reviewed original	Baseline: Zero totals and frequency appear without any empty-state explanation or action.
+before-wide/tracks.insights.empty-area.png	Personally reviewed original	Baseline: Zero Overview and frequency dominate before a first-use explanation despite retained archived history.
+before-wide/tracks.detail.insights.recovered.png	Personally reviewed original	Baseline: Clearing conditions already preserves exact recorded evidence; this is retained.
+before-wide/tracks.detail.insights.no-matches.png	Personally reviewed original	Baseline: Visible conditions and Clear All exist, but empty statistics do not explain the unmatched view.
+final-phone/tracks.detail.insights.first-entry.png	Personally reviewed original	The first saved primary-text Entry produces one all-time/recent count; the unrecorded optional Distance remains unavailable, not invented.
+final-phone/tracks.detail.insights.no-entries.png	Personally reviewed original	The named active Track offers its actual Add Entry action; title, explanation and action are visible.
+final-phone/tracks.insights.no-entries.png	Personally reviewed original	An active definition without Entries receives a clear explanation and Open Tracks route instead of a zero frequency chart.
+final-phone/tracks.insights.empty-area.png	Personally reviewed original	The selected Main Area has archived evidence; scope explanation and Create/View Archived replace the zero dashboard.
+final-phone/tracks.detail.insights.recovered.png	Personally reviewed original	Clearing conditions restores one recorded Entry and exact 1.250 mi Field evidence; existing reading order remains.
+final-phone/tracks.detail.insights.no-matches.png	Personally reviewed original	Applied condition and existing Clear All remain visible; an explicit no-match explanation replaces empty statistics.
+final-phone/tracks.detail.insights.archived-empty.png	Personally reviewed original	Archived identity stays visible and View Entries offers inspection/restoration without an Add Entry action.
+final-phone/shared.review.empty-selection-reopened.png	Personally reviewed original	Neighbor: reopening preserves the selected empty Review and recovery guidance.
+final-phone/shared.review.selection-outcomes.png	Personally reviewed original	Neighbor: including recorded Tasks restores the real outcome cards with their retained data and scope.
+final-phone/shared.review.empty-selection.png	Personally reviewed original	Neighbor: current section/period controls and bounded empty explanation remain readable in the Review layout.
+final-wide/shared.review.empty-selection-reopened.png	Personally reviewed original	Neighbor: reopening preserves the selected empty Review and recovery guidance.
+final-wide/shared.review.selection-outcomes.png	Personally reviewed original	Neighbor: including recorded Tasks restores the real outcome cards with their retained data and scope.
+final-wide/shared.review.empty-selection.png	Personally reviewed original	Neighbor: current section/period controls and bounded empty explanation remain readable in the Review layout.
+final-wide/tracks.detail.insights.first-entry.png	Personally reviewed original	The first saved primary-text Entry produces one all-time/recent count; the unrecorded optional Distance remains unavailable, not invented.
+final-wide/tracks.detail.insights.no-entries.png	Personally reviewed original	The named active Track offers its actual Add Entry action; title, explanation and action are visible.
+final-wide/tracks.insights.no-entries.png	Personally reviewed original	An active definition without Entries receives a clear explanation and Open Tracks route instead of a zero frequency chart.
+final-wide/tracks.insights.empty-area.png	Personally reviewed original	The selected Main Area has archived evidence; scope explanation and Create/View Archived replace the zero dashboard.
+final-wide/tracks.detail.insights.recovered.png	Personally reviewed original	Clearing conditions restores one recorded Entry and exact 1.250 mi Field evidence; existing reading order remains.
+final-wide/tracks.detail.insights.no-matches.png	Personally reviewed original	Applied condition and existing Clear All remain visible; an explicit no-match explanation replaces empty statistics.
+final-wide/tracks.detail.insights.archived-empty.png	Personally reviewed original	Archived identity stays visible and View Entries offers inspection/restoration without an Add Entry action.

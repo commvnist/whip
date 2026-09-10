@@ -429,14 +429,14 @@ internal fun WhipEmptyState(
         icon?.let { Icon(it, contentDescription = null, modifier = Modifier.size(32.dp)) }
         Text(
             title,
-            modifier = Modifier.semantics { heading() },
+            modifier = Modifier.widthIn(max = 520.dp).semantics { heading() },
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
         )
         Text(
             supportingText,
-            modifier = Modifier.padding(horizontal = WhipSpacing.standard),
+            modifier = Modifier.widthIn(max = 520.dp).padding(horizontal = WhipSpacing.standard),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
