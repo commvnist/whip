@@ -1,5 +1,14 @@
 # Durable findings
 
+### FND-20260910-029 — Program execution repeats guidance ahead of actual training
+
+- Status: Verified; P2 ordinary UX, information hierarchy and content ownership. IMP/VER-20260910-020.
+- Observed: Native complete-cycle baseline `Yr3f0E` on `b4482e2e` passes daily logging, review-choice recreation, explicit Standard increase, next-cycle loading and exact completed History. Its normal phone workout repeats the full source/target in NEXT and the active Set, adds a separate large “Up next” value line, and spends three lines explaining workout-only structural changes. The first load field is partly below the visible viewport. Generated Routine notes contain template instructions that are copied into each workout and shown before performed History.
+- Expected: NEXT should emphasize the upcoming work and clearly offer navigation; the Set retains complete prescription provenance and real classification. Scope guidance states the Routine boundary concisely. Template guidance belongs to setup, while notes remain the user's authored content.
+- Cause/decision: Detailed evidence is reused as a navigation summary; active workflow status is supplied as a value role; the program generator inserts guidance into persisted user-note fields. Improve existing execution roles under DEC-20260910-020 without changing calculations, decisions or historical snapshots.
+- Pilot follow-up: The original NEXT/requested-Exercise/automatic scroll offset counted only two leading items despite the header, execution lane and actions preceding Exercise blocks. Corrected block targeting exposed an existing icon-owned menu label: when only nine pixels of the active menu button remained below the sticky lane, its icon and accessible name disappeared. `iIa5sb` fails both cycle/rest captures; diagnostic `yygOzY` identifies that exact unnamed clickable node at `[837,800][963,809]`. A shared execution-menu role must own the button name; do not weaken the capture guard.
+- Resolution/evidence: Practical NEXT, classification status, concise scope and exact authored notes preserve training/history semantics. Shared menu/disclosure parent names and measured pinned-lane offsets address the scrolling failures. Final 226 Android checks, three wide journeys, 378 readiness JVM checks and lint/build pass. Twenty retained original pairs personally reviewed in `artifacts/astra-audit/2026-09-10/531-cycle/README.md`; baseline acceptance is scoped to the retained workout/History pair. Related FB-20260910-001/002, DEC-20260907-012, DEC-20260910-007/019.
+
 ## FND-20260910-028 — Library changes can transfer authored 5/3/1 values between Exercises
 - **Status:** Verified
 - **Priority:** P1 — authored programming integrity.

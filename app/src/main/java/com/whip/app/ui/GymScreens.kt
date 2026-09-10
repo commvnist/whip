@@ -51,6 +51,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.listSaver
@@ -60,6 +61,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalContext
@@ -2831,14 +2833,19 @@ private fun WorkoutContent(
     }
     val workoutListState = rememberLazyListState()
     val workoutScrollScope = rememberCoroutineScope()
-    LaunchedEffect(requestedWorkoutExerciseId, workoutBlocks) {
+    var executionLaneHeightPx by remember { mutableIntStateOf(0) }
+    val workoutBlockScrollOffset = if (arrangingWorkout) 0 else -executionLaneHeightPx
+    // Header and workout actions always precede blocks; the execution lane is hidden while arranging.
+    val firstWorkoutBlockIndex = if (arrangingWorkout) 2 else 3
+    LaunchedEffect(requestedWorkoutExerciseId, workoutBlocks, arrangingWorkout, executionLaneHeightPx) {
         val requestedId = requestedWorkoutExerciseId ?: return@LaunchedEffect
+        if (!arrangingWorkout && executionLaneHeightPx == 0) return@LaunchedEffect
         val blockIndex = workoutBlocks.indexOfFirst { block ->
             block.exercises.any { it.workoutExercise.id == requestedId }
         }
         if (blockIndex >= 0) {
             requestedExecutionExerciseId = requestedId
-            workoutListState.scrollToItem(blockIndex + 2)
+            workoutListState.scrollToItem(blockIndex + firstWorkoutBlockIndex, workoutBlockScrollOffset)
             onRequestedWorkoutExerciseConsumed()
         }
     }
@@ -2848,13 +2855,14 @@ private fun WorkoutContent(
         }
     }
     var lastFocusedSetId by rememberSaveable(session.id) { mutableStateOf(nextSet?.second?.id) }
-    LaunchedEffect(nextSet?.second?.id) {
+    LaunchedEffect(nextSet?.second?.id, arrangingWorkout, executionLaneHeightPx) {
         val next = nextSet ?: return@LaunchedEffect
+        if (!arrangingWorkout && executionLaneHeightPx == 0) return@LaunchedEffect
         if (lastFocusedSetId != null && lastFocusedSetId != next.second.id) {
             val blockIndex = workoutBlocks.indexOfFirst { block ->
                 block.exercises.any { it.workoutExercise.id == next.first.workoutExercise.id }
             }
-            if (blockIndex >= 0) workoutListState.animateScrollToItem(blockIndex + 2)
+            if (blockIndex >= 0) workoutListState.animateScrollToItem(blockIndex + firstWorkoutBlockIndex, workoutBlockScrollOffset)
         }
         lastFocusedSetId = next.second.id
     }
@@ -2919,7 +2927,9 @@ private fun WorkoutContent(
         }
         if (!arrangingWorkout) stickyHeader {
             WhipCollectionCard(
-                modifier = Modifier.testTag("workout-execution-lane"),
+                modifier = Modifier
+                    .testTag("workout-execution-lane")
+                    .onSizeChanged { executionLaneHeightPx = it.height },
             ) {
                 Column(Modifier.padding(vertical = WhipSpacing.micro)) {
                     skippedOptionalSetId?.let { skippedId ->
@@ -2997,9 +3007,7 @@ private fun WorkoutContent(
                         }
                     }
                     nextSet?.let { (exerciseItem, set) ->
-                        Text(
-                            "NEXT · ${exerciseItem.exercise.name} · Set ${set.position + 1}" +
-                                set.prescriptionLabel(state.appSettings.gymWeightUnitId, state.appSettings.numberPrecision, exerciseItem.workoutExercise)?.let { " · $it" }.orEmpty(),
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(min = 48.dp)
@@ -3008,14 +3016,29 @@ private fun WorkoutContent(
                                         block.exercises.any { it.workoutExercise.id == exerciseItem.workoutExercise.id }
                                     }
                                     if (blockIndex >= 0) workoutScrollScope.launch {
-                                        workoutListState.scrollToItem(blockIndex + 2)
+                                        workoutListState.scrollToItem(blockIndex + firstWorkoutBlockIndex, workoutBlockScrollOffset)
                                     }
                                 }
                                 .padding(horizontal = 12.dp, vertical = 8.dp)
                                 .testTag("next-set-focus"),
-                            color = MaterialTheme.colorScheme.tertiary,
-                            fontWeight = FontWeight.Bold,
-                        )
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    "NEXT · ${exerciseItem.exercise.name} · Set ${set.position + 1}",
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                set.prescriptionLabel(
+                                    state.appSettings.gymWeightUnitId,
+                                    state.appSettings.numberPrecision,
+                                    exerciseItem.workoutExercise,
+                                    includeSource = false,
+                                )?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                            }
+                            Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)
+                        }
                     }
                     RestTimerCard(
                         session = session,
@@ -3173,9 +3196,9 @@ private fun WorkoutContent(
                         }
                         Text(
                             if (session.sourceRoutineId != null) {
-                                "Workout only · Your routine and future scheduled workouts stay unchanged. Logged sets remain in this workout's History."
+                                "Workout only · Routine unchanged"
                             } else {
-                                "Workout only · Logged sets remain with this workout in History."
+                                "Changes apply to this workout"
                             },
                             modifier = Modifier.fillMaxWidth().testTag("active-workout-exercise-scope"),
                             style = MaterialTheme.typography.bodySmall,
@@ -3679,40 +3702,31 @@ internal fun WorkoutExerciseCard(
                                 )
                             }
                         }
-                        actions {
-                            if (!arranging) Box {
-                                IconButton(
-                                    onClick = { setMenuId = set.id },
-                                    enabled = !sessionMutationSaving,
-                                    modifier = Modifier.size(48.dp),
-                                ) {
-                                    Icon(
-                                        Icons.Outlined.MoreVert,
-                                        contentDescription = "Manage set ${index + 1}",
-                                        modifier = Modifier.size(26.dp),
-                                    )
-                                }
-                                WorkoutSetActionsMenu(
-                                    expanded = setMenuId == set.id,
-                                    enabled = !sessionMutationSaving,
-                                    onDismiss = { setMenuId = null },
-                                    onDuplicate = { setMenuId = null; onDuplicateSet(set.id) },
-                                    removeLabel = if (set.requiredForProgressionSnapshot &&
+                        if (!arranging) menu(
+                            label = "Manage set ${index + 1}",
+                            enabled = !sessionMutationSaving,
+                            onOpen = { setMenuId = set.id },
+                        ) {
+                            WorkoutSetActionsMenu(
+                                expanded = setMenuId == set.id,
+                                enabled = !sessionMutationSaving,
+                                onDismiss = { setMenuId = null },
+                                onDuplicate = { setMenuId = null; onDuplicateSet(set.id) },
+                                removeLabel = if (set.requiredForProgressionSnapshot &&
+                                    set.workSectionSnapshot == RoutineWorkSection.Main
+                                ) "Mark Main Set Not Performed" else "Remove Set",
+                                onRemove = {
+                                    setMenuId = null
+                                    onClearSessionMutationError()
+                                    if (set.requiredForProgressionSnapshot &&
                                         set.workSectionSnapshot == RoutineWorkSection.Main
-                                    ) "Mark Main Set Not Performed" else "Remove Set",
-                                    onRemove = {
-                                        setMenuId = null
-                                        onClearSessionMutationError()
-                                        if (set.requiredForProgressionSnapshot &&
-                                            set.workSectionSnapshot == RoutineWorkSection.Main
-                                        ) {
-                                            setRemovalConfirmationBoundary = captureSetBoundary(set.id)
-                                        } else captureSetBoundary(set.id)?.let(onDeleteSet)
-                                    },
-                                )
-                            }
+                                    ) {
+                                        setRemovalConfirmationBoundary = captureSetBoundary(set.id)
+                                    } else captureSetBoundary(set.id)?.let(onDeleteSet)
+                                },
+                            )
                         }
-                        values(listOfNotNull("Up next", set.classification.uiLabel().takeUnless { it == "Working" }).joinToString(" · "))
+                        set.classification.uiLabel().takeUnless { it == "Working" }?.let { status(it) }
                         target(set.prescriptionLabel(preferredWeightUnitId, numberPrecision, item.workoutExercise))
                         inputs {
                             QuickSetEntry(
@@ -3767,38 +3781,31 @@ internal fun WorkoutExerciseCard(
                                 )
                             }
                         }
-                        actions {
-                            if (!arranging) Box {
-                                IconButton(
-                                    onClick = { setMenuId = set.id },
-                                    enabled = !sessionMutationSaving,
-                                    modifier = Modifier.size(48.dp),
-                                ) {
-                                    Icon(
-                                        Icons.Outlined.MoreVert,
-                                        contentDescription = "Manage set ${index + 1}",
-                                        modifier = Modifier.size(26.dp),
-                                    )
-                                }
-                                WorkoutSetActionsMenu(
-                                    expanded = setMenuId == set.id,
-                                    enabled = !sessionMutationSaving,
-                                    onDismiss = { setMenuId = null },
-                                    onDuplicate = { setMenuId = null; onDuplicateSet(set.id) },
-                                    removeLabel = if (set.requiredForProgressionSnapshot &&
+                        if (!arranging) menu(
+                            label = "Manage set ${index + 1}",
+                            enabled = !sessionMutationSaving,
+                            onOpen = { setMenuId = set.id },
+                        ) {
+                            WorkoutSetActionsMenu(
+                                expanded = setMenuId == set.id,
+                                enabled = !sessionMutationSaving,
+                                onDismiss = { setMenuId = null },
+                                onDuplicate = { setMenuId = null; onDuplicateSet(set.id) },
+                                removeLabel = if (set.requiredForProgressionSnapshot &&
+                                    set.workSectionSnapshot == RoutineWorkSection.Main
+                                ) "Mark Main Set Not Performed" else "Remove Set",
+                                onRemove = {
+                                    setMenuId = null
+                                    onClearSessionMutationError()
+                                    if (set.requiredForProgressionSnapshot &&
                                         set.workSectionSnapshot == RoutineWorkSection.Main
-                                    ) "Mark Main Set Not Performed" else "Remove Set",
-                                    onRemove = {
-                                        setMenuId = null
-                                        onClearSessionMutationError()
-                                        if (set.requiredForProgressionSnapshot &&
-                                            set.workSectionSnapshot == RoutineWorkSection.Main
-                                        ) {
-                                            setRemovalConfirmationBoundary = captureSetBoundary(set.id)
-                                        } else captureSetBoundary(set.id)?.let(onDeleteSet)
-                                    },
-                                )
-                            }
+                                    ) {
+                                        setRemovalConfirmationBoundary = captureSetBoundary(set.id)
+                                    } else captureSetBoundary(set.id)?.let(onDeleteSet)
+                                },
+                            )
+                        }
+                        actions {
                             if (set.completed && !arranging) {
                                 WhipCompletionCheckbox(
                                     checked = true,
@@ -10701,6 +10708,7 @@ private fun WorkoutSet.prescriptionLabel(
     preferredWeightUnitId: String,
     precision: Int,
     workoutExercise: WorkoutExercise,
+    includeSource: Boolean = true,
 ): String? {
     if (listOf(
             prescribedCanonicalWeightKg,
@@ -10732,6 +10740,7 @@ private fun WorkoutSet.prescriptionLabel(
     prescribedDurationSeconds?.let { parts += formatDuration(it) }
     val resolved = parts.joinToString(" × ")
     return when {
+        !includeSource && resolved.isNotBlank() -> resolved
         prescriptionSourceLabel.isNotBlank() && resolved.isNotBlank() -> "$prescriptionSourceLabel → $resolved"
         prescriptionSourceLabel.isNotBlank() -> prescriptionSourceLabel
         else -> resolved.takeIf(String::isNotBlank)

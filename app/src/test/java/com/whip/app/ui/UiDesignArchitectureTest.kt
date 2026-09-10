@@ -469,7 +469,11 @@ class UiDesignArchitectureTest {
         assertTrue("Workout history display rows must use the canonical card", gymScreens.contains("WhipCollectionCard(modifier = modifier.fillMaxWidth().testTag(\"history-workout-card-"))
         // Catalog reorder roles now belong to the record renderer; Routine placement remains specialized.
         assertTrue("Routine placement remains a specialized card", routineBuilder.contains("RoutinePlacementCard"))
-        assertTrue("The rest execution lane must use the canonical collection card", gymScreens.contains("WhipCollectionCard(\n                modifier = Modifier.testTag(\"workout-execution-lane\")"))
+        assertTrue(
+            "The rest execution lane must use the canonical collection card",
+            Regex("""WhipCollectionCard\(\s*modifier\s*=\s*Modifier\s*\.testTag\("workout-execution-lane"\)""")
+                .containsMatchIn(gymScreens),
+        )
         assertTrue("Collection cards must lock their canonical shape", patterns.contains("val shape = MaterialTheme.shapes.medium"))
     }
 

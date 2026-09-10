@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.AreaScopeFilterRelationshipsTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-09-10T19:52:57.811Z" hostname="beast" time="0.001">
+  <properties/>
+  <testcase name="allAreasAndTheOnlyActiveAreaAreTheSameVisibleWidgetScope" classname="com.whip.app.ui.AreaScopeFilterRelationshipsTest" time="0.001"/>
+  <testcase name="invalidArchivedAndZeroAreaScopesRecoverToAll" classname="com.whip.app.ui.AreaScopeFilterRelationshipsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

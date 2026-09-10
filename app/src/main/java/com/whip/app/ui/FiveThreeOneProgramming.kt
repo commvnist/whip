@@ -1039,9 +1039,6 @@ internal fun buildFiveThreeOneProgramState(
     }
     return current.copy(
         name = current.name.ifBlank { defaultName },
-        notes = current.notes.ifBlank {
-            "Book-guided editable 5/3/1 structure. Review percentages against the edition and template you follow. Main, Supplemental, Assistance, and Optional work remain separate."
-        },
         days = days,
         selectedDayKey = days.first().key,
         selectedPlacementKey = null,

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.GymUxRulesTest" tests="18" skipped="0" failures="0" errors="0" timestamp="2026-09-10T19:49:21.239Z" hostname="beast" time="0.028">
+  <properties/>
+  <testcase name="positiveNumberListReportsTheExactInvalidToken" classname="com.whip.app.ui.GymUxRulesTest" time="0.007"/>
+  <testcase name="relativeGraphRangeAlwaysEndsToday" classname="com.whip.app.ui.GymUxRulesTest" time="0.001"/>
+  <testcase name="nextSetSelectionHonorsGroupRotationAndFallsBackWhenThatMemberIsDone" classname="com.whip.app.ui.GymUxRulesTest" time="0.005"/>
+  <testcase name="programmedExerciseFinishesMainThenSupplementalBeforeChangingStationsAndOptionalRequiresAcceptance" classname="com.whip.app.ui.GymUxRulesTest" time="0.001"/>
+  <testcase name="personalRecordRecoveryKeepsAStaleRecordInTheRetrySetAfterItsLastSetWasRemoved" classname="com.whip.app.ui.GymUxRulesTest" time="0.0"/>
+  <testcase name="quantityLabelsUseTheSingularOnlyForOne" classname="com.whip.app.ui.GymUxRulesTest" time="0.001"/>
+  <testcase name="workoutUndoVisibilityIsScopedToActiveSessionAndDataGeneration" classname="com.whip.app.ui.GymUxRulesTest" time="0.001"/>
+  <testcase name="dataGenerationChangeClosesEveryWorkoutOwnedExerciseEditor" classname="com.whip.app.ui.GymUxRulesTest" time="0.0"/>
+  <testcase name="customGraphRangeRequiresBothStrictOrderedDates" classname="com.whip.app.ui.GymUxRulesTest" time="0.0"/>
+  <testcase name="historyCopyAuthorshipCodecPreservesExactRetryIdentityAndRejectsDamage" classname="com.whip.app.ui.GymUxRulesTest" time="0.001"/>
+  <testcase name="finishReviewMatchesOnlyTheExactSessionIdentityAndRevision" classname="com.whip.app.ui.GymUxRulesTest" time="0.0"/>
+  <testcase name="jokerLadderRequiresTargetsAndStopsOnSkipFailureOrHighEffort" classname="com.whip.app.ui.GymUxRulesTest" time="0.001"/>
+  <testcase name="gymPersistenceResultPreservesFailureForTheCallingEditor" classname="com.whip.app.ui.GymUxRulesTest" time="0.003"/>
+  <testcase name="sharedExerciseSearchScalesAndMatchesMeaningfulMetadata" classname="com.whip.app.ui.GymUxRulesTest" time="0.006"/>
+  <testcase name="activePerformanceKeepsCompletedRetiredWorkWithoutResurrectingEmptyPlacements" classname="com.whip.app.ui.GymUxRulesTest" time="0.001"/>
+  <testcase name="positiveNumberListDoesNotTurnBlankInputIntoUnlimitedInventory" classname="com.whip.app.ui.GymUxRulesTest" time="0.0"/>
+  <testcase name="restTimerNeverRendersAboveTheSelectedDurationWhenTheUiClockIsStale" classname="com.whip.app.ui.GymUxRulesTest" time="0.0"/>
+  <testcase name="historyCopyAndSharedMutationStateBlockCompetingWorkoutActions" classname="com.whip.app.ui.GymUxRulesTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

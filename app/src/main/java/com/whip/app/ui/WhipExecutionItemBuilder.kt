@@ -1,10 +1,14 @@
 package com.whip.app.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -12,6 +16,13 @@ internal enum class WhipExecutionEmphasis { Passive, Active, Omitted }
 
 internal class WhipExecutionItemScope internal constructor() {
     internal data class Line(val text: String, val modifier: Modifier)
+    internal data class Menu(
+        val label: String,
+        val enabled: Boolean,
+        val onOpen: () -> Unit,
+        val content: @Composable () -> Unit,
+    )
+    internal var menu: Menu? = null
     internal var leadingSlot: (@Composable () -> Unit)? = null
     internal var actionSlot: (@Composable RowScope.() -> Unit)? = null
     internal var inputSlot: (@Composable () -> Unit)? = null
@@ -22,6 +33,9 @@ internal class WhipExecutionItemScope internal constructor() {
 
     fun leading(content: @Composable () -> Unit) { leadingSlot = content }
     fun actions(content: @Composable RowScope.() -> Unit) { actionSlot = content }
+    fun menu(label: String, enabled: Boolean = true, onOpen: () -> Unit, content: @Composable () -> Unit) {
+        menu = Menu(label, enabled, onOpen, content)
+    }
     fun inputs(content: @Composable () -> Unit) { inputSlot = content }
     fun values(text: String, modifier: Modifier = Modifier) { valueLine = Line(text, modifier) }
     fun status(text: String, modifier: Modifier = Modifier) { statusLine = Line(text, modifier) }
@@ -64,6 +78,18 @@ internal fun WhipExecutionItem(
                     color = if (emphasis == WhipExecutionEmphasis.Omitted) MaterialTheme.colorScheme.onSurfaceVariant
                         else MaterialTheme.colorScheme.primary,
                 )
+                item.menu?.let { menu ->
+                    Box {
+                        IconButton(
+                            onClick = menu.onOpen,
+                            enabled = menu.enabled,
+                            modifier = Modifier.size(48.dp).semantics { contentDescription = menu.label },
+                        ) {
+                            Icon(Icons.Outlined.MoreVert, contentDescription = null, modifier = Modifier.size(26.dp))
+                        }
+                        menu.content()
+                    }
+                }
                 item.actionSlot?.invoke(this)
             }
             item.valueLine?.let {

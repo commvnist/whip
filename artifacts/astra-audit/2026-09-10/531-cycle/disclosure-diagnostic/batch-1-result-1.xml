@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="1" errors="0" skipped="0" time="10.782" timestamp="2026-09-10T19:25:34" hostname="localhost">
+  <testsuite name="com.whip.app.WorkoutRestJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="9.974" timestamp="2026-09-10T19:25:34" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="restFollowsTheNextSetAndOverridesCanReturnToPrescriptions" classname="com.whip.app.WorkoutRestJourneyE2ETest" time="9.974">
+      <failure>java.lang.AssertionError: Visual catalog hierarchy for gym.rest-journey.automatic contains an unlabeled interactive node
+[&lt;node NAF="true" index="0" text="" resource-id="" class="android.view.View" package="commvne.com.whip.app.debug" content-desc="" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" visible-to-user="true" bounds="[85,767][995,777]" drawing-order="0" hint="" display-id="0"&gt;]
+at com.whip.app.WorkoutRestJourneyE2ETest.capture(WorkoutRestJourneyE2ETest.kt:157)
+at com.whip.app.WorkoutRestJourneyE2ETest.restFollowsTheNextSetAndOverridesCanReturnToPrescriptions(WorkoutRestJourneyE2ETest.kt:87)
+... 64 trimmed
+Caused by: java.lang.IllegalStateException: Visual catalog hierarchy for gym.rest-journey.automatic contains an unlabeled interactive node
+at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface(VisualCatalogCapture.kt:95)
+at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface$default(VisualCatalogCapture.kt:26)
+at com.whip.app.WorkoutRestJourneyE2ETest.capture(WorkoutRestJourneyE2ETest.kt:152)
+... 66 more
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

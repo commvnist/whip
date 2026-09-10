@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.domain.HabitRulesTest" tests="24" skipped="0" failures="0" errors="0" timestamp="2026-09-10T19:52:57.608Z" hostname="beast" time="0.037">
+  <properties/>
+  <testcase name="dailyEveryNDaysAndWeekdaysScheduleCorrectly" classname="com.whip.app.domain.HabitRulesTest" time="0.006"/>
+  <testcase name="allTargetComparisonsHandleThresholds" classname="com.whip.app.domain.HabitRulesTest" time="0.0"/>
+  <testcase name="inactiveHabitFieldsCannotBlockOrLeakIntoTheSelectedConfiguration" classname="com.whip.app.domain.HabitRulesTest" time="0.002"/>
+  <testcase name="flexibleWeeklyProgressCountsEachSuccessfulEvent" classname="com.whip.app.domain.HabitRulesTest" time="0.003"/>
+  <testcase name="partialNumericLogsAreOneOutcomeOnlyAfterTheTargetIsReached" classname="com.whip.app.domain.HabitRulesTest" time="0.001"/>
+  <testcase name="missingCheckInNeverInventsSuccessOrFailure" classname="com.whip.app.domain.HabitRulesTest" time="0.0"/>
+  <testcase name="atMostUsesOneCanonicalMaximumAndRepairsTheFormerMinimumShape" classname="com.whip.app.domain.HabitRulesTest" time="0.001"/>
+  <testcase name="flexibleMonthlyUsesCalendarBoundaryAndOneOutcomeOnTargetReachingDay" classname="com.whip.app.domain.HabitRulesTest" time="0.007"/>
+  <testcase name="thresholdEndingsStayEndedAndSuppressReminders" classname="com.whip.app.domain.HabitRulesTest" time="0.003"/>
+  <testcase name="quickAddValidationOnlyAppliesToManualCountAndDecimalHabits" classname="com.whip.app.domain.HabitRulesTest" time="0.0"/>
+  <testcase name="flexibleWeeklyStreakUsesCompletedPeriodsAndDoesNotPunishAnOpenWeek" classname="com.whip.app.domain.HabitRulesTest" time="0.001"/>
+  <testcase name="habitDraftValidationUsesOneCompleteContract" classname="com.whip.app.domain.HabitRulesTest" time="0.0"/>
+  <testcase name="localDateOutcomesRemainStableAcrossDstOffsetChanges" classname="com.whip.app.domain.HabitRulesTest" time="0.001"/>
+  <testcase name="flexiblePeriodsHonorEveryWeekStartAndArbitraryCompletionDays" classname="com.whip.app.domain.HabitRulesTest" time="0.002"/>
+  <testcase name="aPauseIsNeutralAndOnlyReducesAnImpossibleFlexibleTarget" classname="com.whip.app.domain.HabitRulesTest" time="0.002"/>
+  <testcase name="everyNDaysStillRequiresItsVisibleInterval" classname="com.whip.app.domain.HabitRulesTest" time="0.0"/>
+  <testcase name="flexibleWeeklyStopsBeingDueAfterTargetSuccesses" classname="com.whip.app.domain.HabitRulesTest" time="0.0"/>
+  <testcase name="durationTrackingRequiresDurationMeasurementDimension" classname="com.whip.app.domain.HabitRulesTest" time="0.0"/>
+  <testcase name="skipIsVisibleNeutralAndSuppressesReminderWithoutBecomingALog" classname="com.whip.app.domain.HabitRulesTest" time="0.001"/>
+  <testcase name="dailyWeeklyMonthlyAndRollingWindowsHaveStableBounds" classname="com.whip.app.domain.HabitRulesTest" time="0.0"/>
+  <testcase name="skippedDatesDoNotInventAStreak" classname="com.whip.app.domain.HabitRulesTest" time="0.001"/>
+  <testcase name="pauseWindowSuppressesTodayAttention" classname="com.whip.app.domain.HabitRulesTest" time="0.0"/>
+  <testcase name="staleEndDateDoesNotSuppressNeverEndingHabitAndOnDateIsInclusive" classname="com.whip.app.domain.HabitRulesTest" time="0.0"/>
+  <testcase name="pastUnloggedDayIsMissedButPendingTodayCarriesThePriorStreak" classname="com.whip.app.domain.HabitRulesTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

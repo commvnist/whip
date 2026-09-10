@@ -259,6 +259,7 @@ add_profile() {
             android_classes+=(
                 'com.whip.app.GymFiveThreeOneJourneyE2ETest'
                 'com.whip.app.FiveThreeOneAuthorshipJourneyE2ETest'
+                'com.whip.app.FiveThreeOneCycleJourneyE2ETest'
                 'com.whip.app.RoutineRepositoryTest'
                 'com.whip.app.RoutineBuilderUiTest'
                 'com.whip.app.FiveThreeOneCycleReviewUiTest'

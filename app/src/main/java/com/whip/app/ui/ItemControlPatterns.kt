@@ -1352,7 +1352,10 @@ internal fun DisclosureButton(
 ) {
     WhipOutlinedButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = 48.dp).semantics { stateDescription = if (expanded) "Expanded" else "Collapsed" },
+        modifier = modifier.heightIn(min = 48.dp).semantics {
+            contentDescription = label.uiTitleCase()
+            stateDescription = if (expanded) "Expanded" else "Collapsed"
+        },
         enabled = enabled,
     ) {
         Text(label.uiTitleCase())

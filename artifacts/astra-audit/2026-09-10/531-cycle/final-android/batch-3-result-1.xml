@@ -1,0 +1,65 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="48" failures="0" errors="0" skipped="0" time="31.211" timestamp="2026-09-10T19:47:59" hostname="localhost">
+  <testsuite name="com.whip.app.RoutineRepositoryTest" tests="47" failures="0" errors="0" skipped="0" time="5.421" timestamp="2026-09-10T19:47:59" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="exactMachineLoadRemainsExactInsteadOfSilentlySnapping" classname="com.whip.app.RoutineRepositoryTest" time="0.091" />
+    <testcase name="trainingMaxEligibilityCanBeRestoredWithoutResettingProgramPosition" classname="com.whip.app.RoutineRepositoryTest" time="0.077" />
+    <testcase name="repBenchmarksPreserveEachLoadAfterSpecificTrackingTargetsWereRemoved" classname="com.whip.app.RoutineRepositoryTest" time="0.178" />
+    <testcase name="recordRebuildHonorsWarmupRecordAndVolumePolicies" classname="com.whip.app.RoutineRepositoryTest" time="0.177" />
+    <testcase name="assistanceCategoryAndWorkSectionRoundTripIntoWorkoutSnapshots" classname="com.whip.app.RoutineRepositoryTest" time="0.102" />
+    <testcase name="removingOrSubstitutingOneOfSeveralMainExercisesInvalidatesOnlyThatSessionTrainingMaxAdvance" classname="com.whip.app.RoutineRepositoryTest" time="0.403" />
+    <testcase name="performanceReviewEvidenceRequiresMatchingSourceProgramKindAtCommit" classname="com.whip.app.RoutineRepositoryTest" time="0.152" />
+    <testcase name="plannedRoutineMachineCanChangeBeforeCompletionAndRetargetsThePrescription" classname="com.whip.app.RoutineRepositoryTest" time="0.077" />
+    <testcase name="staticLoadCycleAdvancesOnlyAfterCompletedNonFailureWork" classname="com.whip.app.RoutineRepositoryTest" time="0.127" />
+    <testcase name="duplicatePlacementsAndRepRangesSurviveTemplateAndWorkoutCreation" classname="com.whip.app.RoutineRepositoryTest" time="0.051" />
+    <testcase name="performanceReviewNeverChangesTrainingMaxWithoutDecisionAndAuditsAcceptedChoice" classname="com.whip.app.RoutineRepositoryTest" time="0.202" />
+    <testcase name="levelRoutineDefaultsAreActualOnlyWhileExplicitSettingsRemainPrescribed" classname="com.whip.app.RoutineRepositoryTest" time="0.052" />
+    <testcase name="unilateralPercentagePrescriptionUsesTheSetSpecificLoadMultiplier" classname="com.whip.app.RoutineRepositoryTest" time="0.026" />
+    <testcase name="trainingMaxTestSetRequiresExplicitTestPhaseOneHundredPercentAndThreeToFiveReps" classname="com.whip.app.RoutineRepositoryTest" time="0.026" />
+    <testcase name="alternateBbbUsesOwnTrainingMaxSkipsEmptyPhasesAndStaysSynchronized" classname="com.whip.app.RoutineRepositoryTest" time="0.177" />
+    <testcase name="graphPresetCanBeRenamedUpdatedAndDeleted" classname="com.whip.app.RoutineRepositoryTest" time="0.051" />
+    <testcase name="repeatedFiveThreeOneMainExercisePlacementsCannotPersistDriftingTrainingMaxes" classname="com.whip.app.RoutineRepositoryTest" time="0.001" />
+    <testcase name="recordRebuildDeletesObsoleteRecordsAfterTheOnlyCompletedSetIsRemoved" classname="com.whip.app.RoutineRepositoryTest" time="0.076" />
+    <testcase name="emptyTrainingMaxBoundarySetNeverImplicitlyAdvancesAtFinalPhase" classname="com.whip.app.RoutineRepositoryTest" time="0.052" />
+    <testcase name="routineWaveAndReusableAlternativesSnapshotIntoEachStartedWorkout" classname="com.whip.app.RoutineRepositoryTest" time="0.076" />
+    <testcase name="activeRoutineWorkoutBlocksEveryProgramStateControl" classname="com.whip.app.RoutineRepositoryTest" time="0.052" />
+    <testcase name="repeatedMainExerciseHasExactlyOneTrainingMaxTestAcrossThePhase" classname="com.whip.app.RoutineRepositoryTest" time="0.026" />
+    <testcase name="unlinkingMachineExerciseMarksAffectedRoutineBindingForRepair" classname="com.whip.app.RoutineRepositoryTest" time="0.026" />
+    <testcase name="recordRebuildExcludesAssistedWorkUnlessEnabledAndDropsDiscardedSessions" classname="com.whip.app.RoutineRepositoryTest" time="0.076" />
+    <testcase name="editingProgramMetadataPreservesPositionAndMapsReorderedCurrentPhase" classname="com.whip.app.RoutineRepositoryTest" time="0.051" />
+    <testcase name="connectedBeginnersDeloadKeepsEverySavedRepeatedExerciseExposure" classname="com.whip.app.RoutineRepositoryTest" time="0.328" />
+    <testcase name="programmedRoutineAdvancesSafelyAcrossDaysPhasesAndTrainingMaxCycles" classname="com.whip.app.RoutineRepositoryTest" time="0.202" />
+    <testcase name="activeRoutineWorkoutBlocksTemplateMutationUntilFinishOrDiscard" classname="com.whip.app.RoutineRepositoryTest" time="0.051" />
+    <testcase name="graphPresetNormalizesExerciseIdsAndRejectsDanglingOrUnsupportedData" classname="com.whip.app.RoutineRepositoryTest" time="0.026" />
+    <testcase name="manualProgramTrainingMaxEditCreatesVisibleAuditEventWithoutRewritingWorkouts" classname="com.whip.app.RoutineRepositoryTest" time="0.052" />
+    <testcase name="archivedMachineRemainsUsableByExistingRoutine" classname="com.whip.app.RoutineRepositoryTest" time="0.026" />
+    <testcase name="configuredPhaseBoundaryAdvancesTrainingMaxAndSnapshotsPhaseRole" classname="com.whip.app.RoutineRepositoryTest" time="0.077" />
+    <testcase name="invalidSetPolicyPlacementAndDeterministicSchemeMismatchAreRejected" classname="com.whip.app.RoutineRepositoryTest" time="0.026" />
+    <testcase name="startingRoutineDoesNotMutateTemplate" classname="com.whip.app.RoutineRepositoryTest" time="0.051" />
+    <testcase name="performanceReviewRejectsStaleForgedAndActionMismatchedDecisions" classname="com.whip.app.RoutineRepositoryTest" time="0.102" />
+    <testcase name="recordRebuildTracksAuditableImprovementsAndHistoricalEdits" classname="com.whip.app.RoutineRepositoryTest" time="0.077" />
+    <testcase name="beginnersProtocolsSaveEditAndRunOncePerExerciseWithoutEmptyDays" classname="com.whip.app.RoutineRepositoryTest" time="0.93" />
+    <testcase name="activeSetPoliciesResolveLeaderAnchorAndDeloadSnapshotsWithoutLyingAboutJokers" classname="com.whip.app.RoutineRepositoryTest" time="0.177" />
+    <testcase name="applyingProtocolToOneConnectedPhaseDoesNotChangeAnotherPhasesRepeatedExposures" classname="com.whip.app.RoutineRepositoryTest" time="0.328" />
+    <testcase name="incompleteRequiredMainWorkAdvancesScheduleButHoldsTrainingMaxAtBoundary" classname="com.whip.app.RoutineRepositoryTest" time="0.052" />
+    <testcase name="partialFailureAndUnderPrescriptionMainWorkAllHoldTrainingMax" classname="com.whip.app.RoutineRepositoryTest" time="0.177" />
+    <testcase name="routinePreservesMachineIdentityAndNumberedSetting" classname="com.whip.app.RoutineRepositoryTest" time="0.027" />
+    <testcase name="changingTrainingMaxSourceToDerivedClearsTheStoredExplicitValue" classname="com.whip.app.RoutineRepositoryTest" time="0.026" />
+    <testcase name="exerciseAddedDuringRoutineWorkoutStaysSessionScopedAndRemainsInHistoryAndRecords" classname="com.whip.app.RoutineRepositoryTest" time="0.077" />
+    <testcase name="failedPersistedTrainingMaxTestRetainsPrescriptionIdentityAndSuggestsDecrease" classname="com.whip.app.RoutineRepositoryTest" time="0.051" />
+    <testcase name="saveWorkoutAsRoutineExcludesEmptyRetiredPlacementsAndKeepsPerformedRetiredWork" classname="com.whip.app.RoutineRepositoryTest" time="0.102" />
+    <testcase name="bodyweightDependentAndAssistedPercentagePrescriptionsAreRejected" classname="com.whip.app.RoutineRepositoryTest" time="0.051" />
+  </testsuite>
+  <testsuite name="com.whip.app.WorkoutRestJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="24.553" timestamp="2026-09-10T19:47:59" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="restFollowsTheNextSetAndOverridesCanReturnToPrescriptions" classname="com.whip.app.WorkoutRestJourneyE2ETest" time="24.553" />
+  </testsuite>
+</testsuites>

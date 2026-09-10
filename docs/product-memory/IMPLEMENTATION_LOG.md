@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260910-020 — Clarify execution and keep Set controls below the pinned lane
+
+- Behavior: NEXT separates the upcoming Exercise/Set from its practical target and visibly offers navigation. Full source evidence stays in Set targets; real non-Working classifications use the status role. Concise workout-only scope and removal of redundant Up next make the actual inputs easier to reach. New program generation preserves notes exactly, leaving setup instructions out of future workout/History notes; existing saved notes remain intact.
+- Architecture: WhipExecutionItem owns the named 48 dp menu anchor for active/passive Sets; callers retain menu state, commands and mutation boundaries. Shared DisclosureButton owns its stable accessible name even when scrolling hides the child label. Workout navigation consistently counts leading items and uses the measured pinned lane height. No device-specific offset, new framework, schema, backup, version, calculation or historical-data mutation.
+- Verification/status: Verified under FND-20260910-029 / DEC/VER-20260910-020. The new MainActivity journey completes four phases, preserves an unconfirmed Hold through recreation, explicitly applies Standard 100 → 102.5, opens cycle 2 and checks exact earlier Sessions/Sets/decision equality. Final 226 phone regressions, three wide journeys, 116 profile / 378 readiness JVM checks and lint/build pass; twenty before/final PNG/XML pairs personally reviewed. Fixture cleanup waits for asynchronous rest housekeeping before historical snapshots; no historical comparison is removed. Evidence: `artifacts/astra-audit/2026-09-10/531-cycle/README.md`.
+- Remaining scope: Exact within-group/later-Set navigation, repeated setup guidance, shared wide screen/reading-width policy and the remaining whole-product matrix. This closes a complete ordinary programmed-cycle review, not exhaustive program configuration or whole-app acceptance. Delivery is recorded by Git history.
+
 ### IMP-20260910-019 — Keep complete 5/3/1 configuration with its Exercise
 
 - Behavior: Custom Exercise order and authored TMs/increases survive library creation, reconfirmation and Activity recreation. Schedule/library reconciliation preserves actual/e1RM basis, percentage, applied derivation and valid supplemental targets by Exercise identity. Only untouched cycle-increase suggestions adapt to role/name/unit. New identities receive fresh state.

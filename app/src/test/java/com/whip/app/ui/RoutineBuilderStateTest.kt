@@ -1115,7 +1115,7 @@ class RoutineBuilderStateTest {
         val deadlift = testProgramExercise(2, "Deadlift", 300.0)
         val zercher = testProgramExercise(3, "Zercher Squat", 240.0)
         val built = buildFiveThreeOneProgramState(
-            RoutineBuilderState(nextKey = 1),
+            RoutineBuilderState(nextKey = 1, notes = "Keep my warm-up and recovery notes exactly."),
             FiveThreeOneProgramRequest(
                 layout = FiveThreeOneProgramLayout.Custom,
                 plan = FiveThreeOneProgramPlan.ForeverBbbLeaderAnchor,
@@ -1136,6 +1136,7 @@ class RoutineBuilderStateTest {
             ),
         )
 
+        assertEquals("Keep my warm-up and recovery notes exactly.", built.notes)
         assertEquals(11, built.programPhaseCount)
         assertEquals(setOf(2, 6, 10), built.trainingMaxAdvanceAfterPhaseIndices)
         assertTrue(built.allowNonStandardHigherSuggestions)

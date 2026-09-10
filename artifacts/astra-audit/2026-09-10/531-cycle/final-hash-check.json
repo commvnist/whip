@@ -1,0 +1,10 @@
+{
+  "compared": 511,
+  "changed": [
+    "app/src/test/java/com/whip/app/ui/UiDesignArchitectureTest.kt"
+  ],
+  "expected_jvm_only": [
+    "app/src/test/java/com/whip/app/ui/UiDesignArchitectureTest.kt"
+  ],
+  "runtime_inputs_unchanged": true
+}

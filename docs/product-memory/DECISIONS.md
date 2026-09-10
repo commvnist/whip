@@ -1,5 +1,15 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-020 — Separate execution summaries, Set evidence and template guidance
+
+- Status: Verified; FND-20260910-029 / IMP/VER-20260910-020. Final phone/wide journeys, 226 Android regressions, 378 readiness JVM checks and lint/build pass.
+- Decision: Keep the current workout workspace and shared execution renderer. NEXT presents the upcoming Exercise/Set and resolved target with a visible navigation affordance; full source provenance stays in Set targets. Active Set classification uses the status role, while redundant “Up next” values are removed. Structural-action scope is concise and retains the source-Routine boundary. New program generation preserves notes exactly instead of inserting template instructions.
+- Alternatives: A new workout workspace or generic form framework adds disruption without resolving these repeated-content responsibilities. Merely shortening stored prescription strings would alter future snapshot text while leaving old display repetition and note pollution intact. A presentation summary plus correct role assignment improves ordinary reading without reinterpreting stored evidence.
+- Compatibility: No schema, backup, version, load calculation, progression or completed-history mutation. Existing notes, including older generated text, remain intact. Relevant setup guidance and explicit Standard/Adaptive review rules remain available. This refines active Set presentation only; passive/omitted/History identity → values → status → target contracts stay intact.
+- Acceptance: Complete native cycle through review/recreation/next cycle/unchanged History, authored-note preservation, normal phone/wide before-and-after review, neighboring execution/rest/Routine regressions and readiness. Repeated setup guidance and shared wide reading policy remain broader follow-ups.
+- Pilot refinement: The execution builder gains one named menu role, retaining the existing feature-owned popup and callbacks. It owns the 48 dp button, icon and accessible name on the button itself; active/passive callers stop assembling duplicate icon-only anchors. The workout owner centralizes the leading-item offset used by NEXT, automatic follow and requested Exercise navigation. Exact within-group Set focus remains a separate behavior to substantively review; this change corrects block targeting.
+- Scroll/disclosure refinement: Measure the actual pinned execution lane and offset block navigation by its height, allowing header/content changes without device-specific patches. Shared DisclosureButton owns its stable name as well as expanded/collapsed state, so an occluded child label cannot leave the remaining clickable fragment unnamed.
+
 ## DEC-20260910-019 — A 5/3/1 Exercise owns one complete setup configuration
 - **Status:** Verified
 - **Decision:** Replace parallel configuration lists with one immutable, saveable configuration per Exercise. Reordering, removal, selection and library reconciliation operate on that complete value. Keep the existing guided setup, shared layout builders, program generator and repositories.
