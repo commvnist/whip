@@ -1,0 +1,172 @@
+[
+  {
+    "file": "before/gym.531-authorship.reordered.png",
+    "source": "build/astra-531-authorship-20260910/before/gym.531-authorship.reordered.png",
+    "run": "IGFuCQ",
+    "original": "gym.531-authorship.reordered.png",
+    "sha256": "6e0b2ef23afd40a895240d9c9b0ee419f88f7dad005e81f0fee8aa836f54ddd7",
+    "artifact_sha256": "6e0b2ef23afd40a895240d9c9b0ee419f88f7dad005e81f0fee8aa836f54ddd7"
+  },
+  {
+    "file": "before/gym.531-authorship.reordered.xml",
+    "source": "build/astra-531-authorship-20260910/before/gym.531-authorship.reordered.xml",
+    "run": "IGFuCQ",
+    "original": "gym.531-authorship.reordered.xml",
+    "sha256": "11c73cfae06686e72fe97825bc6ae53f66219d2f594631d40347930f8e4af339",
+    "original_archive": "before/gym.531-authorship.reordered.xml.gz",
+    "artifact_sha256": "8fcfea3d400df032ce04104f5a45fee11ca7224c115a6d8472d439c6bb6c7f84"
+  },
+  {
+    "file": "before/gym.531-authorship.library-return.png",
+    "source": "build/astra-531-authorship-20260910/before/gym.531-authorship.library-return.png",
+    "run": "IGFuCQ",
+    "original": "gym.531-authorship.library-return.png",
+    "sha256": "5244506065e152e14246b0e13f48d905da807bb81ce1ec982914099c264e41dd",
+    "artifact_sha256": "5244506065e152e14246b0e13f48d905da807bb81ce1ec982914099c264e41dd"
+  },
+  {
+    "file": "before/gym.531-authorship.library-return.xml",
+    "source": "build/astra-531-authorship-20260910/before/gym.531-authorship.library-return.xml",
+    "run": "IGFuCQ",
+    "original": "gym.531-authorship.library-return.xml",
+    "sha256": "99e5f3d6d696860598f9d44e15df424ae55be47824740d04469a60e372e966e1",
+    "original_archive": "before/gym.531-authorship.library-return.xml.gz",
+    "artifact_sha256": "d0ca2ef875f8aa9608461a4b2b77d63bcd92879e74258671de4884f79b49d2ea"
+  },
+  {
+    "file": "phone/gym.531-authorship.reordered.png",
+    "source": "build/astra-531-authorship-20260910/phone/gym.531-authorship.reordered.png",
+    "run": "gGnYbt",
+    "original": "gym.531-authorship.reordered (3).png",
+    "sha256": "db8fa956904cb492cc89a3c9577247308407598aad3b5ff2729862aff3e07ab2",
+    "artifact_sha256": "db8fa956904cb492cc89a3c9577247308407598aad3b5ff2729862aff3e07ab2"
+  },
+  {
+    "file": "phone/gym.531-authorship.reordered.xml",
+    "source": "build/astra-531-authorship-20260910/phone/gym.531-authorship.reordered.xml",
+    "run": "gGnYbt",
+    "original": "gym.531-authorship.reordered (3).xml",
+    "sha256": "0240fe93e1c5d6e01b641012f816a426253992d743134855bb419a2015b728b9",
+    "original_archive": "phone/gym.531-authorship.reordered.xml.gz",
+    "artifact_sha256": "65973a4cdc4dbbcd12ecea001a148a1b06084452911a55407956bc7b11a65e63"
+  },
+  {
+    "file": "phone/gym.531-authorship.library-return.png",
+    "source": "build/astra-531-authorship-20260910/phone/gym.531-authorship.library-return.png",
+    "run": "gGnYbt",
+    "original": "gym.531-authorship.library-return (3).png",
+    "sha256": "f69343e70df137ffaa68a084710c885d8945c22040816c3dca323196295f8097",
+    "artifact_sha256": "f69343e70df137ffaa68a084710c885d8945c22040816c3dca323196295f8097"
+  },
+  {
+    "file": "phone/gym.531-authorship.library-return.xml",
+    "source": "build/astra-531-authorship-20260910/phone/gym.531-authorship.library-return.xml",
+    "run": "gGnYbt",
+    "original": "gym.531-authorship.library-return (3).xml",
+    "sha256": "d8549ec7e5b24e091afc850768b5b6c5fef41530297f535587221145fe0ccbf6",
+    "original_archive": "phone/gym.531-authorship.library-return.xml.gz",
+    "artifact_sha256": "e85c96dda3d3bcfcce15e7d2bd6c6d60753dd56554af5e87f4a50d74466c9e8d"
+  },
+  {
+    "file": "phone/gym.531-authorship.workout.png",
+    "source": "build/astra-531-authorship-20260910/phone/gym.531-authorship.workout.png",
+    "run": "gGnYbt",
+    "original": "gym.531-authorship.workout (1).png",
+    "sha256": "cec5fc2c7c7b2708a184ff0f735724bdb161c229c7dc83fea9b0da929d65faee",
+    "artifact_sha256": "cec5fc2c7c7b2708a184ff0f735724bdb161c229c7dc83fea9b0da929d65faee"
+  },
+  {
+    "file": "phone/gym.531-authorship.workout.xml",
+    "source": "build/astra-531-authorship-20260910/phone/gym.531-authorship.workout.xml",
+    "run": "gGnYbt",
+    "original": "gym.531-authorship.workout (1).xml",
+    "sha256": "cac81f28d09cbb21de22f3a91b381ee7c0990dc8a991e9e60a735b895a131eb8",
+    "original_archive": "phone/gym.531-authorship.workout.xml.gz",
+    "artifact_sha256": "43691734def07bf957ca89d7fe68c5dbc1e7f80ed133bf2931661dcd75023232"
+  },
+  {
+    "file": "phone/gym.531-authorship.history.png",
+    "source": "build/astra-531-authorship-20260910/phone/gym.531-authorship.history.png",
+    "run": "gGnYbt",
+    "original": "gym.531-authorship.history (1).png",
+    "sha256": "1c7e67658755fb1137c9a96e9b9a2ff2748b9b132a2f76a387bedbb3b684b8c5",
+    "artifact_sha256": "1c7e67658755fb1137c9a96e9b9a2ff2748b9b132a2f76a387bedbb3b684b8c5"
+  },
+  {
+    "file": "phone/gym.531-authorship.history.xml",
+    "source": "build/astra-531-authorship-20260910/phone/gym.531-authorship.history.xml",
+    "run": "gGnYbt",
+    "original": "gym.531-authorship.history (1).xml",
+    "sha256": "d5db85dd46bda24d2175c7e2afce6700cb7adb33cc516235c016a369a3180f24",
+    "original_archive": "phone/gym.531-authorship.history.xml.gz",
+    "artifact_sha256": "fcaf7ce09a6cb275bc4cc8693c4141c442752e9b104699e3ed59976be1188bd0"
+  },
+  {
+    "file": "wide/gym.531-authorship.reordered.png",
+    "source": "build/astra-531-authorship-20260910/wide/gym.531-authorship.reordered.png",
+    "run": "API37_3_METHODS",
+    "original": "gym.531-authorship.reordered.png",
+    "sha256": "09eb3c4cf3218596c0bf51e5897d4792c1dcf42f9d4cc025077649ee5ecb24d6",
+    "artifact_sha256": "09eb3c4cf3218596c0bf51e5897d4792c1dcf42f9d4cc025077649ee5ecb24d6"
+  },
+  {
+    "file": "wide/gym.531-authorship.reordered.xml",
+    "source": "build/astra-531-authorship-20260910/wide/gym.531-authorship.reordered.xml",
+    "run": "API37_3_METHODS",
+    "original": "gym.531-authorship.reordered.xml",
+    "sha256": "3e247eabeda1127d26293ff8bbb4730fac896a0a602d3563cec57200e035f7d3",
+    "original_archive": "wide/gym.531-authorship.reordered.xml.gz",
+    "artifact_sha256": "efa8182ee15d11a7ff7e6529f4e71a7f820fd23766717213e3e804450b9428ba"
+  },
+  {
+    "file": "wide/gym.531-authorship.library-return.png",
+    "source": "build/astra-531-authorship-20260910/wide/gym.531-authorship.library-return.png",
+    "run": "API37_3_METHODS",
+    "original": "gym.531-authorship.library-return.png",
+    "sha256": "84db6141b5f79900d8f9bc185f40295d0a6eb0008c1e367a665e0c21b402403d",
+    "artifact_sha256": "84db6141b5f79900d8f9bc185f40295d0a6eb0008c1e367a665e0c21b402403d"
+  },
+  {
+    "file": "wide/gym.531-authorship.library-return.xml",
+    "source": "build/astra-531-authorship-20260910/wide/gym.531-authorship.library-return.xml",
+    "run": "API37_3_METHODS",
+    "original": "gym.531-authorship.library-return.xml",
+    "sha256": "e23c6ca7838de7d4e8028a1a6b15a7ee3726ec1aaba85ca9c1bd6ab7db6b94c8",
+    "original_archive": "wide/gym.531-authorship.library-return.xml.gz",
+    "artifact_sha256": "4bfb6a327097f2bd22c73e8a5f6627b37239ff8c9254c0d4113f6b46533a525b"
+  },
+  {
+    "file": "wide/gym.531-authorship.workout.png",
+    "source": "build/astra-531-authorship-20260910/wide/gym.531-authorship.workout.png",
+    "run": "API37_3_METHODS",
+    "original": "gym.531-authorship.workout.png",
+    "sha256": "b3649a85aa29d055e4696917c61926492442d585feb5da78a4f85a0b4954cfe1",
+    "artifact_sha256": "b3649a85aa29d055e4696917c61926492442d585feb5da78a4f85a0b4954cfe1"
+  },
+  {
+    "file": "wide/gym.531-authorship.workout.xml",
+    "source": "build/astra-531-authorship-20260910/wide/gym.531-authorship.workout.xml",
+    "run": "API37_3_METHODS",
+    "original": "gym.531-authorship.workout.xml",
+    "sha256": "ed9d570da88fc346a26acd184f45e5c0dd3bd2eea9154ee930ad4c34fd840832",
+    "original_archive": "wide/gym.531-authorship.workout.xml.gz",
+    "artifact_sha256": "7afe2a55401ca21249111503417cc884fab27a08e54ca4e523b6c8c7112e263e"
+  },
+  {
+    "file": "wide/gym.531-authorship.history.png",
+    "source": "build/astra-531-authorship-20260910/wide/gym.531-authorship.history.png",
+    "run": "API37_3_METHODS",
+    "original": "gym.531-authorship.history.png",
+    "sha256": "a661c9ec937b1f1db2a42c55105e302b2b47a8b6aa4219ebb800e194b26e1c6b",
+    "artifact_sha256": "a661c9ec937b1f1db2a42c55105e302b2b47a8b6aa4219ebb800e194b26e1c6b"
+  },
+  {
+    "file": "wide/gym.531-authorship.history.xml",
+    "source": "build/astra-531-authorship-20260910/wide/gym.531-authorship.history.xml",
+    "run": "API37_3_METHODS",
+    "original": "gym.531-authorship.history.xml",
+    "sha256": "742c1f630466fc9a45592b0ee593ac3c1b52d799b968987f03da154c892b4893",
+    "original_archive": "wide/gym.531-authorship.history.xml.gz",
+    "artifact_sha256": "554f5199cca0b2958c477877b28be3c471b74d5606f843f5e9e4d1d2a0a0f00b"
+  }
+]

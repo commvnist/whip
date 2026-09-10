@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.FiveThreeOneExerciseSetupStateTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-09-10T18:25:37.971Z" hostname="beast" time="0.09">
+  <properties/>
+  <testcase name="completeConfigurationsSurviveSavedStateSerialization" classname="com.whip.app.ui.FiveThreeOneExerciseSetupStateTest" time="0.018"/>
+  <testcase name="scheduleSuggestionsRefreshOnlyUntouchedIncreasesEvenWhenAuthoredValueEqualsOldDefault" classname="com.whip.app.ui.FiveThreeOneExerciseSetupStateTest" time="0.069"/>
+  <testcase name="libraryRefreshKeepsUserOrderAndCompleteExerciseConfiguration" classname="com.whip.app.ui.FiveThreeOneExerciseSetupStateTest" time="0.001"/>
+  <testcase name="firstCustomScheduleOrdersByLibraryButTrainingValuesFollowIdentity" classname="com.whip.app.ui.FiveThreeOneExerciseSetupStateTest" time="0.0"/>
+  <testcase name="RemovedExerciseCannotDonateValuesAndInvalidSupplementalTargetFallsBackToSelf" classname="com.whip.app.ui.FiveThreeOneExerciseSetupStateTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

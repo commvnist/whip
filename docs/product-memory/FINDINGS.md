@@ -1,5 +1,14 @@
 # Durable findings
 
+## FND-20260910-028 — Library changes can transfer authored 5/3/1 values between Exercises
+- **Status:** Verified
+- **Priority:** P1 — authored programming integrity.
+- **Observed:** Native baseline `IGFuCQ` on production `7142f5b8`: Bench Press TM 100 kg / increase 4 and Squat TM 200 kg / increase 7 were reordered, then Paused Press was created through the setup picker. Returning to setup restored library order while preserving TM fields by position: Bench displayed 200 kg and Squat 100 kg; increases reset to 2.5 and 5. Original rendered before/return evidence is in `build/astra-531-authorship-20260910/before/`. The baseline stopped before saving; persisted History corruption is not claimed.
+- **Cause:** Setup stores Exercise IDs and each configuration field in parallel lists. Library reconciliation reconstructs IDs in library order and resizes authored fields by position. Source inspection also shows reconfirming the same Exercise resets its increase.
+- **Expected:** Each Exercise owns its complete TM, basis, applied derivation, explicit increase and supplemental target configuration. User order survives library refresh; untouched suggestions may adapt to the selected schedule.
+- **Resolution:** DEC/IMP/VER-20260910-019 consolidate feature-owned state. Final 86 Android checks, three API 37 methods, 83 focused / 116 readiness JVM checks and ten original visual pairs verify authored values through saved execution and History. Full-cycle native review remains open. Evidence: `artifacts/astra-audit/2026-09-10/531-authorship/README.md`.
+- **Related:** FB-20260831-001/004/005/006; FB-20260910-001/002; FND-20260903-002; DEC-20260831-001/002; DEC-20260903-006.
+
 ### FND-20260910-026 — Ordinary placement editing gives conversion tools priority over prescriptions
 
 - Severity/category: P2 ordinary set-authoring hierarchy; follow-up.

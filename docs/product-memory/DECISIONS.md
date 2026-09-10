@@ -1,5 +1,14 @@
 # Durable product and engineering decisions
 
+## DEC-20260910-019 — A 5/3/1 Exercise owns one complete setup configuration
+- **Status:** Verified
+- **Decision:** Replace parallel configuration lists with one immutable, saveable configuration per Exercise. Reordering, removal, selection and library reconciliation operate on that complete value. Keep the existing guided setup, shared layout builders, program generator and repositories.
+- **Rationale:** Fixing only the custom sort leaves identity-sensitive bookkeeping duplicated across many fields and mutation paths. Consolidation prevents field transfer and omission at the feature-state boundary. Replacing the full editor or domain model adds disruption without improving this guarantee.
+- **Contract:** Preserve TM, actual/e1RM basis, percentages, applied derivation, valid BBB targets and authored cycle increases by Exercise identity. New identities receive fresh state. Untouched increase suggestions follow role/name/unit; reconfirmation preserves authored state. Existing initial custom ordering may remain, but subsequent user order is authoritative.
+- **Compatibility:** No schema, backup, version or historical-data mutation. Existing complete-state hydration guarantees remain required.
+- **Verification:** Full-state policy regressions; native reordered authoring → library creation → recreation → saved program → execution → History; normal-scale phone/wide rendered review; neighboring setup regressions and readiness. FND-20260910-028.
+- **Result:** VER-20260910-019 verifies the complete authoring boundary. Supplemental choices also resolve the Main Exercise identity while earlier incomplete configurations are omitted from the preview. No positional field arrays remain in guided setup.
+
 ### DEC-20260910-018 — Resolve rest duration once and make workout overrides reversible
 
 - Context: FND-20260910-027; the ready execution lane displays the app default while completing its visible next Set uses the Set/Exercise rest. The workout duration editor offers an override but no return to prescribed defaults. Set rest may explicitly be zero.

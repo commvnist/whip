@@ -249,6 +249,7 @@ add_profile() {
             ;;
         gym531)
             jvm_patterns+=(
+                'com.whip.app.ui.FiveThreeOneExerciseSetupStateTest'
                 'com.whip.app.domain.FiveThreeOneProgressionTest'
                 'com.whip.app.ui.FiveThreeOneCycleReviewTest'
                 'com.whip.app.ui.RoutineBuilderStateTest'
@@ -257,6 +258,7 @@ add_profile() {
             )
             android_classes+=(
                 'com.whip.app.GymFiveThreeOneJourneyE2ETest'
+                'com.whip.app.FiveThreeOneAuthorshipJourneyE2ETest'
                 'com.whip.app.RoutineRepositoryTest'
                 'com.whip.app.RoutineBuilderUiTest'
                 'com.whip.app.FiveThreeOneCycleReviewUiTest'

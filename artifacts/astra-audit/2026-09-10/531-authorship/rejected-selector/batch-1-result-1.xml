@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="1" errors="0" skipped="0" time="20.592" timestamp="2026-09-10T18:26:23" hostname="localhost">
+  <testsuite name="com.whip.app.FiveThreeOneAuthorshipJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="19.352" timestamp="2026-09-10T18:26:23" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="libraryCreationKeepsCustomOrderAndExerciseOwnedTrainingValues" classname="com.whip.app.FiveThreeOneAuthorshipJourneyE2ETest" time="19.352">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: ((Text + InputText + EditableText contains 'Squat' (ignoreCase: false)) &amp;&amp; (hasAnyAncestorThat(TestTag = 'workout-exercise-picker-list')))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+at com.whip.app.FiveThreeOneAuthorshipJourneyE2ETest.libraryCreationKeepsCustomOrderAndExerciseOwnedTrainingValues(FiveThreeOneAuthorshipJourneyE2ETest.kt:82)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

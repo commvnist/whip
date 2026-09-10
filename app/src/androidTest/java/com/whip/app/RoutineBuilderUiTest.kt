@@ -1305,6 +1305,48 @@ class RoutineBuilderUiTest {
     }
 
     @Test
+    fun supplementalChoiceBelongsToItsMainExerciseWhileEarlierTrainingMaxIsIncomplete() {
+        var savedDraft: RoutineDraft? = null
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                RoutineBuilderScreen(
+                    routineId = null,
+                    gymState = GymUiState(
+                        exercises = listOf(exercise(1, "Squat"), exercise(2, "Bench Press"), exercise(3, "Deadlift")),
+                        loading = false,
+                    ),
+                    initial = null,
+                    onDismiss = {},
+                    onSave = { draft, complete -> savedDraft = draft; complete(true) },
+                    onCreateExercise = { _, _ -> },
+                    onCreateMachine = { _, _ -> },
+                )
+            }
+        }
+        compose.onNode(hasText("Set Up 5/3/1") and hasClickAction() and
+            hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry"))).performClick()
+        compose.onNodeWithTag("five-three-one-layout-Custom").performScrollTo().performClick()
+        compose.onNodeWithTag("five-three-one-training-max-Custom-1").performScrollTo().performTextReplacement("200")
+        compose.onNodeWithTag("five-three-one-training-max-Custom-2").performScrollTo().performTextReplacement("300")
+        compose.onNode(hasText("BBB · 5 × 10") and hasClickAction()).performScrollTo().performClick()
+        compose.onNodeWithContentDescription("BBB after Bench Press: Bench Press · same exercise")
+            .performScrollTo().performClick()
+        compose.onNodeWithContentDescription("BBB after Bench Press option: Deadlift").performClick()
+        compose.onNodeWithContentDescription("BBB after Bench Press: Deadlift").assertExists()
+        compose.onNodeWithTag("five-three-one-training-max-Custom-0").performScrollTo().performTextReplacement("250")
+        compose.onNodeWithContentDescription("BBB after Bench Press: Deadlift").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("BBB after Squat: Squat · same exercise").assertExists()
+        compose.onNodeWithTag("five-three-one-program-create").performClick()
+        compose.onNodeWithTag("routine-builder-save").performClick()
+        compose.runOnIdle {
+            val days = requireNotNull(savedDraft).days
+            assertEquals(listOf(1L), days.single { it.name == "Squat" }.exercises.map { it.exerciseId })
+            assertEquals(listOf(2L, 3L), days.single { it.name == "Bench Press" }.exercises.map { it.exerciseId })
+            assertEquals(300.0, days.single { it.name == "Bench Press" }.exercises.last().trainingMaxValue)
+        }
+    }
+
+    @Test
     fun guidedFiveThreeOneBuilderPersistsCompleteExplicitBbbCycle() {
         val bench = exercise(1, "Bench")
         var savedDraft: RoutineDraft? = null

@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260910-019 — Keep complete 5/3/1 configuration with its Exercise
+
+- Behavior: Custom Exercise order and authored TMs/increases survive library creation, reconfirmation and Activity recreation. Schedule/library reconciliation preserves actual/e1RM basis, percentage, applied derivation and valid supplemental targets by Exercise identity. Only untouched cycle-increase suggestions adapt to role/name/unit. New identities receive fresh state.
+- Architecture: FiveThreeOneExerciseSetupState replaces parallel field lists in the existing guided setup. Reordering/removal operate on complete values; field edits and BBB choices address Exercise identity. Shared layout builders and program/repository behavior remain in place. No schema, backup, version or historical-data migration.
+- Verification/status: Verified under FND-20260910-028 / DEC/VER-20260910-019. One new MainActivity journey and one incomplete-setup BBB regression, five full-state/serialization JVM checks and the gym531 profile are added. Final 86 phone Android checks, three wide methods, 83 focused / 116 readiness JVM checks pass. Ten original PNG/XML pairs personally reviewed; all 510 input hashes unchanged. Evidence: `artifacts/astra-audit/2026-09-10/531-authorship/README.md`.
+- Remaining scope: Complete-cycle execution/review, repeated setup guidance and generated workout copy, shared wide reading policy and whole-app consistency/acceptance remain open. This bounded data-integrity fix does not establish peak aesthetics or exhaustive 5/3/1 acceptance.
+
 ### IMP-20260910-018 — Make workout rest follow the visible Set and explain overrides
 
 - Behavior: Ready/manual rest now resolves the visible next Set, Exercise default and app default through WorkoutRestDuration, shared with both repository completion paths. The existing execution Rest renderer names Next Set rest, Exercise/App default or Workout override. Explicit zero remains zero with disabled Start; Adjust can choose an override and Follow Set rest clears it. Automatic timers remain tied to the actual completed Set, and running deadlines remain unchanged when NEXT advances.

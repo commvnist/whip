@@ -1,5 +1,14 @@
 # Verification and release evidence
 
+### VER-20260910-019 — Exercise-owned programmed authoring through execution and History
+
+- Final/status: Verified under FND-20260910-028 / DEC-20260910-019. Starting HEAD `7142f5b8`; normal API 34 phone and API 37 wide only. No release, physical-device or whole-product acceptance.
+- Baseline: `IGFuCQ` reproduces TM transfer and increase reset after custom reorder → library creation on unchanged production. Original two PNG/XML pairs reviewed. The baseline intentionally fails before persistence, so historical corruption is not asserted.
+- Pilot: `LK5vgp` confirms repaired values after library return, then fails because the new fixture seeks exact `Squat` while the picker labels its existing choice `Squat · Current selection`. Only that selector is corrected. `WAbeI5` then passes the complete native journey: authored order/TMs/increases, reconfirmation, Activity recreation, saved three-day program, first Squat Set 130 kg from TM 200, every generated Set completed, next-day advancement and exact performed Set preservation in History.
+- Final regression: `ANDROID_SERIAL=emulator-5554 scripts/qa-targeted --profile gym531 --emulator` passes 83 JVM checks in six suites and all 86 Android checks in one fresh batch `gGnYbt`, zero failures/skips/reuse. API 37 direct instrumentation passes three methods in 87.414 seconds: the native authoring journey, incomplete-setup supplemental mapping and arbitrary custom ordered Exercises. Same source/test/APK inputs on both platforms.
+- Readiness: `scripts/check --ready` passes 116 JVM tests in nine suites with zero failures/errors/skips, Android compilation, lint, debug packaging and static/harness checks in 2m42s. All 510 regression input hashes remain unchanged. Catalog lint passes 497 states, zero pending selectors/exceptions; matrix 328 Verified / 127 Investigating / 42 In progress. Source inventory 653 JVM + 1080 Android = 1733 is distinct from executed counts.
+- Original review/evidence: Ten retained native PNG/XML pairs personally reviewed: two unchanged-production phone baseline states, four final states on each phone/wide. Correct authored order/TMs/increases, prescribed workout load and performed History are visible. Original PNGs, readable normalized XML/text plus original-byte gzip archives, hashes, exact commands/logs and reports are in `artifacts/astra-audit/2026-09-10/531-authorship/README.md`. Full cycles, guided-copy hierarchy, shared wide reading measure and final whole-product gates remain open; no new process-death, RTL, TalkBack or 200% acceptance.
+
 ### VER-20260910-018 — Native prescribed rest, reversible overrides and timer continuity
 
 - Scope/status: Verified. FND-20260910-027 / DEC/IMP-20260910-018; starting HEAD 9ca0056, normal API 34 phone and API 37 wide, at most two disposable emulators, no release or physical-device operation.

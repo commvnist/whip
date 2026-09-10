@@ -956,31 +956,29 @@ private fun FiveThreeOneProgramSetupDialog(
         roles.forEach { role -> suggested(role, selected.toSet())?.id?.let(selected::add) }
         selected + List((roles.size - selected.size).coerceAtLeast(0)) { 0L }
     }
-    var exerciseIds by rememberSaveable { mutableStateOf(initialIds) }
-    var manuallySelectedRoleIndices by rememberSaveable { mutableStateOf<List<Int>>(emptyList()) }
-    var trainingMaxes by rememberSaveable { mutableStateOf(List(roles.size) { "" }) }
-    var useRecentMaxSuggestion by rememberSaveable { mutableStateOf(List(roles.size) { false }) }
-    var recentMaxes by rememberSaveable { mutableStateOf(List(roles.size) { "" }) }
-    var trainingMaxPercentages by rememberSaveable { mutableStateOf(List(roles.size) { "85" }) }
-    var trainingMaxBasisKinds by rememberSaveable {
-        mutableStateOf(List(roles.size) { TrainingMaxBasisKind.ActualOneRepMax.name })
-    }
-    var appliedSourceMaxes by rememberSaveable { mutableStateOf(List(roles.size) { "" }) }
-    var appliedTrainingMaxPercentages by rememberSaveable { mutableStateOf(List(roles.size) { "" }) }
-    var appliedTrainingMaxBasisKinds by rememberSaveable { mutableStateOf(List(roles.size) { "" }) }
-    var appliedDerivedTrainingMaxes by rememberSaveable { mutableStateOf(List(roles.size) { "" }) }
-    var increments by rememberSaveable {
-        mutableStateOf(roles.indices.map { index ->
-            val exercise = eligible.firstOrNull { it.id == initialIds.getOrNull(index) }
-            editableNumericValue(
+    fun suggestedSetup(id: Long, index: Int, layout: FiveThreeOneProgramLayout): FiveThreeOneExerciseSetupState {
+        val exercise = eligible.firstOrNull { it.id == id }
+        return FiveThreeOneExerciseSetupState(
+            exerciseId = id,
+            cycleIncrement = editableNumericValue(
                 defaultFiveThreeOneCycleIncrease(
                     unitId = exercise?.weightUnitId ?: "kilogram",
                     exerciseName = exercise?.name.orEmpty(),
-                    role = roles[index],
+                    role = roles.getOrNull(index).takeIf { layout != FiveThreeOneProgramLayout.Custom },
                 ),
-            )
-        })
+            ),
+        )
     }
+    var exerciseSetups by rememberSaveable {
+        mutableStateOf(initialIds.mapIndexed { index, id -> suggestedSetup(id, index, FiveThreeOneProgramLayout.FourDay) })
+    }
+    val exerciseIds = exerciseSetups.map { it.exerciseId }
+    fun updateExercise(id: Long, change: (FiveThreeOneExerciseSetupState) -> FiveThreeOneExerciseSetupState) {
+        if (id <= 0L) return
+        exerciseSetups = exerciseSetups.map { if (it.exerciseId == id) change(it) else it }
+    }
+    var manuallySelectedRoleIndices by rememberSaveable { mutableStateOf<List<Int>>(emptyList()) }
+    var hasChosenCustomLayout by rememberSaveable { mutableStateOf(false) }
     var layoutName by rememberSaveable { mutableStateOf(FiveThreeOneProgramLayout.FourDay.name) }
     var planName by rememberSaveable { mutableStateOf(FiveThreeOneProgramPlan.SingleCycle.name) }
     var closingProtocolName by rememberSaveable { mutableStateOf(FiveThreeOneSeventhWeekProtocol.Deload.name) }
@@ -991,7 +989,6 @@ private fun FiveThreeOneProgramSetupDialog(
     var previewPhaseName by rememberSaveable { mutableStateOf(FiveThreeOnePhase.Fives.name) }
     var jokerCount by rememberSaveable { mutableStateOf(0) }
     var jokerStepPercent by rememberSaveable { mutableStateOf(5) }
-    var bbbTargetIds by rememberSaveable { mutableStateOf(initialIds) }
     var automaticAssistanceEnabled by rememberSaveable { mutableStateOf(true) }
     var assistanceExerciseIds by rememberSaveable { mutableStateOf(List(3) { 0L }) }
     var manuallyChangedAssistanceIndices by rememberSaveable { mutableStateOf<List<Int>>(emptyList()) }
@@ -1009,14 +1006,11 @@ private fun FiveThreeOneProgramSetupDialog(
             closingProtocolName = FiveThreeOneSeventhWeekProtocol.TrainingMaxTest.name
         }
     }
-    LaunchedEffect(eligible.map(Exercise::id), layout) {
+    LaunchedEffect(eligible.map { Triple(it.id, it.name, it.weightUnitId) }, layout) {
         val previousIds = exerciseIds
-        val eligibleIds = eligible.map(Exercise::id).toSet()
         val reconciledIds = if (layout == FiveThreeOneProgramLayout.Custom) {
-            val previousSet = previousIds.filter { it in eligibleIds }.toSet()
-            eligible.filter { it.id in previousSet }.map(Exercise::id).ifEmpty {
-                eligible.firstOrNull()?.let { listOf(it.id) }.orEmpty()
-            }
+            customFiveThreeOneExerciseIds(previousIds, eligible.map(Exercise::id), !hasChosenCustomLayout)
+                .also { hasChosenCustomLayout = true }
         } else {
             fillEmptyFiveThreeOneExerciseSelections(
                 currentIds = previousIds,
@@ -1024,41 +1018,17 @@ private fun FiveThreeOneProgramSetupDialog(
                 manuallySelectedRoleIndices = manuallySelectedRoleIndices.toSet(),
             )
         }
-        val count = reconciledIds.size
-        trainingMaxes = List(count) { index -> trainingMaxes.getOrNull(index).orEmpty() }
-        useRecentMaxSuggestion = List(count) { index -> useRecentMaxSuggestion.getOrNull(index) ?: false }
-        recentMaxes = List(count) { index -> recentMaxes.getOrNull(index).orEmpty() }
-        trainingMaxPercentages = List(count) { index -> trainingMaxPercentages.getOrNull(index) ?: "85" }
-        trainingMaxBasisKinds = List(count) { index ->
-            trainingMaxBasisKinds.getOrNull(index) ?: TrainingMaxBasisKind.ActualOneRepMax.name
+        exerciseSetups = reconcileFiveThreeOneExerciseSetups(
+            exerciseSetups,
+            reconciledIds.mapIndexed { index, id -> suggestedSetup(id, index, layout) },
+        )
+        manuallySelectedRoleIndices = manuallySelectedRoleIndices.filter { index ->
+            reconciledIds.getOrNull(index) == previousIds.getOrNull(index)
         }
-        appliedSourceMaxes = List(count) { index -> appliedSourceMaxes.getOrNull(index).orEmpty() }
-        appliedTrainingMaxPercentages = List(count) { index -> appliedTrainingMaxPercentages.getOrNull(index).orEmpty() }
-        appliedTrainingMaxBasisKinds = List(count) { index -> appliedTrainingMaxBasisKinds.getOrNull(index).orEmpty() }
-        appliedDerivedTrainingMaxes = List(count) { index -> appliedDerivedTrainingMaxes.getOrNull(index).orEmpty() }
-        increments = List(count) { index ->
-            val existing = increments.getOrNull(index).orEmpty()
-            if (reconciledIds.getOrNull(index).orZero() <= 0L || reconciledIds.getOrNull(index) == previousIds.getOrNull(index)) {
-                existing
-            } else {
-                val exercise = eligible.firstOrNull { it.id == reconciledIds[index] }
-                editableNumericValue(
-                    defaultFiveThreeOneCycleIncrease(
-                        unitId = exercise?.weightUnitId ?: "kilogram",
-                        exerciseName = exercise?.name.orEmpty(),
-                        role = roles.getOrNull(index).takeIf { layout != FiveThreeOneProgramLayout.Custom },
-                    ),
-                )
-            }
-        }
-        bbbTargetIds = List(count) { index ->
-            bbbTargetIds.getOrNull(index)?.takeIf { it in reconciledIds } ?: reconciledIds.getOrElse(index) { 0L }
-        }
-        exerciseIds = reconciledIds
     }
     LaunchedEffect(exerciseIds, personalRecords) {
         exerciseIds.forEachIndexed { index, exerciseId ->
-            if (recentMaxes.getOrNull(index).orEmpty().isNotBlank()) return@forEachIndexed
+            if (exerciseSetups.getOrNull(index)?.recentMax.orEmpty().isNotBlank()) return@forEachIndexed
             val exercise = eligible.firstOrNull { it.id == exerciseId } ?: return@forEachIndexed
             val actual = personalRecords.firstOrNull { record ->
                 record.exerciseId == exerciseId && record.current &&
@@ -1071,15 +1041,15 @@ private fun FiveThreeOneProgramSetupDialog(
                     record.machineProfileUuidSnapshot == null
             }
             val source = actual ?: estimated ?: return@forEachIndexed
-            recentMaxes = recentMaxes.toMutableList().also {
-                it[index] = editableNumericValue(massFromKilograms(source.value, exercise.weightUnitId))
-            }
-            trainingMaxBasisKinds = trainingMaxBasisKinds.toMutableList().also {
-                it[index] = if (actual != null) {
-                    TrainingMaxBasisKind.ActualOneRepMax.name
-                } else {
-                    TrainingMaxBasisKind.EstimatedOneRepMax.name
-                }
+            updateExercise(exerciseId) { setup ->
+                setup.copy(
+                    recentMax = editableNumericValue(massFromKilograms(source.value, exercise.weightUnitId)),
+                    trainingMaxBasisKind = if (actual != null) {
+                        TrainingMaxBasisKind.ActualOneRepMax.name
+                    } else {
+                        TrainingMaxBasisKind.EstimatedOneRepMax.name
+                    },
+                )
             }
         }
     }
@@ -1106,8 +1076,8 @@ private fun FiveThreeOneProgramSetupDialog(
     }
     val programExercises = exerciseIds.indices.mapNotNull { index ->
         val exercise = selectedExercises.getOrNull(index) ?: return@mapNotNull null
-        val tm = trainingMaxes.getOrNull(index)?.toWhipDoubleOrNull() ?: return@mapNotNull null
-        val increase = increments.getOrNull(index)?.toWhipDoubleOrNull() ?: return@mapNotNull null
+        val tm = exerciseSetups.getOrNull(index)?.trainingMax?.toWhipDoubleOrNull() ?: return@mapNotNull null
+        val increase = exerciseSetups.getOrNull(index)?.cycleIncrement?.toWhipDoubleOrNull() ?: return@mapNotNull null
         FiveThreeOneProgramExercise(
             activeRoles[index],
             exercise.id,
@@ -1116,21 +1086,21 @@ private fun FiveThreeOneProgramSetupDialog(
             exercise.weightUnitId,
             exercise.weightIncrement.takeIf { it > 0.0 } ?: if (exercise.weightUnitId == "pound") 5.0 else 2.5,
             increase,
-            trainingMaxPercent = if (useRecentMaxSuggestion.getOrNull(index) == true) {
-                appliedTrainingMaxPercentages.getOrNull(index)?.toWhipDoubleOrNull() ?: 85.0
+            trainingMaxPercent = if (exerciseSetups.getOrNull(index)?.useRecentMaxSuggestion == true) {
+                exerciseSetups.getOrNull(index)?.appliedTrainingMaxPercentage?.toWhipDoubleOrNull() ?: 85.0
             } else {
-                trainingMaxPercentages.getOrNull(index)?.toWhipDoubleOrNull() ?: 85.0
+                exerciseSetups.getOrNull(index)?.trainingMaxPercentage?.toWhipDoubleOrNull() ?: 85.0
             },
-            trainingMaxBasisKind = if (useRecentMaxSuggestion.getOrNull(index) == true) {
-                runCatching { TrainingMaxBasisKind.valueOf(appliedTrainingMaxBasisKinds[index]) }
+            trainingMaxBasisKind = if (exerciseSetups.getOrNull(index)?.useRecentMaxSuggestion == true) {
+                runCatching { TrainingMaxBasisKind.valueOf(exerciseSetups[index].appliedTrainingMaxBasisKind) }
                     .getOrDefault(TrainingMaxBasisKind.ManualSourceMax)
             } else {
                 TrainingMaxBasisKind.ExplicitTrainingMax
             },
-            trainingMaxBasisValue = appliedSourceMaxes.getOrNull(index)?.toWhipDoubleOrNull()
-                .takeIf { useRecentMaxSuggestion.getOrNull(index) == true },
+            trainingMaxBasisValue = exerciseSetups.getOrNull(index)?.appliedSourceMax?.toWhipDoubleOrNull()
+                .takeIf { exerciseSetups.getOrNull(index)?.useRecentMaxSuggestion == true },
             trainingMaxBasisUnitId = exercise.weightUnitId.takeIf {
-                useRecentMaxSuggestion.getOrNull(index) == true
+                exerciseSetups.getOrNull(index)?.useRecentMaxSuggestion == true
             }.orEmpty(),
         )
     }
@@ -1179,7 +1149,7 @@ private fun FiveThreeOneProgramSetupDialog(
         supplement == FiveThreeOneSupplement.BoringButBig && layout != FiveThreeOneProgramLayout.Beginners
     ) {
         exerciseIds.mapIndexedNotNull { index, mainId ->
-            bbbTargetIds.getOrNull(index)?.takeIf { it in exerciseIds }?.let { targetId -> mainId to targetId }
+            exerciseSetups.getOrNull(index)?.bbbTargetId?.takeIf { it in exerciseIds }?.let { targetId -> mainId to targetId }
         }.toMap()
     } else {
         emptyMap()
@@ -1194,15 +1164,15 @@ private fun FiveThreeOneProgramSetupDialog(
                 (role.matchesExerciseName(selected.name) || index in manuallySelectedRoleIndices)
         }
     val everyDerivedTrainingMaxIsApplied = exerciseIds.indices.all { index ->
-        useRecentMaxSuggestion.getOrNull(index) != true ||
+        exerciseSetups.getOrNull(index)?.useRecentMaxSuggestion != true ||
             (
-                appliedTrainingMaxBasisKinds.getOrNull(index) == trainingMaxBasisKinds.getOrNull(index) &&
-                    appliedSourceMaxes.getOrNull(index).orEmpty().numericallyEquals(recentMaxes.getOrNull(index).orEmpty()) &&
-                    appliedTrainingMaxPercentages.getOrNull(index).orEmpty()
-                        .numericallyEquals(trainingMaxPercentages.getOrNull(index).orEmpty()) &&
-                    appliedDerivedTrainingMaxes.getOrNull(index).orEmpty()
-                        .numericallyEquals(trainingMaxes.getOrNull(index).orEmpty()) &&
-                    appliedSourceMaxes.getOrNull(index).orEmpty().isNotBlank()
+                exerciseSetups.getOrNull(index)?.appliedTrainingMaxBasisKind == exerciseSetups.getOrNull(index)?.trainingMaxBasisKind &&
+                    exerciseSetups.getOrNull(index)?.appliedSourceMax.orEmpty().numericallyEquals(exerciseSetups.getOrNull(index)?.recentMax.orEmpty()) &&
+                    exerciseSetups.getOrNull(index)?.appliedTrainingMaxPercentage.orEmpty()
+                        .numericallyEquals(exerciseSetups.getOrNull(index)?.trainingMaxPercentage.orEmpty()) &&
+                    exerciseSetups.getOrNull(index)?.appliedDerivedTrainingMax.orEmpty()
+                        .numericallyEquals(exerciseSetups.getOrNull(index)?.trainingMax.orEmpty()) &&
+                    exerciseSetups.getOrNull(index)?.appliedSourceMax.orEmpty().isNotBlank()
                 )
     }
     val valid = requiredExerciseCount > 0 && programExercises.size == requiredExerciseCount &&
@@ -1236,75 +1206,22 @@ private fun FiveThreeOneProgramSetupDialog(
         }
     }
     fun moveCustomExercise(fromIndex: Int, toIndex: Int) {
-        exerciseIds = exerciseIds.moved(fromIndex, toIndex)
-        trainingMaxes = trainingMaxes.moved(fromIndex, toIndex)
-        useRecentMaxSuggestion = useRecentMaxSuggestion.moved(fromIndex, toIndex)
-        recentMaxes = recentMaxes.moved(fromIndex, toIndex)
-        trainingMaxPercentages = trainingMaxPercentages.moved(fromIndex, toIndex)
-        trainingMaxBasisKinds = trainingMaxBasisKinds.moved(fromIndex, toIndex)
-        appliedSourceMaxes = appliedSourceMaxes.moved(fromIndex, toIndex)
-        appliedTrainingMaxPercentages = appliedTrainingMaxPercentages.moved(fromIndex, toIndex)
-        appliedTrainingMaxBasisKinds = appliedTrainingMaxBasisKinds.moved(fromIndex, toIndex)
-        appliedDerivedTrainingMaxes = appliedDerivedTrainingMaxes.moved(fromIndex, toIndex)
-        increments = increments.moved(fromIndex, toIndex)
-        bbbTargetIds = bbbTargetIds.moved(fromIndex, toIndex)
+        exerciseSetups = exerciseSetups.moved(fromIndex, toIndex)
     }
 
     fun selectExercise(index: Int, exercise: Exercise) {
-        if (layout == FiveThreeOneProgramLayout.Custom && index == exerciseIds.size) {
-            exerciseIds = exerciseIds + exercise.id
-            trainingMaxes = trainingMaxes + ""
-            useRecentMaxSuggestion = useRecentMaxSuggestion + false
-            recentMaxes = recentMaxes + ""
-            trainingMaxPercentages = trainingMaxPercentages + "85"
-            trainingMaxBasisKinds = trainingMaxBasisKinds + TrainingMaxBasisKind.ActualOneRepMax.name
-            appliedSourceMaxes = appliedSourceMaxes + ""
-            appliedTrainingMaxPercentages = appliedTrainingMaxPercentages + ""
-            appliedTrainingMaxBasisKinds = appliedTrainingMaxBasisKinds + ""
-            appliedDerivedTrainingMaxes = appliedDerivedTrainingMaxes + ""
-            increments = increments + editableNumericValue(
-                defaultFiveThreeOneCycleIncrease(
-                    unitId = exercise.weightUnitId,
-                    exerciseName = exercise.name,
-                ),
-            )
-            bbbTargetIds = bbbTargetIds + exercise.id
+        if (layout == FiveThreeOneProgramLayout.Custom && index == exerciseSetups.size) {
+            exerciseSetups = exerciseSetups + suggestedSetup(exercise.id, index, layout)
             return
         }
-        if (index !in exerciseIds.indices) return
-        val previousExerciseId = exerciseIds.getOrNull(index)
-        val role = activeRoles.getOrNull(index)
-        exerciseIds = exerciseIds.toMutableList().also { it[index] = exercise.id }
+        if (index !in exerciseSetups.indices) return
         if (layout != FiveThreeOneProgramLayout.Custom) {
             manuallySelectedRoleIndices = (manuallySelectedRoleIndices + index).distinct()
         }
-        if (exercise.id != previousExerciseId) {
-            // Training Max values and their provenance belong to one exercise. Replacing the
-            // exercise must never carry another exercise's load or source into the new slot.
-            trainingMaxes = trainingMaxes.toMutableList().also { it[index] = "" }
-            useRecentMaxSuggestion = useRecentMaxSuggestion.toMutableList().also { it[index] = false }
-            recentMaxes = recentMaxes.toMutableList().also { it[index] = "" }
-            trainingMaxPercentages = trainingMaxPercentages.toMutableList().also { it[index] = "85" }
-            trainingMaxBasisKinds = trainingMaxBasisKinds.toMutableList().also {
-                it[index] = TrainingMaxBasisKind.ActualOneRepMax.name
-            }
-            appliedSourceMaxes = appliedSourceMaxes.toMutableList().also { it[index] = "" }
-            appliedTrainingMaxPercentages = appliedTrainingMaxPercentages.toMutableList().also { it[index] = "" }
-            appliedTrainingMaxBasisKinds = appliedTrainingMaxBasisKinds.toMutableList().also { it[index] = "" }
-            appliedDerivedTrainingMaxes = appliedDerivedTrainingMaxes.toMutableList().also { it[index] = "" }
-        }
-        increments = increments.toMutableList().also {
-            it[index] = editableNumericValue(
-                defaultFiveThreeOneCycleIncrease(
-                    unitId = exercise.weightUnitId,
-                    exerciseName = exercise.name,
-                    role = role,
-                ),
-            )
-        }
-        bbbTargetIds = List(exerciseIds.size) { slot ->
-            bbbTargetIds.getOrNull(slot)?.takeIf { it in exerciseIds } ?: exerciseIds[slot]
-        }
+        if (exerciseSetups[index].exerciseId == exercise.id) return
+        exerciseSetups = exerciseSetups.toMutableList().also {
+            it[index] = suggestedSetup(exercise.id, index, layout)
+        }.withValidFiveThreeOneTargets()
     }
 
     val dialogPlacement = LocalWhipDialogPlacement.current
@@ -1451,6 +1368,7 @@ private fun FiveThreeOneProgramSetupDialog(
                 }
                 if (eligible.isNotEmpty()) {
                     exerciseIds.indices.forEach { index ->
+                        val setup = exerciseSetups[index]
                         val role = activeRoles[index]
                         val selected = selectedExercises[index] ?: eligible.first()
                         val fieldKey = role?.name ?: "Custom-$index"
@@ -1468,23 +1386,8 @@ private fun FiveThreeOneProgramSetupDialog(
                             if (layout == FiveThreeOneProgramLayout.Custom && exerciseIds.size > 1) {
                                 IconButton(
                                     onClick = {
-                                        exerciseIds = exerciseIds.filterIndexed { itemIndex, _ -> itemIndex != index }
-                                        trainingMaxes = trainingMaxes.filterIndexed { itemIndex, _ -> itemIndex != index }
-                                        useRecentMaxSuggestion = useRecentMaxSuggestion.filterIndexed { itemIndex, _ -> itemIndex != index }
-                                        recentMaxes = recentMaxes.filterIndexed { itemIndex, _ -> itemIndex != index }
-                                        trainingMaxPercentages = trainingMaxPercentages.filterIndexed { itemIndex, _ -> itemIndex != index }
-                                        trainingMaxBasisKinds = trainingMaxBasisKinds.filterIndexed { itemIndex, _ -> itemIndex != index }
-                                        appliedSourceMaxes = appliedSourceMaxes.filterIndexed { itemIndex, _ -> itemIndex != index }
-                                        appliedTrainingMaxPercentages = appliedTrainingMaxPercentages.filterIndexed { itemIndex, _ -> itemIndex != index }
-                                        appliedTrainingMaxBasisKinds = appliedTrainingMaxBasisKinds.filterIndexed { itemIndex, _ -> itemIndex != index }
-                                        appliedDerivedTrainingMaxes = appliedDerivedTrainingMaxes.filterIndexed { itemIndex, _ -> itemIndex != index }
-                                        increments = increments.filterIndexed { itemIndex, _ -> itemIndex != index }
-                                        val remainingExerciseIds = exerciseIds
-                                        bbbTargetIds = bbbTargetIds.filterIndexed { itemIndex, _ -> itemIndex != index }
-                                            .mapIndexed { remainingIndex, targetId ->
-                                                targetId.takeIf { it in remainingExerciseIds }
-                                                    ?: remainingExerciseIds.getOrElse(remainingIndex) { remainingExerciseIds.first() }
-                                            }
+                                        exerciseSetups = exerciseSetups.filterIndexed { itemIndex, _ -> itemIndex != index }
+                                            .withValidFiveThreeOneTargets()
                                         manuallySelectedRoleIndices = emptyList()
                                     },
                                     modifier = Modifier
@@ -1562,8 +1465,8 @@ private fun FiveThreeOneProgramSetupDialog(
                         }
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             WhipFilterChip(
-                                selected = !useRecentMaxSuggestion[index],
-                                onClick = { useRecentMaxSuggestion = useRecentMaxSuggestion.toMutableList().also { it[index] = false } },
+                                selected = !exerciseSetups[index].useRecentMaxSuggestion,
+                                onClick = { updateExercise(setup.exerciseId) { it.copy(useRecentMaxSuggestion = false) } },
                                 label = { Text("Enter Training Max") },
                                 modifier = Modifier
                                     .testTag("five-three-one-enter-tm-${role?.name ?: index}")
@@ -1572,8 +1475,8 @@ private fun FiveThreeOneProgramSetupDialog(
                                     },
                             )
                             WhipFilterChip(
-                                selected = useRecentMaxSuggestion[index],
-                                onClick = { useRecentMaxSuggestion = useRecentMaxSuggestion.toMutableList().also { it[index] = true } },
+                                selected = exerciseSetups[index].useRecentMaxSuggestion,
+                                onClick = { updateExercise(setup.exerciseId) { it.copy(useRecentMaxSuggestion = true) } },
                                 label = { Text("Calculate from max / e1RM") },
                                 modifier = Modifier
                                     .testTag("five-three-one-calculate-tm-${role?.name ?: index}")
@@ -1582,7 +1485,7 @@ private fun FiveThreeOneProgramSetupDialog(
                                     },
                             )
                         }
-                        if (useRecentMaxSuggestion[index]) {
+                        if (exerciseSetups[index].useRecentMaxSuggestion) {
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 listOf(
                                     TrainingMaxBasisKind.ActualOneRepMax to "Actual 1RM",
@@ -1590,11 +1493,8 @@ private fun FiveThreeOneProgramSetupDialog(
                                     TrainingMaxBasisKind.ManualSourceMax to "Other source max",
                                 ).forEach { (basis, label) ->
                                     WhipFilterChip(
-                                        selected = trainingMaxBasisKinds[index] == basis.name,
+                                        selected = exerciseSetups[index].trainingMaxBasisKind == basis.name,
                                         onClick = {
-                                            trainingMaxBasisKinds = trainingMaxBasisKinds.toMutableList().also {
-                                                it[index] = basis.name
-                                            }
                                             val matchingRecord = when (basis) {
                                                 TrainingMaxBasisKind.ActualOneRepMax -> personalRecords.firstOrNull { record ->
                                                     record.exerciseId == selected.id && record.current &&
@@ -1608,10 +1508,13 @@ private fun FiveThreeOneProgramSetupDialog(
                                                 }
                                                 else -> null
                                             }
-                                            recentMaxes = recentMaxes.toMutableList().also {
-                                                it[index] = matchingRecord?.let { record ->
-                                                    editableNumericValue(massFromKilograms(record.value, selected.weightUnitId))
-                                                }.orEmpty()
+                                            updateExercise(setup.exerciseId) {
+                                                it.copy(
+                                                    trainingMaxBasisKind = basis.name,
+                                                    recentMax = matchingRecord?.let { record ->
+                                                        editableNumericValue(massFromKilograms(record.value, selected.weightUnitId))
+                                                    }.orEmpty(),
+                                                )
                                             }
                                         },
                                         label = { Text(label) },
@@ -1619,9 +1522,9 @@ private fun FiveThreeOneProgramSetupDialog(
                                 }
                             }
                             val entryState = FiveThreeOneTrainingMaxEntryState(
-                                explicitTrainingMax = trainingMaxes[index],
-                                recentMaxOrEstimatedOneRepMax = recentMaxes[index],
-                                trainingMaxPercentage = trainingMaxPercentages[index],
+                                explicitTrainingMax = exerciseSetups[index].trainingMax,
+                                recentMaxOrEstimatedOneRepMax = exerciseSetups[index].recentMax,
+                                trainingMaxPercentage = exerciseSetups[index].trainingMaxPercentage,
                             )
                             val loadIncrement = selected.weightIncrement.takeIf { it > 0.0 }
                                 ?: if (selected.weightUnitId == "pound") 5.0 else 2.5
@@ -1629,11 +1532,11 @@ private fun FiveThreeOneProgramSetupDialog(
                             ResponsiveFieldPair(
                                 first = { field ->
                                     OutlinedTextField(
-                                        recentMaxes[index],
-                                        { value -> recentMaxes = recentMaxes.toMutableList().also { it[index] = value.numericInput() } },
+                                        exerciseSetups[index].recentMax,
+                                        { value -> updateExercise(setup.exerciseId) { it.copy(recentMax = value.numericInput()) } },
                                         label = {
                                             Text(
-                                                when (trainingMaxBasisKinds[index]) {
+                                                when (exerciseSetups[index].trainingMaxBasisKind) {
                                                     TrainingMaxBasisKind.ActualOneRepMax.name -> "Actual 1RM (${unitSymbol(selected.weightUnitId)})"
                                                     TrainingMaxBasisKind.EstimatedOneRepMax.name -> "Estimated 1RM (${unitSymbol(selected.weightUnitId)})"
                                                     else -> "Source max (${unitSymbol(selected.weightUnitId)})"
@@ -1647,10 +1550,10 @@ private fun FiveThreeOneProgramSetupDialog(
                                 },
                                 second = { field ->
                                     OutlinedTextField(
-                                        trainingMaxPercentages[index],
-                                        { value -> trainingMaxPercentages = trainingMaxPercentages.toMutableList().also { it[index] = value.numericInput() } },
+                                        exerciseSetups[index].trainingMaxPercentage,
+                                        { value -> updateExercise(setup.exerciseId) { it.copy(trainingMaxPercentage = value.numericInput()) } },
                                         label = { Text("TM percentage") },
-                                        isError = trainingMaxPercentages[index].toWhipDoubleOrNull()?.let { it !in 1.0..100.0 } != false,
+                                        isError = exerciseSetups[index].trainingMaxPercentage.toWhipDoubleOrNull()?.let { it !in 1.0..100.0 } != false,
                                         modifier = field.testTag("five-three-one-tm-percent-$fieldKey"),
                                         singleLine = true,
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -1658,7 +1561,7 @@ private fun FiveThreeOneProgramSetupDialog(
                                 },
                             )
                             Text(
-                                if (trainingMaxPercentages[index].toWhipDoubleOrNull()?.let { it !in 80.0..90.0 } == true) {
+                                if (exerciseSetups[index].trainingMaxPercentage.toWhipDoubleOrNull()?.let { it !in 80.0..90.0 } == true) {
                                     "Outside the common 80–90% starting range. This is allowed for readiness or individual programming; review it carefully. Applying copies a stable explicit TM."
                                 } else {
                                     "The source max is used once. Applying copies a rounded, stable Training Max; later source changes never mutate it."
@@ -1670,16 +1573,14 @@ private fun FiveThreeOneProgramSetupDialog(
                                 enabled = suggestion != null,
                                 onClick = {
                                     val applied = entryState.applySuggestion(loadIncrement)
-                                    trainingMaxes = trainingMaxes.toMutableList().also { it[index] = applied.explicitTrainingMax }
-                                    appliedSourceMaxes = appliedSourceMaxes.toMutableList().also { it[index] = recentMaxes[index] }
-                                    appliedTrainingMaxPercentages = appliedTrainingMaxPercentages.toMutableList().also {
-                                        it[index] = trainingMaxPercentages[index]
-                                    }
-                                    appliedTrainingMaxBasisKinds = appliedTrainingMaxBasisKinds.toMutableList().also {
-                                        it[index] = trainingMaxBasisKinds[index]
-                                    }
-                                    appliedDerivedTrainingMaxes = appliedDerivedTrainingMaxes.toMutableList().also {
-                                        it[index] = applied.explicitTrainingMax
+                                    updateExercise(setup.exerciseId) {
+                                        it.copy(
+                                            trainingMax = applied.explicitTrainingMax,
+                                            appliedSourceMax = it.recentMax,
+                                            appliedTrainingMaxPercentage = it.trainingMaxPercentage,
+                                            appliedTrainingMaxBasisKind = it.trainingMaxBasisKind,
+                                            appliedDerivedTrainingMax = applied.explicitTrainingMax,
+                                        )
                                     }
                                 },
                                 modifier = Modifier.fillMaxWidth().testTag("five-three-one-use-tm-suggestion-$fieldKey"),
@@ -1689,17 +1590,17 @@ private fun FiveThreeOneProgramSetupDialog(
                                         ?: "Enter a source max and 1–100%",
                                 )
                             }
-                            trainingMaxes[index].takeIf(String::isNotBlank)?.let { explicit ->
+                            exerciseSetups[index].trainingMax.takeIf(String::isNotBlank)?.let { explicit ->
                                 Text("Current explicit TM · $explicit ${unitSymbol(selected.weightUnitId)}", fontWeight = FontWeight.SemiBold)
                             }
                             val derivedInputsAreApplied =
-                                appliedTrainingMaxBasisKinds.getOrNull(index) == trainingMaxBasisKinds.getOrNull(index) &&
-                                    appliedSourceMaxes.getOrNull(index).orEmpty().numericallyEquals(recentMaxes[index]) &&
-                                    appliedTrainingMaxPercentages.getOrNull(index).orEmpty()
-                                        .numericallyEquals(trainingMaxPercentages[index]) &&
-                                    appliedDerivedTrainingMaxes.getOrNull(index).orEmpty()
-                                        .numericallyEquals(trainingMaxes[index]) &&
-                                    appliedSourceMaxes.getOrNull(index).orEmpty().isNotBlank()
+                                exerciseSetups.getOrNull(index)?.appliedTrainingMaxBasisKind == exerciseSetups.getOrNull(index)?.trainingMaxBasisKind &&
+                                    exerciseSetups.getOrNull(index)?.appliedSourceMax.orEmpty().numericallyEquals(exerciseSetups[index].recentMax) &&
+                                    exerciseSetups.getOrNull(index)?.appliedTrainingMaxPercentage.orEmpty()
+                                        .numericallyEquals(exerciseSetups[index].trainingMaxPercentage) &&
+                                    exerciseSetups.getOrNull(index)?.appliedDerivedTrainingMax.orEmpty()
+                                        .numericallyEquals(exerciseSetups[index].trainingMax) &&
+                                    exerciseSetups.getOrNull(index)?.appliedSourceMax.orEmpty().isNotBlank()
                             if (!derivedInputsAreApplied) {
                                 Text(
                                     "Source max or percentage has unapplied changes. Use the calculated Training Max before building the program.",
@@ -1709,10 +1610,10 @@ private fun FiveThreeOneProgramSetupDialog(
                                 )
                             }
                             OutlinedTextField(
-                                increments[index],
-                                { value -> increments = increments.toMutableList().also { it[index] = value.numericInput() } },
+                                exerciseSetups[index].cycleIncrement,
+                                { value -> updateExercise(setup.exerciseId) { it.copy(cycleIncrement = value.numericInput(), cycleIncrementAuthored = true) } },
                                 label = { Text("Cycle increase (editable suggestion)") },
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth().testTag("five-three-one-cycle-increase-$fieldKey"),
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             )
@@ -1720,8 +1621,8 @@ private fun FiveThreeOneProgramSetupDialog(
                             ResponsiveFieldPair(
                                 first = { field ->
                                     OutlinedTextField(
-                                        trainingMaxes[index],
-                                        { value -> trainingMaxes = trainingMaxes.toMutableList().also { it[index] = value.numericInput() } },
+                                        exerciseSetups[index].trainingMax,
+                                        { value -> updateExercise(setup.exerciseId) { it.copy(trainingMax = value.numericInput()) } },
                                         label = { Text("Training Max (${unitSymbol(selected.weightUnitId)})") },
                                         modifier = field.testTag("five-three-one-training-max-$fieldKey"),
                                         singleLine = true,
@@ -1730,10 +1631,10 @@ private fun FiveThreeOneProgramSetupDialog(
                                 },
                                 second = { field ->
                                     OutlinedTextField(
-                                        increments[index],
-                                        { value -> increments = increments.toMutableList().also { it[index] = value.numericInput() } },
+                                        exerciseSetups[index].cycleIncrement,
+                                        { value -> updateExercise(setup.exerciseId) { it.copy(cycleIncrement = value.numericInput(), cycleIncrementAuthored = true) } },
                                         label = { Text("Cycle increase (editable suggestion)") },
-                                        modifier = field,
+                                        modifier = field.testTag("five-three-one-cycle-increase-$fieldKey"),
                                         singleLine = true,
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                     )
@@ -1820,8 +1721,9 @@ private fun FiveThreeOneProgramSetupDialog(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            programExercises.forEachIndexed { index, mainExercise ->
-                                val selectedTarget = programExercises.firstOrNull { it.exerciseId == bbbTargetIds.getOrNull(index) }
+                            programExercises.forEach { mainExercise ->
+                                val targetId = exerciseSetups.first { it.exerciseId == mainExercise.exerciseId }.bbbTargetId
+                                val selectedTarget = programExercises.firstOrNull { it.exerciseId == targetId }
                                     ?: mainExercise
                                 SelectionField(
                                     label = "BBB after ${mainExercise.exerciseName}",
@@ -1832,10 +1734,7 @@ private fun FiveThreeOneProgramSetupDialog(
                                         else target.exerciseName
                                     },
                                     onSelect = { target ->
-                                        bbbTargetIds = List(exerciseIds.size) { slot ->
-                                            if (slot == index) target.exerciseId
-                                            else bbbTargetIds.getOrNull(slot)?.takeIf { it in exerciseIds } ?: exerciseIds[slot]
-                                        }
+                                        updateExercise(mainExercise.exerciseId) { it.copy(bbbTargetId = target.exerciseId) }
                                     },
                                     modifier = Modifier.testTag("five-three-one-bbb-exercise-${mainExercise.exerciseId}"),
                                 )
