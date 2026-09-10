@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260910-010 — Review empty states describe the selected view
+
+- Behavior: No Outcomes in This View replaces first-use wording for every complete empty outcome selection. Guidance points to existing period/section controls; card-opening instructions appear only when cards exist. Remove the redundant Track-specific empty explanation and unused global-history check while retaining the shared empty-state layout and Track evidence card.
+- Source/verification: ReviewDialog.kt; ReviewJourneyE2ETest adds the real retained-history/selection/recreation/reopen journey, and existing availability expectations follow the new copy. Seven native methods pass on API 34 and API 37, 364 JVM readiness checks and 11 original visual reviews pass. Evidence: artifacts/astra-audit/2026-09-10/review-scope/README.md.
+- Compatibility/status: Verified under FND-20260910-015, DEC/VER-20260910-010 and FB-20260910-001/002. No source navigation, domain calculation, persistence, schema, backup, version or release change. Complete Review/app acceptance and shared ordinary-scale design review remain open.
+
 ### IMP-20260910-009 — Keep Review honest while sources load or fail
 
 - Behavior: One shared incomplete-data notice names loading and failed sources while ready results remain visible. Unavailable outcome sources and global Track evidence are excluded from totals/comparisons; a global empty-outcome state waits for all selected outcome sources to be ready. Retry dispatches only to currently failed included sources and preserves the open dashboard.

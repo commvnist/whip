@@ -1,0 +1,12 @@
+file	NAF_nodes	observation
+before/shared.review.empty-selection.png	0	Original native baseline has saved current Task and older archived Habit history, but Weekly/Habits displays first-use wording and card-opening guidance without cards.
+final-api34/shared.review.empty-selection.png	0	Scoped empty title and complete period/section guidance; no card-opening instruction when cards do not exist. Wide text remains a long centered measure under the existing shared empty-state layout.
+final-api34/shared.review.selection-outcomes.png	0	Including Tasks reveals the exact one saved completion beside zero current Habit outcomes. Phone frame is scrolled and the Habit card continues below the viewport; wide frame shows both full cards.
+final-api34/shared.review.empty-selection-reopened.png	0	Native empty selection survives Activity recreation, closing Review and reopening. Phone returns to the stable collapsed-options hierarchy; wide controls remain visible.
+final-api34/shared.review.track-only-evidence.png	0	Track-only evidence and its one explanation remain above the scoped empty outcome view; all actions and text are readable at ordinary scale.
+final-api34/shared.review.sources-ready-empty.png	0	Controlled production host shows scoped empty outcomes after source recovery. API 34 gray system-bar chrome belongs to the fixture, not production theme acceptance.
+final-api37/shared.review.empty-selection.png	0	Scoped empty title and complete period/section guidance; no card-opening instruction when cards do not exist. Wide text remains a long centered measure under the existing shared empty-state layout.
+final-api37/shared.review.selection-outcomes.png	0	Including Tasks reveals the exact one saved completion beside zero current Habit outcomes. Phone frame is scrolled and the Habit card continues below the viewport; wide frame shows both full cards.
+final-api37/shared.review.empty-selection-reopened.png	0	Native empty selection survives Activity recreation, closing Review and reopening. Phone returns to the stable collapsed-options hierarchy; wide controls remain visible.
+final-api37/shared.review.track-only-evidence.png	0	Track-only evidence and its one explanation remain above the scoped empty outcome view; all actions and text are readable at ordinary scale.
+final-api37/shared.review.sources-ready-empty.png	0	Controlled production host shows scoped empty outcomes after source recovery. API 34 gray system-bar chrome belongs to the fixture, not production theme acceptance.

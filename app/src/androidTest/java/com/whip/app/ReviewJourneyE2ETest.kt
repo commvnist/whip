@@ -102,7 +102,7 @@ class ReviewJourneyE2ETest {
             captureVisualCatalogSurface("shared.review.archived-outcomes")
             scenario.recreate()
             assertArchivedTotals()
-            compose.onAllNodesWithText("No Reviewable Outcomes Yet").assertCountEquals(0)
+            compose.onAllNodesWithText("No Outcomes in This View").assertCountEquals(0)
         }
     }
 
@@ -124,8 +124,51 @@ class ReviewJourneyE2ETest {
             openReview()
             compose.onNodeWithTag("review-track-evidence").assertIsDisplayed()
             compose.onAllNodesWithTag("review-signal-Tasks").assertCountEquals(0)
-            compose.onNodeWithText("No Reviewable Outcomes Yet").assertExists()
+            compose.onNodeWithText("No Outcomes in This View").assertExists()
             captureVisualCatalogSurface("shared.review.track-only-evidence")
+        }
+    }
+
+    @Test fun changingReviewOptionsRevealsSavedOutcomesWithoutLosingTheView() {
+        runBlocking {
+            app.backupRepository.deleteAllData()
+            app.settingsRepository.update {
+                AppSettings(setupCompleted = true, themeMode = AppThemeMode.Dark, dynamicColor = false,
+                    reviewPeriod = ReviewPeriod.Weekly, reviewSections = setOf(ReviewSection.Habits))
+            }
+            val task = app.taskRepository.create(TaskDraft("Recorded design progress"))
+            app.taskRepository.completeOccurrence(task, null)
+            val olderDate = app.clock.today().minusDays(40)
+            val habit = app.habitRepository.create(HabitDraft("Earlier reflection", startDate = olderDate))
+            app.habitRepository.setCheckOff(habit, olderDate, true)
+            app.habitRepository.setArchived(habit, true)
+        }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            openReview()
+            compose.waitForIdle()
+            captureVisualCatalogSurface("shared.review.empty-selection")
+            compose.onNodeWithText("No Outcomes in This View").assertIsDisplayed()
+            compose.onAllNodesWithTag("review-signal-Tasks").assertCountEquals(0)
+            if (compose.onAllNodesWithTag("review-options-toggle").fetchSemanticsNodes().isNotEmpty()) {
+                compose.onNodeWithTag("review-options-toggle").performScrollTo().performClick()
+            }
+            val tasksChoice = hasText("Tasks") and hasAnyAncestor(hasTestTag("review-controls"))
+            compose.onNode(tasksChoice).performScrollTo().performClick()
+            compose.waitUntil(10_000) { ReviewSection.Tasks in app.settingsRepository.current().reviewSections }
+            compose.onNodeWithTag("review-signal-Tasks").performScrollTo()
+            compose.onNodeWithTag("review-total-Tasks", useUnmergedTree = true).assertTextEquals("1")
+            captureVisualCatalogSurface("shared.review.selection-outcomes")
+            scenario.recreate()
+            compose.onNode(tasksChoice).performScrollTo().assertIsSelected()
+            compose.onNodeWithTag("review-total-Tasks", useUnmergedTree = true).assertTextEquals("1")
+            compose.onNode(tasksChoice).performScrollTo().performClick()
+            compose.waitUntil(10_000) { app.settingsRepository.current().reviewSections == setOf(ReviewSection.Habits) }
+            scenario.recreate()
+            compose.onNodeWithText("No Outcomes in This View").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithTag("review-close-action").assertIsDisplayed().performClick()
+            openReview()
+            compose.onNodeWithText("No Outcomes in This View").performScrollTo().assertIsDisplayed()
+            captureVisualCatalogSurface("shared.review.empty-selection-reopened")
         }
     }
 

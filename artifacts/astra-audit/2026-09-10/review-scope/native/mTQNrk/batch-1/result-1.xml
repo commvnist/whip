@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="7" failures="1" errors="0" skipped="0" time="35.852" timestamp="2026-09-10T10:07:39" hostname="localhost">
+  <testsuite name="com.whip.app.ReviewAvailabilityUiTest" tests="3" failures="0" errors="0" skipped="0" time="13.208" timestamp="2026-09-10T10:07:39" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="incompleteSourcesNeverClaimThereAreNoOutcomes" classname="com.whip.app.ReviewAvailabilityUiTest" time="5.165" />
+    <testcase name="partialReviewPreservesAvailableOutcomesAndRetriesOnlyUnavailableSources" classname="com.whip.app.ReviewAvailabilityUiTest" time="4.6" />
+    <testcase name="correlationsUseReadySourcesEvenWhenOtherEvidenceIsUnavailable" classname="com.whip.app.ReviewAvailabilityUiTest" time="3.443" />
+  </testsuite>
+  <testsuite name="com.whip.app.ReviewJourneyE2ETest" tests="4" failures="1" errors="0" skipped="0" time="21.719" timestamp="2026-09-10T10:07:39" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="trackOnlyHistoryOffersReviewWithoutInventingOutcomes" classname="com.whip.app.ReviewJourneyE2ETest" time="4.652" />
+    <testcase name="archivedTaskAndHabitOutcomesRemainInReviewHistory" classname="com.whip.app.ReviewJourneyE2ETest" time="3.593" />
+    <testcase name="changingReviewOptionsRevealsSavedOutcomesWithoutLosingTheView" classname="com.whip.app.ReviewJourneyE2ETest" time="5.682">
+      <failure>java.lang.AssertionError: Semantic Node has no parent layout with a Scroll SemanticsAction
+at androidx.compose.ui.test.ActionsKt.scrollToNode(Actions.kt:98)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:83)
+at com.whip.app.ReviewJourneyE2ETest.changingReviewOptionsRevealsSavedOutcomesWithoutLosingTheView(ReviewJourneyE2ETest.kt:168)
+</failure>
+    </testcase>
+    <testcase name="allTrackEvidenceKeepsItsScopeAcrossAreaReviewAndRecreation" classname="com.whip.app.ReviewJourneyE2ETest" time="7.792" />
+  </testsuite>
+</testsuites>

@@ -1,0 +1,7 @@
+{
+  "app/src/main/java/com/whip/app/ui/ReviewDialog.kt": "b0fafa39308eea9bd9a62c0996bf6078322e73c2c0b2c24ff1681574134fb729",
+  "app/src/androidTest/java/com/whip/app/ReviewJourneyE2ETest.kt": "58473ff973bc99d97a206ced9b855c1e71d57bf740da3b5a60ffaacdab72c26d",
+  "app/src/androidTest/java/com/whip/app/ReviewAvailabilityUiTest.kt": "3b67a0483427baad9b41256fa2e1569dd40cf83b16a30782e7f59c689e800415",
+  "app/build/outputs/apk/debug/app-debug.apk": "5336e951f3255b6f1487df20f3edf93ac49bba3972ff1aa85cb540633ba32809",
+  "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk": "462b83ff4ca0a79390d1210d046c89c9954ee6d8727d48e72efd1a4cbe4ac584"
+}

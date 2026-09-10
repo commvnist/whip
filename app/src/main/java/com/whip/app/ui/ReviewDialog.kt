@@ -178,7 +178,6 @@ fun ReviewDialog(
         }
     }
     val hasReviewData = signals.any { signal -> signal.values.any { it != 0.0 } }
-    val hasTrackEvidence = availability.tracksReady && trackState.projections.any { it.entries.isNotEmpty() }
     val trackEvidence = if (availability.tracksReady) trackReviewEvidence(trackState, start, through) else null
     val rangeLabel = formatReviewRange(start, through, locale)
     val controls: @Composable () -> Unit = {
@@ -194,7 +193,6 @@ fun ReviewDialog(
     val overview: @Composable () -> Unit = {
         ReviewOverview(
             hasReviewData = hasReviewData,
-            hasTrackEvidence = hasTrackEvidence,
             trackEvidence = trackEvidence,
             allSignals = allSignals,
             includedSections = availability.readySections,
@@ -442,7 +440,6 @@ private fun ReviewControlPanel(
 @Composable
 private fun ReviewOverview(
     hasReviewData: Boolean,
-    hasTrackEvidence: Boolean,
     trackEvidence: TrackReviewEvidence?,
     allSignals: List<Pair<ReviewSection, ReviewSignal>>,
     includedSections: Set<ReviewSection>,
@@ -460,7 +457,9 @@ private fun ReviewOverview(
     ) {
         WhipPageHeader(
             title = "Overview",
-            supportingText = "$rangeLabel · Select any card to open its source.",
+            supportingText = if (includedSections.isNotEmpty() && (hasReviewData || !availability.outcomesComplete)) {
+                "$rangeLabel · Select any card to open its source."
+            } else rangeLabel,
         )
         ReviewAvailabilityNotice(availability, retryActions)
         trackEvidence?.let { evidence ->
@@ -468,12 +467,9 @@ private fun ReviewOverview(
         }
         if (!hasReviewData && availability.outcomesComplete) {
             WhipEmptyState(
-                title = "No Reviewable Outcomes Yet",
-                supportingText = if (hasTrackEvidence) {
-                    "Track entries are evidence, not outcomes by themselves. Connect them to a Goal or complete another outcome to build this dashboard."
-                } else {
-                    "Complete a Task, check in a Habit, record Goal progress, or finish a Workout to build this dashboard."
-                },
+                title = "No Outcomes in This View",
+                supportingText = "Try another period or include more sections in Review Options. " +
+                    "Complete a Task, reach a Habit target, record Goal progress, or finish a Workout to add an outcome.",
             )
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),

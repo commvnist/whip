@@ -1,5 +1,13 @@
 # Durable findings
 
+### FND-20260910-015 — An empty Review view reads as first use
+
+- Severity/category: P2 scoped-history comprehension.
+- Observed source: ReviewOverview uses No Reviewable Outcomes Yet and build this dashboard whenever selected-period signals are empty. Existing outcomes in excluded sections or older periods do not affect that branch. The controls already identify period, sections and Area, but the empty explanation does not acknowledge that scope.
+- Expected: Describe the current view and direct users to its existing Review Options without implying that historical progress has never been recorded. Keep Track evidence separate and avoid inventing an all-history detector merely to choose copy.
+- Native evidence: lS1WSx reaches the real empty Weekly/Habits view after recording a current Task and archiving an older successful Habit log. Its personally inspected original displays first-use copy and an instruction to select cards when no outcome cards exist. The expected scoped-title assertion fails on unchanged production.
+- Status: Verified under FB-20260910-001/002 and IMP/VER-20260910-010. Both native phone/wide journeys reveal the saved result through selected sections, preserve it through recreation and return to the same honest empty view after reopening. Seven methods on each platform, readiness and 11 original reviews pass. Source-card navigation remains a separate review question.
+
 ### FND-20260910-014 — Wide Review's fractional card widths collapse the two-column grid
 
 - Severity/category: P2 ordinary wide-screen layout and aesthetics.

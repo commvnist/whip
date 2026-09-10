@@ -1,5 +1,11 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-010 — Empty Review copy describes the selected view
+
+- Decision: Use No Outcomes in This View and point to the existing Review Options before explaining how new outcomes appear. Keep the shared WhipEmptyState layout. Show card-opening guidance only when outcome cards are actually rendered. Track evidence already explains its distinct role; remove the duplicate global-history-driven empty explanation.
+- Alternatives/tradeoffs: Inferring first use from every domain's entire retained history would add calculation and another historical interpretation solely for copy. A second filter toolbar or new empty-state builder would duplicate existing roles. Scoped wording is accurate for both first use and filtered/older history and improves the ordinary journey without architecture churn.
+- Compatibility/status: Verified under FND-20260910-015 / VER-20260910-010 with native phone/wide selection/recreation/reopen, neighboring Review cases, readiness and original visual review. No persistence, domain calculation, navigation, schema, backup or version change. Broader source-card navigation and full-app review remain open.
+
 ### DEC-20260910-009 — Qualify incomplete Review data and recover within the dashboard
 
 - Evidence: FND-20260910-013 reproduces loading/failed data presented as numeric results or unqualified evidence through the production host. DomainRetryActions already routes retries to the owning ViewModels.

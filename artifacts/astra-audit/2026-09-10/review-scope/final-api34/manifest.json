@@ -1,0 +1,52 @@
+[
+  {
+    "file": "shared.review.empty-selection-reopened.xml",
+    "original": "shared.review.empty-selection-reopened.xml",
+    "sha256": "7b82aa6bdb782ac140bc9ff992e4e34485f35f102ddd9d686b1dda5d7d330e0c"
+  },
+  {
+    "file": "shared.review.empty-selection-reopened.png",
+    "original": "shared.review.empty-selection-reopened.png",
+    "sha256": "cf074f20f6f003187fc9a20b3240187f2a231423c9c7dfa81283dc4d5891f808"
+  },
+  {
+    "file": "shared.review.selection-outcomes.xml",
+    "original": "shared.review.selection-outcomes (1).xml",
+    "sha256": "670102075d5c3441ad5ff8be175cb9460d5572f18fe55151734ba1fe5fce6732"
+  },
+  {
+    "file": "shared.review.selection-outcomes.png",
+    "original": "shared.review.selection-outcomes (1).png",
+    "sha256": "e64343e9c9090955f577bf4ead7838cbc76e6513c04d5c22e3fba1d277244a2d"
+  },
+  {
+    "file": "shared.review.empty-selection.xml",
+    "original": "shared.review.empty-selection (2).xml",
+    "sha256": "7b82aa6bdb782ac140bc9ff992e4e34485f35f102ddd9d686b1dda5d7d330e0c"
+  },
+  {
+    "file": "shared.review.empty-selection.png",
+    "original": "shared.review.empty-selection (2).png",
+    "sha256": "cf074f20f6f003187fc9a20b3240187f2a231423c9c7dfa81283dc4d5891f808"
+  },
+  {
+    "file": "shared.review.track-only-evidence.xml",
+    "original": "shared.review.track-only-evidence (6).xml",
+    "sha256": "70cca358126da171c5c188e162b0291f6676dded80eb3a6bf4bdf3b0c81220b0"
+  },
+  {
+    "file": "shared.review.track-only-evidence.png",
+    "original": "shared.review.track-only-evidence (6).png",
+    "sha256": "67af8297f2eadc1fe1a5277f95c820143f6e8e28fb3d58e36e1cba902e0b5a1e"
+  },
+  {
+    "file": "shared.review.sources-ready-empty.xml",
+    "original": "shared.review.sources-ready-empty (4).xml",
+    "sha256": "e8ff09fe1df2ba8894d9b18ab5542cebd4fcbaa43b419ac6936b859d13275746"
+  },
+  {
+    "file": "shared.review.sources-ready-empty.png",
+    "original": "shared.review.sources-ready-empty (4).png",
+    "sha256": "00422823c9aac06b2fdf27bfc697e231224ced24e1485a81d16884845fd40344"
+  }
+]

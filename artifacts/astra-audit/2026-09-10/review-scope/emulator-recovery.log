@@ -1,0 +1,11 @@
+Performing Streamed Install
+Success
+Performing Streamed Install
+Success
+Starting: Intent { cmp=commvne.com.whip.app.debug/com.whip.app.MainActivity }
+Status: ok
+LaunchState: COLD
+Activity: commvne.com.whip.app.debug/com.whip.app.MainActivity
+TotalTime: 2564
+WaitTime: 2571
+Complete

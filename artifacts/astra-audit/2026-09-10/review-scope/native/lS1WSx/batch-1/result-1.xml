@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="1" errors="0" skipped="0" time="6.125" timestamp="2026-09-10T10:04:42" hostname="localhost">
+  <testsuite name="com.whip.app.ReviewJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="5.192" timestamp="2026-09-10T10:04:42" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="changingReviewOptionsRevealsSavedOutcomesWithoutLosingTheView" classname="com.whip.app.ReviewJourneyE2ETest" time="5.192">
+      <failure>java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains 'No Outcomes in This View' (ignoreCase: false) is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.ReviewJourneyE2ETest.changingReviewOptionsRevealsSavedOutcomesWithoutLosingTheView(ReviewJourneyE2ETest.kt:150)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

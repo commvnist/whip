@@ -101,11 +101,11 @@ class ReviewAvailabilityUiTest {
         compose.waitForIdle()
         captureVisualCatalogSurface("shared.review.sources-unavailable")
         compose.onNodeWithTag("review-data-status").assertExists()
-        compose.onAllNodesWithText("No Reviewable Outcomes Yet").assertCountEquals(0)
+        compose.onAllNodesWithText("No Outcomes in This View").assertCountEquals(0)
         compose.onAllNodesWithTag("review-total-Tasks", useUnmergedTree = true).assertCountEquals(0)
         compose.runOnIdle { ready.value = true }
         compose.onAllNodesWithTag("review-data-status").assertCountEquals(0)
-        compose.onNodeWithText("No Reviewable Outcomes Yet").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("No Outcomes in This View").performScrollTo().assertIsDisplayed()
         captureVisualCatalogSurface("shared.review.sources-ready-empty")
     }
 

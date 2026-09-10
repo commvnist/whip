@@ -1,0 +1,2 @@
+com.whip.app.ReviewAvailabilityUiTest
+com.whip.app.ReviewJourneyE2ETest
