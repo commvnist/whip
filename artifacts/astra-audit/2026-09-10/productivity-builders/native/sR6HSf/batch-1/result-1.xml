@@ -1,0 +1,53 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="43" failures="0" errors="0" skipped="0" time="50.293" timestamp="2026-09-10T06:13:43" hostname="localhost">
+  <testsuite name="com.whip.app.ui.InteractionControlUiTest" tests="43" failures="0" errors="0" skipped="0" time="48.794" timestamp="2026-09-10T06:13:43" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="largeTextKeepsTwoDestinationsVisibleWhenTheRowHasRoom" classname="com.whip.app.ui.InteractionControlUiTest" time="0.97" />
+    <testcase name="unitChooserCreatesAndSelectsACustomUnitInContext" classname="com.whip.app.ui.InteractionControlUiTest" time="3.872" />
+    <testcase name="reorderHandleHasOneConsistentTouchAndAccessibilityContract" classname="com.whip.app.ui.InteractionControlUiTest" time="0.706" />
+    <testcase name="emojiPickerSearchManagementRemovesSavedCustomEmoji" classname="com.whip.app.ui.InteractionControlUiTest" time="2.794" />
+    <testcase name="narrowLargeTextUsesFullLabelsAndRevealsTheSelectedDestination" classname="com.whip.app.ui.InteractionControlUiTest" time="0.605" />
+    <testcase name="destinationTabsKeepTheirPositionWhenTheLastVisibleTabIsSelected" classname="com.whip.app.ui.InteractionControlUiTest" time="0.757" />
+    <testcase name="destinationTabsUseShortVisibleLabelsWithoutLosingFullAccessibleNames" classname="com.whip.app.ui.InteractionControlUiTest" time="0.682" />
+    <testcase name="emojiPickerSearchesCommonChoicesAndPersistsReusableCustomEmoji" classname="com.whip.app.ui.InteractionControlUiTest" time="4.898" />
+    <testcase name="peerToolbarActionsCenterEveryContentGroup" classname="com.whip.app.ui.InteractionControlUiTest" time="0.707" />
+    <testcase name="longReorderListScrollsAndKeepsMovingAtTheViewportEdge" classname="com.whip.app.ui.InteractionControlUiTest" time="0.858" />
+    <testcase name="trackNumberUnitSelectorRetainsAndLabelsAnArchivedHistoricalUnit" classname="com.whip.app.ui.InteractionControlUiTest" time="0.605" />
+    <testcase name="commandMenuItemsDoNotPretendToBeSelectableChoices" classname="com.whip.app.ui.InteractionControlUiTest" time="0.555" />
+    <testcase name="optionalMalformedTrackNumberIsNamedAndAnnouncesItsValidationError" classname="com.whip.app.ui.InteractionControlUiTest" time="0.629" />
+    <testcase name="searchReindexesCompletedTaskDatesWhenTheActiveWhipZoneChangesWithoutClearingTheQuery" classname="com.whip.app.ui.InteractionControlUiTest" time="1.867" />
+    <testcase name="productivityBuilderKeepsInformationFullWidthAndEditAfterTheBody" classname="com.whip.app.ui.InteractionControlUiTest" time="0.832" />
+    <testcase name="unitChooserAdoptsAnExactSaveReceiptAfterActivityRecreation" classname="com.whip.app.ui.InteractionControlUiTest" time="3.146" />
+    <testcase name="pageSearchLivesInTheHeaderInsteadOfASecondControlRow" classname="com.whip.app.ui.InteractionControlUiTest" time="0.705" />
+    <testcase name="weekdayFormatterReactsToObservableLocaleConfiguration" classname="com.whip.app.ui.InteractionControlUiTest" time="0.658" />
+    <testcase name="trackScaleEntryUsesTheConfiguredFractionalIncrementAndCanBeCleared" classname="com.whip.app.ui.InteractionControlUiTest" time="1.534" />
+    <testcase name="destinationTabsKeepEveryPeerDirectAndStableWhenSelecting" classname="com.whip.app.ui.InteractionControlUiTest" time="0.782" />
+    <testcase name="productivityBuilderKeepsDisclosureBeforeTheTrailingPrimaryAction" classname="com.whip.app.ui.InteractionControlUiTest" time="0.504" />
+    <testcase name="repeatedAccessibilityMovesKeepAnnouncementWithTheLogicalItem" classname="com.whip.app.ui.InteractionControlUiTest" time="0.705" />
+    <testcase name="destinationsShareEqualWidthWhenTheirFullRowFits" classname="com.whip.app.ui.InteractionControlUiTest" time="0.583" />
+    <testcase name="trackNumberUnitSelectorKeepsTheUsersActiveNonDefaultUnitSelected" classname="com.whip.app.ui.InteractionControlUiTest" time="1.108" />
+    <testcase name="trackNumberEntryRemainsUsableAtCompactWidthAndTwoHundredPercentText" classname="com.whip.app.ui.InteractionControlUiTest" time="0.757" />
+    <testcase name="longHorizontalReorderRowScrollsAndKeepsMovingAtTheViewportEdge" classname="com.whip.app.ui.InteractionControlUiTest" time="0.907" />
+    <testcase name="measuredInsertionPreviewMovesSiblingsAndCancelRestoresTheirGeometry" classname="com.whip.app.ui.InteractionControlUiTest" time="1.108" />
+    <testcase name="explicitDirectDestinationsRemainStableAtLargeTextInRtl" classname="com.whip.app.ui.InteractionControlUiTest" time="0.932" />
+    <testcase name="fullScreenDestinationOwnsTheWindowWhileContentRespectsSafeInsets" classname="com.whip.app.ui.InteractionControlUiTest" time="0.584" />
+    <testcase name="pageHeaderActionsDoNotShiftTitleOrSupportingText" classname="com.whip.app.ui.InteractionControlUiTest" time="0.63" />
+    <testcase name="largeTextKeepsTwoSegmentChoicesVisibleWhenTheyFit" classname="com.whip.app.ui.InteractionControlUiTest" time="0.657" />
+    <testcase name="datePickerTodayUsesTheConfiguredWhipDate" classname="com.whip.app.ui.InteractionControlUiTest" time="1.235" />
+    <testcase name="calendarHeaderKeepsNavigationReachableAtCompactLargeTextAndRtl" classname="com.whip.app.ui.InteractionControlUiTest" time="0.882" />
+    <testcase name="sharedControlsExposeConsistentStateRolesAndTouchTargets" classname="com.whip.app.ui.InteractionControlUiTest" time="1.238" />
+    <testcase name="selectionActionPanelKeepsCallerActionsAndDoneReachableAtLargeText" classname="com.whip.app.ui.InteractionControlUiTest" time="0.734" />
+    <testcase name="pageHeaderKeepsFollowingContentVisuallySeparated" classname="com.whip.app.ui.InteractionControlUiTest" time="0.479" />
+    <testcase name="sharedColorPickerSupportsPresetsAndExactCustomColors" classname="com.whip.app.ui.InteractionControlUiTest" time="1.892" />
+    <testcase name="fourRemainingTaskDestinationsFitTheCompactCoverWidthWithoutClipping" classname="com.whip.app.ui.InteractionControlUiTest" time="0.707" />
+    <testcase name="allDestinationsRemainDirectWhenPriorityHintIsShorter" classname="com.whip.app.ui.InteractionControlUiTest" time="0.832" />
+    <testcase name="trackNumberEntrySupportsSignedDecimalsWithoutDestroyingPartialInput" classname="com.whip.app.ui.InteractionControlUiTest" time="1.235" />
+    <testcase name="searchFilterSummariesRemainReadableAndTouchSizedWhenSeveralAreActive" classname="com.whip.app.ui.InteractionControlUiTest" time="1.715" />
+    <testcase name="reorderHandleOwnsTouchDragAndUsesTheLatestMoveCallback" classname="com.whip.app.ui.InteractionControlUiTest" time="0.603" />
+    <testcase name="editorHeaderStacksActionsBelowIdentityAtCompactLargeText" classname="com.whip.app.ui.InteractionControlUiTest" time="0.605" />
+  </testsuite>
+</testsuites>

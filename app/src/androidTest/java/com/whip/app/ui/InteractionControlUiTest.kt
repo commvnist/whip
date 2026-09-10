@@ -918,74 +918,59 @@ class InteractionControlUiTest {
     }
 
     @Test
-    fun productivityHeaderKeepsDisclosureBeforeTheTrailingPrimaryAction() {
+    fun productivityBuilderKeepsDisclosureBeforeTheTrailingPrimaryAction() {
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 Box(Modifier.width(320.dp)) {
-                    ProductivityItemHeader(
-                        itemType = "task",
-                        itemName = "Review release notes",
-                        emoji = "📋",
-                        areaId = null,
-                        areaName = "Main",
-                        onEdit = null,
-                        expanded = false,
-                        onExpansionToggle = {},
-                        expansionTag = "header-disclosure",
-                        primaryAction = {
-                            Box(Modifier.size(48.dp).testTag("header-primary-action"))
-                        },
-                    )
+                    WhipProductivityItemContent("task", "Review release notes", "📋") {
+                        disclosure(expanded = false, tag = "header-disclosure", onToggle = {})
+                        primaryAction { Box(Modifier.size(48.dp).testTag("header-primary-action")) }
+                    }
                 }
             }
         }
-
-        val disclosure = compose.onNodeWithTag("header-disclosure", useUnmergedTree = true)
-            .fetchSemanticsNode().boundsInRoot
-        val action = compose.onNodeWithTag("header-primary-action", useUnmergedTree = true)
-            .fetchSemanticsNode().boundsInRoot
+        val disclosure = compose.onNodeWithTag("header-disclosure", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val action = compose.onNodeWithTag("header-primary-action", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         assertTrue("Disclosure must precede the primary action: $disclosure vs $action", disclosure.right <= action.left)
         assertTrue("Primary action must remain the logical trailing control: $action", action.right <= with(compose.density) { 320.dp.toPx() } + 0.5f)
     }
 
     @Test
-    fun productivityHeaderAlignsPersistentAndExpandedInformationToTheIdentityEdge() {
+    fun productivityBuilderKeepsInformationFullWidthAndEditAfterTheBody() {
+        val expanded = mutableStateOf(false)
         compose.setContent {
             WhipTheme(dynamicColor = false) {
-                Box(Modifier.width(320.dp)) {
-                    ProductivityItemHeader(
-                        itemType = "goal",
-                        itemName = "Consistent reading order",
-                        emoji = "🎯",
-                        areaId = null,
-                        areaName = "Main",
-                        onEdit = null,
+                Box(Modifier.width(380.dp)) {
+                    WhipProductivityItemContent(
+                        "goal", "Consistent reading order", "🎯",
                         identityModifier = Modifier.testTag("aligned-header-identity"),
                         titleModifier = Modifier.testTag("aligned-header-title"),
-                        persistentSummaryContent = {
-                            Box(Modifier.fillMaxWidth().height(12.dp).testTag("aligned-header-persistent"))
-                        },
-                        supportingContent = {
-                            Box(Modifier.fillMaxWidth().height(12.dp).testTag("aligned-header-support"))
-                        },
-                        expanded = true,
-                        onExpansionToggle = {},
-                    )
+                        editModifier = Modifier.testTag("aligned-edit"),
+                    ) {
+                        summary { text("Short summary", Modifier.testTag("aligned-summary")) }
+                        details { text("Complete supporting information across the available width", Modifier.testTag("aligned-support")) }
+                        expandedContent { Box(Modifier.fillMaxWidth().height(24.dp).testTag("aligned-body")) }
+                        edit {}
+                        disclosure(expanded = expanded.value, tag = "aligned-disclosure", onToggle = { expanded.value = !expanded.value })
+                    }
                 }
             }
         }
-
-        val identity = compose.onNodeWithTag("aligned-header-identity", useUnmergedTree = true)
-            .fetchSemanticsNode().boundsInRoot
-        val title = compose.onNodeWithTag("aligned-header-title", useUnmergedTree = true)
-            .fetchSemanticsNode().boundsInRoot
-        val persistent = compose.onNodeWithTag("aligned-header-persistent", useUnmergedTree = true)
-            .fetchSemanticsNode().boundsInRoot
-        val support = compose.onNodeWithTag("aligned-header-support", useUnmergedTree = true)
-            .fetchSemanticsNode().boundsInRoot
-        assertEquals(identity.left, persistent.left, 1f)
-        assertEquals(identity.left, support.left, 1f)
+        val identity = compose.onNodeWithTag("aligned-header-identity", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val title = compose.onNodeWithTag("aligned-header-title", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val summary = compose.onNodeWithTag("aligned-summary", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        assertEquals(identity.left, summary.left, 1f)
         assertTrue("The title remains start-aligned after the emoji", title.left > identity.left)
+        compose.onNodeWithTag("aligned-disclosure").performClick()
+        compose.onAllNodesWithTag("aligned-summary").assertCountEquals(0)
+        val support = compose.onNodeWithTag("aligned-support", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val body = compose.onNodeWithTag("aligned-body", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val edit = compose.onNodeWithTag("aligned-edit", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        assertEquals(identity.left, support.left, 1f)
+        assertEquals(identity.left, body.left, 1f)
+        assertEquals(body.right, edit.right, 1f)
+        assertTrue("Expanded details use the width above the edit action", support.right > edit.right - with(compose.density) { 48.dp.toPx() })
+        assertTrue("Secondary Edit follows all information", edit.top >= body.bottom)
     }
 
     @Test

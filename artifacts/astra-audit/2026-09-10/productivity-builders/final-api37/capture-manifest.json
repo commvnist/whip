@@ -1,0 +1,142 @@
+[
+  {
+    "file": "shared.home.populated.xml",
+    "original": "shared.home.populated.xml",
+    "sha256": "da43190b0e282f3f816c8cc1fe96727a6da4f66d69e54be1ead5c1b0370e1663"
+  },
+  {
+    "file": "shared.home.populated.png",
+    "original": "shared.home.populated.png",
+    "sha256": "556efd29d339bed3c5126d55e8399c14945201a2ae7fed7e0fbeb2f78bab096d"
+  },
+  {
+    "file": "habits.insights.populated.xml",
+    "original": "habits.insights.populated.xml",
+    "sha256": "093dae6d1375b0cccb3fd7ed0860459cdbcfd2ea2fd5983b7f56aa363109dd52"
+  },
+  {
+    "file": "habits.insights.populated.png",
+    "original": "habits.insights.populated.png",
+    "sha256": "305d224cec63cbd62f55d2c0a60fca790e5e78079c9839c073effeb99935eb7f"
+  },
+  {
+    "file": "habits.archived.populated.xml",
+    "original": "habits.archived.populated.xml",
+    "sha256": "f597f1ea47a6e014ae4e4d3d7556b1f7c3ac7949f7d0cd6d12809541c4404c20"
+  },
+  {
+    "file": "habits.archived.populated.png",
+    "original": "habits.archived.populated.png",
+    "sha256": "b5fa2c38bb99352abadd3b877241e9448f95e473d23ade7619a61c38bd7313a4"
+  },
+  {
+    "file": "habits.today.expanded.xml",
+    "original": "habits.today.expanded.xml",
+    "sha256": "3f11f95a6da37ddcde859cfb2b13738f2939d5b0ea065be4e87bd6ba9c00fbe2"
+  },
+  {
+    "file": "habits.today.expanded.png",
+    "original": "habits.today.expanded.png",
+    "sha256": "9e3e98b86a0bc9017af015cc67983cc72d287f94ddcb1f3f200773d12e92e5bf"
+  },
+  {
+    "file": "habits.today.populated.xml",
+    "original": "habits.today.populated.xml",
+    "sha256": "6bb2434d87ac20011807c9d1b7b851f240b0862193e5fb1c8670ba1e072e5855"
+  },
+  {
+    "file": "habits.today.populated.png",
+    "original": "habits.today.populated.png",
+    "sha256": "5877f51a3e31f1d51214596b7834913393fa5ec47aaa73de04bf235d60627d3a"
+  },
+  {
+    "file": "goals.insights.populated.xml",
+    "original": "goals.insights.populated.xml",
+    "sha256": "36fc690e5e6caf435c12d632e85edc0d7c22ae663a5d49d7dbae229dc2cc1e78"
+  },
+  {
+    "file": "goals.insights.populated.png",
+    "original": "goals.insights.populated.png",
+    "sha256": "bf627d0d06ef3b874a5e4aa11cc52319d3c61bc72eac42a711176d2d8306fdc9"
+  },
+  {
+    "file": "goals.active.expanded.xml",
+    "original": "goals.active.expanded.xml",
+    "sha256": "20ed8785bf44576cde23e91cf043338aabb88206c2ea0023ed0d9ab107d20407"
+  },
+  {
+    "file": "goals.active.expanded.png",
+    "original": "goals.active.expanded.png",
+    "sha256": "6414bba4e4719e560389762fc123a37a62feb3d011ec074aa89077caeebf656d"
+  },
+  {
+    "file": "goals.active.populated.xml",
+    "original": "goals.active.populated.xml",
+    "sha256": "949902c6045d0c8c1f7b65bcd442341f043194aed4e93f37b2af45aecc26234a"
+  },
+  {
+    "file": "goals.active.populated.png",
+    "original": "goals.active.populated.png",
+    "sha256": "dd34c88b8680a52cb872526ec1f3f00605241941afa43c88733d8f2d9daf2916"
+  },
+  {
+    "file": "tracks.all.expanded.xml",
+    "original": "tracks.all.expanded.xml",
+    "sha256": "4925108b29bc9643d6a8b6a5d1beb8e1f6d7c06e8215d54dd95e27e23fbf0b83"
+  },
+  {
+    "file": "tracks.all.expanded.png",
+    "original": "tracks.all.expanded.png",
+    "sha256": "270d6fe7324485782bea8cba72946ff6548c94da7e859edbaf52ea26c78742a9"
+  },
+  {
+    "file": "tracks.all.populated.xml",
+    "original": "tracks.all.populated.xml",
+    "sha256": "d99c93e6da33a8a2e869a9306ccbd8f6a3656b33e98b387c41481e6c0675005f"
+  },
+  {
+    "file": "tracks.all.populated.png",
+    "original": "tracks.all.populated.png",
+    "sha256": "3c35b987880495b18d878507197fd1e7f3ec97c96fa04bd949da81786ed40789"
+  },
+  {
+    "file": "tasks.today.expanded.xml",
+    "original": "tasks.today.expanded.xml",
+    "sha256": "fbf9e87ce33d5e9864724b7ee47044228c35668e792ec56c373b67fec6cbfd59"
+  },
+  {
+    "file": "tasks.today.expanded.png",
+    "original": "tasks.today.expanded.png",
+    "sha256": "66a2bf4fc9b53d70aab039e923236039993baad61e3b284cadc4f145aec8da43"
+  },
+  {
+    "file": "tasks.today.populated.xml",
+    "original": "tasks.today.populated.xml",
+    "sha256": "5b7fabb9edbf0f030393fb0a9badc467342048aef20e5f76024fa33a2ce6fa3b"
+  },
+  {
+    "file": "tasks.today.populated.png",
+    "original": "tasks.today.populated.png",
+    "sha256": "f89fbd9109b6ff24d4cee4e43b8dc902c31fbb607032d9dd4e7853fb299a6ed6"
+  },
+  {
+    "file": "habits.productivity-builder.timer-stopped.xml",
+    "original": "habits.productivity-builder.timer-stopped.xml",
+    "sha256": "ba4a7c0e745fe348534c4ac193933189c17251dc258d2503789df83d0a76a3cc"
+  },
+  {
+    "file": "habits.productivity-builder.timer-stopped.png",
+    "original": "habits.productivity-builder.timer-stopped.png",
+    "sha256": "e70d3d1a9511ff8dcb4349497a4c6e22e6e180a4d354c3c3faae5311853f275b"
+  },
+  {
+    "file": "habits.productivity-builder.timer-expanded.xml",
+    "original": "habits.productivity-builder.timer-expanded.xml",
+    "sha256": "8bbc20298afa464b3fc766b0f5298d5870b0f22c1d0d0a197d01076c4e73e99e"
+  },
+  {
+    "file": "habits.productivity-builder.timer-expanded.png",
+    "original": "habits.productivity-builder.timer-expanded.png",
+    "sha256": "0993fea7815a26394833376d1563ce3e6f3b368ede6ed5a28254392a4a65b0ec"
+  }
+]

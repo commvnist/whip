@@ -1,0 +1,34 @@
+file	NAF_nodes	observation
+final-api34/goals.active.expanded.png	0	Centered identity/title/actions; full-width Area and detail; Edit follows the complete specialized body. Sample content is readable at normal scale.
+final-api34/goals.active.populated.png	0	Collapsed identity/title/actions align across families; complete declared summaries occupy full-width second rows. Goal compact elapsed-unit policy is unchanged and warrants separate review.
+final-api34/goals.insights.populated.png	0	Insight cards preserve shared identity/Area/detail hierarchy and specialized metrics. Text wraps; lower records scroll beyond the viewport.
+final-api34/habits.archived.populated.png	0	Archived Habit keeps direct header Edit and full-width Area/status without an empty disclosure footer.
+final-api34/habits.insights.populated.png	0	Insight cards preserve shared identity/Area/detail hierarchy and specialized metrics. Text wraps; lower records scroll beyond the viewport.
+final-api34/habits.productivity-builder.timer-expanded.png	0	One timer status; centered title/disclosure/Stop; full-width information and progress precede final Edit. Start/recreation/edit cancellation/stop verified in the native journey.
+final-api34/habits.productivity-builder.timer-stopped.png	0	Start replaces Stop and running status disappears. Progress and target precede final Edit; exact Habit identity/measurement and timer closure verified.
+final-api34/habits.today.expanded.png	0	Centered identity/title/actions; full-width Area and detail; Edit follows the complete specialized body. Sample content is readable at normal scale.
+final-api34/habits.today.populated.png	0	Collapsed identity/title/actions align across families; complete declared summaries occupy full-width second rows. Goal compact elapsed-unit policy is unchanged and warrants separate review.
+final-api34/shared.home.populated.png	0	Home reuses the same compact productivity cards and actions. Lower items scroll beyond the captured viewport; wide sidebar retains its separate navigation role.
+final-api34/tasks.today.expanded.png	0	Centered identity/title/actions; full-width Area and detail; Edit follows the complete specialized body. Sample content is readable at normal scale.
+final-api34/tasks.today.populated.png	0	Collapsed identity/title/actions align across families; complete declared summaries occupy full-width second rows. Goal compact elapsed-unit policy is unchanged and warrants separate review.
+final-api34/tracks.all.expanded.png	0	Centered identity/title/actions; full-width Area and detail; Edit follows the complete specialized body. Sample content is readable at normal scale.
+final-api34/tracks.all.populated.png	0	Collapsed identity/title/actions align across families; complete declared summaries occupy full-width second rows. Goal compact elapsed-unit policy is unchanged and warrants separate review.
+final-api37/goals.active.expanded.png	0	Centered identity/title/actions; full-width Area and detail; Edit follows the complete specialized body. Sample content is readable at normal scale.
+final-api37/goals.active.populated.png	0	Collapsed identity/title/actions align across families; complete declared summaries occupy full-width second rows. Goal compact elapsed-unit policy is unchanged and warrants separate review.
+final-api37/goals.insights.populated.png	0	Insight cards preserve shared identity/Area/detail hierarchy and specialized metrics. Text wraps; lower records scroll beyond the viewport.
+final-api37/habits.archived.populated.png	0	Archived Habit keeps direct header Edit and full-width Area/status without an empty disclosure footer.
+final-api37/habits.insights.populated.png	0	Insight cards preserve shared identity/Area/detail hierarchy and specialized metrics. Text wraps; lower records scroll beyond the viewport.
+final-api37/habits.productivity-builder.timer-expanded.png	0	One timer status; centered title/disclosure/Stop; full-width information and progress precede final Edit. Start/recreation/edit cancellation/stop verified in the native journey.
+final-api37/habits.productivity-builder.timer-stopped.png	0	Start replaces Stop and running status disappears. Progress and target precede final Edit; exact Habit identity/measurement and timer closure verified.
+final-api37/habits.today.expanded.png	0	Centered identity/title/actions; full-width Area and detail; Edit follows the complete specialized body. Sample content is readable at normal scale.
+final-api37/habits.today.populated.png	0	Collapsed identity/title/actions align across families; complete declared summaries occupy full-width second rows. Goal compact elapsed-unit policy is unchanged and warrants separate review.
+final-api37/shared.home.populated.png	0	Home reuses the same compact productivity cards and actions. Lower items scroll beyond the captured viewport; wide sidebar retains its separate navigation role.
+final-api37/tasks.today.expanded.png	0	Centered identity/title/actions; full-width Area and detail; Edit follows the complete specialized body. Sample content is readable at normal scale.
+final-api37/tasks.today.populated.png	0	Collapsed identity/title/actions align across families; complete declared summaries occupy full-width second rows. Goal compact elapsed-unit policy is unchanged and warrants separate review.
+final-api37/tracks.all.expanded.png	0	Centered identity/title/actions; full-width Area and detail; Edit follows the complete specialized body. Sample content is readable at normal scale.
+final-api37/tracks.all.populated.png	0	Collapsed identity/title/actions align across families; complete declared summaries occupy full-width second rows. Goal compact elapsed-unit policy is unchanged and warrants separate review.
+before/goals.active.expanded.png	0	Baseline: shared header places Edit before specialized body; timer status repeats twice in the real running Habit. Family originals establish pre-migration hierarchy.
+before/habits.productivity-builder.timer-expanded.png	0	Baseline: shared header places Edit before specialized body; timer status repeats twice in the real running Habit. Family originals establish pre-migration hierarchy.
+before/habits.today.expanded.png	0	Baseline: shared header places Edit before specialized body; timer status repeats twice in the real running Habit. Family originals establish pre-migration hierarchy.
+before/tasks.today.expanded.png	0	Baseline: shared header places Edit before specialized body; timer status repeats twice in the real running Habit. Family originals establish pre-migration hierarchy.
+before/tracks.all.expanded.png	0	Baseline: shared header places Edit before specialized body; timer status repeats twice in the real running Habit. Family originals establish pre-migration hierarchy.

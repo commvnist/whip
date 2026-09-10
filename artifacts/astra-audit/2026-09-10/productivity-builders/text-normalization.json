@@ -1,0 +1,207 @@
+[
+  {
+    "file": "final-api34/goals.active.expanded.xml",
+    "original": "bbedbdb54a42e76e4cbde802c1b345eed22df450cd61c548f597e2577ef302ee",
+    "retained": "65294da8174f506c86892e9139a9f4f3882f4e63b42316d366ce997d6d79bbcf"
+  },
+  {
+    "file": "final-api34/goals.active.populated.xml",
+    "original": "bd54ef8e78264cb5f678b1f72a8329a0741d99d396385279579096e59049b799",
+    "retained": "6aed84bbffc4744b374fe9d5951678cb62305a8554a06088770b6538b15207a0"
+  },
+  {
+    "file": "final-api34/goals.insights.populated.xml",
+    "original": "eaa8cb584353905024a3a1f5331551592f009b1a0ac3cde952e268cc83d2e305",
+    "retained": "8cdd375783b1265ae91e6a25ac3cd36d88ef28a5d7dabf681cfcff94ffba2e3d"
+  },
+  {
+    "file": "final-api34/habits.archived.populated.xml",
+    "original": "07dc96415481d8ccd7586c20d20bd076f9c38358948411bd5215d00b3a03a38c",
+    "retained": "cf1ae38c5648d8137c8b467a830f5b042e1ff9e8981e09b3f1928097302cd2b3"
+  },
+  {
+    "file": "final-api34/habits.insights.populated.xml",
+    "original": "ee0650fb726b014226617d2eb6b458fc2b0772499e5ebadceb732a624212d6cb",
+    "retained": "c0a7651b01f05de515d18e6a0b2e4976fb2b92b339182dff90d213963d9404ca"
+  },
+  {
+    "file": "final-api34/habits.productivity-builder.timer-expanded.xml",
+    "original": "364e93364e13b09a823548ad2aea9103b88928ee473fc9a9c3b0404ff33dd306",
+    "retained": "87b19a18121818e1719bea8226de9f3930967e5d2cb13c7b32134e78de33cb61"
+  },
+  {
+    "file": "final-api34/habits.productivity-builder.timer-stopped.xml",
+    "original": "0a6d92adf23222245975c09b84f8fd44ab43f8d5c1112b4717e36ff0448543b6",
+    "retained": "19ab16579b9d18b0fc8de7198a1a7e79aa99b00145f1f4bc97e27c2d2bbe8169"
+  },
+  {
+    "file": "final-api34/habits.today.expanded.xml",
+    "original": "891125911fb0d88649f300dd11fecf761b6985d8e89bfc1b467d98faeec84f02",
+    "retained": "cfb943dd72e26f17f3ad64c6f209af97ebbcd06a31547fe71d1153a99ea3b0cc"
+  },
+  {
+    "file": "final-api34/habits.today.populated.xml",
+    "original": "25d8fde548f776fc6352786296753cefc9b59744984fbbfaf4be3008f9ccdead",
+    "retained": "fb981dc086c7c1451de6456f68ee35c4c16a3933ade5c93353af35f64e0df2c4"
+  },
+  {
+    "file": "final-api34/shared.home.populated.xml",
+    "original": "f351f62dbbe0dae8993ee1673c6eab73a4c2ef119915ca3ee5e48b41e2e7f8f6",
+    "retained": "e173001bc0bc9edf1f60c1b5f42b7f1715efaa93c800b56698801b4309d25c9d"
+  },
+  {
+    "file": "final-api34/tasks.today.expanded.xml",
+    "original": "2c49441e92cb094c9e4a9655d7f90b409c4b1a1d523d38de98398f330d7511bc",
+    "retained": "73cfb2466aa07d22767b95670ceeadd90a456a243a2786d635222e27eb2c05ed"
+  },
+  {
+    "file": "final-api34/tasks.today.populated.xml",
+    "original": "617494217735bec3a3456f30af3b15332291862b8b3e003bd58982e881201d0c",
+    "retained": "094a58705b613305e6173d3aa6149aafc98a5152a9d0a63fbbf06498497aa117"
+  },
+  {
+    "file": "final-api34/tracks.all.expanded.xml",
+    "original": "27af22b0c6fa30c3d5d77bc51c130e643b6c98babf7a42142cc1dcee45fea6a9",
+    "retained": "6f0921be2ed48d513c69e6cbe17ca84e8a0b088db3867410b1d79f2a9e74c29c"
+  },
+  {
+    "file": "final-api34/tracks.all.populated.xml",
+    "original": "4a77f04149c949ec55d9e82809acb0d2f34ae3db8c54fe763698331f15d3b731",
+    "retained": "2af4d83cab83350008f2f5046af023d65c17b044b1eb7af897b9211d4474cb57"
+  },
+  {
+    "file": "final-api37/goals.active.expanded.xml",
+    "original": "20ed8785bf44576cde23e91cf043338aabb88206c2ea0023ed0d9ab107d20407",
+    "retained": "9f0afe291e4097623236363c64cd1a022c5546bb391819ec6227b89d6fde458c"
+  },
+  {
+    "file": "final-api37/goals.active.populated.xml",
+    "original": "949902c6045d0c8c1f7b65bcd442341f043194aed4e93f37b2af45aecc26234a",
+    "retained": "6f0ae52f2ecdf974cdc84d3ff04a4c156310c1662128ef2b7ee5bf0452c8c5f8"
+  },
+  {
+    "file": "final-api37/goals.insights.populated.xml",
+    "original": "36fc690e5e6caf435c12d632e85edc0d7c22ae663a5d49d7dbae229dc2cc1e78",
+    "retained": "d9e7aa9536b4879960e6cc50a1935008c6442edd31e07da185fe91e4824fd7a4"
+  },
+  {
+    "file": "final-api37/habits.archived.populated.xml",
+    "original": "f597f1ea47a6e014ae4e4d3d7556b1f7c3ac7949f7d0cd6d12809541c4404c20",
+    "retained": "3fca4c04588ece533dba4a52e33e790f0c7c2f47936a52720a64c3eb0484e92b"
+  },
+  {
+    "file": "final-api37/habits.insights.populated.xml",
+    "original": "093dae6d1375b0cccb3fd7ed0860459cdbcfd2ea2fd5983b7f56aa363109dd52",
+    "retained": "ed40d24f9f27b25be94ec80b2da0652ca90f9a25dad31dcdb14009a62b6c4168"
+  },
+  {
+    "file": "final-api37/habits.productivity-builder.timer-expanded.xml",
+    "original": "8bbc20298afa464b3fc766b0f5298d5870b0f22c1d0d0a197d01076c4e73e99e",
+    "retained": "2c1b95d8d635266b14e9b7d2842ae1e509316fa4368ca29af4ca1ea19e261723"
+  },
+  {
+    "file": "final-api37/habits.productivity-builder.timer-stopped.xml",
+    "original": "ba4a7c0e745fe348534c4ac193933189c17251dc258d2503789df83d0a76a3cc",
+    "retained": "af26d603c4aa090c9a918e75caee347a51d2a3db7fe17e4cd3bb58f30ab5c0e5"
+  },
+  {
+    "file": "final-api37/habits.today.expanded.xml",
+    "original": "3f11f95a6da37ddcde859cfb2b13738f2939d5b0ea065be4e87bd6ba9c00fbe2",
+    "retained": "51c12a0e4d860be5db160e0a9c5aeff669ce51183c71e7816481da7ac9617c0d"
+  },
+  {
+    "file": "final-api37/habits.today.populated.xml",
+    "original": "6bb2434d87ac20011807c9d1b7b851f240b0862193e5fb1c8670ba1e072e5855",
+    "retained": "63dc2cec5c279933facb2a314f8cb5c3e0584872187993ed413f6371b8982c8a"
+  },
+  {
+    "file": "final-api37/shared.home.populated.xml",
+    "original": "da43190b0e282f3f816c8cc1fe96727a6da4f66d69e54be1ead5c1b0370e1663",
+    "retained": "9cea3a1ec3eec501d8cd3b1d43249f31f4a3a718492b708bb5d3f400a1dc3531"
+  },
+  {
+    "file": "final-api37/tasks.today.expanded.xml",
+    "original": "fbf9e87ce33d5e9864724b7ee47044228c35668e792ec56c373b67fec6cbfd59",
+    "retained": "46b8924715d6fbd13b3ee853715a25b9d5e598b424a2a0852a731d49656798cc"
+  },
+  {
+    "file": "final-api37/tasks.today.populated.xml",
+    "original": "5b7fabb9edbf0f030393fb0a9badc467342048aef20e5f76024fa33a2ce6fa3b",
+    "retained": "2847089d61324cb61fc4c3ade9ee10f20cb74b3445ca6ddcb14d6a333126230e"
+  },
+  {
+    "file": "final-api37/tracks.all.expanded.xml",
+    "original": "4925108b29bc9643d6a8b6a5d1beb8e1f6d7c06e8215d54dd95e27e23fbf0b83",
+    "retained": "59d05e0208ebf269173c9b97ac25acc8e66dec796c5a22fdb672d679ffc6feea"
+  },
+  {
+    "file": "final-api37/tracks.all.populated.xml",
+    "original": "d99c93e6da33a8a2e869a9306ccbd8f6a3656b33e98b387c41481e6c0675005f",
+    "retained": "5fa6eb6f2217e49aac5fbbf545d361f205054be7d79f0fd3ec601b7365a8f0f1"
+  },
+  {
+    "file": "before/goals.active.expanded.xml",
+    "original": "f46da363ba9d8e7527062b865f4aef4e357aa8fc5444d2c8831bc44e962df5ce",
+    "retained": "6fda95497c477f4bf06b21e633494412bc1b9275f99c9a113dfca79a37cea6a5"
+  },
+  {
+    "file": "before/habits.productivity-builder.timer-expanded.xml",
+    "original": "de714e13921931ab1434cdc92fa74ab55c75f96da6c2c9f105de2c6fed7a1cb8",
+    "retained": "63a11af9d40a7b501cb9d865daecd2a6255ff1cf172452562e21a6b94faa6a3c"
+  },
+  {
+    "file": "before/habits.today.expanded.xml",
+    "original": "0e214874686721a6b8bc186bd3d5cff8ce1280b4cfaff782ebbb2c3800e19fce",
+    "retained": "0cc930d863a38adb8dc980257edff7d9206137ce062ceb62662065e5e413d70b"
+  },
+  {
+    "file": "before/tasks.today.expanded.xml",
+    "original": "818bb5865d9a32e5df0fe32b8b710010d751e611cc714a5b8868e297d4325cdb",
+    "retained": "fc61a654a7ee84071f812309da553f9d2c072c96b6f561467ed09f50a22316f2"
+  },
+  {
+    "file": "before/tracks.all.expanded.xml",
+    "original": "310b57b3e8004122a2b3f54379d21eff4676f3665250d7b6280158ae2c9f666d",
+    "retained": "b32fb91c56d38ba387eb21d42e1bb310d95cce62c224d6b45c53c3ae502bb995"
+  },
+  {
+    "file": "native/RdkfiK/batch-1/result-1.xml",
+    "original": "bdb9ae4e3a9b9cb19cb7e64f581b8043ac63c63a9b44a011688aa26e6882de4d",
+    "retained": "51691e95bc99b9aedc6e36daef4c6ec0cfe7b126d9113389c28ced42bd50c8e9"
+  },
+  {
+    "file": "native/sR6HSf/batch-1/result-1.xml",
+    "original": "d721ddff79398cef54a9e8cdcfb01aa1d2e8ae2aea9d3c132b56957f866d8c72",
+    "retained": "ad968f92c3f1a80a5f466e07e29ff348390d5b320b2a18bf222fd545476cdf56"
+  },
+  {
+    "file": "native/sR6HSf/batch-3/result-1.xml",
+    "original": "d3c0de2cb838f8e1639c7eccbe3efa67dd9f9445c71325391e933f0a5dd2e106",
+    "retained": "196167b2198cd78a7a93440e0b4ba2aa95712cb9baf145167cde00665067c2c3"
+  },
+  {
+    "file": "native/sR6HSf/batch-2/result-1.xml",
+    "original": "d7f1e5b2bb51d30a62e9b81135f5ac2581a8caf652a9371404480770d5603c3a",
+    "retained": "fa11c821f0ca5cf0d8c543b8005487b94548068bf068ad02ec6e19fd6465244d"
+  },
+  {
+    "file": "native/0fpEQ2/batch-1/result-1.xml",
+    "original": "737196fd05e612e588d20f7f6451a56a5f5bcb0dfb3a8f7e1514ff5153f0e2f9",
+    "retained": "4c503f02c1956b27265a08f5a0c7ef08b41bc6f8f5b4187bbd0c06ed6b664d88"
+  },
+  {
+    "file": "native/vcheWG/batch-1/result-1.xml",
+    "original": "61fb61f909e2ef5a4e402d451cf55e1d2daae217ad2851151c9babc92e64739d",
+    "retained": "f920aa72347cf5eb2b260d8ba67200fe11179497c24652413e89946c912fa5e6"
+  },
+  {
+    "file": "native/vcheWG/batch-2/result-1.xml",
+    "original": "5b2ffccb69f6d571eed5d5b262f37459c5175795674d449f54840bdbdcbf63c7",
+    "retained": "b1c5d4c05429fc1dfebdef9c5982715d7af5bf2f40d8e8032c98de9bfc370003"
+  },
+  {
+    "file": "native/aMg7Uk/batch-1/result-1.xml",
+    "original": "1d3aede0f1e46262da481ba419e3099a31ad641226b5bc3a1f90acf79ae7b763",
+    "retained": "5c9210866583683f61c8f187c607a5934abdd270e002fa9ee4b8d423e6f1f0fc"
+  }
+]

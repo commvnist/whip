@@ -1,0 +1,2 @@
+com.whip.app.ProductivityCardDesignUiTest
+com.whip.app.ProductivityItemBuilderJourneyE2ETest

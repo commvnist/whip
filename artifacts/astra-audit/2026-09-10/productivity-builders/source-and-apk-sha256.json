@@ -1,0 +1,14 @@
+{
+  "app/src/main/java/com/whip/app/ui/ItemControlPatterns.kt": "fb2ad01da1f9a8419803602b7ec98da3a00c242a0c5cc7d74588310d90c1c9fc",
+  "app/src/main/java/com/whip/app/ui/WhipProductivityItemBuilder.kt": "4b9e3d6fa7c76c1a8736b4a1adf6432543209aaa94ae8389d34b4c209b1bd0aa",
+  "app/src/main/java/com/whip/app/ui/TaskComponents.kt": "e85e8b3fdff02522e3032701d0f34730a6fcb36c0b37b6f67a576f518a9a283f",
+  "app/src/main/java/com/whip/app/ui/TrackScreens.kt": "eeedf6e97d72ba3e3198497856614ab75fee124baf550a9897083467cc3dd66e",
+  "app/src/main/java/com/whip/app/ui/GoalScreens.kt": "380736ea92d3fc12da1f22019f68c03d4fabe44f2bf360ad72521c2abed0e026",
+  "app/src/main/java/com/whip/app/ui/HabitScreens.kt": "1fff979250a0278488a18e4a6365a13c879640a35ee7abb33a192a132037e059",
+  "app/src/androidTest/java/com/whip/app/VisualCatalogPagesTest.kt": "9e323818bfc3e90f75c285f1e7e76859c0e16cea4de8c41d2e25a8e12c9a7900",
+  "app/src/androidTest/java/com/whip/app/ProductivityItemBuilderJourneyE2ETest.kt": "39eb89ce840dddaf9c4374fb949e5a37f61519abb37fd3cc153749ec9e1fd634",
+  "app/src/androidTest/java/com/whip/app/ui/InteractionControlUiTest.kt": "7ea27c0e5afc75f7cf87eb9479310d31ded95969d4f4829f9604c9aa546649b5",
+  "scripts/qa-targeted": "130478606fe4a2d08c4c4ab340791302a3538d19f774a632a5ff440b30fe6a03",
+  "app/build/outputs/apk/debug/app-debug.apk": "f2319979846225e26eb0889d274cf0dff621324c415f5aa5c03efe883e1aeca0",
+  "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk": "e1d48faf51e8e7575272b6e6b4d82d7b39265c72cf6b25c98d070ff71e447a23"
+}

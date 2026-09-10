@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="1" errors="0" skipped="0" time="3.026" timestamp="2026-09-10T06:07:26" hostname="localhost">
+  <testsuite name="com.whip.app.ui.InteractionControlUiTest" tests="2" failures="1" errors="0" skipped="0" time="2.029" timestamp="2026-09-10T06:07:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="productivityBuilderKeepsInformationFullWidthAndEditAfterTheBody" classname="com.whip.app.ui.InteractionControlUiTest" time="1.5">
+      <failure>java.lang.AssertionError: Expanded details use the width above the edit action
+at org.junit.Assert.fail(Assert.java:89)
+at org.junit.Assert.assertTrue(Assert.java:42)
+at com.whip.app.ui.InteractionControlUiTest.productivityBuilderKeepsInformationFullWidthAndEditAfterTheBody(InteractionControlUiTest.kt:972)
+</failure>
+    </testcase>
+    <testcase name="productivityBuilderKeepsDisclosureBeforeTheTrailingPrimaryAction" classname="com.whip.app.ui.InteractionControlUiTest" time="0.529" />
+  </testsuite>
+</testsuites>

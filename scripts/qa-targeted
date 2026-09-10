@@ -168,6 +168,7 @@ add_profile() {
             android_classes+=(
                 'com.whip.app.HabitRepositoryTest'
                 'com.whip.app.HabitSkipJourneyE2ETest'
+                'com.whip.app.ProductivityItemBuilderJourneyE2ETest'
                 'com.whip.app.ActivityHistoryUiTest'
                 'com.whip.app.ProductivityCardDesignUiTest'
             )

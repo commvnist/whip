@@ -1,0 +1,52 @@
+[
+  {
+    "file": "habits.today.expanded.xml",
+    "original": "habits.today.expanded.xml",
+    "sha256": "0e214874686721a6b8bc186bd3d5cff8ce1280b4cfaff782ebbb2c3800e19fce"
+  },
+  {
+    "file": "habits.today.expanded.png",
+    "original": "habits.today.expanded.png",
+    "sha256": "ea71070ae02f0338f8882849f3bf17f87d8ca14ea5bdecb5254eaa97f29a6a54"
+  },
+  {
+    "file": "goals.active.expanded.xml",
+    "original": "goals.active.expanded.xml",
+    "sha256": "f46da363ba9d8e7527062b865f4aef4e357aa8fc5444d2c8831bc44e962df5ce"
+  },
+  {
+    "file": "goals.active.expanded.png",
+    "original": "goals.active.expanded.png",
+    "sha256": "bea13cccf6778c7653b3bdba5f1e8e38c93ab994ea0de4bfb1c58822ad418582"
+  },
+  {
+    "file": "tracks.all.expanded.xml",
+    "original": "tracks.all.expanded.xml",
+    "sha256": "310b57b3e8004122a2b3f54379d21eff4676f3665250d7b6280158ae2c9f666d"
+  },
+  {
+    "file": "tracks.all.expanded.png",
+    "original": "tracks.all.expanded.png",
+    "sha256": "f31f3db4ac56f6943ae5d2a448fc84de01cb8b31c59e6a64970ecf819bfccd31"
+  },
+  {
+    "file": "tasks.today.expanded.xml",
+    "original": "tasks.today.expanded.xml",
+    "sha256": "818bb5865d9a32e5df0fe32b8b710010d751e611cc714a5b8868e297d4325cdb"
+  },
+  {
+    "file": "tasks.today.expanded.png",
+    "original": "tasks.today.expanded.png",
+    "sha256": "557e72a83ae8c8dcfef63adb8e0889d63c1c5fab4c03805a141c097cab859608"
+  },
+  {
+    "file": "habits.productivity-builder.timer-expanded.xml",
+    "original": "habits.productivity-builder.timer-expanded.xml",
+    "sha256": "de714e13921931ab1434cdc92fa74ab55c75f96da6c2c9f105de2c6fed7a1cb8"
+  },
+  {
+    "file": "habits.productivity-builder.timer-expanded.png",
+    "original": "habits.productivity-builder.timer-expanded.png",
+    "sha256": "6ceac203e03417a001bbe7e18f44e7d3a5349e9d22d31fc44da0475cc0ca501a"
+  }
+]

@@ -1,0 +1,8 @@
+com.whip.app.HabitSkipJourneyE2ETest
+com.whip.app.ProductivityCardDesignUiTest
+com.whip.app.ProductivityCreationJourneyE2ETest
+com.whip.app.ProductivityItemBuilderJourneyE2ETest
+com.whip.app.TaskBulkSelectionUiTest
+com.whip.app.TaskReorderJourneyE2ETest
+com.whip.app.TrackWorkspaceUiTest
+com.whip.app.VisualCatalogPagesTest

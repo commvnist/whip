@@ -1615,44 +1615,41 @@ private fun TrackSummaryRow(
                 }
             },
     ) {
-        ProductivityItemHeader(
+        WhipProductivityItemContent(
             itemType = "Track",
             itemName = projection.track.name,
             emoji = projection.track.icon,
-            areaId = projection.track.areaId.takeIf(String::isNotBlank),
-            areaName = projection.track.area,
-            onEdit = { onEdit(projection.track.id) },
             identityModifier = Modifier.testTag("track-icon-${projection.track.id}"),
             titleModifier = Modifier.testTag("track-card-title-${projection.track.id}"),
             primaryActionModifier = Modifier.testTag("track-primary-action-${projection.track.id}"),
             editModifier = Modifier.testTag("track-edit-action-${projection.track.id}"),
-            summaryContent = {
-                ProductivityItemSupportingText(
-                    text = "${projection.track.area} · ${quantityLabel(projection.entries.size, "Entry")}",
-                    modifier = Modifier.testTag("track-card-status-${projection.track.id}"),
-                )
-            },
-            supportingContent = {
+        ) {
+            area(projection.track.areaId.takeIf(String::isNotBlank), projection.track.area)
+            edit({ onEdit(projection.track.id) })
+            details {
                 latest?.let {
-                    ProductivityItemSupportingText(
+                    text(
                         text = "Latest: ${projection.primaryText(it)} · ${it.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
                         maxLines = 2,
                     )
                 }
-            },
-            expanded = disclosure.expanded,
-            onExpansionToggle = disclosure.toggle,
-            expansionTag = "track-expand-${projection.track.id}",
-            primaryActionWidth = 48.dp,
-            primaryAction = if (projection.track.archived) null else ({
+            }
+            summary {
+                text(
+                    text = "${projection.track.area} · ${quantityLabel(projection.entries.size, "Entry")}",
+                    modifier = Modifier.testTag("track-card-status-${projection.track.id}"),
+                )
+            }
+            disclosure(expanded = disclosure.expanded, tag = "track-expand-${projection.track.id}", onToggle = disclosure.toggle)
+            primaryAction(width = 48.dp, content = if (projection.track.archived) null else ({
                     IconButton(
                         onClick = { onAddEntry(projection.track.id) },
                         modifier = Modifier.size(48.dp),
                     ) {
                         Icon(Icons.Outlined.Add, contentDescription = projection.addEntryLabel())
                     }
-                }),
-        )
+                }))
+        }
     }
 }
 

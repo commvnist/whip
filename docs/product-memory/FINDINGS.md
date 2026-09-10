@@ -1,5 +1,12 @@
 # Durable findings
 
+### FND-20260910-004 — Expanded productivity information has multiple layout owners
+
+- Severity/category: P2 everyday reading and interaction consistency.
+- Observed: Native baseline aMg7Uk reproduces two Timer running text nodes inside one real running Habit card. The personally inspected normal-scale original shows a muted timer line, Edit, then a second emphasized timer line and progress. The Goal expanded original similarly places Edit before the elapsed metric and counting context. Header source additionally moves Edit beside supporting text at wider widths.
+- Cause: ProductivityItemHeader owns only the beginning of expanded information; feature bodies add more information afterward. Habit repeats timer state in both owners. Full-width reading and final secondary-action placement cannot be enforced by the existing header API.
+- Resolution/status: Verified; DEC/IMP/VER-20260910-004. The shared content builder owns summary/details and expanded-body order plus one final Edit footer, retains specialized domain controls, and removes the duplicated Habit line. Native timer recreation/edit cancellation/stop and adjacent behavior pass. Five baseline and 28 final original reviews, failed/final native evidence and readiness results are retained in artifacts/astra-audit/2026-09-10/productivity-builders/README.md.
+
 ### FND-20260910-003 — Equivalent record layouts crowd and order information differently
 
 - Severity/category: P2 design consistency and normal-scale readability.

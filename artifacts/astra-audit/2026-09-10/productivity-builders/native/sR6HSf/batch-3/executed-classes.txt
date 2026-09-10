@@ -1,0 +1,2 @@
+com.whip.app.VisualCatalogPagesTest
+com.whip.app.ui.ElapsedGoalTimeUiTest

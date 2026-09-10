@@ -853,24 +853,24 @@ fun GoalCard(
                 },
             ),
     ) {
-        ProductivityItemHeader(
+        WhipProductivityItemContent(
             itemType = "goal",
             itemName = goal.name,
             emoji = goal.icon,
-            areaId = goal.areaId,
-            areaName = goal.area,
-            onEdit = onEdit.takeUnless { reorderMode },
             identityModifier = Modifier.testTag("goal-icon-${goal.id}"),
             titleModifier = Modifier.testTag("goal-card-title-${goal.id}"),
             primaryActionModifier = Modifier.testTag("goal-primary-action-${goal.id}"),
             editModifier = Modifier.testTag("goal-edit-action-${goal.id}"),
-            supportingContent = {
-                ProductivityItemSupportingText(
+        ) {
+            area(goal.areaId, goal.area)
+            edit(onEdit.takeUnless { reorderMode })
+            details {
+                text(
                     text = goal.type.displayLabel(),
                 )
-            },
-            summaryContent = {
-                ProductivityItemSupportingText(
+            }
+            summary {
+                text(
                     text = elapsedStatus?.compactLabel() ?: compactStatus,
                     modifier = Modifier
                         .testTag("goal-card-status-${goal.id}")
@@ -882,142 +882,140 @@ fun GoalCard(
                             } ?: Modifier,
                         ),
                 )
-            },
-            expanded = disclosure.expanded,
-            onExpansionToggle = disclosure.toggle.takeUnless { reorderMode },
-            expansionTag = "goal-expand-${goal.id}",
-            primaryActionWidth = if (goal.type == GoalType.ElapsedSince) 80.dp else 64.dp,
-            primaryAction = primaryAction,
-        )
-        if (!reorderMode && disclosure.expanded) {
-        projection.progress?.let { progress ->
-            val progressColor = if (progress >= 1.0) MaterialTheme.whipColors.success else MaterialTheme.whipColors.action
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                LinearProgressIndicator(
-                    progress = { progress.toFloat().coerceIn(0f, 1f) },
-                    modifier = Modifier.weight(1f),
-                    color = progressColor,
-                )
-                Text("${(progress * 100).toInt()}% complete", style = MaterialTheme.typography.labelSmall, color = progressColor)
             }
-        }
-        if (goal.type == GoalType.ElapsedSince) {
-            elapsedStatus?.let { display ->
-                ElapsedGoalMetric(
-                    display = display,
-                    modifier = Modifier.testTag("goal-card-expanded-status-${goal.id}"),
-                )
-            }
-            when {
-                elapsedStatus != null && goal.elapsedStartMillis != null -> Text(
-                    if (projection.terminalSnapshot == null) {
-                        "Counting since ${elapsedGoalStartLabel(goal.elapsedStartMillis, zoneId)}"
-                    } else {
-                        "Recorded when this Goal was ${projection.terminalSnapshot.status.label.lowercase()}."
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                projection.terminalSnapshot != null -> Text(
-                    "Exact elapsed duration was not stored for this older closure.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        } else projection.consistency?.let { consistency ->
-            Text(
-                "${consistency.successfulPeriods}/${consistency.requiredPeriods} successful ${consistency.period.periodLabel} periods · " +
-                    "${formatGoalValue(consistency.currentPeriodValue, goal.precision)}/${formatGoalValue(consistency.targetPerPeriod, goal.precision)} this period",
-            )
-        } ?: projection.currentValue?.let { canonical ->
-            val current = goal.displayValue(canonical, customUnits)
-            Text("Current: ${formatGoalValue(current, goal.precision)} ${goal.unitId.goalUnitLabel(customUnits)}")
-        }
-        val pace = when (projection.onPace) { true -> "On pace"; false -> "Behind pace"; null -> null }
-        if (pace != null) Text(pace + (projection.forecastDate?.let { " · forecast ${it.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}" } ?: ""), style = MaterialTheme.typography.labelMedium)
-        if (projection.terminalSnapshot != null && goal.type == GoalType.WeightedMilestones) {
-            Text(
-                "Closed outcome is frozen. Milestones below show the current saved definition.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        projection.milestones.forEach { milestone ->
-            val milestoneEditable = !goal.archived && goal.status == GoalStatus.Active
-            val milestoneModifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 48.dp)
-                .testTag("goal-milestone-${milestone.id}")
-                .toggleable(
-                    value = milestone.completed,
-                    enabled = milestoneEditable,
-                    role = Role.Checkbox,
-                    onValueChange = {
-                        onToggleMilestone(goal.milestoneBoundary(milestone), !milestone.completed)
-                    },
-                )
-                .semantics {
-                    contentDescription = if (!milestoneEditable) {
-                        "${milestone.name} is ${if (milestone.completed) "complete" else "not complete"}. Make the Goal active to change milestones"
-                    } else if (milestone.completed) {
-                        "Mark milestone ${milestone.name} incomplete"
-                    } else "Complete milestone ${milestone.name}"
-                }
-            BoxWithConstraints(Modifier.fillMaxWidth()) {
-                val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
-                if (stacked) {
-                    Column(milestoneModifier) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                milestone.name,
-                                modifier = Modifier.weight(1f),
-                                color = completionTextColor(milestone.completed),
-                                textDecoration = completionTextDecoration(milestone.completed),
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            WhipCompletionCheckbox(
-                                checked = milestone.completed,
-                                onCheckedChange = null,
-                                modifier = Modifier.clearAndSetSemantics { },
-                            )
-                        }
-                        if (milestone.reward.isNotBlank()) {
-                            Text(
-                                milestone.reward,
-                                modifier = Modifier.padding(end = 56.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                            )
-                        }
-                    }
-                } else {
-                    Row(milestoneModifier, verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            milestone.name,
+            disclosure(expanded = disclosure.expanded, tag = "goal-expand-${goal.id}", onToggle = disclosure.toggle.takeUnless { reorderMode })
+            primaryAction(width = if (goal.type == GoalType.ElapsedSince) 80.dp else 64.dp, content = primaryAction)
+
+            expandedContent {
+                projection.progress?.let { progress ->
+                    val progressColor = if (progress >= 1.0) MaterialTheme.whipColors.success else MaterialTheme.whipColors.action
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        LinearProgressIndicator(
+                            progress = { progress.toFloat().coerceIn(0f, 1f) },
                             modifier = Modifier.weight(1f),
-                            color = completionTextColor(milestone.completed),
-                            textDecoration = completionTextDecoration(milestone.completed),
+                            color = progressColor,
                         )
-                        if (milestone.reward.isNotBlank()) {
-                            Text(milestone.reward, style = MaterialTheme.typography.labelSmall)
-                        }
-                        Spacer(Modifier.width(8.dp))
-                        WhipCompletionCheckbox(
-                            checked = milestone.completed,
-                            onCheckedChange = null,
-                            modifier = Modifier.clearAndSetSemantics { },
-                        )
+                        Text("${(progress * 100).toInt()}% complete", style = MaterialTheme.typography.labelSmall, color = progressColor)
                     }
                 }
+                if (goal.type == GoalType.ElapsedSince) {
+                    elapsedStatus?.let { display ->
+                        ElapsedGoalMetric(
+                            display = display,
+                            modifier = Modifier.testTag("goal-card-expanded-status-${goal.id}"),
+                        )
+                    }
+                    when {
+                        elapsedStatus != null && goal.elapsedStartMillis != null -> Text(
+                            if (projection.terminalSnapshot == null) {
+                                "Counting since ${elapsedGoalStartLabel(goal.elapsedStartMillis, zoneId)}"
+                            } else {
+                                "Recorded when this Goal was ${projection.terminalSnapshot.status.label.lowercase()}."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        projection.terminalSnapshot != null -> Text(
+                            "Exact elapsed duration was not stored for this older closure.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                } else projection.consistency?.let { consistency ->
+                    Text(
+                        "${consistency.successfulPeriods}/${consistency.requiredPeriods} successful ${consistency.period.periodLabel} periods · " +
+                            "${formatGoalValue(consistency.currentPeriodValue, goal.precision)}/${formatGoalValue(consistency.targetPerPeriod, goal.precision)} this period",
+                    )
+                } ?: projection.currentValue?.let { canonical ->
+                    val current = goal.displayValue(canonical, customUnits)
+                    Text("Current: ${formatGoalValue(current, goal.precision)} ${goal.unitId.goalUnitLabel(customUnits)}")
+                }
+                val pace = when (projection.onPace) { true -> "On pace"; false -> "Behind pace"; null -> null }
+                if (pace != null) Text(pace + (projection.forecastDate?.let { " · forecast ${it.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}" } ?: ""), style = MaterialTheme.typography.labelMedium)
+                if (projection.terminalSnapshot != null && goal.type == GoalType.WeightedMilestones) {
+                    Text(
+                        "Closed outcome is frozen. Milestones below show the current saved definition.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                projection.milestones.forEach { milestone ->
+                    val milestoneEditable = !goal.archived && goal.status == GoalStatus.Active
+                    val milestoneModifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .testTag("goal-milestone-${milestone.id}")
+                        .toggleable(
+                            value = milestone.completed,
+                            enabled = milestoneEditable,
+                            role = Role.Checkbox,
+                            onValueChange = {
+                                onToggleMilestone(goal.milestoneBoundary(milestone), !milestone.completed)
+                            },
+                        )
+                        .semantics {
+                            contentDescription = if (!milestoneEditable) {
+                                "${milestone.name} is ${if (milestone.completed) "complete" else "not complete"}. Make the Goal active to change milestones"
+                            } else if (milestone.completed) {
+                                "Mark milestone ${milestone.name} incomplete"
+                            } else "Complete milestone ${milestone.name}"
+                        }
+                    BoxWithConstraints(Modifier.fillMaxWidth()) {
+                        val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
+                        if (stacked) {
+                            Column(milestoneModifier) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        milestone.name,
+                                        modifier = Modifier.weight(1f),
+                                        color = completionTextColor(milestone.completed),
+                                        textDecoration = completionTextDecoration(milestone.completed),
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    WhipCompletionCheckbox(
+                                        checked = milestone.completed,
+                                        onCheckedChange = null,
+                                        modifier = Modifier.clearAndSetSemantics { },
+                                    )
+                                }
+                                if (milestone.reward.isNotBlank()) {
+                                    Text(
+                                        milestone.reward,
+                                        modifier = Modifier.padding(end = 56.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                    )
+                                }
+                            }
+                        } else {
+                            Row(milestoneModifier, verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    milestone.name,
+                                    modifier = Modifier.weight(1f),
+                                    color = completionTextColor(milestone.completed),
+                                    textDecoration = completionTextDecoration(milestone.completed),
+                                )
+                                if (milestone.reward.isNotBlank()) {
+                                    Text(milestone.reward, style = MaterialTheme.typography.labelSmall)
+                                }
+                                Spacer(Modifier.width(8.dp))
+                                WhipCompletionCheckbox(
+                                    checked = milestone.completed,
+                                    onCheckedChange = null,
+                                    modifier = Modifier.clearAndSetSemantics { },
+                                )
+                            }
+                        }
+                    }
+                }
+                if (goal.description.isNotBlank()) Text(goal.description, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-        }
-        if (goal.description.isNotBlank()) Text(goal.description, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -1216,20 +1214,19 @@ private fun GoalInsightsContent(
                     .clickable(onClickLabel = "Open ${projection.goal.name}") { onOpen(projection) }
                     .testTag("goal-insight-${projection.goal.id}"),
             ) {
-                    ProductivityItemHeader(
+                    WhipProductivityItemContent(
                         itemType = "goal",
                         itemName = projection.goal.name,
                         emoji = projection.goal.icon,
-                        areaId = projection.goal.areaId,
-                        areaName = projection.goal.area,
-                        onEdit = null,
                         identityModifier = Modifier.testTag("goal-insight-icon-${projection.goal.id}"),
-                        supportingContent = {
-                            ProductivityItemSupportingText(
+                    ) {
+                        area(projection.goal.areaId, projection.goal.area)
+                        details {
+                            text(
                                 text = projection.goal.type.displayLabel(),
                             )
-                        },
-                    )
+                        }
+                    }
                     val chartValues = insights.points.mapNotNull { it.progress ?: it.canonicalValue }
                     if (projection.goal.type == GoalType.ElapsedSince) {
                         projection.goal.elapsedStartMillis?.let { started ->

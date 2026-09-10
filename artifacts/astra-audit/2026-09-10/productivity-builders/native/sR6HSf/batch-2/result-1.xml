@@ -1,0 +1,106 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="47" failures="0" errors="0" skipped="0" time="225.28" timestamp="2026-09-10T06:17:35" hostname="localhost">
+  <testsuite name="com.whip.app.HabitSkipJourneyE2ETest" tests="4" failures="0" errors="0" skipped="0" time="16.21" timestamp="2026-09-10T06:17:35" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="homeProgressKeepsSkippedHabitsNeutralAcrossRecreationAndUndo" classname="com.whip.app.HabitSkipJourneyE2ETest" time="5.644" />
+    <testcase name="completedHabitMovesBelowRemainingHabitsAndStaysAvailableForUndo" classname="com.whip.app.HabitSkipJourneyE2ETest" time="4.149" />
+    <testcase name="completingExpandedChecklistKeepsDoneCollapsedAndCollapsesTheMovedHabit" classname="com.whip.app.HabitSkipJourneyE2ETest" time="2.667" />
+    <testcase name="skipIsOneVisibleNeutralStateWithHistoryInsightsAndUndo" classname="com.whip.app.HabitSkipJourneyE2ETest" time="3.75" />
+  </testsuite>
+  <testsuite name="com.whip.app.ProductivityCardDesignUiTest" tests="15" failures="0" errors="0" skipped="0" time="19.809" timestamp="2026-09-10T06:17:35" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="pastScheduledBadgeDoesNotCollapseTheTaskTitleInANarrowPane" classname="com.whip.app.ProductivityCardDesignUiTest" time="0.731" />
+    <testcase name="checklistHabitSummaryKeepsParentAndEachSubItemInteractive" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.36" />
+    <testcase name="scheduledDateAndRecurrenceUseFullWidthSummaryAndExpandWithoutDuplication" classname="com.whip.app.ProductivityCardDesignUiTest" time="0.882" />
+    <testcase name="summaryRowsExpandIndependentlyAndWorkspaceTabChangesCollapseThem" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.132" />
+    <testcase name="timerReviewDialogSupportsCorrectionContinueStopAndDiscardAtNarrowWidth" classname="com.whip.app.ProductivityCardDesignUiTest" time="3.527" />
+    <testcase name="habitTimerRemainsReadableOwnedAndReachableAtNarrowLargeText" classname="com.whip.app.ProductivityCardDesignUiTest" time="0.91" />
+    <testcase name="goalSummaryKeepsElapsedTimerResetAndMilestoneControls" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.764" />
+    <testcase name="summaryCardsKeepLongTextReadableAtTwoHundredPercentFontScale" classname="com.whip.app.ProductivityCardDesignUiTest" time="0.933" />
+    <testcase name="habitSummaryStateMatrixKeepsTimerSkipAndSyncedInformation" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.133" />
+    <testcase name="tasksHabitsAndGoalsShareIdentityActionAndEditColumns" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.511" />
+    <testcase name="habitActivityGridExposesOneSpokenDateAndStatePerDay" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.183" />
+    <testcase name="taskSummaryRowsReflowNotesAndSubtaskProgressWithoutLosingActions" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.16" />
+    <testcase name="summaryExpansionSurvivesSavedStateRestoration" classname="com.whip.app.ProductivityCardDesignUiTest" time="0.938" />
+    <testcase name="pausedAndOffScheduleHabitSummariesRemoveAccidentalQuickActions" classname="com.whip.app.ProductivityCardDesignUiTest" time="0.934" />
+    <testcase name="habitAndGoalSummaryRowsKeepDetailsAndInlineActions" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.711" />
+  </testsuite>
+  <testsuite name="com.whip.app.ProductivityCreationJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="14.198" timestamp="2026-09-10T06:17:35" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="taskHabitAndGoalCanBeCreatedAndUsedThroughTheRealUi" classname="com.whip.app.ProductivityCreationJourneyE2ETest" time="14.198" />
+  </testsuite>
+  <testsuite name="com.whip.app.ProductivityItemBuilderJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="9.469" timestamp="2026-09-10T06:17:35" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="expandedTimerHasOneStatusAndKeepsItsActionsAfterRecreation" classname="com.whip.app.ProductivityItemBuilderJourneyE2ETest" time="9.469" />
+  </testsuite>
+  <testsuite name="com.whip.app.TaskBulkSelectionUiTest" tests="15" failures="0" errors="0" skipped="0" time="76.203" timestamp="2026-09-10T06:17:35" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="bulkArchiveImpactRemainsScrollableAtTwoHundredPercentText" classname="com.whip.app.TaskBulkSelectionUiTest" time="10.595" />
+    <testcase name="successfulReopenClosesCompletedInspectorWhenStableKeyBecomesOpen" classname="com.whip.app.TaskBulkSelectionUiTest" time="4.092" />
+    <testcase name="quickCaptureReconnectsAfterRecreationAndClearsTheTrimmedCommittedDraftOnce" classname="com.whip.app.TaskBulkSelectionUiTest" time="4.037" />
+    <testcase name="fixedDateBulkMoveFailureKeepsSelectionAndShowsRetryContext" classname="com.whip.app.TaskBulkSelectionUiTest" time="3.145" />
+    <testcase name="activeSelectionKeepsPrimaryActionsVisibleAndSecondaryActionsInOverflow" classname="com.whip.app.TaskBulkSelectionUiTest" time="13.936" />
+    <testcase name="archivedRecurringTaskEditsTheSeriesDefinitionInsteadOfAnOpenOccurrence" classname="com.whip.app.TaskBulkSelectionUiTest" time="4.878" />
+    <testcase name="bulkDeleteReissuesItsExactPreviewAfterStateRestoration" classname="com.whip.app.TaskBulkSelectionUiTest" time="3.869" />
+    <testcase name="bulkAreaChangeCannotApplyUntilAnAreaIsExplicitlyChosen" classname="com.whip.app.TaskBulkSelectionUiTest" time="3.852" />
+    <testcase name="restoredExistingTaskEditorPreservesItsExactIdentityAndRevisionBoundary" classname="com.whip.app.TaskBulkSelectionUiTest" time="6.112" />
+    <testcase name="bulkDateFailureRetainsTheFrozenSelectionAndOnlyMatchingSuccessCloses" classname="com.whip.app.TaskBulkSelectionUiTest" time="4.291" />
+    <testcase name="bulkEditDraftAndSelectionSurviveSavedStateRestoration" classname="com.whip.app.TaskBulkSelectionUiTest" time="3.475" />
+    <testcase name="completedRecurringHistoryOffersSeriesEditInsteadOfDuplicateFutureBoundary" classname="com.whip.app.TaskBulkSelectionUiTest" time="2.5" />
+    <testcase name="historySelectionOffersRelevantActionsForCompletedAndArchivedTasks" classname="com.whip.app.TaskBulkSelectionUiTest" time="3.13" />
+    <testcase name="bulkArchiveFailureRetainsFrozenSelectionAndMatchingSuccessAloneCloses" classname="com.whip.app.TaskBulkSelectionUiTest" time="3.588" />
+    <testcase name="bulkCompletionReviewsUnfinishedSubtasksBeforeCommitAndCancelKeepsSelection" classname="com.whip.app.TaskBulkSelectionUiTest" time="4.703" />
+  </testsuite>
+  <testsuite name="com.whip.app.TaskReorderJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="3.596" timestamp="2026-09-10T06:17:35" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="dragPreviewsPersistsCancelsAndSurvivesRecreation" classname="com.whip.app.TaskReorderJourneyE2ETest" time="3.596" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackWorkspaceUiTest" tests="7" failures="0" errors="0" skipped="0" time="21.103" timestamp="2026-09-10T06:17:35" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="trackSelectionUsesOneCheckboxSemanticOwner" classname="com.whip.app.TrackWorkspaceUiTest" time="1.291" />
+    <testcase name="tracksAndEntriesHaveOneExplicitSearchOwnerAndArchivedResultsReturnToArchive" classname="com.whip.app.TrackWorkspaceUiTest" time="7.479" />
+    <testcase name="activityFiltersAndCrossTrackInsightsUseVisibleTrackData" classname="com.whip.app.TrackWorkspaceUiTest" time="5.895" />
+    <testcase name="adaptiveMasterPaneReorderKeepsItsDedicatedControls" classname="com.whip.app.TrackWorkspaceUiTest" time="1.471" />
+    <testcase name="tracksWorkspaceRemainsNavigableInRtlAtTwoHundredPercentText" classname="com.whip.app.TrackWorkspaceUiTest" time="1.751" />
+    <testcase name="archivedTrackSummaryOmitsUnavailableAddAction" classname="com.whip.app.TrackWorkspaceUiTest" time="1.297" />
+    <testcase name="trackSummaryRowsKeepLatestAddAndEditActions" classname="com.whip.app.TrackWorkspaceUiTest" time="1.919" />
+  </testsuite>
+  <testsuite name="com.whip.app.VisualCatalogPagesTest" tests="3" failures="0" errors="0" skipped="0" time="63.127" timestamp="2026-09-10T06:17:35" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="captureTaskPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="29.143" />
+    <testcase name="captureGoalPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="18.706" />
+    <testcase name="captureHabitPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="15.278" />
+  </testsuite>
+</testsuites>

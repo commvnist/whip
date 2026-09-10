@@ -144,19 +144,19 @@ fun TaskRow(
             else -> MaterialTheme.colorScheme.surfaceContainer
         },
     ) {
-        ProductivityItemHeader(
+        WhipProductivityItemContent(
             itemType = "task",
             itemName = item.task.title,
             emoji = item.task.icon,
-            areaId = item.task.areaId,
-            areaName = item.task.area,
-            onEdit = onEdit.takeUnless { selectionMode || reorderMode },
             identityModifier = Modifier.testTag("task-icon-${item.task.id}"),
             titleModifier = Modifier.testTag("task-card-title-${item.task.id}"),
             primaryActionModifier = Modifier.testTag("task-primary-action-${item.task.id}"),
             editModifier = Modifier.testTag("task-edit-action-${item.task.id}"),
             titleCompleted = completed,
-            headlineAccessory = if (item.isDeadlineOverdue || item.isPastScheduledDate) {
+        ) {
+            area(item.task.areaId, item.task.area)
+            edit(onEdit.takeUnless { selectionMode || reorderMode })
+            val noticeContent: (@Composable () -> Unit)? = if (item.isDeadlineOverdue || item.isPastScheduledDate) {
                 {
                     Surface(
                         shape = MaterialTheme.shapes.small,
@@ -178,34 +178,32 @@ fun TaskRow(
                         )
                     }
                 }
-            } else null,
-            supportingContent = {
+            } else null
+            noticeContent?.let { notice(it) }
+            details {
                 if (metadata.isNotEmpty()) {
-                    ProductivityItemSupportingText(
+                    text(
                         text = metadata.joinToString(" · "),
                         modifier = Modifier.testTag("task-metadata-${item.task.id}"),
                     )
                 }
                 if (!reorderMode && item.task.notes.isNotBlank()) {
-                    ProductivityItemSupportingText(
+                    text(
                         text = item.task.notes,
                         maxLines = 2,
                     )
                 }
-            },
-            summaryContent = {
+            }
+            summary {
                 if (metadata.isNotEmpty()) {
-                    ProductivityItemSupportingText(
+                    text(
                         text = metadata.joinToString(" · "),
                         modifier = Modifier.testTag("task-metadata-${item.task.id}"),
                     )
                 }
-            },
-            expanded = disclosure.expanded,
-            onExpansionToggle = disclosure.toggle.takeUnless { reorderMode },
-            expansionTag = "task-expand-${item.task.id}",
-            primaryActionWidth = 48.dp,
-            primaryAction = if (reorderMode || (!selectionMode && !showCompletionControl)) null else ({
+            }
+            disclosure(expanded = disclosure.expanded, tag = "task-expand-${item.task.id}", onToggle = disclosure.toggle.takeUnless { reorderMode })
+            primaryAction(width = 48.dp, content = if (reorderMode || (!selectionMode && !showCompletionControl)) null else ({
                 if (selectionMode) {
                     Checkbox(
                         checked = selected,
@@ -229,21 +227,24 @@ fun TaskRow(
                         },
                     )
                 }
-            }),
-        )
-        if (!reorderMode && disclosure.expanded && item.task.showSubtaskProgress && item.totalSubtasks > 0) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                LinearProgressIndicator(progress = { item.subtaskProgress }, modifier = Modifier.weight(1f))
-                Text(
-                    item.progressLabel(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
+            }))
+
+            expandedContent {
+                if (item.task.showSubtaskProgress && item.totalSubtasks > 0) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        LinearProgressIndicator(progress = { item.subtaskProgress }, modifier = Modifier.weight(1f))
+                        Text(
+                            item.progressLabel(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
             }
         }
     }

@@ -1084,19 +1084,19 @@ fun HabitProgressCard(
             MaterialTheme.colorScheme.surfaceContainer
         },
     ) {
-        ProductivityItemHeader(
+        WhipProductivityItemContent(
             itemType = "habit",
             itemName = habit.name,
             emoji = habit.icon,
-            areaId = habit.areaId,
-            areaName = habit.area,
-            onEdit = onEdit.takeUnless { reorderMode },
             identityModifier = Modifier.testTag("habit-icon-${habit.id}"),
             titleModifier = Modifier.testTag("habit-card-title-${habit.id}"),
             primaryActionModifier = Modifier.testTag("habit-primary-action-${habit.id}"),
             editModifier = Modifier.testTag("habit-edit-action-${habit.id}"),
-            supportingContent = {
-                ProductivityItemSupportingText(
+        ) {
+            area(habit.areaId, habit.area)
+            edit(onEdit.takeUnless { reorderMode })
+            details {
+                text(
                     text = if (habit.timerStartedAtMillis != null) {
                         if (habit.timerNeedsReview) {
                             "Timer needs review · ${formatElapsedDuration(timerElapsedSeconds)} estimated"
@@ -1107,188 +1107,176 @@ fun HabitProgressCard(
                         "${habit.trackingMode.uiLabel()} · ${item.streak} $streakUnit streak · ${(item.completionRate * 100).toInt()}% / $rateWindow"
                     },
                 )
-            },
-            summaryContent = {
-                ProductivityItemSupportingText(
+            }
+            summary {
+                text(
                     text = compactStatus,
                     modifier = Modifier.testTag("habit-card-status-${habit.id}"),
                 )
-            },
-            expanded = disclosure.expanded,
-            onExpansionToggle = disclosure.toggle.takeUnless { reorderMode },
-            expansionTag = "habit-expand-${habit.id}",
-            primaryActionWidth = if (
+            }
+            disclosure(expanded = disclosure.expanded, tag = "habit-expand-${habit.id}", onToggle = disclosure.toggle.takeUnless { reorderMode })
+            primaryAction(width = if (
                 skipped || habit.trackingMode in setOf(HabitTrackingMode.Duration, HabitTrackingMode.Rating, HabitTrackingMode.LogOnly)
-            ) 72.dp else 64.dp,
-            primaryAction = primaryAction,
-        )
-        if (!reorderMode && disclosure.expanded) {
-            if (habit.timerStartedAtMillis != null) {
-                Text(
-                    if (habit.timerNeedsReview) {
-                        "Timer duration needs review: ${formatElapsedDuration(timerElapsedSeconds)} estimated"
-                    } else "Timer running: ${formatElapsedDuration(timerElapsedSeconds)} elapsed",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (habit.timerNeedsReview) MaterialTheme.whipColors.warning
-                    else MaterialTheme.colorScheme.primary,
-                )
-            }
-            if (skipped) {
-                BoxWithConstraints(Modifier.fillMaxWidth()) {
-                    val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
-                    if (stacked) {
-                        Column {
-                            Text(
-                                "Skipped Today · Streak Protected",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.whipColors.warning,
-                            )
-                            WhipTextButton(onClick = onUndoSkip, modifier = Modifier.fillMaxWidth()) { Text("Undo Skip") }
-                        }
-                    } else {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Text("Skipped Today · Streak Protected", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.whipColors.warning)
-                            WhipTextButton(onClick = onUndoSkip) { Text("Undo Skip") }
+            ) 72.dp else 64.dp, content = primaryAction)
+
+            expandedContent {
+                if (skipped) {
+                    BoxWithConstraints(Modifier.fillMaxWidth()) {
+                        val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
+                        if (stacked) {
+                            Column {
+                                Text(
+                                    "Skipped Today · Streak Protected",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.whipColors.warning,
+                                )
+                                WhipTextButton(onClick = onUndoSkip, modifier = Modifier.fillMaxWidth()) { Text("Undo Skip") }
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text("Skipped Today · Streak Protected", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.whipColors.warning)
+                                WhipTextButton(onClick = onUndoSkip) { Text("Undo Skip") }
+                            }
                         }
                     }
                 }
-            }
-            if (unavailableForCheckIn) {
-                Text(
-                    if (habit.paused || item.dayState == HabitDayState.Paused) {
-                        "Paused · no check-in is expected. Open details to resume or edit pause dates."
-                    } else {
-                        "Not scheduled today. Open details if you intentionally want to log outside the schedule."
-                    },
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (!skipped && !unavailableForCheckIn && habit.sourceMeasurementId == null && habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal)) {
-                val quickValues = (listOf(habit.quickIncrement) + habit.quickActions)
-                    .filter { it.isFinite() && it > 0.0 }
-                    .distinct()
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    (if (showAllQuickValues) quickValues else quickValues.take(3)).forEach { value ->
-                        WhipTextButton(onClick = { onQuickValue(value) }) { Text("+${editableNumericValue(value)}") }
-                    }
-                    if (quickValues.size > 3) {
-                        DisclosureButton(
-                            label = "Quick values",
-                            expanded = showAllQuickValues,
-                            onClick = { showAllQuickValues = !showAllQuickValues },
-                        )
-                    }
-                    WhipTextButton(enabled = item.value > 0.0, onClick = onDecrement) {
-                        Text("−${editableNumericValue(minOf(habit.quickIncrement, item.value.coerceAtLeast(0.0)))}")
-                    }
-                    WhipTextButton(onClick = onSetValue) { Text("Set") }
-                    WhipTextButton(enabled = canUndo, onClick = onUndo) { Text("Undo") }
-                }
-            }
-            if (!skipped && !unavailableForCheckIn && habit.trackingMode == HabitTrackingMode.Checklist) {
-                item.checklistItems.forEach { (checklistItem, completed) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 48.dp)
-                            .testTag("habit-checklist-item-${checklistItem.id}")
-                            .toggleable(
-                                value = completed,
-                                role = Role.Checkbox,
-                                onValueChange = {
-                                    onChecklist(habit.id, checklistItem.id, item.date, !completed)
-                                },
-                            )
-                            .semantics {
-                                contentDescription = if (completed) {
-                                    "Mark checklist item ${checklistItem.name} incomplete"
-                                } else "Complete checklist item ${checklistItem.name}"
-                            },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            checklistItem.name,
-                            modifier = Modifier.weight(1f).testTag("habit-checklist-text-${checklistItem.id}"),
-                            color = completionTextColor(completed),
-                            textDecoration = completionTextDecoration(completed),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Box(
-                            modifier = Modifier.size(48.dp).testTag("habit-checklist-check-${checklistItem.id}"),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            WhipCompletionCheckbox(
-                                checked = completed,
-                                onCheckedChange = null,
-                                modifier = Modifier.clearAndSetSemantics { },
-                            )
-                        }
-                    }
-                }
-                val completedItems = item.checklistItems.count { it.second }
-                val totalItems = item.checklistItems.size
-                if (totalItems > 0) {
-                    LinearProgressIndicator(
-                        progress = { completedItems.toFloat() / totalItems },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                if (unavailableForCheckIn) {
                     Text(
-                        "$completedItems / $totalItems items complete",
+                        if (habit.paused || item.dayState == HabitDayState.Paused) {
+                            "Paused · no check-in is expected. Open details to resume or edit pause dates."
+                        } else {
+                            "Not scheduled today. Open details if you intentionally want to log outside the schedule."
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (!skipped && !unavailableForCheckIn && habit.sourceMeasurementId == null && habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal)) {
+                    val quickValues = (listOf(habit.quickIncrement) + habit.quickActions)
+                        .filter { it.isFinite() && it > 0.0 }
+                        .distinct()
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        (if (showAllQuickValues) quickValues else quickValues.take(3)).forEach { value ->
+                            WhipTextButton(onClick = { onQuickValue(value) }) { Text("+${editableNumericValue(value)}") }
+                        }
+                        if (quickValues.size > 3) {
+                            DisclosureButton(
+                                label = "Quick values",
+                                expanded = showAllQuickValues,
+                                onClick = { showAllQuickValues = !showAllQuickValues },
+                            )
+                        }
+                        WhipTextButton(enabled = item.value > 0.0, onClick = onDecrement) {
+                            Text("−${editableNumericValue(minOf(habit.quickIncrement, item.value.coerceAtLeast(0.0)))}")
+                        }
+                        WhipTextButton(onClick = onSetValue) { Text("Set") }
+                        WhipTextButton(enabled = canUndo, onClick = onUndo) { Text("Undo") }
+                    }
+                }
+                if (!skipped && !unavailableForCheckIn && habit.trackingMode == HabitTrackingMode.Checklist) {
+                    item.checklistItems.forEach { (checklistItem, completed) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 48.dp)
+                                .testTag("habit-checklist-item-${checklistItem.id}")
+                                .toggleable(
+                                    value = completed,
+                                    role = Role.Checkbox,
+                                    onValueChange = {
+                                        onChecklist(habit.id, checklistItem.id, item.date, !completed)
+                                    },
+                                )
+                                .semantics {
+                                    contentDescription = if (completed) {
+                                        "Mark checklist item ${checklistItem.name} incomplete"
+                                    } else "Complete checklist item ${checklistItem.name}"
+                                },
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                checklistItem.name,
+                                modifier = Modifier.weight(1f).testTag("habit-checklist-text-${checklistItem.id}"),
+                                color = completionTextColor(completed),
+                                textDecoration = completionTextDecoration(completed),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Box(
+                                modifier = Modifier.size(48.dp).testTag("habit-checklist-check-${checklistItem.id}"),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                WhipCompletionCheckbox(
+                                    checked = completed,
+                                    onCheckedChange = null,
+                                    modifier = Modifier.clearAndSetSemantics { },
+                                )
+                            }
+                        }
+                    }
+                    val completedItems = item.checklistItems.count { it.second }
+                    val totalItems = item.checklistItems.size
+                    if (totalItems > 0) {
+                        LinearProgressIndicator(
+                            progress = { completedItems.toFloat() / totalItems },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Text(
+                            "$completedItems / $totalItems items complete",
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                    }
+                }
+                if (!skipped && !unavailableForCheckIn && item.flexibleScheduleTarget != null && item.flexibleScheduleProgress != null) {
+                    val target = item.flexibleScheduleTarget
+                    val fraction = (item.flexibleScheduleProgress.toFloat() / target).coerceIn(0f, 1f)
+                    LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+                    Text(
+                        "${item.flexibleScheduleProgress} / $target completions this ${if (habit.scheduleType == HabitScheduleType.FlexibleTimesPerWeek) "week" else "month"}",
                         style = MaterialTheme.typography.labelMedium,
                     )
+                } else if (
+                    !skipped &&
+                    !unavailableForCheckIn &&
+                    habit.trackingMode !in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist) &&
+                    habit.comparison != TargetComparison.None
+                ) {
+                    val target = habit.targetMax ?: habit.targetMin ?: 1.0
+                    val fraction = if (target == 0.0) 0f else (item.value / target).toFloat().coerceIn(0f, 1f)
+                    LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+                    Text(
+                        "${formatHabitValue(item.value, habit.precision)} / ${formatHabitValue(target, habit.precision)} ${habit.unitId.unitLabel()}",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                } else if (
+                    !skipped &&
+                    !unavailableForCheckIn &&
+                    item.value != 0.0 &&
+                    habit.trackingMode !in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist)
+                ) {
+                    val formattedValue = "${formatHabitValue(item.value, habit.precision)} ${habit.unitId.unitLabel()}".trim()
+                    Text(
+                        when (habit.trackingMode) {
+                            HabitTrackingMode.Rating -> "Rating: $formattedValue"
+                            HabitTrackingMode.LogOnly -> "Logged value: $formattedValue"
+                            else -> formattedValue
+                        },
+                    )
                 }
-            }
-            if (!skipped && !unavailableForCheckIn && item.flexibleScheduleTarget != null && item.flexibleScheduleProgress != null) {
-                val target = item.flexibleScheduleTarget
-                val fraction = (item.flexibleScheduleProgress.toFloat() / target).coerceIn(0f, 1f)
-                LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
-                Text(
-                    "${item.flexibleScheduleProgress} / $target completions this ${if (habit.scheduleType == HabitScheduleType.FlexibleTimesPerWeek) "week" else "month"}",
-                    style = MaterialTheme.typography.labelMedium,
-                )
-            } else if (
-                !skipped &&
-                !unavailableForCheckIn &&
-                habit.trackingMode !in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist) &&
-                habit.comparison != TargetComparison.None
-            ) {
-                val target = habit.targetMax ?: habit.targetMin ?: 1.0
-                val fraction = if (target == 0.0) 0f else (item.value / target).toFloat().coerceIn(0f, 1f)
-                LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
-                Text(
-                    "${formatHabitValue(item.value, habit.precision)} / ${formatHabitValue(target, habit.precision)} ${habit.unitId.unitLabel()}",
-                    style = MaterialTheme.typography.labelMedium,
-                )
-            } else if (
-                !skipped &&
-                !unavailableForCheckIn &&
-                item.value != 0.0 &&
-                habit.trackingMode !in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist)
-            ) {
-                val formattedValue = "${formatHabitValue(item.value, habit.precision)} ${habit.unitId.unitLabel()}".trim()
-                Text(
-                    when (habit.trackingMode) {
-                        HabitTrackingMode.Rating -> "Rating: $formattedValue"
-                        HabitTrackingMode.LogOnly -> "Logged value: $formattedValue"
-                        else -> formattedValue
-                    },
-                )
-            }
-            if (habit.sourceMeasurementId != null) {
-                Text(
-                    "Read-only source: Health Connect. Updates automatically.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                if (habit.sourceMeasurementId != null) {
+                    Text(
+                        "Read-only source: Health Connect. Updates automatically.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }
@@ -1577,20 +1565,19 @@ internal fun HabitInsights(state: HabitUiState, lowPressureMode: Boolean) {
         }
         items(state.all, key = { it.habit.id }) { item ->
             WhipItemCard {
-                    ProductivityItemHeader(
+                    WhipProductivityItemContent(
                         itemType = "habit",
                         itemName = item.habit.name,
                         emoji = item.habit.icon,
-                        areaId = item.habit.areaId,
-                        areaName = item.habit.area,
-                        onEdit = null,
                         identityModifier = Modifier.testTag("habit-insight-icon-${item.habit.id}"),
-                        supportingContent = {
-                            ProductivityItemSupportingText(
+                    ) {
+                        area(item.habit.areaId, item.habit.area)
+                        details {
+                            text(
                                 text = item.habit.trackingMode.uiLabel(),
                             )
-                        },
-                    )
+                        }
+                    }
                     val habitLogs = state.logs.filter { it.habitId == item.habit.id }
                     val habitSkips = state.skips.filter { it.habitId == item.habit.id }
                     val habitPauses = state.pauses.filter { it.habitId == item.habit.id }
@@ -1813,21 +1800,21 @@ private fun ArchivedHabitList(
                     .clickable(onClickLabel = "Open habit details for ${habit.name}") { onOpen(habit) }
                     .semantics { contentDescription = "Open habit details for ${habit.name}" },
             ) {
-                ProductivityItemHeader(
+                WhipProductivityItemContent(
                     itemType = "habit",
                     itemName = habit.name,
                     emoji = habit.icon,
-                    areaId = habit.areaId,
-                    areaName = habit.area,
-                    onEdit = { onEdit(habit) },
                     identityModifier = Modifier.testTag("habit-icon-${habit.id}"),
                     editModifier = Modifier.testTag("habit-edit-action-${habit.id}"),
-                    supportingContent = {
-                        ProductivityItemSupportingText(
+                ) {
+                    area(habit.areaId, habit.area)
+                    edit({ onEdit(habit) })
+                    details {
+                        text(
                             text = "Archived",
                         )
-                    },
-                )
+                    }
+                }
             }
         }
     }

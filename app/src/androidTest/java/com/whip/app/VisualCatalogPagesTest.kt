@@ -332,6 +332,12 @@ class VisualCatalogPagesTest {
         compose.onNodeWithText("The Dispossessed").assertIsDisplayed()
         captureVisualCatalogSurface("tracks.detail.search")
         compose.onNodeWithTag("track-entry-search").performTextReplacement("No such book")
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText("No Matching Entries").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("track-entry-list").performScrollToNode(
+            androidx.compose.ui.test.hasText("No Matching Entries"),
+        )
         compose.onNodeWithText("No Matching Entries").assertIsDisplayed()
         captureVisualCatalogSurface("tracks.detail.search.empty")
         compose.onNodeWithContentDescription("Search Entries in Reading Log").performClick()

@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="4" failures="1" errors="0" skipped="0" time="36.845" timestamp="2026-09-10T06:18:19" hostname="localhost">
+  <testsuite name="com.whip.app.VisualCatalogPagesTest" tests="1" failures="1" errors="0" skipped="0" time="25.445" timestamp="2026-09-10T06:18:19" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="captureTrackPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="25.445">
+      <failure>java.lang.AssertionError: No node found that matches Text + InputText + EditableText contains 'No Matching Entries' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #878 at (l=0.0, t=597.0, r=1080.0, b=1517.0)px, Tag: 'track-entry-list'
+CollectionInfo = 'CollectionInfo(rowCount=3, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape&#64;deba4fa'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 5 children, 3 siblings
+Selector used: (TestTag = 'track-entry-list')
+
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+at com.whip.app.VisualCatalogPagesTest.captureTrackPages(VisualCatalogPagesTest.kt:335)
+at com.whip.app.VisualCatalogPagesTest.captureTrackPageCatalog(VisualCatalogPagesTest.kt:159)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.ui.ElapsedGoalTimeUiTest" tests="3" failures="0" errors="0" skipped="0" time="9.788" timestamp="2026-09-10T06:18:19" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="editorPersistsAnyElapsedUnitCombinationAndShowsALivePreview" classname="com.whip.app.ui.ElapsedGoalTimeUiTest" time="3.997" />
+    <testcase name="resetWithoutEditingPreservesTheExactInstantAndActionsRemainUsableAtLargeText" classname="com.whip.app.ui.ElapsedGoalTimeUiTest" time="4.306" />
+    <testcase name="collapsedElapsedGoalCardKeepsEveryConfiguredUnitVisibleAtLargeText" classname="com.whip.app.ui.ElapsedGoalTimeUiTest" time="1.485" />
+  </testsuite>
+</testsuites>

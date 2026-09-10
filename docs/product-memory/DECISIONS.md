@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-004 — Productivity builders own complete expanded reading order
+
+- Decision: Replace the seven production header call sites with a scoped productivity-content builder over the existing WhipItemCard. Declare summary/details text through one typography role, Area, notice, disclosure, primary action and specialized expanded content. Render the complete information at full width, then one full-width Edit footer for disclosed items. Undisclosed archived/insight rows keep their appropriate direct header edit or no edit.
+- Alternatives/tradeoffs: Removing only the duplicate timer leaves split ownership and width-dependent Edit placement. Moving Edit into the header would add a third control and crowd titles. A footer makes information continuous and the edit location predictable; long expanded bodies may require scrolling to it. Existing domain inputs, progress/elapsed metrics and inline actions remain specialized content.
+- Compatibility: Preserve caller-owned selection/reorder gestures, container state colors, saveable disclosure keys, callbacks, completion/timer/milestone boundaries and exact persistence. Collapsed summaries are replaced by richer detail without duplicated facts. Remove the unused production persistent-summary branch while migrating its old synthetic test to the actual summary/details contract.
+- Scope/status: Verified for the seven migrated call sites; FND/IMP/VER-20260910-004, FB-20260910-001/002 and FB-20260907-015. Refines DEC-20260907-011's expanded Edit placement, preserving its full-width information and centered header needs. Normal-scale phone/wide native journeys, neighboring behavior and 33 original reviews support this scope; broader adoption remains open.
+
 ### DEC-20260910-003 — Build item families from semantic content and action roles
 
 - Decision: Introduce a small record-item builder over existing WhipItemCard geometry and shared edit/overflow controls. Features declare title/identity, context, labeled facts, edit and named commands. The renderer owns typography, reading order, spacing, optional-content collapse and menu state keyed to record identity. Date precedes context and facts in both Track record entry points.
@@ -1263,6 +1270,7 @@
 
 ### DEC-20260907-011 — Productivity cards use a centered header row and full-width information row
 
+- Later refinement (2026-09-10): DEC-20260910-004 retains this header/full-width information contract but replaces the old expanded Edit placement with one footer after the complete specialized body. Its builder removes the split information ownership and duplicated timer status. The historical reasoning below remains valid.
 - Context: The shared 68 dp collapsed-card target made adjacent cards uniform, but achieved that by squeezing status into the title/action lane and forcing one-line ellipsis. Owner use confirms that complete scheduling and repeat context is more valuable than preserving the shortest possible row.
 - Position A: Keep status under the title and tune abbreviations, font size, or action widths to preserve the 68 dp shape.
 - Position B: Separate identity/title/actions from information. Keep the title start-aligned and vertically centered in a 48 dp header row, then render complete supporting information below from the emoji's leading edge, allowing content-driven wrapping and modest height growth.

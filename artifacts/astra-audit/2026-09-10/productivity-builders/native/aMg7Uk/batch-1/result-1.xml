@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="5" failures="2" errors="0" skipped="0" time="82.399" timestamp="2026-09-10T05:57:47" hostname="localhost">
+  <testsuite name="com.whip.app.ProductivityItemBuilderJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="4.948" timestamp="2026-09-10T05:57:47" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="expandedTimerHasOneStatusAndKeepsItsActionsAfterRecreation" classname="com.whip.app.ProductivityItemBuilderJourneyE2ETest" time="4.948">
+      <failure>java.lang.AssertionError: Failed to assert count of nodes.
+Reason: Expected exactly '1' node but found '2' nodes that satisfy: ((Text + InputText + EditableText contains 'Timer running' (ignoreCase: false) as substring) &amp;&amp; (hasAnyAncestorThat(TestTag = 'habit-card-1')))
+Nodes found:
+1) Node #278 at (l=85.0, t=1070.0, r=476.0, b=1107.0)px
+Text = '[Timer running · 0:00 elapsed]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 9 siblings
+2) Node #269 at (l=85.0, t=1254.0, r=475.0, b=1291.0)px
+Text = '[Timer running: 0:00 elapsed]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 9 siblings
+
+at androidx.compose.ui.test.AssertionsKt.assertCountEquals(Assertions.kt:311)
+at com.whip.app.ProductivityItemBuilderJourneyE2ETest.assertOneTimerStatus(ProductivityItemBuilderJourneyE2ETest.kt:71)
+at com.whip.app.ProductivityItemBuilderJourneyE2ETest.expandedTimerHasOneStatusAndKeepsItsActionsAfterRecreation(ProductivityItemBuilderJourneyE2ETest.kt:47)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.VisualCatalogPagesTest" tests="4" failures="1" errors="0" skipped="0" time="76.334" timestamp="2026-09-10T05:57:47" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="captureTaskPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="22.693" />
+    <testcase name="captureTrackPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="22.211">
+      <failure>java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains 'No Matching Entries' (ignoreCase: false) is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.VisualCatalogPagesTest.captureTrackPages(VisualCatalogPagesTest.kt:335)
+at com.whip.app.VisualCatalogPagesTest.captureTrackPageCatalog(VisualCatalogPagesTest.kt:159)
+</failure>
+    </testcase>
+    <testcase name="captureGoalPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="15.679" />
+    <testcase name="captureHabitPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="15.751" />
+  </testsuite>
+</testsuites>

@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="16" failures="1" errors="0" skipped="0" time="28.129" timestamp="2026-09-10T06:09:53" hostname="localhost">
+  <testsuite name="com.whip.app.ProductivityCardDesignUiTest" tests="15" failures="0" errors="0" skipped="0" time="21.748" timestamp="2026-09-10T06:09:53" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="pastScheduledBadgeDoesNotCollapseTheTaskTitleInANarrowPane" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.446" />
+    <testcase name="checklistHabitSummaryKeepsParentAndEachSubItemInteractive" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.638" />
+    <testcase name="scheduledDateAndRecurrenceUseFullWidthSummaryAndExpandWithoutDuplication" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.334" />
+    <testcase name="summaryRowsExpandIndependentlyAndWorkspaceTabChangesCollapseThem" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.283" />
+    <testcase name="timerReviewDialogSupportsCorrectionContinueStopAndDiscardAtNarrowWidth" classname="com.whip.app.ProductivityCardDesignUiTest" time="4.127" />
+    <testcase name="habitTimerRemainsReadableOwnedAndReachableAtNarrowLargeText" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.007" />
+    <testcase name="goalSummaryKeepsElapsedTimerResetAndMilestoneControls" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.69" />
+    <testcase name="summaryCardsKeepLongTextReadableAtTwoHundredPercentFontScale" classname="com.whip.app.ProductivityCardDesignUiTest" time="0.958" />
+    <testcase name="habitSummaryStateMatrixKeepsTimerSkipAndSyncedInformation" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.057" />
+    <testcase name="tasksHabitsAndGoalsShareIdentityActionAndEditColumns" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.738" />
+    <testcase name="habitActivityGridExposesOneSpokenDateAndStatePerDay" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.158" />
+    <testcase name="taskSummaryRowsReflowNotesAndSubtaskProgressWithoutLosingActions" classname="com.whip.app.ProductivityCardDesignUiTest" time="0.856" />
+    <testcase name="summaryExpansionSurvivesSavedStateRestoration" classname="com.whip.app.ProductivityCardDesignUiTest" time="0.86" />
+    <testcase name="pausedAndOffScheduleHabitSummariesRemoveAccidentalQuickActions" classname="com.whip.app.ProductivityCardDesignUiTest" time="0.907" />
+    <testcase name="habitAndGoalSummaryRowsKeepDetailsAndInlineActions" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.689" />
+  </testsuite>
+  <testsuite name="com.whip.app.ProductivityItemBuilderJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="5.131" timestamp="2026-09-10T06:09:53" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="expandedTimerHasOneStatusAndKeepsItsActionsAfterRecreation" classname="com.whip.app.ProductivityItemBuilderJourneyE2ETest" time="5.131">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (ContentDescription = 'Close Habit Editor' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.ProductivityItemBuilderJourneyE2ETest.expandedTimerHasOneStatusAndKeepsItsActionsAfterRecreation(ProductivityItemBuilderJourneyE2ETest.kt:53)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

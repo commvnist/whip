@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260910-004 — Unify productivity information and expanded actions
+
+- Behavior: Tasks, Habits, Goals and Track summaries share a centered identity/title/action header, full-width summary/details and one Edit footer after the complete expanded body. Habit timer status appears exactly once. Archived Habit and insight cards retain appropriate direct edit/read-only behavior; Home inherits the same production cards.
+- Architecture/files: WhipProductivityItemBuilder.kt declares Area, summary/details text, notice, disclosure, primary action and specialized expanded content inside the existing WhipItemCard. All seven old ProductivityItemHeader callers migrate; the obsolete 143-line renderer is removed. Selection/drag gestures, state colors and domain controls remain caller-owned. The Track catalog now awaits its asynchronous no-match search result before scrolling/capturing.
+- Compatibility: No schema, backup, version, saved-value interpretation or mutation change. Existing action widths and saveable disclosure keys remain. Specialized checklist/progress/elapsed bodies keep their content and callbacks; long bodies can require scrolling to the final Edit action.
+- Verification/status: Verified under FND/DEC/VER-20260910-004 and FB-20260910-001/002. Accepted API 34 batches cover 90 shared/product checks plus five final page-catalog methods; API 37 passes eight focused/catalog methods and one Home method. Readiness passes 346 JVM checks, compilation/lint/debug packaging. All 33 retained original images have personal review. Broader family adoption and whole-app quality remain in progress; no release or physical-device operation. Normal main/upstream delivery is recorded in Git history.
+
 ### IMP-20260910-003 — Render Track records through a shared item builder
 
 - Behavior: Track Entries and Activity share a title/action header followed by full-width date/context and labeled Field facts. The Activity fixture's previously truncated details now fit at 100%. Direct edit, contextual navigation, destructive menu grammar and archived read-only inspection remain consistent.
