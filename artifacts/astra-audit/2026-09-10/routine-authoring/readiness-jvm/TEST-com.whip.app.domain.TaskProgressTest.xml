@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.domain.TaskProgressTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-09-10T15:56:55.270Z" hostname="beast" time="0.005">
+  <properties/>
+  <testcase name="resetPolicyShowsEveryActiveStepForTheNextOccurrence" classname="com.whip.app.domain.TaskProgressTest" time="0.002"/>
+  <testcase name="carryPolicyOnlyShowsPreviouslyUnfinishedSteps" classname="com.whip.app.domain.TaskProgressTest" time="0.0"/>
+  <testcase name="scheduledTask_withNoSubtasksHasZeroProgress" classname="com.whip.app.domain.TaskProgressTest" time="0.002"/>
+  <testcase name="scheduledTask_reportsEqualWeightSubtaskProgress" classname="com.whip.app.domain.TaskProgressTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

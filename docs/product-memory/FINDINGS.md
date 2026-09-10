@@ -1,5 +1,21 @@
 # Durable findings
 
+### FND-20260910-026 — Ordinary placement editing gives conversion tools priority over prescriptions
+
+- Severity/category: P2 ordinary set-authoring hierarchy; follow-up.
+- Observed: In the native two-day journey, opening Goblet Squat puts a large whole-program 5/3/1 conversion explanation, empty Saved Schemes, unavailable warm-up generation, advanced/copy controls and Training Max ahead of the first working Set. At 100% the actual prescription inputs are below the initial phone viewport. This persists in the unchanged specialized placement editor after the outline-only correction.
+- Source/next review: RoutinePlacementEditor in RoutineBuilder.kt. Compare a prescription-first reading order with progressive disclosure of conversion and bulk helpers, preserving program-controlled Main/Supplemental authority, explicit Training Max prerequisites, advanced fields and the warm-up working-load dependency. Repeated placement/action geometry may justify a specialized authoring builder after that review.
+- Related/status: Confirmed from VER-20260910-016 before/final recovered-placement and saved-in-place originals; FB-20260910-001/002, DEC-20260903-006. Not repaired by FND-20260910-025; continue as a separate coherent authoring increment.
+
+
+### FND-20260910-025 — Routine outline gives optional setup more prominence than day authoring
+
+- Severity/category: P2 ordinary authoring hierarchy and consistency.
+- Observed: The real 100% new-Routine frame places a full notes input, a large bordered 5/3/1 introduction and split explanation before day authoring; Add Exercises sits near the bottom of the phone. Populated days put the same action after every placement. The native two-day recovery/save/edit/start journey passes on unchanged production (Oh4sql); this is a design finding, not a demonstrated persistence defect.
+- Cause/remedy: RoutineOutlinePane independently composes a heavyweight navigation card and always-open optional metadata ahead of its core task. Reuse NavigationRow for guided setup and DisclosureRow for optional notes; place ordinary Add Exercises directly after the selected-day controls and before placements. Keep one scrolling outline and all programming/domain semantics. Original before/final evidence is retained in artifacts/astra-audit/2026-09-10/routine-authoring/README.md.
+- Related/status: Verified in IMP/VER-20260910-016; 208 Android checks, 109 focused JVM checks, five wide methods, 371 JVM readiness checks and 24 original reviews pass. FB-20260910-001/002. Placement cards and Program Structure remain specialized; this does not settle their broader design review.
+
+
 ### FND-20260910-024 — Equipment search omits secondary linked Exercises
 
 - Severity/category: P2 ordinary discovery and multi-link correctness.

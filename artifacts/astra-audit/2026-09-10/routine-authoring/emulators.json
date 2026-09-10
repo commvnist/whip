@@ -1,0 +1,20 @@
+{
+  "emulator-5554": {
+    "sdk": "34",
+    "qemu": "1",
+    "legacy_qemu": "1",
+    "size": "Physical size: 1080x2400",
+    "density": "Physical density: 420",
+    "font_scale": "1.0",
+    "boot": "1"
+  },
+  "emulator-5556": {
+    "sdk": "37",
+    "qemu": "1",
+    "legacy_qemu": "1",
+    "size": "Physical size: 2560x1800",
+    "density": "Physical density: 320",
+    "font_scale": "1.0",
+    "boot": "1"
+  }
+}

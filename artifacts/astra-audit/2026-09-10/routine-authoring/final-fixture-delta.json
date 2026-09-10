@@ -1,0 +1,10 @@
+{
+  "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk": {
+    "native": "bedbbb4c305aee2f0993365cd2ecce5268ab61a49a5b55ec83870c0508ba556f",
+    "final": "9289937540db8988ac3af251c1323881a866cd1ac0ab2d447a73a290b924d809"
+  },
+  "app/src/androidTest/java/com/whip/app/GymPowerInputUiTest.kt": {
+    "native": "02ccd4faab53280f023c908a1d14e4d0d57e84bab4248619994503ee83140cce",
+    "final": "dfc2b5b761cbc7c8855e4986759abaf719d64344b4cd65ad17654133e28087cc"
+  }
+}

@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260910-016 — Prioritize Routine days and exercise authoring
+
+- Behavior: Guided 5/3/1 setup now uses the shared NavigationRow, optional Routine Notes use DisclosureRow below day content, and ordinary Add Exercises precedes placement records. Authored notes open by default and retain complete text. The first ordinary phone Add label moves 764 pixels upward. Empty optional list content no longer doubles spacing.
+- Ownership/compatibility: RoutineBuilder retains the draft, selected day/placement, program-authority and persistence callbacks. No schema, backup, epoch, version or completed-history change. Complex placement/programming bodies remain specialized; FND-20260910-026 records their next normal-scale hierarchy correction.
+- Validation: A new real MainActivity two-day journey checks contextual selection, recreation, notes/save/reopen/edit, complete authored placement/Set values and exact day launch; the permanent Gym profile includes it. Existing Machine fixtures now close the keyboard before input-to-picker scrolling after a timing failure in the broad neighboring run. FND-20260910-025 / DEC/VER-20260910-016; 208 Android and 109 focused JVM checks pass, with five API 37 methods and 371 JVM readiness checks.
+- Status: Verified; 24 original visual pairs reviewed on phone/wide and final readiness passes. Evidence: artifacts/astra-audit/2026-09-10/routine-authoring/README.md. Commit/push delivery is recorded by Git history; whole-product acceptance remains open.
+
+
 ### IMP-20260910-015 — Share Gym catalog records and search every equipment link
 
 - Behavior: Exercises, Machines and Categories now use one title/action and full-width supporting-information composition. Long names wrap naturally; Category Archive/Restore remains direct, Machine commands retain destructive ordering, and reorder mode suppresses ordinary actions. Shorter task-oriented introductions retain domain explanations at the relevant forms. Equipment search and Any Machine now include every linked Exercise, and Exercise search has the shared Clear Search action.

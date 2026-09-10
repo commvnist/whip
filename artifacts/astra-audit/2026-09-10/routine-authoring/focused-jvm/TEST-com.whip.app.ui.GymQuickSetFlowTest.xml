@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.GymQuickSetFlowTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-09-10T15:36:57.037Z" hostname="beast" time="0.407">
+  <properties/>
+  <testcase name="save and next reuses another incomplete planned set" classname="com.whip.app.ui.GymQuickSetFlowTest" time="0.005"/>
+  <testcase name="save and next appends only when no incomplete set remains" classname="com.whip.app.ui.GymQuickSetFlowTest" time="0.0"/>
+  <testcase name="save and next follows incomplete set in another exercise rotation" classname="com.whip.app.ui.GymQuickSetFlowTest" time="0.0"/>
+  <testcase name="load stepper follows exact machine choices and clamps at both ends" classname="com.whip.app.ui.GymQuickSetFlowTest" time="0.402"/>
+  <testcase name="load stepper uses exercise increment without producing negative load" classname="com.whip.app.ui.GymQuickSetFlowTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-016 — Give day authoring priority through existing presentation roles
+
+- Decision: Keep Routine's single scrolling outline and complete state owner. Guided 5/3/1 setup declares a title, concise explanation and navigation callback through NavigationRow. Optional routine notes use DisclosureRow below the day content, opening by default when authored notes exist. Ordinary Add Exercises precedes placements. Preserve all split choices, notes, contextual creation, programming authority and specialized placement/reorder controls.
+- Alternatives/tradeoffs: Per-screen text sizing or scale branches would leave the hierarchy unchanged. A new universal form builder would add architecture without a demonstrated second form contract. Existing navigation/disclosure roles already own consistent surfaces, spacing and semantics. Optional notes require deliberate discovery lower in the outline, while saved notes remain visible when that section is reached. Do not force complex programming/execution records into the simple record builder.
+- Status: Verified under FND-20260910-025 / IMP/VER-20260910-016. Normal phone/wide authoring, notes and selected-day recovery, 208 Android regressions, focused/readiness JVM checks and 24 original reviews pass. No persistence/schema/backup/version change. FND-20260910-026 and complete programming/execution remain open.
+
+
 ### DEC-20260910-015 — Extend record roles for Gym catalogs without a second layout framework
 
 - Decision: Exercises, Machines and Categories declare title, full-width context/details, optional Open/Edit, one direct action, overflow commands and reorder state through WhipRecordItem. The renderer owns natural title height, action geometry, information placement and the existing reorder handle; the feature retains ordering, filtering, callbacks, saved drafts and exact repository requests. Track facts keep their existing bounded preview, while complete catalog configuration uses explicit detail lines. Reordering suppresses Open and ordinary actions centrally.

@@ -1,0 +1,31 @@
+{
+  "policy": "Readable text uses LF, removes trailing line whitespace and ends in one newline. PNG bytes unchanged; original native XML bytes retained in gzip archives.",
+  "files": [
+    "wide/gym.routine-authoring.new.xml",
+    "wide/gym.routine-authoring.lower.xml",
+    "wide/gym.routine-authoring.recovered-placement.xml",
+    "wide/gym.routine-authoring.workout.xml",
+    "wide/gym.routine-authoring.routine-notes.xml",
+    "wide/gym.routine-authoring.upper.xml",
+    "wide/gym.routine-authoring.saved-in-place.xml",
+    "before/gym.routine-authoring.new.xml",
+    "before/gym.routine-authoring.lower.xml",
+    "before/gym.routine-authoring.recovered-placement.xml",
+    "before/gym.routine-authoring.workout.xml",
+    "before/gym.routine-authoring.upper.xml",
+    "before/gym.routine-authoring.saved-in-place.xml",
+    "wide-neighbors/gym.routine.active-blocked.xml",
+    "wide-neighbors/gym.531.workout.active.xml",
+    "phone-neighbors/gym.routine.active-blocked.xml",
+    "phone-neighbors/gym.531.workout.active.xml",
+    "final-android/batch-1.xml",
+    "final-android/batch-2.xml",
+    "phone/gym.routine-authoring.new.xml",
+    "phone/gym.routine-authoring.lower.xml",
+    "phone/gym.routine-authoring.recovered-placement.xml",
+    "phone/gym.routine-authoring.workout.xml",
+    "phone/gym.routine-authoring.routine-notes.xml",
+    "phone/gym.routine-authoring.upper.xml",
+    "phone/gym.routine-authoring.saved-in-place.xml"
+  ]
+}

@@ -2962,6 +2962,7 @@ private fun RoutineOutlinePane(
     onEditProgramStructure: () -> Unit,
 ) {
     val isFiveThreeOneProgram = builder.programKind.isFiveThreeOneProgramKindName()
+    var notesExpanded by rememberSaveable(builder.token) { mutableStateOf(builder.notes.isNotBlank()) }
     // The entire outline is one scroll surface. Routine metadata and the 5/3/1
     // summary used to sit above a separately scrolling exercise list, leaving
     // that lower viewport only tall enough for roughly one exercise on a Fold.
@@ -2980,13 +2981,6 @@ private fun RoutineOutlinePane(
             supportingText = { Text("${builder.name.length}/100") },
             modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp).testTag("routine-editor-name"),
             singleLine = true,
-        )
-        OutlinedTextField(
-            value = builder.notes,
-            onValueChange = { value -> onBuilderChange { it.copy(notes = value) } },
-            label = { Text("Routine notes") },
-            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-            maxLines = 2,
         )
         if (isFiveThreeOneProgram && builder.programPhaseCount > 0) {
             OutlinedCard(
@@ -3023,25 +3017,16 @@ private fun RoutineOutlinePane(
             }
         }
         if (builder.days.all { it.placements.isEmpty() }) {
-            OutlinedCard(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-                    .testTag("routine-five-three-one-program-entry"),
-            ) {
-                Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Start a strength program", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(
-                        "Choose a standard layout or build 5/3/1 around your own Weight + Reps exercises. Gym keeps Main, Supplemental, Assistance, and Optional work distinct across the full cycle.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    WhipButton(onClick = onCreateFiveThreeOneProgram, modifier = Modifier.fillMaxWidth()) {
-                        Text("Set Up 5/3/1")
-                    }
-                }
+            Box(Modifier.fillMaxWidth().padding(vertical = 4.dp).testTag("routine-five-three-one-program-entry")) {
+                NavigationRow(
+                    title = "Set Up 5/3/1",
+                    supportingText = "Build a strength program with guided exercise and Training Max setup.",
+                    onClick = onCreateFiveThreeOneProgram,
+                )
             }
             Text("Start with a Split", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(vertical = 4.dp))
             Text(
-                "These shortcuts only create and name routine days. They do not choose exercises or assign Push/Pull assistance roles.",
+                "Name the days here. Choose exercises and assistance roles separately.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -3145,6 +3130,15 @@ private fun RoutineOutlinePane(
             }
         }
         }
+            if (!isFiveThreeOneProgram) {
+                item {
+                    WhipButton(onClick = onAddExercises, modifier = Modifier.fillMaxWidth().testTag("routine-add-exercises")) {
+                        Icon(Icons.Filled.Add, contentDescription = null)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Add Exercises")
+                    }
+                }
+            }
             if (selectedDay.placements.isEmpty()) {
                 item {
                     OutlinedCard(Modifier.fillMaxWidth()) {
@@ -3251,91 +3245,102 @@ private fun RoutineOutlinePane(
                     )
                 }
             }
-            item {
-                if (isFiveThreeOneProgram) {
-                    OutlinedCard(
-                        Modifier.fillMaxWidth().testTag("routine-assistance-plan"),
+            if (isFiveThreeOneProgram) item {
+                OutlinedCard(
+                    Modifier.fillMaxWidth().testTag("routine-assistance-plan"),
+                ) {
+                    Column(
+                        Modifier.fillMaxWidth().padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        Column(
-                            Modifier.fillMaxWidth().padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            Text(
-                                "Assistance for ${selectedDay.name}",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            Text(
-                                if (builder.programTemplateKey == RoutineProgramTemplateKey.FiveThreeOneBeginners.name) {
-                                    "5/3/1 for Beginners suggests 50–100 total reps in each category. This is guidance, not a save blocker."
-                                } else {
-                                    "These optional routine roles keep assistance distinct from Main and Supplemental work."
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                "You assign each role for this day. Exercise Library categories and muscle tags never assign it automatically.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            listOf(
-                                RoutineAssistanceRole.Push,
-                                RoutineAssistanceRole.Pull,
-                                RoutineAssistanceRole.SingleLegCore,
-                            ).forEach { role ->
-                                val category = role.toBuilderAssistanceCategory().name
-                                val matching = selectedDay.placements.filter {
-                                    it.placementKind == RoutinePlacementKind.Assistance.name &&
-                                        it.assistanceCategory == category
-                                }
-                                val plannedReps = matching.sumOf(RoutineBuilderPlacementState::plannedAssistanceReps)
-                                WhipOutlinedButton(
-                                    onClick = { onAddAssistance(role) },
-                                    modifier = Modifier.fillMaxWidth()
-                                        .testTag("routine-add-assistance-${role.name}"),
+                        Text(
+                            "Assistance for ${selectedDay.name}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            if (builder.programTemplateKey == RoutineProgramTemplateKey.FiveThreeOneBeginners.name) {
+                                "5/3/1 for Beginners suggests 50–100 total reps in each category. This is guidance, not a save blocker."
+                            } else {
+                                "These optional routine roles keep assistance distinct from Main and Supplemental work."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            "You assign each role for this day. Exercise Library categories and muscle tags never assign it automatically.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        listOf(
+                            RoutineAssistanceRole.Push,
+                            RoutineAssistanceRole.Pull,
+                            RoutineAssistanceRole.SingleLegCore,
+                        ).forEach { role ->
+                            val category = role.toBuilderAssistanceCategory().name
+                            val matching = selectedDay.placements.filter {
+                                it.placementKind == RoutinePlacementKind.Assistance.name &&
+                                    it.assistanceCategory == category
+                            }
+                            val plannedReps = matching.sumOf(RoutineBuilderPlacementState::plannedAssistanceReps)
+                            WhipOutlinedButton(
+                                onClick = { onAddAssistance(role) },
+                                modifier = Modifier.fillMaxWidth()
+                                    .testTag("routine-add-assistance-${role.name}"),
+                            ) {
+                                Column(
+                                    Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp),
                                 ) {
-                                    Column(
-                                        Modifier.fillMaxWidth(),
-                                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                                    ) {
-                                        Text("Add ${role.assistanceUiLabel()} assistance", fontWeight = FontWeight.SemiBold)
-                                        Text(
-                                            buildList {
-                                                add(role.assistanceUiDescription())
-                                                if (matching.isNotEmpty()) {
-                                                    add("${matching.size} selected")
-                                                    add(if (plannedReps > 0) "$plannedReps planned reps" else "rep target needs review")
-                                                }
-                                            }.joinToString(" · "),
-                                            style = MaterialTheme.typography.bodySmall,
-                                        )
-                                    }
+                                    Text("Add ${role.assistanceUiLabel()} assistance", fontWeight = FontWeight.SemiBold)
+                                    Text(
+                                        buildList {
+                                            add(role.assistanceUiDescription())
+                                            if (matching.isNotEmpty()) {
+                                                add("${matching.size} selected")
+                                                add(if (plannedReps > 0) "$plannedReps planned reps" else "rep target needs review")
+                                            }
+                                        }.joinToString(" · "),
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
                                 }
                             }
                         }
                     }
-                    Spacer(Modifier.height(10.dp))
-                    WhipOutlinedButton(
-                        onClick = onAddExercises,
-                        modifier = Modifier.fillMaxWidth().testTag("routine-add-exercises"),
-                    ) {
-                        Icon(Icons.Filled.Add, contentDescription = null)
-                        Spacer(Modifier.width(6.dp))
-                        Text("Add an unclassified exercise")
-                    }
-                    Text(
-                        "Use this for general or optional work that should not be labeled Push, Pull, or Single-leg/Core.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp),
+                }
+                Spacer(Modifier.height(10.dp))
+                WhipOutlinedButton(
+                    onClick = onAddExercises,
+                    modifier = Modifier.fillMaxWidth().testTag("routine-add-exercises"),
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Add an unclassified exercise")
+                }
+                Text(
+                    "Use this for general or optional work that should not be labeled Push, Pull, or Single-leg/Core.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+            item {
+                DisclosureRow(
+                    title = "Routine Notes",
+                    supportingText = if (builder.notes.isBlank()) "Optional guidance for this routine" else "Notes for this routine",
+                    expanded = notesExpanded,
+                    onClick = { notesExpanded = !notesExpanded },
+                    modifier = Modifier.testTag("routine-notes-disclosure"),
+                )
+                if (notesExpanded) {
+                    OutlinedTextField(
+                        value = builder.notes,
+                        onValueChange = { value -> onBuilderChange { it.copy(notes = value) } },
+                        label = { Text("Routine notes") },
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp).testTag("routine-editor-notes"),
+                        minLines = 2,
+                        maxLines = 4,
                     )
-                } else {
-                    WhipButton(onClick = onAddExercises, modifier = Modifier.fillMaxWidth().testTag("routine-add-exercises")) {
-                        Icon(Icons.Filled.Add, contentDescription = null)
-                        Spacer(Modifier.width(6.dp))
-                        Text("Add Exercises")
-                    }
                 }
             }
             item {

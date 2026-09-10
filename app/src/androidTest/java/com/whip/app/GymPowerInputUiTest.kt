@@ -655,6 +655,7 @@ class GymPowerInputUiTest {
         }
 
         compose.onNodeWithTag("machine-editor-name").performTextInput("Standalone cable")
+        androidx.test.espresso.Espresso.closeSoftKeyboard()
         compose.onNodeWithTag("machine-editor-list").performScrollToNode(hasTestTag("machine-choose-exercises"))
         compose.onNodeWithTag("machine-choose-exercises").performClick()
         compose.onNodeWithTag("machine-exercise-picker").assertIsDisplayed()
@@ -688,6 +689,7 @@ class GymPowerInputUiTest {
         }
 
         compose.onNodeWithTag("machine-editor-name").performTextInput("Shared cable")
+        androidx.test.espresso.Espresso.closeSoftKeyboard()
         compose.onNodeWithTag("machine-editor-list").performScrollToNode(hasTestTag("machine-choose-exercises"))
         compose.onNodeWithTag("machine-choose-exercises").performClick()
         compose.onNodeWithTag("machine-exercise-search").performTextInput("  Cable fly  ")

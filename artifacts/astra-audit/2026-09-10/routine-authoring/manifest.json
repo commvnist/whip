@@ -1,0 +1,362 @@
+[
+  {
+    "file": "gym.routine-authoring.workout.xml",
+    "original": "gym.routine-authoring.workout.xml",
+    "sha256": "100db65e499ff4d966006b400f9dc9cef7769008f76525aa2b8025b6038c9afd",
+    "folder": "before",
+    "original_archive": "before/gym.routine-authoring.workout.xml.gz",
+    "artifact_sha256": "598a54c3720a92059484213e567da5314620138d80aeb4198c6c21fa55f554ef"
+  },
+  {
+    "file": "gym.routine-authoring.workout.png",
+    "original": "gym.routine-authoring.workout.png",
+    "sha256": "57b7249a016dffec4b894d33c870a6d97c600f771186c0bda7dcdef74f4c472f",
+    "folder": "before",
+    "artifact_sha256": "57b7249a016dffec4b894d33c870a6d97c600f771186c0bda7dcdef74f4c472f"
+  },
+  {
+    "file": "gym.routine-authoring.saved-in-place.xml",
+    "original": "gym.routine-authoring.saved-in-place.xml",
+    "sha256": "5142199067fd0d8ac57851b1d93016f797c987906b8ee7bb3668410ad4541238",
+    "folder": "before",
+    "original_archive": "before/gym.routine-authoring.saved-in-place.xml.gz",
+    "artifact_sha256": "5e8cca2d04b5ceae6cf4b49adba3d97fc08cc75a0476414aff782f17a1f66b51"
+  },
+  {
+    "file": "gym.routine-authoring.saved-in-place.png",
+    "original": "gym.routine-authoring.saved-in-place.png",
+    "sha256": "1d77269fec44e020c7afad53525a0210327f7c6fe2ed9d4931ca35261bcda57f",
+    "folder": "before",
+    "artifact_sha256": "1d77269fec44e020c7afad53525a0210327f7c6fe2ed9d4931ca35261bcda57f"
+  },
+  {
+    "file": "gym.routine-authoring.lower.xml",
+    "original": "gym.routine-authoring.lower (1).xml",
+    "sha256": "5c04a72f4058e84a272e08b25d881ff7af606d87925a29239ba0b53f5189920c",
+    "folder": "before",
+    "original_archive": "before/gym.routine-authoring.lower.xml.gz",
+    "artifact_sha256": "86a1ec1fbb30c33a2bca7d855fcc2a28aa71e7efe63edd944f6d73e0d2187776"
+  },
+  {
+    "file": "gym.routine-authoring.lower.png",
+    "original": "gym.routine-authoring.lower (1).png",
+    "sha256": "40850ac1ab5639c8fff980cac05556d4f112b1059547460d9ea5bebda1dce394",
+    "folder": "before",
+    "artifact_sha256": "40850ac1ab5639c8fff980cac05556d4f112b1059547460d9ea5bebda1dce394"
+  },
+  {
+    "file": "gym.routine-authoring.recovered-placement.xml",
+    "original": "gym.routine-authoring.recovered-placement (1).xml",
+    "sha256": "7df5acb0498707c4139d63458645d6fc498bf4a5a04bfa95fc8c99a5e85913f9",
+    "folder": "before",
+    "original_archive": "before/gym.routine-authoring.recovered-placement.xml.gz",
+    "artifact_sha256": "38e2bfa57b20eafe235fced23e4c47eaff79f7f5b39e83cd2b6eedb01ac8c3b5"
+  },
+  {
+    "file": "gym.routine-authoring.recovered-placement.png",
+    "original": "gym.routine-authoring.recovered-placement (1).png",
+    "sha256": "3e53448dbb6f94b8761647c165891e80d7bb64eb1d2d814a5e5eecffa943cb90",
+    "folder": "before",
+    "artifact_sha256": "3e53448dbb6f94b8761647c165891e80d7bb64eb1d2d814a5e5eecffa943cb90"
+  },
+  {
+    "file": "gym.routine-authoring.upper.xml",
+    "original": "gym.routine-authoring.upper (1).xml",
+    "sha256": "5502372bd3b13f73a91cd9769452e5b5bc8fa1f60526e4fceacb1ab9bab3f528",
+    "folder": "before",
+    "original_archive": "before/gym.routine-authoring.upper.xml.gz",
+    "artifact_sha256": "c047f7644cd7dc7a319f0e2373eb2460d1fda6184aaf5313f79af98ad49d7e39"
+  },
+  {
+    "file": "gym.routine-authoring.upper.png",
+    "original": "gym.routine-authoring.upper (1).png",
+    "sha256": "67a85f1ea1329e5cde1ebcbb16c760c65f1a4fa01a55062e78911e988322d53e",
+    "folder": "before",
+    "artifact_sha256": "67a85f1ea1329e5cde1ebcbb16c760c65f1a4fa01a55062e78911e988322d53e"
+  },
+  {
+    "file": "gym.routine-authoring.new.xml",
+    "original": "gym.routine-authoring.new (1).xml",
+    "sha256": "06e5effe7a516ba4483caf6c40f9efd1fcd917f7adc9d94dc0d9820dc5dbe3f5",
+    "folder": "before",
+    "original_archive": "before/gym.routine-authoring.new.xml.gz",
+    "artifact_sha256": "65674d7848444fd6b6965d5f4e071dda876016ef3b4abc0191dacf3634956921"
+  },
+  {
+    "file": "gym.routine-authoring.new.png",
+    "original": "gym.routine-authoring.new (1).png",
+    "sha256": "52f8d264475b7ed76ff28fb0690a380178c2d567f7cdef6ba9740991220be92c",
+    "folder": "before",
+    "artifact_sha256": "52f8d264475b7ed76ff28fb0690a380178c2d567f7cdef6ba9740991220be92c"
+  },
+  {
+    "file": "gym.routine-authoring.workout.xml",
+    "original": "gym.routine-authoring.workout (2).xml",
+    "sha256": "5e1b5d4ee66ba898c9f97952ab9e5377761e00a84ba49a179c74937afd8aea90",
+    "folder": "phone",
+    "original_archive": "phone/gym.routine-authoring.workout.xml.gz",
+    "artifact_sha256": "936e30c01205d86e47a2ca7f8d3b2035b1fa00d549b58f85ca12fec790a55177"
+  },
+  {
+    "file": "gym.routine-authoring.workout.png",
+    "original": "gym.routine-authoring.workout (2).png",
+    "sha256": "91bd7fda9b04c7bf9be749b6c4b0e905ac63876aeeb6b825b442e4e1199f75fa",
+    "folder": "phone",
+    "artifact_sha256": "91bd7fda9b04c7bf9be749b6c4b0e905ac63876aeeb6b825b442e4e1199f75fa"
+  },
+  {
+    "file": "gym.routine-authoring.saved-in-place.xml",
+    "original": "gym.routine-authoring.saved-in-place (2).xml",
+    "sha256": "de333250b1dfe6c58f63d06b5a5bf6d39065499cc3b3f7ca6b53b0bf318dfd0f",
+    "folder": "phone",
+    "original_archive": "phone/gym.routine-authoring.saved-in-place.xml.gz",
+    "artifact_sha256": "6eb9bbe84533e66f777a9fce1e5a8999555028338597c8aeaa0cf3706d5bee4a"
+  },
+  {
+    "file": "gym.routine-authoring.saved-in-place.png",
+    "original": "gym.routine-authoring.saved-in-place (2).png",
+    "sha256": "fc959712a58b16e8672d02ecd04796b66318aa99750eb046257aeed29f8ad0a7",
+    "folder": "phone",
+    "artifact_sha256": "fc959712a58b16e8672d02ecd04796b66318aa99750eb046257aeed29f8ad0a7"
+  },
+  {
+    "file": "gym.routine-authoring.routine-notes.xml",
+    "original": "gym.routine-authoring.routine-notes (1).xml",
+    "sha256": "1c90be2d8eceaf8bd9bc64f194e84f582e11b84509d8f88288d3dba5f373af4f",
+    "folder": "phone",
+    "original_archive": "phone/gym.routine-authoring.routine-notes.xml.gz",
+    "artifact_sha256": "b423456f04b067cee5497cdfe2e2423684e4eb2dbe37092f4590b9238c48a553"
+  },
+  {
+    "file": "gym.routine-authoring.routine-notes.png",
+    "original": "gym.routine-authoring.routine-notes (1).png",
+    "sha256": "bd72cbc45d228bf4d1caab16123e8f9be816b55392be6061c925682bf33d6964",
+    "folder": "phone",
+    "artifact_sha256": "bd72cbc45d228bf4d1caab16123e8f9be816b55392be6061c925682bf33d6964"
+  },
+  {
+    "file": "gym.routine-authoring.lower.xml",
+    "original": "gym.routine-authoring.lower (3).xml",
+    "sha256": "cc04fe628281b22304daf8a2c4dc97bdd0aad3e8197c084f322d7ca4154c27bf",
+    "folder": "phone",
+    "original_archive": "phone/gym.routine-authoring.lower.xml.gz",
+    "artifact_sha256": "7df87d16c2e4651345a5bdbf3f572c899aebf5b71a2a82a3fd8288e543ee22f2"
+  },
+  {
+    "file": "gym.routine-authoring.lower.png",
+    "original": "gym.routine-authoring.lower (3).png",
+    "sha256": "4c01cf93e5d4bee652d2dbe8e69f220de76f10c99ee1648b733a05de54163337",
+    "folder": "phone",
+    "artifact_sha256": "4c01cf93e5d4bee652d2dbe8e69f220de76f10c99ee1648b733a05de54163337"
+  },
+  {
+    "file": "gym.routine-authoring.recovered-placement.xml",
+    "original": "gym.routine-authoring.recovered-placement (3).xml",
+    "sha256": "8da452e6a054846da65ebb1b2f1b625c6c3b0348618cba8973a8642e1a9f6135",
+    "folder": "phone",
+    "original_archive": "phone/gym.routine-authoring.recovered-placement.xml.gz",
+    "artifact_sha256": "f634fe91ebf5b13ba5a92e4fb6e33faf8f58cbe6632db9aedcc05eccbce108ed"
+  },
+  {
+    "file": "gym.routine-authoring.recovered-placement.png",
+    "original": "gym.routine-authoring.recovered-placement (3).png",
+    "sha256": "946d9eee4f5565121b5cf0f45d1d25afcc9ec13fe35b28f6ccd3199d329ff782",
+    "folder": "phone",
+    "artifact_sha256": "946d9eee4f5565121b5cf0f45d1d25afcc9ec13fe35b28f6ccd3199d329ff782"
+  },
+  {
+    "file": "gym.routine-authoring.upper.xml",
+    "original": "gym.routine-authoring.upper (3).xml",
+    "sha256": "2d47ebfed71500e6929c7021864d7a78ae3cd7cc58efc9f1bb23ed5790cb4a07",
+    "folder": "phone",
+    "original_archive": "phone/gym.routine-authoring.upper.xml.gz",
+    "artifact_sha256": "fa64707697ddbef3c793c371ae98a9dc41c484aeb955791bfb06263637e4d9df"
+  },
+  {
+    "file": "gym.routine-authoring.upper.png",
+    "original": "gym.routine-authoring.upper (3).png",
+    "sha256": "45dbf87dfcc7093a7e828bb75c7eb4827d7d257ba1c05e811244df37181509e8",
+    "folder": "phone",
+    "artifact_sha256": "45dbf87dfcc7093a7e828bb75c7eb4827d7d257ba1c05e811244df37181509e8"
+  },
+  {
+    "file": "gym.routine-authoring.new.xml",
+    "original": "gym.routine-authoring.new (3).xml",
+    "sha256": "de63f28632310165b76397880b885c813db1ea7ed32fdbb0867ca9505422a85f",
+    "folder": "phone",
+    "original_archive": "phone/gym.routine-authoring.new.xml.gz",
+    "artifact_sha256": "1a849e8f1653f50db22edd946804a7f4fb01e1e130c4ca940356a40cd9da4a72"
+  },
+  {
+    "file": "gym.routine-authoring.new.png",
+    "original": "gym.routine-authoring.new (3).png",
+    "sha256": "2aa6266fa146e6c3ea78d4588839f7a65bc215066e28f499f6478ffb4d91ceb3",
+    "folder": "phone",
+    "artifact_sha256": "2aa6266fa146e6c3ea78d4588839f7a65bc215066e28f499f6478ffb4d91ceb3"
+  },
+  {
+    "file": "gym.routine-authoring.workout.xml",
+    "original": "gym.routine-authoring.workout.xml",
+    "sha256": "d5a82bff5828d675d451fb683348356ff1f90fceb385f6cbda9a903dc878e7a9",
+    "folder": "wide",
+    "original_archive": "wide/gym.routine-authoring.workout.xml.gz",
+    "artifact_sha256": "986a11313e67a08a1cd0ac6aadee5fa2e378651c35dc7884653563b5d4bb0c34"
+  },
+  {
+    "file": "gym.routine-authoring.workout.png",
+    "original": "gym.routine-authoring.workout.png",
+    "sha256": "5dd0c4f8ebef25a23fbfb8b37ab2a9a4c9c57efa5e2da6763cd19b03359d4b9e",
+    "folder": "wide",
+    "artifact_sha256": "5dd0c4f8ebef25a23fbfb8b37ab2a9a4c9c57efa5e2da6763cd19b03359d4b9e"
+  },
+  {
+    "file": "gym.routine-authoring.saved-in-place.xml",
+    "original": "gym.routine-authoring.saved-in-place.xml",
+    "sha256": "7fd79dd57a7cd41f40aef3f3781d78ca9f3986ae092316714b39f2f0582d1b51",
+    "folder": "wide",
+    "original_archive": "wide/gym.routine-authoring.saved-in-place.xml.gz",
+    "artifact_sha256": "44cb65f32690e992be4f9eb95a3f66bbf8c0474077fdf67b80294d68144514d3"
+  },
+  {
+    "file": "gym.routine-authoring.saved-in-place.png",
+    "original": "gym.routine-authoring.saved-in-place.png",
+    "sha256": "98a4c6cad3b0989f9d0a577ad38fdd5219550bd593b4eb93cf2ce0f093195864",
+    "folder": "wide",
+    "artifact_sha256": "98a4c6cad3b0989f9d0a577ad38fdd5219550bd593b4eb93cf2ce0f093195864"
+  },
+  {
+    "file": "gym.routine-authoring.routine-notes.xml",
+    "original": "gym.routine-authoring.routine-notes.xml",
+    "sha256": "527bd41ccef565560a3ffff9cda4b49c67580159329d7d91eb0b389ee803db77",
+    "folder": "wide",
+    "original_archive": "wide/gym.routine-authoring.routine-notes.xml.gz",
+    "artifact_sha256": "2d3d7b3d0bc74f86c07e74c122595bd502e7dd4283d8d2192f3a0152e6327791"
+  },
+  {
+    "file": "gym.routine-authoring.routine-notes.png",
+    "original": "gym.routine-authoring.routine-notes.png",
+    "sha256": "21fea4546a5d1d77c109bad54206820c2b10c5fd97729584045efff08e14ba1d",
+    "folder": "wide",
+    "artifact_sha256": "21fea4546a5d1d77c109bad54206820c2b10c5fd97729584045efff08e14ba1d"
+  },
+  {
+    "file": "gym.routine-authoring.lower.xml",
+    "original": "gym.routine-authoring.lower.xml",
+    "sha256": "ce2692f7afac1c05f1d8581973a8f27b1b0043d6761759b84018b272ba1674c6",
+    "folder": "wide",
+    "original_archive": "wide/gym.routine-authoring.lower.xml.gz",
+    "artifact_sha256": "ef9073c45fe95d49daf36d83485104336cb0c08a3824404c72255926386d7240"
+  },
+  {
+    "file": "gym.routine-authoring.lower.png",
+    "original": "gym.routine-authoring.lower.png",
+    "sha256": "f7d135a5448daeebe4fb14d5f23561e5b0adc1da281b5ee3fe3bf24ed7dcffc1",
+    "folder": "wide",
+    "artifact_sha256": "f7d135a5448daeebe4fb14d5f23561e5b0adc1da281b5ee3fe3bf24ed7dcffc1"
+  },
+  {
+    "file": "gym.routine-authoring.recovered-placement.xml",
+    "original": "gym.routine-authoring.recovered-placement.xml",
+    "sha256": "4a370e404623755f49f788338e41a1b1b8901dc5072348b8301880ae169a0124",
+    "folder": "wide",
+    "original_archive": "wide/gym.routine-authoring.recovered-placement.xml.gz",
+    "artifact_sha256": "1150ffbe2e6b4d50cbfde1026385c74da90feea632986c2f59c986e2596e1dc1"
+  },
+  {
+    "file": "gym.routine-authoring.recovered-placement.png",
+    "original": "gym.routine-authoring.recovered-placement.png",
+    "sha256": "5fad85c6cfa19ec6775ef1bf9f177460b15d34d230ec4f46f9c0665d14f19263",
+    "folder": "wide",
+    "artifact_sha256": "5fad85c6cfa19ec6775ef1bf9f177460b15d34d230ec4f46f9c0665d14f19263"
+  },
+  {
+    "file": "gym.routine-authoring.upper.xml",
+    "original": "gym.routine-authoring.upper.xml",
+    "sha256": "49209b389ec420667e526c30d8490ccf2bfb5cc78fb1e520411679e799de6450",
+    "folder": "wide",
+    "original_archive": "wide/gym.routine-authoring.upper.xml.gz",
+    "artifact_sha256": "59e4eb58ddbbd2d811255f5499797c142b7738852b1ebfe61b33bd61c103baa3"
+  },
+  {
+    "file": "gym.routine-authoring.upper.png",
+    "original": "gym.routine-authoring.upper.png",
+    "sha256": "2445608cc578be489d7f1302eefe3afac9d2720de8193a5ed44910d9ee7a7ba4",
+    "folder": "wide",
+    "artifact_sha256": "2445608cc578be489d7f1302eefe3afac9d2720de8193a5ed44910d9ee7a7ba4"
+  },
+  {
+    "file": "gym.routine-authoring.new.xml",
+    "original": "gym.routine-authoring.new.xml",
+    "sha256": "4927b40b5399aa944501c5ee7c0c923dbb992a4baad9e031a152ddbdd2babdf1",
+    "folder": "wide",
+    "original_archive": "wide/gym.routine-authoring.new.xml.gz",
+    "artifact_sha256": "67544b6685ea13c171908c97b46e48df9a7c8443e4c0eeb92b9f179a65d1f6a2"
+  },
+  {
+    "file": "gym.routine-authoring.new.png",
+    "original": "gym.routine-authoring.new.png",
+    "sha256": "9e832c5de9ed3af6e126b2a98476e1c1f0b370af10386f82de89786f4e9948d4",
+    "folder": "wide",
+    "artifact_sha256": "9e832c5de9ed3af6e126b2a98476e1c1f0b370af10386f82de89786f4e9948d4"
+  },
+  {
+    "file": "gym.531.workout.active.xml",
+    "original": "gym.531.workout.active (3).xml",
+    "sha256": "5b877ea7b8e46f56a965bad7de4e85f6d57aa9c83ccfcf8526e927b9cb8da9f7",
+    "folder": "phone-neighbors",
+    "original_archive": "phone-neighbors/gym.531.workout.active.xml.gz",
+    "artifact_sha256": "929d32966fe73b1ae8cb4203bb561b6527fef06f2299926b5a498910bf982ecd"
+  },
+  {
+    "file": "gym.531.workout.active.png",
+    "original": "gym.531.workout.active (3).png",
+    "sha256": "7d3485c94f0db32ba5714df2734ccd7329e56bb0c1e59578eeb10696d79508cd",
+    "folder": "phone-neighbors",
+    "artifact_sha256": "7d3485c94f0db32ba5714df2734ccd7329e56bb0c1e59578eeb10696d79508cd"
+  },
+  {
+    "file": "gym.routine.active-blocked.xml",
+    "original": "gym.routine.active-blocked (3).xml",
+    "sha256": "e8873ea27d1e5213cf2b6c801bea84973a92e7a2acdec70d87fe9bdfd650cca7",
+    "folder": "phone-neighbors",
+    "original_archive": "phone-neighbors/gym.routine.active-blocked.xml.gz",
+    "artifact_sha256": "ceb8a9febb026ae0b0b81fe0e201c57142b73b2d4eae282dc233b7fed4707f5b"
+  },
+  {
+    "file": "gym.routine.active-blocked.png",
+    "original": "gym.routine.active-blocked (3).png",
+    "sha256": "e62ac80b8d375671b0f6fb7707ff6e6be7f05b2a119ee221972b679c5040bf13",
+    "folder": "phone-neighbors",
+    "artifact_sha256": "e62ac80b8d375671b0f6fb7707ff6e6be7f05b2a119ee221972b679c5040bf13"
+  },
+  {
+    "file": "gym.531.workout.active.xml",
+    "original": "gym.531.workout.active.xml",
+    "sha256": "190638909960cfb6d2f493cb2a80b701f7a73bc7830f66d7db02438409fbd40a",
+    "folder": "wide-neighbors",
+    "original_archive": "wide-neighbors/gym.531.workout.active.xml.gz",
+    "artifact_sha256": "27069eb679043db58998389c29d551ebab0eeecea6a7f07b832870104edb5e7f"
+  },
+  {
+    "file": "gym.531.workout.active.png",
+    "original": "gym.531.workout.active.png",
+    "sha256": "07ece314f9f724601fb8a7906ca962d2c0d4ece6570b6c10afe61de5e699e8cd",
+    "folder": "wide-neighbors",
+    "artifact_sha256": "07ece314f9f724601fb8a7906ca962d2c0d4ece6570b6c10afe61de5e699e8cd"
+  },
+  {
+    "file": "gym.routine.active-blocked.xml",
+    "original": "gym.routine.active-blocked.xml",
+    "sha256": "8f2003da7c685ce8221f89e5798e5de683ad6d405ce47887c7d03acc2cc058cb",
+    "folder": "wide-neighbors",
+    "original_archive": "wide-neighbors/gym.routine.active-blocked.xml.gz",
+    "artifact_sha256": "2e0f5ea223771a93b2dd27380f721e63ff1d79a1f89e42d907c49b7ca519dd0e"
+  },
+  {
+    "file": "gym.routine.active-blocked.png",
+    "original": "gym.routine.active-blocked.png",
+    "sha256": "80e4449a8461943bba8facb8cfec14f536e124be46fcf662fb59e9106bb1f8ff",
+    "folder": "wide-neighbors",
+    "artifact_sha256": "80e4449a8461943bba8facb8cfec14f536e124be46fcf662fb59e9106bb1f8ff"
+  }
+]
