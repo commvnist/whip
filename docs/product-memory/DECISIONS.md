@@ -1,5 +1,18 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-029 — Keep history controls reachable and sorting valid as Fields change
+
+- Context/evidence: FND-20260909-035 proves inaccessible Choice conditions and a live removed-Field crash. The existing two-stage filter workflow supports all seven types and explicit draft Apply/Cancel.
+- Alternatives: Replace filters with a new full-page builder, or repair the existing bounded dialog and its live selection contract. The latter retains efficient short conditions and avoids new navigation/state ownership without sacrificing large-form access.
+- Decision: Make the condition body scroll and use established focused-input relocation for text/Number controls. Resolve sort display and behavior against the current Field graph, clear an invalid retained ID and preserve the selected built-in sort/direction. Keep the sort body scrollable for small enlarged layouts.
+- Constraints: Do not reinterpret saved values, alter exact paging content ownership, weaken repository mutation review, or claim unmeasured performance gains. Applied-filter clarity and nested-condition restoration are exercised separately before any further change.
+- Nested recovery: FND-20260909-036 confirms the completed condition returns. Reuse the proven Field-editor pattern: a Track-scoped SaveableStateHolder, a new key per opening, and synchronous removeState on Add/Cancel. Preserve active-condition recreation.
+- Applied-filter reading: FND-20260909-037 confirms that technically correct results lack their defining criteria. Share only the summary role between Entries and Track Insights; keep their filter state independent. Show the combination rule and values/units, with bounded multiline chips and explicit remove semantics. This completes the existing workflow without replacing its builder.
+- Small keyboard refinement: The API 26 original shows the nested unit-name/symbol label wrapping above Maximum. Use the configured unit symbol directly in the input label, falling back to the unit name when it has no symbol. Field identity and canonical conversion remain unchanged; final focused platform tests cover the shorter label.
+- Related: FB-20260908-006 / VER-20260909-032.
+- Status: Verified in VER-20260909-032.
+
+
 ### DEC-20260909-028 — Bound removal reading while keeping its decision explicit
 
 - Context: FND-20260909-034 shows unreadable small enlarged warning/destination and excessive empty space in ordinary final review.

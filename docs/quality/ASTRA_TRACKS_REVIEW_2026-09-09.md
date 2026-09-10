@@ -59,3 +59,9 @@ The fresh 28-state baseline was captured from clean `5ae0892` on the API 34 phon
 - Continue retained-history-incompatible Scale rejection UX, realistic large histories, complete copy recovery, long arbitrary labels, RTL/TalkBack and remaining compact/wide/rotation/IME behavior. Existing exact history, mutation and CSV receipt contracts remain required; the whole Tracks family remains open.
 
 No general visual acceptance or whole-Track completion is claimed by these observations. Findings and decisions will follow reproducible behavior and complete representative flows.
+
+## Populated history controls — VER-20260909-032
+
+The 125-Entry native journey now covers paging beyond the first hundred, eighteen-Choice conditions, active and completed condition recreation, Number Between with a real keyboard, Match All/Any, independent Track Insights filters and exact unchanged persistence. A separate valid live definition update removes the selected sort Field and verifies usable fallback/recreation. FND-20260909-035/036/037 are resolved in IMP-20260909-031. Four final methods pass on API 26/34/37; 115 Android neighbors precede only the final short label/compact-fixture refinement, and 346 fresh JVM readiness checks pass. All 42 retained before/final originals are personally inspected in `artifacts/astra-audit/2026-09-09/history-controls/README.md`.
+
+This closes those bounded control journeys, not the whole history/Tracks review. Retained-history-incompatible Scale rejection, selection/reorder, realistic larger-history responsiveness, selected-condition Field changes, native provider-unavailable CSV paths, RTL/TalkBack and broader source/design acceptance remain open. The current range summary can wrap the unit onto a following line while preserving its readable value; arbitrary long criteria intentionally stop after three lines in chips and remain available in the full filter review.

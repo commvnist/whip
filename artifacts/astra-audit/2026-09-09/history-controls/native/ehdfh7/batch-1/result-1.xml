@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="4" failures="0" errors="0" skipped="0" time="98.701" timestamp="2026-09-10T03:44:12" hostname="localhost">
+  <testsuite name="com.whip.app.TrackHistoryControlsJourneyE2ETest" tests="4" failures="0" errors="0" skipped="0" time="97.615" timestamp="2026-09-10T03:44:12" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="removingSelectedSortFieldKeepsHistoryUsable" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="8.589" />
+    <testcase name="pagedHistoryCanCombineAndRecoverFiltersAtLargeText" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="37.16" />
+    <testcase name="removingSelectedSortFieldKeepsHistoryUsableAtLargeText" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="10.512" />
+    <testcase name="pagedHistoryCanCombineAndRecoverFilters" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="41.354" />
+  </testsuite>
+</testsuites>

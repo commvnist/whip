@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="1" errors="0" skipped="0" time="24.611" timestamp="2026-09-10T03:25:28" hostname="localhost">
+  <testsuite name="com.whip.app.TrackHistoryControlsJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="23.591" timestamp="2026-09-10T03:25:28" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="pagedHistoryCanCombineAndRecoverFilters" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="23.591">
+      <failure>java.lang.AssertionError: No node found that matches ContentDescription = 'Filter Entries' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #3845 at (l=0.0, t=765.0, r=1080.0, b=2169.0)px, Tag: 'track-entry-list'
+CollectionInfo = 'CollectionInfo(rowCount=3, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape&#64;2f66aa9'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 7 children, 5 siblings
+Selector used: (TestTag = 'track-entry-list')
+
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.history(TrackHistoryControlsJourneyE2ETest.kt:131)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.filters(TrackHistoryControlsJourneyE2ETest.kt:65)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.pagedHistoryCanCombineAndRecoverFilters(TrackHistoryControlsJourneyE2ETest.kt:30)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

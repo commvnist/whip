@@ -1,0 +1,9 @@
+com.whip.app.TrackImportedTextJourneyE2ETest
+com.whip.app.TrackInsightsJourneyE2ETest
+com.whip.app.TrackProjectionConsistencyTest
+com.whip.app.TrackRepositoryTest
+com.whip.app.TrackWorkspaceUiTest
+com.whip.app.ui.TrackCsvImportRecoveryViewModelTest
+com.whip.app.ui.TrackCsvImportUiTest
+com.whip.app.ui.TrackEditorCheckpointTest
+com.whip.app.ui.TrackEntryDeleteRecoveryUiTest

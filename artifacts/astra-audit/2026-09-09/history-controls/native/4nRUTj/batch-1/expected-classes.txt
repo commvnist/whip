@@ -1,0 +1,10 @@
+com.whip.app.TrackCsvImportIntegrityTest
+com.whip.app.TrackCsvJourneyE2ETest
+com.whip.app.TrackDefinitionIntegrityTest
+com.whip.app.TrackDefinitionReviewJourneyE2ETest
+com.whip.app.TrackDraftRecoveryUiTest
+com.whip.app.TrackDraftSavedStateJourneyTest
+com.whip.app.TrackEntryIntegrityTest
+com.whip.app.TrackFieldEditingJourneyE2ETest
+com.whip.app.TrackHistoryControlsJourneyE2ETest
+com.whip.app.TrackHistoryJourneyE2ETest

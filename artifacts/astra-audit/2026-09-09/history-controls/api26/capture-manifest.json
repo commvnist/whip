@@ -1,0 +1,122 @@
+[
+  {
+    "file": "tracks.history-controls.insights.ordinary.xml",
+    "original": "tracks.history-controls.insights.ordinary.xml",
+    "sha256": "90110f72dd26ea8389412ad4947d8ffc96009157a38b045c04f62a2a0caed2f8"
+  },
+  {
+    "file": "tracks.history-controls.insights.ordinary.png",
+    "original": "tracks.history-controls.insights.ordinary.png",
+    "sha256": "41e3782baff7d6c8419319ce8b2db0efd8c16021bd4f83181ff8538bc9119222"
+  },
+  {
+    "file": "tracks.history-controls.match-any.ordinary.xml",
+    "original": "tracks.history-controls.match-any.ordinary.xml",
+    "sha256": "96938c31a260845bc3fed7b6372295627caa22ecda63480a2798bd00f9d28b16"
+  },
+  {
+    "file": "tracks.history-controls.match-any.ordinary.png",
+    "original": "tracks.history-controls.match-any.ordinary.png",
+    "sha256": "5933f14a355b071ae7df322b8813b60b03a5e36e59163bb41826c9b11ada63ab"
+  },
+  {
+    "file": "tracks.history-controls.match-all.ordinary.png",
+    "original": "tracks.history-controls.match-all.ordinary.png",
+    "sha256": "48c89f24f49e4bafb9ea4f2751123c85b357979fc9a04754950584ee880c3ee2"
+  },
+  {
+    "file": "tracks.history-controls.match-all.ordinary.xml",
+    "original": "tracks.history-controls.match-all.ordinary.xml",
+    "sha256": "6438f206b27c72a18806279548345df02054200e620d2396bb1f9a8647266d75"
+  },
+  {
+    "file": "tracks.history-controls.range-keyboard.ordinary.png",
+    "original": "tracks.history-controls.range-keyboard.ordinary.png",
+    "sha256": "44b245511cf24fbf5dc4f69c463da206fe69be17e97dce44ee88cd6baa88ee97"
+  },
+  {
+    "file": "tracks.history-controls.range-keyboard.ordinary.xml",
+    "original": "tracks.history-controls.range-keyboard.ordinary.xml",
+    "sha256": "ce103e4902b0d59b0df1364f2dbabc4e2c490ece990457875e4c2388e7901313"
+  },
+  {
+    "file": "tracks.history-controls.choice.ordinary.png",
+    "original": "tracks.history-controls.choice.ordinary.png",
+    "sha256": "9b404e375b6abe608b24c38f5843a9563af4038dfc3dc44c78a3d053602e95f1"
+  },
+  {
+    "file": "tracks.history-controls.choice.ordinary.xml",
+    "original": "tracks.history-controls.choice.ordinary.xml",
+    "sha256": "8420f3fb81cd517d282b28941b10d590c228dcad669ba11b63c2fca8dae236c7"
+  },
+  {
+    "file": "tracks.history-controls.sort-recovered.large.png",
+    "original": "tracks.history-controls.sort-recovered.large.png",
+    "sha256": "208f74d903ceb8b6cc2f04ff1e5bfb85c470a05089698b64f97261e1f73fe965"
+  },
+  {
+    "file": "tracks.history-controls.sort-recovered.large.xml",
+    "original": "tracks.history-controls.sort-recovered.large.xml",
+    "sha256": "e90d703b717f80d68603833e1aaef9e8ae8091489de529f7d678242f7fbc534a"
+  },
+  {
+    "file": "tracks.history-controls.insights.large.png",
+    "original": "tracks.history-controls.insights.large.png",
+    "sha256": "487c105e8504617e0ff16688e8dffed5f3b8f395e55fcff246bff596453e3c79"
+  },
+  {
+    "file": "tracks.history-controls.insights.large.xml",
+    "original": "tracks.history-controls.insights.large.xml",
+    "sha256": "5cf1eb780d93adee400e0c4ae1c7e381c36d331e8b37a61faa99c19be011afc6"
+  },
+  {
+    "file": "tracks.history-controls.match-any.large.png",
+    "original": "tracks.history-controls.match-any.large.png",
+    "sha256": "f4fc446f04dce30f5b58d2cda44b971d056b1cad205c7b05b9c50aa33c04b9eb"
+  },
+  {
+    "file": "tracks.history-controls.match-any.large.xml",
+    "original": "tracks.history-controls.match-any.large.xml",
+    "sha256": "aa8670a79d5d23d2f2bb211c4aa80dc96128a041da82c7b1069f0c7f2f482058"
+  },
+  {
+    "file": "tracks.history-controls.match-all.large.xml",
+    "original": "tracks.history-controls.match-all.large.xml",
+    "sha256": "411e0e47260d75dc5eb5e078e5c632ade086cc816eee9859954cb5362a56b41b"
+  },
+  {
+    "file": "tracks.history-controls.match-all.large.png",
+    "original": "tracks.history-controls.match-all.large.png",
+    "sha256": "74a88fc36571b8cec5c039f72df93bf37b4fec1c980a1222f10e9f4170a44ff1"
+  },
+  {
+    "file": "tracks.history-controls.range-keyboard.large.xml",
+    "original": "tracks.history-controls.range-keyboard.large.xml",
+    "sha256": "8f8aaee637595f1937a051b271156a84ad7c246d90d25b1cf7e6c86ed84f2b20"
+  },
+  {
+    "file": "tracks.history-controls.range-keyboard.large.png",
+    "original": "tracks.history-controls.range-keyboard.large.png",
+    "sha256": "e06fe159c52d8ea807041f68d5584c2129593ade754458433126deea2a04df28"
+  },
+  {
+    "file": "tracks.history-controls.choice.large.png",
+    "original": "tracks.history-controls.choice.large.png",
+    "sha256": "06d320aab9f25d8dc56fea51ec56df7e3d532fbae9e551df951f9091a1bda0e1"
+  },
+  {
+    "file": "tracks.history-controls.choice.large.xml",
+    "original": "tracks.history-controls.choice.large.xml",
+    "sha256": "7dac3d3cce6c4ae3b8091cc4a67b9efaabac46467c29c60496aefdd23899f8bb"
+  },
+  {
+    "file": "tracks.history-controls.sort-recovered.ordinary.xml",
+    "original": "tracks.history-controls.sort-recovered.ordinary.xml",
+    "sha256": "98b073e88419e48e2db78fbc5a29f3aa575fb2602c5da62eda5980142be1b314"
+  },
+  {
+    "file": "tracks.history-controls.sort-recovered.ordinary.png",
+    "original": "tracks.history-controls.sort-recovered.ordinary.png",
+    "sha256": "1f5625fba80cfc6769ea17b677ac5a84c8793e1c5aa67020e55be37ddccf376d"
+  }
+]

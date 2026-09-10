@@ -1,5 +1,37 @@
 # Durable findings
 
+### FND-20260909-037 — Applied Track filters omit their values and combination rule
+
+- Severity/category: P2 comprehension and product design opportunity.
+- Observed: With a Choice and Number condition applied to 125 Entries, the result correctly narrows to Walk 108 but chips say only “Terrain is” and “Distance equals.” Users cannot see the selected Choice, numeric value/unit, or whether both conditions must match. Track Insights repeats the same incomplete summary.
+- Evidence: bLeqqb reaches correct persisted-history matching and fails its requested visible Match All summary. The original applied-before-check ordinary frame is personally inspected. Source confirms duplicated summary code in TrackEntriesPage and TrackInsightsPage.
+- Decision/remedy: One shared applied-condition summary shows Match All/Any, Field/operator/value/unit, explicit remove actions and Clear All. Bound very long chip text to three lines; the existing filter dialog remains the full review surface. Preserve matching semantics and independent Entry/Insights filters.
+- Related: FB-20260908-006; DEC-20260909-029; VER-20260909-032.
+- Status: Verified in IMP-20260909-031 / VER-20260909-032; scoped native API 26/34/37 and retained originals in `artifacts/astra-audit/2026-09-09/history-controls/`.
+
+
+### FND-20260909-036 — Completed filter conditions return as new drafts after recreation
+
+- Severity/category: P2 lifecycle and authorship.
+- Observed: Add the eighteenth Terrain Choice condition, recreate the Activity, finish Add, recreate again, then start another condition. The new Add Condition dialog restores Terrain and the previously selected Choice instead of a fresh Entry Date condition. This can silently add a duplicate condition.
+- Root cause: The nested condition dialog has reusable saveable slots without a per-opening state owner or explicit cleanup on Add/Cancel, the same lifecycle pattern as the verified Field editor finding FND-20260909-033.
+- Evidence: pMTxKS fails both ordinary/enlarged next-condition defaults; diagnostic 703GdF reproduces the ordinary flow. Its original `tracks.history-controls.next-condition.ordinary.png` is personally inspected and shows the previous Terrain selection with enabled Add.
+- Expected/remedy: Restore an active unfinished condition, but clear completed/cancelled condition state and give each new opening its own saveable identity. Keep parent filter Apply/Cancel and history unchanged.
+- Related: FB-20260908-006; DEC-20260909-029; VER-20260909-032.
+- Status: Verified in IMP-20260909-031 / VER-20260909-032; scoped native API 26/34/37 and retained originals in `artifacts/astra-audit/2026-09-09/history-controls/`.
+
+
+### FND-20260909-035 — Track history controls lose reachability and a removed sort Field crashes the view
+
+- Severity/category: P1 reliability for the removed-Field exception; P2 filter accessibility.
+- Observed: Native populated-history review on `3d05d42` reaches a Choice condition with eighteen options. At actual 200% text only the first eight are visible; the body cannot scroll to option eighteen. A valid repository definition update removing the currently selected Notes sort Field throws NoSuchElementException from TrackEntriesPage while Sort Entries is open.
+- Expected: Every authored Choice remains reachable; a changed definition leaves history and sorting usable with a valid built-in fallback. Existing Entries and matching/sorting semantics remain intact.
+- Root cause: TrackConditionEditor uses an unscrollable Column. Sort selection searches with `choices.first` using a retained Field ID that may no longer exist.
+- Evidence: VER-20260909-032, `baseline-4.log` / `v3QV3G` and personally inspected original Choice/Sort frames in `build/astra-history-controls-20260909/before/`. Earlier runs fail only fixture unit/route/unconditional-scroll setup and do not establish product defects.
+- Related: FB-20260908-006; DEC-20260909-029; complete Tracks remains VER-20260909-016.
+- Status: Verified in IMP-20260909-031 / VER-20260909-032; scoped native API 26/34/37 and retained originals in `artifacts/astra-audit/2026-09-09/history-controls/`.
+
+
 ### FND-20260909-034 — Small enlarged definition removal hides its warning and destination
 
 - Severity/category: P2 accessibility and destructive-decision clarity.

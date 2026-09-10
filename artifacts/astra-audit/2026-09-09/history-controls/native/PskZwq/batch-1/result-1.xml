@@ -1,0 +1,134 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="4" failures="4" errors="0" skipped="0" time="2.037" timestamp="2026-09-10T03:10:38" hostname="localhost">
+  <testsuite name="com.whip.app.TrackHistoryControlsJourneyE2ETest" tests="4" failures="4" errors="0" skipped="0" time="1.078" timestamp="2026-09-10T03:10:38" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="removingSelectedSortFieldKeepsHistoryUsable" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="0.141">
+      <failure>java.lang.IllegalStateException: Distance uses an unknown unit
+at com.whip.app.data.RoomTrackRepository.validateFieldUnits(TrackRepository.kt:1484)
+at com.whip.app.data.RoomTrackRepository.access$validateFieldUnits(TrackRepository.kt:164)
+at com.whip.app.data.RoomTrackRepository$create$2.invokeSuspend(TrackRepository.kt:485)
+at com.whip.app.data.RoomTrackRepository$create$2.invoke(Unknown Source:14)
+at com.whip.app.data.RoomTrackRepository$create$2.invoke(Unknown Source:9)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransaction$2.invokeSuspend(RoomDatabase.android.kt:2044)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransaction$2.invoke(Unknown Source:12)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransaction$2.invoke(Unknown Source:7)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransactionContext$transactionBlock$1.invokeSuspend(RoomDatabase.android.kt:2058)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransactionContext$transactionBlock$1.invoke(Unknown Source:12)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransactionContext$transactionBlock$1.invoke(Unknown Source:10)
+at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturn(Undispatched.kt:42)
+at kotlinx.coroutines.BuildersKt__Builders_commonKt.withContext(Builders.common.kt:164)
+at kotlinx.coroutines.BuildersKt.withContext(Unknown Source:1)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$startTransactionCoroutine$2$1$1.invokeSuspend(RoomDatabase.android.kt:2087)
+at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source:1)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$startTransactionCoroutine$2$1.run(RoomDatabase.android.kt:2084)
+at androidx.room.TransactionExecutor.execute$lambda$1$lambda$0(TransactionExecutor.android.kt:38)
+at androidx.room.TransactionExecutor$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
+at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)
+at java.lang.Thread.run(Thread.java:1012)
+</failure>
+    </testcase>
+    <testcase name="pagedHistoryCanCombineAndRecoverFiltersAtLargeText" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="0.38">
+      <failure>java.lang.IllegalStateException: Distance uses an unknown unit
+at com.whip.app.data.RoomTrackRepository.validateFieldUnits(TrackRepository.kt:1484)
+at com.whip.app.data.RoomTrackRepository.access$validateFieldUnits(TrackRepository.kt:164)
+at com.whip.app.data.RoomTrackRepository$create$2.invokeSuspend(TrackRepository.kt:485)
+at com.whip.app.data.RoomTrackRepository$create$2.invoke(Unknown Source:14)
+at com.whip.app.data.RoomTrackRepository$create$2.invoke(Unknown Source:9)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransaction$2.invokeSuspend(RoomDatabase.android.kt:2044)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransaction$2.invoke(Unknown Source:12)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransaction$2.invoke(Unknown Source:7)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransactionContext$transactionBlock$1.invokeSuspend(RoomDatabase.android.kt:2058)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransactionContext$transactionBlock$1.invoke(Unknown Source:12)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransactionContext$transactionBlock$1.invoke(Unknown Source:10)
+at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturn(Undispatched.kt:42)
+at kotlinx.coroutines.BuildersKt__Builders_commonKt.withContext(Builders.common.kt:164)
+at kotlinx.coroutines.BuildersKt.withContext(Unknown Source:1)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$startTransactionCoroutine$2$1$1.invokeSuspend(RoomDatabase.android.kt:2087)
+at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source:1)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$startTransactionCoroutine$2$1.run(RoomDatabase.android.kt:2084)
+at androidx.room.TransactionExecutor.execute$lambda$1$lambda$0(TransactionExecutor.android.kt:38)
+at androidx.room.TransactionExecutor$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
+at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)
+at java.lang.Thread.run(Thread.java:1012)
+</failure>
+    </testcase>
+    <testcase name="removingSelectedSortFieldKeepsHistoryUsableAtLargeText" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="0.355">
+      <failure>java.lang.IllegalStateException: Distance uses an unknown unit
+at com.whip.app.data.RoomTrackRepository.validateFieldUnits(TrackRepository.kt:1484)
+at com.whip.app.data.RoomTrackRepository.access$validateFieldUnits(TrackRepository.kt:164)
+at com.whip.app.data.RoomTrackRepository$create$2.invokeSuspend(TrackRepository.kt:485)
+at com.whip.app.data.RoomTrackRepository$create$2.invoke(Unknown Source:14)
+at com.whip.app.data.RoomTrackRepository$create$2.invoke(Unknown Source:9)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransaction$2.invokeSuspend(RoomDatabase.android.kt:2044)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransaction$2.invoke(Unknown Source:12)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransaction$2.invoke(Unknown Source:7)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransactionContext$transactionBlock$1.invokeSuspend(RoomDatabase.android.kt:2058)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransactionContext$transactionBlock$1.invoke(Unknown Source:12)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransactionContext$transactionBlock$1.invoke(Unknown Source:10)
+at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturn(Undispatched.kt:42)
+at kotlinx.coroutines.BuildersKt__Builders_commonKt.withContext(Builders.common.kt:164)
+at kotlinx.coroutines.BuildersKt.withContext(Unknown Source:1)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$startTransactionCoroutine$2$1$1.invokeSuspend(RoomDatabase.android.kt:2087)
+at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source:1)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$startTransactionCoroutine$2$1.run(RoomDatabase.android.kt:2084)
+at androidx.room.TransactionExecutor.execute$lambda$1$lambda$0(TransactionExecutor.android.kt:38)
+at androidx.room.TransactionExecutor$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
+at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)
+at java.lang.Thread.run(Thread.java:1012)
+</failure>
+    </testcase>
+    <testcase name="pagedHistoryCanCombineAndRecoverFilters" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="0.202">
+      <failure>java.lang.IllegalStateException: Distance uses an unknown unit
+at com.whip.app.data.RoomTrackRepository.validateFieldUnits(TrackRepository.kt:1484)
+at com.whip.app.data.RoomTrackRepository.access$validateFieldUnits(TrackRepository.kt:164)
+at com.whip.app.data.RoomTrackRepository$create$2.invokeSuspend(TrackRepository.kt:485)
+at com.whip.app.data.RoomTrackRepository$create$2.invoke(Unknown Source:14)
+at com.whip.app.data.RoomTrackRepository$create$2.invoke(Unknown Source:9)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransaction$2.invokeSuspend(RoomDatabase.android.kt:2044)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransaction$2.invoke(Unknown Source:12)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransaction$2.invoke(Unknown Source:7)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransactionContext$transactionBlock$1.invokeSuspend(RoomDatabase.android.kt:2058)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransactionContext$transactionBlock$1.invoke(Unknown Source:12)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransactionContext$transactionBlock$1.invoke(Unknown Source:10)
+at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturn(Undispatched.kt:42)
+at kotlinx.coroutines.BuildersKt__Builders_commonKt.withContext(Builders.common.kt:164)
+at kotlinx.coroutines.BuildersKt.withContext(Unknown Source:1)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$startTransactionCoroutine$2$1$1.invokeSuspend(RoomDatabase.android.kt:2087)
+at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source:1)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$startTransactionCoroutine$2$1.run(RoomDatabase.android.kt:2084)
+at androidx.room.TransactionExecutor.execute$lambda$1$lambda$0(TransactionExecutor.android.kt:38)
+at androidx.room.TransactionExecutor$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
+at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)
+at java.lang.Thread.run(Thread.java:1012)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

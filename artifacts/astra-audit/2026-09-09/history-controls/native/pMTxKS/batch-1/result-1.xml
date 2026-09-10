@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="4" failures="2" errors="0" skipped="0" time="60.796" timestamp="2026-09-10T03:19:07" hostname="localhost">
+  <testsuite name="com.whip.app.TrackHistoryControlsJourneyE2ETest" tests="4" failures="2" errors="0" skipped="0" time="59.386" timestamp="2026-09-10T03:19:07" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="removingSelectedSortFieldKeepsHistoryUsable" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="10.167" />
+    <testcase name="pagedHistoryCanCombineAndRecoverFiltersAtLargeText" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="23.178">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (ContentDescription = 'Field: Entry Date' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.choose(TrackHistoryControlsJourneyE2ETest.kt:115)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.filters(TrackHistoryControlsJourneyE2ETest.kt:58)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.pagedHistoryCanCombineAndRecoverFiltersAtLargeText(TrackHistoryControlsJourneyE2ETest.kt:32)
+</failure>
+    </testcase>
+    <testcase name="removingSelectedSortFieldKeepsHistoryUsableAtLargeText" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="8.097" />
+    <testcase name="pagedHistoryCanCombineAndRecoverFilters" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="17.944">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (ContentDescription = 'Field: Entry Date' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.choose(TrackHistoryControlsJourneyE2ETest.kt:115)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.filters(TrackHistoryControlsJourneyE2ETest.kt:58)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.pagedHistoryCanCombineAndRecoverFilters(TrackHistoryControlsJourneyE2ETest.kt:30)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

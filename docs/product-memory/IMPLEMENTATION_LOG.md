@@ -1,5 +1,15 @@
 # Implementation history
 
+### IMP-20260909-031 — Make Track history filters readable and resilient to recreation and Field changes
+
+- Behavior: Condition bodies scroll through every Choice and relocate focused text/range inputs above the keyboard. Number range labels use the configured symbol. Each nested condition opening owns saveable state, preserving active drafts and clearing completed/cancelled ones. A removed sort Field falls back to the current built-in order without an exception. Entries and Track Insights share complete applied-condition summaries while retaining independent filters.
+- Files: `ui/TrackScreens.kt`; new `TrackHistoryControlsJourneyE2ETest.kt`; permanent Tracks QA profile and twelve catalog/matrix states.
+- Persistence/compatibility: No schema, backup, version or saved-value interpretation change. Exact paging content ownership and transactional definition review remain intact. Native journeys compare the complete persisted projection after paging/filter/recreation/Insights and exact Entry values after sort-Field removal.
+- Verification: VER-20260909-032. All four final journeys pass on API 26/34/37 at ordinary/actual 200% text. The 115 Android neighbors precede only the final shorter label and compact-mode fixture; 346 fresh JVM readiness checks, build/lint, harness/catalog gates and personal review of 42 originals pass. Whole Tracks/app, large-history performance, remaining definition conflicts and accessibility remain open.
+- Related: FB-20260908-006; FND-20260909-035/036/037; DEC-20260909-029.
+- Status: Verified. Normal main/upstream delivery is recorded in Git history.
+
+
 ### IMP-20260909-030 — Complete Track saves and make removal decisions readable
 
 - Behavior changed: Valid Save installs the canonical submitted draft before exact review, so normalized text/Tags/Area changes complete. Each failed parent validation attempt reveals its explanation. Each nested Field opening owns and releases its saved state, preventing closed drafts from reappearing after recreation. Removal headings/warnings scroll above fixed actions, current saved-value copy is truthful, the replacement selection wraps and short final reviews use natural bounded height.

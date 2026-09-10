@@ -1,0 +1,70 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="4" failures="4" errors="0" skipped="0" time="17.488" timestamp="2026-09-10T03:11:49" hostname="localhost">
+  <testsuite name="com.whip.app.TrackHistoryControlsJourneyE2ETest" tests="4" failures="4" errors="0" skipped="0" time="16.339" timestamp="2026-09-10T03:11:49" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="removingSelectedSortFieldKeepsHistoryUsable" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="4.014">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'track-workspace-destination-All Tracks')
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.open(TrackHistoryControlsJourneyE2ETest.kt:119)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.removedSort(TrackHistoryControlsJourneyE2ETest.kt:86)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.removingSelectedSortFieldKeepsHistoryUsable(TrackHistoryControlsJourneyE2ETest.kt:33)
+</failure>
+    </testcase>
+    <testcase name="pagedHistoryCanCombineAndRecoverFiltersAtLargeText" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="5.811">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'track-workspace-destination-All Tracks')
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.open(TrackHistoryControlsJourneyE2ETest.kt:119)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.filters(TrackHistoryControlsJourneyE2ETest.kt:41)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.pagedHistoryCanCombineAndRecoverFiltersAtLargeText(TrackHistoryControlsJourneyE2ETest.kt:32)
+</failure>
+    </testcase>
+    <testcase name="removingSelectedSortFieldKeepsHistoryUsableAtLargeText" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="2.516">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'track-workspace-destination-All Tracks')
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.open(TrackHistoryControlsJourneyE2ETest.kt:119)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.removedSort(TrackHistoryControlsJourneyE2ETest.kt:86)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.removingSelectedSortFieldKeepsHistoryUsableAtLargeText(TrackHistoryControlsJourneyE2ETest.kt:35)
+</failure>
+    </testcase>
+    <testcase name="pagedHistoryCanCombineAndRecoverFilters" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="3.998">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'track-workspace-destination-All Tracks')
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.open(TrackHistoryControlsJourneyE2ETest.kt:119)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.filters(TrackHistoryControlsJourneyE2ETest.kt:41)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.pagedHistoryCanCombineAndRecoverFilters(TrackHistoryControlsJourneyE2ETest.kt:30)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

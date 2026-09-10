@@ -1891,6 +1891,9 @@ private fun TrackEntriesPage(
         }
     }
     val sortField = projection.fields.firstOrNull { it.id == sortFieldId }
+    LaunchedEffect(sortFieldId, sortField?.id) {
+        if (sortFieldId != null && sortField == null) sortFieldId = null
+    }
     val databasePagedView = query.isBlank() && conditions.isEmpty() && sort == TrackSort.EntryDate &&
         sortField == null && sortDirection == SortDirection.Descending
     val shown = if (databasePagedView) pagedEntries else {
@@ -1961,17 +1964,11 @@ private fun TrackEntriesPage(
             )
         }
         if (conditions.isNotEmpty()) item {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                conditions.forEachIndexed { index, condition ->
-                    val fieldName = projection.conditionFieldName(condition)
-                    WhipFilterChip(
-                        selected = true,
-                        onClick = { conditions = conditions.toMutableList().also { it.removeAt(index) } },
-                        label = { Text("$fieldName ${condition.operator.uiLabel()} ×") },
-                    )
-                }
-                WhipTextButton(onClick = { conditions = emptyList() }) { Text("Clear All") }
-            }
+            TrackAppliedConditions(
+                projection, conditions, conditionMode, BuiltInUnits.all + customUnits,
+                onRemove = { index -> conditions = conditions.toMutableList().also { it.removeAt(index) } },
+                onClear = { conditions = emptyList() },
+            )
         }
         if (databasePagedView && pageLoading && pagedEntries.isEmpty()) item {
             WhipStatusCard(
@@ -2051,7 +2048,7 @@ private fun TrackEntriesPage(
         val choices = TrackSort.entries.map { TrackEntrySortChoice(it.label, sort = it) } +
             projection.sortableFields().map { TrackEntrySortChoice(it.name, fieldId = it.id) }
         val selectedChoice = choices.first { choice ->
-            if (sortFieldId != null) choice.fieldId == sortFieldId else choice.sort == sort
+            if (sortField != null) choice.fieldId == sortField.id else choice.sort == sort
         }
         PaneAwareAlertDialog(
             modifier = dialogModifier,
@@ -2059,7 +2056,7 @@ private fun TrackEntriesPage(
             paneTitle = "Sort Entries",
             title = { Text("Sort Entries") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     SelectionField(
                         label = "Sort by",
                         values = choices,
@@ -2241,16 +2238,11 @@ private fun TrackInsightsPage(
             }
         }
         if (conditions.isNotEmpty()) item {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                conditions.forEachIndexed { index, condition ->
-                    WhipFilterChip(
-                        selected = true,
-                        onClick = { conditions = conditions.toMutableList().also { it.removeAt(index) } },
-                        label = { Text("${projection.conditionFieldName(condition)} ${condition.operator.uiLabel()} ×") },
-                    )
-                }
-                WhipTextButton(onClick = { conditions = emptyList() }) { Text("Clear All") }
-            }
+            TrackAppliedConditions(
+                projection, conditions, conditionMode, BuiltInUnits.all + customUnits,
+                onRemove = { index -> conditions = conditions.toMutableList().also { it.removeAt(index) } },
+                onClear = { conditions = emptyList() },
+            )
         }
         item {
             InsightCard(
@@ -4083,6 +4075,37 @@ internal fun TrackEntryField(
 }
 
 @Composable
+private fun TrackAppliedConditions(
+    projection: TrackProjection,
+    conditions: List<TrackCondition>,
+    mode: TrackConditionMode,
+    units: List<UnitDefinition>,
+    onRemove: (Int) -> Unit,
+    onClear: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            if (mode == TrackConditionMode.MatchAll) "Match All" else "Match Any",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            conditions.forEachIndexed { index, condition ->
+                val summary = "${projection.conditionFieldName(condition)} ${condition.operator.uiLabel()} ${condition.summaryValue(projection, units)}".trim()
+                WhipFilterChip(
+                    selected = true,
+                    onClick = { onRemove(index) },
+                    label = { Text(summary, maxLines = 3, overflow = TextOverflow.Ellipsis) },
+                    modifier = Modifier.semantics { contentDescription = "Remove Filter: $summary" },
+                    trailingIcon = { Icon(Icons.Outlined.Close, contentDescription = null) },
+                )
+            }
+            WhipTextButton(onClick = onClear) { Text("Clear All") }
+        }
+    }
+}
+
+@Composable
 internal fun TrackFilterDialog(
     modifier: Modifier = Modifier,
     projection: TrackProjection,
@@ -4096,6 +4119,13 @@ internal fun TrackFilterDialog(
     var mode by rememberSaveable { mutableStateOf(initialMode) }
     var conditions by rememberSaveable(stateSaver = trackConditionListSaver) { mutableStateOf(initial) }
     var adding by rememberSaveable { mutableStateOf(false) }
+    var conditionSession by rememberSaveable(projection.track.id) { mutableIntStateOf(0) }
+    val conditionStateHolder = key(projection.track.id) { rememberSaveableStateHolder() }
+    val conditionStateKey = "condition-$conditionSession"
+    fun closeCondition() {
+        conditionStateHolder.removeState(conditionStateKey)
+        adding = false
+    }
     PaneAwareAlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
@@ -4111,13 +4141,18 @@ internal fun TrackFilterDialog(
                         IconButton(onClick = { conditions = conditions.toMutableList().also { it.removeAt(index) } }) { Icon(Icons.Outlined.Close, "Remove Filter") }
                     } }
                 }
-                item { WhipOutlinedButton(onClick = { adding = true }, modifier = Modifier.fillMaxWidth()) { Text("Add Condition") } }
+                item { WhipOutlinedButton(onClick = { conditionSession++; adding = true }, modifier = Modifier.fillMaxWidth()) { Text("Add Condition") } }
             }
         },
         confirmButton = { WhipTextButton(onClick = { onApply(mode, conditions) }) { Text("Apply Filters") } },
         dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
-    if (adding) TrackConditionEditor(projection, { adding = false }, today = today, units = units, modifier = modifier) { conditions = conditions + it; adding = false }
+    if (adding) conditionStateHolder.SaveableStateProvider(conditionStateKey) {
+        TrackConditionEditor(projection, ::closeCondition, today = today, units = units, modifier = modifier) {
+            conditions = conditions + it
+            closeCondition()
+        }
+    }
 }
 
 @Composable
@@ -4147,6 +4182,10 @@ internal fun TrackConditionEditor(
     var firstDate by rememberSaveable(subject.uuid) { mutableStateOf(today) }
     var secondDate by rememberSaveable(subject.uuid) { mutableStateOf(today) }
     var datePicker by rememberSaveable { mutableIntStateOf(0) }
+    var conditionViewport by remember { mutableStateOf(IntSize.Zero) }
+    val textVisibility = rememberFocusedInputVisibility(conditionViewport)
+    val firstNumberVisibility = rememberFocusedInputVisibility(conditionViewport)
+    val secondNumberVisibility = rememberFocusedInputVisibility(conditionViewport)
     val needsNoValue = operator in setOf(TrackConditionOperator.IsBlank, TrackConditionOperator.IsNotBlank, TrackConditionOperator.IsYes, TrackConditionOperator.IsNo, TrackConditionOperator.IsUnanswered, TrackConditionOperator.IsAnswered)
     val valid = needsNoValue || when (fieldType) {
         TrackFieldType.ShortText, TrackFieldType.LongText -> text.isNotBlank()
@@ -4159,15 +4198,19 @@ internal fun TrackConditionEditor(
         modifier = modifier,
         onDismissRequest = onDismiss,
         title = { Text("Add Condition") },
-        text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        text = { Column(
+            Modifier.fillMaxWidth().onSizeChanged { conditionViewport = it }
+                .verticalScroll(rememberScrollState()).testTag("track-condition-body"),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             SelectionField("Field", subjects, subject, TrackConditionSubject::name, { subjectUuid = it.uuid; operator = it.type.availableOperators().first() })
             SelectionField("Operator", fieldType.availableOperators(), operator, TrackConditionOperator::uiLabel, { operator = it })
             if (!needsNoValue) when (fieldType) {
-                TrackFieldType.ShortText, TrackFieldType.LongText -> OutlinedTextField(text, { text = it }, label = { Text("Text") }, modifier = Modifier.fillMaxWidth())
+                TrackFieldType.ShortText, TrackFieldType.LongText -> OutlinedTextField(text, { text = it }, label = { Text("Text") }, modifier = Modifier.fillMaxWidth().then(textVisibility))
                 TrackFieldType.Number, TrackFieldType.Scale -> {
-                    val unitSuffix = numberUnit?.let(::unitDefinitionDisplayLabel)?.let { " ($it)" }.orEmpty()
-                    OutlinedTextField(firstNumber, { firstNumber = it }, label = { Text((if (operator == TrackConditionOperator.Between) "Minimum" else "Value") + unitSuffix) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true, modifier = Modifier.fillMaxWidth())
-                    if (operator == TrackConditionOperator.Between) OutlinedTextField(secondNumber, { secondNumber = it }, label = { Text("Maximum$unitSuffix") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true, modifier = Modifier.fillMaxWidth())
+                    val unitSuffix = numberUnit?.let { " (${it.symbol.ifBlank { it.name }})" }.orEmpty()
+                    OutlinedTextField(firstNumber, { firstNumber = it }, label = { Text((if (operator == TrackConditionOperator.Between) "Minimum" else "Value") + unitSuffix) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true, modifier = Modifier.fillMaxWidth().then(firstNumberVisibility))
+                    if (operator == TrackConditionOperator.Between) OutlinedTextField(secondNumber, { secondNumber = it }, label = { Text("Maximum$unitSuffix") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true, modifier = Modifier.fillMaxWidth().then(secondNumberVisibility))
                 }
                 TrackFieldType.SingleChoice -> FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     projection.optionsFor(requireNotNull(field).id).forEach { option -> WhipFilterChip(option.uuid in selectedChoices, { selectedChoices = if (option.uuid in selectedChoices) selectedChoices - option.uuid else selectedChoices + option.uuid }, { Text(option.label) }) }

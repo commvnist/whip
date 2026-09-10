@@ -1,0 +1,122 @@
+[
+  {
+    "file": "tracks.history-controls.sort-recovered.large.xml",
+    "original": "tracks.history-controls.sort-recovered.large.xml",
+    "sha256": "af9009dc03d05abf02491fae5c2a5d96ca0e364af09a2dea1e7dca319cda22e3"
+  },
+  {
+    "file": "tracks.history-controls.sort-recovered.large.png",
+    "original": "tracks.history-controls.sort-recovered.large.png",
+    "sha256": "eb85c67d5d318473659333bde362505f825b380c2c9207a5cad9e658810fa3c0"
+  },
+  {
+    "file": "tracks.history-controls.insights.large.xml",
+    "original": "tracks.history-controls.insights.large.xml",
+    "sha256": "dd6499b17502cbe187ce7a9249a369ca8300f3b890a5df71d9c95ca36d4c1aa7"
+  },
+  {
+    "file": "tracks.history-controls.insights.large.png",
+    "original": "tracks.history-controls.insights.large.png",
+    "sha256": "773b2ec61d45cb2c17694719f2688aea795d7fc4ca3e7e7766014293c4b23507"
+  },
+  {
+    "file": "tracks.history-controls.match-any.large.xml",
+    "original": "tracks.history-controls.match-any.large.xml",
+    "sha256": "2908f3211c91d6622c1ab58f2e135b5fa91f1c86e4b893b1d9f64a33ee3946c8"
+  },
+  {
+    "file": "tracks.history-controls.match-any.large.png",
+    "original": "tracks.history-controls.match-any.large.png",
+    "sha256": "db1c67e23bade2b1394065a31b826ae2319485eba62d8f6bd33c4fc1fdd28109"
+  },
+  {
+    "file": "tracks.history-controls.match-all.large.xml",
+    "original": "tracks.history-controls.match-all.large.xml",
+    "sha256": "1f4c11d4ff0aec8dae7708f6eb5e6f62aa065b4dd75d504b965e3e4bce15ef7e"
+  },
+  {
+    "file": "tracks.history-controls.match-all.large.png",
+    "original": "tracks.history-controls.match-all.large.png",
+    "sha256": "bbdcb1876d8c80b0bc5bd228e784b4778a2cbeb6439d4a0aa8577fd09d3b6121"
+  },
+  {
+    "file": "tracks.history-controls.range-keyboard.large.xml",
+    "original": "tracks.history-controls.range-keyboard.large.xml",
+    "sha256": "e1de299687807b17d43982acbdda775665b037dd90e4daaa4cecad1448b05b23"
+  },
+  {
+    "file": "tracks.history-controls.range-keyboard.large.png",
+    "original": "tracks.history-controls.range-keyboard.large.png",
+    "sha256": "21c0cfb2332fac166ed2175e9a662cf41ea05b61b733a8a96495db3d129a66fa"
+  },
+  {
+    "file": "tracks.history-controls.choice.large.xml",
+    "original": "tracks.history-controls.choice.large.xml",
+    "sha256": "da1660b4319292da38422f1f65ae74ba788b75dcc4ff3426d2b8d6447d2284db"
+  },
+  {
+    "file": "tracks.history-controls.choice.large.png",
+    "original": "tracks.history-controls.choice.large.png",
+    "sha256": "2c7ab0d6d22f217f80786986f08c46041214721c84258700c55262f48660b9e1"
+  },
+  {
+    "file": "tracks.history-controls.insights.ordinary.xml",
+    "original": "tracks.history-controls.insights.ordinary.xml",
+    "sha256": "1eec11046cc9d74319ffd9237b3b9fdc14bf0b71d58e18cc9adaf61e7f16141d"
+  },
+  {
+    "file": "tracks.history-controls.insights.ordinary.png",
+    "original": "tracks.history-controls.insights.ordinary.png",
+    "sha256": "a9286e1afbccb6bb2c264c0559278d6fb547da50358b313ce61b096c7c16e628"
+  },
+  {
+    "file": "tracks.history-controls.match-any.ordinary.xml",
+    "original": "tracks.history-controls.match-any.ordinary.xml",
+    "sha256": "d56d7677df6f6f7dcd53f67ffc3b25f6ea91607e6d54d97510019d392767cadb"
+  },
+  {
+    "file": "tracks.history-controls.match-any.ordinary.png",
+    "original": "tracks.history-controls.match-any.ordinary.png",
+    "sha256": "7d1fb58e3a287f485a186047df96f65971867054250fd274030604190f900c3e"
+  },
+  {
+    "file": "tracks.history-controls.match-all.ordinary.xml",
+    "original": "tracks.history-controls.match-all.ordinary.xml",
+    "sha256": "efb2b38944af0ae3e18cc3cf602947a68ce098c4629d1dfb351de84e7f185ed8"
+  },
+  {
+    "file": "tracks.history-controls.match-all.ordinary.png",
+    "original": "tracks.history-controls.match-all.ordinary.png",
+    "sha256": "520e8935047f602930808eace34c27024ea55dd3bc6b4c9c576a14ad6569b920"
+  },
+  {
+    "file": "tracks.history-controls.range-keyboard.ordinary.xml",
+    "original": "tracks.history-controls.range-keyboard.ordinary.xml",
+    "sha256": "58ee8f0bbe02368d40a88df0590b29eb5de9e73f1bddf99a9f213d3bdda97800"
+  },
+  {
+    "file": "tracks.history-controls.range-keyboard.ordinary.png",
+    "original": "tracks.history-controls.range-keyboard.ordinary.png",
+    "sha256": "b0d58e7e015fb228006699763964d482340ed61b651f6e09fa4cfcd575e573c7"
+  },
+  {
+    "file": "tracks.history-controls.choice.ordinary.xml",
+    "original": "tracks.history-controls.choice.ordinary.xml",
+    "sha256": "692d97048fa777a000250ecbe2634fa4dad768fd3c87fd8b16fd4677213d69ae"
+  },
+  {
+    "file": "tracks.history-controls.choice.ordinary.png",
+    "original": "tracks.history-controls.choice.ordinary.png",
+    "sha256": "f3fd7b108b00f7200421b54c50b55223f864bcc189eb03e82d08b7a358371a50"
+  },
+  {
+    "file": "tracks.history-controls.sort-recovered.ordinary.xml",
+    "original": "tracks.history-controls.sort-recovered.ordinary.xml",
+    "sha256": "c587c344474c08a1fd065639c632eb550a0113fe5c1bda7bf21743fad6cfdc74"
+  },
+  {
+    "file": "tracks.history-controls.sort-recovered.ordinary.png",
+    "original": "tracks.history-controls.sort-recovered.ordinary.png",
+    "sha256": "3d65487cf9fa367bba2cb64a6eceafc4dfe86cc6a96b5ab304320ef55199b12b"
+  }
+]

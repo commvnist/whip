@@ -1,0 +1,43 @@
+file	stage	personal_review
+api26/tracks.history-controls.choice.ordinary.png	Final	Choice eighteen is selected and fully readable; preceding options and controls scroll outside the viewport where needed.
+api26/tracks.history-controls.choice.large.png	Final	Choice eighteen is selected and fully readable; preceding options and controls scroll outside the viewport where needed.
+api26/tracks.history-controls.range-keyboard.ordinary.png	Final	Focused Maximum label/value/border and fixed actions are visible above the real keyboard. Minimum may be above the scrolling viewport on the smallest enlarged layout.
+api26/tracks.history-controls.range-keyboard.large.png	Final	Focused Maximum label/value/border and fixed actions are visible above the real keyboard. Minimum may be above the scrolling viewport on the smallest enlarged layout.
+api26/tracks.history-controls.match-all.ordinary.png	Final	Match All, both complete criteria and Walk 108 are readable. Number/unit text can wrap between words.
+api26/tracks.history-controls.match-all.large.png	Final	Match All, both complete criteria and Walk 108 are readable. Number/unit text can wrap between words.
+api26/tracks.history-controls.match-any.ordinary.png	Final	Match Any and both criteria are readable; the visible results begin with Walk 18. Remaining results scroll.
+api26/tracks.history-controls.match-any.large.png	Final	Match Any and both criteria are readable; the visible results begin with Walk 18. Remaining results scroll.
+api26/tracks.history-controls.insights.ordinary.png	Final	Independent Name condition and Match All are readable. Summary metrics may be below the captured enlarged viewport; this is not full Insights acceptance.
+api26/tracks.history-controls.insights.large.png	Final	Independent Name condition and Match All are readable. Summary metrics may be below the captured enlarged viewport; this is not full Insights acceptance.
+api26/tracks.history-controls.sort-recovered.ordinary.png	Final	Built-in Entry Date fallback, retained Descending direction and Done are readable after Notes is removed.
+api26/tracks.history-controls.sort-recovered.large.png	Final	Built-in Entry Date fallback, retained Descending direction and Done are readable after Notes is removed.
+api34/tracks.history-controls.choice.ordinary.png	Final	Choice eighteen is selected and fully readable; preceding options and controls scroll outside the viewport where needed.
+api34/tracks.history-controls.choice.large.png	Final	Choice eighteen is selected and fully readable; preceding options and controls scroll outside the viewport where needed.
+api34/tracks.history-controls.range-keyboard.ordinary.png	Final	Focused Maximum label/value/border and fixed actions are visible above the real keyboard. Minimum may be above the scrolling viewport on the smallest enlarged layout.
+api34/tracks.history-controls.range-keyboard.large.png	Final	Focused Maximum label/value/border and fixed actions are visible above the real keyboard. Minimum may be above the scrolling viewport on the smallest enlarged layout.
+api34/tracks.history-controls.match-all.ordinary.png	Final	Match All, both complete criteria and Walk 108 are readable. Number/unit text can wrap between words.
+api34/tracks.history-controls.match-all.large.png	Final	Match All, both complete criteria and Walk 108 are readable. Number/unit text can wrap between words.
+api34/tracks.history-controls.match-any.ordinary.png	Final	Match Any and both criteria are readable; the visible results begin with Walk 18. Remaining results scroll.
+api34/tracks.history-controls.match-any.large.png	Final	Match Any and both criteria are readable; the visible results begin with Walk 18. Remaining results scroll.
+api34/tracks.history-controls.insights.ordinary.png	Final	Independent Name condition and Match All are readable. Summary metrics may be below the captured enlarged viewport; this is not full Insights acceptance.
+api34/tracks.history-controls.insights.large.png	Final	Independent Name condition and Match All are readable. Summary metrics may be below the captured enlarged viewport; this is not full Insights acceptance.
+api34/tracks.history-controls.sort-recovered.ordinary.png	Final	Built-in Entry Date fallback, retained Descending direction and Done are readable after Notes is removed.
+api34/tracks.history-controls.sort-recovered.large.png	Final	Built-in Entry Date fallback, retained Descending direction and Done are readable after Notes is removed.
+api37/tracks.history-controls.choice.ordinary.png	Final	Choice eighteen is selected and fully readable; preceding options and controls scroll outside the viewport where needed.
+api37/tracks.history-controls.choice.large.png	Final	Choice eighteen is selected and fully readable; preceding options and controls scroll outside the viewport where needed.
+api37/tracks.history-controls.range-keyboard.ordinary.png	Final	Focused Maximum label/value/border and fixed actions are visible above the real keyboard. Minimum may be above the scrolling viewport on the smallest enlarged layout.
+api37/tracks.history-controls.range-keyboard.large.png	Final	Focused Maximum label/value/border and fixed actions are visible above the real keyboard. Minimum may be above the scrolling viewport on the smallest enlarged layout.
+api37/tracks.history-controls.match-all.ordinary.png	Final	Match All, both complete criteria and Walk 108 are readable. Number/unit text can wrap between words.
+api37/tracks.history-controls.match-all.large.png	Final	Match All, both complete criteria and Walk 108 are readable. Number/unit text can wrap between words.
+api37/tracks.history-controls.match-any.ordinary.png	Final	Match Any and both criteria are readable; the visible results begin with Walk 18. Remaining results scroll.
+api37/tracks.history-controls.match-any.large.png	Final	Match Any and both criteria are readable; the visible results begin with Walk 18. Remaining results scroll.
+api37/tracks.history-controls.insights.ordinary.png	Final	Independent Name condition and Match All are readable. Summary metrics may be below the captured enlarged viewport; this is not full Insights acceptance.
+api37/tracks.history-controls.insights.large.png	Final	Independent Name condition and Match All are readable. Summary metrics may be below the captured enlarged viewport; this is not full Insights acceptance.
+api37/tracks.history-controls.sort-recovered.ordinary.png	Final	Built-in Entry Date fallback, retained Descending direction and Done are readable after Notes is removed.
+api37/tracks.history-controls.sort-recovered.large.png	Final	Built-in Entry Date fallback, retained Descending direction and Done are readable after Notes is removed.
+before/tracks.history-controls.choices-opening.large.png	Before	Only choices one through eight appear; later choices have no scrolling route.
+before/tracks.history-controls.choices-opening.ordinary.png	Before	All eighteen choices fit at this ordinary API 34 size; ordinary access is not a confirmed defect.
+before/tracks.history-controls.sort-before.ordinary.png	Before	Notes is selected before the valid definition update; the following exception is established by the native log.
+before/tracks.history-controls.next-condition.ordinary.png	Before	A newly opened condition incorrectly restores Terrain and selected Choice eighteen after the previous condition was completed.
+before/tracks.history-controls.applied-before-check.ordinary.png	Before	Correct Walk 108 result has value-free Terrain/Distance chips and no visible combination mode.
+before/tracks.history-controls.range-keyboard.large.png	Before	The redundant unit name/symbol label wraps; the focused field outline extends below the body viewport.
