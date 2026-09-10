@@ -1,0 +1,32 @@
+[
+  {
+    "file": "shared.review.summary.xml",
+    "original": "shared.review.summary.xml",
+    "sha256": "5b12474c23b3a7b89ccaf2a9270a4949927bda3d1363698eeeb2c755469ffd96"
+  },
+  {
+    "file": "shared.review.summary.png",
+    "original": "shared.review.summary.png",
+    "sha256": "9addb34bbc023ec79d1925dbaee1426fce673c6b02734a1daaf8f01c62463ae9"
+  },
+  {
+    "file": "shared.review.area-evidence.xml",
+    "original": "shared.review.area-evidence.xml",
+    "sha256": "1de6f4e24a235fcf30046b68cc114c5cd9e9c03fbe71b134d01038a4fdb9a845"
+  },
+  {
+    "file": "shared.review.area-evidence.png",
+    "original": "shared.review.area-evidence.png",
+    "sha256": "2699701e9eaa5baa2e2a4e7ec416400ceb050417ce44d879d2514202521a41b2"
+  },
+  {
+    "file": "shared.review.archived-outcomes.xml",
+    "original": "shared.review.archived-outcomes.xml",
+    "sha256": "6a5322fba56e554e978e3da4c7789f0eda6c24305ff18d602cdf384f92afc199"
+  },
+  {
+    "file": "shared.review.archived-outcomes.png",
+    "original": "shared.review.archived-outcomes.png",
+    "sha256": "22d3d325f82fd3201d9c41911d6ef6db07005019e6ca83e47dc08d209049fea0"
+  }
+]

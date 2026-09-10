@@ -7,7 +7,7 @@ These records preserve durable user intent. “Released” means the change reac
 - Date/source: 2026-09-10, owner follow-up during the Astra audit.
 - User need: Move toward a set of builders so item layouts consistently express Whip's design language, respond naturally to available space and deliver a uniform look and experience. Flesh out and pursue this architecture while continuing the other quality priorities.
 - Acceptance criteria: Map existing shared patterns and duplicated domain layouts; establish explicit reusable item roles and layout responsibilities; prove a representative production migration at 100% with visual and interaction evidence; grow the pattern in coherent increments without losing domain behavior, useful capabilities, state or history. Preserve the whole-app UX, aesthetics and bug-fixing backlog. A larger adaptive-component effort may be scoped for later if warranted.
-- Related/status: In progress; builds on FB-20260910-001 and refines FB-20260908-006. Start implementation after committing the current Track selection chunk. No delegation or separate task is requested.
+- Related/status: In progress; builds on FB-20260910-001 and refines FB-20260908-006. Track selection was committed first; record, productivity, Settings and Set-family adoption is verified in IMP/VER-20260910-003/004/006/007. The wider quality audit continues. No delegation or separate task is requested.
 
 ### FB-20260910-001 — Prioritize the normal Whip experience and shared design quality
 

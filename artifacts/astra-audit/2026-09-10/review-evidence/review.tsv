@@ -1,0 +1,21 @@
+file	NAF_nodes	observation
+before/shared.review.summary.png	0	Original native baseline: controls precede progress; Area-filtered All Tracks says one instead of two; archived-only Review says no outcomes.
+before/shared.review.area-evidence.png	0	Original native baseline: controls precede progress; Area-filtered All Tracks says one instead of two; archived-only Review says no outcomes.
+before/shared.review.archived-outcomes.png	0	Original native baseline: controls precede progress; Area-filtered All Tracks says one instead of two; archived-only Review says no outcomes.
+wide-before/shared.review.summary.png	0	Pre-grid-fix checkpoint: four half-width cards stack in the left column. Native measured independent rounding exceeds available row by one pixel.
+wide-before/shared.review.area-evidence.png	0	Pre-grid-fix checkpoint: four half-width cards stack in the left column. Native measured independent rounding exceeds available row by one pixel.
+diagnostic/shared.review.archived-outcomes.png	0	Failed-test diagnostic original visibly shows correct 3 Tasks and 1 Habit; temporary fixture queried merged-tree child tags. Not final campaign acceptance.
+final-api34/shared.review.summary.png	0	Final ordinary Review: compact options keep the current scope visible; wide uses adjacent columns. Existing outcome charts and source actions retain their meaning.
+final-api34/shared.review.area-evidence.png	0	Work productivity scope stays visible while All Tracks counts both saved Tracks. Wide card rows use available width.
+final-api34/shared.review.archived-outcomes.png	0	Archived once/recurring Tasks total 3 and archived Habit total 1 in Work; Personal evidence is excluded. Actual totals survive Activity recreation.
+final-api34/shared.review.options.png	0	Monthly and deselected Gym survive recreation; compact disclosure and wide persistent controls remain reachable. Three-section grid preserves the last row column width.
+final-api34/shared.review.all-tracks.png	0	Both Tracks are visible through a temporary All Areas view, while the saved Work scope stays unchanged.
+final-api34/shared.review.track-only-home.png	0	Returning Home exposes Review Progress for saved Track-only history.
+final-api34/shared.review.track-only-evidence.png	0	Track-only Review shows saved evidence without assigning comparable productivity outcomes or correlations.
+final-api37/shared.review.summary.png	0	Final ordinary Review: compact options keep the current scope visible; wide uses adjacent columns. Existing outcome charts and source actions retain their meaning.
+final-api37/shared.review.area-evidence.png	0	Work productivity scope stays visible while All Tracks counts both saved Tracks. Wide card rows use available width.
+final-api37/shared.review.archived-outcomes.png	0	Archived once/recurring Tasks total 3 and archived Habit total 1 in Work; Personal evidence is excluded. Actual totals survive Activity recreation.
+final-api37/shared.review.options.png	0	Monthly and deselected Gym survive recreation; compact disclosure and wide persistent controls remain reachable. Three-section grid preserves the last row column width.
+final-api37/shared.review.all-tracks.png	0	Both Tracks are visible through a temporary All Areas view, while the saved Work scope stays unchanged.
+final-api37/shared.review.track-only-home.png	0	Returning Home exposes Review Progress for saved Track-only history.
+final-api37/shared.review.track-only-evidence.png	0	Track-only Review shows saved evidence without assigning comparable productivity outcomes or correlations.

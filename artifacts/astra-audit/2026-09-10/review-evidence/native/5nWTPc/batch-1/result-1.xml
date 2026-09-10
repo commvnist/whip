@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="0" errors="0" skipped="0" time="13.213" timestamp="2026-09-10T09:08:56" hostname="localhost">
+  <testsuite name="com.whip.app.ReviewJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="12.083" timestamp="2026-09-10T09:08:56" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api37_large(AVD) - 17" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="allTrackEvidenceKeepsItsScopeAcrossAreaReviewAndRecreation" classname="com.whip.app.ReviewJourneyE2ETest" time="12.083" />
+  </testsuite>
+</testsuites>

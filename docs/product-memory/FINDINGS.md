@@ -1,5 +1,40 @@
 # Durable findings
 
+### FND-20260910-014 — Wide Review's fractional card widths collapse the two-column grid
+
+- Severity/category: P2 ordinary wide-screen layout and aesthetics.
+- Observed: The first final-source API 37 Review originals place all four half-width outcome cards in the left column, leaving the right half blank. Native XML places cards at x=767..1628 with successive y positions rather than sharing rows; each card is 861 px. The content spans 1,745 px while two rounded card widths plus the 24 px gap require 1,746 px.
+- Root cause/remedy: Review calculates a fractional Dp width for every FlowRow child independently. Native pixel rounding makes the intended column count unreliable. Render explicit rows of the chosen column count with equal weights so one layout owner distributes the actual available pixels; preserve one/two/four-column breakpoints and natural content height. Verify adjacent columns and full-width occupancy on the real wide dashboard, including a final partial row.
+- Status: Verified in IMP/VER-20260910-008. The new native geometry assertion fails the old layout and passes weighted rows, including three selected sections. Final phone/wide campaigns and original visual review pass.
+
+### FND-20260910-013 — Review does not qualify loading or unavailable domain data
+
+- Severity/category: P2 partial-data truth; source finding awaiting runtime reproduction.
+- Observed source: ReviewDialog constructs all selected signals and No Reviewable Outcomes Yet without inspecting the supplied Task/Habit/Goal/Gym/Track loading/error fields. Home can legitimately open Review once one domain has evidence while another is still loading or has failed. Inference: a missing domain can appear as zero or absent evidence, and available partial correlations may be presented without qualification.
+- Next verification: Reproduce a successful domain beside a loading/failed domain, inspect native outcome/correlation and recovery behavior, and select a shared status treatment only from that evidence. Preserve available progress; do not treat incomplete loading as proof of no history. Domain retry actions already exist at the app host.
+- Status: Investigating under VER-20260910-008. Separate from the archive/All Tracks/compact-control increment; complete Review and whole-app acceptance remain open.
+
+### FND-20260910-010 — Review's All Tracks evidence is filtered and undiscoverable for Track-only use
+
+- Severity/category: P2 cross-feature scope truth and discovery.
+- Observed: h26IH2 opens Review in Work with a saved Entry in each of Work and Personal. The personally inspected native card says All Tracks but counts one Entry/Track instead of two. KjBpEH cannot find a returning-Home Review action when only Tracks have evidence; source hasReviewEvidence excludes Tracks. Review's Open Tracks callback also retains the narrower Area.
+- Root cause/remedy: WhipScreen passes its Area-filtered trackState into a deliberately global evidence card, while unscopedTrackState already exists. Pass complete Track evidence, open its global collection with the existing temporary-scope mechanism, and include saved Track evidence in Home's Review discovery. Retain period bounds and exclusion from comparable outcome/correlation scores under DEC-20260903-015.
+- Status: Verified in IMP/VER-20260910-008. Both saved Tracks appear in evidence and drill-down, the durable Work Area remains unchanged, and Track-only Home exposes Review. No persistence or data migration is needed.
+
+### FND-20260910-011 — Archived Task and Habit history disappears from Review
+
+- Severity/category: P1 historical outcome accuracy.
+- Observed: KjBpEH seeds and completes a real Task and Habit, archives both, then opens Review. The personally inspected original says No Reviewable Outcomes Yet although both saved histories remain. Task review reads only the active completed collection; Habit review reads only active all projections. Area filtering additionally drops archived Habit logs and leaves archivedProgress unfiltered.
+- Remedy: Assemble completed Task occurrences including archived definitions and include archived Habits in period outcomes, preserving exact dates and neutral/partial-period semantics. Scope active/archived Habit projections and their related logs/pauses/skips consistently. Keep permanent deletion and unfinished/skipped Task outcomes distinct.
+- Status: Verified in IMP/VER-20260910-008. Exact native Work totals of three completed Tasks and one Habit survive archive/recreation while Personal history stays excluded. Active/archived Habit-related projections share the Area boundary.
+
+### FND-20260910-012 — Phone Review opens with a control panel ahead of progress
+
+- Severity/category: P2 normal-scale information hierarchy and design opportunity.
+- Observed: Native vzfMiy places View, Period, range, Included Sections and their chips before Overview; h26IH2 adds a full Area-context card, pushing the first evidence card close to the bottom of the initial phone viewport. Empty Review instead moves its options below the empty message, so control location changes with the data.
+- Preferred direction: Use the existing disclosure pattern for one stable compact Review Options row with complete current period/section/Area scope. Expand the detailed choices on demand and retain wide persistent controls where room supports them. Keep outcomes near the top and verify period/section persistence and recreation through the real route.
+- Status: Verified in IMP/VER-20260910-008 under FB-20260910-001/002. Personally inspected 100% phone/wide originals show stable compact options, earlier progress and preserved scope. Period/sections survive recreation. Subjective normal-use preference remains a user-validation channel.
+
 ### FND-20260910-009 — Partially occluded workout toolbar buttons lose accessible names
 
 - Severity/category: P2 normal-scroll accessibility and action identity.

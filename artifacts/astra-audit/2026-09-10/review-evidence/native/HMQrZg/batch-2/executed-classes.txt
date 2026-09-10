@@ -1,0 +1,10 @@
+com.whip.app.AdaptiveWhipScreenTest
+com.whip.app.HabitRepositoryTest
+com.whip.app.ReviewJourneyE2ETest
+com.whip.app.TaskRepositoryTest
+com.whip.app.TrackWorkspaceUiTest
+com.whip.app.VisualAcceptanceMatrixTest
+com.whip.app.VisualCatalogSharedShellTest
+com.whip.app.WhipAccessibilityChecksTest
+com.whip.app.WhipNavigationTest
+com.whip.app.ui.AreaFeatureUiTest

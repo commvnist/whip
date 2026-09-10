@@ -1,0 +1,22 @@
+[
+  {
+    "file": "shared.review.summary.xml",
+    "original": "shared.review.summary.xml",
+    "sha256": "9ac7c8caf5f80bd6120192d229ae547d87a59f77ef566672de3c5c5572202a26"
+  },
+  {
+    "file": "shared.review.summary.png",
+    "original": "shared.review.summary.png",
+    "sha256": "e24fd4db679bff9e6730dfbd96c6eb45bde4cf3cfd2d733eb803008e9fa1f953"
+  },
+  {
+    "file": "shared.review.area-evidence.xml",
+    "original": "shared.review.area-evidence.xml",
+    "sha256": "159286284571d413ac1faeb3e9d6c6029c6c101584b1a664e151bc5c0fff5641"
+  },
+  {
+    "file": "shared.review.area-evidence.png",
+    "original": "shared.review.area-evidence.png",
+    "sha256": "87bea58dd1dd6ebbab181736eba7f0e00c73cf4d1fee6775e0c835b18fa479d7"
+  }
+]

@@ -55,16 +55,18 @@ internal fun TaskUiState.forArea(scope: AreaScope): TaskUiState {
 internal fun HabitUiState.forArea(scope: AreaScope): HabitUiState {
     if (scope == AreaScope.All) return this
     fun List<HabitDayProgress>.visible() = filter { scope.matches(it.habit.areaId) }
-    val visibleIds = (today + all).asSequence()
-        .filter { scope.matches(it.habit.areaId) }
-        .map { it.habit.id }
+    val visibleIds = (today.map { it.habit } + all.map { it.habit } + archived).asSequence()
+        .filter { scope.matches(it.areaId) }
+        .map { it.id }
         .toSet()
     return copy(
         today = today.visible(),
         all = all.visible(),
         archived = archived.filter { scope.matches(it.areaId) },
+        archivedProgress = archivedProgress.visible(),
         logs = logs.filter { it.habitId in visibleIds },
         pauses = pauses.filter { it.habitId in visibleIds },
+        skips = skips.filter { it.habitId in visibleIds },
     )
 }
 

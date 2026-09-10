@@ -1,0 +1,2 @@
+com.whip.app.ReviewJourneyE2ETest
+com.whip.app.VisualCatalogSharedShellTest

@@ -1,0 +1,177 @@
+[
+  {
+    "file": "before/shared.review.summary.xml",
+    "original": "5b12474c23b3a7b89ccaf2a9270a4949927bda3d1363698eeeb2c755469ffd96",
+    "retained": "20223d1a49dd6cd84e989daa374e056669317220bc499a455a99a10608d1087c"
+  },
+  {
+    "file": "before/shared.review.area-evidence.xml",
+    "original": "1de6f4e24a235fcf30046b68cc114c5cd9e9c03fbe71b134d01038a4fdb9a845",
+    "retained": "169d1492b86bd1916414374f958083077e6e5b3293ddf69d36c9bf1a9f1abf6e"
+  },
+  {
+    "file": "before/shared.review.archived-outcomes.xml",
+    "original": "6a5322fba56e554e978e3da4c7789f0eda6c24305ff18d602cdf384f92afc199",
+    "retained": "7473126ea3e0b4156d35551f6a512fe0c6fa3f51c27f8455811f36c8d4e023f8"
+  },
+  {
+    "file": "wide-before/shared.review.summary.xml",
+    "original": "9ac7c8caf5f80bd6120192d229ae547d87a59f77ef566672de3c5c5572202a26",
+    "retained": "85be36a0904b6db8adeb33e5713823411ad554ea514ee39a29dcd4d4f87e3c66"
+  },
+  {
+    "file": "wide-before/shared.review.area-evidence.xml",
+    "original": "159286284571d413ac1faeb3e9d6c6029c6c101584b1a664e151bc5c0fff5641",
+    "retained": "26e0b83d7330b1911a4f8fd4ce79c9dfe957b0f0b730af3e9eddb70e46acfc94"
+  },
+  {
+    "file": "diagnostic/shared.review.archived-outcomes.xml",
+    "original": "1af31f77ecc4be80987ab691de5da9f81961e5a4fe8210d82fc29a875db87949",
+    "retained": "6bcb421960211a031801d792df2713709b1e44b479539f10124c283dc99090fc"
+  },
+  {
+    "file": "final-api34/shared.review.summary.xml",
+    "original": "d436048a049279b4c9e9c93a05c092bbd5cd9460570b97fed675d061873673ac",
+    "retained": "1a5d88f76018c2217f8e469a5ff3bb4126b83eb1311d05872d65713a45b320f5"
+  },
+  {
+    "file": "final-api34/shared.review.area-evidence.xml",
+    "original": "71a174f56ea0f0ec63c5243d7295acda03cc1c93494a146720356b363121d71c",
+    "retained": "50ea7f955e657aa606e453def346b52d04c0919bcb55725462283f85e38680db"
+  },
+  {
+    "file": "final-api34/shared.review.archived-outcomes.xml",
+    "original": "f42bfbaa937030c72bab271dfcc9c639d0a4d579f885ac6de76391db7d619730",
+    "retained": "46042fc759539344e8693e26f8e826e77f7c650a67e5b603b3ec979112af5269"
+  },
+  {
+    "file": "final-api34/shared.review.options.xml",
+    "original": "7fc96d4e4adaae975ebbfe31cd6dc256b70fe2285333be50817553fd6484bae5",
+    "retained": "5ff9c678e92a3607d645ab3904d382b13fc5107e79ccc4145e887cd426573ea5"
+  },
+  {
+    "file": "final-api34/shared.review.all-tracks.xml",
+    "original": "d4c38d60bba056cfb7eba7921bbbfdfe47b4c657424cd0f9d358b13414409598",
+    "retained": "6dfc0b1d47261cb03d8ab73c7fca81eab20d99c8809c1ae5deca0c191c81b615"
+  },
+  {
+    "file": "final-api34/shared.review.track-only-home.xml",
+    "original": "efea75bb1055ed44dcc20d2031a4e5b45ac29a1ef328b175c21bea33db67eba3",
+    "retained": "6dc86e0b75cfc5aba360a62903fa6282b7ba71193351063e6183f8c07b438ec4"
+  },
+  {
+    "file": "final-api34/shared.review.track-only-evidence.xml",
+    "original": "250805467c5567fd3cf8c1b9c34a82bd6d3fcb8717a1ece8d4c953a3e56d6c3b",
+    "retained": "2381373e0dd8b0e760b384ca6a8c7c291466616b290fd3bd711da49d90f5ceb3"
+  },
+  {
+    "file": "final-api37/shared.review.summary.xml",
+    "original": "6fcded344d890550efa5e5beff2fa6409ad9c7cc78f59095e35c5a0d8142cea7",
+    "retained": "a341b5bd27ec3308bf7add282c4c442a84f5227fce4ff043ff383ed839ef94ea"
+  },
+  {
+    "file": "final-api37/shared.review.area-evidence.xml",
+    "original": "81c7690fa3a7aaaa413b5091aa05ae934f974606722e7c0f9afb62bcc610d453",
+    "retained": "da39f9ca53aec04e5ed91b2d8be8b4bc63833375826b9736a7b7cf69ded4c2d5"
+  },
+  {
+    "file": "final-api37/shared.review.archived-outcomes.xml",
+    "original": "e1929bfa042f808d4c958c8e2124c98f194312124a283abb36b8f67f4c8f2283",
+    "retained": "5a07dc5ececbf8ea3ebf9585eee9e8fc4155d66349fad3ec8638d2ee4f877cb5"
+  },
+  {
+    "file": "final-api37/shared.review.options.xml",
+    "original": "b3700b06c31f1ebcace19fbb9d954afd39638644c223982568117cd49740a4e9",
+    "retained": "002652e15f8d9c98a8315e0b2b29f33c0e383bba433098a5d4cc4bfd329035b3"
+  },
+  {
+    "file": "final-api37/shared.review.all-tracks.xml",
+    "original": "f8a99f60800e5e3092ae8c76fe5236085e48385bb36de518b073e9fae1ae910f",
+    "retained": "d9ba65010655571bb033d22193d6064c5bc07f01de5c547c1046ace19fd23736"
+  },
+  {
+    "file": "final-api37/shared.review.track-only-home.xml",
+    "original": "008892c46a183bf71d4c973e932ea247db5bde1cab4cc54e30637a2e03ab6b9a",
+    "retained": "7157fd787f748b04020c0f61f9305b0e63fda916e3f26c091e3297a751d13270"
+  },
+  {
+    "file": "final-api37/shared.review.track-only-evidence.xml",
+    "original": "7b82462f7dd47d42dd75b673510346c9cbe0527c53f61985c2e35dc442becef5",
+    "retained": "f1095271636eb135261e83ed4958c5389a496e29e2b0e1e0e9043357f9f68268"
+  },
+  {
+    "file": "native/WzpFPU/batch-1/result-1.xml",
+    "original": "bee2e129f88712ea133f95d09120f3dfa5ddd3522ea946e87b88f9d9147e2e3c",
+    "retained": "2e64dd4993141758f7436568297dfc02183b325e392aa6a1b43fdd59fc88b178"
+  },
+  {
+    "file": "native/uYwFQv/batch-1/result-1.xml",
+    "original": "53b5d00d9c740bb91b0977e011371a2dbc3e93d6ae254dce0326793b68fe0801",
+    "retained": "37b32819d87e6013cf2438a164805dd9c2d7beff5f6c3882886e2ff36ce15731"
+  },
+  {
+    "file": "native/uYwFQv/batch-2/result-1.xml",
+    "original": "f5830e9f304bd6515542bdbb357328f466a262e13ed69e19833ca9a0573ce42c",
+    "retained": "fb5a8e85e29b8fb7979b4ccc981779d6cf4ee85c23ea9743aec074011e17b918"
+  },
+  {
+    "file": "native/eL0mCJ/batch-1/result-1.xml",
+    "original": "e39e280f7770885421d3d949a1f733b0119f2226f6c011656e0524cba21be3a8",
+    "retained": "723de05e775b50fa419e3c9fd3ddf75140bb1727a68833dd8493b38a64cd53e9"
+  },
+  {
+    "file": "native/5nWTPc/batch-1/result-1.xml",
+    "original": "61628f476c2a3854b7f54032da8cdc5e5c78b38fdd6b341028a4b168309635bd",
+    "retained": "5c33ec17c647a564ff7e45a2df0a814a15ce8fc29cf188bda036fa179813987f"
+  },
+  {
+    "file": "native/h26IH2/batch-1/result-1.xml",
+    "original": "4d6b47072117b31ef10d986087418fe2b83c757beb378ba7a965ca6eb8c63030",
+    "retained": "704a3b88da8bb5158f2fdacbc98ab966a39f76231dc0d1073100bb83bcb99f09"
+  },
+  {
+    "file": "native/FBRnS3/batch-1/result-1.xml",
+    "original": "bdc8c1f37da422b2e446b64691a2dbbb85d4b84f7c631fea819cfea821f78ae6",
+    "retained": "355e1fbd7b42f3f9a1376148c1ad10fd5cfd41198d583592232193285a014c08"
+  },
+  {
+    "file": "native/rimL8k/batch-1/result-1.xml",
+    "original": "855dddcda915d7eb795f6525688b5e32346d81ef7b5b6575381774ee0622e007",
+    "retained": "7fb2ed759033ad81c0fa06075dca1c11214889369e8e467644b53b9851e8a341"
+  },
+  {
+    "file": "native/byVTwh/batch-1/result-1.xml",
+    "original": "f93b090780ae533d9fd1aa19fb8e10df023dcb8d9059f63ec0524104cd378ff0",
+    "retained": "c908cca1b3231304bde58ef0fbe2ac2fbce91c638186eec0763349a02754bff7"
+  },
+  {
+    "file": "native/4mNk6h/batch-1/result-1.xml",
+    "original": "796416978470399621826f80aef7ff2d2c89e3726f06a5b932d53693d233f8de",
+    "retained": "024ed4e1e9f59769e33acac988b31a3b835182eae33ee2afaeac6eb42a502725"
+  },
+  {
+    "file": "native/vzfMiy/batch-1/result-1.xml",
+    "original": "6200d55d01afa0a68b4d91cd326049a8b03ce3607c139c28172277e56ea8631d",
+    "retained": "cc9992a6a9679298eafe9311fcea8403570f515a4ad5363cc8d56984e9959c7b"
+  },
+  {
+    "file": "native/3vM66m/batch-1/result-1.xml",
+    "original": "72bc3afb1c30d23f790febe021dca1de60000fbc0c260725dbc679fde1abcdf1",
+    "retained": "80974586cc0ff7e1f7cfba5d0d1fdf361ed9f6db276f281369039214c10e72ef"
+  },
+  {
+    "file": "native/KjBpEH/batch-1/result-1.xml",
+    "original": "3e1ff82c53ae31b29ba4c937b7c2596549f43d9c7a9903b8d3232049a80cc0f3",
+    "retained": "87611e465d079c1a998c700d01991beb9fe168de5771fcb4345ffe1ad3b6dfab"
+  },
+  {
+    "file": "native/HMQrZg/batch-1/result-1.xml",
+    "original": "0f5b93e737a4b62ebdf9453451ce6c1007bab4d515aaaa9f794cb4d0731a6fc9",
+    "retained": "436ca7aea5de1bf093e9e6586ed542b995fe55a23ef133b0320157e7a952b140"
+  },
+  {
+    "file": "native/HMQrZg/batch-2/result-1.xml",
+    "original": "2a598ee5b4fe26d6ac96f1c322df7db67f667e334042d8c13da6c25ed2d369b0",
+    "retained": "a6a336440c8691606e9fc109b8355a3dba1aeabfb2eb3805e5bfc931a2e5de40"
+  }
+]

@@ -118,14 +118,14 @@ fun ReviewDialog(
     val through = taskState.currentDate
     val start = reviewStartDate(period, through)
     val dates = generateSequence(start) { it.plusDays(1) }.takeWhile { !it.isAfter(through) }.toList()
-    val completedTasks = taskState.completed.groupingBy { item ->
+    val completedTasks = reviewCompletedTasks(taskState).groupingBy { item ->
         item.completedAtMillis?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() } ?: item.scheduledDate
     }.eachCount()
     // Emit one outcome when the target period succeeds. Six water increments
     // remain one 6-of-8 partial result, and a 3x/week habit remains one weekly
     // result rather than three unrelated check-ins.
-    val habitOutcomeDates = habitState.all.associate { item ->
-        item.habit.id to item.habit.successfulPeriodOutcomeDates(
+    val habitOutcomeDates = (habitState.all.map { it.habit } + habitState.archived).distinctBy { it.id }.associate { habit ->
+        habit.id to habit.successfulPeriodOutcomeDates(
             habitState.logs,
             minOf(start, through.minusDays(29)),
             through,
@@ -220,7 +220,11 @@ fun ReviewDialog(
             } else {
                 ReviewCompactDashboard(
                     onDismiss = onDismiss,
-                    hasReviewData = hasReviewData,
+                    optionsSummary = buildList {
+                        add(period.label)
+                        productivityAreaLabel?.let { add("Productivity: $it") }
+                        add(reviewSectionsInDisplayOrder(sections).joinToString(", ") { it.label })
+                    }.joinToString(" · "),
                     optionsExpanded = compactOptionsExpanded,
                     onOptionsExpandedChange = { compactOptionsExpanded = it },
                     controls = controls,
@@ -300,7 +304,7 @@ private fun ReviewWideDashboard(
 @Composable
 private fun ReviewCompactDashboard(
     onDismiss: () -> Unit,
-    hasReviewData: Boolean,
+    optionsSummary: String,
     optionsExpanded: Boolean,
     onOptionsExpandedChange: (Boolean) -> Unit,
     controls: @Composable () -> Unit,
@@ -319,21 +323,17 @@ private fun ReviewCompactDashboard(
             ),
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.major),
         ) {
-            if (hasReviewData) {
-                item { controls() }
-                item { overview() }
-            } else {
-                item { overview() }
-                item {
-                    DisclosureRow(
-                        title = "Review Options",
-                        supportingText = "Change the period or included sections.",
-                        expanded = optionsExpanded,
-                        onClick = { onOptionsExpandedChange(!optionsExpanded) },
-                    )
-                }
-                if (optionsExpanded) item { controls() }
+            item {
+                DisclosureRow(
+                    title = "Review Options",
+                    supportingText = optionsSummary,
+                    expanded = optionsExpanded,
+                    onClick = { onOptionsExpandedChange(!optionsExpanded) },
+                    modifier = Modifier.testTag("review-options-toggle"),
+                )
             }
+            if (optionsExpanded) item { controls() }
+            item { overview() }
         }
     }
 }
@@ -388,7 +388,6 @@ private fun ReviewControlPanel(
         modifier = Modifier.fillMaxWidth().testTag("review-controls"),
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.standard),
     ) {
-        Text("View", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Text("Period", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
@@ -491,20 +490,23 @@ private fun ReviewOverview(
                 maxWidth >= 620.dp && visibleSignals.size >= 2 -> 2
                 else -> 1
             }
-            val cardWidth = (maxWidth - WhipSpacing.compact * (columns - 1)) / columns
-            FlowRow(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
                 verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
             ) {
-                visibleSignals.forEach { (section, signal) ->
-                    ReviewSignalCard(
-                        section = section,
-                        signal = signal,
-                        locale = locale,
-                        onOpen = onDrillDown,
-                        modifier = Modifier.width(cardWidth),
-                    )
+                visibleSignals.chunked(columns).forEach { row ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(WhipSpacing.compact)) {
+                        row.forEach { (section, signal) ->
+                            ReviewSignalCard(
+                                section = section,
+                                signal = signal,
+                                locale = locale,
+                                onOpen = onDrillDown,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
+                    }
                 }
             }
         }
@@ -583,13 +585,14 @@ private fun ReviewSignalCard(
     }}"
     Card(
         modifier = modifier
+            .testTag("review-signal-${section.name}")
             .heightIn(min = 148.dp)
             .clickable(onClickLabel = "Open ${signal.name} details") { onOpen(section) },
     ) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(signal.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Text(totalText, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(totalText, modifier = Modifier.testTag("review-total-${section.name}"), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             }
             if (signal.name == "Goal progress") {
                 Text(

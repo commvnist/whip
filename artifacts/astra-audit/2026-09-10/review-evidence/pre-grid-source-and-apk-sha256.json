@@ -1,0 +1,11 @@
+{
+  "app/src/main/java/com/whip/app/ui/AreaScopeFilters.kt": "8e376c757f89c292d341c7c03ae94e8de85fcac0fadfc360c9f6df5fe6cae39d",
+  "app/src/main/java/com/whip/app/ui/ReviewDialog.kt": "9c4aeef80b677bbb4579576819ef49cd973b425d81a5a38bf6dc7fe4fbcb473f",
+  "app/src/main/java/com/whip/app/ui/ReviewEvidence.kt": "b4d1912e037e35bef2fb2c9b7b91ecfb3408222233981b8c12eb4c024415a9e6",
+  "app/src/main/java/com/whip/app/ui/WhipApp.kt": "9606d9bc774b39c23b3457bc53be49f731f567f6948ccefbccb0ae6cc0fd71f1",
+  "app/src/androidTest/java/com/whip/app/ReviewJourneyE2ETest.kt": "4c6f8c33b3bbc19f9eb479a6c36c86ed8780ea9c5a1e9a2b53af6aa312f2d3ce",
+  "app/src/test/java/com/whip/app/ui/ReviewEvidenceTest.kt": "073542163bf90ddb1f2ed8159d7a9248c1dcc671b4d8336549e10341733fda2f",
+  "scripts/qa-targeted": "b72a55a07bd6f270a4022c0b79c65f11cae22ea41f1c33bc8e14a5adcaaeb8cf",
+  "app/build/outputs/apk/debug/app-debug.apk": "d7e6e84ecc4ae5d95938bc6cefea566177afabc60878e39fe28423c159ba17d8",
+  "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk": "358e6417db6ba24432d3be2c27d806cc82a8ebe95d6a3c48102134e3d94b0aaf"
+}

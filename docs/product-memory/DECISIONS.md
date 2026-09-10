@@ -1,5 +1,13 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-008 — Review reflects retained history and exposes controls without dominating progress
+
+- Decision: Preserve archived Task/Habit outcomes, honor All Tracks across Area scope, and make Track-only evidence discoverable from Home. Review's global Track action temporarily opens All Areas using the established restoration mechanism; the saved productivity Area stays unchanged. Keep Track values separate from comparable outcomes and correlations.
+- Layout: Compact Review uses one persistent disclosure with the current period, sections and productivity Area; detailed controls expand in place. Wide Review retains its dedicated control pane. Existing chart/evidence surfaces remain domain-specific.
+- Wide refinement: FND-20260910-014's measured one-pixel overflow justifies replacing independently rounded FlowRow widths with explicit weighted rows. Column count and reading order remain the same; the renderer owns residual-pixel distribution instead of caller patches or epsilon offsets.
+- Alternatives/tradeoffs: Relabeling All Tracks as selected-Area data contradicts the explicit evidence boundary; changing the durable Area on drill-down would disturb the user's workspace. Counting only active definitions makes cleanup rewrite progress. A complete dashboard rewrite is unnecessary; shared disclosure removes the demonstrated opening-view obstruction at the cost of one extra action to change compact options.
+- Compatibility/status: Verified under FND-20260910-010/011/012/014 and IMP/VER-20260910-008. Final native phone/wide journeys, 196 Android neighbors, readiness and 20 original image reviews pass. Saved data, section/period preferences, normalized outcomes, neutral dates, immutable completed Gym facts and correlation exclusions remain intact. No schema, backup or version change. FND-20260910-013 partial-data handling and complete Review/app acceptance remain open.
+
 ### DEC-20260910-007 — Execution builders own Set reading order while domain code owns outcomes and actions
 
 - Decision: Replace four separately assembled Set bodies with WhipExecutionItem: identity, optional leading/action slots, values, status, target, supporting evidence and specialized inputs. Keep the existing passive/active surface distinction and geometry. One Gym outcome formatter supplies classification, completion/removal and effort; History keeps its explicit Not performed fallback and its extra evidence.

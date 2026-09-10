@@ -2545,14 +2545,11 @@ fun WhipScreen(
                     ReviewSection.Gym -> AppDestination.Gym
                 }
             },
-            productivityAreaLabel = when (areaScope) {
-                AreaScope.All -> null
-                AreaScope.Unassigned -> "Main"
-                is AreaScope.One -> settingsState.areas.firstOrNull { it.id == areaScope.areaId }?.name ?: "Selected Area"
-            },
-            trackState = trackState,
+            productivityAreaLabel = reviewProductivityAreaLabel(areaScope, settingsState.areas),
+            trackState = unscopedTrackState,
             onOpenTracks = {
                 reviewOpen = false
+                if (areaScope != AreaScope.All) onTemporarilySelectAreaScope(AreaScope.All)
                 appDestination = AppDestination.Tracks
             },
         )
@@ -5112,9 +5109,10 @@ private fun HomeContent(
             (HomeSection.Tracks in visibleHomeSections && trackState.pinned.isNotEmpty()) ||
             (HomeSection.Gym in visibleHomeSections && gymHomeCount > 0)
     val hasReviewEvidence =
-        state.completed.isNotEmpty() ||
+        reviewCompletedTasks(state).isNotEmpty() ||
             habitState.logs.isNotEmpty() ||
             (goalState.active + goalState.completed + goalState.archived).any { it.entries.isNotEmpty() } ||
+            trackState.projections.any { it.entries.isNotEmpty() } ||
             gymState.history.any { it.state == com.whip.app.domain.WorkoutSessionState.Finished }
     val hasAnyUserData = homeHasAnyUserData(state, habitState, goalState, trackState, gymState)
     val showGettingStarted = shouldShowHomeGettingStarted(hasAnyUserData)

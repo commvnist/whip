@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="1" errors="0" skipped="0" time="16.457" timestamp="2026-09-10T08:56:59" hostname="localhost">
+  <testsuite name="com.whip.app.ReviewJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="15.417" timestamp="2026-09-10T08:56:59" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedTaskAndHabitOutcomesRemainInReviewHistory" classname="com.whip.app.ReviewJourneyE2ETest" time="15.417">
+      <failure>java.lang.AssertionError: Tasks: [(3, 35176b8a-01f4-43b4-b9ed-b13e191babd0, null), (2, ab20589b-7f89-47e9-b422-425b446f7cf2, 1789030603500), (1, 35176b8a-01f4-43b4-b9ed-b13e191babd0, 1789030603450)]; records=[TaskOccurrence(taskId=3, originalDate=2026-09-10, scheduledDate=2026-09-10, state=Completed, completedAtMillis=1789030603546), TaskOccurrence(taskId=3, originalDate=2026-09-09, scheduledDate=2026-09-09, state=Completed, completedAtMillis=1789030603539)]; Habits: [(1, 35176b8a-01f4-43b4-b9ed-b13e191babd0), (2, ab20589b-7f89-47e9-b422-425b446f7cf2)]; logs=[(2, Success), (1, Success)]; scope=area:35176b8a-01f4-43b4-b9ed-b13e191babd0
+at com.whip.app.ReviewJourneyE2ETest.archivedTaskAndHabitOutcomesRemainInReviewHistory(ReviewJourneyE2ETest.kt:109)
+... 64 trimmed
+Caused by: androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 10000 ms
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:901)
+at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:500)
+at com.whip.app.ReviewJourneyE2ETest.assertArchivedTotals(ReviewJourneyE2ETest.kt:154)
+at com.whip.app.ReviewJourneyE2ETest.archivedTaskAndHabitOutcomesRemainInReviewHistory(ReviewJourneyE2ETest.kt:100)
+... 65 more
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

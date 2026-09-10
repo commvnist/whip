@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="1" errors="0" skipped="0" time="6.5" timestamp="2026-09-10T08:39:32" hostname="localhost">
+  <testsuite name="com.whip.app.ReviewJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="5.57" timestamp="2026-09-10T08:39:32" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="allTrackEvidenceKeepsItsScopeAcrossAreaReviewAndRecreation" classname="com.whip.app.ReviewJourneyE2ETest" time="5.57">
+      <failure>java.lang.AssertionError: Assert failed: The component with (Text + InputText + EditableText contains '2 entries across 2 touched Tracks.' (ignoreCase: false) as substring) &amp;&amp; (hasAnyAncestorThat(TestTag = 'review-track-evidence')) is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.ReviewJourneyE2ETest.assertBothTracks(ReviewJourneyE2ETest.kt:83)
+at com.whip.app.ReviewJourneyE2ETest.allTrackEvidenceKeepsItsScopeAcrossAreaReviewAndRecreation(ReviewJourneyE2ETest.kt:44)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

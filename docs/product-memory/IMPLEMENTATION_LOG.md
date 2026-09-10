@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260910-008 — Preserve Review history and clarify progress at ordinary scale
+
+- Behavior: Archived once/recurring Task completions and Habit outcomes remain in Review, with exact completion dates and Area scope. All Tracks evidence counts the global collection and opens a temporary All Areas view without changing the saved productivity Area. Track-only history exposes Home Review without inventing productivity outcomes.
+- Layout: Compact Review has one persistent options summary with in-place disclosure. Wide Review retains its control pane and uses weighted card rows, preventing independent pixel rounding from collapsing the intended columns. Period and selected sections survive Activity recreation.
+- Files/compatibility: ReviewEvidence owns completed-Task assembly and Area labels; ReviewDialog owns dashboard composition; AreaScopeFilters retains and scopes archived Habit-related history; WhipApp supplies global Track evidence and discovery. No schema, backup, version or persisted-data change. Existing outcome calculations and specialized charts remain intact.
+- Verification/status: Verified under FND-20260910-010/011/012/014 and DEC/VER-20260910-008. Final HMQrZg accepts 196 fresh API 34 Android checks with zero failures/skips/reuse; five final API 37 methods pass. Readiness passes 361 JVM tests in 38 suites plus compilation/lint/debug packaging. Twenty original before/diagnostic/final images have scoped personal review in artifacts/astra-audit/2026-09-10/review-evidence/README.md. FND-20260910-013 loading/error qualification and complete Review/app acceptance remain open. Normal main/upstream delivery is recorded in Git history.
+
 ### IMP-20260910-007 — Build consistent Set layouts and preserve exact outcomes
 
 - Behavior: Active, passive, omitted and historical Sets declare one identity → values → status → target → evidence/input reading order. Skipped optional Sets now retain Optional identity and say Skipped; Undo, completion and History preserve the same Set and saved values. Add Exercise and Arrange retain accessible names when partially scrolled beneath the sticky execution panel.
