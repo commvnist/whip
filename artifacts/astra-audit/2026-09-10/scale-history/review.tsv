@@ -1,0 +1,33 @@
+file	phase	observation
+api26/tracks.scale-history.range.ordinary.png	Final	Maximum and complete saved-value error are visible; invalid Save Field is disabled. Earlier/later inputs may scroll outside the viewport.
+api26/tracks.scale-history.range.large.png	Final	Maximum and complete saved-value error are visible; invalid Save Field is disabled. Earlier/later inputs may scroll outside the viewport.
+api26/tracks.scale-history.increment.ordinary.png	Final	Increment and complete saved fractional-value error are visible with disabled Save Field and fixed Cancel. Other Field settings remain scrollable.
+api26/tracks.scale-history.increment.large.png	Final	Increment and complete saved fractional-value error are visible with disabled Save Field and fixed Cancel. Other Field settings remain scrollable.
+api26/tracks.scale-history.changed-history.ordinary.png	Final	The failure notice names Effort and 4.5 and explains correction while Save remains reachable. At the smallest 200% layout it fills the visible editor body; Fields remain below it.
+api26/tracks.scale-history.changed-history.large.png	Final	The failure notice names Effort and 4.5 and explains correction while Save remains reachable. At the smallest 200% layout it fills the visible editor body; Fields remain below it.
+api26/tracks.scale-history.corrected.ordinary.png	Final	Persisted quarter-point increment and enabled Save Field are readable after recovery/reopening. The frame is scoped to configuration; exact history is asserted by the native journey.
+api26/tracks.scale-history.corrected.large.png	Final	Persisted quarter-point increment and enabled Save Field are readable after recovery/reopening. The frame is scoped to configuration; exact history is asserted by the native journey.
+api34/tracks.scale-history.range.ordinary.png	Final	Maximum and complete saved-value error are visible; invalid Save Field is disabled. Earlier/later inputs may scroll outside the viewport.
+api34/tracks.scale-history.range.large.png	Final	Maximum and complete saved-value error are visible; invalid Save Field is disabled. Earlier/later inputs may scroll outside the viewport.
+api34/tracks.scale-history.increment.ordinary.png	Final	Increment and complete saved fractional-value error are visible with disabled Save Field and fixed Cancel. Other Field settings remain scrollable.
+api34/tracks.scale-history.increment.large.png	Final	Increment and complete saved fractional-value error are visible with disabled Save Field and fixed Cancel. Other Field settings remain scrollable.
+api34/tracks.scale-history.changed-history.ordinary.png	Final	The failure notice names Effort and 4.5 and explains correction while Save remains reachable. At the smallest 200% layout it fills the visible editor body; Fields remain below it.
+api34/tracks.scale-history.changed-history.large.png	Final	The failure notice names Effort and 4.5 and explains correction while Save remains reachable. At the smallest 200% layout it fills the visible editor body; Fields remain below it.
+api34/tracks.scale-history.corrected.ordinary.png	Final	Persisted quarter-point increment and enabled Save Field are readable after recovery/reopening. The frame is scoped to configuration; exact history is asserted by the native journey.
+api34/tracks.scale-history.corrected.large.png	Final	Persisted quarter-point increment and enabled Save Field are readable after recovery/reopening. The frame is scoped to configuration; exact history is asserted by the native journey.
+api37/tracks.scale-history.range.ordinary.png	Final	Maximum and complete saved-value error are visible; invalid Save Field is disabled. Earlier/later inputs may scroll outside the viewport.
+api37/tracks.scale-history.range.large.png	Final	Maximum and complete saved-value error are visible; invalid Save Field is disabled. Earlier/later inputs may scroll outside the viewport.
+api37/tracks.scale-history.increment.ordinary.png	Final	Increment and complete saved fractional-value error are visible with disabled Save Field and fixed Cancel. Other Field settings remain scrollable.
+api37/tracks.scale-history.increment.large.png	Final	Increment and complete saved fractional-value error are visible with disabled Save Field and fixed Cancel. Other Field settings remain scrollable.
+api37/tracks.scale-history.changed-history.ordinary.png	Final	The failure notice names Effort and 4.5 and explains correction while Save remains reachable. At the smallest 200% layout it fills the visible editor body; Fields remain below it.
+api37/tracks.scale-history.changed-history.large.png	Final	The failure notice names Effort and 4.5 and explains correction while Save remains reachable. At the smallest 200% layout it fills the visible editor body; Fields remain below it.
+api37/tracks.scale-history.corrected.ordinary.png	Final	Persisted quarter-point increment and enabled Save Field are readable after recovery/reopening. The frame is scoped to configuration; exact history is asserted by the native journey.
+api37/tracks.scale-history.corrected.large.png	Final	Persisted quarter-point increment and enabled Save Field are readable after recovery/reopening. The frame is scoped to configuration; exact history is asserted by the native journey.
+before/tracks.scale-history.range-before.large.png	Baseline	No local retained-value error and enabled Save Field despite Maximum 2.
+before/tracks.scale-history.range-before.ordinary.png	Baseline	No local retained-value error and enabled Save Field despite Maximum 2.
+before/tracks.scale-history.rejected-before.large.png	Baseline	Late rejection preserves the draft but identifies neither the Field nor the saved value; at 200% it displaces the affected Field below the viewport.
+before/tracks.scale-history.rejected-before.ordinary.png	Baseline	Late rejection preserves the draft but identifies neither the Field nor the saved value; at 200% it displaces the affected Field below the viewport.
+development/tracks.scale-history.range.ordinary.png	Development	Personally inspected correction diagnostic; local error is visible.
+development/tracks.scale-history.increment.large.png	Development	Personally inspected correction diagnostic; local error is visible.
+development/tracks.scale-history.changed-history.ordinary.png	Development	The contextual rejection is fully visible. Test failure queried hidden Text; the notice owns an explicit content description.
+development/tracks.scale-history.changed-history.large.png	Development	The contextual rejection is fully visible. Test failure queried hidden Text; the notice owns an explicit content description.

@@ -457,6 +457,22 @@ fun normalizeTrackScaleValue(
 ): Double? {
     if (!value.isFinite()) return null
     val choices = trackScaleValues(minimum, maximum, increment)
+    return normalizeTrackScaleValue(value, minimum, increment, choices)
+}
+
+/** Checks retained history against one candidate Scale without rebuilding its choices per Entry. */
+fun incompatibleTrackScaleValue(
+    values: Iterable<Double>,
+    minimum: Int,
+    maximum: Int,
+    increment: Double,
+): Double? {
+    val choices = trackScaleValues(minimum, maximum, increment)
+    return values.firstOrNull { normalizeTrackScaleValue(it, minimum, increment, choices) == null }
+}
+
+private fun normalizeTrackScaleValue(value: Double, minimum: Int, increment: Double, choices: List<Double>): Double? {
+    if (!value.isFinite()) return null
     val position = ((value - minimum) / increment).roundToInt().coerceIn(0, choices.lastIndex)
     val normalized = choices[position]
     val tolerance = 1e-7 * maxOf(1.0, abs(value), abs(normalized))

@@ -1,5 +1,14 @@
 # Durable findings
 
+### FND-20260910-001 — Scale history conflicts require leaving the Field to discover them
+
+- Severity/category: P2 correction workflow and error comprehension.
+- Observed: On `7184144`, existing Effort values 2.5/3.5 coexist with an enabled Save Field after Maximum becomes 2. Only whole-Track Save rejects it. The visible error names neither Effort nor the incompatible value. Both ordinary/200% native baseline journeys preserve the full projection and allow later correction; this is a workflow opportunity, not observed data loss.
+- Evidence: XJk18g / `build/astra-scale-history-20260910/baseline.log`; all four original Field/rejection frames personally inspected. The enlarged late error consumes most of the initial editor viewport, leaving the affected Field below it.
+- Direction: Use the same Scale acceptance rule for immediate retained-value feedback at Minimum/Maximum/Increment and the final transactional guard. Keep active drafts, Field identities and exact saved history; identify the Field/value in a late rejection if history changes after local review.
+- Related: FB-20260908-006; DEC-20260909-026; VER-20260910-001.
+- Status: Verified in IMP/VER-20260910-001; final native API 26/34/37, 115 Android neighbors, 346 JVM readiness checks and scoped review of 32 originals pass.
+
 ### FND-20260909-037 — Applied Track filters omit their values and combination rule
 
 - Severity/category: P2 comprehension and product design opportunity.

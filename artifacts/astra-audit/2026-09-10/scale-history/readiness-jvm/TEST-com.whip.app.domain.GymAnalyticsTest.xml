@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.domain.GymAnalyticsTest" tests="15" skipped="0" failures="0" errors="0" timestamp="2026-09-10T04:30:58.063Z" hostname="beast" time="0.028">
+  <properties/>
+  <testcase name="workoutWeekAndMonthAggregationPreserveSourceMath" classname="com.whip.app.domain.GymAnalyticsTest" time="0.014"/>
+  <testcase name="laterExerciseEditsDoNotReinterpretPerformedAnalytics" classname="com.whip.app.domain.GymAnalyticsTest" time="0.001"/>
+  <testcase name="downsamplingKeepsEndpointsWithoutChangingSourceHistory" classname="com.whip.app.domain.GymAnalyticsTest" time="0.0"/>
+  <testcase name="e1rmStillHonorsNormalCutoff" classname="com.whip.app.domain.GymAnalyticsTest" time="0.001"/>
+  <testcase name="exerciseDraftDropsHiddenLoadFieldsAndRepairsItsGraphDefault" classname="com.whip.app.domain.GymAnalyticsTest" time="0.001"/>
+  <testcase name="weeklyAggregationUsesTheConfiguredFirstDay" classname="com.whip.app.domain.GymAnalyticsTest" time="0.0"/>
+  <testcase name="machineGraphCanExplicitlyCompareCompatibleConfigurationVersions" classname="com.whip.app.domain.GymAnalyticsTest" time="0.0"/>
+  <testcase name="reverseNumberedScaleTreatsTheLowerNumberAsTheStrongerSetting" classname="com.whip.app.domain.GymAnalyticsTest" time="0.0"/>
+  <testcase name="plateSolverRespectsFiniteInventoryAndReturnsClosestLoad" classname="com.whip.app.domain.GymAnalyticsTest" time="0.003"/>
+  <testcase name="machineDraftDropsFieldsOwnedByTheOtherResistanceScale" classname="com.whip.app.domain.GymAnalyticsTest" time="0.001"/>
+  <testcase name="eachTrackingTypeOnlyOffersMeasurementsItsSetsCanProduce" classname="com.whip.app.domain.GymAnalyticsTest" time="0.0"/>
+  <testcase name="deletedMachineScopeNeverMergesWithFreeWeightsOrAnotherMachine" classname="com.whip.app.domain.GymAnalyticsTest" time="0.0"/>
+  <testcase name="weeklySummaryCountsRecordsOnlyFromIncludedFinishedWorkouts" classname="com.whip.app.domain.GymAnalyticsTest" time="0.001"/>
+  <testcase name="repMaxAndPlateToolsAreDeterministic" classname="com.whip.app.domain.GymAnalyticsTest" time="0.003"/>
+  <testcase name="machineGraphsNeverMergeDifferentPhysicalMachines" classname="com.whip.app.domain.GymAnalyticsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

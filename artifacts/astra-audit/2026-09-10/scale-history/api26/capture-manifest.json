@@ -1,0 +1,82 @@
+[
+  {
+    "file": "tracks.scale-history.corrected.large.png",
+    "original": "tracks.scale-history.corrected.large.png",
+    "sha256": "3b217ddc11455a6603767c311b42111ceefafe7801c5cb6cbbcf68ec50bf23a0"
+  },
+  {
+    "file": "tracks.scale-history.corrected.large.xml",
+    "original": "tracks.scale-history.corrected.large.xml",
+    "sha256": "3621de831e2452fec4bfc094875a737ae23878e28075c40af698c6f53853df32"
+  },
+  {
+    "file": "tracks.scale-history.changed-history.large.png",
+    "original": "tracks.scale-history.changed-history.large.png",
+    "sha256": "f95f492be41c632fc6148058bf38d4328b9b96c1de9646667ae7367bb66524c2"
+  },
+  {
+    "file": "tracks.scale-history.changed-history.large.xml",
+    "original": "tracks.scale-history.changed-history.large.xml",
+    "sha256": "c11e7e0b37a7a061e25693923474364ffdd220d3c4f57dd2a8f6b31648bb47a6"
+  },
+  {
+    "file": "tracks.scale-history.increment.large.png",
+    "original": "tracks.scale-history.increment.large.png",
+    "sha256": "81177b55aa946d4fbc5faf183d9d21eae0736b7462d22e581a0a4b8461a37855"
+  },
+  {
+    "file": "tracks.scale-history.increment.large.xml",
+    "original": "tracks.scale-history.increment.large.xml",
+    "sha256": "86b99d15dcbf1e36445326478ab780250c15bd75743f86395ed74915d57ea3da"
+  },
+  {
+    "file": "tracks.scale-history.range.large.png",
+    "original": "tracks.scale-history.range.large.png",
+    "sha256": "d059749d88b4a44bdb576e560f97656e425b93c180dcd85ac177bd3e81a92a25"
+  },
+  {
+    "file": "tracks.scale-history.range.large.xml",
+    "original": "tracks.scale-history.range.large.xml",
+    "sha256": "c22c9d75988060dd65b49bd3378b841180792cc5bf0a639fe7cf662ba43faccd"
+  },
+  {
+    "file": "tracks.scale-history.corrected.ordinary.png",
+    "original": "tracks.scale-history.corrected.ordinary.png",
+    "sha256": "7e06c313afcc0c6ead422b972545b70d75f3434e096e676e107a6eccce525ae7"
+  },
+  {
+    "file": "tracks.scale-history.corrected.ordinary.xml",
+    "original": "tracks.scale-history.corrected.ordinary.xml",
+    "sha256": "e9b9d73297827667ed962d4e9f1c8de2de0abbb827e3c555cb79dbcf04bbaad1"
+  },
+  {
+    "file": "tracks.scale-history.changed-history.ordinary.png",
+    "original": "tracks.scale-history.changed-history.ordinary.png",
+    "sha256": "987b56ae57cfd77b97c4264ad142a009299af9d7bac3eb73bbe1fe49a42473d0"
+  },
+  {
+    "file": "tracks.scale-history.changed-history.ordinary.xml",
+    "original": "tracks.scale-history.changed-history.ordinary.xml",
+    "sha256": "a2d11d3bb47fe70b92d5f2a18d41574167901d66c7fc32e7798cdfd4a0c0d2e1"
+  },
+  {
+    "file": "tracks.scale-history.increment.ordinary.png",
+    "original": "tracks.scale-history.increment.ordinary.png",
+    "sha256": "af5d64689afc1d754ded872ea9e1841321705bdad75d4f9ef632397af8a796e9"
+  },
+  {
+    "file": "tracks.scale-history.increment.ordinary.xml",
+    "original": "tracks.scale-history.increment.ordinary.xml",
+    "sha256": "ea75218f1ef8b8bffcc18b6f760f2aa8c07e02d840a108072dc47a62db660454"
+  },
+  {
+    "file": "tracks.scale-history.range.ordinary.xml",
+    "original": "tracks.scale-history.range.ordinary.xml",
+    "sha256": "b0e8d0017b0476eccd336e67e456f4508eceba9a565aa6f2e1f35c02db2200e2"
+  },
+  {
+    "file": "tracks.scale-history.range.ordinary.png",
+    "original": "tracks.scale-history.range.ordinary.png",
+    "sha256": "ecf1ba39e64b2fd52719fe18d195c7f6e0a1aa35b9f32e62e4da32576e48067e"
+  }
+]

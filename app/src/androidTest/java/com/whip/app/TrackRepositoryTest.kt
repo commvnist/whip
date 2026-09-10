@@ -152,6 +152,7 @@ class TrackRepositoryTest {
         val rejected = runCatching { tracks.update(trackId, integerOnly, boundary) }
         assertTrue(rejected.isFailure)
         assertTrue(rejected.exceptionOrNull()?.message.orEmpty().contains("existing Scale value"))
+        assertTrue(rejected.exceptionOrNull()?.message.orEmpty().contains("Rating: existing Scale value 3.5"))
 
         val quarterPoint = integerOnly.copy(
             fields = integerOnly.fields.map { field ->

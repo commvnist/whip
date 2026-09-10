@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.domain.GymCalculationsTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-09-10T04:30:58.093Z" hostname="beast" time="0.009">
+  <properties/>
+  <testcase name="completedSetsRequireTheFieldsTheirTrackingTypeNeeds" classname="com.whip.app.domain.GymCalculationsTest" time="0.002"/>
+  <testcase name="setEffortAndTimerValuesHaveStrictBounds" classname="com.whip.app.domain.GymCalculationsTest" time="0.0"/>
+  <testcase name="workoutSummaryTotalsThreeByEightAtEightyKg" classname="com.whip.app.domain.GymCalculationsTest" time="0.003"/>
+  <testcase name="assistedBodyweightNeverProducesNegativeLoad" classname="com.whip.app.domain.GymCalculationsTest" time="0.0"/>
+  <testcase name="loadInterpretationsProduceExplicitCanonicalResistance" classname="com.whip.app.domain.GymCalculationsTest" time="0.0"/>
+  <testcase name="failedSetsNeverBecomePositiveEstimatedOneRepMaxEvidence" classname="com.whip.app.domain.GymCalculationsTest" time="0.0"/>
+  <testcase name="completedWorkingSetsContributeToVolumeAndWarmupsDoNot" classname="com.whip.app.domain.GymCalculationsTest" time="0.0"/>
+  <testcase name="bodyweightAssistanceAndEffortAdjustedE1rmStayTruthful" classname="com.whip.app.domain.GymCalculationsTest" time="0.0"/>
+  <testcase name="epleyAndBrzyckiMatchDocumentedFormulas" classname="com.whip.app.domain.GymCalculationsTest" time="0.0"/>
+  <testcase name="practicalMachineConversionAvoidsLongUnitConversionDecimals" classname="com.whip.app.domain.GymCalculationsTest" time="0.002"/>
+  <testcase name="ordinalSettingsRequireMappingBeforeMassAnalytics" classname="com.whip.app.domain.GymCalculationsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

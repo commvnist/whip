@@ -102,6 +102,14 @@ class TrackDomainTest {
         )
         assertEquals(3.5, normalizeTrackScaleValue(3.5, 1, 5, 0.5))
         assertNull(normalizeTrackScaleValue(3.6, 1, 5, 0.5))
+        val savedValues = listOf(1.0, 2.5, 3.5, 5.0)
+        assertNull(incompatibleTrackScaleValue(savedValues, -2, 5, 0.25))
+        assertEquals(2.5, incompatibleTrackScaleValue(savedValues, 1, 5, 1.0))
+        assertEquals(5.0, incompatibleTrackScaleValue(savedValues, 1, 4, 0.5))
+        assertEquals(1.0, incompatibleTrackScaleValue(savedValues, 2, 5, 0.5))
+        assertNull(incompatibleTrackScaleValue(listOf(1.0 - 1e-8, 5.0 + 1e-8), 1, 5, 0.5))
+        assertEquals(1.0 - 1e-4, incompatibleTrackScaleValue(listOf(1.0 - 1e-4), 1, 5, 0.5))
+        assertNull(incompatibleTrackScaleValue(emptyList(), 1, 5, 0.5))
         assertEquals(
             listOf(Int.MIN_VALUE.toDouble(), Int.MAX_VALUE.toDouble()),
             trackScaleValues(Int.MIN_VALUE, Int.MAX_VALUE, 4_294_967_295.0),

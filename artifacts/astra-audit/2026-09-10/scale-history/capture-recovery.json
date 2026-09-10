@@ -1,0 +1,14 @@
+{
+  "file": "tracks.scale-history.corrected.ordinary.png",
+  "first_pull": {
+    "bytes": 57489,
+    "sha256": "d89de7098ab83dd2d9fa3f01e86c284180a37fb35bf224932c0da528d0daa004",
+    "complete_png": false
+  },
+  "repull": {
+    "bytes": 111709,
+    "sha256": "8e062119f998b373c0dba19f7e22edd45c05ee3c18975f706f111b9dfa516344",
+    "complete_png": true
+  },
+  "procedure": "Reboot the same disposable API 37 AVD and pull its existing export again; no test rerun, PNG editing or recompression. Other seven PNGs and eight XML files were byte-identical. Cause of the initial partial transfer is unproven."
+}

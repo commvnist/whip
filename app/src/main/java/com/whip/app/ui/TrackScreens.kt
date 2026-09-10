@@ -144,6 +144,7 @@ import com.whip.app.domain.matchingEntries
 import com.whip.app.domain.toWhipDoubleOrNull
 import com.whip.app.domain.formatTrackScaleValue
 import com.whip.app.domain.normalizeTrackScaleValue
+import com.whip.app.domain.incompatibleTrackScaleValue
 import com.whip.app.domain.snapTrackScaleValue
 import com.whip.app.domain.trackScaleValues
 import com.whip.app.domain.TRACK_ENTRY_DATE_CONDITION_UUID
@@ -3138,6 +3139,9 @@ internal fun TrackEditor(
                 settings = settings,
                 applyFreshNumberDefaults = false,
                 existingHasValues = field.id?.let { fieldId -> liveInitial?.entries?.any { it.value(fieldId) != null } } == true,
+                existingScaleValues = remember(liveInitial?.entries, field.id) {
+                    field.id?.let { fieldId -> liveInitial?.entries?.mapNotNull { it.value(fieldId)?.scaleValue } }.orEmpty()
+                },
                 onDismiss = ::closeFieldEditor,
                 onCreateCustomUnit = onCreateCustomUnit,
                 onSave = { updated ->
@@ -3294,6 +3298,7 @@ private fun TrackFieldEditor(
     onCreateCustomUnit: CreateCustomUnitAction,
     onSave: (TrackFieldDraft) -> Unit,
     onDelete: (() -> Unit)? = null,
+    existingScaleValues: List<Double> = emptyList(),
 ) {
     var name by rememberSaveable(initial.uuid, initial.id) { mutableStateOf(initial.name) }
     var type by rememberSaveable(initial.uuid, initial.id) { mutableStateOf(initial.type) }
@@ -3330,13 +3335,24 @@ private fun TrackFieldEditor(
     } else null
     val scaleValues = scaleValuesResult?.getOrNull()
     val scaleError = scaleValuesResult?.exceptionOrNull()?.message
-    val scaleMinimumError = if (scaleMin == null) "Enter a whole-number Scale minimum" else null
+    val incompatibleScaleValue = remember(type, scaleMin, scaleMax, scaleStep, existingScaleValues) {
+        if (scaleValues == null) null else incompatibleTrackScaleValue(
+            existingScaleValues, requireNotNull(scaleMin), requireNotNull(scaleMax), requireNotNull(scaleStep),
+        )
+    }
+    val scaleHistoryError = incompatibleScaleValue?.let { "Keep saved value ${formatTrackScaleValue(it)} selectable." }
+    val scaleMinimumError = when {
+        scaleMin == null -> "Enter a whole-number Scale minimum"
+        incompatibleScaleValue != null && incompatibleScaleValue < scaleMin -> scaleHistoryError
+        else -> null
+    }
     val scaleMaximumError = when {
         scaleMax == null -> "Enter a whole-number Scale maximum"
         scaleMin != null && scaleMax <= scaleMin -> "Scale maximum must be greater than its minimum"
+        incompatibleScaleValue != null && incompatibleScaleValue > scaleMax -> scaleHistoryError
         else -> null
     }
-    val scaleIncrementError = scaleError.takeIf { scaleMinimumError == null && scaleMaximumError == null }
+    val scaleIncrementError = (scaleError ?: scaleHistoryError).takeIf { scaleMinimumError == null && scaleMaximumError == null }
     val duplicateChoiceIndices = remember(choices) { duplicateTrackChoiceLabelIndices(choices) }
     val dirty = name != initial.name ||
         type != initial.type ||
@@ -3542,7 +3558,7 @@ private fun TrackFieldEditor(
                 onDelete?.let { action -> item { HorizontalDivider(); WhipTextButton(onClick = action, modifier = Modifier.fillMaxWidth()) { Text("Delete Field", color = MaterialTheme.colorScheme.error) } } }
             }
         },
-        confirmButton = { WhipTextButton(enabled = name.isNotBlank() && (type != TrackFieldType.SingleChoice || (choices.all { it.label.isNotBlank() } && duplicateChoiceIndices.isEmpty())) && (type != TrackFieldType.Scale || scaleValues != null), onClick = {
+        confirmButton = { WhipTextButton(enabled = name.isNotBlank() && (type != TrackFieldType.SingleChoice || (choices.all { it.label.isNotBlank() } && duplicateChoiceIndices.isEmpty())) && (type != TrackFieldType.Scale || (scaleValues != null && incompatibleScaleValue == null)), onClick = {
             onSave(initial.copy(name = name, type = type, required = required || primary, primary = primary, showInList = showInList, dimension = dimension.takeIf { type == TrackFieldType.Number }, unitId = unitId.takeIf { type == TrackFieldType.Number }, precision = precision, scaleMin = scaleMin.takeIf { type == TrackFieldType.Scale }, scaleMax = scaleMax.takeIf { type == TrackFieldType.Scale }, scaleLowLabel = lowLabel, scaleHighLabel = highLabel, scaleStep = scaleStep?.takeIf { type == TrackFieldType.Scale } ?: 1.0, options = choices.takeIf { type == TrackFieldType.SingleChoice }.orEmpty()))
         }) { Text("Save Field") } },
         dismissButton = { WhipTextButton(onClick = ::requestDismiss) { Text("Cancel") } },

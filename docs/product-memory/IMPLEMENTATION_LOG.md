@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260910-001 — Explain incompatible Scale history inside Field editing
+
+- Behavior: Minimum, Maximum and Increment identify a saved value that the proposed configuration cannot represent and block invalid Field submission. Raw drafts survive recreation; valid corrections save and reopen. If history changes after local review, transactional rejection names the Field and value and preserves the draft and complete current history.
+- Files: `domain/TrackModels.kt` shares existing tolerance/normalization with a compatibility helper that builds choices once per history check; `data/TrackRepository.kt` retains final authority; `ui/TrackScreens.kt` supplies live history and local errors. Extended `TrackFieldEditingJourneyE2ETest`, `TrackRepositoryTest` and `TrackDomainTest` cover the behavior.
+- Compatibility: No schema, backup, version, history rewrite or accepted-value change. Existing Field/Choice identities and every Entry/value are preserved. Invalid local changes can still be cancelled or removed through existing reviewed deletion.
+- Verification: VER-20260910-001; two native journeys pass at ordinary/actual 200% text on API 26/34/37 and 115 Android neighbors pass. Thirty-two original before/development/final frames are personally inspected. Final readiness passes 346 fresh JVM tests, Android compilation/lint/debug packaging; catalog lint passes.
+- Related/status: Verified; FND/DEC-20260910-001 / FB-20260908-006. Whole Tracks/app acceptance remains open.
+
 ### IMP-20260909-031 — Make Track history filters readable and resilient to recreation and Field changes
 
 - Behavior: Condition bodies scroll through every Choice and relocate focused text/range inputs above the keyboard. Number range labels use the configured symbol. Each nested condition opening owns saveable state, preserving active drafts and clearing completed/cancelled ones. A removed sort Field falls back to the current built-in order without an exception. Entries and Track Insights share complete applied-condition summaries while retaining independent filters.

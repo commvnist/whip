@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.theme.WhipVisualLanguageTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-09-10T04:30:59.677Z" hostname="beast" time="0.164">
+  <properties/>
+  <testcase name="destinationNavigationKeepsEveryPeerDirectAndStable" classname="com.whip.app.ui.theme.WhipVisualLanguageTest" time="0.001"/>
+  <testcase name="workspaceDefinitionsRetainAllPeerDestinationsAsDirectNavigation" classname="com.whip.app.ui.theme.WhipVisualLanguageTest" time="0.001"/>
+  <testcase name="screensCannotBypassSharedRectangularActionControls" classname="com.whip.app.ui.theme.WhipVisualLanguageTest" time="0.136"/>
+  <testcase name="semanticRolesRemainDistinctAndMapToTheirMaterialMeaning" classname="com.whip.app.ui.theme.WhipVisualLanguageTest" time="0.021"/>
+  <testcase name="componentShapesUseRestrainedRectangularCorners" classname="com.whip.app.ui.theme.WhipVisualLanguageTest" time="0.004"/>
+  <testcase name="brandInkAndWarmWhiteHaveStrongTextContrast" classname="com.whip.app.ui.theme.WhipVisualLanguageTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

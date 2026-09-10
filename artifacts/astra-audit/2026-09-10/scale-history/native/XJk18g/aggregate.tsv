@@ -1,0 +1,2 @@
+batch	kind	expected_classes	executed_classes	executed	failures	skipped	coverage_bytes	reused	signature
+1	ordinary	1	1	2	0	0	0	false	4be3c1abe1cf3e9c161bc477f4c93bfe233668d038bf4514625bfbf3ed800468

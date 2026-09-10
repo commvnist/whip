@@ -36,6 +36,82 @@ class TrackFieldEditingJourneyE2ETest {
     @Test @AndroidFontScale
     fun scaleAndUnitChangesPreserveExistingValuesAtLargeText() = verifyEditing(true, choices = false)
 
+    @Test fun incompatibleScaleHistoryCanBeCorrected() = incompatibleScale(false)
+    @Test @AndroidFontScale
+    fun incompatibleScaleHistoryCanBeCorrectedAtLargeText() = incompatibleScale(true)
+
+    private fun incompatibleScale(large: Boolean) {
+        val before = seed()
+        val suffix = if (large) "large" else "ordinary"
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            compose.onNodeWithContentDescription("Tracks tab").performClick()
+            scroll("track-list", hasTestTag("track-card-${before.track.id}")).performClick()
+            compose.onNodeWithContentDescription("Options").performClick()
+            scroll("track-options-list", hasText("Edit Track")).performClick()
+            editField("Effort")
+            replace("Maximum", "2")
+            field(hasText("Maximum")).assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Error))
+            field(hasText("Keep saved value 2.5 selectable.")).assertIsDisplayed()
+            compose.onNodeWithText("Save Field").assertIsNotEnabled()
+            capture("tracks.scale-history.range.$suffix")
+            if (large) assertErrorFontScale("Keep saved value 2.5 selectable.")
+            assertEquals(before, runBlocking { app.trackRepository.projection(before.track.id) })
+            scenario.recreate()
+            field(hasText("Maximum")).assertTextContains("2")
+            compose.onNodeWithText("Save Field").assertIsNotEnabled()
+            replace("Maximum", "5")
+            replace("Minimum", "3")
+            field(hasText("Minimum")).assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Error))
+            compose.onNodeWithText("Save Field").assertIsNotEnabled()
+            replace("Minimum", "1")
+            replace("Increment", "1")
+            field(hasText("Increment")).assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Error))
+            field(hasText("Keep saved value 2.5 selectable.")).assertIsDisplayed()
+            compose.onNodeWithText("Save Field").assertIsNotEnabled()
+            capture("tracks.scale-history.increment.$suffix")
+            scenario.recreate()
+            field(hasText("Increment")).assertTextContains("1")
+            replace("Increment", "0.25")
+            replace("Maximum", "4")
+            compose.onNodeWithText("Save Field").assertIsEnabled().performClick()
+            // History may change after local validation; commit must still reject it atomically.
+            runBlocking {
+                app.trackRepository.addEntry(before.track.id, TrackEntryDraft(
+                    entryDate = app.clock.today(),
+                    values = mapOf(
+                        before.primaryField.uuid to TrackValueDraft(textValue = "New hill climb"),
+                        before.fields.single { it.name == "Effort" }.uuid to TrackValueDraft(scaleValue = 4.5),
+                    ),
+                ))
+            }
+            val changed = runBlocking { requireNotNull(app.trackRepository.projection(before.track.id)) }
+            compose.onNodeWithText("Save", substring = false).performClick()
+            compose.waitUntil(15_000) { compose.onAllNodesWithTag("track-persistence-save-problem").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("track-persistence-save-problem").assertIsDisplayed()
+            capture("tracks.scale-history.changed-history.$suffix")
+            compose.onNodeWithContentDescription("Effort: existing Scale value 4.5", substring = true).assertIsDisplayed()
+            assertEquals(changed, runBlocking { app.trackRepository.projection(before.track.id) })
+            scenario.recreate()
+            editField("Effort")
+            field(hasText("Maximum")).assertTextContains("4")
+            field(hasText("Keep saved value 4.5 selectable.")).assertIsDisplayed()
+            compose.onNodeWithText("Save Field").assertIsNotEnabled()
+            replace("Maximum", "5")
+            compose.onNodeWithText("Save Field").assertIsEnabled().performClick()
+            compose.onNodeWithText("Save", substring = false).performClick()
+            compose.waitUntil(15_000) { compose.onAllNodesWithTag("track-editor-surface").fetchSemanticsNodes().isEmpty() }
+            val after = runBlocking { requireNotNull(app.trackRepository.projection(before.track.id)) }
+            assertEquals(changed.entries, after.entries)
+            assertEquals(before.fields.map { it.id to it.uuid }, after.fields.map { it.id to it.uuid })
+            assertEquals(0.25, after.fields.single { it.name == "Effort" }.scaleStep, 0.0)
+            compose.onNodeWithContentDescription("Options").performClick()
+            scroll("track-options-list", hasText("Edit Track")).performClick()
+            editField("Effort")
+            field(hasText("Increment")).assertTextContains("0.25")
+            capture("tracks.scale-history.corrected.$suffix")
+        }
+    }
+
     private fun verifyEditing(large: Boolean, choices: Boolean) {
         val before = seed()
         val suffix = if (large) "large" else "ordinary"

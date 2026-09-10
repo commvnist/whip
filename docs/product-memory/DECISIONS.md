@@ -1,5 +1,13 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-001 — Explain retained Scale conflicts where users can correct them
+
+- Context: FND-20260910-001 confirms late generic rejection despite a live history projection being available to the Field editor.
+- Alternatives: Improve only the parent error, or show live Field-local feedback while retaining the final transactional check. The local check avoids two submissions and reopening for a known conflict; the parent guard still handles concurrently added history.
+- Decision: Share a bounded selectable-value compatibility helper with existing normalization. Generate the candidate choices once for a history check, identify the first incompatible saved value, associate it with the relevant bound or increment and disable invalid Field submission. Keep raw drafts and validate again at repository commit. Late errors name the Field and value.
+- Compatibility: No reinterpretation, rounding of history, automatic correction, schema/version change, or reliance on UI validation for persistence safety. Preserve tolerance and every currently accepted Scale value.
+- Related/status: Verified in IMP/VER-20260910-001; FB-20260908-006 / VER-20260910-001.
+
 ### DEC-20260909-029 — Keep history controls reachable and sorting valid as Fields change
 
 - Context/evidence: FND-20260909-035 proves inaccessible Choice conditions and a live removed-Field crash. The existing two-stage filter workflow supports all seven types and explicit draft Apply/Cancel.

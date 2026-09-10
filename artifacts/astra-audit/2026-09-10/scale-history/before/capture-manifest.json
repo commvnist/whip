@@ -1,0 +1,42 @@
+[
+  {
+    "file": "tracks.scale-history.rejected-before.large.xml",
+    "original": "tracks.scale-history.rejected-before.large.xml",
+    "sha256": "88c01fd27b31aeb3b2b326db94eb32b959acf866055d608dc11f3beefffde8ae"
+  },
+  {
+    "file": "tracks.scale-history.rejected-before.large.png",
+    "original": "tracks.scale-history.rejected-before.large.png",
+    "sha256": "7cb55ac9259b9469c27f323de0d52ab255c6f8545228b14132f1e58fa4c0d310"
+  },
+  {
+    "file": "tracks.scale-history.range-before.large.xml",
+    "original": "tracks.scale-history.range-before.large.xml",
+    "sha256": "d6c21851f31d34a1660d1d6ccded8c1853149633a45dc6a11246ee331e0ac489"
+  },
+  {
+    "file": "tracks.scale-history.range-before.large.png",
+    "original": "tracks.scale-history.range-before.large.png",
+    "sha256": "b385db8bcb41fbe677aa5717a4badeac294bd7a674c8d72a61a644078b56f2c8"
+  },
+  {
+    "file": "tracks.scale-history.rejected-before.ordinary.xml",
+    "original": "tracks.scale-history.rejected-before.ordinary.xml",
+    "sha256": "0ebd50d3fc674e55cc8f9aea645cc9d13b33f59df8d71439fcd609c2d37215de"
+  },
+  {
+    "file": "tracks.scale-history.rejected-before.ordinary.png",
+    "original": "tracks.scale-history.rejected-before.ordinary.png",
+    "sha256": "ff7e2af42d6dc97bc7411426e42e903aa1a89821becf405986f30a127e109cfd"
+  },
+  {
+    "file": "tracks.scale-history.range-before.ordinary.xml",
+    "original": "tracks.scale-history.range-before.ordinary.xml",
+    "sha256": "e6f8fc66794d3c1fd66c432d90bcc49ab76ca845c2d8a710d26e9cc4f0974ded"
+  },
+  {
+    "file": "tracks.scale-history.range-before.ordinary.png",
+    "original": "tracks.scale-history.range-before.ordinary.png",
+    "sha256": "36b1de0605a4ada854f9ec91e42704bed09dd1be3ef67932cd9fed7e13ef1d14"
+  }
+]

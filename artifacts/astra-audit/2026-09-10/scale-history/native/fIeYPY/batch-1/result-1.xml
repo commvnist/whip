@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="2" errors="0" skipped="0" time="44.543" timestamp="2026-09-10T04:16:17" hostname="localhost">
+  <testsuite name="com.whip.app.TrackFieldEditingJourneyE2ETest" tests="2" failures="2" errors="0" skipped="0" time="43.359" timestamp="2026-09-10T04:16:17" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="incompatibleScaleHistoryCanBeCorrected" classname="com.whip.app.TrackFieldEditingJourneyE2ETest" time="23.965">
+      <failure>java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains 'Effort: existing Scale value 4.5' (ignoreCase: false) as substring is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.TrackFieldEditingJourneyE2ETest.incompatibleScale(TrackFieldEditingJourneyE2ETest.kt:92)
+at com.whip.app.TrackFieldEditingJourneyE2ETest.incompatibleScaleHistoryCanBeCorrected(TrackFieldEditingJourneyE2ETest.kt:39)
+</failure>
+    </testcase>
+    <testcase name="incompatibleScaleHistoryCanBeCorrectedAtLargeText" classname="com.whip.app.TrackFieldEditingJourneyE2ETest" time="19.394">
+      <failure>java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains 'Effort: existing Scale value 4.5' (ignoreCase: false) as substring is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.TrackFieldEditingJourneyE2ETest.incompatibleScale(TrackFieldEditingJourneyE2ETest.kt:92)
+at com.whip.app.TrackFieldEditingJourneyE2ETest.incompatibleScaleHistoryCanBeCorrectedAtLargeText(TrackFieldEditingJourneyE2ETest.kt:41)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

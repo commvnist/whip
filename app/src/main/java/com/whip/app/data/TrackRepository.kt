@@ -56,6 +56,7 @@ import com.whip.app.domain.formatTrackScaleValue
 import com.whip.app.domain.deterministicTrackCsvEntryUuid
 import com.whip.app.domain.hasExactCsvBoundary
 import com.whip.app.domain.normalizeTrackScaleValue
+import com.whip.app.domain.incompatibleTrackScaleValue
 import com.whip.app.domain.prepareTrackCsvImportRequest
 import com.whip.app.domain.receiptEnvelope
 import com.whip.app.domain.trackCsvEntryIdentityDigest
@@ -1548,11 +1549,12 @@ class RoomTrackRepository(
     private suspend fun validateExistingScaleConfiguration(fieldId: Long, draft: TrackFieldDraft) {
         val minimum = requireNotNull(draft.scaleMin)
         val maximum = requireNotNull(draft.scaleMax)
-        val invalidSavedValue = dao.getValuesForField(fieldId)
-            .mapNotNull(TrackValueEntity::scaleValue)
-            .firstOrNull { value -> normalizeTrackScaleValue(value, minimum, maximum, draft.scaleStep) == null }
+        val invalidSavedValue = incompatibleTrackScaleValue(
+            dao.getValuesForField(fieldId).mapNotNull(TrackValueEntity::scaleValue),
+            minimum, maximum, draft.scaleStep,
+        )
         require(invalidSavedValue == null) {
-            "An existing Scale value does not fit the new range and increment. Keep it selectable or edit that Entry first."
+            "${draft.name}: existing Scale value ${formatTrackScaleValue(requireNotNull(invalidSavedValue))} does not fit the new range and increment. Keep it selectable or edit the saved Entry first."
         }
     }
 
