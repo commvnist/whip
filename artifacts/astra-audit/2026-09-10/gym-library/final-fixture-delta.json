@@ -1,0 +1,14 @@
+{
+  "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk": {
+    "regression": "968ad1c4e9b3348ba3a019e466e32e8446459aa850b3fd19d5127ec0451ff8f1",
+    "final": "eb0b25fec7eb3ff761159e060ea3068c73ee1e58bac611d12d601c6e9eac25cd"
+  },
+  "app/src/androidTest/java/com/whip/app/GymLibraryJourneyE2ETest.kt": {
+    "regression": "3b3b1dcdf9025cb118e9082cb2ed38ee5d4d9697a63a4af557eaca54ff8849be",
+    "final": "59dac8c3e99c9fc2a82cc60b2002b572faaa161f9d8f0e2f87bc3045c04d68b2"
+  },
+  "app/src/test/java/com/whip/app/ui/UiDesignArchitectureTest.kt": {
+    "regression": "77954923b320c943504c6a5bfea43e562c81d6229468c90a8312f7eb710baebd",
+    "final": "a508133c8abf9c19b9185e3265b1d107e3ed6784401e4af41b147876f7766faf"
+  }
+}

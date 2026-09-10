@@ -1,0 +1,328 @@
+INSTRUMENTATION_STATUS: class=com.whip.app.GymLibraryJourneyE2ETest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.GymLibraryJourneyE2ETest:
+INSTRUMENTATION_STATUS: test=exerciseAndCategoryEditsReorderAndArchivePreserveLinksAndHistory
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.GymLibraryJourneyE2ETest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=exerciseAndCategoryEditsReorderAndArchivePreserveLinksAndHistory
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.whip.app.GymLibraryJourneyE2ETest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=equipmentSearchAndFilterIncludeEveryLinkedExercise
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.GymLibraryJourneyE2ETest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but found '2' nodes that satisfy: (Text + InputText + EditableText contains 'Single arm cable row with a controlled pause and full reach' (ignoreCase: false))
+Nodes found:
+1) Node #2128 at (l=184.0, t=336.0, r=776.0, b=480.0)px
+ContentDescription = '[Open Single arm cable row with a controlled pause and full reach]'
+Focused = 'false'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 8.0.dp), topEnd = CornerSize(size = 8.0.dp), bottomEnd = CornerSize(size = 8.0.dp), bottomStart = CornerSize(size = 8.0.dp))'
+Text = '[Single arm cable row with a controlled pause and full reach]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 2 siblings
+2) Node #2173 at (l=842.0, t=952.0, r=2520.0, b=1128.0)px
+Focused = 'false'
+IsContainer = 'true'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 8.0.dp), topEnd = CornerSize(size = 8.0.dp), bottomEnd = CornerSize(size = 8.0.dp), bottomStart = CornerSize(size = 8.0.dp))'
+Text = '[Single arm cable row with a controlled pause and full reach, Weight + Repetitions · kg · ±2.5]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 1 child, 6 siblings
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+	at com.whip.app.GymLibraryJourneyE2ETest.equipmentSearchAndFilterIncludeEveryLinkedExercise(GymLibraryJourneyE2ETest.kt:32)
+
+INSTRUMENTATION_STATUS: stream=
+Error in equipmentSearchAndFilterIncludeEveryLinkedExercise(com.whip.app.GymLibraryJourneyE2ETest):
+java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but found '2' nodes that satisfy: (Text + InputText + EditableText contains 'Single arm cable row with a controlled pause and full reach' (ignoreCase: false))
+Nodes found:
+1) Node #2128 at (l=184.0, t=336.0, r=776.0, b=480.0)px
+ContentDescription = '[Open Single arm cable row with a controlled pause and full reach]'
+Focused = 'false'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 8.0.dp), topEnd = CornerSize(size = 8.0.dp), bottomEnd = CornerSize(size = 8.0.dp), bottomStart = CornerSize(size = 8.0.dp))'
+Text = '[Single arm cable row with a controlled pause and full reach]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 2 siblings
+2) Node #2173 at (l=842.0, t=952.0, r=2520.0, b=1128.0)px
+Focused = 'false'
+IsContainer = 'true'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 8.0.dp), topEnd = CornerSize(size = 8.0.dp), bottomEnd = CornerSize(size = 8.0.dp), bottomStart = CornerSize(size = 8.0.dp))'
+Text = '[Single arm cable row with a controlled pause and full reach, Weight + Repetitions · kg · ±2.5]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 1 child, 6 siblings
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+	at com.whip.app.GymLibraryJourneyE2ETest.equipmentSearchAndFilterIncludeEveryLinkedExercise(GymLibraryJourneyE2ETest.kt:32)
+
+INSTRUMENTATION_STATUS: test=equipmentSearchAndFilterIncludeEveryLinkedExercise
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=com.whip.app.GymLibraryJourneyE2ETest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=machineEditArchiveAndNewVersionKeepCompletedWorkoutSnapshots
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.GymLibraryJourneyE2ETest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but found '2' nodes that satisfy: (Text + InputText + EditableText contains 'Cable station with revised resistance settings' (ignoreCase: false))
+Nodes found:
+1) Node #3736 at (l=184.0, t=496.0, r=776.0, b=640.0)px
+ContentDescription = '[Open Cable station with revised resistance settings]'
+Focused = 'false'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 8.0.dp), topEnd = CornerSize(size = 8.0.dp), bottomEnd = CornerSize(size = 8.0.dp), bottomStart = CornerSize(size = 8.0.dp))'
+Text = '[Cable station with revised resistance settings]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 1 sibling
+2) Node #3744 at (l=866.0, t=1121.0, r=2280.0, b=1159.0)px
+Text = '[Cable station with revised resistance settings]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 6 siblings
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+	at com.whip.app.GymLibraryJourneyE2ETest.machineEditArchiveAndNewVersionKeepCompletedWorkoutSnapshots(GymLibraryJourneyE2ETest.kt:152)
+
+INSTRUMENTATION_STATUS: stream=
+Error in machineEditArchiveAndNewVersionKeepCompletedWorkoutSnapshots(com.whip.app.GymLibraryJourneyE2ETest):
+java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but found '2' nodes that satisfy: (Text + InputText + EditableText contains 'Cable station with revised resistance settings' (ignoreCase: false))
+Nodes found:
+1) Node #3736 at (l=184.0, t=496.0, r=776.0, b=640.0)px
+ContentDescription = '[Open Cable station with revised resistance settings]'
+Focused = 'false'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 8.0.dp), topEnd = CornerSize(size = 8.0.dp), bottomEnd = CornerSize(size = 8.0.dp), bottomStart = CornerSize(size = 8.0.dp))'
+Text = '[Cable station with revised resistance settings]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 1 sibling
+2) Node #3744 at (l=866.0, t=1121.0, r=2280.0, b=1159.0)px
+Text = '[Cable station with revised resistance settings]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 6 siblings
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+	at com.whip.app.GymLibraryJourneyE2ETest.machineEditArchiveAndNewVersionKeepCompletedWorkoutSnapshots(GymLibraryJourneyE2ETest.kt:152)
+
+INSTRUMENTATION_STATUS: test=machineEditArchiveAndNewVersionKeepCompletedWorkoutSnapshots
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=com.whip.app.ui.WhipRecordItemTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.ui.WhipRecordItemTest:
+INSTRUMENTATION_STATUS: test=actionsStayWithTheirRecordAndUseCurrentCallbacks
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.ui.WhipRecordItemTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=actionsStayWithTheirRecordAndUseCurrentCallbacks
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.whip.app.ui.WhipRecordItemTest
+INSTRUMENTATION_STATUS: current=5
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=narrowRecordsKeepInformationBelowTheWholeHeader
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.ui.WhipRecordItemTest
+INSTRUMENTATION_STATUS: current=5
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=narrowRecordsKeepInformationBelowTheWholeHeader
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.whip.app.ui.WhipRecordItemTest
+INSTRUMENTATION_STATUS: current=6
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=completeCatalogContentAndDirectActionsSurviveReorderMode
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.ui.WhipRecordItemTest
+INSTRUMENTATION_STATUS: current=6
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=completeCatalogContentAndDirectActionsSurviveReorderMode
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.whip.app.RecordItemBuilderJourneyE2ETest
+INSTRUMENTATION_STATUS: current=7
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.RecordItemBuilderJourneyE2ETest:
+INSTRUMENTATION_STATUS: test=recordsKeepTheirReadingOrderAndExactActions
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.RecordItemBuilderJourneyE2ETest
+INSTRUMENTATION_STATUS: current=7
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=recordsKeepTheirReadingOrderAndExactActions
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.whip.app.ReviewOutcomeJourneyE2ETest
+INSTRUMENTATION_STATUS: current=8
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.ReviewOutcomeJourneyE2ETest:
+INSTRUMENTATION_STATUS: test=archivedTaskOutcomesOpenTheirOriginalTask
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.ReviewOutcomeJourneyE2ETest
+INSTRUMENTATION_STATUS: current=8
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=archivedTaskOutcomesOpenTheirOriginalTask
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.whip.app.ReviewOutcomeJourneyE2ETest
+INSTRUMENTATION_STATUS: current=9
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=mixedTaskHistoryKeepsAreaScopeAndDistinctOccurrences
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.ReviewOutcomeJourneyE2ETest
+INSTRUMENTATION_STATUS: current=9
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=mixedTaskHistoryKeepsAreaScopeAndDistinctOccurrences
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.whip.app.ReviewOutcomeJourneyE2ETest
+INSTRUMENTATION_STATUS: current=10
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=archivedGoalProgressOpensItsOriginalGoal
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.ReviewOutcomeJourneyE2ETest
+INSTRUMENTATION_STATUS: current=10
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=archivedGoalProgressOpensItsOriginalGoal
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.whip.app.ReviewOutcomeJourneyE2ETest
+INSTRUMENTATION_STATUS: current=11
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=archivedHabitOutcomesOpenTheirOriginalHabit
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.ReviewOutcomeJourneyE2ETest
+INSTRUMENTATION_STATUS: current=11
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=archivedHabitOutcomesOpenTheirOriginalHabit
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.whip.app.ReviewOutcomeJourneyE2ETest
+INSTRUMENTATION_STATUS: current=12
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=finishedWorkoutOutcomesOpenTheirOriginalSession
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.ReviewOutcomeJourneyE2ETest
+INSTRUMENTATION_STATUS: current=12
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=12
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=finishedWorkoutOutcomesOpenTheirOriginalSession
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_RESULT: stream=
+
+Time: 146.985
+There were 2 failures:
+1) equipmentSearchAndFilterIncludeEveryLinkedExercise(com.whip.app.GymLibraryJourneyE2ETest)
+java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but found '2' nodes that satisfy: (Text + InputText + EditableText contains 'Single arm cable row with a controlled pause and full reach' (ignoreCase: false))
+Nodes found:
+1) Node #2128 at (l=184.0, t=336.0, r=776.0, b=480.0)px
+ContentDescription = '[Open Single arm cable row with a controlled pause and full reach]'
+Focused = 'false'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 8.0.dp), topEnd = CornerSize(size = 8.0.dp), bottomEnd = CornerSize(size = 8.0.dp), bottomStart = CornerSize(size = 8.0.dp))'
+Text = '[Single arm cable row with a controlled pause and full reach]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 2 siblings
+2) Node #2173 at (l=842.0, t=952.0, r=2520.0, b=1128.0)px
+Focused = 'false'
+IsContainer = 'true'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 8.0.dp), topEnd = CornerSize(size = 8.0.dp), bottomEnd = CornerSize(size = 8.0.dp), bottomStart = CornerSize(size = 8.0.dp))'
+Text = '[Single arm cable row with a controlled pause and full reach, Weight + Repetitions · kg · ±2.5]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 1 child, 6 siblings
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+	at com.whip.app.GymLibraryJourneyE2ETest.equipmentSearchAndFilterIncludeEveryLinkedExercise(GymLibraryJourneyE2ETest.kt:32)
+2) machineEditArchiveAndNewVersionKeepCompletedWorkoutSnapshots(com.whip.app.GymLibraryJourneyE2ETest)
+java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but found '2' nodes that satisfy: (Text + InputText + EditableText contains 'Cable station with revised resistance settings' (ignoreCase: false))
+Nodes found:
+1) Node #3736 at (l=184.0, t=496.0, r=776.0, b=640.0)px
+ContentDescription = '[Open Cable station with revised resistance settings]'
+Focused = 'false'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 8.0.dp), topEnd = CornerSize(size = 8.0.dp), bottomEnd = CornerSize(size = 8.0.dp), bottomStart = CornerSize(size = 8.0.dp))'
+Text = '[Cable station with revised resistance settings]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 1 sibling
+2) Node #3744 at (l=866.0, t=1121.0, r=2280.0, b=1159.0)px
+Text = '[Cable station with revised resistance settings]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 6 siblings
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+	at com.whip.app.GymLibraryJourneyE2ETest.machineEditArchiveAndNewVersionKeepCompletedWorkoutSnapshots(GymLibraryJourneyE2ETest.kt:152)
+
+FAILURES!!!
+Tests run: 12,  Failures: 2
+
+
+INSTRUMENTATION_CODE: -1

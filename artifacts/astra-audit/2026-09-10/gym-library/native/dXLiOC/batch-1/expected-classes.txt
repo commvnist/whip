@@ -1,0 +1,2 @@
+com.whip.app.GymLibraryJourneyE2ETest
+com.whip.app.ui.WhipRecordItemTest

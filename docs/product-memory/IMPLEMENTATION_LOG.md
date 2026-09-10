@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260910-015 — Share Gym catalog records and search every equipment link
+
+- Behavior: Exercises, Machines and Categories now use one title/action and full-width supporting-information composition. Long names wrap naturally; Category Archive/Restore remains direct, Machine commands retain destructive ordering, and reorder mode suppresses ordinary actions. Shorter task-oriented introductions retain domain explanations at the relevant forms. Equipment search and Any Machine now include every linked Exercise, and Exercise search has the shared Clear Search action.
+- Architecture: WhipRecordItem gains optional Open, complete detail lines, one direct action and a reorder role. The renderer owns natural height, existing geometry/controls and menu reset across record/reorder ownership; features retain filters, ordering, drafts, requests and exact history. Three local catalog card layouts and Machine menu state are removed. Existing Track fact previews remain bounded. No Gym-specific controller or universal form framework is added.
+- Verification/status: Verified under FB-20260910-001/002, FND-20260910-023/024 and DEC/VER-20260910-015. Three MainActivity journeys and one shared-renderer method are added, the Gym test profile includes its new journey, and the catalog gains fourteen states. Final-production API 34 passes 95 methods; twelve final focused methods pass on each API 34/37. Readiness passes 371 JVM checks, build/lint/static/harness gates; 45 original images are personally reviewed. Exact fixture-only deltas, original hashes and limitations are retained in `artifacts/astra-audit/2026-09-10/gym-library/README.md`.
+- Compatibility/next: No data/schema/backup/epoch/version or release change. Machine version creation preserves the original completed workout graph and all Exercise links. Continue full Routine authoring/programmed journeys and other unreviewed product areas; wide master/detail duplication and reading width stay cross-app design work. Whole-product acceptance remains open.
+
 ### IMP-20260910-014 — Share recoverable search and honor existing Area color
 
 - Behavior: Area manager/picker searches remain visible when a mutation reduces the registry below its ordinary search threshold. Both and Tags expose the same explicit Clear Search action. Existing-name Area recovery shows the actual saved color with choosing disabled; a new-name draft retains its own chosen color when the user changes the name again.

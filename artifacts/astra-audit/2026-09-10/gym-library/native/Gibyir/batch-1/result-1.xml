@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="12" failures="0" errors="0" skipped="0" time="129.859" timestamp="2026-09-10T14:48:29" hostname="localhost">
+  <testsuite name="com.whip.app.GymLibraryJourneyE2ETest" tests="3" failures="0" errors="0" skipped="0" time="50.126" timestamp="2026-09-10T14:48:29" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="exerciseAndCategoryEditsReorderAndArchivePreserveLinksAndHistory" classname="com.whip.app.GymLibraryJourneyE2ETest" time="22.76" />
+    <testcase name="equipmentSearchAndFilterIncludeEveryLinkedExercise" classname="com.whip.app.GymLibraryJourneyE2ETest" time="9.399" />
+    <testcase name="machineEditArchiveAndNewVersionKeepCompletedWorkoutSnapshots" classname="com.whip.app.GymLibraryJourneyE2ETest" time="17.967" />
+  </testsuite>
+  <testsuite name="com.whip.app.RecordItemBuilderJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="19.272" timestamp="2026-09-10T14:48:29" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="recordsKeepTheirReadingOrderAndExactActions" classname="com.whip.app.RecordItemBuilderJourneyE2ETest" time="19.272" />
+  </testsuite>
+  <testsuite name="com.whip.app.ReviewOutcomeJourneyE2ETest" tests="5" failures="0" errors="0" skipped="0" time="51.692" timestamp="2026-09-10T14:48:29" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedTaskOutcomesOpenTheirOriginalTask" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="13.302" />
+    <testcase name="mixedTaskHistoryKeepsAreaScopeAndDistinctOccurrences" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="7.49" />
+    <testcase name="archivedGoalProgressOpensItsOriginalGoal" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="9.67" />
+    <testcase name="archivedHabitOutcomesOpenTheirOriginalHabit" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="10.417" />
+    <testcase name="finishedWorkoutOutcomesOpenTheirOriginalSession" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="10.813" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.WhipRecordItemTest" tests="3" failures="0" errors="0" skipped="0" time="6.071" timestamp="2026-09-10T14:48:29" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="actionsStayWithTheirRecordAndUseCurrentCallbacks" classname="com.whip.app.ui.WhipRecordItemTest" time="3.164" />
+    <testcase name="narrowRecordsKeepInformationBelowTheWholeHeader" classname="com.whip.app.ui.WhipRecordItemTest" time="1.441" />
+    <testcase name="completeCatalogContentAndDirectActionsSurviveReorderMode" classname="com.whip.app.ui.WhipRecordItemTest" time="1.466" />
+  </testsuite>
+</testsuites>

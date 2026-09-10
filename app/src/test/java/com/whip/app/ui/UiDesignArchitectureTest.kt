@@ -461,9 +461,13 @@ class UiDesignArchitectureTest {
         assertTrue("Routine filters remain caller-owned", routineBuilder.contains("filters = {"))
         assertTrue("Routine's sticky Add action remains caller-owned", routineBuilder.contains("footer = {"))
         assertTrue("Routine copy uses the product-standard spelling", !routineBuilder.contains("Favourites"))
-        assertTrue("Machine collection rows must use the canonical card", gymScreens.contains("WhipCollectionCard(Modifier.fillMaxWidth())"))
+        assertTrue(
+            "Machine collection rows must use the shared record renderer",
+            gymScreens.substringAfter("private fun MachineLibraryContent(").substringBefore("\n@Composable")
+                .contains("WhipRecordItem("),
+        )
         assertTrue("Workout history display rows must use the canonical card", gymScreens.contains("WhipCollectionCard(modifier = modifier.fillMaxWidth().testTag(\"history-workout-card-"))
-        // Exercise/category/reorder and Routine-placement cards retain their distinct interaction contracts.
+        // Catalog reorder roles now belong to the record renderer; Routine placement remains specialized.
         assertTrue("Routine placement remains a specialized card", routineBuilder.contains("RoutinePlacementCard"))
         assertTrue("The rest execution lane must use the canonical collection card", gymScreens.contains("WhipCollectionCard(\n                modifier = Modifier.testTag(\"workout-execution-lane\")"))
         assertTrue("Collection cards must lock their canonical shape", patterns.contains("val shape = MaterialTheme.shapes.medium"))

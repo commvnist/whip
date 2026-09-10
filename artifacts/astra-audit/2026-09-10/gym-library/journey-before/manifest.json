@@ -1,0 +1,42 @@
+[
+  {
+    "file": "gym.library-builder.machine-list.xml",
+    "original": "gym.library-builder.machine-list (1).xml",
+    "sha256": "a064ff25673b10db4836e786377d8327a5c976dc55072b8eddaa94babd188b2b"
+  },
+  {
+    "file": "gym.library-builder.machine-list.png",
+    "original": "gym.library-builder.machine-list (1).png",
+    "sha256": "6b2f233923d3e2e0d3825022bc78cd55b872adaac59cde25406dc0280afd24fe"
+  },
+  {
+    "file": "gym.library-builder.category-list.xml",
+    "original": "gym.library-builder.category-list (1).xml",
+    "sha256": "658623eda561d741b5dac864516815c7d60d5c896d89cba7e131c6c8aabce9cb"
+  },
+  {
+    "file": "gym.library-builder.category-list.png",
+    "original": "gym.library-builder.category-list (1).png",
+    "sha256": "2cb9cebf3fba1ed85fb4e8f436878cba3bddd7e7d8a41df28befe02cad2c373c"
+  },
+  {
+    "file": "gym.library-builder.equipment-search.xml",
+    "original": "gym.library-builder.equipment-search.xml",
+    "sha256": "2191871daa110b4db93ed135e4ef5fd62ba75598e7d90e281a76331464169027"
+  },
+  {
+    "file": "gym.library-builder.equipment-search.png",
+    "original": "gym.library-builder.equipment-search.png",
+    "sha256": "e1da50a6bba39564a1cf2804a5cf1747d6701018773657fe3ee02f2e0f73d476"
+  },
+  {
+    "file": "gym.library-builder.exercise-list.xml",
+    "original": "gym.library-builder.exercise-list.xml",
+    "sha256": "039edde16bd4fa1e2b73eba2b909a36d0d7a48518a0d065293ae2467809df06c"
+  },
+  {
+    "file": "gym.library-builder.exercise-list.png",
+    "original": "gym.library-builder.exercise-list.png",
+    "sha256": "d2450f13940665a359744bc6097efc54e3654339538fcab030630c23991afb86"
+  }
+]

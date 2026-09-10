@@ -1,0 +1,46 @@
+file	NAF_nodes	observation
+journey-before/gym.library-builder.exercise-list.png	0	Before: Exercise summaries share the narrower title/Edit column; the header leads with the no-seeding implementation policy.
+journey-before/gym.library-builder.machine-list.png	0	Before: the long Machine introduction delays its record. Linked Exercise names share the narrower title/Edit/More column while configuration details span the width.
+journey-before/gym.library-builder.category-list.png	0	Before: Category kind shares the title/action column; the general introduction explains a 5/3/1 exception before ordinary records.
+journey-before/gym.library-builder.equipment-search.png	0	Before: searching the dual cable profile returns only the first linked Exercise; the second is absent.
+final-api34/gym.library-builder.exercise-list.png	0	Complete authored names and Edit controls share the record header; tracking summaries occupy the full supporting row. The introduction is task-oriented.
+final-api34/gym.library-builder.equipment-search.png	0	The entered equipment query has a visible Clear Search action and both linked Exercises appear in the catalog.
+final-api34/gym.library-builder.equipment-filter.png	0	Any Machine remains visible as an active removable filter; both linked catalog records appear while the unrelated walk is excluded from the filtered catalog.
+final-api34/gym.library-builder.exercise-reorder.png	0	Saved order places Standing cable press first. Reorder handles replace ordinary catalog actions and the mode exposes Done.
+final-api34/gym.library-builder.exercise-draft.png	0	The recreated Exercise editor retains its edited name and selected Category; Save stays reachable. The category-versus-Routine role explanation remains at assignment.
+final-api34/gym.library-builder.category-list.png	0	Category names and direct Edit/Archive controls use the shared header; complete kind text appears below with shorter introductory copy.
+final-api34/gym.library-builder.category-draft.png	0	The recreated Category dialog retains both edited name and kind with explicit Cancel and Save.
+final-api34/gym.library-builder.category-reorder.png	0	Conditioning is first after the saved move. Reorder handles and Done remain visible; archived Categories stay outside the order.
+final-api34/gym.library-builder.category-archived.png	0	Show Archived exposes the renamed Category with its complete kind and direct Restore action.
+final-api34/gym.library-builder.machine-list.png	0	The complete Machine name has consistent Edit/More controls. Linked Exercises, configuration version, scale, entry meaning and setup use full-width supporting lines.
+final-api34/gym.library-builder.machine-draft.png	0	The recreated Machine editor retains the edited name. Used resistance meaning remains locked with an explanation and an explicit new-version action.
+final-api34/gym.library-builder.machine-archived.png	0	The archived Machine menu offers Restore and separates destructive permanent deletion; configuration-version creation is absent.
+final-api34/gym.library-builder.machine-version-draft.png	0	The recreated new-version editor retains its name and resistance settings; the explanation preserves the old configuration's history.
+final-api34/gym.library-builder.machine-versions.png	0	Original v1 and newly saved v2 appear as separate records with the same linked Exercises and explicit scale/setup details.
+final-api34/tracks.record-builder.entries.png	0	The neighboring light-theme Entry list retains consistent titles/actions, dates and readable full-width Field previews.
+final-api34/tracks.record-builder.activity.png	0	Activity uses the same record reading order with Track identity and saved facts; named Edit and More actions remain intact.
+final-api34/shared.review.outcomes-goals.png	0	Goal outcomes retain the archived source identity and exact 0.005 contribution in the shared record family.
+final-api34/shared.review.outcomes-gym.png	0	Finished Workouts retains the original workout name, date and Finished state through the shared record family.
+final-api37/gym.library-builder.exercise-list.png	0	Complete authored names and Edit controls share the record header; tracking summaries occupy the full supporting row. The introduction is task-oriented. Existing master-pane duplication and broad reading width remain a separate cross-app review.
+final-api37/gym.library-builder.equipment-search.png	0	The entered equipment query has a visible Clear Search action and both linked Exercises appear in the catalog. Existing master-pane duplication and broad reading width remain a separate cross-app review.
+final-api37/gym.library-builder.equipment-filter.png	0	Any Machine remains visible as an active removable filter; both linked catalog records appear while the unrelated walk is excluded from the filtered catalog. Existing master-pane duplication and broad reading width remain a separate cross-app review.
+final-api37/gym.library-builder.exercise-reorder.png	0	Saved order places Standing cable press first. Reorder handles replace ordinary catalog actions and the mode exposes Done. Existing master-pane duplication and broad reading width remain a separate cross-app review.
+final-api37/gym.library-builder.exercise-draft.png	0	The recreated Exercise editor retains its edited name and selected Category; Save stays reachable. The category-versus-Routine role explanation remains at assignment.
+final-api37/gym.library-builder.category-list.png	0	Category names and direct Edit/Archive controls use the shared header; complete kind text appears below with shorter introductory copy. Existing master-pane duplication and broad reading width remain a separate cross-app review.
+final-api37/gym.library-builder.category-draft.png	0	The recreated Category dialog retains both edited name and kind with explicit Cancel and Save.
+final-api37/gym.library-builder.category-reorder.png	0	Conditioning is first after the saved move. Reorder handles and Done remain visible; archived Categories stay outside the order. Existing master-pane duplication and broad reading width remain a separate cross-app review.
+final-api37/gym.library-builder.category-archived.png	0	Show Archived exposes the renamed Category with its complete kind and direct Restore action. Existing master-pane duplication and broad reading width remain a separate cross-app review.
+final-api37/gym.library-builder.machine-list.png	0	The complete Machine name has consistent Edit/More controls. Linked Exercises, configuration version, scale, entry meaning and setup use full-width supporting lines. Existing master-pane duplication and broad reading width remain a separate cross-app review.
+final-api37/gym.library-builder.machine-draft.png	0	The recreated Machine editor retains the edited name. Used resistance meaning remains locked with an explanation and an explicit new-version action.
+final-api37/gym.library-builder.machine-archived.png	0	The archived Machine menu offers Restore and separates destructive permanent deletion; configuration-version creation is absent. Existing master-pane duplication and broad reading width remain a separate cross-app review.
+final-api37/gym.library-builder.machine-version-draft.png	0	The recreated new-version editor retains its name and resistance settings; the explanation preserves the old configuration's history.
+final-api37/gym.library-builder.machine-versions.png	0	Original v1 and newly saved v2 appear as separate records with the same linked Exercises and explicit scale/setup details. Existing master-pane duplication and broad reading width remain a separate cross-app review.
+final-api37/tracks.record-builder.entries.png	0	The neighboring light-theme Entry list retains consistent titles/actions, dates and readable full-width Field previews.
+final-api37/tracks.record-builder.activity.png	0	Activity uses the same record reading order with Track identity and saved facts; named Edit and More actions remain intact.
+final-api37/shared.review.outcomes-goals.png	0	Goal outcomes retain the archived source identity and exact 0.005 contribution in the shared record family.
+final-api37/shared.review.outcomes-gym.png	0	Finished Workouts retains the original workout name, date and Finished state through the shared record family.
+catalog-api34/gym.library.landing.png	0	Five existing navigation rows clearly identify Routines, Exercises, Machines, Categories and Tools. This established landing layout is retained.
+catalog-api34/gym.machine.menu.png	0	The active Machine menu retains Archive and New Configuration Version, with destructive Delete Permanently separated last.
+catalog-api34/gym.exercises.populated.png	0	The ordinary single-Exercise catalog uses the same title/action header and full-width tracking summary as long records.
+catalog-api34/gym.machines.populated.png	0	The ordinary single-Machine catalog exposes linked Exercise, v1, mass scale and Total Load below its common header.
+catalog-api34/gym.categories.populated.png	0	The ordinary Category catalog retains direct Edit and Archive beside its title and complete kind below.

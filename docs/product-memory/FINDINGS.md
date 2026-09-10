@@ -1,5 +1,18 @@
 # Durable findings
 
+### FND-20260910-024 — Equipment search omits secondary linked Exercises
+
+- Severity/category: P2 ordinary discovery and multi-link correctness.
+- Observed: Native chhFwk searches an existing dual cable profile linked to two Exercises. The first linked Exercise is present; the second is absent and the assertion fails. The unrelated walk is not intended to match. Production is unchanged from db8bd65.
+- Cause: ExerciseLibraryContent groups machines by the legacy singular exerciseId while Machine profiles and their editor/repository retain every exerciseIds link. Both query matching and Any Machine filtering use this incomplete index. Archived profiles participate in the existing search policy and must retain that behavior.
+- Remedy/status: Verified in IMP/VER-20260910-015. Each machine display name is indexed under every linked Exercise. Real search, Any Machine filtering, query recreation and explicit clear recovery pass on API 34/37. No repository, history or stored-link migration is needed. Track under IMP/VER-20260910-015.
+
+### FND-20260910-023 — Gym catalogs repeat record geometry and crowd supporting information
+
+- Severity/category: P2 ordinary hierarchy, design consistency and reusable composition.
+- Observed: The five personally reviewed E3rz30 originals show distinct local Exercise, Machine and Category card compositions. Exercise summaries and Machine-linked names share the narrower title/action column; Machine configuration facts use the full card width. Multi-line policy introductions precede search and records, including the Exercise no-seeding implementation explanation and the Category 5/3/1 exception for all users. The Library landing already uses clear shared navigation rows and is retained.
+- Decision/status: Verified bounded improvement under FB-20260910-001/002 and DEC-20260910-015. Reuse the record family for these three equivalent catalog records, with full-width supporting roles and shorter task-oriented headers. Preserve complete authored names, direct Category archive/restore, exact reorder behavior, Machine version/history meaning and feature-owned persistence. No actual clipping or exhaustive Library acceptance is inferred from source. Forty-five original before/final/neighbor images are personally reviewed; 95 final-production API 34 regressions, twelve final focused methods on each API 34/37 and readiness pass. Evidence: artifacts/astra-audit/2026-09-10/gym-library/README.md.
+
 ### FND-20260910-022 — Existing Area recovery offers a color that will be ignored
 
 - Severity/category: P2 authored-choice truth and ordinary recovery design.

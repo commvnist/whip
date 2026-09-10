@@ -1,0 +1,8 @@
+com.whip.app.EditorStateRecreationTest
+com.whip.app.GymLibraryJourneyE2ETest
+com.whip.app.GymRepositoryTest
+com.whip.app.RecordItemBuilderJourneyE2ETest
+com.whip.app.ReviewOutcomeJourneyE2ETest
+com.whip.app.VisualCatalogPagesTest
+com.whip.app.ui.EditorDependencyUxTest
+com.whip.app.ui.WhipRecordItemTest

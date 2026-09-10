@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="0" errors="0" skipped="0" time="39.928" timestamp="2026-09-10T14:29:04" hostname="localhost">
+  <testsuite name="com.whip.app.GymLibraryJourneyE2ETest" tests="2" failures="0" errors="0" skipped="0" time="38.798" timestamp="2026-09-10T14:29:04" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="exerciseAndCategoryEditsReorderAndArchivePreserveLinksAndHistory" classname="com.whip.app.GymLibraryJourneyE2ETest" time="21.981" />
+    <testcase name="machineEditArchiveAndNewVersionKeepCompletedWorkoutSnapshots" classname="com.whip.app.GymLibraryJourneyE2ETest" time="16.817" />
+  </testsuite>
+</testsuites>

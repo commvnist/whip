@@ -4612,8 +4612,10 @@ private fun ExerciseLibraryContent(
     var sortDirection by rememberSaveable { mutableStateOf(SortDirection.Ascending) }
     var reordering by rememberSaveable { mutableStateOf(false) }
     val source = if (showArchived) state.archivedExercises else state.exercises
-    val machineNamesByExercise = (state.machines + state.archivedMachines).groupBy(GymMachine::exerciseId)
-        .mapValues { (_, machines) -> machines.joinToString(" ") { it.displayName } }
+    val machineNamesByExercise = (state.machines + state.archivedMachines)
+        .flatMap { machine -> machine.exerciseIds.map { it to machine.displayName } }
+        .groupBy({ it.first }, { it.second })
+        .mapValues { (_, names) -> names.joinToString(" ") }
     val equipmentOptions = source.map(Exercise::equipment).filter(String::isNotBlank).distinct().sorted()
     val lastUsedAtByExercise = state.allWorkoutExercises.groupingBy(WorkoutExercise::exerciseId)
         .fold(0L) { latest, placement -> maxOf(latest, placement.createdAtMillis) }
@@ -4648,7 +4650,7 @@ private fun ExerciseLibraryContent(
         item {
             WhipPageHeader(
                 title = "Exercise Library",
-                supportingText = "Only your exercises appear here—Whip never seeds a movement list.",
+                supportingText = "Your exercises for workouts and routines.",
             ) {
                 if (!reordering && state.exercises.size > 1) {
                     WhipPageIconAction(
@@ -4673,12 +4675,11 @@ private fun ExerciseLibraryContent(
             WhipReorderModeBar(itemLabel = "Exercises", onDone = { reordering = false })
         }
         if (!reordering) item {
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                label = { Text("Search Exercises") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().testTag("exercise-library-search"),
+            WhipSearchField(
+                label = "Search Exercises",
+                query = query,
+                onQueryChange = { query = it },
+                modifier = Modifier.testTag("exercise-library-search"),
             )
         }
         if (!reordering) item {
@@ -4778,72 +4779,34 @@ private fun ExerciseLibraryContent(
         items(visible.size, key = { visible[it].id }) { index ->
             val exercise = visible[index]
             val reorderInteraction = rememberWhipReorderInteractionState()
-            WhipCollectionCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .whipReorderItem(
-                        reorderInteraction,
-                        layoutPosition = index + 1,
-                        layoutScope = "exercise-browse",
-                    )
-                    .then(
-                        if (manualReorderEnabled) Modifier
-                        else Modifier.clickable(onClickLabel = "Open ${exercise.name}") { onOpen(exercise) },
-                    ),
+            WhipRecordItem(
+                itemKey = exercise.id,
+                itemType = "exercise",
+                title = exercise.name,
+                identityEmoji = "★".takeIf { exercise.favorite },
+                onOpen = { onOpen(exercise) },
             ) {
-                Row(
-                    modifier = Modifier.padding(
-                        horizontal = WhipCardGeometry.horizontalInset,
-                        vertical = WhipCardGeometry.verticalInset,
-                    ),
-                    verticalAlignment = Alignment.CenterVertically,
+                edit { onEdit(exercise) }
+                if (manualReorderEnabled) reorder(
+                    position = index + 1, total = visible.size,
+                    interactionState = reorderInteraction, layoutScope = "exercise-browse",
+                    onMove = { delta -> onReorder(moveListItem(visible, index, delta).map(Exercise::id)) },
+                )
+                val unitDetail = if (exercise.trackingType in setOf(
+                        ExerciseTrackingType.WeightReps,
+                        ExerciseTrackingType.BodyweightReps,
+                        ExerciseTrackingType.AssistedBodyweightReps,
+                        ExerciseTrackingType.WeightOnly,
+                        ExerciseTrackingType.WeightDuration,
+                    )
                 ) {
-                    if (manualReorderEnabled) {
-                        WhipReorderHandle(
-                            label = exercise.name,
-                            canMovePrevious = index > 0,
-                            canMoveNext = index < visible.lastIndex,
-                            position = index + 1,
-                            total = visible.size,
-                            interactionState = reorderInteraction,
-                            moveWholeItem = true,
-                            layoutScope = "exercise-browse",
-                            reserveWhenUnavailable = true,
-                            onMove = { delta -> onReorder(moveListItem(visible, index, delta).map(Exercise::id)) },
-                        )
+                    " · ${unitSymbol(exercise.weightUnitId)} · ±${editableNumber(exercise.weightIncrement)}"
+                } else ""
+                val trackedDetail = if (state.appSettings.trackedGymRecords.any {
+                        it.exerciseUuid == exercise.uuid && it.type in exercise.supportedTrackedRecordTypes()
                     }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            (if (exercise.favorite) "★ " else "") + exercise.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        val unitDetail = if (exercise.trackingType in setOf(
-                                ExerciseTrackingType.WeightReps,
-                                ExerciseTrackingType.BodyweightReps,
-                                ExerciseTrackingType.AssistedBodyweightReps,
-                                ExerciseTrackingType.WeightOnly,
-                                ExerciseTrackingType.WeightDuration,
-                            )
-                        ) {
-                            " · ${unitSymbol(exercise.weightUnitId)} · ±${editableNumber(exercise.weightIncrement)}"
-                        } else {
-                            ""
-                        }
-                        val trackedDetail = if (state.appSettings.trackedGymRecords.any {
-                                it.exerciseUuid == exercise.uuid && it.type in exercise.supportedTrackedRecordTypes()
-                            }
-                        ) {
-                            " · Tracked"
-                        } else ""
-                        Text(
-                            exercise.trackingType.label.uiTitleCase() + unitDetail + trackedDetail,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    if (!manualReorderEnabled) ItemEditButton("exercise", exercise.name, onEdit = { onEdit(exercise) })
-                }
+                ) " · Tracked" else ""
+                context(exercise.trackingType.label.uiTitleCase() + unitDetail + trackedDetail)
             }
         }
     }
@@ -4859,7 +4822,6 @@ private fun MachineLibraryContent(
     onDelete: (GymMachine) -> Unit,
 ) {
     var showArchived by rememberSaveable { mutableStateOf(false) }
-    var actionMenuId by rememberSaveable { mutableStateOf<Long?>(null) }
     val exerciseById = (state.exercises + state.archivedExercises).associateBy(Exercise::id)
     val visible = if (showArchived) state.archivedMachines else state.machines
     LazyColumn(
@@ -4870,7 +4832,7 @@ private fun MachineLibraryContent(
         item {
             WhipPageHeader(
                 title = "Machines",
-                supportingText = "Give each physical machine its own profile, then link every exercise you perform on it. Each profile keeps its history and progress tied to the equipment you used.",
+                supportingText = "Equipment profiles keep resistance settings and workout history together.",
             )
         }
         item { ToggleRow("Show archived", showArchived) { showArchived = it } }
@@ -4883,94 +4845,36 @@ private fun MachineLibraryContent(
             )
         }
         items(visible, key = GymMachine::id) { machine ->
-            WhipCollectionCard(Modifier.fillMaxWidth()) {
-                Column(
-                    Modifier.padding(
-                        horizontal = WhipCardGeometry.horizontalInset,
-                        vertical = WhipCardGeometry.verticalInset,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                machine.displayName,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            val linkedNames = machine.exerciseIds.mapNotNull { exerciseById[it]?.name }.sorted()
-                            Text(
-                                when {
-                                    linkedNames.isEmpty() -> "No exercises linked"
-                                    linkedNames.size <= 3 -> linkedNames.joinToString(" · ")
-                                    else -> linkedNames.take(3).joinToString(" · ") + " · +${linkedNames.size - 3} more"
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        ItemEditButton("machine", machine.displayName, onEdit = { onEdit(machine) })
-                        Box {
-                            IconButton(
-                                onClick = { actionMenuId = machine.id },
-                                modifier = Modifier.size(48.dp),
-                            ) {
-                                Icon(
-                                    Icons.Outlined.MoreVert,
-                                    contentDescription = "More options for ${machine.displayName}",
-                                    modifier = Modifier.size(28.dp),
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = actionMenuId == machine.id,
-                                onDismissRequest = { actionMenuId = null },
-                            ) {
-                                WhipMenuItem(
-                                    label = if (machine.archived) "Restore" else "Archive",
-                                    onClick = { actionMenuId = null; onArchive(machine.id, !machine.archived) },
-                                )
-                                if (!machine.archived) WhipMenuItem(
-                                    label = "New Configuration Version",
-                                    onClick = { actionMenuId = null; onNewVersion(machine) },
-                                )
-                                HorizontalDivider()
-                                WhipMenuItem(
-                                    label = "Delete Permanently",
-                                    icon = Icons.Outlined.DeleteOutline,
-                                    role = WhipMenuItemRole.Destructive,
-                                    onClick = { actionMenuId = null; onDelete(machine) },
-                                )
-                            }
-                        }
-                    }
-                    val scale = when (machine.loadType) {
-                        MachineLoadType.Mass -> "Mass stack · ${unitSymbol(machine.unitId)}"
-                        MachineLoadType.Level -> "Numbered scale · ${machine.levelLabel} · ${machine.levelDirection.label.lowercase()}"
-                    }
-                    Text(
-                        "v${machine.configurationVersion} · $scale${machine.availableLoads.takeIf(List<Double>::isNotEmpty)?.let { " · ${machineLoadSummary(it)}" }.orEmpty()}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (machine.loadType == MachineLoadType.Mass) {
-                        Text(
-                            "Entry meaning: ${machine.loadInterpretation.label.uiTitleCase()}" +
-                                if (machine.loadInterpretation == LoadInterpretation.PerSide && machine.baseLoadKg != null) {
-                                    " · base ${editableNumber(massFromKilograms(machine.baseLoadKg, machine.unitId))} ${unitSymbol(machine.unitId)}"
-                                } else "",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    val setup = listOfNotNull(
-                        machine.seatPosition.takeIf(String::isNotBlank)?.let { "Seat $it" },
-                        machine.backPosition.takeIf(String::isNotBlank)?.let { "Back $it" },
-                        machine.attachment.takeIf(String::isNotBlank),
-                        machine.pulleyRatio.takeIf { it != 1.0 }?.let { "resistance ×${editableNumber(it)}" },
-                        machine.stackMode.takeIf { it != MachineStackMode.Single }?.label,
-                    )
-                    if (setup.isNotEmpty()) Text(setup.joinToString(" · "), style = MaterialTheme.typography.bodySmall)
+            WhipRecordItem(itemKey = machine.id, itemType = "machine", title = machine.displayName) {
+                edit { onEdit(machine) }
+                command(if (machine.archived) "Restore" else "Archive") { onArchive(machine.id, !machine.archived) }
+                if (!machine.archived) command("New Configuration Version") { onNewVersion(machine) }
+                command("Delete Permanently", Icons.Outlined.DeleteOutline, WhipMenuItemRole.Destructive) { onDelete(machine) }
+                val linkedNames = machine.exerciseIds.mapNotNull { exerciseById[it]?.name }.sorted()
+                context(when {
+                    linkedNames.isEmpty() -> "No exercises linked"
+                    linkedNames.size <= 3 -> linkedNames.joinToString(" · ")
+                    else -> linkedNames.take(3).joinToString(" · ") + " · +${linkedNames.size - 3} more"
+                })
+                val scale = when (machine.loadType) {
+                    MachineLoadType.Mass -> "Mass stack · ${unitSymbol(machine.unitId)}"
+                    MachineLoadType.Level -> "Numbered scale · ${machine.levelLabel} · ${machine.levelDirection.label.lowercase()}"
                 }
+                detail("v${machine.configurationVersion} · $scale${machine.availableLoads.takeIf(List<Double>::isNotEmpty)?.let { " · ${machineLoadSummary(it)}" }.orEmpty()}")
+                if (machine.loadType == MachineLoadType.Mass) {
+                    detail("Entry meaning: ${machine.loadInterpretation.label.uiTitleCase()}" +
+                        if (machine.loadInterpretation == LoadInterpretation.PerSide && machine.baseLoadKg != null) {
+                            " · base ${editableNumber(massFromKilograms(machine.baseLoadKg, machine.unitId))} ${unitSymbol(machine.unitId)}"
+                        } else "")
+                }
+                val setup = listOfNotNull(
+                    machine.seatPosition.takeIf(String::isNotBlank)?.let { "Seat $it" },
+                    machine.backPosition.takeIf(String::isNotBlank)?.let { "Back $it" },
+                    machine.attachment.takeIf(String::isNotBlank),
+                    machine.pulleyRatio.takeIf { it != 1.0 }?.let { "resistance ×${editableNumber(it)}" },
+                    machine.stackMode.takeIf { it != MachineStackMode.Single }?.label,
+                )
+                detail(setup.joinToString(" · "))
             }
         }
     }
@@ -6404,7 +6308,7 @@ private fun ExerciseCategoryContent(
         item {
             WhipPageHeader(
                 title = "Exercise Categories",
-                supportingText = "Library labels for browsing and analytics. Assign them in Edit Exercise; they never assign 5/3/1 Push/Pull assistance roles.",
+                supportingText = "Group exercises for browsing and progress. Assign categories in Edit Exercise.",
             ) {
                 if (!reordering && state.categories.size > 1) {
                     WhipPageIconAction(
@@ -6441,57 +6345,18 @@ private fun ExerciseCategoryContent(
         items(visible.size, key = { visible[it].id }) { index ->
             val category = visible[index]
             val reorderInteraction = rememberWhipReorderInteractionState()
-            WhipCollectionCard(
-                Modifier.fillMaxWidth().whipReorderItem(
-                    reorderInteraction,
-                    layoutPosition = index + 1,
-                    layoutScope = "category-browse",
-                ),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(
-                        horizontal = WhipCardGeometry.horizontalInset,
-                        vertical = WhipCardGeometry.verticalInset,
-                    ),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (reordering && !showArchived) {
-                        WhipReorderHandle(
-                            label = category.name,
-                            canMovePrevious = index > 0,
-                            canMoveNext = index < visible.lastIndex,
-                            position = index + 1,
-                            total = visible.size,
-                            interactionState = reorderInteraction,
-                            moveWholeItem = true,
-                            layoutScope = "category-browse",
-                            reserveWhenUnavailable = true,
-                            onMove = { delta ->
-                                viewModel.reorderCategories(moveListItem(visible, index, delta).map(ExerciseCategory::id))
-                            },
-                        )
-                    }
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Text(category.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                        Text(category.kind, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    if (!reordering) ItemEditButton("category", category.name, onEdit = { editingCategoryId = category.id })
-                    if (!reordering) {
-                        IconButton(
-                            onClick = { viewModel.setCategoryArchived(category.id, !category.archived) },
-                            modifier = Modifier.size(48.dp),
-                        ) {
-                            Icon(
-                                imageVector = if (category.archived) Icons.Outlined.Restore else Icons.Outlined.Archive,
-                                contentDescription = if (category.archived) {
-                                    "Restore category ${category.name}"
-                                } else {
-                                    "Archive category ${category.name}"
-                                },
-                            )
-                        }
-                    }
-                }
+            WhipRecordItem(itemKey = category.id, itemType = "category", title = category.name) {
+                context(category.kind)
+                edit { editingCategoryId = category.id }
+                action(
+                    label = "${if (category.archived) "Restore" else "Archive"} category ${category.name}",
+                    icon = if (category.archived) Icons.Outlined.Restore else Icons.Outlined.Archive,
+                ) { viewModel.setCategoryArchived(category.id, !category.archived) }
+                if (reordering && !showArchived) reorder(
+                    position = index + 1, total = visible.size,
+                    interactionState = reorderInteraction, layoutScope = "category-browse",
+                    onMove = { delta -> viewModel.reorderCategories(moveListItem(visible, index, delta).map(ExerciseCategory::id)) },
+                )
             }
         }
     }

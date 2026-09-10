@@ -1,0 +1,182 @@
+[
+  {
+    "file": "shared.review.outcomes-gym.xml",
+    "original": "shared.review.outcomes-gym (4).xml",
+    "sha256": "016598efb41d3c987167c08e1095b30d551048d05b2889dc6c9e388d104a56c1"
+  },
+  {
+    "file": "shared.review.outcomes-gym.png",
+    "original": "shared.review.outcomes-gym (4).png",
+    "sha256": "bc3df57d9d1e6fef45790ae26c345d66860edb33684abdb7f6d3ab6158adce90"
+  },
+  {
+    "file": "shared.review.outcomes-goals.xml",
+    "original": "shared.review.outcomes-goals (4).xml",
+    "sha256": "fa1d1c5a697ec158e06b74557ee78198cd9cfb47bf6808caca57fff291c592b3"
+  },
+  {
+    "file": "shared.review.outcomes-goals.png",
+    "original": "shared.review.outcomes-goals (4).png",
+    "sha256": "ba2562eb5051bd79beb7c688db4d5f27b60664fcb013cf01df4425a1c3168dec"
+  },
+  {
+    "file": "tracks.record-builder.activity.xml",
+    "original": "tracks.record-builder.activity (2).xml",
+    "sha256": "e27f0a1408f6bd72ab4adce297965f78c396458d0bd6066e91d2bc6d07528aaa"
+  },
+  {
+    "file": "tracks.record-builder.activity.png",
+    "original": "tracks.record-builder.activity (2).png",
+    "sha256": "6c81b416e54098de3a778f8ead80210f2a7026611854dc5a6fafee3851ab7e6c"
+  },
+  {
+    "file": "tracks.record-builder.entries.xml",
+    "original": "tracks.record-builder.entries (2).xml",
+    "sha256": "4d187a7e175bbf077ddd64c1103b231eab8a6f47670c2f5c8754ffd71674e1f2"
+  },
+  {
+    "file": "tracks.record-builder.entries.png",
+    "original": "tracks.record-builder.entries (2).png",
+    "sha256": "7a5082498d8aea11bea03b4c2fe7118deadf98d73fce4be201750890ab727609"
+  },
+  {
+    "file": "gym.library-builder.machine-versions.xml",
+    "original": "gym.library-builder.machine-versions.xml",
+    "sha256": "97c02c1de21e7ae8c0517b26ccc7b7b646e3aefed3ac337a26d5fbfc010d7319"
+  },
+  {
+    "file": "gym.library-builder.machine-versions.png",
+    "original": "gym.library-builder.machine-versions.png",
+    "sha256": "47c61e59f8a4343d6ad9cdb287ff16d3bec6f914720b7bd5b91bdec80ca68dca"
+  },
+  {
+    "file": "gym.library-builder.machine-version-draft.xml",
+    "original": "gym.library-builder.machine-version-draft (1).xml",
+    "sha256": "f4335fde12424c6f7538896ac84be62dfc0ef257aa71feedea495ddfb26573f3"
+  },
+  {
+    "file": "gym.library-builder.machine-version-draft.png",
+    "original": "gym.library-builder.machine-version-draft (1).png",
+    "sha256": "073f00ed502bb4e8d501cf969ab767b8a293cd1b401091dac4da9ae66b9780c7"
+  },
+  {
+    "file": "gym.library-builder.machine-archived.xml",
+    "original": "gym.library-builder.machine-archived (1).xml",
+    "sha256": "176646f0dd72d22606dc0706f3bb8c045ddb46c8ac1ed4c616f616d2a0eb58b9"
+  },
+  {
+    "file": "gym.library-builder.machine-archived.png",
+    "original": "gym.library-builder.machine-archived (1).png",
+    "sha256": "566198a285127273167b92dba9e90aeb43b13348f9251f892fc157411b87542e"
+  },
+  {
+    "file": "gym.library-builder.machine-draft.xml",
+    "original": "gym.library-builder.machine-draft (1).xml",
+    "sha256": "e91eb903f2f102b3cabbbfe02fa733450a03d15897764482ce2a3afed33e79d0"
+  },
+  {
+    "file": "gym.library-builder.machine-draft.png",
+    "original": "gym.library-builder.machine-draft (1).png",
+    "sha256": "361846d28af40016b8bad28cda11767717522375afa3a48d4693338bdeb1854e"
+  },
+  {
+    "file": "gym.library-builder.machine-list.xml",
+    "original": "gym.library-builder.machine-list (1).xml",
+    "sha256": "e143fcfcae4b86a35c2b46f787d3a354f08349f603f00c8ebf8ac3c0ef01e3c0"
+  },
+  {
+    "file": "gym.library-builder.machine-list.png",
+    "original": "gym.library-builder.machine-list (1).png",
+    "sha256": "c869b182d1cc89c89288b8b83f3b27d93c152846ac1f2203156e9e049d590dd4"
+  },
+  {
+    "file": "gym.library-builder.equipment-filter.xml",
+    "original": "gym.library-builder.equipment-filter.xml",
+    "sha256": "a209b2efe0aaae19e32e2b63ff305910bb7e99e3817b0ecccb4b2ccb25b6bca7"
+  },
+  {
+    "file": "gym.library-builder.equipment-filter.png",
+    "original": "gym.library-builder.equipment-filter.png",
+    "sha256": "d1d4dd4b0b9b366239e99daf2296095540afb9e53a5e7b4524e9c4290bc6365a"
+  },
+  {
+    "file": "gym.library-builder.equipment-search.xml",
+    "original": "gym.library-builder.equipment-search (1).xml",
+    "sha256": "b2daf98a0f06fb1f4216ee1a804edb6e9993ec37753bedc09f247c88a346263b"
+  },
+  {
+    "file": "gym.library-builder.equipment-search.png",
+    "original": "gym.library-builder.equipment-search (1).png",
+    "sha256": "7f5768866c7856a8994e3112a1a4e6ecf968afdae3737f1cfa0a3decea68da3c"
+  },
+  {
+    "file": "gym.library-builder.exercise-list.xml",
+    "original": "gym.library-builder.exercise-list (1).xml",
+    "sha256": "031c1f78c7ff69a5831e46f2a003b6fb8e229ec94a7268ec5669ef2fb62a3983"
+  },
+  {
+    "file": "gym.library-builder.exercise-list.png",
+    "original": "gym.library-builder.exercise-list (1).png",
+    "sha256": "d99784cbc991480ba93a0acdb100c26e1de68d688e544f85d8741cf43adf3807"
+  },
+  {
+    "file": "gym.library-builder.category-archived.xml",
+    "original": "gym.library-builder.category-archived (1).xml",
+    "sha256": "ce6851e9b03384e067431e8f15050e1b3368439ea1fa1b49ec417004a51d1884"
+  },
+  {
+    "file": "gym.library-builder.category-archived.png",
+    "original": "gym.library-builder.category-archived (1).png",
+    "sha256": "c8b9c04ca26b14cf167aa7c7bc9b99f6acfd2f90020500ba5da2e9aec1f94e07"
+  },
+  {
+    "file": "gym.library-builder.category-reorder.xml",
+    "original": "gym.library-builder.category-reorder (1).xml",
+    "sha256": "968b4535246ee36177ad29df99a2442df91e50b06bcbac0d2b21fc41ec8b9f21"
+  },
+  {
+    "file": "gym.library-builder.category-reorder.png",
+    "original": "gym.library-builder.category-reorder (1).png",
+    "sha256": "960fb7d658e484a93836c6c740b0e762923b2f15da8f59c1af2758335fbe88a0"
+  },
+  {
+    "file": "gym.library-builder.category-draft.xml",
+    "original": "gym.library-builder.category-draft (1).xml",
+    "sha256": "8e5f479f56819f3a46644ab04aa3ab7cd7a01e13341243e9c235496048ba6e0e"
+  },
+  {
+    "file": "gym.library-builder.category-draft.png",
+    "original": "gym.library-builder.category-draft (1).png",
+    "sha256": "165d393805cb6c4be12354c33a0c559f218460630537ea96dfff091a689e901f"
+  },
+  {
+    "file": "gym.library-builder.category-list.xml",
+    "original": "gym.library-builder.category-list (1).xml",
+    "sha256": "68dbfe03d30a2cd7ae9349461524b5ac73d76998c6fa8048baa004c181788fdf"
+  },
+  {
+    "file": "gym.library-builder.category-list.png",
+    "original": "gym.library-builder.category-list (1).png",
+    "sha256": "20fd0384b7036567c6f2dda8fa0fca8d70b47e6c8a5288fb0ba5b804b404d082"
+  },
+  {
+    "file": "gym.library-builder.exercise-reorder.xml",
+    "original": "gym.library-builder.exercise-reorder (1).xml",
+    "sha256": "dde1783f7a76da675a6c00e48832aaac57aa75664c8e7bfa64b02af48cf4d380"
+  },
+  {
+    "file": "gym.library-builder.exercise-reorder.png",
+    "original": "gym.library-builder.exercise-reorder (1).png",
+    "sha256": "029c7545b17df0167e82e5ba64ff83fd5c88a5678601a7cdac58ae580a4c23f1"
+  },
+  {
+    "file": "gym.library-builder.exercise-draft.xml",
+    "original": "gym.library-builder.exercise-draft (1).xml",
+    "sha256": "c02cfe12c1d33f5d20490f41d6072fd4c9d73fd43fff46813c2d0835d0bd548c"
+  },
+  {
+    "file": "gym.library-builder.exercise-draft.png",
+    "original": "gym.library-builder.exercise-draft (1).png",
+    "sha256": "ee19e8b7913fc557a0f3a795e5c584c7a0ddfac3e202c797e7c10c71382ad03f"
+  }
+]

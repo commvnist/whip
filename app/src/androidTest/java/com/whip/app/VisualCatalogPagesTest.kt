@@ -409,7 +409,7 @@ class VisualCatalogPagesTest {
                 captureVisualCatalogSurface("gym.routine.menu")
             }
             if (destination == "Machines") {
-                compose.onNodeWithContentDescription("More options for Home Cable Stack").performClick()
+                compose.onNodeWithContentDescription("More Actions for Home Cable Stack").performClick()
                 compose.onNodeWithText("New Configuration Version").assertIsDisplayed()
                 compose.waitForIdle()
                 captureVisualCatalogSurface("gym.machine.menu")

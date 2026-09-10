@@ -2,6 +2,7 @@ package com.whip.app.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.*
@@ -18,6 +19,55 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class WhipRecordItemTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test fun completeCatalogContentAndDirectActionsSurviveReorderMode() {
+        val reordering = mutableStateOf(false)
+        var opened = 0
+        var archived = 0
+        var moved = 0
+        val title = "Upper body pulling with controlled shoulder movement and a complete range of motion"
+        val detail = "Seat 4 · Back 2 · Independent handles with adjustable cable height · resistance ×0.5"
+        compose.setContent {
+            WhipTheme(darkTheme = false, dynamicColor = false) {
+                Box(Modifier.width(320.dp)) {
+                    val interaction = rememberWhipReorderInteractionState()
+                    WhipRecordItem(1L, "category", title, { opened++ }) {
+                        context("Movement family and training emphasis")
+                        detail(detail)
+                        edit {}
+                        action("Archive category", androidx.compose.material.icons.Icons.Outlined.Archive) { archived++ }
+                        command("Inspect category") {}
+                        if (reordering.value) reorder(2, 3, interaction, "test-catalog") { moved = it }
+                    }
+                }
+            }
+        }
+        for (text in listOf(title, detail)) {
+            val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+            compose.onNodeWithText(text, useUnmergedTree = true).performSemanticsAction(
+                androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult,
+            ) { it(layouts) }
+            assertTrue("Complete catalog text must wrap: $text", layouts.isNotEmpty() && layouts.none { it.hasVisualOverflow })
+        }
+        compose.onNodeWithContentDescription("Archive category").performClick()
+        assertEquals(1, archived)
+        assertEquals(0, opened)
+        compose.onNodeWithContentDescription("More Actions for $title").performClick()
+        compose.runOnIdle { reordering.value = true }
+        compose.onNodeWithText("Inspect category").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Archive category").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Edit category $title").assertDoesNotExist()
+        compose.onNodeWithText(title).assertHasNoClickAction()
+        val move = compose.onNodeWithContentDescription("Reorder $title").fetchSemanticsNode()
+            .config[androidx.compose.ui.semantics.SemanticsActions.CustomActions].single { it.label.endsWith(" up") }
+        compose.runOnIdle { assertTrue(move.action()) }
+        assertEquals(-1, moved)
+        compose.runOnIdle { reordering.value = false }
+        compose.onNodeWithText("Inspect category").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Archive category").assertIsDisplayed()
+        compose.onNodeWithText(title).performClick()
+        assertEquals(1, opened)
+    }
 
     @Test fun narrowRecordsKeepInformationBelowTheWholeHeader() {
         compose.setContent {

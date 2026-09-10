@@ -1,0 +1,52 @@
+[
+  {
+    "file": "gym.categories.populated.xml",
+    "original": "gym.categories.populated (4).xml",
+    "sha256": "5c4ac34b1b72c7aff4568d4965c8e915ed4b815e99fbfc414b1ffc6fb9dcff9a"
+  },
+  {
+    "file": "gym.categories.populated.png",
+    "original": "gym.categories.populated (4).png",
+    "sha256": "e0df1e201e3f4c498d42a80034f5e301aa6a5974e13259c40d9e9a94813af5c4"
+  },
+  {
+    "file": "gym.machine.menu.xml",
+    "original": "gym.machine.menu (4).xml",
+    "sha256": "ed91d334a5abf74e14e0f3ea4458c8205c3dd0122d0cf1cc96ec8bd45b282fed"
+  },
+  {
+    "file": "gym.machine.menu.png",
+    "original": "gym.machine.menu (4).png",
+    "sha256": "bd4311dbdd2fdecb49f8d4bd30c48b3aeae5d4059d22a7113a74bbfca862c841"
+  },
+  {
+    "file": "gym.machines.populated.xml",
+    "original": "gym.machines.populated (4).xml",
+    "sha256": "b995fac993311fb1b53153f9f7f992745274c81551155f64c605eec4bc524cbc"
+  },
+  {
+    "file": "gym.machines.populated.png",
+    "original": "gym.machines.populated (4).png",
+    "sha256": "1edcf4c63607c47e1f0ef23626fbc3cf8633021c3ff3ea5f6fef919de3950dba"
+  },
+  {
+    "file": "gym.exercises.populated.xml",
+    "original": "gym.exercises.populated (4).xml",
+    "sha256": "6be641ddc8ad73eda12a1f3497812e0b581055b5fe960f6d032c0e04cda586f5"
+  },
+  {
+    "file": "gym.exercises.populated.png",
+    "original": "gym.exercises.populated (4).png",
+    "sha256": "4c95f5557f74fcb3b5ed36ed35cedddef3c08be07499526be102ba90c77de335"
+  },
+  {
+    "file": "gym.library.landing.xml",
+    "original": "gym.library.landing (4).xml",
+    "sha256": "73c91afb48009ef51a4c3f98e4764a34ceb252489acb3d9ced76caabfb253c17"
+  },
+  {
+    "file": "gym.library.landing.png",
+    "original": "gym.library.landing (4).png",
+    "sha256": "5401816677d751ec2d8d57d3bd36b0d8a4a49e032d4993f264b78a0d296a51bf"
+  }
+]
