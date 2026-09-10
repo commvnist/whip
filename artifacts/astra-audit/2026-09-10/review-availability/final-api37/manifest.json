@@ -1,0 +1,62 @@
+[
+  {
+    "file": "shared.review.unavailable-correlation.xml",
+    "original": "shared.review.unavailable-correlation.xml",
+    "sha256": "8bae86af4acb3ebc8e83443401c8505f1024ef88c572b2c0ebf997d0727dd06c"
+  },
+  {
+    "file": "shared.review.unavailable-correlation.png",
+    "original": "shared.review.unavailable-correlation.png",
+    "sha256": "47cd1c80a6c5f384c7a679daaaabe76c648a9ac3388fb9d65090c99a4345fbe2"
+  },
+  {
+    "file": "shared.review.available-correlation.xml",
+    "original": "shared.review.available-correlation.xml",
+    "sha256": "8cc83b36f005532428c3c2a09a7a1e70757ba4f9a212c0294f12ffb846b2fdda"
+  },
+  {
+    "file": "shared.review.available-correlation.png",
+    "original": "shared.review.available-correlation.png",
+    "sha256": "1da6da4a898b70a7b4e9617902cc25a081d88ec68523807e40ae7becf88061ab"
+  },
+  {
+    "file": "shared.review.sources-recovered.xml",
+    "original": "shared.review.sources-recovered.xml",
+    "sha256": "50c18b5c9293c96bd5c10adc2b9897533a177d578c2ecb737dff24dd79761bc0"
+  },
+  {
+    "file": "shared.review.sources-recovered.png",
+    "original": "shared.review.sources-recovered.png",
+    "sha256": "8bfe5369324aa7064889064200f835b4e6ff8b3f22154e1f19e4a079e434b8d6"
+  },
+  {
+    "file": "shared.review.partial-sources.xml",
+    "original": "shared.review.partial-sources.xml",
+    "sha256": "2be2c760acd47b8465fb67769c65c826be334f6cc92585d141bec3e0dd245eea"
+  },
+  {
+    "file": "shared.review.partial-sources.png",
+    "original": "shared.review.partial-sources.png",
+    "sha256": "a08cca8536d5bbab3323e78316319181e24e8819b9fa38476f5de6711eeaf8ad"
+  },
+  {
+    "file": "shared.review.sources-ready-empty.xml",
+    "original": "shared.review.sources-ready-empty.xml",
+    "sha256": "2b8e6b098d581ad7c724614ebdaaa1f54c2f9f3a1ec04c8bb8576acae7977cb7"
+  },
+  {
+    "file": "shared.review.sources-ready-empty.png",
+    "original": "shared.review.sources-ready-empty.png",
+    "sha256": "b8724269ace9ab6b967887034d9307c6c8f17e9de6ab165e514fd49b119def15"
+  },
+  {
+    "file": "shared.review.sources-unavailable.xml",
+    "original": "shared.review.sources-unavailable.xml",
+    "sha256": "d57a666eb6746512b0ea9995040ccf41eed097e61031545a124e362a1cfa5710"
+  },
+  {
+    "file": "shared.review.sources-unavailable.png",
+    "original": "shared.review.sources-unavailable.png",
+    "sha256": "acc84161d4210a54f07b5d0e8a52317c44b8328ac76becf46850d73e5408424e"
+  }
+]

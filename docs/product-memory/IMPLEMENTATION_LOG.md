@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260910-009 — Keep Review honest while sources load or fail
+
+- Behavior: One shared incomplete-data notice names loading and failed sources while ready results remain visible. Unavailable outcome sources and global Track evidence are excluded from totals/comparisons; a global empty-outcome state waits for all selected outcome sources to be ready. Retry dispatches only to currently failed included sources and preserves the open dashboard.
+- Files/architecture: ReviewAvailability defines source readiness and current-scope retry selection, using WhipNoticeCard for the status. ReviewDialog filters cards/evidence/correlations through that boundary; WhipScreen forwards existing DomainRetryActions. No repository, schema, backup, version or persisted-data change. The new cases use controlled source states and saved-state emulation; actual storage-failure injection and OS-process recovery are not claimed.
+- Verification/status: Verified for FND-20260910-013 and DEC/VER-20260910-009. Final YF2gUp accepts 91 fresh API 34 shared-app Android tests, zero failures/skips/reuse. Seven final API 37 methods pass in 50.821s. Readiness passes 364 JVM tests in 39 suites plus compilation/lint/debug packaging in 2m23; catalog lint/fixtures pass. Fifteen personally reviewed original frames and matching source/APK hashes are retained in artifacts/astra-audit/2026-09-10/review-availability/README.md. Source inventory is 639 JVM + 1,056 Android = 1,695, with 406 catalog states. Complete Review source journeys, period-empty copy, broader app review and final full-product gates remain open. Normal main/upstream delivery is recorded in Git history.
+
 ### IMP-20260910-008 — Preserve Review history and clarify progress at ordinary scale
 
 - Behavior: Archived once/recurring Task completions and Habit outcomes remain in Review, with exact completion dates and Area scope. All Tracks evidence counts the global collection and opens a temporary All Areas view without changing the saved productivity Area. Track-only history exposes Home Review without inventing productivity outcomes.

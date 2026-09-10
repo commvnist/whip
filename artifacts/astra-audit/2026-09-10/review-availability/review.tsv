@@ -1,0 +1,16 @@
+file	NAF_nodes	observation
+before/shared.review.partial-sources.png	0	Original controlled production-host baseline: loading Habit shows zero and failed Track evidence appears without qualification.
+stale-checkpoint/shared.review.sources-unavailable.png	0	Original controlled failed-source baseline: retained failed Task value appears as current and loading sources show zero. This is not the later empty-source transition.
+pilot/shared.review.sources-unavailable.png	0	Pre-transition diagnostic capture: Task remains ready before the requested failure settles. Final fixture waits for Compose idle. Not acceptance of the intended failed state.
+final-api34/shared.review.partial-sources.png	0	Final ready Task and Gym outcomes remain; one notice names loading Habits and unavailable Goals/Tracks. Retry is reachable. Controlled source inputs through production Home/Review host.
+final-api34/shared.review.sources-recovered.png	0	Recovery restores ready zero outcomes and global Track evidence; incomplete notice disappears. Test verifies saved-state restoration and exact current-scope retry callbacks.
+final-api34/shared.review.sources-unavailable.png	0	Settled failed Tasks and four loading sources show one status notice, without zero cards, correlations or an empty-history claim.
+final-api34/shared.review.sources-ready-empty.png	0	Only after all outcome sources settle ready/empty does the ordinary empty dashboard appear.
+final-api34/shared.review.available-correlation.png	0	Task and Gym weekly totals are 7 each; valid 30-day coefficient 1.00 with n=30 remains visible while only Tracks fail. Complete source/correlation meaning beyond this case remains open.
+final-api34/shared.review.unavailable-correlation.png	0	Task and Gym weekly totals are 7 each; valid 30-day coefficient 1.00 with n=30 remains visible while only Tracks fail. Complete source/correlation meaning beyond this case remains open.
+final-api37/shared.review.partial-sources.png	0	Final ready Task and Gym outcomes remain; one notice names loading Habits and unavailable Goals/Tracks. Retry is reachable. Controlled source inputs through production Home/Review host.
+final-api37/shared.review.sources-recovered.png	0	Recovery restores ready zero outcomes and global Track evidence; incomplete notice disappears. Test verifies saved-state restoration and exact current-scope retry callbacks.
+final-api37/shared.review.sources-unavailable.png	0	Settled failed Tasks and four loading sources show one status notice, without zero cards, correlations or an empty-history claim.
+final-api37/shared.review.sources-ready-empty.png	0	Only after all outcome sources settle ready/empty does the ordinary empty dashboard appear.
+final-api37/shared.review.available-correlation.png	0	Task and Gym weekly totals are 7 each; valid 30-day coefficient 1.00 with n=30 remains visible while only Tracks fail. Complete source/correlation meaning beyond this case remains open.
+final-api37/shared.review.unavailable-correlation.png	0	Task and Gym weekly totals are 7 each; valid 30-day coefficient 1.00 with n=30 remains visible while only Tracks fail. Complete source/correlation meaning beyond this case remains open.

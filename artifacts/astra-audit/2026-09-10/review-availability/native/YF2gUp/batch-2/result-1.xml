@@ -1,0 +1,100 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="48" failures="0" errors="0" skipped="0" time="146.531" timestamp="2026-09-10T09:46:36" hostname="localhost">
+  <testsuite name="com.whip.app.AdaptiveWhipScreenTest" tests="33" failures="0" errors="0" skipped="0" time="71.345" timestamp="2026-09-10T09:46:36" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="sharedLoadingErrorRetryIsActionableAndNeverShowsFalseSuccess" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.35" />
+    <testcase name="bookFoldUsesHingeAwareSupportPaneAndPersistentNavigation" classname="com.whip.app.AdaptiveWhipScreenTest" time="4.274" />
+    <testcase name="rtlBookFoldPlacesProductivityEditorInTheOppositeContentPane" classname="com.whip.app.AdaptiveWhipScreenTest" time="2.139" />
+    <testcase name="bookFoldGoalAndTrackSupportEmptyStatesShareVerticalRhythm" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.258" />
+    <testcase name="tabletopFoldKeepsNavigationAndOverviewAboveTheHinge" classname="com.whip.app.AdaptiveWhipScreenTest" time="0.808" />
+    <testcase name="productivityEditorsStayInsideTheContentPaneOnABookFold" classname="com.whip.app.AdaptiveWhipScreenTest" time="5.309" />
+    <testcase name="shortLargeTextRailScrollsToEveryNamedDestination" classname="com.whip.app.AdaptiveWhipScreenTest" time="0.956" />
+    <testcase name="newerTaskUndoSnackbarKeepsItsOwnRecoveryToken" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.963" />
+    <testcase name="expandedWorkspacesKeepSearchAndSettingsInOneSharedColumn" classname="com.whip.app.AdaptiveWhipScreenTest" time="2.043" />
+    <testcase name="clearReturningHomeOffersAndOpensTheActualInbox" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.082" />
+    <testcase name="wideNavigationCentersTheCompleteDestinationGroup" classname="com.whip.app.AdaptiveWhipScreenTest" time="0.832" />
+    <testcase name="enlargedTextKeepsEveryCompactPrimaryDestinationVisiblyNamed" classname="com.whip.app.AdaptiveWhipScreenTest" time="2.492" />
+    <testcase name="bookFoldTrackSupportNeverShowsEmptyBeforeTheDomainSettles" classname="com.whip.app.AdaptiveWhipScreenTest" time="0.957" />
+    <testcase name="expandedTrackSupportSeparatesLoadingFailureRetryAndRealZeroMeasurements" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.234" />
+    <testcase name="bookFoldGoalSupportPaneAndCardsShareOneUnconstrainedElapsedMetric" classname="com.whip.app.AdaptiveWhipScreenTest" time="3.17" />
+    <testcase name="adaptiveHomeWaitsForVisibleDomainsBeforeShowingAStableEmptyState" classname="com.whip.app.AdaptiveWhipScreenTest" time="0.885" />
+    <testcase name="missingDeepLinkTargetIsConsumedWithOneUnavailableMessage" classname="com.whip.app.AdaptiveWhipScreenTest" time="0.857" />
+    <testcase name="compactGoalEditorRemainsReachableAtTwoHundredPercentText" classname="com.whip.app.AdaptiveWhipScreenTest" time="5.704" />
+    <testcase name="compactHabitEditorRemainsReachableAtTwoHundredPercentText" classname="com.whip.app.AdaptiveWhipScreenTest" time="7.211" />
+    <testcase name="expandedInnerDisplayKeepsOverviewBesidePrimaryContent" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.435" />
+    <testcase name="enlargedTextKeepsEveryRailDestinationVisiblyNamed" classname="com.whip.app.AdaptiveWhipScreenTest" time="2.891" />
+    <testcase name="productivityAndGymWorkspaceNavigationStaysVisibleWhileLoadingOrFailed" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.86" />
+    <testcase name="adaptiveDestinationSupportSeparatesErrorLoadingAndRealEmpty" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.307" />
+    <testcase name="responsiveFieldPairsStackAtTwoHundredPercentText" classname="com.whip.app.AdaptiveWhipScreenTest" time="0.71" />
+    <testcase name="expandedLayoutRetainsNavigationAndPaneInRtl" classname="com.whip.app.AdaptiveWhipScreenTest" time="0.807" />
+    <testcase name="reviewUsesTheWholeWideCanvasAsAHingeAwareDashboard" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.309" />
+    <testcase name="compactTaskEditorRemainsReachableAtTwoHundredPercentText" classname="com.whip.app.AdaptiveWhipScreenTest" time="5.655" />
+    <testcase name="bookFoldSupportTitlesUseReadableThemeContrast" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.636" />
+    <testcase name="everyPrimaryWorkspaceUsesTheSameHeaderAndNavigationGeometry" classname="com.whip.app.AdaptiveWhipScreenTest" time="3.952" />
+    <testcase name="expandingContentPreservesSelectedTrackAndProvidesAHomeRoute" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.76" />
+    <testcase name="taskDetailsStayInsideTheContentPaneOnAFlatBookFold" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.259" />
+    <testcase name="compactNavigationMatchesTheRailAndKeepsWhipHomeReachable" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.258" />
+    <testcase name="homeSuppressesFalseEmptyStateAndOffersCompactDomainRetry" classname="com.whip.app.AdaptiveWhipScreenTest" time="0.982" />
+  </testsuite>
+  <testsuite name="com.whip.app.ReviewAvailabilityUiTest" tests="3" failures="0" errors="0" skipped="0" time="11.212" timestamp="2026-09-10T09:46:36" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="incompleteSourcesNeverClaimThereAreNoOutcomes" classname="com.whip.app.ReviewAvailabilityUiTest" time="3.522" />
+    <testcase name="partialReviewPreservesAvailableOutcomesAndRetriesOnlyUnavailableSources" classname="com.whip.app.ReviewAvailabilityUiTest" time="4.323" />
+    <testcase name="correlationsUseReadySourcesEvenWhenOtherEvidenceIsUnavailable" classname="com.whip.app.ReviewAvailabilityUiTest" time="3.367" />
+  </testsuite>
+  <testsuite name="com.whip.app.ReviewJourneyE2ETest" tests="3" failures="0" errors="0" skipped="0" time="14.705" timestamp="2026-09-10T09:46:36" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="trackOnlyHistoryOffersReviewWithoutInventingOutcomes" classname="com.whip.app.ReviewJourneyE2ETest" time="4.27" />
+    <testcase name="archivedTaskAndHabitOutcomesRemainInReviewHistory" classname="com.whip.app.ReviewJourneyE2ETest" time="3.294" />
+    <testcase name="allTrackEvidenceKeepsItsScopeAcrossAreaReviewAndRecreation" classname="com.whip.app.ReviewJourneyE2ETest" time="7.141" />
+  </testsuite>
+  <testsuite name="com.whip.app.VisualAcceptanceMatrixTest" tests="2" failures="0" errors="0" skipped="0" time="7.997" timestamp="2026-09-10T09:46:36" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="longChoiceAndNestedDialogStatesKeepTheirFinalItemsAndActionsReachable" classname="com.whip.app.VisualAcceptanceMatrixTest" time="4.803" />
+    <testcase name="primaryAdaptiveThemeFontAndRtlMatrixHasAnOpaqueConformingSurface" classname="com.whip.app.VisualAcceptanceMatrixTest" time="3.194" />
+  </testsuite>
+  <testsuite name="com.whip.app.VisualCatalogSharedShellTest" tests="1" failures="0" errors="0" skipped="0" time="10.705" timestamp="2026-09-10T09:46:36" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="captureSharedShellCatalog" classname="com.whip.app.VisualCatalogSharedShellTest" time="10.705" />
+  </testsuite>
+  <testsuite name="com.whip.app.WhipAccessibilityChecksTest" tests="2" failures="0" errors="0" skipped="0" time="13.406" timestamp="2026-09-10T09:46:36" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="primaryAreasPassComposeAccessibilityTestFramework" classname="com.whip.app.WhipAccessibilityChecksTest" time="5.38" />
+    <testcase name="productivityEditorsAndDetailsPassAccessibilityChecks" classname="com.whip.app.WhipAccessibilityChecksTest" time="8.026" />
+  </testsuite>
+  <testsuite name="com.whip.app.WhipNavigationTest" tests="4" failures="0" errors="0" skipped="0" time="15.87" timestamp="2026-09-10T09:46:36" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="switchingPrimaryAreasPreservesEachAreasLastHeading" classname="com.whip.app.WhipNavigationTest" time="1.961" />
+    <testcase name="primaryAreasAndAccessibleTopActionsAreReachable" classname="com.whip.app.WhipNavigationTest" time="3.825" />
+    <testcase name="everyFirstClassDestinationIsReachableThroughVisibleNavigation" classname="com.whip.app.WhipNavigationTest" time="7.921" />
+    <testcase name="homeEntityInspectorsPreserveTheHomeDestination" classname="com.whip.app.WhipNavigationTest" time="2.163" />
+  </testsuite>
+</testsuites>

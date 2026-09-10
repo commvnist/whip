@@ -9,10 +9,11 @@
 
 ### FND-20260910-013 — Review does not qualify loading or unavailable domain data
 
-- Severity/category: P2 partial-data truth; source finding awaiting runtime reproduction.
+- Severity/category: P2 partial-data truth and recovery.
 - Observed source: ReviewDialog constructs all selected signals and No Reviewable Outcomes Yet without inspecting the supplied Task/Habit/Goal/Gym/Track loading/error fields. Home can legitimately open Review once one domain has evidence while another is still loading or has failed. Inference: a missing domain can appear as zero or absent evidence, and available partial correlations may be presented without qualification.
-- Next verification: Reproduce a successful domain beside a loading/failed domain, inspect native outcome/correlation and recovery behavior, and select a shared status treatment only from that evidence. Preserve available progress; do not treat incomplete loading as proof of no history. Domain retry actions already exist at the app host.
-- Status: Investigating under VER-20260910-008. Separate from the archive/All Tracks/compact-control increment; complete Review and whole-app acceptance remain open.
+- Native evidence: BfjnTU's controlled production Home → Review route fails both availability assertions. Personally inspected originals show a ready Task beside a zero-valued loading Habit and unqualified evidence from a failed Track source; a failed Task's retained value is also displayed as current. Tests use controlled supplied states, not injected storage failures. The final settled transition to empty failed data and recovery is checked in VER-20260910-009.
+- Remedy: Use one shared incomplete-data notice naming loading/unavailable sources, with one action retrying only currently failed included sources. Render totals/evidence/correlations only from ready sources; do not turn incomplete outcome loading into a global empty-history claim. Retain source-owned retries and Review/option state through recovery.
+- Status: Verified in IMP/VER-20260910-009. Three controlled native availability/retry/recovery/correlation cases and existing persisted Review journeys pass on API 34/37. Final 91 shared-app Android checks, seven wide methods, 364 JVM readiness tests and 15 original reviews pass. These are supplied-state UI/retry-boundary checks, not injected storage-failure repair or OS-process tests. Complete Review and whole-app acceptance remain open.
 
 ### FND-20260910-010 — Review's All Tracks evidence is filtered and undiscoverable for Track-only use
 

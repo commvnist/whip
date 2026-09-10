@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-009 — Qualify incomplete Review data and recover within the dashboard
+
+- Evidence: FND-20260910-013 reproduces loading/failed data presented as numeric results or unqualified evidence through the production host. DomainRetryActions already routes retries to the owning ViewModels.
+- Decision: One shared status notice names loading and failed sources. Only ready selected outcomes and ready global Track evidence enter the dashboard; correlations use only ready selected outcome sources. The retry action targets failed included sources, preserving the open Review and current period/section choices. Empty-history copy requires all selected outcome sources to be ready.
+- Alternatives/tradeoffs: A full-screen loader would hide useful available progress. One warning card per source would dominate the normal phone view. Keeping failed values beside a warning would still permit incomplete results to look authoritative. A single notice plus current-source filtering provides a compact honest dashboard; absent cards can return after recovery. Tracks remain global evidence and excluded from scores/correlations.
+- Compatibility/status: Verified in IMP/VER-20260910-009. Reuse WhipNoticeCard and existing source callbacks; no new persistence coordinator, schema, backup or version change. Native state/retry/section/restoration, available-source correlations and phone/wide rendering pass. Complete Review/app remains open.
+
 ### DEC-20260910-008 — Review reflects retained history and exposes controls without dominating progress
 
 - Decision: Preserve archived Task/Habit outcomes, honor All Tracks across Area scope, and make Track-only evidence discoverable from Home. Review's global Track action temporarily opens All Areas using the established restoration mechanism; the saved productivity Area stays unchanged. Keep Track values separate from comparable outcomes and correlations.

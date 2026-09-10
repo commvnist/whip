@@ -2547,6 +2547,7 @@ fun WhipScreen(
             },
             productivityAreaLabel = reviewProductivityAreaLabel(areaScope, settingsState.areas),
             trackState = unscopedTrackState,
+            retryActions = domainRetryActions,
             onOpenTracks = {
                 reviewOpen = false
                 if (areaScope != AreaScope.All) onTemporarilySelectAreaScope(AreaScope.All)

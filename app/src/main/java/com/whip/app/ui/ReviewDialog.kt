@@ -112,6 +112,7 @@ fun ReviewDialog(
     productivityAreaLabel: String? = null,
     trackState: TrackUiState = TrackUiState(loading = false),
     onOpenTracks: () -> Unit = {},
+    retryActions: DomainRetryActions = DomainRetryActions(),
 ) {
     var compactOptionsExpanded by rememberSaveable { mutableStateOf(false) }
     val locale = LocalConfiguration.current.locales[0]
@@ -149,7 +150,8 @@ fun ReviewDialog(
         ReviewSection.Gym to ReviewSignal(if (productivityAreaLabel == null) "Workouts" else "Workouts · All gym data", dates.map { workouts[it]?.toDouble() ?: 0.0 }),
     )
     val includedSections = reviewSectionsInDisplayOrder(sections).toSet()
-    val signals = allSignals.filter { it.first in includedSections }.map { it.second }
+    val availability = reviewAvailability(includedSections, taskState, habitState, goalState, gymState, trackState)
+    val signals = allSignals.filter { it.first in availability.readySections }.map { it.second }
     val correlationSignals = if (productivityAreaLabel == null) signals else signals.filterNot { it.name.startsWith("Workouts") }
     val correlationDates = (0L until 30L).map { through.minusDays(29L - it) }
     fun valuesFor(name: String): List<Double> = when (name) {
@@ -176,8 +178,8 @@ fun ReviewDialog(
         }
     }
     val hasReviewData = signals.any { signal -> signal.values.any { it != 0.0 } }
-    val hasTrackEvidence = trackState.projections.any { it.entries.isNotEmpty() }
-    val trackEvidence = trackReviewEvidence(trackState, start, through)
+    val hasTrackEvidence = availability.tracksReady && trackState.projections.any { it.entries.isNotEmpty() }
+    val trackEvidence = if (availability.tracksReady) trackReviewEvidence(trackState, start, through) else null
     val rangeLabel = formatReviewRange(start, through, locale)
     val controls: @Composable () -> Unit = {
         ReviewControlPanel(
@@ -195,7 +197,9 @@ fun ReviewDialog(
             hasTrackEvidence = hasTrackEvidence,
             trackEvidence = trackEvidence,
             allSignals = allSignals,
-            includedSections = includedSections,
+            includedSections = availability.readySections,
+            availability = availability,
+            retryActions = retryActions,
             correlations = correlations,
             rangeLabel = rangeLabel,
             locale = locale,
@@ -442,6 +446,8 @@ private fun ReviewOverview(
     trackEvidence: TrackReviewEvidence?,
     allSignals: List<Pair<ReviewSection, ReviewSignal>>,
     includedSections: Set<ReviewSection>,
+    availability: ReviewAvailability,
+    retryActions: DomainRetryActions,
     correlations: List<ReviewCorrelation>,
     rangeLabel: String,
     locale: java.util.Locale,
@@ -456,10 +462,11 @@ private fun ReviewOverview(
             title = "Overview",
             supportingText = "$rangeLabel · Select any card to open its source.",
         )
+        ReviewAvailabilityNotice(availability, retryActions)
         trackEvidence?.let { evidence ->
             TrackEvidenceCard(evidence = evidence, rangeLabel = rangeLabel, onOpenTracks = onOpenTracks)
         }
-        if (!hasReviewData) {
+        if (!hasReviewData && availability.outcomesComplete) {
             WhipEmptyState(
                 title = "No Reviewable Outcomes Yet",
                 supportingText = if (hasTrackEvidence) {
@@ -483,6 +490,7 @@ private fun ReviewOverview(
             }
             return@Column
         }
+        if (includedSections.isEmpty()) return@Column
         BoxWithConstraints(Modifier.fillMaxWidth().testTag("review-signal-grid")) {
             val visibleSignals = allSignals.filter { it.first in includedSections }
             val columns = when {

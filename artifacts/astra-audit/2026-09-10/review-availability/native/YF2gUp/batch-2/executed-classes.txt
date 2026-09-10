@@ -1,0 +1,7 @@
+com.whip.app.AdaptiveWhipScreenTest
+com.whip.app.ReviewAvailabilityUiTest
+com.whip.app.ReviewJourneyE2ETest
+com.whip.app.VisualAcceptanceMatrixTest
+com.whip.app.VisualCatalogSharedShellTest
+com.whip.app.WhipAccessibilityChecksTest
+com.whip.app.WhipNavigationTest

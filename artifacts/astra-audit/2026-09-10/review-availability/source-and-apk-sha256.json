@@ -1,0 +1,10 @@
+{
+  "app/src/main/java/com/whip/app/ui/ReviewAvailability.kt": "2659b824356c9277a8cbdc7d440ab91391c1184ca2d0a74eb28953e8c365cbed",
+  "app/src/main/java/com/whip/app/ui/ReviewDialog.kt": "9d3fc13f1679626818b086886d71aad4cf084764b4848b45b52f59a11f327e90",
+  "app/src/main/java/com/whip/app/ui/WhipApp.kt": "4e1335a77a6ac89100beecec8fb381e5acd124b09d35dd5744cb2d56e18c5da1",
+  "app/src/androidTest/java/com/whip/app/ReviewAvailabilityUiTest.kt": "e836c1f8bb1203124abc7631f95414e2d3ad90b536ddcfc69116975200fb891c",
+  "app/src/test/java/com/whip/app/ui/ReviewAvailabilityTest.kt": "496952e6b7c30ed10b0c6bacdfb9e2fa6826da0e32570f41285587c1305b8d86",
+  "scripts/qa-targeted": "f49c070ac03175424800d45a74e185784c73ba52b7cd52afe2676c2abfe17046",
+  "app/build/outputs/apk/debug/app-debug.apk": "24d724930c4fa2afa8049cf5776be53c83ca260537402f2e0a757aeae50767bc",
+  "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk": "8fab864d9ed494c16f08ab6836429bcc81f8e194216e7196c3de31789da58fbc"
+}

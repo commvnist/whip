@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.TaskWorkspacePolicyTest" tests="15" skipped="0" failures="0" errors="0" timestamp="2026-09-10T09:47:37.466Z" hostname="beast" time="0.255">
+  <properties/>
+  <testcase name="quickCaptureIsLiteralAndMultilineCreatesSteps" classname="com.whip.app.ui.TaskWorkspacePolicyTest" time="0.003"/>
+  <testcase name="onlyUpcomingOffersPlanningViews" classname="com.whip.app.ui.TaskWorkspacePolicyTest" time="0.001"/>
+  <testcase name="enabledSmartCaptureAppliesOnlyRecognizedAssumptions" classname="com.whip.app.ui.TaskWorkspacePolicyTest" time="0.0"/>
+  <testcase name="allTaskDestinationsRemainDirectInTheirStableOrder" classname="com.whip.app.ui.TaskWorkspacePolicyTest" time="0.0"/>
+  <testcase name="destinationlessFilterDoesNotNavigateButStillUsesList" classname="com.whip.app.ui.TaskWorkspacePolicyTest" time="0.002"/>
+  <testcase name="blankQuickAddDoesNothing" classname="com.whip.app.ui.TaskWorkspacePolicyTest" time="0.0"/>
+  <testcase name="historyPreservesCompletedAndArchivedSemantics" classname="com.whip.app.ui.TaskWorkspacePolicyTest" time="0.001"/>
+  <testcase name="enabledSmartCapturePersistsNamedWeekdaySchedule" classname="com.whip.app.ui.TaskWorkspacePolicyTest" time="0.001"/>
+  <testcase name="unknownSavedDestinationUsesSafeTodayList" classname="com.whip.app.ui.TaskWorkspacePolicyTest" time="0.0"/>
+  <testcase name="enabledSmartCaptureKeepsDestinationDefaultsWhenNothingIsRecognized" classname="com.whip.app.ui.TaskWorkspacePolicyTest" time="0.0"/>
+  <testcase name="enabledSmartCapturePersistsEveryRecognizedPlanningDetail" classname="com.whip.app.ui.TaskWorkspacePolicyTest" time="0.0"/>
+  <testcase name="connectedFiltersNormalizeInvalidDestinationViewPairs" classname="com.whip.app.ui.TaskWorkspacePolicyTest" time="0.001"/>
+  <testcase name="removedAnytimeSavedDestinationMigratesToInboxList" classname="com.whip.app.ui.TaskWorkspacePolicyTest" time="0.0"/>
+  <testcase name="quickAddUsesDestinationDefaultsAndArea" classname="com.whip.app.ui.TaskWorkspacePolicyTest" time="0.0"/>
+  <testcase name="taskCreationDefaultsMatchTheWorkspaceThatInvokedThem" classname="com.whip.app.ui.TaskWorkspacePolicyTest" time="0.246"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
