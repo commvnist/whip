@@ -14,6 +14,23 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TrackDomainTest {
+    @Test fun choiceDuplicateFeedbackMatchesCanonicalValidationAndKeepsIdentities() {
+        val options = listOf(
+            TrackChoiceOptionDraft(" River   trail ", uuid = "one"),
+            TrackChoiceOptionDraft("RIVER trail", uuid = "two"),
+            TrackChoiceOptionDraft("Street", uuid = "three"),
+        )
+        assertEquals(setOf(0, 1), duplicateTrackChoiceLabelIndices(options))
+        val draft = TrackDraft("Walks", fields = listOf(TrackFieldDraft("Terrain", TrackFieldType.SingleChoice, primary = true, options = options)))
+        assertThrows(IllegalArgumentException::class.java) { draft.validated() }
+        val corrected = options.toMutableList().also { it[1] = it[1].copy(label = "Hill trail") }
+        assertTrue(duplicateTrackChoiceLabelIndices(corrected).isEmpty())
+        val valid = draft.copy(fields = listOf(draft.fields.single().copy(options = corrected))).validated()
+        assertEquals(listOf("River trail", "Hill trail", "Street"), valid.fields.single().options.map { it.label })
+        assertEquals(options.map { it.uuid }, valid.fields.single().options.map { it.uuid })
+        assertTrue(duplicateTrackChoiceLabelIndices(listOf(TrackChoiceOptionDraft(""), TrackChoiceOptionDraft(" "))).isEmpty())
+    }
+
     @Test fun definitionMutationContractsRemainProcessSaveableAndReportExactImpact() {
         val boundary = TrackDefinitionBoundary(8, "track-8", 11, "definition-revision")
         val fieldImpact = TrackFieldRemovalImpact(

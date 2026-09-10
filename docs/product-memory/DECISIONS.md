@@ -1,5 +1,13 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-026 — Validate Field configuration at its editing controls
+
+- Context: FND-20260909-030 reproduces late duplicate-Choice rejection and misleading Scale error attribution in real existing-history editing.
+- Decision: Keep nested Field editing and repository authority. Reuse canonical Choice normalization/duplicate detection, mark affected options and block invalid Field submission; put bound/increment errors on their respective inputs. Preserve raw drafts during correction/recreation and describe unit changes by their actual effect on new input and saved history.
+- Alternatives/tradeoffs: A wizard adds steps and recovery ownership without improving these local corrections. Whole-Track-only validation causes avoidable backtracking; separate normalization rules risk UI/repository disagreement. Shared narrow label logic and local error ownership solve the observed causes without altering definitions, identity or historical values.
+- Adaptive detail: Bounds stack below 360 dp of content width or at font scale 1.5 and above. Reuse focused-input relocation for bounds, increment and Choice labels; keep short local messages and fixed actions. Long forms scroll, including the complete Number history explanation.
+- Verification/compatibility: Ordinary/actual-200% native editing, persisted Choice identities and complete Entry values, type/dimension locks, Scale/default-unit save/reopen and neighboring regressions pass. No schema, backup format or release change. Status: Verified in IMP-20260909-029 / VER-20260909-030; whole Tracks and product acceptance remain open.
+
 ### DEC-20260909-025 — Show one interpreted CSV Entry within the existing review
 
 - Context: FND-20260909-029 confirms that the current review exposes mapping configuration and validation totals without the resulting values. Existing exact batch, file and form ownership is sound and remains required by DEC-20260901-022.

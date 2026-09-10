@@ -121,6 +121,7 @@ import com.whip.app.domain.TrackDraft
 import com.whip.app.domain.TrackDefinitionBoundary
 import com.whip.app.domain.TrackDefinitionConflictKind
 import com.whip.app.domain.TrackDefinitionRemovalReview
+import com.whip.app.domain.duplicateTrackChoiceLabelIndices
 import com.whip.app.domain.TrackEntryConflictKind
 import com.whip.app.domain.TrackEntryCreatePreparation
 import com.whip.app.domain.TrackEntryDraft
@@ -3303,6 +3304,14 @@ private fun TrackFieldEditor(
     } else null
     val scaleValues = scaleValuesResult?.getOrNull()
     val scaleError = scaleValuesResult?.exceptionOrNull()?.message
+    val scaleMinimumError = if (scaleMin == null) "Enter a whole-number Scale minimum" else null
+    val scaleMaximumError = when {
+        scaleMax == null -> "Enter a whole-number Scale maximum"
+        scaleMin != null && scaleMax <= scaleMin -> "Scale maximum must be greater than its minimum"
+        else -> null
+    }
+    val scaleIncrementError = scaleError.takeIf { scaleMinimumError == null && scaleMaximumError == null }
+    val duplicateChoiceIndices = remember(choices) { duplicateTrackChoiceLabelIndices(choices) }
     val dirty = name != initial.name ||
         type != initial.type ||
         required != initial.required ||
@@ -3322,6 +3331,9 @@ private fun TrackFieldEditor(
     }
     var fieldViewport by remember { mutableStateOf(IntSize.Zero) }
     val nameVisibility = rememberFocusedInputVisibility(fieldViewport)
+    val minimumVisibility = rememberFocusedInputVisibility(fieldViewport)
+    val maximumVisibility = rememberFocusedInputVisibility(fieldViewport)
+    val incrementVisibility = rememberFocusedInputVisibility(fieldViewport)
     val fieldEditorTitle = if (initial.id == null && initial.uuid == null) "Add Field" else "Edit Field"
     PaneAwareAlertDialog(
         onDismissRequest = ::requestDismiss,
@@ -3399,7 +3411,7 @@ private fun TrackFieldEditor(
                                 onCreateCustomUnit,
                                 label = if (retainedArchivedUnit == null) "Unit" else "Unit · Archived",
                                 supportingText = if (retainedArchivedUnit == null) {
-                                    "Stored values keep both the entered unit and a canonical value for compatible Goals."
+                                    "New Entries start with this unit. Changing it keeps saved values in the units originally entered."
                                 } else {
                                     "${unitDefinitionDisplayLabel(retainedArchivedUnit)} is archived but remains the saved default. Choose an active unit to change it; history will not be recomputed."
                                 },
@@ -3411,6 +3423,7 @@ private fun TrackFieldEditor(
                         item { Text("Choice Options", style = MaterialTheme.typography.labelLarge) }
                         itemsIndexed(choices, key = { index, option -> option.uuid ?: option.id?.toString() ?: "choice-$index" }) { index, option ->
                             val reorderInteraction = rememberWhipReorderInteractionState()
+                            val optionVisibility = rememberFocusedInputVisibility(fieldViewport)
                             Row(
                                 modifier = Modifier.whipReorderItem(
                                     reorderInteraction,
@@ -3430,7 +3443,20 @@ private fun TrackFieldEditor(
                                     layoutScope = "track-field-choice-options",
                                     onMove = { delta -> choices = moveListItem(choices, index, delta) },
                                 )
-                                OutlinedTextField(option.label, { label -> choices = choices.toMutableList().also { it[index] = option.copy(label = label.take(80)) } }, label = { Text("Option ${index + 1}") }, singleLine = true, modifier = Modifier.weight(1f))
+                                val optionError = when {
+                                    option.label.isBlank() -> "Enter a label"
+                                    index in duplicateChoiceIndices -> "This label is already used"
+                                    else -> null
+                                }
+                                OutlinedTextField(
+                                    option.label,
+                                    { label -> choices = choices.toMutableList().also { it[index] = option.copy(label = label.take(80)) } },
+                                    label = { Text("Option ${index + 1}") },
+                                    singleLine = true,
+                                    modifier = Modifier.weight(1f).then(optionVisibility).testTag("track-field-choice-$index"),
+                                    isError = optionError != null,
+                                    supportingText = optionError?.let { message -> { Text(message) } },
+                                )
                                 IconButton(enabled = choices.size > 1, onClick = { choices = choices.toMutableList().also { it.removeAt(index) } }) { Icon(Icons.Outlined.Close, "Remove Option ${option.label}") }
                             }
                         }
@@ -3447,9 +3473,18 @@ private fun TrackFieldEditor(
                                 { selected -> scaleMinText = selected.first.toString(); scaleMaxText = selected.second.toString() },
                             )
                         }
-                        item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedTextField(scaleMinText, { scaleMinText = it }, label = { Text("Minimum") }, modifier = Modifier.weight(1f), singleLine = true)
-                            OutlinedTextField(scaleMaxText, { scaleMaxText = it }, label = { Text("Maximum") }, modifier = Modifier.weight(1f), singleLine = true)
+                        item { BoxWithConstraints(Modifier.fillMaxWidth()) {
+                            val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
+                            val boundsInputs: @Composable (Modifier) -> Unit = { inputModifier ->
+                                OutlinedTextField(scaleMinText, { scaleMinText = it }, label = { Text("Minimum") }, modifier = inputModifier.then(minimumVisibility), singleLine = true,
+                                    isError = scaleMinimumError != null,
+                                    supportingText = scaleMinimumError?.let { message -> { Text(message) } })
+                                OutlinedTextField(scaleMaxText, { scaleMaxText = it }, label = { Text("Maximum") }, modifier = inputModifier.then(maximumVisibility), singleLine = true,
+                                    isError = scaleMaximumError != null,
+                                    supportingText = scaleMaximumError?.let { message -> { Text(message) } })
+                            }
+                            if (stacked) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { boundsInputs(Modifier.fillMaxWidth()) }
+                            else Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { boundsInputs(Modifier.weight(1f)) }
                         } }
                         item {
                             OutlinedTextField(
@@ -3457,12 +3492,12 @@ private fun TrackFieldEditor(
                                 { scaleStepText = it },
                                 label = { Text("Increment") },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                modifier = Modifier.fillMaxWidth().testTag("track-scale-increment"),
+                                modifier = Modifier.fillMaxWidth().then(incrementVisibility).testTag("track-scale-increment"),
                                 singleLine = true,
-                                isError = scaleError != null,
+                                isError = scaleIncrementError != null,
                                 supportingText = {
                                     Text(
-                                        scaleError ?: buildString {
+                                        scaleIncrementError ?: buildString {
                                             append("Use 0.5 for half steps, such as a 3.5 rating.")
                                             scaleValues?.let { append(" ${it.size} selectable values.") }
                                         },
@@ -3481,7 +3516,7 @@ private fun TrackFieldEditor(
                 onDelete?.let { action -> item { HorizontalDivider(); WhipTextButton(onClick = action, modifier = Modifier.fillMaxWidth()) { Text("Delete Field", color = MaterialTheme.colorScheme.error) } } }
             }
         },
-        confirmButton = { WhipTextButton(enabled = name.isNotBlank() && (type != TrackFieldType.SingleChoice || choices.all { it.label.isNotBlank() }) && (type != TrackFieldType.Scale || scaleValues != null), onClick = {
+        confirmButton = { WhipTextButton(enabled = name.isNotBlank() && (type != TrackFieldType.SingleChoice || (choices.all { it.label.isNotBlank() } && duplicateChoiceIndices.isEmpty())) && (type != TrackFieldType.Scale || scaleValues != null), onClick = {
             onSave(initial.copy(name = name, type = type, required = required || primary, primary = primary, showInList = showInList, dimension = dimension.takeIf { type == TrackFieldType.Number }, unitId = unitId.takeIf { type == TrackFieldType.Number }, precision = precision, scaleMin = scaleMin.takeIf { type == TrackFieldType.Scale }, scaleMax = scaleMax.takeIf { type == TrackFieldType.Scale }, scaleLowLabel = lowLabel, scaleHighLabel = highLabel, scaleStep = scaleStep?.takeIf { type == TrackFieldType.Scale } ?: 1.0, options = choices.takeIf { type == TrackFieldType.SingleChoice }.orEmpty()))
         }) { Text("Save Field") } },
         dismissButton = { WhipTextButton(onClick = ::requestDismiss) { Text("Cancel") } },

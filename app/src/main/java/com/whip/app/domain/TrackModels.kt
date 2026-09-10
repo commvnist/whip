@@ -500,18 +500,27 @@ fun TrackDraft.validated(): TrackDraft {
     )
 }
 
+/** The editor and persistence boundary use the same whitespace/case equivalence. */
+fun duplicateTrackChoiceLabelIndices(options: List<TrackChoiceOptionDraft>): Set<Int> {
+    val keys = options.map { normalizedTrackChoiceLabel(it.label).lowercase(Locale.ROOT) }
+    val counts = keys.groupingBy { it }.eachCount()
+    return keys.indices.filterTo(linkedSetOf()) { keys[it].isNotBlank() && counts.getValue(keys[it]) > 1 }
+}
+
+private fun normalizedTrackChoiceLabel(label: String): String = label.trim().replace(Regex("\\s+"), " ")
+
 private fun TrackFieldDraft.validated(): TrackFieldDraft {
     val normalizedName = name.trim().replace(Regex("\\s+"), " ")
     require(normalizedName.isNotBlank()) { "Field name is required" }
     require(normalizedName.length <= 80) { "Field names can be at most 80 characters" }
     require(precision in 0..6) { "Number precision must be between 0 and 6" }
     val normalizedOptions = options.map { option ->
-        option.copy(label = option.label.trim().replace(Regex("\\s+"), " ")).also {
+        option.copy(label = normalizedTrackChoiceLabel(option.label)).also {
             require(it.label.isNotBlank()) { "Choice labels cannot be blank" }
             require(it.label.length <= 80) { "Choice labels can be at most 80 characters" }
         }
     }
-    require(normalizedOptions.map { it.label.lowercase(Locale.ROOT) }.distinct().size == normalizedOptions.size) {
+    require(duplicateTrackChoiceLabelIndices(normalizedOptions).isEmpty()) {
         "Choice labels must be unique within a Field"
     }
     val optionUuids = normalizedOptions.mapNotNull(TrackChoiceOptionDraft::uuid)

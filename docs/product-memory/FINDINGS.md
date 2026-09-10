@@ -1,5 +1,15 @@
 # Durable findings
 
+### FND-20260909-030 — Field errors are accepted late or attached to the wrong input
+
+- Severity/category: P2 usability/accessibility, Track Field configuration.
+- Observed: At production `4f38aae`, real existing-Track editing accepts `Trail` and `  tRAIL  ` with enabled Save Field; canonical Track validation rejects those normalized duplicates only later. An invalid Scale minimum `bad` leaves Minimum unmarked while valid Increment `0.5` receives the error outline and minimum message. Both ordinary API 34 regressions fail at these boundaries in `6pXjqV`; original PNGs were personally inspected.
+- Expected: Identify conflicting Choice labels before leaving their Field, attach Scale errors to the input needing correction, preserve raw invalid drafts through recreation, and retain exact historical values after a valid definition/default-unit change.
+- Root cause: Field editing duplicates only part of canonical Choice validation and funnels all Scale parsing/bounds/increment exceptions into Increment. Number unit copy also retains an unsupported compatible-Goals promise after automation removal; current Goal domain/repository source has no Track binding.
+- Direction: Share Choice normalization/duplicate detection with canonical validation; show local errors and disable invalid Field submission; associate Scale errors with their owners. Retain nested editing, immutable identities and repository history protections. Describe actual default-unit/history behavior. No accepted domain value or stored-history change is needed.
+- Resolution: Shared canonical Choice equivalence blocks nested submission and marks conflicting labels; Scale bounds/increment own their errors, narrow/enlarged bounds stack, and focused inputs remain reachable. Number copy describes new-entry defaults and retained history. Complete Entry/value maps and stable identities survive correction, recreation, Save and reopening.
+- Related/status: Verified in IMP-20260909-029 / VER-20260909-030 under FB-20260908-006 / VER-20260909-016; continues source leads in VER-20260909-022. Four native journeys pass on API 26/34/37, 111 neighboring Android checks and 346 JVM readiness tests pass, and all 22 retained originals have scoped review. Whole Tracks and app acceptance remain open.
+
 ### FND-20260909-029 — CSV import cannot show the Entries the mapping will create
 
 - Severity/category: P2 workflow comprehension and review quality.

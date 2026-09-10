@@ -1,0 +1,19 @@
+{
+  "api": 34,
+  "serial": "emulator-5554",
+  "directory": "/sdcard/Download/whip-ui-catalog",
+  "files": {
+    "tracks.field-edit.choice-invalid.ordinary.xml": "tracks.field-edit.choice-invalid.ordinary (6).xml",
+    "tracks.field-edit.choice-invalid.ordinary.png": "tracks.field-edit.choice-invalid.ordinary (6).png",
+    "tracks.field-edit.choice-invalid.large.xml": "tracks.field-edit.choice-invalid.large (5).xml",
+    "tracks.field-edit.choice-invalid.large.png": "tracks.field-edit.choice-invalid.large (5).png",
+    "tracks.field-edit.number-history.large.xml": "tracks.field-edit.number-history.large (3).xml",
+    "tracks.field-edit.number-history.large.png": "tracks.field-edit.number-history.large (3).png",
+    "tracks.field-edit.scale-minimum-invalid.large.xml": "tracks.field-edit.scale-minimum-invalid.large (5).xml",
+    "tracks.field-edit.scale-minimum-invalid.large.png": "tracks.field-edit.scale-minimum-invalid.large (5).png",
+    "tracks.field-edit.number-history.ordinary.xml": "tracks.field-edit.number-history.ordinary (4).xml",
+    "tracks.field-edit.number-history.ordinary.png": "tracks.field-edit.number-history.ordinary (4).png",
+    "tracks.field-edit.scale-minimum-invalid.ordinary.xml": "tracks.field-edit.scale-minimum-invalid.ordinary (6).xml",
+    "tracks.field-edit.scale-minimum-invalid.ordinary.png": "tracks.field-edit.scale-minimum-invalid.ordinary (6).png"
+  }
+}

@@ -1,0 +1,170 @@
+{
+  "scope": "Text only: LF line endings, trailing physical whitespace removed, one terminal newline. PNG bytes unchanged.",
+  "files": [
+    {
+      "path": "api26/tracks.field-edit.choice-invalid.large.xml",
+      "originalSha256": "319eea9d53f35dc1613f903297b2baf679a4f5afd279f91b2e092701709c4b34",
+      "retainedSha256": "44541ef55890a5d0c0b605947db4c5855f48fcb402b8027a1158cd48f0cb9631"
+    },
+    {
+      "path": "api26/tracks.field-edit.choice-invalid.ordinary.xml",
+      "originalSha256": "372ead1cf095ce962b1f0dda93b10e67f20212775b28b081bca6aa845996f6c2",
+      "retainedSha256": "90dd805e5d9deeb30eefe2c1538895da52938e7788ccd7b7da312165e6a5192b"
+    },
+    {
+      "path": "api26/tracks.field-edit.number-history.large.xml",
+      "originalSha256": "cd44133f9665b33c0924db2ae0afa9699737614ce31aadf67e7ab9b298dfdaf6",
+      "retainedSha256": "3b3a34c1bec3f7c91cc5b5cf7df24b1765a66703105056a03524b78add19fd15"
+    },
+    {
+      "path": "api26/tracks.field-edit.number-history.ordinary.xml",
+      "originalSha256": "3168ee39e4620a338330d116ad2048d2a46e2448d05305e6a1dbc1e4428eef40",
+      "retainedSha256": "0e98c33a1faa71be49b5d108a105a82a87808eb36e6376751a514081d7d2af0c"
+    },
+    {
+      "path": "api26/tracks.field-edit.scale-minimum-invalid.large.xml",
+      "originalSha256": "e182d211455e42c5f36084aee6239c0036ca0fffb502459dfbadde820c4230bd",
+      "retainedSha256": "8e3400529275384379f75373ae2f5d5a62abb785da185a58e249f8a61003be1d"
+    },
+    {
+      "path": "api26/tracks.field-edit.scale-minimum-invalid.ordinary.xml",
+      "originalSha256": "987aeadf65cc16e7376f7e7fabe620e3ff4e0c82443208831fa8a14ca250834d",
+      "retainedSha256": "528bb55a29a6154f160a69e836846464ef1a84095cd9212d16d307f402424c29"
+    },
+    {
+      "path": "api34/tracks.field-edit.choice-invalid.large.xml",
+      "originalSha256": "ee75b87a58d57e5b41ab18aa1a3140ee663a4324b35cab46d66e7eda3977510b",
+      "retainedSha256": "d03e72455f4b1a1cd04ed4cdb090333cf082b059cbf547b163b63b7ff2bce57f"
+    },
+    {
+      "path": "api34/tracks.field-edit.choice-invalid.ordinary.xml",
+      "originalSha256": "091fd15a0499a2304e519c434b530306e773e89f530dbd2995643e1af87fe0b3",
+      "retainedSha256": "9858e5730736d3eb66c9b8299d2bad09c852247c014c204e55aa7e793c430d99"
+    },
+    {
+      "path": "api34/tracks.field-edit.number-history.large.xml",
+      "originalSha256": "a752a36cd1a448ce22f3b770ea913cb8c9e5a8c6be3117532ab267e0ab2663e1",
+      "retainedSha256": "b27f0fa3dab026e95dd71f40903075c3e9e1cf87582ab53d13e8568fd71a2a0c"
+    },
+    {
+      "path": "api34/tracks.field-edit.number-history.ordinary.xml",
+      "originalSha256": "c3ceeb7caf208f4decfce5731867b8489757ec7a09d92696b3da1f169b63ff87",
+      "retainedSha256": "110bf1c4089e1972ffda18b40ebe1fd3d25d71c038b574563b5612aa1134bc4b"
+    },
+    {
+      "path": "api34/tracks.field-edit.scale-minimum-invalid.large.xml",
+      "originalSha256": "649f2d90d763b60e8af3704ab84c794bc8809c935b98d3cf866e2dc6c5b67218",
+      "retainedSha256": "6f44a9068fd574a82f3b8d1d41599ac6e1e5b11e8bfa87125cf80a2643e561af"
+    },
+    {
+      "path": "api34/tracks.field-edit.scale-minimum-invalid.ordinary.xml",
+      "originalSha256": "7e1f516b5e61d8f8bb2bb708c9601978e2b8ec63c149a222557d79b9fd7c81d8",
+      "retainedSha256": "a04da6cdbe0074e49be4dd500a984efd4b7b6dad6a99c751273918e9d4f57c04"
+    },
+    {
+      "path": "api37/tracks.field-edit.choice-invalid.large.xml",
+      "originalSha256": "1c5ae8545543d351f489bd3491bb95b884c549af8fca345ec85fb2d71f2d5cbd",
+      "retainedSha256": "03d1ea5b211152f7f436960a8f805271d7d8efef18e458966c0baa732602acbf"
+    },
+    {
+      "path": "api37/tracks.field-edit.choice-invalid.ordinary.xml",
+      "originalSha256": "17d506f77259f02a7693860e4a777fe396e9be3dc4a2fac63afbe82007da56fd",
+      "retainedSha256": "583513e6d769eda2e2d024d92f90157c9f63ff02906840f94566eb6978962895"
+    },
+    {
+      "path": "api37/tracks.field-edit.number-history.large.xml",
+      "originalSha256": "9e287eca502fd1800626a38b640a3f26e6de64fae38ff6384568858e31168f1c",
+      "retainedSha256": "091f1ebdc50e9abb70a7acd2814414ed171fa56977407792ac43e489f31adccd"
+    },
+    {
+      "path": "api37/tracks.field-edit.number-history.ordinary.xml",
+      "originalSha256": "26941d4516562c6ef275d2a46ac6776fd0871947e00d4c01bd44920df021aa3f",
+      "retainedSha256": "b33f8beda9acbdc7fe9ae60b002d2200160a9a0ee84585785744b07b9a573236"
+    },
+    {
+      "path": "api37/tracks.field-edit.scale-minimum-invalid.large.xml",
+      "originalSha256": "4bad035d36622f88929ba7daeaffe1c641ad58b941eac8af81dd3a7211512ee8",
+      "retainedSha256": "dc23c07e01c8c7036bbe991767acd31e6fa656ec2da46c4aa0dd3093f0db5098"
+    },
+    {
+      "path": "api37/tracks.field-edit.scale-minimum-invalid.ordinary.xml",
+      "originalSha256": "d8998b91079cfce893b828c451031071d47c50ba10214b31f936cb7fb562dead",
+      "retainedSha256": "b00894b2d8a33c7830caa46c4f07ca0c3434c2f25904ddd04b3c44fbeed12512"
+    },
+    {
+      "path": "api37-large2.log",
+      "originalSha256": "10846a12a81577eb13ad4d49609c18d4470acfe8b331cf225527afd6da59aaab",
+      "retainedSha256": "05f76152a5fb2ffe8e11dc520984ee5828da60a0309a4f3f9c194747b680a064"
+    },
+    {
+      "path": "api37-ordinary2.log",
+      "originalSha256": "bebd2a4298628bb390eb31c04dc25d6654079bedce26afbb8f6c9d2f770c3863",
+      "retainedSha256": "c959ed546b4137b6afa61e973b9c132fbeed09d460b53d69d7f2968aeacaf098"
+    },
+    {
+      "path": "api37.log",
+      "originalSha256": "b3797fd3e2bb879269ad1ddebc9ac24c9484b252509da433b25e34005b469062",
+      "retainedSha256": "7ba9fc1737cc6f0670721f07e7eee65237e39dea5d0ff979e27c6fb795511a02"
+    },
+    {
+      "path": "baseline/choice-invalid.xml",
+      "originalSha256": "f25766ab9bd3b37932c13c194db9a8800872a91bb8b968eda004980e3e7fd2dc",
+      "retainedSha256": "23162ba91ebd64550b2a15115ad9764baad27c99d744613c952513dd7ccc109e"
+    },
+    {
+      "path": "baseline/scale-minimum-invalid.xml",
+      "originalSha256": "ea68da588a5ecb9e1d593c87bebfbe982e5f30a980861288aa5ac5fdcd853206",
+      "retainedSha256": "e4bb5fcbf05cfcdb068f617928b6077a290be40b37615db13b40471b39f43287"
+    },
+    {
+      "path": "diagnostic/first-correction-choice-invalid.large.xml",
+      "originalSha256": "b91bbbef839ceed5596fa601e82cebcd986024763f56c27e52324629398239e6",
+      "retainedSha256": "8bdf25c1d6d029ed6902bdef2039cb76b2050629f678f4a1661b6c460f5c247b"
+    },
+    {
+      "path": "diagnostic/first-correction-scale-minimum-invalid.large.xml",
+      "originalSha256": "313e6b32e2be6c2a69777d7aa818dbe3664485d793683979a2cf9898144b4640",
+      "retainedSha256": "71c10e9fc2c8f3d9116ba08c0dc492be1652b742721a95d8e5b228b782cdcec2"
+    },
+    {
+      "path": "instrumentation/6pXjqV/batch-1/result-1.xml",
+      "originalSha256": "c42ae34e6748e68eeb9e784eaa0377ff753bafe40f2eeb82bae125e2282a6912",
+      "retainedSha256": "d457df94b1952cca95520fc4046d3c911ebc56d941644ae412198ec26dfbfa2d"
+    },
+    {
+      "path": "instrumentation/7qmuw2/batch-1/result-1.xml",
+      "originalSha256": "78e073a06b04c77d80cc23f68e900a22ce635f35bfcdd564f2fe871a088ca983",
+      "retainedSha256": "c636a13a6a6c75ad8bfd1108f7eaca3e57beacb22871dced8c11352a563a343b"
+    },
+    {
+      "path": "instrumentation/CSv3H4/batch-1/result-1.xml",
+      "originalSha256": "312ef41e828f6e23b82487b7cf5ef587324e192c31c48c694931e21cb159fce2",
+      "retainedSha256": "21fbd68b8db25e69e347e872ccd37744814efbb262ddcaf1efbca3676b770c0a"
+    },
+    {
+      "path": "instrumentation/PEtCuG/batch-1/result-1.xml",
+      "originalSha256": "6204dae3313e559032d00f19a9f48ea036afde8218ea33282607816e583b418e",
+      "retainedSha256": "bfe306dd990c27c560d68c54379b3e70ab121f07fa0256c305705e677d9dbe4f"
+    },
+    {
+      "path": "instrumentation/YNT2AQ/batch-1/result-1.xml",
+      "originalSha256": "ed7bf47b95523014c52bb5dfa855186c6a4d27bf5e3faea1fc0a276c1947b5bd",
+      "retainedSha256": "c9c3d585daf2f72ec7d3809f08c83da4fc32ef0d431a99246ca23efdafa9c1dc"
+    },
+    {
+      "path": "instrumentation/g54ePq/batch-1/result-1.xml",
+      "originalSha256": "8d5c2d38fe10bacecfc554a5fc81372e8d5e0d503a4576939b610d7e7b782617",
+      "retainedSha256": "76c43a8fc09fbd946be676a290d4ada29e2cbb80e58a97411121bf1c335c6f06"
+    },
+    {
+      "path": "instrumentation/lCw6Ne/batch-1/result-1.xml",
+      "originalSha256": "2717f3e7e14a19b22b7e89979d82c9dd93c6846353708cce79a9d2250fcb76b1",
+      "retainedSha256": "e2efb84c2e6ba9e35c33c027763a9931dc2401230e9ad0e70b2bfc3eb0f901f9"
+    },
+    {
+      "path": "instrumentation/lCw6Ne/batch-2/result-1.xml",
+      "originalSha256": "ed69ae97a0dd3f72afee1e11203e5c000c6cb7117d06d0dbd0bf24e31594d79a",
+      "retainedSha256": "6186dd924f45718942979ada3152441f7d80b70705b02b1f2d2ed314bd305d83"
+    }
+  ]
+}

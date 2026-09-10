@@ -1,0 +1,20 @@
+{
+  "baselineCommit": "4f38aae25c4e45e2cdd371a91ba63e5cb048499b",
+  "initialAcceptedFiles": {
+    "app/build/outputs/apk/debug/app-debug.apk": "b4316586eb341190b89334a5761672bef8d1b5cbaf56fd652d9c941bb9efd6f9",
+    "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk": "7ea05878dce9f5302d45ade999e8ba1b7eb95bba6bb2ba2b50ee537cc0fab11f",
+    "app/src/main/java/com/whip/app/domain/TrackModels.kt": "6ad355b5866400b72925b3c0fe69fcbbe9a133cbcd29f601120dc3292ce5298a",
+    "app/src/main/java/com/whip/app/ui/TrackScreens.kt": "0fc1ca23a710d4f199eeee11b9a07d12686393d32ae186b9eb5306bbe74c992e",
+    "app/src/androidTest/java/com/whip/app/TrackFieldEditingJourneyE2ETest.kt": "cf3854a2bc8d3e7c0a4f1625c511f83eab59346dc435d8c65f421037c50702c0",
+    "app/src/test/java/com/whip/app/domain/TrackDomainTest.kt": "3297574fec6f3bd28f0bb86347b86d4c88ce66aa7936fd3745f7c5e0e68b813f"
+  },
+  "files": {
+    "app/build/outputs/apk/debug/app-debug.apk": "b4316586eb341190b89334a5761672bef8d1b5cbaf56fd652d9c941bb9efd6f9",
+    "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk": "6e383c0fd6e02b3e51e60e404a76f43977f713606a1a7618161c90382f6094df",
+    "app/src/main/java/com/whip/app/domain/TrackModels.kt": "6ad355b5866400b72925b3c0fe69fcbbe9a133cbcd29f601120dc3292ce5298a",
+    "app/src/main/java/com/whip/app/ui/TrackScreens.kt": "0fc1ca23a710d4f199eeee11b9a07d12686393d32ae186b9eb5306bbe74c992e",
+    "app/src/androidTest/java/com/whip/app/TrackFieldEditingJourneyE2ETest.kt": "9e150dfbdb935982b999ae5602fd3b24654893a3ea30a5f301a75a0649930fca",
+    "app/src/test/java/com/whip/app/domain/TrackDomainTest.kt": "3297574fec6f3bd28f0bb86347b86d4c88ce66aa7936fd3745f7c5e0e68b813f"
+  },
+  "notes": "Initial accepted files belong to g54ePq, lCw6Ne and original API 37 runs. Final files add exact-child test scrolling, opening keyboard dismissal and an explicit unit-history-copy visibility assertion. Production source/APK are unchanged; final native runs use these final files."
+}

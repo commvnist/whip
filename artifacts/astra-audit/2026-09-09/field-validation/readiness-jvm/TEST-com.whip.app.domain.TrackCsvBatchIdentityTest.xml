@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.domain.TrackCsvBatchIdentityTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-09-10T01:31:16.488Z" hostname="beast" time="0.047">
+  <properties/>
+  <testcase name="canonicalRequestPreservesRawNumbersNullsRowOrderAndBatchIntent" classname="com.whip.app.domain.TrackCsvBatchIdentityTest" time="0.019"/>
+  <testcase name="strictParserPreservesValidRfcQuotingCrLfAndTrailingEmptyCells" classname="com.whip.app.domain.TrackCsvBatchIdentityTest" time="0.0"/>
+  <testcase name="previewToleratesBomButRejectsAmbiguousHeadersWidthsAndUnits" classname="com.whip.app.domain.TrackCsvBatchIdentityTest" time="0.003"/>
+  <testcase name="archivedUnitsAreAllowedOnlyForTheFieldsRetainedDefault" classname="com.whip.app.domain.TrackCsvBatchIdentityTest" time="0.002"/>
+  <testcase name="canonicalRequestIsStableAcrossMapOrderAndEquivalentNormalizedDrafts" classname="com.whip.app.domain.TrackCsvBatchIdentityTest" time="0.001"/>
+  <testcase name="batchContractsRemainProcessSaveableWithoutRawCsv" classname="com.whip.app.domain.TrackCsvBatchIdentityTest" time="0.013"/>
+  <testcase name="canonicalBoundaryFailsClosedForSameIdentityRenamesAndUnitSemanticDrift" classname="com.whip.app.domain.TrackCsvBatchIdentityTest" time="0.002"/>
+  <testcase name="atomicFormSnapshotOwnsPreviewFieldsChoicesAndCustomUnits" classname="com.whip.app.domain.TrackCsvBatchIdentityTest" time="0.002"/>
+  <testcase name="deterministicEntryIdentityChangesByOrdinalAndRejectsMalformedInputs" classname="com.whip.app.domain.TrackCsvBatchIdentityTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

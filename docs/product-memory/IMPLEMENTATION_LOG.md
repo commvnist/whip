@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260909-029 — Correct Field validation while preserving existing Track history
+
+- Behavior changed: Duplicate normalized Choice labels are identified and blocked before leaving their Field. Scale errors attach to Minimum, Maximum or Increment as appropriate; bounds stack on narrow/enlarged dialogs and focused controls use existing relocation. Number guidance describes default-unit changes and preserved entered units.
+- Important files: TrackModels.kt shares canonical Choice label equivalence; TrackScreens.kt supplies local validation/layout/copy; TrackDomainTest and TrackFieldEditingJourneyE2ETest protect canonical agreement, raw draft recreation, exact Entry/value maps and stable Field/Choice identities through Save/reopen. The new native class joins the permanent Tracks profile.
+- Compatibility/limits: No domain-acceptance, repository-authority, schema, backup or version change. No history rewrite, physical-phone operation, release or publication. Destructive definition journeys, parent error visibility and whole Tracks/app acceptance remain open.
+- Verification: VER-20260909-030 records 66 JVM / 111 fresh Android neighboring checks, all four final methods on API 26/34/37 at ordinary/actual 200% text, 22 individually inspected originals, 346 JVM readiness checks and catalog/fixture gates. Earlier product baselines and fixture failures remain distinct in the evidence.
+- Related/status: Verified for FND-20260909-030 / DEC-20260909-026 under FB-20260908-006 / VER-20260909-016. Evidence: `artifacts/astra-audit/2026-09-09/field-validation/README.md`. Commit/push: normal main/upstream delivery recorded by Git history.
+
 ### IMP-20260909-028 — Verify CSV replacement and real process recovery
 
 - Behavior: Retain the reviewed production implementation. Two permanent native regressions prove that one invalid Number blocks the entire batch, cancelling file replacement preserves the review, and a corrected replacement completes exact seven-type import/export. An explicit test seed supports process death outside the instrumentation host.
