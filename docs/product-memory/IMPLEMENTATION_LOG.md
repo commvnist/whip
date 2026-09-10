@@ -1,5 +1,15 @@
 # Implementation history
 
+### IMP-20260909-027 — Review interpreted CSV Entries before import
+
+- Behavior: The existing CSV review now browses one interpreted Entry at a time, showing its effective date and all Field values with frozen labels, Choice options and units. A wrong but valid text/unit mapping is visible before committing. Only the selected index is saved; mapping/file revision changes reset it, while Activity recreation retains the current Entry.
+- Reading: Long values display a disclosed Unicode-safe 1,000-code-point excerpt without changing the import draft. Blank values remain distinct from No. Date/unit fallbacks name the actual interpretation; row summaries pluralize correctly and Options uses user-facing copy. Completion and authoritative recovery messages reset the reading position above fixed actions.
+- Implementation: TrackCsvEntryPreview, TrackCsvImportDialog and strings; native TrackCsvJourneyE2ETest, excerpt/blank regression in TrackCsvImportUiTest, and permanent Tracks-profile inclusion of CSV UI/recovery/journey tests. CSV captures use the canonical draw/accessibility/visual-distinction guard, with app-private output below API 29; completion capture waits for the input shield to clear and Compose to settle.
+- Compatibility: No schema, backup format, version, import authority, receipt, parser, stored value or export-format change. Existing frozen request/receipt protections remain. The large-value UI test checks the complete draft at submission; the native two-Entry journey separately proves exact persisted seven-type values and exported-byte reparsing.
+- Verification: VER-20260909-028; final production passes 65 JVM / 95 fresh Android Tracks checks, ordinary/actual-200% native import/export journeys on API 26/34/37, and 345 JVM readiness checks with compilation/lint/debug packaging. All 28 retained originals have scoped review, including 24 final PNG/XML pairs with zero NAF nodes. Source inventory is 631 JVM / 1,019 Android (1,650), 329 catalog/matrix states and 42 actual-font methods.
+- Related/evidence: FND-20260909-029, DEC-20260909-025, FB-20260908-006; `artifacts/astra-audit/2026-09-09/csv-entry-preview/README.md`.
+- Status/limits: Verified for interpreted preview and native transfer. Complete CSV invalid-file replacement, OS-process recovery, large-history/performance, RTL/TalkBack, Field validation and the rest of the app remain open. Commit and normal upstream push are recorded by Git history; no physical-phone operation or release.
+
 ### IMP-20260909-026 — Preserve Entry deletion authority through recovery
 
 - Behavior: Row Delete Entry reviews retain a compact original Track/Entry identity and semantic revision boundary across new-owner recovery. Complete historical values and editor-only contract arrays stay out of saved review state; Unicode-safe display excerpts do not modify history. A recovered review cannot silently authorize a newer Entry revision.

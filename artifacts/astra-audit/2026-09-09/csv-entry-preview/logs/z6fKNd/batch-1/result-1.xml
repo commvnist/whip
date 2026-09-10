@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="0" errors="0" skipped="0" time="51.104" timestamp="2026-09-10T00:13:52" hostname="localhost">
+  <testsuite name="com.whip.app.TrackCsvJourneyE2ETest" tests="2" failures="0" errors="0" skipped="0" time="49.704" timestamp="2026-09-10T00:13:52" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="csvValuesCanBeReviewedRemappedRecoveredAndImported" classname="com.whip.app.TrackCsvJourneyE2ETest" time="22.662" />
+    <testcase name="csvValuesCanBeReviewedRemappedRecoveredAndImportedAtLargeText" classname="com.whip.app.TrackCsvJourneyE2ETest" time="27.042" />
+  </testsuite>
+</testsuites>

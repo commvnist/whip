@@ -1,0 +1,44 @@
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.TrackCsvJourneyE2ETest:
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: test=csvValuesCanBeReviewedRemappedRecoveredAndImportedAtLargeText
+INSTRUMENTATION_STATUS: class=com.whip.app.TrackCsvJourneyE2ETest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+Error in csvValuesCanBeReviewedRemappedRecoveredAndImportedAtLargeText(com.whip.app.TrackCsvJourneyE2ETest):
+androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 15000 ms
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:901)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:500)
+	at com.whip.app.TrackCsvJourneyE2ETest.verifyJourney(TrackCsvJourneyE2ETest.kt:122)
+	at com.whip.app.TrackCsvJourneyE2ETest.csvValuesCanBeReviewedRemappedRecoveredAndImportedAtLargeText(TrackCsvJourneyE2ETest.kt:48)
+
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: test=csvValuesCanBeReviewedRemappedRecoveredAndImportedAtLargeText
+INSTRUMENTATION_STATUS: class=com.whip.app.TrackCsvJourneyE2ETest
+INSTRUMENTATION_STATUS: stack=androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 15000 ms
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:901)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:500)
+	at com.whip.app.TrackCsvJourneyE2ETest.verifyJourney(TrackCsvJourneyE2ETest.kt:122)
+	at com.whip.app.TrackCsvJourneyE2ETest.csvValuesCanBeReviewedRemappedRecoveredAndImportedAtLargeText(TrackCsvJourneyE2ETest.kt:48)
+
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 31.494
+There was 1 failure:
+1) csvValuesCanBeReviewedRemappedRecoveredAndImportedAtLargeText(com.whip.app.TrackCsvJourneyE2ETest)
+androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 15000 ms
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:901)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:500)
+	at com.whip.app.TrackCsvJourneyE2ETest.verifyJourney(TrackCsvJourneyE2ETest.kt:122)
+	at com.whip.app.TrackCsvJourneyE2ETest.csvValuesCanBeReviewedRemappedRecoveredAndImportedAtLargeText(TrackCsvJourneyE2ETest.kt:48)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1

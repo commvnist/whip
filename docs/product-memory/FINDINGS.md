@@ -1,5 +1,14 @@
 # Durable findings
 
+### FND-20260909-029 — CSV import cannot show the Entries the mapping will create
+
+- Severity/category: P2 workflow comprehension and review quality.
+- Observed: On clean `bccd2f9`, native API 37 Downloads selection of two valid Entries opens a review with file metadata, Field mappings and “2 rows · 2 valid · 0 invalid.” Neither Entry's Name, interpreted date nor note is shown anywhere in the dialog. TrackCsvImportDialog renders counts/issues but never validDrafts. The screenshot and matching native tree are retained under `build/astra-csv-journey-20260909/import-review.*`.
+- Why it matters: A valid mapping between two text columns, or an unintended date/unit mapping, can create semantically wrong history without a chance to inspect the result before import. This is a supported design opportunity; no claim of repository corruption is made.
+- Expected: Review interpreted Entries with their Field labels, dates, selected units, choices and blank/No distinction before committing, and see the preview update when mapping changes. Keep large imports responsive without rendering every row at once.
+- Resolution: One browsable interpreted Entry makes wrong-but-valid text and unit mappings visible. Exact dates, frozen Choice/unit labels and blank/No distinction are readable; disclosed excerpts preserve complete import drafts. Completion/recovery resets the reading position. Final 95 Android neighbors, native ordinary/200% journeys on API 26/34/37 and 345 JVM readiness checks pass; 24 final originals are individually inspected.
+- Related/status: Verified in IMP-20260909-027 / DEC-20260909-025 / VER-20260909-028 under FB-20260908-006. Durable before/final/diagnostic evidence: `artifacts/astra-audit/2026-09-09/csv-entry-preview/README.md`. Complete Tracks remains Investigating in VER-20260909-016.
+
 ### FND-20260909-028 — Recovered Entry deletion replaces the reviewed revision and carries hidden large values
 
 - Severity/category: P1 history integrity and lifecycle recovery.

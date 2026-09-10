@@ -13,6 +13,7 @@ import androidx.compose.ui.test.assertContentDescriptionContains
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -41,6 +42,7 @@ import com.whip.app.domain.TrackEntryFormSnapshot
 import com.whip.app.domain.TrackField
 import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.TrackProjection
+import com.whip.app.domain.TrackValueDraft
 import com.whip.app.ui.theme.WhipTheme
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -54,6 +56,49 @@ import org.junit.runner.RunWith
 class TrackCsvImportUiTest {
     private val compose = createComposeRule()
     @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
+
+    @Test
+    fun previewDisclosesUnicodeExcerptsWithoutChangingImportValuesAndDistinguishesBlank() {
+        val prefix = "a".repeat(999) + "🙂"
+        val complete = prefix + " retained text".repeat(100_000)
+        val ready = readyState()
+        val state = ready.copy(preparation = ready.preparation!!.copy(
+            request = ready.preparation.request.copy(
+                rowCount = 2,
+                entryUuids = ready.preparation.request.entryUuids + "33333333-3333-4333-8333-333333333333",
+            ),
+        ), preview = ready.preview!!.copy(
+            totalRows = 2,
+            validDrafts = listOf(
+                TrackEntryDraft(DATE, mapOf("notes" to TrackValueDraft(textValue = complete))),
+                TrackEntryDraft(DATE, emptyMap()),
+            ),
+        ))
+        var submissions = 0
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                TrackCsvImportDialog(
+                    projection = projection(), state = state, saving = false, persistenceError = null,
+                    onMappingChange = {}, onRetry = {}, onChooseAnother = {}, onDismiss = {},
+                    onImport = {
+                        assertEquals(complete, state.preview!!.validDrafts.first().values["notes"]!!.textValue)
+                        submissions++
+                    },
+                )
+            }
+        }
+        compose.onNodeWithTag("track-csv-import-content")
+            .performScrollToNode(hasText(prefix + "…"))
+        compose.onNodeWithTag("track-csv-preview-value-notes").assertTextEquals(prefix + "…")
+        compose.onNodeWithText("Preview shortened. The full value will be imported.")
+            .performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("track-csv-import-content").performScrollToNode(hasText("Next Entry"))
+        compose.onNodeWithText("Next Entry").performClick()
+        compose.onNodeWithTag("track-csv-import-content").performScrollToNode(hasText("Not provided"))
+        compose.onNodeWithTag("track-csv-preview-value-notes").assertTextEquals("Not provided")
+        compose.onNodeWithTag("track-csv-import-confirm").assertIsEnabled().performClick()
+        compose.runOnIdle { assertEquals(1, submissions) }
+    }
 
     @Test
     fun captureTrackCsvImportCatalog() {

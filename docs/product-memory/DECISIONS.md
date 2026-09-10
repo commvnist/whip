@@ -1,5 +1,15 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-025 — Show one interpreted CSV Entry within the existing review
+
+- Context: FND-20260909-029 confirms that the current review exposes mapping configuration and validation totals without the resulting values. Existing exact batch, file and form ownership is sound and remains required by DEC-20260901-022.
+- Alternatives: Keep counts and add more explanatory copy; build a separate multi-step import wizard; render every valid Entry; or provide one browsable interpreted Entry in the existing scrollable review. Copy cannot reveal wrong-but-valid mappings. A new wizard adds navigation/recovery complexity, while rendering up to 5,000 Entries and large values at once is unnecessary.
+- Decision: Keep one import review and its current mapping/retry/commit lifecycle. Add a read-only Entry preview with previous/next navigation, position/count, effective Entry date and each Field's interpreted value. Resolve choices/units against the same frozen form that produced the draft. Use lazy Field rows and retain only a selected integer index across recreation; reset selection when file/mapping revision changes. Never retain a second draft copy, modify imported values or substitute current live definitions.
+- Product detail: Make blank values distinct from No, preserve readable multiline text and numeric units, and keep import actions fixed. Clarify validation pluralization and relevant copy within this flow. Preserve the early error/replacement priority from DEC-20260909-007. Native compact/wide and enlarged review must justify the final hierarchy before acceptance.
+- Large-text payload policy: Preview at most 1,000 Unicode code points of a displayed value and explicitly label any shortened excerpt; the complete draft and import remain unchanged. This prevents a valid multi-megabyte CSV cell from being eagerly rendered simply to check its mapping. It is preview disclosure, not a new authored-value limit.
+- Result reading: The first smallest/200% candidate successfully imports but retains a lower review position, hiding the completion receipt above the viewport. Reset the existing lazy reading position when completion or an authoritative recovery/error message arrives. Keep normal Entry browsing and mapping scroll intact. The native journey must see the completion without scrolling for it.
+- Related/status: Verified in IMP-20260909-027 / VER-20260909-028 under FND-20260909-029 / FB-20260908-006. No schema, portable-format, import-receipt or data-compatibility change. Complete Tracks and whole-product acceptance remain open.
+
 ### DEC-20260909-024 — Preserve one compact Entry deletion review across recovery
 
 - Context: FND-20260909-028 reproduces both unbounded hidden payload and a newer revision replacing the user's original review after process death.

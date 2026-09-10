@@ -1,0 +1,4 @@
+com.whip.app.ui.TrackCsvImportRecoveryViewModelTest
+com.whip.app.ui.TrackCsvImportUiTest
+com.whip.app.ui.TrackEditorCheckpointTest
+com.whip.app.ui.TrackEntryDeleteRecoveryUiTest

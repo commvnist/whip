@@ -1,0 +1,10 @@
+{
+  "app/src/main/java/com/whip/app/ui/TrackScreens.kt": "8c01a7d1836559599af1c21f79e296d17923db724ee24624cc9af3cf1376cf67",
+  "app/src/main/java/com/whip/app/ui/TrackCsvEntryPreview.kt": "c79a466e11f2fa75bb49ac10e5f95d07efe78900918190d44bcf68a5434c63c5",
+  "app/src/main/res/values/strings.xml": "4185c1d120ee714943a77e61dc1054d9a76ea874a59b55c84aefc6025853f6f0",
+  "app/src/androidTest/java/com/whip/app/TrackCsvJourneyE2ETest.kt": "119e45f4419300b950731509ad94b8dab6a997c9a2f1f1f5148b21ce870a567f",
+  "app/src/androidTest/java/com/whip/app/ui/TrackCsvImportUiTest.kt": "feb9a5ca61c04288b67becfc4bc60c40c159e4b790421484a2d30d4ee8ee1a08",
+  "app/src/androidTest/java/com/whip/app/VisualCatalogCapture.kt": "c541bc80f47776ff2a0621fb754d384b71f0b8044879e532c527551e1ee39baa",
+  "app/build/outputs/apk/debug/app-debug.apk": "3a04999eb33a20b2c03cd1945f1df05637f6814eb941eb28a9f2bdbf814007b4",
+  "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk": "c9d1ecb92278ca132fcba287390eb3d52c3d8641d5ec1f413ebbb5898ff9ebbc"
+}

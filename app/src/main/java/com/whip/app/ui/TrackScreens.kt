@@ -2437,6 +2437,13 @@ internal fun TrackCsvImportDialog(
     var mappingExpanded by rememberSaveable(state.batchUuid) {
         mutableStateOf(fields.size <= 3)
     }
+    var previewEntryIndex by rememberSaveable(state.batchUuid, state.previewRevision) { mutableIntStateOf(0) }
+    val reviewListState = rememberLazyListState()
+    LaunchedEffect(completed, error, retryablePersistenceError, state.recoveryNotice, targetLookupStatus) {
+        if (completed || error != null || retryablePersistenceError != null ||
+            state.recoveryNotice != null || targetLookupPending
+        ) reviewListState.scrollToItem(0)
+    }
     val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
     PaneAwareAlertDialog(
         testTag = "track-csv-import-dialog",
@@ -2456,6 +2463,7 @@ internal fun TrackCsvImportDialog(
         text = {
             LazyColumn(
                 modifier = Modifier.testTag("track-csv-import-content"),
+                state = reviewListState,
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 if (
@@ -2612,7 +2620,8 @@ internal fun TrackCsvImportDialog(
                 }
                 if (headers.isNotEmpty() && hasMappingForm && !completed) {
                     item {
-                        val useToday = stringResource(R.string.track_csv_use_today_date)
+                        val useToday = stringResource(R.string.track_csv_use_today_date,
+                            state.fallbackDate?.format(dateFormatter) ?: stringResource(R.string.track_csv_saved_import_date))
                         SelectionField(
                             stringResource(R.string.track_csv_entry_date),
                             listOf<String?>(null) + headers,
@@ -2647,7 +2656,9 @@ internal fun TrackCsvImportDialog(
                         )
                         if (field.type == TrackFieldType.Number) {
                             val unitColumn = mapping.numberUnitColumns[field.uuid]
-                            val useCurrentUnit = stringResource(R.string.track_csv_use_current_unit)
+                            val defaultUnit = frozenForm?.units?.firstOrNull { it.id == field.unitId }
+                            val useCurrentUnit = stringResource(R.string.track_csv_use_current_unit,
+                                defaultUnit?.let { "${it.name} (${it.symbol})" } ?: field.unitId.orEmpty())
                             SelectionField(
                                 stringResource(R.string.track_csv_unit_field, field.name),
                                 listOf<String?>(null) + headers,
@@ -2664,8 +2675,9 @@ internal fun TrackCsvImportDialog(
                         WhipGroupedInformationCard {
                             Text(stringResource(R.string.track_csv_validation_preview), fontWeight = FontWeight.Bold)
                             Text(
-                                stringResource(
-                                    R.string.track_csv_validation_summary,
+                                pluralStringResource(
+                                    R.plurals.track_csv_validation_summary,
+                                    result.totalRows,
                                     result.totalRows,
                                     result.validRows,
                                     result.invalidRows,
@@ -2696,6 +2708,17 @@ internal fun TrackCsvImportDialog(
                             stringResource(R.string.track_csv_fix_invalid_rows),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                    if (!completed && frozenForm != null && result.validDrafts.isNotEmpty()) {
+                        val index = previewEntryIndex.coerceIn(result.validDrafts.indices)
+                        trackCsvEntryPreview(
+                            form = frozenForm,
+                            draft = result.validDrafts[index],
+                            index = index,
+                            count = result.validDrafts.size,
+                            enabled = !saving,
+                            onSelect = { previewEntryIndex = it },
                         )
                     }
                 }
@@ -2752,7 +2775,7 @@ private fun TrackOptionsPage(
     onDelete: () -> Unit,
 ) {
     LazyColumn(
-        Modifier.fillMaxSize(),
+        Modifier.fillMaxSize().testTag("track-options-list"),
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -2774,10 +2797,10 @@ private fun TrackOptionsPage(
                 WhipActionDivider()
                 WhipActionRow("Duplicate Structure", onDuplicate, supportingText = "Copies Fields and Choice options, but not Entries.", navigates = false)
                 WhipActionDivider()
-                WhipActionRow("Export Track CSV", onExport, supportingText = "One column per Field, with stable Entry identity and dates.", navigates = false)
+                WhipActionRow("Export Track CSV", onExport, supportingText = "Save recorded Entries, dates, and Field values to a CSV file.", navigates = false)
                 if (!projection.track.archived) {
                     WhipActionDivider()
-                    WhipActionRow("Import Entries From CSV", onImport, supportingText = "Map columns to Fields and validate every row before one atomic import.", navigates = false)
+                    WhipActionRow("Import Entries From CSV", onImport, supportingText = "Review column mappings and Entries before adding them to this Track.", navigates = false)
                 }
                 WhipActionDivider()
                 WhipActionRow(if (projection.track.archived) "Restore Track" else "Archive Track", { onSetArchived(!projection.track.archived) }, supportingText = if (projection.track.archived) "Allow new Entries again." else "Pause new capture while preserving history.", navigates = false)

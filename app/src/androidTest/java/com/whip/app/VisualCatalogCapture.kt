@@ -35,19 +35,7 @@ internal fun captureVisualCatalogSurface(
     }
 
     val instrumentation = InstrumentationRegistry.getInstrumentation()
-    instrumentation.waitForIdleSync()
-    instrumentation.uiAutomation.waitForIdle(750L, 5_000L)
-    waitForRenderedFrames(surfaceId)
-
-    // Accessibility can expose the new Compose state before SurfaceFlinger has
-    // presented it. Prime the device screenshot path, then cross another render
-    // boundary so the exported image cannot be the preceding screen's buffer.
-    checkNotNull(instrumentation.uiAutomation.takeScreenshot()) {
-        "Android did not provide a synchronization screenshot for $surfaceId"
-    }.recycle()
-    waitForWindowDraw(surfaceId)
-    waitForRenderedFrames(surfaceId)
-    instrumentation.waitForIdleSync()
+    awaitVisualCaptureFrame(surfaceId)
 
     val referenceFingerprint = visuallyDistinctFrom?.let { referenceId ->
         synchronized(capturedVisualCatalogFingerprints) {
@@ -164,6 +152,21 @@ private fun VisualFingerprint.meanChannelDifference(other: VisualFingerprint): D
     return totalDifference.toDouble() / (pixels.size * 3)
 }
 
+/** Shared by MediaStore captures and legacy app-private captures. */
+internal fun awaitVisualCaptureFrame(surfaceId: String) {
+    val instrumentation = InstrumentationRegistry.getInstrumentation()
+    instrumentation.waitForIdleSync()
+    instrumentation.uiAutomation.waitForIdle(750L, 5_000L)
+    waitForRenderedFrames(surfaceId)
+    // Accessibility can precede SurfaceFlinger. Prime the screenshot path, then cross a draw boundary.
+    checkNotNull(instrumentation.uiAutomation.takeScreenshot()) {
+        "Android did not provide a synchronization screenshot for $surfaceId"
+    }.recycle()
+    waitForWindowDraw(surfaceId)
+    waitForRenderedFrames(surfaceId)
+    instrumentation.waitForIdleSync()
+}
+
 private fun waitForRenderedFrames(surfaceId: String) {
     val instrumentation = InstrumentationRegistry.getInstrumentation()
     repeat(2) {
@@ -248,8 +251,14 @@ internal fun refreshAccessibilityHierarchy(surfaceId: String) {
     }
 }
 
-private fun insertCatalogAsset(surfaceId: String, extension: String, mimeType: String) =
-    InstrumentationRegistry.getInstrumentation().targetContext.contentResolver.let { resolver ->
+private fun insertCatalogAsset(surfaceId: String, extension: String, mimeType: String): java.io.OutputStream {
+    val context = InstrumentationRegistry.getInstrumentation().targetContext
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+        val directory = checkNotNull(context.getExternalFilesDir("whip-ui-catalog"))
+        check(directory.isDirectory || directory.mkdirs())
+        return File(directory, "$surfaceId.$extension").outputStream()
+    }
+    return context.contentResolver.let { resolver ->
         val values = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, "$surfaceId.$extension")
             put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
@@ -262,3 +271,4 @@ private fun insertCatalogAsset(surfaceId: String, extension: String, mimeType: S
             "Could not open visual catalog asset for $surfaceId.$extension"
         }
     }
+}

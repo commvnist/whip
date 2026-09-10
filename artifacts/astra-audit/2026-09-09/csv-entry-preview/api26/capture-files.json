@@ -1,0 +1,70 @@
+{
+  "api": 26,
+  "serial": "emulator-5556",
+  "files": {
+    "tracks.csv-review.complete.large.png": {
+      "path": "/sdcard/Android/data/commvne.com.whip.app.debug/files/whip-ui-catalog/tracks.csv-review.complete.large.png",
+      "mtime": "1788999691"
+    },
+    "tracks.csv-review.complete.large.xml": {
+      "path": "/sdcard/Android/data/commvne.com.whip.app.debug/files/whip-ui-catalog/tracks.csv-review.complete.large.xml",
+      "mtime": "1788999691"
+    },
+    "tracks.csv-review.second.large.png": {
+      "path": "/sdcard/Android/data/commvne.com.whip.app.debug/files/whip-ui-catalog/tracks.csv-review.second.large.png",
+      "mtime": "1788999689"
+    },
+    "tracks.csv-review.second.large.xml": {
+      "path": "/sdcard/Android/data/commvne.com.whip.app.debug/files/whip-ui-catalog/tracks.csv-review.second.large.xml",
+      "mtime": "1788999689"
+    },
+    "tracks.csv-review.remapped.large.png": {
+      "path": "/sdcard/Android/data/commvne.com.whip.app.debug/files/whip-ui-catalog/tracks.csv-review.remapped.large.png",
+      "mtime": "1788999685"
+    },
+    "tracks.csv-review.remapped.large.xml": {
+      "path": "/sdcard/Android/data/commvne.com.whip.app.debug/files/whip-ui-catalog/tracks.csv-review.remapped.large.xml",
+      "mtime": "1788999685"
+    },
+    "tracks.csv-review.ready.large.xml": {
+      "path": "/sdcard/Android/data/commvne.com.whip.app.debug/files/whip-ui-catalog/tracks.csv-review.ready.large.xml",
+      "mtime": "1788999682"
+    },
+    "tracks.csv-review.ready.large.png": {
+      "path": "/sdcard/Android/data/commvne.com.whip.app.debug/files/whip-ui-catalog/tracks.csv-review.ready.large.png",
+      "mtime": "1788999681"
+    },
+    "tracks.csv-review.complete.ordinary.png": {
+      "path": "/sdcard/Android/data/commvne.com.whip.app.debug/files/whip-ui-catalog/tracks.csv-review.complete.ordinary.png",
+      "mtime": "1788999671"
+    },
+    "tracks.csv-review.complete.ordinary.xml": {
+      "path": "/sdcard/Android/data/commvne.com.whip.app.debug/files/whip-ui-catalog/tracks.csv-review.complete.ordinary.xml",
+      "mtime": "1788999671"
+    },
+    "tracks.csv-review.second.ordinary.png": {
+      "path": "/sdcard/Android/data/commvne.com.whip.app.debug/files/whip-ui-catalog/tracks.csv-review.second.ordinary.png",
+      "mtime": "1788999669"
+    },
+    "tracks.csv-review.second.ordinary.xml": {
+      "path": "/sdcard/Android/data/commvne.com.whip.app.debug/files/whip-ui-catalog/tracks.csv-review.second.ordinary.xml",
+      "mtime": "1788999669"
+    },
+    "tracks.csv-review.remapped.ordinary.png": {
+      "path": "/sdcard/Android/data/commvne.com.whip.app.debug/files/whip-ui-catalog/tracks.csv-review.remapped.ordinary.png",
+      "mtime": "1788999665"
+    },
+    "tracks.csv-review.remapped.ordinary.xml": {
+      "path": "/sdcard/Android/data/commvne.com.whip.app.debug/files/whip-ui-catalog/tracks.csv-review.remapped.ordinary.xml",
+      "mtime": "1788999665"
+    },
+    "tracks.csv-review.ready.ordinary.xml": {
+      "path": "/sdcard/Android/data/commvne.com.whip.app.debug/files/whip-ui-catalog/tracks.csv-review.ready.ordinary.xml",
+      "mtime": "1788999663"
+    },
+    "tracks.csv-review.ready.ordinary.png": {
+      "path": "/sdcard/Android/data/commvne.com.whip.app.debug/files/whip-ui-catalog/tracks.csv-review.ready.ordinary.png",
+      "mtime": "1788999662"
+    }
+  }
+}

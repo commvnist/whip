@@ -1,0 +1,70 @@
+{
+  "api": 34,
+  "serial": "emulator-5554",
+  "files": {
+    "tracks.csv-review.complete.large.xml": {
+      "path": "/sdcard/Download/whip-ui-catalog/tracks.csv-review.complete.large (3).xml",
+      "mtime": "1788999223"
+    },
+    "tracks.csv-review.complete.large.png": {
+      "path": "/sdcard/Download/whip-ui-catalog/tracks.csv-review.complete.large (3).png",
+      "mtime": "1788999223"
+    },
+    "tracks.csv-review.second.large.xml": {
+      "path": "/sdcard/Download/whip-ui-catalog/tracks.csv-review.second.large (3).xml",
+      "mtime": "1788999220"
+    },
+    "tracks.csv-review.second.large.png": {
+      "path": "/sdcard/Download/whip-ui-catalog/tracks.csv-review.second.large (3).png",
+      "mtime": "1788999220"
+    },
+    "tracks.csv-review.remapped.large.xml": {
+      "path": "/sdcard/Download/whip-ui-catalog/tracks.csv-review.remapped.large (3).xml",
+      "mtime": "1788999216"
+    },
+    "tracks.csv-review.remapped.large.png": {
+      "path": "/sdcard/Download/whip-ui-catalog/tracks.csv-review.remapped.large (3).png",
+      "mtime": "1788999216"
+    },
+    "tracks.csv-review.ready.large.xml": {
+      "path": "/sdcard/Download/whip-ui-catalog/tracks.csv-review.ready.large (3).xml",
+      "mtime": "1788999212"
+    },
+    "tracks.csv-review.ready.large.png": {
+      "path": "/sdcard/Download/whip-ui-catalog/tracks.csv-review.ready.large (3).png",
+      "mtime": "1788999212"
+    },
+    "tracks.csv-review.complete.ordinary.xml": {
+      "path": "/sdcard/Download/whip-ui-catalog/tracks.csv-review.complete.ordinary (4).xml",
+      "mtime": "1788999197"
+    },
+    "tracks.csv-review.complete.ordinary.png": {
+      "path": "/sdcard/Download/whip-ui-catalog/tracks.csv-review.complete.ordinary (4).png",
+      "mtime": "1788999197"
+    },
+    "tracks.csv-review.second.ordinary.xml": {
+      "path": "/sdcard/Download/whip-ui-catalog/tracks.csv-review.second.ordinary (4).xml",
+      "mtime": "1788999195"
+    },
+    "tracks.csv-review.second.ordinary.png": {
+      "path": "/sdcard/Download/whip-ui-catalog/tracks.csv-review.second.ordinary (4).png",
+      "mtime": "1788999195"
+    },
+    "tracks.csv-review.remapped.ordinary.xml": {
+      "path": "/sdcard/Download/whip-ui-catalog/tracks.csv-review.remapped.ordinary (5).xml",
+      "mtime": "1788999192"
+    },
+    "tracks.csv-review.remapped.ordinary.png": {
+      "path": "/sdcard/Download/whip-ui-catalog/tracks.csv-review.remapped.ordinary (5).png",
+      "mtime": "1788999192"
+    },
+    "tracks.csv-review.ready.ordinary.xml": {
+      "path": "/sdcard/Download/whip-ui-catalog/tracks.csv-review.ready.ordinary (6).xml",
+      "mtime": "1788999190"
+    },
+    "tracks.csv-review.ready.ordinary.png": {
+      "path": "/sdcard/Download/whip-ui-catalog/tracks.csv-review.ready.ordinary (6).png",
+      "mtime": "1788999189"
+    }
+  }
+}
