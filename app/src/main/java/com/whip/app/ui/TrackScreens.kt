@@ -70,11 +70,13 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -2863,11 +2865,24 @@ internal fun TrackEditor(
     val fields = draft.fields
     var editingFieldIndex by rememberSaveable(token) { mutableStateOf<Int?>(null) }
     var addingField by rememberSaveable(token) { mutableStateOf(false) }
+    var fieldEditorSession by rememberSaveable(token) { mutableIntStateOf(0) }
+    val fieldEditorStateHolder = key(token) { rememberSaveableStateHolder() }
+    val fieldEditorStateKey = "field-$fieldEditorSession"
+    fun closeFieldEditor() {
+        fieldEditorStateHolder.removeState(fieldEditorStateKey)
+        editingFieldIndex = null
+        addingField = false
+    }
     var confirmFieldDeleteIndex by rememberSaveable(token) { mutableStateOf<Int?>(null) }
     var removalReviewOpen by rememberSaveable(token) { mutableStateOf(false) }
     var unsavedConfirm by rememberSaveable(token) { mutableStateOf(false) }
     var validationError by rememberSaveable(token) { mutableStateOf<String?>(null) }
+    var validationAttempt by rememberSaveable(token) { mutableIntStateOf(0) }
     val editorListState = rememberLazyListState()
+    fun reportValidationError(message: String) {
+        validationError = message
+        validationAttempt++
+    }
     val dirty = draft != initialDraft
     fun dismissAndClear() { stateHolder.clear(); onDismiss() }
     fun requestDismiss() { if (dirty) unsavedConfirm = true else dismissAndClear() }
@@ -2891,6 +2906,13 @@ internal fun TrackEditor(
     val targetUnavailable = editing && definitionConflict != null
     val effectivePersistenceError = persistenceError ?: definitionReviewState.errorMessage.takeIf {
         reviewBelongsToEditor && definitionConflict == null
+    }
+    LaunchedEffect(validationAttempt, validationError) {
+        if (validationError != null) {
+            val summaryIndex = 1 + (if (effectivePersistenceError != null) 1 else 0) +
+                (if (definitionConflict != null) 1 else 0)
+            editorListState.scrollToItem(summaryIndex)
+        }
     }
     LaunchedEffect(
         routeOpeningBoundary,
@@ -2955,31 +2977,34 @@ internal fun TrackEditor(
                     navigationAction = { IconButton(enabled = !busy, onClick = ::requestDismiss) { Icon(Icons.Outlined.Close, "Close Track Editor") } },
                     actions = { WhipButton(enabled = !busy && !targetUnavailable, onClick = {
                         if (draft.name.isBlank()) {
-                            validationError = "Track name is required."
+                            reportValidationError("Track name is required.")
                             return@WhipButton
                         }
                         if (fields.isEmpty()) {
-                            validationError = "Add at least one Entry Field."
+                            reportValidationError("Add at least one Entry Field.")
                             return@WhipButton
                         }
                         if (!editing && areas.count { !it.archived } > 1 && draft.areaId == null) {
-                            validationError = "Choose an Area for this Track."
+                            reportValidationError("Choose an Area for this Track.")
                             return@WhipButton
                         }
                         val valid = runCatching { currentDraft().validated() }
-                            .onFailure { validationError = it.message ?: "Review the track fields." }
+                            .onFailure { reportValidationError(it.message ?: "Review the Track fields.") }
                             .getOrNull()
                         if (valid != null) {
                             validationError = null
+                            // Review and its exact ownership check must refer to the same submitted content.
+                            val normalizedDraftChanged = valid != draft
+                            if (normalizedDraftChanged) stateHolder.updateDraft { valid }
                             if (!editing) {
                                 onSave(valid, null, null)
                             } else {
                                 val boundary = editorState.openingBoundary
                                 if (boundary == null) {
-                                    validationError = "The Track definition is still being verified. Try again in a moment."
+                                    reportValidationError("The Track definition is still being verified. Try again in a moment.")
                                     onRetryPreparation()
                                 } else {
-                                    val reviewed = editorState.removalReview
+                                    val reviewed = editorState.removalReview.takeUnless { normalizedDraftChanged }
                                     if (reviewed == null) {
                                         onReview(valid, boundary, editorState.optionReplacementIds)
                                     } else if (reviewed.hasRemovals) {
@@ -3019,7 +3044,7 @@ internal fun TrackEditor(
                                 runCatching { currentDraft().validated() }
                                     .onSuccess(onSaveCopy)
                                     .onFailure {
-                                        validationError = it.message ?: "Review the Track fields."
+                                        reportValidationError(it.message ?: "Review the Track fields.")
                                     }
                             },
                             modifier = Modifier.testTag("track-definition-conflict"),
@@ -3058,13 +3083,13 @@ internal fun TrackEditor(
                                     Text(field.name.ifBlank { "Untitled Field" }, fontWeight = FontWeight.SemiBold)
                                     Text(listOfNotNull(field.configurationLabel(), "Identity".takeIf { field.primary }, "Required".takeIf { field.required && !field.primary }, "Label Shown".takeIf { field.showInList }).joinToString(" · "), color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
-                                IconButton(onClick = { editingFieldIndex = index }) { Icon(Icons.Outlined.Edit, "Edit Field ${field.name}") }
+                                IconButton(onClick = { fieldEditorSession++; editingFieldIndex = index }) { Icon(Icons.Outlined.Edit, "Edit Field ${field.name}") }
                             }
                             if (fields.size > 20 && index == fields.lastIndex) Text("Long entry forms take more time to fill.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
-                item { WhipOutlinedButton(onClick = { addingField = true }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Outlined.Add, null); Spacer(Modifier.width(8.dp)); Text("Add Field") } }
+                item { WhipOutlinedButton(onClick = { fieldEditorSession++; addingField = true }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Outlined.Add, null); Spacer(Modifier.width(8.dp)); Text("Add Field") } }
                 item { HorizontalDivider() }
                 item {
                     ProductivityIdentitySection(
@@ -3113,52 +3138,60 @@ internal fun TrackEditor(
         }
     }
 
-    editingFieldIndex?.let { index -> fields.getOrNull(index)?.let { field ->
-        TrackFieldEditor(
-            initial = field,
+    if (editingFieldIndex != null || addingField) fieldEditorStateHolder.SaveableStateProvider(fieldEditorStateKey) {
+        editingFieldIndex?.let { index -> fields.getOrNull(index)?.let { field ->
+            TrackFieldEditor(
+                initial = field,
+                allUnits = BuiltInUnits.all + customUnits,
+                settings = settings,
+                applyFreshNumberDefaults = false,
+                existingHasValues = field.id?.let { fieldId -> liveInitial?.entries?.any { it.value(fieldId) != null } } == true,
+                onDismiss = ::closeFieldEditor,
+                onCreateCustomUnit = onCreateCustomUnit,
+                onSave = { updated ->
+                    stateHolder.updateDraft { current -> current.copy(fields = current.fields.toMutableList().also { mutable ->
+                        mutable[index] = updated
+                    }) }
+                    closeFieldEditor()
+                },
+                onDelete = if (fields.size > 1 && !field.primary) {{ confirmFieldDeleteIndex = index }} else null,
+            )
+        } }
+        if (addingField) TrackFieldEditor(
+            initial = TrackFieldDraft("", TrackFieldType.ShortText),
             allUnits = BuiltInUnits.all + customUnits,
             settings = settings,
-            applyFreshNumberDefaults = false,
-            existingHasValues = field.id?.let { fieldId -> liveInitial?.entries?.any { it.value(fieldId) != null } } == true,
-            onDismiss = { editingFieldIndex = null },
+            applyFreshNumberDefaults = true,
+            existingHasValues = false,
+            onDismiss = ::closeFieldEditor,
             onCreateCustomUnit = onCreateCustomUnit,
-            onSave = { updated ->
-                stateHolder.updateDraft { current -> current.copy(fields = current.fields.toMutableList().also { mutable ->
-                    mutable[index] = updated
-                }) }
-                editingFieldIndex = null
-            },
-            onDelete = if (fields.size > 1 && !field.primary) {{ confirmFieldDeleteIndex = index }} else null,
+            onSave = { field -> stateHolder.updateDraft { it.copy(fields = it.fields + field) }; closeFieldEditor() },
         )
-    } }
-    if (addingField) TrackFieldEditor(
-        initial = TrackFieldDraft("", TrackFieldType.ShortText),
-        allUnits = BuiltInUnits.all + customUnits,
-        settings = settings,
-        applyFreshNumberDefaults = true,
-        existingHasValues = false,
-        onDismiss = { addingField = false },
-        onCreateCustomUnit = onCreateCustomUnit,
-        onSave = { field -> stateHolder.updateDraft { it.copy(fields = it.fields + field) }; addingField = false },
-    )
+    }
     confirmFieldDeleteIndex?.let { index -> fields.getOrNull(index)?.let { field ->
         val valueCount = field.id?.let { id -> liveInitial?.entries?.count { it.value(id) != null } } ?: 0
         PaneAwareAlertDialog(
             onDismissRequest = { confirmFieldDeleteIndex = null },
-            title = { Text("Remove ${field.name} Field?") },
+            title = null,
             text = {
-                Text(
-                    buildString {
-                        append("This removes the Field from your draft. ")
-                        if (valueCount > 0) append("It had $valueCount saved values when this editor opened. ")
-                        append("Before Save, Whip will review the current exact impact on values.")
-                    },
-                )
+                WhipDialogBody(Modifier.verticalScroll(rememberScrollState())) {
+                    WhipDialogHeading("Remove ${field.name} Field?")
+                    Text(
+                        buildString {
+                            append("This removes the Field from your draft. ")
+                            if (valueCount > 0) append("It currently has ${quantityLabel(valueCount, "saved value")}. ")
+                        },
+                    )
+                    Text(
+                        "Before Save, Whip will review the current exact impact on values.",
+                        modifier = Modifier.testTag("track-field-removal-explanation"),
+                    )
+                }
             },
             confirmButton = { WhipTextButton(onClick = {
                 stateHolder.updateDraft { current -> current.copy(fields = current.fields.toMutableList().also { it.removeAt(index) }) }
                 confirmFieldDeleteIndex = null
-                editingFieldIndex = null
+                closeFieldEditor()
             }) { Text("Remove Field", color = MaterialTheme.colorScheme.error) } },
             dismissButton = {
                 Row {
@@ -3182,9 +3215,8 @@ internal fun TrackEditor(
         PaneAwareAlertDialog(
             testTag = "track-definition-removal-review",
             onDismissRequest = { if (!busy) removalReviewOpen = false },
-            title = { Text("Review Removed Track Data") },
+            title = null,
             paneTitle = "Track definition removal review",
-            stableHeight = true,
             inputBlocked = busy,
             inputBlockedLabel = if (saving) "Saving Track" else "Reviewing Updated Impact",
             text = {
@@ -3193,6 +3225,7 @@ internal fun TrackEditor(
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                     contentPadding = PaddingValues(bottom = 8.dp),
                 ) {
+                    item { WhipDialogHeading("Review Removed Track Data") }
                     item {
                         Text(
                             "Nothing changes until you apply this exact review. If saved values change, Save stops and asks you to review again.",
@@ -3233,6 +3266,7 @@ internal fun TrackEditor(
                                         { replacement ->
                                             stateHolder.updateOptionReplacement(impact.optionId, replacement?.id)
                                         },
+                                        selectedValueMaxLines = Int.MAX_VALUE,
                                     )
                                 }
                             }

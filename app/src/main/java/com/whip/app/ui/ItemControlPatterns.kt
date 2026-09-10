@@ -1563,6 +1563,7 @@ internal fun <T> SelectionField(
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    selectedValueMaxLines: Int = 1,
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1582,7 +1583,7 @@ internal fun <T> SelectionField(
                 Text(
                     valueText(selected),
                     modifier = Modifier.weight(1f),
-                    maxLines = 1,
+                    maxLines = selectedValueMaxLines,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Icon(Icons.Outlined.ArrowDropDown, contentDescription = null)

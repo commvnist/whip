@@ -1,5 +1,20 @@
 # Durable product and engineering decisions
 
+### DEC-20260909-028 — Bound removal reading while keeping its decision explicit
+
+- Context: FND-20260909-034 shows unreadable small enlarged warning/destination and excessive empty space in ordinary final review.
+- Decision: Reuse the established scrolling-heading/body pattern for draft removal and include the exact review heading in its lazy reading owner. Keep footer actions fixed, allow natural bounded height, and opt this replacement selector into wrapping its complete selected value. Generic selection defaults remain unchanged.
+- Alternatives/tradeoffs: Removing the draft confirmation would discard nested Field authorship without a review or Undo. Removing final review would weaken explicit historical-data consent. Another wizard adds navigation and state ownership. A duplicated destination summary adds competing information; wrapping the authoritative selection is clearer. Long content still scrolls and exact review/commit safeguards remain mandatory.
+- Compatibility/status: Verified under VER-20260909-031. No data/schema/backup/version change.
+
+### DEC-20260909-027 — Submit one canonical Track draft and reveal each rejected attempt
+
+- Context: FND-20260909-031/032 reproduce a valid-but-unfinished Save and offscreen parent validation. The ordinary native destructive journey separately verifies review/replace/recreation/stale-impact rejection and exact final mutation on current production.
+- Decision: Keep exact draft equality as the review ownership guard. At explicit valid Save, install canonical content into editor state before requesting review; if it differs, invalidate the old removal review and obtain a fresh one. Retain raw invalid/in-progress authorship until that boundary. Track validation attempts separately from their message so every rejected attempt reveals the current summary.
+- Alternatives/tradeoffs: Dropping draft equality risks accepting responses for different authored content. Comparing independently normalized live/response drafts adds a second interpretation path. Sending raw content while separately validating canonical content keeps two different submitted states and unresolved Area naming. Canonical submission uses the existing validation boundary and exact state ownership, without a wizard or new persistence model.
+- Compatibility/status: Verified under VER-20260909-031. Preserve canonical domain acceptance, IDs/history, response/session ownership, stale-impact rejection and explicit destructive confirmation. No schema, backup or release change.
+- Nested ownership: FND-20260909-033 requires a SaveableStateHolder scoped to the parent Track session and a separate key for each Field opening. Remove that key synchronously on Save/discard/deletion, including before composition teardown. A key alone would prevent some reuse but leave closed state retained; an explicit owner/removal lifecycle preserves active drafts and releases completed ones.
+
 ### DEC-20260909-026 — Validate Field configuration at its editing controls
 
 - Context: FND-20260909-030 reproduces late duplicate-Choice rejection and misleading Scale error attribution in real existing-history editing.

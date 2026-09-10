@@ -1,0 +1,5 @@
+{
+  "scope": "Indentation only in nested Field state and removal body; reconstructed pre-format source exactly matches tested SHA-256.",
+  "tested_sha256": "393db430fe74012eb0157b53d70e8a69f5583feeb12df3e2c8e43e8da1931a29",
+  "retained_sha256": "086784bbe7c90cbbfb15e8fe7ce73792bd906e1be052e7da63925675bed4e4f0"
+}

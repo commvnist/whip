@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="1" errors="0" skipped="0" time="30.218" timestamp="2026-09-10T02:05:22" hostname="localhost">
+  <testsuite name="com.whip.app.TrackDefinitionReviewJourneyE2ETest" tests="2" failures="1" errors="0" skipped="0" time="29.219" timestamp="2026-09-10T02:05:22" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="parentValidationRevealsEveryFailedSaveAndAllowsCorrection" classname="com.whip.app.TrackDefinitionReviewJourneyE2ETest" time="15.483" />
+    <testcase name="normalizedAuthorshipCompletesExistingTrackSave" classname="com.whip.app.TrackDefinitionReviewJourneyE2ETest" time="13.736">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'Paved street' (ignoreCase: false))
+Semantics of the node:
+Node #3741 at (l=222.0, t=1064.0, r=859.0, b=1232.0)px, Tag: 'track-field-choice-1'
+ContentDataType = 'AndroidContentDataType(androidAutofillType=1)'
+EditableText = '  Paved   street  '
+FillableData = 'androidx.compose.ui.autofill.AndroidFillableData&#64;19967f0'
+Focused = 'false'
+ImeAction = 'Default'
+InputText = '  Paved   street  '
+IsEditable = 'true'
+Text = '[Option 2]'
+TextSelectionRange = 'TextRange(0, 0)'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, InsertTextAtCursor, OnClick, OnFillData, OnLongClick, PasteText, PerformImeAction, RequestFocus, SetSelection, SetText, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 2 siblings
+Selector used: (Text + InputText + EditableText contains 'Option 2' (ignoreCase: false))
+
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+at com.whip.app.TrackDefinitionReviewJourneyE2ETest.normalization(TrackDefinitionReviewJourneyE2ETest.kt:118)
+at com.whip.app.TrackDefinitionReviewJourneyE2ETest.normalizedAuthorshipCompletesExistingTrackSave(TrackDefinitionReviewJourneyE2ETest.kt:31)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

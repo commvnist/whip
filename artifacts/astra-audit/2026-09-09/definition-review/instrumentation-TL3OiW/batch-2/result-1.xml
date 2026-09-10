@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="12" failures="0" errors="0" skipped="0" time="243.607" timestamp="2026-09-10T02:39:20" hostname="localhost">
+  <testsuite name="com.whip.app.TrackAuthoringJourneyE2ETest" tests="2" failures="0" errors="0" skipped="0" time="212.377" timestamp="2026-09-10T02:39:20" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="mixedTrackCanBeAuthoredRecoveredAndUsedAtLargeText" classname="com.whip.app.TrackAuthoringJourneyE2ETest" time="126.29" />
+    <testcase name="mixedTrackCanBeAuthoredRecoveredAndUsed" classname="com.whip.app.TrackAuthoringJourneyE2ETest" time="86.087" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackDefinitionMutationUiTest" tests="8" failures="0" errors="0" skipped="0" time="20.375" timestamp="2026-09-10T02:39:20" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="openingNumberFieldRetainsItsAuthoredUnitAndPrecision" classname="com.whip.app.TrackDefinitionMutationUiTest" time="1.209" />
+    <testcase name="savingTrackConsumesBackAndExposesOneAccessibleBlockingSurface" classname="com.whip.app.TrackDefinitionMutationUiTest" time="2.469" />
+    <testcase name="unavailableEntryRouteExplainsNoMutationAndAlwaysProvidesAnExit" classname="com.whip.app.TrackDefinitionMutationUiTest" time="0.905" />
+    <testcase name="asynchronousDefinitionConflictScrollsToAndAnnouncesItsRecoveryAction" classname="com.whip.app.TrackDefinitionMutationUiTest" time="2.813" />
+    <testcase name="exactRemovalReviewKeepsLongImpactAndActionsReachableAtTwoHundredPercentText" classname="com.whip.app.TrackDefinitionMutationUiTest" time="3.896" />
+    <testcase name="freshAddedNumberFieldUsesCurrentUnitAndPrecisionPreferences" classname="com.whip.app.TrackDefinitionMutationUiTest" time="5.734" />
+    <testcase name="captureTrackUnavailableCatalog" classname="com.whip.app.TrackDefinitionMutationUiTest" time="2.114" />
+    <testcase name="missingEditTargetIsNotReinterpretedAsCreateButRecoveryFailureRemainsRetryable" classname="com.whip.app.TrackDefinitionMutationUiTest" time="1.235" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackDraftRecoveryUiTest" tests="2" failures="0" errors="0" skipped="0" time="9.602" timestamp="2026-09-10T02:39:20" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="recoveryNoticesRemainReadableAtLargeText" classname="com.whip.app.TrackDraftRecoveryUiTest" time="4.902" />
+    <testcase name="recoveryNoticesDistinguishLiveAndUnavailableDrafts" classname="com.whip.app.TrackDraftRecoveryUiTest" time="4.7" />
+  </testsuite>
+</testsuites>

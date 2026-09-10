@@ -1,0 +1,3 @@
+com.whip.app.TrackAuthoringJourneyE2ETest
+com.whip.app.TrackDefinitionMutationUiTest
+com.whip.app.TrackDraftRecoveryUiTest

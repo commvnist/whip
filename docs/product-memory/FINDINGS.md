@@ -1,5 +1,37 @@
 # Durable findings
 
+### FND-20260909-034 — Small enlarged definition removal hides its warning and destination
+
+- Severity/category: P2 accessibility and destructive-decision clarity.
+- Observed: The original API 26 480×800/240 dpi, actual-200% `remove-field.large` frame cuts off the warning after “Before Save, Whip”; its plain Text body has no scrolling owner. The matching replacement frame displays “Move Values t…” with no visible Trail destination. Both actions remain reachable and the native mutation tests pass, so semantic success alone misses the reading defects.
+- Cause: Draft removal fixes its title and renders an unscrollable paragraph inside bounded dialog space. The generic SelectionField forces a single-line selected value. Exact removal review also forces full available height, leaving a large blank gap above actions on API 34/37 ordinary text.
+- Approach: Keep explicit draft removal and exact final review, put their headings in bounded scrolling content, allow this consequential selected value to wrap, and let the final review size to its content within existing limits. Use truthful current saved-value wording because the count comes from the live projection. Verify the complete warning and selected destination through rendered text, not only semantic presence.
+- Related/status: Verified under FB-20260908-006 / VER-20260909-031. No destructive mutation or identity failure was demonstrated.
+
+### FND-20260909-033 — Closed nested Field state can outlive its editing session
+
+- Severity/category: P2 editor recovery and state ownership.
+- Observed: After the canonical Save correction, both normalization journeys in `mOuCdx` persist `Paved street` but reopen the Field showing the older raw `  Paved   street  `. `GA4Q3E` reproduces the ordinary case with a real Area change; the original PNG and native semantics confirm stale text after database assertions passed. The sequence saves the nested Field, recreates the Activity, saves the parent and reopens the same Field.
+- Cause: Field inputs register directly in the enclosing saveable registry. Their rememberSaveable inputs identify the Field but do not scope restored registry slots to a specific nested editing session. Closed/restored state can remain available for later reuse at the same composition position.
+- Expected/approach: Give each opened Field a scoped saveable-state owner, retain that owner across recreation while open, and explicitly remove it on Save/discard/deletion. New openings initialize from the current draft. Test both parent Save/reopen and nested discard/recreate/reopen; do not merely hide the mismatching text.
+- Related/status: Verified under FB-20260908-006 / VER-20260909-016 / VER-20260909-031. Stored-history corruption is not demonstrated by this case; the reopened form misrepresents the persisted value.
+
+### FND-20260909-031 — Canonical review cannot complete a raw existing-Track draft
+
+- Severity/category: P1 save completion and authorship, existing Track editing.
+- Observed: On `11c4429`, a real existing Track with whitespace in its name/description/Field/Choice labels and duplicate Tag spelling never closes after Save. `HgT9Tu` times out after 10 seconds; the personally inspected original shows enabled Save with the unsaved raw draft and no failure message.
+- Cause: Save passes `currentDraft().validated()` to review, while the response effect requires `reviewedDraft == draft` against the unnormalized state. Canonical normalization changes equality, so the successful review is ignored. Editing Area can also change the resolved Area name; the native Main-to-Outdoors change subsequently passes in VER-20260909-031.
+- Expected/approach: Preserve raw authorship during editing and recreation. At an explicit valid Save, install the canonical draft as the editor's submitted state and review that same immutable content. Preserve exact response ownership and invalidate an old removal review if normalization changes the submitted draft.
+- Related/status: Verified under FB-20260908-006 / VER-20260909-016 / VER-20260909-031. No stored-history loss is demonstrated; the save fails to complete.
+
+### FND-20260909-032 — Parent Track validation fails outside the reading viewport
+
+- Severity/category: P2 usability/accessibility, Track editor validation.
+- Observed: From Tags near the bottom of a real existing Track form, Save with duplicate normalized Field names leaves the viewport in Details/Organization with no visible explanation. `UFbJ5S` fails the displayed-error assertion; its personally inspected original confirms the missing visible feedback.
+- Cause: Validation inserts a summary at the top but lacks the scroll ownership already provided for persistence/definition conflicts. Merely keying a new effect on the message would miss repeated attempts with the same unchanged error.
+- Expected/approach: Every failed Save attempt reveals its own validation summary, including repeated identical errors and copy-recovery validation. Retain draft data, support correction/recreation and verify duplicate names plus missing Entry Identity.
+- Related/status: Verified under FB-20260908-006 / VER-20260909-016 / VER-20260909-031.
+
 ### FND-20260909-030 — Field errors are accepted late or attached to the wrong input
 
 - Severity/category: P2 usability/accessibility, Track Field configuration.

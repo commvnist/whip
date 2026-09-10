@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="2" errors="0" skipped="0" time="41.188" timestamp="2026-09-10T01:54:24" hostname="localhost">
+  <testsuite name="com.whip.app.TrackDefinitionReviewJourneyE2ETest" tests="2" failures="2" errors="0" skipped="0" time="40.11" timestamp="2026-09-10T01:54:24" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="normalizedAuthorshipCompletesExistingTrackSave" classname="com.whip.app.TrackDefinitionReviewJourneyE2ETest" time="25.757">
+      <failure>androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 10000 ms
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:901)
+at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:500)
+at com.whip.app.TrackDefinitionReviewJourneyE2ETest.awaitSaved(TrackDefinitionReviewJourneyE2ETest.kt:160)
+at com.whip.app.TrackDefinitionReviewJourneyE2ETest.normalization(TrackDefinitionReviewJourneyE2ETest.kt:51)
+at com.whip.app.TrackDefinitionReviewJourneyE2ETest.normalizedAuthorshipCompletesExistingTrackSave(TrackDefinitionReviewJourneyE2ETest.kt:29)
+</failure>
+    </testcase>
+    <testcase name="destructiveReviewPreservesReplacementAndRejectsChangedHistory" classname="com.whip.app.TrackDefinitionReviewJourneyE2ETest" time="14.353">
+      <failure>java.lang.AssertionError: expected:&lt;[TrackField(id=4, uuid=62aa1571-f1d8-4af4-b273-0a8749d8b40f, trackId=2, name=Name, type=ShortText, position=0, required=true, primary=true, showInList=false, dimension=null, unitId=null, precision=0, scaleMin=null, scaleMax=null, scaleLowLabel=, scaleHighLabel=, createdAtMillis=1789005249443, updatedAtMillis=1789005249443, scaleStep=1.0), TrackField(id=5, uuid=e82e625f-2ff3-468c-a571-c16c6dff5432, trackId=2, name=Terrain, type=SingleChoice, position=1, required=false, primary=false, showInList=false, dimension=null, unitId=null, precision=0, scaleMin=null, scaleMax=null, scaleLowLabel=, scaleHighLabel=, createdAtMillis=1789005249443, updatedAtMillis=1789005249443, scaleStep=1.0)]&gt; but was:&lt;[TrackField(id=4, uuid=62aa1571-f1d8-4af4-b273-0a8749d8b40f, trackId=2, name=Name, type=ShortText, position=0, required=true, primary=true, showInList=false, dimension=null, unitId=null, precision=0, scaleMin=null, scaleMax=null, scaleLowLabel=, scaleHighLabel=, createdAtMillis=1789005249443, updatedAtMillis=1789005262493, scaleStep=1.0), TrackField(id=5, uuid=e82e625f-2ff3-468c-a571-c16c6dff5432, trackId=2, name=Terrain, type=SingleChoice, position=1, required=false, primary=false, showInList=false, dimension=null, unitId=null, precision=0, scaleMin=null, scaleMax=null, scaleLowLabel=, scaleHighLabel=, createdAtMillis=1789005249443, updatedAtMillis=1789005262493, scaleStep=1.0)]&gt;
+at org.junit.Assert.fail(Assert.java:89)
+at org.junit.Assert.failNotEquals(Assert.java:835)
+at org.junit.Assert.assertEquals(Assert.java:120)
+at org.junit.Assert.assertEquals(Assert.java:146)
+at com.whip.app.TrackDefinitionReviewJourneyE2ETest.removal(TrackDefinitionReviewJourneyE2ETest.kt:117)
+at com.whip.app.TrackDefinitionReviewJourneyE2ETest.destructiveReviewPreservesReplacementAndRejectsChangedHistory(TrackDefinitionReviewJourneyE2ETest.kt:32)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

@@ -1,0 +1,78 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="6" failures="4" errors="0" skipped="0" time="71.892" timestamp="2026-09-10T02:02:17" hostname="localhost">
+  <testsuite name="com.whip.app.TrackDefinitionReviewJourneyE2ETest" tests="6" failures="4" errors="0" skipped="0" time="70.56" timestamp="2026-09-10T02:02:17" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="parentValidationRevealsEveryFailedSaveAndAllowsCorrection" classname="com.whip.app.TrackDefinitionReviewJourneyE2ETest" time="9.146">
+      <failure>java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains 'Field names must be unique within a Track' (ignoreCase: false) is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.TrackDefinitionReviewJourneyE2ETest.validation(TrackDefinitionReviewJourneyE2ETest.kt:51)
+at com.whip.app.TrackDefinitionReviewJourneyE2ETest.parentValidationRevealsEveryFailedSaveAndAllowsCorrection(TrackDefinitionReviewJourneyE2ETest.kt:35)
+</failure>
+    </testcase>
+    <testcase name="destructiveReviewPreservesReplacementAndRejectsChangedHistoryAtLargeText" classname="com.whip.app.TrackDefinitionReviewJourneyE2ETest" time="16.198" />
+    <testcase name="normalizedAuthorshipCompletesExistingTrackSave" classname="com.whip.app.TrackDefinitionReviewJourneyE2ETest" time="12.034">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'Paved street' (ignoreCase: false))
+Semantics of the node:
+Node #4255 at (l=222.0, t=1064.0, r=859.0, b=1232.0)px, Tag: 'track-field-choice-1'
+ContentDataType = 'AndroidContentDataType(androidAutofillType=1)'
+EditableText = '  Paved   street  '
+FillableData = 'androidx.compose.ui.autofill.AndroidFillableData&#64;286424'
+Focused = 'false'
+ImeAction = 'Default'
+InputText = '  Paved   street  '
+IsEditable = 'true'
+Text = '[Option 2]'
+TextSelectionRange = 'TextRange(0, 0)'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, InsertTextAtCursor, OnClick, OnFillData, OnLongClick, PasteText, PerformImeAction, RequestFocus, SetSelection, SetText, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 2 siblings
+Selector used: (Text + InputText + EditableText contains 'Option 2' (ignoreCase: false))
+
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+at com.whip.app.TrackDefinitionReviewJourneyE2ETest.normalization(TrackDefinitionReviewJourneyE2ETest.kt:108)
+at com.whip.app.TrackDefinitionReviewJourneyE2ETest.normalizedAuthorshipCompletesExistingTrackSave(TrackDefinitionReviewJourneyE2ETest.kt:29)
+</failure>
+    </testcase>
+    <testcase name="parentValidationRevealsEveryFailedSaveAndAllowsCorrectionAtLargeText" classname="com.whip.app.TrackDefinitionReviewJourneyE2ETest" time="6.719">
+      <failure>java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains 'Field names must be unique within a Track' (ignoreCase: false) is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.TrackDefinitionReviewJourneyE2ETest.validation(TrackDefinitionReviewJourneyE2ETest.kt:51)
+at com.whip.app.TrackDefinitionReviewJourneyE2ETest.parentValidationRevealsEveryFailedSaveAndAllowsCorrectionAtLargeText(TrackDefinitionReviewJourneyE2ETest.kt:37)
+</failure>
+    </testcase>
+    <testcase name="destructiveReviewPreservesReplacementAndRejectsChangedHistory" classname="com.whip.app.TrackDefinitionReviewJourneyE2ETest" time="15.664" />
+    <testcase name="normalizedAuthorshipCompletesExistingTrackSaveAtLargeText" classname="com.whip.app.TrackDefinitionReviewJourneyE2ETest" time="10.799">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'Paved street' (ignoreCase: false))
+Semantics of the node:
+Node #8524 at (l=222.0, t=478.0, r=859.0, b=710.0)px, Tag: 'track-field-choice-1'
+ContentDataType = 'AndroidContentDataType(androidAutofillType=1)'
+EditableText = '  Paved   street  '
+FillableData = 'androidx.compose.ui.autofill.AndroidFillableData&#64;b66dee0'
+Focused = 'false'
+ImeAction = 'Default'
+InputText = '  Paved   street  '
+IsEditable = 'true'
+Text = '[Option 2]'
+TextSelectionRange = 'TextRange(0, 0)'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, InsertTextAtCursor, OnClick, OnFillData, OnLongClick, PasteText, PerformImeAction, RequestFocus, SetSelection, SetText, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 2 siblings
+Selector used: (Text + InputText + EditableText contains 'Option 2' (ignoreCase: false))
+
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+at com.whip.app.TrackDefinitionReviewJourneyE2ETest.normalization(TrackDefinitionReviewJourneyE2ETest.kt:108)
+at com.whip.app.TrackDefinitionReviewJourneyE2ETest.normalizedAuthorshipCompletesExistingTrackSaveAtLargeText(TrackDefinitionReviewJourneyE2ETest.kt:31)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

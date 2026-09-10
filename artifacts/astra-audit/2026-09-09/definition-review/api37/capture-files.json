@@ -1,0 +1,31 @@
+{
+  "api": 37,
+  "serial": "emulator-5556",
+  "directory": "/sdcard/Download/whip-ui-catalog",
+  "files": {
+    "tracks.definition-review.normalized.large.xml": "tracks.definition-review.normalized.large (2).xml",
+    "tracks.definition-review.normalized.large.png": "tracks.definition-review.normalized.large (2).png",
+    "tracks.definition-review.missing-identity.large.xml": "tracks.definition-review.missing-identity.large (2).xml",
+    "tracks.definition-review.missing-identity.large.png": "tracks.definition-review.missing-identity.large (2).png",
+    "tracks.definition-review.duplicate-fields.large.xml": "tracks.definition-review.duplicate-fields.large (2).xml",
+    "tracks.definition-review.duplicate-fields.large.png": "tracks.definition-review.duplicate-fields.large (2).png",
+    "tracks.definition-review.changed-history.large.xml": "tracks.definition-review.changed-history.large (2).xml",
+    "tracks.definition-review.changed-history.large.png": "tracks.definition-review.changed-history.large (2).png",
+    "tracks.definition-review.replace-choice.large.xml": "tracks.definition-review.replace-choice.large (2).xml",
+    "tracks.definition-review.replace-choice.large.png": "tracks.definition-review.replace-choice.large (2).png",
+    "tracks.definition-review.remove-field.large.xml": "tracks.definition-review.remove-field.large (2).xml",
+    "tracks.definition-review.remove-field.large.png": "tracks.definition-review.remove-field.large (2).png",
+    "tracks.definition-review.changed-history.ordinary.xml": "tracks.definition-review.changed-history.ordinary (1).xml",
+    "tracks.definition-review.changed-history.ordinary.png": "tracks.definition-review.changed-history.ordinary (1).png",
+    "tracks.definition-review.replace-choice.ordinary.xml": "tracks.definition-review.replace-choice.ordinary (1).xml",
+    "tracks.definition-review.replace-choice.ordinary.png": "tracks.definition-review.replace-choice.ordinary (1).png",
+    "tracks.definition-review.remove-field.ordinary.xml": "tracks.definition-review.remove-field.ordinary (2).xml",
+    "tracks.definition-review.remove-field.ordinary.png": "tracks.definition-review.remove-field.ordinary (2).png",
+    "tracks.definition-review.normalized.ordinary.xml": "tracks.definition-review.normalized.ordinary (3).xml",
+    "tracks.definition-review.normalized.ordinary.png": "tracks.definition-review.normalized.ordinary (3).png",
+    "tracks.definition-review.missing-identity.ordinary.xml": "tracks.definition-review.missing-identity.ordinary (3).xml",
+    "tracks.definition-review.missing-identity.ordinary.png": "tracks.definition-review.missing-identity.ordinary (3).png",
+    "tracks.definition-review.duplicate-fields.ordinary.xml": "tracks.definition-review.duplicate-fields.ordinary (3).xml",
+    "tracks.definition-review.duplicate-fields.ordinary.png": "tracks.definition-review.duplicate-fields.ordinary (3).png"
+  }
+}

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.UiDesignArchitectureTest" tests="17" skipped="0" failures="0" errors="0" timestamp="2026-09-10T02:41:24.275Z" hostname="beast" time="0.161">
+  <properties/>
+  <testcase name="weekdayCalendarSelectionAndEmptyStateReuseStayAtBoundedSemanticSeams" classname="com.whip.app.ui.UiDesignArchitectureTest" time="0.015"/>
+  <testcase name="primaryWorkspaceSwitchingPreservesEachWorkspaceContext" classname="com.whip.app.ui.UiDesignArchitectureTest" time="0.004"/>
+  <testcase name="userFacingChoicesUseExplicitLabelsAndSharedSectionHierarchy" classname="com.whip.app.ui.UiDesignArchitectureTest" time="0.013"/>
+  <testcase name="interactiveUiDoesNotReintroduceSub48DpTargets" classname="com.whip.app.ui.UiDesignArchitectureTest" time="0.046"/>
+  <testcase name="persistentNavigationRailDoesNotMoveWithTheKeyboardInset" classname="com.whip.app.ui.UiDesignArchitectureTest" time="0.003"/>
+  <testcase name="everyFirstClassWorkspaceUsesTheSharedHeaderAndDestinationContract" classname="com.whip.app.ui.UiDesignArchitectureTest" time="0.006"/>
+  <testcase name="routineSuccessFeedbackIsQuietByDefaultAcrossEveryWorkspace" classname="com.whip.app.ui.UiDesignArchitectureTest" time="0.001"/>
+  <testcase name="sharedEmptyStateAndCollectionSpacingOwnWorkspaceVerticalRhythm" classname="com.whip.app.ui.UiDesignArchitectureTest" time="0.012"/>
+  <testcase name="fullScreenEditorsUseOneAdaptiveChromeAndPrimaryActionHierarchy" classname="com.whip.app.ui.UiDesignArchitectureTest" time="0.004"/>
+  <testcase name="themeDoesNotCollapseSuccessWarningAndActionIntoOneAccent" classname="com.whip.app.ui.UiDesignArchitectureTest" time="0.0"/>
+  <testcase name="passiveSuccessBarsAreExcludedAndElapsedTimeUsesOneRestrainedComposition" classname="com.whip.app.ui.UiDesignArchitectureTest" time="0.002"/>
+  <testcase name="editorHierarchyAndLocalizedChromeRemainFirstClassPatterns" classname="com.whip.app.ui.UiDesignArchitectureTest" time="0.003"/>
+  <testcase name="entityDetailsUseOneAdaptiveInspectorContract" classname="com.whip.app.ui.UiDesignArchitectureTest" time="0.003"/>
+  <testcase name="transientSurfacesCannotBypassPaneAwareDialogPlacement" classname="com.whip.app.ui.UiDesignArchitectureTest" time="0.04"/>
+  <testcase name="statusColorAndTypographyAreExplicitDesignSystemContracts" classname="com.whip.app.ui.UiDesignArchitectureTest" time="0.004"/>
+  <testcase name="workspaceCreationHasOneStableTopBarHostAndNoFab" classname="com.whip.app.ui.UiDesignArchitectureTest" time="0.003"/>
+  <testcase name="groupedInformationAndDatePickerHaveNeutralBoundedOwnership" classname="com.whip.app.ui.UiDesignArchitectureTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

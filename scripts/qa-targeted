@@ -206,6 +206,7 @@ add_profile() {
                 'com.whip.app.TrackCsvImportIntegrityTest'
                 'com.whip.app.TrackCsvJourneyE2ETest'
                 'com.whip.app.TrackFieldEditingJourneyE2ETest'
+                'com.whip.app.TrackDefinitionReviewJourneyE2ETest'
                 'com.whip.app.ui.TrackCsvImportUiTest'
                 'com.whip.app.ui.TrackCsvImportRecoveryViewModelTest'
                 'com.whip.app.TrackWorkspaceUiTest'

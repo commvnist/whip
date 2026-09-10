@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="6" failures="0" errors="0" skipped="0" time="132.922" timestamp="2026-09-10T02:45:48" hostname="localhost">
+  <testsuite name="com.whip.app.TrackDefinitionReviewJourneyE2ETest" tests="6" failures="0" errors="0" skipped="0" time="131.489" timestamp="2026-09-10T02:45:48" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="parentValidationRevealsEveryFailedSaveAndAllowsCorrection" classname="com.whip.app.TrackDefinitionReviewJourneyE2ETest" time="17.295" />
+    <testcase name="destructiveReviewPreservesReplacementAndRejectsChangedHistoryAtLargeText" classname="com.whip.app.TrackDefinitionReviewJourneyE2ETest" time="15.613" />
+    <testcase name="normalizedAuthorshipCompletesExistingTrackSave" classname="com.whip.app.TrackDefinitionReviewJourneyE2ETest" time="17.702" />
+    <testcase name="parentValidationRevealsEveryFailedSaveAndAllowsCorrectionAtLargeText" classname="com.whip.app.TrackDefinitionReviewJourneyE2ETest" time="22.841" />
+    <testcase name="destructiveReviewPreservesReplacementAndRejectsChangedHistory" classname="com.whip.app.TrackDefinitionReviewJourneyE2ETest" time="23.324" />
+    <testcase name="normalizedAuthorshipCompletesExistingTrackSaveAtLargeText" classname="com.whip.app.TrackDefinitionReviewJourneyE2ETest" time="34.714" />
+  </testsuite>
+</testsuites>

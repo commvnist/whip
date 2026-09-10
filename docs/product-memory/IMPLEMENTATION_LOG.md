@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260909-030 — Complete Track saves and make removal decisions readable
+
+- Behavior changed: Valid Save installs the canonical submitted draft before exact review, so normalized text/Tags/Area changes complete. Each failed parent validation attempt reveals its explanation. Each nested Field opening owns and releases its saved state, preventing closed drafts from reappearing after recreation. Removal headings/warnings scroll above fixed actions, current saved-value copy is truthful, the replacement selection wraps and short final reviews use natural bounded height.
+- Important files: TrackScreens.kt owns canonical submission, attempt visibility, nested saved-state lifecycle and removal reading. SelectionField in ItemControlPatterns.kt adds an opt-in selected-line limit; existing callers retain their default. Six TrackDefinitionReviewJourneyE2ETest methods join the permanent Tracks profile and twelve catalog states.
+- Verification: VER-20260909-031 records native ordinary/actual-200% journeys on API 26/34/37, exact Entry/value/identity assertions, stale-review rejection, correction/recreation and Save/reopen. Initial 66 JVM / 117 Android checks, 55 final-layout neighbors, focused six-method runs, 346 JVM readiness tests, lint/build and catalog/fixture checks provide scoped acceptance. Product baselines, interrupted runs and corrected fixture failures remain explicit in the evidence.
+- Compatibility/limits: No domain acceptance, persistence authority, schema, backup or version change. Exact historical-data consent remains required. No physical-phone operation, release or publication. Copy-recovery's complete native journey, long arbitrary labels, retained-history-incompatible Scale UX, large histories, RTL/TalkBack and whole Tracks/app acceptance remain open.
+- Related/status: Verified for FND-20260909-031/032/033/034 and DEC-20260909-027/028 under FB-20260908-006 / VER-20260909-016. Evidence: `artifacts/astra-audit/2026-09-09/definition-review/README.md`. Normal main/upstream delivery is recorded by Git history.
+
 ### IMP-20260909-029 — Correct Field validation while preserving existing Track history
 
 - Behavior changed: Duplicate normalized Choice labels are identified and blocked before leaving their Field. Scale errors attach to Minimum, Maximum or Increment as appropriate; bounds stack on narrow/enlarged dialogs and focused controls use existing relocation. Number guidance describes default-unit changes and preserved entered units.
