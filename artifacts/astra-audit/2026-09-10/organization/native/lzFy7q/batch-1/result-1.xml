@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="1" errors="0" skipped="0" time="28.568" timestamp="2026-09-10T12:29:47" hostname="localhost">
+  <testsuite name="com.whip.app.OrganizationJourneyE2ETest" tests="2" failures="1" errors="0" skipped="0" time="27.617" timestamp="2026-09-10T12:29:47" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="tagChangesKeepEveryDomainAndSavedHistoryThroughRecreation" classname="com.whip.app.OrganizationJourneyE2ETest" time="24.269" />
+    <testcase name="areaIdentityAndRenameDraftSurviveTheRealManagerJourney" classname="com.whip.app.OrganizationJourneyE2ETest" time="3.348">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'Research and creative projects' (ignoreCase: false) as substring)
+Semantics of the node:
+Node #1867 at (l=179.0, t=153.0, r=901.0, b=332.0)px, Tag: 'area-destination-title'
+Has 2 children, 3 siblings
+Selector used: (TestTag = 'area-destination-title')
+
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+at com.whip.app.OrganizationJourneyE2ETest.areaIdentityAndRenameDraftSurviveTheRealManagerJourney(OrganizationJourneyE2ETest.kt:117)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

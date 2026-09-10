@@ -58,7 +58,6 @@ import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Merge
 import androidx.compose.material.icons.outlined.Palette
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import com.whip.app.R
 import com.whip.app.domain.Area
@@ -182,42 +181,19 @@ internal fun AreaManagementDialog(
     WhipFullScreenSurface(title = "Areas") {
         Box(Modifier.fillMaxSize()) {
             Column(Modifier.fillMaxSize()) {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (detailId != null) {
-                        IconButton(
-                            onClick = { detailId = null },
-                            modifier = Modifier
-                                .testTag("area-back-action")
-                                .semantics { contentDescription = "Back to Areas" },
-                        ) {
-                            Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
-                        }
-                    }
-                    Column(Modifier.weight(1f).testTag("area-destination-title")) {
-                        Text(selectedArea?.name ?: "Areas", style = MaterialTheme.typography.headlineSmall)
-                        Text(
-                            when {
-                                selectedArea == null -> "Group related tasks, habits, goals, and tracks."
-                                selectedArea.archived -> "Archived Area · ${usageText(state.areaUsage[selectedArea.id] ?: AreaUsageCounts())}"
-                                else -> "Active Area · ${usageText(state.areaUsage[selectedArea.id] ?: AreaUsageCounts())}"
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    if (selectedArea == null) WhipButton(onClick = { createOpen = true }) { Text("Create Area") }
-                    WhipTrailingCloseAction(
-                        label = "Close Areas",
-                        onClick = onDismiss,
-                        enabled = !mutationCoordinator.saving,
-                        modifier = Modifier.testTag("area-close-action"),
-                    )
-                }
-                HorizontalDivider()
+                WhipManagementHeader(
+                    title = selectedArea?.name ?: "Areas",
+                    supportingText = when {
+                        selectedArea == null -> "Group related Tasks, Habits, Goals, and Tracks."
+                        selectedArea.archived -> "Archived Area · ${usageText(state.areaUsage[selectedArea.id] ?: AreaUsageCounts())}"
+                        else -> "Active Area · ${usageText(state.areaUsage[selectedArea.id] ?: AreaUsageCounts())}"
+                    },
+                    primary = if (selectedArea == null) WhipManagementAction("Create Area", { createOpen = true }) else null,
+                    back = if (detailId != null) WhipManagementAction("Back to Areas", { detailId = null }, "area-back-action") else null,
+                    close = WhipManagementAction("Close Areas", onDismiss, "area-close-action"),
+                    enabled = !mutationCoordinator.saving,
+                    titleTag = "area-destination-title",
+                )
                 if (mutationCoordinator.saving) {
                     WhipStatusCard(
                         kind = WhipStatusKind.Loading,
@@ -527,10 +503,17 @@ private fun AreaListContent(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
-            WhipPageHeader(
-                title = "Your Areas",
-                supportingText = "Open an Area to rename it, move its items, merge it, or manage its lifecycle.",
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
             ) {
+                Text(
+                    "${active.size} active" + if (archived.isNotEmpty()) " · ${archived.size} archived" else "",
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 if (!reordering && active.size > 1) {
                     WhipPageIconAction(
                         icon = Icons.Outlined.DragHandle,
@@ -752,7 +735,7 @@ private fun AreaDetailContent(
         item {
             WhipSection("Organization", supportingText = "Move or combine every assigned task, habit, goal, Track, and Track Entry in one operation.") {
                 WhipOutlinedButton(onClick = onMoveItems, enabled = usage.total > 0, modifier = Modifier.fillMaxWidth()) {
-                    Text(if (usage.total > 0) "Move ${usage.total} Items" else "No Items to Move")
+                    Text(if (usage.total > 0) "Move ${usage.total} ${if (usage.total == 1) "Item" else "Items"}" else "No Items to Move")
                 }
                 WhipOutlinedButton(onClick = onMerge, modifier = Modifier.fillMaxWidth()) { Text("Merge into Another Area") }
             }

@@ -1,0 +1,32 @@
+[
+  {
+    "file": "organization.journey.area-renamed.xml",
+    "original": "organization.journey.area-renamed.xml",
+    "sha256": "e42ca1826dbac8ee920187152111a1cc686e974db225ae0c52f4ba206eb56835"
+  },
+  {
+    "file": "organization.journey.area-renamed.png",
+    "original": "organization.journey.area-renamed.png",
+    "sha256": "027127c6daf5ef37dcf415a83d21fe1733d7e1b2d632a3cf8006d20b65ed0f24"
+  },
+  {
+    "file": "organization.journey.areas.xml",
+    "original": "organization.journey.areas (1).xml",
+    "sha256": "61a2c565c6f959aec17ffee4a174b55bdaa18d0db0f21f6601027c79022b4a06"
+  },
+  {
+    "file": "organization.journey.areas.png",
+    "original": "organization.journey.areas (1).png",
+    "sha256": "1dca701fdf4bab81e31668ecbffd1ba89a359a3b056ec67adde2b15980165092"
+  },
+  {
+    "file": "organization.journey.tags.xml",
+    "original": "organization.journey.tags (1).xml",
+    "sha256": "93403d61cd935bf56ab04cd3a864bbc9b65b23a582a9669b8e2648378f7449e2"
+  },
+  {
+    "file": "organization.journey.tags.png",
+    "original": "organization.journey.tags (1).png",
+    "sha256": "e577c8565ad8d29ab4db2f15cb64ba1dd38db6351b153cda89d549a56f5bddaa"
+  }
+]

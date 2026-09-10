@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260910-013 — Give Areas and Tags one consistent management header
+
+- Behavior: Both managers present one destination title, complete description and predictable Create/Back/Close roles. Remove repeated Your Areas/Your Tags introductions so Tag search and saved records appear earlier. Area count and reorder share a compact row; selected Area actions correctly say Move 1 Item. Long Area names retain natural height and separate usage text.
+- Architecture: WhipManagementHeader and WhipManagementAction own shared header geometry, typography, heading semantics and primary-action stacking. AreaManagementDialog and TagManagementDialog declare roles and remove their local header implementations. Existing full-screen/list/master-detail boundaries, records, transaction coordinators, saved drafts and consequence dialogs remain feature-owned. No universal form or domain-state builder is introduced.
+- Verification/status: Verified under FND-20260910-020, DEC/VER-20260910-013 and FB-20260910-001/002. Two OrganizationJourneyE2ETest methods join the Settings profile; ten native states join the catalog. Real Tag create/rename/archive/search/restore/merge/recreation/reopen preserves all four domain references and saved history. Area rename/recreation/navigation preserves assigned identity. Final 51 API 34 checks, four API 37 methods, 371 JVM readiness checks and 23 original visual reviews pass with no source/APK drift. Evidence: `artifacts/astra-audit/2026-09-10/organization/README.md`.
+- Compatibility/remaining work: No schema, data epoch, backup, version or release change. Complete Area lifecycle, shared wide reading measure and remaining app reviews/final gates remain open. Existing large-text header regressions pass; no new per-screen scale-patching effort.
+
 ### IMP-20260910-012 — Preserve meaningful Goal percentages throughout the app
 
 - Behavior: A saved 0.05 against a target of 10 now reads 0.5% across Home, collections, expanded cards, Insights, inspector outcomes, the accessible trend table and closure history. Positive values below 0.1% and values above 99.9% but below complete remain distinct from exact zero and 100%. Locale controls decimal and percent spacing; ordinary values use at most one decimal without unnecessary zeros.

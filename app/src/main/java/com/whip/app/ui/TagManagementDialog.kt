@@ -3,7 +3,6 @@ package com.whip.app.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,7 +29,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -109,12 +107,13 @@ internal fun TagManagementDialog(
     WhipFullScreenSurface(title = "Tags") {
         Box(Modifier.fillMaxSize().testTag("tag-manager")) {
             Column(Modifier.fillMaxSize()) {
-                TagManagerHeader(
-                    saving = coordinator.saving,
-                    onCreate = { createOpen = true },
-                    onClose = onDismiss,
+                WhipManagementHeader(
+                    title = "Tags",
+                    supportingText = "Flexible labels shared by Tasks, Habits, Goals, and Tracks.",
+                    primary = WhipManagementAction("Create Tag", { createOpen = true }, "create-tag-action"),
+                    close = WhipManagementAction("Close Tags", onDismiss, "tag-close-action"),
+                    enabled = !coordinator.saving,
                 )
-                HorizontalDivider()
                 if (coordinator.saving) {
                     WhipStatusCard(
                         kind = WhipStatusKind.Loading,
@@ -251,76 +250,6 @@ internal fun TagManagementDialog(
 }
 
 @Composable
-private fun TagManagerHeader(
-    saving: Boolean,
-    onCreate: () -> Unit,
-    onClose: () -> Unit,
-) {
-    BoxWithConstraints(
-        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-    ) {
-        val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
-        if (stacked) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        "Tags",
-                        style = MaterialTheme.typography.headlineSmall,
-                        modifier = Modifier.weight(1f),
-                    )
-                    WhipTrailingCloseAction(
-                        label = "Close Tags",
-                        enabled = !saving,
-                        onClick = onClose,
-                        modifier = Modifier.testTag("tag-close-action"),
-                    )
-                }
-                Text(
-                    "Flexible labels shared by Tasks, Habits, Goals, and Tracks.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                WhipButton(
-                    enabled = !saving,
-                    onClick = onCreate,
-                    modifier = Modifier.fillMaxWidth().testTag("create-tag-action"),
-                ) { Text("Create Tag") }
-            }
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text("Tags", style = MaterialTheme.typography.headlineSmall)
-                    Text(
-                        "Flexible labels shared by Tasks, Habits, Goals, and Tracks.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                WhipButton(
-                    enabled = !saving,
-                    onClick = onCreate,
-                    modifier = Modifier.testTag("create-tag-action"),
-                ) { Text("Create Tag") }
-                WhipTrailingCloseAction(
-                    label = "Close Tags",
-                    enabled = !saving,
-                    onClick = onClose,
-                    modifier = Modifier.testTag("tag-close-action"),
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun TagList(
     modifier: Modifier,
     state: SettingsUiState,
@@ -343,12 +272,6 @@ private fun TagList(
         contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp, 16.dp, 20.dp, 88.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        item {
-            WhipPageHeader(
-                title = "Your Tags",
-                supportingText = "Rename updates current references. Merge is a separate, explicit action.",
-            )
-        }
         item {
             OutlinedTextField(
                 value = query,

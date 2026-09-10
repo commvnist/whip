@@ -1,0 +1,24 @@
+file	NAF_nodes	observation
+native-before/organization.journey.tags.png	0	Unchanged native Tags repeats title and introduction before search and the first saved label.
+native-before/organization.journey.areas.png	0	Unchanged native Areas repeats title and operation guidance before records; reorder is beside the duplicate page heading.
+native-before/organization.journey.area-renamed.png	0	Unchanged native Area preserves the long name but uses a separate header layout; existing action incorrectly says Move 1 Items.
+final-api34/organization.journey.tags.png	0	One stable Tags header precedes search and the saved label with all four domain counts; duplicate introduction is removed.
+final-api34/organization.journey.tag-create.png	0	Create Tag retains its entered Practices draft across Activity recreation; child dialog still owns explicit Create.
+final-api34/organization.journey.tag-rename.png	0	Global rename retains its draft across recreation and explains every affected domain before submission.
+final-api34/organization.journey.tag-archive.png	0	Archive review names all four domain references and explicitly preserves their labels and searchability.
+final-api34/organization.journey.tag-archived.png	0	Search reveals the same archived Tag after recreation, preserving its long name, complete usage and Restore action.
+final-api34/organization.journey.tag-merge.png	0	Reviewed merge destination remains selected after recreation; source replacement, removal and preserved item history are explicit.
+final-api34/organization.journey.tag-merged.png	0	The surviving Practices label carries all four references after the real merge; saved history remains equal.
+final-api34/organization.journey.areas.png	0	Root Areas has one header, complete explanation, concise active count, reorder and earlier named records.
+final-api34/organization.journey.area-detail.png	0	Selected Area retains original title, assignment count, leading Back and trailing Close above existing action sections.
+final-api34/organization.journey.area-renamed.png	0	Long renamed Area remains complete; usage has its own full-width line and Move 1 Item uses the correct singular.
+final-api37/organization.journey.tags.png	0	One stable Tags header precedes search and the saved label with all four domain counts; duplicate introduction is removed.
+final-api37/organization.journey.tag-create.png	0	Create Tag retains its entered Practices draft across Activity recreation; child dialog still owns explicit Create.
+final-api37/organization.journey.tag-rename.png	0	Global rename retains its draft across recreation and explains every affected domain before submission.
+final-api37/organization.journey.tag-archive.png	0	Archive review names all four domain references and explicitly preserves their labels and searchability.
+final-api37/organization.journey.tag-archived.png	0	Search reveals the same archived Tag after recreation, preserving its long name, complete usage and Restore action.
+final-api37/organization.journey.tag-merge.png	0	Reviewed merge destination remains selected after recreation; source replacement, removal and preserved item history are explicit.
+final-api37/organization.journey.tag-merged.png	0	The surviving Practices label carries all four references after the real merge; saved history remains equal.
+final-api37/organization.journey.areas.png	0	Root Areas has one header, complete explanation, concise active count, reorder and earlier named records.
+final-api37/organization.journey.area-detail.png	0	Selected Area retains original title, assignment count, leading Back and trailing Close above existing action sections.
+final-api37/organization.journey.area-renamed.png	0	Long renamed Area remains complete; usage has its own full-width line and Move 1 Item uses the correct singular.

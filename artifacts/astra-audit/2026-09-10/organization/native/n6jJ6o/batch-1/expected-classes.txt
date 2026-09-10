@@ -1,0 +1,3 @@
+com.whip.app.OrganizationJourneyE2ETest
+com.whip.app.ui.AreaFeatureUiTest
+com.whip.app.ui.TagManagementUiTest

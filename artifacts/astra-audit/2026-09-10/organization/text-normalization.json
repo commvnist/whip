@@ -1,0 +1,142 @@
+[
+  {
+    "file": "native-before/organization.journey.tags.xml",
+    "original": "93403d61cd935bf56ab04cd3a864bbc9b65b23a582a9669b8e2648378f7449e2",
+    "retained": "a6e987e60886d709e2b3da3577f359b81d6680898e04323c4a143af277e84284"
+  },
+  {
+    "file": "native-before/organization.journey.areas.xml",
+    "original": "61a2c565c6f959aec17ffee4a174b55bdaa18d0db0f21f6601027c79022b4a06",
+    "retained": "2bc4132b5479599bf2671eeb2fdeb41842ebb0c0c955623a3c556e847330c188"
+  },
+  {
+    "file": "native-before/organization.journey.area-renamed.xml",
+    "original": "e42ca1826dbac8ee920187152111a1cc686e974db225ae0c52f4ba206eb56835",
+    "retained": "d258749ef8cfb34393f3988fbdb449788be95d878513cb225eb2b3a803601756"
+  },
+  {
+    "file": "final-api34/organization.journey.tags.xml",
+    "original": "b4f5f0fe58cdbd4f20f473552c7f4ff0925472192ca3e7d2ac2c3fdaa30ed917",
+    "retained": "4d71911a415eed42bd19ff55c359b0ca2b977d7e6e327ffc3d698a396daaa194"
+  },
+  {
+    "file": "final-api34/organization.journey.tag-create.xml",
+    "original": "954d53c2bcf3eb2e3eddb8c6ec3ea22e90bad84e533464cd7ac3e6918f48cbce",
+    "retained": "0702cd86d31cacadb4f400db7440654d8000729341634327ec7a3a98244b9485"
+  },
+  {
+    "file": "final-api34/organization.journey.tag-rename.xml",
+    "original": "a29f4cfed7b94290359794fc4124a3ecd0f6efacf2658bf6671fd50962be06f6",
+    "retained": "9b1ba684827e809199ccc95aeed707986f61d1796fadda0983b40ef341b25180"
+  },
+  {
+    "file": "final-api34/organization.journey.tag-archive.xml",
+    "original": "04d951a093741b2429987ea4be03ddcf9a19f77b6d866398537cb5948a89e51f",
+    "retained": "2a580d74bed58db34b2157fe6df0236578abc7d27f811135246f3784bf642ecc"
+  },
+  {
+    "file": "final-api34/organization.journey.tag-archived.xml",
+    "original": "807ae328e13b33738da1ef1bc7187bf7e240587a8819bb80ba12c7facad12054",
+    "retained": "04900d21ed3280addd1b15609168033184f0c9d7b697bc1793387352f2f3c087"
+  },
+  {
+    "file": "final-api34/organization.journey.tag-merge.xml",
+    "original": "b00db88ea18f776853270aa25bbd25c3251be8d03da545e87e595c4c2a602722",
+    "retained": "0677d39a9c004fda48f002de03d4448a4277d38f2fa55e8f789cd50fe34ea791"
+  },
+  {
+    "file": "final-api34/organization.journey.tag-merged.xml",
+    "original": "edff4d11e406a0220c2b17754b3383a5dc2544df33d269def5297eb063089832",
+    "retained": "d613a9f7b8c25404d42326b411c1c21f869af00fe087f4f5694bf896b12e7523"
+  },
+  {
+    "file": "final-api34/organization.journey.areas.xml",
+    "original": "0473147d50c62110a978a95ae8128b664601a4290f2bf1ca6a5247fcd08b37b0",
+    "retained": "8513c7592e98ba2dbbd6886744d63c99e789f0d11213f608a139940519a7116d"
+  },
+  {
+    "file": "final-api34/organization.journey.area-detail.xml",
+    "original": "ebf091552ab6089e05db7ca90b6d95f715e35c051ac566d44f353fdc0282bae8",
+    "retained": "145372bb0bfc0aa0619762f72c5f5c3c03672af66abd3177056bae02c4e1148f"
+  },
+  {
+    "file": "final-api34/organization.journey.area-renamed.xml",
+    "original": "d3dff1d1d3f266027447065286abb68333b1a82213e63570ce43c02cbbe6887a",
+    "retained": "5ce2cf04f306007e3a7cc11e18a0833c24845b23322760a16bf220ae8bb3bb2b"
+  },
+  {
+    "file": "final-api37/organization.journey.tags.xml",
+    "original": "fbf54ed3a1a9029168321dbb2ba86caf48ba9de7bbd59650bf93c23d0276d4c0",
+    "retained": "408e39335f5f383e025678cb908acad6056c2b45df55bbf679a99bba508bbef4"
+  },
+  {
+    "file": "final-api37/organization.journey.tag-create.xml",
+    "original": "f8277e81d0221a5655e437e8cd8281b0614c6cae90c6b140607b89a32297c818",
+    "retained": "766f8b0488bb0277e6dc0fb6eefbbf3fbc342b6b55f713d76610cfce5878bb8e"
+  },
+  {
+    "file": "final-api37/organization.journey.tag-rename.xml",
+    "original": "b09ba7346fc27f4ce3fe756154fc46a7d2d2a198c23f98237cf5306f7301ad38",
+    "retained": "c1b14f6ebbea3c818d08df4320b5a4665184663072102a85d43b035e9ee64b6a"
+  },
+  {
+    "file": "final-api37/organization.journey.tag-archive.xml",
+    "original": "73583285c094a6c0ddbd86a8e9bb96afd36a35f8b5b10f7409a3f763249a32ad",
+    "retained": "9fae79d2db71b1d6f4d6cac8be74092c0dca1d7c1748d57045d1e7ea386fab9b"
+  },
+  {
+    "file": "final-api37/organization.journey.tag-archived.xml",
+    "original": "43e83e6486dde9d9e78c62c649d1b2dc8995023faec44e88d661677d15c6c3ad",
+    "retained": "0003c189d9a98d0e1e856bc4f13014145a3ae3e0716f76ad09e4dd826167ef74"
+  },
+  {
+    "file": "final-api37/organization.journey.tag-merge.xml",
+    "original": "2701e7afaea24cf2bba5ccb21a88e8624225973dad48c8dbffcfc65018b68196",
+    "retained": "15e80ffcd7dc6e45c3374e70a7b0fac92649197ec07267bf493f613fd15c40cd"
+  },
+  {
+    "file": "final-api37/organization.journey.tag-merged.xml",
+    "original": "f07ba8d1c5b54794228d4478ce9a8ca95645ef5d9cb6fce5f5a3aaaf07aa6466",
+    "retained": "7a896aff47b5f5db19f23526101e6a414dcb59a060f34f0eb976adfcdff5e4da"
+  },
+  {
+    "file": "final-api37/organization.journey.areas.xml",
+    "original": "7e42c2d1d0422f9ae287c7b4d1dcd316f09038f08cc14555d4131ea3297113cf",
+    "retained": "355a86c6628e6ee39b9df79fb23946636ee1111e7538656324508a59f5ac8dcc"
+  },
+  {
+    "file": "final-api37/organization.journey.area-detail.xml",
+    "original": "2deff9b85df7625d4342f76ea621c1699f4eabf82e67678cd765ed165578f2bb",
+    "retained": "b8038b50f7ef5023fd31612289bde53eb7ff8293a1947ceba72f970c3a9ea83d"
+  },
+  {
+    "file": "final-api37/organization.journey.area-renamed.xml",
+    "original": "1c445ad2dd6772953e55faeedddecd8491e6e8a67012dcf2590e3574c0a159c6",
+    "retained": "04d814c28574788209b42e3d46a9092195cc9bec85107f01e6bda2b0727e4307"
+  },
+  {
+    "file": "native/1WCnaA/batch-1/result-1.xml",
+    "original": "7843b5e5038732dbad0fe829cd517be6c72df39dc1fb7629aa0afb8a3b9d0161",
+    "retained": "7fa0c35d90bfb349afcb8465fdea7fd2baf659d353610567b259c040bab824e4"
+  },
+  {
+    "file": "native/6SYr4F/batch-1/result-1.xml",
+    "original": "0a00c05e3f1891416e54bd1fd9e72fd8a366c7113a1b0d89f06a3a447f465c99",
+    "retained": "b4bc1ff65a73a5b4ddc18e4afcc1a162e0a73768974aa749a02bdebc5b2a5d37"
+  },
+  {
+    "file": "native/BUvOGZ/batch-1/result-1.xml",
+    "original": "aa66422de048d4e126499bda729c363c9f851f46a9e2e1b98cc2b9f15babf17f",
+    "retained": "31da182fe7a5d84bbdd2e4f61f3e627969df927f79ff0997e072940a45fa8ced"
+  },
+  {
+    "file": "native/lzFy7q/batch-1/result-1.xml",
+    "original": "475705d2abcee3c5767e169a139fe8143dc8e60b85921719298f8232efba7d28",
+    "retained": "6cd98f8a5108b996ac60f72abda254d2623f455879319d781116ef813c685a84"
+  },
+  {
+    "file": "native/n6jJ6o/batch-1/result-1.xml",
+    "original": "349ab1bdb24f43c76865b578b339831a07b7395abeb97977ce8269737de49ece",
+    "retained": "67640f28d946b14159695020b3279ebd4fc5868be897e06c3681467b9da56ce3"
+  }
+]

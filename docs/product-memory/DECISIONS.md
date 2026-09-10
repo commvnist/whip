@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-013 — Give management destinations one header and an earlier list
+
+- Evidence: FND-20260910-020 confirms duplicate introductions in both Organization managers; prior FND-20260907-006 already established a single selected-Area identity owner. The existing management operations and child dialogs provide complete consequence copy.
+- Decision: A shared management-header renderer declares title, supporting text, optional primary action/Back and trailing Close. It owns action placement, typography, full-width supporting text and natural height; Create moves below the title when available width requires it. Remove root Your Tags/Your Areas page introductions, preserve Tag search and expose Area count/reorder in one compact list row. Existing child dialogs, full-screen insets, list scrolling and wide master/detail ownership remain intact.
+- Alternatives/tradeoffs: Deleting paragraphs alone would leave separate header geometry and squeezed descriptions. Replacing all manager records/forms with one new DSL would exceed the demonstrated benefit and risk domain behavior. Reuse a small header contract for the two observed peers, retaining record-specific controls and all exact mutation coordinators. No data/schema/backup compatibility change is intended.
+- Status: Verified in VER-20260910-013: 51 API 34 checks, four API 37 methods, 371 JVM readiness checks and 23 original visual reviews. Real Tag operations preserve all four domain references and saved history; Area identity/rename/reopen remains intact. Broader Area lifecycle and whole-product review remain active.
+
 ### DEC-20260910-012 — Goal percentages preserve small progress and exact endpoints
 
 - Evidence: FND-20260910-019 and eight independent GoalScreens integer conversions cover collection/Home summaries, expanded cards, Insights, inspector outcomes, trend data and closure history. Existing domain calculations already retain the fractional progress; DEC-20260831-017 requires closure outcomes to remain frozen.

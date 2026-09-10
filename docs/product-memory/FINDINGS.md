@@ -1,5 +1,12 @@
 # Durable findings
 
+### FND-20260910-020 — Organization managers repeat introductions before useful content
+
+- Severity/category: P2 ordinary hierarchy, scanning and design consistency.
+- Observed: Fresh BUvOGZ Area/Tag catalog originals show a toolbar title/introduction immediately followed by a large Your Areas/Your Tags heading and another paragraph. Tags place rename/merge policy ahead of search and the first saved label; Areas repeat their available operations before the first record. Both headers squeeze their introduction beside Create/Close at ordinary phone width, using different local composition rules.
+- User impact: Repeated explanation consumes the first viewport and weakens the hierarchy between navigation, current records and actions. Selected Area detail already avoids this duplication under FND-20260907-006; the root managers should follow the same single-owner principle.
+- Remedy/status: Verified under FB-20260910-001/002 and IMP/VER-20260910-013. WhipManagementHeader owns title, full-width supporting text, optional Back/Create and trailing Close. Root search/records appear earlier and Area count/reorder remains discoverable. Consequence dialogs, exact mutations, usage counts and archived identity retain feature ownership. Two real journeys, affected regressions and 23 original visual reviews verify this bounded ordinary-UX improvement; broader organization/app acceptance remains open.
+
 ### FND-20260910-019 — Goal surfaces truncate small positive percentages to zero
 
 - Severity/category: P2 ordinary numeric comprehension.
