@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -19,12 +20,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -44,16 +47,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import com.whip.app.core.ReviewPeriod
 import com.whip.app.core.ReviewSection
-import com.whip.app.domain.HabitLogStatus
-import com.whip.app.domain.HabitScheduleType
-import com.whip.app.domain.isScheduledOn
-import com.whip.app.domain.outcomeForPeriod
-import com.whip.app.domain.successfulPeriodOutcomeDates
-import com.whip.app.domain.goalOutcomeScoreOnDate
-import com.whip.app.domain.MeasurementEntryStatus
-import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.domain.pearsonCorrelation
-import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -109,66 +103,47 @@ fun ReviewDialog(
     sections: Set<ReviewSection> = ReviewSection.entries.toSet(),
     onSectionsChange: (Set<ReviewSection>) -> Unit = {},
     onDrillDown: (ReviewSection) -> Unit = {},
+    onOpenOutcome: (ReviewOutcome) -> Unit = {},
     productivityAreaLabel: String? = null,
     trackState: TrackUiState = TrackUiState(loading = false),
     onOpenTracks: () -> Unit = {},
     retryActions: DomainRetryActions = DomainRetryActions(),
 ) {
     var compactOptionsExpanded by rememberSaveable { mutableStateOf(false) }
+    var detailedSection by rememberSaveable { mutableStateOf<ReviewSection?>(null) }
     val locale = LocalConfiguration.current.locales[0]
     val through = taskState.currentDate
     val start = reviewStartDate(period, through)
     val dates = generateSequence(start) { it.plusDays(1) }.takeWhile { !it.isAfter(through) }.toList()
-    val completedTasks = reviewCompletedTasks(taskState).groupingBy { item ->
-        item.completedAtMillis?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() } ?: item.scheduledDate
-    }.eachCount()
-    // Emit one outcome when the target period succeeds. Six water increments
-    // remain one 6-of-8 partial result, and a 3x/week habit remains one weekly
-    // result rather than three unrelated check-ins.
-    val habitOutcomeDates = (habitState.all.map { it.habit } + habitState.archived).distinctBy { it.id }.associate { habit ->
-        habit.id to habit.successfulPeriodOutcomeDates(
-            habitState.logs,
-            minOf(start, through.minusDays(29)),
-            through,
-            habitState.pauses,
-            habitState.customUnits,
-            habitState.skips,
-        )
-    }
-    val successfulHabitPeriods = dates.associateWith { date -> habitOutcomeDates.values.count { date in it } }
-    val workouts = gymState.history.filter { it.state == WorkoutSessionState.Finished }.groupingBy { it.localDate }.eachCount()
-    val goalProjections = goalState.active + goalState.completed + goalState.archived
-    val goalOutcomes = (dates + (0L until 30L).map { through.minusDays(it) }).distinct().associateWith { date ->
-        goalProjections.sumOf { projection ->
-            goalOutcomeScoreOnDate(projection.goal, projection.entries, projection.milestones, date)
-        }
-    }
-    val allSignals = listOf(
-        ReviewSection.Tasks to ReviewSignal("Tasks", dates.map { completedTasks[it]?.toDouble() ?: 0.0 }),
-        ReviewSection.Habits to ReviewSignal("Habit outcomes", dates.map { successfulHabitPeriods[it]?.toDouble() ?: 0.0 }),
-        ReviewSection.Goals to ReviewSignal("Goal progress", dates.map { goalOutcomes[it] ?: 0.0 }),
-        ReviewSection.Gym to ReviewSignal(if (productivityAreaLabel == null) "Workouts" else "Workouts · All gym data", dates.map { workouts[it]?.toDouble() ?: 0.0 }),
-    )
     val includedSections = reviewSectionsInDisplayOrder(sections).toSet()
     val availability = reviewAvailability(includedSections, taskState, habitState, goalState, gymState, trackState)
-    val signals = allSignals.filter { it.first in availability.readySections }.map { it.second }
-    val correlationSignals = if (productivityAreaLabel == null) signals else signals.filterNot { it.name.startsWith("Workouts") }
-    val correlationDates = (0L until 30L).map { through.minusDays(29L - it) }
-    fun valuesFor(name: String): List<Double> = when (name) {
-        "Tasks" -> correlationDates.map { completedTasks[it]?.toDouble() ?: 0.0 }
-        "Habit outcomes" -> correlationDates.map { date -> habitOutcomeDates.values.count { date in it }.toDouble() }
-        "Workouts", "Workouts · All gym data" -> correlationDates.map { workouts[it]?.toDouble() ?: 0.0 }
-        else -> correlationDates.map { goalOutcomes[it] ?: 0.0 }
+    val outcomes = remember(taskState, habitState, goalState, gymState, availability.readySections, start, through, zone) {
+        reviewOutcomes(taskState, habitState, goalState, gymState, availability.readySections,
+            minOf(start, through.minusDays(29)), through, zone)
     }
+    val allSignals = ReviewSection.entries.map { section ->
+        section to ReviewSignal(when (section) {
+            ReviewSection.Tasks -> "Tasks"
+            ReviewSection.Habits -> "Habit outcomes"
+            ReviewSection.Goals -> "Goal progress"
+            ReviewSection.Gym -> if (productivityAreaLabel == null) "Workouts" else "Workouts · All gym data"
+        }, outcomes.dailyReviewValues(section, dates))
+    }
+    val signals = allSignals.filter { it.first in availability.readySections }
+    val correlationSignals = if (productivityAreaLabel == null) signals else signals.filterNot { it.first == ReviewSection.Gym }
+    val correlationDates = (0L until 30L).map { through.minusDays(29L - it) }
     val correlations = buildList {
         correlationSignals.indices.forEach { left ->
             (left + 1 until correlationSignals.size).forEach { right ->
-                pearsonCorrelation(valuesFor(correlationSignals[left].name), valuesFor(correlationSignals[right].name))
+                pearsonCorrelation(
+                    outcomes.dailyReviewValues(correlationSignals[left].first, correlationDates),
+                    outcomes.dailyReviewValues(correlationSignals[right].first, correlationDates),
+                )
                     ?.let { result ->
                         add(
                             ReviewCorrelation(
-                                left = correlationSignals[left].name,
-                                right = correlationSignals[right].name,
+                                left = correlationSignals[left].second.name,
+                                right = correlationSignals[right].second.name,
                                 coefficient = result.coefficient,
                                 sampleSize = result.sampleSize,
                             ),
@@ -177,7 +152,7 @@ fun ReviewDialog(
             }
         }
     }
-    val hasReviewData = signals.any { signal -> signal.values.any { it != 0.0 } }
+    val hasReviewData = signals.any { (_, signal) -> signal.values.any { it != 0.0 } }
     val trackEvidence = if (availability.tracksReady) trackReviewEvidence(trackState, start, through) else null
     val rangeLabel = formatReviewRange(start, through, locale)
     val controls: @Composable () -> Unit = {
@@ -187,7 +162,7 @@ fun ReviewDialog(
             sections = sections,
             productivityAreaLabel = productivityAreaLabel,
             onPeriodChange = onPeriodChange,
-            onSectionsChange = onSectionsChange,
+            onSectionsChange = { detailedSection = null; onSectionsChange(it) },
         )
     }
     val overview: @Composable () -> Unit = {
@@ -202,11 +177,23 @@ fun ReviewDialog(
             rangeLabel = rangeLabel,
             locale = locale,
             onDrillDown = onDrillDown,
+            onOpenDetails = { detailedSection = it },
             onOpenTracks = onOpenTracks,
         )
     }
 
-    BackHandler(onBack = onDismiss)
+    val details: (@Composable () -> Unit)? = detailedSection?.takeIf { it in includedSections }?.let { selected ->
+        {
+            ReviewOutcomeDetails(
+                section = selected,
+                outcomes = outcomes.filter { it.section == selected && it.date in start..through },
+                rangeLabel = rangeLabel, areaLabel = productivityAreaLabel,
+                availability = availability, retryActions = retryActions, locale = locale,
+                onBack = { detailedSection = null }, onOpen = onOpenOutcome,
+            )
+        }
+    }
+    BackHandler { if (detailedSection != null) detailedSection = null else onDismiss() }
     WhipFullScreenSurface(title = "Review & Trends", modifier = modifier) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val useWideDashboard = maxWidth >= 720.dp && maxHeight >= 440.dp
@@ -218,6 +205,7 @@ fun ReviewDialog(
                     onDismiss = onDismiss,
                     controls = controls,
                     overview = overview,
+                    details = details,
                 )
             } else {
                 ReviewCompactDashboard(
@@ -231,6 +219,7 @@ fun ReviewDialog(
                     onOptionsExpandedChange = { compactOptionsExpanded = it },
                     controls = controls,
                     overview = overview,
+                    details = details,
                 )
             }
         }
@@ -245,7 +234,9 @@ private fun ReviewWideDashboard(
     onDismiss: () -> Unit,
     controls: @Composable () -> Unit,
     overview: @Composable () -> Unit,
+    details: (@Composable () -> Unit)?,
 ) {
+    val overviewScrollState = rememberLazyListState()
     val gutterWidth = hingeWidth.coerceIn(0.dp, 72.dp)
     val usableWidth = (availableWidth - gutterWidth).coerceAtLeast(640.dp)
     val maximumControlWidth = (usableWidth - 360.dp).coerceAtLeast(248.dp)
@@ -288,7 +279,10 @@ private fun ReviewWideDashboard(
                     .background(MaterialTheme.colorScheme.outlineVariant),
             )
         }
-        LazyColumn(
+        if (details != null) {
+            Box(Modifier.weight(1f).fillMaxHeight()) { details() }
+        } else LazyColumn(
+            state = overviewScrollState,
             modifier = Modifier.weight(1f).fillMaxHeight().testTag("review-overview-pane"),
             contentPadding = PaddingValues(
                 start = WhipSpacing.screenExpanded,
@@ -311,11 +305,14 @@ private fun ReviewCompactDashboard(
     onOptionsExpandedChange: (Boolean) -> Unit,
     controls: @Composable () -> Unit,
     overview: @Composable () -> Unit,
+    details: (@Composable () -> Unit)?,
 ) {
+    val overviewScrollState = rememberLazyListState()
     Column(Modifier.fillMaxSize().testTag("review-compact-dashboard")) {
         ReviewDestinationHeader(onDismiss = onDismiss, sidebar = false)
         HorizontalDivider()
-        LazyColumn(
+        if (details != null) details() else LazyColumn(
+            state = overviewScrollState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 start = WhipSpacing.screenCompact,
@@ -449,6 +446,7 @@ private fun ReviewOverview(
     rangeLabel: String,
     locale: java.util.Locale,
     onDrillDown: (ReviewSection) -> Unit,
+    onOpenDetails: (ReviewSection) -> Unit,
     onOpenTracks: () -> Unit,
 ) {
     Column(
@@ -458,7 +456,7 @@ private fun ReviewOverview(
         WhipPageHeader(
             title = "Overview",
             supportingText = if (includedSections.isNotEmpty() && (hasReviewData || !availability.outcomesComplete)) {
-                "$rangeLabel · Select any card to open its source."
+                "$rangeLabel · Select any card to review its outcomes."
             } else rangeLabel,
         )
         ReviewAvailabilityNotice(availability, retryActions)
@@ -505,7 +503,7 @@ private fun ReviewOverview(
                                 section = section,
                                 signal = signal,
                                 locale = locale,
-                                onOpen = onDrillDown,
+                                onOpen = onOpenDetails,
                                 modifier = Modifier.weight(1f),
                             )
                         }
@@ -583,9 +581,9 @@ private fun ReviewSignalCard(
     modifier: Modifier = Modifier,
 ) {
     val total = signal.values.sum()
-    val totalText = if (total % 1.0 == 0.0) total.toInt().toString() else String.format(locale, "%.1f", total)
+    val totalText = formatReviewNumber(total, locale)
     val chartDescription = "${signal.name} daily values: ${signal.values.joinToString(", ") { value ->
-        if (value % 1.0 == 0.0) value.toInt().toString() else String.format(locale, "%.1f", value)
+        formatReviewNumber(value, locale)
     }}"
     Card(
         modifier = modifier

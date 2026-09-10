@@ -1,0 +1,127 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="75" failures="0" errors="0" skipped="0" time="102.611" timestamp="2026-09-10T11:28:54" hostname="localhost">
+  <testsuite name="com.whip.app.TaskDeletionUiTest" tests="7" failures="0" errors="0" skipped="0" time="10.332" timestamp="2026-09-10T11:28:54" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="completedRecurringTaskOffersOccurrenceLevelRecovery" classname="com.whip.app.TaskDeletionUiTest" time="2.307" />
+    <testcase name="genericPermanentDeleteDialogDoesNothingWhenCancelled" classname="com.whip.app.TaskDeletionUiTest" time="0.857" />
+    <testcase name="editRemainsVisibleInEveryTaskDetailsSectionIncludingArchivedTasks" classname="com.whip.app.TaskDeletionUiTest" time="1.688" />
+    <testcase name="seriesHistoryShowsMovedAndSkippedOccurrencesAndAllowsUndoSkip" classname="com.whip.app.TaskDeletionUiTest" time="1.185" />
+    <testcase name="permanentDeleteRequiresExplicitSecondConfirmation" classname="com.whip.app.TaskDeletionUiTest" time="2.08" />
+    <testcase name="inboxTaskScheduleSectionCanAssignItsFirstDateWithoutCrashing" classname="com.whip.app.TaskDeletionUiTest" time="1.108" />
+    <testcase name="taskCardSeparatesDetailsFromDirectEditing" classname="com.whip.app.TaskDeletionUiTest" time="1.107" />
+  </testsuite>
+  <testsuite name="com.whip.app.TaskRepositoryTest" tests="46" failures="0" errors="0" skipped="0" time="2.56" timestamp="2026-09-10T11:28:54" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="planMyDayUndoCannotEraseACompletionThatHappenedAfterPlanning" classname="com.whip.app.TaskRepositoryTest" time="0.302" />
+    <testcase name="editingCompletedRecurringHistoryUpdatesSeriesWithoutCreatingDuplicateBoundary" classname="com.whip.app.TaskRepositoryTest" time="0.102" />
+    <testcase name="editThisAndFutureCanMoveFutureWorkToInboxWithoutMutatingTheOldSeries" classname="com.whip.app.TaskRepositoryTest" time="0.127" />
+    <testcase name="explicitSkipRecordsTheRealClosureTime" classname="com.whip.app.TaskRepositoryTest" time="0.076" />
+    <testcase name="promoteStepCreatesInboxTaskAndArchivesDefinition" classname="com.whip.app.TaskRepositoryTest" time="0.077" />
+    <testcase name="moveUndoRejectsANewerScheduleInsteadOfOverwritingIt" classname="com.whip.app.TaskRepositoryTest" time="0.102" />
+    <testcase name="sameMillisecondStepDefinitionChangeInvalidatesAStaleCompletion" classname="com.whip.app.TaskRepositoryTest" time="0.052" />
+    <testcase name="reminderQueryExcludesOrdinaryAndArchivedTasks" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="bulkMetadataRollsBackEveryTaskWhenAnyTargetIsMissing" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="repeatedNotificationCompletionDoesNotRewriteCompletionTime" classname="com.whip.app.TaskRepositoryTest" time="0.027" />
+    <testcase name="editThisAndFutureRejectsOccurrenceCompletedWhileEditorWasOpen" classname="com.whip.app.TaskRepositoryTest" time="0.126" />
+    <testcase name="editThisAndFutureCanEndRecurrenceWithoutRewritingRecordedHistory" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="bulkMoveUndoRestoresAnAlreadyMovedRecurringOccurrence" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="bulkReopenValidatesEverySnapshotBeforeChangingAnyTask" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="manualOrderIsStableAndRejectsMissingTargetsAtomically" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="currentWeeklyRuleRejectsAnInvalidVirtualTuesdayAcrossMutations" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="bulkMoveUndoRestoresInboxOnceAndRecurringSchedulesAtomically" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="sameMillisecondBulkMetadataCannotOverwriteNewerTaskContent" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="manualCompletionSnapshotsNamesAndUnfinishedProgress" classname="com.whip.app.TaskRepositoryTest" time="0.052" />
+    <testcase name="archivedTaskCanBeRestoredWithItsSteps" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="unchangedFiniteOccurrenceCountPreservesOriginalSeriesTotalAcrossSplit" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="futureSplitKeepsLaterStateOnlyOccurrenceReachableWhenCadenceChanges" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="planMyDayAndItsUndoRestoreEveryUndatedTaskToInbox" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="currentOnlyPolicyDoesNotManufactureOccurrenceHistory" classname="com.whip.app.TaskRepositoryTest" time="0.027" />
+    <testcase name="bulkRescheduleIsAtomicAndKeepsRecurringScopeAtOccurrenceLevel" classname="com.whip.app.TaskRepositoryTest" time="0.027" />
+    <testcase name="stepStateIsPerOccurrenceAndAllStepsCanAutoCompleteParent" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="staleRecurringRescheduleCannotOverwriteCompletedHistory" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="skippedAndMovedOccurrencesCanReturnToTheSeriesSchedule" classname="com.whip.app.TaskRepositoryTest" time="0.077" />
+    <testcase name="repeatedHistoricalReopenCannotOverwriteAnAlreadyOpenOccurrence" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="bulkMetadataRejectsAnEnabledButUnselectedArea" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="notificationStyleCompletionSnapshotsOnlyCarryUnfinishedStepsVisibleThisOccurrence" classname="com.whip.app.TaskRepositoryTest" time="0.052" />
+    <testcase name="permanentDeleteCascadesSubtasksOccurrenceStateAndHistory" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="bulkMetadataReplacesOnlySelectedFieldsAndKeepsPlacementSemantics" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="powerTaskFieldsPersistAndUpdateTogether" classname="com.whip.app.TaskRepositoryTest" time="0.076" />
+    <testcase name="futureSplitMigratesRescheduledBoundaryAndItsSubtaskStateExactlyOnce" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="staleOneShotProjectionCannotReplaceANewerRecurringDefinition" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="editThisAndFutureSplitsSeriesWithoutRewritingRecordedHistory" classname="com.whip.app.TaskRepositoryTest" time="0.076" />
+    <testcase name="invalidTaskDraftsAreRejectedWithoutPartialRows" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="carryUnfinishedUsesCumulativePerStepHistoryAcrossThreeOccurrences" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="futureSplitPreservesCarryUnfinishedBaselineForRetainedSubtasks" classname="com.whip.app.TaskRepositoryTest" time="0.052" />
+    <testcase name="sameMillisecondBulkArchiveCannotHideAChangedTask" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="completedRecurringOccurrenceCanBeReopenedWithoutLosingItsStepState" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="staleSkipCannotReplaceCompletedOccurrenceHistory" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="moveUndoRejectsACompletionThatHappenedAfterTheMove" classname="com.whip.app.TaskRepositoryTest" time="0.052" />
+    <testcase name="sameMillisecondStaleOneShotMoveCannotOverwriteTheAuthoritativeDate" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="staleSubtaskToggleCannotRewriteAClosedOccurrence" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+  </testsuite>
+  <testsuite name="com.whip.app.VisualAcceptanceMatrixTest" tests="2" failures="0" errors="0" skipped="0" time="10.153" timestamp="2026-09-10T11:28:54" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="longChoiceAndNestedDialogStatesKeepTheirFinalItemsAndActionsReachable" classname="com.whip.app.VisualAcceptanceMatrixTest" time="5.856" />
+    <testcase name="primaryAdaptiveThemeFontAndRtlMatrixHasAnOpaqueConformingSurface" classname="com.whip.app.VisualAcceptanceMatrixTest" time="4.297" />
+  </testsuite>
+  <testsuite name="com.whip.app.WhipAccessibilityChecksTest" tests="2" failures="0" errors="0" skipped="0" time="15.191" timestamp="2026-09-10T11:28:54" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="primaryAreasPassComposeAccessibilityTestFramework" classname="com.whip.app.WhipAccessibilityChecksTest" time="6.639" />
+    <testcase name="productivityEditorsAndDetailsPassAccessibilityChecks" classname="com.whip.app.WhipAccessibilityChecksTest" time="8.552" />
+  </testsuite>
+  <testsuite name="com.whip.app.WhipComposeSemanticsTest" tests="12" failures="0" errors="0" skipped="0" time="45.961" timestamp="2026-09-10T11:28:54" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="globalAddAndHabitEditorAreReachableThroughComposeSemantics" classname="com.whip.app.WhipComposeSemanticsTest" time="5.483" />
+    <testcase name="taskHabitAndGoalEditorsStartInBasicModeAndRevealAdvancedFields" classname="com.whip.app.WhipComposeSemanticsTest" time="8.373" />
+    <testcase name="gymConfigurationControlsUseProgressiveDisclosure" classname="com.whip.app.WhipComposeSemanticsTest" time="4.426" />
+    <testcase name="taskToolbarKeepsTemporaryControlsAttachedAndFocused" classname="com.whip.app.WhipComposeSemanticsTest" time="3.395" />
+    <testcase name="foldSupportPaneKeepsGymContextSeparateFromPrimaryNavigation" classname="com.whip.app.WhipComposeSemanticsTest" time="1.21" />
+    <testcase name="elapsedGoalResetWorksFromHomeOnTheFirstTap" classname="com.whip.app.WhipComposeSemanticsTest" time="1.434" />
+    <testcase name="machineLibraryExplainsMachineScopedTracking" classname="com.whip.app.WhipComposeSemanticsTest" time="3.019" />
+    <testcase name="pinningContractIsVisibleAndExplainedOnWhipHome" classname="com.whip.app.WhipComposeSemanticsTest" time="1.485" />
+    <testcase name="homeCardOpenAndPrimaryCallbacksWorkOnFirstInteractionAfterLaunch" classname="com.whip.app.WhipComposeSemanticsTest" time="9.266" />
+    <testcase name="medicationTemplateStartsAsAThreeItemChecklist" classname="com.whip.app.WhipComposeSemanticsTest" time="2.036" />
+    <testcase name="directTaskHabitAndGoalActionsUseVisibleStateInsteadOfSnackbars" classname="com.whip.app.WhipComposeSemanticsTest" time="4.4" />
+    <testcase name="gymDestinationSurvivesExpandingAndRestoringTheFoldPane" classname="com.whip.app.WhipComposeSemanticsTest" time="1.434" />
+  </testsuite>
+  <testsuite name="com.whip.app.WhipNavigationTest" tests="4" failures="0" errors="0" skipped="0" time="15.008" timestamp="2026-09-10T11:28:54" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="switchingPrimaryAreasPreservesEachAreasLastHeading" classname="com.whip.app.WhipNavigationTest" time="1.734" />
+    <testcase name="primaryAreasAndAccessibleTopActionsAreReachable" classname="com.whip.app.WhipNavigationTest" time="3.395" />
+    <testcase name="everyFirstClassDestinationIsReachableThroughVisibleNavigation" classname="com.whip.app.WhipNavigationTest" time="7.767" />
+    <testcase name="homeEntityInspectorsPreserveTheHomeDestination" classname="com.whip.app.WhipNavigationTest" time="2.112" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.WhipRecordItemTest" tests="2" failures="0" errors="0" skipped="0" time="1.988" timestamp="2026-09-10T11:28:54" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="actionsStayWithTheirRecordAndUseCurrentCallbacks" classname="com.whip.app.ui.WhipRecordItemTest" time="1.409" />
+    <testcase name="narrowRecordsKeepInformationBelowTheWholeHeader" classname="com.whip.app.ui.WhipRecordItemTest" time="0.579" />
+  </testsuite>
+</testsuites>

@@ -930,9 +930,11 @@ fun WhipScreen(
     val itemDisclosureState = LocalItemDisclosureState.current
     val trackEntryUndoStateHolder = trackViewModel?.entryUndoState?.collectAsStateWithLifecycle()
     val trackEntryUndoState = trackEntryUndoStateHolder?.value ?: TrackEntryUndoUiState()
-    var appDestination by rememberSaveable { mutableStateOf(AppDestination.Home) }
+    val appDestinationState = rememberSaveable { mutableStateOf(AppDestination.Home) }
+    var appDestination by appDestinationState
     var settingsCallerDestination by rememberSaveable { mutableStateOf(AppDestination.Home) }
-    var taskDestination by rememberSaveable { mutableStateOf(TaskDestination.Today) }
+    val taskDestinationState = rememberSaveable { mutableStateOf(TaskDestination.Today) }
+    var taskDestination by taskDestinationState
     val habitDestinationState: MutableState<HabitDestination> = rememberSaveable {
         mutableStateOf(HabitDestination.Today)
     }
@@ -955,8 +957,10 @@ fun WhipScreen(
     var taskEditorInitialAreaResolved by rememberSaveable { mutableStateOf(false) }
     var taskEditorInitialAreaId by rememberSaveable { mutableStateOf<String?>(null) }
     var taskEditorSessionId by rememberSaveable { mutableLongStateOf(0L) }
-    var actionItemKey by rememberSaveable { mutableStateOf<String?>(null) }
-    var completedItemKey by rememberSaveable { mutableStateOf<String?>(null) }
+    val actionItemKeyState = rememberSaveable { mutableStateOf<String?>(null) }
+    var actionItemKey by actionItemKeyState
+    val completedItemKeyState = rememberSaveable { mutableStateOf<String?>(null) }
+    var completedItemKey by completedItemKeyState
     var rescheduleItemKey by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingCompleteItemKey by rememberSaveable { mutableStateOf<String?>(null) }
     var deleteItemKey by rememberSaveable { mutableStateOf<String?>(null) }
@@ -970,9 +974,11 @@ fun WhipScreen(
     var resetElapsedGoalIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
     var searchOpen by rememberSaveable { mutableStateOf(false) }
     var searchEntryContext by rememberSaveable { mutableStateOf(WhipSearchEntryContext.AllWhip) }
-    var openHabitIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
+    val openHabitIdRequestedState = rememberSaveable { mutableStateOf<Long?>(null) }
+    var openHabitIdRequested by openHabitIdRequestedState
     var editHabitIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
-    var openGoalIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
+    val openGoalIdRequestedState = rememberSaveable { mutableStateOf<Long?>(null) }
+    var openGoalIdRequested by openGoalIdRequestedState
     var editGoalIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
     val openTrackIdRequestedState: MutableState<Long?> = rememberSaveable { mutableStateOf(null) }
     var openTrackIdRequested by openTrackIdRequestedState
@@ -992,8 +998,10 @@ fun WhipScreen(
         mutableStateOf(TrackDetailDestination.Entries)
     }
     var settingsSection by rememberSaveable { mutableStateOf(SettingsSection.Appearance) }
-    var openGymSearchDomain by rememberSaveable { mutableStateOf<SearchDomain?>(null) }
-    var openGymSearchId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val openGymSearchDomainState = rememberSaveable { mutableStateOf<SearchDomain?>(null) }
+    var openGymSearchDomain by openGymSearchDomainState
+    val openGymSearchIdState = rememberSaveable { mutableStateOf<Long?>(null) }
+    var openGymSearchId by openGymSearchIdState
     var reviewOpen by rememberSaveable { mutableStateOf(false) }
     var areaManagerOpen by rememberSaveable { mutableStateOf(false) }
     var tagManagerOpen by rememberSaveable { mutableStateOf(false) }
@@ -1034,10 +1042,9 @@ fun WhipScreen(
     LaunchedEffect(appDestination) {
         transientFeedbackCoordinator.onDestinationChanged()
     }
-    val allScheduledTasks = unscopedTaskState.inbox + unscopedTaskState.today +
-        unscopedTaskState.upcoming + unscopedTaskState.planning +
-        unscopedTaskState.completed + unscopedTaskState.archived
-    val scheduledTaskByKey = allScheduledTasks.associateBy(ScheduledTask::stableKey)
+    val taskNavigationIndex = remember(unscopedTaskState) { TaskNavigationIndex(unscopedTaskState) }
+    val allScheduledTasks = taskNavigationIndex.items
+    val scheduledTaskByKey = taskNavigationIndex.byKey
     val actionItem = actionItemKey?.let(scheduledTaskByKey::get)
     val completedItem = completedItemKey?.let(scheduledTaskByKey::get)
     CompletedTaskRouteEffect(
@@ -2482,7 +2489,7 @@ fun WhipScreen(
             when (result.domain) {
                 SearchDomain.Task -> {
                     appDestination = AppDestination.Tasks
-                    (unscopedTaskState.inbox + unscopedTaskState.today + unscopedTaskState.upcoming + unscopedTaskState.planning + unscopedTaskState.completed + unscopedTaskState.archived)
+                    allScheduledTasks
                         .firstOrNull { it.task.id == result.id }
                         ?.let { found ->
                             if (found in unscopedTaskState.completed) completedItemKey = found.stableKey else {
@@ -2519,40 +2526,16 @@ fun WhipScreen(
     }
 
     if (reviewOpen) {
-        ReviewDialog(
-            taskState = state,
-            habitState = habitState,
-            goalState = goalState,
-            gymState = gymState,
-            period = settingsState.settings.reviewPeriod,
-            modifier = Modifier.fillMaxSize(),
-            wideLeadingPaneWidth = dialogSupportExtent,
-            wideHingeWidth = dialogHingeWidth,
-            zone = settingsState.settings.zoneId(),
-            onPeriodChange = { period -> settingsViewModel?.update { it.copy(reviewPeriod = period) } },
-            onDismiss = { reviewOpen = false },
-            sections = settingsState.settings.reviewSections,
-            onSectionsChange = { settingsViewModel?.setReviewSections(it) },
-            onDrillDown = { section ->
-                reviewOpen = false
-                appDestination = when (section) {
-                    ReviewSection.Tasks -> {
-                        taskDestination = TaskDestination.Completed
-                        AppDestination.Tasks
-                    }
-                    ReviewSection.Habits -> AppDestination.Habits
-                    ReviewSection.Goals -> AppDestination.Goals
-                    ReviewSection.Gym -> AppDestination.Gym
-                }
-            },
-            productivityAreaLabel = reviewProductivityAreaLabel(areaScope, settingsState.areas),
-            trackState = unscopedTrackState,
-            retryActions = domainRetryActions,
-            onOpenTracks = {
-                reviewOpen = false
-                if (areaScope != AreaScope.All) onTemporarilySelectAreaScope(AreaScope.All)
-                appDestination = AppDestination.Tracks
-            },
+        val reviewNavigation = remember {
+            ReviewNavigationState(appDestinationState, taskDestinationState, actionItemKeyState, completedItemKeyState,
+                openHabitIdRequestedState, openGoalIdRequestedState, openGymSearchDomainState, openGymSearchIdState)
+        }
+        ReviewAppRoute(
+            tasks = state, habits = habitState, goals = goalState, gym = gymState,
+            tracks = unscopedTrackState, settingsState = settingsState, settingsViewModel = settingsViewModel,
+            areaScope = areaScope, leadingPaneWidth = dialogSupportExtent, hingeWidth = dialogHingeWidth,
+            retryActions = domainRetryActions, navigation = reviewNavigation,
+            onTemporarilySelectAreaScope = onTemporarilySelectAreaScope, onDismiss = { reviewOpen = false },
         )
     }
     HomeHabitValueRoute(

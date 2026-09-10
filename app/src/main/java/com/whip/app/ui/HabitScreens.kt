@@ -2867,7 +2867,7 @@ internal fun HabitActionsDialog(
     var visibleLogs by rememberSaveable(item.habit.id) { mutableIntStateOf(8) }
     val timerElapsedSeconds by rememberHabitTimerElapsedSeconds(item.habit)
     var section by rememberSaveable(item.habit.id) {
-        mutableStateOf(if (item.habit.archived) HabitDetailSection.More else HabitDetailSection.Today)
+        mutableStateOf(if (item.habit.archived) HabitDetailSection.History else HabitDetailSection.Today)
     }
     val skipAvailable = item.dayState == HabitDayState.Pending &&
         item.habit.sourceMeasurementId == null &&

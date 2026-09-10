@@ -132,6 +132,7 @@ add_profile() {
                 'com.whip.app.ui.ReviewEvidenceTest'
                 'com.whip.app.ui.ReviewAvailabilityTest'
                 'com.whip.app.ui.ReviewCopyTest'
+                'com.whip.app.ui.ReviewOutcomesTest'
                 'com.whip.app.domain.CrossDomainInsightsTest'
                 'com.whip.app.ui.AreaScopeFilterRelationshipsTest'
                 'com.whip.app.ui.UiDesignArchitectureTest'
@@ -142,6 +143,7 @@ add_profile() {
             android_classes+=(
                 'com.whip.app.VisualAcceptanceMatrixTest'
                 'com.whip.app.ReviewJourneyE2ETest'
+                'com.whip.app.ReviewOutcomeJourneyE2ETest'
                 'com.whip.app.ReviewAvailabilityUiTest'
                 'com.whip.app.AdaptiveWhipScreenTest'
                 'com.whip.app.WhipNavigationTest'

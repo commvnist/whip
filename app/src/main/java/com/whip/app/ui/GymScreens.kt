@@ -6680,7 +6680,7 @@ private fun WorkoutHistoryContent(
                 title = "Workout History",
                 supportingText = if (focusedWorkoutId == null) {
                     "Chronological view with optional date, exercise, routine, category, and record filters."
-                } else "Showing the workout opened from search.",
+                } else "Showing the selected workout.",
             )
         }
         if (copySaving || copyError != null) item {

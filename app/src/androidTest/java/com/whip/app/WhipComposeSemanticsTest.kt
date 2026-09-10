@@ -585,7 +585,7 @@ class WhipComposeSemanticsTest {
             compose.onAllNodesWithTag("gym-chart-point")[0].performClick()
             compose.onNodeWithTag("gym-chart-point-open-workout").performClick()
             compose.onNodeWithText("Workout History").assertIsDisplayed()
-            compose.onNodeWithText("Showing the workout opened from search.").assertIsDisplayed()
+            compose.onNodeWithText("Showing the selected workout.").assertIsDisplayed()
         }
     }
 

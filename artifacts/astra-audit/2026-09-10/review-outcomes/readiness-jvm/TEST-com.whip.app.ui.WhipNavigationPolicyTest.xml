@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.WhipNavigationPolicyTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-09-10T11:29:36.338Z" hostname="beast" time="0.002">
+  <properties/>
+  <testcase name="searchActionsNameTheExactScopeTheyOpen" classname="com.whip.app.ui.WhipNavigationPolicyTest" time="0.001"/>
+  <testcase name="backUnwindsHighestTransientLayerFirst" classname="com.whip.app.ui.WhipNavigationPolicyTest" time="0.001"/>
+  <testcase name="homeRootIsTheOnlyStateThatExits" classname="com.whip.app.ui.WhipNavigationPolicyTest" time="0.0"/>
+  <testcase name="savedTaskFiltersRestoreTheirCompleteAreaScope" classname="com.whip.app.ui.WhipNavigationPolicyTest" time="0.0"/>
+  <testcase name="creationAreaDefaultsOnlyWhenScopeOrSoleAreaIsUnambiguous" classname="com.whip.app.ui.WhipNavigationPolicyTest" time="0.0"/>
+  <testcase name="returningHomeOffersBoundedConcreteDestinationsInAttentionOrder" classname="com.whip.app.ui.WhipNavigationPolicyTest" time="0.0"/>
+  <testcase name="gymHomeCountUsesPinnedShortcutsWhenNoWorkoutIsActive" classname="com.whip.app.ui.WhipNavigationPolicyTest" time="0.0"/>
+  <testcase name="searchEntryContextAlwaysProducesNamedScope" classname="com.whip.app.ui.WhipNavigationPolicyTest" time="0.0"/>
+  <testcase name="globalAddIsRemovedFromTaskSelectionModeOnEveryLayout" classname="com.whip.app.ui.WhipNavigationPolicyTest" time="0.0"/>
+  <testcase name="anyRawUserDataPreventsFirstRunHomeFromReturning" classname="com.whip.app.ui.WhipNavigationPolicyTest" time="0.0"/>
+  <testcase name="homeSummaryNeverDropsPinnedItemsAndOnlyUsesSpareSlotsForOthers" classname="com.whip.app.ui.WhipNavigationPolicyTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

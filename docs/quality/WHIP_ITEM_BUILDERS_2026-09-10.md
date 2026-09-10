@@ -40,6 +40,12 @@ The pilot must preserve Open, Edit, Delete review, Open Track, archive read-only
 
 This document proposes a migration direction. It is not evidence that every item family has already been unified.
 
+## Reuse across feature boundaries
+
+The Review outcome increment (DEC/IMP/VER-20260910-011) reuses the record family for contributing Tasks, successful Habit periods, normalized Goal progress and finished Workouts. Each feature supplies exact source identity, dates, archive context and contribution; `WhipRecordItem` supplies the same reading order, typography, information width and interaction surface. No Review-specific card builder or domain scoring framework is introduced. The owning Review list supplies scrolling and a bounded reading width inside its existing compact or wide pane.
+
+The data projection is separate from the visual builder. It feeds daily totals, correlations and contributing rows using existing domain calculations, so the visible total can be explained by its records. Existing feature inspectors retain editing and history behavior. This is the intended architectural payoff: new cross-feature experiences inherit coherent item composition while preserving each domain's meaning.
+
 ## Pilot implementation
 
 `WhipItemBuilders.kt` provides `WhipRecordItem` and a scoped declaration of `context`, `fact`, `edit` and `command`. The caller supplies record identity, title, optional emoji and Open behavior. Commands use the existing menu roles; destructive commands stay last and the renderer closes the menu before dispatch. New composition uses current callbacks, and menu state belongs to record identity.

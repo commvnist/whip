@@ -1,0 +1,96 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="13" failures="4" errors="0" skipped="0" time="61.117" timestamp="2026-09-10T11:12:50" hostname="localhost">
+  <testsuite name="com.whip.app.ReviewAvailabilityUiTest" tests="4" failures="0" errors="0" skipped="0" time="17.173" timestamp="2026-09-10T11:12:50" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="incompleteSourcesNeverClaimThereAreNoOutcomes" classname="com.whip.app.ReviewAvailabilityUiTest" time="4.965" />
+    <testcase name="selectedOutcomesRecoverWithoutLosingTheirSectionOrShowingStaleRows" classname="com.whip.app.ReviewAvailabilityUiTest" time="3.697" />
+    <testcase name="partialReviewPreservesAvailableOutcomesAndRetriesOnlyUnavailableSources" classname="com.whip.app.ReviewAvailabilityUiTest" time="4.792" />
+    <testcase name="correlationsUseReadySourcesEvenWhenOtherEvidenceIsUnavailable" classname="com.whip.app.ReviewAvailabilityUiTest" time="3.719" />
+  </testsuite>
+  <testsuite name="com.whip.app.ReviewJourneyE2ETest" tests="4" failures="0" errors="0" skipped="0" time="23.275" timestamp="2026-09-10T11:12:50" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="trackOnlyHistoryOffersReviewWithoutInventingOutcomes" classname="com.whip.app.ReviewJourneyE2ETest" time="4.426" />
+    <testcase name="archivedTaskAndHabitOutcomesRemainInReviewHistory" classname="com.whip.app.ReviewJourneyE2ETest" time="3.445" />
+    <testcase name="changingReviewOptionsRevealsSavedOutcomesWithoutLosingTheView" classname="com.whip.app.ReviewJourneyE2ETest" time="7.413" />
+    <testcase name="allTrackEvidenceKeepsItsScopeAcrossAreaReviewAndRecreation" classname="com.whip.app.ReviewJourneyE2ETest" time="7.991" />
+  </testsuite>
+  <testsuite name="com.whip.app.ReviewOutcomeJourneyE2ETest" tests="5" failures="4" errors="0" skipped="0" time="19.437" timestamp="2026-09-10T11:12:50" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedTaskOutcomesOpenTheirOriginalTask" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="4.478">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Text + EditableText = [Archived])
+Semantics of the node:
+Node #3919 at (l=191.0, t=313.0, r=355.0, b=366.0)px, Tag: 'entity-inspector-status'
+IsContainer = 'true'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 6.0.dp), topEnd = CornerSize(size = 6.0.dp), bottomEnd = CornerSize(size = 6.0.dp), bottomStart = CornerSize(size = 6.0.dp))'
+Has 1 child, 5 siblings
+Selector used: (TestTag = 'entity-inspector-status')
+
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertTextEquals(Assertions.kt:207)
+at androidx.compose.ui.test.AssertionsKt.assertTextEquals$default(Assertions.kt:203)
+at com.whip.app.ReviewOutcomeJourneyE2ETest.sourceJourney(ReviewOutcomeJourneyE2ETest.kt:124)
+at com.whip.app.ReviewOutcomeJourneyE2ETest.archivedTaskOutcomesOpenTheirOriginalTask(ReviewOutcomeJourneyE2ETest.kt:21)
+</failure>
+    </testcase>
+    <testcase name="mixedTaskHistoryKeepsAreaScopeAndDistinctOccurrences" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="1.56">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'review-outcome-Tasks:7:none:2026-09-10')
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+at com.whip.app.ReviewOutcomeJourneyE2ETest.mixedTaskHistoryKeepsAreaScopeAndDistinctOccurrences$lambda$0$assertRows(ReviewOutcomeJourneyE2ETest.kt:58)
+at com.whip.app.ReviewOutcomeJourneyE2ETest.mixedTaskHistoryKeepsAreaScopeAndDistinctOccurrences(ReviewOutcomeJourneyE2ETest.kt:61)
+</failure>
+    </testcase>
+    <testcase name="archivedGoalProgressOpensItsOriginalGoal" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="4.099">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Text + EditableText = [Archived])
+Semantics of the node:
+Node #4836 at (l=191.0, t=313.0, r=355.0, b=366.0)px, Tag: 'entity-inspector-status'
+IsContainer = 'true'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 6.0.dp), topEnd = CornerSize(size = 6.0.dp), bottomEnd = CornerSize(size = 6.0.dp), bottomStart = CornerSize(size = 6.0.dp))'
+Has 1 child, 5 siblings
+Selector used: (TestTag = 'entity-inspector-status')
+
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertTextEquals(Assertions.kt:207)
+at androidx.compose.ui.test.AssertionsKt.assertTextEquals$default(Assertions.kt:203)
+at com.whip.app.ReviewOutcomeJourneyE2ETest.sourceJourney(ReviewOutcomeJourneyE2ETest.kt:124)
+at com.whip.app.ReviewOutcomeJourneyE2ETest.archivedGoalProgressOpensItsOriginalGoal(ReviewOutcomeJourneyE2ETest.kt:23)
+</failure>
+    </testcase>
+    <testcase name="archivedHabitOutcomesOpenTheirOriginalHabit" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="3.922">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Text + EditableText = [Archived])
+Semantics of the node:
+Node #5462 at (l=191.0, t=313.0, r=355.0, b=366.0)px, Tag: 'entity-inspector-status'
+IsContainer = 'true'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 6.0.dp), topEnd = CornerSize(size = 6.0.dp), bottomEnd = CornerSize(size = 6.0.dp), bottomStart = CornerSize(size = 6.0.dp))'
+Has 1 child, 5 siblings
+Selector used: (TestTag = 'entity-inspector-status')
+
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertTextEquals(Assertions.kt:207)
+at androidx.compose.ui.test.AssertionsKt.assertTextEquals$default(Assertions.kt:203)
+at com.whip.app.ReviewOutcomeJourneyE2ETest.sourceJourney(ReviewOutcomeJourneyE2ETest.kt:124)
+at com.whip.app.ReviewOutcomeJourneyE2ETest.archivedHabitOutcomesOpenTheirOriginalHabit(ReviewOutcomeJourneyE2ETest.kt:22)
+</failure>
+    </testcase>
+    <testcase name="finishedWorkoutOutcomesOpenTheirOriginalSession" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="5.378" />
+  </testsuite>
+</testsuites>

@@ -1,0 +1,42 @@
+[
+  {
+    "file": "shared.review.outcomes-gym.xml",
+    "original": "shared.review.outcomes-gym.xml",
+    "sha256": "6df449304b5840ac7b00b8ca23b00ca238e70cb1b9b152857cafc24510d96e5f"
+  },
+  {
+    "file": "shared.review.outcomes-gym.png",
+    "original": "shared.review.outcomes-gym.png",
+    "sha256": "bc6df3ff22a1f588dce8a91588b0a720a6ef94d99effad24c0026d543287489b"
+  },
+  {
+    "file": "shared.review.outcomes-habits.xml",
+    "original": "shared.review.outcomes-habits.xml",
+    "sha256": "b3f0dff71bfa187e9cf1404b03bd1c37552349e9858e109a964f08612a0d10e1"
+  },
+  {
+    "file": "shared.review.outcomes-habits.png",
+    "original": "shared.review.outcomes-habits.png",
+    "sha256": "44499f4601c871393c72b2e0fc89d3e6ff2e7e6a03e69fa6fea53ed9bd0ef7a0"
+  },
+  {
+    "file": "shared.review.outcomes-goals.xml",
+    "original": "shared.review.outcomes-goals.xml",
+    "sha256": "83017d6f862f6b701bb0c4b0303c57f2e2e29264dd1a0a927e4037d8bdd099f6"
+  },
+  {
+    "file": "shared.review.outcomes-goals.png",
+    "original": "shared.review.outcomes-goals.png",
+    "sha256": "5fffbdea98c08e1ce7f2641efcde9cbfde3e8fde58b7cb1b2e0050b4c021174e"
+  },
+  {
+    "file": "shared.review.outcomes-tasks.xml",
+    "original": "shared.review.outcomes-tasks.xml",
+    "sha256": "8b0d859f86e341b7b51ce92047f19451d8d1708a4bfb5c0bc6bf4b6ec79b7b39"
+  },
+  {
+    "file": "shared.review.outcomes-tasks.png",
+    "original": "shared.review.outcomes-tasks.png",
+    "sha256": "7a48d469a4b7516f6c214488af7febf19b9d4f6639554455ac3705ac39b9cec5"
+  }
+]

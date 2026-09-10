@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260910-011 — Review totals lead to their contributing outcomes and original sources
+
+- Behavior: All four Review cards open a consistent in-context list of the selected period's contributing outcomes. WhipRecordItem owns item layout; context carries archive status and recurring scheduled/original dates. Counts, correlations and rows share one projection of existing domain calculations. Mixed active/archived history remains Area-scoped; Gym remains global and Tracks remain separate evidence. Only available sources contribute rows, and scoped retry preserves the selected list. Back restores Review; recreation retains selected details and existing period/section choices.
+- Source destinations: Exact active Task completion or archived Task definition, original Habit/Goal inspector and focused finished Workout history. Archived Habit inspectors initially show History; closed undated Tasks use truthful schedule copy; Workout history describes the selected record independently of Search. Positive Review scores no longer round to zero. Separate Goal percentage truncation remains FND-20260910-019.
+- Architecture: ReviewOutcomes, ReviewOutcomeDetails and ReviewAppRoute separate projection, reusable record composition and shell navigation. ReviewNavigationState references the existing saved state owners; TaskNavigationIndex preserves collection precedence and removes repeated assembly in Search. Extraction keeps the instrumented WhipScreen below the JVM method-size limit without dropping instrumentation.
+- Compatibility/status: Verified by 202 fresh API 34 checks, 13 API 37 methods, 368 JVM readiness checks, compilation/lint/debug packaging and 31 inspected originals in VER-20260910-011. Evidence: `artifacts/astra-audit/2026-09-10/review-outcomes/README.md`. No migration, backup, version or release change. Related FND-20260910-016/017/018 and DEC-20260910-011. Full-app coverage and Goal percentage correction remain active.
+
 ### IMP-20260910-010 — Review empty states describe the selected view
 
 - Behavior: No Outcomes in This View replaces first-use wording for every complete empty outcome selection. Guidance points to existing period/section controls; card-opening instructions appear only when cards exist. Remove the redundant Track-specific empty explanation and unused global-history check while retaining the shared empty-state layout and Track evidence card.

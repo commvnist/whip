@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="4" failures="4" errors="0" skipped="0" time="17.666" timestamp="2026-09-10T10:33:30" hostname="localhost">
+  <testsuite name="com.whip.app.ReviewOutcomeJourneyE2ETest" tests="4" failures="4" errors="0" skipped="0" time="16.667" timestamp="2026-09-10T10:33:30" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedTaskOutcomesOpenTheirOriginalTask" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="6.176">
+      <failure>java.lang.AssertionError: Assert failed: The component with TestTag = 'review-outcome-list' is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.ReviewOutcomeJourneyE2ETest.sourceJourney(ReviewOutcomeJourneyE2ETest.kt:54)
+at com.whip.app.ReviewOutcomeJourneyE2ETest.archivedTaskOutcomesOpenTheirOriginalTask(ReviewOutcomeJourneyE2ETest.kt:21)
+</failure>
+    </testcase>
+    <testcase name="archivedGoalProgressOpensItsOriginalGoal" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="3.848">
+      <failure>java.lang.AssertionError: Assert failed: The component with TestTag = 'review-outcome-list' is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.ReviewOutcomeJourneyE2ETest.sourceJourney(ReviewOutcomeJourneyE2ETest.kt:54)
+at com.whip.app.ReviewOutcomeJourneyE2ETest.archivedGoalProgressOpensItsOriginalGoal(ReviewOutcomeJourneyE2ETest.kt:23)
+</failure>
+    </testcase>
+    <testcase name="archivedHabitOutcomesOpenTheirOriginalHabit" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="3.347">
+      <failure>java.lang.AssertionError: Assert failed: The component with TestTag = 'review-outcome-list' is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.ReviewOutcomeJourneyE2ETest.sourceJourney(ReviewOutcomeJourneyE2ETest.kt:54)
+at com.whip.app.ReviewOutcomeJourneyE2ETest.archivedHabitOutcomesOpenTheirOriginalHabit(ReviewOutcomeJourneyE2ETest.kt:22)
+</failure>
+    </testcase>
+    <testcase name="finishedWorkoutOutcomesOpenTheirOriginalSession" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="3.296">
+      <failure>java.lang.AssertionError: Assert failed: The component with TestTag = 'review-outcome-list' is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.ReviewOutcomeJourneyE2ETest.sourceJourney(ReviewOutcomeJourneyE2ETest.kt:54)
+at com.whip.app.ReviewOutcomeJourneyE2ETest.finishedWorkoutOutcomesOpenTheirOriginalSession(ReviewOutcomeJourneyE2ETest.kt:24)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

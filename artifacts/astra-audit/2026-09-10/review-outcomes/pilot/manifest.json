@@ -1,0 +1,32 @@
+[
+  {
+    "file": "shared.review.original-gym.xml",
+    "original": "shared.review.original-gym.xml",
+    "sha256": "2a9144b7bbd287b6a0915b56b80ed4fcd1a59f0a7af5b22653d340d75809d662"
+  },
+  {
+    "file": "shared.review.original-gym.png",
+    "original": "shared.review.original-gym.png",
+    "sha256": "ce03bed75358d199c47849ec9376c439dc4eb516acd8eb93bd5a0402709d5283"
+  },
+  {
+    "file": "shared.review.original-habits.xml",
+    "original": "shared.review.original-habits.xml",
+    "sha256": "460febdeaf6e694a5c230906f5214e7081d2d60381012bdbceab23bcf539c410"
+  },
+  {
+    "file": "shared.review.original-habits.png",
+    "original": "shared.review.original-habits.png",
+    "sha256": "d64b673b6f1cb67b5afa8eab654969891ab9ac0e526222426a9d93e895ed7aa5"
+  },
+  {
+    "file": "shared.review.original-tasks.xml",
+    "original": "shared.review.original-tasks.xml",
+    "sha256": "a5c163b3d36386bb356f36f7473b2881bd0c324e3fef49ac54808c326c8aa951"
+  },
+  {
+    "file": "shared.review.original-tasks.png",
+    "original": "shared.review.original-tasks.png",
+    "sha256": "b49a37917c7b55f08a687244e0e9da8d59500bbf9dadf1fd730d8b0e9041eb21"
+  }
+]

@@ -1,5 +1,30 @@
 # Durable findings
 
+### FND-20260910-019 — Goal surfaces truncate small positive percentages to zero
+
+- Severity/category: P2 ordinary numeric comprehension.
+- Observed: The Review source journey saves 0.05 against a target of 10 and correctly shows its 0.005 normalized Review score, but the original Goal inspector says 0% complete. Personally inspected API 34 original and GoalScreens repeated `(progress * 100).toInt()` paths confirm this separate presentation defect.
+- Status: Confirmed; prioritize a shared Goal percentage presentation rule after the independently verified Review outcome chunk. Preserve domain scoring and distinguish small positive progress from zero across cards, inspectors and history. Existing original-source capture is evidence of the defect, not full Goal acceptance.
+
+### FND-20260910-017 — Small positive Review Goal contributions display as zero
+
+- Severity/category: P2 numeric meaning.
+- Observed: The original one-decimal Review formatter maps a positive 0.005 normalized contribution to 0.0. The new projection tests pass date/Area/occurrence, partial Habit and normalized daily Goal cases, then fail the exact positive-number assertion with expected 0.005 versus 0.0; failed XML is retained in the Review outcome evidence scratch folder.
+- Remedy/status: Verified in IMP/VER-20260910-011. A locale-aware, up-to-three-decimal formatter is shared across totals, chart descriptions and detail facts; values between zero and 0.001 read as below that threshold instead of zero. The native Goal summary/detail/source journey retains a small positive saved contribution on both phone and wide layouts. Domain scoring remains unchanged; separate source-inspector percentage truncation is FND-20260910-019.
+
+### FND-20260910-018 — Original-source context misdirects historical review
+
+- Severity/category: P2 historical navigation and copy.
+- Observed: Q3uppH opens the correct source from each new outcome list, but personally inspected originals show archived Habits landing in Options/Danger Zone, an archived completed undated Task described as currently in Inbox, and Gym history falsely claiming the Review route came from Search.
+- Remedy/status: Verified in IMP/VER-20260910-011. Archived Habit inspectors start with History while retaining Restore and explicit Options. Closed/archived undated Tasks describe their saved schedule without an active-Inbox instruction. Focused Workout history describes the selected workout independently of its entry route. Final native assertions and original visual review cover these actual source states on phone and wide layouts.
+
+### FND-20260910-016 — Review details lead to unrelated empty collections
+
+- Severity/category: P2 complete-journey navigation and historical comprehension.
+- Observed: r2FrdV taps each Review card after saving archived Task/Habit/Goal outcomes and a finished Workout. Four personally inspected originals show No Completed Tasks, No Habits Here, No Active Goals and No Workout in Progress. Card semantics promise details, but the callback closes Review and chooses a general destination without carrying the contributing records or period.
+- Expected: Inspect the actual contributing outcomes in the selected period/Area, including active and archived sources together, then open an original entity deliberately. Back should return to the same Review choices; missing sources must remain qualified.
+- Status: Verified under FB-20260910-001/002 / IMP/VER-20260910-011. Consistent contributing records now precede exact per-entity Habit/Goal/Gym routes; Task opening distinguishes completed occurrences from archived definitions. Mixed recurring history, Area exclusion, recreation and source retry pass. Complete Review/app acceptance remains open.
+
 ### FND-20260910-015 — An empty Review view reads as first use
 
 - Severity/category: P2 scoped-history comprehension.

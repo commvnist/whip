@@ -1,0 +1,7 @@
+com.whip.app.TaskDeletionUiTest
+com.whip.app.TaskRepositoryTest
+com.whip.app.VisualAcceptanceMatrixTest
+com.whip.app.WhipAccessibilityChecksTest
+com.whip.app.WhipComposeSemanticsTest
+com.whip.app.WhipNavigationTest
+com.whip.app.ui.WhipRecordItemTest

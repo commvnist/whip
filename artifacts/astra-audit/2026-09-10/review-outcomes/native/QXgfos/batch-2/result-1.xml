@@ -1,0 +1,157 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="84" failures="0" errors="0" skipped="0" time="312.971" timestamp="2026-09-10T11:27:04" hostname="localhost">
+  <testsuite name="com.whip.app.ActivityHistoryUiTest" tests="17" failures="0" errors="0" skipped="0" time="55.731" timestamp="2026-09-10T11:27:04" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="captureAbsoluteValueEditorCatalog" classname="com.whip.app.ActivityHistoryUiTest" time="6.112" />
+    <testcase name="offScheduleLoggingRequiresAnExplicitInspectorAction" classname="com.whip.app.ActivityHistoryUiTest" time="2.024" />
+    <testcase name="inspectorMakesScheduledPausesEditableAndHistoricalSkipsUndoable" classname="com.whip.app.ActivityHistoryUiTest" time="6.053" />
+    <testcase name="scheduledPauseSupportsNoEndDateRetainsFailureDraftAndConfirmsDelete" classname="com.whip.app.ActivityHistoryUiTest" time="4.197" />
+    <testcase name="habitTodayUsesOneResponsiveOverviewAndExplainedSecondaryAction" classname="com.whip.app.ActivityHistoryUiTest" time="4.462" />
+    <testcase name="removedLogSnapshotKeepsHabitHistoryEditorRestorableUntilRequestDelivery" classname="com.whip.app.ActivityHistoryUiTest" time="2.954" />
+    <testcase name="logOnlyPastEntryMakesTheNumberOptionalAndUsesAPlainLanguageNotePrompt" classname="com.whip.app.ActivityHistoryUiTest" time="1.772" />
+    <testcase name="pastCheckInAsksWhatHappenedWithoutExposingStateOrValueStorageFields" classname="com.whip.app.ActivityHistoryUiTest" time="3.675" />
+    <testcase name="timerStartTimeUsesWhipsConfiguredZone" classname="com.whip.app.ActivityHistoryUiTest" time="1.671" />
+    <testcase name="pauseOnlyHabitShowsNeutralInsightsInsteadOfClaimingThereIsNoActivity" classname="com.whip.app.ActivityHistoryUiTest" time="1.441" />
+    <testcase name="absoluteValueEditorExplainsThatALowerNumberSetsRatherThanAdds" classname="com.whip.app.ActivityHistoryUiTest" time="1.728" />
+    <testcase name="valueDraftIsShieldedDuringPersistenceAndRetainedAfterFailure" classname="com.whip.app.ActivityHistoryUiTest" time="3.949" />
+    <testcase name="pauseEditorRemainsScrollableAndActionableAt320DpAndTwoHundredPercentText" classname="com.whip.app.ActivityHistoryUiTest" time="4.589" />
+    <testcase name="scheduledPauseHasNoMisleadingCheckInAction" classname="com.whip.app.ActivityHistoryUiTest" time="1.564" />
+    <testcase name="editedHistoryDraftWaitsForItsExactOutcomeAndSurvivesFailure" classname="com.whip.app.ActivityHistoryUiTest" time="5.286" />
+    <testcase name="removedPauseSnapshotKeepsHabitPauseEditorRestorableUntilRequestDelivery" classname="com.whip.app.ActivityHistoryUiTest" time="2.254" />
+    <testcase name="deletingARecordedCheckInRequiresConfirmation" classname="com.whip.app.ActivityHistoryUiTest" time="2.0" />
+  </testsuite>
+  <testsuite name="com.whip.app.AdaptiveWhipScreenTest" tests="33" failures="0" errors="0" skipped="0" time="86.943" timestamp="2026-09-10T11:27:04" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="sharedLoadingErrorRetryIsActionableAndNeverShowsFalseSuccess" classname="com.whip.app.AdaptiveWhipScreenTest" time="0.916" />
+    <testcase name="bookFoldUsesHingeAwareSupportPaneAndPersistentNavigation" classname="com.whip.app.AdaptiveWhipScreenTest" time="5.656" />
+    <testcase name="rtlBookFoldPlacesProductivityEditorInTheOppositeContentPane" classname="com.whip.app.AdaptiveWhipScreenTest" time="4.206" />
+    <testcase name="bookFoldGoalAndTrackSupportEmptyStatesShareVerticalRhythm" classname="com.whip.app.AdaptiveWhipScreenTest" time="2.075" />
+    <testcase name="tabletopFoldKeepsNavigationAndOverviewAboveTheHinge" classname="com.whip.app.AdaptiveWhipScreenTest" time="0.733" />
+    <testcase name="productivityEditorsStayInsideTheContentPaneOnABookFold" classname="com.whip.app.AdaptiveWhipScreenTest" time="10.003" />
+    <testcase name="shortLargeTextRailScrollsToEveryNamedDestination" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.563" />
+    <testcase name="newerTaskUndoSnackbarKeepsItsOwnRecoveryToken" classname="com.whip.app.AdaptiveWhipScreenTest" time="2.472" />
+    <testcase name="expandedWorkspacesKeepSearchAndSettingsInOneSharedColumn" classname="com.whip.app.AdaptiveWhipScreenTest" time="2.249" />
+    <testcase name="clearReturningHomeOffersAndOpensTheActualInbox" classname="com.whip.app.AdaptiveWhipScreenTest" time="2.834" />
+    <testcase name="wideNavigationCentersTheCompleteDestinationGroup" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.463" />
+    <testcase name="enlargedTextKeepsEveryCompactPrimaryDestinationVisiblyNamed" classname="com.whip.app.AdaptiveWhipScreenTest" time="3.317" />
+    <testcase name="bookFoldTrackSupportNeverShowsEmptyBeforeTheDomainSettles" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.525" />
+    <testcase name="expandedTrackSupportSeparatesLoadingFailureRetryAndRealZeroMeasurements" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.337" />
+    <testcase name="bookFoldGoalSupportPaneAndCardsShareOneUnconstrainedElapsedMetric" classname="com.whip.app.AdaptiveWhipScreenTest" time="3.809" />
+    <testcase name="adaptiveHomeWaitsForVisibleDomainsBeforeShowingAStableEmptyState" classname="com.whip.app.AdaptiveWhipScreenTest" time="0.981" />
+    <testcase name="missingDeepLinkTargetIsConsumedWithOneUnavailableMessage" classname="com.whip.app.AdaptiveWhipScreenTest" time="0.909" />
+    <testcase name="compactGoalEditorRemainsReachableAtTwoHundredPercentText" classname="com.whip.app.AdaptiveWhipScreenTest" time="8.468" />
+    <testcase name="compactHabitEditorRemainsReachableAtTwoHundredPercentText" classname="com.whip.app.AdaptiveWhipScreenTest" time="7.617" />
+    <testcase name="expandedInnerDisplayKeepsOverviewBesidePrimaryContent" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.184" />
+    <testcase name="enlargedTextKeepsEveryRailDestinationVisiblyNamed" classname="com.whip.app.AdaptiveWhipScreenTest" time="2.392" />
+    <testcase name="productivityAndGymWorkspaceNavigationStaysVisibleWhileLoadingOrFailed" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.613" />
+    <testcase name="adaptiveDestinationSupportSeparatesErrorLoadingAndRealEmpty" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.161" />
+    <testcase name="responsiveFieldPairsStackAtTwoHundredPercentText" classname="com.whip.app.AdaptiveWhipScreenTest" time="0.48" />
+    <testcase name="expandedLayoutRetainsNavigationAndPaneInRtl" classname="com.whip.app.AdaptiveWhipScreenTest" time="0.705" />
+    <testcase name="reviewUsesTheWholeWideCanvasAsAHingeAwareDashboard" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.183" />
+    <testcase name="compactTaskEditorRemainsReachableAtTwoHundredPercentText" classname="com.whip.app.AdaptiveWhipScreenTest" time="5.453" />
+    <testcase name="bookFoldSupportTitlesUseReadableThemeContrast" classname="com.whip.app.AdaptiveWhipScreenTest" time="2.038" />
+    <testcase name="everyPrimaryWorkspaceUsesTheSameHeaderAndNavigationGeometry" classname="com.whip.app.AdaptiveWhipScreenTest" time="3.996" />
+    <testcase name="expandingContentPreservesSelectedTrackAndProvidesAHomeRoute" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.384" />
+    <testcase name="taskDetailsStayInsideTheContentPaneOnAFlatBookFold" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.107" />
+    <testcase name="compactNavigationMatchesTheRailAndKeepsWhipHomeReachable" classname="com.whip.app.AdaptiveWhipScreenTest" time="1.157" />
+    <testcase name="homeSuppressesFalseEmptyStateAndOffersCompactDomainRetry" classname="com.whip.app.AdaptiveWhipScreenTest" time="0.957" />
+  </testsuite>
+  <testsuite name="com.whip.app.GlobalSearchRoutingTest" tests="2" failures="0" errors="0" skipped="0" time="27.932" timestamp="2026-09-10T11:27:04" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="largeTextSearchRetainsQueryFiltersAndResultsAcrossRecreation" classname="com.whip.app.GlobalSearchRoutingTest" time="13.77" />
+    <testcase name="everyNonTaskSearchDomainLandsOnTheExactActiveOrArchivedRecord" classname="com.whip.app.GlobalSearchRoutingTest" time="14.162" />
+  </testsuite>
+  <testsuite name="com.whip.app.ProductivityCreationJourneyE2ETest" tests="2" failures="0" errors="0" skipped="0" time="20.926" timestamp="2026-09-10T11:27:04" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="smartTaskCaptureExplainsHighlightsPersistsAndReversesThroughTheRealUi" classname="com.whip.app.ProductivityCreationJourneyE2ETest" time="8.952" />
+    <testcase name="taskHabitAndGoalCanBeCreatedAndUsedThroughTheRealUi" classname="com.whip.app.ProductivityCreationJourneyE2ETest" time="11.974" />
+  </testsuite>
+  <testsuite name="com.whip.app.ProductivityItemBuilderJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="5.935" timestamp="2026-09-10T11:27:04" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="expandedTimerHasOneStatusAndKeepsItsActionsAfterRecreation" classname="com.whip.app.ProductivityItemBuilderJourneyE2ETest" time="5.935" />
+  </testsuite>
+  <testsuite name="com.whip.app.RecordItemBuilderJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="11.514" timestamp="2026-09-10T11:27:04" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="recordsKeepTheirReadingOrderAndExactActions" classname="com.whip.app.RecordItemBuilderJourneyE2ETest" time="11.514" />
+  </testsuite>
+  <testsuite name="com.whip.app.ReviewAvailabilityUiTest" tests="4" failures="0" errors="0" skipped="0" time="14.607" timestamp="2026-09-10T11:27:04" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="incompleteSourcesNeverClaimThereAreNoOutcomes" classname="com.whip.app.ReviewAvailabilityUiTest" time="3.268" />
+    <testcase name="selectedOutcomesRecoverWithoutLosingTheirSectionOrShowingStaleRows" classname="com.whip.app.ReviewAvailabilityUiTest" time="3.999" />
+    <testcase name="partialReviewPreservesAvailableOutcomesAndRetriesOnlyUnavailableSources" classname="com.whip.app.ReviewAvailabilityUiTest" time="4.147" />
+    <testcase name="correlationsUseReadySourcesEvenWhenOtherEvidenceIsUnavailable" classname="com.whip.app.ReviewAvailabilityUiTest" time="3.193" />
+  </testsuite>
+  <testsuite name="com.whip.app.ReviewJourneyE2ETest" tests="4" failures="0" errors="0" skipped="0" time="21.033" timestamp="2026-09-10T11:27:04" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="trackOnlyHistoryOffersReviewWithoutInventingOutcomes" classname="com.whip.app.ReviewJourneyE2ETest" time="4.144" />
+    <testcase name="archivedTaskAndHabitOutcomesRemainInReviewHistory" classname="com.whip.app.ReviewJourneyE2ETest" time="3.016" />
+    <testcase name="changingReviewOptionsRevealsSavedOutcomesWithoutLosingTheView" classname="com.whip.app.ReviewJourneyE2ETest" time="6.909" />
+    <testcase name="allTrackEvidenceKeepsItsScopeAcrossAreaReviewAndRecreation" classname="com.whip.app.ReviewJourneyE2ETest" time="6.964" />
+  </testsuite>
+  <testsuite name="com.whip.app.ReviewOutcomeJourneyE2ETest" tests="5" failures="0" errors="0" skipped="0" time="27.039" timestamp="2026-09-10T11:27:04" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedTaskOutcomesOpenTheirOriginalTask" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="5.603" />
+    <testcase name="mixedTaskHistoryKeepsAreaScopeAndDistinctOccurrences" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="5.58" />
+    <testcase name="archivedGoalProgressOpensItsOriginalGoal" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="5.477" />
+    <testcase name="archivedHabitOutcomesOpenTheirOriginalHabit" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="5.355" />
+    <testcase name="finishedWorkoutOutcomesOpenTheirOriginalSession" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="5.024" />
+  </testsuite>
+  <testsuite name="com.whip.app.TaskBulkSelectionUiTest" tests="15" failures="0" errors="0" skipped="0" time="39.774" timestamp="2026-09-10T11:27:04" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="bulkArchiveImpactRemainsScrollableAtTwoHundredPercentText" classname="com.whip.app.TaskBulkSelectionUiTest" time="4.447" />
+    <testcase name="successfulReopenClosesCompletedInspectorWhenStableKeyBecomesOpen" classname="com.whip.app.TaskBulkSelectionUiTest" time="2.187" />
+    <testcase name="quickCaptureReconnectsAfterRecreationAndClearsTheTrimmedCommittedDraftOnce" classname="com.whip.app.TaskBulkSelectionUiTest" time="1.71" />
+    <testcase name="fixedDateBulkMoveFailureKeepsSelectionAndShowsRetryContext" classname="com.whip.app.TaskBulkSelectionUiTest" time="1.461" />
+    <testcase name="activeSelectionKeepsPrimaryActionsVisibleAndSecondaryActionsInOverflow" classname="com.whip.app.TaskBulkSelectionUiTest" time="10.027" />
+    <testcase name="archivedRecurringTaskEditsTheSeriesDefinitionInsteadOfAnOpenOccurrence" classname="com.whip.app.TaskBulkSelectionUiTest" time="2.14" />
+    <testcase name="bulkDeleteReissuesItsExactPreviewAfterStateRestoration" classname="com.whip.app.TaskBulkSelectionUiTest" time="1.964" />
+    <testcase name="bulkAreaChangeCannotApplyUntilAnAreaIsExplicitlyChosen" classname="com.whip.app.TaskBulkSelectionUiTest" time="1.388" />
+    <testcase name="restoredExistingTaskEditorPreservesItsExactIdentityAndRevisionBoundary" classname="com.whip.app.TaskBulkSelectionUiTest" time="2.841" />
+    <testcase name="bulkDateFailureRetainsTheFrozenSelectionAndOnlyMatchingSuccessCloses" classname="com.whip.app.TaskBulkSelectionUiTest" time="2.17" />
+    <testcase name="bulkEditDraftAndSelectionSurviveSavedStateRestoration" classname="com.whip.app.TaskBulkSelectionUiTest" time="2.493" />
+    <testcase name="completedRecurringHistoryOffersSeriesEditInsteadOfDuplicateFutureBoundary" classname="com.whip.app.TaskBulkSelectionUiTest" time="1.184" />
+    <testcase name="historySelectionOffersRelevantActionsForCompletedAndArchivedTasks" classname="com.whip.app.TaskBulkSelectionUiTest" time="1.634" />
+    <testcase name="bulkArchiveFailureRetainsFrozenSelectionAndMatchingSuccessAloneCloses" classname="com.whip.app.TaskBulkSelectionUiTest" time="2.341" />
+    <testcase name="bulkCompletionReviewsUnfinishedSubtasksBeforeCommitAndCancelKeepsSelection" classname="com.whip.app.TaskBulkSelectionUiTest" time="1.787" />
+  </testsuite>
+</testsuites>

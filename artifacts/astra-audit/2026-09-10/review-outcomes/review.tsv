@@ -1,0 +1,32 @@
+file	NAF_nodes	observation
+before/shared.review.outcomes-tasks.png	0	Native unchanged-production baseline opens an unrelated empty general collection from a nonzero Review card; the archived outcome or finished Workout is not shown.
+before/shared.review.outcomes-habits.png	0	Native unchanged-production baseline opens an unrelated empty general collection from a nonzero Review card; the archived outcome or finished Workout is not shown.
+before/shared.review.outcomes-goals.png	0	Native unchanged-production baseline opens an unrelated empty general collection from a nonzero Review card; the archived outcome or finished Workout is not shown.
+before/shared.review.outcomes-gym.png	0	Native unchanged-production baseline opens an unrelated empty general collection from a nonzero Review card; the archived outcome or finished Workout is not shown.
+pilot/shared.review.original-tasks.png	0	Correct archived source, but undated Task incorrectly described as in Inbox.
+pilot/shared.review.original-habits.png	0	Correct archived Habit initially opens Options/Danger Zone instead of saved History.
+pilot/shared.review.original-gym.png	0	Correct exact Workout, but caption incorrectly claims entry from Search.
+final-api34/shared.review.outcomes-tasks.png	0	Readable shared record with completion date and archived identity; period/Area and original-source action remain clear.
+final-api34/shared.review.original-tasks.png	0	Exact archived Task opens with saved schedule, replacing the false active-Inbox instruction. Existing source controls remain domain-owned.
+final-api34/shared.review.outcomes-habits.png	0	Successful Habit period uses the same record hierarchy as Tasks and retains archived source context.
+final-api34/shared.review.original-habits.png	0	Archived Habit opens directly into History with its saved check-in and Restore action. Historical-entry controls are existing source behavior, not a universal archive policy.
+final-api34/shared.review.outcomes-goals.png	0	Header and record fact both show positive normalized score 0.005; scoring is unchanged.
+final-api34/shared.review.original-goals.png	0	Exact archived Goal opens. Its independent integer percentage still reads 0% for positive 0.5%; FND-20260910-019 remains confirmed for next work. This is route evidence, not full Goal acceptance.
+final-api34/shared.review.outcomes-gym.png	0	Finished Workout record shares content roles without inventing an emoji; global Gym scope is explicit.
+final-api34/shared.review.original-gym.png	0	Selected Workout history shows the exact 40 kg × 5 reps Set; caption no longer claims every route came from Search.
+final-api34/shared.review.mixed-task-outcomes.png	0	Three Work completions include active and archived sources; scheduled dates distinguish two recurring outcomes completed together. No Personal result.
+final-api34/shared.review.original-current-task.png	0	Exact active completed Task opens with Completed status, truthful undated schedule and existing Reopen action.
+final-api34/shared.review.outcomes-unavailable.png	0	Selected source is qualified; stale rows, zero count, row-selection instruction and unrelated comparison guidance are absent. Scoped Retry remains reachable.
+final-api34/shared.review.outcomes-recovered.png	0	Same selected list recovers its original Task and count after retry, without showing unrelated Track failure. Fixture system bars are outside production theme acceptance.
+final-api37/shared.review.outcomes-tasks.png	0	Readable shared record with completion date and archived identity; period/Area and original-source action remain clear.
+final-api37/shared.review.original-tasks.png	0	Exact archived Task opens with saved schedule, replacing the false active-Inbox instruction. Existing source controls remain domain-owned.
+final-api37/shared.review.outcomes-habits.png	0	Successful Habit period uses the same record hierarchy as Tasks and retains archived source context.
+final-api37/shared.review.original-habits.png	0	Archived Habit opens directly into History with its saved check-in and Restore action. Historical-entry controls are existing source behavior, not a universal archive policy.
+final-api37/shared.review.outcomes-goals.png	0	Header and record fact both show positive normalized score 0.005; scoring is unchanged.
+final-api37/shared.review.original-goals.png	0	Exact archived Goal opens. Its independent integer percentage still reads 0% for positive 0.5%; FND-20260910-019 remains confirmed for next work. This is route evidence, not full Goal acceptance.
+final-api37/shared.review.outcomes-gym.png	0	Finished Workout record shares content roles without inventing an emoji; global Gym scope is explicit.
+final-api37/shared.review.original-gym.png	0	Selected Workout history shows the exact 40 kg × 5 reps Set; caption no longer claims every route came from Search.
+final-api37/shared.review.mixed-task-outcomes.png	0	Three Work completions include active and archived sources; scheduled dates distinguish two recurring outcomes completed together. No Personal result.
+final-api37/shared.review.original-current-task.png	0	Exact active completed Task opens with Completed status, truthful undated schedule and existing Reopen action.
+final-api37/shared.review.outcomes-unavailable.png	0	Selected source is qualified; stale rows, zero count, row-selection instruction and unrelated comparison guidance are absent. Scoped Retry remains reachable.
+final-api37/shared.review.outcomes-recovered.png	0	Same selected list recovers its original Task and count after retry, without showing unrelated Track failure. Fixture system bars are outside production theme acceptance.

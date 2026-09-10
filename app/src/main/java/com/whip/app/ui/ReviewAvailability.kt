@@ -59,14 +59,18 @@ internal fun reviewAvailability(
 }
 
 @Composable
-internal fun ReviewAvailabilityNotice(availability: ReviewAvailability, retryActions: DomainRetryActions) {
+internal fun ReviewAvailabilityNotice(
+    availability: ReviewAvailability,
+    retryActions: DomainRetryActions,
+    resultExplanation: String = "These sources are excluded from the results and comparisons below.",
+) {
     if (availability.complete) return
     WhipNoticeCard(
         title = "Review Is Incomplete",
         message = buildList {
             if (availability.loading.isNotEmpty()) add("Loading: ${availability.loading.joinToString { it.label }}.")
             if (availability.unavailable.isNotEmpty()) add("Unavailable: ${availability.unavailable.joinToString { it.label }}.")
-            add("These sources are excluded from the results and comparisons below.")
+            add(resultExplanation)
         }.joinToString("\n"),
         tone = if (availability.unavailable.isEmpty()) WhipNoticeTone.Informative else WhipNoticeTone.Error,
         actionLabel = "Retry Unavailable Sources".takeIf { availability.unavailable.isNotEmpty() },

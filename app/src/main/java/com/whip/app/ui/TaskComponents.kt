@@ -912,6 +912,7 @@ private fun WhipTask.repeatLabel(weekdayFormatter: WhipWeekdayFormatter): String
 
 private fun WhipTask.scheduleExplanation(weekdayFormatter: WhipWeekdayFormatter): String {
     if (scheduleKind == ScheduleKind.Anytime) {
+        if (archived || completedAtMillis != null) return "No scheduled date."
         return "This task is in Inbox without a scheduled date. Choose one when you are ready to schedule it."
     }
     if (scheduleKind == ScheduleKind.Once) {

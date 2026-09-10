@@ -145,6 +145,46 @@ class ReviewAvailabilityUiTest {
         compose.onNode(comparison).performScrollTo().assertIsDisplayed()
     }
 
+    @Test fun selectedOutcomesRecoverWithoutLosingTheirSectionOrShowingStaleRows() {
+        val tasks = mutableStateOf(completedTasks())
+        val retried = mutableListOf<String>()
+        val restore = StateRestorationTester(compose)
+        restore.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                ReviewDialog(
+                    taskState = tasks.value, habitState = HabitUiState(loading = false),
+                    goalState = GoalUiState(loading = false), gymState = GymUiState(loading = false),
+                    trackState = TrackUiState(loading = false, errorMessage = "Tracks unavailable"),
+                    period = ReviewPeriod.Weekly, sections = setOf(ReviewSection.Tasks),
+                    onPeriodChange = {}, onDismiss = {},
+                    retryActions = DomainRetryActions(
+                        tasks = { retried += "Tasks"; tasks.value = completedTasks() },
+                        tracks = { retried += "Tracks" },
+                    ),
+                )
+            }
+        }
+        compose.onNodeWithTag("review-signal-Tasks").performScrollTo().performClick()
+        compose.onNodeWithText("Reviewed work").assertIsDisplayed()
+        compose.onAllNodesWithTag("review-data-status").assertCountEquals(0)
+        compose.runOnIdle { tasks.value = tasks.value.copy(errorMessage = "Task storage unavailable") }
+        compose.onAllNodesWithText("Reviewed work").assertCountEquals(0)
+        compose.onAllNodesWithText("No Outcomes in This View").assertCountEquals(0)
+        compose.onAllNodesWithText("0 outcomes").assertCountEquals(0)
+        compose.onAllNodesWithText("Select an outcome", substring = true).assertCountEquals(0)
+        restore.emulateSavedInstanceStateRestore()
+        compose.onNodeWithTag("review-outcome-list").assertIsDisplayed()
+        compose.onNodeWithTag("review-data-status").assertIsDisplayed()
+        captureVisualCatalogSurface("shared.review.outcomes-unavailable")
+        compose.onNodeWithText("Retry Unavailable Sources").performScrollTo().performClick()
+        assertEquals(listOf("Tasks"), retried)
+        compose.onNodeWithText("Reviewed work").assertIsDisplayed()
+        compose.onAllNodesWithTag("review-data-status").assertCountEquals(0)
+        captureVisualCatalogSurface("shared.review.outcomes-recovered")
+        compose.onNodeWithContentDescription("Back to Review & Trends").performClick()
+        compose.onNodeWithTag("review-total-Tasks", useUnmergedTree = true).assertTextEquals("1")
+    }
+
     private fun openReview() {
         val action = (hasText("Review & Trends") or hasText("Review Progress")) and hasClickAction()
         compose.onAllNodes(action)[0].performScrollTo().performClick()

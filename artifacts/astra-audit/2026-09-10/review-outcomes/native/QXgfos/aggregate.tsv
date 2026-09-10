@@ -1,0 +1,4 @@
+batch	kind	expected_classes	executed_classes	executed	failures	skipped	coverage_bytes	reused	signature
+1	graphics	1	1	43	0	0	0	false	35e9cbb37377b00160698e9a0a38b72b1ec4b2a3618c6df4efa234422fabb1da
+2	ordinary	10	10	84	0	0	0	false	033a10362868c6aa6f0c199ca248ae14c294c83193cf6aa0635a385274ce5d3e
+3	ordinary	7	7	75	0	0	0	false	48cfe05ef529ab77a79ea3c762bf84f757436c99e9efc97451e5ff363c9a3038

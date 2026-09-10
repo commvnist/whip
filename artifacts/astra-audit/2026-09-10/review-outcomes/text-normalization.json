@@ -1,0 +1,202 @@
+[
+  {
+    "file": "before/shared.review.outcomes-tasks.xml",
+    "original": "8b0d859f86e341b7b51ce92047f19451d8d1708a4bfb5c0bc6bf4b6ec79b7b39",
+    "retained": "3b8d5d14c658d08e5eb9d89da5d3f420f8f236821580b487c091135337418d19"
+  },
+  {
+    "file": "before/shared.review.outcomes-habits.xml",
+    "original": "b3f0dff71bfa187e9cf1404b03bd1c37552349e9858e109a964f08612a0d10e1",
+    "retained": "a21d00a49cde5f93945daee1a917b13565a4ec0edc2636f11aafd5dfa53da5b3"
+  },
+  {
+    "file": "before/shared.review.outcomes-goals.xml",
+    "original": "83017d6f862f6b701bb0c4b0303c57f2e2e29264dd1a0a927e4037d8bdd099f6",
+    "retained": "4e2949406744099a637d0c20112893755bba0d637d2d6a860e52546717c78dcd"
+  },
+  {
+    "file": "before/shared.review.outcomes-gym.xml",
+    "original": "6df449304b5840ac7b00b8ca23b00ca238e70cb1b9b152857cafc24510d96e5f",
+    "retained": "3136669e29f0661a8d1c912f2fd670235a8eace6038b846b2bb0bcd40683f78a"
+  },
+  {
+    "file": "pilot/shared.review.original-tasks.xml",
+    "original": "a5c163b3d36386bb356f36f7473b2881bd0c324e3fef49ac54808c326c8aa951",
+    "retained": "c536d248ca45d1747152f97e15259c3e4d26d77ad51d30a73deb90210e2aecc9"
+  },
+  {
+    "file": "pilot/shared.review.original-habits.xml",
+    "original": "460febdeaf6e694a5c230906f5214e7081d2d60381012bdbceab23bcf539c410",
+    "retained": "6d8644fc697508ad5cb99912005d31c51bdc204986cabcbf191b3dad96a92668"
+  },
+  {
+    "file": "pilot/shared.review.original-gym.xml",
+    "original": "2a9144b7bbd287b6a0915b56b80ed4fcd1a59f0a7af5b22653d340d75809d662",
+    "retained": "56354341f47203505469e64a3dc39c1beadb4041d4e4d110baf3feb53a168b2c"
+  },
+  {
+    "file": "final-api34/shared.review.outcomes-tasks.xml",
+    "original": "a50b5502e97d5af9b1b3ad6723993dcefa0202491dc073351a2ae34f24522c36",
+    "retained": "cb731538791a90b86efae3906157313b42829a3585192f26b94170a39c5465bc"
+  },
+  {
+    "file": "final-api34/shared.review.original-tasks.xml",
+    "original": "a9a5b9b3a036b6db0c2851e04d90bc07222c6bb7ac7986c1e4d6cfc012545798",
+    "retained": "e424b329b9fff5876081e7a27d81a93e7a87bed6917d86947d66ad7715fd58c7"
+  },
+  {
+    "file": "final-api34/shared.review.outcomes-habits.xml",
+    "original": "59799a17748950e831b92558a7bedfde35644e2d7ab9a33815d8b9acdf9af1e9",
+    "retained": "099a5897e7d64dc507ab383afe045925293392e7866d841229f9ab117a577a65"
+  },
+  {
+    "file": "final-api34/shared.review.original-habits.xml",
+    "original": "5a1b1523cd903b367575e4c16c310fe59063253f9f31cd987c68e0e43305040c",
+    "retained": "68ed284fad4dd941748041b81577b0ca9b0f8c85d4e2ee6e670ba0844747ddcd"
+  },
+  {
+    "file": "final-api34/shared.review.outcomes-goals.xml",
+    "original": "01524eb4694aa61aa11f6ff91f2de29d40d080aacbe430fa462d98821aa278e7",
+    "retained": "a44d80a2ccd0c12d9e59ec68161a2331079364fac32c66b47c6ccbec67cac0fd"
+  },
+  {
+    "file": "final-api34/shared.review.original-goals.xml",
+    "original": "e7f207e04a73178817c117e73f20182f2a65b3c00e89fa4a9f4219f39eb16efe",
+    "retained": "2d891172ac9d9dada7bb38b60e40bd20788125f6d7e15af3624ccb210a9ae626"
+  },
+  {
+    "file": "final-api34/shared.review.outcomes-gym.xml",
+    "original": "2703d71f21463bb082931eb9a3c90cb2408609e3f4dbe2204d35b2991f224067",
+    "retained": "7c9f4fb7a20b66e621d4f96cf45848ff3ad462384b8e21ef977b1012813e8f45"
+  },
+  {
+    "file": "final-api34/shared.review.original-gym.xml",
+    "original": "e6ddaa0716401c731d795a6c73440c6ea90387ddf67f554527e2347a67b8301a",
+    "retained": "cbaf68bae020f4da758b3db2234c4346d59f6c9030d2d371a9e1d1f14a59629a"
+  },
+  {
+    "file": "final-api34/shared.review.mixed-task-outcomes.xml",
+    "original": "0ac15dce6a26fe6b71c3519f180f3f0e8b2a0ea67c6f997ea4e3825806c532e5",
+    "retained": "4417b126580be86ef3370bc73a9dcf21628d5ae181ed7bbc068178a429c6cd59"
+  },
+  {
+    "file": "final-api34/shared.review.original-current-task.xml",
+    "original": "3599c7a76b8f18580196e34e1410a74cdacd3672fac1212d0bd3f567063e197e",
+    "retained": "3eac4833f16f2ff7632d749b334322f26a043b1ee57f083a0fe136f9db0299b0"
+  },
+  {
+    "file": "final-api34/shared.review.outcomes-unavailable.xml",
+    "original": "0b7abfb58778d997291ffe76972e6abed5fd7b04941e489cd0d0a4c22e5142be",
+    "retained": "b366e1e7e8a58b5690d00402cd7b03cd291d06c3244af39eb36edfba7da57b8f"
+  },
+  {
+    "file": "final-api34/shared.review.outcomes-recovered.xml",
+    "original": "c09f6996e3ef5d11749ebe09a0122d5b7d8ec07f1e01ff0b29e53e434f9db99f",
+    "retained": "0eac77b61a74de656e4c3f10ad79715dee0da275fe0c9d7d9f3bd306d52ed561"
+  },
+  {
+    "file": "final-api37/shared.review.outcomes-tasks.xml",
+    "original": "0b9f1f3e2e215ac7691ccd16e27e410e90819e73773bf4c3e9745f57ea3ffec6",
+    "retained": "c4f20110363eae90e94faf6651cb0a0529c4f17ed171326505c3cdadd576b979"
+  },
+  {
+    "file": "final-api37/shared.review.original-tasks.xml",
+    "original": "a5db106ac58b20c017ff38f59b02ad3d6576b44d4b212bd221e26606314b5e25",
+    "retained": "5ca9a934732ce2f5ed02c8c0d05db96655cb591bad4df13b628ee82d87f2fce4"
+  },
+  {
+    "file": "final-api37/shared.review.outcomes-habits.xml",
+    "original": "f6e6557032aa37473c1978bfdb3796334cefc38ab1686f4ee55546d006acd797",
+    "retained": "74fccbdfab7fb0ff473823811a7aa061fb841fa6ec3257be9046920f4245a216"
+  },
+  {
+    "file": "final-api37/shared.review.original-habits.xml",
+    "original": "2b45a7b8757949f73b7a1442f028f47b28d94957da7aef663c806c50a985d5f8",
+    "retained": "a266bda19453ee1bfa1a37ffa39d19bafae86c0005b37234e09e5142e1c5fb73"
+  },
+  {
+    "file": "final-api37/shared.review.outcomes-goals.xml",
+    "original": "27079211884b6240c1b78bb086d4b4d749f6fb533722b76f89595f0e0015709b",
+    "retained": "892366019686305968fbea37af7c4a1b1e805c398625d498c6cd55d0ab0c36e7"
+  },
+  {
+    "file": "final-api37/shared.review.original-goals.xml",
+    "original": "b379bd0574f478efb68cc884d4791891e10d9ba8ceeaefc365b9e3ea78d23c0d",
+    "retained": "2de83193cad9107c9023fd38edd984c67c538c820385421c97ab57b8c3729326"
+  },
+  {
+    "file": "final-api37/shared.review.outcomes-gym.xml",
+    "original": "d314220b6e61fe0e4d09950da44de0ccd5bd3c3d7793d0db0a48e16ec73fdef2",
+    "retained": "48406de6e9b70df8a964e9bea033e55a9e6dae73a777251a38b490133ac0b3bd"
+  },
+  {
+    "file": "final-api37/shared.review.original-gym.xml",
+    "original": "d09d2739dcc2c6daf7e158cd31200bbea0072239709928586f087c6ae601ee0f",
+    "retained": "bcfa53880575500dbfd0f24db4cf5bd515f30c2080ce38d0c3ec83e92e1bfe55"
+  },
+  {
+    "file": "final-api37/shared.review.mixed-task-outcomes.xml",
+    "original": "9677b764713a15c862f50b0d363c36ea525aa5fe52ae907268e9f523af5b9528",
+    "retained": "d5120b4ec9fbdd0f4639f7ff8821b80dcb14f7658a6b57147698d61663b3d1e4"
+  },
+  {
+    "file": "final-api37/shared.review.original-current-task.xml",
+    "original": "fe2a09a27b0e1509b6b3ed9e8425e85aa62892eeedc50ccaacb63b8891c50319",
+    "retained": "a2e188d9d0a77b18d922848d11cef976aebca2aecae79bb4296ae2e6018a2589"
+  },
+  {
+    "file": "final-api37/shared.review.outcomes-unavailable.xml",
+    "original": "171c15d4d3564a965f270743bd846f4b2cbcd349852936dbfc4edf41116c9c20",
+    "retained": "44fc9d0c3ee393172cc2d1a02b11fc927c1b1404615ef3374e76454ba2e3fa2a"
+  },
+  {
+    "file": "final-api37/shared.review.outcomes-recovered.xml",
+    "original": "7b55eb7e5f0c0f4402411d9659aadf670cf9b8f64b3b3a52f05b536e44d671b7",
+    "retained": "2c02cac655af95ef41fc2b86d12af9f7035ace2ab21ea5abf6f0800de50507ea"
+  },
+  {
+    "file": "pilot-5.log",
+    "original": "d4d84e6ba2c970fa1d5c9a40c87df85e1e663d89ae7f8715dcd735c8286f9a79",
+    "retained": "4dc7d7997b1bfb7e8d9700d35656ab8c1b70e84b591e36ebbb1c4cd08e4914c5"
+  },
+  {
+    "file": "pilot-2.log",
+    "original": "a39254e6ae7af75d6b8fc7a512f0b4b6daac8bf4b423f7a046e5c72d12ba2616",
+    "retained": "d3ac04b6bd0517e04e9654f530299ac3b26ca4444e7feb28b25eadb41b163e3d"
+  },
+  {
+    "file": "native/Q3uppH/batch-1/result-1.xml",
+    "original": "1ecf7dafff2a541594ab73c95e3e756a278bdf185360fa599031e4fc6eec1836",
+    "retained": "998cd96eb35728c7cd27e440cd529e693a25c83f9c5a9cc69f4022617f9cdfc8"
+  },
+  {
+    "file": "native/QXgfos/batch-1/result-1.xml",
+    "original": "c02ebf9c86128bdc380cee624a291892e048e0b355bbfc369b761fa3e61c9ecc",
+    "retained": "dc01dfd3ba7ee1b4d28fd1c532904dd3c95b3ce30f74dfab7a182c3bdd0bf0eb"
+  },
+  {
+    "file": "native/QXgfos/batch-3/result-1.xml",
+    "original": "dd6167f68f7806b53f11d92d0cf43b942c788a0417e0114778d7690817d8e1e4",
+    "retained": "55d9902d48dbae79143f988a1a298c4c4fc765ea23f5eed6563c7b8fe003d4d6"
+  },
+  {
+    "file": "native/QXgfos/batch-2/result-1.xml",
+    "original": "3886a614e93e7536ae13dcd3bdca3631df38b4ad81d8493cec881c6e9a6efe40",
+    "retained": "30bea89c8dd77a49ebb2e22e900d3e5147b049de0b046f73b7a2c6e5b4661018"
+  },
+  {
+    "file": "native/ZWRavN/batch-1/result-1.xml",
+    "original": "8834ce85475ea0f351b93fd298e1f3a30f3a5f1e09a21a0a243ef7c03c36caf9",
+    "retained": "f269c198c7221f85d6c9d6f79af35ea6d3f7e38a88147dd2b63448fcab6ed581"
+  },
+  {
+    "file": "native/cura9v/batch-1/result-1.xml",
+    "original": "b84b072fbe88242e5dcde1b05afc0ca58ee3a768d93f166d91ae1368b86d52ed",
+    "retained": "a4501cb185620a3ec22631fca19d9d264dfc946ff07d71ed83e78b846d3f77ff"
+  },
+  {
+    "file": "native/r2FrdV/batch-1/result-1.xml",
+    "original": "d55e257ff7c340ed96ce21316e627bdfb4aa1bdf797ef79c29a11091ec56c164",
+    "retained": "6aee84cd42d460eed13a0feb762fd68da80c65d3155fa9319d60c3df2a9dc26f"
+  }
+]

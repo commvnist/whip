@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-011 — Review cards expose their contributing outcomes before source navigation
+
+- Evidence: FND-20260910-016 reproduces four empty general destinations after nonempty Review totals. Existing per-entity inspectors already expose domain details and archived history.
+- Decision: Give all four cards an in-context outcome list using WhipRecordItem. Each row identifies its original entity, outcome date, archive context and normalized contribution where applicable. One presentation projection feeds both daily totals/correlations and detail rows, keeping them aligned. Use a lazy list with bounded reading width, shared Back/exit controls and the existing wide pane/hinge boundary. Preserve Review period/sections, overview scroll and selected details through Activity recreation; only the selected section is saved, never the history payload.
+- Alternatives/tradeoffs: Choosing Archived only when all results are archived would still fail mixed histories. Routing every card to Insights would omit archived Habit/Goal data and lose period context. A new universal history editor would duplicate mature source behavior. A read-only contributing list adds one deliberate step before opening an original record, while making the total explainable and retaining existing domain-owned editing/history flows.
+- Compatibility/status: Verified in VER-20260910-011: 202 API 34 checks, 13 API 37 methods, 368 JVM readiness checks and 31 original reviews. Domain calculations, Area/global Gym/Track boundaries, availability and historical truth remain intact. No schema, backup or release change. Separate Goal percentage truncation, broader shared reading-width and whole-app review remain active.
+
 ### DEC-20260910-010 — Empty Review copy describes the selected view
 
 - Decision: Use No Outcomes in This View and point to the existing Review Options before explaining how new outcomes appear. Keep the shared WhipEmptyState layout. Show card-opening guidance only when outcome cards are actually rendered. Track evidence already explains its distinct role; remove the duplicate global-history-driven empty explanation.

@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="13" failures="0" errors="0" skipped="0" time="69.169" timestamp="2026-09-10T11:15:21" hostname="localhost">
+  <testsuite name="com.whip.app.ReviewAvailabilityUiTest" tests="4" failures="0" errors="0" skipped="0" time="16.779" timestamp="2026-09-10T11:15:21" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="incompleteSourcesNeverClaimThereAreNoOutcomes" classname="com.whip.app.ReviewAvailabilityUiTest" time="5.14" />
+    <testcase name="selectedOutcomesRecoverWithoutLosingTheirSectionOrShowingStaleRows" classname="com.whip.app.ReviewAvailabilityUiTest" time="3.769" />
+    <testcase name="partialReviewPreservesAvailableOutcomesAndRetriesOnlyUnavailableSources" classname="com.whip.app.ReviewAvailabilityUiTest" time="4.576" />
+    <testcase name="correlationsUseReadySourcesEvenWhenOtherEvidenceIsUnavailable" classname="com.whip.app.ReviewAvailabilityUiTest" time="3.294" />
+  </testsuite>
+  <testsuite name="com.whip.app.ReviewJourneyE2ETest" tests="4" failures="0" errors="0" skipped="0" time="23.622" timestamp="2026-09-10T11:15:21" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="trackOnlyHistoryOffersReviewWithoutInventingOutcomes" classname="com.whip.app.ReviewJourneyE2ETest" time="4.551" />
+    <testcase name="archivedTaskAndHabitOutcomesRemainInReviewHistory" classname="com.whip.app.ReviewJourneyE2ETest" time="3.518" />
+    <testcase name="changingReviewOptionsRevealsSavedOutcomesWithoutLosingTheView" classname="com.whip.app.ReviewJourneyE2ETest" time="8.065" />
+    <testcase name="allTrackEvidenceKeepsItsScopeAcrossAreaReviewAndRecreation" classname="com.whip.app.ReviewJourneyE2ETest" time="7.488" />
+  </testsuite>
+  <testsuite name="com.whip.app.ReviewOutcomeJourneyE2ETest" tests="5" failures="0" errors="0" skipped="0" time="27.652" timestamp="2026-09-10T11:15:21" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedTaskOutcomesOpenTheirOriginalTask" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="5.784" />
+    <testcase name="mixedTaskHistoryKeepsAreaScopeAndDistinctOccurrences" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="5.63" />
+    <testcase name="archivedGoalProgressOpensItsOriginalGoal" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="5.455" />
+    <testcase name="archivedHabitOutcomesOpenTheirOriginalHabit" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="5.656" />
+    <testcase name="finishedWorkoutOutcomesOpenTheirOriginalSession" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="5.127" />
+  </testsuite>
+</testsuites>
