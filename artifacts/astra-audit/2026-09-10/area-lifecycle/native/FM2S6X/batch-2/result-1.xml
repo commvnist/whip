@@ -1,0 +1,151 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="85" failures="0" errors="0" skipped="0" time="223.552" timestamp="2026-09-10T13:38:58" hostname="localhost">
+  <testsuite name="com.whip.app.AreaOrganizationJourneyE2ETest" tests="3" failures="0" errors="0" skipped="0" time="94.831" timestamp="2026-09-10T13:38:58" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="moveAndMergeKeepSavedHistoryAndSearchRecoverable" classname="com.whip.app.AreaOrganizationJourneyE2ETest" time="33.271" />
+    <testcase name="createColorOrderAndArchivedIdentitySurviveRecreation" classname="com.whip.app.AreaOrganizationJourneyE2ETest" time="43.755" />
+    <testcase name="reviewedCleanupPreservesOrDeletesOnlyTheAssignedHistory" classname="com.whip.app.AreaOrganizationJourneyE2ETest" time="17.805" />
+  </testsuite>
+  <testsuite name="com.whip.app.DomainDeletionCoordinatorTest" tests="30" failures="0" errors="0" skipped="0" time="1.765" timestamp="2026-09-10T13:38:58" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="exerciseDeleteReportsExactImpactAndLeavesUnrelatedHistoryUntouched" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.353" />
+    <testcase name="workoutDeleteBlocksAnActiveSessionEvenWithAReviewedRevision" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.051" />
+    <testcase name="trackDeletionUsesExactReviewedDefinitionAndHistoryImpact" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.051" />
+    <testcase name="areaDeleteWithItemsRemovesEveryDomainAndItsDependentHistory" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.052" />
+    <testcase name="workoutDeleteReportsExactImpactAndPreservesTrainingMaxDecisionHistory" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.102" />
+    <testcase name="areaDeletionPreparationFailureRollsBackEveryOwnedEntity" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.026" />
+    <testcase name="reviewedTaskDisappearingBeforeDeleteIsAnOwnedFailure" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.026" />
+    <testcase name="machineDeleteIsBlockedWhileProfileIsInActiveWorkout" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.076" />
+    <testcase name="taskDeletionDoesNotConvertFatalPostCommitErrorsIntoOrdinaryWarnings" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.026" />
+    <testcase name="routineDeletePreservesWorkoutAndWorkoutDeleteRebuildsDerivedState" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.076" />
+    <testcase name="areaDeletionPostCommitFailuresReturnWarningsWithoutInvitingReplay" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.026" />
+    <testcase name="machineDeleteRemovesOnlyProfileAndPreservesHistoricalMeaning" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.178" />
+    <testcase name="exerciseDeletionRejectsAStaleDependencyPreview" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.051" />
+    <testcase name="goalDeletionCancellationAfterCommitCarriesCommittedSummary" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.026" />
+    <testcase name="machineDeleteRejectsAStaleImpactPreview" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.051" />
+    <testcase name="goalDeletionReportsOrdinaryPostCommitFailuresAsWarnings" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.026" />
+    <testcase name="workoutDeleteOwnsPostCommitReconciliationFailureAsAWarning" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.052" />
+    <testcase name="promotionUndoReportsPostCommitCleanupFailureAndKeepsItsCommittedResult" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.051" />
+    <testcase name="exerciseDeletionBlocksAnActiveWorkoutPlacement" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.051" />
+    <testcase name="workoutDeleteRejectsRecordedHistoryChangedAfterPreview" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.052" />
+    <testcase name="deletedNumberedMachineKeepsItsHistoricalStrengthDirection" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.076" />
+    <testcase name="goalDeletionPreCommitFailurePreservesGoalAndReconcilesReminderState" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.026" />
+    <testcase name="routineDeletionRejectsWorkoutHistoryAddedAfterPreview" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.026" />
+    <testcase name="taskDeletionReportsPostCommitCleanupFailureWithoutClaimingTheDeleteFailed" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.052" />
+    <testcase name="areaDeletionCancellationAfterCommitCarriesTheCommittedSummary" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.026" />
+    <testcase name="routineDeletionBlocksItsActiveWorkout" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.026" />
+    <testcase name="taskDeletionCancellationAfterCommitEscapesAndNeverRollsBackCommittedDelete" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.026" />
+    <testcase name="goalDeleteRemovesOwnedMeasurementAndPreservesIndependentHabits" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.051" />
+    <testcase name="reviewedGoalDisappearingBeforeDeleteFailsTruthfully" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.026" />
+    <testcase name="exerciseDeleteDetachesOnlyThatExerciseFromSharedMachine" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.027" />
+  </testsuite>
+  <testsuite name="com.whip.app.MeasurementTaxonomyRepositoryTest" tests="14" failures="0" errors="0" skipped="0" time="2.018" timestamp="2026-09-10T13:38:58" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="taxonomyRenamesAdvanceRevisionsAndRebuildTrackSearch" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.076" />
+    <testcase name="archiveRestoreAndMoveAffectTaxonomyWithoutChangingRecords" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.026" />
+    <testcase name="explicitCreateOrRestoreRestoresTheSameTagIdentity" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.052" />
+    <testcase name="measurementRecordsUseTheRepositoryClockZoneUnlessAnExplicitProvenanceZoneIsSupplied" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.103" />
+    <testcase name="creatingAnArchivedAreaNameRestoresTheSameIdentityAndPreservesItsColor" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.077" />
+    <testcase name="tagRenameConflictRequiresAnExplicitMergeAndPreservesBothTags" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.132" />
+    <testcase name="permanentAreaDeleteMovesEveryAssignedItemToAnotherArea" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.207" />
+    <testcase name="renameConflictNamesAnArchivedDestinationThatMustBeRestored" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.128" />
+    <testcase name="blankAssignmentsDefaultToMainAndCanMoveBetweenAreas" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.311" />
+    <testcase name="areaAndTagMergeUpdateEveryDomainWithTargetSpellingAndNoDuplicates" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.443" />
+    <testcase name="ensuringAnArchivedTagReusesItsIdentityWithoutSilentlyRestoringIt" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.129" />
+    <testcase name="tagNamesRejectTheCommaReservedByCurrentPersistence" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.077" />
+    <testcase name="tagMergeRejectsAnArchivedDestinationUntilItIsRestored" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.128" />
+    <testcase name="lastActiveAreaCannotBeArchivedOrDeleted" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.129" />
+  </testsuite>
+  <testsuite name="com.whip.app.OrganizationJourneyE2ETest" tests="2" failures="0" errors="0" skipped="0" time="41.094" timestamp="2026-09-10T13:38:58" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="tagChangesKeepEveryDomainAndSavedHistoryThroughRecreation" classname="com.whip.app.OrganizationJourneyE2ETest" time="32.352" />
+    <testcase name="areaIdentityAndRenameDraftSurviveTheRealManagerJourney" classname="com.whip.app.OrganizationJourneyE2ETest" time="8.742" />
+  </testsuite>
+  <testsuite name="com.whip.app.SettingItemBuilderJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="8.122" timestamp="2026-09-10T13:38:58" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="choicesSaveImmediatelyWhileTypedDraftsWaitForConfirmedSave" classname="com.whip.app.SettingItemBuilderJourneyE2ETest" time="8.122" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.AreaFeatureUiTest" tests="20" failures="0" errors="0" skipped="0" time="54.966" timestamp="2026-09-10T13:38:58" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="areaManagerSearchIncludesArchivedMatchesWithoutPriorExpansion" classname="com.whip.app.ui.AreaFeatureUiTest" time="1.266" />
+    <testcase name="allItemsCanBeMovedBetweenAreasInOneAction" classname="com.whip.app.ui.AreaFeatureUiTest" time="0.834" />
+    <testcase name="creatingAnArchivedNameRestoresBeforeSelectingIt" classname="com.whip.app.ui.AreaFeatureUiTest" time="1.263" />
+    <testcase name="captureAreaManagementCatalog" classname="com.whip.app.ui.AreaFeatureUiTest" time="16.203" />
+    <testcase name="permanentDeleteExplainsBothChoicesAndRequiresAnExplicitChoice" classname="com.whip.app.ui.AreaFeatureUiTest" time="2.614" />
+    <testcase name="archivedAreaDetailUsesRestoreInsteadOfOpeningArchiveConfirmation" classname="com.whip.app.ui.AreaFeatureUiTest" time="1.083" />
+    <testcase name="scopeMenuShowsSelectionAndItemCountsWithSentenceCaseLabels" classname="com.whip.app.ui.AreaFeatureUiTest" time="2.312" />
+    <testcase name="emergencyZeroAreaStateCreatesMainWithoutShowingAPlaceholder" classname="com.whip.app.ui.AreaFeatureUiTest" time="1.033" />
+    <testcase name="largeAreaPickerUsesSearchAndCanSelectTheLastArea" classname="com.whip.app.ui.AreaFeatureUiTest" time="1.56" />
+    <testcase name="pickerDoesNotClaimARequiredDefaultWasInheritedFromTheCurrentView" classname="com.whip.app.ui.AreaFeatureUiTest" time="0.606" />
+    <testcase name="pickerSelectsExistingAreaAndCreatesInline" classname="com.whip.app.ui.AreaFeatureUiTest" time="2.139" />
+    <testcase name="badgeUsesTextAndChangesTheGlobalScope" classname="com.whip.app.ui.AreaFeatureUiTest" time="0.579" />
+    <testcase name="areaWorkspaceKeepsExitTrailingAndBackLeadingAtTwoHundredPercentText" classname="com.whip.app.ui.AreaFeatureUiTest" time="1.107" />
+    <testcase name="failedAreaRenameKeepsTheReviewedDialogAndDraft" classname="com.whip.app.ui.AreaFeatureUiTest" time="1.687" />
+    <testcase name="areaChoicesUseOneSemanticRadioNodeAndScrollWithoutMovingDialogActions" classname="com.whip.app.ui.AreaFeatureUiTest" time="4.303" />
+    <testcase name="permanentDeleteKeepsLargeTextChoicesAndRetryOwned" classname="com.whip.app.ui.AreaFeatureUiTest" time="6.159" />
+    <testcase name="areaPickerKeepsActiveSearchWhenItsOptionsShrink" classname="com.whip.app.ui.AreaFeatureUiTest" time="4.725" />
+    <testcase name="pickerExplainsWhenItsAreaWasActuallyInheritedFromScope" classname="com.whip.app.ui.AreaFeatureUiTest" time="0.58" />
+    <testcase name="emptyAreaDeletionStillExplainsSavedViewCleanup" classname="com.whip.app.ui.AreaFeatureUiTest" time="2.55" />
+    <testcase name="deletingTheOnlyAreaPromptsForAReplacementFirst" classname="com.whip.app.ui.AreaFeatureUiTest" time="2.363" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.AreaMutationViewModelTest" tests="3" failures="0" errors="0" skipped="0" time="0.179" timestamp="2026-09-10T13:38:58" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="rejectedAreaMutationReturnsToItsExactOwnerWithoutChangingTheArea" classname="com.whip.app.ui.AreaMutationViewModelTest" time="0.076" />
+    <testcase name="deleteKeepingItemsUsesRepositoryTruthWithoutACollectedUiProjection" classname="com.whip.app.ui.AreaMutationViewModelTest" time="0.052" />
+    <testcase name="successfulMergeReturnsOneReceiptAndMovesTheSavedAreaScope" classname="com.whip.app.ui.AreaMutationViewModelTest" time="0.051" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.TagManagementUiTest" tests="8" failures="0" errors="0" skipped="0" time="18.728" timestamp="2026-09-10T13:38:58" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archiveConfirmationNamesEveryAffectedProductAreaAndPreservesHistory" classname="com.whip.app.ui.TagManagementUiTest" time="1.261" />
+    <testcase name="commaSeparatedNameExplainsThePersistenceBoundaryBeforeSubmission" classname="com.whip.app.ui.TagManagementUiTest" time="1.611" />
+    <testcase name="captureTagManagementCatalog" classname="com.whip.app.ui.TagManagementUiTest" time="8.549" />
+    <testcase name="narrowLargeTextHeaderStacksWithoutHidingPrimaryActions" classname="com.whip.app.ui.TagManagementUiTest" time="0.931" />
+    <testcase name="failedRenameKeepsTheDialogAndDraftOwnedByTheRequest" classname="com.whip.app.ui.TagManagementUiTest" time="2.165" />
+    <testcase name="searchFindsArchivedTagWithoutOpeningArchivedSection" classname="com.whip.app.ui.TagManagementUiTest" time="1.034" />
+    <testcase name="createWithArchivedNameOffersRestoreInsteadOfDuplicate" classname="com.whip.app.ui.TagManagementUiTest" time="1.564" />
+    <testcase name="renameConflictExplainsMergeAndCannotBeSubmitted" classname="com.whip.app.ui.TagManagementUiTest" time="1.613" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.TagMutationViewModelTest" tests="4" failures="0" errors="0" skipped="0" time="0.384" timestamp="2026-09-10T13:38:58" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="rejectedRenameReturnsToItsExactOwnerWithoutChangingTags" classname="com.whip.app.ui.TagMutationViewModelTest" time="0.127" />
+    <testcase name="onlyOneTagMutationCanBeAdmittedAtATime" classname="com.whip.app.ui.TagMutationViewModelTest" time="0.153" />
+    <testcase name="settingsCountsTagUsageAcrossEverySupportedProductArea" classname="com.whip.app.ui.TagMutationViewModelTest" time="0.051" />
+    <testcase name="mergePublishesTheExactSourceAndDestination" classname="com.whip.app.ui.TagMutationViewModelTest" time="0.053" />
+  </testsuite>
+</testsuites>

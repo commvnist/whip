@@ -1,0 +1,292 @@
+[
+  {
+    "file": "baseline-3/organization.lifecycle.search-after-merge.xml",
+    "original": "19df1b145cfe8a04544c6fcc6c98de385d5e3786cec742e1223728b26f97021b",
+    "retained": "fa486bffa0356f2e04f20d00a5987b0d47f678d2f1959adf3cde73b41f1a5d0a"
+  },
+  {
+    "file": "checkpoint-final-api37/organization.lifecycle.restore-existing.xml",
+    "original": "45a8161b5e4020a8222e58452bdc435158d5053441a7d560c32ea6c7c129ff87",
+    "retained": "704835c73abfb93da31652bc7eb9c4a9f0209d8f35e44f153391724612a25aee"
+  },
+  {
+    "file": "final-api34/organization.lifecycle.last-required.xml",
+    "original": "0aa95bfcf7ee080f60f6efe5b0ce4bd62c76eb05b06a641b8d57220fef7f9759",
+    "retained": "b1f996d1c49c8607567f756a6db360681de570efcb4926037ca746624a0f0e2f"
+  },
+  {
+    "file": "final-api34/organization.lifecycle.create-draft.xml",
+    "original": "e4a177f2b993e4aba6e8d7b2200a56b4e9132c548ef41a746930d1d34c58d703",
+    "retained": "5d0641d6223ddb79d26901c813597a4902cfae643a89c6b71e1f12a77110e9e9"
+  },
+  {
+    "file": "final-api34/organization.lifecycle.reordered.xml",
+    "original": "902dba36bc78c3258c9efc1e59a79bf2a15d7b53ce8267f6f0750c1297ca0a6e",
+    "retained": "24d0c2913f51b1c93aedd7bcf858b2153b65bb976b0e6ab4d95e2b1729ac6fe4"
+  },
+  {
+    "file": "final-api34/organization.lifecycle.color-draft.xml",
+    "original": "95eb9f21223d0c168770173d73a939da67f82c998954fde53f29a04ff7abf9af",
+    "retained": "4cc7eefb32cc111fdc4c5877709d48bcf53a14f1f27d4e84576517eb2c8ddbe4"
+  },
+  {
+    "file": "final-api34/organization.lifecycle.archive-review.xml",
+    "original": "92be9ddc6fc7ec0614b12cb753d9d2d182700edc2a800ea0ec34320b61d9f7ae",
+    "retained": "94453268893183779f5ab41721420f8170473d6cc28f8a841689732bc189b822"
+  },
+  {
+    "file": "final-api34/organization.lifecycle.archived-detail.xml",
+    "original": "f1060ee77a9f6ddd3a192f3da692f257bc2f22932c333715dcd70841c9b53d89",
+    "retained": "9a5fd35fa53193da190c5eecde7754689869dc30363f7b0b4d74f2af5e0ec12a"
+  },
+  {
+    "file": "final-api34/organization.lifecycle.archived-list.xml",
+    "original": "a0678c478876423bf977d2b23b248caf71028ce4490b54d613236ca7e0fba839",
+    "retained": "5a0e70585b7be422e6782e4a013d770d56e77e8026939a13c61a9760036368fb"
+  },
+  {
+    "file": "final-api34/organization.lifecycle.restore-existing.xml",
+    "original": "d4655bffb8e283813281fc243a079b87597c466886b8e2671b7bbe1d44dd4129",
+    "retained": "08d06fea45ebce2f3389b612fb64210930a98fc89b8fb41461d8e34552bb57b4"
+  },
+  {
+    "file": "final-api34/organization.lifecycle.restored-detail.xml",
+    "original": "581c028c1b2c9c0fad9a68b3cfe5a264df36bbd401f80bebdbfff1b8c692ecf9",
+    "retained": "d7ea9cafaca350db19c3126943dcbf6c18d3340510be5c631843fe2e4820b196"
+  },
+  {
+    "file": "final-api34/organization.lifecycle.move-review.xml",
+    "original": "71d51a1284199d65f066031bc3e577f395241f6b06877645c4f9d7470ad1ddfb",
+    "retained": "82afc4cba05bed476112469b40632a275025692b6ef96c771219fe4c420ba04e"
+  },
+  {
+    "file": "final-api34/organization.lifecycle.moved-source.xml",
+    "original": "138857028e539c28206bba64b336e6a95310b28c22b3083a5a5a448f89585c4f",
+    "retained": "798a53b27a476990f15a8342402848ab4858af5cabb3afe2c93f5778d80ceabe"
+  },
+  {
+    "file": "final-api34/organization.lifecycle.merge-review.xml",
+    "original": "adbf36f5a7b608cdc83da1006804e6306f8a559a673e90dadcc5616c1a9c03fc",
+    "retained": "aee728f2aca812a2188ef78f12a4a6b33ecfd3e1ed51164848c432d324f18cba"
+  },
+  {
+    "file": "final-api34/organization.lifecycle.search-after-merge.xml",
+    "original": "5e3d985515dbb53341cc75d5fb5bc760cbe7f7fa66efbf7a830052202ba9db47",
+    "retained": "c0b5b53e8b16272489d6d256f63853f6d37581edbabc6e0c0c3dcad681bc7988"
+  },
+  {
+    "file": "final-api34/organization.lifecycle.search-recovered.xml",
+    "original": "24ad5696dbda38ecab22022baa165b9be18fda51ff7fe6483abc669ee6b845c0",
+    "retained": "e671e50a41e614930efa629296acfdf73a515b4c6834a8fa13e563c6b8ce0ea4"
+  },
+  {
+    "file": "final-api34/organization.lifecycle.delete-choice.xml",
+    "original": "bb89047374bf7f32d41829f16243b8f6534a1e2ea05f154254719667acc73364",
+    "retained": "577b0781832fe82e1d7efd48b3be8d72e0de692e3477194d3e3b8b155fb13987"
+  },
+  {
+    "file": "final-api34/organization.lifecycle.delete-keep-review.xml",
+    "original": "2a9695e55e2411822c308246998223f7ed77977687afc55215ac48623de5e43f",
+    "retained": "64e391ed7b0370df6a78adff5ddb7a29cfb9ad5b11b5b430983d1e23c4aa0e63"
+  },
+  {
+    "file": "final-api34/organization.lifecycle.delete-kept-history.xml",
+    "original": "9c1812c15d2061632477d043d3cc9419409633669f511d352edb7b9b55f2ed24",
+    "retained": "fd0cceb01e225cda336b6866eb722e9258f1d3c8b0d15f27d09310ab48a04846"
+  },
+  {
+    "file": "final-api34/organization.lifecycle.delete-all-review.xml",
+    "original": "5a194f29f303dd333c8fdcbc3a63e6d462f62bc7a017ee0e4d2c59df43c7d53e",
+    "retained": "637fd561416895c481492a24e8c66a29d81ca75064ede6445c9ae1a41b44bb9c"
+  },
+  {
+    "file": "final-api34/organization.lifecycle.cleanup-complete.xml",
+    "original": "77e1bb6ce6a5fb9627a3a65649c4928c594b4a927cf7af94ea072dfdc610ee0f",
+    "retained": "1db86734907bf30d38e852cae97ec15de1eedc7a5ac5dd58bae7c2292e7b1416"
+  },
+  {
+    "file": "final-api34/organization.lifecycle.picker-search-retained.xml",
+    "original": "e6517710bd32be831982da08d0e8e499fb25588e3a085f04cf6b59a13222a202",
+    "retained": "b6125e58ad6c2d2ddc72810cd7d5d471692edce108c31667247cf1db7805c350"
+  },
+  {
+    "file": "final-api34/organization.lifecycle.picker-search-cleared.xml",
+    "original": "ed2f31029f27b8f126985a76dab48b5588d8cf510e04187c51b5ebcb6e190aa5",
+    "retained": "c256e3e419b5d57dfc31c1e3851dad76407d6e527cda24ef33d97e094bdbb446"
+  },
+  {
+    "file": "final-api34/organization.journey.tag-archived.xml",
+    "original": "3d2a6dc1eb1a78d1236bd32ffcf3ecaf017ba809f3873eb0bd4ce7e57cdd288f",
+    "retained": "f7fbb0f8a57730a6bbf61941c471a5cce0ce8b64657d8571c8f5ac7b11088ca3"
+  },
+  {
+    "file": "final-api34/organization.area.rename.xml",
+    "original": "edba8759c866199f18d9e245a632fbda196e8fd385ef029bfea6804922dfa67e",
+    "retained": "3743bb9db2db8d8f2db61cc1a26a9e05d0d9282c6107934667ddda10bc1d88f8"
+  },
+  {
+    "file": "final-api34/organization.area.menu.xml",
+    "original": "577522b22f8f3a538df1538184c48affd751cd24eec279181fae3359d26bf545",
+    "retained": "ee994f86a3ccec4be39952931a6f0ecabb5d46de04542a83000960fe817d2b99"
+  },
+  {
+    "file": "final-api37/organization.lifecycle.last-required.xml",
+    "original": "21516372c0f61dbdc5ecab73edc5d3d6a1ce7dd0ea8dd354dd177603eef20b09",
+    "retained": "faee7a1f4c4f930d0617277f5011948f09e216fbdc1ee51ddf5ee02f0f786b43"
+  },
+  {
+    "file": "final-api37/organization.lifecycle.create-draft.xml",
+    "original": "07bb0d4fd7f8c03e616ed030edb0434e7800d960c1dc45661a8697b24ec3ea79",
+    "retained": "ed3ed613899982be0643f1b9970d6808e1aacbe150e9783199e87847a3e9d2de"
+  },
+  {
+    "file": "final-api37/organization.lifecycle.reordered.xml",
+    "original": "80b1edd13e2191036702c7ec8d8d67cd74f19d629fcfe8dcfcbed60973e26047",
+    "retained": "5d1190e96ce09671b158d50954b80d2410b93c790d64f6ad29c4199e302edcb1"
+  },
+  {
+    "file": "final-api37/organization.lifecycle.color-draft.xml",
+    "original": "f7a50dd5ea4be2749c802eef5b14901d6a950052eb19922b23b530e052b8b559",
+    "retained": "1c13f0d4ad362acf0248bc4d9508ca2c07b3dd7fedba32cde232d0787973ebf2"
+  },
+  {
+    "file": "final-api37/organization.lifecycle.archive-review.xml",
+    "original": "af4112aab1475c8d71929e892f3d54f257941c865e0511c6f87320a90ef9fb55",
+    "retained": "81da1d2e4cdc8f717604bdf439eb709ed3e7ace3715e05e29b37d2ef27e16ff0"
+  },
+  {
+    "file": "final-api37/organization.lifecycle.archived-detail.xml",
+    "original": "5c5a16a19a77de0a28e32a43ae415a736f6f02e1bb542d573d33349c75c99ea5",
+    "retained": "139257ede6fcc3b7e6a5d2f9abd89aa303a38e1a3e9e94323eb0ede911e69473"
+  },
+  {
+    "file": "final-api37/organization.lifecycle.archived-list.xml",
+    "original": "c4698be1b597d2bb4d112cb4cc261dd627a0c3c4a2d108489508a5f944bccc25",
+    "retained": "51700aa8abeb808925d3d5b2604d1ab390cf0f2056139cb0efc9081e0ef5cd77"
+  },
+  {
+    "file": "final-api37/organization.lifecycle.restore-existing.xml",
+    "original": "138f19293d952f60fd08db5a84d473da3c05ba5cc0af21f02c0866e3c0d1f0a8",
+    "retained": "06033b0f887c232327cf918bc30d9eda5811ee0c09f638f02f96d1c6ff8d2c11"
+  },
+  {
+    "file": "final-api37/organization.lifecycle.restored-detail.xml",
+    "original": "f605fd8c69fc497acaa7d6025e420315370e99e3e689bb36607870f981887869",
+    "retained": "335f2eb2fde44015f0e420c3b98b9a487f47a4723a6aa082dbcce0f17c536b46"
+  },
+  {
+    "file": "final-api37/organization.lifecycle.move-review.xml",
+    "original": "c7623d58a296e141e3c5595ca61600204a08f1660ee579880d36aeb9d9ea0e60",
+    "retained": "e2214ac88e4d2a0ae61ffb1e6c1dd1684c9d9fdcf62af84588adea2a72368bd0"
+  },
+  {
+    "file": "final-api37/organization.lifecycle.moved-source.xml",
+    "original": "419ce9d65833393cb3c1f38a95bc7ae7513fe417243cc48f6346c15603a5a17e",
+    "retained": "cb7d66159b00254842b30e4fb207e114699916ab92a61450e881d718adb8d504"
+  },
+  {
+    "file": "final-api37/organization.lifecycle.merge-review.xml",
+    "original": "e853eba6c72501fb36803aeee36a45983cefa9403c7eb3d7dd446a9dd8276a54",
+    "retained": "46118b82c7c2bfada6aa3e3418f56f83c3642a4b1106f57e9756be24b42ae968"
+  },
+  {
+    "file": "final-api37/organization.lifecycle.search-after-merge.xml",
+    "original": "05b0ce42f825b9a122931ddbbe3e970c93d3316624d55fef67f3ca065b17d30a",
+    "retained": "ed5291e8085b60345dcbbf64ab5ff855334c90ed057e29bce699951ba62dc6eb"
+  },
+  {
+    "file": "final-api37/organization.lifecycle.search-recovered.xml",
+    "original": "90dbf0db21d6b04bd416215b05b198162d3ae5e82154093942c7e3dd051aed1b",
+    "retained": "0e9d2aaac97ffe5bd1167051d160f6efdbbf2df60fa778f45dd307dd53a37a8f"
+  },
+  {
+    "file": "final-api37/organization.lifecycle.delete-choice.xml",
+    "original": "1d28626af865fc57c1fca08afa8b7eb89b5d5ad700c3fd87375abbc7f0dfb14c",
+    "retained": "da6ca59b7aefe8616491c1574b90fc6528ae39caff31b362032893b62a900dca"
+  },
+  {
+    "file": "final-api37/organization.lifecycle.delete-keep-review.xml",
+    "original": "b9ec7dcd71094e51f6a102fa8c609101657ece0e8f4cd9da48d86ac7516ff4e5",
+    "retained": "86e731428db42ef6ab76120f6150d4608ee0dd49a3ee5be03d1e24b31e2ef7c6"
+  },
+  {
+    "file": "final-api37/organization.lifecycle.delete-kept-history.xml",
+    "original": "0d5fcb35650512d2bd52bdde854191ecf08d65d5e8e44f402a7ac98d3623fc8f",
+    "retained": "26facdf8558c26d553c807c1a0900fcd1f935907d40e3fc42ec171b2c04252ce"
+  },
+  {
+    "file": "final-api37/organization.lifecycle.delete-all-review.xml",
+    "original": "638a49525f23b5b4e1b0436de89282414887243823c4ff91b3d8668d9394c06e",
+    "retained": "0991ffba2ed5d97de6ca20d8d4d8de7ffefa6c55795dce0092a4a11105a9522a"
+  },
+  {
+    "file": "final-api37/organization.lifecycle.cleanup-complete.xml",
+    "original": "c22a26ed141a647d4a7b1bbfb02a318076c60df27e7e4014827b66cd0f3030e3",
+    "retained": "d246b80b068930a43c28c0ce0a57e676d774614a8b63019fd991287dba21446f"
+  },
+  {
+    "file": "final-api37/organization.lifecycle.picker-search-retained.xml",
+    "original": "6b72d76eb86156e7a9052447cd5f161f6957995a0e54c4e3b9f8c795b8517ee0",
+    "retained": "8a0bd983c1a62c422a4f628dcaa39e0e174f72dfdbed9725b3910a91f84aea39"
+  },
+  {
+    "file": "final-api37/organization.lifecycle.picker-search-cleared.xml",
+    "original": "c2f3ac9bdceba7ef0874f69fe4662b0070f79e7539c6103f913d9b45850e53c7",
+    "retained": "f44ae3b136584bbfbddd60e64a6b38c9b3b6321c6cf7bb6d268e5b0ad5a030ca"
+  },
+  {
+    "file": "final-api37/organization.journey.tag-archived.xml",
+    "original": "6eb70858a2d51eb78f95bf13b9ac5ccce562abbff1613bd9b57e9e71c4404bed",
+    "retained": "56c03df29bf68aed08ab1919eb193647d7421774b8348f1c7b567166c770def5"
+  },
+  {
+    "file": "native/And05H/batch-1/result-1.xml",
+    "original": "59b3422051d712ef564fda9895ed585eaf91d29fc348b25f9a63561a25df9ba0",
+    "retained": "0c06eb7dce84cfce21109874c056223bc40317c5636d9e296b7cba1a78022366"
+  },
+  {
+    "file": "native/FM2S6X/batch-1/result-1.xml",
+    "original": "c054bb190f8ef031693172c263562cd4c49be878984ca8502ec4d31964f4aa35",
+    "retained": "88dc65c467daed90a7e259ff039620030c049ab9fe27677645bad13a3953a5c8"
+  },
+  {
+    "file": "native/FM2S6X/batch-2/result-1.xml",
+    "original": "08b84e78b3a603ea759315c9b93c50c0b5b559bc27aa2b831a4126ff2bb2a54c",
+    "retained": "8325065ccdc92ed8b0589b38641b98a7db3add1ae2beac17c36e46dde7993be3"
+  },
+  {
+    "file": "native/P6wRpv/batch-1/result-1.xml",
+    "original": "5348c07f2cbdd808bb8b655c6e54ac5ca462730a0c4904158e404bf3bc18f6fd",
+    "retained": "8c4a0ecb78113ae491e46426972d71b001f21f1ce491a8b3349173f408c7236b"
+  },
+  {
+    "file": "native/P6wRpv/batch-2/result-1.xml",
+    "original": "c6b14b936356c5d155de8b768c098e49cebd1741527a90c8e199ebf491388afd",
+    "retained": "4891d2c68dbd66a8f3e86837f02591fbb1c45dd1fd3495d1d37101298314e661"
+  },
+  {
+    "file": "native/PKOVdD/batch-1/result-1.xml",
+    "original": "91f33fa58767a005f532caf1536ad2573f722f85711327a147681bd7347fd21d",
+    "retained": "9ea8bb9b25faa4b11373923ccab94fcef1ca92effb1d8aa4e303a25d5ac19af5"
+  },
+  {
+    "file": "native/YQAkIy/batch-1/result-1.xml",
+    "original": "b25aef118dc7d0cfaaf8f9ee97c7903a7e0da477e1055770f802861f1ee03025",
+    "retained": "b9a2f3a550e511668f99274287b012f52184a7e86131d871e65f421de2bb3253"
+  },
+  {
+    "file": "native/YQAkIy/batch-2/result-1.xml",
+    "original": "2a37e66c4e432139f9ab2cb0703a45efe5833f69acfba7d20d38943900c16429",
+    "retained": "b21255099c1dc2cc53edbb0742691a0ba553da38693c0a7604399ee8545faed8"
+  },
+  {
+    "file": "native/kwo4oO/batch-1/result-1.xml",
+    "original": "5547cd7de5528ec79e4b2a631a0fd7a4867b8471f7aa425d7de12548e398a1ac",
+    "retained": "38a769e629d703a127597733d41c3f6b05bc6bab8f3c2296a6f7a16054008ccf"
+  },
+  {
+    "file": "native/veZafq/batch-1/result-1.xml",
+    "original": "1a366e133215b577d637927db817a5b25be38aa2333a3d48c9b5c4e31e349f6d",
+    "retained": "dc3cf4358b903862ec0d67e91b249ac75108ce7a515267e7caedd5ac6de22544"
+  }
+]

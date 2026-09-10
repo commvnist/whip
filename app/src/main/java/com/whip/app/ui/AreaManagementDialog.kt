@@ -526,16 +526,14 @@ private fun AreaListContent(
                 }
             }
         }
-        if (!reordering && state.areas.size > 8) item {
-            OutlinedTextField(
-                value = query,
-                onValueChange = {
+        if (!reordering && (state.areas.size > 8 || query.isNotEmpty())) item {
+            WhipSearchField(
+                label = "Find Area",
+                query = query,
+                onQueryChange = {
                     reordering = false
                     onQueryChange(it.take(40))
                 },
-                label = { Text("Find Area") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
             )
         }
         if (reordering) item {

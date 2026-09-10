@@ -87,7 +87,7 @@ class OrganizationJourneyE2ETest {
             captureVisualCatalogSurface("organization.journey.tag-merge")
             compose.onNodeWithText("Merge into #Practices").performClick()
             compose.waitUntil(10_000) { runBlocking { app.measurementRepository.tags.first().none { it.id == fixture.tagId } } }
-            compose.onNodeWithTag("tag-search").performTextClearance()
+            compose.onNodeWithContentDescription("Clear Search").performClick()
             assertReferences(fixture, "Practices")
             compose.onNodeWithText("#Practices").assertIsDisplayed()
             compose.onNodeWithText("1 Task · 1 Habit · 1 Goal · 1 Track").assertIsDisplayed()

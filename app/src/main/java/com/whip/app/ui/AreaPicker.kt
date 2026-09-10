@@ -149,12 +149,11 @@ internal fun AreaSelectionDropdown(
             }
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            if (areas.count { !it.archived } > 8) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it.take(40) },
-                    label = { Text("Find area") },
-                    singleLine = true,
+            if (areas.count { !it.archived } > 8 || query.isNotEmpty()) {
+                WhipSearchField(
+                    label = "Find Area",
+                    query = query,
+                    onQueryChange = { query = it.take(40) },
                     modifier = Modifier.padding(horizontal = 12.dp),
                 )
             }
@@ -243,9 +242,10 @@ internal fun CreateAreaDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 WhipColorField(
-                    value = color,
+                    value = if (duplicate != null) duplicate.colorArgb else color,
                     onValueChange = { color = it },
-                    enabled = !saving,
+                    label = if (duplicate != null) "Saved Color" else "Color",
+                    enabled = !saving && duplicate == null,
                     dialogModifier = modifier,
                     modifier = Modifier.fillMaxWidth(),
                 )

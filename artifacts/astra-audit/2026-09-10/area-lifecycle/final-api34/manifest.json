@@ -1,0 +1,242 @@
+[
+  {
+    "file": "organization.lifecycle.picker-search-cleared.xml",
+    "original": "organization.lifecycle.picker-search-cleared (3).xml",
+    "sha256": "ed2f31029f27b8f126985a76dab48b5588d8cf510e04187c51b5ebcb6e190aa5"
+  },
+  {
+    "file": "organization.lifecycle.picker-search-cleared.png",
+    "original": "organization.lifecycle.picker-search-cleared (3).png",
+    "sha256": "3a791e30124d32bcc5047c10fda9df8f597ef2ebf503179f7ba638e7452fe723"
+  },
+  {
+    "file": "organization.lifecycle.picker-search-retained.xml",
+    "original": "organization.lifecycle.picker-search-retained (3).xml",
+    "sha256": "e6517710bd32be831982da08d0e8e499fb25588e3a085f04cf6b59a13222a202"
+  },
+  {
+    "file": "organization.lifecycle.picker-search-retained.png",
+    "original": "organization.lifecycle.picker-search-retained (3).png",
+    "sha256": "fae4967648b0c2ab4830c2b3200b841fc09f5555921438e0544063ee33c104f4"
+  },
+  {
+    "file": "organization.area.menu.xml",
+    "original": "organization.area.menu (8).xml",
+    "sha256": "577522b22f8f3a538df1538184c48affd751cd24eec279181fae3359d26bf545"
+  },
+  {
+    "file": "organization.area.menu.png",
+    "original": "organization.area.menu (8).png",
+    "sha256": "a98acfdeb65481c9cae768cd8a806da64da9527015505901a5a81c87d02749a8"
+  },
+  {
+    "file": "organization.area.rename.xml",
+    "original": "organization.area.rename (8).xml",
+    "sha256": "edba8759c866199f18d9e245a632fbda196e8fd385ef029bfea6804922dfa67e"
+  },
+  {
+    "file": "organization.area.rename.png",
+    "original": "organization.area.rename (8).png",
+    "sha256": "b8139d1f0c98be69be741203947a28d2065b6dfde41532c5ce24172a643cfc9f"
+  },
+  {
+    "file": "organization.journey.tag-archived.xml",
+    "original": "organization.journey.tag-archived (7).xml",
+    "sha256": "3d2a6dc1eb1a78d1236bd32ffcf3ecaf017ba809f3873eb0bd4ce7e57cdd288f"
+  },
+  {
+    "file": "organization.journey.tag-archived.png",
+    "original": "organization.journey.tag-archived (7).png",
+    "sha256": "1f1de60f6c183c44a01cda5b1a8f2c9f2197b4b372fe739830a71d58d03ea1da"
+  },
+  {
+    "file": "organization.lifecycle.cleanup-complete.xml",
+    "original": "organization.lifecycle.cleanup-complete (4).xml",
+    "sha256": "77e1bb6ce6a5fb9627a3a65649c4928c594b4a927cf7af94ea072dfdc610ee0f"
+  },
+  {
+    "file": "organization.lifecycle.cleanup-complete.png",
+    "original": "organization.lifecycle.cleanup-complete (4).png",
+    "sha256": "00fe30ec18de45a3507889415752fa8909799acd1888f8a4eec1d12dae18e19f"
+  },
+  {
+    "file": "organization.lifecycle.delete-all-review.xml",
+    "original": "organization.lifecycle.delete-all-review (4).xml",
+    "sha256": "5a194f29f303dd333c8fdcbc3a63e6d462f62bc7a017ee0e4d2c59df43c7d53e"
+  },
+  {
+    "file": "organization.lifecycle.delete-all-review.png",
+    "original": "organization.lifecycle.delete-all-review (4).png",
+    "sha256": "a8018146c7e0ea90ac9785f6588e476852ab1be4d240ec3b2a989872f65eda2b"
+  },
+  {
+    "file": "organization.lifecycle.delete-kept-history.xml",
+    "original": "organization.lifecycle.delete-kept-history (4).xml",
+    "sha256": "9c1812c15d2061632477d043d3cc9419409633669f511d352edb7b9b55f2ed24"
+  },
+  {
+    "file": "organization.lifecycle.delete-kept-history.png",
+    "original": "organization.lifecycle.delete-kept-history (4).png",
+    "sha256": "5f86813ae9d8726fc9071fec7a7eb298c7ef747f677e0bb2f4b7d34e16fd9c4e"
+  },
+  {
+    "file": "organization.lifecycle.delete-keep-review.xml",
+    "original": "organization.lifecycle.delete-keep-review (5).xml",
+    "sha256": "2a9695e55e2411822c308246998223f7ed77977687afc55215ac48623de5e43f"
+  },
+  {
+    "file": "organization.lifecycle.delete-keep-review.png",
+    "original": "organization.lifecycle.delete-keep-review (5).png",
+    "sha256": "f4193170d84f534d933d4e9f67debd5bcebc1d821607c33bb6256a991984f409"
+  },
+  {
+    "file": "organization.lifecycle.delete-choice.xml",
+    "original": "organization.lifecycle.delete-choice (5).xml",
+    "sha256": "bb89047374bf7f32d41829f16243b8f6534a1e2ea05f154254719667acc73364"
+  },
+  {
+    "file": "organization.lifecycle.delete-choice.png",
+    "original": "organization.lifecycle.delete-choice (5).png",
+    "sha256": "57fd99ad4f469676ac2e34284cf23118f484e6777cff2d2877ad3d22720f4de3"
+  },
+  {
+    "file": "organization.lifecycle.restored-detail.xml",
+    "original": "organization.lifecycle.restored-detail (4).xml",
+    "sha256": "581c028c1b2c9c0fad9a68b3cfe5a264df36bbd401f80bebdbfff1b8c692ecf9"
+  },
+  {
+    "file": "organization.lifecycle.restored-detail.png",
+    "original": "organization.lifecycle.restored-detail (4).png",
+    "sha256": "88cb5dd350a76c7430cde3c7e0d1217481a2f3b7bac61b719be93d9cae077403"
+  },
+  {
+    "file": "organization.lifecycle.restore-existing.xml",
+    "original": "organization.lifecycle.restore-existing (4).xml",
+    "sha256": "d4655bffb8e283813281fc243a079b87597c466886b8e2671b7bbe1d44dd4129"
+  },
+  {
+    "file": "organization.lifecycle.restore-existing.png",
+    "original": "organization.lifecycle.restore-existing (4).png",
+    "sha256": "94ca8a2045b8fbc7db91e791a356502717e572f1894e73917b63ede207b566c9"
+  },
+  {
+    "file": "organization.lifecycle.archived-list.xml",
+    "original": "organization.lifecycle.archived-list (4).xml",
+    "sha256": "a0678c478876423bf977d2b23b248caf71028ce4490b54d613236ca7e0fba839"
+  },
+  {
+    "file": "organization.lifecycle.archived-list.png",
+    "original": "organization.lifecycle.archived-list (4).png",
+    "sha256": "2826b4faa7880ac4008596026a1c0495f74ab5630968a973bc601766502a5c0e"
+  },
+  {
+    "file": "organization.lifecycle.archived-detail.xml",
+    "original": "organization.lifecycle.archived-detail (4).xml",
+    "sha256": "f1060ee77a9f6ddd3a192f3da692f257bc2f22932c333715dcd70841c9b53d89"
+  },
+  {
+    "file": "organization.lifecycle.archived-detail.png",
+    "original": "organization.lifecycle.archived-detail (4).png",
+    "sha256": "0a5ca776869170e1abe3de35d00b84daccd4c4c343002b30c5b122ebe25bf688"
+  },
+  {
+    "file": "organization.lifecycle.archive-review.xml",
+    "original": "organization.lifecycle.archive-review (4).xml",
+    "sha256": "92be9ddc6fc7ec0614b12cb753d9d2d182700edc2a800ea0ec34320b61d9f7ae"
+  },
+  {
+    "file": "organization.lifecycle.archive-review.png",
+    "original": "organization.lifecycle.archive-review (4).png",
+    "sha256": "a0706b0a909e0de48837db2dfda93a07239062a0220a0c440781c03aafaf9ef2"
+  },
+  {
+    "file": "organization.lifecycle.color-draft.xml",
+    "original": "organization.lifecycle.color-draft (4).xml",
+    "sha256": "95eb9f21223d0c168770173d73a939da67f82c998954fde53f29a04ff7abf9af"
+  },
+  {
+    "file": "organization.lifecycle.color-draft.png",
+    "original": "organization.lifecycle.color-draft (4).png",
+    "sha256": "4861d572d2c2f4aa1e7895c8c7265734f4f994368aabf11af1f37045cd317248"
+  },
+  {
+    "file": "organization.lifecycle.reordered.xml",
+    "original": "organization.lifecycle.reordered (5).xml",
+    "sha256": "902dba36bc78c3258c9efc1e59a79bf2a15d7b53ce8267f6f0750c1297ca0a6e"
+  },
+  {
+    "file": "organization.lifecycle.reordered.png",
+    "original": "organization.lifecycle.reordered (5).png",
+    "sha256": "1f0ea872e3e526958c35a1d8c5dc724b0e3fa33aa7e3048073f5bc5a36e97d53"
+  },
+  {
+    "file": "organization.lifecycle.create-draft.xml",
+    "original": "organization.lifecycle.create-draft (5).xml",
+    "sha256": "e4a177f2b993e4aba6e8d7b2200a56b4e9132c548ef41a746930d1d34c58d703"
+  },
+  {
+    "file": "organization.lifecycle.create-draft.png",
+    "original": "organization.lifecycle.create-draft (5).png",
+    "sha256": "961e5f10c00d3208af9a77a624c2b7c3f699049bbd90d54151106a65d409c635"
+  },
+  {
+    "file": "organization.lifecycle.last-required.xml",
+    "original": "organization.lifecycle.last-required (5).xml",
+    "sha256": "0aa95bfcf7ee080f60f6efe5b0ce4bd62c76eb05b06a641b8d57220fef7f9759"
+  },
+  {
+    "file": "organization.lifecycle.last-required.png",
+    "original": "organization.lifecycle.last-required (5).png",
+    "sha256": "2ec17f8e71ba5f6ff62261563c851b5d0811b26fb4c3bf4697d44b3ac617840b"
+  },
+  {
+    "file": "organization.lifecycle.search-recovered.xml",
+    "original": "organization.lifecycle.search-recovered (3).xml",
+    "sha256": "24ad5696dbda38ecab22022baa165b9be18fda51ff7fe6483abc669ee6b845c0"
+  },
+  {
+    "file": "organization.lifecycle.search-recovered.png",
+    "original": "organization.lifecycle.search-recovered (3).png",
+    "sha256": "dad5841b8a0573fbd4c14018c2647f0ffebd451c85f715aeecc5bda92bdf2957"
+  },
+  {
+    "file": "organization.lifecycle.search-after-merge.xml",
+    "original": "organization.lifecycle.search-after-merge (4).xml",
+    "sha256": "5e3d985515dbb53341cc75d5fb5bc760cbe7f7fa66efbf7a830052202ba9db47"
+  },
+  {
+    "file": "organization.lifecycle.search-after-merge.png",
+    "original": "organization.lifecycle.search-after-merge (4).png",
+    "sha256": "f211430400753990294f759a425b8d3aad94582b29009e122502a897492c6e63"
+  },
+  {
+    "file": "organization.lifecycle.merge-review.xml",
+    "original": "organization.lifecycle.merge-review (4).xml",
+    "sha256": "adbf36f5a7b608cdc83da1006804e6306f8a559a673e90dadcc5616c1a9c03fc"
+  },
+  {
+    "file": "organization.lifecycle.merge-review.png",
+    "original": "organization.lifecycle.merge-review (4).png",
+    "sha256": "910c03a16905cb75d44ba04f46ed6c2ff1ea335b507f4e5161c1707e019f49f3"
+  },
+  {
+    "file": "organization.lifecycle.moved-source.xml",
+    "original": "organization.lifecycle.moved-source (4).xml",
+    "sha256": "138857028e539c28206bba64b336e6a95310b28c22b3083a5a5a448f89585c4f"
+  },
+  {
+    "file": "organization.lifecycle.moved-source.png",
+    "original": "organization.lifecycle.moved-source (4).png",
+    "sha256": "4fb695e88d726e10b47d46223e8e0e1e4245ab04971d9f97c5d44103d5890d73"
+  },
+  {
+    "file": "organization.lifecycle.move-review.xml",
+    "original": "organization.lifecycle.move-review (5).xml",
+    "sha256": "71d51a1284199d65f066031bc3e577f395241f6b06877645c4f9d7470ad1ddfb"
+  },
+  {
+    "file": "organization.lifecycle.move-review.png",
+    "original": "organization.lifecycle.move-review (5).png",
+    "sha256": "e8f7aa4492a168ef92f705c9a033a07ee0ae437913dc75e3fc8ca46f94f36f53"
+  }
+]

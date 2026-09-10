@@ -1,5 +1,18 @@
 # Durable findings
 
+### FND-20260910-022 — Existing Area recovery offers a color that will be ignored
+
+- Severity/category: P2 authored-choice truth and ordinary recovery design.
+- Observed: The personally inspected native API 37 restore-existing frame shows an enabled Default color chooser beside copy promising to keep the archived Area's saved color. The same journey saved Violet and proves restoration retains it. CreateAreaDialog renders the unrelated new-Area color draft even after its entered name resolves to an existing Area; selecting/restoring that identity ignores this draft.
+- Remedy/status: Verified in IMP/VER-20260910-014. Display the matched Area's actual saved color under Saved Color and disable its chooser. Preserve the private new-Area color draft if the name changes back to a new identity. Reuse WhipColorField's existing value/label/enabled roles; repository restoration policy and saved color remain unchanged. Native phone/wide assertions verify both restored identity and visible read-only Violet through recreation, including recovery of the private Blue new-Area draft. Original before/after evidence is retained in artifacts/astra-audit/2026-09-10/area-lifecycle/README.md.
+
+### FND-20260910-021 — Area mutations can hide an active search
+
+- Severity/category: P2 ordinary navigation, filter visibility and recovery.
+- Observed: Native And05H moves four real domain items and their exact history, then merges a selected Area into Main. The Area count falls from nine to eight. Back shows No Matching Areas and Try another name, but the active Personal projects query and Find Area field are absent. The personally inspected original confirms the misleading empty list; references, history and scope reconciliation already pass before that assertion.
+- Cause: AreaListContent renders search only while the registry has more than eight Areas, independently of its saved query. AreaSelectionDropdown uses the equivalent count-only condition, so a changing option set can conceal its query too. Tag search remains visible but has no direct clear action; each field owns its own local composition.
+- Remedy/status: Verified in IMP/VER-20260910-014. Keep any nonempty query visible regardless of count; use one shared search-field renderer with label, value, on-change and conditional Clear Search roles across Area manager/picker and Tags. Features retain query limits, filtering, option thresholds and state. The controlled live picker transition and real merge/recreation/clear/reopen pass on API 34/37; 86 final-production regressions, final focused journeys, readiness and original before/after review pass. Broader app design acceptance remains open.
+
 ### FND-20260910-020 — Organization managers repeat introductions before useful content
 
 - Severity/category: P2 ordinary hierarchy, scanning and design consistency.

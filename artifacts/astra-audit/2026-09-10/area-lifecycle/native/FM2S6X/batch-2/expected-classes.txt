@@ -1,0 +1,9 @@
+com.whip.app.AreaOrganizationJourneyE2ETest
+com.whip.app.DomainDeletionCoordinatorTest
+com.whip.app.MeasurementTaxonomyRepositoryTest
+com.whip.app.OrganizationJourneyE2ETest
+com.whip.app.SettingItemBuilderJourneyE2ETest
+com.whip.app.ui.AreaFeatureUiTest
+com.whip.app.ui.AreaMutationViewModelTest
+com.whip.app.ui.TagManagementUiTest
+com.whip.app.ui.TagMutationViewModelTest

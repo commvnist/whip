@@ -5,6 +5,8 @@ import com.whip.app.AndroidFontScaleRule
 import com.whip.app.assertDialogFontScale
 
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
@@ -384,9 +386,34 @@ class AreaFeatureUiTest {
         }
 
         compose.onNodeWithContentDescription("Area selection: Choose Area").performClick()
-        compose.onNodeWithText("Find area").performTextInput("Area 50")
+        compose.onNodeWithText("Find Area").performTextInput("Area 50")
         compose.onNodeWithContentDescription("Area Area 50").performClick()
         assertEquals("area-50" to "Area 50", selected.get())
+    }
+
+    @Test
+    fun areaPickerKeepsActiveSearchWhenItsOptionsShrink() {
+        val options = mutableStateOf((1..9).map { area("area-$it", "Area $it") })
+        val selected = AtomicReference<String?>()
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    Column(Modifier.safeDrawingPadding()) {
+                        AreaSelectionDropdown(options.value, null, { id, _ -> selected.set(id) })
+                    }
+                }
+            }
+        }
+        compose.onNodeWithContentDescription("Area selection: Choose Area").performClick()
+        compose.onNodeWithText("Find Area").performTextInput("Area 9")
+        compose.runOnIdle { options.value = options.value.take(8) }
+        compose.onNodeWithText("Find Area").assertIsDisplayed().assertTextContains("Area 9")
+        captureVisualCatalogSurface("organization.lifecycle.picker-search-retained")
+        compose.onNodeWithContentDescription("Clear Search").performClick()
+        compose.onNodeWithContentDescription("Area Area 1").assertIsDisplayed()
+        captureVisualCatalogSurface("organization.lifecycle.picker-search-cleared")
+        compose.onNodeWithContentDescription("Area Area 1").performClick()
+        assertEquals("area-1", selected.get())
     }
 
     @Test

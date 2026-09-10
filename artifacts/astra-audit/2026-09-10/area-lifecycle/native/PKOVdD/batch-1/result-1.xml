@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="3" failures="3" errors="0" skipped="0" time="25.201" timestamp="2026-09-10T13:09:10" hostname="localhost">
+  <testsuite name="com.whip.app.AreaOrganizationJourneyE2ETest" tests="3" failures="3" errors="0" skipped="0" time="24.206" timestamp="2026-09-10T13:09:10" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="moveAndMergeKeepSavedHistoryAndSearchRecoverable" classname="com.whip.app.AreaOrganizationJourneyE2ETest" time="4.62">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Move 5 Items' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+at com.whip.app.AreaOrganizationJourneyE2ETest.moveAndMergeKeepSavedHistoryAndSearchRecoverable(AreaOrganizationJourneyE2ETest.kt:112)
+</failure>
+    </testcase>
+    <testcase name="createColorOrderAndArchivedIdentitySurviveRecreation" classname="com.whip.app.AreaOrganizationJourneyE2ETest" time="11.694">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'color-preset-purple')
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.AreaOrganizationJourneyE2ETest.createColorOrderAndArchivedIdentitySurviveRecreation(AreaOrganizationJourneyE2ETest.kt:55)
+</failure>
+    </testcase>
+    <testcase name="reviewedCleanupPreservesOrDeletesOnlyTheAssignedHistory" classname="com.whip.app.AreaOrganizationJourneyE2ETest" time="7.892">
+      <failure>java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains 'Move 5 Items' (ignoreCase: false) is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.AreaOrganizationJourneyE2ETest.reviewedCleanupPreservesOrDeletesOnlyTheAssignedHistory(AreaOrganizationJourneyE2ETest.kt:187)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

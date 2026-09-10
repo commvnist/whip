@@ -1,0 +1,5 @@
+[
+  "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
+  "app/src/androidTest/java/com/whip/app/AreaFeatureUiTest.kt",
+  "app/src/androidTest/java/com/whip/app/AreaOrganizationJourneyE2ETest.kt"
+]

@@ -278,6 +278,7 @@ add_profile() {
                 'com.whip.app.ui.SettingItemBuilderUiTest'
                 'com.whip.app.SettingItemBuilderJourneyE2ETest'
                 'com.whip.app.OrganizationJourneyE2ETest'
+                'com.whip.app.AreaOrganizationJourneyE2ETest'
             )
             ;;
         *)

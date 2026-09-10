@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260910-014 — Share recoverable search and honor existing Area color
+
+- Behavior: Area manager/picker searches remain visible when a mutation reduces the registry below its ordinary search threshold. Both and Tags expose the same explicit Clear Search action. Existing-name Area recovery shows the actual saved color with choosing disabled; a new-name draft retains its own chosen color when the user changes the name again.
+- Architecture: WhipSearchField owns label/value, single-line full-width composition and conditional accessible clearing. Area/Tag features retain query limits, filtering, option thresholds and saved state. CreateAreaDialog uses existing WhipColorField value/label/enabled roles. No repository, transaction, scope or saved-color policy is changed.
+- Verification/status: Verified under FND-20260910-021/022, DEC/VER-20260910-014 and FB-20260910-001/002. Three complete MainActivity/repository lifecycle journeys plus one controlled picker transition are added; the Settings profile includes the new journey class and the catalog gains 21 states. Final-production API 34 regression passes 86 methods; fixture-only refinements pass eight final methods on each API 34/37. Readiness passes 371 JVM tests, build, lint and static/harness checks. All 500 final hashes match; 48 original images have personal review. Exact before states, fixture failures, cohort provenance and limits are retained in `artifacts/astra-audit/2026-09-10/area-lifecycle/README.md`.
+- Compatibility/next work: No schema, backup, data epoch, version or release change. Move/merge and both cleanup choices now have exact native history and recreation evidence. Shared wide reading measure, danger-panel emphasis, global picker hosts and whole-app coverage/final gates remain open. Continue substantive unreviewed Library/Routines and other product areas instead of prolonging per-screen scale polishing.
+
 ### IMP-20260910-013 — Give Areas and Tags one consistent management header
 
 - Behavior: Both managers present one destination title, complete description and predictable Create/Back/Close roles. Remove repeated Your Areas/Your Tags introductions so Tag search and saved records appear earlier. Area count and reorder share a compact row; selected Area actions correctly say Move 1 Item. Long Area names retain natural height and separate usage text.

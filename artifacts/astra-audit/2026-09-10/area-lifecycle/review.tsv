@@ -1,0 +1,49 @@
+file	NAF_nodes	observation
+baseline-3/organization.lifecycle.search-after-merge.png	0	After the native merge reduces nine Areas to eight, the active query is invisible; No Matching Areas asks for another name without a search field.
+checkpoint-final-api37/organization.lifecycle.restore-existing.png	0	Before correction, restoring a saved Violet Area offers an editable Default color that the operation will ignore.
+final-api34/organization.lifecycle.last-required.png	0	Deleting the only active Area explains the requirement and offers Create Area or Cancel.
+final-api34/organization.lifecycle.create-draft.png	0	The recreated new Area retains its entered name and Blue color with explicit Create and Cancel.
+final-api34/organization.lifecycle.reordered.png	0	The saved Area order and accessible move action agree; reorder mode retains Done and the archived-order boundary.
+final-api34/organization.lifecycle.color-draft.png	0	The recreated color dialog retains selected Violet and exact hex preview with explicit Apply.
+final-api34/organization.lifecycle.archive-review.png	0	The empty Area archive confirmation names the Area and explains that it will be hidden from Area pickers, with Cancel and Archive.
+final-api34/organization.lifecycle.archived-detail.png	0	The recreated archived Area offers Restore Area and retains its identity and saved color.
+final-api34/organization.lifecycle.archived-list.png	0	Expanded archived content reveals the same Area with its Restore action and current count.
+final-api34/organization.lifecycle.restore-existing.png	0	The recreated existing-name draft shows Saved Color and the actual Violet value with choosing disabled; restoring preserves identity and color. Native assertions also verify the separate Blue new-Area draft returns when the name changes.
+final-api34/organization.lifecycle.restored-detail.png	0	The reopened restored Area retains its exact color and ordinary Archive action.
+final-api34/organization.lifecycle.move-review.png	0	Reviewed move retains the destination after recreation and names all four top-level domains plus Track Entry history.
+final-api34/organization.lifecycle.moved-source.png	0	The source Area remains after moving its contents and correctly disables No Items to Move.
+final-api34/organization.lifecycle.merge-review.png	0	The recreated merge review retains Main and clearly states removal of the source Area.
+final-api34/organization.lifecycle.search-after-merge.png	0	The eight-Area manager keeps Personal projects visible beside Clear Search; the empty result remains recoverable.
+final-api34/organization.lifecycle.search-recovered.png	0	Clear Search restores the eight remaining records, with Main showing all moved references and the original source empty.
+final-api34/organization.lifecycle.delete-choice.png	0	Deletion starts with neither destination selected; preserve-history action is disabled and destructive deletion is explicit.
+final-api34/organization.lifecycle.delete-keep-review.png	0	The recreated deletion review retains Retained work as destination and exposes the preserve-history action.
+final-api34/organization.lifecycle.delete-kept-history.png	0	The destination shows all four preserved domain references and Track Entry history after source deletion.
+final-api34/organization.lifecycle.delete-all-review.png	0	Recreated destructive review explicitly names deletion of the Area and four top-level items, including their retained history.
+final-api34/organization.lifecycle.cleanup-complete.png	0	After destructive cleanup and recreation only Main remains, with the unrelated Task intact.
+final-api34/organization.lifecycle.picker-search-retained.png	0	The controlled picker retains its active query and Clear Search after nine options become eight.
+final-api34/organization.lifecycle.picker-search-cleared.png	0	Clearing the query reveals the eight remaining choices and supports selecting the first.
+final-api34/organization.journey.tag-archived.png	0	Tag search uses the same explicit Clear Search control while retaining the archived name, usage and Restore.
+final-api34/organization.area.rename.png	0	The existing rename child retains its bounded name field and explicit Rename/Cancel; native rename/history evidence remains VER-20260910-013.
+final-api34/organization.area.menu.png	0	The Area menu keeps identity and organization actions grouped, Archive separate and permanent deletion last.
+final-api37/organization.lifecycle.last-required.png	0	Deleting the only active Area explains the requirement and offers Create Area or Cancel.
+final-api37/organization.lifecycle.create-draft.png	0	The recreated new Area retains its entered name and Blue color with explicit Create and Cancel.
+final-api37/organization.lifecycle.reordered.png	0	The saved Area order and accessible move action agree; reorder mode retains Done and the archived-order boundary.
+final-api37/organization.lifecycle.color-draft.png	0	The recreated color dialog retains selected Violet and exact hex preview with explicit Apply.
+final-api37/organization.lifecycle.archive-review.png	0	The empty Area archive confirmation names the Area and explains that it will be hidden from Area pickers, with Cancel and Archive.
+final-api37/organization.lifecycle.archived-detail.png	0	The recreated archived Area offers Restore Area and retains its identity and saved color.
+final-api37/organization.lifecycle.archived-list.png	0	Expanded archived content reveals the same Area with its Restore action and current count.
+final-api37/organization.lifecycle.restore-existing.png	0	The recreated existing-name draft shows Saved Color and the actual Violet value with choosing disabled; restoring preserves identity and color. Native assertions also verify the separate Blue new-Area draft returns when the name changes.
+final-api37/organization.lifecycle.restored-detail.png	0	The reopened restored Area retains its exact color and ordinary Archive action.
+final-api37/organization.lifecycle.move-review.png	0	Reviewed move retains the destination after recreation and names all four top-level domains plus Track Entry history.
+final-api37/organization.lifecycle.moved-source.png	0	The source Area remains after moving its contents and correctly disables No Items to Move.
+final-api37/organization.lifecycle.merge-review.png	0	The recreated merge review retains Main and clearly states removal of the source Area.
+final-api37/organization.lifecycle.search-after-merge.png	0	The eight-Area manager keeps Personal projects visible beside Clear Search; the empty result remains recoverable.
+final-api37/organization.lifecycle.search-recovered.png	0	Clear Search restores the eight remaining records, with Main showing all moved references and the original source empty.
+final-api37/organization.lifecycle.delete-choice.png	0	Deletion starts with neither destination selected; preserve-history action is disabled and destructive deletion is explicit.
+final-api37/organization.lifecycle.delete-keep-review.png	0	The recreated deletion review retains Retained work as destination and exposes the preserve-history action.
+final-api37/organization.lifecycle.delete-kept-history.png	0	The destination shows all four preserved domain references and Track Entry history after source deletion.
+final-api37/organization.lifecycle.delete-all-review.png	0	Recreated destructive review explicitly names deletion of the Area and four top-level items, including their retained history.
+final-api37/organization.lifecycle.cleanup-complete.png	0	After destructive cleanup and recreation only Main remains, with the unrelated Task intact.
+final-api37/organization.lifecycle.picker-search-retained.png	0	The controlled picker retains its active query and Clear Search after nine options become eight.
+final-api37/organization.lifecycle.picker-search-cleared.png	0	Clearing the query reveals the eight remaining choices and supports selecting the first.
+final-api37/organization.journey.tag-archived.png	0	Tag search uses the same explicit Clear Search control while retaining the archived name, usage and Restore.

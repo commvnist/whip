@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-014 — Active search remains visible and directly clearable
+
+- Decision: A count threshold may hide an unused search field, but never an entered query. Areas retain the existing greater-than-eight threshold until text is entered; their manager and picker preserve the field through smaller option sets. WhipSearchField owns the shared input, full-width single-line layout and conditional accessible Clear Search action. Area and Tag callers declare label, query and callback while retaining their own length limits, filtering and saved-state ownership.
+- Alternatives/tradeoffs: Clearing queries implicitly on every mutation would lose intentional context; keeping search permanently visible in every small picker would add unnecessary controls. Separate local clear buttons would repeat the same composition. A small shared input role fixes the demonstrated recovery problem and improves consistent everyday interaction without introducing a collection/domain-state framework.
+- Compatibility/status: Verified under FND-20260910-021 / VER-20260910-014 and FB-20260910-001/002. Preserve all mutation receipts, archived identity, history, scope reconciliation and keyboard editing behavior. Normal-scale native and focused controlled-picker acceptance pass on API 34/37, with 86 final-production regressions, eight final focused methods on each platform and 371 JVM readiness tests. Whole-app design/final gates remain open.
+- Related recovery decision: FND-20260910-022 shows a mismatched color input when a new-Area name resolves to an existing identity. Reuse WhipColorField with the actual saved color, Saved Color label and disabled chooser. An editable field for an ignored value misrepresents authorship; overwriting the stored color would violate DEC-20260902-008. Keep the new-Area draft privately so changing to a new name restores its intended color.
+
 ### DEC-20260910-013 — Give management destinations one header and an earlier list
 
 - Evidence: FND-20260910-020 confirms duplicate introductions in both Organization managers; prior FND-20260907-006 already established a single selected-Area identity owner. The existing management operations and child dialogs provide complete consequence copy.

@@ -273,12 +273,11 @@ private fun TagList(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
-            OutlinedTextField(
-                value = query,
-                onValueChange = onQueryChange,
-                label = { Text("Find Tag") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().testTag("tag-search"),
+            WhipSearchField(
+                label = "Find Tag",
+                query = query,
+                onQueryChange = onQueryChange,
+                modifier = Modifier.testTag("tag-search"),
             )
         }
         if (visibleActive.isEmpty() && query.isBlank()) {
