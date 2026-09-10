@@ -1,5 +1,14 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-018 — Resolve rest duration once and make workout overrides reversible
+
+- Context: FND-20260910-027; the ready execution lane displays the app default while completing its visible next Set uses the Set/Exercise rest. The workout duration editor offers an override but no return to prescribed defaults. Set rest may explicitly be zero.
+- Improve versus replace: Extend the existing Rest renderer and extract duration precedence into a small domain policy shared with both transactional completion paths. Replacing the timer or creating a general timer builder would disrupt proven deadline/revision recovery without improving this choice.
+- Decision: Ready/manual Start follows the visible next Set, then its Exercise default, then the app default. An explicit workout override wins and is visibly named. With no next Set, ready/manual rest uses the app default unless overridden. Automatic rest resolves the actual completed Set using the same precedence. Running countdowns retain their saved deadline when NEXT advances. Zero prescribed rest remains zero, disables manual Start until an override is chosen, and does not auto-start a timer. “Follow Set rest” clears the saveable workout override; no authored defaults or historical prescriptions change.
+- Tradeoffs: Stop returns to the now-visible next Set's rest, which may differ from the completed Set. The ready source label explains this context. Overrides retain the existing Activity saved-state lifecycle; this increment does not add persistent session configuration or change notification delivery.
+- Status: Verified in IMP/VER-20260910-018: complete native duration/override/recreation/History journeys, 210 Android regressions, four wide methods plus strengthened recovery, 133 focused and 373 readiness JVM checks, and 15 reviewed originals. Shared wide reading width and whole-product acceptance remain open.
+- Related: FB-20260910-001/002; DEC-20260901-023; FND-20260903-020; VER-20260910-017.
+
 ### DEC-20260910-017 — Put executable prescriptions before optional placement tools
 
 - Evidence/decision: FND-20260910-026 shows ordinary Set fields below a viewport of conversion and bulk helpers at 100%. Keep the full scrolling placement editor, equipment and programming authority, Training Max disclosure and advanced-field access. Move ordinary notes, saved schemes, warm-up generation, copy-previous behavior and 5/3/1 conversion after the Set list. Use the existing shared section-heading/disclosure roles to distinguish prescriptions from supporting tools.

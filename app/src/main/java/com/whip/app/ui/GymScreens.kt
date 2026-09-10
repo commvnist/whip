@@ -107,6 +107,9 @@ import com.whip.app.domain.supportedGraphMetrics
 import com.whip.app.domain.withTrackingSemantics
 import com.whip.app.domain.BodyweightLoadPolicy
 import com.whip.app.domain.WorkoutSession
+import com.whip.app.domain.WorkoutRestDuration
+import com.whip.app.domain.WorkoutRestSource
+import com.whip.app.domain.resolveWorkoutRestDuration
 import com.whip.app.domain.WorkoutExercise
 import com.whip.app.domain.WorkoutExerciseCopyBoundary
 import com.whip.app.domain.WorkoutFinishBoundary
@@ -3017,7 +3020,12 @@ private fun WorkoutContent(
                     RestTimerCard(
                         session = session,
                         remaining = state.restSecondsRemaining,
-                        selectedSeconds = workoutRestOverrideSeconds ?: state.appSettings.defaultRestSeconds,
+                        duration = resolveWorkoutRestDuration(
+                            workoutRestOverrideSeconds,
+                            nextSet?.second?.restSeconds,
+                            nextSet?.first?.exercise?.defaultRestSeconds,
+                            state.appSettings.defaultRestSeconds,
+                        ),
                         presetSeconds = state.appSettings.restTimerPresetSeconds,
                         notificationPermissionRequested = state.appSettings.notificationPermissionRequested,
                         onSelectedSecondsChange = { workoutRestOverrideSeconds = it },
@@ -4341,10 +4349,10 @@ internal fun QuickSetEntry(
 internal fun RestTimerCard(
     session: WorkoutSession,
     remaining: Int?,
-    selectedSeconds: Int,
+    duration: WorkoutRestDuration,
     presetSeconds: List<Int>,
     notificationPermissionRequested: Boolean,
-    onSelectedSecondsChange: (Int) -> Unit,
+    onSelectedSecondsChange: (Int?) -> Unit,
     onPresetSecondsChange: (List<Int>) -> Unit,
     onStart: (Long, Int) -> Unit,
     onAdjust: (Long, Int) -> Unit,
@@ -4355,14 +4363,20 @@ internal fun RestTimerCard(
     val notificationAvailable = NotificationManagerCompat.from(context).areNotificationsEnabled() &&
         (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
-    val displayedDuration = formatDuration((remaining ?: selectedSeconds).coerceAtLeast(1).toLong())
+    val displayedDuration = formatDuration((remaining ?: duration.seconds).coerceAtLeast(0).toLong())
+    val sourceLabel = when (duration.source) {
+        WorkoutRestSource.WorkoutOverride -> "Workout override"
+        WorkoutRestSource.SetPrescription -> if (duration.seconds == 0) "No rest for next Set" else "Next Set rest"
+        WorkoutRestSource.ExerciseDefault -> "Exercise default"
+        WorkoutRestSource.AppDefault -> "App default"
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("rest-timer-card")
             .semantics {
                 stateDescription = if (remaining == null) {
-                    "Rest timer ready, $displayedDuration selected"
+                    "Rest timer ready, $displayedDuration selected, $sourceLabel"
                 } else {
                     "Rest timer running, $displayedDuration remaining"
                 }
@@ -4381,7 +4395,8 @@ internal fun RestTimerCard(
                             Text("Adjust")
                         }
                         WhipTextButton(
-                            onClick = { onStart(session.id, selectedSeconds.coerceAtLeast(1)) },
+                            onClick = { onStart(session.id, duration.seconds) },
+                            enabled = duration.seconds > 0,
                             modifier = Modifier.semantics { contentDescription = "Start rest timer" },
                         ) {
                             Text("Start")
@@ -4401,13 +4416,25 @@ internal fun RestTimerCard(
                         ) { Text("Stop") }
                     }
                 }
-                if (stackActions) {
-                    Column(Modifier.fillMaxWidth()) {
+                val timerLabel: @Composable () -> Unit = {
+                    Column {
                         Text(
                             "Rest · $displayedDuration",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                         )
+                        if (remaining == null) {
+                            Text(
+                                sourceLabel,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+                if (stackActions) {
+                    Column(Modifier.fillMaxWidth()) {
+                        timerLabel()
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.End,
@@ -4420,12 +4447,7 @@ internal fun RestTimerCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
                     ) {
-                        Text(
-                            "Rest · $displayedDuration",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.weight(1f),
-                        )
+                        Box(Modifier.weight(1f)) { timerLabel() }
                         timerActions()
                     }
                 }
@@ -4440,7 +4462,8 @@ internal fun RestTimerCard(
     }
     if (showDurationEditor) {
         RestDurationDialog(
-            initialSeconds = selectedSeconds,
+            initialSeconds = duration.seconds,
+            isWorkoutOverride = duration.source == WorkoutRestSource.WorkoutOverride,
             presetSeconds = presetSeconds,
             onDismiss = { showDurationEditor = false },
             onPresetSecondsChange = onPresetSecondsChange,
@@ -4455,10 +4478,11 @@ internal fun RestTimerCard(
 @Composable
 private fun RestDurationDialog(
     initialSeconds: Int,
+    isWorkoutOverride: Boolean,
     presetSeconds: List<Int>,
     onDismiss: () -> Unit,
     onPresetSecondsChange: (List<Int>) -> Unit,
-    onConfirm: (Int) -> Unit,
+    onConfirm: (Int?) -> Unit,
 ) {
     var secondsText by rememberSaveable(initialSeconds) { mutableStateOf(initialSeconds.coerceAtLeast(15).toString()) }
     var editingPresets by rememberSaveable { mutableStateOf(false) }
@@ -4527,9 +4551,12 @@ private fun RestDurationDialog(
                     ) { Text("Restore Defaults") }
                 } else {
                     Text(
-                        "This changes rest timers started during the current workout. Your default remains in Settings → Planning & Units → Gym Defaults.",
+                        "Override Set and Exercise rest for this workout. Saved prescriptions and your app default stay unchanged.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    if (isWorkoutOverride) {
+                        WhipTextButton(onClick = { onConfirm(null) }) { Text("Follow Set rest") }
+                    }
                     Text(
                         "Selected · ${seconds?.takeIf { it > 0 }?.let { formatDuration(it.toLong()) } ?: "Invalid"}",
                         style = MaterialTheme.typography.titleMedium,

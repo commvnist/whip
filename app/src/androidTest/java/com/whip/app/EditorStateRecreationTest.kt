@@ -204,6 +204,8 @@ class EditorStateRecreationTest {
         openGymDestination("Routines")
         compose.onAllNodesWithText("Create Routine")[0].performScrollTo().performClick()
         compose.onNodeWithTag("routine-editor-name").performTextInput("Keep routine draft")
+        // Settle and verify the authored value before crossing the Activity boundary.
+        compose.onNodeWithTag("routine-editor-name").assertTextContains("Keep routine draft")
         it.recreate()
         waitForTag("routine-editor-name")
         compose.onNodeWithTag("routine-editor-name").assertTextContains("Keep routine draft")

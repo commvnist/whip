@@ -36,6 +36,7 @@ import com.whip.app.domain.WorkoutExerciseCopyBoundary
 import com.whip.app.domain.WorkoutGroup
 import com.whip.app.domain.WorkoutGroupType
 import com.whip.app.domain.WorkoutSession
+import com.whip.app.domain.resolveWorkoutRestDuration
 import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.domain.WorkoutExerciseOutcome
 import com.whip.app.domain.WorkoutFinishBoundary
@@ -2165,8 +2166,10 @@ class RoomGymRepository(
         }
 
         val restSeconds = if (autoStartRest) {
-            restOverrideSeconds ?: completed.restSeconds ?: exercise.defaultRestSeconds
-                ?: settingsRepository?.current()?.defaultRestSeconds ?: 120
+            resolveWorkoutRestDuration(
+                restOverrideSeconds, completed.restSeconds, exercise.defaultRestSeconds,
+                settingsRepository?.current()?.defaultRestSeconds ?: 120,
+            ).seconds
         } else {
             null
         }?.takeIf { it > 0 }
@@ -2278,8 +2281,10 @@ class RoomGymRepository(
             )
             if (completed && autoStartRest) {
                 val exercise = dao.getExercise(workoutExercise.exerciseId)
-                val seconds = restOverrideSeconds ?: set.restSeconds ?: exercise?.defaultRestSeconds
-                    ?: settingsRepository?.current()?.defaultRestSeconds ?: 120
+                val seconds = resolveWorkoutRestDuration(
+                    restOverrideSeconds, set.restSeconds, exercise?.defaultRestSeconds,
+                    settingsRepository?.current()?.defaultRestSeconds ?: 120,
+                ).seconds
                 if (seconds > 0) {
                     check(
                         dao.updateActiveSessionTimer(

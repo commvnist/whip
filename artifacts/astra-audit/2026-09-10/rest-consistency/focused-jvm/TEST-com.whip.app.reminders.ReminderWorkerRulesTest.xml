@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.reminders.ReminderWorkerRulesTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-09-10T17:29:44.425Z" hostname="beast" time="0.025">
+  <properties/>
+  <testcase name="quietHourShiftKeepsTheOriginalHabitScheduleDate" classname="com.whip.app.reminders.ReminderWorkerRulesTest" time="0.004"/>
+  <testcase name="habitReconciliationKeepsPriorLogicalDaysCrossMidnightQuietShift" classname="com.whip.app.reminders.ReminderWorkerRulesTest" time="0.01"/>
+  <testcase name="taskClaimRequiresExactIdentityOccurrenceTriggerFingerprintAndPhysicalDate" classname="com.whip.app.reminders.ReminderWorkerRulesTest" time="0.005"/>
+  <testcase name="snoozeKeepsExactDefinitionButUsesItsOwnExpectedTrigger" classname="com.whip.app.reminders.ReminderWorkerRulesTest" time="0.0"/>
+  <testcase name="habitReconciliationKeepsTodaysQuietShiftedReminder" classname="com.whip.app.reminders.ReminderWorkerRulesTest" time="0.001"/>
+  <testcase name="restTimerDeliveryPostsBeforePersistenceAndReplaysTheSameNotificationAfterFailure" classname="com.whip.app.reminders.ReminderWorkerRulesTest" time="0.003"/>
+  <testcase name="shiftedGoalReminderCannotCrossItsDeadline" classname="com.whip.app.reminders.ReminderWorkerRulesTest" time="0.002"/>
+  <testcase name="restTimerRequiresAnActiveSessionAndTheCurrentDueDeadline" classname="com.whip.app.reminders.ReminderWorkerRulesTest" time="0.0"/>
+  <testcase name="restTimerRecoveryCeilsAnImminentDeadlineInsteadOfCancellingIt" classname="com.whip.app.reminders.ReminderWorkerRulesTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

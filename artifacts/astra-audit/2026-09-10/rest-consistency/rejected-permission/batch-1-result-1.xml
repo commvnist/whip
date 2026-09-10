@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="3" failures="1" errors="0" skipped="0" time="43.17" timestamp="2026-09-10T17:24:28" hostname="localhost">
+  <testsuite name="com.whip.app.GymPowerInputUiTest" tests="1" failures="0" errors="0" skipped="0" time="4.543" timestamp="2026-09-10T17:24:28" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="readyRestTimerMakesWorkoutScopedDurationDiscoverableAndUsesIt" classname="com.whip.app.GymPowerInputUiTest" time="4.543" />
+  </testsuite>
+  <testsuite name="com.whip.app.RoutineAuthoringJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="31.908" timestamp="2026-09-10T17:24:28" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="authoredPrescriptionSurvivesRecoveryExecutionAndLaterRoutineEdits" classname="com.whip.app.RoutineAuthoringJourneyE2ETest" time="31.908" />
+  </testsuite>
+  <testsuite name="com.whip.app.WorkoutRestJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="5.562" timestamp="2026-09-10T17:24:28" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="restFollowsTheNextSetAndOverridesCanReturnToPrescriptions" classname="com.whip.app.WorkoutRestJourneyE2ETest" time="5.562">
+      <failure>java.lang.IllegalStateException: No compose hierarchies found in the app. Possible reasons include: (1) the Activity that calls setContent did not launch; (2) setContent was not called; (3) setContent was called before the ComposeTestRule ran. If setContent is called by the Activity, make sure the Activity is launched after the ComposeTestRule runs
+at androidx.compose.ui.test.TestOwnerKt.getAllSemanticsNodes(TestOwner.kt:117)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNodes$ui_test(SemanticsNodeInteraction.kt:64)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNodes$ui_test$default(SemanticsNodeInteraction.kt:59)
+at androidx.compose.ui.test.AndroidAssertions_androidKt.checkIsDisplayed(AndroidAssertions.android.kt:29)
+at androidx.compose.ui.test.AssertionsKt.isDisplayed(Assertions.kt:380)
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:33)
+at com.whip.app.WorkoutRestJourneyE2ETest.restFollowsTheNextSetAndOverridesCanReturnToPrescriptions$start(WorkoutRestJourneyE2ETest.kt:57)
+at com.whip.app.WorkoutRestJourneyE2ETest.restFollowsTheNextSetAndOverridesCanReturnToPrescriptions(WorkoutRestJourneyE2ETest.kt:70)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

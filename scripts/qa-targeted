@@ -243,6 +243,7 @@ add_profile() {
                 'com.whip.app.ExecutionItemBuilderJourneyE2ETest'
                 'com.whip.app.GymLibraryJourneyE2ETest'
                 'com.whip.app.RoutineAuthoringJourneyE2ETest'
+                'com.whip.app.WorkoutRestJourneyE2ETest'
                 'com.whip.app.RoutineBuilderUiTest'
             )
             ;;

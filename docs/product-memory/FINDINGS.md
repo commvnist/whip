@@ -10,10 +10,10 @@
 
 ### FND-20260910-027 — Ready rest timer and authored rest use different visible durations
 
-- Severity/category: P2 candidate interaction consistency; further review required.
+- Severity/category: P2 interaction consistency.
 - Observed/source: The native prescription journey opens a Set authored with 90 seconds of rest while the ready timer displays 2:00. GymScreens passes the workout override or app default to RestTimerCard; GymRepository quick completion instead resolves override, completed Set rest, Exercise default and app default. History correctly retains 1:30. The difference is directly observed; whether the manual ready timer should follow upcoming or most recently completed work requires a complete rest/recovery journey and existing-contract review.
-- Expected/next: Make the chosen manual duration and automatic rest behavior understandable without overriding authored prescriptions or explicit workout choices. Review Start, quick completion, override, stop/restart and recovery before selecting a change. Do not treat this as a persistence defect or include a speculative timer rewrite in the placement hierarchy increment.
-- Related/status: Investigating; VER-20260910-017 baseline workout/History originals and source review. Continue the broader Gym UX/bug priority alongside builders.
+- Additional source review: The workout override was saveable through Activity recreation but had no reset to null; explicit Set rest may be zero, while the old ready renderer clamped to one. Existing repository timer generations, exact deadline delivery and completed-Set history are sound and remain authoritative.
+- Resolution/status: Verified under DEC/IMP/VER-20260910-018. Shared precedence supplies ready/manual and transactional automatic rest; ready names its source, follows the visible next Set, preserves zero and offers a reversible override. Native manual/automatic/override/recreation/finish/History journeys pass on phone/wide, with 210 Android regressions and readiness. Running deadlines and original completed Set values remain unchanged. Fifteen reviewed originals include matched 2:00-to-1:30 prescription views. Broader Gym, programming and screen-composition work continues.
 
 
 ### FND-20260910-025 — Routine outline gives optional setup more prominence than day authoring

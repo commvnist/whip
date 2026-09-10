@@ -1,0 +1,257 @@
+[
+  {
+    "file": "phone/gym.rest-journey.ready.png",
+    "source": "build/astra-rest-consistency-20260910/phone/gym.rest-journey.ready.png",
+    "run": "jpSv9t",
+    "original": "gym.rest-journey.ready (2).png",
+    "sha256": "21fb65058f099f15997e284bc617a5b7d0c6f76bebce71f7ceca6bd91a82badb",
+    "artifact_sha256": "21fb65058f099f15997e284bc617a5b7d0c6f76bebce71f7ceca6bd91a82badb"
+  },
+  {
+    "file": "phone/gym.rest-journey.ready.xml",
+    "source": "build/astra-rest-consistency-20260910/phone/gym.rest-journey.ready.xml",
+    "run": "jpSv9t",
+    "original": "gym.rest-journey.ready (2).xml",
+    "sha256": "a369b8e94e82ad6969e5bbdf2fd772e3b3536ed2e57fbaae0e4cd2f5d65bfcc9",
+    "original_archive": "phone/gym.rest-journey.ready.xml.gz",
+    "artifact_sha256": "3b12671488762101d527f6035b38e767be652f1497d8ff8bf38ce13e639d4257"
+  },
+  {
+    "file": "phone/gym.rest-journey.automatic.png",
+    "source": "build/astra-rest-consistency-20260910/phone/gym.rest-journey.automatic.png",
+    "run": "jpSv9t",
+    "original": "gym.rest-journey.automatic (1).png",
+    "sha256": "494b2f32706a253f5c6b1fab3b20e2c3842c1637d61c505974a51b5ce8abae3d",
+    "artifact_sha256": "494b2f32706a253f5c6b1fab3b20e2c3842c1637d61c505974a51b5ce8abae3d"
+  },
+  {
+    "file": "phone/gym.rest-journey.automatic.xml",
+    "source": "build/astra-rest-consistency-20260910/phone/gym.rest-journey.automatic.xml",
+    "run": "jpSv9t",
+    "original": "gym.rest-journey.automatic (1).xml",
+    "sha256": "7b7b5f902eef988d81630437848612e1ccf499cb4faf5c922ccde6c9bcc6b706",
+    "original_archive": "phone/gym.rest-journey.automatic.xml.gz",
+    "artifact_sha256": "cd8855e30b09e8ef9b513a69b910002a0c111881ef70574cefeaf68d57dc94b4"
+  },
+  {
+    "file": "phone/gym.rest-journey.override.png",
+    "source": "build/astra-rest-consistency-20260910/phone/gym.rest-journey.override.png",
+    "run": "jpSv9t",
+    "original": "gym.rest-journey.override (1).png",
+    "sha256": "c30d2bf3d294a3253c47774ce15d6839d2ee90ba91fe1d6a92d34613e234cde7",
+    "artifact_sha256": "c30d2bf3d294a3253c47774ce15d6839d2ee90ba91fe1d6a92d34613e234cde7"
+  },
+  {
+    "file": "phone/gym.rest-journey.override.xml",
+    "source": "build/astra-rest-consistency-20260910/phone/gym.rest-journey.override.xml",
+    "run": "jpSv9t",
+    "original": "gym.rest-journey.override (1).xml",
+    "sha256": "53774a1d46a1135991477456397bbf310ca77f28f9823dde126885093fafff55",
+    "original_archive": "phone/gym.rest-journey.override.xml.gz",
+    "artifact_sha256": "574e142c351f3a4a2a1af2ec173eabc1db0a0622dd1d8ba3fa780142f6f88b13"
+  },
+  {
+    "file": "phone/gym.rest-journey.no-rest.png",
+    "source": "build/astra-rest-consistency-20260910/phone/gym.rest-journey.no-rest.png",
+    "run": "jpSv9t",
+    "original": "gym.rest-journey.no-rest (1).png",
+    "sha256": "7791d49f96c89ceef9e9bca35bcd6da48ef4f69c3738f01f6684ac4347a2acf5",
+    "artifact_sha256": "7791d49f96c89ceef9e9bca35bcd6da48ef4f69c3738f01f6684ac4347a2acf5"
+  },
+  {
+    "file": "phone/gym.rest-journey.no-rest.xml",
+    "source": "build/astra-rest-consistency-20260910/phone/gym.rest-journey.no-rest.xml",
+    "run": "jpSv9t",
+    "original": "gym.rest-journey.no-rest (1).xml",
+    "sha256": "258b8bf92c6f5a565bd1cb3e62f352ff4ee8d9d368f40dbbba0aff937f5f6061",
+    "original_archive": "phone/gym.rest-journey.no-rest.xml.gz",
+    "artifact_sha256": "b1f5ccd980a8d8a24ca083bcfed7576e3892fda5efec901410f891e90ef1c0e9"
+  },
+  {
+    "file": "phone/gym.rest-journey.history.png",
+    "source": "build/astra-rest-consistency-20260910/phone/gym.rest-journey.history.png",
+    "run": "jpSv9t",
+    "original": "gym.rest-journey.history (1).png",
+    "sha256": "0bc2ae8303c7667c5dff184e1db976de7a0b6276cc06062404c0f45bb080c457",
+    "artifact_sha256": "0bc2ae8303c7667c5dff184e1db976de7a0b6276cc06062404c0f45bb080c457"
+  },
+  {
+    "file": "phone/gym.rest-journey.history.xml",
+    "source": "build/astra-rest-consistency-20260910/phone/gym.rest-journey.history.xml",
+    "run": "jpSv9t",
+    "original": "gym.rest-journey.history (1).xml",
+    "sha256": "f1079c3c7746423cbd0cd7c2305cd198be2cc96d73c233cc4ce0c2b0a6a29230",
+    "original_archive": "phone/gym.rest-journey.history.xml.gz",
+    "artifact_sha256": "2933f70f867467ff4d7e409524d018e29762dad3000234ea36626873cb0a912f"
+  },
+  {
+    "file": "phone/gym.routine-prescription.workout.png",
+    "source": "build/astra-rest-consistency-20260910/phone-neighbors/gym.routine-prescription.workout.png",
+    "run": "jpSv9t",
+    "original": "gym.routine-prescription.workout (6).png",
+    "sha256": "1a9d852c496718399f5cb1f724c3958f27f0d40dfadd5c27f0536a542473e94d",
+    "artifact_sha256": "1a9d852c496718399f5cb1f724c3958f27f0d40dfadd5c27f0536a542473e94d"
+  },
+  {
+    "file": "phone/gym.routine-prescription.workout.xml",
+    "source": "build/astra-rest-consistency-20260910/phone-neighbors/gym.routine-prescription.workout.xml",
+    "run": "jpSv9t",
+    "original": "gym.routine-prescription.workout (6).xml",
+    "sha256": "b92acf05aa4845641c9a301e44499ec9f4ce457149b617a2311aecc58b7a922e",
+    "original_archive": "phone/gym.routine-prescription.workout.xml.gz",
+    "artifact_sha256": "728996fd88cef0f16ef0f0bcdab282b67efea6a5332056a70591a19bc6bc23ee"
+  },
+  {
+    "file": "wide/gym.rest-journey.ready.png",
+    "source": "build/astra-rest-consistency-20260910/wide/gym.rest-journey.ready.png",
+    "run": "API37_4_METHODS",
+    "original": "gym.rest-journey.ready.png",
+    "sha256": "bf1007c3bf0b799c5608a465b8c1ba5671ae9a108f8bfe49fd438d96f968284c",
+    "artifact_sha256": "bf1007c3bf0b799c5608a465b8c1ba5671ae9a108f8bfe49fd438d96f968284c"
+  },
+  {
+    "file": "wide/gym.rest-journey.ready.xml",
+    "source": "build/astra-rest-consistency-20260910/wide/gym.rest-journey.ready.xml",
+    "run": "API37_4_METHODS",
+    "original": "gym.rest-journey.ready.xml",
+    "sha256": "2193d589ccc0345235a9c73428af554b5f510ba250b16d2b6920b84dd0eb452f",
+    "original_archive": "wide/gym.rest-journey.ready.xml.gz",
+    "artifact_sha256": "4f872dbb790ec20f21876f5a4d3ed3ea520b7d0fd9d903d6732a839917ef7d93"
+  },
+  {
+    "file": "wide/gym.rest-journey.automatic.png",
+    "source": "build/astra-rest-consistency-20260910/wide/gym.rest-journey.automatic.png",
+    "run": "API37_4_METHODS",
+    "original": "gym.rest-journey.automatic.png",
+    "sha256": "98b76767354df14fe882fd5da0d52b16af1de8c0fc0c791f8030cc4963ef34fd",
+    "artifact_sha256": "98b76767354df14fe882fd5da0d52b16af1de8c0fc0c791f8030cc4963ef34fd"
+  },
+  {
+    "file": "wide/gym.rest-journey.automatic.xml",
+    "source": "build/astra-rest-consistency-20260910/wide/gym.rest-journey.automatic.xml",
+    "run": "API37_4_METHODS",
+    "original": "gym.rest-journey.automatic.xml",
+    "sha256": "fb8c03b73cdde4d197a79e376ce4f31ac21f89ae9d3b71dd017c6d663aed235c",
+    "original_archive": "wide/gym.rest-journey.automatic.xml.gz",
+    "artifact_sha256": "e6fcb2e267fd09ee4573f74ba30868578b563cf008d673c824a747ba34f037c9"
+  },
+  {
+    "file": "wide/gym.rest-journey.override.png",
+    "source": "build/astra-rest-consistency-20260910/wide/gym.rest-journey.override.png",
+    "run": "API37_4_METHODS",
+    "original": "gym.rest-journey.override.png",
+    "sha256": "259487443909662a7ac09e2d3add8d0d2f3ec190cd98d42b66b4f4bb1af5e4e2",
+    "artifact_sha256": "259487443909662a7ac09e2d3add8d0d2f3ec190cd98d42b66b4f4bb1af5e4e2"
+  },
+  {
+    "file": "wide/gym.rest-journey.override.xml",
+    "source": "build/astra-rest-consistency-20260910/wide/gym.rest-journey.override.xml",
+    "run": "API37_4_METHODS",
+    "original": "gym.rest-journey.override.xml",
+    "sha256": "b827e3d80df44b2a5573e3bf534fc53996108b34544bfb0fc03f3600cfcd5a18",
+    "original_archive": "wide/gym.rest-journey.override.xml.gz",
+    "artifact_sha256": "cceec25144e17256820ec7dbf590bee5e9abf0f408d1a433803524ea2599aabe"
+  },
+  {
+    "file": "wide/gym.rest-journey.no-rest.png",
+    "source": "build/astra-rest-consistency-20260910/wide/gym.rest-journey.no-rest.png",
+    "run": "API37_4_METHODS",
+    "original": "gym.rest-journey.no-rest.png",
+    "sha256": "51a1f89882183967648f3e166a4d237d31b82ab0795663f360ea0a299dc92551",
+    "artifact_sha256": "51a1f89882183967648f3e166a4d237d31b82ab0795663f360ea0a299dc92551"
+  },
+  {
+    "file": "wide/gym.rest-journey.no-rest.xml",
+    "source": "build/astra-rest-consistency-20260910/wide/gym.rest-journey.no-rest.xml",
+    "run": "API37_4_METHODS",
+    "original": "gym.rest-journey.no-rest.xml",
+    "sha256": "71cb6e05c1d5de32f3876e999943364355ee0ee9bc8b924aa2cb1520b4e96bea",
+    "original_archive": "wide/gym.rest-journey.no-rest.xml.gz",
+    "artifact_sha256": "c8701e07ad02f4baa5def1682f583822136dd116ef427641b688f9ec764f0c48"
+  },
+  {
+    "file": "wide/gym.rest-journey.history.png",
+    "source": "build/astra-rest-consistency-20260910/wide/gym.rest-journey.history.png",
+    "run": "API37_4_METHODS",
+    "original": "gym.rest-journey.history.png",
+    "sha256": "8301d2ff28d50a1c6b9f327b33648f71f843125b76ade4afbf0352d40d658302",
+    "artifact_sha256": "8301d2ff28d50a1c6b9f327b33648f71f843125b76ade4afbf0352d40d658302"
+  },
+  {
+    "file": "wide/gym.rest-journey.history.xml",
+    "source": "build/astra-rest-consistency-20260910/wide/gym.rest-journey.history.xml",
+    "run": "API37_4_METHODS",
+    "original": "gym.rest-journey.history.xml",
+    "sha256": "5ee46fa60efdb028009a846fe431fd0781dd3ed360c239d7a17d254f93d2276a",
+    "original_archive": "wide/gym.rest-journey.history.xml.gz",
+    "artifact_sha256": "3ab5eb46583d0fae9cce07fa2b234f15a8ddb2a518ef309378f20edbc46e0e07"
+  },
+  {
+    "file": "wide/gym.routine-prescription.workout.png",
+    "source": "build/astra-rest-consistency-20260910/wide-neighbors/gym.routine-prescription.workout.png",
+    "run": "API37_4_METHODS",
+    "original": "gym.routine-prescription.workout (1).png",
+    "sha256": "2070a159e0494d9d918357e675762c4fcbc446c4d58c6e3a582709c4155688b8",
+    "artifact_sha256": "2070a159e0494d9d918357e675762c4fcbc446c4d58c6e3a582709c4155688b8"
+  },
+  {
+    "file": "wide/gym.routine-prescription.workout.xml",
+    "source": "build/astra-rest-consistency-20260910/wide-neighbors/gym.routine-prescription.workout.xml",
+    "run": "API37_4_METHODS",
+    "original": "gym.routine-prescription.workout (1).xml",
+    "sha256": "555a1ca915bf9312c3d072c36eefc86f339c42d1c1bc39a7aaafd8fce8052d52",
+    "original_archive": "wide/gym.routine-prescription.workout.xml.gz",
+    "artifact_sha256": "5ac7222c2bb536c6fe374dcae4d63adfaad3ff663985acd95199eaf8db44f60c"
+  },
+  {
+    "file": "phone/gym.rest-duration.png",
+    "source": "build/astra-rest-consistency-20260910/phone-neighbors/gym.rest-duration.png",
+    "run": "jpSv9t",
+    "original": "gym.rest-duration (10).png",
+    "sha256": "2fdc37f0d496f75bb05b10647e7636190715def131b0fca2388041e392c08600",
+    "artifact_sha256": "2fdc37f0d496f75bb05b10647e7636190715def131b0fca2388041e392c08600"
+  },
+  {
+    "file": "phone/gym.rest-duration.xml",
+    "source": "build/astra-rest-consistency-20260910/phone-neighbors/gym.rest-duration.xml",
+    "run": "jpSv9t",
+    "original": "gym.rest-duration (10).xml",
+    "sha256": "9583a8ad2408fd45450ef998d625be649da3117a0115e1d36ef14fdf54031b6a",
+    "original_archive": "phone/gym.rest-duration.xml.gz",
+    "artifact_sha256": "a999f7877ee89462000de0434ac4dd298ea733492cd593a24783126339ec5d0e"
+  },
+  {
+    "file": "before-phone/gym.routine-prescription.workout.png",
+    "source": "artifacts/astra-audit/2026-09-10/routine-prescriptions/phone/gym.routine-prescription.workout.png",
+    "run": "xsVeJy",
+    "original": "gym.routine-prescription.workout (3).png",
+    "sha256": "f45fec08645496ef763d44c057b0ae0abc882095277c0536873b259af2995e26",
+    "artifact_sha256": "f45fec08645496ef763d44c057b0ae0abc882095277c0536873b259af2995e26"
+  },
+  {
+    "file": "before-phone/gym.routine-prescription.workout.xml",
+    "source": "artifacts/astra-audit/2026-09-10/routine-prescriptions/phone/gym.routine-prescription.workout.xml",
+    "run": "xsVeJy",
+    "original": "gym.routine-prescription.workout (3).xml",
+    "sha256": "ff7e5f1a8b9b002e342c7a376be867835da8bdbf6c172abf821f615dba3ff396",
+    "original_archive": "before-phone/gym.routine-prescription.workout.xml.gz",
+    "artifact_sha256": "86c22b16297347ba341b43eb7484364b23c46541f735f970b23e209639c671aa"
+  },
+  {
+    "file": "before-wide/gym.routine-prescription.workout.png",
+    "source": "artifacts/astra-audit/2026-09-10/routine-prescriptions/wide/gym.routine-prescription.workout.png",
+    "run": "API37_FINAL",
+    "original": "gym.routine-prescription.workout.png",
+    "sha256": "95114b9791afe69622acd6e6a2c2549d0b028d03dd4c3f432ec87f11ea322554",
+    "artifact_sha256": "95114b9791afe69622acd6e6a2c2549d0b028d03dd4c3f432ec87f11ea322554"
+  },
+  {
+    "file": "before-wide/gym.routine-prescription.workout.xml",
+    "source": "artifacts/astra-audit/2026-09-10/routine-prescriptions/wide/gym.routine-prescription.workout.xml",
+    "run": "API37_FINAL",
+    "original": "gym.routine-prescription.workout.xml",
+    "sha256": "7dea9e101fed0b5480eb8cca335be72c64e184b8b578266bfcd05c12dfba4d9d",
+    "original_archive": "before-wide/gym.routine-prescription.workout.xml.gz",
+    "artifact_sha256": "3ce71a3e734302b3b0729a69830aba0ddf0397bac0c87e86d5233c9ba9982c29"
+  }
+]

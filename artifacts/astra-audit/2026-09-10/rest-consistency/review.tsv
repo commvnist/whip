@@ -1,0 +1,16 @@
+file	scope	review
+phone/gym.rest-journey.ready.png	Personally inspected original	Native 1:30 ready duration, Next Set rest, Adjust/Start and Set composer visible.
+phone/gym.rest-journey.automatic.png	Personally inspected original	Native completed Set rest running while NEXT advances to Set 2; -15/+15/Stop remain visible.
+phone/gym.rest-journey.override.png	Personally inspected original	Native 1:00 override editor, Follow Set rest, presets, Seconds and commit/cancel visible.
+phone/gym.rest-journey.no-rest.png	Personally inspected original	Native zero rest for next Set, disabled Start and available Adjust; complete execution remains reachable.
+phone/gym.rest-journey.history.png	Personally inspected original	Native completed History retains 40 kg × 7 reps and original 1:30/0:45/zero rest; exact rows verified by journey.
+phone/gym.routine-prescription.workout.png	Personally inspected original	Native matched final: 1:30 and Next Set rest; advanced target and execution hierarchy preserved.
+wide/gym.rest-journey.ready.png	Personally inspected original	Native 1:30 ready duration, Next Set rest, Adjust/Start and Set composer visible.
+wide/gym.rest-journey.automatic.png	Personally inspected original	Native completed Set rest running while NEXT advances to Set 2; -15/+15/Stop remain visible.
+wide/gym.rest-journey.override.png	Personally inspected original	Native 1:00 override editor, Follow Set rest, presets, Seconds and commit/cancel visible.
+wide/gym.rest-journey.no-rest.png	Personally inspected original	Native zero rest for next Set, disabled Start and available Adjust; complete execution remains reachable.
+wide/gym.rest-journey.history.png	Personally inspected original	Native completed History retains 40 kg × 7 reps and original 1:30/0:45/zero rest; exact rows verified by journey.
+wide/gym.routine-prescription.workout.png	Personally inspected original	Native matched final: 1:30 and Next Set rest; advanced target and execution hierarchy preserved.
+phone/gym.rest-duration.png	Personally inspected original	Component-hosted duration controls: selected app default, presets, Seconds and confirm/cancel visible. App-context geometry established by native override captures.
+before-phone/gym.routine-prescription.workout.png	Personally inspected original	Native matched baseline: authored 90-second Set but ready 2:00; exact prescription context visible.
+before-wide/gym.routine-prescription.workout.png	Personally inspected original	Native matched baseline: authored 90-second Set but ready 2:00; exact prescription context visible.

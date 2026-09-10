@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.data.RoutineProgrammingTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-09-10T17:29:44.299Z" hostname="beast" time="0.026">
+  <properties/>
+  <testcase name="equipmentTieRoundsDownRegardlessOfAvailableLoadOrder" classname="com.whip.app.data.RoutineProgrammingTest" time="0.02"/>
+  <testcase name="percentageLoadsResolveFromOneRepAndTrainingMaxThenSnapToEquipment" classname="com.whip.app.data.RoutineProgrammingTest" time="0.003"/>
+  <testcase name="waveMultiplierAppliesToAbsoluteLoadsAndMissingMaxFailsClearly" classname="com.whip.app.data.RoutineProgrammingTest" time="0.001"/>
+  <testcase name="explicitTrainingMaxIsStableWhenEstimatedOneRepMaxChanges" classname="com.whip.app.data.RoutineProgrammingTest" time="0.0"/>
+  <testcase name="percentageTargetsInvertPerSideAndBaseLoadMeaningBeforeRounding" classname="com.whip.app.data.RoutineProgrammingTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

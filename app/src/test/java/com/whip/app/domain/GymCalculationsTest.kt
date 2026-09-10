@@ -9,6 +9,20 @@ import org.junit.Test
 
 class GymCalculationsTest {
     @Test
+    fun restDurationNamesTheWinningPrescriptionOrDefault() {
+        assertEquals(WorkoutRestDuration(60, WorkoutRestSource.WorkoutOverride), resolveWorkoutRestDuration(60, 90, 75, 120))
+        assertEquals(WorkoutRestDuration(90, WorkoutRestSource.SetPrescription), resolveWorkoutRestDuration(null, 90, 75, 120))
+        assertEquals(WorkoutRestDuration(75, WorkoutRestSource.ExerciseDefault), resolveWorkoutRestDuration(null, null, 75, 120))
+        assertEquals(WorkoutRestDuration(120, WorkoutRestSource.AppDefault), resolveWorkoutRestDuration(null, null, null, 120))
+    }
+
+    @Test
+    fun zeroRestIsAuthoritativeUntilDeliberatelyOverridden() {
+        assertEquals(WorkoutRestDuration(0, WorkoutRestSource.SetPrescription), resolveWorkoutRestDuration(null, 0, 75, 120))
+        assertEquals(WorkoutRestDuration(60, WorkoutRestSource.WorkoutOverride), resolveWorkoutRestDuration(60, 0, 75, 120))
+    }
+
+    @Test
     fun epleyAndBrzyckiMatchDocumentedFormulas() {
         assertEquals(
             101.333333,

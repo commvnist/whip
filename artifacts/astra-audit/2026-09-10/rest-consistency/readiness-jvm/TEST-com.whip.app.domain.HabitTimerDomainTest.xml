@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.domain.HabitTimerDomainTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-09-10T17:47:09.183Z" hostname="beast" time="0.006">
+  <properties/>
+  <testcase name="stopAndReviewOutcomesKeepCanonicalSecondsAndResolutionIntent" classname="com.whip.app.domain.HabitTimerDomainTest" time="0.003"/>
+  <testcase name="startOutcomesDistinguishCreatedRunningAndConsumedRequests" classname="com.whip.app.domain.HabitTimerDomainTest" time="0.001"/>
+  <testcase name="boundaryAndStartRequestRetainExactActionIdentity" classname="com.whip.app.domain.HabitTimerDomainTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

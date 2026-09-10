@@ -1,0 +1,4 @@
+[
+  "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
+  "app/src/androidTest/java/com/whip/app/EditorStateRecreationTest.kt"
+]

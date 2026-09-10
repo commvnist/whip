@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260910-018 — Make workout rest follow the visible Set and explain overrides
+
+- Behavior: Ready/manual rest now resolves the visible next Set, Exercise default and app default through WorkoutRestDuration, shared with both repository completion paths. The existing execution Rest renderer names Next Set rest, Exercise/App default or Workout override. Explicit zero remains zero with disabled Start; Adjust can choose an override and Follow Set rest clears it. Automatic timers remain tied to the actual completed Set, and running deadlines remain unchanged when NEXT advances.
+- Ownership/compatibility: The workout retains override saved state and domain callbacks; the renderer owns consistent ready/running presentation and accessible actions. No new timer framework, session schema, backup format, epoch, version or notification-delivery change. Existing timer generations and complete historical Set values remain authoritative. Override lifecycle remains Activity saved state, not new durable session configuration.
+- Verification/status: Verified under FND-20260910-027 / DEC/VER-20260910-018. Native rest and matched full Routine journeys, 210 fresh Android regressions, four wide methods plus strengthened recovery, 133 focused JVM and 373 readiness JVM checks pass. Fifteen original pairs were personally reviewed. The neighboring recreation fixture verifies authored input before crossing the Activity boundary; its original post-recreation guarantee remains intact. Failed intermediate runs and exact fixture delta are retained in artifacts/astra-audit/2026-09-10/rest-consistency/README.md. No whole-product completion; Git records commit/push delivery.
+
 ### IMP-20260910-017 — Put Routine prescriptions before supporting tools
 
 - Behavior: RoutinePlacementEditor presents Training Max and advanced-field access with the Set list before Exercise notes, saved schemes, warm-up generation, copy-previous behavior and 5/3/1 conversion. Existing EditorSectionHeader roles separate prescriptions from tools; no local scale rule or new form framework is added. Superset appears only when a peer or existing group provides an action. First Working label moves 840 pixels upward and the complete first prescription/Add Set fit on the ordinary phone.

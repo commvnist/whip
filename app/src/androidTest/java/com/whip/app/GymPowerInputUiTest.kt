@@ -85,6 +85,7 @@ import com.whip.app.ui.WhipDialogPlacement
 import com.whip.app.ui.QuickSetEntry
 import com.whip.app.ui.QuickSetAuthorshipBoundary
 import com.whip.app.ui.RestTimerCard
+import com.whip.app.domain.resolveWorkoutRestDuration
 import com.whip.app.ui.RoutineProgramPositionDialog
 import com.whip.app.ui.TrackedRecordsManagerDialog
 import com.whip.app.ui.WorkoutExerciseCard
@@ -557,7 +558,7 @@ class GymPowerInputUiTest {
                     RestTimerCard(
                         session = session,
                         remaining = 45,
-                        selectedSeconds = 120,
+                        duration = resolveWorkoutRestDuration(null, null, null, 120),
                         presetSeconds = DEFAULT_REST_TIMER_PRESET_SECONDS,
                         notificationPermissionRequested = false,
                         onSelectedSecondsChange = {},
@@ -596,7 +597,7 @@ class GymPowerInputUiTest {
                     RestTimerCard(
                         session = session,
                         remaining = null,
-                        selectedSeconds = 120,
+                        duration = resolveWorkoutRestDuration(null, null, null, 120),
                         presetSeconds = DEFAULT_REST_TIMER_PRESET_SECONDS,
                         notificationPermissionRequested = true,
                         onSelectedSecondsChange = {},
@@ -1123,13 +1124,13 @@ class GymPowerInputUiTest {
         var startedWith: Int? = null
         var savedPresets: List<Int>? = null
         compose.setContent {
-            var selectedSeconds by remember { mutableStateOf(120) }
+            var selectedSeconds by remember { mutableStateOf<Int?>(null) }
             var presets by remember { mutableStateOf(DEFAULT_REST_TIMER_PRESET_SECONDS) }
             WhipTheme(dynamicColor = false) {
                 RestTimerCard(
                     session = session,
                     remaining = null,
-                    selectedSeconds = selectedSeconds,
+                    duration = resolveWorkoutRestDuration(selectedSeconds, null, null, 120),
                     presetSeconds = presets,
                     notificationPermissionRequested = true,
                     onSelectedSecondsChange = { selectedSeconds = it },
@@ -1143,7 +1144,7 @@ class GymPowerInputUiTest {
 
         compose.onNodeWithText("Rest · 2:00").assertIsDisplayed()
         compose.onNode(
-            SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Rest timer ready, 2:00 selected"),
+            SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Rest timer ready, 2:00 selected, App default"),
         ).assertIsDisplayed()
         compose.onNodeWithContentDescription("Adjust rest time for this workout").performClick()
         compose.onNodeWithText("Rest Time for This Workout").assertIsDisplayed()
@@ -1172,6 +1173,13 @@ class GymPowerInputUiTest {
         compose.onNodeWithText("Rest · 2:15").assertIsDisplayed()
         compose.onNodeWithText("Start").performClick()
         compose.runOnIdle { assertEquals(135, startedWith) }
+        compose.onNodeWithText("Workout override").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Adjust rest time for this workout").performClick()
+        compose.onNodeWithText("Follow Set rest").performClick()
+        compose.onNodeWithText("Rest · 2:00").assertIsDisplayed()
+        compose.onNodeWithText("App default").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Start rest timer").performClick()
+        compose.runOnIdle { assertEquals(120, startedWith) }
     }
 
     @Test
