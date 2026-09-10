@@ -1,5 +1,19 @@
 # Durable findings
 
+### FND-20260910-007 — Settings recreation fixture races the entered draft's applied state
+
+- Severity/category: P2 recovery and authorship.
+- Observed: LHtQLy passes 43 shared-control checks and 102 of 103 selected neighbors, but the new real Activity journey restores an open Default decimal precision editor with saved 1 instead of draft 3 after recreation. The isolated StateRestorationTester contract passes, so that alone does not establish full-app recovery.
+- Investigation: Trace the actual editor lifecycle and saveable ownership before selecting a fix. Separate API 37 fixture failures from product behavior: the existing external Settings support pane uses settings-support-section tags, while both catalog and journey assumed the compact index. A shared adaptive test navigation helper now follows either real route.
+- Diagnosis/status: s0I8Ds passes the complete journey after asserting the displayed draft before platform recreation. Temporary lifecycle traces show the recreated editor owns draft 3, then commits and reopens saved 3. The earlier fixture recreated immediately after injected text without waiting for Compose to apply saveable state. No production recovery change is justified by this evidence. Tracing is removed; final phone/wide and neighbor acceptance remains pending under VER-20260910-006. The failed observation is retained separately from product-defect claims.
+
+### FND-20260910-006 — Equivalent Settings values use different layout and action grammars
+
+- Severity/category: P2 ordinary configuration readability and design consistency.
+- Observed: Native j22ywF passes the Settings catalog. Personally inspected Planning/Appearance originals show dropdown labels above outlined values, toggle explanations constrained beside switches, and typed values embedded in Current/explanation sentences at a 16dp extra inset. Typed editing uses a navigation chevron; selected choice values inherit a one-line preview. These equivalent preferences lack one predictable label/value/explanation hierarchy.
+- Cause: SettingsDropdown delegates to SelectionField's form layout; SettingsToggle uses WhipSettingsRow; TransactionalSettingsField uses WhipActionRow. Their geometry, description ownership and action indicators are independent. Existing settings navigation categories already form a coherent group and do not justify a replacement merely for a new API.
+- Resolution/status: Native and normal-scale visual acceptance verified in DEC/IMP/VER-20260910-006. WhipSettingItem shares label/control/value/description order and natural text height across toggle, choice and typed-edit roles. Immediate choices and durable typed saves retain their semantics. Final 147 API 34 and five API 37 checks pass; 25 original images establish scoped hierarchy and layout acceptance. Evidence: artifacts/astra-audit/2026-09-10/settings-builders/README.md. Broader whole-app acceptance remains open.
+
 ### FND-20260910-005 — Collapsed elapsed Goals omit authored units from visible text
 
 - Severity/category: P2 daily status and cross-surface consistency.

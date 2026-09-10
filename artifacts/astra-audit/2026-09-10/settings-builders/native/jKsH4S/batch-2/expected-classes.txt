@@ -1,0 +1,9 @@
+com.whip.app.AppSettingsPersistenceTest
+com.whip.app.GymPowerInputUiTest
+com.whip.app.SettingItemBuilderJourneyE2ETest
+com.whip.app.SettingsBehaviorUiTest
+com.whip.app.TaskBulkSelectionUiTest
+com.whip.app.TrackWorkspaceUiTest
+com.whip.app.VisualCatalogPagesTest
+com.whip.app.ui.SettingItemBuilderUiTest
+com.whip.app.ui.SettingsHealthControlUiTest

@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="20" failures="0" errors="0" skipped="0" time="54.208" timestamp="2026-09-10T07:26:43" hostname="localhost">
+  <testsuite name="com.whip.app.ui.SettingsResponsiveUiTest" tests="20" failures="0" errors="0" skipped="0" time="53.012" timestamp="2026-09-10T07:26:43" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="timeZoneModeChangeIsNotHiddenWhenTheEffectiveValueStaysTheSame" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="1.927" />
+    <testcase name="wideSettingsCannotSwitchCategoriesBehindATypedEditor" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="3.798" />
+    <testcase name="editorWaitsForItsRequestReceiptAndRetainsAFailedDraftForRetry" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="2.242" />
+    <testcase name="wideSectionSidebarScrollsAtLargeTextAndKeepsSelectionAndFocusSemantics" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="1.211" />
+    <testcase name="rapidRepeatedSaveOwnsExactlyOnePersistenceRequest" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="1.638" />
+    <testcase name="boundedLargeTextEditorAnnouncesErrorsAndGuardsHardwareDismissal" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="7.691" />
+    <testcase name="externalSameFieldChangeKeepsTheDraftButRequiresAnInformedResave" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="2.343" />
+    <testcase name="customUnitDialogKeepsDraftAndShowsAnInlineDurabilityFailure" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="5.568" />
+    <testcase name="destructiveCopyAndActionsRemainReachableInAShortLargeTextWindow" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="3.922" />
+    <testcase name="numberSettingKeepsARecreatedDraftOutOfPersistenceUntilDone" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="2.417" />
+    <testcase name="coupledQuietHoursDisableIsNotHiddenByTheDefaultDisplayValue" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="1.061" />
+    <testcase name="customUnitFactorAndActionsRemainReachableAtTwoHundredPercentText" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="3.823" />
+    <testcase name="healthControlsRemainUnderstandableAndDeletableWhenProviderIsUnavailable" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="4.124" />
+    <testcase name="unchangedAndNormalizationEquivalentDoneCloseWithoutDispatchingAWrite" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="2.112" />
+    <testcase name="destructiveFailureIsAssertiveInsideTheRetainedDialogAndCanBeRetried" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="0.856" />
+    <testcase name="sharedNavigationRowsRemainReachableAndClickableInRtl" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="0.882" />
+    <testcase name="timeZoneSettingDoesNotPersistAValidPrefixOrDraftBeforeDone" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="1.938" />
+    <testcase name="lateProcessMemoryPublicationAfterFailureStillRequiresAndAllowsDurableRetry" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="2.565" />
+    <testcase name="customUnitValidationExplainsInvalidFieldsWithoutHidingTheAction" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="2.34" />
+    <testcase name="settingsActionPairsStackAtCompactLargeTextWithoutShrinkingTargets" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="0.554" />
+  </testsuite>
+</testsuites>

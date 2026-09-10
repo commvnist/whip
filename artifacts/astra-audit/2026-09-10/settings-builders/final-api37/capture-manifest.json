@@ -1,0 +1,92 @@
+[
+  {
+    "file": "settings.about-diagnostics.xml",
+    "original": "settings.about-diagnostics.xml",
+    "sha256": "6786dbbb5c785198848594b9c1a45cb4579805a5b0e023352054394395f2cdbd"
+  },
+  {
+    "file": "settings.about-diagnostics.png",
+    "original": "settings.about-diagnostics.png",
+    "sha256": "272f5ff1021c5e6510b6a06a10036f10ebd9d0d1633197d0e9296c00641d8dd0"
+  },
+  {
+    "file": "settings.data-privacy.xml",
+    "original": "settings.data-privacy.xml",
+    "sha256": "c25af82d185cad24f3a306f4ca03d3ab42e66fd34501e7358d8a076fa9c4a48c"
+  },
+  {
+    "file": "settings.data-privacy.png",
+    "original": "settings.data-privacy.png",
+    "sha256": "f78bb8a752abf806f6557e1ea8aa840c2877e6d63803426244114f92a8c31bf8"
+  },
+  {
+    "file": "settings.reminders.xml",
+    "original": "settings.reminders.xml",
+    "sha256": "e130dd37657e14cb6980cd0c098d5be3409c5b9356ed3f3b33010091596bc7fa"
+  },
+  {
+    "file": "settings.reminders.png",
+    "original": "settings.reminders.png",
+    "sha256": "ad28a299c3dd7f78cd0cf4554fbf80369f72c0b49ac936d99662dda3c00e4197"
+  },
+  {
+    "file": "settings.organization.xml",
+    "original": "settings.organization.xml",
+    "sha256": "3ba46eb30fbbadecaeeb45bbfe5ded3dd73e5de01b1058da620aff0655b745f4"
+  },
+  {
+    "file": "settings.organization.png",
+    "original": "settings.organization.png",
+    "sha256": "225d65c5a38a082e6559eccda29084a78f71d077dc5313ec16c65ad7528f41ee"
+  },
+  {
+    "file": "settings.planning.xml",
+    "original": "settings.planning.xml",
+    "sha256": "4cf4821742b851bf943ffa49228572a8222919c0151ba36bb276c4b76614a8c2"
+  },
+  {
+    "file": "settings.planning.png",
+    "original": "settings.planning.png",
+    "sha256": "dbd0cb8d2f1407d17411539cc121fc9fc5be8fd5727a691250a82c1b0b24321c"
+  },
+  {
+    "file": "settings.appearance.xml",
+    "original": "settings.appearance.xml",
+    "sha256": "b7f0f4c459f420856f2579a22e4a9ca790428245144c7001a224e5155339f635"
+  },
+  {
+    "file": "settings.appearance.png",
+    "original": "settings.appearance.png",
+    "sha256": "22648cff0c5ae6fd3dda3df82df47c6abb9baf1b021fd33b30dbbdd0336f4635"
+  },
+  {
+    "file": "settings.index.xml",
+    "original": "settings.index (1).xml",
+    "sha256": "b7f0f4c459f420856f2579a22e4a9ca790428245144c7001a224e5155339f635"
+  },
+  {
+    "file": "settings.index.png",
+    "original": "settings.index (1).png",
+    "sha256": "22648cff0c5ae6fd3dda3df82df47c6abb9baf1b021fd33b30dbbdd0336f4635"
+  },
+  {
+    "file": "settings.item-builder.saved-value.xml",
+    "original": "settings.item-builder.saved-value.xml",
+    "sha256": "117614fbb3692a817232910fee416764d6b7d2d651aa94baec04c929fe6b8eae"
+  },
+  {
+    "file": "settings.item-builder.saved-value.png",
+    "original": "settings.item-builder.saved-value.png",
+    "sha256": "55202ddf4b77d60b14e6f94ced04fbea54c0fd64a25ec0e85f90d9cd94683e57"
+  },
+  {
+    "file": "settings.item-builder.choice-value.xml",
+    "original": "settings.item-builder.choice-value.xml",
+    "sha256": "aaafa0fb4a8898922e4434064f3cc6cf208436cd5b905a205a8b615b62cee4e4"
+  },
+  {
+    "file": "settings.item-builder.choice-value.png",
+    "original": "settings.item-builder.choice-value.png",
+    "sha256": "f38912ccf41423586512ce7454356fca61118e130a30a18fc1d4fdb8e96c5f86"
+  }
+]

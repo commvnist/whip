@@ -1,0 +1,66 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="35" failures="0" errors="0" skipped="0" time="107.999" timestamp="2026-09-10T07:03:24" hostname="localhost">
+  <testsuite name="com.whip.app.SettingsBehaviorUiTest" tests="12" failures="0" errors="0" skipped="0" time="47.968" timestamp="2026-09-10T07:03:24" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="validGymDefaultDraftSurvivesRecreationWithoutPersistingUntilDone" classname="com.whip.app.SettingsBehaviorUiTest" time="6.251" />
+    <testcase name="organizationSettingsAddsRenamesAndRemovesNamedCustomEmojis" classname="com.whip.app.SettingsBehaviorUiTest" time="9.44" />
+    <testcase name="openingAreaBehaviorAndChosenAreaCanBeConfiguredFromAppearance" classname="com.whip.app.SettingsBehaviorUiTest" time="2.517" />
+    <testcase name="conditionalParentControlsCannotRemoveAnOpenTypedEditor" classname="com.whip.app.SettingsBehaviorUiTest" time="3.044" />
+    <testcase name="rapidDoubleTapOnResetSubmitsOnlyOneDestructiveOperationAndReturnsHome" classname="com.whip.app.SettingsBehaviorUiTest" time="4.603" />
+    <testcase name="hidingGoalsKeepsItDiscoverableInTheEmptyHomeGuide" classname="com.whip.app.SettingsBehaviorUiTest" time="2.088" />
+    <testcase name="hardwareBackRequiresExplicitDiscardAndCannotNavigateBehindATypedEditor" classname="com.whip.app.SettingsBehaviorUiTest" time="4.602" />
+    <testcase name="finalVisibleHomeSectionExplainsWhyItCannotBeDisabled" classname="com.whip.app.SettingsBehaviorUiTest" time="1.964" />
+    <testcase name="plainJsonBackupUsesAndroidsDocumentProviderAndReturnsSafelyOnCancel" classname="com.whip.app.SettingsBehaviorUiTest" time="4.778" />
+    <testcase name="malformedClockCannotChangeTheCutoffButCompleteClockCommits" classname="com.whip.app.SettingsBehaviorUiTest" time="2.968" />
+    <testcase name="everySettingsCategoryIsReachableAndOwnsItsExpectedControls" classname="com.whip.app.SettingsBehaviorUiTest" time="3.247" />
+    <testcase name="settingsHaveNoDensityChoicesAndTasksUseSummaryDisclosure" classname="com.whip.app.SettingsBehaviorUiTest" time="2.466" />
+  </testsuite>
+  <testsuite name="com.whip.app.VisualCatalogPagesTest" tests="1" failures="0" errors="0" skipped="0" time="10.255" timestamp="2026-09-10T07:03:24" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="captureSettingsPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="10.255" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.SettingsHealthControlUiTest" tests="2" failures="0" errors="0" skipped="0" time="1.566" timestamp="2026-09-10T07:03:24" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="pausedHealthSyncKeepsSavedCategorySelectedAndEditable" classname="com.whip.app.ui.SettingsHealthControlUiTest" time="0.631" />
+    <testcase name="categoryControlIsDisabledOnlyWhileAHealthMutationIsRunning" classname="com.whip.app.ui.SettingsHealthControlUiTest" time="0.935" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.SettingsResponsiveUiTest" tests="20" failures="0" errors="0" skipped="0" time="46.648" timestamp="2026-09-10T07:03:24" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="timeZoneModeChangeIsNotHiddenWhenTheEffectiveValueStaysTheSame" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="1.182" />
+    <testcase name="wideSettingsCannotSwitchCategoriesBehindATypedEditor" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="2.366" />
+    <testcase name="editorWaitsForItsRequestReceiptAndRetainsAFailedDraftForRetry" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="1.889" />
+    <testcase name="wideSectionSidebarScrollsAtLargeTextAndKeepsSelectionAndFocusSemantics" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="0.907" />
+    <testcase name="rapidRepeatedSaveOwnsExactlyOnePersistenceRequest" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="1.311" />
+    <testcase name="boundedLargeTextEditorAnnouncesErrorsAndGuardsHardwareDismissal" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="6.559" />
+    <testcase name="externalSameFieldChangeKeepsTheDraftButRequiresAnInformedResave" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="2.291" />
+    <testcase name="customUnitDialogKeepsDraftAndShowsAnInlineDurabilityFailure" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="5.03" />
+    <testcase name="destructiveCopyAndActionsRemainReachableInAShortLargeTextWindow" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="3.923" />
+    <testcase name="numberSettingKeepsARecreatedDraftOutOfPersistenceUntilDone" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="2.413" />
+    <testcase name="coupledQuietHoursDisableIsNotHiddenByTheDefaultDisplayValue" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="1.082" />
+    <testcase name="customUnitFactorAndActionsRemainReachableAtTwoHundredPercentText" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="3.972" />
+    <testcase name="healthControlsRemainUnderstandableAndDeletableWhenProviderIsUnavailable" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="3.521" />
+    <testcase name="unchangedAndNormalizationEquivalentDoneCloseWithoutDispatchingAWrite" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="1.963" />
+    <testcase name="destructiveFailureIsAssertiveInsideTheRetainedDialogAndCanBeRetried" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="0.833" />
+    <testcase name="sharedNavigationRowsRemainReachableAndClickableInRtl" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="0.806" />
+    <testcase name="timeZoneSettingDoesNotPersistAValidPrefixOrDraftBeforeDone" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="1.788" />
+    <testcase name="lateProcessMemoryPublicationAfterFailureStillRequiresAndAllowsDurableRetry" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="2.166" />
+    <testcase name="customUnitValidationExplainsInvalidFieldsWithoutHidingTheAction" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="2.091" />
+    <testcase name="settingsActionPairsStackAtCompactLargeTextWithoutShrinkingTargets" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="0.555" />
+  </testsuite>
+</testsuites>

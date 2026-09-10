@@ -721,34 +721,9 @@ internal fun WhipSettingsRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     enabled: Boolean = true,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .toggleable(
-                value = checked,
-                enabled = enabled,
-                role = Role.Switch,
-                onValueChange = onCheckedChange,
-            )
-            .padding(vertical = WhipSpacing.sibling),
-        horizontalArrangement = Arrangement.spacedBy(WhipSpacing.standard),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            supportingText?.let {
-                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        Switch(
-            checked = checked,
-            onCheckedChange = null,
-            enabled = enabled,
-            modifier = Modifier.clearAndSetSemantics {},
-        )
-    }
+) = WhipSettingItem(title, modifier, enabled) {
+    description(supportingText)
+    toggle(checked, onCheckedChange)
 }
 
 /**

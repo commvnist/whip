@@ -263,6 +263,8 @@ add_profile() {
                 'com.whip.app.CustomUnitIntegrityTest'
                 'com.whip.app.HealthReconciliationTest'
                 'com.whip.app.ui.SettingsResponsiveUiTest'
+                'com.whip.app.ui.SettingItemBuilderUiTest'
+                'com.whip.app.SettingItemBuilderJourneyE2ETest'
             )
             ;;
         *)

@@ -190,7 +190,7 @@ class VisualCatalogPagesTest {
             waitForHome("Plan the week")
             compose.onNodeWithContentDescription("Open Settings").performClick()
             compose.waitForIdle()
-            compose.onNodeWithTag("settings-section-Planning & Units").performClick()
+            compose.openSettingsCategory("Planning & Units")
             compose.waitForIdle()
             compose.onNodeWithTag("settings-list").performScrollToNode(
                 androidx.compose.ui.test.hasText("Overlapping category allocation"),
@@ -429,14 +429,10 @@ class VisualCatalogPagesTest {
             "Data & Privacy" to "settings.data-privacy",
             "About Whip" to "settings.about-diagnostics",
         )
-        sections.forEachIndexed { index, (label, surfaceId) ->
-            compose.onNodeWithTag("settings-section-$label").performClick()
+        sections.forEach { (label, surfaceId) ->
+            compose.openSettingsCategory(label)
             compose.waitForIdle()
             captureVisualCatalogSurface(surfaceId)
-            if (index < sections.lastIndex) {
-                compose.onNodeWithContentDescription("Back to Settings").performClick()
-                compose.waitForIdle()
-            }
         }
     }
 

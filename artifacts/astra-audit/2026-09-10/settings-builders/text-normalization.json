@@ -1,0 +1,172 @@
+[
+  {
+    "file": "final-api34/settings.about-diagnostics.xml",
+    "original": "1f8af408dff5500b506166988098fc53943c8be4181bf44cf9486eec3adc4ae7",
+    "retained": "2ce930669dc59d59e3c683f87d205d8af8baa17403cee7ea69c457e24fe72734"
+  },
+  {
+    "file": "final-api34/settings.appearance.xml",
+    "original": "d240c91562099d58f19907289cc81d9e3badf0ca474fe198448f0b3513555cda",
+    "retained": "69775e8e9c35127e19069b206cf365703c9cb4c4875077a48a3817ee6618622e"
+  },
+  {
+    "file": "final-api34/settings.data-privacy.xml",
+    "original": "37dfd6c9305a2aad062978273dd9af44e6d72c44b3b7df9d262273b51408f0f6",
+    "retained": "70971a6aca20dfc983f91d9276b280b58e70764b48f91bdf36d1f61947bd5b8a"
+  },
+  {
+    "file": "final-api34/settings.index.xml",
+    "original": "e0929820a1bff994a15cbb90a2f5a737ab597907a6c87b13d60e75d6802ec1d6",
+    "retained": "926f623f7b9f0deb709a159938fa38edfec1aa48ae78787c9b48d6aad3ed07bb"
+  },
+  {
+    "file": "final-api34/settings.item-builder.choice-value.xml",
+    "original": "e9c3e02bd3edf7ede385996251dcf67c4c8786cfe957169fde5d58b4d268ed2e",
+    "retained": "37bd3c505fd18e005d6a9ac25c22cfe26ce50ab235a191b2033811b313ea2cca"
+  },
+  {
+    "file": "final-api34/settings.item-builder.saved-value.xml",
+    "original": "985827c06eea88266650ec1879faaabe3e82e2d01c7b11b9507e78db91faba0f",
+    "retained": "837501d663c5f4aaa3d193bd0915f746f175b3fbd29478e257a4dcdece902ed4"
+  },
+  {
+    "file": "final-api34/settings.organization.xml",
+    "original": "b80458875ffd33ad0a6f56a6a6bbdea2af561bbb596c991e0cfc8b93882a0c99",
+    "retained": "f4083e1a1f8c5e031fb42f7a02c5b8fa80ee25607ad3439906cf3374f6866153"
+  },
+  {
+    "file": "final-api34/settings.planning.xml",
+    "original": "1c217005f6c7d2518fa4144f5311d5ebbb6d838c0b7b5f2814682d30dd202217",
+    "retained": "55c6779a5db1e37929f1b60aa085230770350e2051538119f307bf1ef064f629"
+  },
+  {
+    "file": "final-api34/settings.reminders.xml",
+    "original": "d4a3997869580e1a9bd8e41b58974aace0ea938160241f23c12cc1f8a96e9229",
+    "retained": "7c9b72870698fede8dc731e93ed65c002b6bc5d3e22ffa026060ba76d0b7ba40"
+  },
+  {
+    "file": "final-api37/settings.about-diagnostics.xml",
+    "original": "6786dbbb5c785198848594b9c1a45cb4579805a5b0e023352054394395f2cdbd",
+    "retained": "3f0d1a38d264a8f7236aadc23f8b9e30058ef1d66b603e8a862d83bf93ed3b96"
+  },
+  {
+    "file": "final-api37/settings.appearance.xml",
+    "original": "b7f0f4c459f420856f2579a22e4a9ca790428245144c7001a224e5155339f635",
+    "retained": "bdc26975df0f57efee824fc21869396d2d8a6fa961bceacdd2621e09d5a413d5"
+  },
+  {
+    "file": "final-api37/settings.data-privacy.xml",
+    "original": "c25af82d185cad24f3a306f4ca03d3ab42e66fd34501e7358d8a076fa9c4a48c",
+    "retained": "eae7dc7c0d4777abe04405c80d0d34606e2d0934bbe2be77f78ae22e4383566c"
+  },
+  {
+    "file": "final-api37/settings.index.xml",
+    "original": "b7f0f4c459f420856f2579a22e4a9ca790428245144c7001a224e5155339f635",
+    "retained": "bdc26975df0f57efee824fc21869396d2d8a6fa961bceacdd2621e09d5a413d5"
+  },
+  {
+    "file": "final-api37/settings.item-builder.choice-value.xml",
+    "original": "aaafa0fb4a8898922e4434064f3cc6cf208436cd5b905a205a8b615b62cee4e4",
+    "retained": "310b3d2064d2792d7b24b7068a2325e667ce51514fe39e6504cc2205b3232a0e"
+  },
+  {
+    "file": "final-api37/settings.item-builder.saved-value.xml",
+    "original": "117614fbb3692a817232910fee416764d6b7d2d651aa94baec04c929fe6b8eae",
+    "retained": "dad829beac9ff341d9331d8f131398f297b12d54a83ef00ef59720621145d50d"
+  },
+  {
+    "file": "final-api37/settings.organization.xml",
+    "original": "3ba46eb30fbbadecaeeb45bbfe5ded3dd73e5de01b1058da620aff0655b745f4",
+    "retained": "6bcd8bd4416389dd3dde7481a0e89a7e406cfae45d72a1dc2ff880be5ecd0be7"
+  },
+  {
+    "file": "final-api37/settings.planning.xml",
+    "original": "4cf4821742b851bf943ffa49228572a8222919c0151ba36bb276c4b76614a8c2",
+    "retained": "68b55164f9963c73b3a6bf181894b324c285311e3f8f6761f31ed385702ede74"
+  },
+  {
+    "file": "final-api37/settings.reminders.xml",
+    "original": "e130dd37657e14cb6980cd0c098d5be3409c5b9356ed3f3b33010091596bc7fa",
+    "retained": "fbc8abdf0f50ae6c278c141cd049d1b2ab0adcf2492e22e4a7471905d5e7fba4"
+  },
+  {
+    "file": "before/settings.about-diagnostics.xml",
+    "original": "46fddc310f2ff6600bf4b3ff59974d917689359349fc3fba92a81cdc7eb07791",
+    "retained": "9488fc1d0939fb018445b01c50201fe7bdfac41a6408d2bfa70e1545b9be36d3"
+  },
+  {
+    "file": "before/settings.appearance.xml",
+    "original": "f3f4c798e2336bd75890abfc3b4856ca4b03575708f22a187d81614f04537ad4",
+    "retained": "1e497767a29851478a8c0ecf50c8ee271659c3eb8870598aaeaf383086247575"
+  },
+  {
+    "file": "before/settings.data-privacy.xml",
+    "original": "17fdc11ab23bdba7eeb54739485951df3d1ec17511dfec653fb310a4dff81eb9",
+    "retained": "1ecba1487fba7f9507ee30c5067b95097da6bfd2119327515e517df24c66204d"
+  },
+  {
+    "file": "before/settings.index.xml",
+    "original": "c163f01dfc09558c1bbc8251a9e6b10083847f995e4584e3f621a0e839fc3f10",
+    "retained": "1b19aa3eaa78247d5a171821da1ff505af41b72685458ed0894683e0e179302f"
+  },
+  {
+    "file": "before/settings.organization.xml",
+    "original": "af920959e9d9ee7e9ce9f3467c991ab44df945053d797e02727546ad8f40f2a0",
+    "retained": "3e13c07b71131c28072635cddab9ffc16e56656f2aa4da733ca4eafbb99739e4"
+  },
+  {
+    "file": "before/settings.planning.xml",
+    "original": "9bcb645f90cf3ef62eb08fc29b8b6e81fe94b312ba1797da209f2fcbb2b73948",
+    "retained": "83219d560c95312df0d360c40c0c52a3a7f749c983eefd467961e4f1bfa919fa"
+  },
+  {
+    "file": "before/settings.reminders.xml",
+    "original": "d7f03d8802c4b529ffe96671a681815ae6cc946a3779d14f9aaa5a5f98e088aa",
+    "retained": "87a0d619d6a3e363ba841c20af0218b1cbda01e285a158127fb543f34d0d5534"
+  },
+  {
+    "file": "native/LHtQLy/batch-1/result-1.xml",
+    "original": "5bc505fb27749b7b70340d1437c2cf0c39e32c112df0a2515c19a24d96d94a8d",
+    "retained": "386f29d8d2f8977e471ba94dc2c817ee4afd1b67b0b5e6293a50deea58746a2a"
+  },
+  {
+    "file": "native/LHtQLy/batch-2/result-1.xml",
+    "original": "33a5890f9dcd3409d3c33e603b00f8c3ed5a5381e70b66fab6a3b9255780e997",
+    "retained": "9129334aee84a0eb4ea2f3d3f04646b09ecde31bebe3f573ab6e490d605a2067"
+  },
+  {
+    "file": "native/j22ywF/batch-1/result-1.xml",
+    "original": "0fa0b4a33b730a44ad0381278807d2fe1bf884c0f2454de029e2c4b1f0a8f30a",
+    "retained": "908defc98b6194876254309a910793b51bc585ae7f0311476ebff5eededd1d8b"
+  },
+  {
+    "file": "native/jKsH4S/batch-1/result-1.xml",
+    "original": "6cf76fe86b446abfda524ad5fec16c830c92a9c96d3e317f8effb6b18ea17fea",
+    "retained": "eda52fd288653c53353ed51aca669f270568937c18e1e24a3c288d014aaaea5c"
+  },
+  {
+    "file": "native/jKsH4S/batch-3/result-1.xml",
+    "original": "f19feb24d00bbb58e0a2cae98f883921aea9412eae98a9fc63d244e30ac4297f",
+    "retained": "f2391d5700d3c8e385b28da56805f767fec17d42deea4d6cc75ff6c5fbde4f1b"
+  },
+  {
+    "file": "native/jKsH4S/batch-2/result-1.xml",
+    "original": "6255485d61963cd0c1aa6f6111d76b80728656bcd71f832be2498eefa165ecd4",
+    "retained": "2ce6f3988426bf30afe423db4e3b20058e5e9d4dffc2a76ef3ca378cbeadbbfd"
+  },
+  {
+    "file": "native/s0I8Ds/batch-1/result-1.xml",
+    "original": "ef78b78f4893b97cf62c534fad845b40212181bbcefd43047611dbe71c4e18c1",
+    "retained": "7306800f8d9503ab02db7e8ca697ae9273aab83d6034b4e23718e649e46b6926"
+  },
+  {
+    "file": "native/4irjMH/batch-1/result-1.xml",
+    "original": "a27857ee9068e19e98cf21cfd449c48bff31ec5ffe262b6b1f68600ba7262294",
+    "retained": "10f120ea523025f6bb94fc35c52fdf4102caa526134e3ad8ba02fea891ed3297"
+  },
+  {
+    "file": "native/38BvLf/batch-1/result-1.xml",
+    "original": "c86bc3b12e7d66003bb06268ff440ed83d0b603f4937b2440377bf51b8da9a63",
+    "retained": "89fab901de84845194d8031eb04eac7dd206750677ca1a522fc28016c1eed6d0"
+  }
+]

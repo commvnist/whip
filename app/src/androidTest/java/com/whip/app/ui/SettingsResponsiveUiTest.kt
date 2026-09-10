@@ -136,7 +136,7 @@ class SettingsResponsiveUiTest {
         }
         compose.runOnIdle { assertEquals(300, committed) }
         compose.onNodeWithTag("settings-field-default-rest-time-seconds")
-            .assertTextContains("Current: 300")
+            .assertTextContains("300")
     }
 
     @Test
@@ -316,7 +316,7 @@ class SettingsResponsiveUiTest {
                 .fetchSemanticsNodes().isEmpty()
         }
         compose.onNodeWithTag("settings-field-default-rest-time-seconds")
-            .assertTextContains("Current: 300")
+            .assertTextContains("300")
     }
 
     @Test
@@ -501,7 +501,7 @@ class SettingsResponsiveUiTest {
         }
         compose.onNodeWithText("Discard Changes").assertIsDisplayed().performClick()
         compose.onNodeWithTag("settings-field-default-rest-time-seconds")
-            .assertTextContains("Current: 120")
+            .assertTextContains("120")
         compose.runOnIdle { assertEquals(120, committed) }
     }
 
@@ -530,7 +530,7 @@ class SettingsResponsiveUiTest {
         compose.onNodeWithTag("settings-field-time-zone-input").performImeAction()
         compose.waitUntil { committed == "+02:00" }
         compose.onNodeWithTag("settings-field-time-zone")
-            .assertTextContains("Current: +02:00", substring = true)
+            .assertTextContains("+02:00")
     }
 
     @Test

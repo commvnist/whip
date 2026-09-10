@@ -1,0 +1,72 @@
+[
+  {
+    "file": "settings.about-diagnostics.xml",
+    "original": "settings.about-diagnostics.xml",
+    "sha256": "46fddc310f2ff6600bf4b3ff59974d917689359349fc3fba92a81cdc7eb07791"
+  },
+  {
+    "file": "settings.about-diagnostics.png",
+    "original": "settings.about-diagnostics.png",
+    "sha256": "99936ba79a8ddd6d2e140d937bd458b23a0ce383cb594c635c46b6337fc54575"
+  },
+  {
+    "file": "settings.data-privacy.xml",
+    "original": "settings.data-privacy.xml",
+    "sha256": "17fdc11ab23bdba7eeb54739485951df3d1ec17511dfec653fb310a4dff81eb9"
+  },
+  {
+    "file": "settings.data-privacy.png",
+    "original": "settings.data-privacy.png",
+    "sha256": "5d20d311c673b7cb966fa6e29d943a7360af4abbaeafaa589e9d329cb52784ac"
+  },
+  {
+    "file": "settings.reminders.xml",
+    "original": "settings.reminders.xml",
+    "sha256": "d7f03d8802c4b529ffe96671a681815ae6cc946a3779d14f9aaa5a5f98e088aa"
+  },
+  {
+    "file": "settings.reminders.png",
+    "original": "settings.reminders.png",
+    "sha256": "5f2afff85ac3d55edf92d317b31c4d03518640486d4088de806547c02c77ac30"
+  },
+  {
+    "file": "settings.organization.xml",
+    "original": "settings.organization.xml",
+    "sha256": "af920959e9d9ee7e9ce9f3467c991ab44df945053d797e02727546ad8f40f2a0"
+  },
+  {
+    "file": "settings.organization.png",
+    "original": "settings.organization.png",
+    "sha256": "dc7e2b36e6e4cc7d873b7b4dc146e8da052c7eaa68191896bce3cfd2a752b112"
+  },
+  {
+    "file": "settings.planning.xml",
+    "original": "settings.planning.xml",
+    "sha256": "9bcb645f90cf3ef62eb08fc29b8b6e81fe94b312ba1797da209f2fcbb2b73948"
+  },
+  {
+    "file": "settings.planning.png",
+    "original": "settings.planning.png",
+    "sha256": "e50ad1bbafb0d496238a7c766be13f3f909e102d76144b7b29d210ee9eefec33"
+  },
+  {
+    "file": "settings.appearance.xml",
+    "original": "settings.appearance.xml",
+    "sha256": "f3f4c798e2336bd75890abfc3b4856ca4b03575708f22a187d81614f04537ad4"
+  },
+  {
+    "file": "settings.appearance.png",
+    "original": "settings.appearance.png",
+    "sha256": "3847a3f22bc7cb716238e7f5339db58904f14b01ac1d66a148d6a8deb7dbd075"
+  },
+  {
+    "file": "settings.index.xml",
+    "original": "settings.index.xml",
+    "sha256": "c163f01dfc09558c1bbc8251a9e6b10083847f995e4584e3f621a0e839fc3f10"
+  },
+  {
+    "file": "settings.index.png",
+    "original": "settings.index.png",
+    "sha256": "ab4e22f813ebfdcff89ea75a32d91b6cf8be77a9e5c92e3f22555bcb956e1153"
+  }
+]

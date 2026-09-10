@@ -2203,7 +2203,7 @@ internal fun HealthDataTypeSetting(
 }
 
 @Composable private fun <T> SettingsDropdown(label: String, values: List<T>, selected: T, text: (T) -> String, onChange: (T) -> Unit) {
-    SelectionField(label = label, values = values, selected = selected, valueText = text, onSelect = onChange)
+    WhipSettingItem(label) { choice(values, selected, text, onChange) }
 }
 
 @Composable internal fun NumberSetting(
@@ -2408,14 +2408,15 @@ private fun <T> TransactionalSettingsField(
         }
     }
 
-    WhipActionRow(
-        title = label,
-        supportingText = buildString {
-            append("Current: ")
-            append(currentText)
-            supportingText?.let { append(". ").append(it) }
-        },
-        onClick = {
+    WhipSettingItem(
+        title = label.uiTitleCase(),
+        modifier = Modifier
+            .focusRequester(actionFocusRequester)
+            .testTag(testTag),
+        itemKey = testTag,
+    ) {
+        description(supportingText)
+        edit(currentText) {
             baselineText = currentText
             baselineIdentity = sourceIdentity
             draftText = currentText
@@ -2424,12 +2425,8 @@ private fun <T> TransactionalSettingsField(
             coordinator.clear()
             externalConflict = null
             editorOpen = true
-        },
-        modifier = Modifier
-            .focusRequester(actionFocusRequester)
-            .semantics { stateDescription = "Saved value $currentText. Activate to edit." }
-            .testTag(testTag),
-    )
+        }
+    }
 
     if (editorOpen) {
         ProductivityEditorDialog(

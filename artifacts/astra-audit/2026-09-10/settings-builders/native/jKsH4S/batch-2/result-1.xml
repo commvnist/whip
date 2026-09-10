@@ -1,0 +1,150 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="84" failures="0" errors="0" skipped="0" time="233.849" timestamp="2026-09-10T07:25:42" hostname="localhost">
+  <testsuite name="com.whip.app.AppSettingsPersistenceTest" tests="6" failures="0" errors="0" skipped="0" time="0.17" timestamp="2026-09-10T07:25:42" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="concurrentRepositoryInstancesDoNotLoseUnrelatedSettingsUpdates" classname="com.whip.app.AppSettingsPersistenceTest" time="0.141" />
+    <testcase name="freshHealthConnectScopeIsLeastPrivilegeAndRequiresExplicitCategories" classname="com.whip.app.AppSettingsPersistenceTest" time="0.001" />
+    <testcase name="confirmedUpdateReturnsOnlyAfterTheValueIsDurableAndRecreatable" classname="com.whip.app.AppSettingsPersistenceTest" time="0.001" />
+    <testcase name="obsoletePreferenceKeysAreIgnoredAndAnExplicitSmartCaptureOptOutPersists" classname="com.whip.app.AppSettingsPersistenceTest" time="0.026" />
+    <testcase name="healthDeletionRecoveryMarkerIsDurableButLocallyControlled" classname="com.whip.app.AppSettingsPersistenceTest" time="0.001" />
+    <testcase name="everyUserEditablePreferenceSurvivesRepositoryRecreation" classname="com.whip.app.AppSettingsPersistenceTest" time="0.0" />
+  </testsuite>
+  <testsuite name="com.whip.app.GymPowerInputUiTest" tests="37" failures="0" errors="0" skipped="0" time="103.166" timestamp="2026-09-10T07:25:42" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="progressWithoutCompletedWorkoutsDoesNotShowInventedTrendControls" classname="com.whip.app.GymPowerInputUiTest" time="4.598" />
+    <testcase name="numberedMachineDefaultsToCompactOneThroughTenRangeAndIncrement" classname="com.whip.app.GymPowerInputUiTest" time="7.818" />
+    <testcase name="previousSetSuggestionPopulatesPrimaryInputs" classname="com.whip.app.GymPowerInputUiTest" time="1.235" />
+    <testcase name="exerciseDeleteDialogKeepsStaleImpactFailureInlineAndRetryable" classname="com.whip.app.GymPowerInputUiTest" time="4.389" />
+    <testcase name="missingRoutineDeletionTargetIsAnnouncedAndCannotBeDeleted" classname="com.whip.app.GymPowerInputUiTest" time="2.705" />
+    <testcase name="routineDeleteDialogBlocksActiveSourceAndKeepsWorkoutAndTrainingMaxHistory" classname="com.whip.app.GymPowerInputUiTest" time="3.43" />
+    <testcase name="missingExerciseDeletionTargetOffersCloseInsteadOfDestructiveRetry" classname="com.whip.app.GymPowerInputUiTest" time="1.467" />
+    <testcase name="quickSetEntryPresentsInputsBeforeItsPrimarySaveAction" classname="com.whip.app.GymPowerInputUiTest" time="1.517" />
+    <testcase name="workoutHistoryCardUsesOneStableActionPerExerciseAndMovesSecondaryActionsToMenu" classname="com.whip.app.GymPowerInputUiTest" time="4.884" />
+    <testcase name="completedSetsStayQuietUntilTheUserExpandsThem" classname="com.whip.app.GymPowerInputUiTest" time="1.233" />
+    <testcase name="exerciseEditorExplainsInvalidDefaultsAndDoesNotSubmitThem" classname="com.whip.app.GymPowerInputUiTest" time="3.624" />
+    <testcase name="substitutingAnExerciseWithSavedSetsDisclosesReplacementBeforeOpeningPicker" classname="com.whip.app.GymPowerInputUiTest" time="1.289" />
+    <testcase name="pristineQuickSetDefersRequiredErrorsUntilCompletionAttempt" classname="com.whip.app.GymPowerInputUiTest" time="0.784" />
+    <testcase name="durationExerciseOnlyShowsApplicableAdvancedOptionsAndRepairsItsGraphDefault" classname="com.whip.app.GymPowerInputUiTest" time="3.119" />
+    <testcase name="groupedWorkoutExercisesMoveAsABlockAndReorderWithinTheirGroup" classname="com.whip.app.GymPowerInputUiTest" time="0.504" />
+    <testcase name="groupedExerciseUsesOneClearHeaderAndCanRemoveItsDesignation" classname="com.whip.app.GymPowerInputUiTest" time="1.133" />
+    <testcase name="destructiveFailureStaysInReviewAndCancelClearsItsOwnedError" classname="com.whip.app.GymPowerInputUiTest" time="1.912" />
+    <testcase name="machineDraftSurvivesCreatingAndLinkingAnExerciseAndSavesReverseLevels" classname="com.whip.app.GymPowerInputUiTest" time="4.332" />
+    <testcase name="convertingExerciseToPoundsUsesPoundHardwareRatherThanConvertedDecimals" classname="com.whip.app.GymPowerInputUiTest" time="3.745" />
+    <testcase name="quickSetShowsOnlyOneEffortScaleWhenConnectedPreferencesEnableBoth" classname="com.whip.app.GymPowerInputUiTest" time="0.73" />
+    <testcase name="genericGroupNamesNeverRepeatOrConflictWithTheSelectedType" classname="com.whip.app.GymPowerInputUiTest" time="0.73" />
+    <testcase name="quickSetKeepsItsDraftAndBoundaryThroughStateRestoration" classname="com.whip.app.GymPowerInputUiTest" time="1.663" />
+    <testcase name="routineEditReconstructionPreservesAdvancedProgrammingFields" classname="com.whip.app.GymPowerInputUiTest" time="0.532" />
+    <testcase name="machineDeleteDialogExplainsPreservedHistoryAndBlocksActiveUse" classname="com.whip.app.GymPowerInputUiTest" time="4.025" />
+    <testcase name="restoredUnverifiedMissingExerciseKeepsRetryVerificationInsteadOfAbandoningRecovery" classname="com.whip.app.GymPowerInputUiTest" time="2.089" />
+    <testcase name="restTimerStacksActionsAtLargeTextAndNamesEveryAction" classname="com.whip.app.GymPowerInputUiTest" time="0.755" />
+    <testcase name="passiveWorkoutSetCardSeparatesIdentityValuesStatusAndTargetAtLargeText" classname="com.whip.app.GymPowerInputUiTest" time="1.234" />
+    <testcase name="workoutHistoryExplainsReplacementAndUnperformedSetOutcome" classname="com.whip.app.GymPowerInputUiTest" time="0.655" />
+    <testcase name="requiredMainSetUsesExplicitNotPerformedWarningInsteadOfGenericRemoval" classname="com.whip.app.GymPowerInputUiTest" time="3.095" />
+    <testcase name="historicalSetCardSharesActiveHierarchyAndInsetsAtLargeText" classname="com.whip.app.GymPowerInputUiTest" time="2.866" />
+    <testcase name="captureRestDurationCatalog" classname="com.whip.app.GymPowerInputUiTest" time="2.716" />
+    <testcase name="readyRestTimerMakesWorkoutScopedDurationDiscoverableAndUsesIt" classname="com.whip.app.GymPowerInputUiTest" time="2.867" />
+    <testcase name="captureWorkoutComponentCatalog" classname="com.whip.app.GymPowerInputUiTest" time="13.743" />
+    <testcase name="activeWorkoutUsesOneFocusedComposerWithExerciseAndSetReordering" classname="com.whip.app.GymPowerInputUiTest" time="0.88" />
+    <testcase name="machineDeleteDialogMakesAnUnverifiedOutcomeRetryableAtNarrowLargeText" classname="com.whip.app.GymPowerInputUiTest" time="3.494" />
+    <testcase name="exerciseDeleteDialogBlocksActiveUseAndPreservesTrainingMaxAuditHistory" classname="com.whip.app.GymPowerInputUiTest" time="4.027" />
+    <testcase name="machineCanBeSavedWithoutExercises" classname="com.whip.app.GymPowerInputUiTest" time="3.347" />
+  </testsuite>
+  <testsuite name="com.whip.app.SettingItemBuilderJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="9.196" timestamp="2026-09-10T07:25:42" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="choicesSaveImmediatelyWhileTypedDraftsWaitForConfirmedSave" classname="com.whip.app.SettingItemBuilderJourneyE2ETest" time="9.196" />
+  </testsuite>
+  <testsuite name="com.whip.app.SettingsBehaviorUiTest" tests="12" failures="0" errors="0" skipped="0" time="44.387" timestamp="2026-09-10T07:25:42" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="validGymDefaultDraftSurvivesRecreationWithoutPersistingUntilDone" classname="com.whip.app.SettingsBehaviorUiTest" time="4.554" />
+    <testcase name="organizationSettingsAddsRenamesAndRemovesNamedCustomEmojis" classname="com.whip.app.SettingsBehaviorUiTest" time="8.767" />
+    <testcase name="openingAreaBehaviorAndChosenAreaCanBeConfiguredFromAppearance" classname="com.whip.app.SettingsBehaviorUiTest" time="2.441" />
+    <testcase name="conditionalParentControlsCannotRemoveAnOpenTypedEditor" classname="com.whip.app.SettingsBehaviorUiTest" time="2.818" />
+    <testcase name="rapidDoubleTapOnResetSubmitsOnlyOneDestructiveOperationAndReturnsHome" classname="com.whip.app.SettingsBehaviorUiTest" time="4.422" />
+    <testcase name="hidingGoalsKeepsItDiscoverableInTheEmptyHomeGuide" classname="com.whip.app.SettingsBehaviorUiTest" time="2.012" />
+    <testcase name="hardwareBackRequiresExplicitDiscardAndCannotNavigateBehindATypedEditor" classname="com.whip.app.SettingsBehaviorUiTest" time="4.429" />
+    <testcase name="finalVisibleHomeSectionExplainsWhyItCannotBeDisabled" classname="com.whip.app.SettingsBehaviorUiTest" time="1.714" />
+    <testcase name="plainJsonBackupUsesAndroidsDocumentProviderAndReturnsSafelyOnCancel" classname="com.whip.app.SettingsBehaviorUiTest" time="4.905" />
+    <testcase name="malformedClockCannotChangeTheCutoffButCompleteClockCommits" classname="com.whip.app.SettingsBehaviorUiTest" time="2.891" />
+    <testcase name="everySettingsCategoryIsReachableAndOwnsItsExpectedControls" classname="com.whip.app.SettingsBehaviorUiTest" time="3.144" />
+    <testcase name="settingsHaveNoDensityChoicesAndTasksUseSummaryDisclosure" classname="com.whip.app.SettingsBehaviorUiTest" time="2.29" />
+  </testsuite>
+  <testsuite name="com.whip.app.TaskBulkSelectionUiTest" tests="15" failures="0" errors="0" skipped="0" time="44.863" timestamp="2026-09-10T07:25:42" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="bulkArchiveImpactRemainsScrollableAtTwoHundredPercentText" classname="com.whip.app.TaskBulkSelectionUiTest" time="5.081" />
+    <testcase name="successfulReopenClosesCompletedInspectorWhenStableKeyBecomesOpen" classname="com.whip.app.TaskBulkSelectionUiTest" time="2.113" />
+    <testcase name="quickCaptureReconnectsAfterRecreationAndClearsTheTrimmedCommittedDraftOnce" classname="com.whip.app.TaskBulkSelectionUiTest" time="1.764" />
+    <testcase name="fixedDateBulkMoveFailureKeepsSelectionAndShowsRetryContext" classname="com.whip.app.TaskBulkSelectionUiTest" time="1.987" />
+    <testcase name="activeSelectionKeepsPrimaryActionsVisibleAndSecondaryActionsInOverflow" classname="com.whip.app.TaskBulkSelectionUiTest" time="10.705" />
+    <testcase name="archivedRecurringTaskEditsTheSeriesDefinitionInsteadOfAnOpenOccurrence" classname="com.whip.app.TaskBulkSelectionUiTest" time="2.918" />
+    <testcase name="bulkDeleteReissuesItsExactPreviewAfterStateRestoration" classname="com.whip.app.TaskBulkSelectionUiTest" time="2.391" />
+    <testcase name="bulkAreaChangeCannotApplyUntilAnAreaIsExplicitlyChosen" classname="com.whip.app.TaskBulkSelectionUiTest" time="1.816" />
+    <testcase name="restoredExistingTaskEditorPreservesItsExactIdentityAndRevisionBoundary" classname="com.whip.app.TaskBulkSelectionUiTest" time="3.019" />
+    <testcase name="bulkDateFailureRetainsTheFrozenSelectionAndOnlyMatchingSuccessCloses" classname="com.whip.app.TaskBulkSelectionUiTest" time="2.369" />
+    <testcase name="bulkEditDraftAndSelectionSurviveSavedStateRestoration" classname="com.whip.app.TaskBulkSelectionUiTest" time="2.567" />
+    <testcase name="completedRecurringHistoryOffersSeriesEditInsteadOfDuplicateFutureBoundary" classname="com.whip.app.TaskBulkSelectionUiTest" time="1.488" />
+    <testcase name="historySelectionOffersRelevantActionsForCompletedAndArchivedTasks" classname="com.whip.app.TaskBulkSelectionUiTest" time="1.988" />
+    <testcase name="bulkArchiveFailureRetainsFrozenSelectionAndMatchingSuccessAloneCloses" classname="com.whip.app.TaskBulkSelectionUiTest" time="2.492" />
+    <testcase name="bulkCompletionReviewsUnfinishedSubtasksBeforeCommitAndCancelKeepsSelection" classname="com.whip.app.TaskBulkSelectionUiTest" time="2.165" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackWorkspaceUiTest" tests="7" failures="0" errors="0" skipped="0" time="11.66" timestamp="2026-09-10T07:25:42" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="trackSelectionUsesOneCheckboxSemanticOwner" classname="com.whip.app.TrackWorkspaceUiTest" time="0.705" />
+    <testcase name="tracksAndEntriesHaveOneExplicitSearchOwnerAndArchivedResultsReturnToArchive" classname="com.whip.app.TrackWorkspaceUiTest" time="4.534" />
+    <testcase name="activityFiltersAndCrossTrackInsightsUseVisibleTrackData" classname="com.whip.app.TrackWorkspaceUiTest" time="3.021" />
+    <testcase name="adaptiveMasterPaneReorderKeepsItsDedicatedControls" classname="com.whip.app.TrackWorkspaceUiTest" time="0.68" />
+    <testcase name="tracksWorkspaceRemainsNavigableInRtlAtTwoHundredPercentText" classname="com.whip.app.TrackWorkspaceUiTest" time="1.108" />
+    <testcase name="archivedTrackSummaryOmitsUnavailableAddAction" classname="com.whip.app.TrackWorkspaceUiTest" time="0.555" />
+    <testcase name="trackSummaryRowsKeepLatestAddAndEditActions" classname="com.whip.app.TrackWorkspaceUiTest" time="1.057" />
+  </testsuite>
+  <testsuite name="com.whip.app.VisualCatalogPagesTest" tests="2" failures="0" errors="0" skipped="0" time="14.934" timestamp="2026-09-10T07:25:42" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="captureSettingsPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="10.656" />
+    <testcase name="captureGymCategoryAllocationCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="4.278" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.SettingItemBuilderUiTest" tests="2" failures="0" errors="0" skipped="0" time="2.444" timestamp="2026-09-10T07:25:42" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="settingChoiceKeepsCompleteValuesAndAnIdentityOwnedCurrentMenu" classname="com.whip.app.ui.SettingItemBuilderUiTest" time="1.663" />
+    <testcase name="settingInformationUsesFullWidthAndEachRoleDispatchesOnce" classname="com.whip.app.ui.SettingItemBuilderUiTest" time="0.781" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.SettingsHealthControlUiTest" tests="2" failures="0" errors="0" skipped="0" time="1.263" timestamp="2026-09-10T07:25:42" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="pausedHealthSyncKeepsSavedCategorySelectedAndEditable" classname="com.whip.app.ui.SettingsHealthControlUiTest" time="0.583" />
+    <testcase name="categoryControlIsDisabledOnlyWhileAHealthMutationIsRunning" classname="com.whip.app.ui.SettingsHealthControlUiTest" time="0.68" />
+  </testsuite>
+</testsuites>

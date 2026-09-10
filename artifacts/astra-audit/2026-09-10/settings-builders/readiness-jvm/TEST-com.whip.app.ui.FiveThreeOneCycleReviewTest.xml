@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.FiveThreeOneCycleReviewTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-09-10T07:27:16.428Z" hostname="beast" time="0.022">
+  <properties/>
+  <testcase name="repeatedStrongPrSetsMayExposeExplicitlyEnabledNonStandardHigherOption" classname="com.whip.app.ui.FiveThreeOneCycleReviewTest" time="0.02"/>
+  <testcase name="earlierDayExerciseRemainsEligibleAtFinalDayReview" classname="com.whip.app.ui.FiveThreeOneCycleReviewTest" time="0.001"/>
+  <testcase name="oneStrongPrSetAndJokerStillRecommendStandard" classname="com.whip.app.ui.FiveThreeOneCycleReviewTest" time="0.0"/>
+  <testcase name="underTargetMainWorkHoldsOnlyThatExercise" classname="com.whip.app.ui.FiveThreeOneCycleReviewTest" time="0.0"/>
+  <testcase name="onlyExplicitValidTrainingMaxTestSetCanTriggerTestDecreaseReview" classname="com.whip.app.ui.FiveThreeOneCycleReviewTest" time="0.001"/>
+  <testcase name="activeSessionMustMatchCurrentRoutineProgramKind" classname="com.whip.app.ui.FiveThreeOneCycleReviewTest" time="0.0"/>
+  <testcase name="evidenceFromDifferentProgramKindIsExcludedFromCycleReview" classname="com.whip.app.ui.FiveThreeOneCycleReviewTest" time="0.0"/>
+  <testcase name="successfulRetiredMainWorkRemainsEligibleAfterSameExerciseEquipmentSubstitution" classname="com.whip.app.ui.FiveThreeOneCycleReviewTest" time="0.0"/>
+  <testcase name="malformedUnknownInvalidationConservativelyHoldsExercise" classname="com.whip.app.ui.FiveThreeOneCycleReviewTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

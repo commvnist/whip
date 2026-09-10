@@ -1,0 +1,3 @@
+com.whip.app.SettingItemBuilderJourneyE2ETest
+com.whip.app.VisualCatalogPagesTest
+com.whip.app.ui.SettingItemBuilderUiTest

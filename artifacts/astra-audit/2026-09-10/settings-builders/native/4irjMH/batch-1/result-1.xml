@@ -1,0 +1,57 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="4" failures="1" errors="0" skipped="0" time="17.073" timestamp="2026-09-10T07:07:07" hostname="localhost">
+  <testsuite name="com.whip.app.SettingItemBuilderJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="0.115" timestamp="2026-09-10T07:07:07" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="choicesSaveImmediatelyWhileTypedDraftsWaitForConfirmedSave" classname="com.whip.app.SettingItemBuilderJourneyE2ETest" time="0.115">
+      <failure>java.lang.IllegalArgumentException: Area names can be at most 40 characters
+at com.whip.app.data.AreaRepositoryKt.normalizeAreaName(AreaRepository.kt:241)
+at com.whip.app.data.RoomAreaRepository$create$2.invokeSuspend(AreaRepository.kt:49)
+at com.whip.app.data.RoomAreaRepository$create$2.invoke(Unknown Source:14)
+at com.whip.app.data.RoomAreaRepository$create$2.invoke(Unknown Source:9)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransaction$2.invokeSuspend(RoomDatabase.android.kt:2044)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransaction$2.invoke(Unknown Source:12)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransaction$2.invoke(Unknown Source:7)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransactionContext$transactionBlock$1.invokeSuspend(RoomDatabase.android.kt:2058)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransactionContext$transactionBlock$1.invoke(Unknown Source:12)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransactionContext$transactionBlock$1.invoke(Unknown Source:10)
+at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturn(Undispatched.kt:42)
+at kotlinx.coroutines.BuildersKt__Builders_commonKt.withContext(Builders.common.kt:164)
+at kotlinx.coroutines.BuildersKt.withContext(Unknown Source:1)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$startTransactionCoroutine$2$1$1.invokeSuspend(RoomDatabase.android.kt:2087)
+at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source:1)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$startTransactionCoroutine$2$1.run(RoomDatabase.android.kt:2084)
+at androidx.room.TransactionExecutor.execute$lambda$1$lambda$0(TransactionExecutor.android.kt:38)
+at androidx.room.TransactionExecutor$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
+at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)
+at java.lang.Thread.run(Thread.java:1012)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.VisualCatalogPagesTest" tests="1" failures="0" errors="0" skipped="0" time="12.914" timestamp="2026-09-10T07:07:07" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="captureSettingsPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="12.914" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.SettingItemBuilderUiTest" tests="2" failures="0" errors="0" skipped="0" time="2.899" timestamp="2026-09-10T07:07:07" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="settingChoiceKeepsCompleteValuesAndAnIdentityOwnedCurrentMenu" classname="com.whip.app.ui.SettingItemBuilderUiTest" time="1.889" />
+    <testcase name="settingInformationUsesFullWidthAndEachRoleDispatchesOnce" classname="com.whip.app.ui.SettingItemBuilderUiTest" time="1.01" />
+  </testsuite>
+</testsuites>

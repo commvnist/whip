@@ -1,0 +1,13 @@
+{
+  "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk": "2adfea198512d35d97ecf4fa07c778f5749c856955cd1cd0a647606c006d0bf3",
+  "app/build/outputs/apk/debug/app-debug.apk": "a7fe3fbadb9a3ea417078dd4eff8180f5da4d70e3abd8cf469ee0d1f21987d7d",
+  "app/src/androidTest/java/com/whip/app/SettingItemBuilderJourneyE2ETest.kt": "d0e0a1b0458eab9d9aa780397b73cd4d96a82cb236c1391a190ba37bdcba9db9",
+  "app/src/androidTest/java/com/whip/app/SettingsNavigationTestSupport.kt": "96f98d94da4b129277f561e9b2c3e30518f9f2aae5285d1b4143200cd8a8345a",
+  "app/src/androidTest/java/com/whip/app/VisualCatalogPagesTest.kt": "30e072e3b3a62a7c4de817a25047ae9b8e68b7f25795f583175915e1f35a8725",
+  "app/src/androidTest/java/com/whip/app/ui/SettingItemBuilderUiTest.kt": "ddddb725d35780315e47de3eac8a439612f0a00cd62c99083360a0d6d813038c",
+  "app/src/androidTest/java/com/whip/app/ui/SettingsResponsiveUiTest.kt": "7035461f11f3615e642f180121986d4bd3dbcc4b20af7f0a0204852561459116",
+  "app/src/main/java/com/whip/app/ui/SettingsScreens.kt": "15fe26b62ff08017a91bfbfb02902b89fde7807edc0ba5fe16ad1421d8250d4d",
+  "app/src/main/java/com/whip/app/ui/WhipPagePatterns.kt": "2380e484d3966b3f64a47f3b7a7fc68322d8d3e0222f9f4a013f57ceb0c74d6d",
+  "app/src/main/java/com/whip/app/ui/WhipSettingItemBuilder.kt": "84d73554bdbae7857a14d67bd4e12f9bb6b35ed1c94e821af2d493034f0f6e64",
+  "scripts/qa-targeted": "dc2e87f3b7f55da3a58718a1cd8ab43e370020d13851138ba5be115946a25cd1"
+}

@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260910-006 — Build consistent Settings items from explicit interaction roles
+
+- Behavior: Switches, choices and typed settings share label/control alignment, complete current-value text and full-width explanations. A choice arrow, switch or edit pencil expresses the interaction. Natural height replaces a one-line selected-value preview and the mixed Current/value/explanation paragraph.
+- Architecture: WhipSettingItemBuilder owns the composition and one semantic action target. SettingsDropdown and TransactionalSettingsField adopt it; existing WhipSettingsRow callers inherit its toggle role. Actual navigation, form-only SelectionField, durable editor coordinator, source identity, validation and callbacks remain intact. No schema, backup or version change.
+- Verification: jKsH4S accepts 147 fresh API 34 Android tests in three batches, zero failures/skips/reuse; API 37 passes five focused/native methods. Coverage includes complete long values, selected/disabled menu identity, current callbacks, single dispatch, Settings persistence, typed draft recreation/Save/reopen, and Task/Track/Gym neighbors. The earlier draft failure was a fixture synchronization issue (FND-20260910-007); temporary tracing is removed. Both real Settings navigation modes are covered by the shared test helper.
+- Status: Verified under FND/DEC/VER-20260910-006. Readiness passes 346 JVM tests in 34 suites, compilation/lint/debug packaging in 2m22. Twenty-five reviewed original images, failed and final native logs/results, source/APK hashes and catalog gates are retained in artifacts/astra-audit/2026-09-10/settings-builders/README.md. Broader execution-family adoption and whole-product acceptance remain open; normal main/upstream delivery is recorded in Git history.
+
 ### IMP-20260910-005 — Preserve selected elapsed units in visible Goal summaries
 
 - Behavior: Collapsed Goal and Home cards show every selected elapsed unit, including zero components, through the existing small full-width status text. Expanded/Insights values and accessibility now agree with the visible summary. Automatic and single-unit configurations retain their established output.

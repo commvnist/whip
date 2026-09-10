@@ -1,0 +1,9 @@
+--------- beginning of main
+09-10 03:19:11.429 27572 27572 D WhipDraftProbe: effect open=false current=1 baseline=1 draft=1
+09-10 03:19:11.519 27572 27572 D WhipDraftProbe: open draft=1
+09-10 03:19:11.575 27572 27572 D WhipDraftProbe: effect open=true current=1 baseline=1 draft=1
+09-10 03:19:13.239 27572 27572 D WhipDraftProbe: effect open=true current=1 baseline=1 draft=3
+09-10 03:19:13.824 27572 27572 D WhipDraftProbe: effect open=false current=1 baseline=1 draft=1
+09-10 03:19:13.911 27572 27572 D WhipDraftProbe: effect open=false current=3 baseline=1 draft=1
+09-10 03:19:15.601 27572 27572 D WhipDraftProbe: open draft=3
+09-10 03:19:15.656 27572 27572 D WhipDraftProbe: effect open=true current=3 baseline=3 draft=3

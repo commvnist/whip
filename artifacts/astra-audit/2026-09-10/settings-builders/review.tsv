@@ -1,0 +1,26 @@
+file	NAF_nodes	observation
+final-api34/settings.about-diagnostics.png	0	Specialized organization, reminder status/actions and About content remain readable in the retained normal-scale viewport. This is scoped layout review, not complete feature acceptance.
+final-api34/settings.appearance.png	0	Switch explanations use full width below the label/control header; Theme and Opening Area choices share value hierarchy.
+final-api34/settings.data-privacy.png	0	Paused/disabled Health sync remains explicit; category switches align. Lower data controls require scrolling and are outside this original viewport.
+final-api34/settings.index.png	0	Phone category index and wide external support pane retain their established navigation and active-category treatment.
+final-api34/settings.item-builder.choice-value.png	0	Complete 40-character selected Area name is visible; label/control above full-width value. Native journey verifies immediate All Areas selection.
+final-api34/settings.item-builder.saved-value.png	0	Confirmed precision 3 visible in the shared typed-value role. Native journey verifies unsaved draft recreation, explicit Save and reopen.
+final-api34/settings.organization.png	0	Specialized organization, reminder status/actions and About content remain readable in the retained normal-scale viewport. This is scoped layout review, not complete feature acceptance.
+final-api34/settings.planning.png	0	Choices and typed values share label/control/value alignment; pencil distinguishes explicit edit. Explanations and following sections retain natural flow.
+final-api34/settings.reminders.png	0	Specialized organization, reminder status/actions and About content remain readable in the retained normal-scale viewport. This is scoped layout review, not complete feature acceptance.
+final-api37/settings.about-diagnostics.png	0	Specialized organization, reminder status/actions and About content remain readable in the retained normal-scale viewport. This is scoped layout review, not complete feature acceptance.
+final-api37/settings.appearance.png	0	Switch explanations use full width below the label/control header; Theme and Opening Area choices share value hierarchy.
+final-api37/settings.data-privacy.png	0	Paused/disabled Health sync remains explicit; category switches align. Lower data controls require scrolling and are outside this original viewport.
+final-api37/settings.index.png	0	Phone category index and wide external support pane retain their established navigation and active-category treatment.
+final-api37/settings.item-builder.choice-value.png	0	Complete 40-character selected Area name is visible; label/control above full-width value. Native journey verifies immediate All Areas selection.
+final-api37/settings.item-builder.saved-value.png	0	Confirmed precision 3 visible in the shared typed-value role. Native journey verifies unsaved draft recreation, explicit Save and reopen.
+final-api37/settings.organization.png	0	Specialized organization, reminder status/actions and About content remain readable in the retained normal-scale viewport. This is scoped layout review, not complete feature acceptance.
+final-api37/settings.planning.png	0	Choices and typed values share label/control/value alignment; pencil distinguishes explicit edit. Explanations and following sections retain natural flow.
+final-api37/settings.reminders.png	0	Specialized organization, reminder status/actions and About content remain readable in the retained normal-scale viewport. This is scoped layout review, not complete feature acceptance.
+before/settings.about-diagnostics.png	0	Personally inspected native baseline; independent choice, toggle and typed-value hierarchy. Ordinary navigation and specialized groups retained.
+before/settings.appearance.png	0	Personally inspected native baseline; independent choice, toggle and typed-value hierarchy. Ordinary navigation and specialized groups retained.
+before/settings.data-privacy.png	0	Personally inspected native baseline; independent choice, toggle and typed-value hierarchy. Ordinary navigation and specialized groups retained.
+before/settings.index.png	0	Personally inspected native baseline; independent choice, toggle and typed-value hierarchy. Ordinary navigation and specialized groups retained.
+before/settings.organization.png	0	Personally inspected native baseline; independent choice, toggle and typed-value hierarchy. Ordinary navigation and specialized groups retained.
+before/settings.planning.png	0	Personally inspected native baseline; independent choice, toggle and typed-value hierarchy. Ordinary navigation and specialized groups retained.
+before/settings.reminders.png	0	Personally inspected native baseline; independent choice, toggle and typed-value hierarchy. Ordinary navigation and specialized groups retained.

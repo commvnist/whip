@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-006 — Settings items declare their interaction and information roles
+
+- Decision: Introduce WhipSettingItem over existing theme/spacing tokens. Each item declares exactly one toggle, choice or typed edit plus optional explanation. The renderer owns a shared label/control header, a distinct complete current-value line when applicable, full-width explanation, natural height, single interactive semantics owner and identity-scoped choice menu. A down arrow opens choices, a pencil opens typed editing, and a switch changes a Boolean.
+- Alternatives/tradeoffs: Tuning each existing row preserves three independent layouts; making every value a modal introduces unnecessary friction; converting Settings navigation into a new wrapper adds no demonstrated benefit. The setting builder improves normal reading without changing the typed coordinator or selection callback authority. Choice rows lose their input-like outline and gain the same inset/type hierarchy as adjacent preferences. Long values/explanations may grow naturally.
+- Adoption/compatibility: Route SettingsDropdown and TransactionalSettingsField through the builder; WhipSettingsRow becomes the existing Boolean entry point over its toggle role, including Home/Health/editor uses. Preserve public labels, tags, callbacks, enabled state, exact draft/source identity, persistence receipts and menu selected-state meaning. Form-only SelectionField and actual navigation/action rows remain their distinct roles.
+- Status: Native and normal-scale visual acceptance verified under FND/IMP/VER-20260910-006 and FB-20260910-001/002: 147 API 34 checks, five API 37 methods and 25 personally inspected originals. Broader builder adoption and whole-product acceptance remain open. No release/schema/backup/data change.
+
 ### DEC-20260910-005 — Selected elapsed units stay visible in collection summaries
 
 - Decision: Goal collection and Home summary text use the complete authored ElapsedDisplay label in the shared full-width information row. Remove the unused three-part overview formatter after its only production caller migrates. Preserve the restrained bodySmall role and existing natural wrapping.
