@@ -1,0 +1,296 @@
+[
+  {
+    "path": "before-phone/tracks.record-builder.insights.png",
+    "source": "build/astra-insights-layout-20260910/before-phone/tracks.record-builder.insights.png",
+    "original": "tracks.record-builder.insights (3).png",
+    "sha256_original": "7180f089c9703ade5a742312b66752238ae7cfb2bc28fe03800933429175d284",
+    "sha256": "7180f089c9703ade5a742312b66752238ae7cfb2bc28fe03800933429175d284"
+  },
+  {
+    "path": "before-phone/tracks.record-builder.insights.xml",
+    "source": "build/astra-insights-layout-20260910/before-phone/tracks.record-builder.insights.xml",
+    "original": "tracks.record-builder.insights (3).xml",
+    "sha256_original": "d1846e755d1b2b8b5bb82d7b786afee6354d285a62e8b255e6189a029300711f",
+    "sha256": "ac1ec6f7ff69a1c5ca8b1d64e468dcea442de79d15839f9e9239f16b4ede0e46"
+  },
+  {
+    "path": "before-phone/tracks.insights.mixed-units.png",
+    "source": "build/astra-insights-layout-20260910/before-phone/tracks.insights.mixed-units.png",
+    "original": "tracks.insights.mixed-units (1).png",
+    "sha256_original": "ec64ef298efb63c6a51ffa7c5c3e3a789e82aa5b24009320b2a4cdb8bce99364",
+    "sha256": "ec64ef298efb63c6a51ffa7c5c3e3a789e82aa5b24009320b2a4cdb8bce99364"
+  },
+  {
+    "path": "before-phone/tracks.insights.mixed-units.xml",
+    "source": "build/astra-insights-layout-20260910/before-phone/tracks.insights.mixed-units.xml",
+    "original": "tracks.insights.mixed-units (1).xml",
+    "sha256_original": "8ce157ac00b8ef67a05f392ebf71a7a4dc2f390bc95679cd33f3a35557fe6e84",
+    "sha256": "09ac68682f30452bb04bdbc010dd330c917f59d7ee1415572d07211f11fc4a77"
+  },
+  {
+    "path": "before-phone/tracks.detail.insights.temperature-and-scale.png",
+    "source": "build/astra-insights-layout-20260910/before-phone/tracks.detail.insights.temperature-and-scale.png",
+    "original": "tracks.detail.insights.temperature-and-scale (1).png",
+    "sha256_original": "9d19466df29defad154298347ec6782d33edf6f2492e681c30a61a294dde6390",
+    "sha256": "9d19466df29defad154298347ec6782d33edf6f2492e681c30a61a294dde6390"
+  },
+  {
+    "path": "before-phone/tracks.detail.insights.temperature-and-scale.xml",
+    "source": "build/astra-insights-layout-20260910/before-phone/tracks.detail.insights.temperature-and-scale.xml",
+    "original": "tracks.detail.insights.temperature-and-scale (1).xml",
+    "sha256_original": "fea04d59c45bc35925b4a9352afc99344b6e53320a9c525ad336a170bea17d90",
+    "sha256": "742aa1deb41a59d17e9e463170431dd895ee99667fe68497b0cbc637b7322ae7"
+  },
+  {
+    "path": "before-phone/tracks.detail.insights.recent-windows.png",
+    "source": "build/astra-insights-layout-20260910/before-phone-window/tracks.detail.insights.recent-windows.png",
+    "original": "tracks.detail.insights.recent-windows.png",
+    "sha256_original": "b74c0f291cb68eb1a6ef61e33079885635c7d5e7e06d8e5ca22b9543948f836c",
+    "sha256": "b74c0f291cb68eb1a6ef61e33079885635c7d5e7e06d8e5ca22b9543948f836c"
+  },
+  {
+    "path": "before-phone/tracks.detail.insights.recent-windows.xml",
+    "source": "build/astra-insights-layout-20260910/before-phone-window/tracks.detail.insights.recent-windows.xml",
+    "original": "tracks.detail.insights.recent-windows.xml",
+    "sha256_original": "909e945ec1cbae99aaa5b04e1dcd41f174b0e6eb8246e4dd26ae7e2f6f4451d1",
+    "sha256": "3b91dbb0324e2b9f55e2c06adb0d77c37f69e746a7a40fd3113d6e090ca0cde4"
+  },
+  {
+    "path": "before-wide/tracks.record-builder.insights.png",
+    "source": "build/astra-insights-layout-20260910/before-wide/tracks.record-builder.insights.png",
+    "original": "tracks.record-builder.insights (1).png",
+    "sha256_original": "d0df2bed9af55cd2e6cbe6c5f6a3ce45a4d88a3d7a2affe25db23304a92ea5a0",
+    "sha256": "d0df2bed9af55cd2e6cbe6c5f6a3ce45a4d88a3d7a2affe25db23304a92ea5a0"
+  },
+  {
+    "path": "before-wide/tracks.record-builder.insights.xml",
+    "source": "build/astra-insights-layout-20260910/before-wide/tracks.record-builder.insights.xml",
+    "original": "tracks.record-builder.insights (1).xml",
+    "sha256_original": "e136bfd3f78396a553484a61d0d5e232fb86aed29504d40149a1f84101a23097",
+    "sha256": "5438cae8eec73f87150150a5ed6d7ebca669ee4390a9bc478d580a1ccf4dfd0d"
+  },
+  {
+    "path": "before-wide/tracks.insights.mixed-units.png",
+    "source": "build/astra-insights-layout-20260910/before-wide/tracks.insights.mixed-units.png",
+    "original": "tracks.insights.mixed-units.png",
+    "sha256_original": "4ef58b259481d621b44ee12ec5b1e0145e688d5b028798e289b071ed0b1fc7bd",
+    "sha256": "4ef58b259481d621b44ee12ec5b1e0145e688d5b028798e289b071ed0b1fc7bd"
+  },
+  {
+    "path": "before-wide/tracks.insights.mixed-units.xml",
+    "source": "build/astra-insights-layout-20260910/before-wide/tracks.insights.mixed-units.xml",
+    "original": "tracks.insights.mixed-units.xml",
+    "sha256_original": "8d08efb82d2be1eadbacb8a18bfe3e07e9b3f9d4829a8fcf9697f72e8c7e0e62",
+    "sha256": "802b58f73ba51bb0c6372807a97ce00e9628ea976fe8f929ce4ffd136aa25c57"
+  },
+  {
+    "path": "before-wide/tracks.detail.insights.temperature-and-scale.png",
+    "source": "build/astra-insights-layout-20260910/before-wide/tracks.detail.insights.temperature-and-scale.png",
+    "original": "tracks.detail.insights.temperature-and-scale.png",
+    "sha256_original": "ac6466dac592836af95db31e26e28ec8ca090a1067f061ea8882841b0bd3e3b1",
+    "sha256": "ac6466dac592836af95db31e26e28ec8ca090a1067f061ea8882841b0bd3e3b1"
+  },
+  {
+    "path": "before-wide/tracks.detail.insights.temperature-and-scale.xml",
+    "source": "build/astra-insights-layout-20260910/before-wide/tracks.detail.insights.temperature-and-scale.xml",
+    "original": "tracks.detail.insights.temperature-and-scale.xml",
+    "sha256_original": "2f3497144d08cfe1a76cba80e43cd322007ab925e9a5289825d5f8cb798014d4",
+    "sha256": "0f4677f97a78e158b6803c7badc425abe288a51bf969b589365897cacbdd4504"
+  },
+  {
+    "path": "final-phone/tracks.record-builder.insights.png",
+    "source": "build/astra-insights-layout-20260910/final-phone/tracks.record-builder.insights.png",
+    "original": "tracks.record-builder.insights (6).png",
+    "sha256_original": "93b91c383fa7342bb76ec43f0a6e6be42f8c380f901e54e20ce419089d9f73c4",
+    "sha256": "93b91c383fa7342bb76ec43f0a6e6be42f8c380f901e54e20ce419089d9f73c4"
+  },
+  {
+    "path": "final-phone/tracks.record-builder.insights.xml",
+    "source": "build/astra-insights-layout-20260910/final-phone/tracks.record-builder.insights.xml",
+    "original": "tracks.record-builder.insights (6).xml",
+    "sha256_original": "cf95d1e5fb1b04ac4e20ccdc27ffda6151e81931d8129df2732bfe6f8cb30a04",
+    "sha256": "1cda21cfe61c2a716af42738a6f67901a54e24dc5f8d4bf4776b417efddd6178"
+  },
+  {
+    "path": "final-phone/tracks.insights.mixed-units.png",
+    "source": "build/astra-insights-layout-20260910/final-phone/tracks.insights.mixed-units.png",
+    "original": "tracks.insights.mixed-units (6).png",
+    "sha256_original": "d187ac504913cb956e5013aef78be39232a1548c6f71914010d88443b4681069",
+    "sha256": "d187ac504913cb956e5013aef78be39232a1548c6f71914010d88443b4681069"
+  },
+  {
+    "path": "final-phone/tracks.insights.mixed-units.xml",
+    "source": "build/astra-insights-layout-20260910/final-phone/tracks.insights.mixed-units.xml",
+    "original": "tracks.insights.mixed-units (6).xml",
+    "sha256_original": "41d5647c108596b779a21fd38aef2f08725677e4b9cdaf97834bf98678be02ea",
+    "sha256": "989d309cc745a682ee224378dd2d9832ec276db90da51c8dec0215fb8f6c78fb"
+  },
+  {
+    "path": "final-phone/tracks.detail.insights.temperature-and-scale.png",
+    "source": "build/astra-insights-layout-20260910/final-phone/tracks.detail.insights.temperature-and-scale.png",
+    "original": "tracks.detail.insights.temperature-and-scale (5).png",
+    "sha256_original": "63ab3d1c8ceee9e0911c5029173f1e1c6af380f9e63bb0b4453901a76013543c",
+    "sha256": "63ab3d1c8ceee9e0911c5029173f1e1c6af380f9e63bb0b4453901a76013543c"
+  },
+  {
+    "path": "final-phone/tracks.detail.insights.temperature-and-scale.xml",
+    "source": "build/astra-insights-layout-20260910/final-phone/tracks.detail.insights.temperature-and-scale.xml",
+    "original": "tracks.detail.insights.temperature-and-scale (5).xml",
+    "sha256_original": "047b8fd2dbf40cc562dd46607f8247be7af6eb26c805a52537a00edce37c0ec8",
+    "sha256": "e212e7eaa6bb1bace4b969dd659d3d2b331daae5f39e5cbb1674d182370cb068"
+  },
+  {
+    "path": "final-phone/tracks.insights.temperature-and-scale.png",
+    "source": "build/astra-insights-layout-20260910/final-phone/tracks.insights.temperature-and-scale.png",
+    "original": "tracks.insights.temperature-and-scale (7).png",
+    "sha256_original": "c7a5775f60af78bf9989e9f1803eb7b085c6398592686cb342885d1022eb394b",
+    "sha256": "c7a5775f60af78bf9989e9f1803eb7b085c6398592686cb342885d1022eb394b"
+  },
+  {
+    "path": "final-phone/tracks.insights.temperature-and-scale.xml",
+    "source": "build/astra-insights-layout-20260910/final-phone/tracks.insights.temperature-and-scale.xml",
+    "original": "tracks.insights.temperature-and-scale (6).xml",
+    "sha256_original": "1dcdde60533f57837df7a64c207bde7bd0f95b7e868e2c9f8a4388e8373e2b3d",
+    "sha256": "c567ab6f7f2feff4246075c85215661db9dd8e367e325225dc8419f67f1f9fd5"
+  },
+  {
+    "path": "final-phone/tracks.detail.insights.mixed-units.png",
+    "source": "build/astra-insights-layout-20260910/final-phone/tracks.detail.insights.mixed-units.png",
+    "original": "tracks.detail.insights.mixed-units (5).png",
+    "sha256_original": "f03c57315b25a5d77376885bf805e34c3b2d212110024a76237a502146d8268b",
+    "sha256": "f03c57315b25a5d77376885bf805e34c3b2d212110024a76237a502146d8268b"
+  },
+  {
+    "path": "final-phone/tracks.detail.insights.mixed-units.xml",
+    "source": "build/astra-insights-layout-20260910/final-phone/tracks.detail.insights.mixed-units.xml",
+    "original": "tracks.detail.insights.mixed-units (5).xml",
+    "sha256_original": "2aed092a0c17390394235da6e9d6a22e069f37f6c592c4e1cc54b62e2ab9c7f9",
+    "sha256": "6b45c3335253df61bd4f5f1bca70e12de7e32e07d0114f6a9d7cf193cb19c7ed"
+  },
+  {
+    "path": "final-phone/tracks.insights.recent-windows.png",
+    "source": "build/astra-insights-layout-20260910/final-phone/tracks.insights.recent-windows.png",
+    "original": "tracks.insights.recent-windows (6).png",
+    "sha256_original": "f895f7a46f29916e13f32927f637f7da476b2d3b7a69e2ab8aa1114b16fc7a46",
+    "sha256": "f895f7a46f29916e13f32927f637f7da476b2d3b7a69e2ab8aa1114b16fc7a46"
+  },
+  {
+    "path": "final-phone/tracks.insights.recent-windows.xml",
+    "source": "build/astra-insights-layout-20260910/final-phone/tracks.insights.recent-windows.xml",
+    "original": "tracks.insights.recent-windows (6).xml",
+    "sha256_original": "8b58304c80b99b98637dc205c4ad4d3ec896aaa50ce558000ff009f4799b3eaf",
+    "sha256": "2190a9d8b47dbcd71f7d85d016062a37ceb271410141a804c946b19faf95c81d"
+  },
+  {
+    "path": "final-phone/tracks.detail.insights.recent-windows.png",
+    "source": "build/astra-insights-layout-20260910/final-phone/tracks.detail.insights.recent-windows.png",
+    "original": "tracks.detail.insights.recent-windows (6).png",
+    "sha256_original": "1e29b3f15483cee9efa07e31a6bdfba04c0a8442702093735d6c4dee3b778257",
+    "sha256": "1e29b3f15483cee9efa07e31a6bdfba04c0a8442702093735d6c4dee3b778257"
+  },
+  {
+    "path": "final-phone/tracks.detail.insights.recent-windows.xml",
+    "source": "build/astra-insights-layout-20260910/final-phone/tracks.detail.insights.recent-windows.xml",
+    "original": "tracks.detail.insights.recent-windows (6).xml",
+    "sha256_original": "1ca3ad1163dc3a3f178d93ccd69dc326a5c5ccd3d851be656aa0c5c621c0ebe9",
+    "sha256": "1a5ea9ed7875fc2cd6238d14d02b46160352970ee4659c86570ecf8b2315e1f5"
+  },
+  {
+    "path": "final-wide/tracks.record-builder.insights.png",
+    "source": "build/astra-insights-layout-20260910/final-wide/tracks.record-builder.insights.png",
+    "original": "tracks.record-builder.insights (3).png",
+    "sha256_original": "e55642f9c979ec99d58c0126761b2893b16a9fb6f761cd4e08194be678ff86c9",
+    "sha256": "e55642f9c979ec99d58c0126761b2893b16a9fb6f761cd4e08194be678ff86c9"
+  },
+  {
+    "path": "final-wide/tracks.record-builder.insights.xml",
+    "source": "build/astra-insights-layout-20260910/final-wide/tracks.record-builder.insights.xml",
+    "original": "tracks.record-builder.insights (3).xml",
+    "sha256_original": "b1793820790ecf289b04f8777a0e14416dc43013ab21478b6bb50b63c52cf381",
+    "sha256": "ac2e82ccb11b965938815ce2255c969938d4c62e2d523d6395b3763382d35721"
+  },
+  {
+    "path": "final-wide/tracks.insights.mixed-units.png",
+    "source": "build/astra-insights-layout-20260910/final-wide/tracks.insights.mixed-units.png",
+    "original": "tracks.insights.mixed-units (2).png",
+    "sha256_original": "7e9ee64f130bea2da45fa7e3c035a570b1a7f1c274bec366b58a859185a786bc",
+    "sha256": "7e9ee64f130bea2da45fa7e3c035a570b1a7f1c274bec366b58a859185a786bc"
+  },
+  {
+    "path": "final-wide/tracks.insights.mixed-units.xml",
+    "source": "build/astra-insights-layout-20260910/final-wide/tracks.insights.mixed-units.xml",
+    "original": "tracks.insights.mixed-units (2).xml",
+    "sha256_original": "7bf98ff6901b81b5a3ada94702f721d807cbe4733f73d9ffa3e7d98c6820021e",
+    "sha256": "13a81940ebec59aaddf62399be06dffac1da1243618e9b6c865d5ed28cabbaea"
+  },
+  {
+    "path": "final-wide/tracks.detail.insights.temperature-and-scale.png",
+    "source": "build/astra-insights-layout-20260910/final-wide/tracks.detail.insights.temperature-and-scale.png",
+    "original": "tracks.detail.insights.temperature-and-scale (1).png",
+    "sha256_original": "1d13dc2ccfe896009dc2c8998bc536b434d11e02453f64398d6fe57233126865",
+    "sha256": "1d13dc2ccfe896009dc2c8998bc536b434d11e02453f64398d6fe57233126865"
+  },
+  {
+    "path": "final-wide/tracks.detail.insights.temperature-and-scale.xml",
+    "source": "build/astra-insights-layout-20260910/final-wide/tracks.detail.insights.temperature-and-scale.xml",
+    "original": "tracks.detail.insights.temperature-and-scale (1).xml",
+    "sha256_original": "b36284c8d15087585670c150c720f7017c22613f138321802bfcf628dd8929bd",
+    "sha256": "c6de23a3d00b6c1e9d2ea3e4430598684d10d37409f0e15d0e103a98644941a8"
+  },
+  {
+    "path": "final-wide/tracks.insights.temperature-and-scale.png",
+    "source": "build/astra-insights-layout-20260910/final-wide/tracks.insights.temperature-and-scale.png",
+    "original": "tracks.insights.temperature-and-scale (1).png",
+    "sha256_original": "0ccd1dc5a69d7387c5ad532a1473a368658825f988d62e14b342fb3ef624398b",
+    "sha256": "0ccd1dc5a69d7387c5ad532a1473a368658825f988d62e14b342fb3ef624398b"
+  },
+  {
+    "path": "final-wide/tracks.insights.temperature-and-scale.xml",
+    "source": "build/astra-insights-layout-20260910/final-wide/tracks.insights.temperature-and-scale.xml",
+    "original": "tracks.insights.temperature-and-scale (1).xml",
+    "sha256_original": "57374b722a9a3321df6d824662c5a257b5c44d54a970a2e94e498904cc3c237e",
+    "sha256": "efc8bee597dc9bed422ce0e35976583bdb88f12ed77b54de73ecf2436a75d167"
+  },
+  {
+    "path": "final-wide/tracks.detail.insights.mixed-units.png",
+    "source": "build/astra-insights-layout-20260910/final-wide/tracks.detail.insights.mixed-units.png",
+    "original": "tracks.detail.insights.mixed-units (1).png",
+    "sha256_original": "f848c4285350cac4926f95cfaf7a7496d2036649a1f4370f644f270df00ce25b",
+    "sha256": "f848c4285350cac4926f95cfaf7a7496d2036649a1f4370f644f270df00ce25b"
+  },
+  {
+    "path": "final-wide/tracks.detail.insights.mixed-units.xml",
+    "source": "build/astra-insights-layout-20260910/final-wide/tracks.detail.insights.mixed-units.xml",
+    "original": "tracks.detail.insights.mixed-units (1).xml",
+    "sha256_original": "48c6874a3fa0f60fafafa69f2c20db412dda523e96d32ba9719d59df54403714",
+    "sha256": "52866617c83e3da80f26195fda7b9172f7b902ff07a84a3c4264a67380c34988"
+  },
+  {
+    "path": "final-wide/tracks.insights.recent-windows.png",
+    "source": "build/astra-insights-layout-20260910/final-wide/tracks.insights.recent-windows.png",
+    "original": "tracks.insights.recent-windows (2).png",
+    "sha256_original": "49020ff483344292eec00a924c4784d3d09205b3b3e582ec8d11a7e8c2a20977",
+    "sha256": "49020ff483344292eec00a924c4784d3d09205b3b3e582ec8d11a7e8c2a20977"
+  },
+  {
+    "path": "final-wide/tracks.insights.recent-windows.xml",
+    "source": "build/astra-insights-layout-20260910/final-wide/tracks.insights.recent-windows.xml",
+    "original": "tracks.insights.recent-windows (2).xml",
+    "sha256_original": "048efc24837154c5f74b5b4069a4d7676a13d047ff5139e6721c90ea77c21933",
+    "sha256": "325b72bb4ca5dfc18eca3184f6123d00e47df8c0ce749b13200e874295fbe50e"
+  },
+  {
+    "path": "final-wide/tracks.detail.insights.recent-windows.png",
+    "source": "build/astra-insights-layout-20260910/final-wide/tracks.detail.insights.recent-windows.png",
+    "original": "tracks.detail.insights.recent-windows (2).png",
+    "sha256_original": "ba590fcab1aa0f75f17fec8b41d2f9038fa0f6d41f90d038e6736af99cb71dbe",
+    "sha256": "ba590fcab1aa0f75f17fec8b41d2f9038fa0f6d41f90d038e6736af99cb71dbe"
+  },
+  {
+    "path": "final-wide/tracks.detail.insights.recent-windows.xml",
+    "source": "build/astra-insights-layout-20260910/final-wide/tracks.detail.insights.recent-windows.xml",
+    "original": "tracks.detail.insights.recent-windows (2).xml",
+    "sha256_original": "bdc9904b2145e0b41bd99e5ef581f830175e88b686dc3929ea6c38f77f3c9667",
+    "sha256": "74eca75979ce288d0a51c92dad81a8826ae7425a63ea80e8979a72297b252f87"
+  }
+]

@@ -1,0 +1,5 @@
+com.whip.app.RecordItemBuilderJourneyE2ETest
+com.whip.app.TrackInsightWindowJourneyE2ETest
+com.whip.app.TrackInsightsJourneyE2ETest
+com.whip.app.TrackWorkspaceUiTest
+com.whip.app.ui.WhipSummaryBuilderTest

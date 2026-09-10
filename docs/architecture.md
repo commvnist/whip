@@ -92,17 +92,36 @@ the occurrence. Missing is not writable state: past scheduled occurrences with
 no check-in or skip are derived as missed. The epoch-6 schema stores one skip
 occurrence per habit/day and has no separate missing-value record.
 
-## Productivity collection design
+## Shared presentation builders
 
-Whip collections and workout execution groups share one medium-density card
-surface implemented by `WhipItemCard`. Tasks, Habits, and Goals additionally
-share `ProductivityItemHeader`: identity emoji, title and context, an optional
-fixed-width primary-action lane, then a trailing edit action. Card inset, shape,
-color, headline typography, area placement, and vertical spacing are owned by
-those primitives. Progress and expanded content follow beneath the header.
-Home, planning, active/completed/archived lists, insight cards, Tracks, and Gym
-exercise groups reuse the same hierarchy; a domain may omit an action, but may
-not reorder the remaining elements.
+Features declare meaningful content and actions; shared renderers choose their
+layout. Builders own typography, spacing, action order, touch geometry and
+natural wrapping. Features retain calculations, validation, saved drafts,
+selection, filtering, repository commands and historical meaning.
+
+| Family | Shared owner | Caller supplies |
+| --- | --- | --- |
+| Workspace | `WhipWorkspaceLayout` | Reading, Overview or Browser composition; content and header |
+| Productivity item | `WhipProductivityItemContent` | Identity, disclosure, primary action, information and expanded content |
+| Record | `WhipRecordItem` | Title, context, facts/details, optional Open/Edit, direct action, menu or reorder |
+| Setting | `WhipSettingItem` | Label, explanation, selected value, choices or toggle and callback |
+| Execution | `WhipExecutionItem` | Identity, values/composer, status, target, controls and active/passive/omitted emphasis |
+| Summary | `WhipSummaryCard`, `WhipSummarySeries` | Formatted headline metrics, supporting facts, or ordered points with exact labels/readings |
+
+These families use the existing `WhipItemCard`, grouped information surfaces,
+spacing and control primitives. Optional roles collapse centrally. Supporting
+information uses the full content lane beneath identity/actions. Read-only
+summaries have no click action; source navigation uses a record or navigation
+role with a real destination. Unit conversion and date-window rules remain
+outside the layout builders.
+
+Adoption proceeds by complete, visually inspected journeys. Extend an existing
+family when a peer needs the same role; add a family only when recurring
+semantics justify it. Specialized charts, historical evidence and complex
+programming forms keep their domain composition until a proven shared role
+fits. Local padding/scale patches and a universal domain-state builder would
+undermine the intended ownership boundary. Current decisions and acceptance
+are recorded under FB-20260910-002 in product memory.
 
 ## Adaptive presentation and visual semantics
 
@@ -110,7 +129,10 @@ Whip treats a Fold or tablet as a composed workspace, not as a stretched phone.
 Each first-class destination may own an actionable support pane; support panes
 must contain useful navigation or context for that destination rather than
 generic dashboard filler. Primary content uses bounded readable widths, while
-review dashboards may use the wider dashboard bound.
+review dashboards may use the wider dashboard bound. Shared workspace roles
+bound the complete header and body together: Reading is up to 720 dp, Overview
+and Browser up to 1000 dp. A feature-owned list/detail browser does not receive
+an additional generic app overview column; fold-hinge context remains explicit.
 
 Transient dialogs are placed by `PaneAwareAlertDialog` inside the active
 content pane. Destination-sized editors and managers instead use

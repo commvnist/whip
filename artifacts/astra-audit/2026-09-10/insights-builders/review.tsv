@@ -1,0 +1,24 @@
+image	status	scope
+before-phone/tracks.record-builder.insights.png	Personally reviewed original	Baseline: frequency rows put the recent source below the initial phone viewport or at the wide lower edge.
+before-phone/tracks.insights.mixed-units.png	Personally reviewed original	Baseline: correct exact distance readings are separated from labels; seven full daily rows dominate the preceding content.
+before-phone/tracks.detail.insights.temperature-and-scale.png	Personally reviewed original	Baseline: preserved non-additive temperature and fine Scale readings use uniform full-width rows.
+before-phone/tracks.detail.insights.recent-windows.png	Personally reviewed original	Baseline: future Entry inflates Last 7/30/90 to 3/5/7 and weekly rate to 1.17; total 8 remains valid.
+before-wide/tracks.record-builder.insights.png	Personally reviewed original	Baseline: frequency rows put the recent source below the initial phone viewport or at the wide lower edge.
+before-wide/tracks.insights.mixed-units.png	Personally reviewed original	Baseline: correct exact distance readings are separated from labels; seven full daily rows dominate the preceding content.
+before-wide/tracks.detail.insights.temperature-and-scale.png	Personally reviewed original	Baseline: preserved non-additive temperature and fine Scale readings use uniform full-width rows.
+final-phone/tracks.record-builder.insights.png	Personally reviewed original	Initial normal overview: complete source record fits; shared hierarchy and exact daily series are clear.
+final-phone/tracks.insights.mixed-units.png	Personally reviewed original	Workspace total 1.621 mi and average 0.811 mi retain full visible unit/precision and their adjacent labels.
+final-phone/tracks.detail.insights.temperature-and-scale.png	Personally reviewed original	Per-Track averages/range/latest/trend remain complete; phone viewport starts partway through Temperature heading, with all asserted readings visible.
+final-phone/tracks.insights.temperature-and-scale.png	Personally reviewed original	Separate temperature and Scale averages retain 50.0 F and 0.188 with no additive totals.
+final-phone/tracks.detail.insights.mixed-units.png	Personally reviewed original	Per-Track exact distance readings, range and trend retain hierarchy; scrolling clips preceding content as expected.
+final-phone/tracks.insights.recent-windows.png	Personally reviewed original	Correct visible Insights page: total 8; recent 2/4; all-time future source remains available.
+final-phone/tracks.detail.insights.recent-windows.png	Personally reviewed original	Balanced two-column recent 2/4/6, total 8 and weekly 0.93; future latest date preserved.
+final-wide/tracks.record-builder.insights.png	Personally reviewed original	Initial normal overview: complete source record fits; shared hierarchy and exact daily series are clear.
+final-wide/tracks.insights.mixed-units.png	Personally reviewed original	Workspace total 1.621 mi and average 0.811 mi retain full visible unit/precision and their adjacent labels.
+final-wide/tracks.detail.insights.temperature-and-scale.png	Personally reviewed original	Per-Track averages/range/latest/trend remain complete; phone viewport starts partway through Temperature heading, with all asserted readings visible.
+final-wide/tracks.insights.temperature-and-scale.png	Personally reviewed original	Separate temperature and Scale averages retain 50.0 F and 0.188 with no additive totals.
+final-wide/tracks.detail.insights.mixed-units.png	Personally reviewed original	Per-Track exact distance readings, range and trend retain hierarchy; scrolling clips preceding content as expected.
+final-wide/tracks.insights.recent-windows.png	Personally reviewed original	Correct visible Insights page: total 8; recent 2/4; all-time future source remains available.
+final-wide/tracks.detail.insights.recent-windows.png	Personally reviewed original	Balanced two-column recent 2/4/6, total 8 and weekly 0.93; future latest date preserved.
+rejected/phone/tracks.insights.recent-windows.png	Rejected after original review	New window fixture captured previous Tracks destination before Compose settled; replaced after visible-page assertion and idle synchronization.
+rejected/wide/tracks.insights.recent-windows.png	Rejected after original review	New window fixture captured previous Tracks destination before Compose settled; replaced after visible-page assertion and idle synchronization.

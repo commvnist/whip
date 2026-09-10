@@ -1161,7 +1161,8 @@ private fun TrackWorkspaceInsightsPage(
     onRetryLoading: () -> Unit,
 ) {
     val activeTracks = state.active
-    val totalEntries = activeTracks.sumOf { it.entries.size }
+    val entryDates = activeTracks.flatMap { track -> track.entries.map { it.entry.entryDate } }
+    val totalEntries = entryDates.size
     val lastSevenDays = (6L downTo 0L).map { offset -> state.currentDate.minusDays(offset) }
     val recentTracks = activeTracks.mapNotNull { projection ->
         projection.entries.maxWithOrNull(compareBy<TrackEntryProjection> { it.entry.entryDate }.thenBy { it.entry.createdAtMillis })
@@ -1192,61 +1193,54 @@ private fun TrackWorkspaceInsightsPage(
             }
             else {
                 item {
-                    InsightCard(
-                        "Overview",
-                        listOf(
-                            "Active Tracks" to activeTracks.size.toString(),
-                            "Total Entries" to totalEntries.toString(),
-                            "Fields" to activeTracks.sumOf { it.fields.size }.toString(),
-                            "Entries in 7 Days" to activeTracks.sumOf { track -> track.entries.count { it.entry.entryDate in state.currentDate.minusDays(6)..state.currentDate } }.toString(),
-                            "Entries in 30 Days" to activeTracks.sumOf { track -> track.entries.count { it.entry.entryDate in state.currentDate.minusDays(29)..state.currentDate } }.toString(),
-                        ),
-                    )
+                    WhipSummaryCard("Overview") {
+                        metric("Total Entries", totalEntries.toString())
+                        metric("Active Tracks", activeTracks.size.toString())
+                        fact("Fields", activeTracks.sumOf { it.fields.size }.toString())
+                        fact("Entries in 7 Days", entryDates.trackInsightCount(state.currentDate, 7).toString())
+                        fact("Entries in 30 Days", entryDates.trackInsightCount(state.currentDate, 30).toString())
+                    }
                 }
                 item {
-                    InsightCard(
-                        "Entry Frequency",
-                        lastSevenDays.map { date ->
-                            date.format(DateTimeFormatter.ofPattern("EEE, MMM d")) to
-                                activeTracks.sumOf { track -> track.entries.count { it.entry.entryDate == date } }.toString()
+                    WhipSummarySeries(
+                        title = "Entry Frequency",
+                        supportingText = "${lastSevenDays.first().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} – ${state.currentDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
+                        points = lastSevenDays.map { date ->
+                            val count = entryDates.count { it == date }
+                            WhipSummaryPoint(
+                                label = date.format(DateTimeFormatter.ofPattern("EEE")),
+                                fullLabel = date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)),
+                                value = count.toString(), magnitude = count.toDouble(),
+                            )
                         },
                     )
                 }
                 if (recentTracks.isNotEmpty()) {
                     item { Text("Recently Active Tracks", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
                     items(recentTracks.take(8), key = { "recent-track-${it.first.track.id}" }) { (projection, entry) ->
-                        WhipCollectionCard(
-                            onClick = { onOpenTrack(projection.track.id) },
-                            onClickLabel = "Open ${projection.track.name} Insights",
+                        WhipRecordItem(
+                            itemKey = projection.track.uuid,
+                            itemType = "Track",
+                            title = projection.track.name,
+                            identityEmoji = projection.track.icon,
+                            onOpen = { onOpenTrack(projection.track.id) },
+                            onOpenLabel = "Open ${projection.track.name} Insights",
                         ) {
-                            Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                WhipIdentityEmoji(projection.track.icon)
-                                Column(Modifier.weight(1f)) {
-                                    Text(projection.track.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                                    Text(
-                                        "${projection.primaryText(entry)} · ${entry.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
-                            }
+                            context(entry.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
+                            detail(projection.primaryText(entry))
                         }
                     }
                 }
                 if (numericSummaries.isNotEmpty()) {
                     item { Text("Numeric Summaries", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
                     items(numericSummaries, key = { "numeric-${it.projection.track.id}-${it.field.id}" }) { summary ->
-                        InsightCard(
-                            "${summary.projection.track.icon} ${summary.projection.track.name} · ${summary.field.name}",
-                            buildList {
-                                add("Entries" to summary.values.size.toString())
-                                if (summary.numberFormat.showTotal) {
-                                    add("Total" to summary.numberFormat.format(summary.values.sum()))
-                                }
-                                add("Average" to summary.numberFormat.format(summary.values.average()))
-                            },
-                        )
+                        WhipSummaryCard("${summary.projection.track.icon} ${summary.projection.track.name} · ${summary.field.name}") {
+                            if (summary.numberFormat.showTotal) {
+                                metric("Total", summary.numberFormat.format(summary.values.sum()))
+                            }
+                            metric("Average", summary.numberFormat.format(summary.values.average()))
+                            fact("Entries", summary.values.size.toString())
+                        }
                     }
                 }
                 if (activeTracks.isEmpty()) item {
@@ -2186,18 +2180,15 @@ private fun TrackInsightsPage(
             )
         }
         item {
-            InsightCard(
-                if (conditions.isEmpty()) "All Entries" else "Matching Entries",
-                listOf(
-                    "Total" to scoped.entries.size.toString(),
-                    "First" to (dates.minOrNull()?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "—"),
-                    "Latest" to (dates.maxOrNull()?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "—"),
-                    "Last 7 Days" to scoped.entries.count { it.entry.entryDate >= today.minusDays(6) }.toString(),
-                    "Last 30 Days" to scoped.entries.count { it.entry.entryDate >= today.minusDays(29) }.toString(),
-                    "Last 90 Days" to scoped.entries.count { it.entry.entryDate >= today.minusDays(89) }.toString(),
-                    "Recent Weekly Rate" to "${(scoped.entries.count { it.entry.entryDate >= today.minusDays(29) } / 30.0 * 7.0).formatCompact()} Entries",
-                ),
-            )
+            WhipSummaryCard(if (conditions.isEmpty()) "All Entries" else "Matching Entries") {
+                metric("Total", scoped.entries.size.toString())
+                metric("Last 7 Days", dates.trackInsightCount(today, 7).toString())
+                metric("Last 30 Days", dates.trackInsightCount(today, 30).toString())
+                metric("Last 90 Days", dates.trackInsightCount(today, 90).toString())
+                fact("First", dates.minOrNull()?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "—")
+                fact("Latest", dates.maxOrNull()?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "—")
+                fact("Recent Weekly Rate", "${(dates.trackInsightCount(today, 30) / 30.0 * 7.0).formatCompact()} Entries")
+            }
         }
         items(scoped.fields.filterNot(TrackField::primary), key = { "insight-field-${it.id}" }) { field ->
             val values = scoped.entries.mapNotNull { it.value(field.id) }
@@ -2260,7 +2251,13 @@ private fun TrackInsightsPage(
                 }
                 TrackFieldType.ShortText, TrackFieldType.LongText -> listOf("Completed" to values.count { !it.textValue.isNullOrBlank() }.toString(), "Blank" to (scoped.entries.size - values.size).toString())
             }
-            InsightCard(field.name, lines)
+            WhipSummaryCard(field.name) {
+                val numeric = field.type == TrackFieldType.Number || field.type == TrackFieldType.Scale
+                lines.filter { numeric && it.first in setOf("Sum", "Average") }
+                    .forEach { (label, value) -> metric(label, value) }
+                lines.filterNot { numeric && it.first in setOf("Sum", "Average") }
+                    .forEach { (label, value) -> fact(label, value) }
+            }
         }
     }
     if (filterOpen) TrackFilterDialog(
@@ -2273,16 +2270,6 @@ private fun TrackInsightsPage(
         onDismiss = { filterOpen = false },
         onApply = { mode, updated -> conditionMode = mode; conditions = updated; filterOpen = false },
     )
-}
-
-@Composable
-private fun InsightCard(title: String, lines: List<Pair<String, String>>) {
-    WhipGroupedInformationCard {
-        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        lines.forEach { (label, value) ->
-            Row(Modifier.fillMaxWidth()) { Text(label, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant); Text(value, fontWeight = FontWeight.SemiBold) }
-        }
-    }
 }
 
 internal fun trackCsvTargetLookupStatus(

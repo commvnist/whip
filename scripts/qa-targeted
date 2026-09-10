@@ -202,6 +202,8 @@ add_profile() {
                 'com.whip.app.domain.TrackDomainTest'
                 'com.whip.app.domain.TrackCsvBatchIdentityTest'
                 'com.whip.app.ui.TrackEditorStateTest'
+                'com.whip.app.ui.TrackInsightWindowTest'
+                'com.whip.app.ui.TrackInsightNumberFormatTest'
                 'com.whip.app.ui.TrackCsvReliabilityPolicyTest'
                 'com.whip.app.ui.UnifiedSearchRulesTest'
             )
@@ -220,6 +222,9 @@ add_profile() {
                 'com.whip.app.TrackFieldEditingJourneyE2ETest'
                 'com.whip.app.TrackDefinitionReviewJourneyE2ETest'
                 'com.whip.app.TrackHistoryControlsJourneyE2ETest'
+                'com.whip.app.TrackInsightsJourneyE2ETest'
+                'com.whip.app.TrackInsightWindowJourneyE2ETest'
+                'com.whip.app.ui.WhipSummaryBuilderTest'
                 'com.whip.app.TrackCollectionJourneyE2ETest'
                 'com.whip.app.RecordItemBuilderJourneyE2ETest'
                 'com.whip.app.ui.WhipRecordItemTest'

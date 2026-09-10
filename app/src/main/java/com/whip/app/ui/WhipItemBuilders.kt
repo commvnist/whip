@@ -83,6 +83,7 @@ internal fun WhipRecordItem(
     onOpen: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     identityEmoji: String? = null,
+    onOpenLabel: String? = null,
     content: WhipRecordItemScope.() -> Unit,
 ) {
     val item = WhipRecordItemScope().apply(content)
@@ -92,7 +93,7 @@ internal fun WhipRecordItem(
         reorder != null -> modifier.whipReorderItem(
             reorder.interactionState, layoutPosition = reorder.position, layoutScope = reorder.layoutScope,
         )
-        onOpen != null -> modifier.clickable(onClickLabel = "Open $itemType $title", onClick = onOpen)
+        onOpen != null -> modifier.clickable(onClickLabel = onOpenLabel ?: "Open $itemType $title", onClick = onOpen)
         else -> modifier
     }
     WhipItemCard(recordModifier) {

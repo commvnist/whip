@@ -1,5 +1,13 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-022 — Shared summaries separate headline measures, facts and series
+
+- Status: Verified in IMP/VER-20260910-022; FND-20260910-031/032, FB-20260910-001/002.
+- Decision: Add a small read-only summary builder. Callers declare title, headline metrics and supporting facts; the renderer owns their typography, spacing, grouping and available-width layout. A companion short-series renderer owns bars, labels and exact accessible descriptions. Use existing surfaces and spacing, natural text height and up to two headline columns. The wide pilot rejected a three-plus-one arrangement for four metrics; two columns retain the same coherent reading order across phone and detail panes. Reuse WhipRecordItem for recent Tracks with the exact Insights navigation action.
+- Improve versus replace: Shorter copy alone leaves duplicated layout ownership. Replacing all analytics with a universal chart/data framework would couple unrelated Goal/Habit semantics and create unnecessary churn. Extending the existing read-only surface vocabulary provides a production pilot across workspace and per-Track summaries while leaving specialized charts and feature state intact. Navigation-only metric tiles remain navigation controls; summary measures do not acquire empty click actions.
+- Compatibility: Keep Number/Scale formatting, missing values, non-additive totals, conditional scope, dates and historical evidence. Recent Track counts share an inclusive date-window policy ending today; future Entries remain in all-time evidence. There is no schema, backup, version or stored-data change.
+- Acceptance: Verify normal phone/wide hierarchy and source navigation, recent-window boundaries, exact mixed-unit/temperature/Scale values and recreation. Use existing neighboring Track/filter/builder checks and readiness. Do not launch a per-screen enlarged-text campaign or infer whole-product acceptance from this pilot.
+
 ### DEC-20260910-021 — One workspace owner chooses panes and reading measure
 
 - Status: Verified; FND-20260910-030 / IMP/VER-20260910-021. Final native phone/wide journeys, 120 Android regressions, 379 readiness JVM checks and lint/build pass.

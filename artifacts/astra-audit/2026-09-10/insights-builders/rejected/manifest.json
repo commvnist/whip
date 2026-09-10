@@ -1,0 +1,18 @@
+[
+  {
+    "path": "rejected/phone/tracks.insights.recent-windows.png",
+    "sha256_original": "ce5c4614b628b319a50ea12e615db0b7aabbd663712105bd47c80eaca11d0c02"
+  },
+  {
+    "path": "rejected/phone/tracks.insights.recent-windows.xml",
+    "sha256_original": "234ca38e6f5a9cb248cbe2db457e852a895fda2e8dd771ea4dd5729bcf592cb4"
+  },
+  {
+    "path": "rejected/wide/tracks.insights.recent-windows.png",
+    "sha256_original": "c61672fa593c624b22036756ddebcfe8c7303ce1909abd6bd1153f2b584e1afb"
+  },
+  {
+    "path": "rejected/wide/tracks.insights.recent-windows.xml",
+    "sha256_original": "1b6dad49df754f036545c73ee61d051ea1ea3d14009659e25246b65ec0f7cc97"
+  }
+]

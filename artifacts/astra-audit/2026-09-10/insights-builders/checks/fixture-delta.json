@@ -1,0 +1,10 @@
+{
+  "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk": {
+    "focused": "aa3f25cff76fc8b03386e6daa1f42a0c84459f4f0be017f4a0fb3ef768439747",
+    "delivery": "6111e27eec313f53a0fd8df1c9a2cbc635435a7c741e244207c0d739d39995db"
+  },
+  "app/src/androidTest/java/com/whip/app/TrackInsightWindowJourneyE2ETest.kt": {
+    "focused": "f28e815986393379b483e9de7b6b296acfff8aec38f16da804e74a55bd352da7",
+    "delivery": "534640dab41acb94414efcd879d0bcdf3829503d2799fa5a5bae1344ef28903b"
+  }
+}

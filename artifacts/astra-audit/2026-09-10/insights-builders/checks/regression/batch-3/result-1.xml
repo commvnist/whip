@@ -1,0 +1,87 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="35" failures="0" errors="0" skipped="0" time="65.843" timestamp="2026-09-10T21:56:24" hostname="localhost">
+  <testsuite name="com.whip.app.WhipAccessibilityChecksTest" tests="2" failures="0" errors="0" skipped="0" time="19.112" timestamp="2026-09-10T21:56:24" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="primaryAreasPassComposeAccessibilityTestFramework" classname="com.whip.app.WhipAccessibilityChecksTest" time="9.252" />
+    <testcase name="productivityEditorsAndDetailsPassAccessibilityChecks" classname="com.whip.app.WhipAccessibilityChecksTest" time="9.86" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.TrackCsvImportRecoveryViewModelTest" tests="4" failures="0" errors="0" skipped="0" time="0.483" timestamp="2026-09-10T21:56:24" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="deviceRuntimeRejectsMalformedUtf8AndNulButAllowsMaximumRowsWithOneTrailingBlank" classname="com.whip.app.ui.TrackCsvImportRecoveryViewModelTest" time="0.153" />
+    <testcase name="transientTargetLookupFailureKeepsSessionAndRetryWaitsForFreshSuccessfulLoad" classname="com.whip.app.ui.TrackCsvImportRecoveryViewModelTest" time="0.102" />
+    <testcase name="restoredSessionWithSameBatchButDifferentFullEnvelopeFailsClosedBeforeReadingUri" classname="com.whip.app.ui.TrackCsvImportRecoveryViewModelTest" time="0.127" />
+    <testcase name="restoredCommittedSessionVerifiesReceiptBeforeTouchingAnUnavailableUri" classname="com.whip.app.ui.TrackCsvImportRecoveryViewModelTest" time="0.101" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.TrackCsvImportUiTest" tests="15" failures="0" errors="0" skipped="0" time="22.727" timestamp="2026-09-10T21:56:24" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="completedRecoverySuppressesAnOrphanedCoordinatorError" classname="com.whip.app.ui.TrackCsvImportUiTest" time="0.858" />
+    <testcase name="domainConflictSuppressesUnsafeExactRetryAdvice" classname="com.whip.app.ui.TrackCsvImportUiTest" time="0.832" />
+    <testcase name="missingTrackStillShowsTruthfulCancellableImportState" classname="com.whip.app.ui.TrackCsvImportUiTest" time="0.982" />
+    <testcase name="archivedTargetExplainsTheAvailableCancelRestoreAndReopenPath" classname="com.whip.app.ui.TrackCsvImportUiTest" time="0.732" />
+    <testcase name="unresolvedTrackLookupShowsNeutralLoadingInsteadOfInventingMissingTarget" classname="com.whip.app.ui.TrackCsvImportUiTest" time="0.882" />
+    <testcase name="failedTrackLookupKeepsReviewedImportAndOffersARealRetry" classname="com.whip.app.ui.TrackCsvImportUiTest" time="1.111" />
+    <testcase name="completedReceiptRemainsAuthoritativeWhenTrackLookupSettlesMissing" classname="com.whip.app.ui.TrackCsvImportUiTest" time="0.907" />
+    <testcase name="durableNoReceiptRecoveryNoticeSuppressesAnOrphanedCoordinatorError" classname="com.whip.app.ui.TrackCsvImportUiTest" time="0.806" />
+    <testcase name="ordinaryReadyPersistenceFailureKeepsExactRetryAvailable" classname="com.whip.app.ui.TrackCsvImportUiTest" time="0.957" />
+    <testcase name="previewDisclosesUnicodeExcerptsWithoutChangingImportValuesAndDistinguishesBlank" classname="com.whip.app.ui.TrackCsvImportUiTest" time="1.634" />
+    <testcase name="completedReceiptRemainsAuthoritativeWhenCurrentTrackIsArchived" classname="com.whip.app.ui.TrackCsvImportUiTest" time="1.108" />
+    <testcase name="largeTextKeepsFileDateMappingAndRecoveryActionReachable" classname="com.whip.app.ui.TrackCsvImportUiTest" time="3.922" />
+    <testcase name="captureTrackCsvImportCatalog" classname="com.whip.app.ui.TrackCsvImportUiTest" time="2.814" />
+    <testcase name="importingShieldsTheWholeDialogAndBlocksBackOrDuplicateSubmission" classname="com.whip.app.ui.TrackCsvImportUiTest" time="1.461" />
+    <testcase name="constrainedMultiFieldErrorIsVisibleBeforeFrozenMappingControls" classname="com.whip.app.ui.TrackCsvImportUiTest" time="3.721" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.TrackEditorCheckpointTest" tests="7" failures="0" errors="0" skipped="0" time="0.912" timestamp="2026-09-10T21:56:24" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="unchangedSavesReuseFilesAndFreshRestorePrunesOnlyOlderCheckpoints" classname="com.whip.app.ui.TrackEditorCheckpointTest" time="0.58" />
+    <testcase name="missingOrIncompatibleCheckpointCannotSilentlyBecomeANewEntry" classname="com.whip.app.ui.TrackEditorCheckpointTest" time="0.077" />
+    <testcase name="corruptCheckpointShowsRecoveryFailureAndCanBeRetriedWithoutSubstitution" classname="com.whip.app.ui.TrackEditorCheckpointTest" time="0.051" />
+    <testcase name="checkpointKeepsLongTextInvalidNumberAndEffectiveDateExactly" classname="com.whip.app.ui.TrackEditorCheckpointTest" time="0.051" />
+    <testcase name="writeFailurePreservesLiveDraftAndCannotRecoverAnOlderValueAsCurrent" classname="com.whip.app.ui.TrackEditorCheckpointTest" time="0.101" />
+    <testcase name="newOwnerRecoversExactDefinitionBoundaryAndAuthoredChoices" classname="com.whip.app.ui.TrackEditorCheckpointTest" time="0.001" />
+    <testcase name="completionClearsBothHoldersAndOnlyItsOwnFiles" classname="com.whip.app.ui.TrackEditorCheckpointTest" time="0.051" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.TrackEntryDeleteRecoveryUiTest" tests="2" failures="0" errors="0" skipped="0" time="15.837" timestamp="2026-09-10T21:56:24" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="recoveredDeletionConflictRemainsReachableAtLargeText" classname="com.whip.app.ui.TrackEntryDeleteRecoveryUiTest" time="7.995" />
+    <testcase name="newOwnerCannotReplaceTheRestoredDeletionRevision" classname="com.whip.app.ui.TrackEntryDeleteRecoveryUiTest" time="7.842" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.WhipRecordItemTest" tests="3" failures="0" errors="0" skipped="0" time="3.774" timestamp="2026-09-10T21:56:24" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="actionsStayWithTheirRecordAndUseCurrentCallbacks" classname="com.whip.app.ui.WhipRecordItemTest" time="1.56" />
+    <testcase name="narrowRecordsKeepInformationBelowTheWholeHeader" classname="com.whip.app.ui.WhipRecordItemTest" time="0.68" />
+    <testcase name="completeCatalogContentAndDirectActionsSurviveReorderMode" classname="com.whip.app.ui.WhipRecordItemTest" time="1.534" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.WhipSummaryBuilderTest" tests="2" failures="0" errors="0" skipped="0" time="1.662" timestamp="2026-09-10T21:56:24" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="shortSeriesNamesZeroAndNonzeroEvidenceWithoutClickActions" classname="com.whip.app.ui.WhipSummaryBuilderTest" time="0.755" />
+    <testcase name="metricsReflowWithoutLosingExactReadingsOrTheirLabels" classname="com.whip.app.ui.WhipSummaryBuilderTest" time="0.907" />
+  </testsuite>
+</testsuites>

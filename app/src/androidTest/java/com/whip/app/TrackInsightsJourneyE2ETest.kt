@@ -79,6 +79,8 @@ class TrackInsightsJourneyE2ETest {
             compose.onNodeWithTag("track-workspace-destination-Insights").performClick()
             compose.onNodeWithTag("track-workspace-insights-list")
                 .performScrollToNode(hasText("🚶 Walking log · Distance"))
+            compose.onNodeWithTag("track-workspace-insights-list")
+                .performScrollToNode(hasText("0.811 mi"))
             capture("tracks.insights.mixed-units")
             assertNumberFullyVisible("1.621 mi")
             assertNumberFullyVisible("0.811 mi")
@@ -136,10 +138,14 @@ class TrackInsightsJourneyE2ETest {
             compose.onNodeWithTag("track-workspace-destination-Insights").performClick()
             compose.onNodeWithTag("track-workspace-insights-list")
                 .performScrollToNode(hasText("Room log · Temperature", substring = true))
+            compose.onNodeWithTag("track-workspace-insights-list")
+                .performScrollToNode(hasText("50.0 °F"))
             compose.onNodeWithText("50.0 °F").assertIsDisplayed()
             compose.onAllNodesWithText("Total").assertCountEquals(0)
             compose.onNodeWithTag("track-workspace-insights-list")
                 .performScrollToNode(hasText("Room log · Comfort", substring = true))
+            compose.onNodeWithTag("track-workspace-insights-list")
+                .performScrollToNode(hasText("0.188"))
             capture("tracks.insights.temperature-and-scale")
             assertNumberFullyVisible("50.0 °F")
             assertNumberFullyVisible("0.188")
@@ -175,8 +181,8 @@ class TrackInsightsJourneyE2ETest {
     }
 
     private fun assertNumberFullyVisible(value: String) {
-        compose.onNodeWithText(value).assertIsDisplayed()
-        val layout = compose.onNodeWithText(value).getUnclippedBoundsInRoot()
+        compose.onNodeWithText(value, useUnmergedTree = true).assertIsDisplayed()
+        val layout = compose.onNodeWithText(value, useUnmergedTree = true).getUnclippedBoundsInRoot()
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         val nativeBounds = device.findObject(By.text(value))?.visibleBounds
         val density = app.resources.displayMetrics.density

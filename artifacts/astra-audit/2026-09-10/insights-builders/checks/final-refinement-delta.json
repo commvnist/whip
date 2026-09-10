@@ -1,0 +1,18 @@
+{
+  "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk": {
+    "regression": "c645cb04cfc57df0910080b429f86757146131f382c9313aeb5ed7fbc7672779",
+    "final": "aa3f25cff76fc8b03386e6daa1f42a0c84459f4f0be017f4a0fb3ef768439747"
+  },
+  "app/build/outputs/apk/debug/app-debug.apk": {
+    "regression": "6544db36350245d39c01484fbbb00d355d3bb1d97f1bc1f74d69de5ad9da7839",
+    "final": "0a47d000545bef95333ab67f22f5d8d2bb794afd2cd0a1bbab4174bf9d48660b"
+  },
+  "app/src/androidTest/java/com/whip/app/TrackInsightsJourneyE2ETest.kt": {
+    "regression": "b1eeb00dcf03ebcaa2e4a0734176f201e0a69d5efcc63555dd27d8bc2f17f5ac",
+    "final": "2897ce43913053bcb3beca1d290aa94451d2d01294593b3c1bf3a35793f2f216"
+  },
+  "app/src/main/java/com/whip/app/ui/WhipSummaryBuilders.kt": {
+    "regression": "cb905c91d80fb4ca95a1abbfe2a0f464e9c9c0156f55c69e0b9415b4fbeae1ae",
+    "final": "b3a410c40f36804c07ea2371cb0c12319565840fbfa49e8c7cffb1c69dbcdf83"
+  }
+}

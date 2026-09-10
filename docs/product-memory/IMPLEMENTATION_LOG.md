@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260910-022 — Share Insights presentation and correct recent date windows
+
+- Status: Verified in VER-20260910-022. FND-20260910-031/032 and DEC-20260910-022. Evidence: artifacts/astra-audit/2026-09-10/insights-builders/README.md.
+- Behavior: Workspace and per-Track summaries declare headline metrics and supporting facts through WhipSummaryCard. WhipSummarySeries renders the exact seven daily counts compactly, with full dates in accessible descriptions. Recently Active Tracks uses WhipRecordItem and retains its exact Insights destination. At normal phone size, the complete recent Track card now fits where only its section heading previously appeared.
+- Ownership: Shared builders own spacing, typography, column reflow, label/value grouping and read-only semantics. Features still own calculations, conditions, navigation, persistence and numeric formatting. The architecture document maps workspace, productivity, record, setting, execution and summary families. No universal domain-state framework or screen-specific scale branches are added.
+- Correctness: One inclusive Track date-window helper serves both Insights contexts; recent 7/30/90-day counts and the derived weekly rate end today. Future Entries remain in all-time totals, first/latest dates and exact persisted history. Temperature/Scale non-additive rules and mixed-unit precision remain unchanged. No schema, backup, version or release change.
+- Checkpoints: rp2vhx passes all five focused date/numeric/builder methods after fixing the shared metric text width and targeting unmerged reading bounds. The wide run then exposes a fixture that scrolls only to a heading while asserting values below the viewport. Preserve the full native-value requirement while correcting that navigation; production remains frozen during the current phone campaign.
+
 ### IMP-20260910-021 — Give workspaces consistent reading widths and pane ownership
 
 - Behavior: The complete workspace header and content use one centered measure. Serial collections, Settings and workouts use up to 720 dp; Home, Track Insights, Gym Progress and feature-owned browsers retain up to 1000 dp. Expanded Tracks has its existing list/detail browser without a duplicate app overview column. Aggregate Fields remains available in Insights. Compact direct navigation, physical fold context and useful Settings category navigation remain.
@@ -2090,3 +2098,4 @@
 - Related: `FB-20260908-004`, `FB-20260908-005`, `FND-20260908-011`, `FND-20260908-012`, `DEC-20260908-009`, `IMP-20260908-010`, `IMP-20260908-011`.
 - Verification: `VER-20260908-012`.
 - Status: Candidate-qualified, directly handed off, and device-verified; Play upload/publication intentionally remains owner-managed.
+- Acceptance: 138 broad Android regressions and 73 profile JVM checks pass. A final two-column refinement and exact-value scrolling pass 13 focused phone methods and six wide methods; the new window capture then gains visible-page synchronization and passes its complete journey again on each platform. All 518 delivery inputs match through 385 JVM readiness checks, lint/build and final capture replacement. Twenty-one accepted original pairs are personally reviewed; two rejected premature captures remain explicit evidence. Source inventory is 655 JVM + 1084 Android = 1739; catalog/matrix 508 states, 339 Verified / 127 Investigating / 42 In progress. Continue equal-depth whole-app review, empty/no-entry Insights hierarchy and specialized analytics; no release or whole-product acceptance. Git records commit/push delivery.

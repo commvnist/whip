@@ -1,5 +1,19 @@
 # Durable findings
 
+### FND-20260910-031 — Future Entries inflate recent per-Track Insights
+
+- Status: Verified under IMP/VER-20260910-022; P2 derived-data correctness and cross-page consistency. FB-20260910-001/002.
+- Evidence: QVSfuN fails the native persisted Track window journey on unchanged cfe8a4a2. Eight Entries at today, 6/7/29/30/89/90 days ago and tomorrow give workspace 7/30-day counts 2/4, but per-Track reports 3/5/7 for 7/30/90 days and 1.17 Entries weekly. The original detail image was personally inspected. Repository validation accepts Entry dates without an upper bound.
+- Cause/expected: TrackInsightsPage tests only the start of each recent window; workspace Insights already bounds both ends. Recent counts and the 30-day-derived weekly rate must include their first day through today and exclude future dates. All-time counts, first/latest dates, authored Entries, filters and history remain intact.
+- Related: DEC-20260909-014 preserves numeric-unit rules; DEC-20260910-022 owns the bounded correction and presentation pilot.
+
+### FND-20260910-032 — Insights repeats unbounded summary and source-record layouts
+
+- Status: Verified under IMP/VER-20260910-022; P2 ordinary-scale hierarchy and shared design ownership. FB-20260910-001/002.
+- Evidence: Unchanged cfe8a4a2 passes three native journeys on phone (30.499s) and wide (37.954s). Personally reviewed originals show seven equal-height frequency rows pushing Recently Active Tracks below the phone viewport, widely separated metric labels/values on a 1000 dp overview, and locally composed recent-Track cards with narrower/truncated support. Existing numeric precision and recovery journeys pass; this finding concerns presentation quality.
+- Expected: Shared read-only summary roles keep each value with its label, distinguish headline measures from supporting facts and render short series compactly with exact accessible readings. Existing record roles own recent-Track information. Feature code retains calculations, date scope, source navigation and saved conditions.
+- Scope: Pilot workspace and per-Track Insights at normal phone/wide sizes. Preserve categorical/date detail, all units and non-additive temperature/Scale rules. Do not force Goal/Habit charts or domain-specific histories into one analytics framework.
+
 ### FND-20260910-030 — Workspace layout duplicates panes and stretches serial controls
 
 - Status: Verified; P2 ordinary-scale design/interaction consistency. FB-20260910-001/002.
