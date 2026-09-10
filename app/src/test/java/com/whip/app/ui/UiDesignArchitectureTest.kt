@@ -394,7 +394,7 @@ class UiDesignArchitectureTest {
         assertTrue(tag.contains("if (receipt.kind == TagMutationKind.Archive) scope.launch"))
 
         val goals = File(sourceRoot, "com/whip/app/ui/GoalScreens.kt").readText()
-        val metric = goals.substringAfter("private fun ElapsedGoalMetric(")
+        val metric = goals.substringAfter("internal fun ElapsedGoalMetric(")
             .substringBefore("internal fun ElapsedGoalResetDialog(")
         assertFalse(metric.contains("FontWeight.Bold"))
         assertFalse(metric.contains("color = MaterialTheme.colorScheme.primary"))
@@ -402,7 +402,7 @@ class UiDesignArchitectureTest {
         assertTrue(metric.contains("part.unitLabel()"))
         assertTrue(metric.contains("contentDescription = display.label()"))
         assertTrue(goals.split("ElapsedGoalMetric(").size >= 5)
-        assertTrue(goals.contains("elapsedStatus?.compactLabel() ?: compactStatus"))
+        assertTrue(goals.contains("elapsedStatus?.label() ?: compactStatus"))
     }
 
     @Test

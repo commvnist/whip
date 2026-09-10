@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-005 — Selected elapsed units stay visible in collection summaries
+
+- Decision: Goal collection and Home summary text use the complete authored ElapsedDisplay label in the shared full-width information row. Remove the unused three-part overview formatter after its only production caller migrates. Preserve the restrained bodySmall role and existing natural wrapping.
+- Alternatives/tradeoffs: Retaining the three-part overview requires expansion to see deliberately selected smaller units and diverges from editor/Insights/support-pane meaning. Reintroducing a larger metric band would complicate the newly unified summary grammar. Complete text can add one or two lines for broad configurations; that modest height is justified by authored information and current full-width layout.
+- Supersession/compatibility: Explicitly supersedes DEC-20260907-009's remaining three-part elapsed summary rule, following FB-20260906-009/010 and FB-20260907-015. No arithmetic, exact instant, configured selection, resets, schema, backup or mutation changes. Normal-scale source/native review must prove the benefit; one strengthened existing large-text contract is a shared responsiveness check, not a new per-screen campaign.
+- Status: Verified for collection/Home elapsed summaries; FND/IMP/VER-20260910-005 under the ongoing whole-app objective. Normal native phone/wide review shows all six configured units fit the current status role; broader app acceptance remains open.
+
 ### DEC-20260910-004 — Productivity builders own complete expanded reading order
 
 - Decision: Replace the seven production header call sites with a scoped productivity-content builder over the existing WhipItemCard. Declare summary/details text through one typography role, Area, notice, disclosure, primary action and specialized expanded content. Render the complete information at full width, then one full-width Edit footer for disclosed items. Undisclosed archived/insight rows keep their appropriate direct header edit or no edit.
@@ -1248,6 +1255,7 @@
 
 ### DEC-20260907-009 — Uniform collection geometry is summary-state uniformity, not fixed-height content
 
+- Later refinement (2026-09-10): DEC-20260910-005 also supersedes the three-part elapsed overview rule. The shared full-width summary now shows the complete authored unit combination in its existing restrained text role. The original short-card tradeoff below remains historical context.
 - Context: Owner feedback after the title-grid work shows that adjacent Home cards still feel different because Tasks and elapsed Goals add a second persistent collapsed band. Literal fixed heights across simple tasks, multi-phase Routines, charts, editors, and workout composers would either truncate information or create large artificial voids.
 - Decision: Equivalent collapsed collection summaries use one named geometry contract: 12 dp horizontal inset, 10 dp vertical inset, 6 dp internal rhythm, `titleMedium` semibold identity, concise small status in the title column, stable 48 dp controls, and a 68 dp ordinary summary height. Content grows only for wrapping, enlarged text, or genuinely expanded/domain-rich evidence. Task metadata becomes a concise scalar overview while collapsed and remains complete when expanded. Elapsed Goals show at most three largest meaningful configured parts in the collapsed visual overview while preserving every selected part in the expanded card/detail surfaces and full accessibility description.
 - Cross-product consequence: Home status cards delegate to the same navigation-row grammar. Gym Exercise and Machine libraries, Routine browse headers, and Routine Builder placements use the same insets and title/support hierarchy, while active set composers, charts, notices, grouped Settings blocks, and program evidence remain purpose-specific surfaces.

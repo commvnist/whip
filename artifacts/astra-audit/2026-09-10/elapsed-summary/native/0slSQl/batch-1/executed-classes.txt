@@ -1,0 +1,5 @@
+com.whip.app.GoalRepositoryTest
+com.whip.app.ProductivityCardDesignUiTest
+com.whip.app.VisualCatalogPagesTest
+com.whip.app.ui.ElapsedGoalTimeUiTest
+com.whip.app.ui.GoalSecondaryMutationUiTest

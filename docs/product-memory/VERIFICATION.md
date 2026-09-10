@@ -1,5 +1,17 @@
 # Verification and release evidence
 
+### VER-20260910-005 — Complete visible elapsed Goal summaries
+
+- Status: Verified for FND/DEC/IMP-20260910-005; the whole-app objective remains active. Previous chunk made authoritative progress: dabab4b was clean and equaled live origin/main, delivering the productivity builders with 90 accepted neighbors, five final catalog methods, nine wide checks, readiness and 33 original reviews. No unfinished source/test client remained at opening.
+- Baseline: Existing native Goals and Home originals from VER-20260910-004 show the three-part truncation at normal scale. Source confirms the deliberate old formatter and an accessibility-only assertion in a test claiming visible completeness. Strengthen that assertion before changing production, then verify native normal-scale Goal/Home and relevant neighbors.
+- Limits: Same two disposable API 34/37 emulators; no phone or release. Broader navigation/settings/execution builder review and full-app acceptance remain open.
+
+- Reproduction: Z5SzSq executes the new normal-text contract on unchanged production and fails only the complete visible-text assertion after the full accessibility assertion passes. Production now uses label() in the shared summary; the unused compactLabel formatter and its obsolete partial-output assertion are removed. The architecture check also scopes the actual internal ElapsedGoalMetric symbol instead of searching for its old private declaration. Focused native/domain acceptance is pending.
+
+- Focused acceptance: 0slSQl passes 46 fresh Android tests, zero failures/skips/reuse: Goal repository/secondary mutations, elapsed editor/reset/normal/large visible-summary contracts, 15 productivity-card neighbors and real Goal/Home catalogs. The same command passes 34 fresh JVM tests in GoalRulesTest and UiDesignArchitectureTest. API 37 passes the two visible-summary contracts and native Goal/Home catalogs in 42.355 seconds. Both actual system font settings are 1.0 after completion. Catalog lint passes with unchanged 389 states; six final originals and six existing baseline originals are personally inspected. The phone Home Goal status lies below its initial viewport, so that frame establishes neighboring layout only; normal phone Goals and wide Home directly establish the corrected value.
+
+- Final gates/evidence: scripts/check --ready passes the affected 37 fresh JVM tests in four suites with zero failures/errors/skips, compilation/lint/debug packaging in 2m26. Current declared source inventory is 632 JVM + 1,046 Android = 1,678, with 389 catalog states and 53 actual-font methods; these are inventory counts, not complete execution. Twelve personally inspected originals, PNG integrity/XML checks, native failed/final results, focused/readiness XML, final source/APK hashes and exact commands are retained in artifacts/astra-audit/2026-09-10/elapsed-summary/README.md. No native source changes occurred during campaigns. Navigation/settings/execution adoption and full-product gates remain open; no phone, release or publication.
+
 ### VER-20260910-004 — Productivity builders and expanded information ownership
 
 - Status: Verified for FND/DEC/IMP-20260910-004 under FB-20260910-001/002 and the full Astra objective. Opening goal turn made authoritative progress: b24b8c7 was clean and equaled origin/main, delivering the record builder with accepted native/build evidence. Whole-app acceptance and remaining builder families stay open.

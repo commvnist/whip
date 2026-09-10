@@ -1,0 +1,13 @@
+file	NAF_nodes	observation
+before-api34/goals.active.expanded.png	0	Baseline three-part collapsed overview; expanded configured metric remains complete.
+before-api34/goals.active.populated.png	0	Baseline three-part collapsed overview; expanded configured metric remains complete.
+before-api34/shared.home.populated.png	0	Baseline three-part collapsed overview; expanded configured metric remains complete. Phone Home status lies below this initial viewport; frame establishes adjacent layout only.
+before-api37/goals.active.expanded.png	0	Baseline three-part collapsed overview; expanded configured metric remains complete.
+before-api37/goals.active.populated.png	0	Baseline three-part collapsed overview; expanded configured metric remains complete.
+before-api37/shared.home.populated.png	0	Baseline three-part collapsed overview; expanded configured metric remains complete.
+final-api34/goals.active.expanded.png	0	Complete six-unit status uses the unchanged small full-width text role; expanded metric and final Edit are unchanged.
+final-api34/goals.active.populated.png	0	Complete six-unit status uses the unchanged small full-width text role; expanded metric and final Edit are unchanged.
+final-api34/shared.home.populated.png	0	Complete six-unit status uses the unchanged small full-width text role; expanded metric and final Edit are unchanged. Phone Home status lies below this initial viewport; frame establishes adjacent layout only.
+final-api37/goals.active.expanded.png	0	Complete six-unit status uses the unchanged small full-width text role; expanded metric and final Edit are unchanged.
+final-api37/goals.active.populated.png	0	Complete six-unit status uses the unchanged small full-width text role; expanded metric and final Edit are unchanged.
+final-api37/shared.home.populated.png	0	Complete six-unit status uses the unchanged small full-width text role; expanded metric and final Edit are unchanged.

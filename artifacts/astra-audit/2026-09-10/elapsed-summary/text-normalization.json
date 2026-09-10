@@ -1,0 +1,42 @@
+[
+  {
+    "file": "final-api34/goals.active.expanded.xml",
+    "original": "5d45866c5a90fc650c924bc07e12f0736df832b314e313b7ce14ef64b7d6435e",
+    "retained": "db50edf64affed5e99fd133a155d2528e20926de391f7e9ab007ca50274e036c"
+  },
+  {
+    "file": "final-api34/goals.active.populated.xml",
+    "original": "4938cc97ed7325ed87d3a363125bd973bb085970bfe805d0709a9f52edc9dbc2",
+    "retained": "fe41be5ff9a01f0cfcc4cf149d61353754af5885cd35aff6164f3114a4090972"
+  },
+  {
+    "file": "final-api34/shared.home.populated.xml",
+    "original": "dbedb6e86dbf4e5f3f47977e54bc8feb59232edc2f3a72a6d02a3a4016268713",
+    "retained": "a17997ebaad02af5c5f89aee6c1f9a3d4bd74cfd862951297390fb132a5dc41a"
+  },
+  {
+    "file": "final-api37/goals.active.expanded.xml",
+    "original": "fc746f8d5d911f65e81e1752dfb703326d5eb1030add5b847a280337c4272944",
+    "retained": "7d7556d048316a0fc7aaa9ecf166985f8f2971ce3eaf9fd5b3a0a0807b2c34f1"
+  },
+  {
+    "file": "final-api37/goals.active.populated.xml",
+    "original": "d52b829fdb94545c3dd9e8b04cc8835c11d714be892edba1fc7a713b4ab773b7",
+    "retained": "0f71b7c5ed7d34e37840706efb4c9d111a50c83f131d6f06bf66e32725cb67c1"
+  },
+  {
+    "file": "final-api37/shared.home.populated.xml",
+    "original": "9f356bf0d985063df233a795d0626c9217a07602ec5b842b7cd65fee6e12440a",
+    "retained": "bb0716a279e64e95074ab4aa36bbdda965fba89eef97df7266fd9e9d44a65f9e"
+  },
+  {
+    "file": "native/Z5SzSq/batch-1/result-1.xml",
+    "original": "0e49b7d0389f36b578acc2b07438062e62e40afff0578dbae1a9cdef82fe097f",
+    "retained": "2741024883fc79621dbc5f227482c440cd675c347f3144dec9f2ea768522b1a2"
+  },
+  {
+    "file": "native/0slSQl/batch-1/result-1.xml",
+    "original": "3f1c0dcf333e0e70af026e3773ffe08f0f2705b53e920594cc26bcd8500e601e",
+    "retained": "bb87484b3857aad3c9fa15b0791799bb5fd1eb97fa3ab6fce7427fd1268c2a65"
+  }
+]

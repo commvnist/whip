@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260910-005 — Preserve selected elapsed units in visible Goal summaries
+
+- Behavior: Collapsed Goal and Home cards show every selected elapsed unit, including zero components, through the existing small full-width status text. Expanded/Insights values and accessibility now agree with the visible summary. Automatic and single-unit configurations retain their established output.
+- Files/compatibility: GoalScreens uses ElapsedDisplay.label(); GoalModels removes the unused three-part formatter. No calendar arithmetic, exact instant, saved unit selection, resets, history, schema, backup or version change. Broad configurations may wrap naturally rather than dropping information.
+- Regression coverage: ElapsedGoalTimeUiTest now checks actual Text as well as contentDescription at normal and existing large-text widths; its normal test reproduces the old omission. GoalRulesTest retains exact full calendar-format coverage; the architecture check follows the current metric declaration and full-label policy.
+- Status: Verified under FND/DEC/VER-20260910-005; focused 46 API 34 Android and 34 JVM checks plus four API 37 checks pass. Final readiness passes 37 fresh JVM tests in four suites, compilation/lint/debug packaging in 2m26. Twelve inspected before/final originals, native results and hashes are retained in artifacts/astra-audit/2026-09-10/elapsed-summary/README.md. Broader app/builder adoption remains open; normal main/upstream delivery is recorded in Git history.
+
 ### IMP-20260910-004 — Unify productivity information and expanded actions
 
 - Behavior: Tasks, Habits, Goals and Track summaries share a centered identity/title/action header, full-width summary/details and one Edit footer after the complete expanded body. Habit timer status appears exactly once. Archived Habit and insight cards retain appropriate direct edit/read-only behavior; Home inherits the same production cards.

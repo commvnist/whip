@@ -156,7 +156,16 @@ class ElapsedGoalTimeUiTest {
     }
 
     @Test
+    fun collapsedElapsedGoalCardKeepsEveryConfiguredUnitVisibleAtNormalText() {
+        assertCollapsedElapsedUnits(fontScale = 1f)
+    }
+
+    @Test
     fun collapsedElapsedGoalCardKeepsEveryConfiguredUnitVisibleAtLargeText() {
+        assertCollapsedElapsedUnits(fontScale = 2f)
+    }
+
+    private fun assertCollapsedElapsedUnits(fontScale: Float) {
         val zone = ZoneId.of("America/Toronto")
         val started = zoneMoment(zone, 2025, 7, 1, 8, 0)
         val now = zoneMoment(zone, 2026, 9, 6, 12, 34)
@@ -179,7 +188,7 @@ class ElapsedGoalTimeUiTest {
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 val density = LocalDensity.current
-                CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 2f)) {
+                CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = fontScale)) {
                     Box(Modifier.width(320.dp)) {
                         GoalCard(
                             projection = projection,
@@ -197,6 +206,8 @@ class ElapsedGoalTimeUiTest {
         }
 
         compose.onNodeWithContentDescription("1 year · 2 months · 0 weeks · 5 days · 4 hours · 34 minutes")
+            .assertIsDisplayed()
+        compose.onNodeWithText("1 year · 2 months · 0 weeks · 5 days · 4 hours · 34 minutes")
             .assertIsDisplayed()
     }
 

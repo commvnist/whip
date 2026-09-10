@@ -1,0 +1,32 @@
+[
+  {
+    "file": "shared.home.populated.xml",
+    "original": "shared.home.populated.xml",
+    "sha256": "da43190b0e282f3f816c8cc1fe96727a6da4f66d69e54be1ead5c1b0370e1663"
+  },
+  {
+    "file": "shared.home.populated.png",
+    "original": "shared.home.populated.png",
+    "sha256": "556efd29d339bed3c5126d55e8399c14945201a2ae7fed7e0fbeb2f78bab096d"
+  },
+  {
+    "file": "goals.active.expanded.xml",
+    "original": "goals.active.expanded.xml",
+    "sha256": "20ed8785bf44576cde23e91cf043338aabb88206c2ea0023ed0d9ab107d20407"
+  },
+  {
+    "file": "goals.active.expanded.png",
+    "original": "goals.active.expanded.png",
+    "sha256": "6414bba4e4719e560389762fc123a37a62feb3d011ec074aa89077caeebf656d"
+  },
+  {
+    "file": "goals.active.populated.xml",
+    "original": "goals.active.populated.xml",
+    "sha256": "949902c6045d0c8c1f7b65bcd442341f043194aed4e93f37b2af45aecc26234a"
+  },
+  {
+    "file": "goals.active.populated.png",
+    "original": "goals.active.populated.png",
+    "sha256": "dd34c88b8680a52cb872526ec1f3f00605241941afa43c88733d8f2d9daf2916"
+  }
+]

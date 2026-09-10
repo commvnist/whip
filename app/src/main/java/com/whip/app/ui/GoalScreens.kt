@@ -871,7 +871,7 @@ fun GoalCard(
             }
             summary {
                 text(
-                    text = elapsedStatus?.compactLabel() ?: compactStatus,
+                    text = elapsedStatus?.label() ?: compactStatus,
                     modifier = Modifier
                         .testTag("goal-card-status-${goal.id}")
                         .then(

@@ -1,0 +1,11 @@
+{
+  "app/src/main/java/com/whip/app/domain/GoalModels.kt": "edcd42894ceb4bb3cd19d92e1c7ec9db8739160a5f9cb9d892d2a2f20e8d7a10",
+  "app/src/main/java/com/whip/app/ui/GoalScreens.kt": "32ac60c58f0694ff4297442ad7b6782792c5d76c0dd21b49e935a87dfc411400",
+  "app/src/main/java/com/whip/app/ui/WhipProductivityItemBuilder.kt": "4b9e3d6fa7c76c1a8736b4a1adf6432543209aaa94ae8389d34b4c209b1bd0aa",
+  "app/src/androidTest/java/com/whip/app/ui/ElapsedGoalTimeUiTest.kt": "db0fd53e46c85202c0b41a50b1f09022fb2903cfa89bb6866c4d8dafc7b6231f",
+  "app/src/androidTest/java/com/whip/app/VisualCatalogPagesTest.kt": "9e323818bfc3e90f75c285f1e7e76859c0e16cea4de8c41d2e25a8e12c9a7900",
+  "app/src/test/java/com/whip/app/domain/GoalRulesTest.kt": "f872093165ea507d46d9a24a38e20b42f5f04d75ccd3ee38e8f0b243684c2e66",
+  "app/src/test/java/com/whip/app/ui/UiDesignArchitectureTest.kt": "77954923b320c943504c6a5bfea43e562c81d6229468c90a8312f7eb710baebd",
+  "app/build/outputs/apk/debug/app-debug.apk": "e52ace942497178e38bc415681ae6032ad7b0aaedd51704f235d99485805c030",
+  "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk": "c24d42d1aee427444e6fe99e5be68e67dadb4d2a8dd4e0115b13324725cca8b5"
+}

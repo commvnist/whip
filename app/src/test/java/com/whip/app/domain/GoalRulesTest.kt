@@ -68,10 +68,6 @@ class GoalRulesTest {
             "1 year · 1 month · 3 weeks · 0 days · 5 hours · 6 minutes",
             elapsedDisplay(started, now, format, zone).label(),
         )
-        assertEquals(
-            "1 year · 1 month · 3 weeks",
-            elapsedDisplay(started, now, format, zone).compactLabel(),
-        )
     }
 
     @Test fun elapsedDisplayStorageMigratesLegacyChoicesAndRejectsInvalidCombinations() {

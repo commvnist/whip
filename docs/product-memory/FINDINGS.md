@@ -1,5 +1,12 @@
 # Durable findings
 
+### FND-20260910-005 — Collapsed elapsed Goals omit authored units from visible text
+
+- Severity/category: P2 daily status and cross-surface consistency.
+- Observed: Personally inspected API 34/37 Goals and wide Home originals in VER-20260910-004 show Sober as 1 year · 2 months · 3 days. Expanded/Insights show all six configured units, including 0 weeks, hours and minutes. GoalCard uses ElapsedDisplay.compactLabel(), which removes zero parts and takes three whenever more than three units were selected.
+- Cause/context: DEC-20260907-009 introduced this deliberate overview policy to constrain the previous short-card geometry. DEC-20260907-011 and the new productivity builder now give status its own full-width, naturally wrapping row. Original FB-20260906-009/010 asks to preserve authored unit combinations. The existing test named KeepsEveryConfiguredUnitVisible checks only the complete contentDescription, so it cannot detect visible omissions.
+- Resolution/status: Verified; DEC/IMP/VER-20260910-005. All selected units use the existing restrained summary text; timer calculations, configuration, primary actions and persistence are unchanged. The strengthened normal-text test reproduces the old visual omission. Final 46 API 34 Android, four API 37 checks, 34 focused JVM and 37 readiness JVM checks pass. Twelve original reviews and failed/final evidence: artifacts/astra-audit/2026-09-10/elapsed-summary/README.md.
+
 ### FND-20260910-004 — Expanded productivity information has multiple layout owners
 
 - Severity/category: P2 everyday reading and interaction consistency.

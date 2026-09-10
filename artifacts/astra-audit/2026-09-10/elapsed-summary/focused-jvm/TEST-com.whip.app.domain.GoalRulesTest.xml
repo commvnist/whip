@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.domain.GoalRulesTest" tests="17" skipped="0" failures="0" errors="0" timestamp="2026-09-10T06:41:56.213Z" hostname="beast" time="0.215">
+  <properties/>
+  <testcase name="rollingAverageOnlyUsesConfiguredWindow" classname="com.whip.app.domain.GoalRulesTest" time="0.098"/>
+  <testcase name="consistencyCountsSuccessfulPeriodsRatherThanRawEvents" classname="com.whip.app.domain.GoalRulesTest" time="0.026"/>
+  <testcase name="elapsedCounterSupportsEveryRequestedViewAndAutomaticScale" classname="com.whip.app.domain.GoalRulesTest" time="0.025"/>
+  <testcase name="elapsedGoalHasNoSyntheticProgressOrOutcome" classname="com.whip.app.domain.GoalRulesTest" time="0.006"/>
+  <testcase name="insightTimelineCoversReachReduceRangeAverageConsistencyAndOpenTrend" classname="com.whip.app.domain.GoalRulesTest" time="0.008"/>
+  <testcase name="baselineEqualTargetIsDefined" classname="com.whip.app.domain.GoalRulesTest" time="0.0"/>
+  <testcase name="weightedMilestonesAndOpenTrendBehaveDifferently" classname="com.whip.app.domain.GoalRulesTest" time="0.001"/>
+  <testcase name="insightQualityExplainsExcludedDataAndLargeHistoryStaysComplete" classname="com.whip.app.domain.GoalRulesTest" time="0.026"/>
+  <testcase name="emptyInsightUsesSingularFallbackSourceTypeCopy" classname="com.whip.app.domain.GoalRulesTest" time="0.0"/>
+  <testcase name="increasingAndDecreasingProgressUseBaseline" classname="com.whip.app.domain.GoalRulesTest" time="0.0"/>
+  <testcase name="goalTypeRemovesAHiddenAggregationWindow" classname="com.whip.app.domain.GoalRulesTest" time="0.007"/>
+  <testcase name="paceAndForecastAreDeterministic" classname="com.whip.app.domain.GoalRulesTest" time="0.001"/>
+  <testcase name="elapsedDisplaySupportsAnyCanonicalUnitCombinationWithCalendarMonths" classname="com.whip.app.domain.GoalRulesTest" time="0.008"/>
+  <testcase name="goalDraftValidationExplainsRequiredAndInvalidFieldsBeforePersistence" classname="com.whip.app.domain.GoalRulesTest" time="0.0"/>
+  <testcase name="timeInRangeProgressUsesObservedPercentage" classname="com.whip.app.domain.GoalRulesTest" time="0.001"/>
+  <testcase name="goalTypeNormalizesCalculationDirectionAndDeadlinePace" classname="com.whip.app.domain.GoalRulesTest" time="0.0"/>
+  <testcase name="elapsedDisplayStorageMigratesLegacyChoicesAndRejectsInvalidCombinations" classname="com.whip.app.domain.GoalRulesTest" time="0.005"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

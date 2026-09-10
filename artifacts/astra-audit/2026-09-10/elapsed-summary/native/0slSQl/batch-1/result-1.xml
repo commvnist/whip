@@ -1,0 +1,84 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="46" failures="0" errors="0" skipped="0" time="85.273" timestamp="2026-09-10T06:43:44" hostname="localhost">
+  <testsuite name="com.whip.app.GoalRepositoryTest" tests="17" failures="0" errors="0" skipped="0" time="1.063" timestamp="2026-09-10T06:43:44" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="reorderNormalizesOmittedCompletedGoalsWithoutDuplicatePositions" classname="com.whip.app.GoalRepositoryTest" time="0.087" />
+    <testcase name="cumulativeGoalStoresBackdatedContributions" classname="com.whip.app.GoalRepositoryTest" time="0.052" />
+    <testcase name="consistencyKeepsItsOwnPeriodAndDropsTheUnrelatedAggregationWindow" classname="com.whip.app.GoalRepositoryTest" time="0.052" />
+    <testcase name="changingGoalDisplayUnitDoesNotRelabelOrResaveHistoricalEntry" classname="com.whip.app.GoalRepositoryTest" time="0.077" />
+    <testcase name="goalTypeOwnsCalculationDirectionAndDeadlinePace" classname="com.whip.app.GoalRepositoryTest" time="0.026" />
+    <testcase name="milestonesAreActiveOnlyAndSameStatePreservesTimestamp" classname="com.whip.app.GoalRepositoryTest" time="0.077" />
+    <testcase name="customUnitTargetsEntriesAndDisplayShareOneCanonicalScale" classname="com.whip.app.GoalRepositoryTest" time="0.051" />
+    <testcase name="numericGoalsRequireFiniteTargets" classname="com.whip.app.GoalRepositoryTest" time="0.027" />
+    <testcase name="closedOrArchivedGoalsCannotBeNewlyPinnedButConnectedPinsCanBeRemoved" classname="com.whip.app.GoalRepositoryTest" time="0.051" />
+    <testcase name="elapsedResetWritesImmutableHistoryAndNoOpDoesNotDuplicate" classname="com.whip.app.GoalRepositoryTest" time="0.052" />
+    <testcase name="milestoneStateAndCompletedStatusPersist" classname="com.whip.app.GoalRepositoryTest" time="0.051" />
+    <testcase name="closureSnapshotsFreezeOutcomeSurviveReopenAndArchiveIsOrthogonal" classname="com.whip.app.GoalRepositoryTest" time="0.052" />
+    <testcase name="closedAndArchivedHistoryCanBeCorrectedWithoutRewritingClosure" classname="com.whip.app.GoalRepositoryTest" time="0.152" />
+    <testcase name="milestoneInsertReorderAndRemovalPreserveStableIdentity" classname="com.whip.app.GoalRepositoryTest" time="0.077" />
+    <testcase name="progressRejectsNonFiniteFutureAndStaleEntryWrites" classname="com.whip.app.GoalRepositoryTest" time="0.101" />
+    <testcase name="elapsedGoalPersistsCompositeDisplayRejectsMeasurementsAndResetsExactStart" classname="com.whip.app.GoalRepositoryTest" time="0.052" />
+    <testcase name="exactBoundariesRejectStaleDefinitionButProgressIgnoresUnrelatedPinChange" classname="com.whip.app.GoalRepositoryTest" time="0.026" />
+  </testsuite>
+  <testsuite name="com.whip.app.ProductivityCardDesignUiTest" tests="15" failures="0" errors="0" skipped="0" time="22.253" timestamp="2026-09-10T06:43:44" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="pastScheduledBadgeDoesNotCollapseTheTaskTitleInANarrowPane" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.359" />
+    <testcase name="checklistHabitSummaryKeepsParentAndEachSubItemInteractive" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.536" />
+    <testcase name="scheduledDateAndRecurrenceUseFullWidthSummaryAndExpandWithoutDuplication" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.233" />
+    <testcase name="summaryRowsExpandIndependentlyAndWorkspaceTabChangesCollapseThem" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.335" />
+    <testcase name="timerReviewDialogSupportsCorrectionContinueStopAndDiscardAtNarrowWidth" classname="com.whip.app.ProductivityCardDesignUiTest" time="4.151" />
+    <testcase name="habitTimerRemainsReadableOwnedAndReachableAtNarrowLargeText" classname="com.whip.app.ProductivityCardDesignUiTest" time="0.831" />
+    <testcase name="goalSummaryKeepsElapsedTimerResetAndMilestoneControls" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.964" />
+    <testcase name="summaryCardsKeepLongTextReadableAtTwoHundredPercentFontScale" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.058" />
+    <testcase name="habitSummaryStateMatrixKeepsTimerSkipAndSyncedInformation" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.334" />
+    <testcase name="tasksHabitsAndGoalsShareIdentityActionAndEditColumns" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.611" />
+    <testcase name="habitActivityGridExposesOneSpokenDateAndStatePerDay" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.157" />
+    <testcase name="taskSummaryRowsReflowNotesAndSubtaskProgressWithoutLosingActions" classname="com.whip.app.ProductivityCardDesignUiTest" time="0.981" />
+    <testcase name="summaryExpansionSurvivesSavedStateRestoration" classname="com.whip.app.ProductivityCardDesignUiTest" time="0.933" />
+    <testcase name="pausedAndOffScheduleHabitSummariesRemoveAccidentalQuickActions" classname="com.whip.app.ProductivityCardDesignUiTest" time="0.983" />
+    <testcase name="habitAndGoalSummaryRowsKeepDetailsAndInlineActions" classname="com.whip.app.ProductivityCardDesignUiTest" time="1.787" />
+  </testsuite>
+  <testsuite name="com.whip.app.VisualCatalogPagesTest" tests="2" failures="0" errors="0" skipped="0" time="25.913" timestamp="2026-09-10T06:43:44" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="captureGoalPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="17.063" />
+    <testcase name="captureSharedPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="8.85" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.ElapsedGoalTimeUiTest" tests="4" failures="0" errors="0" skipped="0" time="9.643" timestamp="2026-09-10T06:43:44" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="editorPersistsAnyElapsedUnitCombinationAndShowsALivePreview" classname="com.whip.app.ui.ElapsedGoalTimeUiTest" time="3.803" />
+    <testcase name="resetWithoutEditingPreservesTheExactInstantAndActionsRemainUsableAtLargeText" classname="com.whip.app.ui.ElapsedGoalTimeUiTest" time="3.997" />
+    <testcase name="collapsedElapsedGoalCardKeepsEveryConfiguredUnitVisibleAtNormalText" classname="com.whip.app.ui.ElapsedGoalTimeUiTest" time="1.239" />
+    <testcase name="collapsedElapsedGoalCardKeepsEveryConfiguredUnitVisibleAtLargeText" classname="com.whip.app.ui.ElapsedGoalTimeUiTest" time="0.604" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.GoalSecondaryMutationUiTest" tests="8" failures="0" errors="0" skipped="0" time="24.48" timestamp="2026-09-10T06:43:44" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="terminalMilestoneSummaryUsesTheFrozenClosureRatherThanTheEditedDefinition" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="0.53" />
+    <testcase name="progressDatePolicyRejectsFutureAndConfirmsOutsideGoalWindow" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="1.762" />
+    <testcase name="archivedInspectorPreservesLifecycleHistoryAndHidesMisleadingPin" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="2.061" />
+    <testcase name="progressFailureKeepsDraftAndSavingBlocksBackAndDuplicateSubmit" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="6.028" />
+    <testcase name="permanentDeleteShowsCompleteImpactAndRequiresRereviewAfterStaleFailure" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="1.928" />
+    <testcase name="leavingAnActionSurfaceClearsItsFailedRequestBeforeOpeningAnotherDialog" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="0.968" />
+    <testcase name="captureGoalComponentCatalog" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="10.192" />
+    <testcase name="milestoneIsEditableOnlyForAnUnarchivedActiveGoal" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="1.011" />
+  </testsuite>
+</testsuites>
