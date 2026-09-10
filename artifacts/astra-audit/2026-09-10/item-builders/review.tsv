@@ -1,0 +1,11 @@
+file	NAF_nodes	observation
+final-api34/tracks.record-builder.entries.png	0	Title/edit/overflow share the header; date precedes full-width labeled facts. Sample facts are completely visible at normal scale.
+final-api34/tracks.record-builder.activity.png	0	The same record hierarchy adds Track identity/context. Previously truncated sample facts are fully readable; title and actions align.
+final-api34/tracks.record-builder.actions.png	0	Open Track is followed by separated destructive Delete Entry. The popup covers part of the underlying record as expected; native actions target exact records.
+final-api34/tracks.record-builder.archived.png	0	Record mutation controls disappear while title/context/facts retain the same reading order. Inspection remains available; phone content scrolls.
+final-api37/tracks.record-builder.entries.png	0	Title/edit/overflow share the header; date precedes full-width labeled facts. Sample facts are completely visible at normal scale.
+final-api37/tracks.record-builder.activity.png	0	The same record hierarchy adds Track identity/context. Previously truncated sample facts are fully readable; title and actions align.
+final-api37/tracks.record-builder.actions.png	0	Open Track is followed by separated destructive Delete Entry. The popup covers part of the underlying record as expected; native actions target exact records.
+final-api37/tracks.record-builder.archived.png	0	Record mutation controls disappear while title/context/facts retain the same reading order. Inspection remains available; phone content scrolls.
+before/tracks.record-builder.entries.png	0	Local record layouts constrain metadata beside actions; Activity truncates Weather and differs from the Entries reading order.
+before/tracks.record-builder.activity.png	0	Local record layouts constrain metadata beside actions; Activity truncates Weather and differs from the Entries reading order.

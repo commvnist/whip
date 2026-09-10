@@ -1,0 +1,42 @@
+[
+  {
+    "file": "tracks.record-builder.archived.xml",
+    "original": "tracks.record-builder.archived.xml",
+    "sha256": "5e9caacaf2ad5fc0e41696cbf452732c7189480686abda76f3cb096a3b1c28df"
+  },
+  {
+    "file": "tracks.record-builder.archived.png",
+    "original": "tracks.record-builder.archived.png",
+    "sha256": "89a605b2200d424b8449177a35448b4f998166e209ab70e81e3ba652cfa8430c"
+  },
+  {
+    "file": "tracks.record-builder.actions.xml",
+    "original": "tracks.record-builder.actions.xml",
+    "sha256": "7ff7853d2cfb0ad57b498d2379090cdd4a41de712b20f960e78efc8d7463d12c"
+  },
+  {
+    "file": "tracks.record-builder.actions.png",
+    "original": "tracks.record-builder.actions.png",
+    "sha256": "ebe1c8c07371bc19b40bef14299a6ee8d8a5fb777ec09a0cccbfc190603c195e"
+  },
+  {
+    "file": "tracks.record-builder.activity.xml",
+    "original": "tracks.record-builder.activity.xml",
+    "sha256": "6ea9697dd82764d5c3ed76f45b928ada5f213382d9ab0c6938b4a5538e02e5ce"
+  },
+  {
+    "file": "tracks.record-builder.activity.png",
+    "original": "tracks.record-builder.activity.png",
+    "sha256": "6b5fd2b6b2aff5085a6918ec8791a9e881a55b3b0326ee8e0116c628706513a6"
+  },
+  {
+    "file": "tracks.record-builder.entries.xml",
+    "original": "tracks.record-builder.entries.xml",
+    "sha256": "c5e1a5db2c4ae707a97884024903c8d814cb744e1fb07d4a48f41e48a82c2875"
+  },
+  {
+    "file": "tracks.record-builder.entries.png",
+    "original": "tracks.record-builder.entries.png",
+    "sha256": "4d347f771da07c808ddfdb1da52207d17c045fec0f633c0e9d677060fc5a34c2"
+  }
+]

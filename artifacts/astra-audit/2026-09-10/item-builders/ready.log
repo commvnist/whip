@@ -1,0 +1,151 @@
+Route A app/src/androidTest/java/com/whip/app/RecordItemBuilderJourneyE2ETest.kt -> android:com.whip.app.RecordItemBuilderJourneyE2ETest (exact Android test class)
+Route A app/src/androidTest/java/com/whip/app/ui/WhipRecordItemTest.kt -> android:com.whip.app.ui.WhipRecordItemTest (exact Android test class)
+Route A app/src/main/java/com/whip/app/ui/WhipItemBuilders.kt -> candidate:required (unknown production path)
+Route A docs/quality/WHIP_ITEM_BUILDERS_2026-09-10.md -> candidate:required (machine-checked quality harness path)
+Route M app/src/main/java/com/whip/app/ui/TrackScreens.kt -> profile:tracks (feature-owned production path)
+Route M docs/product-memory/DECISIONS.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/FINDINGS.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/INDEX.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/VERIFICATION.md -> profile:docs (documentation-only path)
+Route M docs/quality/ui-source-snapshot.tsv -> candidate:required (machine-checked quality harness path)
+Route M docs/quality/ui-surface-catalog.tsv -> candidate:required (machine-checked quality harness path)
+Route M docs/testing.md -> profile:docs (documentation-only path)
+Route M scripts/qa-targeted -> candidate:required (test or release harness integrity path)
+Profile: all
+Profile: docs
+Profile: tracks
+Android selector: com.whip.app.RecordItemBuilderJourneyE2ETest
+Android selector: com.whip.app.ui.WhipRecordItemTest
+Harness check: scripts/test-check-fast
+Harness check: scripts/test-check-full
+All JVM tests: false
+All Android tests: false
+Static checks: true
+Frozen candidate required: true
+Reusing configuration cache.
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:generateDebugJacocoPropertiesFile UP-TO-DATE
+> Task :app:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:kspDebugKotlin UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:kspDebugUnitTestKotlin SKIPPED
+> Task :app:bundleDebugClassesToRuntimeJar
+> Task :app:compileDebugUnitTestKotlin
+> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:copyRoomSchemas NO-SOURCE
+> Task :app:testDebugUnitTest
+
+BUILD SUCCESSFUL in 3s
+29 actionable tasks: 3 executed, 26 up-to-date
+Configuration cache entry reused.
+Targeted JVM checks passed; Android-test compilation was intentionally deferred.
+PASS fast-default-explicit-readiness-and-store-boundary
+PASS check-full-without-android-serial
+All complete-local-gate fixtures passed.
+Play Store assets verified: 512x512 icon, 1024x500 feature graphic, and 5 phone screenshots
+Reusing configuration cache.
+> Task :app:preBuild UP-TO-DATE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:preDebugAndroidTestBuild SKIPPED
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:processDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:generateDebugGlobalSynthetics UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:generateDebugJacocoPropertiesFile UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:generateDebugAndroidTestResValues UP-TO-DATE
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:generateDebugAndroidTestResources UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:packageDebugAndroidTestResources UP-TO-DATE
+> Task :app:parseDebugAndroidTestLocalResources UP-TO-DATE
+> Task :app:generateDebugAndroidTestRFile UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:mergeDebugNativeLibs UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:stripDebugDebugSymbols UP-TO-DATE
+> Task :app:mergeDebugAndroidTestManifest UP-TO-DATE
+> Task :app:processDebugAndroidTestManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:generateDebugAndroidTestBuildConfig UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:kspDebugKotlin UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:jacocoDebug UP-TO-DATE
+> Task :app:kspDebugAndroidTestKotlin SKIPPED
+> Task :app:copyRoomSchemas NO-SOURCE
+> Task :app:dexBuilderDebug UP-TO-DATE
+> Task :app:mergeProjectDexDebug UP-TO-DATE
+> Task :app:mergeDebugJavaResource UP-TO-DATE
+> Task :app:packageDebug UP-TO-DATE
+> Task :app:assembleDebug UP-TO-DATE
+> Task :app:createDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:compileDebugAndroidTestKotlin UP-TO-DATE
+> Task :app:generateDebugLintReportModel
+> Task :app:generateDebugUnitTestLintModel
+> Task :app:generateDebugAndroidTestLintModel
+> Task :app:lintAnalyzeDebugUnitTest
+> Task :app:lintAnalyzeDebugAndroidTest
+> Task :app:lintAnalyzeDebug
+
+> Task :app:lintReportDebug
+Wrote HTML report to file:///root/repos/whip/app/build/reports/lint-results-debug.html
+Wrote SARIF report to file:///root/repos/whip/app/build/reports/lint-results-debug.sarif
+
+> Task :app:lintDebug
+
+BUILD SUCCESSFUL in 2m 22s
+62 actionable tasks: 8 executed, 54 up-to-date
+Configuration cache entry reused.
+Affected-change readiness gate passed. Frozen-candidate evidence was not created.
+Play Store note: qualify these inputs with a fresh scripts/candidate run only when preparing a store release.

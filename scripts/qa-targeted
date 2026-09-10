@@ -209,6 +209,8 @@ add_profile() {
                 'com.whip.app.TrackDefinitionReviewJourneyE2ETest'
                 'com.whip.app.TrackHistoryControlsJourneyE2ETest'
                 'com.whip.app.TrackCollectionJourneyE2ETest'
+                'com.whip.app.RecordItemBuilderJourneyE2ETest'
+                'com.whip.app.ui.WhipRecordItemTest'
                 'com.whip.app.ui.TrackCsvImportUiTest'
                 'com.whip.app.ui.TrackCsvImportRecoveryViewModelTest'
                 'com.whip.app.TrackWorkspaceUiTest'

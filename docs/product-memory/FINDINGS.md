@@ -1,5 +1,13 @@
 # Durable findings
 
+### FND-20260910-003 — Equivalent record layouts crowd and order information differently
+
+- Severity/category: P2 design consistency and normal-scale readability.
+- Observed: Baseline native 1w8kcE passes exact Open/Edit/Delete review/Open Track/archive/history behavior. Personally inspected 100% API 34 Entries and Activity originals show the same facts laid out differently: Activity squeezes metadata between identity/actions and truncates Weather, while Entries fits it and puts the date after facts. Edit glyph sizes also differ in source.
+- Cause: TrackEntryRow and TrackActivityRow separately own card internals, typography, metadata composition and overflow state despite sharing WhipItemCard.
+- Expected/direction: A record builder owns one title/action header and full-width information beneath it; callers declare content and behavior. Establish date/context before supporting facts and reuse control/menu grammar. Preserve domain history and archived read-only behavior.
+- Related/status: Verified for the record pilot; FB-20260910-001/002, FB-20260907-015, DEC-20260907-011, VER-20260910-003. Final 33 API 34 Android checks, three focused API 37 checks and 346 JVM readiness checks pass. Ten original image reviews and evidence: artifacts/astra-audit/2026-09-10/item-builders/.
+
 ### FND-20260910-002 — Track bulk actions retain invisible selections
 
 - Severity/category: P1 selection correctness; bulk actions can target a Track outside the displayed collection.

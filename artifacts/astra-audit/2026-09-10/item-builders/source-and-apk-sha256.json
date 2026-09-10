@@ -1,0 +1,9 @@
+{
+  "app/src/main/java/com/whip/app/ui/WhipItemBuilders.kt": "c0662b643051a203da7940deec25e5654860a617480df7d1131517698cd00fa1",
+  "app/src/main/java/com/whip/app/ui/TrackScreens.kt": "4acd1c3a43570e14d6bc4d3b322989be0cc8145d81d0d9959385d6556b17b166",
+  "app/src/androidTest/java/com/whip/app/RecordItemBuilderJourneyE2ETest.kt": "13af5090b9dfd1d42f9d13a6a30465ffbf632e022514d682167f36e20ac4ba70",
+  "app/src/androidTest/java/com/whip/app/ui/WhipRecordItemTest.kt": "f3fdec03bd32c56b3c2288789d118e108e536fa0a1d424917376831d6fc8c0ef",
+  "scripts/qa-targeted": "a78203bd52ed1e12643ec7c118ce92c1f660397d8b3119cca9d79677f047f5b2",
+  "app/build/outputs/apk/debug/app-debug.apk": "43cef48ebe33f458eca1e3e845a9a0f43f9f9313f7ebc04354eb6f09dce1c467",
+  "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk": "5e5ba1919995cd8e22bec6fd6744c9e51779215fe93d75a948a6bcc8b9af123c"
+}

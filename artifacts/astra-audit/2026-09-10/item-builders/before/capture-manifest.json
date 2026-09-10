@@ -1,0 +1,22 @@
+[
+  {
+    "file": "tracks.record-builder.activity.xml",
+    "original": "tracks.record-builder.activity.xml",
+    "sha256": "9dded35d0d29c991eddb34a31e439ab88a1e94f06f4cf6b2f9fe68a8674922b1"
+  },
+  {
+    "file": "tracks.record-builder.activity.png",
+    "original": "tracks.record-builder.activity.png",
+    "sha256": "2a33c21fa95e8f3a8cad0b78af9a135968793f7c25e6ec7537ef4fd68effe006"
+  },
+  {
+    "file": "tracks.record-builder.entries.xml",
+    "original": "tracks.record-builder.entries.xml",
+    "sha256": "a6a34afdb19ef4b9ac0eba4b5e1d7dd2e473421f5e27683418e32c6c1b013ade"
+  },
+  {
+    "file": "tracks.record-builder.entries.png",
+    "original": "tracks.record-builder.entries.png",
+    "sha256": "554ceffc4715fbe2ab39cb3b1504cbac19f05323e8ab48387594219bfe28e2bb"
+  }
+]

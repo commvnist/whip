@@ -1115,8 +1115,10 @@ private fun TrackActivityPage(
                     )
                 }
                 else -> items(items, key = { "track-activity-${it.entry.entry.id}" }) { item ->
-                    TrackActivityRow(
-                        item = item,
+                    TrackEntryRow(
+                        projection = item.projection,
+                        entry = item.entry,
+                        editable = true,
                         customUnits = customUnits,
                         onOpen = { viewedEntryId = item.entry.entry.id },
                         onOpenTrack = { onOpenTrack(item.projection.track.id) },
@@ -1140,60 +1142,6 @@ private fun TrackActivityPage(
                 onDismiss = { viewedEntryId = null },
                 onEdit = { viewedEntryId = null; onEditEntry(projection.track.id, entryId) },
             )
-        }
-    }
-}
-
-@Composable
-private fun TrackActivityRow(
-    item: TrackActivityItem,
-    customUnits: List<UnitDefinition>,
-    onOpen: () -> Unit,
-    onOpenTrack: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    var moreOpen by rememberSaveable(item.entry.entry.id) { mutableStateOf(false) }
-    val projection = item.projection
-    val entry = item.entry
-    val supporting = projection.fields.filter(TrackField::showInList).take(2).mapNotNull { field ->
-        projection.formattedValue(entry, field, BuiltInUnits.all + customUnits).takeIf(String::isNotBlank)?.let { "${field.name} $it" }
-    }
-    WhipItemCard(
-        modifier = Modifier.fillMaxWidth().clickable(
-            onClickLabel = "Open Entry ${projection.primaryText(entry)}",
-            onClick = onOpen,
-        ),
-    ) {
-        Row(
-            Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            WhipIdentityEmoji(projection.track.icon)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(projection.primaryText(entry), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                ProductivityItemSupportingText(
-                    text = listOf(projection.track.name, projection.track.area, entry.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
-                        .filter(String::isNotBlank).joinToString(" · "),
-                    maxLines = 2,
-                )
-                if (supporting.isNotEmpty()) ProductivityItemSupportingText(supporting.joinToString(" · "), maxLines = 2)
-            }
-            ItemEditButton("Entry", projection.primaryText(entry), onEdit)
-            Box {
-                IconButton(onClick = { moreOpen = true }) { Icon(Icons.Outlined.MoreVert, contentDescription = "More Actions for ${projection.primaryText(entry)}") }
-                DropdownMenu(moreOpen, { moreOpen = false }) {
-                    WhipMenuItem(label = "Open Track", onClick = { moreOpen = false; onOpenTrack() })
-                    HorizontalDivider()
-                    WhipMenuItem(
-                        label = "Delete Entry",
-                        icon = Icons.Outlined.DeleteOutline,
-                        role = WhipMenuItemRole.Destructive,
-                        onClick = { moreOpen = false; onDelete() },
-                    )
-                }
-            }
         }
     }
 }
@@ -2134,46 +2082,30 @@ private fun TrackEntryRow(
     onOpen: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onOpenTrack: (() -> Unit)? = null,
 ) {
-    var moreOpen by rememberSaveable(entry.entry.id) { mutableStateOf(false) }
-    val supporting = projection.fields.filter(TrackField::showInList).take(2).mapNotNull { field ->
-        projection.formattedValue(entry, field, BuiltInUnits.all + customUnits).takeIf(String::isNotBlank)?.let { "${field.name} $it" }
-    }
-    WhipItemCard(
-        modifier = Modifier.fillMaxWidth().clickable(
-            onClickLabel = "Open Entry ${projection.primaryText(entry)}",
-            onClick = onOpen,
-        ),
+    WhipRecordItem(
+        itemKey = entry.entry.id,
+        itemType = "Entry",
+        title = projection.primaryText(entry),
+        identityEmoji = if (onOpenTrack != null) projection.track.icon else null,
+        onOpen = onOpen,
     ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(projection.primaryText(entry), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                ProductivityItemSupportingText(
-                    text = (supporting + entry.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))).joinToString(" · "),
-                    maxLines = 2,
-                )
-            }
-            if (editable) {
-                IconButton(
-                    onClick = onEdit,
-                    modifier = Modifier.semantics { contentDescription = "Edit Entry ${projection.primaryText(entry)}" },
-                ) { Icon(Icons.Outlined.Edit, contentDescription = null) }
-                Box {
-                    IconButton(
-                        onClick = { moreOpen = true },
-                        modifier = Modifier.semantics { contentDescription = "More Actions for ${projection.primaryText(entry)}" },
-                    ) { Icon(Icons.Outlined.MoreVert, contentDescription = null) }
-                    DropdownMenu(moreOpen, { moreOpen = false }) {
-                        WhipMenuItem(
-                            label = "Delete Entry",
-                            icon = Icons.Outlined.DeleteOutline,
-                            role = WhipMenuItemRole.Destructive,
-                            onClick = { moreOpen = false; onDelete() },
-                        )
-                    }
-                }
-            }
+        context(entry.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
+        if (onOpenTrack != null) {
+            context(projection.track.name)
+            context(projection.track.area)
         }
+        val units = BuiltInUnits.all + customUnits
+        projection.fields.filter(TrackField::showInList).take(2).forEach { field ->
+            fact(field.name, projection.formattedValue(entry, field, units))
+        }
+        if (editable) edit(onEdit)
+        if (onOpenTrack != null) command("Open Track", onClick = onOpenTrack)
+        if (editable) command(
+            "Delete Entry", icon = Icons.Outlined.DeleteOutline,
+            role = WhipMenuItemRole.Destructive, onClick = onDelete,
+        )
     }
 }
 

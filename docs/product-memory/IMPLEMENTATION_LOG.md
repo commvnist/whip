@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260910-003 — Render Track records through a shared item builder
+
+- Behavior: Track Entries and Activity share a title/action header followed by full-width date/context and labeled Field facts. The Activity fixture's previously truncated details now fit at 100%. Direct edit, contextual navigation, destructive menu grammar and archived read-only inspection remain consistent.
+- Architecture/files: `ui/WhipItemBuilders.kt` introduces WhipRecordItem with context/fact/edit/command roles over existing card geometry and controls. TrackScreens uses one presentation mapping and removes its two local record layouts/menu owners. The builder owns reading order, typography, spacing, natural height and identity-keyed menu state; feature/repository code owns data and mutations. `docs/quality/WHIP_ITEM_BUILDERS_2026-09-10.md` defines the remaining family rollout.
+- Compatibility: No schema, backup, version, draft or saved-value interpretation change. Full values remain in inspectors; list title/facts use shared two/three-line previews. Native navigation/edit cancellation/delete review/recreation/archive preserve exact Entries, Fields and Options.
+- Verification/status: Verified for the record pilot under FND/DEC/VER-20260910-003 / FB-20260910-001/002. Final 33 Android neighbors on API 34, three focused API 37 tests, 346 fresh JVM readiness checks, compilation/lint/debug packaging and catalog fixtures pass. Ten retained original images have personal review. Builder adoption beyond this family and whole-app UX/design/bug work remain active; no broad responsiveness or whole-app acceptance is inferred. Normal main/upstream delivery is recorded by Git history.
+
 ### IMP-20260910-002 — Bound Track bulk actions to visible selections
 
 - Behavior: Area and active/Archived changes remove hidden Track selections. Counts, pin labels and mutation targets share the current visible set. Visible choices survive narrowing and Activity recreation; loading/failure disables actions without prematurely pruning saved selection. The selection panel explains its scope.

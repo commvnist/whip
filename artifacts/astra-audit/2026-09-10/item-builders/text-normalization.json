@@ -1,0 +1,67 @@
+[
+  {
+    "file": "final-api34/tracks.record-builder.entries.xml",
+    "original": "84453fd3dd8d81c83f8b599a1fd90218dc4e2356e48d334503a2d7193f394984",
+    "retained": "b0cbab4b8f4ea5ea911be08b98b497c7f6f4a3373ece0e699fb2263e2be92502"
+  },
+  {
+    "file": "final-api34/tracks.record-builder.activity.xml",
+    "original": "ab6022c4509ba62f51cc5006048bae6d26f3312bd9847b238b9eacab8f199172",
+    "retained": "d319ec976054ae684d3fb89fb2dcf9ad6dab6f018923a998683c62b2c4901152"
+  },
+  {
+    "file": "final-api34/tracks.record-builder.actions.xml",
+    "original": "e12ec5febf8bf2aa5f8b04dd261d6289520baa5b9c9d2a20834da534695ad41c",
+    "retained": "be66edb868e6dd08dd184a812be3187a519a99251c1826d098315c5c88f3abec"
+  },
+  {
+    "file": "final-api34/tracks.record-builder.archived.xml",
+    "original": "6c3fdc8869b5613487b381e9c9edf36739846b192a1056df543deccd360fb50b",
+    "retained": "54c75c8a7892a2db94e5f28fa3cbd4bba179779bd029a5236fe251b243bcd8a2"
+  },
+  {
+    "file": "final-api37/tracks.record-builder.entries.xml",
+    "original": "c5e1a5db2c4ae707a97884024903c8d814cb744e1fb07d4a48f41e48a82c2875",
+    "retained": "ffaa2b80b2571d74cd216e439c6c76420fddab0f44d05c0df9185bbcfaa1d486"
+  },
+  {
+    "file": "final-api37/tracks.record-builder.activity.xml",
+    "original": "6ea9697dd82764d5c3ed76f45b928ada5f213382d9ab0c6938b4a5538e02e5ce",
+    "retained": "72e0e27fabbf00e2674bac150895644db4ee363c8306c4337959a07fe1b15f82"
+  },
+  {
+    "file": "final-api37/tracks.record-builder.actions.xml",
+    "original": "7ff7853d2cfb0ad57b498d2379090cdd4a41de712b20f960e78efc8d7463d12c",
+    "retained": "740780a8c7c5b5c91c1bde0fa6ceb9447b95e5ef90e33b87c9130612ca7e959d"
+  },
+  {
+    "file": "final-api37/tracks.record-builder.archived.xml",
+    "original": "5e9caacaf2ad5fc0e41696cbf452732c7189480686abda76f3cb096a3b1c28df",
+    "retained": "107ab98452cbda6e8f290e81cbbe22d3b981cb6b58186099faa3e480aaab3f4b"
+  },
+  {
+    "file": "before/tracks.record-builder.entries.xml",
+    "original": "a6a34afdb19ef4b9ac0eba4b5e1d7dd2e473421f5e27683418e32c6c1b013ade",
+    "retained": "65e665146aee81d14086a8b867937c8814e78f60985c9a9f553f414d3efe12ac"
+  },
+  {
+    "file": "before/tracks.record-builder.activity.xml",
+    "original": "9dded35d0d29c991eddb34a31e439ab88a1e94f06f4cf6b2f9fe68a8674922b1",
+    "retained": "4a877e8689d08ef7cf3d781ed257997baafd39e7a19ad10ec90fb7f949964d0f"
+  },
+  {
+    "file": "native/1w8kcE/batch-1/result-1.xml",
+    "original": "26a2ba5558ca5d16a350dcdc3b2f5dc9e18e677ea9eeda60e23ab36caa5faa5f",
+    "retained": "8d3c4ee3feef1bd90021620519201e5e0397065398c1a00610478d5243515d0c"
+  },
+  {
+    "file": "native/7Af8CZ/batch-1/result-1.xml",
+    "original": "f8054ec5cfb56f674913976585f25f9d632efa7c6a49ed19d0707d1bf0c7cf57",
+    "retained": "7c4acb88c682da9b6e68be45183475af7a64830ea9b92272600248c3cf2047a0"
+  },
+  {
+    "file": "native/rPTeKm/batch-1/result-1.xml",
+    "original": "b61b6991f7ad7744394cc971ee99a1ce73c8ec14f95af05c78bf4a2e427f0024",
+    "retained": "0ca41f42c9a281d0cbd398e650121696dbb842f61d993d94dacac92c2bfe24e2"
+  }
+]

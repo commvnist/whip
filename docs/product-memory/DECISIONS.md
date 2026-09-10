@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-003 — Build item families from semantic content and action roles
+
+- Decision: Introduce a small record-item builder over existing WhipItemCard geometry and shared edit/overflow controls. Features declare title/identity, context, labeled facts, edit and named commands. The renderer owns typography, reading order, spacing, optional-content collapse and menu state keyed to record identity. Date precedes context and facts in both Track record entry points.
+- Alternatives/tradeoffs: Patching each local Row preserves drift; replacing the theme or imposing one universal body on all domains adds unnecessary scope. Role-specific builders can extend the existing productivity/navigation/execution patterns incrementally. Feature state, history, drafts and repositories remain caller-owned.
+- Reading policy: Context wraps naturally across the card width; supporting facts use a shared three-line preview with full values still available in the inspector. Title remains a two-line summary. Natural height replaces caller-specific row sizing; list scrolling and insets remain screen responsibilities.
+- Scope/status: Verified for the first Track Entries and Activity pilot with normal phone/wide validation; remaining family adoption is In progress. No per-screen 200% campaign. FND-20260910-003 / VER-20260910-003; rollout and remaining families in docs/quality/WHIP_ITEM_BUILDERS_2026-09-10.md.
+
 ### DEC-20260910-002 — Keep Track bulk selection within its displayed collection
 
 - Alternatives: Retain cross-view selection with explicit hidden counts and management, as Tasks does for its richer filtered bulk workflow; or retain only selected Tracks still in the current collection. Clearing all selection on any Area change would unnecessarily discard visible choices.
