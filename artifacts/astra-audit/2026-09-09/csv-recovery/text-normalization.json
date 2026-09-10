@@ -1,0 +1,205 @@
+{
+  "normalization": "CRLF to LF; strip trailing physical-line whitespace; exactly one final newline. PNGs unchanged.",
+  "files": [
+    {
+      "file": "api26/tracks.csv-recovery.invalid.large.xml",
+      "originalSha256": "f76426aabf04cb39115731468fdeecf3e449c157258e679cb864e9f9fee11860",
+      "retainedSha256": "ca2b430c8501b92bd41614ac10c34dac8e18bcb7333cb336dfc6db38b7387fb1"
+    },
+    {
+      "file": "api26/tracks.csv-recovery.invalid.ordinary.xml",
+      "originalSha256": "7ada8fa87fa65bc18ccf3525545bd1b7ea9df175312264c4d9b00a6164eb2191",
+      "retainedSha256": "18743c528959874e7670a94d98e7f7e54db0933456eabd08b929a8a666f5f133"
+    },
+    {
+      "file": "api26/tracks.csv-recovery.replacement-cancelled.large.xml",
+      "originalSha256": "f76426aabf04cb39115731468fdeecf3e449c157258e679cb864e9f9fee11860",
+      "retainedSha256": "ca2b430c8501b92bd41614ac10c34dac8e18bcb7333cb336dfc6db38b7387fb1"
+    },
+    {
+      "file": "api26/tracks.csv-recovery.replacement-cancelled.ordinary.xml",
+      "originalSha256": "7ada8fa87fa65bc18ccf3525545bd1b7ea9df175312264c4d9b00a6164eb2191",
+      "retainedSha256": "18743c528959874e7670a94d98e7f7e54db0933456eabd08b929a8a666f5f133"
+    },
+    {
+      "file": "api26/tracks.csv-recovery.replacement-ready.large.xml",
+      "originalSha256": "2649efae1a84ed1b602a262b9678707d9199ce1e4306f5f57df6f99394027c55",
+      "retainedSha256": "9ee3889074c4a839c64f921d6d0ab42ba8e097dfc65da489a4e4eb9e4ec86239"
+    },
+    {
+      "file": "api26/tracks.csv-recovery.replacement-ready.ordinary.xml",
+      "originalSha256": "42865082c6dda02f8208ed2ce6b814dea0ff42b109d014069806123b2ceeac79",
+      "retainedSha256": "f8db2da192863ecac1badb4852fdccee7cf5d4a6d39703d30b6e979af312e59b"
+    },
+    {
+      "file": "api34/tracks.csv-recovery.invalid.large.xml",
+      "originalSha256": "88e156525bf7e12ad36c03d2d2bcfdb112f92c0d98302d5dadde30fd77c8a405",
+      "retainedSha256": "146dcbf0179b24f10f2f83f29e13b2a4419cd914d22e700b8f6f723990caebf5"
+    },
+    {
+      "file": "api34/tracks.csv-recovery.invalid.ordinary.xml",
+      "originalSha256": "14ca67812bd7067a412a40d860ce80d43fc8f160446bced16d8a2450639353cf",
+      "retainedSha256": "1847bfadfe5c294a19b8a199a284f9993981a27a0d89740679072cf7ba06e587"
+    },
+    {
+      "file": "api34/tracks.csv-recovery.replacement-cancelled.large.xml",
+      "originalSha256": "88e156525bf7e12ad36c03d2d2bcfdb112f92c0d98302d5dadde30fd77c8a405",
+      "retainedSha256": "146dcbf0179b24f10f2f83f29e13b2a4419cd914d22e700b8f6f723990caebf5"
+    },
+    {
+      "file": "api34/tracks.csv-recovery.replacement-cancelled.ordinary.xml",
+      "originalSha256": "14ca67812bd7067a412a40d860ce80d43fc8f160446bced16d8a2450639353cf",
+      "retainedSha256": "1847bfadfe5c294a19b8a199a284f9993981a27a0d89740679072cf7ba06e587"
+    },
+    {
+      "file": "api34/tracks.csv-recovery.replacement-ready.large.xml",
+      "originalSha256": "ec2927d301163d6cd9d385fcbcbefd3d655f071a396f0f0f184a5b2bfb1c1c3d",
+      "retainedSha256": "fae1281d12e1eb730087d6cf808e923aecb4a5f73f1d17776191aa19e92d1aec"
+    },
+    {
+      "file": "api34/tracks.csv-recovery.replacement-ready.ordinary.xml",
+      "originalSha256": "fbd8b8524e7e9f786ad6adc8764a3b2bcc6fcfde753a61048b887dbeb0ae1f3c",
+      "retainedSha256": "6085a7dd3a8de3decd15c3566000f1f8f246ff54a354335527870cc4a59c376c"
+    },
+    {
+      "file": "api37/tracks.csv-recovery.invalid.large.xml",
+      "originalSha256": "01b066561d9cd4253a8a47a315ebe93a67272c6cf838e4bfbe83000b99b5ff0b",
+      "retainedSha256": "60d293da17ce7c8e365fcc2758fe688d08ce9bc2c4bb597551641c85e22b2887"
+    },
+    {
+      "file": "api37/tracks.csv-recovery.invalid.ordinary.xml",
+      "originalSha256": "0a8e9af61172bb572ac7735b90b50e04259beb24b9d4f466353f1e86720edc0b",
+      "retainedSha256": "3472bc2e27697e400460e29079ed5d588a4bd961a88f86df82c2a53c8b0169b0"
+    },
+    {
+      "file": "api37/tracks.csv-recovery.replacement-cancelled.large.xml",
+      "originalSha256": "01b066561d9cd4253a8a47a315ebe93a67272c6cf838e4bfbe83000b99b5ff0b",
+      "retainedSha256": "60d293da17ce7c8e365fcc2758fe688d08ce9bc2c4bb597551641c85e22b2887"
+    },
+    {
+      "file": "api37/tracks.csv-recovery.replacement-cancelled.ordinary.xml",
+      "originalSha256": "0a8e9af61172bb572ac7735b90b50e04259beb24b9d4f466353f1e86720edc0b",
+      "retainedSha256": "3472bc2e27697e400460e29079ed5d588a4bd961a88f86df82c2a53c8b0169b0"
+    },
+    {
+      "file": "api37/tracks.csv-recovery.replacement-ready.large.xml",
+      "originalSha256": "ba9cf234d2a8cfd73181171a242f88ddb1c4629bc8e72351eb1b9cbba2474de1",
+      "retainedSha256": "e3267f2ed98fd11da9ee4c5bf1b2abbdeaac6b7086ff2559fcf7fb5df8f248c3"
+    },
+    {
+      "file": "api37/tracks.csv-recovery.replacement-ready.ordinary.xml",
+      "originalSha256": "295e2218951a99f8e2787a649a28364ebfd21f46d1f2896d62ef0d55b67082e3",
+      "retainedSha256": "48018a3142d3b68ed2085ee92a377df71c2b3a5fd4d4cd9f2dd5bd6f9e58d782"
+    },
+    {
+      "file": "process-api34/changed-background.txt",
+      "originalSha256": "4a694041d23d67d51f1d748a6582e186edcb9b4275eed910a1f048137d2257c8",
+      "retainedSha256": "a90b03004f7a11ba2127b8849f0a3c38459d1019ca4756aa5cda5f34bbf3ac3a"
+    },
+    {
+      "file": "process-api34/changed-file-blocked.xml",
+      "originalSha256": "931869e34c65177698bae8fcec67fab3ec2e4aeae9a53cbf2d42540060587c52",
+      "retainedSha256": "5e5d3fc07ac4a71a7a29a446d0bfea60cc45526afb4f2af1beaee9c7013af581"
+    },
+    {
+      "file": "process-api34/completed-without-source.xml",
+      "originalSha256": "af3c6a1458f64a599956ed2859fa4df19b752a61baced9c45c90732dcb2ac59a",
+      "retainedSha256": "cf64dbc1758d07fee208b75d35b2272dad7422d0af63386b3e8eacf54c6a5865"
+    },
+    {
+      "file": "process-api34/import-complete.xml",
+      "originalSha256": "a6ea1b9d4fead0cb619e4661fcd3cca028364e884afa6414246336733ea617bb",
+      "retainedSha256": "10ffc22e7b6e090f72f7ce2e9e8fe8bb8a1c2bd1c0c065a64bf50ba8d88c5c8f"
+    },
+    {
+      "file": "process-api34/ready-second.xml",
+      "originalSha256": "ede9d08217f8763614b015520201aeb36fd35497d72e96ee86e1cfdc0d5c901c",
+      "retainedSha256": "2a07ec325878ad35eb2e147be99ea6de15691df3a2ac3ddf52d286ea0b7189ce"
+    },
+    {
+      "file": "process-api34/recovered-unchanged.xml",
+      "originalSha256": "ede9d08217f8763614b015520201aeb36fd35497d72e96ee86e1cfdc0d5c901c",
+      "retainedSha256": "2a07ec325878ad35eb2e147be99ea6de15691df3a2ac3ddf52d286ea0b7189ce"
+    },
+    {
+      "file": "process-api34/replacement-reviewed.xml",
+      "originalSha256": "954e5a63531ce7b022b656b74545a8d870f63023928b1c410454cdb5d5d94c79",
+      "retainedSha256": "22b6e869e34b69353dc42fbe89842c48365beb143d1e75e261b79cc1ceec2f26"
+    },
+    {
+      "file": "process-api34/source-removed-background.txt",
+      "originalSha256": "b88a6c64f44351dee83e63aeb7ce5c0c4f0197ae93e15f1d824bc9796265fdac",
+      "retainedSha256": "f0a20e59d99eea849b895df0bebfa81f7b972bc51f6f468d426f0abda22a9c6c"
+    },
+    {
+      "file": "process-api34/unchanged-background.txt",
+      "originalSha256": "09b38fe5b436532b108d4e7dcdad21f8ceede061ae2a06101c9772d515cf45eb",
+      "retainedSha256": "d6d8c543af431581d2cb4e873f7d275166538f63cb69bf1d0b98207bb118009e"
+    },
+    {
+      "file": "process-api34-large/changed-background.txt",
+      "originalSha256": "bc703adb818a990cc6882d7400588524750bde6a1bb791050fe9b2c22810d22a",
+      "retainedSha256": "24fe83eb22c12b2f4f140ed144a1814bd41c733d469a0dbd3439f24a7df85e8d"
+    },
+    {
+      "file": "process-api34-large/changed-file-blocked.xml",
+      "originalSha256": "3d0a903e185243bacb3797b94d773defc6c74a7c46010ea292180ef37856161a",
+      "retainedSha256": "c5a86eb483b920aa4576c0a081afbab62caba677836b63365033cc014ab70e5d"
+    },
+    {
+      "file": "process-api34-large/completed-without-source.xml",
+      "originalSha256": "dcb7328f7f499ed6f7afce7b9ee031487cb0ff41f75700313a46d9b38a5c4038",
+      "retainedSha256": "383a32bd104b89d40d4545ad637cbdc85b3d34ebba2c8925861a76762292106c"
+    },
+    {
+      "file": "process-api34-large/import-complete.xml",
+      "originalSha256": "5dd509c37333cde9acdefcb8061b269156037f453add515c6d98f601b9f662dd",
+      "retainedSha256": "7f775c437789eb7a957a543a6829298c6edb3f9d23efb05031ecaf28f92bd74f"
+    },
+    {
+      "file": "process-api34-large/ready-second.xml",
+      "originalSha256": "226e3ef79a6cca245da99aacc812129b19d52d2cfcf8ed6985ed08fcd9aae6aa",
+      "retainedSha256": "153ac378cb6d56227debbf954a852b91e73c61183d24c4d68c66d6d28d89b732"
+    },
+    {
+      "file": "process-api34-large/recovered-unchanged.xml",
+      "originalSha256": "ec8b7ca7814810c9c5b63c33905927d69fbc7a8c10e33253052748fd0265870f",
+      "retainedSha256": "7af8e0783f15917c4fe0a7a825c6e73fc1de214dd78e104e29e9914848cf596e"
+    },
+    {
+      "file": "process-api34-large/replacement-reviewed.xml",
+      "originalSha256": "694c6dab09ab1b027350d028cee94f0eab313119859f83109d1092ac5dba49f7",
+      "retainedSha256": "cd733c0e07a4603666ebdb64894059857e5af9e6809d247b7ce58cf23a15f14f"
+    },
+    {
+      "file": "process-api34-large/source-removed-background.txt",
+      "originalSha256": "5290ada860fa39dcf7b4fbee46b06cdcd458ad547e61da354269844bb841c9df",
+      "retainedSha256": "696a80dedbb33636b02d8296344fdd4467425b7fdd2005c2569f06bd8afcc224"
+    },
+    {
+      "file": "process-api34-large/unchanged-background.txt",
+      "originalSha256": "9915d79459a8088e2aad120ebda2fe49cc50afec7383b3a7934ba43eb806096e",
+      "retainedSha256": "2c1397f575f794673b85d56fdf984bf43caf17610845234bff5b90d3946c94e2"
+    },
+    {
+      "file": "api26.log",
+      "originalSha256": "ddb31e19e2c4d4fe263d0232d1766be1f8f851c4ffa88858ca84f315bc44cd5d",
+      "retainedSha256": "f960eba9cbae41818be0b4419ef02cc01f22eef07eebcb885ad1d493bed1cd90"
+    },
+    {
+      "file": "api37.log",
+      "originalSha256": "f49e552fdbaf712f3ccece1ab53dcee9f861281d9260c1f1ed311c5c24050737",
+      "retainedSha256": "6cf9f7a8d962807ffb8636b7da03166efb582e7af70dde9456e9a11a5b58b69c"
+    },
+    {
+      "file": "process-api34-large/seed.log",
+      "originalSha256": "18f82f3179e592a6779de0584051f5ee1a31de54eb8d43e6d180ec312d3f08ce",
+      "retainedSha256": "2b589633d77db4bbb2a9ae2cddacb5fffc376eb1f0969c0ba91d4750ad08a6c8"
+    },
+    {
+      "file": "process-api34/seed.log",
+      "originalSha256": "fa4cf18e76f24b695563f839cfbcd2b8d94959273f0c068c279bcf78903525e7",
+      "retainedSha256": "73899839803de208102ce8908ce824f63140155e2db6ed57df8dcf9dfc3f208b"
+    }
+  ]
+}

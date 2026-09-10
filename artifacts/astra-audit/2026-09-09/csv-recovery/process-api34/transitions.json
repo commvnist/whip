@@ -1,0 +1,26 @@
+[
+  {
+    "name": "unchanged",
+    "oldPid": "26382",
+    "newPid": "26757",
+    "oldProcessAbsent": true,
+    "taskId": "3279",
+    "entriesBeforeRestart": 0
+  },
+  {
+    "name": "changed",
+    "oldPid": "26757",
+    "newPid": "26894",
+    "oldProcessAbsent": true,
+    "taskId": "3279",
+    "entriesBeforeRestart": 0
+  },
+  {
+    "name": "source-removed",
+    "oldPid": "26894",
+    "newPid": "27278",
+    "oldProcessAbsent": true,
+    "taskId": "3279",
+    "entriesBeforeRestart": 2
+  }
+]

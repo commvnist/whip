@@ -1,0 +1,12 @@
+{
+  "baselineCommit": "48204c085acbae3de6bfc540026ae2302b9b8e22",
+  "files": {
+    "app/build/outputs/apk/debug/app-debug.apk": "3a04999eb33a20b2c03cd1945f1df05637f6814eb941eb28a9f2bdbf814007b4",
+    "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk": "b7be52949dfa9932f39939cb21962dfbee7844133e41b930c380663bad23ff6c",
+    "app/src/androidTest/java/com/whip/app/TrackCsvJourneyE2ETest.kt": "fb52dcbe2bff71ea7c20c28daf81199ab603ac38beab3fef1d7ceeef5b1c599e"
+  },
+  "inventory": {
+    "test": 631,
+    "androidTest": 1021
+  }
+}

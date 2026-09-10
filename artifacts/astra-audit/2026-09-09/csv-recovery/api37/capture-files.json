@@ -1,0 +1,14 @@
+{
+  "tracks.csv-recovery.replacement-ready.ordinary.xml": "tracks.csv-recovery.replacement-ready.ordinary.xml",
+  "tracks.csv-recovery.replacement-ready.ordinary.png": "tracks.csv-recovery.replacement-ready.ordinary.png",
+  "tracks.csv-recovery.replacement-cancelled.ordinary.xml": "tracks.csv-recovery.replacement-cancelled.ordinary.xml",
+  "tracks.csv-recovery.replacement-cancelled.ordinary.png": "tracks.csv-recovery.replacement-cancelled.ordinary.png",
+  "tracks.csv-recovery.invalid.ordinary.xml": "tracks.csv-recovery.invalid.ordinary.xml",
+  "tracks.csv-recovery.invalid.ordinary.png": "tracks.csv-recovery.invalid.ordinary.png",
+  "tracks.csv-recovery.replacement-ready.large.xml": "tracks.csv-recovery.replacement-ready.large.xml",
+  "tracks.csv-recovery.replacement-ready.large.png": "tracks.csv-recovery.replacement-ready.large.png",
+  "tracks.csv-recovery.replacement-cancelled.large.xml": "tracks.csv-recovery.replacement-cancelled.large.xml",
+  "tracks.csv-recovery.replacement-cancelled.large.png": "tracks.csv-recovery.replacement-cancelled.large.png",
+  "tracks.csv-recovery.invalid.large.xml": "tracks.csv-recovery.invalid.large.xml",
+  "tracks.csv-recovery.invalid.large.png": "tracks.csv-recovery.invalid.large.png"
+}

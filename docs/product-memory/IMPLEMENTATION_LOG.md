@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260909-028 — Verify CSV replacement and real process recovery
+
+- Behavior: Retain the reviewed production implementation. Two permanent native regressions prove that one invalid Number blocks the entire batch, cancelling file replacement preserves the review, and a corrected replacement completes exact seven-type import/export. An explicit test seed supports process death outside the instrumentation host.
+- Important files: TrackCsvJourneyE2ETest, six catalog/matrix states, the actual-font ledger, and the retained emulator-only `csv-recovery/process_csv_recovery.py` driver. The existing Tracks profile already owns the test class.
+- Verification: Both new methods pass on API 26/34/37 at ordinary and actual 200% text; all four class methods pass together on API 34 (`ig0Onn`). Two API 34 external journeys each prove three real process replacements, unchanged-preview recovery, changed-source rejection/replacement and receipt-first completion without a source. All 30 original images are reviewed. SQLite integrity and complete-column comparison preserve two Entries, 14 values and one receipt. Readiness, catalog lint and catalog fixtures pass.
+- Compatibility/limits: No production source, persisted-data interpretation, schema, backup format or version change. No claim of revoked provider permissions, pre-commit unavailable-file recovery, RTL/TalkBack, complete Tracks or whole-product acceptance. No release or physical-phone operation.
+- Related/status: Verified under FB-20260908-006 / VER-20260909-016 / VER-20260909-029; preserves FND-20260909-029 / IMP-20260909-027. Evidence: `artifacts/astra-audit/2026-09-09/csv-recovery/README.md`. Normal main/upstream delivery is recorded in Git history.
+
 ### IMP-20260909-027 — Review interpreted CSV Entries before import
 
 - Behavior: The existing CSV review now browses one interpreted Entry at a time, showing its effective date and all Field values with frozen labels, Choice options and units. A wrong but valid text/unit mapping is visible before committing. Only the selected index is saved; mapping/file revision changes reset it, while Activity recreation retains the current Entry.

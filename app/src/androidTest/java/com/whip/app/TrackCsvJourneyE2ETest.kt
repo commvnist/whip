@@ -13,6 +13,7 @@ import androidx.test.uiautomator.Until
 import com.whip.app.core.AppSettings
 import com.whip.app.core.AppThemeMode
 import com.whip.app.domain.*
+import java.io.File
 import java.time.LocalDate
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -33,8 +34,10 @@ class TrackCsvJourneyE2ETest {
     private val trackName = "Walking CSV archive"
     private val fileName = "WhipCsvJourney.csv"
     private val exportFileName = "WhipCsvExport-${java.util.UUID.randomUUID().toString().take(8)}.csv"
+    private val seedOnly get() = InstrumentationRegistry.getArguments().getString("whipCsvSeedOnly") == "true"
 
     @After fun clean() {
+        if (seedOnly) return
         runBlocking { app.backupRepository.deleteAllData() }
         device.executeShellCommand("rm -f /sdcard/Download/$fileName")
         device.executeShellCommand("rm -f /sdcard/Download/$exportFileName")
@@ -45,7 +48,12 @@ class TrackCsvJourneyE2ETest {
     @Test @AndroidFontScale
     fun csvValuesCanBeReviewedRemappedRecoveredAndImportedAtLargeText() = verifyJourney(true)
 
-    private fun verifyJourney(large: Boolean) {
+    @Test fun invalidFileCanBeReplacedWithoutImportingPartialRows() = verifyJourney(false, replaceInvalid = true)
+
+    @Test @AndroidFontScale
+    fun invalidFileCanBeReplacedWithoutImportingPartialRowsAtLargeText() = verifyJourney(true, replaceInvalid = true)
+
+    private fun verifyJourney(large: Boolean, replaceInvalid: Boolean = false) {
         val trackId = runBlocking {
             app.backupRepository.deleteAllData()
             app.settingsRepository.update { AppSettings(setupCompleted = true, dynamicColor = false, themeMode = AppThemeMode.Light) }
@@ -62,12 +70,13 @@ class TrackCsvJourneyE2ETest {
         val csv = "Entry Date,Name,Distance,Distance Unit,Terrain,Effort,Notes,Visit date,Rained\n" +
             "2026-09-01,River loop,1.25,mile,Trail,2.5,\"Wind, then rain\",2026-08-31,No\n" +
             "2026-09-02,Hill circuit,2,kilometre,Street,4,\"Clear skies\nLookout\",2026-09-01,Yes\n"
-        val encoded = Base64.encodeToString(csv.toByteArray(), Base64.NO_WRAP)
-        // Shell writes only this named synthetic fixture; the app reads it through the real picker grant.
-        device.executeShellCommand("mkdir -p /sdcard/Download")
-        // UiAutomation tokenizes arguments without shell quote parsing. Keep the script one token.
-        device.executeShellCommand("sh -c echo\${IFS}$encoded|base64\${IFS}-d>/sdcard/Download/$fileName")
-        assertEquals(csv, device.executeShellCommand("cat /sdcard/Download/$fileName"))
+        writeFixture(if (replaceInvalid) csv.replace("1.25,mile", "not a number,mile") else csv)
+        if (seedOnly) {
+            // The external emulator driver owns process death; instrumentation cannot kill its own host.
+            writeFixture(csv.replace("Distance Unit,", "Distance (Unit),"))
+            File(app.filesDir, "csv-process-fixture.txt").writeText("trackId=$trackId\ntrackName=$trackName\nfileName=$fileName\n")
+            return
+        }
         val suffix = if (large) "large" else "ordinary"
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             compose.onNodeWithContentDescription("Tracks tab").performClick()
@@ -79,8 +88,29 @@ class TrackCsvJourneyE2ETest {
             compose.onNodeWithText("Import Entries from CSV").performClick()
             selectDownload()
             compose.waitUntil(15_000) { compose.onAllNodesWithTag("track-csv-import-confirm").fetchSemanticsNodes().isNotEmpty() }
+            if (replaceInvalid) {
+                csvScroll(hasText("2 rows · 1 valid · 1 invalid")).assertIsDisplayed()
+                csvScroll(hasText("Row 2: Distance: enter a number")).assertIsDisplayed()
+                compose.onNodeWithTag("track-csv-import-confirm").assertIsNotEnabled()
+                if (large) compose.assertDialogFontScale()
+                capture("tracks.csv-recovery.invalid.$suffix")
+                assertEquals(0, runBlocking { app.trackRepository.projection(trackId)!!.entries.size })
+                csvScroll(hasText("Choose Another File")).performClick()
+                assertTrue(device.wait(Until.hasObject(By.desc("Show roots")), 10_000))
+                device.pressBack()
+                csvScroll(hasText("Row 2: Distance: enter a number")).assertIsDisplayed()
+                compose.onNodeWithTag("track-csv-import-confirm").assertIsNotEnabled()
+                capture("tracks.csv-recovery.replacement-cancelled.$suffix")
+                writeFixture(csv)
+                csvScroll(hasText("Choose Another File")).performClick()
+                selectDownload()
+                compose.waitUntil(15_000) { compose.onAllNodesWithText("Import 2 Entries").fetchSemanticsNodes().isNotEmpty() }
+                csvScroll(hasText("River loop")).assertIsDisplayed()
+                capture("tracks.csv-recovery.replacement-ready.$suffix")
+                assertEquals(0, runBlocking { app.trackRepository.projection(trackId)!!.entries.size })
+            }
             compose.waitUntil(15_000) { compose.onAllNodesWithText("Import 2 Entries").fetchSemanticsNodes().isNotEmpty() }
-            capture("tracks.csv-review.ready.$suffix")
+            if (!replaceInvalid) capture("tracks.csv-review.ready.$suffix")
             if (large) compose.assertDialogFontScale()
             csvScroll(hasText("River loop")).assertIsDisplayed()
             csvScroll(hasText("1.25 mi")).assertIsDisplayed()
@@ -96,7 +126,7 @@ class TrackCsvJourneyE2ETest {
             compose.waitUntil(15_000) { compose.onAllNodesWithText("Import 2 Entries").fetchSemanticsNodes().isNotEmpty() }
             csvScroll(hasTestTag("track-csv-preview-value-${fieldUuid(trackId, "Name")}"))
                 .assertTextContains("Wind, then rain")
-            capture("tracks.csv-review.remapped.$suffix")
+            if (!replaceInvalid) capture("tracks.csv-review.remapped.$suffix")
             csvScroll(hasContentDescription("Name · Primary: Notes")).performClick()
             compose.onNodeWithContentDescription("Name · Primary option: Name").performScrollTo().performClick()
             compose.waitUntil(15_000) { compose.onAllNodesWithText("Import 2 Entries").fetchSemanticsNodes().isNotEmpty() }
@@ -111,7 +141,7 @@ class TrackCsvJourneyE2ETest {
             csvScroll(hasText("Hill circuit")).assertIsDisplayed()
             csvScroll(hasText("2.00 km")).assertIsDisplayed()
             csvScroll(hasText("Yes")).assertIsDisplayed()
-            capture("tracks.csv-review.second.$suffix")
+            if (!replaceInvalid) capture("tracks.csv-review.second.$suffix")
             scenario.recreate()
             compose.waitUntil(15_000) { compose.onAllNodesWithText("Import 2 Entries").fetchSemanticsNodes().isNotEmpty() }
             csvScroll(hasText("Hill circuit")).assertIsDisplayed()
@@ -127,7 +157,7 @@ class TrackCsvJourneyE2ETest {
                 compose.onAllNodesWithTag("persistence-saving-overlay").fetchSemanticsNodes().isEmpty()
             }
             compose.onNodeWithText("Done").assertIsEnabled()
-            capture("tracks.csv-review.complete.$suffix",
+            if (!replaceInvalid) capture("tracks.csv-review.complete.$suffix",
                 visuallyDistinctFrom = "tracks.csv-review.second.$suffix")
             scenario.recreate()
             compose.waitUntil(15_000) { compose.onAllNodesWithTag("track-csv-import-complete").fetchSemanticsNodes().isNotEmpty() }
@@ -168,6 +198,14 @@ class TrackCsvJourneyE2ETest {
 
     private fun fieldUuid(trackId: Long, name: String) = runBlocking {
         app.trackRepository.projection(trackId)!!.fields.single { it.name == name }.uuid
+    }
+
+    private fun writeFixture(csv: String) {
+        val encoded = Base64.encodeToString(csv.toByteArray(), Base64.NO_WRAP)
+        device.executeShellCommand("mkdir -p /sdcard/Download")
+        // UiAutomation tokenizes without shell quote parsing; keep the synthetic script one token.
+        device.executeShellCommand("sh -c echo\${IFS}$encoded|base64\${IFS}-d>/sdcard/Download/$fileName")
+        assertEquals(csv, device.executeShellCommand("cat /sdcard/Download/$fileName"))
     }
 
     private fun csvScroll(matcher: SemanticsMatcher): SemanticsNodeInteraction {
