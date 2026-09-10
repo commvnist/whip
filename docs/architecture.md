@@ -115,6 +115,12 @@ summaries have no click action; source navigation uses a record or navigation
 role with a real destination. Unit conversion and date-window rules remain
 outside the layout builders.
 
+Custom Units use the record family with dimension/archive context and complete
+conversion detail. Each record owns a stable key in its parent list. Command
+availability comes from the feature; the renderer disables unavailable commands
+and closes a menu when none remain available. Mutation coordinators and unit
+version/history rules stay in Settings and the measurement repository.
+
 Adoption proceeds by complete, visually inspected journeys. Extend an existing
 family when a peer needs the same role; add a family only when recurring
 semantics justify it. Specialized charts, historical evidence and complex

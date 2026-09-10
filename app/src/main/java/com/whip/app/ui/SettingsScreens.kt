@@ -756,62 +756,38 @@ internal fun SettingsContent(
                 style = MaterialTheme.typography.bodySmall,
             )
             if (state.customUnits.isEmpty()) Text("No custom conversion units yet.", style = MaterialTheme.typography.bodySmall)
-            state.customUnits.forEach { unit ->
-                var unitMenuOpen by rememberSaveable(unit.id) { mutableStateOf(false) }
-                WhipCollectionCard {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(start = 12.dp, top = 8.dp, bottom = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(
-                            modifier = Modifier.weight(1f).padding(vertical = 4.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            Text(
-                                "${unit.name}${unit.symbol.takeIf(String::isNotBlank)?.let { " ($it)" }.orEmpty()}${if (unit.archived) " · Archived" else ""}",
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Text(
-                                "1 ${unit.symbol.ifBlank { unit.name }} = ${unit.toCanonicalFactor} ${canonicalUnitLabel(unit.dimension)}",
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        }
-                        WhipOverflowMenu(
-                            label = "Options for ${unit.name}",
-                            expanded = unitMenuOpen,
-                            onExpandedChange = { unitMenuOpen = it },
-                            modifier = Modifier.testTag("custom-unit-menu-${unit.id}"),
-                            enabled = !customUnitCoordinator.saving,
-                        ) {
-                            WhipMenuItem("Rename", onClick = {
-                                unitMenuOpen = false
-                                renameUnitBoundary = unit.customUnitBoundary()
-                            })
-                            if (!unit.archived) {
-                                WhipMenuItem("Create New Version", onClick = {
-                                    unitMenuOpen = false
-                                    versionUnitBoundary = unit.customUnitBoundary()
-                                    versionUnitTargetId = UUID.randomUUID().toString()
-                                })
-                            }
-                            WhipMenuItem(
-                                if (unit.archived) "Restore" else "Archive",
-                                onClick = {
-                                    unitMenuOpen = false
-                                    val boundary = unit.customUnitBoundary()
-                                    submitCustomUnitAction("archive") { requestId ->
-                                        viewModel.setCustomUnitArchivedMutation(
-                                            requestId = requestId,
-                                            boundary = boundary,
-                                            archived = !boundary.archived,
-                                        )
-                                    }
-                                },
-                            )
-                        }
+        }
+        items(state.customUnits, key = { "custom-unit-${it.id}" }) { unit ->
+            WhipRecordItem(
+                itemKey = unit.id,
+                itemType = "custom unit",
+                title = "${unit.name}${unit.symbol.takeIf(String::isNotBlank)?.let { " ($it)" }.orEmpty()}",
+                modifier = Modifier.testTag("custom-unit-card-${unit.id}"),
+            ) {
+                context(listOfNotNull(unit.dimension.uiLabel(), "Archived".takeIf { unit.archived }).joinToString(" · "))
+                detail("1 ${unit.symbol.ifBlank { unit.name }} = ${unit.toCanonicalFactor} ${canonicalUnitLabel(unit.dimension)}")
+                command("Rename", enabled = !customUnitCoordinator.saving) {
+                    renameUnitBoundary = unit.customUnitBoundary()
+                }
+                if (!unit.archived) {
+                    command("Create New Version", enabled = !customUnitCoordinator.saving) {
+                        versionUnitBoundary = unit.customUnitBoundary()
+                        versionUnitTargetId = UUID.randomUUID().toString()
+                    }
+                }
+                command(if (unit.archived) "Restore" else "Archive", enabled = !customUnitCoordinator.saving) {
+                    val boundary = unit.customUnitBoundary()
+                    submitCustomUnitAction("archive") { requestId ->
+                        viewModel.setCustomUnitArchivedMutation(
+                            requestId = requestId,
+                            boundary = boundary,
+                            archived = !boundary.archived,
+                        )
                     }
                 }
             }
+        }
+        item {
             customUnitCoordinator.errorMessage?.let { message ->
                 WhipStatusCard(
                     kind = WhipStatusKind.Error,

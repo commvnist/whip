@@ -285,6 +285,7 @@ add_profile() {
                 'com.whip.app.RestoreRecoveryManagerTest'
                 'com.whip.app.DataEpochBoundaryTest'
                 'com.whip.app.CustomUnitIntegrityTest'
+                'com.whip.app.CustomUnitJourneyE2ETest'
                 'com.whip.app.HealthReconciliationTest'
                 'com.whip.app.ui.SettingsResponsiveUiTest'
                 'com.whip.app.ui.SettingItemBuilderUiTest'

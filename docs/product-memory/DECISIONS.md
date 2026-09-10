@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-024 — Custom Units declare record roles and retain feature-owned mutations
+
+- Status: Verified in IMP/VER-20260910-024 under FND-20260910-034 and FB-20260910-001/002.
+- Decision: Reuse WhipRecordItem for custom-unit identity, full-width dimension/archive context, complete conversion detail and identity-owned commands. Put each unit in a stable keyed parent-list item, leaving list gaps to existing Settings layout. Add command availability to the record builder so asynchronous mutation guards survive adoption.
+- Alternatives/tradeoffs: Adding gaps to the old local Row would retain a separate hierarchy and one eagerly composed aggregate item. A separate manager/search/filter destination is not justified by this baseline. Shared records add modest natural height in exchange for consistent hierarchy and readable state; existing Settings navigation, order and Create placement stay intact.
+- Compatibility: No unit arithmetic, domain schema, data, backup, version or history migration. Editors and exact mutation boundaries remain feature-owned. Existing record callers retain enabled actions by default.
+
 ### DEC-20260910-023 — Empty Insights explain the current view before offering recovery
 
 - Status: Verified in IMP/VER-20260910-023; FND-20260910-033.

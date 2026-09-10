@@ -1,0 +1,25 @@
+cohort	surface_id	status	observation_and_limit
+before-phone	settings.units.collection	Reviewed	Long identity wraps; touching collection cards and Create boundary are visible. Archived shares the title; conversion sits beside the menu.
+before-phone	settings.units.create	Reviewed	Complete Count definition, factor 6 and Cancel/Create actions are readable.
+before-phone	settings.units.actions	Rejected	Rejected as active-menu evidence: capture precedes popup rendering. The native action journey itself passes.
+before-phone	settings.units.version	Reviewed	Factor 12, fixed Count dimension, historical-binding explanation and final actions are readable.
+before-phone	settings.units.archived-actions	Reviewed	Archived unit owns Rename and Restore; no version action.
+before-phone	settings.units.restored	Reviewed	Original and new conversion meanings remain visible after restoring the newer unit.
+before-wide	settings.units.collection	Reviewed	Long identity wraps; touching collection cards and Create boundary are visible. Archived shares the title; conversion sits beside the menu.
+before-wide	settings.units.create	Reviewed	Complete Count definition, factor 6 and Cancel/Create actions are readable.
+before-wide	settings.units.actions	Rejected	Rejected as active-menu evidence: capture precedes popup rendering. The native action journey itself passes.
+before-wide	settings.units.version	Reviewed	Factor 12, fixed Count dimension, historical-binding explanation and final actions are readable.
+before-wide	settings.units.archived-actions	Reviewed	Archived unit owns Rename and Restore; no version action.
+before-wide	settings.units.restored	Reviewed	Original and new conversion meanings remain visible after restoring the newer unit.
+final-phone	settings.units.collection	Reviewed	Complete identity and action row; dimension/archive context and conversion share the full lower lane. Existing Settings list provides visible record/action gaps.
+final-phone	settings.units.create	Reviewed	Existing editor retains the complete Count definition, factor 6 and distinct Cancel/Create actions; recreation and persisted creation pass.
+final-phone	settings.units.actions	Reviewed	Active identity owns visible Rename, Create New Version and Archive commands; no duplicate action or overlapping command text.
+final-phone	settings.units.version	Reviewed	Factor 12, fixed Count dimension and retained-history explanation remain fully readable; Save produces a new identity and archives the original.
+final-phone	settings.units.archived-actions	Reviewed	Archive state is separate from identity; Rename/Restore remain readable and reachable. No version action is offered.
+final-phone	settings.units.restored	Reviewed	Restored new version shows Count and 12.0 counts without Archived; original version remains archived in persisted state. The phone is intentionally scrolled to the restored record; earlier records are outside that viewport.
+final-wide	settings.units.collection	Reviewed	Complete identity and action row; dimension/archive context and conversion share the full lower lane. Existing Settings list provides visible record/action gaps.
+final-wide	settings.units.create	Reviewed	Existing editor retains the complete Count definition, factor 6 and distinct Cancel/Create actions; recreation and persisted creation pass.
+final-wide	settings.units.actions	Reviewed	Active identity owns visible Rename, Create New Version and Archive commands; no duplicate action or overlapping command text.
+final-wide	settings.units.version	Reviewed	Factor 12, fixed Count dimension and retained-history explanation remain fully readable; Save produces a new identity and archives the original.
+final-wide	settings.units.archived-actions	Reviewed	Archive state is separate from identity; Rename/Restore remain readable and reachable. No version action is offered.
+final-wide	settings.units.restored	Reviewed	Restored new version shows Count and 12.0 counts without Archived; original version remains archived in persisted state. The phone is intentionally scrolled to the restored record; earlier records are outside that viewport.

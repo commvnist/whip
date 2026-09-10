@@ -20,6 +20,36 @@ import org.junit.runner.RunWith
 class WhipRecordItemTest {
     @get:Rule val compose = createComposeRule()
 
+    @Test fun commandAvailabilityClosesAnUnavailableMenuAndRecoversWithoutDispatch() {
+        val saving = mutableStateOf(false)
+        val canArchive = mutableStateOf(false)
+        var renamed = 0
+        var archived = 0
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipRecordItem("unit", "custom unit", "Bundle") {
+                    command("Rename", enabled = !saving.value) { renamed++ }
+                    command("Archive", enabled = !saving.value && canArchive.value) { archived++ }
+                }
+            }
+        }
+        val menu = compose.onNodeWithContentDescription("More Actions for Bundle")
+        menu.performClick()
+        compose.onNodeWithText("Rename").assertIsEnabled()
+        compose.onNodeWithText("Archive").assertIsNotEnabled()
+        compose.runOnIdle { saving.value = true }
+        menu.assertIsNotEnabled()
+        compose.onNodeWithText("Rename").assertDoesNotExist()
+        compose.runOnIdle { saving.value = false; canArchive.value = true }
+        menu.assertIsEnabled()
+        compose.onNodeWithText("Rename").assertDoesNotExist()
+        menu.performClick()
+        compose.onNodeWithText("Archive").assertIsEnabled().performClick()
+        compose.onNodeWithText("Archive").assertDoesNotExist()
+        assertEquals(0, renamed)
+        assertEquals(1, archived)
+    }
+
     @Test fun completeCatalogContentAndDirectActionsSurviveReorderMode() {
         val reordering = mutableStateOf(false)
         var opened = 0

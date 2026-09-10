@@ -52,8 +52,9 @@ internal class WhipRecordItemScope internal constructor() {
         label: String,
         icon: ImageVector? = null,
         role: WhipMenuItemRole = WhipMenuItemRole.Normal,
+        enabled: Boolean = true,
         onClick: () -> Unit,
-    ) { commands += WhipRecordCommand(label, icon, role, onClick) }
+    ) { commands += WhipRecordCommand(label, icon, role, onClick, enabled) }
 }
 
 internal data class WhipRecordCommand(
@@ -61,6 +62,7 @@ internal data class WhipRecordCommand(
     val icon: ImageVector?,
     val role: WhipMenuItemRole,
     val onClick: () -> Unit,
+    val enabled: Boolean = true,
 )
 
 internal data class WhipRecordReorder(
@@ -88,7 +90,8 @@ internal fun WhipRecordItem(
 ) {
     val item = WhipRecordItemScope().apply(content)
     val reorder = item.reorder
-    var menuOpen by rememberSaveable(itemKey, reorder != null) { mutableStateOf(false) }
+    val menuEnabled = item.commands.any { it.enabled }
+    var menuOpen by rememberSaveable(itemKey, reorder != null, menuEnabled) { mutableStateOf(false) }
     val recordModifier = when {
         reorder != null -> modifier.whipReorderItem(
             reorder.interactionState, layoutPosition = reorder.position, layoutScope = reorder.layoutScope,
@@ -124,12 +127,13 @@ internal fun WhipRecordItem(
                 }
             }
             if (reorder == null && item.commands.isNotEmpty()) {
-                WhipOverflowMenu("More Actions for $title", menuOpen, { menuOpen = it }) {
+                WhipOverflowMenu("More Actions for $title", menuOpen, { menuOpen = it }, enabled = menuEnabled) {
                     val commands = item.commands.sortedBy { it.role == WhipMenuItemRole.Destructive }
                     commands.forEachIndexed { index, command ->
                         if (index > 0 && command.role != commands[index - 1].role) HorizontalDivider()
                         WhipMenuItem(
                             label = command.label, icon = command.icon, role = command.role,
+                            enabled = command.enabled,
                             onClick = { menuOpen = false; command.onClick() },
                         )
                     }

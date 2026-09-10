@@ -1,5 +1,12 @@
 # Durable findings
 
+### FND-20260910-034 — Custom Units bypass the shared record and list hierarchy
+
+- Status: Verified in IMP/VER-20260910-024; P2 normal-scale design consistency. FB-20260910-001/002.
+- Evidence: On unchanged 056fea9c production, native 79snEi and the matching API 37 journey pass create, draft recreation, rename, conversion version, archive/restore and exact retained measurement/entry comparisons. Personally inspected phone/wide collection originals show touching cards and Create action, a conversion constrained beside the menu, and Archived appended to the identity. Source places every unit inside one lazy item with independent row geometry.
+- Expected/cause: Custom Units are records with identity, dimension/status, conversion detail and contextual commands. Use the existing record builder and parent list spacing/keyed items. Keep conversion arithmetic, IDs, request-owned edits, historical bindings and explicit version/archive behavior unchanged. No repository defect is established by this journey.
+- Related: DEC-20260910-003/006 establish record and Settings roles; FND-20260901-027 preserves unit ownership. Bounded remediation and remaining coverage live in DEC/VER-20260910-024.
+
 ### FND-20260910-033 — Empty Track Insights obscure scope and the next action
 
 - Status: Verified in IMP/VER-20260910-023; P2 ordinary UX and evidence comprehension. FB-20260910-001/002.

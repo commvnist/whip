@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260910-024 — Give Custom Units the shared record hierarchy
+
+- Status: Verified under FND-20260910-034 / DEC/VER-20260910-024; FB-20260910-001/002. Normal main/upstream delivery is recorded in Git history.
+- Behavior: Custom-unit names/actions, dimension/archive context and complete conversion detail use WhipRecordItem. Each unit is a stable keyed Settings-list item with parent-owned gaps, replacing touching locally assembled cards. Existing order, Create placement and native editors remain.
+- Architecture/compatibility: Shared record commands accept feature-owned availability and close an unavailable menu without dispatch. Existing callers default to enabled. Settings retains exact save/version/archive coordinators; arithmetic, unit IDs, historical references, schema, backup and app version are unchanged.
+- Verification: 111 fresh phone Android regressions, six wide methods, a passing one-method capture replacement, 385 JVM readiness checks, compilation/lint/build and catalog gates pass. Native creation/rename/version/archive/restore through recreation preserves complete measurement definitions and entries. Twenty-four valid originals are personally reviewed, with two rejected baseline popup frames and one incomplete image export clearly separated. Evidence: artifacts/astra-audit/2026-09-10/custom-unit-records/README.md. Broader Settings/integrations and whole-app acceptance continue.
+
 ### IMP-20260910-023 — Make empty Insights explain scope and lead to recording
 
 - Status: Verified in VER-20260910-023. FND-20260910-033 / DEC-20260910-023.
