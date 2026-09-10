@@ -2,6 +2,21 @@
 
 These records preserve durable user intent. “Released” means the change reached a device build; it does not erase later user validation or regression findings.
 
+### FB-20260910-002 — Build consistent item layouts through shared builders
+
+- Date/source: 2026-09-10, owner follow-up during the Astra audit.
+- User need: Move toward a set of builders so item layouts consistently express Whip's design language, respond naturally to available space and deliver a uniform look and experience. Flesh out and pursue this architecture while continuing the other quality priorities.
+- Acceptance criteria: Map existing shared patterns and duplicated domain layouts; establish explicit reusable item roles and layout responsibilities; prove a representative production migration at 100% with visual and interaction evidence; grow the pattern in coherent increments without losing domain behavior, useful capabilities, state or history. Preserve the whole-app UX, aesthetics and bug-fixing backlog. A larger adaptive-component effort may be scoped for later if warranted.
+- Related/status: In progress; builds on FB-20260910-001 and refines FB-20260908-006. Start implementation after committing the current Track selection chunk. No delegation or separate task is requested.
+
+### FB-20260910-001 — Prioritize the normal Whip experience and shared design quality
+
+- Date/source: 2026-09-10, owner steering during the Track collection selection chunk.
+- User need: Prioritize the 100% app experience: UX, UI, design language, design consistency, interaction consistency, bug fixing and peak aesthetics. Do not get stuck correcting individual 200% scale issues or pursuing scaled-layout perfection.
+- Acceptance criteria: Wrap and commit the current verified work, then advance the ordinary-scale product/design audit. Investigate reusable components that naturally support enlarged content; if that becomes substantial, keep it as a separately scoped later effort. Use proportionate accessibility regressions without allowing repeated per-screen scale polishing to dominate delivery.
+- Scope relationship: Refines the execution priorities of FB-20260908-006. Preserve useful capabilities, user data/history and whole-product coverage. Single agent, at most two disposable emulators, normal coherent commits/pushes, no physical-phone operations or release/publication.
+- Related/status: In progress; VER/IMP-20260910-002 wraps the current selection fix before the new priority governs subsequent work. No separate task has been created.
+
 ### FB-20260908-006 — Fresh whole-product quality goal with justified design freedom
 
 - Date/source: 2026-09-08, owner-provided goal attachment in the Astra audit task.

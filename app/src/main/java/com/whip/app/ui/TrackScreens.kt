@@ -1335,6 +1335,15 @@ private fun AllTracksPage(
     var selecting by rememberSaveable { mutableStateOf(false) }
     var selectedIds by rememberSaveable { mutableStateOf<Set<Long>>(emptySet()) }
     val source = if (showArchived) state.archived else state.active
+    val sourceIds = source.mapTo(mutableSetOf()) { it.track.id }
+    val visibleSelectedIds = selectedIds intersect sourceIds
+    val selectionReady = !state.loading && state.errorMessage == null
+    val canApplySelection = selectionReady && visibleSelectedIds.isNotEmpty()
+    // Loading after recreation is not evidence that saved selections no longer exist.
+    // Action targets are bounded immediately; pruning also prevents hidden IDs from returning.
+    LaunchedEffect(sourceIds, selectedIds, selectionReady) {
+        if (selectionReady && selectedIds != visibleSelectedIds) selectedIds = visibleSelectedIds
+    }
     val pinned = if (showArchived) emptyList() else source.filter { it.track.pinned }
     val unpinned = if (showArchived) source else source.filterNot { it.track.pinned }
     BackHandler(enabled = reordering) { reordering = false }
@@ -1413,25 +1422,26 @@ private fun AllTracksPage(
         }
         if (selecting) item {
             WhipSelectionActionPanel(
-                selectionSummary = "${quantityLabel(selectedIds.size, "Track")} selected",
+                selectionSummary = "${quantityLabel(visibleSelectedIds.size, "Track")} selected",
                 onDone = { selectedIds = emptySet(); selecting = false },
             ) {
+                Text("Only Tracks in this view stay selected.", style = MaterialTheme.typography.bodyMedium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     if (!showArchived) {
-                        val allPinned = selectedIds.isNotEmpty() && source.filter { it.track.id in selectedIds }.all { it.track.pinned }
-                        WhipOutlinedButton(enabled = selectedIds.isNotEmpty(), onClick = {
-                            onSetPinned(selectedIds, !allPinned)
+                        val allPinned = visibleSelectedIds.isNotEmpty() && source.filter { it.track.id in visibleSelectedIds }.all { it.track.pinned }
+                        WhipOutlinedButton(enabled = canApplySelection, onClick = {
+                            onSetPinned(visibleSelectedIds, !allPinned)
                             selectedIds = emptySet()
                             selecting = false
                         }) { Text(if (allPinned) "Unpin from Whip Home" else "Pin to Whip Home") }
-                        WhipOutlinedButton(enabled = selectedIds.isNotEmpty(), onClick = {
-                            onSetArchived(selectedIds, true)
+                        WhipOutlinedButton(enabled = canApplySelection, onClick = {
+                            onSetArchived(visibleSelectedIds, true)
                             selectedIds = emptySet()
                             selecting = false
                         }) { Text("Archive") }
                     } else {
-                        WhipOutlinedButton(enabled = selectedIds.isNotEmpty(), onClick = {
-                            onSetArchived(selectedIds, false)
+                        WhipOutlinedButton(enabled = canApplySelection, onClick = {
+                            onSetArchived(visibleSelectedIds, false)
                             selectedIds = emptySet()
                             selecting = false
                         }) { Text("Restore") }

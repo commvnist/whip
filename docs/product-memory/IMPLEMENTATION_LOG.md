@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260910-002 — Bound Track bulk actions to visible selections
+
+- Behavior: Area and active/Archived changes remove hidden Track selections. Counts, pin labels and mutation targets share the current visible set. Visible choices survive narrowing and Activity recreation; loading/failure disables actions without prematurely pruning saved selection. The selection panel explains its scope.
+- Files: AllTracksPage in `ui/TrackScreens.kt`; four native `TrackCollectionJourneyE2ETest` methods, permanent Tracks QA profile, ten catalog/matrix states and two actual-font inventory rows.
+- Compatibility: No schema, backup, version or data interpretation change. Native tests preserve exact Entries, Fields, Options, Areas, positions and unrelated projections through pin/unpin/archive/restore. Cross-Area selection is available in All Areas; Tasks retains its existing explicit hidden-selection behavior.
+- Verification/status: Verified under FND/DEC/VER-20260910-002 / FB-20260908-006. Four final native journeys pass on API 26/34/37, frozen 118 Android checks and 346 JVM readiness tests pass with compilation/lint/debug packaging. All 36 retained originals have personal review. Actual Track drag/reorder, asynchronous bulk-failure recovery, larger histories and full Tracks/app acceptance remain open. Normal main/upstream delivery is recorded in Git history. Next work follows FB-20260910-001/002.
+
 ### IMP-20260910-001 — Explain incompatible Scale history inside Field editing
 
 - Behavior: Minimum, Maximum and Increment identify a saved value that the proposed configuration cannot represent and block invalid Field submission. Raw drafts survive recreation; valid corrections save and reopen. If history changes after local review, transactional rejection names the Field and value and preserves the draft and complete current history.

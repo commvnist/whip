@@ -1,0 +1,102 @@
+[
+  {
+    "file": "tracks.collection.restore.large.xml",
+    "original": "tracks.collection.restore.large.xml",
+    "sha256": "ed0e1548086b2c35f042ddaa5d34f3c0da0fe3829145f23917b850b405a24996"
+  },
+  {
+    "file": "tracks.collection.restore.large.png",
+    "original": "tracks.collection.restore.large.png",
+    "sha256": "066cfd921f570db05c34c45637f8673110bdc047b2bf83f4980f97636d4f0b61"
+  },
+  {
+    "file": "tracks.collection.archive-scope.large.xml",
+    "original": "tracks.collection.archive-scope.large.xml",
+    "sha256": "3706d840139e3f9ee93fa8b4512ba5262ce6cca221229d0db0d599350149c104"
+  },
+  {
+    "file": "tracks.collection.archive-scope.large.png",
+    "original": "tracks.collection.archive-scope.large.png",
+    "sha256": "a9bd3dd23bd31aedfc4f088568b5edd9eb7e34de3e1ae15681734c4a74cc4768"
+  },
+  {
+    "file": "tracks.collection.unpin.large.png",
+    "original": "tracks.collection.unpin.large.png",
+    "sha256": "71d87bb7f0f31474a2ae7715d6ccc5edf0566df5fcb4aad288af3362377563c4"
+  },
+  {
+    "file": "tracks.collection.unpin.large.xml",
+    "original": "tracks.collection.unpin.large.xml",
+    "sha256": "5c4f79aae615842b9e64415098928a667fa17ed526bb6ba6a90b672d11bc8ae5"
+  },
+  {
+    "file": "tracks.collection.visible-selection.large.png",
+    "original": "tracks.collection.visible-selection.large.png",
+    "sha256": "726f09cdde414378dfc553f84a7524eb42c6d73851996099fb83cbd83d30c63e"
+  },
+  {
+    "file": "tracks.collection.visible-selection.large.xml",
+    "original": "tracks.collection.visible-selection.large.xml",
+    "sha256": "1dcc7b1821ad44ab4269bb64b3e5861e892a891b83ceeb651be94ffaac2a4831"
+  },
+  {
+    "file": "tracks.collection.area-scope.large.png",
+    "original": "tracks.collection.area-scope.large.png",
+    "sha256": "d7ada2745094b8cc137919c6395d8e56dec81aee502706520f64c393dd33935a"
+  },
+  {
+    "file": "tracks.collection.area-scope.large.xml",
+    "original": "tracks.collection.area-scope.large.xml",
+    "sha256": "ff20b76e14b1cf72da70cdfea74df1953d0ddbc09c16e9a81092318375147f1f"
+  },
+  {
+    "file": "tracks.collection.unpin.ordinary.png",
+    "original": "tracks.collection.unpin.ordinary.png",
+    "sha256": "ad4804d24f92cd290f009b27cb203380ca76d47b99a903bcc5ac5d48c1cedd58"
+  },
+  {
+    "file": "tracks.collection.unpin.ordinary.xml",
+    "original": "tracks.collection.unpin.ordinary.xml",
+    "sha256": "23b18219b13cbe5c436e7630d20f94857ac66fce206239a94fa2927975b599df"
+  },
+  {
+    "file": "tracks.collection.visible-selection.ordinary.png",
+    "original": "tracks.collection.visible-selection.ordinary.png",
+    "sha256": "ad4804d24f92cd290f009b27cb203380ca76d47b99a903bcc5ac5d48c1cedd58"
+  },
+  {
+    "file": "tracks.collection.visible-selection.ordinary.xml",
+    "original": "tracks.collection.visible-selection.ordinary.xml",
+    "sha256": "23b18219b13cbe5c436e7630d20f94857ac66fce206239a94fa2927975b599df"
+  },
+  {
+    "file": "tracks.collection.area-scope.ordinary.png",
+    "original": "tracks.collection.area-scope.ordinary.png",
+    "sha256": "502906150a15d18f2a183ab561ab2289f7e559fcad3332f9c6a07d87e9d524a6"
+  },
+  {
+    "file": "tracks.collection.area-scope.ordinary.xml",
+    "original": "tracks.collection.area-scope.ordinary.xml",
+    "sha256": "6d0e37944151f7a8de3db7ca6355e7ef3492f0d4e7d05533a05493b89f9c4fa8"
+  },
+  {
+    "file": "tracks.collection.restore.ordinary.xml",
+    "original": "tracks.collection.restore.ordinary.xml",
+    "sha256": "33946f80bba64a2deec6467d870ee3c44c0eb7770d598fee50f0dcc6197cd73a"
+  },
+  {
+    "file": "tracks.collection.restore.ordinary.png",
+    "original": "tracks.collection.restore.ordinary.png",
+    "sha256": "80d3a0fd227821de8b088442c955f96ed51a696f450d03f0f3e65af1a63f0b1d"
+  },
+  {
+    "file": "tracks.collection.archive-scope.ordinary.png",
+    "original": "tracks.collection.archive-scope.ordinary.png",
+    "sha256": "15ad231d053be8667bc06e94bf850af25568e7023249c41a16d29d91b68ffaca"
+  },
+  {
+    "file": "tracks.collection.archive-scope.ordinary.xml",
+    "original": "tracks.collection.archive-scope.ordinary.xml",
+    "sha256": "10a137695e70b8390578c7bc5008e9c16aeeb08d0174e87a9cb39f7b96bdf306"
+  }
+]

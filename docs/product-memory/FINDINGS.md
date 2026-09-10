@@ -1,5 +1,13 @@
 # Durable findings
 
+### FND-20260910-002 — Track bulk actions retain invisible selections
+
+- Severity/category: P1 selection correctness; bulk actions can target a Track outside the displayed collection.
+- Observed: Native API 34 MwrEBO reproduces an active page retaining an archived selection at both text scales, and Main retaining an Outdoors selection at 200%. Each personally inspected original shows “1 Track selected,” no checked visible row and enabled Unpin/Archive. The ordinary Area fixture first hits an ambiguous popup/row text selector; that fixture failure is separate.
+- Root cause: AllTracksPage retains selectedIds across source changes, counts that set, computes allPinned from only matching visible projections (including an empty all predicate), then submits every retained ID.
+- Expected: Counts, action labels and mutation IDs agree with selected Tracks in the current collection. Hidden selections cannot silently revive; recreation retains valid selection and loading must not erase it prematurely.
+- Related/status: Verified; FB-20260908-006 / DEC-20260910-002 / VER-20260910-002. Four final journeys pass on each API 26/34/37, including exact unrelated-state protection; frozen 118 Android checks and final readiness pass. Evidence: `artifacts/astra-audit/2026-09-10/track-collection/`.
+
 ### FND-20260910-001 — Scale history conflicts require leaving the Field to discover them
 
 - Severity/category: P2 correction workflow and error comprehension.

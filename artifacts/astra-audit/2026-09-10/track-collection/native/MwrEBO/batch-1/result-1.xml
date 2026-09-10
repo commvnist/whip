@@ -1,0 +1,103 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="4" failures="4" errors="0" skipped="0" time="19.907" timestamp="2026-09-10T04:50:53" hostname="localhost">
+  <testsuite name="com.whip.app.TrackCollectionJourneyE2ETest" tests="4" failures="4" errors="0" skipped="0" time="18.825" timestamp="2026-09-10T04:50:53" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedAndActiveSelectionsStaySeparate" classname="com.whip.app.TrackCollectionJourneyE2ETest" time="6.123">
+      <failure>java.lang.AssertionError: No node found that matches Text + InputText + EditableText contains '0 Tracks selected' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #232 at (l=0.0, t=451.0, r=1080.0, b=2169.0)px, Tag: 'track-list'
+CollectionInfo = 'CollectionInfo(rowCount=6, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape&#64;1eb48c7'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 8 children, 3 siblings
+Selector used: (TestTag = 'track-list')
+
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+at com.whip.app.TrackCollectionJourneyE2ETest.scroll(TrackCollectionJourneyE2ETest.kt:163)
+at com.whip.app.TrackCollectionJourneyE2ETest.summary(TrackCollectionJourneyE2ETest.kt:161)
+at com.whip.app.TrackCollectionJourneyE2ETest.archivedSelection(TrackCollectionJourneyE2ETest.kt:97)
+at com.whip.app.TrackCollectionJourneyE2ETest.archivedAndActiveSelectionsStaySeparate(TrackCollectionJourneyE2ETest.kt:33)
+</failure>
+    </testcase>
+    <testcase name="areaChangesKeepOnlyVisibleSelection" classname="com.whip.app.TrackCollectionJourneyE2ETest" time="2.821">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but found '2' nodes that satisfy: (Text + InputText + EditableText contains 'Main ·' (ignoreCase: false) as substring)
+Nodes found:
+1) Node #690 at (l=53.0, t=1488.0, r=1027.0, b=1705.0)px, Tag: 'track-card-5'
+ContentDataType = 'AndroidContentDataType(androidAutofillType=2)'
+ContentDescription = '[Reading, 1 Entries, latest A saved observation for Reading, Sep 10, 2026. Not selected. Select Track]'
+FillableData = 'androidx.compose.ui.autofill.AndroidFillableData&#64;9233b50'
+Focused = 'false'
+IsContainer = 'true'
+Role = 'Checkbox'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 8.0.dp), topEnd = CornerSize(size = 8.0.dp), bottomEnd = CornerSize(size = 8.0.dp), bottomStart = CornerSize(size = 8.0.dp))'
+Text = '[Reading, Main · 1 Entry, Latest: A saved observation for Reading · Sep 10, 2026]'
+ToggleableState = 'Off'
+WhipReorderPreviewOffset = '0.0'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, OnFillData, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 7 siblings
+2) Node #712 at (l=0.0, t=147.0, r=415.0, b=273.0)px
+Focused = 'false'
+Text = '[Main · 1 item]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 4 siblings
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.TrackCollectionJourneyE2ETest.changeArea(TrackCollectionJourneyE2ETest.kt:157)
+at com.whip.app.TrackCollectionJourneyE2ETest.areaSelection(TrackCollectionJourneyE2ETest.kt:46)
+at com.whip.app.TrackCollectionJourneyE2ETest.areaChangesKeepOnlyVisibleSelection(TrackCollectionJourneyE2ETest.kt:30)
+</failure>
+    </testcase>
+    <testcase name="areaChangesKeepOnlyVisibleSelectionAtLargeText" classname="com.whip.app.TrackCollectionJourneyE2ETest" time="5.004">
+      <failure>java.lang.AssertionError: No node found that matches Text + InputText + EditableText contains '0 Tracks selected' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #896 at (l=0.0, t=451.0, r=1080.0, b=1959.0)px, Tag: 'track-list'
+CollectionInfo = 'CollectionInfo(rowCount=3, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape&#64;1eb48c7'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 5 children, 3 siblings
+Selector used: (TestTag = 'track-list')
+
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+at com.whip.app.TrackCollectionJourneyE2ETest.scroll(TrackCollectionJourneyE2ETest.kt:163)
+at com.whip.app.TrackCollectionJourneyE2ETest.summary(TrackCollectionJourneyE2ETest.kt:161)
+at com.whip.app.TrackCollectionJourneyE2ETest.areaSelection(TrackCollectionJourneyE2ETest.kt:49)
+at com.whip.app.TrackCollectionJourneyE2ETest.areaChangesKeepOnlyVisibleSelectionAtLargeText(TrackCollectionJourneyE2ETest.kt:32)
+</failure>
+    </testcase>
+    <testcase name="archivedAndActiveSelectionsStaySeparateAtLargeText" classname="com.whip.app.TrackCollectionJourneyE2ETest" time="4.877">
+      <failure>java.lang.AssertionError: No node found that matches Text + InputText + EditableText contains '0 Tracks selected' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #1223 at (l=0.0, t=451.0, r=1080.0, b=1959.0)px, Tag: 'track-list'
+CollectionInfo = 'CollectionInfo(rowCount=6, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape&#64;1eb48c7'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=557.0, maxValue=557.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 5 children, 3 siblings
+Selector used: (TestTag = 'track-list')
+
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+at com.whip.app.TrackCollectionJourneyE2ETest.scroll(TrackCollectionJourneyE2ETest.kt:163)
+at com.whip.app.TrackCollectionJourneyE2ETest.summary(TrackCollectionJourneyE2ETest.kt:161)
+at com.whip.app.TrackCollectionJourneyE2ETest.archivedSelection(TrackCollectionJourneyE2ETest.kt:97)
+at com.whip.app.TrackCollectionJourneyE2ETest.archivedAndActiveSelectionsStaySeparateAtLargeText(TrackCollectionJourneyE2ETest.kt:35)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

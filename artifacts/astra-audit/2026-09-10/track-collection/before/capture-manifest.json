@@ -1,0 +1,32 @@
+[
+  {
+    "file": "tracks.collection.archive-scope.large.xml",
+    "original": "tracks.collection.archive-scope.large.xml",
+    "sha256": "b3844ae7dc5e593be4d3acf692f1eadc606dc73163a1d4e17ef08479c2937181"
+  },
+  {
+    "file": "tracks.collection.archive-scope.large.png",
+    "original": "tracks.collection.archive-scope.large.png",
+    "sha256": "2d6270426fd198371c330be3928b127a5bed6695d7c419f7179b0bef4d2ac65e"
+  },
+  {
+    "file": "tracks.collection.area-scope.large.xml",
+    "original": "tracks.collection.area-scope.large.xml",
+    "sha256": "25359a3cbf8236ba5f8ac9800a9d59dcc4c8edaa9759b4cc5b311d60a43833f7"
+  },
+  {
+    "file": "tracks.collection.area-scope.large.png",
+    "original": "tracks.collection.area-scope.large.png",
+    "sha256": "7ff1b6f8d4d69598b8874c4bbe2e05fee49ce9b9dd5b5cb0d65a2924a7fbf18c"
+  },
+  {
+    "file": "tracks.collection.archive-scope.ordinary.xml",
+    "original": "tracks.collection.archive-scope.ordinary.xml",
+    "sha256": "15d4efbe77fa21a62671e2d5fb0ac62e289aec386c53c08371210ff232a2b6e4"
+  },
+  {
+    "file": "tracks.collection.archive-scope.ordinary.png",
+    "original": "tracks.collection.archive-scope.ordinary.png",
+    "sha256": "5d3a473022b1545ead64012ebea4a3a899178b026a2fa4387fc127a672cb8f9c"
+  }
+]

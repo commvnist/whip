@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-002 — Keep Track bulk selection within its displayed collection
+
+- Alternatives: Retain cross-view selection with explicit hidden counts and management, as Tasks does for its richer filtered bulk workflow; or retain only selected Tracks still in the current collection. Clearing all selection on any Area change would unnecessarily discard visible choices.
+- Decision: Derive one visible selected set for summary, pin intent and action IDs. Prune hidden IDs after a successful source load; disable actions while loading or failed. Explain that only Tracks in this view stay selected. Preserve visible selection and recreation, and remove hidden selection permanently when narrowing Areas or changing active/Archived collection.
+- Benefit/tradeoffs: Directly bounds simple Track pin/archive/restore actions without adding a cross-view selection manager. Selecting across Areas remains available in All Areas. Tasks keeps its intentional hidden-selection contract. No persistence, schema or domain behavior changes.
+- Related/status: Verified under FND-20260910-002 / VER-20260910-002 / FB-20260908-006. Scope remains the simple Track collection workflow.
+
 ### DEC-20260910-001 — Explain retained Scale conflicts where users can correct them
 
 - Context: FND-20260910-001 confirms late generic rejection despite a live history projection being available to the Field editor.

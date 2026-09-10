@@ -3,6 +3,8 @@
 Started 2026-09-08. Status: In progress. Owner request: `FB-20260908-006`.
 Full objective: [preserved goal](ASTRA_QUALITY_GOAL_2026-09-08.md).
 
+Current priorities (2026-09-10): FB-20260910-001/002 directs normal-scale UX/UI, aesthetics, visual and interaction consistency, and bug fixing. Finish the current Track selection commit, then develop shared item builders through representative production flows. Responsiveness belongs in shared layout responsibilities; individual 200% polishing must not dominate the audit. Whole-app coverage remains active.
+
 ## Baseline and evidence authority
 
 - Clean baseline `4f4a5dc` on `main`; application source 0.3.66/code 72. No edits were present at start.

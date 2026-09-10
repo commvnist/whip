@@ -1,0 +1,102 @@
+[
+  {
+    "file": "tracks.collection.restore.large.xml",
+    "original": "tracks.collection.restore.large (1).xml",
+    "sha256": "d288b4b9284ddc3fd59143e06f4e4192aa618626cb55132a04b5c392ab067142"
+  },
+  {
+    "file": "tracks.collection.restore.large.png",
+    "original": "tracks.collection.restore.large (1).png",
+    "sha256": "16f7a0809f2bdea1a208b500799e5a06f5482d1926c9e84c6d3d6000e98abdcd"
+  },
+  {
+    "file": "tracks.collection.archive-scope.large.xml",
+    "original": "tracks.collection.archive-scope.large (1).xml",
+    "sha256": "54e279d564367f56d815e4d52adf62709e8cc1f41354e789ddc05522c4fe181f"
+  },
+  {
+    "file": "tracks.collection.archive-scope.large.png",
+    "original": "tracks.collection.archive-scope.large (1).png",
+    "sha256": "84c0bb2a29731a58612a06f3287ead5b5cc1539240309bd197f235a612bfbbeb"
+  },
+  {
+    "file": "tracks.collection.unpin.large.xml",
+    "original": "tracks.collection.unpin.large.xml",
+    "sha256": "5a857e97e1f559312529389e12bdc501f5286025a38a2981ac5595d77163e17c"
+  },
+  {
+    "file": "tracks.collection.unpin.large.png",
+    "original": "tracks.collection.unpin.large.png",
+    "sha256": "b818ec8da3e7c950888cff681fa2c269d700b93c3b664541d136dd818acaa79d"
+  },
+  {
+    "file": "tracks.collection.visible-selection.large.xml",
+    "original": "tracks.collection.visible-selection.large (1).xml",
+    "sha256": "5a857e97e1f559312529389e12bdc501f5286025a38a2981ac5595d77163e17c"
+  },
+  {
+    "file": "tracks.collection.visible-selection.large.png",
+    "original": "tracks.collection.visible-selection.large (1).png",
+    "sha256": "b818ec8da3e7c950888cff681fa2c269d700b93c3b664541d136dd818acaa79d"
+  },
+  {
+    "file": "tracks.collection.area-scope.large.xml",
+    "original": "tracks.collection.area-scope.large (1).xml",
+    "sha256": "acd8ea6c765408bbec40750b53f48e71f023570d17928050777a370a841fedbe"
+  },
+  {
+    "file": "tracks.collection.area-scope.large.png",
+    "original": "tracks.collection.area-scope.large (1).png",
+    "sha256": "545f6d7d65c93b7dadf7179992a76ab5950d9ca72f38729b78014ed96f78a817"
+  },
+  {
+    "file": "tracks.collection.unpin.ordinary.xml",
+    "original": "tracks.collection.unpin.ordinary.xml",
+    "sha256": "7fb4b9005d4be6552b6436eb257fe3cd14c14c84c7aec1e7a7c9c6ea073098b9"
+  },
+  {
+    "file": "tracks.collection.unpin.ordinary.png",
+    "original": "tracks.collection.unpin.ordinary.png",
+    "sha256": "a0f20d9f0a8c8b6435192b4f9b25127ffd64a5c49ac89ad9ccfdbb2532449b8a"
+  },
+  {
+    "file": "tracks.collection.visible-selection.ordinary.xml",
+    "original": "tracks.collection.visible-selection.ordinary (1).xml",
+    "sha256": "7fb4b9005d4be6552b6436eb257fe3cd14c14c84c7aec1e7a7c9c6ea073098b9"
+  },
+  {
+    "file": "tracks.collection.visible-selection.ordinary.png",
+    "original": "tracks.collection.visible-selection.ordinary (1).png",
+    "sha256": "a0f20d9f0a8c8b6435192b4f9b25127ffd64a5c49ac89ad9ccfdbb2532449b8a"
+  },
+  {
+    "file": "tracks.collection.area-scope.ordinary.xml",
+    "original": "tracks.collection.area-scope.ordinary (1).xml",
+    "sha256": "2d07924b86871adb018842824fc14570798df6b28a87d019dac435752152a96c"
+  },
+  {
+    "file": "tracks.collection.area-scope.ordinary.png",
+    "original": "tracks.collection.area-scope.ordinary (1).png",
+    "sha256": "1b416c2c78404c422119ad01a77d0d29cbbdaee742ec1a024290fe4b9a37f2c2"
+  },
+  {
+    "file": "tracks.collection.restore.ordinary.xml",
+    "original": "tracks.collection.restore.ordinary (1).xml",
+    "sha256": "2bfee2ebcc6641ac24e7e2e9dea68b8a7dbde994f454185447dc6a878d865fba"
+  },
+  {
+    "file": "tracks.collection.restore.ordinary.png",
+    "original": "tracks.collection.restore.ordinary (1).png",
+    "sha256": "fd1d967a4ea64d43f6d47dca58cc41a2adbe00e104aa83d5b3997f68222ac12c"
+  },
+  {
+    "file": "tracks.collection.archive-scope.ordinary.xml",
+    "original": "tracks.collection.archive-scope.ordinary (1).xml",
+    "sha256": "9edf3b4966c8136a56f9eb8735a323bd851e9c894d2a7ae1bc2e6c729ef837a7"
+  },
+  {
+    "file": "tracks.collection.archive-scope.ordinary.png",
+    "original": "tracks.collection.archive-scope.ordinary (1).png",
+    "sha256": "8d212d4e424ee56492a0d8f6c8d38b4454d4f9dd4c8216fee32756946b682bad"
+  }
+]

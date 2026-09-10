@@ -1,5 +1,7 @@
 # Owner-provided Astra quality goal
 
+Current owner steering (2026-09-10; FB-20260910-001/002): Prioritize the normal 100% Whip experience, UX/UI, design language and consistency, bug fixing and peak aesthetics. Wrap and commit the in-progress selection fix, then pursue shared item builders that make recurring layouts consistent and naturally responsive. Prove representative flows before propagation. Avoid getting stuck on individual 200% patches; a substantial adaptive-component effort can be separately scoped later. Keep the remaining whole-app quality priorities active. The original objective below remains historical context subject to this newer steering.
+
 Create and pursue a durable goal: audit and elevate the entire Whip app to an exceptionally high standard of UX, UI, visual design, functionality, accessibility, reliability, and engineering quality.
 
 Carry this through investigation, design, implementation, and verification. Deliver an improved app, with evidence of what became better.
