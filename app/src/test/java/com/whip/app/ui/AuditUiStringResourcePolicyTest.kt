@@ -76,7 +76,6 @@ class AuditUiStringResourcePolicyTest {
                 "support_tracks_description",
                 "support_tracks_empty",
                 "support_gym_empty",
-                "support_track_overview_title",
                 "task_bulk_completion_review_title",
                 "task_bulk_completion_review_message",
                 "task_bulk_unfinished_subtasks",

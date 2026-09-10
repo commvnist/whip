@@ -1,0 +1,536 @@
+[
+  {
+    "file": "baseline-phone-install.log",
+    "source": "build/astra-workspace-layout-20260910/baseline-phone-install.log",
+    "sha256": "781a31c82430c97897af612ece5e0ca2205e301cb5ff121ce2660541ea5182c7",
+    "original_archive": "baseline-phone-install.log.gz"
+  },
+  {
+    "file": "wide-install.log",
+    "source": "build/astra-workspace-layout-20260910/wide-install.log",
+    "sha256": "50daa2ba76a5c9784728abf9461823bc72d3c4835986fc7ba7cdd96abebea397",
+    "original_archive": "wide-install.log.gz"
+  },
+  {
+    "file": "baseline-wide.log",
+    "source": "build/astra-workspace-layout-20260910/baseline-wide.log",
+    "sha256": "85d1cd0d4f5b44c1cf76bf36f51ce5cee358b33cd43e547bdff1b4742ca22126",
+    "original_archive": "baseline-wide.log.gz"
+  },
+  {
+    "file": "rejected-regressions.log",
+    "source": "build/astra-workspace-layout-20260910/rejected-regressions.log",
+    "sha256": "18b0a1404eb14cd2df39d3cee986f1a9ff338544c4a8cdec46b696eafbca1de6",
+    "original_archive": "rejected-regressions.log.gz"
+  },
+  {
+    "file": "catalog.log",
+    "source": "build/astra-workspace-layout-20260910/catalog.log",
+    "sha256": "00b773938156d56e0112116e2ced429dadb43181f7df5c0c90823f735f84eec2",
+    "original_archive": "catalog.log.gz"
+  },
+  {
+    "file": "pilot-wide.log",
+    "source": "build/astra-workspace-layout-20260910/pilot-wide.log",
+    "sha256": "f33de67e66ebc2f768029d6764ffee8da63c40ca3b4bd0ebf5bb82af675af6fc",
+    "original_archive": "pilot-wide.log.gz"
+  },
+  {
+    "file": "baseline-phone-app-install.log",
+    "source": "build/astra-workspace-layout-20260910/baseline-phone-app-install.log",
+    "sha256": "781a31c82430c97897af612ece5e0ca2205e301cb5ff121ce2660541ea5182c7",
+    "original_archive": "baseline-phone-app-install.log.gz"
+  },
+  {
+    "file": "readiness.log",
+    "source": "build/astra-workspace-layout-20260910/readiness.log",
+    "sha256": "ed15f6a80ffa245b1ee21bf9dd4cb557c630e5f332faf7f617b3a72d00420ce4",
+    "original_archive": "readiness.log.gz"
+  },
+  {
+    "file": "pilot-wide-install.log",
+    "source": "build/astra-workspace-layout-20260910/pilot-wide-install.log",
+    "sha256": "50daa2ba76a5c9784728abf9461823bc72d3c4835986fc7ba7cdd96abebea397",
+    "original_archive": "pilot-wide-install.log.gz"
+  },
+  {
+    "file": "baseline-phone.log",
+    "source": "build/astra-workspace-layout-20260910/baseline-phone.log",
+    "sha256": "3bf9fe113cbe1395972bca38bf1f30fd8bd11ad992160250842ee367931041b6",
+    "original_archive": "baseline-phone.log.gz"
+  },
+  {
+    "file": "compile.log",
+    "source": "build/astra-workspace-layout-20260910/compile.log",
+    "sha256": "5dbc9e3e4d2b584eef02fb1cc8c8654b8a1d5eb19248eecebfa75919573901e9",
+    "original_archive": "compile.log.gz"
+  },
+  {
+    "file": "pilot.log",
+    "source": "build/astra-workspace-layout-20260910/pilot.log",
+    "sha256": "02be00c0e48b5775f648fd59224acaf1d11d2564ca3d168b7a8830234c044b52",
+    "original_archive": "pilot.log.gz"
+  },
+  {
+    "file": "baseline-phone-run.log",
+    "source": "build/astra-workspace-layout-20260910/baseline-phone-run.log",
+    "sha256": "adf2643730732cbd8894621e44806be21511bc483ae0ed45c3922f4010f5dd7b",
+    "original_archive": "baseline-phone-run.log.gz"
+  },
+  {
+    "file": "regressions.log",
+    "source": "build/astra-workspace-layout-20260910/regressions.log",
+    "sha256": "cfd72a3dfdef83048120994d1185ab0dafc7b8dce705ab11a157708301e43388",
+    "original_archive": "regressions.log.gz"
+  },
+  {
+    "file": "wide.log",
+    "source": "build/astra-workspace-layout-20260910/wide.log",
+    "sha256": "7ca004e33e9df6e52e432a575e8dc6a10603fbc3d356d43443d5701e07f80bf6",
+    "original_archive": "wide.log.gz"
+  },
+  {
+    "file": "refined-pilot.log",
+    "source": "build/astra-workspace-layout-20260910/refined-pilot.log",
+    "sha256": "065665c802e7028439481d28a42061064a2f855055ea6197a9a88e96d3403705",
+    "original_archive": "refined-pilot.log.gz"
+  },
+  {
+    "file": "recovery-pilot.log",
+    "source": "build/astra-workspace-layout-20260910/recovery-pilot.log",
+    "sha256": "e3572edddc680336283ff6dea83bb3b2e584ade7ae5c5bc64fb168f854aebba6",
+    "original_archive": "recovery-pilot.log.gz"
+  },
+  {
+    "file": "baseline-inputs.json",
+    "source": "build/astra-workspace-layout-20260910/baseline-inputs.json",
+    "sha256": "b8b9f4c720a1bcf9b808c5b8583c76fb703bb5874af79383c0b6a1cd41562cba",
+    "original_archive": "baseline-inputs.json.gz"
+  },
+  {
+    "file": "final-inputs.json",
+    "source": "build/astra-workspace-layout-20260910/final-inputs.json",
+    "sha256": "98599d9b77c952522ec8d74dacb8894690a5456e9a8f70c46198ff307729922a",
+    "original_archive": "final-inputs.json.gz"
+  },
+  {
+    "file": "regression-inputs.json",
+    "source": "build/astra-workspace-layout-20260910/regression-inputs.json",
+    "sha256": "98599d9b77c952522ec8d74dacb8894690a5456e9a8f70c46198ff307729922a",
+    "original_archive": "regression-inputs.json.gz"
+  },
+  {
+    "file": "rejected-regression-inputs.json",
+    "source": "build/astra-workspace-layout-20260910/rejected-regression-inputs.json",
+    "sha256": "eb9b25168e721f477e33f0d094f7fe72e0cc51f4cc67798fa86c1dec317899cf",
+    "original_archive": "rejected-regression-inputs.json.gz"
+  },
+  {
+    "file": "baseline-installed-hashes.json",
+    "source": "build/astra-workspace-layout-20260910/baseline-installed-hashes.json",
+    "sha256": "2c4575672d1a0ad80f509c65fdc6f53dd77c4fb96fcc1a6c2765a6d48b530a2f",
+    "original_archive": "baseline-installed-hashes.json.gz"
+  },
+  {
+    "file": "final-hash-check.json",
+    "source": "build/astra-workspace-layout-20260910/final-hash-check.json",
+    "sha256": "eef6c775a3495e60b7742991a45c64573f9902e936eaf4b9fb4d552091866239",
+    "original_archive": "final-hash-check.json.gz"
+  },
+  {
+    "file": "profile-jvm/TEST-com.whip.app.ui.theme.WhipVisualLanguageTest.xml",
+    "source": "build/astra-workspace-layout-20260910/profile-jvm/TEST-com.whip.app.ui.theme.WhipVisualLanguageTest.xml",
+    "sha256": "4cc68e377ff210ae1b045c6fbf6abb4c3055ce7beddb4de0e88c6dbcd47ba243",
+    "original_archive": "profile-jvm/TEST-com.whip.app.ui.theme.WhipVisualLanguageTest.xml.gz"
+  },
+  {
+    "file": "profile-jvm/TEST-com.whip.app.ui.ReviewEvidenceTest.xml",
+    "source": "build/astra-workspace-layout-20260910/profile-jvm/TEST-com.whip.app.ui.ReviewEvidenceTest.xml",
+    "sha256": "482fd7f29d7a320caeac575bdcbc318d40857db81fbd2507ef427d147c2b9cb0",
+    "original_archive": "profile-jvm/TEST-com.whip.app.ui.ReviewEvidenceTest.xml.gz"
+  },
+  {
+    "file": "profile-jvm/TEST-com.whip.app.ui.UiDesignArchitectureTest.xml",
+    "source": "build/astra-workspace-layout-20260910/profile-jvm/TEST-com.whip.app.ui.UiDesignArchitectureTest.xml",
+    "sha256": "9178fc1428e78c4ce7707b77754207d112d769b7d55e96bc27b6677f37badbbc",
+    "original_archive": "profile-jvm/TEST-com.whip.app.ui.UiDesignArchitectureTest.xml.gz"
+  },
+  {
+    "file": "profile-jvm/TEST-com.whip.app.ui.AreaScopeFilterRelationshipsTest.xml",
+    "source": "build/astra-workspace-layout-20260910/profile-jvm/TEST-com.whip.app.ui.AreaScopeFilterRelationshipsTest.xml",
+    "sha256": "d2d71f69cf36b7546f09e83728cec2dc579969440e8828fe5153daad7ae05083",
+    "original_archive": "profile-jvm/TEST-com.whip.app.ui.AreaScopeFilterRelationshipsTest.xml.gz"
+  },
+  {
+    "file": "profile-jvm/TEST-com.whip.app.domain.CrossDomainInsightsTest.xml",
+    "source": "build/astra-workspace-layout-20260910/profile-jvm/TEST-com.whip.app.domain.CrossDomainInsightsTest.xml",
+    "sha256": "545afbaeb89377635a687312226636cc15bd94aaf0cb840a4f02839300226233",
+    "original_archive": "profile-jvm/TEST-com.whip.app.domain.CrossDomainInsightsTest.xml.gz"
+  },
+  {
+    "file": "profile-jvm/TEST-com.whip.app.ui.WhipNavigationPolicyTest.xml",
+    "source": "build/astra-workspace-layout-20260910/profile-jvm/TEST-com.whip.app.ui.WhipNavigationPolicyTest.xml",
+    "sha256": "9a48e10a72c6270dce030193782a30797355fb787457f8dcb4de6f79fec2bdba",
+    "original_archive": "profile-jvm/TEST-com.whip.app.ui.WhipNavigationPolicyTest.xml.gz"
+  },
+  {
+    "file": "profile-jvm/TEST-com.whip.app.ui.ReviewAvailabilityTest.xml",
+    "source": "build/astra-workspace-layout-20260910/profile-jvm/TEST-com.whip.app.ui.ReviewAvailabilityTest.xml",
+    "sha256": "809ddd398ef4c67f8237af51baecba8915f360244c0edeb96280c48d9ab02402",
+    "original_archive": "profile-jvm/TEST-com.whip.app.ui.ReviewAvailabilityTest.xml.gz"
+  },
+  {
+    "file": "profile-jvm/TEST-com.whip.app.ui.ReviewCopyTest.xml",
+    "source": "build/astra-workspace-layout-20260910/profile-jvm/TEST-com.whip.app.ui.ReviewCopyTest.xml",
+    "sha256": "77a38cf148ca151e95829cc8c2aefc39477b8d546b8a54f0685bab11f19dc3e6",
+    "original_archive": "profile-jvm/TEST-com.whip.app.ui.ReviewCopyTest.xml.gz"
+  },
+  {
+    "file": "profile-jvm/TEST-com.whip.app.ui.InteractionConsistencyTest.xml",
+    "source": "build/astra-workspace-layout-20260910/profile-jvm/TEST-com.whip.app.ui.InteractionConsistencyTest.xml",
+    "sha256": "f779ab3de101427c415e3a8bfc13e1921548ad760c78c09f00daef91b6ae043f",
+    "original_archive": "profile-jvm/TEST-com.whip.app.ui.InteractionConsistencyTest.xml.gz"
+  },
+  {
+    "file": "profile-jvm/TEST-com.whip.app.ui.ReviewOutcomesTest.xml",
+    "source": "build/astra-workspace-layout-20260910/profile-jvm/TEST-com.whip.app.ui.ReviewOutcomesTest.xml",
+    "sha256": "3864223684f9a7a72c7cf12bdb996701f23694c8ff36e1471c049caca5c57a9f",
+    "original_archive": "profile-jvm/TEST-com.whip.app.ui.ReviewOutcomesTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.data.PortableBackupPolicyTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.data.PortableBackupPolicyTest.xml",
+    "sha256": "a912efa55e0ef1c8e19a9990aefba1dfe36031e64686f3e140883072401477ef",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.data.PortableBackupPolicyTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.GoalMutationCommitTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.GoalMutationCommitTest.xml",
+    "sha256": "3bf3970d37f016eb63e2b5ef6522be18291b0aa325fd8c814719ef421a4cf150",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.GoalMutationCommitTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.TrackEditorStateTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.TrackEditorStateTest.xml",
+    "sha256": "b4988145c554a46762ed64059c3ea150561f0353ee1c83fbe82d8cb9533a91c1",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.TrackEditorStateTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.domain.HabitRulesTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.domain.HabitRulesTest.xml",
+    "sha256": "7164459e322e74468900a3cf51491a0b135ba189b646cbdfa47723da8b4365bb",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.domain.HabitRulesTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.GymUxRulesTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.GymUxRulesTest.xml",
+    "sha256": "12152e536a26f77aa06c2370447c72a1674b9de7fc3f6ae5236678b830c10fff",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.GymUxRulesTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.data.RoutineProgrammingTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.data.RoutineProgrammingTest.xml",
+    "sha256": "e796b5f46e9857cb0f573c89fdce41551be3709f5faea7651dd9cdf2d0c09cf6",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.data.RoutineProgrammingTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.theme.WhipVisualLanguageTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.theme.WhipVisualLanguageTest.xml",
+    "sha256": "3ffae08e0e5f77ec29307fe0a8cf3dfd8727f087f63bc1315e78926065adc492",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.theme.WhipVisualLanguageTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.domain.HabitTimerDomainTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.domain.HabitTimerDomainTest.xml",
+    "sha256": "8c52aff5768f429eccd8611089ac0f5d1c992926ad4964adf821babbc01d3127",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.domain.HabitTimerDomainTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.TrackCsvReliabilityPolicyTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.TrackCsvReliabilityPolicyTest.xml",
+    "sha256": "e60fe568ab1f4aeaf13e05dc276fdeede8f98672febf19e8af6920151d0e772f",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.TrackCsvReliabilityPolicyTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.AuditUiStringResourcePolicyTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.AuditUiStringResourcePolicyTest.xml",
+    "sha256": "dc82ab54d9bfc9b37e263640956f16aa0a572c428642461eba631792de1d465b",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.AuditUiStringResourcePolicyTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.domain.GymAnalyticsTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.domain.GymAnalyticsTest.xml",
+    "sha256": "aec5ab8654ca87f755c322deaa288986a5625d5e9887e3c3ad2a40c059420e64",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.domain.GymAnalyticsTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.FiveThreeOneExerciseSetupStateTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.FiveThreeOneExerciseSetupStateTest.xml",
+    "sha256": "b55f11a0a273b1af5801a107ba6e801e21be20b5f7db75babd17983b54f958f5",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.FiveThreeOneExerciseSetupStateTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.ReviewEvidenceTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.ReviewEvidenceTest.xml",
+    "sha256": "7b9d4e03f0c7072dc6eee763d6a90cb9f7517a74c22c1255eb2aa04ef9722eb8",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.ReviewEvidenceTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.domain.GoalRulesTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.domain.GoalRulesTest.xml",
+    "sha256": "961f185591a8de6ae8e36dba15772077b3d12ed2acfb84a7e9a13803b3a31321",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.domain.GoalRulesTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.domain.TrackCsvBatchIdentityTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.domain.TrackCsvBatchIdentityTest.xml",
+    "sha256": "29070a7208a7fa789d6d12a7a541732aeb3607e12e4e0cc7a29e186c3e358201",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.domain.TrackCsvBatchIdentityTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.UiDesignArchitectureTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.UiDesignArchitectureTest.xml",
+    "sha256": "2d83c489129eabd4675e09453e257bf35375660262ea6721d7cde21a01f09962",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.UiDesignArchitectureTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.AreaScopeFilterRelationshipsTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.AreaScopeFilterRelationshipsTest.xml",
+    "sha256": "421b095d87d305c6cc4d38c3d537954d8f0201fba22d89d688b420d753f2a4bc",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.AreaScopeFilterRelationshipsTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.domain.CrossDomainInsightsTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.domain.CrossDomainInsightsTest.xml",
+    "sha256": "a8d09482d5d016aa01027313ed9f2af2a6e5c74e4eded739844d201e24f491c9",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.domain.CrossDomainInsightsTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.RoutineBuilderStateTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.RoutineBuilderStateTest.xml",
+    "sha256": "b6c160ba1461089c6793c4365c3a12ab0425454a135788960ffc9645d12b9393",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.RoutineBuilderStateTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.WhipNavigationPolicyTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.WhipNavigationPolicyTest.xml",
+    "sha256": "e60062fad7bedbca3c971d52a4b5258b8ccf67d07bc8e5ef3773a4358a68a24d",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.WhipNavigationPolicyTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.ReviewAvailabilityTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.ReviewAvailabilityTest.xml",
+    "sha256": "cc69e1a48f6895c221d0449203a3523a6549d5fc12bb21c6ec2a7b8dbb79f8b2",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.ReviewAvailabilityTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.HabitMutationCommitTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.HabitMutationCommitTest.xml",
+    "sha256": "ad95ffe53c7cf69f8f020df50fe5a5f3ea8ff683a1a3489cc36dad78a99e019d",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.HabitMutationCommitTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.UnifiedSearchRulesTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.UnifiedSearchRulesTest.xml",
+    "sha256": "20c199931ff2d4e94e62efac4cf4b786921241715d145b63e7402ace6efebb29",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.UnifiedSearchRulesTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.ReviewCopyTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.ReviewCopyTest.xml",
+    "sha256": "fa6c8357ea166a9c2d648b108fc4a462b79fcb56651cb52335dec97abaab2021",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.ReviewCopyTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.TaskMutationCommitTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.TaskMutationCommitTest.xml",
+    "sha256": "2da258c0dce6cd0bcb0c7b994292efe863ae18aa237f518b271e5351e4723cc5",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.TaskMutationCommitTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.domain.RecurrenceEngineTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.domain.RecurrenceEngineTest.xml",
+    "sha256": "75ea32c9c9f76f538ace9656e8901773f0751cd223f50e410e96bb82748f3649",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.domain.RecurrenceEngineTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.HabitTimerPresentationTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.HabitTimerPresentationTest.xml",
+    "sha256": "7afdbedec5e6983668428a90214734ae4593f1d3a35e61b9893bb8b18a5e1112",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.HabitTimerPresentationTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.GymQuickSetFlowTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.GymQuickSetFlowTest.xml",
+    "sha256": "41f5353d6f206ba01f1dacef8706cef76cf5328cc03ef41d8dec186df5efd9eb",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.GymQuickSetFlowTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.InteractionConsistencyTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.InteractionConsistencyTest.xml",
+    "sha256": "3ad01d17c0045b25dbb31f6cb30ff8664122d85a5f9b5474680d4eca71a3657f",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.InteractionConsistencyTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.FiveThreeOneCycleReviewTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.FiveThreeOneCycleReviewTest.xml",
+    "sha256": "4d57fea26ed34a8576ef9d96613fb06a839de7e172c946187813240fe9718b55",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.FiveThreeOneCycleReviewTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.core.SettingsCauseEffectContractTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.core.SettingsCauseEffectContractTest.xml",
+    "sha256": "9c2a53852aab46a925621a5250067b29c528cba33f869252f7a531dc3b515392",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.core.SettingsCauseEffectContractTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.domain.TaskQuickCaptureParserTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.domain.TaskQuickCaptureParserTest.xml",
+    "sha256": "d430cb712d371e6ebf54f113942164f327d9d9c3445fb15f82348aa3ff6c66e3",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.domain.TaskQuickCaptureParserTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.ReviewOutcomesTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.ReviewOutcomesTest.xml",
+    "sha256": "3ac2c8482cc17271ac408945568f596e9db50d53faaa48bf366be6dad8fc8eaf",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.ReviewOutcomesTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.core.HabitTimerClockTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.core.HabitTimerClockTest.xml",
+    "sha256": "88bfe351ac8f597edc0c93f46df045a4e63cd562e74c2ff482f101154cf895c7",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.core.HabitTimerClockTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.TaskWorkspacePolicyTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.TaskWorkspacePolicyTest.xml",
+    "sha256": "cddabd95f31ad2040863dee95300b64e7aaab0f95f719db5860da18a8459e8d7",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.TaskWorkspacePolicyTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.domain.TaskProgressTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.domain.TaskProgressTest.xml",
+    "sha256": "ca7cde2c9968bd54f874b36744702741983698bbafe5606304953fb8ce2eed15",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.domain.TaskProgressTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.core.AppSettingsTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.core.AppSettingsTest.xml",
+    "sha256": "60c8b57bdcba7d8c4fa251fddcb6c376f5f661106774683c9e773b923e405fca",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.core.AppSettingsTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.ElapsedGoalPresentationTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.ElapsedGoalPresentationTest.xml",
+    "sha256": "bbe9b85db4331bd74637aedff4ea43702d69154230b879c9135f3554f6993b83",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.ElapsedGoalPresentationTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.domain.TrackDomainTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.domain.TrackDomainTest.xml",
+    "sha256": "a4b183de76e6034382e50404a1e9ea8797e27ee7b461732e76bbafdeef098a39",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.domain.TrackDomainTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.domain.GymCalculationsTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.domain.GymCalculationsTest.xml",
+    "sha256": "4c5d60a4b4ef0b994453357d356ff45b9a0dfcdb8b57cfcc7699860d9fd8f5f4",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.domain.GymCalculationsTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.domain.FiveThreeOneProgressionTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.domain.FiveThreeOneProgressionTest.xml",
+    "sha256": "53e303973ab882fdec290047566d38eda03efb7c05e42a087a5833479a487bb6",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.domain.FiveThreeOneProgressionTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.GoalProgressPresentationTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.GoalProgressPresentationTest.xml",
+    "sha256": "2794f2fc4842a8b25d75fc9a8a0979f1183fad598b1bb10b2ad1fba4fa0214c6",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.GoalProgressPresentationTest.xml.gz"
+  },
+  {
+    "file": "readiness-jvm/TEST-com.whip.app.ui.SettingsPresentationPolicyTest.xml",
+    "source": "build/astra-workspace-layout-20260910/readiness-jvm/TEST-com.whip.app.ui.SettingsPresentationPolicyTest.xml",
+    "sha256": "7d0ca1644f0923bd59fdc5eb92a3f121cc75b4b5a0cad68b35d46953329496d3",
+    "original_archive": "readiness-jvm/TEST-com.whip.app.ui.SettingsPresentationPolicyTest.xml.gz"
+  },
+  {
+    "file": "pilot-android/batch-1-result-1.xml",
+    "source": "build/instrumentation-results-TFFWEr/batch-1/result-1.xml",
+    "sha256": "9e67641e47b01bb9f47d0b1aeae845dab464cdf0074cb372d58a5e703f35bf6c",
+    "original_archive": "pilot-android/batch-1-result-1.xml.gz"
+  },
+  {
+    "file": "pilot-android/aggregate.tsv",
+    "source": "build/instrumentation-results-TFFWEr/aggregate.tsv",
+    "sha256": "a71f0ac483a4fcdae38197887ef9e66af5cd0b3f325b1195bd09c232ffaabdf1",
+    "original_archive": "pilot-android/aggregate.tsv.gz"
+  },
+  {
+    "file": "refined-pilot-android/batch-1-result-1.xml",
+    "source": "build/instrumentation-results-KaRJh7/batch-1/result-1.xml",
+    "sha256": "2ad1897eb5f815d16b3aa7ad64084c227b075c5592fd8ec695f5a20edf19f64f",
+    "original_archive": "refined-pilot-android/batch-1-result-1.xml.gz"
+  },
+  {
+    "file": "refined-pilot-android/aggregate.tsv",
+    "source": "build/instrumentation-results-KaRJh7/aggregate.tsv",
+    "sha256": "62283453acc3a75dde3805a09a6a64e4ff7653deadfd464fb2d813d36cc17796",
+    "original_archive": "refined-pilot-android/aggregate.tsv.gz"
+  },
+  {
+    "file": "rejected-android/batch-1-result-1.xml",
+    "source": "build/instrumentation-results-kQnlbd/batch-1/result-1.xml",
+    "sha256": "edbf76597d1889245e56845dab8e55f0ec6b5857653b6a7e195447b8cc01fd2d",
+    "original_archive": "rejected-android/batch-1-result-1.xml.gz"
+  },
+  {
+    "file": "rejected-android/batch-2-result-1.xml",
+    "source": "build/instrumentation-results-kQnlbd/batch-2/result-1.xml",
+    "sha256": "0a2fe2dbd7c3dd5bcc0cb545d3bb5ff93176156c34c90ecb3efd57274ffb5e50",
+    "original_archive": "rejected-android/batch-2-result-1.xml.gz"
+  },
+  {
+    "file": "rejected-android/aggregate.tsv",
+    "source": "build/instrumentation-results-kQnlbd/aggregate.tsv",
+    "sha256": "7eed1150db1fa1f4cc2621fa97a578e55a8460374a72c8e5e0fee0cbf613fe13",
+    "original_archive": "rejected-android/aggregate.tsv.gz"
+  },
+  {
+    "file": "recovery-pilot-android/batch-1-result-1.xml",
+    "source": "build/instrumentation-results-RandMV/batch-1/result-1.xml",
+    "sha256": "8b3f0b481805424628f0fe902657d1dc596069fcf5de61b7bf1bd4e62feebc88",
+    "original_archive": "recovery-pilot-android/batch-1-result-1.xml.gz"
+  },
+  {
+    "file": "recovery-pilot-android/aggregate.tsv",
+    "source": "build/instrumentation-results-RandMV/aggregate.tsv",
+    "sha256": "25fff4403e81513476c3d238ff0963c04250c64f0e97b6eceabc99a4d02e9324",
+    "original_archive": "recovery-pilot-android/aggregate.tsv.gz"
+  },
+  {
+    "file": "final-android/batch-1-result-1.xml",
+    "source": "build/instrumentation-results-V3IwiZ/batch-1/result-1.xml",
+    "sha256": "1307cc411ad4dfb23c43156e775cd7132cd0242bbab3cee20955de8684b983a5",
+    "original_archive": "final-android/batch-1-result-1.xml.gz"
+  },
+  {
+    "file": "final-android/batch-3-result-1.xml",
+    "source": "build/instrumentation-results-V3IwiZ/batch-3/result-1.xml",
+    "sha256": "ca0360bccf500ce3f42b7833c8f05db0f8f82f138783a054882d9fb08a632532",
+    "original_archive": "final-android/batch-3-result-1.xml.gz"
+  },
+  {
+    "file": "final-android/batch-2-result-1.xml",
+    "source": "build/instrumentation-results-V3IwiZ/batch-2/result-1.xml",
+    "sha256": "0cdc5d208ba52c361ea145b4a530e74d1a09614ecde6730a5824d626bbbd76b6",
+    "original_archive": "final-android/batch-2-result-1.xml.gz"
+  },
+  {
+    "file": "final-android/aggregate.tsv",
+    "source": "build/instrumentation-results-V3IwiZ/aggregate.tsv",
+    "sha256": "654ce95596cff65cd3b2495dc49be7e5fd7d68bffe1467dc86674a831eecfdb0",
+    "original_archive": "final-android/aggregate.tsv.gz"
+  }
+]

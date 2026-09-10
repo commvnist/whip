@@ -1456,11 +1456,12 @@ fun WhipScreen(
         gymDestination = gymDestination,
         nowMillis = collectionStatusNowMillis,
     )
+    val ownsExpandedPanes = appDestination == AppDestination.Tracks
     val supportsPaneExpansion = adaptiveLayout in setOf(
         WhipAdaptiveLayout.ExpandedDashboard,
         WhipAdaptiveLayout.BookFold,
         WhipAdaptiveLayout.TabletopFold,
-    )
+    ) && !(adaptiveLayout == WhipAdaptiveLayout.ExpandedDashboard && ownsExpandedPanes)
     // Secondary destinations must inherit the host window's navigation mode. In
     // particular, opening Settings from a split/fold layout must not replace the
     // persistent rail with compact bottom navigation.
@@ -1702,6 +1703,7 @@ fun WhipScreen(
         selected = appDestination,
         summary = adaptiveSummary,
         contentExpanded = contentPaneIsExpanded,
+        showExpandedSupport = !ownsExpandedPanes,
         navigationEnabled = !gymRoutineEditorOpen && trackEditorRoute == null && !focusedCollectionMode,
         supportContent = if (focusedCollectionMode) null else when (appDestination) {
             AppDestination.Home -> { supportModifier ->
@@ -1783,24 +1785,15 @@ fun WhipScreen(
                     modifier = supportModifier,
                 )
             }
-            AppDestination.Tracks -> { supportModifier ->
-                if (adaptiveLayout == WhipAdaptiveLayout.ExpandedDashboard) {
-                    TrackOverviewSupportPane(
-                        state = trackState,
-                        loadState = adaptiveSummary.trackLoadState,
-                        onRetry = domainRetryActions.tracks,
-                        modifier = supportModifier,
-                    )
-                } else {
-                    TrackSupportPane(
-                        projections = trackState.projections,
-                        selectedTrackId = selectedTrackState.value,
-                        loadState = adaptiveSummary.trackLoadState,
-                        onRetry = domainRetryActions.tracks,
-                        onSelect = { selectedTrackState.value = it; trackDetailDestinationState.value = TrackDetailDestination.Entries },
-                        modifier = supportModifier,
-                    )
-                }
+            AppDestination.Tracks -> if (adaptiveLayout == WhipAdaptiveLayout.ExpandedDashboard) null else { supportModifier ->
+                TrackSupportPane(
+                    projections = trackState.projections,
+                    selectedTrackId = selectedTrackState.value,
+                    loadState = adaptiveSummary.trackLoadState,
+                    onRetry = domainRetryActions.tracks,
+                    onSelect = { selectedTrackState.value = it; trackDetailDestinationState.value = TrackDetailDestination.Entries },
+                    modifier = supportModifier,
+                )
             }
             AppDestination.Settings -> { supportModifier ->
                 SettingsSupportPane(
@@ -1832,6 +1825,18 @@ fun WhipScreen(
           appDestination == AppDestination.Tracks && trackViewModel != null &&
           selectedTrackState.value?.let(trackState::track) != null
       val inlineKeyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+      val workspaceComposition = when {
+          gymRoutineEditorOpen -> WhipWorkspaceComposition.Browser
+          appDestination == AppDestination.Home -> WhipWorkspaceComposition.Overview
+          appDestination == AppDestination.Tracks -> when (trackWorkspaceDestinationState.value) {
+              TrackWorkspaceDestination.Tracks, TrackWorkspaceDestination.Archived -> WhipWorkspaceComposition.Browser
+              TrackWorkspaceDestination.Insights -> WhipWorkspaceComposition.Overview
+              TrackWorkspaceDestination.Activity -> WhipWorkspaceComposition.Reading
+          }
+          appDestination == AppDestination.Gym && gymDestination == GymDestination.Progress -> WhipWorkspaceComposition.Overview
+          else -> WhipWorkspaceComposition.Reading
+      }
+      WhipWorkspaceLayout(workspaceComposition) {
       Scaffold(
         // The active content owns keyboard space; persistent side navigation stays put.
         modifier = Modifier.fillMaxSize().imePadding(),
@@ -2044,7 +2049,7 @@ fun WhipScreen(
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-            Box(modifier = Modifier.fillMaxHeight().widthIn(max = 1000.dp)) {
+            Box(modifier = Modifier.fillMaxSize()) {
                 workspaceStateHolder.SaveableStateProvider(appDestination.name) {
                 when (appDestination) {
             AppDestination.Home -> {
@@ -2442,6 +2447,8 @@ fun WhipScreen(
         }
       }
     }
+    }
+
     }
 
     if (areaManagerOpen && settingsViewModel != null) {
@@ -3873,6 +3880,7 @@ private fun AdaptiveNavigationFrame(
     selected: AppDestination,
     summary: AdaptiveSummary,
     contentExpanded: Boolean,
+    showExpandedSupport: Boolean = true,
     navigationEnabled: Boolean = true,
     onGymContextSelected: (Int) -> Unit = {},
     supportContent: (@Composable (Modifier) -> Unit)? = null,
@@ -3900,7 +3908,9 @@ private fun AdaptiveNavigationFrame(
 
         WhipAdaptiveLayout.ExpandedDashboard -> Row(frameModifier) {
             WhipNavigationRail(selected, onSelect, navigationEnabled)
-            if (supportContent != null) {
+            if (!showExpandedSupport) {
+                stableContent(Modifier.weight(1f))
+            } else if (supportContent != null) {
                 Surface(
                     modifier = Modifier.width(320.dp).fillMaxHeight().testTag("expanded-support-pane"),
                     color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -4698,59 +4708,6 @@ private fun TrackSupportPane(
             SupportPaneEmptyMessage(
                 text = stringResource(R.string.support_tracks_empty),
                 testTag = "track-support-empty",
-            )
-        }
-    }
-}
-
-@Composable
-private fun TrackOverviewSupportPane(
-    state: TrackUiState,
-    loadState: AdaptiveLoadState,
-    onRetry: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-            .padding(SupportPaneContentPadding)
-            .testTag("track-overview-support"),
-        verticalArrangement = Arrangement.spacedBy(SupportPaneItemSpacing),
-    ) {
-        SupportPaneTitle(stringResource(R.string.support_track_overview_title))
-        SupportPaneDescription(stringResource(R.string.support_track_overview_description))
-        if (loadState != AdaptiveLoadState.Ready) {
-            AdaptiveLoadNotice(
-                domain = stringResource(R.string.nav_tracks),
-                loadState = loadState,
-                onRetry = onRetry,
-                modifier = Modifier.testTag(
-                    "track-overview-support-${if (loadState == AdaptiveLoadState.Loading) "loading" else "error"}",
-                ),
-            )
-        }
-        if (loadState == AdaptiveLoadState.Ready || state.active.isNotEmpty()) Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                listOf(
-                    stringResource(R.string.support_active_tracks) to state.active.size.toString(),
-                    stringResource(R.string.support_entries) to state.active.sumOf { it.entries.size }.toString(),
-                    "Fields" to state.active.sumOf { it.fields.size }.toString(),
-                ).forEach { (label, value) ->
-                    Row(Modifier.fillMaxWidth()) {
-                        Text(label, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(value, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            }
-        }
-        state.active.mapNotNull { projection ->
-            projection.entries.maxByOrNull { it.entry.createdAtMillis }?.let { projection to it }
-        }.maxByOrNull { it.second.entry.createdAtMillis }?.let { (projection, entry) ->
-            Text(stringResource(R.string.support_recently_active), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(
-                "${projection.track.icon} ${projection.track.name} · ${projection.primaryText(entry)}",
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
             )
         }
     }

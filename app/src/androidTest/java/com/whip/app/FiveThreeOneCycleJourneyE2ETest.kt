@@ -45,6 +45,9 @@ class FiveThreeOneCycleJourneyE2ETest {
                 compose.onNodeWithTag("gym-library-Routines").performClick()
             }
             compose.onNodeWithTag("routine-start-next-${routine().id}").performScrollTo().performClick()
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithTag("routine-active-workout-action").fetchSemanticsNodes().size == 1
+            }
             compose.onNodeWithTag("routine-active-workout-action").performScrollTo().performClick()
             compose.onNodeWithTag("next-set-focus").assertTextContains("Bench Press", substring = true)
         }

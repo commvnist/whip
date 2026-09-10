@@ -1,0 +1,16 @@
+[
+  {
+    "serial": "emulator-5554",
+    "sdk": "34",
+    "size": "Physical size: 1080x2400",
+    "density": "Physical density: 420",
+    "font_scale": "1.0"
+  },
+  {
+    "serial": "emulator-5556",
+    "sdk": "37",
+    "size": "Physical size: 2560x1800",
+    "density": "Physical density: 320",
+    "font_scale": "1.0"
+  }
+]

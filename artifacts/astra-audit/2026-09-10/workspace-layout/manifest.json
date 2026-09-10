@@ -1,0 +1,512 @@
+[
+  {
+    "file": "before-phone/tracks.record-builder.entries.png",
+    "source": "build/astra-workspace-layout-20260910/before-phone/tracks.record-builder.entries.png",
+    "run": "86860fd7_API34_3_METHODS",
+    "original": "tracks.record-builder.entries (6).png",
+    "sha256": "d68370b09c3725de0b358fc0298676911ad8da1678174119bfb798fce80203f4",
+    "artifact_sha256": "d68370b09c3725de0b358fc0298676911ad8da1678174119bfb798fce80203f4"
+  },
+  {
+    "file": "before-phone/tracks.record-builder.entries.xml",
+    "source": "build/astra-workspace-layout-20260910/before-phone/tracks.record-builder.entries.xml",
+    "run": "86860fd7_API34_3_METHODS",
+    "original": "tracks.record-builder.entries (6).xml",
+    "sha256": "8be315d3f5649f6e3580100df591fba3c15fbdd15c841405c273fa01e3241189",
+    "original_archive": "before-phone/tracks.record-builder.entries.xml.gz",
+    "artifact_sha256": "98b956ba0ada50432cd08f6c6f5a3ad0ca620424289b21f10a80b966eeaf9dcf"
+  },
+  {
+    "file": "before-phone/settings.item-builder.choice-value.png",
+    "source": "build/astra-workspace-layout-20260910/before-phone/settings.item-builder.choice-value.png",
+    "run": "86860fd7_API34_3_METHODS",
+    "original": "settings.item-builder.choice-value (6).png",
+    "sha256": "6167041b3e0ead51ed3a0eb69025111ef81e458105e3023af8e011c39803bca5",
+    "artifact_sha256": "6167041b3e0ead51ed3a0eb69025111ef81e458105e3023af8e011c39803bca5"
+  },
+  {
+    "file": "before-phone/settings.item-builder.choice-value.xml",
+    "source": "build/astra-workspace-layout-20260910/before-phone/settings.item-builder.choice-value.xml",
+    "run": "86860fd7_API34_3_METHODS",
+    "original": "settings.item-builder.choice-value (6).xml",
+    "sha256": "69662a8ddc2eec271f979abcb2fb27aa19c77e8e100a6c63662da9ffb0bf33d6",
+    "original_archive": "before-phone/settings.item-builder.choice-value.xml.gz",
+    "artifact_sha256": "cb40d13db317c80220c84d7dcbf2ac02081f374e8335f050e7797c95ec069d66"
+  },
+  {
+    "file": "before-phone/habits.productivity-builder.timer-expanded.png",
+    "source": "build/astra-workspace-layout-20260910/before-phone/habits.productivity-builder.timer-expanded.png",
+    "run": "86860fd7_API34_3_METHODS",
+    "original": "habits.productivity-builder.timer-expanded (5).png",
+    "sha256": "b6f65c7c6254de4351c68bd5fa682cf48729970d3ba4d1c368e71992d7e98384",
+    "artifact_sha256": "b6f65c7c6254de4351c68bd5fa682cf48729970d3ba4d1c368e71992d7e98384"
+  },
+  {
+    "file": "before-phone/habits.productivity-builder.timer-expanded.xml",
+    "source": "build/astra-workspace-layout-20260910/before-phone/habits.productivity-builder.timer-expanded.xml",
+    "run": "86860fd7_API34_3_METHODS",
+    "original": "habits.productivity-builder.timer-expanded (5).xml",
+    "sha256": "b9395c5c01547f167410ac2e05116bf3527710e4eb085e966875f16ba07cefd9",
+    "original_archive": "before-phone/habits.productivity-builder.timer-expanded.xml.gz",
+    "artifact_sha256": "7d04ab079cc3ca1d8cfc0a7f0452fe3899ec78fa06837d6e51d6db21ea699a7f"
+  },
+  {
+    "file": "before-wide/tracks.record-builder.entries.png",
+    "source": "build/astra-workspace-layout-20260910/before-wide/tracks.record-builder.entries.png",
+    "run": "86860fd7_API37_3_METHODS",
+    "original": "tracks.record-builder.entries (3).png",
+    "sha256": "a89a949658af0414df8d13dadfbfa499bdb50974b9739fb93c7d3a4c18a648ff",
+    "artifact_sha256": "a89a949658af0414df8d13dadfbfa499bdb50974b9739fb93c7d3a4c18a648ff"
+  },
+  {
+    "file": "before-wide/tracks.record-builder.entries.xml",
+    "source": "build/astra-workspace-layout-20260910/before-wide/tracks.record-builder.entries.xml",
+    "run": "86860fd7_API37_3_METHODS",
+    "original": "tracks.record-builder.entries (3).xml",
+    "sha256": "6522a11253b7da8e9e705fbe17e90ca8865da10e06004067fa2e7d7bc3d92a5b",
+    "original_archive": "before-wide/tracks.record-builder.entries.xml.gz",
+    "artifact_sha256": "0feeabe57c41a6ceab40d0285b0f1c3b486b0276885c55a00575b21dd007bbed"
+  },
+  {
+    "file": "before-wide/settings.item-builder.choice-value.png",
+    "source": "build/astra-workspace-layout-20260910/before-wide/settings.item-builder.choice-value.png",
+    "run": "86860fd7_API37_3_METHODS",
+    "original": "settings.item-builder.choice-value (1).png",
+    "sha256": "08c3e1cdef39193588741331c9c1cb7061419e1c2e2721f7fe14d8067cedf046",
+    "artifact_sha256": "08c3e1cdef39193588741331c9c1cb7061419e1c2e2721f7fe14d8067cedf046"
+  },
+  {
+    "file": "before-wide/settings.item-builder.choice-value.xml",
+    "source": "build/astra-workspace-layout-20260910/before-wide/settings.item-builder.choice-value.xml",
+    "run": "86860fd7_API37_3_METHODS",
+    "original": "settings.item-builder.choice-value (1).xml",
+    "sha256": "4fbbe5b1c4dd66806e6f9162bd5bc8cdde48730acb90d0c8836d66e814c5a66e",
+    "original_archive": "before-wide/settings.item-builder.choice-value.xml.gz",
+    "artifact_sha256": "6e5a851517b7772c7c1e42978e4309a638081dd019de249c7a174703cafc068c"
+  },
+  {
+    "file": "before-wide/habits.productivity-builder.timer-expanded.png",
+    "source": "build/astra-workspace-layout-20260910/before-wide/habits.productivity-builder.timer-expanded.png",
+    "run": "86860fd7_API37_3_METHODS",
+    "original": "habits.productivity-builder.timer-expanded (1).png",
+    "sha256": "ce209ee77b6c3f118a2879b32ae4193d6938444e92ea45e88050ced559d21c84",
+    "artifact_sha256": "ce209ee77b6c3f118a2879b32ae4193d6938444e92ea45e88050ced559d21c84"
+  },
+  {
+    "file": "before-wide/habits.productivity-builder.timer-expanded.xml",
+    "source": "build/astra-workspace-layout-20260910/before-wide/habits.productivity-builder.timer-expanded.xml",
+    "run": "86860fd7_API37_3_METHODS",
+    "original": "habits.productivity-builder.timer-expanded (1).xml",
+    "sha256": "700bf8c4aeb5e50b6ed96988da4d53985848932a01734feb0da4a7fb651862be",
+    "original_archive": "before-wide/habits.productivity-builder.timer-expanded.xml.gz",
+    "artifact_sha256": "6aa0fca6fd612a9ca56b7ae2d8ed4f73dda8f096c0f1d6a2525a650fdad557fb"
+  },
+  {
+    "file": "before-wide/tracks.record-builder.activity.png",
+    "source": "build/astra-workspace-layout-20260910/before-wide/tracks.record-builder.activity.png",
+    "run": "86860fd7_API37_3_METHODS",
+    "original": "tracks.record-builder.activity (3).png",
+    "sha256": "3ea7fa7e7583ef3e1ad821f60b2a1669ec66b3aee4a43c3add7702eb0ba6df97",
+    "artifact_sha256": "3ea7fa7e7583ef3e1ad821f60b2a1669ec66b3aee4a43c3add7702eb0ba6df97"
+  },
+  {
+    "file": "before-wide/tracks.record-builder.activity.xml",
+    "source": "build/astra-workspace-layout-20260910/before-wide/tracks.record-builder.activity.xml",
+    "run": "86860fd7_API37_3_METHODS",
+    "original": "tracks.record-builder.activity (3).xml",
+    "sha256": "88d52bc7d066890adc373982efd0ac7764d7ba6941c6cb84e9898f0d799a237c",
+    "original_archive": "before-wide/tracks.record-builder.activity.xml.gz",
+    "artifact_sha256": "8f6541574007a44996b1a3560511d21808121b703fbabbcf2b74e33212e0e846"
+  },
+  {
+    "file": "before-wide/settings.item-builder.saved-value.png",
+    "source": "build/astra-workspace-layout-20260910/before-wide/settings.item-builder.saved-value.png",
+    "run": "86860fd7_API37_3_METHODS",
+    "original": "settings.item-builder.saved-value (1).png",
+    "sha256": "eca7e4af18e1a2d140a720c9d6d559bb300dd43f1f566609dbf3790f57d28f37",
+    "artifact_sha256": "eca7e4af18e1a2d140a720c9d6d559bb300dd43f1f566609dbf3790f57d28f37"
+  },
+  {
+    "file": "before-wide/settings.item-builder.saved-value.xml",
+    "source": "build/astra-workspace-layout-20260910/before-wide/settings.item-builder.saved-value.xml",
+    "run": "86860fd7_API37_3_METHODS",
+    "original": "settings.item-builder.saved-value (1).xml",
+    "sha256": "381ceff788198934acd15a2fd6fa11e3fa98359a1fbb6b6dfdf4cd8273ba7eb1",
+    "original_archive": "before-wide/settings.item-builder.saved-value.xml.gz",
+    "artifact_sha256": "9a1c9cbce3458dd43d40a452b242007596c64328dc93704458ae58cf5645a707"
+  },
+  {
+    "file": "phone/habits.productivity-builder.timer-expanded.png",
+    "source": "build/astra-workspace-layout-20260910/phone/habits.productivity-builder.timer-expanded.png",
+    "run": "V3IwiZ",
+    "original": "habits.productivity-builder.timer-expanded (8).png",
+    "sha256": "331fb845584df5df93a2e8f1722dcdbe34e9f98eab029af4c59479801095d7b5",
+    "artifact_sha256": "331fb845584df5df93a2e8f1722dcdbe34e9f98eab029af4c59479801095d7b5"
+  },
+  {
+    "file": "phone/habits.productivity-builder.timer-expanded.xml",
+    "source": "build/astra-workspace-layout-20260910/phone/habits.productivity-builder.timer-expanded.xml",
+    "run": "V3IwiZ",
+    "original": "habits.productivity-builder.timer-expanded (8).xml",
+    "sha256": "07154c3658dbe871565f26e05d71ffd36fd2ce84627f2b4cd46f9e83a8dbffda",
+    "original_archive": "phone/habits.productivity-builder.timer-expanded.xml.gz",
+    "artifact_sha256": "7543e738aa9b9442035a00b8c44e6769358aad962ac48710a22f35432ef5fe37"
+  },
+  {
+    "file": "phone/habits.productivity-builder.timer-stopped.png",
+    "source": "build/astra-workspace-layout-20260910/phone/habits.productivity-builder.timer-stopped.png",
+    "run": "V3IwiZ",
+    "original": "habits.productivity-builder.timer-stopped (6).png",
+    "sha256": "019b3f53061e5a41b4eebcd02d62a38170e4b8ad43848613bb6f55d4b3c74de1",
+    "artifact_sha256": "019b3f53061e5a41b4eebcd02d62a38170e4b8ad43848613bb6f55d4b3c74de1"
+  },
+  {
+    "file": "phone/habits.productivity-builder.timer-stopped.xml",
+    "source": "build/astra-workspace-layout-20260910/phone/habits.productivity-builder.timer-stopped.xml",
+    "run": "V3IwiZ",
+    "original": "habits.productivity-builder.timer-stopped (6).xml",
+    "sha256": "37df8291b040ec02bc30d72406b097278a6c6f8ddeb2a1aab8a49a47248c9397",
+    "original_archive": "phone/habits.productivity-builder.timer-stopped.xml.gz",
+    "artifact_sha256": "772664444749a8bcb825540a57f69e60376043e7e65fbc9d03e3ace3cd278f70"
+  },
+  {
+    "file": "phone/settings.item-builder.choice-value.png",
+    "source": "build/astra-workspace-layout-20260910/phone/settings.item-builder.choice-value.png",
+    "run": "V3IwiZ",
+    "original": "settings.item-builder.choice-value (8).png",
+    "sha256": "823c9a618b8115dc9b92c95d221837ffcf1746566c6a02d432f3534988645c43",
+    "artifact_sha256": "823c9a618b8115dc9b92c95d221837ffcf1746566c6a02d432f3534988645c43"
+  },
+  {
+    "file": "phone/settings.item-builder.choice-value.xml",
+    "source": "build/astra-workspace-layout-20260910/phone/settings.item-builder.choice-value.xml",
+    "run": "V3IwiZ",
+    "original": "settings.item-builder.choice-value (8).xml",
+    "sha256": "9112a8ae1a07f2cb1dcdc02968426f015f968752a1f82327c744924d8e4a9f90",
+    "original_archive": "phone/settings.item-builder.choice-value.xml.gz",
+    "artifact_sha256": "34641c37ec4cce51b6a633c9b47c5f88605a3eb10b1fdb985b93a2941ae83d92"
+  },
+  {
+    "file": "phone/settings.item-builder.saved-value.png",
+    "source": "build/astra-workspace-layout-20260910/phone/settings.item-builder.saved-value.png",
+    "run": "V3IwiZ",
+    "original": "settings.item-builder.saved-value (7).png",
+    "sha256": "1d5b91128078d9c698f4f9a5592dc00b60f7fdd1b123e237bb88be5600eb5518",
+    "artifact_sha256": "1d5b91128078d9c698f4f9a5592dc00b60f7fdd1b123e237bb88be5600eb5518"
+  },
+  {
+    "file": "phone/settings.item-builder.saved-value.xml",
+    "source": "build/astra-workspace-layout-20260910/phone/settings.item-builder.saved-value.xml",
+    "run": "V3IwiZ",
+    "original": "settings.item-builder.saved-value (7).xml",
+    "sha256": "64af3963aa722403146d2bfb2c051bb16ecd4c32ad6461236756bdf54260aaa2",
+    "original_archive": "phone/settings.item-builder.saved-value.xml.gz",
+    "artifact_sha256": "09d449b308102ff1a21d078f70d9da6bbd9e1403cc1fa3bc37faaa4ec032732c"
+  },
+  {
+    "file": "phone/tracks.record-builder.actions.png",
+    "source": "build/astra-workspace-layout-20260910/phone/tracks.record-builder.actions.png",
+    "run": "V3IwiZ",
+    "original": "tracks.record-builder.actions (10).png",
+    "sha256": "ef98f53122f0bef1fb39744231c86d0de22abb95c7c0c6954318d4c7b0f9b82a",
+    "artifact_sha256": "ef98f53122f0bef1fb39744231c86d0de22abb95c7c0c6954318d4c7b0f9b82a"
+  },
+  {
+    "file": "phone/tracks.record-builder.actions.xml",
+    "source": "build/astra-workspace-layout-20260910/phone/tracks.record-builder.actions.xml",
+    "run": "V3IwiZ",
+    "original": "tracks.record-builder.actions (10).xml",
+    "sha256": "86e9f339ac4b60f678be55a43e4e0ddf099b285fae64f368047a34f1820bdd4e",
+    "original_archive": "phone/tracks.record-builder.actions.xml.gz",
+    "artifact_sha256": "cf551191859b8c2f02723e6f19ced7407253fc6abb1a5d5fae0748a7848e2205"
+  },
+  {
+    "file": "phone/tracks.record-builder.activity.png",
+    "source": "build/astra-workspace-layout-20260910/phone/tracks.record-builder.activity.png",
+    "run": "V3IwiZ",
+    "original": "tracks.record-builder.activity (10).png",
+    "sha256": "c53af5147afcfa49b51e41efe59b72ec610e132f594cbbcfb280bb17dd568a69",
+    "artifact_sha256": "c53af5147afcfa49b51e41efe59b72ec610e132f594cbbcfb280bb17dd568a69"
+  },
+  {
+    "file": "phone/tracks.record-builder.activity.xml",
+    "source": "build/astra-workspace-layout-20260910/phone/tracks.record-builder.activity.xml",
+    "run": "V3IwiZ",
+    "original": "tracks.record-builder.activity (10).xml",
+    "sha256": "6348c22d7d811bbffa7b3c5af590ec4376f06c492835e5f4274509bc398c5e44",
+    "original_archive": "phone/tracks.record-builder.activity.xml.gz",
+    "artifact_sha256": "e5c392b85640d5c5f8ff6587d9a89acb15e457a521633aa3dac99c92b97a9acc"
+  },
+  {
+    "file": "phone/tracks.record-builder.archived.png",
+    "source": "build/astra-workspace-layout-20260910/phone/tracks.record-builder.archived.png",
+    "run": "V3IwiZ",
+    "original": "tracks.record-builder.archived (10).png",
+    "sha256": "fd8577085dc5a13ec8697f985aab0efae106d43611a796d0cdb6012425253187",
+    "artifact_sha256": "fd8577085dc5a13ec8697f985aab0efae106d43611a796d0cdb6012425253187"
+  },
+  {
+    "file": "phone/tracks.record-builder.archived.xml",
+    "source": "build/astra-workspace-layout-20260910/phone/tracks.record-builder.archived.xml",
+    "run": "V3IwiZ",
+    "original": "tracks.record-builder.archived (10).xml",
+    "sha256": "5c44ebf8aaf12eb4c2066bff6670ee39084591a6342ae1c24cc413c4afb23607",
+    "original_archive": "phone/tracks.record-builder.archived.xml.gz",
+    "artifact_sha256": "029355022e262d06bb64d7bfdf9da5e38a78bcaa5d7290e0bf14234c1cb6caf9"
+  },
+  {
+    "file": "phone/tracks.record-builder.entries.png",
+    "source": "build/astra-workspace-layout-20260910/phone/tracks.record-builder.entries.png",
+    "run": "V3IwiZ",
+    "original": "tracks.record-builder.entries (10).png",
+    "sha256": "1f0e50f9b01cded780c5942875b6274d958fd7da2ff9334a40131e331fdb0a9f",
+    "artifact_sha256": "1f0e50f9b01cded780c5942875b6274d958fd7da2ff9334a40131e331fdb0a9f"
+  },
+  {
+    "file": "phone/tracks.record-builder.entries.xml",
+    "source": "build/astra-workspace-layout-20260910/phone/tracks.record-builder.entries.xml",
+    "run": "V3IwiZ",
+    "original": "tracks.record-builder.entries (10).xml",
+    "sha256": "6173350e00589759a6162def295ad306c6664aaa8d0ff4f7f4f0f9e5964bfcac",
+    "original_archive": "phone/tracks.record-builder.entries.xml.gz",
+    "artifact_sha256": "111560e59ef8073bb1b5b0e76a3be851d3c0108960b29e4e47060a9629d2b9f3"
+  },
+  {
+    "file": "phone/tracks.record-builder.insights.png",
+    "source": "build/astra-workspace-layout-20260910/phone/tracks.record-builder.insights.png",
+    "run": "V3IwiZ",
+    "original": "tracks.record-builder.insights (2).png",
+    "sha256": "ee1404c0360204811f94c8d4160d6f702972f5cefbe4c395a4fcd92ccf9b91a6",
+    "artifact_sha256": "ee1404c0360204811f94c8d4160d6f702972f5cefbe4c395a4fcd92ccf9b91a6"
+  },
+  {
+    "file": "phone/tracks.record-builder.insights.xml",
+    "source": "build/astra-workspace-layout-20260910/phone/tracks.record-builder.insights.xml",
+    "run": "V3IwiZ",
+    "original": "tracks.record-builder.insights (2).xml",
+    "sha256": "5c56b0a881ae81d3232a79617a15743a23a8480c810fc38b70d9250828952f9f",
+    "original_archive": "phone/tracks.record-builder.insights.xml.gz",
+    "artifact_sha256": "1e84d257216ec6e2bcecbbbf63813e771e6c0379b747627684f71be57e3b74f6"
+  },
+  {
+    "file": "wide/habits.productivity-builder.timer-expanded.png",
+    "source": "build/astra-workspace-layout-20260910/wide/habits.productivity-builder.timer-expanded.png",
+    "run": "API37_6_METHODS",
+    "original": "habits.productivity-builder.timer-expanded (3).png",
+    "sha256": "e9e54b1e34e3758010e7942409c0b62eac1a043f694f90c4de7e695ad88119f6",
+    "artifact_sha256": "e9e54b1e34e3758010e7942409c0b62eac1a043f694f90c4de7e695ad88119f6"
+  },
+  {
+    "file": "wide/habits.productivity-builder.timer-expanded.xml",
+    "source": "build/astra-workspace-layout-20260910/wide/habits.productivity-builder.timer-expanded.xml",
+    "run": "API37_6_METHODS",
+    "original": "habits.productivity-builder.timer-expanded (3).xml",
+    "sha256": "28a86a55406eaf9a1b3903b25b93e78e1d298a1d45743fa75b1403fd0a17e81e",
+    "original_archive": "wide/habits.productivity-builder.timer-expanded.xml.gz",
+    "artifact_sha256": "a013b90dcc7e59589a96665726a584bbaa60390ae991c9cc54ce52f713683243"
+  },
+  {
+    "file": "wide/habits.productivity-builder.timer-stopped.png",
+    "source": "build/astra-workspace-layout-20260910/wide/habits.productivity-builder.timer-stopped.png",
+    "run": "API37_6_METHODS",
+    "original": "habits.productivity-builder.timer-stopped (3).png",
+    "sha256": "a4e691a1a8aaacae6a25009a016fce64101502c398be482830387f6a9e493901",
+    "artifact_sha256": "a4e691a1a8aaacae6a25009a016fce64101502c398be482830387f6a9e493901"
+  },
+  {
+    "file": "wide/habits.productivity-builder.timer-stopped.xml",
+    "source": "build/astra-workspace-layout-20260910/wide/habits.productivity-builder.timer-stopped.xml",
+    "run": "API37_6_METHODS",
+    "original": "habits.productivity-builder.timer-stopped (3).xml",
+    "sha256": "66aa5a38518665b417ca262c9191ac497321b60a94c19a12564e5cbe3fe51eb3",
+    "original_archive": "wide/habits.productivity-builder.timer-stopped.xml.gz",
+    "artifact_sha256": "b6c956be75891437911318a869afb145ea13ccba28ac70db5a5426568200aa8c"
+  },
+  {
+    "file": "wide/settings.item-builder.choice-value.png",
+    "source": "build/astra-workspace-layout-20260910/wide/settings.item-builder.choice-value.png",
+    "run": "API37_6_METHODS",
+    "original": "settings.item-builder.choice-value (3).png",
+    "sha256": "08fa30373a713cd7fb4891f8fac151d491a035ce05d2b47ec421098d9e7b0907",
+    "artifact_sha256": "08fa30373a713cd7fb4891f8fac151d491a035ce05d2b47ec421098d9e7b0907"
+  },
+  {
+    "file": "wide/settings.item-builder.choice-value.xml",
+    "source": "build/astra-workspace-layout-20260910/wide/settings.item-builder.choice-value.xml",
+    "run": "API37_6_METHODS",
+    "original": "settings.item-builder.choice-value (3).xml",
+    "sha256": "14e8fdde18b2382caf37f4630dcdee9cdf3dbcdf7a5b71f741dc8d82f649f51a",
+    "original_archive": "wide/settings.item-builder.choice-value.xml.gz",
+    "artifact_sha256": "7210c18eb32d8bad061aab316ebce53bc6e1ed0bdb4c157bc5e226e934704181"
+  },
+  {
+    "file": "wide/settings.item-builder.saved-value.png",
+    "source": "build/astra-workspace-layout-20260910/wide/settings.item-builder.saved-value.png",
+    "run": "API37_6_METHODS",
+    "original": "settings.item-builder.saved-value (3).png",
+    "sha256": "a9f4bf688cb86c56d2b6f34b4679af531753468481c786f855474459c57f616c",
+    "artifact_sha256": "a9f4bf688cb86c56d2b6f34b4679af531753468481c786f855474459c57f616c"
+  },
+  {
+    "file": "wide/settings.item-builder.saved-value.xml",
+    "source": "build/astra-workspace-layout-20260910/wide/settings.item-builder.saved-value.xml",
+    "run": "API37_6_METHODS",
+    "original": "settings.item-builder.saved-value (3).xml",
+    "sha256": "c229b2c34792fb740f22f5f7b3fad6fa70cb2ed4bb09cfa685b510aa9a8e918e",
+    "original_archive": "wide/settings.item-builder.saved-value.xml.gz",
+    "artifact_sha256": "0607199b1bfc9739526b67e7cda978ad6521b19e54c0d016b74962d18e4fdf28"
+  },
+  {
+    "file": "wide/tracks.record-builder.actions.png",
+    "source": "build/astra-workspace-layout-20260910/wide/tracks.record-builder.actions.png",
+    "run": "API37_6_METHODS",
+    "original": "tracks.record-builder.actions (5).png",
+    "sha256": "7649d433d3ec056aeb233698b75f74704eb89c1e449394eff661693e79fee823",
+    "artifact_sha256": "7649d433d3ec056aeb233698b75f74704eb89c1e449394eff661693e79fee823"
+  },
+  {
+    "file": "wide/tracks.record-builder.actions.xml",
+    "source": "build/astra-workspace-layout-20260910/wide/tracks.record-builder.actions.xml",
+    "run": "API37_6_METHODS",
+    "original": "tracks.record-builder.actions (5).xml",
+    "sha256": "80dc83c6178d3d4ceff67032271a1cfc25b91b78f22b47164a9f6fc9bfe3872e",
+    "original_archive": "wide/tracks.record-builder.actions.xml.gz",
+    "artifact_sha256": "c67fe3a145c67ce4112a36ade142d8ea3be51233319e7ebfedbb18931e566c37"
+  },
+  {
+    "file": "wide/tracks.record-builder.activity.png",
+    "source": "build/astra-workspace-layout-20260910/wide/tracks.record-builder.activity.png",
+    "run": "API37_6_METHODS",
+    "original": "tracks.record-builder.activity (5).png",
+    "sha256": "9c721fbb9524d913ffd0652752cd564bda5a03fe58991acd3a99cfd8a15f38c1",
+    "artifact_sha256": "9c721fbb9524d913ffd0652752cd564bda5a03fe58991acd3a99cfd8a15f38c1"
+  },
+  {
+    "file": "wide/tracks.record-builder.activity.xml",
+    "source": "build/astra-workspace-layout-20260910/wide/tracks.record-builder.activity.xml",
+    "run": "API37_6_METHODS",
+    "original": "tracks.record-builder.activity (5).xml",
+    "sha256": "0fd7738e1efa8b966e262ebdc2edd4fbf473dd694389f8a6943fb13e41feffb2",
+    "original_archive": "wide/tracks.record-builder.activity.xml.gz",
+    "artifact_sha256": "8dd71f5a3f986f03ee001242d7f24b33d1d4c88be41b1f4e4462088bb934de27"
+  },
+  {
+    "file": "wide/tracks.record-builder.archived.png",
+    "source": "build/astra-workspace-layout-20260910/wide/tracks.record-builder.archived.png",
+    "run": "API37_6_METHODS",
+    "original": "tracks.record-builder.archived (5).png",
+    "sha256": "40adde5e6f4652e4f3c10772cca1630a7f45729e1e20c68200bd0a58eacc37da",
+    "artifact_sha256": "40adde5e6f4652e4f3c10772cca1630a7f45729e1e20c68200bd0a58eacc37da"
+  },
+  {
+    "file": "wide/tracks.record-builder.archived.xml",
+    "source": "build/astra-workspace-layout-20260910/wide/tracks.record-builder.archived.xml",
+    "run": "API37_6_METHODS",
+    "original": "tracks.record-builder.archived (5).xml",
+    "sha256": "f9d9f13c8731f647a3c751f6e6410e6d4a41c0107d918f2b1569ead4f931df3c",
+    "original_archive": "wide/tracks.record-builder.archived.xml.gz",
+    "artifact_sha256": "e7601ee799aa1c6d9e73dbc0bc3ebbd33082b150518fe95f990e82f91f7e0490"
+  },
+  {
+    "file": "wide/tracks.record-builder.entries.png",
+    "source": "build/astra-workspace-layout-20260910/wide/tracks.record-builder.entries.png",
+    "run": "API37_6_METHODS",
+    "original": "tracks.record-builder.entries (5).png",
+    "sha256": "3061a020437b0a02142f791cf575c4cf1e928d304c77502a8429914eb5c7b839",
+    "artifact_sha256": "3061a020437b0a02142f791cf575c4cf1e928d304c77502a8429914eb5c7b839"
+  },
+  {
+    "file": "wide/tracks.record-builder.entries.xml",
+    "source": "build/astra-workspace-layout-20260910/wide/tracks.record-builder.entries.xml",
+    "run": "API37_6_METHODS",
+    "original": "tracks.record-builder.entries (5).xml",
+    "sha256": "a6d4b1237c9e53213bb2d2bbebfe17176f3be0976658cc188c64c22f85dd77cb",
+    "original_archive": "wide/tracks.record-builder.entries.xml.gz",
+    "artifact_sha256": "5774fae91890b05537c5595105266f2bcb8c5c4a413552ca058bc3b2b0b520e8"
+  },
+  {
+    "file": "wide/tracks.record-builder.insights.png",
+    "source": "build/astra-workspace-layout-20260910/wide/tracks.record-builder.insights.png",
+    "run": "API37_6_METHODS",
+    "original": "tracks.record-builder.insights.png",
+    "sha256": "3ab2aa306d683826c48ac3d17945aac769cd89742b87267f5c2b039b7422aec6",
+    "artifact_sha256": "3ab2aa306d683826c48ac3d17945aac769cd89742b87267f5c2b039b7422aec6"
+  },
+  {
+    "file": "wide/tracks.record-builder.insights.xml",
+    "source": "build/astra-workspace-layout-20260910/wide/tracks.record-builder.insights.xml",
+    "run": "API37_6_METHODS",
+    "original": "tracks.record-builder.insights.xml",
+    "sha256": "a6c7a8b3adde0d2fdca13ca59e483adf3f2ef5b3f9647fea75df48d88d858a6e",
+    "original_archive": "wide/tracks.record-builder.insights.xml.gz",
+    "artifact_sha256": "81ae8a243a7a2a6190828fee0b670603fccbf026ca8f7ada5797b2acbb138980"
+  },
+  {
+    "file": "wide-neighbors/gym.531-cycle.focused-set.png",
+    "source": "build/astra-workspace-layout-20260910/wide-neighbors/gym.531-cycle.focused-set.png",
+    "run": "API37_6_METHODS",
+    "original": "gym.531-cycle.focused-set (1).png",
+    "sha256": "fcf9c30362e5c865581a64ba648029a410b31da63867427fefcb98b4e6275a5b",
+    "artifact_sha256": "fcf9c30362e5c865581a64ba648029a410b31da63867427fefcb98b4e6275a5b"
+  },
+  {
+    "file": "wide-neighbors/gym.531-cycle.focused-set.xml",
+    "source": "build/astra-workspace-layout-20260910/wide-neighbors/gym.531-cycle.focused-set.xml",
+    "run": "API37_6_METHODS",
+    "original": "gym.531-cycle.focused-set (1).xml",
+    "sha256": "72e51850bae7aad081145e6076ba028502c2817b4f1d7feff5df43367ee864ac",
+    "original_archive": "wide-neighbors/gym.531-cycle.focused-set.xml.gz",
+    "artifact_sha256": "e3cf4c6c4b767c8a0cd4828202dcd11296f839dbaeacb5ebbf6b8e17e1bfe8b0"
+  },
+  {
+    "file": "wide-neighbors/gym.531-cycle.workout.png",
+    "source": "build/astra-workspace-layout-20260910/wide-neighbors/gym.531-cycle.workout.png",
+    "run": "API37_6_METHODS",
+    "original": "gym.531-cycle.workout (1).png",
+    "sha256": "324fabc188184ae76fee5920010f0df11fbeaac9fecdaf3d47f2203684ddb73b",
+    "artifact_sha256": "324fabc188184ae76fee5920010f0df11fbeaac9fecdaf3d47f2203684ddb73b"
+  },
+  {
+    "file": "wide-neighbors/gym.531-cycle.workout.xml",
+    "source": "build/astra-workspace-layout-20260910/wide-neighbors/gym.531-cycle.workout.xml",
+    "run": "API37_6_METHODS",
+    "original": "gym.531-cycle.workout (1).xml",
+    "sha256": "2861c81cf228afbc7401f145849218837a30b122afd7507baff4fed1034b19c4",
+    "original_archive": "wide-neighbors/gym.531-cycle.workout.xml.gz",
+    "artifact_sha256": "dbdce7edfc7ad25bd57238943b64aa651abd600795374d02530d878895deccaa"
+  },
+  {
+    "file": "wide-neighbors/gym.routine-authoring.new.png",
+    "source": "build/astra-workspace-layout-20260910/wide-neighbors/gym.routine-authoring.new.png",
+    "run": "API37_6_METHODS",
+    "original": "gym.routine-authoring.new (2).png",
+    "sha256": "a4774337b2721018927bc88b1bd98c6b14fcb79f652b69922f68bc35a0fd3c17",
+    "artifact_sha256": "a4774337b2721018927bc88b1bd98c6b14fcb79f652b69922f68bc35a0fd3c17"
+  },
+  {
+    "file": "wide-neighbors/gym.routine-authoring.new.xml",
+    "source": "build/astra-workspace-layout-20260910/wide-neighbors/gym.routine-authoring.new.xml",
+    "run": "API37_6_METHODS",
+    "original": "gym.routine-authoring.new (2).xml",
+    "sha256": "c3cba67453f75cd78428cbac14dd60b669ccf0459f2eb2bf4c35f9085a977108",
+    "original_archive": "wide-neighbors/gym.routine-authoring.new.xml.gz",
+    "artifact_sha256": "825d0f65273bd02e14bd6fc8df7e52fab458016897459a037fe850935bf69f67"
+  },
+  {
+    "file": "wide-neighbors/gym.routine-authoring.saved-in-place.png",
+    "source": "build/astra-workspace-layout-20260910/wide-neighbors/gym.routine-authoring.saved-in-place.png",
+    "run": "API37_6_METHODS",
+    "original": "gym.routine-authoring.saved-in-place (2).png",
+    "sha256": "e12af3ea6653d10b429c2aaaea183a05bee1204dccf2722e9075626bb9cf55bd",
+    "artifact_sha256": "e12af3ea6653d10b429c2aaaea183a05bee1204dccf2722e9075626bb9cf55bd"
+  },
+  {
+    "file": "wide-neighbors/gym.routine-authoring.saved-in-place.xml",
+    "source": "build/astra-workspace-layout-20260910/wide-neighbors/gym.routine-authoring.saved-in-place.xml",
+    "run": "API37_6_METHODS",
+    "original": "gym.routine-authoring.saved-in-place (2).xml",
+    "sha256": "b2fd0e9b2b589f729556fbb51ab0a03439d194ec6d685744a906ca8f877deca7",
+    "original_archive": "wide-neighbors/gym.routine-authoring.saved-in-place.xml.gz",
+    "artifact_sha256": "c44ea1fbfea4d48dc516a81761a0762affa71b0645258c78b9f03713dad87ac3"
+  }
+]

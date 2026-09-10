@@ -1197,6 +1197,7 @@ private fun TrackWorkspaceInsightsPage(
                         listOf(
                             "Active Tracks" to activeTracks.size.toString(),
                             "Total Entries" to totalEntries.toString(),
+                            "Fields" to activeTracks.sumOf { it.fields.size }.toString(),
                             "Entries in 7 Days" to activeTracks.sumOf { track -> track.entries.count { it.entry.entryDate in state.currentDate.minusDays(6)..state.currentDate } }.toString(),
                             "Entries in 30 Days" to activeTracks.sumOf { track -> track.entries.count { it.entry.entryDate in state.currentDate.minusDays(29)..state.currentDate } }.toString(),
                         ),

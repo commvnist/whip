@@ -250,47 +250,45 @@ class AdaptiveWhipScreenTest {
     }
 
     @Test
-    fun expandedTrackSupportSeparatesLoadingFailureRetryAndRealZeroMeasurements() {
+    fun expandedTracksKeepsItsBrowserWithoutAnOuterOverviewPane() {
         val trackState = mutableStateOf(TrackUiState())
-        var retries = 0
         compose.setContent {
-            WhipTheme(dynamicColor = false) {
-                WhipScreen(
-                    state = TaskUiState(loading = false),
-                    habitState = HabitUiState(loading = false),
-                    goalState = GoalUiState(loading = false),
-                    trackState = trackState.value,
-                    gymState = GymUiState(loading = false),
-                    settingsState = SettingsUiState(settings = AppSettings(setupCompleted = true)),
-                    domainRetryActions = DomainRetryActions(tracks = { retries += 1 }),
-                    adaptiveLayout = WhipAdaptiveLayout.ExpandedDashboard,
-                    onSaveTask = { _, _, _ -> },
-                    onComplete = {},
-                    onSkip = {},
-                    onReschedule = { _, _ -> },
-                    onArchive = {},
-                    onReopen = {},
-                )
+            CompositionLocalProvider(LocalDensity provides Density(1f)) {
+                WhipTheme(dynamicColor = false) {
+                    val trackViewModel: TrackViewModel = viewModel()
+                    WhipScreen(
+                        state = TaskUiState(loading = false),
+                        trackState = trackState.value,
+                        trackViewModel = trackViewModel,
+                        adaptiveLayout = WhipAdaptiveLayout.ExpandedDashboard,
+                        onSaveTask = { _, _, _ -> },
+                        onComplete = {},
+                        onSkip = {},
+                        onReschedule = { _, _ -> },
+                        onArchive = {},
+                        onReopen = {},
+                    )
+                }
             }
         }
 
+        compose.onNodeWithTag("expanded-support-pane").assertIsDisplayed()
         compose.onNodeWithContentDescription("Tracks tab").performClick()
-        compose.onNodeWithTag("track-overview-support-loading").assertIsDisplayed()
-        compose.onAllNodesWithText("Active Tracks").assertCountEquals(0)
-
-        compose.runOnIdle {
-            trackState.value = TrackUiState(loading = false, errorMessage = "Track refresh failed")
-        }
-        compose.onNodeWithTag("track-overview-support-error").assertIsDisplayed()
+        compose.onNodeWithTag("adaptive-navigation-rail").assertIsDisplayed()
+        compose.onAllNodesWithTag("expanded-support-pane").assertCountEquals(0)
+        compose.onAllNodesWithContentDescription("Expand content pane").assertCountEquals(0)
+        compose.onNodeWithText("Loading Tracks").assertIsDisplayed()
+        compose.onAllNodesWithText("Track What Matters").assertCountEquals(0)
+        compose.runOnIdle { trackState.value = TrackUiState(loading = false, errorMessage = "Track refresh failed") }
+        compose.onNodeWithText("Could Not Load Tracks").assertIsDisplayed()
         compose.onNodeWithText("Track refresh failed").assertIsDisplayed()
         compose.onNodeWithText("Try Again").performClick()
-        compose.runOnIdle { check(retries == 1) }
-        compose.onAllNodesWithText("Active Tracks").assertCountEquals(0)
-
+        compose.onAllNodesWithText("Track What Matters").assertCountEquals(0)
         compose.runOnIdle { trackState.value = TrackUiState(loading = false) }
-        compose.onAllNodesWithTag("track-overview-support-loading").assertCountEquals(0)
-        compose.onAllNodesWithTag("track-overview-support-error").assertCountEquals(0)
-        compose.onNodeWithText("Active Tracks").assertIsDisplayed()
+        compose.onNodeWithText("Track What Matters").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Tasks tab").performClick()
+        compose.onNodeWithTag("expanded-support-pane").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Expand content pane").assertIsDisplayed()
     }
 
     @Test
@@ -1353,7 +1351,7 @@ class AdaptiveWhipScreenTest {
     }
 
     @Test
-    fun expandedWorkspacesKeepSearchAndSettingsInOneSharedColumn() {
+    fun expandedWorkspacesAlignChromeWithTheirDeclaredContentColumn() {
         val wideDensity = Density(1f)
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides wideDensity) {
@@ -1386,13 +1384,16 @@ class AdaptiveWhipScreenTest {
 
         val actionColumns = listOf("Tasks tab", "Habits tab", "Goals tab", "Tracks tab", "Gym tab").map { tab ->
             compose.onNodeWithContentDescription(tab).performClick()
-            if (tab == "Tracks tab") compose.onNodeWithTag("track-overview-support").assertIsDisplayed()
+            compose.assertWorkspaceMeasure(if (tab == "Tracks tab") 1000.dp else 720.dp)
+            if (tab == "Tracks tab") compose.onAllNodesWithTag("expanded-support-pane").assertCountEquals(0)
             val search = compose.onNodeWithTag("workspace-search-action").fetchSemanticsNode().boundsInRoot
             val settings = compose.onNodeWithTag("workspace-settings-action").fetchSemanticsNode().boundsInRoot
-            search.left to settings.left
+            check(search.right <= settings.left) { "Search and Settings must retain their shared order" }
+            if (tab == "Tracks tab") null else search.left to settings.left
         }
-        val expected = actionColumns.first()
-        actionColumns.drop(1).forEach { actual ->
+        val serialColumns = actionColumns.filterNotNull()
+        val expected = serialColumns.first()
+        serialColumns.drop(1).forEach { actual ->
             check(kotlin.math.abs(actual.first - expected.first) <= 1f) { "Search moved between expanded workspaces: $actionColumns" }
             check(kotlin.math.abs(actual.second - expected.second) <= 1f) { "Settings moved between expanded workspaces: $actionColumns" }
         }

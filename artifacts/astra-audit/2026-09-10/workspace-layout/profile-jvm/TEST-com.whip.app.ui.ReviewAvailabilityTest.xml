@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.ReviewAvailabilityTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-09-10T20:36:41.247Z" hostname="beast" time="0.018">
+  <properties/>
+  <testcase name="failureTakesPrecedenceOverLoadingAndRecoveryRestoresReadySections" classname="com.whip.app.ui.ReviewAvailabilityTest" time="0.016"/>
+  <testcase name="hiddenOutcomeSourcesDoNotLimitTheReviewButGlobalTracksStillDo" classname="com.whip.app.ui.ReviewAvailabilityTest" time="0.002"/>
+  <testcase name="incompleteAndFailedSourcesCannotBecomeCurrentOutcomes" classname="com.whip.app.ui.ReviewAvailabilityTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

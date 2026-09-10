@@ -2,6 +2,7 @@ package com.whip.app
 
 import android.content.Intent
 import androidx.compose.ui.test.*
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -11,6 +12,7 @@ import com.whip.app.domain.*
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -45,9 +47,20 @@ class RecordItemBuilderJourneyE2ETest {
         }
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             compose.onNodeWithContentDescription("Tracks tab").performClick()
+            compose.onNodeWithTag("track-workspace-destination-Insights").performClick()
+            val fields = compose.onNodeWithText("Fields").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            assertTrue("Insights retains the Track's three Fields", compose.onAllNodesWithText("3").fetchSemanticsNodes().any {
+                kotlin.math.abs(it.boundsInRoot.center.y - fields.center.y) <= 1f
+            })
+            compose.assertWorkspaceMeasure(1000.dp)
+            capture("tracks.record-builder.insights")
+            compose.onNodeWithTag("track-workspace-destination-Tracks").performClick()
             compose.onNodeWithTag("track-list").performScrollToNode(hasTestTag("track-card-${before.track.id}"))
             compose.onNodeWithTag("track-card-${before.track.id}").performClick()
             entry(title)
+            compose.assertWorkspaceMeasure(1000.dp)
+            // A flat wide Tracks workspace owns its list/detail panes itself.
+            compose.onAllNodesWithTag("expanded-support-pane").assertCountEquals(0)
             capture("tracks.record-builder.entries")
             compose.onNodeWithText(title).performClick()
             compose.onNodeWithTag("track-entry-detail-surface").assertIsDisplayed()
@@ -62,6 +75,7 @@ class RecordItemBuilderJourneyE2ETest {
             compose.onNodeWithContentDescription("Back to Tracks").performClick()
             compose.onNodeWithTag("track-workspace-destination-Activity").performClick()
             compose.onNodeWithText(title).assertIsDisplayed()
+            compose.assertWorkspaceMeasure(720.dp)
             capture("tracks.record-builder.activity")
             compose.onNodeWithContentDescription("Edit Entry $title").performClick()
             compose.onNodeWithTag("track-entry-short-text-${before.primaryField.uuid}").assertTextContains(title)

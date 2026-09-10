@@ -1,5 +1,13 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-021 — One workspace owner chooses panes and reading measure
+
+- Status: Verified; FND-20260910-030 / IMP/VER-20260910-021. Final native phone/wide journeys, 120 Android regressions, 379 readiness JVM checks and lint/build pass.
+- Decision: Evolve AdaptiveNavigationFrame and add shared named workspace composition roles. Serial collection/settings/execution views use a centered column up to 720 dp; Home, Track Insights, Gym Progress and feature-owned list/detail use up to 1000 dp. The complete content header and body share that measure. Preserve existing item builders, scrolling, destination saved state and native actions.
+- Pane ownership: Expanded Tracks owns its existing list/detail composition and receives no extra statistics pane from the app shell. Keep primary rail navigation, current selection and the existing browser. Existing Insights/Activity retain overview and recent-record access; include total Fields in the Insights overview so the removed sidebar's aggregate remains available. Preserve separate context on physical book/tabletop folds and useful Settings category navigation.
+- Alternatives/tradeoffs: A global 720 dp cap would collapse useful browser/analytics layouts; a new navigation framework would risk saved-state and fold/editor recovery without resolving content ownership. Only removing the sidebar leaves inconsistent label/control spans elsewhere. Explicit shared roles improve both problems while leaving deliberate side whitespace for readable serial work. The old outer Tracks expansion action becomes unnecessary where there is no outer pane.
+- Compatibility/acceptance: No domain, schema, backup, version or history change. Preserve compact navigation and real native record/menu/edit/archive/history, Habit timer recreation and confirmed Settings Save. Review before/after 100% phone/wide, appropriate fold/IME/state and shared-shell neighbors, then readiness before delivery. Normal UX and wider app quality remain the priority; no per-screen 200% campaign.
+
 ### DEC-20260910-020 — Separate execution summaries, Set evidence and template guidance
 
 - Status: Verified; FND-20260910-029 / IMP/VER-20260910-020. Final phone/wide journeys, 226 Android regressions, 378 readiness JVM checks and lint/build pass.

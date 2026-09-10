@@ -1,5 +1,14 @@
 # Durable findings
 
+### FND-20260910-030 — Workspace layout duplicates panes and stretches serial controls
+
+- Status: Verified; P2 ordinary-scale design/interaction consistency. FB-20260910-001/002.
+- Observed: Fresh API 37 native baseline on 86860fd7 passes record, Habit timer and Settings journeys. Tracks renders a 320 dp statistics/support pane beside its own list/detail workspace, producing three content columns plus primary navigation. The overview repeats Track/count context already available in the workspace. Settings and active-workout controls span the rest of the window with distant label/action endpoints; the app imposes one 1000 dp body cap while its top bar remains independently full width. Matched 100% originals are in build/astra-workspace-layout-20260910/before-wide; Tracks Entries and Settings choice personally inspected.
+- Cause: The app shell gives every expanded destination a generic support pane, while feature owners independently compose their own panes and widths. Item builders cannot decide screen-level information ownership. Existing Track/Entry forms already demonstrate a bounded 720 dp reading column.
+- Expected: Declare a shared screen composition role: serial reading/interaction, overview, or list/detail browsing. Keep header and body aligned to that role. A destination that owns list/detail must not also receive an unrelated app overview column; useful context/navigation and exact state/recovery must remain available. Retain fold-hinge ownership and compact direct navigation.
+- Scope/decision: DEC-20260910-021 compares extending the existing shell with replacing navigation. Address shared width ownership and the observed Tracks duplication; independently filtered sidebar context and the complete whole-product matrix remain separate review work.
+- Resolution: Shared workspace roles align header and content; Expanded Tracks owns its browser and existing Insights retains Fields. Final 120 Android regressions, six wide native methods, 379 readiness JVM checks and lint/build pass. Thirty original images reviewed; all 513 inputs match. Evidence: artifacts/astra-audit/2026-09-10/workspace-layout/README.md. Metric-row hierarchy, other support-pane context and whole-app acceptance remain open.
+
 ### FND-20260910-029 — Program execution repeats guidance ahead of actual training
 
 - Status: Verified; P2 ordinary UX, information hierarchy and content ownership. IMP/VER-20260910-020.

@@ -2,6 +2,7 @@ package com.whip.app
 
 import android.content.Intent
 import androidx.compose.ui.test.*
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -43,6 +44,7 @@ class ProductivityItemBuilderJourneyE2ETest {
             compose.waitUntil(10_000) { runBlocking { app.habitRepository.get(id)?.timerStartedAtMillis != null } }
             compose.onNodeWithTag("habit-expand-$id").performClick()
             compose.waitForIdle()
+            compose.assertWorkspaceMeasure(720.dp)
             captureVisualCatalogSurface("habits.productivity-builder.timer-expanded")
             assertOneTimerStatus(id)
             val timer = runBlocking { requireNotNull(app.habitRepository.get(id)) }

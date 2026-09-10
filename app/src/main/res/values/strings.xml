@@ -94,11 +94,6 @@
     <string name="support_tracks_description">Choose a Track to view its Entries, options, and Insights.</string>
     <string name="support_tracks_empty">No Tracks yet. Create a Track from the content pane.</string>
     <string name="support_gym_empty">No Workout is in progress.</string>
-    <string name="support_track_overview_title">Track Overview</string>
-    <string name="support_track_overview_description">Across the current Area scope.</string>
-    <string name="support_active_tracks">Active Tracks</string>
-    <string name="support_entries">Entries</string>
-    <string name="support_recently_active">Recently Active</string>
     <string name="task_inbox">Inbox</string>
     <string name="state_done">Done</string>
     <string name="state_needs_attention">Needs attention</string>

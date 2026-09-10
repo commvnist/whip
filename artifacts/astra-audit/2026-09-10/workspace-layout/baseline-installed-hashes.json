@@ -1,0 +1,14 @@
+[
+  {
+    "package": "commvne.com.whip.app.debug",
+    "sha256": "2b9e6b4e576933f7c3d7e134fc18da32d9f5db90bf2c44f40321eab08854867e",
+    "expected": "2b9e6b4e576933f7c3d7e134fc18da32d9f5db90bf2c44f40321eab08854867e",
+    "matches": true
+  },
+  {
+    "package": "commvne.com.whip.app.debug.test",
+    "sha256": "b210535c701c19d9322cef000134a58d456a9824448d3db801f4c62817598f88",
+    "expected": "b210535c701c19d9322cef000134a58d456a9824448d3db801f4c62817598f88",
+    "matches": true
+  }
+]
