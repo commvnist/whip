@@ -1,5 +1,11 @@
 # User feedback and acceptance criteria
 
+### FB-20260911-002 — Release independent 5/3/1 supplemental work to the phone
+
+- Date/source: 2026-09-11, direct owner follow-up: “release to phone.”
+- Acceptance: Deliver the verified 5486c352 per-exercise supplemental choices as a higher signed private release; install in place on the connected owner phone and verify package/version/hash, preserved signer/first-install identity, cold foreground launch and bounded runtime health. Follow DEC-20260906-003's fast phone lane.
+- Related/status: In progress; FB/FND/DEC-20260911-001 / IMP, VER-20260911-002. Preparing 0.3.70/code 76 from unchanged verified feature source. Existing data and history remain intact; the closed exhaustive audit stays closed.
+
 ### FB-20260911-001 — Choose 5/3/1 supplemental work separately for each main exercise
 
 - Date/source: 2026-09-11, direct owner request. Concrete custom routine: Day 1 Flat Barbell Bench Press with BBB; Day 2 Zercher Deadlift with FSL. One supplemental choice must not be forced across all days/exercises.
