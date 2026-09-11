@@ -2,7 +2,7 @@
 
 ### DEC-20260910-030 — Corresponding page roles share typography, spacing and ordering
 
-- Status: Verified under IMP/VER-20260911-001; FB-20260910-007 / FND-20260910-040. Private release preparation remains in progress.
+- Status: Verified and released in 0.3.69/code 75 under IMP/VER-20260911-001; FB-20260910-007 / FND-20260910-040. Owner appearance acceptance remains open.
 - Decision: Extend existing WhipPageHeader/WhipEmptyState with one supporting-text renderer, compact page context and the same collection rhythm. Keep readable semantic heading roles; use one 14 sp supporting role for page context and empty explanations, and one 20 sp empty heading. Reduce the shared empty inset to 16 dp. Move Task History's selector below its identity. Reserve Task capture's floating-label allowance only when the label floats.
 - Consistency: Ordinary page context must fit a single line at the owner width without clipping or reserving blank lines. Longer authored context and enlarged text wrap naturally. Match heading origins and first-content boundaries across the actual primary routes, inspect neighboring routes, and compare Track/Gym empty text layout results rather than inferring typography from source alone.
 - Compatibility: Preserve controls, record ownership, scrolling/keyboard behavior and data formats. Use shared builders and existing spacing tokens; avoid another parallel screen framework. This refines DEC-20260910-029's natural-height rule with concise copy and complete role geometry. Private 0.3.69/code 75 release is authorized by the owner.

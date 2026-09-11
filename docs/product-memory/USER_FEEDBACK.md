@@ -4,7 +4,7 @@
 
 - Date/source: 2026-09-10, owner rejects the appearance of 0.3.68: elements still jump between pages and empty Tracks/Gym appear to use different font sizes.
 - Acceptance: Reinspect actual phone-width pages, align corresponding heading/content roles through shared builders, unify empty-state typography and spacing, check neighboring destinations and install a verified signed update in place on the owner phone.
-- Status: Fix verified under IMP/VER-20260911-001; release preparation In progress at 0.3.69/code 75. Twenty-five distinct selected Android methods and 49 reviewed native originals cover actual-width geometry, shared typography, wide alignment and neighboring interactions. FB-20260910-005's previous visual acceptance is rejected by the owner; historical receipts remain valid for their narrower scope. This does not reopen the closed exhaustive audit.
+- Status: Released as 0.3.69/code 75 under IMP/VER-20260911-001. Twenty-five distinct selected Android methods and 49 reviewed native originals cover actual-width geometry, shared typography, wide alignment and neighboring interactions. Signed in-place installation, exact artifact equality and startup are verified; appearance awaits owner validation. FB-20260910-005's previous visual acceptance is rejected by the owner; historical receipts remain valid for their narrower scope. This does not reopen the closed exhaustive audit.
 
 ### FB-20260910-006 — Release the shared header-spacing fix to the owner phone
 
