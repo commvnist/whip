@@ -1,0 +1,56 @@
+{
+  "tracks.insights.populated": {
+    "page-title": "[460,207][560,240]",
+    "page-supporting-text": "[460,251][649,267]",
+    "workspace-search-action": "[1332,72][1384,124]",
+    "workspace-settings-action": "[1384,72][1436,124]"
+  },
+  "tracks.all.empty": {
+    "page-title": "[460,207][545,240]",
+    "page-supporting-text": "[460,251][667,267]",
+    "empty-state-title": "[1062,640][1200,664]",
+    "empty-state-supporting-text": "[965,672][1297,688]",
+    "workspace-search-action": "[1332,72][1384,124]",
+    "workspace-settings-action": "[1384,72][1436,124]"
+  },
+  "gym.library.landing": {
+    "page-title": "[621,207][708,240]",
+    "page-supporting-text": "[621,251][839,267]",
+    "workspace-search-action": "[1493,72][1545,124]",
+    "workspace-settings-action": "[1545,72][1597,124]"
+  },
+  "gym.history.populated": {
+    "page-title": "[621,207][825,240]",
+    "page-supporting-text": "[621,251][784,267]",
+    "workspace-search-action": "[1493,72][1545,124]",
+    "workspace-settings-action": "[1545,72][1597,124]"
+  },
+  "gym.progress.populated": {
+    "page-title": "[621,207][734,240]",
+    "page-supporting-text": "[621,251][831,267]",
+    "empty-state-title": "[994,363][1208,387]",
+    "empty-state-supporting-text": "[857,395][1345,431]",
+    "workspace-search-action": "[1493,72][1545,124]",
+    "workspace-settings-action": "[1545,72][1597,124]"
+  },
+  "tracks.activity.populated": {
+    "page-title": "[460,207][554,240]",
+    "page-supporting-text": "[460,251][688,267]",
+    "workspace-search-action": "[1332,72][1384,124]",
+    "workspace-settings-action": "[1384,72][1436,124]"
+  },
+  "tracks.record-builder.activity": {
+    "page-title": "[460,207][554,240]",
+    "page-supporting-text": "[460,251][698,267]",
+    "workspace-search-action": "[1332,72][1384,124]",
+    "workspace-settings-action": "[1384,72][1436,124]"
+  },
+  "gym.workout.empty": {
+    "page-title": "[621,207][728,240]",
+    "page-supporting-text": "[621,251][785,267]",
+    "empty-state-title": "[995,291][1207,315]",
+    "empty-state-supporting-text": "[877,323][1325,339]",
+    "workspace-search-action": "[1493,72][1545,124]",
+    "workspace-settings-action": "[1545,72][1597,124]"
+  }
+}

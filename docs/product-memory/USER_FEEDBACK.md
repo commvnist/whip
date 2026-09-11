@@ -1,5 +1,11 @@
 # User feedback and acceptance criteria
 
+### FB-20260910-007 — Correct remaining cross-page alignment and empty-state hierarchy, then release
+
+- Date/source: 2026-09-10, owner rejects the appearance of 0.3.68: elements still jump between pages and empty Tracks/Gym appear to use different font sizes.
+- Acceptance: Reinspect actual phone-width pages, align corresponding heading/content roles through shared builders, unify empty-state typography and spacing, check neighboring destinations and install a verified signed update in place on the owner phone.
+- Status: Fix verified under IMP/VER-20260911-001; release preparation In progress at 0.3.69/code 75. Twenty-five distinct selected Android methods and 49 reviewed native originals cover actual-width geometry, shared typography, wide alignment and neighboring interactions. FB-20260910-005's previous visual acceptance is rejected by the owner; historical receipts remain valid for their narrower scope. This does not reopen the closed exhaustive audit.
+
 ### FB-20260910-006 — Release the shared header-spacing fix to the owner phone
 
 - Date/source: 2026-09-10, direct owner request: “Release to my phone.”
@@ -13,7 +19,7 @@
 - User need: Align the Today header and surrounding elements when switching Tasks/Habits, remove the large empty header region, and correct equivalent alignment issues found nearby. Consistency and reusable code take priority so one shared fix improves every occurrence.
 - Acceptance criteria: Use existing shared layout ownership where possible; align matching header/title/action roles; let supporting copy occupy its actual height; remove compounded header/body spacing; preserve navigation, controls, scrolling, keyboard recovery and 48 dp actions. Verify ordinary phone/wide geometry and relevant existing interactions with proportionate checks.
 - Related: FB-20260910-002; DEC/IMP-20260910-021. This is a bounded new request, not a resumption of the closed whole-product goal.
-- Status: Released in Whip 0.3.68/code 74 after FB-20260910-006; normal-use appearance remains Awaiting user validation. Shared-header implementation and phone/wide checks are Verified in IMP/VER-20260910-030; installation is verified in IMP/VER-20260910-031.
+- Status: Released in Whip 0.3.68/code 74 after FB-20260910-006; owner appearance acceptance is Rejected under FB-20260910-007. Historical shared-header checks remain scoped to IMP/VER-20260910-030; installation is verified in IMP/VER-20260910-031.
 
 ### FB-20260910-004 — Finish the current fixes, release to the owner phone, and close the goal
 

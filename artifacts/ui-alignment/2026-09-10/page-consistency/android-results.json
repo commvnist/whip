@@ -1,0 +1,295 @@
+{
+  "campaign_started": "2026-09-10",
+  "phone_viewport": "1080x2520 at 480 dpi / 360 dp",
+  "wide_viewport": "1800x1200 at 160 dpi",
+  "latest_distinct_methods": 25,
+  "latest_methods_passed": 25,
+  "latest_unresolved": [],
+  "phases": [
+    {
+      "phase": "baseline",
+      "evidence_directory": "instrumentation-results-rcDlyu",
+      "executed": 5,
+      "failures": 0,
+      "skipped": 0,
+      "testcases": [
+        {
+          "selector": "com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "phase": "initial-phone",
+      "evidence_directory": "instrumentation-results-TQWpNd",
+      "executed": 19,
+      "failures": 2,
+      "skipped": 0,
+      "testcases": [
+        {
+          "selector": "com.whip.app.ui.InteractionControlUiTest#pageHeaderActionsDoNotShiftTitleOrSupportingText",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.ui.InteractionControlUiTest#pageHeaderKeepsFollowingContentVisuallySeparated",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.AdaptiveWhipScreenTest#everyPrimaryWorkspaceUsesTheSameHeaderAndNavigationGeometry",
+          "status": "failed",
+          "failure": "java.lang.AssertionError: Failed to inject touch input."
+        },
+        {
+          "selector": "com.whip.app.InlineTaskCaptureE2ETest#inlineTaskDraftSurvivesRecreationAndSavesWithTheNativeKeyboardAtLargeText",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.InlineTaskCaptureE2ETest#inlineTaskDraftSurvivesRecreationAndSavesWithTheNativeKeyboard",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.TaskBulkSelectionUiTest#activeSelectionKeepsPrimaryActionsVisibleAndSecondaryActionsInOverflow",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.TaskBulkSelectionUiTest#historySelectionOffersRelevantActionsForCompletedAndArchivedTasks",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.VisualCatalogPagesTest#captureSettingsPageCatalog",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.VisualCatalogPagesTest#captureGoalPageCatalog",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.VisualCatalogPagesTest#captureSharedPageCatalog",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.VisualCatalogPagesTest#captureHabitPageCatalog",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.VisualCatalogPagesTest#captureGymCategoryAllocationCatalog",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.WhipNavigationTest#switchingPrimaryAreasPreservesEachAreasLastHeading",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.WhipNavigationTest#primaryAreasAndAccessibleTopActionsAreReachable",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.WhipNavigationTest#everyFirstClassDestinationIsReachableThroughVisibleNavigation",
+          "status": "failed",
+          "failure": "java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains 'Your latest completed tasks' (ignoreCase: false) as substring is not displayed!"
+        },
+        {
+          "selector": "com.whip.app.WhipNavigationTest#homeEntityInspectorsPreserveTheHomeDestination",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "phase": "phone-refinement",
+      "evidence_directory": "instrumentation-results-u5d2hZ",
+      "executed": 13,
+      "failures": 1,
+      "skipped": 0,
+      "testcases": [
+        {
+          "selector": "com.whip.app.ui.InteractionControlUiTest#pageHeaderActionsDoNotShiftTitleOrSupportingText",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.ui.InteractionControlUiTest#pageHeaderKeepsFollowingContentVisuallySeparated",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.AdaptiveWhipScreenTest#everyPrimaryWorkspaceUsesTheSameHeaderAndNavigationGeometry",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.InlineTaskCaptureE2ETest#inlineTaskDraftSurvivesRecreationAndSavesWithTheNativeKeyboardAtLargeText",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.InlineTaskCaptureE2ETest#inlineTaskDraftSurvivesRecreationAndSavesWithTheNativeKeyboard",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.TaskBulkSelectionUiTest#activeSelectionKeepsPrimaryActionsVisibleAndSecondaryActionsInOverflow",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.TaskBulkSelectionUiTest#historySelectionOffersRelevantActionsForCompletedAndArchivedTasks",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.WhipNavigationTest#switchingPrimaryAreasPreservesEachAreasLastHeading",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.WhipNavigationTest#primaryAreasAndAccessibleTopActionsAreReachable",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.WhipNavigationTest#everyFirstClassDestinationIsReachableThroughVisibleNavigation",
+          "status": "failed",
+          "failure": "java.lang.AssertionError: Failed to perform checkIsDisplayed check: Expected at most 1 node but found 2 nodes that satisfy (Text + InputText + EditableText contains 'Completed tasks' (ignoreCase: false) as substring)"
+        },
+        {
+          "selector": "com.whip.app.WhipNavigationTest#homeEntityInspectorsPreserveTheHomeDestination",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "phase": "navigation-search-replacement",
+      "evidence_directory": "instrumentation-results-dYBE4q",
+      "executed": 2,
+      "failures": 0,
+      "skipped": 0,
+      "testcases": [
+        {
+          "selector": "com.whip.app.GymLibraryJourneyE2ETest#equipmentSearchAndFilterIncludeEveryLinkedExercise",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.WhipNavigationTest#everyFirstClassDestinationIsReachableThroughVisibleNavigation",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "phase": "initial-wide",
+      "evidence_directory": "instrumentation-results-cvCljq",
+      "executed": 3,
+      "failures": 1,
+      "skipped": 0,
+      "testcases": [
+        {
+          "selector": "com.whip.app.AdaptiveWhipScreenTest#expandedWorkspacesAlignChromeWithTheirDeclaredContentColumn",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog",
+          "status": "failed",
+          "failure": "java.lang.IllegalStateException: Visual catalog hierarchy for gym.progress.populated contains an unlabeled interactive node"
+        }
+      ]
+    },
+    {
+      "phase": "wide-refinement",
+      "evidence_directory": "instrumentation-results-7nh0G3",
+      "executed": 6,
+      "failures": 1,
+      "skipped": 0,
+      "testcases": [
+        {
+          "selector": "com.whip.app.AdaptiveWhipScreenTest#expandedWorkspacesAlignChromeWithTheirDeclaredContentColumn",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.ProductivityItemBuilderJourneyE2ETest#expandedTimerHasOneStatusAndKeepsItsActionsAfterRecreation",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.RecordItemBuilderJourneyE2ETest#recordsKeepTheirReadingOrderAndExactActions",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.SettingItemBuilderJourneyE2ETest#choicesSaveImmediatelyWhileTypedDraftsWaitForConfirmedSave",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog",
+          "status": "failed",
+          "failure": "java.lang.IllegalStateException: Visual catalog hierarchy for gym.progress.populated contains an unlabeled interactive node:                           <node NAF=\"true\" index=\"0\" text=\"\" resource-id=\"gym-chart-point\" class=\"android.view.View\" package=\"commvne.com.whip.app.debug\" content-desc=\"\" checkable=\"true\" checked=\"false\" clickable=\"true\" enabled=\"true\" focusable=\"true\" focused=\"false\" scrollable=\"false\" long-clickable=\"false\" password=\"false\" selected=\"false\" visible-to-user=\"true\" bounds=\"[621,1125][843,1173]\" drawing-order=\"0\" hint=\"\" display-id=\"0\">"
+        }
+      ]
+    },
+    {
+      "phase": "wide-gym-replacement",
+      "evidence_directory": "instrumentation-results-GvAx7V",
+      "executed": 1,
+      "failures": 0,
+      "skipped": 0,
+      "testcases": [
+        {
+          "selector": "com.whip.app.VisualCatalogPagesTest#captureGymPageCatalog",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "phase": "final-phone-smoke",
+      "evidence_directory": "instrumentation-results-aYH6jd",
+      "executed": 3,
+      "failures": 0,
+      "skipped": 0,
+      "testcases": [
+        {
+          "selector": "com.whip.app.AdaptiveWhipScreenTest#everyPrimaryWorkspaceUsesTheSameHeaderAndNavigationGeometry",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.WhipComposeSemanticsTest#gymConfigurationControlsUseProgressiveDisclosure",
+          "status": "passed"
+        },
+        {
+          "selector": "com.whip.app.WhipNavigationTest#everyFirstClassDestinationIsReachableThroughVisibleNavigation",
+          "status": "passed"
+        }
+      ]
+    }
+  ]
+}

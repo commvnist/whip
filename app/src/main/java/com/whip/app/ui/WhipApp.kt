@@ -1825,18 +1825,7 @@ fun WhipScreen(
           appDestination == AppDestination.Tracks && trackViewModel != null &&
           selectedTrackState.value?.let(trackState::track) != null
       val inlineKeyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
-      val workspaceComposition = when {
-          gymRoutineEditorOpen -> WhipWorkspaceComposition.Browser
-          appDestination == AppDestination.Home -> WhipWorkspaceComposition.Overview
-          appDestination == AppDestination.Tracks -> when (trackWorkspaceDestinationState.value) {
-              TrackWorkspaceDestination.Tracks, TrackWorkspaceDestination.Archived -> WhipWorkspaceComposition.Browser
-              TrackWorkspaceDestination.Insights -> WhipWorkspaceComposition.Overview
-              TrackWorkspaceDestination.Activity -> WhipWorkspaceComposition.Reading
-          }
-          appDestination == AppDestination.Gym && gymDestination == GymDestination.Progress -> WhipWorkspaceComposition.Overview
-          else -> WhipWorkspaceComposition.Reading
-      }
-      WhipWorkspaceLayout(workspaceComposition) {
+      WhipWorkspaceLayout {
       Scaffold(
         // The active content owns keyboard space; persistent side navigation stays put.
         modifier = Modifier.fillMaxSize().imePadding(),
@@ -5825,7 +5814,10 @@ private fun TaskAreaContent(
     var quickCapture by rememberSaveable { mutableStateOf("") }
     var quickCaptureViewport by remember { mutableStateOf(IntSize.Zero) }
     var quickCaptureFocused by remember { mutableStateOf(false) }
-    val quickCaptureVisibility = rememberFocusedInputVisibility(quickCaptureViewport) { quickCaptureFocused = it }
+    val quickCaptureVisibility = rememberFocusedInputVisibility(
+        quickCaptureViewport,
+        hasFloatingLabel = quickCaptureFocused || quickCapture.isNotEmpty(),
+    ) { quickCaptureFocused = it }
     val quickCaptureHasKeyboard = quickCaptureFocused && WindowInsets.ime.getBottom(LocalDensity.current) > 0
     var connectedQuickCaptureSubmitting by remember { mutableStateOf(false) }
     var submittedQuickCapture by rememberSaveable { mutableStateOf("") }
@@ -6176,25 +6168,12 @@ private fun TaskAreaContent(
             testTagPrefix = "task-destination",
             barTestTag = "task-workspace-navigation",
         )
-        if (workspaceDestination == TaskWorkspaceDestination.History) {
-            SegmentedChoiceBar(
-                selected = historySection,
-                choices = TaskHistorySection.entries,
-                onSelect = { selected ->
-                    historySection = selected
-                    onDestinationChange(TaskWorkspaceRoute(TaskWorkspaceDestination.History, selected).dataDestination())
-                },
-                label = TaskHistorySection::label,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-                resetItemDisclosureOnChange = true,
-            )
-        }
         Column(
             modifier = Modifier.padding(whipPagePadding(bottom = 0.dp)),
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
             if (!selectionMode && !quickCaptureHasKeyboard) WhipPageHeader(
-                    title = destination.label,
+                    title = workspaceDestination.label,
                     supportingText = taskDestinationSupportingText(destination, visibleTasks.size),
                 ) {
                 if (!reordering) WhipPageIconAction(
@@ -6228,6 +6207,19 @@ private fun TaskAreaContent(
                     WhipTextButton(onClick = ::startTaskSelection) { Text("Select") }
                 }
                 }
+            if (workspaceDestination == TaskWorkspaceDestination.History) {
+                SegmentedChoiceBar(
+                    selected = historySection,
+                    choices = TaskHistorySection.entries,
+                    onSelect = { selected ->
+                        historySection = selected
+                        onDestinationChange(TaskWorkspaceRoute(TaskWorkspaceDestination.History, selected).dataDestination())
+                    },
+                    label = TaskHistorySection::label,
+                    modifier = Modifier.fillMaxWidth().testTag("task-history-sections"),
+                    resetItemDisclosureOnChange = true,
+                )
+            }
             if (selectionMode) {
                 WhipSelectionActionPanel(
                     selectionSummary = "${selectedItems.size} selected",
@@ -6470,11 +6462,11 @@ private fun TaskAreaContent(
         if (!selectionMode && !reordering && destination in setOf(TaskDestination.Today, TaskDestination.Inbox)) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    OutlinedTextField(
+                    WhipInlineTextField(
                         value = quickCapture,
                         onValueChange = { quickCapture = it },
                         enabled = !quickCaptureSubmitting,
-                        label = { Text("Task for ${destination.label}") },
+                        label = "Task for ${destination.label}",
                         placeholder = {
                             Text(
                                 if (appSettings.naturalLanguageTaskCapture) {
@@ -6499,7 +6491,6 @@ private fun TaskAreaContent(
                         },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { submitQuickCapture() }),
-                        singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
                             .then(quickCaptureVisibility)
@@ -7801,11 +7792,11 @@ private fun HomeStatusCard(title: String, detail: String, onClick: () -> Unit) =
 
 private fun taskDestinationSupportingText(destination: TaskDestination, count: Int): String {
     val description = when (destination) {
-        TaskDestination.Inbox -> "Captured and waiting for a decision"
-        TaskDestination.Today -> "What needs your attention now"
+        TaskDestination.Inbox -> "Ready to organize"
+        TaskDestination.Today -> "Your tasks for today"
         TaskDestination.Upcoming -> "The next 30 days"
-        TaskDestination.Completed -> "Your latest completed tasks"
-        TaskDestination.Archived -> "Stored safely until you restore them"
+        TaskDestination.Completed -> "Completed tasks"
+        TaskDestination.Archived -> "Saved tasks, ready to restore"
     }
     return if (count > 0) "$description · ${count.itemCount("task")}" else description
 }

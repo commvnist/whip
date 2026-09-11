@@ -1,0 +1,138 @@
+{
+  "tasks.today.populated": {
+    "page-title": "[60,554][286,653]",
+    "page-supporting-text": "[60,687][579,736]",
+    "task-quick-capture": "[60,760][1020,928]"
+  },
+  "tasks.inbox.populated": {
+    "page-title": "[60,554][269,653]",
+    "page-supporting-text": "[60,687][538,736]",
+    "task-quick-capture": "[60,760][1020,928]"
+  },
+  "tasks.upcoming.list": {
+    "page-title": "[60,554][443,653]",
+    "page-supporting-text": "[60,687][544,736]"
+  },
+  "tasks.history.completed": {
+    "page-title": "[60,554][332,653]",
+    "page-supporting-text": "[60,687][521,736]"
+  },
+  "tasks.history.archived": {
+    "page-title": "[60,554][332,653]",
+    "page-supporting-text": "[60,687][740,736]"
+  },
+  "habits.today.populated": {
+    "page-title": "[60,554][286,653]",
+    "page-supporting-text": "[60,687][608,736]"
+  },
+  "habits.today.empty": {
+    "page-title": "[60,554][286,653]",
+    "page-supporting-text": "[60,687][608,736]",
+    "empty-state-title": "[336,808][745,879]",
+    "empty-state-supporting-text": "[108,903][972,1012]"
+  },
+  "habits.all.populated": {
+    "page-title": "[60,554][425,653]",
+    "page-supporting-text": "[60,687][456,736]"
+  },
+  "habits.archived.populated": {
+    "page-title": "[60,554][659,653]",
+    "page-supporting-text": "[60,687][620,736]"
+  },
+  "habits.insights.populated": {
+    "page-title": "[60,554][585,653]",
+    "page-supporting-text": "[60,687][683,736]"
+  },
+  "goals.active.populated": {
+    "page-title": "[60,554][533,653]",
+    "page-supporting-text": "[60,687][584,736]"
+  },
+  "goals.active.empty": {
+    "page-title": "[60,554][533,653]",
+    "page-supporting-text": "[60,687][584,736]",
+    "empty-state-title": "[267,808][814,879]",
+    "empty-state-supporting-text": "[108,903][972,1012]"
+  },
+  "goals.history.populated": {
+    "page-title": "[60,554][524,653]",
+    "page-supporting-text": "[60,687][688,736]"
+  },
+  "goals.archived.populated": {
+    "page-title": "[60,554][629,653]",
+    "page-supporting-text": "[60,687][607,736]"
+  },
+  "goals.insights.populated": {
+    "page-title": "[60,554][555,653]",
+    "page-supporting-text": "[60,687][622,736]"
+  },
+  "tracks.all.populated": {
+    "page-title": "[60,554][316,653]",
+    "page-supporting-text": "[60,687][678,736]"
+  },
+  "tracks.all.empty": {
+    "page-title": "[60,554][316,653]",
+    "page-supporting-text": "[60,687][678,736]",
+    "empty-state-title": "[276,808][805,879]",
+    "empty-state-supporting-text": "[108,903][972,1012]"
+  },
+  "tracks.activity.populated": {
+    "page-title": "[60,554][345,653]",
+    "page-supporting-text": "[60,687][749,736]"
+  },
+  "tracks.archived.populated": {
+    "page-title": "[60,554][671,653]",
+    "page-supporting-text": "[60,687][678,736]"
+  },
+  "tracks.insights.populated": {
+    "page-title": "[60,554][363,653]",
+    "page-supporting-text": "[60,687][630,736]"
+  },
+  "gym.workout.empty": {
+    "page-title": "[60,554][378,653]",
+    "page-supporting-text": "[60,687][548,736]",
+    "empty-state-title": "[219,808][861,879]",
+    "empty-state-supporting-text": "[108,903][972,1012]"
+  },
+  "gym.workout.active": {
+    "page-title": "[60,554][408,653]",
+    "page-supporting-text": "[60,687][303,736]"
+  },
+  "gym.history.populated": {
+    "page-title": "[60,554][671,653]",
+    "page-supporting-text": "[60,687][549,736]"
+  },
+  "gym.progress.populated": {
+    "page-title": "[60,554][400,653]",
+    "page-supporting-text": "[60,687][692,736]",
+    "empty-state-title": "[217,1024][863,1095]",
+    "empty-state-supporting-text": "[108,1119][972,1288]"
+  },
+  "gym.library.landing": {
+    "page-title": "[60,554][323,653]",
+    "page-supporting-text": "[60,687][716,736]"
+  },
+  "gym.exercises.populated": {
+    "page-title": "[60,698][662,797]",
+    "page-supporting-text": "[60,831][831,880]"
+  },
+  "gym.machines.populated": {
+    "page-title": "[60,698][427,797]",
+    "page-supporting-text": "[60,831][704,880]"
+  },
+  "gym.categories.populated": {
+    "page-title": "[60,698][809,797]",
+    "page-supporting-text": "[60,831][708,880]"
+  },
+  "gym.routines.populated": {
+    "page-title": "[60,698][393,797]",
+    "page-supporting-text": "[60,831][693,880]"
+  },
+  "gym.tools": {
+    "page-title": "[60,698][603,797]",
+    "page-supporting-text": "[60,831][1020,940]"
+  },
+  "settings.index": {
+    "page-title": "[60,383][373,482]",
+    "page-supporting-text": "[60,516][729,565]"
+  }
+}

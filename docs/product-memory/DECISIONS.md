@@ -1,5 +1,13 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-030 — Corresponding page roles share typography, spacing and ordering
+
+- Status: Verified under IMP/VER-20260911-001; FB-20260910-007 / FND-20260910-040. Private release preparation remains in progress.
+- Decision: Extend existing WhipPageHeader/WhipEmptyState with one supporting-text renderer, compact page context and the same collection rhythm. Keep readable semantic heading roles; use one 14 sp supporting role for page context and empty explanations, and one 20 sp empty heading. Reduce the shared empty inset to 16 dp. Move Task History's selector below its identity. Reserve Task capture's floating-label allowance only when the label floats.
+- Consistency: Ordinary page context must fit a single line at the owner width without clipping or reserving blank lines. Longer authored context and enlarged text wrap naturally. Match heading origins and first-content boundaries across the actual primary routes, inspect neighboring routes, and compare Track/Gym empty text layout results rather than inferring typography from source alone.
+- Compatibility: Preserve controls, record ownership, scrolling/keyboard behavior and data formats. Use shared builders and existing spacing tokens; avoid another parallel screen framework. This refines DEC-20260910-029's natural-height rule with concise copy and complete role geometry. Private 0.3.69/code 75 release is authorized by the owner.
+- Wide policy: Supersede DEC-20260910-021's per-destination 720/1000 dp measure split, which native review reproduces as a 140 px heading/action jump. Keep the existing workspace builder with a single 1000 dp maximum, content-owned readable text measures, and the same 20 dp list inset in Track master panes. Actual multi-pane/fold ownership remains unchanged.
+
 ### DEC-20260910-029 — Shared page headers measure content and parents own inter-item gaps
 
 - Status: Verified; FB-20260910-005 / FND-20260910-039 / IMP, VER-20260910-030.
@@ -62,6 +70,7 @@
 ### DEC-20260910-021 — One workspace owner chooses panes and reading measure
 
 - Status: Verified; FND-20260910-030 / IMP/VER-20260910-021. Final native phone/wide journeys, 120 Android regressions, 379 readiness JVM checks and lint/build pass.
+- Supersession: DEC-20260910-030 replaces this decision's per-destination 720/1000 dp split with one stable 1000 dp workspace measure after owner feedback and native reproduction of a 140 px section-switch jump. Pane ownership and historical verification remain valid.
 - Decision: Evolve AdaptiveNavigationFrame and add shared named workspace composition roles. Serial collection/settings/execution views use a centered column up to 720 dp; Home, Track Insights, Gym Progress and feature-owned list/detail use up to 1000 dp. The complete content header and body share that measure. Preserve existing item builders, scrolling, destination saved state and native actions.
 - Pane ownership: Expanded Tracks owns its existing list/detail composition and receives no extra statistics pane from the app shell. Keep primary rail navigation, current selection and the existing browser. Existing Insights/Activity retain overview and recent-record access; include total Fields in the Insights overview so the removed sidebar's aggregate remains available. Preserve separate context on physical book/tabletop folds and useful Settings category navigation.
 - Alternatives/tradeoffs: A global 720 dp cap would collapse useful browser/analytics layouts; a new navigation framework would risk saved-state and fold/editor recovery without resolving content ownership. Only removing the sidebar leaves inconsistent label/control spans elsewhere. Explicit shared roles improve both problems while leaving deliberate side whitespace for readable serial work. The old outer Tracks expansion action becomes unnecessary where there is no outer pane.

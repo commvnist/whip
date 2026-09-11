@@ -214,7 +214,7 @@ class UiDesignArchitectureTest {
             "Track empty states must not stack local vertical padding on WhipEmptyState's shared rhythm: $locallyPaddedEmptyStates",
             locallyPaddedEmptyStates.isEmpty(),
         )
-        listOf(app, habits, goals, tracks).forEach { source ->
+        listOf(app, habits, goals, tracks, gym).forEach { source ->
             assertTrue(
                 "Every first-class collection must use the balanced 8 dp item gap",
                 source.contains("verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling)"),
@@ -253,7 +253,7 @@ class UiDesignArchitectureTest {
             "Gym pages must not bypass the shared collection gap",
             Regex(
                 "contentPadding\\s*=\\s*WhipPageContentPadding,\\s*" +
-                    "verticalArrangement\\s*=\\s*Arrangement\\.spacedBy\\((10|12)\\.dp\\)",
+                    "verticalArrangement\\s*=\\s*Arrangement\\.spacedBy\\((?:(10|12)\\.dp|WhipSpacing\\.compact)\\)",
             ).containsMatchIn(gym),
         )
     }

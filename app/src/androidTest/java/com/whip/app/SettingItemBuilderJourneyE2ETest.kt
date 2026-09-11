@@ -38,7 +38,7 @@ class SettingItemBuilderJourneyE2ETest {
             compose.waitUntil(10_000) { app.settingsRepository.current().powerMode }
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Opening area"))
             compose.onNodeWithContentDescription("Opening area: $areaName").assertIsDisplayed()
-            compose.assertWorkspaceMeasure(720.dp)
+            compose.assertWorkspaceMeasure(1000.dp)
             captureVisualCatalogSurface("settings.item-builder.choice-value")
             compose.onNodeWithContentDescription("Opening area: $areaName").performClick()
             compose.onNodeWithContentDescription("Opening area option: All Areas").performClick()
@@ -61,7 +61,7 @@ class SettingItemBuilderJourneyE2ETest {
             assertTrue(app.settingsRepository.current().powerMode)
             assertEquals(AreaScope.All.storageKey, app.settingsRepository.current().chosenOpeningAreaScope)
             compose.onNodeWithTag(field).assertTextContains("3")
-            compose.assertWorkspaceMeasure(720.dp)
+            compose.assertWorkspaceMeasure(1000.dp)
             captureVisualCatalogSurface("settings.item-builder.saved-value")
             compose.onNodeWithTag(field).performClick()
             compose.onNodeWithTag("$field-input").assertTextContains("3")

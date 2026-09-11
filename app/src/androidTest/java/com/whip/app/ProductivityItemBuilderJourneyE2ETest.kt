@@ -44,7 +44,7 @@ class ProductivityItemBuilderJourneyE2ETest {
             compose.waitUntil(10_000) { runBlocking { app.habitRepository.get(id)?.timerStartedAtMillis != null } }
             compose.onNodeWithTag("habit-expand-$id").performClick()
             compose.waitForIdle()
-            compose.assertWorkspaceMeasure(720.dp)
+            compose.assertWorkspaceMeasure(1000.dp)
             captureVisualCatalogSurface("habits.productivity-builder.timer-expanded")
             assertOneTimerStatus(id)
             val timer = runBlocking { requireNotNull(app.habitRepository.get(id)) }

@@ -347,7 +347,7 @@ fun HabitAreaContent(
         when (destination) {
             HabitDestination.Today -> HabitList(
                 title = "Today",
-                subtitle = "Check in, log a value, or continue a timer.",
+                subtitle = "Check-ins, values, and timers.",
                 progress = state.today,
                 empty = if (state.all.isEmpty()) {
                     "Choose a simple template or use + to create a Habit from scratch."
@@ -376,7 +376,7 @@ fun HabitAreaContent(
             )
             HabitDestination.All -> HabitList(
                 title = "All Habits",
-                subtitle = "Build, limit, avoid, or simply observe anything you define.",
+                subtitle = "All your active habits.",
                 progress = state.all,
                 empty = if (state.all.isEmpty()) {
                     "Choose a simple template or use + to create a Habit from scratch."
@@ -1529,7 +1529,7 @@ internal fun HabitInsights(state: HabitUiState, lowPressureMode: Boolean) {
         item {
             WhipPageHeader(
                 title = "Habit Insights",
-                supportingText = "Consistency, streaks, and logged activity for each habit.",
+                supportingText = "Consistency, streaks, and activity.",
             )
         }
         if (state.all.isEmpty()) item {
@@ -1760,7 +1760,7 @@ private fun ArchivedHabitList(
         item {
             WhipPageHeader(
                 title = "Archived Habits",
-                supportingText = "Habits kept for history but removed from active check-ins.",
+                supportingText = "Saved habits, ready to restore.",
             )
         }
         if (visible.isEmpty()) item {

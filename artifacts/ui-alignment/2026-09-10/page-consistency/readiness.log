@@ -1,0 +1,332 @@
+Route A app/src/main/java/com/whip/app/ui/WhipInlineTextField.kt -> candidate:required (unknown production path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/android-results.json -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/before-wide/gym.history.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/before-wide/gym.history.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/before-wide/gym.workout.empty.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/before-wide/gym.workout.empty.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/before-wide/tracks.all.empty.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/before-wide/tracks.all.empty.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/before-wide/tracks.insights.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/before-wide/tracks.insights.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/before/goals.active.empty.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/before/goals.active.empty.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/before/gym.workout.empty.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/before/gym.workout.empty.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/before/habits.today.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/before/habits.today.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/before/tasks.history.completed.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/before/tasks.history.completed.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/before/tasks.today.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/before/tasks.today.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/before/tracks.all.empty.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/before/tracks.all.empty.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/captures.sha256.json -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone-geometry.json -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/goals.active.empty.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/goals.active.empty.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/goals.active.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/goals.active.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/goals.archived.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/goals.archived.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/goals.history.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/goals.history.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/goals.insights.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/goals.insights.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/gym.categories.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/gym.categories.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/gym.exercises.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/gym.exercises.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/gym.history.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/gym.history.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/gym.library.landing.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/gym.library.landing.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/gym.machines.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/gym.machines.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/gym.progress.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/gym.progress.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/gym.routines.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/gym.routines.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/gym.tools.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/gym.tools.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/gym.workout.active.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/gym.workout.active.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/gym.workout.empty.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/gym.workout.empty.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/habits.all.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/habits.all.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/habits.archived.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/habits.archived.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/habits.insights.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/habits.insights.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/habits.today.empty.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/habits.today.empty.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/habits.today.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/habits.today.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/settings.index.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/settings.index.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/tasks.history.archived.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/tasks.history.archived.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/tasks.history.completed.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/tasks.history.completed.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/tasks.inbox.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/tasks.inbox.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/tasks.today.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/tasks.today.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/tasks.upcoming.list.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/tasks.upcoming.list.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/tracks.activity.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/tracks.activity.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/tracks.all.empty.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/tracks.all.empty.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/tracks.all.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/tracks.all.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/tracks.archived.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/tracks.archived.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/tracks.insights.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/phone/tracks.insights.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/wide-geometry.json -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/wide/gym.history.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/wide/gym.history.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/wide/gym.library.landing.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/wide/gym.library.landing.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/wide/gym.progress.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/wide/gym.progress.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/wide/gym.workout.empty.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/wide/gym.workout.empty.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/wide/tracks.activity.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/wide/tracks.activity.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/wide/tracks.all.empty.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/wide/tracks.all.empty.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/wide/tracks.insights.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/wide/tracks.insights.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/wide/tracks.record-builder.activity.png -> candidate:required (unclassified repository path)
+Route A artifacts/ui-alignment/2026-09-10/page-consistency/wide/tracks.record-builder.activity.xml -> candidate:required (unclassified repository path)
+Route M app/build.gradle.kts -> candidate:required (build or benchmark configuration path)
+Route M app/src/androidTest/java/com/whip/app/AdaptiveWhipScreenTest.kt -> android:com.whip.app.AdaptiveWhipScreenTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/ProductivityItemBuilderJourneyE2ETest.kt -> android:com.whip.app.ProductivityItemBuilderJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/RecordItemBuilderJourneyE2ETest.kt -> android:com.whip.app.RecordItemBuilderJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/SettingItemBuilderJourneyE2ETest.kt -> android:com.whip.app.SettingItemBuilderJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/VisualCatalogCapture.kt -> android:all (shared or unresolved Android test source)
+Route M app/src/androidTest/java/com/whip/app/WhipNavigationTest.kt -> android:com.whip.app.WhipNavigationTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/ui/InteractionControlUiTest.kt -> android:com.whip.app.ui.InteractionControlUiTest (exact Android test class)
+Route M app/src/main/java/com/whip/app/ui/FocusedInputVisibility.kt -> profile:tasks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/GoalScreens.kt -> profile:goals (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/GymScreens.kt -> profile:gym (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/HabitScreens.kt -> profile:habits (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/SettingsScreens.kt -> profile:settings (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/TrackScreens.kt -> profile:tracks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/WhipApp.kt -> profile:all (shared UI/core production path)
+Route M app/src/main/java/com/whip/app/ui/WhipPagePatterns.kt -> candidate:required (unknown production path)
+Route M app/src/main/java/com/whip/app/ui/WhipSearchField.kt -> profile:tracks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/WhipWorkspaceLayout.kt -> candidate:required (unknown production path)
+Route M app/src/test/java/com/whip/app/ui/UiDesignArchitectureTest.kt -> jvm:com.whip.app.ui.UiDesignArchitectureTest (exact JVM test class)
+Route M docs/architecture.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/DECISIONS.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/FINDINGS.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/INDEX.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/USER_FEEDBACK.md -> profile:docs (documentation-only path)
+Route M scripts/test-android-target-guard -> candidate:required (test or release harness integrity path)
+Profile: all
+Profile: docs
+Profile: goals
+Profile: gym
+Profile: habits
+Profile: settings
+Profile: tasks
+Profile: tracks
+JVM selector: com.whip.app.ui.UiDesignArchitectureTest
+Android selector: com.whip.app.AdaptiveWhipScreenTest
+Android selector: com.whip.app.ProductivityItemBuilderJourneyE2ETest
+Android selector: com.whip.app.RecordItemBuilderJourneyE2ETest
+Android selector: com.whip.app.SettingItemBuilderJourneyE2ETest
+Android selector: com.whip.app.WhipNavigationTest
+Android selector: com.whip.app.ui.InteractionControlUiTest
+Harness check: scripts/test-android-target-guard
+All JVM tests: false
+All Android tests: true
+Static checks: true
+Frozen candidate required: true
+Reusing configuration cache.
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:generateDebugJacocoPropertiesFile UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:kspDebugKotlin UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:kspDebugUnitTestKotlin SKIPPED
+> Task :app:bundleDebugClassesToRuntimeJar UP-TO-DATE
+> Task :app:compileDebugUnitTestKotlin UP-TO-DATE
+> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:copyRoomSchemas NO-SOURCE
+> Task :app:processDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:testDebugUnitTest UP-TO-DATE
+
+BUILD SUCCESSFUL in 433ms
+29 actionable tasks: 29 up-to-date
+Configuration cache entry reused.
+Targeted JVM checks passed; Android-test compilation was intentionally deferred.
+PASS missing-serial
+PASS blank-serial
+PASS invalid-serial
+PASS multiple-serials
+PASS offline-target
+PASS unauthorized-target
+PASS physical-instrumentation
+PASS failed-qemu-instrumentation
+PASS connected-emulator
+PASS legacy-connected-emulator
+PASS legacy-emulator-release
+PASS absent-emulator-properties
+PASS negative-legacy-emulator-property
+PASS failed-legacy-identity-read
+PASS catalog-legacy-emulator
+PASS catalog-unverified-target
+PASS matching-two-emulator-set
+PASS duplicate-emulator-set
+PASS third-emulator-in-secondary-slot
+PASS physical-secondary-emulator
+PASS mismatched-secondary-emulator
+PASS explicit compatible two-emulator set guard
+PASS missing-release-target
+PASS emulator-release-target
+PASS failed-qemu-release-target
+PASS connected-physical-release-target
+PASS check-requires-explicit-serial
+PASS coverage-requires-explicit-serial
+PASS qa-targeted-requires-explicit-serial
+PASS release-command-requires-explicit-device
+PASS explicitly-targeted installs
+PASS release commands select guarded physical targets
+PASS personal-phone release uses fast affected checks
+PASS module-local connected-task guards
+PASS compile-task-unguarded
+PASS :app:connectedDebugAndroidTest-accepts-explicit-emulator
+PASS :benchmark:connectedBenchmarkAndroidTest-accepts-explicit-emulator
+PASS gradle-task-requires-explicit-serial
+PASS gradle-task-rejects-malformed-serial
+PASS gradle-task-rejects-physical-target
+PASS gradle-task-rejects-managed-target
+PASS shared Android batch topology contract
+PASS coverage-fresh-eleven-process-accounting
+PASS fresh 11-process coverage accounting and report union
+PASS targeted-two-emulator-parallel-accounting
+PASS targeted two-emulator distribution and exact aggregate
+PASS parallel-two-emulator-surfaces-batch-diagnostics
+PASS parallel worker failure diagnostics
+PASS reusable-engine-populates-exact-cache
+PASS reusable-engine-accepts-matching-cache
+PASS reusable-engine-invalidates-only-affected-test-batch
+PASS reusable-engine-invalidates-all-batches-for-production
+PASS reusable-engine-rejects-corrupt-cache
+PASS exact cache reuse and invalidation accounting
+PASS coverage-rejects-class-mismatch
+PASS coverage-rejects-zero-tests
+PASS coverage-rejects-failures
+PASS coverage-rejects-skips
+PASS coverage-rejects-multiple-ec
+PASS coverage-rejects-empty-ec
+PASS coverage-rejects-stale-results
+PASS stale/partial/failed coverage rejection
+PASS release version 0.3.69 (75)
+All Android target guard regressions passed.
+Play Store assets verified: 512x512 icon, 1024x500 feature graphic, and 5 phone screenshots
+Reusing configuration cache.
+> Task :app:preBuild UP-TO-DATE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:preDebugAndroidTestBuild SKIPPED
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:generateDebugGlobalSynthetics UP-TO-DATE
+> Task :app:generateDebugJacocoPropertiesFile UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:generateDebugAndroidTestResValues UP-TO-DATE
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:processDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:generateDebugAndroidTestResources UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:packageDebugAndroidTestResources UP-TO-DATE
+> Task :app:mergeDebugNativeLibs UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:parseDebugAndroidTestLocalResources UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:mergeDebugAndroidTestManifest UP-TO-DATE
+> Task :app:stripDebugDebugSymbols UP-TO-DATE
+> Task :app:generateDebugAndroidTestRFile UP-TO-DATE
+> Task :app:processDebugAndroidTestManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:generateDebugAndroidTestBuildConfig UP-TO-DATE
+> Task :app:kspDebugKotlin UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:jacocoDebug UP-TO-DATE
+> Task :app:kspDebugAndroidTestKotlin SKIPPED
+> Task :app:dexBuilderDebug UP-TO-DATE
+> Task :app:copyRoomSchemas NO-SOURCE
+> Task :app:mergeProjectDexDebug UP-TO-DATE
+> Task :app:mergeDebugJavaResource UP-TO-DATE
+> Task :app:packageDebug UP-TO-DATE
+> Task :app:assembleDebug UP-TO-DATE
+> Task :app:createDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:compileDebugAndroidTestKotlin UP-TO-DATE
+> Task :app:generateDebugUnitTestLintModel UP-TO-DATE
+> Task :app:lintAnalyzeDebugUnitTest UP-TO-DATE
+> Task :app:generateDebugLintReportModel UP-TO-DATE
+> Task :app:lintAnalyzeDebug UP-TO-DATE
+> Task :app:generateDebugAndroidTestLintModel UP-TO-DATE
+> Task :app:lintAnalyzeDebugAndroidTest UP-TO-DATE
+> Task :app:lintReportDebug UP-TO-DATE
+> Task :app:lintDebug
+
+BUILD SUCCESSFUL in 409ms
+62 actionable tasks: 1 executed, 61 up-to-date
+Configuration cache entry reused.
+Affected-change readiness gate passed. Frozen-candidate evidence was not created.
+Play Store note: qualify these inputs with a fresh scripts/candidate run only when preparing a store release.

@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
@@ -121,14 +122,14 @@ class WhipNavigationTest {
 
             compose.onNodeWithContentDescription("Habits tab").performClick()
             compose.onNodeWithText(
-                "Check in, log a value, or continue a timer.",
+                "Check-ins, values, and timers.",
             ).assertIsDisplayed()
 
             compose.onNodeWithContentDescription("Gym tab").performClick()
             compose.onNodeWithTag("gym-destination-Workout").assertIsDisplayed()
 
             compose.onNodeWithContentDescription("Goals tab").performClick()
-            compose.onNodeWithText("Long-term progress, consistency, ranges, totals, and project milestones.").assertIsDisplayed()
+            compose.onNodeWithText("Progress toward your goals.").assertIsDisplayed()
 
             compose.onNodeWithContentDescription("Tracks tab").performClick()
             compose.onNodeWithTag("track-workspace-destination-Tracks").assertIsSelected()
@@ -226,7 +227,7 @@ class WhipNavigationTest {
             listOf("Today", "Inbox", "Upcoming", "History").forEach { destination ->
                 selectDestination("task-destination-$destination")
             }
-            compose.onNodeWithText("Your latest completed tasks", substring = true).assertIsDisplayed()
+            compose.onNodeWithTag("page-supporting-text").assertIsDisplayed().assertTextContains("Completed tasks", substring = true)
             compose.onAllNodesWithText("Task History").assertCountEquals(0)
             compose.onAllNodesWithContentDescription("Back to Today").assertCountEquals(0)
 

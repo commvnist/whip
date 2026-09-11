@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 internal fun rememberFocusedInputVisibility(
     viewportSize: IntSize,
+    hasFloatingLabel: Boolean = true,
     onFocusChange: (Boolean) -> Unit = {},
 ): Modifier {
     val requester = remember { BringIntoViewRequester() }
@@ -30,5 +31,5 @@ internal fun rememberFocusedInputVisibility(
         onFocusChange(it.isFocused)
     // At enlarged text a floating label can extend above the field's own bounds.
     // Include that space in the visibility request, outside the field semantics.
-    }.padding(top = 8.dp)
+    }.padding(top = if (hasFloatingLabel) 8.dp else 0.dp)
 }

@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260911-001 — Align corresponding pages and empty states at the owner's actual width
+
+- Request: FB-20260910-007 rejects remaining 0.3.68 alignment and empty Tracks/Gym hierarchy; implementation and signed phone release are authorized. Actual owner viewport is 360 dp, compared with the preceding 411 dp evidence.
+- Behavior/reuse: Shared page/empty supporting text uses one 14 sp role, empty headings retain one 20 sp semibold role and empty insets shrink to 16 dp. Concise ordinary section context, shared Gym/Settings gaps and History controls below its heading align corresponding content. WhipInlineTextField owns idle-placeholder/floating-label geometry for capture and shared searches; the existing focus-visibility helper reserves label space only when needed.
+- Wide/adjacent fixes: One 1000 dp workspace maximum replaces destination-specific 720/1000 dp widths; Track master pages use the same 20 dp inset. Existing real support/browser/fold pane ownership remains. Gym chart-point controls retain their complete accessible label when a text child is clipped at the viewport edge.
+- Verification: All 25 distinct selected Android methods pass after documented exact replacements, including 20-section phone geometry, actual visible input-border pixels, matching rendered empty typography, ordinary/200% inline capture, navigation/search/selection, three wide builder journeys and chart history access. All 49 retained native originals are reviewed; 514 final source/build/test/harness hashes match. Evidence: artifacts/ui-alignment/2026-09-10/page-consistency/README.md. Completed final readiness passes 384 JVM checks/44 suites, target-guard fixtures, Android compilation, lint and debug packaging under VER-20260911-001.
+- Compatibility/status: Implementation verified; release preparation In progress at 0.3.69/code 75 with matching target-guard fixture. Room 46, epoch 6, backup 26, feature-owned state and record/history authority are unchanged. No exhaustive audit resumption; appearance awaits owner validation after delivery.
+
 ### IMP-20260910-031 — Release Whip 0.3.68 with consistent page-header spacing
 
 - Request/scope: FB-20260910-006 authorizes private owner-phone deployment of the verified b0c63562 header/padding changes from IMP-20260910-030.

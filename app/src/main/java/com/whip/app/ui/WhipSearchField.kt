@@ -5,8 +5,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
@@ -18,11 +16,10 @@ internal fun WhipSearchField(
     onQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    OutlinedTextField(
+    WhipInlineTextField(
         value = query,
         onValueChange = onQueryChange,
-        label = { Text(label) },
-        singleLine = true,
+        label = label,
         modifier = modifier.fillMaxWidth(),
         trailingIcon = if (query.isNotEmpty()) {{
             IconButton(onClick = { onQueryChange("") }) {

@@ -1,5 +1,12 @@
 # Verification and release evidence
 
+### VER-20260911-001 — Actual-width page consistency and Whip 0.3.69 release
+
+- Scope: FB-20260910-007 / FND-20260910-040 / DEC-20260910-030 / IMP-20260911-001. Disposable API 34 emulator at 1080×2520/480 dpi (owner's actual 360 dp width) and 1800×1200/160 dpi. Synthetic records only; no phone instrumentation or owner-data extraction.
+- Runtime: All 25 distinct selected Android methods have a passing latest result. Existing geometry test covers 20 sections, rendered text styles and actual outline pixels; navigation, Gym search, ordinary/200% inline capture, selection, three wide builder journeys and chart history action pass. Forty-nine unaltered PNGs and normalized paired XML are personally reviewed. Exact runs, selectors, intermediate fixture failures and the actual wide chart-name regression are retained in artifacts/ui-alignment/2026-09-10/page-consistency/android-results.json and README.md.
+- Readiness: Completed `scripts/check --ready` replacement exits zero and passes 384 JVM checks/44 suites with zero failures/errors/skips, target-guard fixtures, Android compilation, lint and debug packaging; catalog lint passes 534 surfaces/zero pending. The initial final readiness wrapper exits 143 after Gradle reports successful compile/lint/build and is retained as interrupted, not complete. All 514 frozen source/build/test/harness inputs match; no edits occur during instrumentation. Source inventory remains 652 JVM / 1077 Android.
+- Release preparation: Version 0.3.69/code 75 and target-guard expectation agree. Previous installed metadata/APK/signing identity are captured for an in-place continuity check. Release is pending clean-source commit/push, signed construction, install and exact artifact/startup verification. Room 46/epoch 6/backup 26 remain unchanged; no store release or whole-product acceptance is claimed.
+
 ### VER-20260910-031 — Whip 0.3.68 owner-phone release
 
 - Scope/status: Released under FB-20260910-006 / IMP-20260910-031. The verified page-header fix b0c63562 is delivered from clean pushed release source 8fbec95af90a3ea834b484818f77b143c585a43d, version 0.3.68/code 74.

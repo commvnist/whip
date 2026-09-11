@@ -93,7 +93,8 @@ internal fun captureVisualCatalogSurface(
             "Visual catalog hierarchy for $surfaceId contains an Android crash or ANR sheet"
         }
         check("NAF=\"true\"" !in hierarchy) {
-            "Visual catalog hierarchy for $surfaceId contains an unlabeled interactive node"
+            "Visual catalog hierarchy for $surfaceId contains an unlabeled interactive node: " +
+                hierarchy.lineSequence().filter { "NAF=\"true\"" in it }.joinToString().take(1200)
         }
         hierarchyFile.inputStream().use { input ->
             insertCatalogAsset(surfaceId, "xml", "application/xml").use(input::copyTo)

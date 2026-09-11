@@ -337,18 +337,18 @@ internal fun SettingsContent(
         if (!externalSectionNavigation && !wideSettingsNavigation && !compactSectionOpen) {
             Column(Modifier.fillMaxSize()) {
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(whipPagePadding(bottom = 0.dp)),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     WhipPageHeader(
                         title = "Settings",
-                        supportingText = "Choices save immediately. Typed values open in an editor and change only after Save is confirmed.",
+                        supportingText = "Preferences, defaults, and app data.",
                     )
                 }
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().testTag("settings-category-list"),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = whipPagePadding(top = WhipSpacing.sibling),
+                    verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
                 ) {
                     item {
                         WhipActionList {

@@ -2220,12 +2220,12 @@ private fun GymLibraryLanding(onOpen: (GymDestination) -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize().testTag("gym-library-list"),
         contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
         item {
             WhipPageHeader(
                 title = "Library",
-                supportingText = "Manage the reusable building blocks and utilities behind your workouts.",
+                supportingText = "Exercises, routines, and equipment.",
             )
         }
         items(libraryGymDestinations, key = GymDestination::name) { destination ->
@@ -2691,19 +2691,19 @@ private fun WorkoutContent(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = WhipPageContentPadding,
-            verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
+            verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
             item {
                 WhipPageHeader(
-                    title = "Current Workout",
-                    supportingText = "Log sets with fast, repeatable controls while you train.",
+                    title = "Workout",
+                    supportingText = "Log your sets as you train.",
                 )
             }
             item {
                 WhipEmptyState(
                     title = "No Workout in Progress",
                     supportingText = if (state.exercises.isEmpty()) {
-                        "Create exercises once, then reuse them in workouts and routines. You can also start empty and create one while logging."
+                        "Create reusable exercises, or add them as you train in an empty workout."
                     } else if (state.routines.isNotEmpty()) {
                         "Start from a routine for planned sets, or start an empty workout and build it as you train."
                     } else {
@@ -2872,7 +2872,7 @@ private fun WorkoutContent(
         modifier = Modifier.fillMaxSize().testTag("active-workout-list"),
         state = workoutListState,
         contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
         item {
             WhipPageHeader(
@@ -4679,7 +4679,7 @@ private fun ExerciseLibraryContent(
     WhipReorderLazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
         item {
             WhipPageHeader(
@@ -4861,12 +4861,12 @@ private fun MachineLibraryContent(
     LazyColumn(
         modifier = Modifier.fillMaxSize().testTag("gym-machine-list"),
         contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
         item {
             WhipPageHeader(
                 title = "Machines",
-                supportingText = "Equipment profiles keep resistance settings and workout history together.",
+                supportingText = "Equipment and resistance profiles.",
             )
         }
         item { ToggleRow("Show archived", showArchived) { showArchived = it } }
@@ -6337,12 +6337,12 @@ private fun ExerciseCategoryContent(
     WhipReorderLazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
         item {
             WhipPageHeader(
                 title = "Exercise Categories",
-                supportingText = "Group exercises for browsing and progress. Assign categories in Edit Exercise.",
+                supportingText = "Groups for browsing and progress.",
             ) {
                 if (!reordering && state.categories.size > 1) {
                     WhipPageIconAction(
@@ -6572,13 +6572,13 @@ private fun WorkoutHistoryContent(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
         item {
             WhipPageHeader(
                 title = "Workout History",
                 supportingText = if (focusedWorkoutId == null) {
-                    "Chronological view with optional date, exercise, routine, category, and record filters."
+                    "Your completed workouts."
                 } else "Showing the selected workout.",
             )
         }
@@ -6606,10 +6606,10 @@ private fun WorkoutHistoryContent(
         }
         if (focusedWorkoutId == null) {
         item {
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                label = { Text("Search Workouts") },
+            WhipSearchField(
+                query = query,
+                onQueryChange = { query = it },
+                label = "Search Workouts",
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -7770,12 +7770,12 @@ internal fun GymProgressContent(
         LazyColumn(
             modifier = Modifier.fillMaxSize().testTag("gym-progress-list"),
             contentPadding = WhipPageContentPadding,
-            verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
+            verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
             item {
                 WhipPageHeader(
                     title = "Progress",
-                    supportingText = "Charts are built from your completed workouts and keep their source records.",
+                    supportingText = "Trends from completed workouts.",
                 )
             }
             item {
@@ -7793,12 +7793,12 @@ internal fun GymProgressContent(
         LazyColumn(
             modifier = Modifier.fillMaxSize().testTag("gym-progress-list"),
             contentPadding = WhipPageContentPadding,
-            verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
+            verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
             item {
                 WhipPageHeader(
                     title = "Progress",
-                    supportingText = "Progress is calculated from completed workout sets; exercise defaults never appear as results.",
+                    supportingText = "Trends from completed workouts.",
                     modifier = Modifier.testTag("gym-progress-title"),
                 )
             }
@@ -7938,12 +7938,12 @@ internal fun GymProgressContent(
     LazyColumn(
         modifier = Modifier.fillMaxSize().testTag("gym-progress-list"),
         contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
         item {
             WhipPageHeader(
                 title = "Progress",
-                supportingText = "Keep your chosen benchmarks at a glance, then explore the complete workout history in a trend.",
+                supportingText = "Trends from completed workouts.",
                 modifier = Modifier.testTag("gym-progress-title"),
             )
             if (exercisePoints.isNotEmpty()) {
@@ -8323,7 +8323,7 @@ private fun GymToolsContent(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
         item {
             WhipPageHeader(
@@ -8585,13 +8585,13 @@ private fun RoutineContent(
     WhipReorderLazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
         item {
             WhipPageHeader(
                 title = "Routines",
                 supportingText = if (focusedRoutineId == null) {
-                    "Reusable multi-day templates. Starting one copies it into a new workout without changing the template."
+                    "Reusable plans for your workouts."
                 } else "Showing the routine opened from search.",
             ) {
                 if (!reordering && focusedRoutineId == null && state.routines.size > 1) {
@@ -9278,11 +9278,12 @@ private fun SharedGymLineChart(
         Text("Chart Points", style = MaterialTheme.typography.labelMedium)
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             series.flatMap { chartSeries -> chartSeries.points.takeLast(12).map { chartSeries.name to it } }.forEach { (name, point) ->
+                val pointLabel = "$name · ${point.date} · ${formatNumber(point.value, precision)} $unit"
                 WhipFilterChip(
                     selected = false,
                     onClick = { onPointSelected(name, point) },
-                    label = { Text("$name · ${point.date} · ${formatNumber(point.value, precision)} $unit") },
-                    modifier = Modifier.testTag("gym-chart-point"),
+                    label = { Text(pointLabel) },
+                    modifier = Modifier.testTag("gym-chart-point").semantics { contentDescription = pointLabel },
                 )
             }
         }

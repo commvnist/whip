@@ -1,0 +1,18 @@
+{
+  "readiness_command": "scripts/check --ready",
+  "readiness_exit_code": 0,
+  "jvm_tests": 384,
+  "jvm_suites": 44,
+  "jvm_failures": 0,
+  "jvm_errors": 0,
+  "jvm_skips": 0,
+  "catalog_surfaces": 534,
+  "catalog_pending": 0,
+  "frozen_input_count": 514,
+  "frozen_input_mismatches": [],
+  "source_inventory": {
+    "jvm": 652,
+    "android": 1077
+  },
+  "final_inputs_sha256": "91ffdf173a926c861b765377ea45fc52061f12ce699d0e1ad9f3f1161aae80c4"
+}

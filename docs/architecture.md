@@ -101,8 +101,10 @@ selection, filtering, repository commands and historical meaning.
 
 | Family | Shared owner | Caller supplies |
 | --- | --- | --- |
-| Workspace | `WhipWorkspaceLayout` | Reading, Overview or Browser composition; content and header |
-| Page heading | `WhipPageHeader`, `whipPagePadding` | Stable title/action row, naturally sized supporting copy and shared outer edges; the parent owns the following gap |
+| Workspace | `WhipWorkspaceLayout` | One centered page measure (up to 1000 dp) for chrome and content within the available pane; item builders retain their own reading widths |
+| Page heading | `WhipPageHeader`, `whipPagePadding` | Stable title/action row, concise naturally sized context and shared outer edges; page controls follow identity and the parent owns one 8 dp gap |
+| Page explanation and emptiness | `WhipPageSupportingText`, `WhipEmptyState` | One supporting-text style for introductions and empty explanations; empty headings, centered measure and 16 dp inset have one owner across domains |
+| Inline capture and search | `WhipInlineTextField`, `WhipSearchField` | Idle empty outlines align with adjacent content; floating labels reserve space only when needed, with an accessible field name throughout |
 | Productivity item | `WhipProductivityItemContent` | Identity, disclosure, primary action, information and expanded content |
 | Record | `WhipRecordItem` | Title, context, facts/details, optional Open/Edit, direct action, menu or reorder |
 | Setting | `WhipSettingItem` | Label, explanation, selected value, choices or toggle and callback |
@@ -135,10 +137,10 @@ are recorded under FB-20260910-002 in product memory.
 Whip treats a Fold or tablet as a composed workspace, not as a stretched phone.
 Each first-class destination may own an actionable support pane; support panes
 must contain useful navigation or context for that destination rather than
-generic dashboard filler. Primary content uses bounded readable widths, while
-review dashboards may use the wider dashboard bound. Shared workspace roles
-bound the complete header and body together: Reading is up to 720 dp, Overview
-and Browser up to 1000 dp. A feature-owned list/detail browser does not receive
+generic dashboard filler. The shared workspace builder bounds the complete
+header and body together at up to 1000 dp, so switching sections preserves
+heading and action positions. Item builders keep their own readable text
+measures within that stable frame. A feature-owned list/detail browser does not receive
 an additional generic app overview column; fold-hinge context remains explicit.
 
 Transient dialogs are placed by `PaneAwareAlertDialog` inside the active

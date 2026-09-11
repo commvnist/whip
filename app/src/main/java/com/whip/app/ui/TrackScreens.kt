@@ -1035,7 +1035,7 @@ private fun TrackActivityPage(
                 WhipPageHeader(
                     title = "Activity",
                     supportingText = buildString {
-                        append("A chronological view of Entries across visible Tracks")
+                        append("Entries across visible Tracks")
                         if (items.isNotEmpty()) append(" · ${quantityLabel(items.size, "Entry")}")
                     },
                 ) {
@@ -1335,15 +1335,13 @@ private fun AllTracksPage(
     }
     WhipReorderLazyColumn(
         Modifier.fillMaxSize().padding(innerPadding).testTag("track-list"),
-        contentPadding = whipPagePadding(
-            horizontal = if (masterPane) WhipSpacing.compact else WhipSpacing.screenCompact,
-        ),
+        contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
         item {
             WhipPageHeader(
                 title = if (showArchived) "Archived Tracks" else "Tracks",
-                supportingText = "Structured logs for facts you want to record and compare.",
+                supportingText = "Reusable logs for what you track.",
             ) {
                 if (!reordering) {
                     val hasAdditionalActions =
@@ -2196,7 +2194,7 @@ private fun TrackInsightsPage(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            WhipPageHeader("Track Insights", "Clear summaries of recorded evidence—never a productivity score.") {
+            WhipPageHeader("Track Insights", "Summaries of your recorded entries.") {
                 WhipPageIconAction(Icons.Outlined.FilterAlt, "Filter Insights", { filterOpen = true }, badgeCount = conditions.size, active = conditions.isNotEmpty())
             }
         }
@@ -2750,7 +2748,7 @@ private fun TrackOptionsPage(
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        item { WhipPageHeader("Track Options", "Manage this Track's identity, visibility, structure, and data.") }
+        item { WhipPageHeader("Track Options", "Manage this Track and its data.") }
         item {
             WhipActionList {
                 WhipActionRow("Edit Track", onEdit, supportingText = "Change identity, Fields, Area, and tags.")

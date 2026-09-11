@@ -147,10 +147,10 @@ private fun GoalDestination.pageTitle(): String = when (this) {
 }
 
 private fun GoalDestination.supportingText(): String = when (this) {
-    GoalDestination.Active -> "Long-term progress, consistency, ranges, totals, and project milestones."
-    GoalDestination.Completed -> "Completed and abandoned Goals, with each outcome preserved."
-    GoalDestination.Archived -> "Goals hidden from active planning without changing their lifecycle outcome."
-    GoalDestination.Insights -> "Progress patterns, pace, and data quality across active Goals."
+    GoalDestination.Active -> "Progress toward your goals."
+    GoalDestination.Completed -> "Completed and abandoned goals."
+    GoalDestination.Archived -> "Saved goals, ready to restore."
+    GoalDestination.Insights -> "Trends, pace, and data quality."
 }
 
 @Composable
@@ -1198,7 +1198,7 @@ private fun GoalInsightsContent(
         item {
             WhipPageHeader(
                 title = "Goal Insights",
-                supportingText = "Trends, pace, forecasts, and data quality for active goals.",
+                supportingText = "Trends, pace, and data quality.",
             )
         }
         if (projections.isEmpty()) item {

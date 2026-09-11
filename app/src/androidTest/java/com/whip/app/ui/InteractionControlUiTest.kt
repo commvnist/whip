@@ -1319,16 +1319,17 @@ class InteractionControlUiTest {
     fun pageHeaderActionsDoNotShiftTitleOrSupportingText() {
         compose.setContent {
             WhipTheme(dynamicColor = false) {
-                Column(Modifier.width(520.dp)) {
+                // Owner's 360 dp viewport minus the shared 20 dp page edges.
+                Column(Modifier.width(320.dp)) {
                     WhipPageHeader(
                         title = "Tracks",
                         modifier = Modifier.testTag("plain-page-header"),
-                        supportingText = "Facts you want to record.",
+                        supportingText = "Reusable logs for what you track.",
                     )
                     WhipPageHeader(
                         title = "Activity",
                         modifier = Modifier.testTag("action-page-header"),
-                        supportingText = "Entries across your Tracks.",
+                        supportingText = "Entries across visible Tracks.",
                     ) {
                         WhipPageIconAction(
                             icon = Icons.Outlined.Search,
@@ -1349,9 +1350,9 @@ class InteractionControlUiTest {
         val actionHeader = compose.onNodeWithTag("action-page-header").fetchSemanticsNode().boundsInRoot
         val plainTitle = compose.onNodeWithText("Tracks").fetchSemanticsNode().boundsInRoot
         val actionTitle = compose.onNodeWithText("Activity").fetchSemanticsNode().boundsInRoot
-        val plainSupporting = compose.onNodeWithText("Facts you want to record.")
+        val plainSupporting = compose.onNodeWithText("Reusable logs for what you track.")
             .fetchSemanticsNode().boundsInRoot
-        val actionSupporting = compose.onNodeWithText("Entries across your Tracks.")
+        val actionSupporting = compose.onNodeWithText("Entries across visible Tracks.")
             .fetchSemanticsNode().boundsInRoot
 
         assertEquals(plainTitle.top - plainHeader.top, actionTitle.top - actionHeader.top, 0.5f)

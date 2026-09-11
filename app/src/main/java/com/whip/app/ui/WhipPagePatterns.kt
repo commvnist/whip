@@ -275,14 +275,28 @@ internal fun WhipPageHeader(
             }
         }
         supportingText?.takeIf(String::isNotBlank)?.let { supporting ->
-            Text(
+            WhipPageSupportingText(
                 supporting,
                 modifier = Modifier.testTag("page-supporting-text"),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyLarge,
             )
         }
     }
+}
+
+/** Page introductions and empty explanations use the same supporting-text role. */
+@Composable
+private fun WhipPageSupportingText(
+    text: String,
+    modifier: Modifier = Modifier,
+    textAlign: TextAlign = TextAlign.Start,
+) {
+    Text(
+        text,
+        modifier = modifier,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = textAlign,
+    )
 }
 
 @Composable
@@ -422,7 +436,7 @@ internal fun WhipEmptyState(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = WhipSpacing.major)
+            .padding(vertical = WhipSpacing.standard)
             .testTag("empty-state"),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
@@ -430,16 +444,15 @@ internal fun WhipEmptyState(
         icon?.let { Icon(it, contentDescription = null, modifier = Modifier.size(32.dp)) }
         Text(
             title,
-            modifier = Modifier.widthIn(max = 520.dp).semantics { heading() },
+            modifier = Modifier.widthIn(max = 520.dp).semantics { heading() }.testTag("empty-state-title"),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
         )
-        Text(
+        WhipPageSupportingText(
             supportingText,
-            modifier = Modifier.widthIn(max = 520.dp).padding(horizontal = WhipSpacing.standard),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.widthIn(max = 520.dp).padding(horizontal = WhipSpacing.standard)
+                .testTag("empty-state-supporting-text"),
             textAlign = TextAlign.Center,
         )
         if (primaryActionLabel != null && onPrimaryAction != null) {

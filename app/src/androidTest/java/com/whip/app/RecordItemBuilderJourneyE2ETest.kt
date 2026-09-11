@@ -75,7 +75,7 @@ class RecordItemBuilderJourneyE2ETest {
             compose.onNodeWithContentDescription("Back to Tracks").performClick()
             compose.onNodeWithTag("track-workspace-destination-Activity").performClick()
             compose.onNodeWithText(title).assertIsDisplayed()
-            compose.assertWorkspaceMeasure(720.dp)
+            compose.assertWorkspaceMeasure(1000.dp)
             capture("tracks.record-builder.activity")
             compose.onNodeWithContentDescription("Edit Entry $title").performClick()
             compose.onNodeWithTag("track-entry-short-text-${before.primaryField.uuid}").assertTextContains(title)

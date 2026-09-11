@@ -733,8 +733,8 @@ expect_failure coverage-rejects-stale-results 'produced no fresh executable XML'
         "${COVERAGE_FIXTURE_ROOT}/scripts/coverage" --emulator
 printf 'PASS stale/partial/failed coverage rejection\n'
 
-grep -Fq 'versionCode = 74' "${PROJECT_ROOT}/app/build.gradle.kts"
-grep -Fq 'versionName = "0.3.68"' "${PROJECT_ROOT}/app/build.gradle.kts"
-printf 'PASS release version 0.3.68 (74)\n'
+grep -Fq 'versionCode = 75' "${PROJECT_ROOT}/app/build.gradle.kts"
+grep -Fq 'versionName = "0.3.69"' "${PROJECT_ROOT}/app/build.gradle.kts"
+printf 'PASS release version 0.3.69 (75)\n'
 
 printf 'All Android target guard regressions passed.\n'
