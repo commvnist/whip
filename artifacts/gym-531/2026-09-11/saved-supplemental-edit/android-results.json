@@ -1,0 +1,555 @@
+[
+  {
+    "log": "baseline.log.gz",
+    "run_id": "7vBeOF",
+    "accepted_tests": null,
+    "methods": [
+      {
+        "class": "com.whip.app.FiveThreeOneAuthorshipJourneyE2ETest",
+        "method": "editingSavedSupplementalWorkUpdatesEveryTrainingWeekAndNextWorkout",
+        "status": "failed"
+      }
+    ]
+  },
+  {
+    "log": "baseline-corrected.log.gz",
+    "run_id": "I7u6JS",
+    "accepted_tests": null,
+    "methods": [
+      {
+        "class": "com.whip.app.FiveThreeOneAuthorshipJourneyE2ETest",
+        "method": "editingSavedSupplementalWorkUpdatesEveryTrainingWeekAndNextWorkout",
+        "status": "failed"
+      }
+    ]
+  },
+  {
+    "log": "baseline-exact.log.gz",
+    "run_id": "gu0sRe",
+    "accepted_tests": null,
+    "methods": [
+      {
+        "class": "com.whip.app.FiveThreeOneAuthorshipJourneyE2ETest",
+        "method": "editingSavedSupplementalWorkUpdatesEveryTrainingWeekAndNextWorkout",
+        "status": "failed"
+      }
+    ]
+  },
+  {
+    "log": "baseline-save.log.gz",
+    "run_id": "EPFaoA",
+    "accepted_tests": null,
+    "methods": [
+      {
+        "class": "com.whip.app.FiveThreeOneAuthorshipJourneyE2ETest",
+        "method": "editingSavedSupplementalWorkUpdatesEveryTrainingWeekAndNextWorkout",
+        "status": "failed"
+      }
+    ]
+  },
+  {
+    "log": "phone-fixed.log.gz",
+    "run_id": "LerBRT",
+    "accepted_tests": null,
+    "methods": [
+      {
+        "class": "com.whip.app.FiveThreeOneAuthorshipJourneyE2ETest",
+        "method": "editingSavedSupplementalWorkUpdatesEveryTrainingWeekAndNextWorkout",
+        "status": "failed"
+      }
+    ]
+  },
+  {
+    "log": "regression.log.gz",
+    "run_id": "IHyJgR",
+    "accepted_tests": 89,
+    "methods": [
+      {
+        "class": "com.whip.app.FiveThreeOneAuthorshipJourneyE2ETest",
+        "method": "editingSavedSupplementalWorkUpdatesEveryTrainingWeekAndNextWorkout",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.FiveThreeOneAuthorshipJourneyE2ETest",
+        "method": "libraryCreationKeepsCustomOrderAndExerciseOwnedTrainingValues",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.FiveThreeOneAuthorshipJourneyE2ETest",
+        "method": "customDaysKeepIndependentSupplementalWorkThroughSaveAndBothWorkouts",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.FiveThreeOneCycleJourneyE2ETest",
+        "method": "fullCycleReviewsExplicitlyAndNextCycleKeepsOriginalPerformedHistory",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.FiveThreeOneCycleReviewUiTest",
+        "method": "changedEvidenceResetsAChoiceInsteadOfApplyingAnUnreviewedSuggestion",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.FiveThreeOneCycleReviewUiTest",
+        "method": "defaultsToStandardAndValidatesSuggestionAndCustomDecision",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.FiveThreeOneCycleReviewUiTest",
+        "method": "applyActionRemainsReachableAtTwoHundredPercentText",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.GymFiveThreeOneJourneyE2ETest",
+        "method": "generatedProgramPersistsStartsNextDayAndRendersProgrammedWorkout",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "blankRoutineSurfacesTopLevelFiveThreeOneEntry",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "failedRoutineSaveKeepsTheCompleteDraftOpenForRetry",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "splitPresetsUseConsistentTitleCapitalization",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "programTrainingMaxBasisEditsMustBeAppliedBeforeSaveEvenWhenTheyRoundToSameValue",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "machineCanBeQuickCreatedForAPlacementWithoutLeavingBuilder",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "multiDayRoutineRoutesFiveThreeOneConversionThroughWholeProgramReview",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "staticRoutineExposesTrainingMaxBeforeAnySetUsesIt",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "twoHundredExerciseLibraryIsSearchableAndOnlySelectionsEnterOutline",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "guidedFiveThreeOneBuilderPersistsCompleteExplicitBbbCycle",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "supplementalChoiceBelongsToItsMainExerciseWhileEarlierTrainingMaxIsIncomplete",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "captureRepSchemeCatalog",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "ordinaryRoutineCanEnterAnExplicitTrainingMaxForPercentageSets",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "exerciseListUsesTheRoutinePaneInsteadOfAOneRowNestedViewport",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "routineEditRoundTripsSetUnitsBodyweightAndDayProgression",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "customFiveThreeOneExerciseSelectionSearchesAFullExerciseLibrary",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "emptyLibraryCreatesUniqueStandardExercisesAndBuildsExactFourDayProgram",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "advancedMachineCreationReturnsFromSeededExerciseCreationWithBothDraftsPreserved",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "singleDayRoutineHidesActionsThatCannotApply",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "addingExerciseToExistingRoutineSavesWithoutLeavingTheEditedDay",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "sharedExercisePickerAlwaysOffersSearchAndSeededCreation",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "leaderAnchorSetupRemainsNavigableAtCompactWidthAndLargeText",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "repSchemeLibraryStartsBlankAndPlusCreatesAReusableScheme",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "exerciseCanBeCreatedWithoutDroppingRoutineDraft",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "trainingMaxSourceChipsLoadMatchingActualAndEstimatedRecordsAndEditablePercentage",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "leaderAnchorSetupShowsProgressiveReviewAndBuildsAssistanceAndJokers",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "savedRepSchemeCanBeAppliedEditedAndDeleted",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "emptyCustomFiveThreeOneCanCreateAndAddSeveralExercisesWithoutLeavingSetup",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "structuredMainExerciseUsesProgramStructureAndHidesGenericRewriteControls",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "trainingMaxSuggestionCopiesRoundedValueWithoutStayingLinked",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "sharedExercisePickerOnlyUsesSubstituteLanguageWhenContextProvidesIt",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "customFiveThreeOneBuildsBenchDeadliftAndZercherWithoutRequiringFourStandardExercises",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "setupWizardRequiresReapplyBeforePersistingChangedTrainingMaxProvenance",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "emptyWorkoutPickerUsesTheSharedEmptyStateAndKeepsBackReachable",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineBuilderUiTest",
+        "method": "assistanceIntentNamesItsSourceAndPersistsOnTheRoutinePlacement",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "exactMachineLoadRemainsExactInsteadOfSilentlySnapping",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "trainingMaxEligibilityCanBeRestoredWithoutResettingProgramPosition",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "repBenchmarksPreserveEachLoadAfterSpecificTrackingTargetsWereRemoved",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "recordRebuildHonorsWarmupRecordAndVolumePolicies",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "assistanceCategoryAndWorkSectionRoundTripIntoWorkoutSnapshots",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "removingOrSubstitutingOneOfSeveralMainExercisesInvalidatesOnlyThatSessionTrainingMaxAdvance",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "performanceReviewEvidenceRequiresMatchingSourceProgramKindAtCommit",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "plannedRoutineMachineCanChangeBeforeCompletionAndRetargetsThePrescription",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "staticLoadCycleAdvancesOnlyAfterCompletedNonFailureWork",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "duplicatePlacementsAndRepRangesSurviveTemplateAndWorkoutCreation",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "performanceReviewNeverChangesTrainingMaxWithoutDecisionAndAuditsAcceptedChoice",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "levelRoutineDefaultsAreActualOnlyWhileExplicitSettingsRemainPrescribed",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "unilateralPercentagePrescriptionUsesTheSetSpecificLoadMultiplier",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "trainingMaxTestSetRequiresExplicitTestPhaseOneHundredPercentAndThreeToFiveReps",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "alternateBbbUsesOwnTrainingMaxSkipsEmptyPhasesAndStaysSynchronized",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "graphPresetCanBeRenamedUpdatedAndDeleted",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "repeatedFiveThreeOneMainExercisePlacementsCannotPersistDriftingTrainingMaxes",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "recordRebuildDeletesObsoleteRecordsAfterTheOnlyCompletedSetIsRemoved",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "emptyTrainingMaxBoundarySetNeverImplicitlyAdvancesAtFinalPhase",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "routineWaveAndReusableAlternativesSnapshotIntoEachStartedWorkout",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "activeRoutineWorkoutBlocksEveryProgramStateControl",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "repeatedMainExerciseHasExactlyOneTrainingMaxTestAcrossThePhase",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "unlinkingMachineExerciseMarksAffectedRoutineBindingForRepair",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "recordRebuildExcludesAssistedWorkUnlessEnabledAndDropsDiscardedSessions",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "editingProgramMetadataPreservesPositionAndMapsReorderedCurrentPhase",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "connectedBeginnersDeloadKeepsEverySavedRepeatedExerciseExposure",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "programmedRoutineAdvancesSafelyAcrossDaysPhasesAndTrainingMaxCycles",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "activeRoutineWorkoutBlocksTemplateMutationUntilFinishOrDiscard",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "graphPresetNormalizesExerciseIdsAndRejectsDanglingOrUnsupportedData",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "manualProgramTrainingMaxEditCreatesVisibleAuditEventWithoutRewritingWorkouts",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "archivedMachineRemainsUsableByExistingRoutine",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "configuredPhaseBoundaryAdvancesTrainingMaxAndSnapshotsPhaseRole",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "invalidSetPolicyPlacementAndDeterministicSchemeMismatchAreRejected",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "startingRoutineDoesNotMutateTemplate",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "performanceReviewRejectsStaleForgedAndActionMismatchedDecisions",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "recordRebuildTracksAuditableImprovementsAndHistoricalEdits",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "beginnersProtocolsSaveEditAndRunOncePerExerciseWithoutEmptyDays",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "activeSetPoliciesResolveLeaderAnchorAndDeloadSnapshotsWithoutLyingAboutJokers",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "applyingProtocolToOneConnectedPhaseDoesNotChangeAnotherPhasesRepeatedExposures",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "incompleteRequiredMainWorkAdvancesScheduleButHoldsTrainingMaxAtBoundary",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "partialFailureAndUnderPrescriptionMainWorkAllHoldTrainingMax",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "routinePreservesMachineIdentityAndNumberedSetting",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "changingTrainingMaxSourceToDerivedClearsTheStoredExplicitValue",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "exerciseAddedDuringRoutineWorkoutStaysSessionScopedAndRemainsInHistoryAndRecords",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "failedPersistedTrainingMaxTestRetainsPrescriptionIdentityAndSuggestsDecrease",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "saveWorkoutAsRoutineExcludesEmptyRetiredPlacementsAndKeepsPerformedRetiredWork",
+        "status": "passed"
+      },
+      {
+        "class": "com.whip.app.RoutineRepositoryTest",
+        "method": "bodyweightDependentAndAssistedPercentagePrescriptionsAreRejected",
+        "status": "passed"
+      }
+    ]
+  },
+  {
+    "log": "wide.log.gz",
+    "run_id": "G2ntQ7",
+    "accepted_tests": 1,
+    "methods": [
+      {
+        "class": "com.whip.app.FiveThreeOneAuthorshipJourneyE2ETest",
+        "method": "editingSavedSupplementalWorkUpdatesEveryTrainingWeekAndNextWorkout",
+        "status": "passed"
+      }
+    ]
+  },
+  {
+    "log": "wide-final.log.gz",
+    "run_id": "umuc4v",
+    "accepted_tests": 1,
+    "methods": [
+      {
+        "class": "com.whip.app.FiveThreeOneAuthorshipJourneyE2ETest",
+        "method": "editingSavedSupplementalWorkUpdatesEveryTrainingWeekAndNextWorkout",
+        "status": "passed"
+      }
+    ]
+  },
+  {
+    "log": "phone-final.log.gz",
+    "run_id": "fWk1l5",
+    "accepted_tests": 1,
+    "methods": [
+      {
+        "class": "com.whip.app.FiveThreeOneAuthorshipJourneyE2ETest",
+        "method": "editingSavedSupplementalWorkUpdatesEveryTrainingWeekAndNextWorkout",
+        "status": "passed"
+      }
+    ]
+  },
+  {
+    "log": "jvm.log.gz",
+    "run_id": null,
+    "accepted_tests": null
+  }
+]

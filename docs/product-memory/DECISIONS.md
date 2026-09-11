@@ -1,5 +1,11 @@
 # Durable product and engineering decisions
 
+### DEC-20260911-002 — Make saved supplemental edits explicit across matching training weeks
+
+- Status: Verified under IMP/VER-20260911-004; FB-20260911-003 / FND-20260911-002. Extend the existing Program Structure edit authority rather than reopen the destructive creation wizard or introduce another program model.
+- Decision: Supplemental Work defaults to all training phases with the selected Standard, Leader or Anchor role. Show the affected weeks and retain an explicit This Phase option. Deload/TM Test/PR Test remain individually scoped. Apply each exercise's change through existing prescription generation while preserving unrelated Main/Joker/assistance work, other exercises and completed history.
+- Acceptance: Reproduce week-one-only changes in the old editor, then verify native saved edits, recreation, reopening and workouts, plus exact multi-phase/Leader/Anchor/protocol and preservation checks.
+
 ### DEC-20260911-001 — Supplemental authorship belongs to each 5/3/1 main exercise
 
 - Status: Released; FB/FND-20260911-001 / IMP, VER-20260911-002. Shared existing controls and typed exercise-owned configuration pass ordinary phone/wide and neighboring program checks without a persistence migration. Delivered in 0.3.70/code 76 under IMP/VER-20260911-003.

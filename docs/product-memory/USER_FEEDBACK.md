@@ -1,5 +1,11 @@
 # User feedback and acceptance criteria
 
+### FB-20260911-003 — Existing routine edits must update BBB/FSL prescriptions
+
+- Date/source: 2026-09-11, owner reports that editing an already-created routine after 0.3.70 does not update the exercises; clarification identifies the BBB/FSL sets or weights, not exercise selection.
+- Acceptance: Reproduce saved-routine editing, expose consistent per-exercise supplemental editing, regenerate the intended training-week sets/loads, persist and reopen the exact changes, and use them in the next workout. Preserve other exercises, phase roles/progression, explicit protocol weeks and completed history.
+- Related/status: Verified under FND/DEC-20260911-002 and IMP/VER-20260911-004. Native baseline reproduces week-one-only updates; matching-week edits now survive save/reopen and update the next workout, with exact earlier history and independent Zercher/FSL preserved. All 89 Android, final phone/wide replacements, 389 readiness JVM checks, lint/build and catalog gates pass. No phone release in this task; 0.3.70 remains installed.
+
 ### FB-20260911-002 — Release independent 5/3/1 supplemental work to the phone
 
 - Date/source: 2026-09-11, direct owner follow-up: “release to phone.”

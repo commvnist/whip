@@ -29,6 +29,61 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RoutineBuilderStateTest {
+    @Test fun supplementalEditsUpdateMatchingWeeksAndPreserveOtherPrescriptions() {
+        val exercises = listOf(testProgramExercise(1, "Bench", 100.0), testProgramExercise(2, "Zercher Deadlift", 200.0))
+        val original = buildFiveThreeOneProgramState(RoutineBuilderState(), supplementalRequest(exercises))
+        val bench = original.days.first().placements.single()
+        val authored = original.updateProgramPlacement(bench.key) { placement ->
+            placement.copy(sets = placement.sets.map { it.copy(note = "Authored ${it.key}", restSeconds = "81") })
+        }
+        val changed = authored.applyFiveThreeOneSupplementalPolicy(0, RoutineSupplementalScheme.BoringButBig, exerciseId = 1)
+        assertEquals(listOf(0, 1, 2), authored.fiveThreeOneSupplementalEditPhases(0, true))
+        assertEquals(listOf(3), authored.fiveThreeOneSupplementalEditPhases(3, true))
+        assertEquals(authored.days[1], changed.days[1])
+        val before = authored.days.first().placements.single().sets
+        val after = changed.days.first().placements.single().sets
+        assertEquals(before.filter { it.workSection != RoutineWorkSection.Supplemental.name },
+            after.filter { it.workSection != RoutineWorkSection.Supplemental.name })
+        for (phase in 0..2) {
+            val supplemental = after.filter { it.routinePhaseIndex == phase && it.workSection == RoutineWorkSection.Supplemental.name }
+            assertEquals(5, supplemental.size)
+            assertTrue(supplemental.all { it.repetitionsMin == "10" && it.loadPercentage == "50" })
+        }
+        assertEquals(before.filter { it.routinePhaseIndex == 3 }, after.filter { it.routinePhaseIndex == 3 })
+        val fsl = changed.applyFiveThreeOneSupplementalPolicy(1, RoutineSupplementalScheme.FirstSetLast, exerciseId = 1)
+        for (phase in 0..2) {
+            val supplemental = fsl.days.first().placements.single().sets.filter {
+                it.routinePhaseIndex == phase && it.workSection == RoutineWorkSection.Supplemental.name
+            }
+            assertTrue(supplemental.all { it.repetitionsMin == "5" && it.loadPercentage == listOf("65", "70", "75")[phase] })
+        }
+        val oneWeek = changed.applyFiveThreeOneSupplementalPolicy(1, RoutineSupplementalScheme.FirstSetLast,
+            exerciseId = 1, allMatchingTrainingWeeks = false)
+        assertEquals(after.filter { it.routinePhaseIndex != 1 },
+            oneWeek.days.first().placements.single().sets.filter { it.routinePhaseIndex != 1 })
+    }
+
+    @Test fun supplementalEditScopeKeepsLeaderAnchorProtocolsAndAlternateTargetsIndependent() {
+        val bench = testProgramExercise(1, "Bench", 100.0).copy(supplement = FiveThreeOneSupplement.BoringButBig)
+        val zercher = testProgramExercise(2, "Zercher Deadlift", 200.0)
+        val built = buildFiveThreeOneProgramState(RoutineBuilderState(), supplementalRequest(listOf(bench, zercher)).copy(
+            plan = FiveThreeOneProgramPlan.ForeverBbbLeaderAnchor,
+            bbbExerciseByMainExerciseId = mapOf(bench.exerciseId to zercher.exerciseId),
+        ))
+        assertEquals((0..5).toList(), built.fiveThreeOneSupplementalEditPhases(1, true))
+        assertEquals((7..9).toList(), built.fiveThreeOneSupplementalEditPhases(8, true))
+        val changed = built.applyFiveThreeOneSupplementalPolicy(1, RoutineSupplementalScheme.FirstSetLast, bench.exerciseId)
+        assertEquals(built.days[1], changed.days[1])
+        val before = built.days.first().placements.flatMap { it.sets }
+        val after = changed.days.first().placements.flatMap { it.sets }
+        assertEquals(before.filter { it.routinePhaseIndex !in 0..5 }, after.filter { it.routinePhaseIndex !in 0..5 })
+        assertTrue(changed.days.first().placements.first { it.placementKind == RoutinePlacementKind.Supplemental.name }
+            .sets.none { it.routinePhaseIndex in 0..5 })
+        for (phase in 0..5) {
+            assertEquals(RoutineSupplementalScheme.FirstSetLast, changed.fiveThreeOnePhasePolicy(phase, bench.exerciseId)?.supplementalScheme)
+        }
+    }
+
     @Test
     fun customDaysGenerateIndependentBbbAndFslPrescriptions() {
         val bench = testProgramExercise(1, "Flat Barbell Bench Press", 100.0).copy(

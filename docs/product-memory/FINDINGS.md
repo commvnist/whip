@@ -1,5 +1,11 @@
 # Durable findings
 
+### FND-20260911-002 — Existing supplemental edits affect only the selected week
+
+- Status: Verified, P2; FB-20260911-003 / IMP, VER-20260911-004. Native baseline EPFaoA reproduces unchanged week-two FSL after saving BBB for week one. Creation applied each exercise's supplemental choice throughout its training weeks, but the saved editor submitted selectedPhase only. Explicit matching-week scope now fixes that mismatch; the native saved-edit/next-workout and focused preservation checks pass.
+- Expected: An exercise-level supplemental edit has an explicit scope covering its corresponding training weeks by default, with a deliberate current-phase override. Leader and Anchor remain independent; protocol phases and other exercises retain their prescriptions. Save/reopen and subsequent workout loads must match that scope.
+- Evidence boundary: This identifies an editing-scope inconsistency, not a database failure. Existing routine persistence correctly replaces submitted child sets transactionally. The complete native regression now verifies the corrected scope, unchanged performed records and program position; evidence is artifacts/gym-531/2026-09-11/saved-supplemental-edit/README.md.
+
 ### FND-20260911-001 — Guided 5/3/1 setup forces one supplemental scheme across exercises
 
 - Status: Released, P2; FB-20260911-001 / IMP, VER-20260911-002. Each exercise now owns its supplemental scheme, BBB percentage and target; native saved two-day execution and phase/state regressions pass. Delivered in 0.3.70/code 76 under IMP/VER-20260911-003.

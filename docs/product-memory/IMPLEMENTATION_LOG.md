@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260911-004 — Apply saved supplemental edits across the intended training weeks
+
+- Request/behavior: FB-20260911-003 / FND, DEC-20260911-002. Program Structure now defaults Supplemental Work edits to every matching Standard, Leader or Anchor training phase. Existing shared chips offer This Phase Only and show exact affected phase numbers. Selection remains exercise-scoped; protocol phases remain individual.
+- Reuse/integrity: RoutineBuilder's new supplemental-scope helper delegates generation to applyFiveThreeOnePhasePolicy, retaining original Main/Joker set objects, notes/rest and ordering. No second program model or creation-wizard replacement; no schema/epoch/backup/version change or history rewrite.
+- Verification/status: Verified. The baseline reproduces unchanged week-two FSL after saving BBB in week one. Focused 88 JVM and all 89 Android profile methods pass. Final native phone/wide replacements verify scope restoration, week-two edit/save/reopen, next-workout 5×10 at 50 kg, unchanged Zercher/FSL, exact completed history and program position. Six final originals are personally reviewed; 514 final input hashes match. Final readiness passes 389 JVM methods/44 suites, Android compilation, lint and debug packaging; catalog passes 541 states under VER-20260911-004.
+- Evidence/limits: artifacts/gym-531/2026-09-11/saved-supplemental-edit/README.md. Changes take effect through explicit selection and routine Save. Existing 0.3.70 remains installed; this task does not release or resume the closed exhaustive audit. Git records focused commit/push delivery.
+
 ### IMP-20260911-003 — Release per-exercise 5/3/1 supplemental choices to the owner phone
 
 - Request/status: Released under FB-20260911-002. Whip 0.3.70/code 76 delivers verified feature source 5486c352 from clean pushed release source 1724f50a5f5f8425ad5e29db76bc05423dfa7e0d.

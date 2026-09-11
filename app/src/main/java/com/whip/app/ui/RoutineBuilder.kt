@@ -2047,6 +2047,7 @@ private fun RoutineProgramStructurePage(
         ?.coerceIn(0, (builder.programPhaseCount - 1).coerceAtLeast(0))
     var selectedPhase by rememberSaveable(builder.token) { mutableStateOf(savedCurrentPhase ?: 0) }
     var prescriptionExerciseId by rememberSaveable(builder.token) { mutableStateOf<Long?>(null) }
+    var supplementalAllTrainingWeeks by rememberSaveable(builder.token) { mutableStateOf(true) }
     var pendingRemovePhase by rememberSaveable(builder.token) { mutableStateOf<Int?>(null) }
     var trainingMaxesExpanded by rememberSaveable(builder.token) {
         mutableStateOf(pendingTrainingMaxDerivations.isNotEmpty())
@@ -2639,6 +2640,32 @@ private fun RoutineProgramStructurePage(
                 )
             }
             item {
+                val matchingPhases = builder.fiveThreeOneSupplementalEditPhases(selectedPhase, true)
+                if (matchingPhases.size > 1) {
+                    Text("Apply supplemental changes to", style = MaterialTheme.typography.labelMedium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        WhipFilterChip(
+                            selected = supplementalAllTrainingWeeks,
+                            onClick = { supplementalAllTrainingWeeks = true },
+                            label = { Text("All ${selectedRole.semanticRole().uiLabel()} Weeks") },
+                            modifier = Modifier.testTag("routine-program-supplemental-scope-training"),
+                        )
+                        WhipFilterChip(
+                            selected = !supplementalAllTrainingWeeks,
+                            onClick = { supplementalAllTrainingWeeks = false },
+                            label = { Text("This Phase Only") },
+                            modifier = Modifier.testTag("routine-program-supplemental-scope-phase"),
+                        )
+                    }
+                }
+                val affectedPhases = builder.fiveThreeOneSupplementalEditPhases(selectedPhase, supplementalAllTrainingWeeks)
+                Text(
+                    "Updates the selected exercise scope in ${if (affectedPhases.size == 1) "phase" else "phases"} " +
+                        affectedPhases.joinToString { (it + 1).toString() } + ". Save the routine to use these sets in future workouts.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("routine-program-supplemental-affected-phases"),
+                )
                 SelectionField(
                     label = "Supplemental work",
                     values = RoutineSupplementalScheme.entries,
@@ -2646,24 +2673,20 @@ private fun RoutineProgramStructurePage(
                     valueText = RoutineSupplementalScheme::uiLabel,
                     onSelect = { scheme ->
                         onBuilderChange { current ->
-                            val currentPolicy = current.fiveThreeOnePhasePolicy(selectedPhase, prescriptionExerciseId)
-                                ?: return@onBuilderChange current
-                            current.applyFiveThreeOnePhasePolicy(
-                                selectedPhase,
-                                currentPolicy.mainWorkScheme,
-                                scheme,
-                                currentPolicy.jokerEnabled && !selectedRole.disallowsJokers(),
-                                jokerCount = currentPolicy.jokerCount,
-                                jokerStepPercent = currentPolicy.jokerStepPercent,
+                            current.applyFiveThreeOneSupplementalPolicy(
+                                phaseIndex = selectedPhase,
+                                supplementalScheme = scheme,
                                 exerciseId = prescriptionExerciseId,
+                                allMatchingTrainingWeeks = supplementalAllTrainingWeeks,
                             )
                         }
                     },
                     modifier = Modifier.testTag("routine-program-phase-supplemental-$selectedPhase"),
+                    selectedValueMaxLines = Int.MAX_VALUE,
                 )
                 policy.alternateSupplementalExerciseName?.let { alternateName ->
                     Text(
-                        "Alternate-exercise BBB uses $alternateName and its own Training Max. Selecting another Supplemental scheme replaces this phase's alternate BBB; Main-work and Joker edits preserve it.",
+                        "Alternate-exercise BBB uses $alternateName and its own Training Max. Selecting another Supplemental scheme replaces alternate BBB in the affected phases; Main-work and Joker edits preserve it.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.testTag("routine-program-alternate-bbb-summary"),
@@ -5644,6 +5667,48 @@ internal fun RoutineBuilderState.fiveThreeOnePhasePolicy(
     )
 }
 
+internal fun RoutineBuilderState.fiveThreeOneSupplementalEditPhases(
+    phaseIndex: Int,
+    allMatchingTrainingWeeks: Boolean,
+): List<Int> {
+    if (phaseIndex !in 0 until programPhaseCount) return emptyList()
+    val roles = normalizedProgramPhaseRoles().map { it.semanticRole() }
+    val selectedRole = roles[phaseIndex]
+    val trainingRoles = setOf(RoutineProgramPhaseRole.Standard, RoutineProgramPhaseRole.Leader, RoutineProgramPhaseRole.Anchor)
+    return if (allMatchingTrainingWeeks && selectedRole in trainingRoles) {
+        roles.indices.filter { roles[it] == selectedRole }
+    } else listOf(phaseIndex)
+}
+
+/** Supplemental edits share the phase generator while retaining each exercise's Main/Joker authorship. */
+internal fun RoutineBuilderState.applyFiveThreeOneSupplementalPolicy(
+    phaseIndex: Int,
+    supplementalScheme: RoutineSupplementalScheme,
+    exerciseId: Long? = null,
+    allMatchingTrainingWeeks: Boolean = true,
+): RoutineBuilderState {
+    val exerciseIds = days.flatMap { it.placements }
+        .filter { it.placementKind == RoutinePlacementKind.MainExercise.name && (exerciseId == null || it.exerciseId == exerciseId) }
+        .map { it.exerciseId }.distinct()
+    var updated = this
+    for (phase in fiveThreeOneSupplementalEditPhases(phaseIndex, allMatchingTrainingWeeks)) {
+        for (id in exerciseIds) {
+            val policy = updated.fiveThreeOnePhasePolicy(phase, id) ?: continue
+            updated = updated.applyFiveThreeOnePhasePolicy(
+                phaseIndex = phase,
+                mainWorkScheme = policy.mainWorkScheme,
+                supplementalScheme = supplementalScheme,
+                jokerEnabled = policy.jokerEnabled,
+                jokerCount = policy.jokerCount,
+                jokerStepPercent = policy.jokerStepPercent,
+                exerciseId = id,
+                preserveMainAndJokers = true,
+            )
+        }
+    }
+    return updated
+}
+
 /**
  * Rewrites only one phase's executable Main/Supplemental/Joker work across mapped main exercises.
  * Phase-null supplemental work is first expanded across every phase so changing one phase can
@@ -5657,6 +5722,7 @@ internal fun RoutineBuilderState.applyFiveThreeOnePhasePolicy(
     jokerCount: Int = if (jokerEnabled) 1 else 0,
     jokerStepPercent: Double = 5.0,
     exerciseId: Long? = null,
+    preserveMainAndJokers: Boolean = false,
 ): RoutineBuilderState {
     if (!programKind.isFiveThreeOneProgramKindName() || phaseIndex !in 0 until programPhaseCount) return this
     require(jokerCount in 0..3)
@@ -5754,7 +5820,7 @@ internal fun RoutineBuilderState.applyFiveThreeOnePhasePolicy(
                             set.optionalWorkKind == RoutineOptionalWorkKind.Joker.name))
             }
             val classicReps = classicRepetitions(selectedMain)
-            val rewrittenMain = if (!mainSchemeChanged) selectedMain else selectedMain.mapIndexed { index, set ->
+            val rewrittenMain = if (preserveMainAndJokers || !mainSchemeChanged) selectedMain else selectedMain.mapIndexed { index, set ->
                 when (mainWorkScheme) {
                     RoutineMainWorkScheme.Unspecified -> set.copy(mainWorkScheme = null)
                     RoutineMainWorkScheme.FivesPro -> set.copy(
@@ -5814,7 +5880,10 @@ internal fun RoutineBuilderState.applyFiveThreeOnePhasePolicy(
                     }
                 }
             }
-            val rewrittenJoker = if (jokerEnabled && jokerCount > 0 && rewrittenMain.isNotEmpty()) {
+            val rewrittenJoker = if (preserveMainAndJokers) materialized.filter { set ->
+                set.routinePhaseIndex == phaseIndex && set.workSection == RoutineWorkSection.Optional.name &&
+                    set.optionalWorkKind == RoutineOptionalWorkKind.Joker.name
+            } else if (jokerEnabled && jokerCount > 0 && rewrittenMain.isNotEmpty()) {
                 val top = rewrittenMain.last()
                 List(jokerCount) { index ->
                     val percentage = (top.loadPercentage.toWhipDoubleOrNull() ?: 95.0) + jokerStepPercent * (index + 1)
@@ -5831,7 +5900,16 @@ internal fun RoutineBuilderState.applyFiveThreeOnePhasePolicy(
                     )
                 }
             } else emptyList()
-            val combined = retained + rewrittenMain + rewrittenJoker + rewrittenSupplemental
+            val combined = if (preserveMainAndJokers) {
+                val firstSupplementalIndex = materialized.indexOfFirst { it in selectedSupplemental }
+                materialized.filterNot { it in selectedSupplemental }.toMutableList().also { sets ->
+                    val insertionIndex = firstSupplementalIndex.takeIf { it >= 0 } ?: (sets.indexOfLast {
+                        it.routinePhaseIndex == phaseIndex &&
+                            it.workSection in setOf(RoutineWorkSection.Main.name, RoutineWorkSection.Optional.name)
+                    } + 1)
+                    sets.addAll(insertionIndex, rewrittenSupplemental)
+                }
+            } else retained + rewrittenMain + rewrittenJoker + rewrittenSupplemental
             val phaseMainSchemes = (0 until programPhaseCount).mapNotNull { phase ->
                 combined.firstOrNull {
                     it.routinePhaseIndex == phase && it.workSection == RoutineWorkSection.Main.name
