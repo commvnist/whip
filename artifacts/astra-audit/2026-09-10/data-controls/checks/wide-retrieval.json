@@ -1,0 +1,82 @@
+[
+  {
+    "source": "/sdcard/Download/whip-ui-catalog/settings.data-controls.overview.dark.png",
+    "local": "build/astra-data-controls-20260910/final-wide/settings.data-controls.overview.dark.png",
+    "sha256": "34766833f106a91c50bc24cba8b512a5d5e4e59182c43bb99f374e244d01cf59"
+  },
+  {
+    "source": "/sdcard/Download/whip-ui-catalog/settings.data-controls.overview.dark.xml",
+    "local": "build/astra-data-controls-20260910/final-wide/settings.data-controls.overview.dark.xml",
+    "sha256": "9a0737819e2de0b3a0e927a8dadee07cf13822f961a6b03816bedc910ae7ede6"
+  },
+  {
+    "source": "/sdcard/Download/whip-ui-catalog/settings.data-controls.preview.dark.png",
+    "local": "build/astra-data-controls-20260910/final-wide/settings.data-controls.preview.dark.png",
+    "sha256": "ed985e31ca7c31c0761256199d9dc1355345ab7007bf852abd7ff253f5cb862a"
+  },
+  {
+    "source": "/sdcard/Download/whip-ui-catalog/settings.data-controls.preview.dark.xml",
+    "local": "build/astra-data-controls-20260910/final-wide/settings.data-controls.preview.dark.xml",
+    "sha256": "7d32e14eee4034dbe7efa276edc9acc7b5ce10304d7f828e0884884ff61de961"
+  },
+  {
+    "source": "/sdcard/Download/whip-ui-catalog/settings.data-controls.cleanup.dark.png",
+    "local": "build/astra-data-controls-20260910/final-wide/settings.data-controls.cleanup.dark.png",
+    "sha256": "a00cad05318ec52beb16d6b320817dcf8c891f5dc536dc3b89d007ca8746bdda"
+  },
+  {
+    "source": "/sdcard/Download/whip-ui-catalog/settings.data-controls.cleanup.dark.xml",
+    "local": "build/astra-data-controls-20260910/final-wide/settings.data-controls.cleanup.dark.xml",
+    "sha256": "0f1b35b1faf78fdac7c17ee6e0887593929dd31171f2e867dcb5d5ffc69a7582"
+  },
+  {
+    "source": "/sdcard/Download/whip-ui-catalog/settings.data-controls.overview.light.png",
+    "local": "build/astra-data-controls-20260910/final-wide/settings.data-controls.overview.light.png",
+    "sha256": "b4b523ffc26ca11e95326be2231c7a7ec9d371dc9af18ba04f058633476f983b"
+  },
+  {
+    "source": "/sdcard/Download/whip-ui-catalog/settings.data-controls.overview.light.xml",
+    "local": "build/astra-data-controls-20260910/final-wide/settings.data-controls.overview.light.xml",
+    "sha256": "8497c81d8aa89a0da9962f47bf2e10ff0f1c8f1bb17922c345324a9555796107"
+  },
+  {
+    "source": "/sdcard/Download/whip-ui-catalog/settings.data-controls.preview.light.png",
+    "local": "build/astra-data-controls-20260910/final-wide/settings.data-controls.preview.light.png",
+    "sha256": "6c8d5f72c87fe396c18d40d93e482191530642e47a933a75cfb4a6172c3b30b7"
+  },
+  {
+    "source": "/sdcard/Download/whip-ui-catalog/settings.data-controls.preview.light.xml",
+    "local": "build/astra-data-controls-20260910/final-wide/settings.data-controls.preview.light.xml",
+    "sha256": "48222c21ddd3bfe9ab06ae52c4d6079a10f38e58c6d90ec99f4d92fe6fbd2989"
+  },
+  {
+    "source": "/sdcard/Download/whip-ui-catalog/settings.data-controls.cleanup.light.png",
+    "local": "build/astra-data-controls-20260910/final-wide/settings.data-controls.cleanup.light.png",
+    "sha256": "02dc14566835849867b5bcbbd5c5dd294060af3bda24dffb27acd030123f0384"
+  },
+  {
+    "source": "/sdcard/Download/whip-ui-catalog/settings.data-controls.cleanup.light.xml",
+    "local": "build/astra-data-controls-20260910/final-wide/settings.data-controls.cleanup.light.xml",
+    "sha256": "420d51d6d4602600dae4f7dd5ede85f416c79411790a08b04a58aa3b58715158"
+  },
+  {
+    "source": "/sdcard/Download/whip-ui-catalog/tracks.cleanup.entry.png",
+    "local": "build/astra-data-controls-20260910/final-wide/tracks.cleanup.entry.png",
+    "sha256": "1a1d42573d638e5872d8c3ff19b6d7f85a6c1e2cdb7f2d19361c3c6b70fa2f05"
+  },
+  {
+    "source": "/sdcard/Download/whip-ui-catalog/tracks.cleanup.entry.xml",
+    "local": "build/astra-data-controls-20260910/final-wide/tracks.cleanup.entry.xml",
+    "sha256": "ffba3c6065a5b3fbf28090e72beafc796a66bce8c43156d9373c855a7e28922e"
+  },
+  {
+    "source": "/sdcard/Download/whip-ui-catalog/habits.cleanup.entry.png",
+    "local": "build/astra-data-controls-20260910/final-wide/habits.cleanup.entry.png",
+    "sha256": "66902757fb14b5327399fccb14a0c35efbda6a440a170ed53623872100a1576a"
+  },
+  {
+    "source": "/sdcard/Download/whip-ui-catalog/habits.cleanup.entry.xml",
+    "local": "build/astra-data-controls-20260910/final-wide/habits.cleanup.entry.xml",
+    "sha256": "d2d8ec37f0137937cae3f0f921afa9bc25f267a25c1af40434feb2ecf8a90b72"
+  }
+]

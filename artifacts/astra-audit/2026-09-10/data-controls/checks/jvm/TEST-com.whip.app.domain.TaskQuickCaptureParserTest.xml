@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.domain.TaskQuickCaptureParserTest" tests="21" skipped="0" failures="0" errors="0" timestamp="2026-09-11T01:56:04.050Z" hostname="beast" time="0.045">
+  <properties/>
+  <testcase name="understandsRecurrenceShortcutsAnchorsAndPluralWeekdays" classname="com.whip.app.domain.TaskQuickCaptureParserTest" time="0.018"/>
+  <testcase name="parsesSelectedWeekdays" classname="com.whip.app.domain.TaskQuickCaptureParserTest" time="0.002"/>
+  <testcase name="supportsReminderOffsetsWhenAScheduledTimeExists" classname="com.whip.app.domain.TaskQuickCaptureParserTest" time="0.004"/>
+  <testcase name="deadlineOnlyCreatesAOneTimeTaskOnThatDeadline" classname="com.whip.app.domain.TaskQuickCaptureParserTest" time="0.001"/>
+  <testcase name="understandsTwelveAndTwentyFourHourTimes" classname="com.whip.app.domain.TaskQuickCaptureParserTest" time="0.002"/>
+  <testcase name="surroundingWhitespaceAndPunctuationDoNotCorruptHighlightOffsets" classname="com.whip.app.domain.TaskQuickCaptureParserTest" time="0.001"/>
+  <testcase name="deadlineBeforeTheScheduleIsLeftLiteralInsteadOfApplyingAnInvalidAssumption" classname="com.whip.app.domain.TaskQuickCaptureParserTest" time="0.001"/>
+  <testcase name="acceptsNaturalWeekdayListVariants" classname="com.whip.app.domain.TaskQuickCaptureParserTest" time="0.003"/>
+  <testcase name="onlyTheFirstCompetingSchedulePhraseIsAssumed" classname="com.whip.app.domain.TaskQuickCaptureParserTest" time="0.001"/>
+  <testcase name="understandsCalendarRecurrencesAndExplicitEnds" classname="com.whip.app.domain.TaskQuickCaptureParserTest" time="0.003"/>
+  <testcase name="parsesMonthlyCadenceAndSeparateDeadline" classname="com.whip.app.domain.TaskQuickCaptureParserTest" time="0.0"/>
+  <testcase name="nextWeekdayAlwaysMeansTheFollowingWeekday" classname="com.whip.app.domain.TaskQuickCaptureParserTest" time="0.001"/>
+  <testcase name="understandsUsefulOneTimeDateVariations" classname="com.whip.app.domain.TaskQuickCaptureParserTest" time="0.001"/>
+  <testcase name="parsesRelativeDateWithoutSendingOrGuessingTheTitle" classname="com.whip.app.domain.TaskQuickCaptureParserTest" time="0.0"/>
+  <testcase name="avoidsCommonNaturalLanguageFalsePositives" classname="com.whip.app.domain.TaskQuickCaptureParserTest" time="0.002"/>
+  <testcase name="invalidDatesAndIntervalsRemainLiteralAndUnhighlighted" classname="com.whip.app.domain.TaskQuickCaptureParserTest" time="0.0"/>
+  <testcase name="understandsNaturalDeadlineVariations" classname="com.whip.app.domain.TaskQuickCaptureParserTest" time="0.002"/>
+  <testcase name="extractsPlanningMetadataWithoutLeavingSyntaxInTheTitle" classname="com.whip.app.domain.TaskQuickCaptureParserTest" time="0.001"/>
+  <testcase name="parsesIntervalWeekdaysAndNamedDayGroups" classname="com.whip.app.domain.TaskQuickCaptureParserTest" time="0.001"/>
+  <testcase name="weekdayWordsWithoutARecurrenceCueRemainLiteral" classname="com.whip.app.domain.TaskQuickCaptureParserTest" time="0.001"/>
+  <testcase name="parsesMedicationAcronymOnTwoNamedWeekdays" classname="com.whip.app.domain.TaskQuickCaptureParserTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

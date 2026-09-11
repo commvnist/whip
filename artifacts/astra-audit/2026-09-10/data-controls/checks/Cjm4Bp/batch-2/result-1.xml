@@ -1,0 +1,141 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="68" failures="0" errors="0" skipped="0" time="174.598" timestamp="2026-09-11T01:54:26" hostname="localhost">
+  <testsuite name="com.whip.app.LegacyImportJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="12.194" timestamp="2026-09-11T01:54:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="restoredHabitContinuesManuallyAndSettingsFocusOnLocalData" classname="com.whip.app.LegacyImportJourneyE2ETest" time="12.194" />
+  </testsuite>
+  <testsuite name="com.whip.app.OrganizationJourneyE2ETest" tests="2" failures="0" errors="0" skipped="0" time="31.492" timestamp="2026-09-11T01:54:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="tagChangesKeepEveryDomainAndSavedHistoryThroughRecreation" classname="com.whip.app.OrganizationJourneyE2ETest" time="21.989" />
+    <testcase name="areaIdentityAndRenameDraftSurviveTheRealManagerJourney" classname="com.whip.app.OrganizationJourneyE2ETest" time="9.503" />
+  </testsuite>
+  <testsuite name="com.whip.app.PortableBackupManagerTest" tests="11" failures="0" errors="0" skipped="0" time="0.211" timestamp="2026-09-11T01:54:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="providerAndStorageFailuresNeverAdvanceSuccessOrExposeAPartialBackup" classname="com.whip.app.PortableBackupManagerTest" time="0.052" />
+    <testcase name="scheduledBackupDoesNotRotateGoodHistoryWhenDatabaseIsEmpty" classname="com.whip.app.PortableBackupManagerTest" time="0.0" />
+    <testcase name="corruptProviderWriteIsDeletedAndNeverReportedAsSuccessful" classname="com.whip.app.PortableBackupManagerTest" time="0.027" />
+    <testcase name="successfulWritePrunesOldBackupsButLeavesUnrelatedFiles" classname="com.whip.app.PortableBackupManagerTest" time="0.001" />
+    <testcase name="abandonedStagingFilesAreCleanedBeforeTheNextBackup" classname="com.whip.app.PortableBackupManagerTest" time="0.001" />
+    <testcase name="corruptNewestFileDoesNotDisplaceAnOlderVerifiedBackup" classname="com.whip.app.PortableBackupManagerTest" time="0.0" />
+    <testcase name="forgettingFolderStillClearsLocalConfigurationAfterProviderRevokesAccess" classname="com.whip.app.PortableBackupManagerTest" time="0.001" />
+    <testcase name="stagingFileIsVerifiedThenRenamedAndNeverReportedAsIncomplete" classname="com.whip.app.PortableBackupManagerTest" time="0.026" />
+    <testcase name="duplicateProviderDisplayNameStillProtectsTheNewlyCommittedUri" classname="com.whip.app.PortableBackupManagerTest" time="0.0" />
+    <testcase name="selectedFolderSettingsAndVerifiedBackupSurviveManagerRecreation" classname="com.whip.app.PortableBackupManagerTest" time="0.001" />
+    <testcase name="automaticBackupUsesOneRestartPersistentPeriodicJobAndCancelsWhenDisabled" classname="com.whip.app.PortableBackupManagerTest" time="0.102" />
+  </testsuite>
+  <testsuite name="com.whip.app.RestoreRecoveryManagerTest" tests="8" failures="0" errors="0" skipped="0" time="0.004" timestamp="2026-09-11T01:54:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="externalActionGenerationAdvancesOnlyAfterRecoverySnapshotIsDurable" classname="com.whip.app.RestoreRecoveryManagerTest" time="0.0" />
+    <testcase name="injectedRecoveryRestoreFailureKeepsMarkerAndNeverRebuildsBackgroundState" classname="com.whip.app.RestoreRecoveryManagerTest" time="0.001" />
+    <testcase name="failedRollbackLeavesMarkerAndNextLaunchRecoversOldState" classname="com.whip.app.RestoreRecoveryManagerTest" time="0.001" />
+    <testcase name="partialTargetApplyIsRolledBackBeforeItCanBecomeMixedLiveState" classname="com.whip.app.RestoreRecoveryManagerTest" time="0.0" />
+    <testcase name="rollbackUsesThePrivateRecoverySnapshotRatherThanThePortableExport" classname="com.whip.app.RestoreRecoveryManagerTest" time="0.001" />
+    <testcase name="recoveryPreparationFailureRollsBackAndRebuildsBeforeRemovingMarker" classname="com.whip.app.RestoreRecoveryManagerTest" time="0.001" />
+    <testcase name="backgroundRebuildFailureRollsDatabaseAndSettingsBack" classname="com.whip.app.RestoreRecoveryManagerTest" time="0.0" />
+    <testcase name="corruptRecoverySnapshotKeepsMarkerAndNeverRebuildsBackgroundState" classname="com.whip.app.RestoreRecoveryManagerTest" time="0.0" />
+  </testsuite>
+  <testsuite name="com.whip.app.SettingItemBuilderJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="8.418" timestamp="2026-09-11T01:54:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="choicesSaveImmediatelyWhileTypedDraftsWaitForConfirmedSave" classname="com.whip.app.SettingItemBuilderJourneyE2ETest" time="8.418" />
+  </testsuite>
+  <testsuite name="com.whip.app.SettingsBehaviorUiTest" tests="12" failures="0" errors="0" skipped="0" time="43.414" timestamp="2026-09-11T01:54:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="validGymDefaultDraftSurvivesRecreationWithoutPersistingUntilDone" classname="com.whip.app.SettingsBehaviorUiTest" time="4.804" />
+    <testcase name="organizationSettingsAddsRenamesAndRemovesNamedCustomEmojis" classname="com.whip.app.SettingsBehaviorUiTest" time="8.904" />
+    <testcase name="openingAreaBehaviorAndChosenAreaCanBeConfiguredFromAppearance" classname="com.whip.app.SettingsBehaviorUiTest" time="2.336" />
+    <testcase name="conditionalParentControlsCannotRemoveAnOpenTypedEditor" classname="com.whip.app.SettingsBehaviorUiTest" time="3.019" />
+    <testcase name="rapidDoubleTapOnResetSubmitsOnlyOneDestructiveOperationAndReturnsHome" classname="com.whip.app.SettingsBehaviorUiTest" time="4.101" />
+    <testcase name="hidingGoalsKeepsItDiscoverableInTheEmptyHomeGuide" classname="com.whip.app.SettingsBehaviorUiTest" time="1.813" />
+    <testcase name="hardwareBackRequiresExplicitDiscardAndCannotNavigateBehindATypedEditor" classname="com.whip.app.SettingsBehaviorUiTest" time="4.18" />
+    <testcase name="finalVisibleHomeSectionExplainsWhyItCannotBeDisabled" classname="com.whip.app.SettingsBehaviorUiTest" time="1.484" />
+    <testcase name="plainJsonBackupUsesAndroidsDocumentProviderAndReturnsSafelyOnCancel" classname="com.whip.app.SettingsBehaviorUiTest" time="4.07" />
+    <testcase name="malformedClockCannotChangeTheCutoffButCompleteClockCommits" classname="com.whip.app.SettingsBehaviorUiTest" time="2.893" />
+    <testcase name="everySettingsCategoryIsReachableAndOwnsItsExpectedControls" classname="com.whip.app.SettingsBehaviorUiTest" time="3.321" />
+    <testcase name="settingsHaveNoDensityChoicesAndTasksUseSummaryDisclosure" classname="com.whip.app.SettingsBehaviorUiTest" time="2.489" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackDeletionUiTest" tests="1" failures="0" errors="0" skipped="0" time="4.751" timestamp="2026-09-11T01:54:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="deletionReviewSurvivesRecreationAndClosesOnlyAfterExactCommit" classname="com.whip.app.TrackDeletionUiTest" time="4.751" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.SafetyChoiceUiTest" tests="11" failures="0" errors="0" skipped="0" time="26.185" timestamp="2026-09-11T01:54:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="workoutGroupSaveFailureKeepsParentAndDraftOpenForRetry" classname="com.whip.app.ui.SafetyChoiceUiTest" time="1.841" />
+    <testcase name="choiceRowsOwnTheOnlyRoleAndStateSemanticsNodes" classname="com.whip.app.ui.SafetyChoiceUiTest" time="0.705" />
+    <testcase name="captureWorkoutEditorAndGroupCatalog" classname="com.whip.app.ui.SafetyChoiceUiTest" time="4.4" />
+    <testcase name="backupRestoreChoicesStayFullWidthAndReachableAtCompactLargeText" classname="com.whip.app.ui.SafetyChoiceUiTest" time="4.954" />
+    <testcase name="replaceEverythingRequiresFinalConfirmationAndBusyBlocksDuplicates" classname="com.whip.app.ui.SafetyChoiceUiTest" time="4.698" />
+    <testcase name="cancellingFinalReplacementReturnsToPreview" classname="com.whip.app.ui.SafetyChoiceUiTest" time="1.259" />
+    <testcase name="workoutSaveFailureKeepsParentAndDraftOpenForRetry" classname="com.whip.app.ui.SafetyChoiceUiTest" time="1.761" />
+    <testcase name="workoutSaveSubmissionBlocksDuplicateActionsAndDismissal" classname="com.whip.app.ui.SafetyChoiceUiTest" time="0.958" />
+    <testcase name="workoutCompletionActionsAreDisabledWhileAnotherWorkoutMutationOwnsPersistence" classname="com.whip.app.ui.SafetyChoiceUiTest" time="0.579" />
+    <testcase name="workoutEditorPristineCancelClosesButDirtyCancelRequiresDiscard" classname="com.whip.app.ui.SafetyChoiceUiTest" time="2.766" />
+    <testcase name="workoutGroupDirtyCancelRequiresDiscard" classname="com.whip.app.ui.SafetyChoiceUiTest" time="2.264" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.SettingItemBuilderUiTest" tests="2" failures="0" errors="0" skipped="0" time="2.969" timestamp="2026-09-11T01:54:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="settingChoiceKeepsCompleteValuesAndAnIdentityOwnedCurrentMenu" classname="com.whip.app.ui.SettingItemBuilderUiTest" time="2.012" />
+    <testcase name="settingInformationUsesFullWidthAndEachRoleDispatchesOnce" classname="com.whip.app.ui.SettingItemBuilderUiTest" time="0.957" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.SettingsResponsiveUiTest" tests="19" failures="0" errors="0" skipped="0" time="43.559" timestamp="2026-09-11T01:54:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="timeZoneModeChangeIsNotHiddenWhenTheEffectiveValueStaysTheSame" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="1.135" />
+    <testcase name="wideSettingsCannotSwitchCategoriesBehindATypedEditor" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="2.792" />
+    <testcase name="editorWaitsForItsRequestReceiptAndRetainsAFailedDraftForRetry" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="2.016" />
+    <testcase name="wideSectionSidebarScrollsAtLargeTextAndKeepsSelectionAndFocusSemantics" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="0.982" />
+    <testcase name="rapidRepeatedSaveOwnsExactlyOnePersistenceRequest" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="1.157" />
+    <testcase name="boundedLargeTextEditorAnnouncesErrorsAndGuardsHardwareDismissal" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="6.435" />
+    <testcase name="externalSameFieldChangeKeepsTheDraftButRequiresAnInformedResave" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="1.961" />
+    <testcase name="customUnitDialogKeepsDraftAndShowsAnInlineDurabilityFailure" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="5.306" />
+    <testcase name="destructiveCopyAndActionsRemainReachableInAShortLargeTextWindow" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="3.444" />
+    <testcase name="numberSettingKeepsARecreatedDraftOutOfPersistenceUntilDone" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="2.566" />
+    <testcase name="coupledQuietHoursDisableIsNotHiddenByTheDefaultDisplayValue" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="1.006" />
+    <testcase name="customUnitFactorAndActionsRemainReachableAtTwoHundredPercentText" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="3.652" />
+    <testcase name="unchangedAndNormalizationEquivalentDoneCloseWithoutDispatchingAWrite" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="2.216" />
+    <testcase name="destructiveFailureIsAssertiveInsideTheRetainedDialogAndCanBeRetried" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="0.807" />
+    <testcase name="sharedNavigationRowsRemainReachableAndClickableInRtl" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="0.931" />
+    <testcase name="timeZoneSettingDoesNotPersistAValidPrefixOrDraftBeforeDone" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="1.836" />
+    <testcase name="lateProcessMemoryPublicationAfterFailureStillRequiresAndAllowsDurableRetry" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="2.439" />
+    <testcase name="customUnitValidationExplainsInvalidFieldsWithoutHidingTheAction" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="2.17" />
+    <testcase name="settingsActionPairsStackAtCompactLargeTextWithoutShrinkingTargets" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="0.708" />
+  </testsuite>
+</testsuites>

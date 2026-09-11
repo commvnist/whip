@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="1" errors="0" skipped="0" time="22.923" timestamp="2026-09-11T01:39:23" hostname="localhost">
+  <testsuite name="com.whip.app.DataPrivacyJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="21.914" timestamp="2026-09-11T01:39:23" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="backupChoicesPreserveRecordsAndSettingsAfterReopening" classname="com.whip.app.DataPrivacyJourneyE2ETest" time="21.914">
+      <failure>java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains 'Keep my current task' (ignoreCase: false) is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.DataPrivacyJourneyE2ETest.journey(DataPrivacyJourneyE2ETest.kt:105)
+at com.whip.app.DataPrivacyJourneyE2ETest.backupChoicesPreserveRecordsAndSettingsAfterReopening(DataPrivacyJourneyE2ETest.kt:34)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

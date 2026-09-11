@@ -1,0 +1,116 @@
+[
+  {
+    "path": "before-phone/settings.data-controls.cleanup.dark.png",
+    "source": "build/astra-data-controls-20260910/before-phone/settings.data-controls.cleanup.dark.png",
+    "png_sha256": "cbbe3cd726c2ce2c2cdd63173ca1b005c0266660b2fce4d009fa033c6b01abca",
+    "original_xml_sha256": "50efb032dd06a911ce4159c10f715aab6066e3c04adc084d31c8ca3045f5e2fd"
+  },
+  {
+    "path": "before-phone/settings.data-controls.overview.dark.png",
+    "source": "build/astra-data-controls-20260910/before-phone/settings.data-controls.overview.dark.png",
+    "png_sha256": "3e4f4c321e486b50dfe8ccc990e0711e65e59bb16d2b1fd6e5e05ce7a1df893b",
+    "original_xml_sha256": "582fb900e67eaaebc6b464014ed26488130a745469a73db012a2996f5db29218"
+  },
+  {
+    "path": "pilot-phone/settings.data-controls.cleanup.dark.png",
+    "source": "build/astra-data-controls-20260910/pilot-phone/settings.data-controls.cleanup.dark.png",
+    "png_sha256": "76609a26e1f18353763b1fd1cbe16463f60e7d421317e8393a345f263e9307bb",
+    "original_xml_sha256": "2e8633c6e9a54b938eef7f77bc0672c20bae78fbea6f10120952d8455245d059"
+  },
+  {
+    "path": "pilot-phone/settings.data-controls.cleanup.light.png",
+    "source": "build/astra-data-controls-20260910/pilot-phone/settings.data-controls.cleanup.light.png",
+    "png_sha256": "0f6dde9b96a294f932a1d467f335fe171edbe3395780d9eaa183d9a175689ffe",
+    "original_xml_sha256": "4beea7cbf220650c9521b7ab894a3982961779e2a05af6b8e3e8f3c5112ae444"
+  },
+  {
+    "path": "pilot-phone/settings.data-controls.overview.dark.png",
+    "source": "build/astra-data-controls-20260910/pilot-phone/settings.data-controls.overview.dark.png",
+    "png_sha256": "b4fe4d23965e702847b33434edb3a3520a19041327a78738513c1bff1e5de24c",
+    "original_xml_sha256": "d73cd56d36d03ce73cbd2beb067ddca513c0edfe74a8b38837dfae4554ac20f8"
+  },
+  {
+    "path": "pilot-phone/settings.data-controls.overview.light.png",
+    "source": "build/astra-data-controls-20260910/pilot-phone/settings.data-controls.overview.light.png",
+    "png_sha256": "96244e095bb832d2709f587bae509da7cd3c2b3d534c8824ff7fe0f2d7bee45b",
+    "original_xml_sha256": "d73cd56d36d03ce73cbd2beb067ddca513c0edfe74a8b38837dfae4554ac20f8"
+  },
+  {
+    "path": "pilot-phone/settings.data-controls.preview.dark.png",
+    "source": "build/astra-data-controls-20260910/pilot-phone/settings.data-controls.preview.dark.png",
+    "png_sha256": "13f96b982961aad5dc9fa4bd73e3d2c39d61fe6b9ca19538af73e795d21d567c",
+    "original_xml_sha256": "e477bda0d09fa4c63825cf447517374152b72eae1d79fd24fa8811e054365516"
+  },
+  {
+    "path": "pilot-phone/settings.data-controls.preview.light.png",
+    "source": "build/astra-data-controls-20260910/pilot-phone/settings.data-controls.preview.light.png",
+    "png_sha256": "8c1bbfcf58db2e24d03f1c81abc371224090a951294a68b78bfbe708a0e9c059",
+    "original_xml_sha256": "e477bda0d09fa4c63825cf447517374152b72eae1d79fd24fa8811e054365516"
+  },
+  {
+    "path": "final-wide/habits.cleanup.entry.png",
+    "source": "build/astra-data-controls-20260910/final-wide/habits.cleanup.entry.png",
+    "png_sha256": "66902757fb14b5327399fccb14a0c35efbda6a440a170ed53623872100a1576a",
+    "original_xml_sha256": "d2d8ec37f0137937cae3f0f921afa9bc25f267a25c1af40434feb2ecf8a90b72"
+  },
+  {
+    "path": "final-wide/settings.data-controls.cleanup.dark.png",
+    "source": "build/astra-data-controls-20260910/final-wide/settings.data-controls.cleanup.dark.png",
+    "png_sha256": "a00cad05318ec52beb16d6b320817dcf8c891f5dc536dc3b89d007ca8746bdda",
+    "original_xml_sha256": "0f1b35b1faf78fdac7c17ee6e0887593929dd31171f2e867dcb5d5ffc69a7582"
+  },
+  {
+    "path": "final-wide/settings.data-controls.cleanup.light.png",
+    "source": "build/astra-data-controls-20260910/final-wide/settings.data-controls.cleanup.light.png",
+    "png_sha256": "02dc14566835849867b5bcbbd5c5dd294060af3bda24dffb27acd030123f0384",
+    "original_xml_sha256": "420d51d6d4602600dae4f7dd5ede85f416c79411790a08b04a58aa3b58715158"
+  },
+  {
+    "path": "final-wide/settings.data-controls.overview.dark.png",
+    "source": "build/astra-data-controls-20260910/final-wide/settings.data-controls.overview.dark.png",
+    "png_sha256": "34766833f106a91c50bc24cba8b512a5d5e4e59182c43bb99f374e244d01cf59",
+    "original_xml_sha256": "9a0737819e2de0b3a0e927a8dadee07cf13822f961a6b03816bedc910ae7ede6"
+  },
+  {
+    "path": "final-wide/settings.data-controls.overview.light.png",
+    "source": "build/astra-data-controls-20260910/final-wide/settings.data-controls.overview.light.png",
+    "png_sha256": "b4b523ffc26ca11e95326be2231c7a7ec9d371dc9af18ba04f058633476f983b",
+    "original_xml_sha256": "8497c81d8aa89a0da9962f47bf2e10ff0f1c8f1bb17922c345324a9555796107"
+  },
+  {
+    "path": "final-wide/settings.data-controls.preview.dark.png",
+    "source": "build/astra-data-controls-20260910/final-wide/settings.data-controls.preview.dark.png",
+    "png_sha256": "ed985e31ca7c31c0761256199d9dc1355345ab7007bf852abd7ff253f5cb862a",
+    "original_xml_sha256": "7d32e14eee4034dbe7efa276edc9acc7b5ce10304d7f828e0884884ff61de961"
+  },
+  {
+    "path": "final-wide/settings.data-controls.preview.light.png",
+    "source": "build/astra-data-controls-20260910/final-wide/settings.data-controls.preview.light.png",
+    "png_sha256": "6c8d5f72c87fe396c18d40d93e482191530642e47a933a75cfb4a6172c3b30b7",
+    "original_xml_sha256": "48222c21ddd3bfe9ab06ae52c4d6079a10f38e58c6d90ec99f4d92fe6fbd2989"
+  },
+  {
+    "path": "final-wide/tracks.cleanup.entry.png",
+    "source": "build/astra-data-controls-20260910/final-wide/tracks.cleanup.entry.png",
+    "png_sha256": "1a1d42573d638e5872d8c3ff19b6d7f85a6c1e2cdb7f2d19361c3c6b70fa2f05",
+    "original_xml_sha256": "ffba3c6065a5b3fbf28090e72beafc796a66bce8c43156d9373c855a7e28922e"
+  },
+  {
+    "path": "neighbors-phone/habits.cleanup.entry.png",
+    "source": "build/astra-data-controls-20260910/neighbors-phone/habits.cleanup.entry.png",
+    "png_sha256": "997d166c9737f4f008adf23822d03c1fb7e4aed51c6e1eb37b42494a1dbdfe87",
+    "original_xml_sha256": "a6e2a65bb6a2b0a726ebeab8fa7d35a62be47feae6d1d8986c4570d860439d86"
+  },
+  {
+    "path": "neighbors-phone/organization.lifecycle.delete-kept-history.png",
+    "source": "build/astra-data-controls-20260910/neighbors-phone/organization.lifecycle.delete-kept-history.png",
+    "png_sha256": "5b9e76b6566ca6cfba94cb08b2d5bc31d5144b790d2b9c5a8f0c594e55121675",
+    "original_xml_sha256": "24725c4b3058db59d66c1782e565919e0e12496a2e35ed053da58141bb5a19b8"
+  },
+  {
+    "path": "neighbors-phone/tracks.cleanup.entry.png",
+    "source": "build/astra-data-controls-20260910/neighbors-phone/tracks.cleanup.entry.png",
+    "png_sha256": "c3f97c39589a41486490b54e7821ab993c9d164f4e28cbeadfe90278edb7f8de",
+    "original_xml_sha256": "6aec3b7e6b4c7f3b460a7e1186fb3798b7683d9c17f8ba27f9cb4ec481b9a7c8"
+  }
+]

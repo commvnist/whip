@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260910-027 — Unify backup choices and quiet shared destructive sections
+
+- Status: Verified for FND-20260910-036 / DEC/VER-20260910-027 and FB-20260910-001/002.
+- Behavior: Settings uses WhipActionList/WhipActionRow to pair backup choices with explanations and honor busy availability. Folder plaintext disclosure remains explicit; CSV purpose is clarified. Shared WhipDangerZone uses a neutral surface with an error-colored semantic heading; destructive actions and final confirmation boundaries remain intact across Settings, Areas, Tracks and entity inspectors.
+- Verification: Native selected-backup Merge, encrypted-export cancellation, Replace/reset cancellation, exact records/current preferences and reopened Inbox pass in both themes. Final 140 fresh phone Android checks, four wide checks, 384 readiness JVM checks, lint/build/catalog and routed harness checks pass. Nineteen retained originals have scoped visual reviews; all 514 frozen inputs match. Evidence: artifacts/astra-audit/2026-09-10/data-controls/README.md.
+- Compatibility/limits: No schema, backup format, data, version or release change. Full encrypted-file delivery, portable-folder native failures/process recovery and generic Settings outcome feedback remain broader audit work; no physical-device operation or whole-product acceptance.
+
 ### IMP-20260910-026 — Remove Health Connect and keep imported history usable
 
 - Status: Verified under FB-20260910-003 / DEC/VER-20260910-026. Normal main/upstream delivery is recorded in Git history. This supersedes the uncommitted Health warning remediation; the broader shared-builder and product-quality goal stays active.

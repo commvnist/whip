@@ -1,0 +1,32 @@
+[
+  {
+    "source": "/sdcard/Download/whip-ui-catalog/tracks.cleanup.entry.png",
+    "local": "build/astra-data-controls-20260910/neighbors-phone/tracks.cleanup.entry.png",
+    "sha256": "c3f97c39589a41486490b54e7821ab993c9d164f4e28cbeadfe90278edb7f8de"
+  },
+  {
+    "source": "/sdcard/Download/whip-ui-catalog/tracks.cleanup.entry.xml",
+    "local": "build/astra-data-controls-20260910/neighbors-phone/tracks.cleanup.entry.xml",
+    "sha256": "6aec3b7e6b4c7f3b460a7e1186fb3798b7683d9c17f8ba27f9cb4ec481b9a7c8"
+  },
+  {
+    "source": "/sdcard/Download/whip-ui-catalog/habits.cleanup.entry.png",
+    "local": "build/astra-data-controls-20260910/neighbors-phone/habits.cleanup.entry.png",
+    "sha256": "997d166c9737f4f008adf23822d03c1fb7e4aed51c6e1eb37b42494a1dbdfe87"
+  },
+  {
+    "source": "/sdcard/Download/whip-ui-catalog/habits.cleanup.entry.xml",
+    "local": "build/astra-data-controls-20260910/neighbors-phone/habits.cleanup.entry.xml",
+    "sha256": "a6e2a65bb6a2b0a726ebeab8fa7d35a62be47feae6d1d8986c4570d860439d86"
+  },
+  {
+    "source": "/sdcard/Download/whip-ui-catalog/organization.lifecycle.delete-kept-history (9).png",
+    "local": "build/astra-data-controls-20260910/neighbors-phone/organization.lifecycle.delete-kept-history.png",
+    "sha256": "5b9e76b6566ca6cfba94cb08b2d5bc31d5144b790d2b9c5a8f0c594e55121675"
+  },
+  {
+    "source": "/sdcard/Download/whip-ui-catalog/organization.lifecycle.delete-kept-history (9).xml",
+    "local": "build/astra-data-controls-20260910/neighbors-phone/organization.lifecycle.delete-kept-history.xml",
+    "sha256": "24725c4b3058db59d66c1782e565919e0e12496a2e35ed053da58141bb5a19b8"
+  }
+]

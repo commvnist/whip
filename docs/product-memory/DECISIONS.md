@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-027 — Data controls share action-list geometry and restrained destructive sections
+
+- Decision: Reuse WhipActionList/WhipActionRow for three one-off backup actions, with complete left-aligned labels and adjacent explanations. Keep portable-folder setup distinct, shorten its initial explanation without hiding plaintext disclosure, and explain CSV as individual tables. Give shared WhipDangerZone a neutral section and an error-colored semantic heading; explicit destructive actions and final confirmations remain authoritative.
+- Alternatives/tradeoffs: Patching button spacing preserves inconsistent hierarchy; another builder duplicates the existing action-list role; a backup wizard adds steps without a demonstrated decision-flow failure. Shared geometry supports natural wrapping. Descriptions add reading height but replace detached prose. Native light/dark and neighboring caller review must verify destructive discoverability.
+- Compatibility: Presentation only. Preserve labels, request ownership, settings, files, encryption, Merge/Replace semantics, two-step replacement/reset boundaries, schema and version. No per-screen 200% patches.
+- Status: Verified under FND-20260910-036 / IMP/VER-20260910-027. Normal phone/wide light/dark and neighboring callers reviewed; explicit confirmations and data contracts retained. Whole-product audit remains active.
+
 ### DEC-20260910-026 — Retire Health Connect and preserve historical records
 
 - Status: Verified in IMP/VER-20260910-026; FB-20260910-003.

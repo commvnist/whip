@@ -72,6 +72,7 @@ class TrackDeletionUiTest {
             compose.onNodeWithTag("track-destination-Options").performClick()
             compose.onNode(hasScrollAction() and hasAnyDescendant(hasText("Track Options")))
                 .performScrollToNode(hasText("Delete Track Permanently"))
+            captureVisualCatalogSurface("tracks.cleanup.entry")
             compose.onNodeWithText("Delete Track Permanently").performClick()
             compose.waitUntil(10_000) {
                 compose.onAllNodesWithText("Delete Delete review Track Permanently?").fetchSemanticsNodes().isNotEmpty()

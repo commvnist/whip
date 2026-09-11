@@ -288,6 +288,7 @@ add_profile() {
                 'com.whip.app.CustomUnitJourneyE2ETest'
                 'com.whip.app.LegacyHealthHistoryTest'
                 'com.whip.app.LegacyImportJourneyE2ETest'
+                'com.whip.app.DataPrivacyJourneyE2ETest'
                 'com.whip.app.ui.SettingsResponsiveUiTest'
                 'com.whip.app.ui.SettingItemBuilderUiTest'
                 'com.whip.app.SettingItemBuilderJourneyE2ETest'

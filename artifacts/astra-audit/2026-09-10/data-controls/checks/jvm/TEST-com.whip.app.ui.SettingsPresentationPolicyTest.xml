@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.SettingsPresentationPolicyTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-09-11T01:56:05.108Z" hostname="beast" time="0.025">
+  <properties/>
+  <testcase name="freeFormSettingTagsAreStableAndReadable" classname="com.whip.app.ui.SettingsPresentationPolicyTest" time="0.024"/>
+  <testcase name="timestampsUseTheConfiguredZoneAndLocalizedPresentation" classname="com.whip.app.ui.SettingsPresentationPolicyTest" time="0.001"/>
+  <testcase name="settingsTimeZoneRequiresACompleteKnownIanaIdentifier" classname="com.whip.app.ui.SettingsPresentationPolicyTest" time="0.0"/>
+  <testcase name="dataPrivacyPrioritizesBackupAndKeepsWholeAppResetLast" classname="com.whip.app.ui.SettingsPresentationPolicyTest" time="0.0"/>
+  <testcase name="dynamicColorIsOnlyOfferedWhereAndroidCanApplyIt" classname="com.whip.app.ui.SettingsPresentationPolicyTest" time="0.0"/>
+  <testcase name="settingsClockRequiresOneCompleteExactHhMmValue" classname="com.whip.app.ui.SettingsPresentationPolicyTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

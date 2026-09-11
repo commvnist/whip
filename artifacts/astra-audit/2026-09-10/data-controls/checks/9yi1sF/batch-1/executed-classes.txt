@@ -1,0 +1,3 @@
+com.whip.app.AreaOrganizationJourneyE2ETest
+com.whip.app.DataPrivacyJourneyE2ETest
+com.whip.app.TrackDeletionUiTest

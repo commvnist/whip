@@ -1,5 +1,14 @@
 # Durable findings
 
+### FND-20260910-036 — Backup choices lack a common reading structure and destructive entry panels dominate
+
+- Severity/category: P2, normal-scale hierarchy and shared visual consistency; design opportunity, not a demonstrated restore-data defect.
+- Observed: Personally reviewed native phone/wide Data & Privacy originals from IMP-20260910-026 show three outlined backup actions, an encryption paragraph touching its button, isolated centered CSV labels, and a saturated red reset panel with the strongest visual emphasis. Shared WhipDangerZone paints its entire section errorContainer in Settings, Area/Track cleanup and entity inspectors.
+- Expected: Pair each backup action with its concise explanation using existing shared action-list geometry. Reserve destructive emphasis for the named action and final confirmation; keep explanatory sections readable in both themes. Preserve export/restore/reset contracts and native document selection.
+- Evidence: SettingsScreens.kt, WhipActionList/WhipActionRow, WhipDangerZone and its four caller families; artifacts/astra-audit/2026-09-10/health-removal/final-phone and final-wide/settings.data-privacy.local.png. Native reset/document-cancel checks exist; selected-backup preview/merge needs a fresh native journey.
+- Related: FB-20260910-001/002, DEC-20260910-006, FND-20260908-008, DEC-20260908-007; Area danger-panel review remains open in the active matrix.
+- Status: Verified in IMP/VER-20260910-027: shared backup/action hierarchy and neutral destructive sections, native phone/wide journeys, 140 Android regressions, 384 readiness JVM checks and nineteen scoped original reviews. Complete backup/recovery audit remains open.
+
 ### FND-20260910-035 — Completed Health actions lose storage and recovery warnings
 
 - Status: Superseded by owner-directed integration removal FB-20260910-003. The defect was confirmed by source and native reproduction: rDh728 fails both API 34 methods after exact data/journal assertions; matching API 37 fails both in 11.114s. Constructor injection was the only baseline production delta. The warning pilot was not fully accepted before removal was requested.

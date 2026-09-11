@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.domain.RecurrenceEngineTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-09-11T01:56:04.029Z" hostname="beast" time="0.007">
+  <properties/>
+  <testcase name="distantQueriesStayAnchoredWithoutScanningFromSeriesStart" classname="com.whip.app.domain.RecurrenceEngineTest" time="0.006"/>
+  <testcase name="everyTwoWeeks_skipsAlternatingWeeks" classname="com.whip.app.domain.RecurrenceEngineTest" time="0.0"/>
+  <testcase name="monthlyClampsToLastDayAndYearlyHandlesLeapDay" classname="com.whip.app.domain.RecurrenceEngineTest" time="0.0"/>
+  <testcase name="laterAfterCountQueriesRespectGlobalOccurrenceIndexForEveryUnit" classname="com.whip.app.domain.RecurrenceEngineTest" time="0.0"/>
+  <testcase name="selectedWeekdays_usesOnlyChosenDays" classname="com.whip.app.domain.RecurrenceEngineTest" time="0.0"/>
+  <testcase name="onDate_includesEndDate" classname="com.whip.app.domain.RecurrenceEngineTest" time="0.0"/>
+  <testcase name="everyDay_includesEveryDate" classname="com.whip.app.domain.RecurrenceEngineTest" time="0.0"/>
+  <testcase name="afterCount_limitsWholeSeriesEvenForLaterQuery" classname="com.whip.app.domain.RecurrenceEngineTest" time="0.0"/>
+  <testcase name="everyThreeDays_staysAnchoredToStart" classname="com.whip.app.domain.RecurrenceEngineTest" time="0.0"/>
+  <testcase name="completionRelativeCadenceHonorsEndCount" classname="com.whip.app.domain.RecurrenceEngineTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

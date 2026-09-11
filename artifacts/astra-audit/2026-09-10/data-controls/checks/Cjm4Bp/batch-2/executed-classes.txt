@@ -1,0 +1,10 @@
+com.whip.app.LegacyImportJourneyE2ETest
+com.whip.app.OrganizationJourneyE2ETest
+com.whip.app.PortableBackupManagerTest
+com.whip.app.RestoreRecoveryManagerTest
+com.whip.app.SettingItemBuilderJourneyE2ETest
+com.whip.app.SettingsBehaviorUiTest
+com.whip.app.TrackDeletionUiTest
+com.whip.app.ui.SafetyChoiceUiTest
+com.whip.app.ui.SettingItemBuilderUiTest
+com.whip.app.ui.SettingsResponsiveUiTest

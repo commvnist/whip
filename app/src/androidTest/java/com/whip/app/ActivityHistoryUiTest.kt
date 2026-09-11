@@ -363,6 +363,8 @@ class ActivityHistoryUiTest {
         compose.onNodeWithTag("entity-inspector-content-options").assertIsDisplayed()
         compose.onNodeWithText("Schedule and availability").assertIsDisplayed()
         captureVisualCatalogSurface("habits.inspector.options")
+        compose.onNodeWithTag("entity-inspector-action-delete").performScrollTo().assertIsDisplayed()
+        captureVisualCatalogSurface("habits.cleanup.entry")
         compose.onNodeWithTag("entity-inspector-action-pause-8").performScrollTo().assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(8L, editedPauseId) }
 

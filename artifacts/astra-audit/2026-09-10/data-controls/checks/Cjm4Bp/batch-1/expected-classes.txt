@@ -1,0 +1,10 @@
+com.whip.app.ActivityHistoryUiTest
+com.whip.app.AppSettingsPersistenceTest
+com.whip.app.AreaOrganizationJourneyE2ETest
+com.whip.app.BackupRepositoryTest
+com.whip.app.CustomUnitIntegrityTest
+com.whip.app.CustomUnitJourneyE2ETest
+com.whip.app.DataEpochBoundaryTest
+com.whip.app.DataPrivacyJourneyE2ETest
+com.whip.app.EntityInspectorUiTest
+com.whip.app.LegacyHealthHistoryTest

@@ -1221,7 +1221,7 @@ internal fun SettingsContent(
             WhipSettingsSectionCard {
                     Text("Portable Backup Folder", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(
-                        "Choose a folder in Files, Drive, or removable storage. Automatic portable backups are plain JSON, not encrypted. Whip keeps access after restart, verifies every backup after writing it, and never deletes unrelated files.",
+                        "Save verified backups to Files, Drive, or removable storage. Automatic backups use plain JSON, without encryption. Unrelated files are never deleted.",
                         style = MaterialTheme.typography.bodySmall,
                     )
                     if (state.portableBackup.configured) {
@@ -1295,24 +1295,36 @@ internal fun SettingsContent(
             }
         }
         item {
-            WhipOutlinedButton(
-                onClick = { pendingExport = ExportKind.Backup; createDocument.launch("whip-${LocalDate.now(settings.zoneId())}.whip.json") },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Save Plain JSON Backup") }
+            WhipActionList {
+                WhipActionRow(
+                    title = "Save Plain JSON Backup",
+                    supportingText = "A readable copy of your records and settings. Anyone with the file can read it.",
+                    enabled = !state.busy,
+                    onClick = { pendingExport = ExportKind.Backup; createDocument.launch("whip-${LocalDate.now(settings.zoneId())}.whip.json") },
+                )
+                WhipActionDivider()
+                WhipActionRow(
+                    title = "Save Passphrase-Encrypted Backup",
+                    supportingText = "Protect your records and settings with a passphrase. Whip cannot recover a forgotten passphrase.",
+                    enabled = !state.busy,
+                    onClick = { showEncryptedExport = true },
+                )
+                WhipActionDivider()
+                WhipActionRow(
+                    title = "Preview and Restore Backup",
+                    supportingText = "Review a saved backup before choosing to merge or replace local data.",
+                    enabled = !state.busy,
+                    onClick = { openDocument.launch(arrayOf("application/json", "text/plain", "*/*")) },
+                )
+            }
         }
-        item {
-            WhipOutlinedButton(
-                onClick = { showEncryptedExport = true },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Save Passphrase-Encrypted Backup") }
-            Text(
-                "Encrypted backups are authenticated and safer for health history and other sensitive data. The passphrase is never saved and cannot be recovered. Plain JSON remains available for interoperability.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-        item { WhipOutlinedButton(onClick = { openDocument.launch(arrayOf("application/json", "text/plain", "*/*")) }, modifier = Modifier.fillMaxWidth()) { Text("Preview and Restore Backup") } }
         item {
             Text("Export CSV", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(
+                "Export individual tables for spreadsheets. Use a backup to restore Whip.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
