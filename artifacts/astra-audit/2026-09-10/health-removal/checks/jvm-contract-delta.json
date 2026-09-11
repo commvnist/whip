@@ -1,0 +1,10 @@
+{
+  "app/src/test/java/com/whip/app/core/E2ECoverageContractTest.kt": {
+    "before": "69b98e4233db72483e9fca62dc4d006507cd2697a62db437121e6d0e3a7b7459",
+    "after": "cf8927501ba20df02a058e6487911f174fbfa75714fd701a5be790bd465a7ad4"
+  },
+  "app/src/test/java/com/whip/app/ui/EditorFeatureIntegrityTest.kt": {
+    "before": "cc60158ab04906d3feca6b9265462df88e0382a6a2e00382e5ea7e6cc2a717fa",
+    "after": "9da131f43ab6a88fa4b50870e41b28495121484c22bae56f3e9ef5c56a294e39"
+  }
+}

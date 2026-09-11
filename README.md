@@ -32,8 +32,7 @@ item choices, editor pickers, and tappable record badges.
 
 All records live in Room and work offline. A shared measurement model keeps
 units and historical values consistent without coupling otherwise independent
-features. Optional read-only Health Connect sync can be selected as a Habit or
-Goal source. Complete versioned
+features. Complete versioned
 backup/restore, optional authenticated encrypted archives, a remembered
 portable-backup folder with crash-safe verified daily copies and retention,
 per-domain CSV export, widgets, notification actions, unified search, and
@@ -173,7 +172,6 @@ app/src/main/java/com/whip/app/
 ├── core/                         # Clock, settings, IDs, shared policies
 ├── data/                         # Room entities, DAO, database, repository
 ├── domain/                       # Rules and projections for every area
-├── health/                       # Optional Health Connect reader
 ├── reminders/                    # WorkManager scheduling and notifications
 ├── ui/                           # Compose screens, editors, ViewModels, theme
 └── widget/                       # Summary and quick-add home-screen widget
@@ -186,7 +184,7 @@ Further documentation:
 
 - [`docs/user-guide.md`](docs/user-guide.md) — behavior, formulas, links, imports,
   and data lifecycle.
-- [`docs/privacy.md`](docs/privacy.md) — local storage, Health Connect, backups,
+- [`docs/privacy.md`](docs/privacy.md) — local storage, imported history, backups,
   and the health/fitness disclaimer.
 - [`docs/architecture.md`](docs/architecture.md) — persistence and projection
   decisions.

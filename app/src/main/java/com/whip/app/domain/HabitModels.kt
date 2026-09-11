@@ -85,7 +85,7 @@ data class HabitDraft(
     val weekStart: DayOfWeek = DayOfWeek.MONDAY,
     val checklistItems: List<HabitChecklistItemDraft> = emptyList(),
     val autoCompleteFromItems: Boolean = true,
-    /** Optional external measurement mirrored into this habit (for example Health Connect steps). */
+    /** Optional measurement link retained for compatibility with saved Habits. */
     val sourceMeasurementId: String? = null,
 ) : java.io.Serializable
 

@@ -1,5 +1,12 @@
 # Durable findings
 
+### FND-20260910-035 — Completed Health actions lose storage and recovery warnings
+
+- Status: Superseded by owner-directed integration removal FB-20260910-003. The defect was confirmed by source and native reproduction: rDh728 fails both API 34 methods after exact data/journal assertions; matching API 37 fails both in 11.114s. Constructor injection was the only baseline production delta. The warning pilot was not fully accepted before removal was requested.
+- Evidence: In fd4efb99 SettingsViewModel.syncHealthConnect, receiptPersisted=false writes a healthRuntime message, then immediately replaces it with status and returns an empty warning list. deleteHealthConnectCopies similarly writes a failed recovery-marker-clear message, then status(clearedStatus) clears it; that condition never enters the receipt warnings. SettingsContent renders receipt warnings through the shared status card, and does not render healthConnect.message.
+- Expected: A successful record reconciliation/deletion remains successful, but its failed follow-up must appear as a completed-with-warnings outcome. Preserve imported records, the deletion journal and exact mutation ownership; do not imply data rollback or invite blind repeated mutations.
+- Related: FND-20260901-027 and IMP/VER-20260901-019/021 established completed-warning semantics, but their historical acceptance does not prove these current branches. DEC/VER-20260910-025 tracks direct control-driven failure reproduction and remediation. Android permission-review behavior remains a separate investigation.
+
 ### FND-20260910-034 — Custom Units bypass the shared record and list hierarchy
 
 - Status: Verified in IMP/VER-20260910-024; P2 normal-scale design consistency. FB-20260910-001/002.

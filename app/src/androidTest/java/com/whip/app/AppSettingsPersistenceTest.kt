@@ -6,7 +6,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.core.AppSettings
 import com.whip.app.core.AppThemeMode
 import com.whip.app.core.AreaOpeningMode
-import com.whip.app.core.HealthDataType
 import com.whip.app.core.HomeSection
 import com.whip.app.core.ReviewPeriod
 import com.whip.app.core.SharedPreferencesSettingsRepository
@@ -31,39 +30,23 @@ import org.junit.runner.RunWith
 class AppSettingsPersistenceTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
+    @Test
+    fun retiredIntegrationPreferencesAreRemovedWithoutChangingOrdinarySettings() {
+        val preferences = context.getSharedPreferences("whip-settings", Context.MODE_PRIVATE)
+        preferences.edit().clear().putBoolean("healthEnabled", true)
+            .putBoolean("healthDeletionPending", true).putStringSet("healthTypes", setOf("Weight"))
+            .putInt("healthSyncDays", 90).putLong("healthLastSyncMillis", 123L)
+            .putInt("healthLastSyncCount", 12).putInt("defaultRest", 75).commit()
+        val repository = SharedPreferencesSettingsRepository(context)
+        assertFalse(preferences.all.keys.any { it.startsWith("health") })
+        assertEquals(75, repository.current().defaultRestSeconds)
+        assertTrue(repository.updateAndConfirm { it.copy(defaultRestSeconds = 90) })
+        assertFalse(preferences.all.keys.any { it.startsWith("health") })
+    }
+
     @After
     fun resetPreferences() {
         context.getSharedPreferences("whip-settings", Context.MODE_PRIVATE).edit().clear().commit()
-    }
-
-    @Test
-    fun freshHealthConnectScopeIsLeastPrivilegeAndRequiresExplicitCategories() {
-        val preferences = context.getSharedPreferences("whip-settings", Context.MODE_PRIVATE)
-        preferences.edit().clear().commit()
-        assertTrue(SharedPreferencesSettingsRepository(context).current().healthDataTypes.isEmpty())
-
-        preferences.edit().clear().putBoolean("healthEnabled", true).commit()
-        assertTrue(SharedPreferencesSettingsRepository(context).current().healthDataTypes.isEmpty())
-
-        preferences.edit().putBoolean("healthEnabled", false).putStringSet("healthTypes", emptySet()).commit()
-        assertTrue(SharedPreferencesSettingsRepository(context).current().healthDataTypes.isEmpty())
-    }
-
-    @Test
-    fun healthDeletionRecoveryMarkerIsDurableButLocallyControlled() {
-        val repository = SharedPreferencesSettingsRepository(context)
-        assertTrue(repository.updateAndConfirm {
-            it.copy(
-                healthConnectEnabled = false,
-                healthConnectDeletionPending = true,
-                healthLastSyncMillis = 123_456L,
-                healthLastSyncCount = 42,
-            )
-        })
-        val restored = SharedPreferencesSettingsRepository(context).current()
-        assertTrue(restored.healthConnectDeletionPending)
-        assertEquals(123_456L, restored.healthLastSyncMillis)
-        assertEquals(42, restored.healthLastSyncCount)
     }
 
     @Test
@@ -133,9 +116,6 @@ class AppSettingsPersistenceTest {
             homeSections = listOf(HomeSection.Goals, HomeSection.Tasks, HomeSection.Tracks, HomeSection.Habits, HomeSection.Gym),
             hiddenHomeSections = setOf(HomeSection.Goals, HomeSection.Gym),
             collapsedHomeSections = setOf(HomeSection.Habits),
-            healthConnectEnabled = true,
-            healthDataTypes = setOf(HealthDataType.Weight, HealthDataType.Sleep),
-            healthSyncDays = 90,
             reviewPeriod = ReviewPeriod.Monthly,
             defaultTaskStepPolicy = RepeatStepPolicy.CarryUnfinished,
             showAllUpcomingTaskOccurrences = true,

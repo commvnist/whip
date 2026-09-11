@@ -44,14 +44,6 @@ enum class ReviewSection(val label: String) {
     Goals("Goals"),
     Gym("Gym"),
 }
-enum class HealthDataType(val label: String) {
-    Weight("Weight"),
-    Steps("Steps"),
-    Distance("Distance"),
-    Hydration("Hydration"),
-    Sleep("Sleep"),
-    Exercise("Exercise sessions"),
-}
 enum class ReviewPeriod(val label: String) {
     Weekly("Weekly"),
     Monthly("Monthly"),
@@ -105,14 +97,6 @@ data class AppSettings(
     val homeSections: List<HomeSection> = HomeSection.entries,
     val hiddenHomeSections: Set<HomeSection> = emptySet(),
     val collapsedHomeSections: Set<HomeSection> = emptySet(),
-    val healthConnectEnabled: Boolean = false,
-    val healthDataTypes: Set<HealthDataType> = emptySet(),
-    val healthSyncDays: Int = 30,
-    /** Local-only sync receipt metadata; portable backups do not export it. */
-    val healthLastSyncMillis: Long? = null,
-    val healthLastSyncCount: Int = 0,
-    /** Local-only crash-recovery journal; never exported in portable backups. */
-    val healthConnectDeletionPending: Boolean = false,
     val reviewPeriod: ReviewPeriod = ReviewPeriod.Weekly,
     val defaultTaskStepPolicy: RepeatStepPolicy = RepeatStepPolicy.Reset,
     val showAllUpcomingTaskOccurrences: Boolean = false,
@@ -210,6 +194,14 @@ fun SettingsRepository.currentDateFlow(clock: WhipClock): Flow<LocalDate> =
 class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository {
     private val preferences = context.getSharedPreferences("whip-settings", Context.MODE_PRIVATE)
 
+    init {
+        // Retired integration preferences must never survive into new settings/exports.
+        val retiredKeys = listOf("healthEnabled", "healthTypes", "healthSyncDays", "healthLastSyncMillis", "healthLastSyncCount", "healthDeletionPending")
+        if (retiredKeys.any(preferences::contains)) {
+            preferences.edit().also { editor -> retiredKeys.forEach(editor::remove) }.apply()
+        }
+    }
+
     override val settings: Flow<AppSettings> = callbackFlow {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> trySend(current()) }
         trySend(current())
@@ -269,12 +261,6 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
             ?.takeIf { it.toSet() == HomeSection.entries.toSet() } ?: HomeSection.entries,
         hiddenHomeSections = preferences.enumSet("homeHidden", HomeSection.entries),
         collapsedHomeSections = preferences.enumSet("homeCollapsed", HomeSection.entries),
-        healthConnectEnabled = preferences.getBoolean("healthEnabled", false),
-        healthDataTypes = preferences.healthDataTypes(),
-        healthSyncDays = preferences.getInt("healthSyncDays", 30).coerceIn(1, 365),
-        healthLastSyncMillis = preferences.nullableLong("healthLastSyncMillis"),
-        healthLastSyncCount = preferences.getInt("healthLastSyncCount", 0).coerceAtLeast(0),
-        healthConnectDeletionPending = preferences.getBoolean("healthDeletionPending", false),
         reviewPeriod = preferences.enum("reviewPeriod", ReviewPeriod.Weekly),
         defaultTaskStepPolicy = preferences.enum("taskStepPolicy", RepeatStepPolicy.Reset),
         showAllUpcomingTaskOccurrences = preferences.getBoolean("showAllUpcomingTaskOccurrences", false),
@@ -350,12 +336,6 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
             .putString("homeOrder", value.homeSections.joinToString(",", transform = HomeSection::name))
             .putStringSet("homeHidden", value.hiddenHomeSections.mapTo(mutableSetOf(), HomeSection::name))
             .putStringSet("homeCollapsed", value.collapsedHomeSections.mapTo(mutableSetOf(), HomeSection::name))
-            .putBoolean("healthEnabled", value.healthConnectEnabled)
-            .putStringSet("healthTypes", value.healthDataTypes.mapTo(mutableSetOf(), HealthDataType::name))
-            .putInt("healthSyncDays", value.healthSyncDays.coerceIn(1, 365))
-            .putNullableLong("healthLastSyncMillis", value.healthLastSyncMillis)
-            .putInt("healthLastSyncCount", value.healthLastSyncCount.coerceAtLeast(0))
-            .putBoolean("healthDeletionPending", value.healthConnectDeletionPending)
             .putString("reviewPeriod", value.reviewPeriod.name)
             .putString("taskStepPolicy", value.defaultTaskStepPolicy.name)
             .putBoolean("showAllUpcomingTaskOccurrences", value.showAllUpcomingTaskOccurrences)
@@ -428,12 +408,6 @@ fun AppSettings.normalized(): AppSettings {
         homeSections = normalizedOrder,
         hiddenHomeSections = normalizedHidden,
         collapsedHomeSections = collapsedHomeSections.intersect(HomeSection.entries.toSet()),
-        healthConnectEnabled = healthConnectEnabled &&
-            healthDataTypes.any(HealthDataType.entries.toSet()::contains) &&
-            !healthConnectDeletionPending,
-        healthDataTypes = healthDataTypes.intersect(HealthDataType.entries.toSet()),
-        healthSyncDays = healthSyncDays.coerceIn(1, 365),
-        healthLastSyncCount = healthLastSyncCount.coerceAtLeast(0),
         activeTaskSortMode = activeTaskSortMode.takeIf {
             it in setOf("Smart", "Manual", "Scheduled Date", "Deadline", "Priority", "Title")
         } ?: "Smart",
@@ -496,11 +470,6 @@ private fun <T : Enum<T>> SharedPreferences.enumSet(key: String, values: List<T>
     val names = getStringSet(key, emptySet()).orEmpty()
     return values.filterTo(mutableSetOf()) { it.name in names }
 }
-
-private fun SharedPreferences.healthDataTypes(): Set<HealthDataType> =
-    getStringSet("healthTypes", null)
-        ?.mapNotNullTo(mutableSetOf()) { runCatching { HealthDataType.valueOf(it) }.getOrNull() }
-        ?: emptySet()
 
 private fun SharedPreferences.nullableInt(key: String): Int? = if (contains(key)) getInt(key, 0) else null
 private fun SharedPreferences.nullableLong(key: String): Long? = if (contains(key)) getLong(key, 0L) else null

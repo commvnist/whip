@@ -3,7 +3,6 @@ package com.whip.app.domain
 import java.io.Serializable
 import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
 
 enum class MeasurementValueKind {
     Boolean,
@@ -51,6 +50,7 @@ enum class MeasurementSourceType {
     Exercise,
     Track,
     Import,
+    /** Legacy provenance retained for existing records and backup compatibility. No provider integration. */
     HealthConnect,
 }
 
@@ -137,36 +137,6 @@ data class MeasurementEntry(
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
 ) : Serializable
-
-/** One provider-owned fact prepared for an exact Health Connect source-window commit. */
-data class HealthSourceRecord(
-    val providerRecordId: String,
-    val value: Double,
-    val unitId: String,
-    val timestamp: Instant,
-    /** Provider-authored offset at [timestamp]; null only when the provider omitted it. */
-    val zoneOffsetSeconds: Int? = null,
-    val localDate: LocalDate? = null,
-    val note: String = "Imported from Health Connect",
-)
-
-data class HealthMeasurementContract(
-    val id: String,
-    val name: String,
-    val valueKind: MeasurementValueKind,
-    val dimension: UnitDimension,
-    val defaultUnitId: String,
-    val precision: Int,
-)
-
-data class HealthSourceWindow(
-    val measurement: HealthMeasurementContract,
-    val sourcePrefix: String,
-    val startInclusive: Instant,
-    val endExclusive: Instant,
-    val zoneId: ZoneId,
-    val records: List<HealthSourceRecord>,
-)
 
 data class Area(
     val id: String,

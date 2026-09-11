@@ -55,7 +55,7 @@ class ActivityPresentationTest {
 
         val synced = log(id = -4, value = 6_500.0, sourceType = MeasurementSourceType.HealthConnect)
         assertEquals("Logged 6500", synced.activityTitle(count))
-        assertEquals("Yesterday · Synced from Health Connect", synced.activitySupportingText(today))
+        assertEquals("Yesterday · Imported activity", synced.activitySupportingText(today))
         assertFalse(synced.isUserEditable())
 
         val completed = log(value = 1.0, status = HabitLogStatus.Success)
@@ -100,7 +100,7 @@ class ActivityPresentationTest {
         assertTrue(manual.isUserEditableGoalUpdate())
 
         val synced = measurementEntry(sourceType = MeasurementSourceType.HealthConnect, value = 72.5)
-        assertEquals("Aug 29, 2026 · Synced from Health Connect", synced.historySupportingText())
+        assertEquals("Aug 29, 2026 · Imported activity", synced.historySupportingText())
         assertFalse(synced.isUserEditableGoalUpdate())
 
         val skipped = synced.copy(enteredValue = null, enteredUnitId = null, status = MeasurementEntryStatus.Skipped)

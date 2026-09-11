@@ -1,0 +1,13 @@
+{
+  "unchanged_production_apk": true,
+  "unchanged_wide_targets": true,
+  "all_changed_inputs_since_wide": [
+    "app/build.gradle.kts",
+    "app/src/androidTest/java/com/whip/app/ProductivityCardDesignUiTest.kt",
+    "app/src/test/java/com/whip/app/core/E2ECoverageContractTest.kt",
+    "app/src/test/java/com/whip/app/ui/EditorFeatureIntegrityTest.kt",
+    "app/src/test/java/com/whip/app/ui/RtlDirectionalPolicyTest.kt",
+    "app/src/test/java/com/whip/app/ui/SurfaceRoleArchitectureTest.kt",
+    "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
+  ]
+}

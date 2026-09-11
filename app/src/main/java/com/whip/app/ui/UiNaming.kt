@@ -79,13 +79,13 @@ internal fun MeasurementSourceType.uiLabel(): String = when (this) {
     MeasurementSourceType.Exercise -> "Exercise"
     MeasurementSourceType.Track -> "Track"
     MeasurementSourceType.Import -> "Import"
-    MeasurementSourceType.HealthConnect -> "Health Connect"
+    MeasurementSourceType.HealthConnect -> "Imported"
 }
 
 /** Manual activity needs no attribution; connected activity should explain why it is read-only. */
 internal fun MeasurementSourceType.activityAttribution(): String? = when (this) {
     MeasurementSourceType.Manual -> null
-    MeasurementSourceType.HealthConnect -> "Synced from Health Connect"
+    MeasurementSourceType.HealthConnect -> "Imported activity"
     MeasurementSourceType.Import -> "Imported"
     else -> "Added from ${uiLabel()}"
 }

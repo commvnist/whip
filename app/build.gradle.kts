@@ -110,7 +110,7 @@ android {
     }
 
     lint {
-        // Toolchain and alpha Health Connect updates are intentionally reviewed separately.
+        // Toolchain and dependency updates are intentionally reviewed separately.
         disable += setOf("AndroidGradlePluginVersion", "GradleDependency")
     }
 }
@@ -127,7 +127,6 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.work.runtime.ktx)
-    implementation(libs.androidx.health.connect.client)
     implementation(libs.androidx.window)
     implementation(libs.androidx.profileinstaller)
     ksp(libs.androidx.room.compiler)

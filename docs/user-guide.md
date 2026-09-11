@@ -165,8 +165,9 @@ be checked individually; tap it again to collapse them. A Task with unfinished
 subtasks shows an indeterminate completion state and expands for review instead
 of bypassing those subtasks. **Habit Tracking** shows today’s scheduled Habits,
 keeps completed Habits visible by default, and supports direct check-off,
-Checklist item, numeric increment, and timer actions while Health-synced Habits
-remain read-only. Habit rows scroll inside the widget. Checklist Habits stay
+Checklist item, numeric increment, and timer actions. Previously imported Habit
+activity remains in History; new activity can be recorded manually. Habit rows
+scroll inside the widget. Checklist Habits stay
 compact until their trailing expand button is tapped, then their items can be
 checked directly; tap the button again to collapse them. Its top-right **+**
 opens Habit creation.

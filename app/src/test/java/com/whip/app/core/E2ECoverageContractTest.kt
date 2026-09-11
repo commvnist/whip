@@ -143,10 +143,11 @@ class E2ECoverageContractTest {
             "tasks-bulk-planning-filters",
             "habits-checkoff-count-history",
             "habits-skip-streak-reminders",
-            "habits-schedules-checklists-health",
+            "habits-schedules-checklists-history",
             "goals-create-record-insights",
             "goals-elapsed-milestones-consistency",
             "tracks-definition-entry-crud",
+            "tracks-live-projection-consistency",
             "tracks-typed-fields-sorting-csv",
             "gym-workout-set-rest-history",
             "gym-exercises-machines-records",
@@ -162,7 +163,7 @@ class E2ECoverageContractTest {
             "fold-tablet-compact-layout",
             "accessibility-locale-large-text-rtl",
             "widget-area-scope",
-            "health-connect-reconciliation",
+            "legacy-import-history-continuity",
         )
 
         val REQUIRED_REFINED_CAPABILITIES = setOf(
@@ -176,7 +177,7 @@ class E2ECoverageContractTest {
             "task-planning-bulk",
             "task-custom-order",
             "habit-create-checkin",
-            "habit-skip-history-health",
+            "habit-skip-imported-history",
             "habit-goal-track-order",
             "goal-create-measure",
             "tracks-definition-entry",

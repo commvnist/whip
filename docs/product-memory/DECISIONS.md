@@ -1,5 +1,20 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-026 — Retire Health Connect and preserve historical records
+
+- Status: Verified in IMP/VER-20260910-026; FB-20260910-003.
+- Decision: Remove the integration rather than hiding its Settings section. Remove SDK, manifest permissions/activities, provider manager, runtime sync/deletion, configuration and authoring affordances. Keep only compatibility attribution for existing source records and old backups.
+- History: Before normal runtime opens (including after restore), atomically materialize the existing measurement projection of legacy Health-linked Habits into stored logs and disconnect the retired source. Preserve values, dates, units, provenance, existing manual history and all measurement entries; allow future manual check-ins. Repeating recovery must not duplicate logs. This is a data compatibility step, not provider functionality.
+- Alternatives: Hiding controls leaves permission/runtime behavior installed. Deleting imported history violates retained user data. Leaving source-linked Habits indefinitely read-only would strand everyday tracking after sync removal. No database schema change or provider operation is needed.
+
+
+### DEC-20260910-025 — Health follow-up warnings belong to the owned mutation receipt
+
+- Status: Superseded by FB-20260910-003 / DEC-20260910-026 before delivery. The owner requested complete integration removal during the warning pilot.
+- Decision: Send failed last-sync persistence and failed deletion-marker cleanup through the existing HealthMutationReceipt.warnings and shared completed-warning presentation. Keep record commits and successful deletion authoritative; explain the remaining local follow-up without converting it into an operation failure.
+- Alternatives/compatibility: Rendering all healthRuntime.message values would mix transient provider status, success and durability problems without exact action ownership. A new notification framework or transaction rollback would add complexity and misstate committed data. Existing mutation receipts already supply the right boundary. No schema, backup, conversion, provider or permission changes.
+- Verification seam: Preserve the public Application-only SettingsViewModel constructor used by Android; allow internal injection of the existing HealthConnectManager boundary for real Settings-control tests with deterministic provider/storage failures. Production uses the same manager and reconciliation path.
+
 ### DEC-20260910-024 — Custom Units declare record roles and retain feature-owned mutations
 
 - Status: Verified in IMP/VER-20260910-024 under FND-20260910-034 and FB-20260910-001/002.

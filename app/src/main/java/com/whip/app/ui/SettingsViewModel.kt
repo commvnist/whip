@@ -9,7 +9,6 @@ import com.whip.app.WhipApplication
 import com.whip.app.core.AppSettings
 import com.whip.app.core.HomeSection
 import com.whip.app.core.ReviewSection
-import com.whip.app.core.HealthDataType
 import com.whip.app.core.SavedTaskFilter
 import com.whip.app.core.PlatePreset
 import com.whip.app.core.PersistenceRequestState
@@ -21,8 +20,6 @@ import com.whip.app.data.CommittedAreaDeletionCancellation
 import com.whip.app.data.EncryptedBackupCodec
 import com.whip.app.data.PortableBackupOutcome
 import com.whip.app.data.PortableBackupState
-import com.whip.app.health.HealthConnectStatus
-import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.Area
@@ -30,11 +27,8 @@ import com.whip.app.domain.AreaScope
 import com.whip.app.domain.WhipTag
 import com.whip.app.domain.CustomIdentityEmoji
 import com.whip.app.domain.CustomUnitBoundary
-import com.whip.app.domain.MeasurementSourceType
 import com.whip.app.domain.normalizeCustomIdentityEmojis
 import com.whip.app.widget.WhipWidgetProvider
-import java.time.DayOfWeek
-import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,7 +47,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.CancellationException
 import java.util.Locale
-import java.util.UUID
 
 enum class ExportKind { Backup, EncryptedBackup, TasksCsv, HabitsCsv, GoalsCsv, GymCsv, TracksCsv }
 
@@ -62,9 +55,7 @@ data class SettingsUiState(
     val backupPreview: BackupPreview? = null,
     val busy: Boolean = false,
     val message: String? = null,
-    val healthConnect: HealthConnectStatus = HealthConnectStatus(),
     val customUnits: List<UnitDefinition> = emptyList(),
-    val healthImportedEntryCount: Int = 0,
     val areas: List<Area> = emptyList(),
     val areaUsage: Map<String, AreaUsageCounts> = emptyMap(),
     val unassignedAreaUsage: AreaUsageCounts = AreaUsageCounts(),
@@ -133,29 +124,11 @@ data class TagMutationReceipt(
     val relatedTagId: String? = null,
 )
 
-enum class HealthMutationKind { Policy, Sync, DeleteLocalCopies }
-
-data class HealthMutationReceipt(
-    val kind: HealthMutationKind,
-    val affectedEntries: Int = 0,
-    val warnings: List<String> = emptyList(),
-)
-
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as WhipApplication
     private val repository = app.settingsRepository
     private val backups = app.backupRepository
-    private val healthConnect = app.healthConnectManager
     private val runtime = MutableStateFlow(SettingsRuntime())
-    private val healthRuntime = MutableStateFlow(
-        repository.current().let { settings ->
-            HealthConnectStatus(
-                availability = healthConnect.availability(),
-                lastSync = settings.healthLastSyncMillis?.let(Instant::ofEpochMilli),
-                importedEntries = settings.healthLastSyncCount,
-            )
-        },
-    )
     private val _typedSettingMutationState =
         MutableStateFlow<PersistenceRequestState<SettingsMutationReceipt>>(PersistenceRequestState.Idle)
     internal val typedSettingMutationState = _typedSettingMutationState.asStateFlow()
@@ -168,9 +141,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _tagMutationState =
         MutableStateFlow<PersistenceRequestState<TagMutationReceipt>>(PersistenceRequestState.Idle)
     internal val tagMutationState = _tagMutationState.asStateFlow()
-    private val _healthMutationState =
-        MutableStateFlow<PersistenceRequestState<HealthMutationReceipt>>(PersistenceRequestState.Idle)
-    internal val healthMutationState = _healthMutationState.asStateFlow()
     private var pendingRestoreJson: String? = null
     private var pendingEncryptedRestoreJson: String? = null
 
@@ -178,13 +148,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         app.measurementRepository.customUnits,
         app.areaRepository.areas,
         app.measurementRepository.tags,
-        app.measurementRepository.entries,
-    ) { units, areas, tags, entries ->
+    ) { units, areas, tags ->
         TaxonomyState(
             units = units,
             areas = areas,
             tags = tags,
-            healthImportedEntryCount = entries.count { it.sourceType == MeasurementSourceType.HealthConnect },
         )
     }
 
@@ -244,18 +212,15 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val uiState: StateFlow<SettingsUiState> = combine(
         repository.settings,
         runtime,
-        healthRuntime,
         taxonomy,
         app.portableBackupManager.state,
-    ) { settings, state, health, taxonomy, portableBackup ->
+    ) { settings, state, taxonomy, portableBackup ->
         SettingsUiState(
             settings = settings,
             backupPreview = state.preview,
             busy = state.busy,
             message = state.message,
-            healthConnect = health,
             customUnits = taxonomy.units,
-            healthImportedEntryCount = taxonomy.healthImportedEntryCount,
             areas = taxonomy.areas,
             areaUsage = taxonomy.usage,
             unassignedAreaUsage = taxonomy.unassignedUsage,
@@ -268,18 +233,16 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
-        SettingsUiState(repository.current(), healthConnect = healthRuntime.value),
+        SettingsUiState(repository.current()),
     )
 
     init {
-        refreshHealthConnect()
         viewModelScope.launch {
             app.userDataGeneration.drop(1).collect {
                 _typedSettingMutationState.value = PersistenceRequestState.Idle
                 _customUnitMutationState.value = PersistenceRequestState.Idle
                 _areaMutationState.value = PersistenceRequestState.Idle
                 _tagMutationState.value = PersistenceRequestState.Idle
-                _healthMutationState.value = PersistenceRequestState.Idle
             }
         }
         viewModelScope.launch(Dispatchers.IO) {
@@ -353,12 +316,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun consumeHealthMutation(requestId: String) {
-        if ((_healthMutationState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
-            _healthMutationState.value = PersistenceRequestState.Idle
-        }
-    }
-
     /**
      * Admits one authored typed-setting save, commits it durably off the main
      * thread, and publishes a request-scoped terminal result. Observation of a
@@ -374,14 +331,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             val result: WhipResult<SettingsMutationReceipt> = try {
                 val receipt = reminderSettingsUpdateMutex.withLock {
                     val change = app.withUserDataAccess {
-                        app.healthConnectManager.withMutationBoundary {
-                            app.reminderDeliveryCoordinator.withStateBoundary {
-                                val before = repository.current()
-                                check(repository.updateAndConfirm(transform)) {
-                                    "Local storage did not confirm the settings change."
-                                }
-                                before to repository.current()
+                        app.reminderDeliveryCoordinator.withStateBoundary {
+                            val before = repository.current()
+                            check(repository.updateAndConfirm(transform)) {
+                                "Local storage did not confirm the settings change."
                             }
+                            before to repository.current()
                         }
                     } ?: error("Whip data is temporarily unavailable; try again.")
                     val warnings = mutableListOf<String>()
@@ -1075,168 +1030,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
     fun consumeMessage() { runtime.value = runtime.value.copy(message = null) }
 
-    fun requiredHealthPermissions(): Set<String> =
-        healthConnect.requiredPermissions(repository.current().healthDataTypes)
-
-    fun requiredHealthPermissionsFor(type: HealthDataType): String =
-        healthConnect.requiredPermissions(setOf(type)).single()
-
-    fun setHealthConnectEnabled(requestId: String, enabled: Boolean): Boolean =
-        runHealthMutation(requestId, HealthMutationKind.Policy) {
-            check(healthConnect.updatePolicyAndConfirm { current ->
-                check(!enabled || current.healthDataTypes.isNotEmpty()) {
-                    "Choose at least one health category before turning on sync."
-                }
-                check(!enabled || !current.healthConnectDeletionPending) {
-                    "Finish the pending local Health Connect deletion before turning sync on again."
-                }
-                current.copy(
-                    healthConnectEnabled = enabled,
-                )
-            }) { "Local storage did not confirm the Health Connect setting." }
-            HealthMutationReceipt(HealthMutationKind.Policy)
-        }
-
-    fun setHealthDataType(requestId: String, type: HealthDataType, enabled: Boolean): Boolean =
-        runHealthMutation(requestId, HealthMutationKind.Policy) {
-            check(healthConnect.updatePolicyAndConfirm { current ->
-                val selected = if (enabled) current.healthDataTypes + type else current.healthDataTypes - type
-                current.copy(
-                    healthDataTypes = selected,
-                    healthConnectEnabled = current.healthConnectEnabled && selected.isNotEmpty(),
-                )
-            }) { "Local storage did not confirm the Health Connect category." }
-            HealthMutationReceipt(HealthMutationKind.Policy)
-        }
-
-    fun setHealthSyncDays(requestId: String, days: Int): Boolean {
-        if (!_typedSettingMutationState.tryStartPersistenceRequest(requestId)) return false
-        viewModelScope.launch(Dispatchers.IO) {
-            val result: WhipResult<SettingsMutationReceipt> = try {
-                check(days in 1..365) { "Health read window must be between 1 and 365 days." }
-                check(healthConnect.updatePolicyAndConfirm { it.copy(healthSyncDays = days) }) {
-                    "Local storage did not confirm the Health read window."
-                }
-                WhipResult.Success(SettingsMutationReceipt())
-            } catch (cancelled: CancellationException) {
-                if ((_typedSettingMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
-                    _typedSettingMutationState.value = PersistenceRequestState.Idle
-                }
-                throw cancelled
-            } catch (error: Exception) {
-                WhipResult.Failure(error.message ?: "Whip could not save the Health read window.", error)
-            }
-            if ((_typedSettingMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
-                _typedSettingMutationState.value = PersistenceRequestState.Finished(requestId, result)
-            }
-        }
-        return true
-    }
-
-    fun refreshHealthConnect() {
-        viewModelScope.launch {
-            runCatching { healthConnect.status() }
-                .onSuccess { checked ->
-                    healthRuntime.update { current ->
-                        current.copy(
-                            availability = checked.availability,
-                            grantedPermissions = checked.grantedPermissions,
-                            message = checked.message,
-                        )
-                    }
-                }
-                .onFailure { error ->
-                    healthRuntime.update { current ->
-                        current.copy(message = error.message ?: "Could not check Health Connect")
-                    }
-                }
-        }
-    }
-
-    fun onHealthPermissionsResult(@Suppress("UNUSED_PARAMETER") granted: Set<String>) {
-        refreshHealthConnect()
-    }
-
-    fun syncHealthConnect(requestId: String): Boolean =
-        runHealthMutation(requestId, HealthMutationKind.Sync) {
-            val settings = repository.current()
-            val status = checkNotNull(app.withUserDataAccess {
-                healthConnect.sync(settings.healthDataTypes, settings.healthSyncDays)
-            }) { "Whip data is temporarily unavailable; try again." }
-            if (!status.receiptPersisted) {
-                healthRuntime.update { current ->
-                    current.copy(message = "Health records were synchronized, but Whip could not preserve the last-sync receipt.")
-                }
-            }
-            healthRuntime.value = status
-            HealthMutationReceipt(
-                kind = HealthMutationKind.Sync,
-                affectedEntries = status.importedEntries,
-                warnings = emptyList(),
-            )
-        }
-
-    fun deleteHealthConnectCopies(requestId: String): Boolean =
-        runHealthMutation(requestId, HealthMutationKind.DeleteLocalCopies) {
-            val deletion = checkNotNull(app.withUserDataAccess { healthConnect.deleteImportedData() }) {
-                "Whip data is temporarily unavailable; deletion will retry when Whip starts."
-            }
-            val warnings = mutableListOf<String>()
-            if (!healthConnect.completeImportedDataDeletion()) {
-                healthRuntime.update { current ->
-                    current.copy(message = "Deletion finished, but Whip could not clear its recovery marker. It will safely verify deletion next time it starts.")
-                }
-            }
-            val clearedStatus = healthRuntime.value.copy(lastSync = null, importedEntries = 0)
-            healthRuntime.value = try {
-                healthConnect.status(clearedStatus)
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
-                warnings += "Local Health Connect copies were deleted, but Android access status could not be refreshed."
-                clearedStatus
-            }
-            HealthMutationReceipt(
-                kind = HealthMutationKind.DeleteLocalCopies,
-                affectedEntries = deletion.deletedEntries,
-                warnings = warnings,
-            )
-        }
-
-    private fun runHealthMutation(
-        requestId: String,
-        kind: HealthMutationKind,
-        block: suspend () -> HealthMutationReceipt,
-    ): Boolean {
-        if (!_healthMutationState.tryStartPersistenceRequest(requestId)) return false
-        viewModelScope.launch(Dispatchers.IO) {
-            val result: WhipResult<HealthMutationReceipt> = try {
-                val receipt = block()
-                WhipResult.Success(receipt)
-            } catch (cancelled: CancellationException) {
-                if ((_healthMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
-                    _healthMutationState.value = PersistenceRequestState.Idle
-                }
-                throw cancelled
-            } catch (error: Exception) {
-                healthRuntime.value = runCatching { healthConnect.status(healthRuntime.value) }
-                    .getOrElse { healthRuntime.value }
-                WhipResult.Failure(
-                    error.message ?: when (kind) {
-                        HealthMutationKind.Policy -> "Whip could not save the Health Connect setting."
-                        HealthMutationKind.Sync -> "Health Connect sync failed."
-                        HealthMutationKind.DeleteLocalCopies -> "Whip could not delete its Health Connect copies. Deletion will retry when Whip starts."
-                    },
-                    error,
-                )
-            }
-            if ((_healthMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
-                _healthMutationState.value = PersistenceRequestState.Finished(requestId, result)
-            }
-        }
-        return true
-    }
-
     private val reminderSettingsUpdateMutex = Mutex()
 
     private fun runIo(
@@ -1292,7 +1085,6 @@ private data class TaxonomyState(
     val units: List<UnitDefinition>,
     val areas: List<Area>,
     val tags: List<WhipTag>,
-    val healthImportedEntryCount: Int = 0,
     val usage: Map<String, AreaUsageCounts> = emptyMap(),
     val unassignedUsage: AreaUsageCounts = AreaUsageCounts(),
     val tagUsage: Map<String, TagUsageCounts> = emptyMap(),

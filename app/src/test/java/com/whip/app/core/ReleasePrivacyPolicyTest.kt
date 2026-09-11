@@ -20,7 +20,7 @@ class ReleasePrivacyPolicyTest {
     }
 
     @Test
-    fun manifestRequestsOnlyTheDocumentedNotificationBootAndReadOnlyHealthPermissions() {
+    fun manifestRequestsOnlyNotificationAndBootPermissions() {
         val permissionNodes = manifest().getElementsByTagName("uses-permission")
         val permissions = (0 until permissionNodes.length)
             .map { (permissionNodes.item(it) as Element).androidAttribute("name") }
@@ -30,18 +30,12 @@ class ReleasePrivacyPolicyTest {
             setOf(
                 "android.permission.POST_NOTIFICATIONS",
                 "android.permission.RECEIVE_BOOT_COMPLETED",
-                "android.permission.health.READ_WEIGHT",
-                "android.permission.health.READ_STEPS",
-                "android.permission.health.READ_DISTANCE",
-                "android.permission.health.READ_HYDRATION",
-                "android.permission.health.READ_SLEEP",
-                "android.permission.health.READ_EXERCISE",
             ),
             permissions,
         )
         assertFalse(permissions.any { permission ->
             permission.contains("LOCATION") || permission.contains("STORAGE") ||
-                permission == "android.permission.INTERNET" || permission.contains("health.WRITE_")
+                permission == "android.permission.INTERNET" || permission.contains("health.")
         })
     }
 
@@ -58,10 +52,10 @@ class ReleasePrivacyPolicyTest {
         }
 
         assertEquals(
-            setOf(".MainActivity", ".widget.WhipWidgetConfigureActivity", ".health.HealthPermissionsRationaleActivity"),
+            setOf(".MainActivity", ".widget.WhipWidgetConfigureActivity"),
             exported("activity"),
         )
-        assertEquals(setOf(".HealthPermissionUsageActivity"), exported("activity-alias"))
+        assertEquals(emptySet<String>(), exported("activity-alias"))
         assertEquals(
             setOf(".widget.WhipWidgetProvider", ".widget.HabitTrackingWidgetProvider"),
             exported("receiver"),

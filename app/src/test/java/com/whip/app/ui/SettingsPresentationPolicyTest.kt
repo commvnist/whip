@@ -19,20 +19,11 @@ class SettingsPresentationPolicyTest {
     }
 
     @Test
-    fun dataPrivacyPrioritizesHealthAndKeepsWholeAppResetLast() {
+    fun dataPrivacyPrioritizesBackupAndKeepsWholeAppResetLast() {
         assertEquals(
-            listOf(DataPrivacyGroup.Health, DataPrivacyGroup.Backup, DataPrivacyGroup.Reset),
+            listOf(DataPrivacyGroup.Backup, DataPrivacyGroup.Reset),
             DataPrivacyGroupOrder,
         )
-    }
-
-    @Test
-    fun interruptedHealthActionsGiveActionSpecificRecoveryEvidence() {
-        assertTrue(healthConnectOrphanedMessage("sync").contains("Last Sync"))
-        assertTrue(healthConnectOrphanedMessage("sync").contains("safe to repeat"))
-        assertTrue(healthConnectOrphanedMessage("delete").contains("pending-recovery"))
-        assertTrue(healthConnectOrphanedMessage("delete").contains("idempotent"))
-        assertTrue(healthConnectOrphanedMessage("category-Weight").contains("do not repeat"))
     }
 
     @Test

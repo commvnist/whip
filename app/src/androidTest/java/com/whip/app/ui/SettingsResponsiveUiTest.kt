@@ -56,12 +56,9 @@ import androidx.test.espresso.Espresso.pressBack
 import com.whip.app.captureVisualCatalogSurface
 import com.whip.app.WhipApplication
 import com.whip.app.core.AppSettings
-import com.whip.app.core.HealthDataType
 import com.whip.app.core.PersistenceRequestState
 import com.whip.app.core.WhipResult
 import com.whip.app.ui.theme.WhipTheme
-import com.whip.app.health.HealthConnectAvailability
-import com.whip.app.health.HealthConnectStatus
 import com.whip.app.domain.UnitDimension
 import java.time.ZoneId
 import org.junit.Assert.assertEquals
@@ -659,53 +656,6 @@ class SettingsResponsiveUiTest {
     }
 
     @Test
-    fun healthControlsRemainUnderstandableAndDeletableWhenProviderIsUnavailable() {
-        val app: WhipApplication = ApplicationProvider.getApplicationContext()
-        val viewModel = SettingsViewModel(app)
-        compose.setContent {
-            WhipTheme(dynamicColor = false) {
-                Box(Modifier.fillMaxSize()) {
-                    SettingsContent(
-                        state = SettingsUiState(
-                            settings = AppSettings(
-                                setupCompleted = true,
-                                healthDataTypes = setOf(HealthDataType.Weight),
-                                healthConnectEnabled = false,
-                            ),
-                            healthConnect = HealthConnectStatus(
-                                availability = HealthConnectAvailability.Unsupported,
-                            ),
-                            healthImportedEntryCount = 3,
-                        ),
-                        innerPadding = PaddingValues(),
-                        viewModel = viewModel,
-                        selectedSection = SettingsSection.DataPrivacy,
-                    )
-                }
-            }
-        }
-
-        compose.onNodeWithTag("settings-list")
-            .performScrollToNode(hasTestTag("health-type-Weight"))
-        compose.onNodeWithTag("health-type-Weight").assertIsEnabled()
-        compose.onNodeWithTag("settings-list")
-            .performScrollToNode(hasTestTag("health-sync-now"))
-        compose.onNodeWithTag("health-sync-now").assertIsNotEnabled()
-        compose.onNodeWithText("Older Health Connect copies", substring = true).assertIsDisplayed()
-        compose.onNodeWithTag("settings-list")
-            .performScrollToNode(hasTestTag("delete-health-connect-copies"))
-        compose.onNodeWithTag("delete-health-connect-copies").assertIsEnabled().performClick()
-        compose.onNodeWithText("Delete Health Connect Copies from Whip?").assertIsDisplayed()
-        captureVisualCatalogSurface("settings.health-action")
-        compose.onAllNodesWithText(
-            "Health Connect provider records and Android permissions are not changed.",
-            substring = true,
-        )
-            .assertCountEquals(1)
-        compose.onNodeWithTag("confirm-delete-health-connect-copies").assertIsEnabled()
-    }
-
-    @Test
     fun customUnitDialogKeepsDraftAndShowsAnInlineDurabilityFailure() {
         var saving by mutableStateOf(false)
         var failure by mutableStateOf<String?>(null)
@@ -749,7 +699,7 @@ class SettingsResponsiveUiTest {
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 PermanentDeleteDialog(
-                    title = "Delete Health Connect Copies from Whip?",
+                    title = "Delete Saved Copies?",
                     impacts = listOf("Provider records are kept."),
                     error = "Deletion could not finish. Your recovery marker is still active.",
                     confirmLabel = "Retry Deletion",
@@ -776,10 +726,10 @@ class SettingsResponsiveUiTest {
                             .width(320.dp)
                             .heightIn(max = 360.dp)
                             .testTag("short-delete-dialog"),
-                        title = "Delete Health Connect Copies from Whip?",
+                        title = "Delete Saved Copies?",
                         impacts = listOf(
-                            "Only local copies imported from Health Connect are deleted.",
-                            "Health Connect provider records and Android permissions are not changed.",
+                            "Only the selected local copies are deleted.",
+                            "Original files outside Whip are kept.",
                             "Linked Habits, goals, and trends may change after rebuilding.",
                         ),
                         error = "Deletion could not finish. Your recovery marker is still active.",

@@ -24,7 +24,8 @@ import com.whip.app.widget.WhipWidgetProvider
 import com.whip.app.widget.WhipWidgetPreferences
 import com.whip.app.widget.WidgetPreferences
 import com.whip.app.widget.persistWidgetConfiguration
-import com.whip.app.health.HealthPermissionsRationaleActivity
+import com.whip.app.widget.WhipWidgetConfigureActivity
+import android.appwidget.AppWidgetManager
 import com.whip.app.core.OperationStatus
 import com.whip.app.ui.TaskViewModel
 import java.io.File
@@ -222,7 +223,10 @@ class RecoveryBoundaryIntegrationTest {
                 StartupRecoveryState.Blocked(com.whip.app.startup.StartupBlockReason.Recovery),
                 app.startupRecoveryState.value,
             )
-            ActivityScenario.launch(HealthPermissionsRationaleActivity::class.java).use {
+            ActivityScenario.launch<WhipWidgetConfigureActivity>(
+                Intent(app, WhipWidgetConfigureActivity::class.java)
+                    .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, 73_045),
+            ).use {
                 val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
                 check(
                     device.wait(

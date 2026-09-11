@@ -46,10 +46,6 @@ class AuditUiStringResourcePolicyTest {
                 "settings_backup_last_verified",
                 "settings_backup_last_verified_file",
                 "settings_backup_automatic_retention",
-                "settings_health_sync_paused_empty",
-                "settings_health_sync_paused_saved",
-                "settings_health_last_sync",
-                "settings_health_imported_entries",
             ),
             "WhipApp.kt" to listOf(
                 "home_support_clear_title",

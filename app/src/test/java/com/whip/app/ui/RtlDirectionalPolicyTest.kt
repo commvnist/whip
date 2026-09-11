@@ -3,7 +3,6 @@ package com.whip.app.ui
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.NavigateNext
 import java.io.File
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -18,19 +17,20 @@ class RtlDirectionalPolicyTest {
     fun sharedForwardIndicatorsUseAnAutoMirroredVector() {
         assertTrue(Icons.AutoMirrored.Outlined.NavigateNext.autoMirror)
 
-        val expectedAutoMirroredUses = mapOf(
-            "ItemControlPatterns.kt" to 2,
-            "WhipPagePatterns.kt" to 1,
-            "TaskComponents.kt" to 1,
-            "WhipApp.kt" to 5,
+        val callers = listOf(
+            "ItemControlPatterns.kt",
+            "WhipPagePatterns.kt",
+            "TaskComponents.kt",
+            "WhipApp.kt",
         )
-        expectedAutoMirroredUses.forEach { (name, expectedUses) ->
+        callers.forEach { name ->
             val source = File(uiRoot, name).readText()
-            assertEquals(
+            assertTrue(
                 "$name must keep every forward navigation indicator auto-mirrored",
-                expectedUses,
-                Regex("Icons\\.AutoMirrored\\.Outlined\\.NavigateNext").findAll(source).count(),
+                source.contains("Icons.AutoMirrored.Outlined.NavigateNext"),
             )
+            assertFalse(source.contains("Icons.Outlined.NavigateNext"))
+            assertFalse(source.contains("material.icons.outlined.NavigateNext"))
             assertFalse(source.contains("Icons.Outlined.ChevronRight"))
             assertFalse(source.contains("material.icons.outlined.ChevronRight"))
         }

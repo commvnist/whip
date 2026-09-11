@@ -8,7 +8,6 @@ import androidx.room.withTransaction
 import com.whip.app.core.AppSettings
 import com.whip.app.core.AppThemeMode
 import com.whip.app.core.AreaOpeningMode
-import com.whip.app.core.HealthDataType
 import com.whip.app.core.HomeSection
 import com.whip.app.core.ReviewSection
 import com.whip.app.core.ReviewPeriod
@@ -98,7 +97,7 @@ class RoomBackupRepository(
             tables.put(table, rows)
         }
         if (!includeLocalRecoveryState) sanitizeHabitTimersForPortableBackup(tables)
-        val settings = settingsRepository?.current()?.toJson(includeLocalRecoveryState)
+        val settings = settingsRepository?.current()?.toJson()
         val payload = checksumPayload(tables, settings)
         JSONObject()
             .put("format", BACKUP_FORMAT)
@@ -175,6 +174,7 @@ class RoomBackupRepository(
                     require(result != -1L) { "Could not restore $table row ${index + 1}" }
                 }
             }
+            database.retireLegacyHealthHabitSources()
         }
         settings?.let { restored ->
             settingsRepository?.let { repository ->
@@ -261,6 +261,7 @@ class RoomBackupRepository(
                     }
                 }
             }
+            database.retireLegacyHealthHabitSources()
             BackupMergeSummary(imported, skipped)
         }
         areaRepository?.ensureDefaultArea()
@@ -1297,7 +1298,7 @@ private val EXPORT_TABLES = listOf(
 private fun checksumPayload(tables: JSONObject, settings: JSONObject?): String =
     tables.toString() + "\n" + settings?.toString().orEmpty()
 
-private fun AppSettings.toJson(includeLocalRecoveryState: Boolean = false): JSONObject = JSONObject()
+private fun AppSettings.toJson(): JSONObject = JSONObject()
     .put("setupCompleted", setupCompleted)
     .put("powerMode", powerMode)
     .put("lowPressureMode", lowPressureMode)
@@ -1336,9 +1337,6 @@ private fun AppSettings.toJson(includeLocalRecoveryState: Boolean = false): JSON
     .put("homeSections", JSONArray(homeSections.map(HomeSection::name)))
     .put("hiddenHomeSections", JSONArray(hiddenHomeSections.map(HomeSection::name)))
     .put("collapsedHomeSections", JSONArray(collapsedHomeSections.map(HomeSection::name)))
-    .put("healthConnectEnabled", healthConnectEnabled)
-    .put("healthDataTypes", JSONArray(healthDataTypes.map(HealthDataType::name)))
-    .put("healthSyncDays", healthSyncDays)
     .put("reviewPeriod", reviewPeriod.name)
     .put("defaultTaskStepPolicy", defaultTaskStepPolicy.name)
     .put("showAllUpcomingTaskOccurrences", showAllUpcomingTaskOccurrences)
@@ -1395,13 +1393,6 @@ private fun AppSettings.toJson(includeLocalRecoveryState: Boolean = false): JSON
     }))
     .putNullableLong("focusTimerDeadlineMillis", focusTimerDeadlineMillis)
     .putNullableLong("focusTimerTaskId", focusTimerTaskId)
-    .apply {
-        if (includeLocalRecoveryState) {
-            putNullableLong("healthLastSyncMillis", healthLastSyncMillis)
-            put("healthLastSyncCount", healthLastSyncCount.coerceAtLeast(0))
-            put("healthConnectDeletionPending", healthConnectDeletionPending)
-        }
-    }
 
 private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
     setupCompleted = optBoolean("setupCompleted", true),
@@ -1450,19 +1441,6 @@ private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
         ?: HomeSection.entries,
     hiddenHomeSections = enumSet("hiddenHomeSections", HomeSection.entries),
     collapsedHomeSections = enumSet("collapsedHomeSections", HomeSection.entries),
-    healthConnectEnabled = optBoolean("healthConnectEnabled", false),
-    healthDataTypes = if (has("healthDataTypes")) {
-        enumSet("healthDataTypes", HealthDataType.entries)
-    } else if (optBoolean("healthConnectEnabled", false)) {
-        // Preserve old enabled backups that predate explicit category scope.
-        HealthDataType.entries.toSet()
-    } else {
-        emptySet()
-    },
-    healthSyncDays = optInt("healthSyncDays", 30).coerceIn(1, 365),
-    healthLastSyncMillis = nullableLong("healthLastSyncMillis"),
-    healthLastSyncCount = optInt("healthLastSyncCount", 0).coerceAtLeast(0),
-    healthConnectDeletionPending = optBoolean("healthConnectDeletionPending", false),
     reviewPeriod = enumValue("reviewPeriod", ReviewPeriod.Weekly),
     defaultTaskStepPolicy = enumValue("defaultTaskStepPolicy", RepeatStepPolicy.Reset),
     showAllUpcomingTaskOccurrences = optBoolean("showAllUpcomingTaskOccurrences", false),

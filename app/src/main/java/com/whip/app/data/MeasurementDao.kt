@@ -62,18 +62,6 @@ interface MeasurementDao {
     @Query("SELECT * FROM measurement_entries WHERE sourceType = :sourceType AND sourceId LIKE :sourcePrefix || '%'")
     suspend fun getEntriesBySourcePrefix(sourceType: String, sourcePrefix: String): List<MeasurementEntryEntity>
 
-    @Query(
-        "SELECT * FROM measurement_entries WHERE sourceType = :sourceType " +
-            "AND sourceId LIKE :sourcePrefix || '%' " +
-            "AND timestampMillis >= :startInclusiveMillis AND timestampMillis < :endExclusiveMillis",
-    )
-    suspend fun getEntriesBySourceWindow(
-        sourceType: String,
-        sourcePrefix: String,
-        startInclusiveMillis: Long,
-        endExclusiveMillis: Long,
-    ): List<MeasurementEntryEntity>
-
     @Query("SELECT COUNT(*) FROM measurement_entries WHERE measurementId = :measurementId")
     suspend fun entryCount(measurementId: String): Int
 
@@ -85,9 +73,6 @@ interface MeasurementDao {
     @Upsert suspend fun upsertTag(entity: TagEntity)
     @Query("DELETE FROM measurement_entries WHERE id = :id")
     suspend fun deleteEntry(id: String)
-
-    @Query("DELETE FROM measurement_entries WHERE sourceType = :sourceType")
-    suspend fun deleteEntriesBySourceType(sourceType: String): Int
 
     @Query("DELETE FROM measurement_definitions WHERE id = :id")
     suspend fun deleteMeasurement(id: String): Int

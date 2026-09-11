@@ -124,7 +124,6 @@ class AppSettingsTest {
             collapsedHomeSections = HomeSection.entries.toSet() + HomeSection.Goals,
             defaultRestSeconds = 0,
             numberPrecision = 20,
-            healthSyncDays = 0,
             customIdentityEmojis = listOf(
                 CustomIdentityEmoji("🦊", "Fox"),
                 CustomIdentityEmoji("✅", "Built-In"),
@@ -139,7 +138,6 @@ class AppSettingsTest {
         assertTrue(HomeSection.entries.all { it in normalized.homeSections })
         assertEquals(15, normalized.defaultRestSeconds)
         assertEquals(6, normalized.numberPrecision)
-        assertEquals(1, normalized.healthSyncDays)
         assertEquals(
             listOf(CustomIdentityEmoji("🦊", "Fox"), CustomIdentityEmoji("🦄", "Unicorn")),
             normalized.customIdentityEmojis,

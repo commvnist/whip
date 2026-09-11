@@ -133,7 +133,6 @@ class UiDesignArchitectureTest {
             "enum class AppThemeMode(val label: String)",
             "enum class HomeSection(val label: String)",
             "enum class ReviewSection(val label: String)",
-            "enum class HealthDataType(val label: String)",
             "enum class ReviewPeriod(val label: String)",
         ).forEach { contract -> assertTrue("Settings choices are missing $contract", settingsModel.contains(contract)) }
         assertTrue(taskModel.contains("enum class TaskPriority(val label: String)"))
@@ -524,7 +523,6 @@ class UiDesignArchitectureTest {
         val gym = File(sourceRoot, "com/whip/app/ui/GymScreens.kt").readText()
         val tracks = File(sourceRoot, "com/whip/app/ui/TrackScreens.kt").readText()
         val routine = File(sourceRoot, "com/whip/app/ui/RoutineBuilder.kt").readText()
-        val health = File(sourceRoot, "com/whip/app/health/HealthPermissionsRationaleActivity.kt").readText()
 
         listOf(
             "class WhipWeekdayFormatter(",
@@ -543,8 +541,6 @@ class UiDesignArchitectureTest {
         assertTrue(patterns.contains("fun WhipSelectionActionPanel("))
         assertTrue(app.contains("WhipSelectionActionPanel("))
         assertTrue(tracks.contains("WhipSelectionActionPanel("))
-        assertTrue(health.contains("WhipGroupedInformationCard(modifier)"))
-        assertFalse(Regex("(?m)^\\s*Card\\(").containsMatchIn(health))
         val workoutPicker = routine.substringAfter("private fun WorkoutPickerPage(")
             .substringBefore("private fun EquipmentPickerPane(")
         assertTrue(workoutPicker.contains("WhipEmptyState("))

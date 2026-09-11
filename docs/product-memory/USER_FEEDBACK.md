@@ -1,5 +1,11 @@
 # User feedback and acceptance criteria
 
+### FB-20260910-003 — Remove Health Connect from Whip
+
+- Date/source: 2026-09-10, owner steering: “health connect functionality should be purged from the app.”
+- Acceptance: Remove the integration's UI, permission requests and exported Android entry points, SDK, settings, provider reads and reconciliation runtime. Existing user measurements and historical activity must survive; old backups must remain readable without re-enabling the retired integration. Finish this change before returning to the shared-builder and whole-product quality work.
+- Status: Verified in IMP/VER-20260910-026. Supersedes the active Health warning remediation DEC/VER-20260910-025 and the Health integration portion of FB-20260908-006. The removal preserves measurements/history and manual Habit continuation; shared builders and the whole-product goal remain active. No delegation, release or physical-phone work.
+
 These records preserve durable user intent. “Released” means the change reached a device build; it does not erase later user validation or regression findings.
 
 ### FB-20260910-002 — Build consistent item layouts through shared builders

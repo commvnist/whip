@@ -29,15 +29,11 @@ internal Whip table and app setting after confirmation, disconnects the
 remembered portable-backup folder, and deliberately leaves external backup
 files untouched.
 
-Health Connect is optional. When enabled, Whip requests read-only access only
-for the categories selected in Settings: weight, steps, distance, hydration,
-sleep, and/or exercise. Imported records retain provider and record identifiers
-so a subsequent reconciliation updates changed values and removes provider
-records deleted within the selected window. Habits and Goals can explicitly
-bind to a supported Health metric; those records show their provenance and do
-not expose misleading manual controls. Disabling the integration stops future
-sync; imported local entries remain until they are deleted or all local data is
-cleared. Manual tracking never requires Health Connect.
+Whip no longer connects to Health Connect or requests access to its records.
+Previously imported measurements remain local and retain their original
+provenance. Habits formerly linked to that integration retain their past
+activity and support manual check-ins. Restoring an older backup preserves
+that history without restoring the integration or its settings.
 
 Whip's estimated one-repetition maximums, pace estimates, correlations, and
 trend summaries are informational. They are not medical advice, a diagnosis,

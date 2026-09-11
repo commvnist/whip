@@ -223,7 +223,7 @@ compatibility uses disposable API 26 (minimum), API 34 (typical phone/full
 instrumentation), and API 37 (target/latest, large screen) emulators. Emulator
 benchmark runs are execution and regression smoke, not claims about retail
 hardware performance. See [`performance.md`](performance.md). Platform-owned
-permission, document-provider, notification, Health Connect, rotation, and
+permission, document-provider, notification, rotation, and
 adaptive-window surfaces are exercised on those emulators; physical hardware
 is optional supplementary evidence and is never a release-gate prerequisite.
 
@@ -289,7 +289,7 @@ Every product area has fast domain coverage and at least one persisted or UI
 path. New behavior must add its regression to the narrowest applicable suite
 and update this matrix if it introduces a new feature area.
 
-Current baseline: 1745 product tests—655 fast JVM tests and 1090 Android
+Current baseline: 1724 product tests—652 fast JVM tests and 1072 Android
 instrumentation tests—plus 9 Macrobenchmark/Baseline Profile scenarios, lint,
 debug/release/benchmark builds, and the disposable API 34 emulator suite. API
 26 and API 37 compatibility runs cover the minimum and target/latest platform;
@@ -357,13 +357,13 @@ cannot replace the operating system UI.
 | Canonical local persistence and clean data boundary | checked-in schema 46 and epoch-boundary rules | `DataEpochBoundaryTest`, `DataEpochResetIntegrationTest`, and `PersistentStorageE2ETest` prove older local schemas never enter the runtime, a person-confirmed fresh start creates schema 46, and a file-backed canonical database reopens cleanly | fresh-start confirmation and normal app recreation journeys |
 | Full backup/restore, encryption, and tamper safety | filename/retention policy and codec rules | all first-class domains, routines, settings, checksum/authentication rejection, recovery rollback, and exact epoch/version rejection | restore preview, passphrase, and folder controls |
 | Portable folder, crash-safe staging, retention, and scheduled backup | `PortableBackupPolicyTest` | manager recreation, staged write/read/rename/read verification, corrupt cleanup, validate-before-prune, empty-source protection, unique WorkManager job | Settings portable-backup journey |
-| Health-backed Habits and Goals | goal/habit/source rules | fake-provider import/update/delete, provenance, and reconciliation | source choice and Settings reconciliation paths |
+| Legacy imported history | source attribution and unit conversion | atomic retirement, rollback/retry, old backup restore/merge and exact history preservation | restored Habit manual continuation and local Data & Privacy controls |
 | Notification delivery, actions, and reminder health | exact versioned claims, live Task/Habit/Goal eligibility, quiet-hour/time-zone rules, malformed/early/stale rejection, definition fingerprints, and invalidation policy | awaited scheduler reconstruction, source-backed Habit synchronization, production mutation linearization, serialized Settings snapshots, and durable deletion cleanup across rollback/process interruption | real worker posting/non-posting, exact idempotent notification actions, time broadcasts, per-channel health, exact-record routes, permission-ungranted creation, and explicit opt-in request paths |
 | Long histories and bounded graphs | 100,000-point `LargeHistoryRegressionTest` | bounded queries/projections | graph screen smoke and `DenseDataBenchmark` |
 | Accessibility, interaction grammar, locale, and large text | localized number/range rules | Compose Accessibility Test Framework on API 34+ | `InteractionControlUiTest` verifies roles, state, 48 dp targets, scrollable tabs, 200% font, and RTL; `ProductivityCardDesignUiTest` locks Task/Habit/Goal identity, action, and edit columns to one hierarchy; adaptive suites cover labeled actions and live/error semantics |
 
-Platform-owned surfaces—notification permission prompts, Health Connect's
-system picker, notification shade, and adaptive window transitions—retain an
+Platform-owned surfaces—notification permission prompts, notification shade,
+and adaptive window transitions—retain an
 emulator smoke check because an app assertion cannot replace those operating-
 system interactions. Their underlying schedule, conversion, persistence, and
 adaptive-layout rules remain automated.
@@ -390,8 +390,7 @@ and 200% font scale where applicable:
 - notification denial, rationale/retry, each Task/Habit/Goal/rest channel
   disabled separately, Snooze/increment/complete actions, reboot, timezone and
   DST change, and battery-restriction diagnostics;
-- Health Connect grant/revoke, backfill preview, provider edit/delete, and exact
-  provenance; and
+- legacy imported history preservation and manual Habit continuation; and
 - release-equivalent upgrade, plaintext/encrypted backup round trip, provider
   disconnect/reconnect, full workout journey, and benchmark evidence capture.
 

@@ -1,0 +1,10 @@
+{
+  "app/src/test/java/com/whip/app/ui/RtlDirectionalPolicyTest.kt": {
+    "before": "630911e78baa12ce4b115a35c2befd026542dc8d31a37ac76da62d14b6ea0d73",
+    "after": "cf4dea5994e381b24310ba13bf552294e6308bc8bd37f60f52122d451d8b6f59"
+  },
+  "app/src/test/java/com/whip/app/ui/SurfaceRoleArchitectureTest.kt": {
+    "before": "54b00e1cf23cae848c82a0b8cc69a7608775a9609c61b4de2e7ad6ae4ffce917",
+    "after": "0a7baa6bc333b1ee71e444fd9913fae9df329d5c4cd72c468dc3686fb07c13c0"
+  }
+}

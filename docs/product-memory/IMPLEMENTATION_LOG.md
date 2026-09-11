@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260910-026 — Remove Health Connect and keep imported history usable
+
+- Status: Verified under FB-20260910-003 / DEC/VER-20260910-026. Normal main/upstream delivery is recorded in Git history. This supersedes the uncommitted Health warning remediation; the broader shared-builder and product-quality goal stays active.
+- Removal: Delete SDK/version entry, Health permissions/provider query/rationale activity and alias, Settings controls/state/mutations, provider manager, startup sync/deletion and measurement reconciliation APIs. Remove obsolete authoring controls, resources, baseline-profile references and feature-only tests/catalog states. Privacy and user documentation now describe retained imports and manual continuation.
+- Compatibility: LegacyHealthHistory atomically stores the same activity previously projected from legacy Health-linked Habits, then clears the retired link. Startup and backup replace/merge run this before normal use; compatible older settings cannot reactivate the integration. Original measurement definitions/entries, manual logs, source IDs, canonical values, units, dates/offsets, authored notes and timestamps remain unchanged. Stored projected logs receive database row IDs. Historic source markers remain accepted only for attribution and backup compatibility. No schema, epoch, app version or release change.
+- Verification: 193 fresh phone Android checks, seven wide checks, 402 routed JVM checks and all 652 JVM tests pass, with lint/debug build and catalog gates. Tests cover exact built-in/custom conversion, archived/empty Habits, injected rollback/retry, idempotent restore/merge and native +1/History/recreation. Ten original images reviewed, including one rejected premature pilot frame. All 516 final inputs match; explicit test/comment-only deltas preserve wide production equivalence. Evidence: artifacts/astra-audit/2026-09-10/health-removal/README.md.
+- Follow-up: Continue the normal-scale shared-component, Settings and whole-product review. No provider integration work remains in the active scope; physical-device operations and release qualification remain separate.
+
 ### IMP-20260910-024 — Give Custom Units the shared record hierarchy
 
 - Status: Verified under FND-20260910-034 / DEC/VER-20260910-024; FB-20260910-001/002. Normal main/upstream delivery is recorded in Git history.

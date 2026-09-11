@@ -681,7 +681,7 @@ class ProductivityCardDesignUiTest {
             unitId = "second",
         )
         val skipped = sampleHabit(date).copy(id = 12, name = "Evening walk")
-        val synced = sampleHabit(date).copy(id = 13, name = "Daily steps", sourceMeasurementId = "health-steps")
+        val synced = sampleHabit(date).copy(id = 13, name = "Daily steps", sourceMeasurementId = "saved-steps")
 
         compose.setContent {
             WhipTheme(dynamicColor = false) {
@@ -712,10 +712,10 @@ class ProductivityCardDesignUiTest {
         compose.onNodeWithText("Skipped · streak protected").performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("Skipped Today · Streak Protected").assertCountEquals(0)
         compose.onNodeWithText("Undo").performScrollTo().performClick()
-        compose.onNodeWithText("Synced · Health Connect").performScrollTo().assertIsDisplayed()
-        compose.onAllNodesWithText("Read-only source: Health Connect", substring = true).assertCountEquals(0)
+        compose.onNodeWithText("Linked measurement").performScrollTo().assertIsDisplayed()
+        compose.onAllNodesWithText("Activity from a linked measurement.").assertCountEquals(0)
         compose.onNodeWithTag("habit-expand-13", useUnmergedTree = true).performScrollTo().performClick()
-        compose.onNodeWithText("Read-only source: Health Connect", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Activity from a linked measurement.").performScrollTo().assertIsDisplayed()
         compose.runOnIdle {
             assertTrue(timerRequested)
             assertTrue(undoSkipRequested)

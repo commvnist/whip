@@ -12,7 +12,6 @@ import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
 import com.whip.app.core.PersistenceRequestState
 import com.whip.app.core.revealHomeSection
-import com.whip.app.core.WhipClock
 import com.whip.app.core.WhipResult
 import com.whip.app.core.completeCommittedEntitySave
 import com.whip.app.core.completeCommittedPersistence
@@ -29,7 +28,6 @@ import com.whip.app.domain.Habit
 import com.whip.app.domain.HabitChecklistItem
 import com.whip.app.domain.HabitChecklistState
 import com.whip.app.domain.HabitDayProgress
-import com.whip.app.domain.HabitDayState
 import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.HabitLog
 import com.whip.app.domain.HabitLogStatus
@@ -42,9 +40,7 @@ import com.whip.app.domain.HabitTimerReviewResolution
 import com.whip.app.domain.HabitTimerStartOutcome
 import com.whip.app.domain.HabitTimerStartRequest
 import com.whip.app.domain.HabitTimerStopOutcome
-import com.whip.app.domain.TargetPeriod
 import com.whip.app.domain.UnitDefinition
-import com.whip.app.domain.MeasurementDefinition
 import com.whip.app.domain.MeasurementEntry
 import com.whip.app.domain.MeasurementEntryStatus
 import com.whip.app.domain.BuiltInUnits
@@ -55,16 +51,13 @@ import com.whip.app.domain.flexiblePeriodStreak
 import com.whip.app.domain.isScheduledOn
 import com.whip.app.domain.isNeutralDate
 import com.whip.app.domain.outcomeForPeriod
-import com.whip.app.domain.periodBounds
 import com.whip.app.domain.flexibleProgress
-import com.whip.app.domain.targetSatisfied
 import com.whip.app.domain.valueForPeriod
 import com.whip.app.domain.dayStateOn
 import java.time.LocalDate
 import java.io.Serializable
 import java.util.UUID
 import java.util.concurrent.CancellationException
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -92,7 +85,6 @@ data class HabitUiState(
     val loading: Boolean = true,
     val errorMessage: String? = null,
     val customUnits: List<UnitDefinition> = emptyList(),
-    val sourceMeasurements: List<MeasurementDefinition> = emptyList(),
 )
 
 data class HabitTimerReviewPrompt(
@@ -294,13 +286,11 @@ class HabitViewModel(
     private val habitUiState = combine(
         habitData,
         app.calendarContext,
-        app.measurementRepository.measurements,
         app.measurementRepository.entries,
         app.measurementRepository.customUnits,
-    ) { data, calendar, measurements, measurementEntries, customUnits ->
+    ) { data, calendar, measurementEntries, customUnits ->
         val mirrored = mirrorMeasurementEntriesAsHabitLogs(data.habits, measurementEntries, customUnits)
         buildHabitUiState(data.copy(logs = data.logs + mirrored), calendar.logicalDate, customUnits).copy(
-            sourceMeasurements = measurements.filter { it.id.startsWith("health-connect-") && !it.archived },
             customUnits = customUnits,
         )
     }

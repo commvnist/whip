@@ -18,7 +18,6 @@ import com.whip.app.core.AppSettings
 import com.whip.app.core.AppThemeMode
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.TaskDraft
-import com.whip.app.health.HealthPermissionsRationaleActivity
 import com.whip.app.startup.StartupRecoveryState
 import com.whip.app.widget.WhipWidgetConfigureActivity
 import java.io.File
@@ -63,15 +62,6 @@ class ActivityThemeContrastTest {
     @Test
     fun lightWhipOnDarkAndroidKeepsBarsReadableThroughLiveChangesAndRecreation() {
         verifyOppositeTheme(systemDark = true)
-    }
-
-    @Test
-    fun healthRationaleChromeFollowsThemeChangesAndRecovery() {
-        setSystemDark(false)
-        setAppTheme(AppThemeMode.Dark)
-        ActivityScenario.launch(HealthPermissionsRationaleActivity::class.java).use { scenario ->
-            verifyExternalTheme(scenario, "health-rationale-surface", "health")
-        }
     }
 
     @Test

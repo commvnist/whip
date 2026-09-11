@@ -29,10 +29,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -48,12 +45,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
@@ -78,7 +75,6 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PauseCircleOutline
 import androidx.compose.material.icons.outlined.PushPin
-import androidx.compose.material.icons.outlined.Search
 import com.whip.app.core.AppSettings
 import com.whip.app.core.EntitySaveReceipt
 import com.whip.app.core.calculateHabitTimerElapsedSeconds
@@ -103,16 +99,13 @@ import com.whip.app.domain.TargetComparison
 import com.whip.app.domain.TargetPeriod
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.UnitDefinition
-import com.whip.app.domain.MeasurementDefinition
 import com.whip.app.domain.MeasurementSourceType
-import com.whip.app.domain.MeasurementValueKind
 import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.compactNumericSequence
 import com.whip.app.domain.editableNumericValue
 import com.whip.app.domain.parseNumericSequence
 import com.whip.app.domain.periodBounds
 import com.whip.app.domain.isScheduledOn
-import com.whip.app.domain.outcomeForPeriod
 import com.whip.app.domain.toWhipDoubleOrNull
 import com.whip.app.domain.valueInUnit
 import com.whip.app.domain.validationErrors
@@ -135,23 +128,6 @@ enum class HabitDestination(val label: String) {
     All("All Habits"),
     Archived("Archived"),
     Insights("Insights"),
-}
-
-internal fun preferredHealthMeasurementUnitId(
-    measurement: MeasurementDefinition,
-    defaults: AppSettings,
-    customUnits: List<UnitDefinition>,
-): String {
-    val preferred = when (measurement.dimension) {
-        UnitDimension.Mass -> defaults.massUnitId
-        UnitDimension.Distance -> defaults.distanceUnitId
-        UnitDimension.Volume -> defaults.volumeUnitId
-        else -> measurement.defaultUnitId
-    }
-    val available = BuiltInUnits.all + customUnits
-    return available.firstOrNull {
-        it.id == preferred && it.dimension == measurement.dimension && !it.archived
-    }?.id ?: measurement.defaultUnitId
 }
 
 @Composable
@@ -445,7 +421,6 @@ fun HabitAreaContent(
             defaultWeekStart = viewModel.defaultSettings().defaultHabitWeekStart,
             defaults = viewModel.defaultSettings(),
             customUnits = editorState.customUnits,
-            sourceMeasurements = editorState.sourceMeasurements,
             areas = areas,
             defaultAreaId = defaultAreaId,
             onCreateArea = onCreateArea,
@@ -858,7 +833,7 @@ internal fun HabitDayProgress.compactCollectionStatus(): String {
         dayState == HabitDayState.Skipped -> "Skipped · streak protected"
         habit.paused || dayState == HabitDayState.Paused -> "Paused · no check-in expected"
         dayState == HabitDayState.NotScheduled -> "Not scheduled today"
-        habit.sourceMeasurementId != null -> "Synced · Health Connect"
+        habit.sourceMeasurementId != null -> "Linked measurement"
         habit.trackingMode == HabitTrackingMode.Checklist -> {
             val completedItems = checklistItems.count { it.second }
             "$completedItems/${checklistItems.size} items · $streakLabel"
@@ -1272,7 +1247,7 @@ fun HabitProgressCard(
                 }
                 if (habit.sourceMeasurementId != null) {
                     Text(
-                        "Read-only source: Health Connect. Updates automatically.",
+                        "Activity from a linked measurement.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1946,7 +1921,6 @@ internal fun HabitEditorDialog(
     defaultWeekStart: DayOfWeek = DayOfWeek.MONDAY,
     defaults: AppSettings = AppSettings(),
     customUnits: List<UnitDefinition> = emptyList(),
-    sourceMeasurements: List<MeasurementDefinition> = emptyList(),
     onRequestNotificationPermission: () -> Unit = {},
     saving: Boolean = false,
     persistenceError: String? = null,
@@ -2203,31 +2177,6 @@ internal fun HabitEditorDialog(
                         },
                     )
                 }
-                if (sourceMeasurements.isNotEmpty()) item {
-                    EnumDropdown(
-                        "Data source",
-                        listOf<MeasurementDefinition?>(null) + sourceMeasurements,
-                        sourceMeasurements.firstOrNull { it.id == sourceMeasurementId },
-                        { measurement -> measurement?.let { "Health Connect · ${it.name}" } ?: "Manual Check-Ins" },
-                        titleCaseValues = false,
-                    ) { selected ->
-                        sourceMeasurementId = selected?.id
-                        if (selected != null) {
-                            dimension = selected.dimension
-                            unitId = preferredHealthMeasurementUnitId(selected, defaults, customUnits)
-                            precision = selected.precision.toString()
-                            mode = when (selected.valueKind) {
-                                MeasurementValueKind.Integer -> HabitTrackingMode.Count
-                                MeasurementValueKind.Duration -> HabitTrackingMode.Duration
-                                else -> HabitTrackingMode.Decimal
-                            }
-                        }
-                    }
-                    Text(
-                        "Whip keeps this Habit up to date from Health Connect. Tracking details follow the connected health category, and synced activity is read-only here.",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
                 item { EditorSectionHeader("Tracking", "Choose the daily action first; its target and amount options stay directly below it.") }
                 item {
                     Text("How do you want to track it?", fontWeight = FontWeight.Bold)
@@ -2260,7 +2209,7 @@ internal fun HabitEditorDialog(
                         label = "Tracking mode",
                         availability = ControlAvailability(
                             enabled = sourceMeasurementId == null,
-                            unavailableExplanation = "Health Connect determines this value. Set Data Source to Manual Check-Ins to change it.",
+                            unavailableExplanation = "The linked measurement determines this value.",
                         ),
                     )
                 }
@@ -3022,8 +2971,8 @@ internal fun HabitActionsDialog(
                             )
                         } else {
                             EntityInspectorGroup(
-                                title = "Automatic updates",
-                                supportingText = "Health Connect keeps this history up to date. Synced check-ins are read-only in Whip.",
+                                title = "Linked history",
+                                supportingText = "This history comes from a linked measurement.",
                             ) {}
                         }
                         val events = habitHistoryEvents(logs, skips, pauses, item.date)

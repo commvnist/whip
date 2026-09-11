@@ -1,0 +1,30 @@
+{
+  "final_run": "xhVRkW",
+  "phone_android": 193,
+  "phone_batches": [
+    103,
+    69,
+    21
+  ],
+  "wide_android": 7,
+  "wide_seconds": 37.371,
+  "readiness": {
+    "suites": 49,
+    "tests": 402,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "all_jvm": {
+    "suites": 113,
+    "tests": 652,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "source_inventory": {
+    "jvm": 652,
+    "android": 1072,
+    "total": 1724
+  }
+}

@@ -13,7 +13,6 @@ import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.health.connect.client.PermissionController
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -92,7 +91,6 @@ import com.whip.app.R
 import com.whip.app.core.AppThemeMode
 import com.whip.app.core.AreaOpeningMode
 import com.whip.app.core.HomeSection
-import com.whip.app.core.HealthDataType
 import com.whip.app.core.ReviewPeriod
 import com.whip.app.core.zoneId
 import com.whip.app.domain.RepeatStepPolicy
@@ -108,7 +106,6 @@ import com.whip.app.domain.AreaScope
 import com.whip.app.domain.customUnitBoundary
 import com.whip.app.domain.toUnitDefinition
 import com.whip.app.domain.toWhipDoubleOrNull
-import com.whip.app.health.HealthConnectAvailability
 import com.whip.app.reminders.ReminderNotifications
 import com.whip.app.reminders.HabitReminderNotifications
 import com.whip.app.reminders.GoalReminderNotifications
@@ -137,30 +134,18 @@ internal enum class SettingsSection(val label: String, val supportingText: Strin
     Planning("Planning & Units", "Dates, units, numbers, effort, recurring tasks, and review defaults"),
     Organization("Organization", "Areas, tags, and naming systems"),
     Reminders("Reminders", "Notification access, delivery status, testing, and quiet hours"),
-    DataPrivacy("Data & Privacy", "Local data, backups, restore, export, health access, and deletion"),
+    DataPrivacy("Data & Privacy", "Local data, backups, restore, export, and deletion"),
     AboutDiagnostics("About Whip", "App identity, version, package, and data-handling summary"),
 }
 
-internal enum class DataPrivacyGroup { Health, Backup, Reset }
+internal enum class DataPrivacyGroup { Backup, Reset }
 
 internal val DataPrivacyGroupOrder = listOf(
-    DataPrivacyGroup.Health,
     DataPrivacyGroup.Backup,
     DataPrivacyGroup.Reset,
 )
 
 internal fun supportsAndroidDynamicColor(sdkInt: Int): Boolean = sdkInt >= Build.VERSION_CODES.S
-
-internal fun healthConnectOrphanedMessage(pendingAction: String?): String = when {
-    pendingAction == "sync" ->
-        "The previous Health Connect sync was interrupted. Review Last Sync and the copied-record count. Sync Now is idempotent and safe to repeat."
-    pendingAction == "delete" ->
-        "The previous local-copy deletion was interrupted. Review the local-copy count and pending-recovery message, then retry deletion; the cleanup is idempotent."
-    pendingAction != null ->
-        "The previous Health Connect policy change was interrupted. Review the current master toggle and category choices. If they already match your intent, do not repeat the change."
-    else ->
-        "The previous Health Connect action was interrupted. Review the current Health controls before trying again."
-}
 
 private val LocalSettingsTypedEditorState = staticCompositionLocalOf<(String, Boolean) -> Unit> {
     { _, _ -> }
@@ -200,7 +185,6 @@ internal fun SettingsContent(
     val weekdayFormatter = rememberWhipWeekdayFormatter()
     var pendingExport by rememberSaveable { mutableStateOf(ExportKind.Backup) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
-    var confirmHealthDelete by rememberSaveable { mutableStateOf(false) }
     var resetSubmitted by rememberSaveable { mutableStateOf(false) }
     var createUnit by rememberSaveable { mutableStateOf(false) }
     var createUnitTargetId by rememberSaveable { mutableStateOf(UUID.randomUUID().toString()) }
@@ -208,9 +192,6 @@ internal fun SettingsContent(
     var versionUnitBoundary by rememberSaveable { mutableStateOf<CustomUnitBoundary?>(null) }
     var versionUnitTargetId by rememberSaveable { mutableStateOf(UUID.randomUUID().toString()) }
     var customUnitPendingAction by rememberSaveable { mutableStateOf<String?>(null) }
-    var healthPendingAction by rememberSaveable { mutableStateOf<String?>(null) }
-    var healthOutcome by rememberSaveable { mutableStateOf<String?>(null) }
-    var healthWarning by rememberSaveable { mutableStateOf<String?>(null) }
     var typedSettingWarning by rememberSaveable { mutableStateOf<String?>(null) }
     var customEmojiEditorOpen by rememberSaveable { mutableStateOf(false) }
     var customEmojiEditorOriginal by rememberSaveable { mutableStateOf<String?>(null) }
@@ -245,14 +226,9 @@ internal fun SettingsContent(
     val backupFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         uri?.let(viewModel::configurePortableBackupFolder)
     }
-    val healthPermissions = rememberLauncherForActivityResult(
-        PermissionController.createRequestPermissionResultContract(),
-        viewModel::onHealthPermissionsResult,
-    )
     val settings = state.settings
     val typedSettingMutationState by viewModel.typedSettingMutationState.collectAsStateWithLifecycle()
     val customUnitMutationState by viewModel.customUnitMutationState.collectAsStateWithLifecycle()
-    val healthMutationState by viewModel.healthMutationState.collectAsStateWithLifecycle()
     val customUnitCoordinator = rememberPersistenceRequestCoordinator(
         state = customUnitMutationState,
         consume = viewModel::consumeCustomUnitMutation,
@@ -274,27 +250,6 @@ internal fun SettingsContent(
         },
         orphanedMessage =
             "The previous custom-unit change was interrupted. Review the unit's current name, version, and archive state before trying again. Do not repeat Archive or Restore blindly.",
-    )
-    val healthCoordinator = rememberPersistenceRequestCoordinator(
-        state = healthMutationState,
-        consume = viewModel::consumeHealthMutation,
-        key = "settings-health-connect",
-        requestNamespace = "settings-health",
-        onPersisted = { receipt ->
-            val completedAction = healthPendingAction
-            healthOutcome = when (receipt.kind) {
-                HealthMutationKind.Policy -> null
-                HealthMutationKind.Sync -> "Synchronized ${receipt.affectedEntries} Health Connect records this run."
-                HealthMutationKind.DeleteLocalCopies -> "Deleted ${receipt.affectedEntries} Health Connect copies from Whip."
-            }
-            healthWarning = receipt.warnings.joinToString(" ").takeIf(String::isNotBlank)
-            if (receipt.kind == HealthMutationKind.Policy && completedAction == "enable") {
-                healthPermissions.launch(viewModel.requiredHealthPermissions())
-            }
-            if (receipt.kind == HealthMutationKind.DeleteLocalCopies) confirmHealthDelete = false
-            healthPendingAction = null
-        },
-        orphanedMessage = healthConnectOrphanedMessage(healthPendingAction),
     )
     val quietHoursCoordinator = rememberPersistenceRequestCoordinator(
         state = typedSettingMutationState,
@@ -322,16 +277,6 @@ internal fun SettingsContent(
         if (!submit(requestId)) {
             customUnitPendingAction = null
             customUnitCoordinator.finishFailure("Another custom-unit change is still finishing. Review it and try again.")
-        }
-    }
-    fun submitHealthAction(action: String, submit: (String) -> Boolean) {
-        val requestId = healthCoordinator.begin() ?: return
-        healthPendingAction = action
-        healthOutcome = null
-        healthWarning = null
-        if (!submit(requestId)) {
-            healthPendingAction = null
-            healthCoordinator.finishFailure("Another Health Connect action is still finishing. Review it and try again.")
         }
     }
     fun <T> appSettingMutation(
@@ -1407,208 +1352,6 @@ internal fun SettingsContent(
         }
         }
 
-        if (dataPrivacyPass == DataPrivacyGroup.Health) {
-        item { SettingsHeading("Health & Privacy") }
-        item {
-            Text("Whip stores data locally and does not require an account. Estimated 1RM and correlations are informational, not medical or safety advice.")
-            Text(
-                when (state.healthConnect.availability) {
-                    HealthConnectAvailability.Available -> "Health Connect is available. Whip only requests read access for the categories below."
-                    HealthConnectAvailability.InstallOrUpdate -> "Install or update Health Connect to enable health data sync."
-                    HealthConnectAvailability.Unsupported -> "Health Connect is not supported on this device."
-                },
-                style = MaterialTheme.typography.bodySmall,
-            )
-            if (state.healthConnect.availability == HealthConnectAvailability.InstallOrUpdate) {
-                WhipOutlinedButton(
-                    onClick = {
-                        val packageId = "com.google.android.apps.healthdata"
-                        runCatching {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, "market://details?id=$packageId".toUri()))
-                        }.onFailure {
-                            context.startActivity(
-                                Intent(
-                                    Intent.ACTION_VIEW,
-                                    "https://play.google.com/store/apps/details?id=$packageId".toUri(),
-                                ),
-                            )
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Install or Update Health Connect") }
-            }
-        }
-        item {
-            val healthAvailable = state.healthConnect.availability == HealthConnectAvailability.Available
-            SettingsToggle(
-                label = "Sync with Health Connect",
-                checked = settings.healthConnectEnabled,
-                supportingText = when {
-                    settings.healthConnectDeletionPending -> "Local Health Connect deletion is pending recovery. Finish Delete Health Connect Copies below before turning sync on again."
-                    settings.healthConnectEnabled -> "Whip reads only the selected categories. Turn this off to stop future reads; existing local copies remain until you delete them below."
-                    settings.healthDataTypes.isEmpty() -> stringResource(R.string.settings_health_sync_paused_empty)
-                    else -> stringResource(
-                        R.string.settings_health_sync_paused_saved,
-                        settings.healthDataTypes.joinToString { it.label },
-                    )
-                },
-                enabled = !settings.healthConnectDeletionPending && !healthCoordinator.saving &&
-                    (settings.healthConnectEnabled || (healthAvailable && settings.healthDataTypes.isNotEmpty())),
-                modifier = Modifier.testTag("settings-health-enabled"),
-            ) { enabled ->
-                submitHealthAction(if (enabled) "enable" else "disable") { requestId ->
-                    viewModel.setHealthConnectEnabled(requestId, enabled)
-                }
-            }
-            if (!healthAvailable && !settings.healthConnectEnabled) {
-                Text(
-                    "Sync cannot be enabled on this device, but you can still review saved scope and delete Whip's local copies.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        HealthDataType.entries.forEach { type ->
-            item(key = "health-${type.name}") {
-                val selected = type in settings.healthDataTypes
-                val permission = viewModel.requiredHealthPermissionsFor(type)
-                val granted = permission in state.healthConnect.grantedPermissions
-                HealthDataTypeSetting(
-                    type = type,
-                    syncEnabled = settings.healthConnectEnabled,
-                    selected = selected,
-                    accessGranted = granted,
-                    controlsEnabled = !healthCoordinator.saving,
-                    onChange = { enabled ->
-                        submitHealthAction("category-${type.name}") { requestId ->
-                            viewModel.setHealthDataType(requestId, type, enabled)
-                        }
-                    },
-                )
-            }
-        }
-        item {
-            NumberSetting(
-                label = "Health read window (days)",
-                current = settings.healthSyncDays,
-                mutation = TypedSettingMutation(
-                    state = typedSettingMutationState,
-                    consume = viewModel::consumeTypedSettingMutation,
-                    submit = viewModel::setHealthSyncDays,
-                ),
-                validRange = 1..365,
-            )
-            Text(
-                "Each sync reconciles the selected categories inside this recent window. Older Health Connect copies already in Whip are preserved.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            val requiredPermissions = viewModel.requiredHealthPermissions()
-            val hasAllAccess = requiredPermissions.isNotEmpty() &&
-                state.healthConnect.grantedPermissions.containsAll(requiredPermissions)
-            val healthAvailable = state.healthConnect.availability == HealthConnectAvailability.Available
-            val accessAvailability = ControlAvailability(
-                enabled = healthAvailable && settings.healthDataTypes.isNotEmpty() && !healthCoordinator.saving,
-                unavailableExplanation = when {
-                    !healthAvailable -> "Health Connect is unavailable on this device."
-                    settings.healthDataTypes.isEmpty() -> "Select at least one Health Connect category."
-                    healthCoordinator.saving -> "Wait for the current Health Connect action to finish."
-                    else -> null
-                },
-            )
-            val syncAvailability = ControlAvailability(
-                enabled = healthAvailable && settings.healthConnectEnabled &&
-                    settings.healthDataTypes.isNotEmpty() && hasAllAccess && !healthCoordinator.saving,
-                unavailableExplanation = when {
-                    !healthAvailable -> "Health Connect is unavailable on this device."
-                    !settings.healthConnectEnabled -> "Turn on Health Connect sync."
-                    settings.healthDataTypes.isEmpty() -> "Select at least one Health Connect category."
-                    !hasAllAccess -> "Review Android access for every selected category first."
-                    healthCoordinator.saving -> "Wait for the current Health Connect action to finish."
-                    else -> null
-                },
-            )
-            ResponsiveSettingsActions(
-                first = { buttonModifier ->
-                    WhipOutlinedButton(
-                        onClick = { healthPermissions.launch(requiredPermissions) },
-                        enabled = accessAvailability.enabled,
-                        modifier = buttonModifier.testTag("health-review-access"),
-                    ) { Text("Review Access") }
-                },
-                second = { buttonModifier ->
-                    WhipButton(
-                        onClick = {
-                            submitHealthAction("sync") { requestId ->
-                                viewModel.syncHealthConnect(requestId)
-                            }
-                        },
-                        enabled = syncAvailability.enabled,
-                        modifier = buttonModifier.testTag("health-sync-now"),
-                    ) { Text("Sync Now") }
-                },
-            )
-            AvailabilityNotice("Review access", accessAvailability)
-            AvailabilityNotice("Sync now", syncAvailability)
-            healthOutcome?.let {
-                Text(
-                    it,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                )
-            }
-            healthWarning?.let { warning ->
-                WhipStatusCard(
-                    kind = WhipStatusKind.Status,
-                    title = "Completed with Warnings",
-                    message = warning,
-                    modifier = Modifier.testTag("health-connect-warning"),
-                )
-            }
-            healthCoordinator.errorMessage?.let { message ->
-                WhipStatusCard(
-                    kind = WhipStatusKind.Error,
-                    title = "Health Connect Action Not Completed",
-                    message = message,
-                    modifier = Modifier.testTag("health-connect-error"),
-                )
-            }
-            state.healthConnect.lastSync?.let { lastSync ->
-                val formatted = formatSettingsTimestamp(
-                    instant = lastSync,
-                    zoneId = settings.zoneId(),
-                    locale = LocalConfiguration.current.locales[0],
-                )
-                val synchronizedEntries = pluralStringResource(
-                    R.plurals.settings_health_imported_entries,
-                    state.healthConnect.importedEntries,
-                    state.healthConnect.importedEntries,
-                )
-                Text(
-                    stringResource(
-                        R.string.settings_health_last_sync,
-                        formatted,
-                        "$synchronizedEntries this run",
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-        }
-        item {
-            WhipSettingsSectionCard {
-                Text("Local Health Connect Copies", fontWeight = FontWeight.Bold)
-                Text(
-                    "Whip currently stores ${state.healthImportedEntryCount} Health Connect ${if (state.healthImportedEntryCount == 1) "record" else "records"}.${if (settings.healthConnectDeletionPending) " A previous deletion is pending safe recovery." else ""} Deleting them keeps your measurement definitions, selected categories, Android permissions, provider records, other Whip data, and existing backup files. Linked Habits, goals, and trends may change. Re-enabling sync can copy provider data again.",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                WhipOutlinedButton(
-                    onClick = { confirmHealthDelete = true },
-                    enabled = (state.healthImportedEntryCount > 0 || settings.healthConnectDeletionPending) &&
-                        !healthCoordinator.saving,
-                    modifier = Modifier.fillMaxWidth().testTag("delete-health-connect-copies"),
-                ) { Text("Delete Health Connect Copies from Whip") }
-            }
-        }
-        }
         }
         if (section == SettingsSection.AboutDiagnostics) {
         item {
@@ -1739,27 +1482,6 @@ internal fun SettingsContent(
                         )
                     },
                 )
-            },
-        )
-    }
-    if (confirmHealthDelete) {
-        PermanentDeleteDialog(
-            title = "Delete Health Connect Copies from Whip?",
-            message = "This turns off future Health Connect sync and deletes ${state.healthImportedEntryCount} local ${if (state.healthImportedEntryCount == 1) "record" else "records"} from Whip.",
-            impacts = listOf(
-                "Health Connect provider records and Android permissions are not changed.",
-                "Measurement definitions, selected categories, other Whip data, and existing backup files are kept.",
-                "Linked Habits, goals, and trends may change; re-enabling sync can copy provider data again.",
-            ),
-            confirmLabel = "Turn Off Sync and Delete Copies",
-            busy = healthCoordinator.saving,
-            error = healthCoordinator.errorMessage,
-            confirmModifier = Modifier.testTag("confirm-delete-health-connect-copies"),
-            onDismiss = { if (!healthCoordinator.saving) confirmHealthDelete = false },
-            onConfirm = {
-                submitHealthAction("delete") { requestId ->
-                    viewModel.deleteHealthConnectCopies(requestId)
-                }
             },
         )
     }
@@ -2137,28 +1859,6 @@ internal fun formatSettingsTimestamp(
     .withLocale(locale)
     .withZone(zoneId)
     .format(instant)
-
-@Composable
-internal fun HealthDataTypeSetting(
-    type: HealthDataType,
-    syncEnabled: Boolean,
-    selected: Boolean,
-    accessGranted: Boolean,
-    controlsEnabled: Boolean = true,
-    onChange: (Boolean) -> Unit,
-) {
-    WhipSettingsRow(
-        title = if (!syncEnabled) {
-            "${type.label} · sync paused"
-        } else {
-            "${type.label} · ${if (accessGranted) "Android access allowed" else "Android access not allowed"}"
-        },
-        modifier = Modifier.testTag("health-type-${type.name}"),
-        checked = selected,
-        enabled = controlsEnabled,
-        onCheckedChange = onChange,
-    )
-}
 
 @Composable private fun SettingsToggle(
     label: String,

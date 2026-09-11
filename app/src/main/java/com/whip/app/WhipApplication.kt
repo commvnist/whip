@@ -27,6 +27,7 @@ import com.whip.app.data.PortableBackupManager
 import com.whip.app.data.PortableBackupScheduler
 import com.whip.app.data.PORTABLE_BACKUP_WORK_NAME
 import com.whip.app.data.WhipDatabase
+import com.whip.app.data.retireLegacyHealthHabitSources
 import com.whip.app.data.RestoreRecoveryManager
 import com.whip.app.reminders.ReminderNotifications
 import com.whip.app.reminders.ReminderDeliveryCoordinator
@@ -51,7 +52,6 @@ import com.whip.app.reminders.GoalReminderScheduler
 import com.whip.app.reminders.GoalReminderNotifications
 import com.whip.app.reminders.FocusTimerNotifications
 import com.whip.app.reminders.FocusTimerScheduler
-import com.whip.app.health.HealthConnectManager
 import com.whip.app.startup.StartupRecoveryGate
 import com.whip.app.startup.StartupRecoveryState
 import com.whip.app.startup.DataEpochGate
@@ -226,7 +226,6 @@ class WhipApplication : Application(), Configuration.Provider {
         )
     }
     val focusTimerScheduler by lazy { FocusTimerScheduler(this) }
-    val healthConnectManager by lazy { HealthConnectManager(this, measurementRepository, settingsRepository) }
     val startupRecoveryState: StateFlow<StartupRecoveryState>
         get() = mutableStartupState
     val userDataGeneration: StateFlow<Long>
@@ -385,13 +384,11 @@ class WhipApplication : Application(), Configuration.Provider {
                 prepareForMaintenance = ::quiesceNormalRuntime,
                 maintenance = {
                     portableBackupManager.clearFolder()
-                    healthConnectManager.withMutationBoundary {
-                        reminderDeliveryCoordinator.withStateBoundary {
-                            NotificationManagerCompat.from(this).cancelAll()
-                            advanceUserDataGeneration()
-                            backupRepository.deleteAllData()
-                            NotificationManagerCompat.from(this).cancelAll()
-                        }
+                    reminderDeliveryCoordinator.withStateBoundary {
+                        NotificationManagerCompat.from(this).cancelAll()
+                        advanceUserDataGeneration()
+                        backupRepository.deleteAllData()
+                        NotificationManagerCompat.from(this).cancelAll()
                     }
                 },
                 resumeNormalRuntime = ::resumeAfterRestoreMaintenance,
@@ -439,22 +436,16 @@ class WhipApplication : Application(), Configuration.Provider {
 
     private suspend fun initializeNormalRuntime(backgroundAlreadyRebuilt: Boolean) {
         if (normalRuntimeJob?.isActive == true) return
-        var settings = settingsRepository.current()
+        val settings = settingsRepository.current()
         if (!backgroundAlreadyRebuilt) {
             areaRepository.ensureDefaultArea()
         }
+        database.retireLegacyHealthHabitSources()
         habitRepository.reconcileTimerClockState()
         // Existing persisted reminder work cannot be trusted across a delivery
         // claim schema change. This is awaited while the startup recovery gate
         // is still closed, before receivers or normal runtime jobs can schedule.
         reconcilePendingReminderDeletions()
-        if (settings.healthConnectDeletionPending) {
-            healthConnectManager.deleteImportedData()
-            check(healthConnectManager.completeImportedDataDeletion()) {
-                "Could not complete the pending Health Connect deletion"
-            }
-            settings = settingsRepository.current()
-        }
         reminderRuntimeMaintenance.upgradeDeliveryClaimsIfRequired()
         portableBackupScheduler.sync(portableBackupManager.state.value, allowDuringRecovery = true)
         if (!backgroundAlreadyRebuilt) {
@@ -472,13 +463,6 @@ class WhipApplication : Application(), Configuration.Provider {
         val runtimeScope = CoroutineScope(runtimeJob + Dispatchers.Default)
         normalRuntimeJob = runtimeJob
         runtimeScope.launch { runCatching { portableBackupManager.recoverInterruptedWrites() } }
-        if (settings.healthConnectEnabled && !settings.healthConnectDeletionPending) {
-            runtimeScope.launch {
-                runCatching {
-                    healthConnectManager.sync(settings.healthDataTypes, settings.healthSyncDays)
-                }
-            }
-        }
         runtimeScope.launch {
             merge(
                 taskRepository.tasks.map { Unit }, taskRepository.occurrences.map { Unit },
@@ -494,7 +478,7 @@ class WhipApplication : Application(), Configuration.Provider {
             }
         }
         // A source-backed Habit can cross its target without a Habit mutation:
-        // Health Connect, imports, Tracks, Goals, and manual measurements all
+        // Imports, Tracks, Goals, and manual measurements all
         // write measurement entries directly. Diff those shared flows here so every
         // writer gets the same bounded reminder reconciliation.
         runtimeScope.launch {

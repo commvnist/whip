@@ -44,7 +44,7 @@ list_profiles() {
         'tracks    Track schema, entry, CSV, search and workspace coverage' \
         'gym       Gym calculations, persistence, routines and active-workout UI' \
         'gym531    5/3/1 planning, progression, routine persistence and builder UI' \
-        'settings  Settings, backup/reset, units, Health and responsive UI' \
+        'settings  Settings, backup/reset, units and responsive UI' \
         'all       Union of every named product profile'
 }
 
@@ -286,7 +286,8 @@ add_profile() {
                 'com.whip.app.DataEpochBoundaryTest'
                 'com.whip.app.CustomUnitIntegrityTest'
                 'com.whip.app.CustomUnitJourneyE2ETest'
-                'com.whip.app.HealthReconciliationTest'
+                'com.whip.app.LegacyHealthHistoryTest'
+                'com.whip.app.LegacyImportJourneyE2ETest'
                 'com.whip.app.ui.SettingsResponsiveUiTest'
                 'com.whip.app.ui.SettingItemBuilderUiTest'
                 'com.whip.app.SettingItemBuilderJourneyE2ETest'

@@ -18,7 +18,6 @@ import com.whip.app.domain.HabitTimerReviewResolution
 import com.whip.app.domain.HabitTimerStartRequest
 import com.whip.app.domain.MeasurementEntryStatus
 import com.whip.app.domain.MeasurementSourceType
-import com.whip.app.domain.HealthSourceWindow
 import com.whip.app.domain.CustomUnitBoundary
 import com.whip.app.domain.ScheduledTask
 import com.whip.app.domain.TaskDraft
@@ -275,11 +274,10 @@ internal class CoordinatedMeasurementRepository(
         sourceId: String?,
         note: String,
         existingEntryId: String?,
-        createIfMissingForHealthReconciliation: Boolean,
     ) = mutate {
         delegate.record(
             measurementId, value, unitId, status, timestamp, localDate, zoneId,
-            sourceType, sourceId, note, existingEntryId, createIfMissingForHealthReconciliation,
+            sourceType, sourceId, note, existingEntryId,
         )
     }
     override suspend fun deleteEntry(entryId: String) = mutate { delegate.deleteEntry(entryId) }
@@ -288,9 +286,6 @@ internal class CoordinatedMeasurementRepository(
         sourcePrefix: String,
         retainedEntryIds: Set<String>,
     ) = mutate { delegate.deleteSourceEntriesExcept(sourceType, sourcePrefix, retainedEntryIds) }
-    override suspend fun reconcileHealthSourceWindows(windows: List<HealthSourceWindow>) =
-        mutate { delegate.reconcileHealthSourceWindows(windows) }
-    override suspend fun deleteHealthConnectEntries() = mutate { delegate.deleteHealthConnectEntries() }
 
     private suspend fun <T> mutate(block: suspend () -> T): T = coordinator.withStateBoundary(block)
 }

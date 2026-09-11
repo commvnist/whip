@@ -9,7 +9,6 @@ import com.whip.app.core.HabitTimerClockReading
 import com.whip.app.core.WhipIdGenerator
 import com.whip.app.core.AppSettings
 import com.whip.app.core.AppThemeMode
-import com.whip.app.core.HealthDataType
 import com.whip.app.core.RepPrescriptionScheme
 import com.whip.app.core.TrackedGymRecord
 import com.whip.app.core.SettingsRepository
@@ -211,78 +210,19 @@ class BackupRepositoryTest {
         assertTrue(database.habitDao().getActiveTimerSessions().isEmpty())
     }
 
-    @Test fun healthScopeRoundTripsButTheLocalDeletionJournalNeverLeavesTheDevice() = runBlocking {
-        settings.update {
-            it.copy(
-                healthConnectEnabled = true,
-                healthDataTypes = setOf(HealthDataType.Weight, HealthDataType.Sleep),
-                healthSyncDays = 90,
-                healthLastSyncMillis = 123_456L,
-                healthLastSyncCount = 12,
-                healthConnectDeletionPending = true,
-            )
+    @Test fun retiredIntegrationSettingsAreIgnoredInOldBackupsAndAbsentFromNewExports() = runBlocking {
+        settings.update { it.copy(defaultRestSeconds = 75) }
+        val legacy = JSONObject(backups.exportBackup())
+        legacy.getJSONObject("settings").put("healthConnectEnabled", true)
+            .put("healthDataTypes", org.json.JSONArray(listOf("Weight", "Sleep")))
+            .put("healthSyncDays", 90).put("healthLastSyncMillis", 123L)
+            .put("healthLastSyncCount", 12).put("healthConnectDeletionPending", true)
+        refreshBackupChecksum(legacy)
+        backups.restoreBackup(legacy.toString())
+        assertEquals(75, settings.current().defaultRestSeconds)
+        listOf(backups.exportBackup(), backups.exportRecoveryBackup()).forEach { exported ->
+            assertFalse(JSONObject(exported).getJSONObject("settings").keys().asSequence().any { it.startsWith("health") })
         }
-        val current = JSONObject(backups.exportBackup())
-        val exportedSettings = current.getJSONObject("settings")
-        assertEquals(false, exportedSettings.has("healthConnectDeletionPending"))
-        assertEquals(false, exportedSettings.has("healthLastSyncMillis"))
-        assertEquals(false, exportedSettings.has("healthLastSyncCount"))
-
-        backups.restoreBackup(current.toString())
-        assertEquals(setOf(HealthDataType.Weight, HealthDataType.Sleep), settings.current().healthDataTypes)
-        assertEquals(90, settings.current().healthSyncDays)
-        assertEquals(false, settings.current().healthConnectDeletionPending)
-        assertEquals(null, settings.current().healthLastSyncMillis)
-        assertEquals(0, settings.current().healthLastSyncCount)
-
-        val connectedEnabled = JSONObject(backups.exportBackup())
-        connectedEnabled.getJSONObject("settings")
-            .put("healthConnectEnabled", true)
-            .remove("healthDataTypes")
-        refreshBackupChecksum(connectedEnabled)
-        backups.restoreBackup(connectedEnabled.toString())
-        assertEquals(HealthDataType.entries.toSet(), settings.current().healthDataTypes)
-
-        val connectedPaused = JSONObject(backups.exportBackup())
-        connectedPaused.getJSONObject("settings")
-            .put("healthConnectEnabled", false)
-            .remove("healthDataTypes")
-        refreshBackupChecksum(connectedPaused)
-        backups.restoreBackup(connectedPaused.toString())
-        assertTrue(settings.current().healthDataTypes.isEmpty())
-
-        val malformedExplicitEmpty = JSONObject(backups.exportBackup())
-        malformedExplicitEmpty.getJSONObject("settings")
-            .put("healthConnectEnabled", true)
-            .put("healthDataTypes", org.json.JSONArray())
-        refreshBackupChecksum(malformedExplicitEmpty)
-        backups.restoreBackup(malformedExplicitEmpty.toString())
-        assertFalse(settings.current().healthConnectEnabled)
-        assertTrue(settings.current().healthDataTypes.isEmpty())
-    }
-
-    @Test fun privateRecoveryBackupPreservesTheLocalHealthDeletionJournalAndReceipt() = runBlocking {
-        settings.update {
-            it.copy(
-                healthDataTypes = setOf(HealthDataType.Weight),
-                healthLastSyncMillis = 123_456L,
-                healthLastSyncCount = 12,
-                healthConnectDeletionPending = true,
-            )
-        }
-
-        val recovery = JSONObject(backups.exportRecoveryBackup())
-        val recoverySettings = recovery.getJSONObject("settings")
-        assertEquals(true, recoverySettings.getBoolean("healthConnectDeletionPending"))
-        assertEquals(123_456L, recoverySettings.getLong("healthLastSyncMillis"))
-        assertEquals(12, recoverySettings.getInt("healthLastSyncCount"))
-
-        settings.update { AppSettings() }
-        backups.restoreBackup(recovery.toString())
-
-        assertTrue(settings.current().healthConnectDeletionPending)
-        assertEquals(123_456L, settings.current().healthLastSyncMillis)
-        assertEquals(12, settings.current().healthLastSyncCount)
     }
 
     @Test fun backupPreviewAndTransactionalRestoreRoundTrip() = runBlocking {

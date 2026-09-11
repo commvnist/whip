@@ -30,7 +30,6 @@ import com.whip.app.domain.AreaScope
 import com.whip.app.core.AreaOpeningMode
 import com.whip.app.core.SharedTaskCapturePolicy
 import com.whip.app.core.WhipLaunchActions
-import com.whip.app.health.HealthPermissionsRationaleActivity
 import com.whip.app.widget.WhipWidgetConfigureActivity
 import com.whip.app.widget.WhipWidgetProvider
 import java.io.File
@@ -487,21 +486,6 @@ class PlatformEntrySurfaceE2ETest {
 
         assertEquals(AreaScope.Unassigned, WhipWidgetProvider.loadScope(app, widgetId))
         WhipWidgetProvider().onDeleted(app, intArrayOf(widgetId))
-    }
-
-    @Test
-    fun healthPermissionRationaleStatesTheReadOnlyLocalDataPolicyAndCloses() {
-        ActivityScenario.launch<HealthPermissionsRationaleActivity>(Intent(app, HealthPermissionsRationaleActivity::class.java)).use { scenario ->
-            compose.onNodeWithText("Health Connect & Whip").assertIsDisplayed()
-            compose.onNodeWithText(
-                "Whip only reads the health categories you select. It never writes to Health Connect.",
-            ).assertIsDisplayed()
-            compose.onNodeWithText(
-                "Turning off sync stops future reads. It does not delete records already imported into Whip. You remain in control of those records through Whip’s data controls.",
-            ).assertIsDisplayed()
-            compose.onNodeWithText("Close").performClick()
-            compose.waitUntil(5_000) { scenario.state == Lifecycle.State.DESTROYED }
-        }
     }
 
     private fun captureSharedEditor(id: String) {

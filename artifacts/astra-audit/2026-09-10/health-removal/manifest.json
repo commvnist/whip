@@ -1,0 +1,122 @@
+[
+  {
+    "file": "before-phone/settings.health.receipt-warning.png",
+    "original": "settings.health.receipt-warning.png",
+    "original_sha256": "d27bfc540cbe449bf060e548877de789bd75ef850cdc09e15e5d42fbc1ab60dd",
+    "sha256": "d27bfc540cbe449bf060e548877de789bd75ef850cdc09e15e5d42fbc1ab60dd"
+  },
+  {
+    "file": "before-phone/settings.health.receipt-warning.xml",
+    "original": "settings.health.receipt-warning.xml",
+    "original_sha256": "59eb15a50e80de1601b2c1d1d60b08ce24320fb384c39223cba8b3a3c38ed12c",
+    "sha256": "a0e0b29f0cbbea2262a40ea0baa81ec2727fb8b5bf1cf78521b9cd7683996d87"
+  },
+  {
+    "file": "pilot-phone/settings.data-privacy.local.png",
+    "original": "settings.data-privacy.local.png",
+    "original_sha256": "2b7ba0be0ea3fe1852f83029dde723eb1a788d5394bf21df9d04db0202a01a58",
+    "sha256": "2b7ba0be0ea3fe1852f83029dde723eb1a788d5394bf21df9d04db0202a01a58"
+  },
+  {
+    "file": "pilot-phone/settings.data-privacy.local.xml",
+    "original": "settings.data-privacy.local.xml",
+    "original_sha256": "42a566734502d917d0c639dc63086acd08c1c621e527e830b40f74d9ff084351",
+    "sha256": "ff81f35a925861668ea526b2ae24c125bd77702bb2a207758cd67b213ca16e2c"
+  },
+  {
+    "file": "pilot-phone/habits.legacy-import.manual.png",
+    "original": "habits.legacy-import.manual.png",
+    "original_sha256": "79cf571abcdc1602c54731e9e8b94fd2e82b8f27f5b9b548a5c12508932b2557",
+    "sha256": "79cf571abcdc1602c54731e9e8b94fd2e82b8f27f5b9b548a5c12508932b2557"
+  },
+  {
+    "file": "pilot-phone/habits.legacy-import.manual.xml",
+    "original": "habits.legacy-import.manual.xml",
+    "original_sha256": "c4862182d42d9a3a4fade941a7c9d12c2a3ae580849a8a799a0e37b2ba76119a",
+    "sha256": "08b42fa7bdffa7ae6c8e4496e1c47984b9fe22aa28fdf15d03e5154c1c45439b"
+  },
+  {
+    "file": "pilot-phone/habits.legacy-import.history.png",
+    "original": "habits.legacy-import.history.png",
+    "original_sha256": "6ae94355485875710cd93f7e2c32d05be97ca86c8a04f4983a8892b69c5472aa",
+    "sha256": "6ae94355485875710cd93f7e2c32d05be97ca86c8a04f4983a8892b69c5472aa"
+  },
+  {
+    "file": "pilot-phone/habits.legacy-import.history.xml",
+    "original": "habits.legacy-import.history.xml",
+    "original_sha256": "ca3b0abd1606c90b3017ff70acb832b5b72d80270c835ec95e028efc6f914ba9",
+    "sha256": "a9d92c59aabbe8d356583e1f754741c6a9aab953f0db1c344a578bbbcd6411b9"
+  },
+  {
+    "file": "final-phone/settings.data-privacy.local.png",
+    "original": "settings.data-privacy.local (2).png",
+    "original_sha256": "3b5d81e2ba51c7a53c66fa0117e393c96581cbd959e6d3a294c34c18d50bb668",
+    "sha256": "3b5d81e2ba51c7a53c66fa0117e393c96581cbd959e6d3a294c34c18d50bb668"
+  },
+  {
+    "file": "final-phone/settings.data-privacy.local.xml",
+    "original": "settings.data-privacy.local (2).xml",
+    "original_sha256": "4b52124af50f1556685a378ef453365248d2c3508c8802c42178976f33911021",
+    "sha256": "2f767071a9914156e029dcb63285694160e4c5a685645f9f34c8afbfca9b776c"
+  },
+  {
+    "file": "final-phone/habits.legacy-import.manual.png",
+    "original": "habits.legacy-import.manual (2).png",
+    "original_sha256": "ca23526bdb5109b9de20c536313b2ed83799918d7ea5bb5f7f9790f966b9637c",
+    "sha256": "ca23526bdb5109b9de20c536313b2ed83799918d7ea5bb5f7f9790f966b9637c"
+  },
+  {
+    "file": "final-phone/habits.legacy-import.manual.xml",
+    "original": "habits.legacy-import.manual (2).xml",
+    "original_sha256": "06ba741a54d23b93fd7f6a9b282e233b9a8a8b5a9f12f09f1b1720fdb6ae4d88",
+    "sha256": "c471e0a97d4aa97a037145d9c01e5815f42b3cd298c5420c11115f2317f44ae8"
+  },
+  {
+    "file": "final-phone/habits.legacy-import.history.png",
+    "original": "habits.legacy-import.history (2).png",
+    "original_sha256": "3460060a0865f0ccf94142acdc30bcefe4d840200379f3f6663baabacf94d530",
+    "sha256": "3460060a0865f0ccf94142acdc30bcefe4d840200379f3f6663baabacf94d530"
+  },
+  {
+    "file": "final-phone/habits.legacy-import.history.xml",
+    "original": "habits.legacy-import.history (2).xml",
+    "original_sha256": "dd81561eef0b56e963b428388d1e3db262a006caa6243267456382e4fec0d115",
+    "sha256": "6eb369698535955f66a3bad9f46786da0e623ce618e80f28045f05eef2c9bd54"
+  },
+  {
+    "file": "final-wide/settings.data-privacy.local.png",
+    "original": "settings.data-privacy.local.png",
+    "original_sha256": "c00a3d3d30d52b1cca125b8f6ed982df09214e982140a093c315dbb8de1a1c42",
+    "sha256": "c00a3d3d30d52b1cca125b8f6ed982df09214e982140a093c315dbb8de1a1c42"
+  },
+  {
+    "file": "final-wide/settings.data-privacy.local.xml",
+    "original": "settings.data-privacy.local.xml",
+    "original_sha256": "a3cf0cc6442144b931c9ecd61aeb57087d6fa4ff074f91be2c3c98872f0c981e",
+    "sha256": "f502bd32198d668af42cace722feb8c54cf6bf856c214e102c7073e1bbfbcea4"
+  },
+  {
+    "file": "final-wide/habits.legacy-import.manual.png",
+    "original": "habits.legacy-import.manual.png",
+    "original_sha256": "3d37b92fde04446d80d3ba7865ef58fc1f67c14b508bf5d1d158e3fc15f8f728",
+    "sha256": "3d37b92fde04446d80d3ba7865ef58fc1f67c14b508bf5d1d158e3fc15f8f728"
+  },
+  {
+    "file": "final-wide/habits.legacy-import.manual.xml",
+    "original": "habits.legacy-import.manual.xml",
+    "original_sha256": "3cf12aafad87d8f2d7df777c69b7aec2b256ea0eccbfeaaf1f9f380a7b63d8eb",
+    "sha256": "7b0f3c411cba6de63c70312263cef1ab9ae46d79f7ef3479ec1213f8eff48eeb"
+  },
+  {
+    "file": "final-wide/habits.legacy-import.history.png",
+    "original": "habits.legacy-import.history.png",
+    "original_sha256": "a8d9e1cc9c76553c3b45f7611005af445fbf99d7dcf38804f680d54a2297ffd3",
+    "sha256": "a8d9e1cc9c76553c3b45f7611005af445fbf99d7dcf38804f680d54a2297ffd3"
+  },
+  {
+    "file": "final-wide/habits.legacy-import.history.xml",
+    "original": "habits.legacy-import.history.xml",
+    "original_sha256": "dc6c1b1258a2e9365595ec0fe0f58b788ae6628036f9e4ee8bda76885fd8d311",
+    "sha256": "f266d292ebaea67c779defd16fdf928297bd0bc09d265677cc9181c01d452b0f"
+  }
+]
