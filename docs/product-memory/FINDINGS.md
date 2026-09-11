@@ -2,7 +2,7 @@
 
 ### FND-20260911-001 — Guided 5/3/1 setup forces one supplemental scheme across exercises
 
-- Status: Verified, P2; FB-20260911-001 / IMP, VER-20260911-002. Each exercise now owns its supplemental scheme, BBB percentage and target; native saved two-day execution and phase/state regressions pass.
+- Status: Released, P2; FB-20260911-001 / IMP, VER-20260911-002. Each exercise now owns its supplemental scheme, BBB percentage and target; native saved two-day execution and phase/state regressions pass. Delivered in 0.3.70/code 76 under IMP/VER-20260911-003.
 - Observed/source: RoutineBuilder's FiveThreeOneProgramDialog owns one supplementName and BBB percentage for the complete draft; preset selection derives another global scheme. FiveThreeOneProgramRequest.generatedPhases supplies that same scheme to every main placement. Exercise-owned setup already preserves Training Max and alternate-BBB identity, but has no supplemental-scheme field.
 - Expected: The chosen main exercise owns its supplemental scheme and BBB percentage; custom Bench/BBB and Zercher Deadlift/FSL produce different supplemental sets in the same routine. Preset defaults should remain convenient without overwriting authored choices.
 - Persistence boundary: Saved routine sets already carry per-placement/per-phase supplementalScheme, reps and percentage. No Room/backup schema change or recomputation of saved routines is necessary.

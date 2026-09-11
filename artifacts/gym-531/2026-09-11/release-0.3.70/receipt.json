@@ -1,0 +1,46 @@
+{
+  "version": "0.3.70",
+  "version_code": 76,
+  "source": "1724f50a5f5f8425ad5e29db76bc05423dfa7e0d",
+  "model": "SM-F976W",
+  "package": "commvne.com.whip.app",
+  "package_metadata": [
+    "versionCode=76 minSdk=26 targetSdk=37",
+    "versionName=0.3.70",
+    "lastUpdateTime=2026-09-11 11:44:11",
+    "firstInstallTime=2026-08-26 17:59:24"
+  ],
+  "signer_sha256": "cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788",
+  "apk_sha256": "cb022c6b40e5bc418efd6ac023e2157b7108d1a1ad550218c3f57f2f66c34faf",
+  "apk_bytes": 4166194,
+  "aab_sha256": "064f6e49b56d90a1cea2e7291148ffe571317120bf059ffa5c7196dd490ceebf",
+  "aab_bytes": 11232356,
+  "installed_apk_matches": true,
+  "first_install_preserved": true,
+  "signer_preserved": true,
+  "cold_foreground_launch": true,
+  "launch_total_time_ms": 145,
+  "independent_foreground_still_whip": true,
+  "live_process": true,
+  "bounded_app_log_lines": 302,
+  "relevant_runtime_errors": 0,
+  "artifact_zip_integrity": true,
+  "apk_signature_verified": true,
+  "aab_signature_verified": true,
+  "preflight_tests": {
+    "tests": 387,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "suites": 44
+  },
+  "source_delta": {
+    "feature_source": "5486c3525324230a8c416a34eff9ddec28f50e08",
+    "verified_inputs": 514,
+    "unchanged_inputs": 513,
+    "changed_inputs": [
+      "app/build.gradle.kts"
+    ],
+    "diff": "diff --git a/app/build.gradle.kts b/app/build.gradle.kts\nindex 19b6cb1f..e2df31a4 100644\n--- a/app/build.gradle.kts\n+++ b/app/build.gradle.kts\n@@ -42,8 +42,8 @@ android {\n         applicationId = \"commvne.com.whip.app\"\n         minSdk = 26\n         targetSdk = 37\n-        versionCode = 75\n-        versionName = \"0.3.69\"\n+        versionCode = 76\n+        versionName = \"0.3.70\"\n \n         testInstrumentationRunner = \"androidx.test.runner.AndroidJUnitRunner\"\n     }\n"
+  }
+}

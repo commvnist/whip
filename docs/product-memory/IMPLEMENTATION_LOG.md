@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260911-003 — Release per-exercise 5/3/1 supplemental choices to the owner phone
+
+- Request/status: Released under FB-20260911-002. Whip 0.3.70/code 76 delivers verified feature source 5486c352 from clean pushed release source 1724f50a5f5f8425ad5e29db76bc05423dfa7e0d.
+- Changes/compatibility: Only application versionName/versionCode change after IMP/VER-20260911-002; all other 513 verified source/test/build/harness hashes match. Room 46/data epoch 6/backup 26 and stored routines/history remain unchanged.
+- Delivery: Fast affected checks pass 387 JVM methods/44 suites; signed optimized APK/AAB build and guarded in-place install pass. Samsung SM-F976W reports 0.3.70/code 76, exact installed APK equality, unchanged signer/first-install identity and a 145 ms cold foreground launch. Independent process/foreground and bounded runtime checks pass under VER-20260911-003.
+- Evidence/limits: artifacts/gym-531/2026-09-11/release-0.3.70/README.md. No complete candidate rerun, phone instrumentation, reset, clear, uninstall, downgrade, private-record extraction or store publication. Normal-use owner validation remains separate; the closed exhaustive audit stays closed.
+
 ### IMP-20260911-002 — Author 5/3/1 supplemental work per main exercise
 
 - Request/behavior: FB/FND/DEC-20260911-001. Each main exercise has its own Supplemental Work selector, BBB percentage and alternate target in guided setup. Custom headings identify Day 1/Day 2. Leader/Anchor exposes independent choices for both roles; untouched defaults follow the preset, while authored choices survive layout/preset changes, reorder, library reconciliation and recreation. Long selected values wrap through the existing SelectionField option.

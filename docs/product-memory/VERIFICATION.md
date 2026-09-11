@@ -1,5 +1,13 @@
 # Verification and release evidence
 
+### VER-20260911-003 — Whip 0.3.70 private owner-phone release
+
+- Scope/status: Released under FB-20260911-002 / IMP-20260911-003. Exact clean pushed source 1724f50a5f5f8425ad5e29db76bc05423dfa7e0d contains the 5486c352 per-exercise supplemental feature plus only versionName/code changes among the 514 previously verified inputs; other 513 hashes match.
+- Commands/results: `scripts/check` passes 387 JVM methods/44 suites with zero failures/errors/skips in 26 seconds. `WHIP_DEVICE=<selected-owner-phone> scripts/device release-deploy` passes the fast affected gate, signed optimized `assembleRelease bundleRelease`, streamed in-place install, exact package/hash verification and a 145 ms cold foreground MainActivity launch. Independent `apksigner verify --verbose --print-certs`, `jarsigner -verify`, `aapt dump badging` and both ZIP integrity checks pass.
+- Device/artifacts: Samsung SM-F976W reports version 0.3.70/code 76, lastUpdateTime=2026-09-11 11:44:11 and preserved firstInstallTime=2026-08-26 17:59:24. Installed APK SHA-256 cb022c6b40e5bc418efd6ac023e2157b7108d1a1ad550218c3f57f2f66c34faf matches the 4,166,194-byte signed build; AAB SHA-256 064f6e49b56d90a1cea2e7291148ffe571317120bf059ffa5c7196dd490ceebf, 11,232,356 bytes. Signing certificate cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788 remains unchanged. The old installed APK exactly matched its prior verified release before update.
+- Independent smoke: MainActivity remains foreground with a live process; bounded `logcat -d --pid=<app-pid> -t 300` returns 302 lines including buffer headings, zero relevant fatal/ANR/Room/SQLite/startup errors. Only sanitized counts and package metadata are retained; no private records are extracted.
+- Evidence/boundaries: artifacts/gym-531/2026-09-11/release-0.3.70/README.md and receipt.json retain source delta, hashes, signing/build/install outcomes. Source tree stays clean during build and smoke. Existing VER-20260911-002 remains the feature/emulator evidence; no complete candidate or Android rerun for this private release. No phone instrumentation, reset, clear, uninstall, downgrade, store publication, schema/epoch/backup change or audit resumption.
+
 ### VER-20260911-002 — Independent 5/3/1 supplemental choices through two saved workouts
 
 - Scope: FB/FND/DEC-20260911-001 / IMP-20260911-002, starting clean pushed f8cf108f. Disposable API 34 emulator, ordinary 1080×2520/480 dpi; synthetic owner-example records only. No phone instrumentation or deployment.

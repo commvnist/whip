@@ -2,7 +2,7 @@
 
 ### DEC-20260911-001 — Supplemental authorship belongs to each 5/3/1 main exercise
 
-- Status: Verified; FB/FND-20260911-001 / IMP, VER-20260911-002. Shared existing controls and typed exercise-owned configuration pass ordinary phone/wide and neighboring program checks without a persistence migration.
+- Status: Released; FB/FND-20260911-001 / IMP, VER-20260911-002. Shared existing controls and typed exercise-owned configuration pass ordinary phone/wide and neighboring program checks without a persistence migration. Delivered in 0.3.70/code 76 under IMP/VER-20260911-003.
 - Decision: Extend existing FiveThreeOneExerciseSetupState and FiveThreeOneProgramExercise with optional authored supplemental choices and an exercise-owned BBB percentage. Untouched choices derive from the selected preset; explicit choices survive preset/layout changes, reorder, library return and recreation. Leader/Anchor setup exposes separate per-exercise Leader and Anchor choices. Reuse existing SelectionField and input roles beside each exercise.
 - Generation: Resolve each exercise's scheme for the actual phase, retain independent alternate-BBB Training Max ownership and explicit no-supplement choices, and keep 7th Week protocols free of supplemental overrides. Existing request defaults remain internal fallback for unchanged callers. Persist the resulting existing set/placement fields; do not add a second durable program model or rewrite historical workouts.
 - Terminology: Use Supplemental Work, consistent with Jim Wendler's public FSL/BBB discussion at https://www.jimwendler.com/blogs/jimwendler-com/5x5-first-set-last-vs-boring-but-big. This adds authoring freedom without claiming that a custom mixture is an official published template.
