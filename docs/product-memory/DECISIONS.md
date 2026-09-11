@@ -1,5 +1,13 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-028 — Settings operation state carries its result instead of classifying text
+
+- Decision: Reuse existing OperationStatus for Settings outcome severity and working copy; derive message only from terminal outcomes. Keep existing busy coordination, each callback and data boundary. The shared status-card renderer uses action wording, while opening a validated/decrypted backup preview settles quietly because the visible dialog is the acknowledgement.
+- Alternatives/tradeoffs: Expanding the regex cannot cover arbitrary exception messages or authored names; another outcome framework duplicates OperationStatus. A first implementation derived busy from Running, but source review found immediate automatic-backup setting failures can overlap an existing file operation. Preserve the existing busy lifecycle so such feedback cannot prematurely end that operation's busy state. This increment corrects outcome truth and ownership without replacing operation admission. No new scroll policy is justified by the native invalid-file return.
+- Compatibility: Presentation/runtime state only; preserve exact backup data, validation, native picker, destructive review, typed setting receipts and domain mutation authority. Cancellation clears terminal feedback without clearing an active Running operation.
+- Modal ownership: Native FND-20260910-038 additionally requires error feedback inside encrypted unlock and the current backup preview/replacement/reset dialog. Reuse WhipStatusCard and PermanentDeleteDialog.error, suppress the duplicate page card while a dialog owns the result, clear stale feedback on a new reset review, and guard unlock dismissal while Running. Keep plaintext passphrases out of saved state.
+- Status: Verified for FND-20260910-037/038 / IMP/VER-20260910-028. Native phone/wide recovery and component replacement retry pass; no data-boundary redesign.
+
 ### DEC-20260910-027 — Data controls share action-list geometry and restrained destructive sections
 
 - Decision: Reuse WhipActionList/WhipActionRow for three one-off backup actions, with complete left-aligned labels and adjacent explanations. Keep portable-folder setup distinct, shorten its initial explanation without hiding plaintext disclosure, and explain CSV as individual tables. Give shared WhipDangerZone a neutral section and an error-colored semantic heading; explicit destructive actions and final confirmations remain authoritative.

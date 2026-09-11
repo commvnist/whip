@@ -159,6 +159,31 @@ class SafetyChoiceUiTest {
     }
 
     @Test
+    fun replacementFailureStaysInItsConfirmationAndAllowsRetry() {
+        val replacements = AtomicInteger(0)
+        var busy by mutableStateOf(false)
+        var error by mutableStateOf<String?>(null)
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                BackupRestorePreviewDialogs(
+                    preview = preview(), busy = busy, error = error,
+                    onCancel = {}, onMerge = {},
+                    onReplace = { replacements.incrementAndGet(); error = null; busy = true },
+                )
+            }
+        }
+        compose.onNodeWithTag("request-replace-everything").performClick()
+        compose.onNodeWithTag("confirm-replace-everything").performClick().assertIsNotEnabled()
+        compose.runOnIdle { error = "The selected backup could not be restored. Your original data was recovered."; busy = false }
+        compose.waitForIdle()
+        compose.onNodeWithText("The selected backup could not be restored. Your original data was recovered.").assertIsDisplayed()
+        captureVisualCatalogSurface("settings.restore.failure-retry")
+        compose.onNodeWithTag("confirm-replace-everything").assertIsEnabled().performClick()
+        assertEquals(2, replacements.get())
+        compose.onNodeWithTag("confirm-replace-everything").assertIsNotEnabled()
+    }
+
+    @Test
     fun cancellingFinalReplacementReturnsToPreview() {
         val replacements = AtomicInteger(0)
         compose.setContent {

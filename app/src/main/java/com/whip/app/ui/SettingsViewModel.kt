@@ -6,6 +6,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.whip.app.WhipApplication
+import com.whip.app.core.OperationStatus
 import com.whip.app.core.AppSettings
 import com.whip.app.core.HomeSection
 import com.whip.app.core.ReviewSection
@@ -54,7 +55,7 @@ data class SettingsUiState(
     val settings: AppSettings = AppSettings(),
     val backupPreview: BackupPreview? = null,
     val busy: Boolean = false,
-    val message: String? = null,
+    val operation: OperationStatus = OperationStatus.Idle,
     val customUnits: List<UnitDefinition> = emptyList(),
     val areas: List<Area> = emptyList(),
     val areaUsage: Map<String, AreaUsageCounts> = emptyMap(),
@@ -64,7 +65,13 @@ data class SettingsUiState(
     val tagUsage: Map<String, TagUsageCounts> = emptyMap(),
     val portableBackup: PortableBackupState = PortableBackupState(),
     val encryptedRestorePending: Boolean = false,
-)
+) {
+    val message: String? get() = when (val result = operation) {
+        is OperationStatus.Succeeded -> result.message
+        is OperationStatus.Failed -> result.message
+        else -> null
+    }
+}
 
 data class AreaUsageCounts(
     val tasks: Int = 0,
@@ -219,7 +226,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             settings = settings,
             backupPreview = state.preview,
             busy = state.busy,
-            message = state.message,
+            operation = state.operation,
             customUnits = taxonomy.units,
             areas = taxonomy.areas,
             areaUsage = taxonomy.usage,
@@ -463,7 +470,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         onResult: (Result<String>) -> Unit = {},
     ) {
         viewModelScope.launch {
-            runtime.value = runtime.value.copy(busy = true, message = null)
+            runtime.value = runtime.value.copy(busy = true, operation = OperationStatus.Running("Applying your changes"))
             val existing = uiState.value.areas.firstOrNull { it.name.equals(name.trim(), true) }
             runCatching {
                 withContext(Dispatchers.IO) {
@@ -475,16 +482,16 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 .onSuccess { id ->
                     runtime.value = runtime.value.copy(
                         busy = false,
-                        message = when {
+                        operation = OperationStatus.Succeeded(when {
                             existing == null -> "Area created"
                             existing.archived -> "${existing.name} restored"
                             else -> "${existing.name} already exists; selected it instead"
-                        },
+                        }),
                     )
                     onResult(Result.success(id))
                 }
                 .onFailure { error ->
-                    runtime.value = runtime.value.copy(busy = false, message = error.message ?: "Could not create Area")
+                    runtime.value = runtime.value.copy(busy = false, operation = OperationStatus.Failed(error.message ?: "Could not create Area", error))
                     onResult(Result.failure(error))
                 }
         }
@@ -492,7 +499,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun renameArea(id: String, name: String, onResult: (Result<Unit>) -> Unit = {}) {
         viewModelScope.launch {
-            runtime.value = runtime.value.copy(busy = true, message = null)
+            runtime.value = runtime.value.copy(busy = true, operation = OperationStatus.Running("Applying your changes"))
             runCatching {
                 withContext(Dispatchers.IO) {
                     checkNotNull(app.withUserDataAccess {
@@ -502,11 +509,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 }
             }
                 .onSuccess {
-                    runtime.value = runtime.value.copy(busy = false, message = "Area renamed")
+                    runtime.value = runtime.value.copy(busy = false, operation = OperationStatus.Succeeded("Area renamed"))
                     onResult(Result.success(Unit))
                 }
                 .onFailure { error ->
-                    runtime.value = runtime.value.copy(busy = false, message = error.message ?: "Could not rename Area")
+                    runtime.value = runtime.value.copy(busy = false, operation = OperationStatus.Failed(error.message ?: "Could not rename Area", error))
                     onResult(Result.failure(error))
                 }
         }
@@ -775,6 +782,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun export(uri: Uri, kind: ExportKind, passphrase: String? = null) = runIo(
         if (kind in setOf(ExportKind.Backup, ExportKind.EncryptedBackup)) "Backup saved" else "CSV saved",
+        workingMessage = if (kind in setOf(ExportKind.Backup, ExportKind.EncryptedBackup)) "Saving your backup" else "Saving your CSV file",
     ) {
         app.withUserDataAccess {
             val content = when (kind) {
@@ -794,7 +802,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         } ?: error("Whip data is unavailable while recovery is in progress")
     }
 
-    fun previewRestore(uri: Uri) = runIo("Backup validated") {
+    fun previewRestore(uri: Uri) = runIo("Backup validated", workingMessage = "Checking the selected backup", showSuccess = false) {
         val json = app.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
             ?: error("Could not read the selected file")
         if (EncryptedBackupCodec.isEncrypted(json)) {
@@ -806,7 +814,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         prepareRestore(json)
     }
 
-    fun unlockEncryptedRestore(passphrase: String) = runIo("Encrypted backup validated") {
+    fun unlockEncryptedRestore(passphrase: String) = runIo("Encrypted backup validated", workingMessage = "Unlocking the selected backup", showSuccess = false) {
         val encrypted = pendingEncryptedRestoreJson ?: error("Choose an encrypted backup first")
         val json = EncryptedBackupCodec.decrypt(encrypted, passphrase.toCharArray())
         prepareRestore(json)
@@ -816,7 +824,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun cancelEncryptedRestore() {
         pendingEncryptedRestoreJson = null
-        runtime.value = runtime.value.copy(encryptedRestorePending = false, message = null)
+        runtime.value = runtime.value.copy(encryptedRestorePending = false, operation = runtime.value.operation.withoutTerminalFeedback())
     }
 
     private suspend fun prepareRestore(json: String) {
@@ -826,7 +834,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         runtime.value = runtime.value.copy(preview = preview)
     }
 
-    fun confirmRestore() = runIo("Backup restored", requiresDataAccess = false) {
+    fun confirmRestore() = runIo("Backup restored", workingMessage = "Restoring the selected backup", requiresDataAccess = false) {
         app.restoreBackup(pendingRestoreJson ?: error("Choose a backup first"))
         pendingRestoreJson = null
         runtime.value = runtime.value.copy(preview = null)
@@ -834,7 +842,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun confirmMerge() {
         viewModelScope.launch {
-            runtime.value = runtime.value.copy(busy = true, message = null)
+            runtime.value = runtime.value.copy(busy = true, operation = OperationStatus.Running("Applying your changes"))
             runCatching {
                 withContext(Dispatchers.IO) {
                     app.withUserDataAccess {
@@ -850,27 +858,27 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             }.onSuccess { summary ->
                 pendingRestoreJson = null
                 runtime.value = runtime.value.copy(
-                    busy = false,
                     preview = null,
-                    message = "Imported ${summary.importedRecords} records · skipped ${summary.skippedExistingRecords} already present · kept current settings",
+                    busy = false,
+                    operation = OperationStatus.Succeeded("Imported ${summary.importedRecords} records · skipped ${summary.skippedExistingRecords} already present · kept current settings"),
                 )
             }.onFailure { error ->
-                runtime.value = runtime.value.copy(busy = false, message = error.message ?: "Merge failed")
+                runtime.value = runtime.value.copy(busy = false, operation = OperationStatus.Failed(error.message ?: "Merge failed", error))
             }
         }
     }
 
     fun cancelRestore() {
         pendingRestoreJson = null
-        runtime.value = runtime.value.copy(preview = null, message = null)
+        runtime.value = runtime.value.copy(preview = null, operation = runtime.value.operation.withoutTerminalFeedback())
     }
 
-    fun configurePortableBackupFolder(uri: Uri) = runIo("Backup folder ready") {
+    fun configurePortableBackupFolder(uri: Uri) = runIo("Backup folder ready", workingMessage = "Setting up the backup folder") {
         app.portableBackupManager.configureFolder(uri)
         app.portableBackupScheduler.sync(app.portableBackupManager.state.value)
     }
 
-    fun createPortableBackup() = runIo("Portable backup saved and verified") {
+    fun createPortableBackup() = runIo("Portable backup saved and verified", workingMessage = "Creating and verifying a portable backup") {
         app.withUserDataAccess {
             check(app.portableBackupManager.backupNow() is PortableBackupOutcome.Saved)
         } ?: error("Whip data is unavailable while recovery is in progress")
@@ -881,7 +889,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             app.portableBackupManager.setAutomaticEnabled(enabled)
             app.portableBackupScheduler.sync(app.portableBackupManager.state.value)
         }.onFailure { error ->
-            runtime.value = runtime.value.copy(message = error.message ?: "Could not update automatic backups")
+            runtime.value = runtime.value.copy(operation = OperationStatus.Failed(error.message ?: "Could not update automatic backups", error))
         }
     }
 
@@ -911,7 +919,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         return true
     }
 
-    fun clearPortableBackupFolder() = runIo("Backup folder forgotten; existing files were not deleted") {
+    fun clearPortableBackupFolder() = runIo("Backup folder forgotten; existing files were not deleted", workingMessage = "Disconnecting the backup folder") {
         app.portableBackupManager.clearFolder()
         app.portableBackupScheduler.sync(app.portableBackupManager.state.value)
     }
@@ -921,6 +929,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         onFailure: (Throwable) -> Unit = {},
     ) = runIo(
         success = "Whip reset; local data deleted",
+        workingMessage = "Resetting Whip",
         onSuccess = onSuccess,
         onFailure = onFailure,
         requiresDataAccess = false,
@@ -936,7 +945,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         onResult: (Result<String>) -> Unit = {},
     ) {
         viewModelScope.launch {
-            runtime.value = runtime.value.copy(busy = true, message = null)
+            runtime.value = runtime.value.copy(busy = true, operation = OperationStatus.Running("Applying your changes"))
             runCatching {
                 withContext(Dispatchers.IO) {
                     checkNotNull(app.withUserDataAccess {
@@ -944,10 +953,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                     }) { "Whip data is unavailable while recovery is in progress" }
                 }
             }.onSuccess { id ->
-                runtime.value = runtime.value.copy(busy = false, message = "Custom unit created")
+                runtime.value = runtime.value.copy(busy = false, operation = OperationStatus.Succeeded("Custom unit created"))
                 onResult(Result.success(id))
             }.onFailure { error ->
-                runtime.value = runtime.value.copy(busy = false, message = error.message ?: "Could not create custom unit")
+                runtime.value = runtime.value.copy(busy = false, operation = OperationStatus.Failed(error.message ?: "Could not create custom unit", error))
                 onResult(Result.failure(error))
             }
         }
@@ -1028,12 +1037,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
         return true
     }
-    fun consumeMessage() { runtime.value = runtime.value.copy(message = null) }
+    fun consumeMessage() { runtime.value = runtime.value.copy(operation = runtime.value.operation.withoutTerminalFeedback()) }
 
     private val reminderSettingsUpdateMutex = Mutex()
 
     private fun runIo(
         success: String,
+        workingMessage: String = "Applying your changes",
         successDetail: () -> String? = { null },
         onSuccess: () -> Unit = {},
         onFailure: (Throwable) -> Unit = {},
@@ -1042,7 +1052,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         block: suspend () -> Unit,
     ) {
         viewModelScope.launch {
-            runtime.value = runtime.value.copy(busy = true, message = null)
+            runtime.value = runtime.value.copy(busy = true, operation = OperationStatus.Running(workingMessage))
             try {
                 withContext(Dispatchers.IO) {
                     if (requiresDataAccess) {
@@ -1055,12 +1065,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                     }
                 }
                 val successMessage = listOfNotNull(success, successDetail()).joinToString(" · ")
-                runtime.value = runtime.value.copy(busy = false, message = successMessage.takeIf { showSuccess })
+                runtime.value = runtime.value.copy(busy = false, operation = if (showSuccess) OperationStatus.Succeeded(successMessage) else OperationStatus.Idle)
                 onSuccess()
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
-                runtime.value = runtime.value.copy(busy = false, message = error.message ?: "Operation failed")
+                runtime.value = runtime.value.copy(busy = false, operation = OperationStatus.Failed(error.message ?: "Operation failed", error))
                 onFailure(error)
             }
         }
@@ -1101,6 +1111,9 @@ private fun tagUsageKey(value: String): String = value.trim().lowercase(Locale.R
 private data class SettingsRuntime(
     val preview: BackupPreview? = null,
     val busy: Boolean = false,
-    val message: String? = null,
+    val operation: OperationStatus = OperationStatus.Idle,
     val encryptedRestorePending: Boolean = false,
 )
+
+private fun OperationStatus.withoutTerminalFeedback(): OperationStatus =
+    if (this is OperationStatus.Running) this else OperationStatus.Idle

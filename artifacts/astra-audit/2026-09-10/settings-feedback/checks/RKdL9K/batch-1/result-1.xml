@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="5" failures="0" errors="0" skipped="0" time="70.618" timestamp="2026-09-11T02:24:44" hostname="localhost">
+  <testsuite name="com.whip.app.DataPrivacyJourneyE2ETest" tests="4" failures="0" errors="0" skipped="0" time="66.971" timestamp="2026-09-11T02:24:44" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="wrongBackupPassphraseExplainsFailureInsideDialogAndRetries" classname="com.whip.app.DataPrivacyJourneyE2ETest" time="15.601" />
+    <testcase name="backupChoicesRemainClearInLightTheme" classname="com.whip.app.DataPrivacyJourneyE2ETest" time="18.823" />
+    <testcase name="backupChoicesPreserveRecordsAndSettingsAfterReopening" classname="com.whip.app.DataPrivacyJourneyE2ETest" time="19.027" />
+    <testcase name="invalidBackupIsReportedAsFailureAndCanBeReplaced" classname="com.whip.app.DataPrivacyJourneyE2ETest" time="13.52" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.SafetyChoiceUiTest" tests="1" failures="0" errors="0" skipped="0" time="2.717" timestamp="2026-09-11T02:24:44" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="replacementFailureStaysInItsConfirmationAndAllowsRetry" classname="com.whip.app.ui.SafetyChoiceUiTest" time="2.717" />
+  </testsuite>
+</testsuites>

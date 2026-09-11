@@ -1,5 +1,13 @@
 # User feedback and acceptance criteria
 
+### FB-20260910-004 — Finish the current fixes, release to the owner phone, and close the goal
+
+- Date/source: 2026-09-10, owner explicitly requests wrapping current work, explaining work not reached, releasing the new changes to the phone, then closing the goal.
+- Acceptance: Finish and proportionately verify the active Settings/backup-feedback increment; commit and push coherent work; advance the private release version and install the signed update in place on the selected owner phone. Preserve package/signer/install identity and existing data/history, verify artifact equality and startup smoke, then close this goal with an honest residual backlog. No further audit expansion or automatic continuation after delivery.
+- Scope: Supersedes FB-20260908-006's emulator-only boundary and exhaustive completion requirement for this closeout. This is an owner-directed bounded delivery, not a claim that every area or the final whole-product matrix was completed. Use the established private-phone lane; no Play Store publication requested.
+- Related: FB-20260910-001/002/003; DEC/IMP/VER-20260910-028; VER-20260910-029.
+- Status: In progress.
+
 ### FB-20260910-003 — Remove Health Connect from Whip
 
 - Date/source: 2026-09-10, owner steering: “health connect functionality should be purged from the app.”

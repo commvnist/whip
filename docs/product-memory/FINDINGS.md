@@ -1,5 +1,23 @@
 # Durable findings
 
+### FND-20260910-038 — Backup dialogs leave their failure feedback behind the modal
+
+- Severity/category: P1, recovery comprehension and accessible feedback ownership.
+- Observed: Native B94W3r selects an encrypted backup and submits a wrong passphrase. Original records remain exact, but the failed-result message renders on the obscured Settings page; the active unlock dialog only clears its field and disables Unlock. Its expected dialog-owned error assertion fails. Backup preview/replacement and reset callers also omit the existing dialog error slot in source.
+- Expected: The dialog accepting a consequential request owns its error, retry and busy boundary. Underlying page feedback must not duplicate or impersonate the modal outcome.
+- Evidence: Personally inspected build/astra-settings-feedback-20260910/unlock-before-phone/settings.data-controls.unlock-failure.png; B94W3r; SettingsScreens.kt encrypted restore, BackupRestorePreviewDialogs and reset callsites; PermanentDeleteDialog.error.
+- Related: FND-20260910-037; DEC/VER-20260910-028. Actual native decryption failure is reproduced; preview/reset missing bindings are source-confirmed neighboring paths, not claimed native failure injections.
+- Status: Verified in IMP/VER-20260910-028. Native wrong-passphrase/corrected retry and component replacement error/retry pass on phone/wide; preview/reset bindings retain their documented source-review scope.
+
+### FND-20260910-037 — Settings infers success or failure from message wording
+
+- Severity/category: P1, truthful failure feedback and recovery discovery.
+- Observed source: SettingsContent uses a six-word regex to decide error versus success. SettingsViewModel.prepareRestore rejects a mismatched checksum with "Backup checksum does not match", which matches none of those words and would render as green "Settings Updated". Native selected-preview frames in IMP-20260910-027 also show an unnecessary success banner behind the decision dialog.
+- Expected: The operation result owns its severity; arbitrary exception or authored wording cannot turn failure into success. Meaningful failure/completion feedback is discoverable after an asynchronous action. Opening a validated preview should be its own acknowledgement.
+- Evidence: SettingsScreens.kt result card, SettingsViewModel.kt runIo/prepareRestore and other runtime producers; AppRuntime.OperationStatus; artifacts/astra-audit/2026-09-10/data-controls/final-wide/settings.data-controls.preview.dark.png.
+- Related: FND-20260906-008 quiet feedback; IMP/VER-20260910-027. Preserve request ownership, exact data, native picker and destructive confirmation contracts.
+- Status: Verified in IMP/VER-20260910-028. Baseline Hx39y8 selects a checksum-invalid file through DocumentsUI, preserves original records, then fails the expected error-heading assertion. The personally reviewed native return frame shows green "Settings Updated" above "Backup checksum does not match". The result is visible without scrolling, so no visibility defect or new auto-scroll policy is inferred. Remediation uses DEC/VER-20260910-028.
+
 ### FND-20260910-036 — Backup choices lack a common reading structure and destructive entry panels dominate
 
 - Severity/category: P2, normal-scale hierarchy and shared visual consistency; design opportunity, not a demonstrated restore-data defect.

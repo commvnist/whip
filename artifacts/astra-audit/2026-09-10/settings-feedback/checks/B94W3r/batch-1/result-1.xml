@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="1" errors="0" skipped="0" time="12.788" timestamp="2026-09-11T02:19:50" hostname="localhost">
+  <testsuite name="com.whip.app.DataPrivacyJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="12.007" timestamp="2026-09-11T02:19:50" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="wrongBackupPassphraseExplainsFailureInsideDialogAndRetries" classname="com.whip.app.DataPrivacyJourneyE2ETest" time="12.007">
+      <failure>java.lang.AssertionError: Assert failed: The component with (Text + InputText + EditableText contains 'Wrong passphrase or encrypted backup was modified' (ignoreCase: false)) &amp;&amp; (hasAnyAncestorThat(IsDialog is defined)) is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.DataPrivacyJourneyE2ETest.wrongBackupPassphraseExplainsFailureInsideDialogAndRetries(DataPrivacyJourneyE2ETest.kt:100)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

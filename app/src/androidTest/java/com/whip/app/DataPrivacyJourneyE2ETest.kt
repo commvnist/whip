@@ -9,9 +9,13 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
+import androidx.lifecycle.ViewModelProvider
 import com.whip.app.core.AppSettings
 import com.whip.app.core.AppThemeMode
 import com.whip.app.domain.TaskDraft
+import com.whip.app.data.EncryptedBackupCodec
+import com.whip.app.ui.SettingsViewModel
+import org.json.JSONObject
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -33,6 +37,96 @@ class DataPrivacyJourneyE2ETest {
 
     @Test fun backupChoicesPreserveRecordsAndSettingsAfterReopening() = journey(AppThemeMode.Dark)
     @Test fun backupChoicesRemainClearInLightTheme() = journey(AppThemeMode.Light)
+
+    @Test fun invalidBackupIsReportedAsFailureAndCanBeReplaced() {
+        val valid = runBlocking {
+            app.backupRepository.deleteAllData()
+            app.settingsRepository.update { AppSettings(setupCompleted = true, themeMode = AppThemeMode.Dark, dynamicColor = false) }
+            app.taskRepository.create(TaskDraft(title = "Keep this original record", notes = "An invalid backup must not change this"))
+            app.backupRepository.exportBackup()
+        }
+        val before = tasks()
+        writeFixture(JSONObject(valid).put("checksumSha256", "invalid").toString())
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            lateinit var settingsViewModel: SettingsViewModel
+            scenario.onActivity { settingsViewModel = ViewModelProvider(it)[SettingsViewModel::class.java] }
+            compose.onNodeWithContentDescription("Open Settings").performClick()
+            compose.openSettingsCategory("Data & Privacy")
+            scroll(hasText("Preview and Restore Backup")).performClick()
+            selectFixture()
+            compose.waitUntil(10_000) { settingsViewModel.uiState.value.message == "Backup checksum does not match" }
+            capture("invalid-return")
+            scroll(hasText("Backup checksum does not match")).assertIsDisplayed()
+            assertEquals(before, tasks())
+            compose.onNodeWithText("Action Not Completed").assertIsDisplayed()
+            compose.onNodeWithText("Dismiss").performClick()
+            writeFixture(valid)
+            scroll(hasText("Preview and Restore Backup")).performClick()
+            selectFixture()
+            compose.waitUntil(10_000) { compose.onAllNodesWithTag("merge-new-data").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("merge-new-data").assertIsEnabled()
+            assertNull(settingsViewModel.uiState.value.message)
+            capture("corrected-preview")
+            compose.onNodeWithText("Cancel").performClick()
+            scenario.recreate()
+            assertEquals(before, tasks())
+            compose.onAllNodesWithText("Backup checksum does not match").assertCountEquals(0)
+        }
+    }
+
+    @Test fun wrongBackupPassphraseExplainsFailureInsideDialogAndRetries() {
+        val encrypted = runBlocking {
+            app.backupRepository.deleteAllData()
+            app.settingsRepository.update { AppSettings(setupCompleted = true, themeMode = AppThemeMode.Light, dynamicColor = false) }
+            app.taskRepository.create(TaskDraft(title = "Keep encrypted history", notes = "Original encrypted record"))
+            EncryptedBackupCodec.encrypt(app.backupRepository.exportBackup(), "correct-test-passphrase".toCharArray())
+        }
+        val before = tasks()
+        writeFixture(encrypted)
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            lateinit var settingsViewModel: SettingsViewModel
+            scenario.onActivity { settingsViewModel = ViewModelProvider(it)[SettingsViewModel::class.java] }
+            compose.onNodeWithContentDescription("Open Settings").performClick()
+            compose.openSettingsCategory("Data & Privacy")
+            scroll(hasText("Preview and Restore Backup")).performClick()
+            selectFixture()
+            compose.waitUntil(10_000) { compose.onAllNodesWithText("Unlock Encrypted Backup").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText("Passphrase").performTextReplacement("wrong-test-passphrase")
+            compose.onNodeWithText("Unlock and Preview").performClick()
+            val failure = "Wrong passphrase or encrypted backup was modified"
+            compose.waitUntil(10_000) { settingsViewModel.uiState.value.message == failure }
+            capture("unlock-failure")
+            assertEquals(before, tasks())
+            compose.onNode(hasText(failure) and hasAnyAncestor(isDialog())).assertIsDisplayed()
+            compose.onNodeWithText("Passphrase").performTextReplacement("correct-test-passphrase")
+            compose.onNodeWithText("Unlock and Preview").performClick()
+            compose.waitUntil(10_000) { compose.onAllNodesWithTag("merge-new-data").fetchSemanticsNodes().isNotEmpty() }
+            assertNull(settingsViewModel.uiState.value.message)
+            capture("unlocked-preview")
+            compose.onNodeWithTag("merge-new-data").performScrollTo().performClick()
+            compose.waitUntil(10_000) { settingsViewModel.uiState.value.message?.startsWith("Imported ") == true }
+            scenario.recreate()
+            assertEquals(before, tasks())
+            scroll(hasText("Action Completed")).assertIsDisplayed()
+        }
+    }
+
+    private fun writeFixture(json: String) {
+        val encoded = Base64.encodeToString(json.toByteArray(), Base64.NO_WRAP)
+        device.executeShellCommand("mkdir -p /sdcard/Download")
+        device.executeShellCommand("sh -c echo\${IFS}$encoded|base64\${IFS}-d>/sdcard/Download/$fileName")
+        assertEquals(json, device.executeShellCommand("cat /sdcard/Download/$fileName"))
+    }
+
+    private fun selectFixture() {
+        awaitDocuments()
+        assertTrue(device.wait(Until.hasObject(By.desc("Show roots")), 10_000))
+        device.findObject(By.desc("Show roots")).click()
+        assertTrue(device.wait(Until.hasObject(By.text("Downloads")), 10_000))
+        device.findObjects(By.text("Downloads")).last().click()
+        assertTrue(device.wait(Until.hasObject(By.text(fileName)), 10_000))
+        device.findObject(By.text(fileName)).click()
+    }
 
     private fun journey(theme: AppThemeMode) {
         val backup = runBlocking {

@@ -113,6 +113,7 @@ import com.whip.app.reminders.RestTimerNotifications
 import com.whip.app.reminders.FocusTimerNotifications
 import com.whip.app.BuildConfig
 import com.whip.app.data.BackupPreview
+import com.whip.app.core.OperationStatus
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -417,23 +418,20 @@ internal fun SettingsContent(
         if (state.busy) item {
             WhipStatusCard(
                 kind = WhipStatusKind.Loading,
-                title = "Updating Settings",
-                message = "Your changes are being applied on this device.",
+                title = "Working",
+                message = (state.operation as? OperationStatus.Running)?.message ?: "Your request is in progress.",
                 modifier = Modifier.testTag("settings-loading-status"),
             )
         }
-        state.message?.let { message -> item {
-            val messageKind = if (message.contains(
-                    Regex("failed|error|could not|unable|denied|unavailable", RegexOption.IGNORE_CASE),
-                )
-            ) {
+        state.message?.takeIf { state.backupPreview == null && !state.encryptedRestorePending && !confirmDelete }?.let { message -> item {
+            val messageKind = if (state.operation is OperationStatus.Failed) {
                 WhipStatusKind.Error
             } else {
                 WhipStatusKind.Success
             }
             WhipStatusCard(
                 kind = messageKind,
-                title = if (messageKind == WhipStatusKind.Error) "Action Not Completed" else "Settings Updated",
+                title = if (messageKind == WhipStatusKind.Error) "Action Not Completed" else "Action Completed",
                 message = message,
                 actionLabel = "Dismiss",
                 onAction = viewModel::consumeMessage,
@@ -1351,9 +1349,11 @@ internal fun SettingsContent(
                 WhipActionRow(
                     title = stringResource(R.string.settings_reset_entry_title),
                     onClick = {
+                        viewModel.consumeMessage()
                         resetSubmitted = false
                         confirmDelete = true
                     },
+                    enabled = !state.busy,
                     modifier = Modifier.testTag("reset-whip-action").semantics {
                         stateDescription = destructiveActionDescription
                     },
@@ -1387,6 +1387,7 @@ internal fun SettingsContent(
         BackupRestorePreviewDialogs(
             preview = preview,
             busy = state.busy,
+            error = (state.operation as? OperationStatus.Failed)?.message,
             zoneId = settings.zoneId(),
             locale = LocalConfiguration.current.locales[0],
             onCancel = viewModel::cancelRestore,
@@ -1442,17 +1443,28 @@ internal fun SettingsContent(
     }
     if (state.encryptedRestorePending) {
         PaneAwareAlertDialog(
-            onDismissRequest = { restorePassphrase = ""; viewModel.cancelEncryptedRestore() },
+            onDismissRequest = { if (!state.busy) { restorePassphrase = ""; viewModel.cancelEncryptedRestore() } },
             title = { Text("Unlock Encrypted Backup") },
             text = {
-                OutlinedTextField(
-                    value = restorePassphrase,
-                    onValueChange = { restorePassphrase = it },
-                    label = { Text("Passphrase") },
-                    visualTransformation = PasswordVisualTransformation(),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                WhipDialogBody {
+                    (state.operation as? OperationStatus.Failed)?.let { failure ->
+                        WhipStatusCard(
+                            kind = WhipStatusKind.Error,
+                            title = "Could Not Unlock Backup",
+                            message = failure.message,
+                            modifier = Modifier.testTag("backup-unlock-error"),
+                        )
+                    }
+                    OutlinedTextField(
+                        value = restorePassphrase,
+                        onValueChange = { restorePassphrase = it },
+                        enabled = !state.busy,
+                        label = { Text("Passphrase") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             },
             confirmButton = {
                 WhipTextButton(
@@ -1461,9 +1473,9 @@ internal fun SettingsContent(
                         viewModel.unlockEncryptedRestore(restorePassphrase)
                         restorePassphrase = ""
                     },
-                ) { Text("Unlock and Preview") }
+                ) { Text(if (state.busy) "Unlocking…" else "Unlock and Preview") }
             },
-            dismissButton = { WhipTextButton(onClick = { restorePassphrase = ""; viewModel.cancelEncryptedRestore() }) { Text("Cancel") } },
+            dismissButton = { WhipTextButton(enabled = !state.busy, onClick = { restorePassphrase = ""; viewModel.cancelEncryptedRestore() }) { Text("Cancel") } },
         )
     }
     if (confirmDelete) {
@@ -1478,6 +1490,7 @@ internal fun SettingsContent(
             ),
             confirmLabel = stringResource(R.string.settings_reset_confirm_action),
             busy = state.busy || resetSubmitted,
+            error = (state.operation as? OperationStatus.Failed)?.message,
             confirmModifier = Modifier.testTag("confirm-reset-whip").semantics {
                 stateDescription = destructiveActionDescription
             },
@@ -1615,6 +1628,7 @@ internal fun BackupRestorePreviewDialogs(
     modifier: Modifier = Modifier,
     preview: BackupPreview,
     busy: Boolean,
+    error: String? = null,
     zoneId: ZoneId = ZoneId.systemDefault(),
     locale: Locale = Locale.getDefault(),
     onCancel: () -> Unit,
@@ -1654,6 +1668,14 @@ internal fun BackupRestorePreviewDialogs(
                         .verticalScroll(rememberScrollState()),
                 ) {
                     WhipDialogHeading("Import This Whip Backup?")
+                    error?.let {
+                        WhipStatusCard(
+                            kind = WhipStatusKind.Error,
+                            title = "Import Not Completed",
+                            message = it,
+                            modifier = Modifier.testTag("backup-preview-error"),
+                        )
+                    }
                     Text(
                         "${preview.totalRecords} $recordLabel · Exported $exportedAt",
                         style = MaterialTheme.typography.bodySmall,
@@ -1734,6 +1756,7 @@ internal fun BackupRestorePreviewDialogs(
             confirmLabel = replaceEverythingLabel,
             busyLabel = stringResource(R.string.settings_backup_replacing),
             busy = busy || replacementSubmitted,
+            error = error,
             confirmModifier = Modifier.testTag("confirm-replace-everything").semantics {
                 stateDescription = destructiveActionDescription
             },

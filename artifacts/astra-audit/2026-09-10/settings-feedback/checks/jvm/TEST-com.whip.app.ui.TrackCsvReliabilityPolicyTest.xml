@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.TrackCsvReliabilityPolicyTest" tests="21" skipped="0" failures="0" errors="0" timestamp="2026-09-11T02:39:52.473Z" hostname="beast" time="0.047">
+  <properties/>
+  <testcase name="previewCellBudgetRejectsWideLargeImportsBeforeParsing" classname="com.whip.app.ui.TrackCsvReliabilityPolicyTest" time="0.003"/>
+  <testcase name="oversizedFileHasActionableLimit" classname="com.whip.app.ui.TrackCsvReliabilityPolicyTest" time="0.014"/>
+  <testcase name="exportStopsBeforeCrossingItsByteCeiling" classname="com.whip.app.ui.TrackCsvReliabilityPolicyTest" time="0.006"/>
+  <testcase name="defaultMappingRecognizesExportedNumberColumns" classname="com.whip.app.ui.TrackCsvReliabilityPolicyTest" time="0.0"/>
+  <testcase name="completedImportSuppressesAStaleTargetLookupFailure" classname="com.whip.app.ui.TrackCsvReliabilityPolicyTest" time="0.0"/>
+  <testcase name="compactImportSessionSurvivesProcessRecreationOnlyWithinItsDataGeneration" classname="com.whip.app.ui.TrackCsvReliabilityPolicyTest" time="0.002"/>
+  <testcase name="rowAndColumnLimitsRecommendHowToRecover" classname="com.whip.app.ui.TrackCsvReliabilityPolicyTest" time="0.003"/>
+  <testcase name="quotedEmptyRecordsCannotBypassTheRowLimit" classname="com.whip.app.ui.TrackCsvReliabilityPolicyTest" time="0.001"/>
+  <testcase name="cancellingAReplacementPickerPreservesTheReviewedImportSession" classname="com.whip.app.ui.TrackCsvReliabilityPolicyTest" time="0.0"/>
+  <testcase name="nestedTrackConditionsRoundTripThroughRotationEncoding" classname="com.whip.app.ui.TrackCsvReliabilityPolicyTest" time="0.001"/>
+  <testcase name="readyAdmissionAndReceiptRequireTheExactOwnedRequest" classname="com.whip.app.ui.TrackCsvReliabilityPolicyTest" time="0.002"/>
+  <testcase name="survivingStoreStampsNewImportsWithTheLivePostRestoreGeneration" classname="com.whip.app.ui.TrackCsvReliabilityPolicyTest" time="0.001"/>
+  <testcase name="targetLookupFailureIsNotClassifiedAsADeletedTrack" classname="com.whip.app.ui.TrackCsvReliabilityPolicyTest" time="0.0"/>
+  <testcase name="savedSessionOwnsBatchPayloadPreparedRequestAndPreviewRevisionWithoutPayload" classname="com.whip.app.ui.TrackCsvReliabilityPolicyTest" time="0.008"/>
+  <testcase name="exportPropagatesCancellationAtFormattingCheckpoints" classname="com.whip.app.ui.TrackCsvReliabilityPolicyTest" time="0.002"/>
+  <testcase name="previewFailureBecomesRecoverableErrorInsteadOfReadyWithoutPreview" classname="com.whip.app.ui.TrackCsvReliabilityPolicyTest" time="0.001"/>
+  <testcase name="mappingChangeInvalidatesOnlyPreparedRequestAndRejectsStalePreparation" classname="com.whip.app.ui.TrackCsvReliabilityPolicyTest" time="0.0"/>
+  <testcase name="databaseImportCannotDismissItsSessionDialog" classname="com.whip.app.ui.TrackCsvReliabilityPolicyTest" time="0.0"/>
+  <testcase name="quotedNewlinesAreOneCsvRecord" classname="com.whip.app.ui.TrackCsvReliabilityPolicyTest" time="0.0"/>
+  <testcase name="compactImportSessionRestoresByRereadingItsUri" classname="com.whip.app.ui.TrackCsvReliabilityPolicyTest" time="0.001"/>
+  <testcase name="csvWriteFailurePropagatesToTheExportRecoveryBoundary" classname="com.whip.app.ui.TrackCsvReliabilityPolicyTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

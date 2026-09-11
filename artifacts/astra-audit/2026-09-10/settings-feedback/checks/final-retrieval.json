@@ -1,0 +1,122 @@
+[
+  {
+    "device": "final-phone",
+    "remote": "/sdcard/Download/whip-ui-catalog/settings.data-controls.invalid-return (3).png",
+    "local": "build/astra-settings-feedback-20260910/final-phone/settings.data-controls.invalid-return.png",
+    "sha256": "f1b6e2a34b1f5ebd6c111b4a4ea5d5d6e3c932d376b019ebe9ed1f61d63c62b1"
+  },
+  {
+    "device": "final-phone",
+    "remote": "/sdcard/Download/whip-ui-catalog/settings.data-controls.invalid-return (3).xml",
+    "local": "build/astra-settings-feedback-20260910/final-phone/settings.data-controls.invalid-return.xml",
+    "sha256": "dbb22755171860c11fbf0165876a8ce465e2dba1926ed82f9bf39bc62ff5d19c"
+  },
+  {
+    "device": "final-phone",
+    "remote": "/sdcard/Download/whip-ui-catalog/settings.data-controls.corrected-preview (1).png",
+    "local": "build/astra-settings-feedback-20260910/final-phone/settings.data-controls.corrected-preview.png",
+    "sha256": "05ab8ee32cbc278587fc8b481513402148a2fe7c64ab9e82fd4e5b08b7b13474"
+  },
+  {
+    "device": "final-phone",
+    "remote": "/sdcard/Download/whip-ui-catalog/settings.data-controls.corrected-preview (1).xml",
+    "local": "build/astra-settings-feedback-20260910/final-phone/settings.data-controls.corrected-preview.xml",
+    "sha256": "fa897e15e60501566bf85b8edd3b52ecf16c335c7a9dc4c11cac8d2e72a96bc9"
+  },
+  {
+    "device": "final-phone",
+    "remote": "/sdcard/Download/whip-ui-catalog/settings.data-controls.unlock-failure (2).png",
+    "local": "build/astra-settings-feedback-20260910/final-phone/settings.data-controls.unlock-failure.png",
+    "sha256": "d2ca5fc5ec8ce8471222687381c9da220071fb3cdc7824b76215abad3d98bab9"
+  },
+  {
+    "device": "final-phone",
+    "remote": "/sdcard/Download/whip-ui-catalog/settings.data-controls.unlock-failure (2).xml",
+    "local": "build/astra-settings-feedback-20260910/final-phone/settings.data-controls.unlock-failure.xml",
+    "sha256": "0b5f295317ccbb434460d186d37a6f0ba26439143a3358c9ad371f80301b8cbe"
+  },
+  {
+    "device": "final-phone",
+    "remote": "/sdcard/Download/whip-ui-catalog/settings.data-controls.unlocked-preview (1).png",
+    "local": "build/astra-settings-feedback-20260910/final-phone/settings.data-controls.unlocked-preview.png",
+    "sha256": "539b61c7542391be3a568595cf5ffe49b46616576c12f87ba6257603bfa56e4a"
+  },
+  {
+    "device": "final-phone",
+    "remote": "/sdcard/Download/whip-ui-catalog/settings.data-controls.unlocked-preview (1).xml",
+    "local": "build/astra-settings-feedback-20260910/final-phone/settings.data-controls.unlocked-preview.xml",
+    "sha256": "f03a314b272904580e002a1af3c6d5b2c3014b8622aaaaf18ac41daa8694b0d9"
+  },
+  {
+    "device": "final-phone",
+    "remote": "/sdcard/Download/whip-ui-catalog/settings.restore.failure-retry (1).png",
+    "local": "build/astra-settings-feedback-20260910/final-phone/settings.restore.failure-retry.png",
+    "sha256": "5abade7898dd7fcd8341aac6b78904d04a0462c25f3999cce517c4f13dfcd439"
+  },
+  {
+    "device": "final-phone",
+    "remote": "/sdcard/Download/whip-ui-catalog/settings.restore.failure-retry (1).xml",
+    "local": "build/astra-settings-feedback-20260910/final-phone/settings.restore.failure-retry.xml",
+    "sha256": "628302a757be44fa55bdbf5f1b612c88261137da07a02e200bb7ef77655abcb0"
+  },
+  {
+    "device": "final-wide",
+    "remote": "/sdcard/Download/whip-ui-catalog/settings.data-controls.invalid-return.png",
+    "local": "build/astra-settings-feedback-20260910/final-wide/settings.data-controls.invalid-return.png",
+    "sha256": "fcdd244d9d9b42663b0ceaeb9685d6fbce61b83fa2885f3db103787aa47ec9d0"
+  },
+  {
+    "device": "final-wide",
+    "remote": "/sdcard/Download/whip-ui-catalog/settings.data-controls.invalid-return.xml",
+    "local": "build/astra-settings-feedback-20260910/final-wide/settings.data-controls.invalid-return.xml",
+    "sha256": "8cab877f35bf33adb2b152f63df2c90aab1e427d40ffd6749a48b2cc093b20cd"
+  },
+  {
+    "device": "final-wide",
+    "remote": "/sdcard/Download/whip-ui-catalog/settings.data-controls.corrected-preview.png",
+    "local": "build/astra-settings-feedback-20260910/final-wide/settings.data-controls.corrected-preview.png",
+    "sha256": "08ab6d29cacd4c110c47ad7c5204f9202610ecf1e0166d4b7b71ff8863b9add0"
+  },
+  {
+    "device": "final-wide",
+    "remote": "/sdcard/Download/whip-ui-catalog/settings.data-controls.corrected-preview.xml",
+    "local": "build/astra-settings-feedback-20260910/final-wide/settings.data-controls.corrected-preview.xml",
+    "sha256": "cea937dd578fb6e92d409e801f6635274e179723c8eb277d3d5ca48256d3f04c"
+  },
+  {
+    "device": "final-wide",
+    "remote": "/sdcard/Download/whip-ui-catalog/settings.data-controls.unlock-failure.png",
+    "local": "build/astra-settings-feedback-20260910/final-wide/settings.data-controls.unlock-failure.png",
+    "sha256": "7690d87ce64f038d065022b79c236274ebf2c4c77489cacddb4edb7538985dca"
+  },
+  {
+    "device": "final-wide",
+    "remote": "/sdcard/Download/whip-ui-catalog/settings.data-controls.unlock-failure.xml",
+    "local": "build/astra-settings-feedback-20260910/final-wide/settings.data-controls.unlock-failure.xml",
+    "sha256": "8636602a0e737ba05b1579cffbe6d610c02cb041d0d43f18fdcf3b28ea082a37"
+  },
+  {
+    "device": "final-wide",
+    "remote": "/sdcard/Download/whip-ui-catalog/settings.data-controls.unlocked-preview.png",
+    "local": "build/astra-settings-feedback-20260910/final-wide/settings.data-controls.unlocked-preview.png",
+    "sha256": "1c29c19b676453afdf9a24f8789b7f7799d7e4240e586c3ee05e9c9c34187ebd"
+  },
+  {
+    "device": "final-wide",
+    "remote": "/sdcard/Download/whip-ui-catalog/settings.data-controls.unlocked-preview.xml",
+    "local": "build/astra-settings-feedback-20260910/final-wide/settings.data-controls.unlocked-preview.xml",
+    "sha256": "b69dae29bf15f784296b697b35720c179b0cee265bc6730cf7186aac6bc5e1e9"
+  },
+  {
+    "device": "final-wide",
+    "remote": "/sdcard/Download/whip-ui-catalog/settings.restore.failure-retry.png",
+    "local": "build/astra-settings-feedback-20260910/final-wide/settings.restore.failure-retry.png",
+    "sha256": "64d89c1bde9e8b71ced470cb6050bd853385627da208e73d3edd4e2a021db2ea"
+  },
+  {
+    "device": "final-wide",
+    "remote": "/sdcard/Download/whip-ui-catalog/settings.restore.failure-retry.xml",
+    "local": "build/astra-settings-feedback-20260910/final-wide/settings.restore.failure-retry.xml",
+    "sha256": "71e54e6ff2c58277aa8f6fe9b8dda5e1d31cfdfdafc66aa8958aa6182bbfbbe2"
+  }
+]

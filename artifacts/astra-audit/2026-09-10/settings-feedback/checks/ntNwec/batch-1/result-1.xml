@@ -1,0 +1,128 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="55" failures="0" errors="0" skipped="0" time="152.777" timestamp="2026-09-11T02:30:49" hostname="localhost">
+  <testsuite name="com.whip.app.AppSettingsPersistenceTest" tests="5" failures="0" errors="0" skipped="0" time="0.156" timestamp="2026-09-11T02:30:49" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="concurrentRepositoryInstancesDoNotLoseUnrelatedSettingsUpdates" classname="com.whip.app.AppSettingsPersistenceTest" time="0.1" />
+    <testcase name="confirmedUpdateReturnsOnlyAfterTheValueIsDurableAndRecreatable" classname="com.whip.app.AppSettingsPersistenceTest" time="0.001" />
+    <testcase name="obsoletePreferenceKeysAreIgnoredAndAnExplicitSmartCaptureOptOutPersists" classname="com.whip.app.AppSettingsPersistenceTest" time="0.028" />
+    <testcase name="everyUserEditablePreferenceSurvivesRepositoryRecreation" classname="com.whip.app.AppSettingsPersistenceTest" time="0.027" />
+    <testcase name="retiredIntegrationPreferencesAreRemovedWithoutChangingOrdinarySettings" classname="com.whip.app.AppSettingsPersistenceTest" time="0.0" />
+  </testsuite>
+  <testsuite name="com.whip.app.AreaOrganizationJourneyE2ETest" tests="3" failures="0" errors="0" skipped="0" time="57.034" timestamp="2026-09-11T02:30:49" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="moveAndMergeKeepSavedHistoryAndSearchRecoverable" classname="com.whip.app.AreaOrganizationJourneyE2ETest" time="18.799" />
+    <testcase name="createColorOrderAndArchivedIdentitySurviveRecreation" classname="com.whip.app.AreaOrganizationJourneyE2ETest" time="25.618" />
+    <testcase name="reviewedCleanupPreservesOrDeletesOnlyTheAssignedHistory" classname="com.whip.app.AreaOrganizationJourneyE2ETest" time="12.617" />
+  </testsuite>
+  <testsuite name="com.whip.app.BackupRepositoryTest" tests="25" failures="0" errors="0" skipped="0" time="2.846" timestamp="2026-09-11T02:30:49" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="successfulReplaceRestoreClearsPrivateCsvReceiptThroughTrackCascadeWithoutRecreatingIt" classname="com.whip.app.BackupRepositoryTest" time="0.203" />
+    <testcase name="privateCsvImportReceiptIsExcludedFromPortableBackupPreservedByMergeAndClearedByDeleteAll" classname="com.whip.app.BackupRepositoryTest" time="0.127" />
+    <testcase name="duplicateStableIdentityIsRejectedEvenWithAValidChecksum" classname="com.whip.app.BackupRepositoryTest" time="0.051" />
+    <testcase name="mergeRemapsPerExerciseTrainingMaxInvalidationEvidenceWhenExerciseIdsCollide" classname="com.whip.app.BackupRepositoryTest" time="0.127" />
+    <testcase name="nonCurrentBackupVersionsOrTableSetsCannotBePreviewedOrRestored" classname="com.whip.app.BackupRepositoryTest" time="0.077" />
+    <testcase name="malformedCustomUnitsAreRejectedBeforeLiveDataOrSettingsChange" classname="com.whip.app.BackupRepositoryTest" time="0.102" />
+    <testcase name="elapsedGoalBackupAndCsvPreserveItsAuthoritativeStartAndView" classname="com.whip.app.BackupRepositoryTest" time="0.077" />
+    <testcase name="mergeReconcilesSameNameAreasAndRemapsAssignments" classname="com.whip.app.BackupRepositoryTest" time="0.077" />
+    <testcase name="retiredIntegrationSettingsAreIgnoredInOldBackupsAndAbsentFromNewExports" classname="com.whip.app.BackupRepositoryTest" time="0.077" />
+    <testcase name="deleteAllDataDoesNotDeleteRecordsWhenResetSettingsCannotBeConfirmed" classname="com.whip.app.BackupRepositoryTest" time="0.052" />
+    <testcase name="tamperedBackupIsRejectedBeforeItCanReplaceLiveData" classname="com.whip.app.BackupRepositoryTest" time="0.076" />
+    <testcase name="replaceRestoreRejectsAUnitConversionThatContradictsCanonicalHistoryBeforeMutation" classname="com.whip.app.BackupRepositoryTest" time="0.127" />
+    <testcase name="goalLifecycleSnapshotsArchiveStateAndElapsedResetHistoryRoundTrip" classname="com.whip.app.BackupRepositoryTest" time="0.127" />
+    <testcase name="failedReplaceRestoreRollsBackTrackCascadeAndPreservesPrivateCsvReceipt" classname="com.whip.app.BackupRepositoryTest" time="0.101" />
+    <testcase name="areaIdentityAndScopeRoundTripAcrossEveryProductivityDomain" classname="com.whip.app.BackupRepositoryTest" time="0.101" />
+    <testcase name="malformedGymUnitAndCanonicalContractsAreRejectedBeforeLiveMutation" classname="com.whip.app.BackupRepositoryTest" time="0.253" />
+    <testcase name="mergeRejectsTheSameCustomUnitIdentityWithADifferentImmutableContract" classname="com.whip.app.BackupRepositoryTest" time="0.052" />
+    <testcase name="sixOfEightActionsUndoAndBackupRemainOneTruthfulPeriodOutcome" classname="com.whip.app.BackupRepositoryTest" time="0.101" />
+    <testcase name="fullBackupRoundTripsEveryFirstClassDomainAndCrossDomainRelationship" classname="com.whip.app.BackupRepositoryTest" time="0.252" />
+    <testcase name="restoreDoesNotReportSuccessUntilSettingsAreDurable" classname="com.whip.app.BackupRepositoryTest" time="0.027" />
+    <testcase name="crossOwnerHistoryAndUnknownEnumsAreRejectedBeforeLiveMutation" classname="com.whip.app.BackupRepositoryTest" time="0.177" />
+    <testcase name="backupPreviewAndTransactionalRestoreRoundTrip" classname="com.whip.app.BackupRepositoryTest" time="0.127" />
+    <testcase name="portableBackupReviewsActiveTimerPrivateRecoveryPreservesItAndMergeDropsIt" classname="com.whip.app.BackupRepositoryTest" time="0.152" />
+    <testcase name="mergeIsAtomicIdempotentRelationshipSafeAndKeepsCurrentSettings" classname="com.whip.app.BackupRepositoryTest" time="0.127" />
+    <testcase name="machineExerciseLinksAndLevelDirectionRoundTrip" classname="com.whip.app.BackupRepositoryTest" time="0.076" />
+  </testsuite>
+  <testsuite name="com.whip.app.CustomUnitIntegrityTest" tests="7" failures="0" errors="0" skipped="0" time="0.211" timestamp="2026-09-11T02:30:49" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="versionRetryCannotForkAndHistoryKeepsItsOriginalUnit" classname="com.whip.app.CustomUnitIntegrityTest" time="0.026" />
+    <testcase name="measurementValueAndUnitMustAlwaysBeStoredAsAPair" classname="com.whip.app.CustomUnitIntegrityTest" time="0.027" />
+    <testcase name="anAlreadyArchivedSourceCannotForkConversionVersions" classname="com.whip.app.CustomUnitIntegrityTest" time="0.051" />
+    <testcase name="exactCreateIsReplaySafeAndRejectsIdentityCollision" classname="com.whip.app.CustomUnitIntegrityTest" time="0.027" />
+    <testcase name="staleRenameAndArchiveCannotOverwriteAConcurrentEdit" classname="com.whip.app.CustomUnitIntegrityTest" time="0.027" />
+    <testcase name="normalizedEnsureCannotOverwriteAnExistingConversionIdentity" classname="com.whip.app.CustomUnitIntegrityTest" time="0.026" />
+    <testcase name="authoredBoundsAndFinitePositiveConversionAreEnforced" classname="com.whip.app.CustomUnitIntegrityTest" time="0.027" />
+  </testsuite>
+  <testsuite name="com.whip.app.CustomUnitJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="20.392" timestamp="2026-09-11T02:30:49" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="createRenameVersionAndArchivePreserveRecordedMeaning" classname="com.whip.app.CustomUnitJourneyE2ETest" time="20.392" />
+  </testsuite>
+  <testsuite name="com.whip.app.DataEpochBoundaryTest" tests="2" failures="0" errors="0" skipped="0" time="0.027" timestamp="2026-09-11T02:30:49" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="trulyFreshInstallEstablishesCurrentMarkerWithoutReset" classname="com.whip.app.DataEpochBoundaryTest" time="0.001" />
+    <testcase name="markerStatePersistsAndInterruptedResetResumes" classname="com.whip.app.DataEpochBoundaryTest" time="0.026" />
+  </testsuite>
+  <testsuite name="com.whip.app.DataPrivacyJourneyE2ETest" tests="4" failures="0" errors="0" skipped="0" time="60.392" timestamp="2026-09-11T02:30:49" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="wrongBackupPassphraseExplainsFailureInsideDialogAndRetries" classname="com.whip.app.DataPrivacyJourneyE2ETest" time="12.688" />
+    <testcase name="backupChoicesRemainClearInLightTheme" classname="com.whip.app.DataPrivacyJourneyE2ETest" time="17.266" />
+    <testcase name="backupChoicesPreserveRecordsAndSettingsAfterReopening" classname="com.whip.app.DataPrivacyJourneyE2ETest" time="17.274" />
+    <testcase name="invalidBackupIsReportedAsFailureAndCanBeReplaced" classname="com.whip.app.DataPrivacyJourneyE2ETest" time="13.164" />
+  </testsuite>
+  <testsuite name="com.whip.app.EncryptedBackupCodecTest" tests="2" failures="0" errors="0" skipped="0" time="2.738" timestamp="2026-09-11T02:30:49" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="authenticatedBackupRoundTripsWithoutPersistingPassphrase" classname="com.whip.app.EncryptedBackupCodecTest" time="1.181" />
+    <testcase name="wrongPassphraseAndTamperingAreRejected" classname="com.whip.app.EncryptedBackupCodecTest" time="1.557" />
+  </testsuite>
+  <testsuite name="com.whip.app.LegacyHealthHistoryTest" tests="5" failures="0" errors="0" skipped="0" time="0.333" timestamp="2026-09-11T02:30:49" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="retirementPreservesCompleteProjectedAndManualHistoryAndAllowsNewCheckIns" classname="com.whip.app.LegacyHealthHistoryTest" time="0.101" />
+    <testcase name="installedAppHasNoHealthPermissionsActivitiesOrSdk" classname="com.whip.app.LegacyHealthHistoryTest" time="0.001" />
+    <testcase name="interruptedRetirementRollsBackAllHabitsAndLogsThenRetriesExactlyOnce" classname="com.whip.app.LegacyHealthHistoryTest" time="0.052" />
+    <testcase name="anEmptyRetiredSourceBecomesManualWithoutInventingHistory" classname="com.whip.app.LegacyHealthHistoryTest" time="0.027" />
+    <testcase name="oldBackupsRestoreAndMergeHistoryWithoutRestoringTheSourceLink" classname="com.whip.app.LegacyHealthHistoryTest" time="0.152" />
+  </testsuite>
+  <testsuite name="com.whip.app.LegacyImportJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="7.739" timestamp="2026-09-11T02:30:49" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="restoredHabitContinuesManuallyAndSettingsFocusOnLocalData" classname="com.whip.app.LegacyImportJourneyE2ETest" time="7.739" />
+  </testsuite>
+</testsuites>
