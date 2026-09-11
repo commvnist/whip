@@ -1,5 +1,12 @@
 # User feedback and acceptance criteria
 
+### FB-20260910-006 — Release the shared header-spacing fix to the owner phone
+
+- Date/source: 2026-09-10, direct owner request: “Release to my phone.”
+- User need: Install the verified shared page-header and spacing changes from b0c63562 on the connected owner phone.
+- Acceptance criteria: Advance the private release version, use the signed in-place owner-phone lane, preserve package identity/data, and verify installed version/hash, launch and bounded runtime health. No phone instrumentation or store publication.
+- Related/status: FB-20260910-005 / IMP, VER-20260910-030; In progress under IMP, VER-20260910-031.
+
 ### FB-20260910-005 — Align page headers and remove excess space through shared builders
 
 - Date/source: 2026-09-10, direct owner request after the 0.3.67 release.

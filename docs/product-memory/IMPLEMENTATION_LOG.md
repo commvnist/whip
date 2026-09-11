@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260910-031 — Release Whip 0.3.68 with consistent page-header spacing
+
+- Request/scope: FB-20260910-006 authorizes private owner-phone deployment of the verified b0c63562 header/padding changes from IMP-20260910-030.
+- Release preparation: Version advances to 0.3.68/code 74; the target-guard fixture expects the same identity. Room schema 46, data epoch 6 and backup version 26 remain unchanged. Existing owner package metadata and signing identity are captured before the in-place update.
+- Preparation verification: Release-stamped `scripts/check --ready` passes 384 JVM checks/44 suites, target-guard fixtures, Android compilation, lint and debug packaging. The existing header phone/wide behavior evidence remains applicable because Kotlin product/test sources are unchanged.
+- Status: In progress; signed build/install and VER-20260910-031 receipt pending. No audit resumption or store publication.
+
 ### IMP-20260910-030 — Remove blank page-header space through the existing shared builder
 
 - Behavior: Tasks and Habits retain identical Today title and subtitle origins; short descriptions no longer reserve a second line. Shared headers stop adding a second trailing gap. Tasks' fixed controls and continuing list use common page insets with one boundary gap, preserving the input's separate floating-label visibility allowance. Habit Insights/Archived, Goal Insights and Track Activity/Insights now share the 8 dp collection rhythm.
