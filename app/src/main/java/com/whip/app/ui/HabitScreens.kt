@@ -1524,7 +1524,7 @@ internal fun HabitInsights(state: HabitUiState, lowPressureMode: Boolean) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
         item {
             WhipPageHeader(
@@ -1755,7 +1755,7 @@ private fun ArchivedHabitList(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
         item {
             WhipPageHeader(

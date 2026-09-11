@@ -1,0 +1,11 @@
+path	sha256
+app/src/androidTest/java/com/whip/app/AdaptiveWhipScreenTest.kt	d234172eba2ae93de8600553ec203bd2a13c19bbbeafc57c2ade4b7ad3f43d0e
+app/src/androidTest/java/com/whip/app/ui/InteractionControlUiTest.kt	c4aabfb62bfd843013624d2a073b1512f44e3e4c4a5e57e1472ff61adbff1c2a
+app/src/main/java/com/whip/app/ui/GoalScreens.kt	5f5524d59e3dbd1610c8348cbcd44f9e509c30f11360512fcfdb3f43be3e92b1
+app/src/main/java/com/whip/app/ui/HabitScreens.kt	b39a9a4dd8d95fff4c5ae2ac8af930e697fc2b2d247135a850a7a14c47f83e8d
+app/src/main/java/com/whip/app/ui/TrackScreens.kt	0c46be9c08521d2ca70dc0ca1fec04359626f7c0ac974e24a1a19733a25bd7de
+app/src/main/java/com/whip/app/ui/WhipApp.kt	478189eef0bf283457f08dff6b3c8a08ce5d70efcc05c7d772e5144f4f500cb9
+app/src/main/java/com/whip/app/ui/WhipPagePatterns.kt	c0a8a0d9d8d805f7d78b2c97118208ac7ca735545e0e60c246be5629199982c3
+app/src/test/java/com/whip/app/ui/UiDesignArchitectureTest.kt	57ac76fba854affd166b0e6e75e3465670055aa84220e2fdf6ec238f507ed7fa
+app/build/outputs/apk/debug/app-debug.apk	1c15a3cddb38faa7d8ea6dbf3d97ede297aed9fc9ee27a7302590515eda66796
+app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk	2550cd4f9187320be7604299a08b7fb82d3acd1879ad76fa85091e734ecc6add

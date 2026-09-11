@@ -6190,8 +6190,8 @@ private fun TaskAreaContent(
             )
         }
         Column(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(whipPagePadding(bottom = 0.dp)),
+            verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
             if (!selectionMode && !quickCaptureHasKeyboard) WhipPageHeader(
                     title = destination.label,
@@ -6453,7 +6453,7 @@ private fun TaskAreaContent(
         WhipReorderLazyColumn(
             modifier = Modifier.weight(1f).testTag("task-workspace-list")
                 .onSizeChanged { quickCaptureViewport = it },
-            contentPadding = WhipPageContentPadding,
+            contentPadding = whipPagePadding(top = WhipSpacing.sibling),
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
         appSettings.focusTimerDeadlineMillis?.takeIf { it > focusClockMillis && !selectionMode && !reordering }?.let { deadline ->

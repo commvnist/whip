@@ -102,6 +102,7 @@ selection, filtering, repository commands and historical meaning.
 | Family | Shared owner | Caller supplies |
 | --- | --- | --- |
 | Workspace | `WhipWorkspaceLayout` | Reading, Overview or Browser composition; content and header |
+| Page heading | `WhipPageHeader`, `whipPagePadding` | Stable title/action row, naturally sized supporting copy and shared outer edges; the parent owns the following gap |
 | Productivity item | `WhipProductivityItemContent` | Identity, disclosure, primary action, information and expanded content |
 | Record | `WhipRecordItem` | Title, context, facts/details, optional Open/Edit, direct action, menu or reorder |
 | Setting | `WhipSettingItem` | Label, explanation, selected value, choices or toggle and callback |

@@ -1,5 +1,13 @@
 # User feedback and acceptance criteria
 
+### FB-20260910-005 — Align page headers and remove excess space through shared builders
+
+- Date/source: 2026-09-10, direct owner request after the 0.3.67 release.
+- User need: Align the Today header and surrounding elements when switching Tasks/Habits, remove the large empty header region, and correct equivalent alignment issues found nearby. Consistency and reusable code take priority so one shared fix improves every occurrence.
+- Acceptance criteria: Use existing shared layout ownership where possible; align matching header/title/action roles; let supporting copy occupy its actual height; remove compounded header/body spacing; preserve navigation, controls, scrolling, keyboard recovery and 48 dp actions. Verify ordinary phone/wide geometry and relevant existing interactions with proportionate checks.
+- Related: FB-20260910-002; DEC/IMP-20260910-021. This is a bounded new request, not a resumption of the closed whole-product goal.
+- Status: Awaiting user validation. Shared-header implementation and phone/wide checks are Verified in IMP/VER-20260910-030; no release was requested.
+
 ### FB-20260910-004 — Finish the current fixes, release to the owner phone, and close the goal
 
 - Date/source: 2026-09-10, owner explicitly requests wrapping current work, explaining work not reached, releasing the new changes to the phone, then closing the goal.

@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260910-030 — Remove blank page-header space through the existing shared builder
+
+- Behavior: Tasks and Habits retain identical Today title and subtitle origins; short descriptions no longer reserve a second line. Shared headers stop adding a second trailing gap. Tasks' fixed controls and continuing list use common page insets with one boundary gap, preserving the input's separate floating-label visibility allowance. Habit Insights/Archived, Goal Insights and Track Activity/Insights now share the 8 dp collection rhythm.
+- Reuse: Refine WhipPageHeader instead of adding a competing header; actionless narrow headers omit the unused action row and retain the shared title-row minimum. WhipPageContentPadding and narrower Track browser panes delegate to whipPagePadding. Other shared-header consumers benefit automatically. Architecture ownership is documented in docs/architecture.md.
+- Evidence: The matched 1080×2400 phone Today title stays at y=503 and subtitle at y=620 on both pages. The first Task title moves 127 px upward and the first Habit title 84 px upward. Existing header/primary-workspace geometry tests now verify natural subtitle lines, leading edges and non-compounding gaps; native selection, large-text Task capture/recreation, Habit timer/recreation and Track navigation regressions remain covered.
+- Compatibility: No schema, backup, version, navigation destination, record/history, release or owner-phone change. Natural wrapping can produce different header heights for different text lengths; deliberate empty-state and input-label insets remain.
+- Related/status: FB-20260910-005 / FND-20260910-039 / DEC-20260910-029 / VER-20260910-030. Verified: 384 JVM checks, 23 distinct phone methods after the exact assertion replacement, four wide journeys, Android compilation/lint/build and catalog checks pass. Fourteen retained originals reviewed; evidence is in artifacts/ui-alignment/2026-09-10/page-headers/README.md. Git history records the focused delivery; normal-use appearance awaits owner validation.
+
 ### IMP-20260910-029 — Release Whip 0.3.67 and close the owner-narrowed goal
 
 - Status: Released under FB-20260910-004; subjective normal use remains Awaiting user validation.

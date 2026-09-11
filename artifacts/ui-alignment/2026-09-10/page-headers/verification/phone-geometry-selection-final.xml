@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="3" failures="0" errors="0" skipped="0" time="19.535" timestamp="2026-09-11T03:19:35" hostname="localhost">
+  <testsuite name="com.whip.app.AdaptiveWhipScreenTest" tests="1" failures="0" errors="0" skipped="0" time="5.789" timestamp="2026-09-11T03:19:35" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="everyPrimaryWorkspaceUsesTheSameHeaderAndNavigationGeometry" classname="com.whip.app.AdaptiveWhipScreenTest" time="5.789" />
+  </testsuite>
+  <testsuite name="com.whip.app.TaskBulkSelectionUiTest" tests="2" failures="0" errors="0" skipped="0" time="12.713" timestamp="2026-09-11T03:19:35" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="activeSelectionKeepsPrimaryActionsVisibleAndSecondaryActionsInOverflow" classname="com.whip.app.TaskBulkSelectionUiTest" time="10.248" />
+    <testcase name="historySelectionOffersRelevantActionsForCompletedAndArchivedTasks" classname="com.whip.app.TaskBulkSelectionUiTest" time="2.465" />
+  </testsuite>
+</testsuites>

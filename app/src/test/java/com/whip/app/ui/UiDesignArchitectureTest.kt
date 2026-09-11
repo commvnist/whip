@@ -2,6 +2,7 @@ package com.whip.app.ui
 
 import java.io.File
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -244,7 +245,10 @@ class UiDesignArchitectureTest {
         assertTrue(app.contains("text = stringResource(R.string.support_tracks_empty)"))
         assertTrue(app.contains("text = stringResource(R.string.support_gym_empty)"))
         assertFalse(app.contains("WhipEmptyState(\n                stringResource(R.string.support_tracks_empty"))
-        assertTrue("Page headers must reserve a stable two-line supporting-text rhythm", patterns.contains("minLines = 2"))
+        val pageHeader = patterns.substringAfter("internal fun WhipPageHeader(")
+            .substringBefore("internal fun WhipPageIconAction(")
+        assertFalse("Page subtitles must not reserve unused text lines", pageHeader.contains("minLines = 2"))
+        assertFalse("Header spacing must not compound the containing list gap", pageHeader.contains("padding(bottom ="))
         assertFalse(
             "Gym pages must not bypass the shared collection gap",
             Regex(
@@ -318,13 +322,12 @@ class UiDesignArchitectureTest {
     @Test
     fun workspaceCreationHasOneStableTopBarHostAndNoFab() {
         val app = File(sourceRoot, "com/whip/app/ui/WhipApp.kt").readText()
-        val pagePatterns = File(sourceRoot, "com/whip/app/ui/WhipPagePatterns.kt").readText()
 
         assertTrue(app.contains("workspace-add-action"))
         assertFalse(app.contains("FloatingActionButton"))
         assertFalse(app.contains("floatingActionButton ="))
         assertTrue(app.contains("adaptiveLayout == WhipAdaptiveLayout.Compact ||"))
-        assertTrue(pagePatterns.contains("bottom = WhipSpacing.screenExpanded"))
+        assertEquals(WhipSpacing.screenExpanded, WhipPageContentPadding.calculateBottomPadding())
         val createShortcut = app.substringAfter("Key.N -> {").substringBefore("Key.H ->")
         assertTrue("Ctrl+N must invoke the same contextual resolver as the visible Add control", createShortcut.contains("triggerAdd()"))
         assertFalse("Ctrl+N must not maintain a second Gym creation route", createShortcut.contains("gymAddExpanded = true"))

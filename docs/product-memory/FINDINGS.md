@@ -1,5 +1,13 @@
 # Durable findings
 
+### FND-20260910-039 — Page headings reserve blank text and compound surrounding spacing
+
+- Severity/status: P2 visual consistency; Verified by source, phone/wide captures and exact geometry checks in IMP/VER-20260910-030. FB-20260910-005; subjective appearance awaits owner validation.
+- Observed: WhipPageHeader forces every subtitle to two lines and adds an 8 dp bottom inset before each parent's own gap. Tasks additionally wraps its fixed controls in 12 dp bottom padding before a second 12 dp list-top inset. Habit Insights/Archived and Track Activity/Insights use 10/12 dp list gaps while their sibling collections use 8 dp. Narrow actionless headers also compose an empty trailing row.
+- Expected: Matching headings/actions share one identity row, subtitles use only the lines they need, and the layout owner supplies one deliberate gap to the next visible role. Large text may wrap naturally without reserving blank ordinary-text space.
+- Cause: An older shared-header contract explicitly reserved two lines; fixed and scrolling composition each add independent boundary space. Existing geometry tests compare title positions but do not bound the next-content gap.
+- Related: DEC-20260910-029; prior DEC-20260910-021 remains valid for width/pane ownership.
+
 ### FND-20260910-038 — Backup dialogs leave their failure feedback behind the modal
 
 - Severity/category: P1, recovery comprehension and accessible feedback ownership.

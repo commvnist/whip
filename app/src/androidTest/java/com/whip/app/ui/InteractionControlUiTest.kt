@@ -1323,12 +1323,12 @@ class InteractionControlUiTest {
                     WhipPageHeader(
                         title = "Tracks",
                         modifier = Modifier.testTag("plain-page-header"),
-                        supportingText = "Structured logs for facts you want to record and compare.",
+                        supportingText = "Facts you want to record.",
                     )
                     WhipPageHeader(
                         title = "Activity",
                         modifier = Modifier.testTag("action-page-header"),
-                        supportingText = "A chronological view of Entries across visible Tracks.",
+                        supportingText = "Entries across your Tracks.",
                     ) {
                         WhipPageIconAction(
                             icon = Icons.Outlined.Search,
@@ -1349,9 +1349,9 @@ class InteractionControlUiTest {
         val actionHeader = compose.onNodeWithTag("action-page-header").fetchSemanticsNode().boundsInRoot
         val plainTitle = compose.onNodeWithText("Tracks").fetchSemanticsNode().boundsInRoot
         val actionTitle = compose.onNodeWithText("Activity").fetchSemanticsNode().boundsInRoot
-        val plainSupporting = compose.onNodeWithText("Structured logs for facts you want to record and compare.")
+        val plainSupporting = compose.onNodeWithText("Facts you want to record.")
             .fetchSemanticsNode().boundsInRoot
-        val actionSupporting = compose.onNodeWithText("A chronological view of Entries across visible Tracks.")
+        val actionSupporting = compose.onNodeWithText("Entries across your Tracks.")
             .fetchSemanticsNode().boundsInRoot
 
         assertEquals(plainTitle.top - plainHeader.top, actionTitle.top - actionHeader.top, 0.5f)
@@ -1364,13 +1364,18 @@ class InteractionControlUiTest {
     @Test
     fun pageHeaderKeepsFollowingContentVisuallySeparated() {
         lateinit var density: Density
+        var supporting by mutableStateOf("Check in or continue a timer.")
         compose.setContent {
             density = LocalDensity.current
             WhipTheme(dynamicColor = false) {
-                Column(Modifier.width(360.dp)) {
+                Column(
+                    Modifier.width(360.dp),
+                    verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
+                ) {
                     WhipPageHeader(
                         title = "Today",
-                        supportingText = "Check in, log a value, or continue a timer.",
+                        modifier = Modifier.testTag("measured-page-header"),
+                        supportingText = supporting,
                     )
                     Box(
                         Modifier
@@ -1382,17 +1387,28 @@ class InteractionControlUiTest {
             }
         }
 
-        val supportingText = compose
-            .onNodeWithText("Check in, log a value, or continue a timer.")
-            .fetchSemanticsNode()
-            .boundsInRoot
-        val firstContent = compose.onNodeWithTag("first-page-content").fetchSemanticsNode().boundsInRoot
-        val minimumGap = with(density) { WhipSpacing.sibling.toPx() }
-
-        assertTrue(
-            "Page content should begin at least one sibling space below its supporting text",
-            firstContent.top - supportingText.bottom >= minimumGap - 0.5f,
-        )
+        listOf(
+            "Check in or continue a timer.",
+            "Check in, log a value, or continue a timer. Completed and skipped Habits remain available for review.",
+        ).forEachIndexed { index, text ->
+            compose.runOnIdle { supporting = text }
+            val subtitle = compose.onNodeWithTag("page-supporting-text")
+            val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+            subtitle.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+            if (index == 0) assertEquals("Short subtitles must occupy one line", 1, layouts.single().lineCount)
+            else assertTrue("Long subtitles must wrap naturally", layouts.single().lineCount > 1)
+            val bounds = subtitle.fetchSemanticsNode().boundsInRoot
+            assertEquals("Subtitles must not reserve blank lines", layouts.single().size.height.toFloat(), bounds.height, 1f)
+            val header = compose.onNodeWithTag("measured-page-header").fetchSemanticsNode().boundsInRoot
+            assertEquals("Headers must not add another trailing inset", bounds.bottom, header.bottom, 0.5f)
+            val firstContent = compose.onNodeWithTag("first-page-content").fetchSemanticsNode().boundsInRoot
+            assertEquals(
+                "The parent owns exactly one gap below the subtitle",
+                with(density) { WhipSpacing.sibling.toPx() },
+                firstContent.top - bounds.bottom,
+                0.5f,
+            )
+        }
     }
 
     @Test

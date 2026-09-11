@@ -1029,7 +1029,7 @@ private fun TrackActivityPage(
         LazyColumn(
             modifier = Modifier.fillMaxSize().widthIn(max = 1040.dp).align(Alignment.TopCenter),
             contentPadding = WhipPageContentPadding,
-            verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
+            verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
             item {
                 WhipPageHeader(
@@ -1198,7 +1198,7 @@ private fun TrackWorkspaceInsightsPage(
         LazyColumn(
             modifier = Modifier.fillMaxSize().widthIn(max = 1040.dp).align(Alignment.TopCenter).testTag("track-workspace-insights-list"),
             contentPadding = WhipPageContentPadding,
-            verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
+            verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
             item { WhipPageHeader("Insights", "Patterns across visible Tracks.") }
             if (state.loading || state.errorMessage != null) item {
@@ -1335,11 +1335,8 @@ private fun AllTracksPage(
     }
     WhipReorderLazyColumn(
         Modifier.fillMaxSize().padding(innerPadding).testTag("track-list"),
-        contentPadding = PaddingValues(
-            start = if (masterPane) 12.dp else 20.dp,
-            top = WhipSpacing.compact,
-            end = if (masterPane) 12.dp else 20.dp,
-            bottom = WhipSpacing.screenExpanded,
+        contentPadding = whipPagePadding(
+            horizontal = if (masterPane) WhipSpacing.compact else WhipSpacing.screenCompact,
         ),
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {

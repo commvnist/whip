@@ -218,11 +218,12 @@ internal fun WhipFullScreenSurface(
     }
 }
 
+/** Measures header content only; the containing list/column owns the gap to its next item. */
 @Composable
 internal fun WhipPageHeader(
     title: String,
     supportingText: String? = null,
-    actions: @Composable RowScope.() -> Unit = {},
+    actions: (@Composable RowScope.() -> Unit)? = null,
 ) = WhipPageHeader(title, Modifier, supportingText, actions)
 
 @Composable
@@ -230,12 +231,10 @@ internal fun WhipPageHeader(
     title: String,
     modifier: Modifier,
     supportingText: String? = null,
-    actions: @Composable RowScope.() -> Unit = {},
+    actions: (@Composable RowScope.() -> Unit)? = null,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(bottom = WhipSpacing.sibling),
+        modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
     ) {
         val titleContent: @Composable () -> Unit = {
@@ -249,12 +248,14 @@ internal fun WhipPageHeader(
         }
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val fontScale = LocalDensity.current.fontScale.coerceIn(1f, 2f)
-            if (maxWidth < 300.dp * fontScale) {
+            if (actions != null && maxWidth < 300.dp * fontScale) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
                 ) {
-                    titleContent()
+                    Box(Modifier.heightIn(min = 48.dp), contentAlignment = Alignment.CenterStart) {
+                        titleContent()
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End,
@@ -269,16 +270,16 @@ internal fun WhipPageHeader(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(Modifier.weight(1f)) { titleContent() }
-                    actions()
+                    actions?.invoke(this)
                 }
             }
         }
         supportingText?.takeIf(String::isNotBlank)?.let { supporting ->
             Text(
                 supporting,
+                modifier = Modifier.testTag("page-supporting-text"),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyLarge,
-                minLines = 2,
             )
         }
     }
@@ -867,9 +868,16 @@ internal fun WhipDangerZone(
     }
 }
 
-internal val WhipPageContentPadding = PaddingValues(
-    start = WhipSpacing.screenCompact,
-    top = WhipSpacing.compact,
-    end = WhipSpacing.screenCompact,
-    bottom = WhipSpacing.screenExpanded,
+/** Shared page edges, including fixed leading content and narrower browser panes. */
+internal fun whipPagePadding(
+    horizontal: Dp = WhipSpacing.screenCompact,
+    top: Dp = WhipSpacing.compact,
+    bottom: Dp = WhipSpacing.screenExpanded,
+) = PaddingValues(
+    start = horizontal,
+    top = top,
+    end = horizontal,
+    bottom = bottom,
 )
+
+internal val WhipPageContentPadding = whipPagePadding()

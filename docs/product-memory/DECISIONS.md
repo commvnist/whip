@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260910-029 — Shared page headers measure content and parents own inter-item gaps
+
+- Status: Verified; FB-20260910-005 / FND-20260910-039 / IMP, VER-20260910-030.
+- Decision: Refine the existing WhipPageHeader builder rather than adding another header family. Keep its 48 dp title/action row and 4 dp title/subtitle relationship, measure actual subtitle lines, and remove built-in trailing space. Use the shared 8 dp sibling rhythm for equivalent collection pages. Centralize page insets so fixed Task controls and their continuing list meet at one sibling gap, with the same outer title/record edges as scrolling pages.
+- Constraints: Retain feature-owned navigation, filters, selection, ordering, keyboard behavior and scrolling. Natural wrapping is allowed; padding or truncating content solely to force identical page heights is rejected. No persistence, schema, backup or release change.
+- Consequences: Supersedes the old two-line page-subtitle assertion. Shared header changes also improve Goals, Tracks, Gym, Settings and Review callers; update existing geometry assertions and inspect ordinary phone/wide evidence with relevant interaction checks.
+
 ### DEC-20260910-028 — Settings operation state carries its result instead of classifying text
 
 - Decision: Reuse existing OperationStatus for Settings outcome severity and working copy; derive message only from terminal outcomes. Keep existing busy coordination, each callback and data boundary. The shared status-card renderer uses action wording, while opening a validated/decrypted backup preview settles quietly because the visible dialog is the acknowledgement.

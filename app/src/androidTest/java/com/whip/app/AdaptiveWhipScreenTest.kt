@@ -1236,7 +1236,9 @@ class AdaptiveWhipScreenTest {
 
     @Test
     fun everyPrimaryWorkspaceUsesTheSameHeaderAndNavigationGeometry() {
+        lateinit var density: Density
         compose.setContent {
+            density = LocalDensity.current
             WhipTheme(dynamicColor = false) {
                 val habitViewModel: HabitViewModel = viewModel()
                 val goalViewModel: GoalViewModel = viewModel()
@@ -1292,6 +1294,28 @@ class AdaptiveWhipScreenTest {
             val header = compose.onNodeWithTag("workspace-top-app-bar").fetchSemanticsNode().boundsInRoot
             val navigation = compose.onNodeWithTag(navigationTag).fetchSemanticsNode().boundsInRoot
             val pageTitle = compose.onNodeWithTag("page-title").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            val supporting = compose.onNodeWithTag("page-supporting-text").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            check(kotlin.math.abs(pageTitle.left - supporting.left) <= 1f) {
+                "Workspace headings and descriptions must share their leading edge: title=$pageTitle supporting=$supporting"
+            }
+            if (tab == "Tasks tab") {
+                val capture = compose.onNodeWithTag("task-quick-capture").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+                val list = compose.onNodeWithTag("task-workspace-list").fetchSemanticsNode().boundsInRoot
+                check(kotlin.math.abs(capture.left - pageTitle.left) <= 1f)
+                check(kotlin.math.abs(list.top - supporting.bottom) <= 1f) {
+                    "Fixed Task headings must not add padding before the list's own inset: supporting=$supporting list=$list"
+                }
+                // One 8 dp page gap plus the existing 8 dp floating-label visibility allowance.
+                check(kotlin.math.abs(capture.top - supporting.bottom - with(density) { 16.dp.toPx() }) <= 1f) {
+                    "Task capture must keep one page gap and its label allowance: supporting=$supporting capture=$capture"
+                }
+            } else if (tab in setOf("Habits tab", "Goals tab", "Tracks tab")) {
+                val empty = compose.onNodeWithTag("empty-state").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+                // The empty-state tag is inside its intentional 32 dp illustration/text inset.
+                check(kotlin.math.abs(empty.top - supporting.bottom - with(density) { 40.dp.toPx() }) <= 1f) {
+                    "Scrolling page headings must meet content at the same sibling gap: supporting=$supporting content=$empty"
+                }
+            }
             val add = compose.onNodeWithTag("workspace-add-action").fetchSemanticsNode().boundsInRoot
             val actions = compose.onNodeWithTag("workspace-settings-action").fetchSemanticsNode().boundsInRoot
             check(add.top >= header.top && add.bottom <= header.bottom) {
