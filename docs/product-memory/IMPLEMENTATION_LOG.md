@@ -1,5 +1,22 @@
 # Implementation history
 
+### IMP-20260910-029 — Release Whip 0.3.67 and close the owner-narrowed goal
+
+- Status: Released under FB-20260910-004; subjective normal use remains Awaiting user validation.
+- Delivery: Whip 0.3.67/code 73 is installed in place on the owner's Samsung SM-F976W from clean pushed source 0fb4dc81791e9597b72ac60d5f255f5ab9becafc. Signing identity and first-install time are unchanged; installed APK exactly matches the signed build; cold launch, foreground MainActivity, live process and bounded runtime-error checks pass. APK SHA-256 df309f60a30c1b407d24f286efb2e340669bf015a7c1158cf1af999618886fdb; AAB SHA-256 d3bc45798a4b642ecdb5411ca0a2c56c0c5aecbe3234a84d9e8c96f32f5371a6.
+- Included: All verified Astra changes through Settings/backup-feedback 6147301f, shared item/workspace builders and normal-scale UX, data/history/recovery corrections, and Health Connect removal with historical retention. Release metadata and its guard expectation advance to 0.3.67/73; Room schema 46, epoch 6 and backup version 26 remain unchanged.
+- Verification: VER-20260910-029; release-stamped 384 JVM/44-suite readiness and target-guard fixtures, Android compilation/lint/build, signed optimized APK/AAB integrity/signatures and installed-artifact smoke pass. Final Settings Android evidence remains 128 phone plus five wide checks; Kotlin inputs are unchanged by release stamping.
+- Closure: The owner requested stopping after this delivery. The original exhaustive goal is Superseded by that instruction, with residual work Deferred. Matrix remains 367 Verified / 125 Investigating / 42 In progress across 534 states; no fabricated complete-product acceptance. See docs/quality/ASTRA_GOAL_CLOSEOUT_2026-09-10.md. Do not resume automatically.
+- Scope: In-place private phone update; no reset, clear, uninstall, downgrade, physical instrumentation, fresh-start confirmation or Play Store qualification/publication. Package/installation identity is verified; owner database contents were not extracted for comparison.
+
+### IMP-20260910-028 — Truthful Settings results and dialog-owned backup failures
+
+- Behavior: Settings now carries existing OperationStatus instead of guessing severity from text. Checksum/authentication rejection is an error regardless of wording, working copy names the operation, and a successful preview settles quietly. Unlock, preview, replacement and reset own their errors inside the active dialog; shared status/error roles provide presentation and retry, with existing busy/callback/data boundaries retained.
+- Files: SettingsViewModel.kt, SettingsScreens.kt; native DataPrivacyJourneyE2ETest checksum replacement and passphrase retry, plus SafetyChoiceUiTest replacement failure/retry component coverage.
+- Compatibility: No schema/epoch/backup/version change, no provider integration, no domain/restore/reset mutation redesign. Actual selected-file retries, Merge and recreation preserve complete original records. Passwords remain unsaved and clear on submission. Modal replacement failure is simulated callback evidence, not native rollback injection.
+- Verification: VER-20260910-028; 128 fresh phone Android, five wide, 384 JVM readiness, lint/build/catalog pass; twelve original images reviewed; 518 input hashes unchanged. Evidence: artifacts/astra-audit/2026-09-10/settings-feedback/README.md.
+- Status: Verified. Owner FB-20260910-004 now requests private release and goal closeout; no further audit expansion.
+
 ### IMP-20260910-027 — Unify backup choices and quiet shared destructive sections
 
 - Status: Verified for FND-20260910-036 / DEC/VER-20260910-027 and FB-20260910-001/002.
@@ -2128,11 +2145,3 @@
 - Verification: `VER-20260908-012`.
 - Status: Candidate-qualified, directly handed off, and device-verified; Play upload/publication intentionally remains owner-managed.
 - Acceptance: 138 broad Android regressions and 73 profile JVM checks pass. A final two-column refinement and exact-value scrolling pass 13 focused phone methods and six wide methods; the new window capture then gains visible-page synchronization and passes its complete journey again on each platform. All 518 delivery inputs match through 385 JVM readiness checks, lint/build and final capture replacement. Twenty-one accepted original pairs are personally reviewed; two rejected premature captures remain explicit evidence. Source inventory is 655 JVM + 1084 Android = 1739; catalog/matrix 508 states, 339 Verified / 127 Investigating / 42 In progress. Continue equal-depth whole-app review, empty/no-entry Insights hierarchy and specialized analytics; no release or whole-product acceptance. Git records commit/push delivery.
-
-### IMP-20260910-028 — Truthful Settings results and dialog-owned backup failures
-
-- Behavior: Settings now carries existing OperationStatus instead of guessing severity from text. Checksum/authentication rejection is an error regardless of wording, working copy names the operation, and a successful preview settles quietly. Unlock, preview, replacement and reset own their errors inside the active dialog; shared status/error roles provide presentation and retry, with existing busy/callback/data boundaries retained.
-- Files: SettingsViewModel.kt, SettingsScreens.kt; native DataPrivacyJourneyE2ETest checksum replacement and passphrase retry, plus SafetyChoiceUiTest replacement failure/retry component coverage.
-- Compatibility: No schema/epoch/backup/version change, no provider integration, no domain/restore/reset mutation redesign. Actual selected-file retries, Merge and recreation preserve complete original records. Passwords remain unsaved and clear on submission. Modal replacement failure is simulated callback evidence, not native rollback injection.
-- Verification: VER-20260910-028; 128 fresh phone Android, five wide, 384 JVM readiness, lint/build/catalog pass; twelve original images reviewed; 518 input hashes unchanged. Evidence: artifacts/astra-audit/2026-09-10/settings-feedback/README.md.
-- Status: Verified. Owner FB-20260910-004 now requests private release and goal closeout; no further audit expansion.

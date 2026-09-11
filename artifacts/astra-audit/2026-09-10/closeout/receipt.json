@@ -1,0 +1,29 @@
+{
+  "version": "0.3.67",
+  "version_code": 73,
+  "source": "0fb4dc81791e9597b72ac60d5f255f5ab9becafc",
+  "model": "SM-F976W",
+  "package": "commvne.com.whip.app",
+  "package_metadata": [
+    "versionCode=73 minSdk=26 targetSdk=37",
+    "versionName=0.3.67",
+    "lastUpdateTime=2026-09-10 22:59:08",
+    "firstInstallTime=2026-08-26 17:59:24"
+  ],
+  "signer_sha256": "cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788",
+  "apk_sha256": "df309f60a30c1b407d24f286efb2e340669bf015a7c1158cf1af999618886fdb",
+  "apk_bytes": 4166198,
+  "aab_sha256": "d3bc45798a4b642ecdb5411ca0a2c56c0c5aecbe3234a84d9e8c96f32f5371a6",
+  "aab_bytes": 11230010,
+  "installed_apk_matches": true,
+  "first_install_preserved": true,
+  "foreground_main_activity_at_deploy": true,
+  "independent_foreground_still_whip": false,
+  "live_process": true,
+  "bounded_app_log_lines": 324,
+  "relevant_runtime_errors": 0,
+  "health_connect_permissions": 0,
+  "artifact_zip_integrity": true,
+  "apk_signature_verified": true,
+  "aab_signature_verified": true
+}

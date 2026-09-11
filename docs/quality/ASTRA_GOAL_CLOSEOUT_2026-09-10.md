@@ -22,4 +22,8 @@ Each coherent increment has committed source and scoped regression/visual eviden
 
 ## Release status
 
-Preparing Whip **0.3.67 (73)** for an in-place signed update on the owner's Samsung phone. Final artifact hashes, installation identity and smoke results will be recorded here after deployment. Existing data/history are preserved; no reset or clean install is requested.
+Installed Whip **0.3.67 (73)** in place on the owner's Samsung SM-F976W. Release source: `0fb4dc81791e9597b72ac60d5f255f5ab9becafc`. Signed APK SHA-256: `df309f60a30c1b407d24f286efb2e340669bf015a7c1158cf1af999618886fdb`. Installed APK equality, signer continuity, unchanged original installation time, cold launch, foreground Activity, live process and bounded runtime-error checks pass. Existing installation/data were retained; no private database extraction or destructive phone testing occurred.
+
+Release-stamped readiness passed 384 JVM checks, target-guard fixtures, Android compilation, lint and build. The final Settings production/test Kotlin is unchanged from its 128-phone/five-wide acceptance. Signed APK/AAB ZIP integrity and signatures pass. Full receipt and sanitized build/install evidence: [release evidence](../../artifacts/astra-audit/2026-09-10/closeout/README.md).
+
+**Goal closed at owner direction.** The requested wrap, release and honest backlog are delivered. Remaining review is Deferred; the original full-product definition of done is not claimed and this goal must not resume automatically.

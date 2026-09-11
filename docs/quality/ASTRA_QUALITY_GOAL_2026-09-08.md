@@ -1,5 +1,7 @@
 # Owner-provided Astra quality goal
 
+**Owner closeout — 2026-09-10, FB-20260910-004:** The owner replaced the exhaustive finish with wrapping current work, private phone release and an honest residual backlog. Those changes are released in Whip 0.3.67/code 73; the goal is closed and must not resume automatically. The original objective and intermediate priorities below are historical. See [closeout](ASTRA_GOAL_CLOSEOUT_2026-09-10.md) and VER-20260910-029.
+
 Current owner steering (2026-09-10; FB-20260910-001/002): Prioritize the normal 100% Whip experience, UX/UI, design language and consistency, bug fixing and peak aesthetics. Wrap and commit the in-progress selection fix, then pursue shared item builders that make recurring layouts consistent and naturally responsive. Prove representative flows before propagation. Avoid getting stuck on individual 200% patches; a substantial adaptive-component effort can be separately scoped later. Keep the remaining whole-app quality priorities active. The original objective below remains historical context subject to this newer steering.
 
 Create and pursue a durable goal: audit and elevate the entire Whip app to an exceptionally high standard of UX, UI, visual design, functionality, accessibility, reliability, and engineering quality.

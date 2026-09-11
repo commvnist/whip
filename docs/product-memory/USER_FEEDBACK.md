@@ -6,13 +6,13 @@
 - Acceptance: Finish and proportionately verify the active Settings/backup-feedback increment; commit and push coherent work; advance the private release version and install the signed update in place on the selected owner phone. Preserve package/signer/install identity and existing data/history, verify artifact equality and startup smoke, then close this goal with an honest residual backlog. No further audit expansion or automatic continuation after delivery.
 - Scope: Supersedes FB-20260908-006's emulator-only boundary and exhaustive completion requirement for this closeout. This is an owner-directed bounded delivery, not a claim that every area or the final whole-product matrix was completed. Use the established private-phone lane; no Play Store publication requested.
 - Related: FB-20260910-001/002/003; DEC/IMP/VER-20260910-028; VER-20260910-029.
-- Status: In progress.
+- Status: Released. IMP/VER-20260910-029 verifies the signed in-place 0.3.67/code 73 update; the goal is closed at owner direction with residual work documented, not represented as exhaustive acceptance.
 
 ### FB-20260910-003 — Remove Health Connect from Whip
 
 - Date/source: 2026-09-10, owner steering: “health connect functionality should be purged from the app.”
 - Acceptance: Remove the integration's UI, permission requests and exported Android entry points, SDK, settings, provider reads and reconciliation runtime. Existing user measurements and historical activity must survive; old backups must remain readable without re-enabling the retired integration. Finish this change before returning to the shared-builder and whole-product quality work.
-- Status: Verified in IMP/VER-20260910-026. Supersedes the active Health warning remediation DEC/VER-20260910-025 and the Health integration portion of FB-20260908-006. The removal preserves measurements/history and manual Habit continuation; shared builders and the whole-product goal remain active. No delegation, release or physical-phone work.
+- Status: Verified in IMP/VER-20260910-026. Supersedes the active Health warning remediation DEC/VER-20260910-025 and the Health integration portion of FB-20260908-006. The removal preserves measurements/history and manual Habit continuation. It was emulator-verified before the owner authorized release; IMP/VER-20260910-029 now includes it in installed 0.3.67/code 73 and closes the goal with remaining scope Deferred.
 
 These records preserve durable user intent. “Released” means the change reached a device build; it does not erase later user validation or regression findings.
 
@@ -21,7 +21,7 @@ These records preserve durable user intent. “Released” means the change reac
 - Date/source: 2026-09-10, owner follow-up during the Astra audit.
 - User need: Move toward a set of builders so item layouts consistently express Whip's design language, respond naturally to available space and deliver a uniform look and experience. Flesh out and pursue this architecture while continuing the other quality priorities.
 - Acceptance criteria: Map existing shared patterns and duplicated domain layouts; establish explicit reusable item roles and layout responsibilities; prove a representative production migration at 100% with visual and interaction evidence; grow the pattern in coherent increments without losing domain behavior, useful capabilities, state or history. Preserve the whole-app UX, aesthetics and bug-fixing backlog. A larger adaptive-component effort may be scoped for later if warranted.
-- Related/status: In progress; builds on FB-20260910-001 and refines FB-20260908-006. Track selection was committed first; record, productivity, Settings and Set-family adoption is verified in IMP/VER-20260910-003/004/006/007. The wider quality audit continues. No delegation or separate task is requested.
+- Related/status: Deferred for remaining scope under FB-20260910-004; builds on FB-20260910-001 and refines FB-20260908-006. Track selection was committed first; record, productivity, Settings and Set-family adoption is verified in IMP/VER-20260910-003/004/006/007. Verified work is included in 0.3.67; the remaining audit is closed and must not resume automatically. No delegation or separate task is requested.
 
 ### FB-20260910-001 — Prioritize the normal Whip experience and shared design quality
 
@@ -29,7 +29,7 @@ These records preserve durable user intent. “Released” means the change reac
 - User need: Prioritize the 100% app experience: UX, UI, design language, design consistency, interaction consistency, bug fixing and peak aesthetics. Do not get stuck correcting individual 200% scale issues or pursuing scaled-layout perfection.
 - Acceptance criteria: Wrap and commit the current verified work, then advance the ordinary-scale product/design audit. Investigate reusable components that naturally support enlarged content; if that becomes substantial, keep it as a separately scoped later effort. Use proportionate accessibility regressions without allowing repeated per-screen scale polishing to dominate delivery.
 - Scope relationship: Refines the execution priorities of FB-20260908-006. Preserve useful capabilities, user data/history and whole-product coverage. Single agent, at most two disposable emulators, normal coherent commits/pushes, no physical-phone operations or release/publication.
-- Related/status: In progress; VER/IMP-20260910-002 wraps the current selection fix before the new priority governs subsequent work. No separate task has been created.
+- Related/status: Deferred for remaining scope under FB-20260910-004; VER/IMP-20260910-002 wraps the current selection fix before the new priority governs subsequent work. No separate task has been created.
 
 ### FB-20260908-006 — Fresh whole-product quality goal with justified design freedom
 
@@ -37,7 +37,7 @@ These records preserve durable user intent. “Released” means the change reac
 - User need: Elevate the complete existing Whip app through fresh UX, UI, visual-design, functionality, accessibility, reliability, and engineering judgment; deliver implemented and verified improvements rather than an audit report alone.
 - Acceptance criteria: Inventory every distinct surface and consequential state from source and runtime, including additional discoveries beyond the existing catalog; give every feature equal source, behavior, persistence, and visual depth; inspect complete journeys and realistic/adaptive/error states; challenge earlier design decisions while preserving explicit owner needs, useful capabilities, data, history, and domain meaning; justify consequential local redesigns against incremental alternatives; implement confirmed critical/high-impact defects and justified material improvements; keep before/after evidence and requirement-level coverage; use at most two disposable emulators, focused development checks, and final whole-product regression/build/lint/accessibility/adaptive/visual review; maintain memory and commit/push coherent verified chunks. Single-agent implementation; physical-phone operations and release/publication remain separate follow-ups.
 - Related: `FB-20260908-001`, `FB-20260908-002`, `DEC-20260902-001`, [active audit](../quality/ASTRA_PRODUCT_AUDIT_2026-09-08.md).
-- Status: In progress.
+- Status: Superseded by FB-20260910-004 for completion scope. Verified increments were released as 0.3.67/code 73; the original exhaustive definition of done was not reached. The owner-directed goal is closed; residual scope is Deferred and must not resume automatically.
 - Notes: Starts from clean `4f4a5dc` on `main`. Prior completed audit evidence is reference only and does not satisfy this new goal's fresh review. The complete attached objective is preserved in the linked goal document.
 
 ### FB-20260831-001 — Arbitrary lifts in 5/3/1

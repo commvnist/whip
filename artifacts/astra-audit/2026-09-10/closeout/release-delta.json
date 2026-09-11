@@ -1,0 +1,9 @@
+{
+  "settings_source": "6147301f62b82e6b3c59ab00962af0cee4439f2a",
+  "changed_since_settings_acceptance": [
+    "app/build.gradle.kts",
+    "scripts/test-android-target-guard",
+    "app/build/outputs/apk/debug/app-debug.apk"
+  ],
+  "explanation": "Private release version and its guard assertion; regenerated versioned debug APKs. All production/test Kotlin remains unchanged."
+}
