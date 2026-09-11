@@ -5,7 +5,7 @@
 - Request/scope: FB-20260910-006 authorizes private owner-phone deployment of the verified b0c63562 header/padding changes from IMP-20260910-030.
 - Release preparation: Version advances to 0.3.68/code 74; the target-guard fixture expects the same identity. Room schema 46, data epoch 6 and backup version 26 remain unchanged. Existing owner package metadata and signing identity are captured before the in-place update.
 - Preparation verification: Release-stamped `scripts/check --ready` passes 384 JVM checks/44 suites, target-guard fixtures, Android compilation, lint and debug packaging. The existing header phone/wide behavior evidence remains applicable because Kotlin product/test sources are unchanged.
-- Status: In progress; signed build/install and VER-20260910-031 receipt pending. No audit resumption or store publication.
+- Delivery/status: Released from clean pushed source 8fbec95af90a3ea834b484818f77b143c585a43d to the owner Samsung SM-F976W. The installed APK matches SHA-256 0570124221823f0e80172bf23bf428a6e709cf1fdef6cfb06e5783adc3a13603; signing identity and first-install time are preserved. Cold launch, foreground MainActivity, live process, bounded runtime-error checks and signed APK/AAB verification pass under VER-20260910-031. Receipt: artifacts/ui-alignment/2026-09-10/release-0.3.68/README.md. No audit resumption or store publication; normal-use appearance awaits owner validation.
 
 ### IMP-20260910-030 — Remove blank page-header space through the existing shared builder
 

@@ -1,5 +1,12 @@
 # Verification and release evidence
 
+### VER-20260910-031 — Whip 0.3.68 owner-phone release
+
+- Scope/status: Released under FB-20260910-006 / IMP-20260910-031. The verified page-header fix b0c63562 is delivered from clean pushed release source 8fbec95af90a3ea834b484818f77b143c585a43d, version 0.3.68/code 74.
+- Commands/results: `scripts/check --ready` passes 384 JVM checks/44 suites, target-guard fixtures, Android compilation, lint and debug packaging. `WHIP_DEVICE=<selected-owner-phone> scripts/device release-deploy` builds signed optimized APK/AAB, installs in place, verifies exact installed hash and cold-launches foreground MainActivity in 118 ms. Independent apksigner/jarsigner and ZIP checks pass; firstInstallTime remains 2026-08-26 17:59:24 and the signing certificate matches the previous installation. The independent sample confirms foreground MainActivity, a live process and zero relevant runtime errors across 134 bounded app-log lines.
+- Artifacts: APK SHA-256 0570124221823f0e80172bf23bf428a6e709cf1fdef6cfb06e5783adc3a13603; AAB SHA-256 5f52d8c1bd69b9a2f70ff90ea457673f331a2ec831adb64bf030de58806dcf2d. Receipt and sanitized logs: artifacts/ui-alignment/2026-09-10/release-0.3.68/README.md.
+- Limits: No phone instrumentation, reset, clear, uninstall, downgrade, owner-record extraction or store publication. Data are preserved by in-place update; Room 46/epoch 6/backup 26 are unchanged. Prior phone/wide header tests remain applicable because release stamping changes no Kotlin behavior. This is a private release, not a new whole-product/candidate acceptance. Appearance awaits owner validation.
+
 ### VER-20260910-030 — Shared page-header spacing and alignment
 
 - Scope: Bounded post-release FB-20260910-005 change on starting f69aab09. Explicit disposable API 34 emulator at 1080×2400/420 dpi; final wide review uses the same disposable emulator at 1800×1200/160 dpi. No physical-phone operations or release.

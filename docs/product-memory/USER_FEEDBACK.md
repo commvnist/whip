@@ -5,7 +5,7 @@
 - Date/source: 2026-09-10, direct owner request: “Release to my phone.”
 - User need: Install the verified shared page-header and spacing changes from b0c63562 on the connected owner phone.
 - Acceptance criteria: Advance the private release version, use the signed in-place owner-phone lane, preserve package identity/data, and verify installed version/hash, launch and bounded runtime health. No phone instrumentation or store publication.
-- Related/status: FB-20260910-005 / IMP, VER-20260910-030; In progress under IMP, VER-20260910-031.
+- Related/status: Released as Whip 0.3.68/code 74 under IMP, VER-20260910-031; FB-20260910-005 / IMP, VER-20260910-030. Installed artifact equality, preserved signing/first-install identity, cold launch and bounded runtime checks pass.
 
 ### FB-20260910-005 — Align page headers and remove excess space through shared builders
 
@@ -13,7 +13,7 @@
 - User need: Align the Today header and surrounding elements when switching Tasks/Habits, remove the large empty header region, and correct equivalent alignment issues found nearby. Consistency and reusable code take priority so one shared fix improves every occurrence.
 - Acceptance criteria: Use existing shared layout ownership where possible; align matching header/title/action roles; let supporting copy occupy its actual height; remove compounded header/body spacing; preserve navigation, controls, scrolling, keyboard recovery and 48 dp actions. Verify ordinary phone/wide geometry and relevant existing interactions with proportionate checks.
 - Related: FB-20260910-002; DEC/IMP-20260910-021. This is a bounded new request, not a resumption of the closed whole-product goal.
-- Status: Awaiting user validation. Shared-header implementation and phone/wide checks are Verified in IMP/VER-20260910-030; no release was requested.
+- Status: Released in Whip 0.3.68/code 74 after FB-20260910-006; normal-use appearance remains Awaiting user validation. Shared-header implementation and phone/wide checks are Verified in IMP/VER-20260910-030; installation is verified in IMP/VER-20260910-031.
 
 ### FB-20260910-004 — Finish the current fixes, release to the owner phone, and close the goal
 
