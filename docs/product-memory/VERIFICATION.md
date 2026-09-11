@@ -1,5 +1,12 @@
 # Verification and release evidence
 
+### VER-20260910-029 — Owner-directed private release and Astra goal closeout
+
+- Status: In progress under FB-20260910-004. Current Settings/backup work is verified and pushed at 6147301f62b82e6b3c59ab00962af0cee4439f2a, matching origin/main with a clean tree. No live instrumentation remains.
+- Scope: Advance private Whip to 0.3.67/code 73, check release-stamped source, commit/push before signing, install in place on the explicitly selected Samsung SM-F976W, verify signer/package/first-install continuity, exact installed APK hash and cold-start/foreground/process/log smoke. Retain Room schema 46, epoch 6, backup format 26 and all existing owner data; Health Connect remains removed with compatible historical attribution.
+- Pre-release: Guard proves the connected owner Samsung is physical hardware. Baseline 0.3.66/code 72 has firstInstallTime 2026-08-26 17:59:24, APK SHA-256 ad37e283cc65dedf3167fff97d1d7144c004d466dc341c2a523a3f8ee2ff7fc1 and verified signer cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788. Release-stamped scripts/check --ready passes 384 JVM checks/44 suites, complete target-guard fixtures, Android compilation, lint and debug build (2m35s final stage). Only version metadata, its guard expectation and regenerated debug APK differ from Settings acceptance; production/test Kotlin is unchanged.
+- Goal boundary: Owner requests closure after this bounded release. Remaining 167 of 534 inventoried states have not reached Verified (125 Investigating, 42 In progress); their source statuses remain evidence, not manufactured acceptance. Full new-source 1729-test Android/JVM matrix, exhaustive final cross-app review and platform/accessibility/performance qualification have not run as one final campaign. The unfinished backlog is preserved in docs/quality/ASTRA_GOAL_CLOSEOUT_2026-09-10.md. Do not resume without a new owner request.
+
 ### VER-20260910-028 — Typed Settings feedback and backup failure recovery
 
 - Status: Verified for FND-20260910-037/038 / DEC/IMP-20260910-028. Previous goal turn is Progress: clean f15b173dab74b8bc4e2440faa1e4436f425dbf42 matched origin/main; no interrupted instrumentation remained. Objective and memory reconciled. Owner subsequently narrowed completion to wrap, phone release and documented deferral in FB-20260910-004.
