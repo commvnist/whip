@@ -9,6 +9,8 @@ import com.whip.app.core.AppSettings
 import com.whip.app.core.AppThemeMode
 import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.WorkoutSessionState
+import com.whip.app.domain.RoutineWorkSection
+import com.whip.app.domain.RoutineSupplementalScheme
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -20,6 +22,110 @@ class FiveThreeOneAuthorshipJourneyE2ETest {
     @get:Rule val compose = createEmptyComposeRule()
     private val app: WhipApplication get() = ApplicationProvider.getApplicationContext()
     @After fun clean() = runBlocking { app.backupRepository.deleteAllData() }
+
+    @Test fun customDaysKeepIndependentSupplementalWorkThroughSaveAndBothWorkouts() {
+        val names = listOf("Flat Barbell Bench Press", "Zercher Deadlift")
+        runBlocking {
+            app.backupRepository.deleteAllData()
+            app.settingsRepository.update {
+                AppSettings(setupCompleted = true, themeMode = AppThemeMode.Dark, dynamicColor = false, restTimerAutoStart = false)
+            }
+            names.forEach { app.gymRepository.createExercise(ExerciseDraft(name = it)) }
+        }
+        val exercises = runBlocking { app.gymRepository.exercises.first() }.associateBy { it.name }
+        val benchId = exercises.getValue(names[0]).id
+        val zercherId = exercises.getValue(names[1]).id
+        fun enter(tag: String, value: String) {
+            compose.onNodeWithTag(tag).performScrollTo().performTextReplacement(value)
+            closeSoftKeyboard()
+        }
+        fun assertSupplement(exerciseId: Long, label: String) {
+            compose.onNode(hasContentDescription("Supplemental Work: $label") and
+                hasAnyAncestor(hasTestTag("five-three-one-supplement-$exerciseId")))
+                .performScrollTo().assertIsDisplayed()
+        }
+        fun openRoutines() {
+            compose.onNodeWithTag("gym-destination-Library").performClick()
+            compose.onNodeWithTag("gym-library-Routines").performClick()
+        }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            compose.onNodeWithContentDescription("Gym tab").performClick()
+            openRoutines()
+            compose.onNodeWithTag("workspace-add-action").performClick()
+            compose.onNode(hasText("Set Up 5/3/1") and hasClickAction() and
+                hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry"))).performClick()
+            compose.onNodeWithTag("five-three-one-layout-Custom").performScrollTo().performClick()
+            enter("five-three-one-training-max-Custom-0", "100")
+            enter("five-three-one-training-max-Custom-1", "200")
+            compose.onNodeWithTag("five-three-one-supplement-$benchId").performScrollTo().performClick()
+            compose.onNodeWithContentDescription("Supplemental Work option: BBB · 5 × 10").performClick()
+            enter("five-three-one-bbb-percent-$benchId", "60")
+            assertSupplement(benchId, "BBB · 5 × 10")
+            captureVisualCatalogSurface("gym.531-supplemental.bench-setup")
+            assertSupplement(zercherId, "FSL · 5 × 5")
+            // Authored supplemental choices and percentage move with identity, then restore the requested day order.
+            compose.onNodeWithContentDescription("Move ${names[0]} later").performScrollTo().performClick()
+            scenario.recreate()
+            assertSupplement(benchId, "BBB · 5 × 10")
+            compose.onNodeWithTag("five-three-one-bbb-percent-$benchId").assertTextContains("60")
+            compose.onNodeWithContentDescription("Move ${names[0]} earlier").performScrollTo().performClick()
+            compose.onNodeWithTag("five-three-one-program-preview-supplement-$benchId").performScrollTo()
+                .assertTextEquals("${names[0]} · BBB · 5 × 10 · ${names[0]} · 60 kg")
+            compose.onNodeWithTag("five-three-one-program-preview-supplement-$zercherId").performScrollTo()
+                .assertTextEquals("${names[1]} · FSL · 5 × 5 · ${names[1]} · 130 kg")
+            captureVisualCatalogSurface("gym.531-supplemental.mixed-preview")
+            compose.onNodeWithTag("five-three-one-program-create").performClick()
+            compose.onNodeWithTag("routine-builder-save").performClick()
+            compose.waitUntil(10_000) { runBlocking { app.routineRepository.routines.first() }.size == 1 }
+            val routine = runBlocking { app.routineRepository.routines.first() }.single()
+            val days = runBlocking { app.routineRepository.days.first() }.sortedBy { it.position }
+            assertEquals(names, days.map { it.name })
+            val placements = runBlocking { app.routineRepository.exercises.first() }.associateBy { it.exerciseId }
+            val savedSets = runBlocking { app.routineRepository.sets.first() }
+            val benchSets = savedSets.filter { it.routineExerciseId == placements.getValue(benchId).id }.map { it.draft }
+                .filter { it.routinePhaseIndex == 0 && it.workSection == RoutineWorkSection.Supplemental }
+            val zercherSets = savedSets.filter { it.routineExerciseId == placements.getValue(zercherId).id }.map { it.draft }
+                .filter { it.routinePhaseIndex == 0 && it.workSection == RoutineWorkSection.Supplemental }
+            assertEquals(5, benchSets.size)
+            assertTrue(benchSets.all { it.reps == 10 && it.loadPercentage == 60.0 && it.supplementalScheme == RoutineSupplementalScheme.BoringButBig })
+            assertEquals(5, zercherSets.size)
+            assertTrue(zercherSets.all { it.reps == 5 && it.loadPercentage == 65.0 && it.supplementalScheme == RoutineSupplementalScheme.FirstSetLast })
+            compose.onNodeWithContentDescription("Edit routine ${routine.name}").performScrollTo().performClick()
+            scenario.recreate()
+            compose.onNodeWithTag("routine-program-structure").assertExists()
+            compose.onNodeWithContentDescription("Close routine editor").performClick()
+            assertEquals(savedSets, runBlocking { app.routineRepository.sets.first() })
+            for ((dayIndex, expectedLoad) in listOf(60.0, 130.0).withIndex()) {
+                compose.onNodeWithTag("routine-start-next-${routine.id}").performScrollTo().performClick()
+                compose.onNodeWithTag("routine-active-workout-action").performScrollTo().performClick()
+                compose.onNodeWithTag("next-set-focus").assertTextContains(names[dayIndex], substring = true)
+                val session = runBlocking { app.gymRepository.sessions.first() }.single { it.state == WorkoutSessionState.Active }
+                val placementId = runBlocking { app.gymRepository.workoutExercises.first() }.single { it.sessionId == session.id }.id
+                val sets = runBlocking { app.gymRepository.sets.first() }.filter { it.workoutExerciseId == placementId }.sortedBy { it.position }
+                val supplemental = sets.filter { it.workSectionSnapshot == RoutineWorkSection.Supplemental }
+                assertEquals(5, supplemental.size)
+                assertTrue(supplemental.all { it.enteredWeight == expectedLoad && it.repetitions == if (dayIndex == 0) 10 else 5 })
+                captureVisualCatalogSurface(if (dayIndex == 0) "gym.531-supplemental.bench-workout" else "gym.531-supplemental.zercher-workout")
+                for (set in sets) {
+                    compose.onNodeWithTag("quick-set-save-next-${set.id}").performScrollTo().performClick()
+                    compose.waitUntil(10_000) { runBlocking { app.gymRepository.sets.first() }.single { it.id == set.id }.completed }
+                }
+                val performed = runBlocking { app.gymRepository.sets.first() }.associateBy { it.id }
+                compose.onNodeWithTag("active-workout-list").performScrollToNode(hasTestTag("active-workout-finish"))
+                compose.onNodeWithTag("active-workout-finish").performClick()
+                compose.waitUntil(10_000) {
+                    runBlocking { app.gymRepository.sessions.first() }.single { it.id == session.id }.state == WorkoutSessionState.Finished ||
+                        compose.onAllNodesWithTag("finish-workout-confirm").fetchSemanticsNodes().isNotEmpty()
+                }
+                if (compose.onAllNodesWithTag("finish-workout-confirm").fetchSemanticsNodes().isNotEmpty()) {
+                    compose.onNodeWithTag("finish-workout-confirm").performClick()
+                }
+                compose.waitUntil(10_000) { runBlocking { app.gymRepository.sessions.first() }.single { it.id == session.id }.state == WorkoutSessionState.Finished }
+                assertEquals(performed, runBlocking { app.gymRepository.sets.first() }.associateBy { it.id })
+                openRoutines()
+            }
+        }
+    }
 
     @Test fun libraryCreationKeepsCustomOrderAndExerciseOwnedTrainingValues() {
         runBlocking {

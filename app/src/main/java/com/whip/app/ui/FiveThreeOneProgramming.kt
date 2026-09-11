@@ -51,7 +51,7 @@ internal enum class FiveThreeOneProgramLayout(
     ),
     Beginners(
         "5/3/1 for Beginners",
-        "3 full-body days · Squat + Bench, Deadlift + Press, then Bench + Squat. Includes FSL 5 × 5 and guides 50–100 Push, Pull, and Single-leg/Core reps per day.",
+        "3 full-body days · Squat + Bench, Deadlift + Press, then Bench + Squat. Starts with editable FSL 5 × 5 and guides 50–100 Push, Pull, and Single-leg/Core reps per day.",
     ),
     Custom(
         "Choose Your Exercises",
@@ -240,6 +240,9 @@ internal data class FiveThreeOneProgramExercise(
     val trainingMaxBasisKind: TrainingMaxBasisKind = TrainingMaxBasisKind.ExplicitTrainingMax,
     val trainingMaxBasisValue: Double? = null,
     val trainingMaxBasisUnitId: String = "",
+    val supplement: FiveThreeOneSupplement? = null,
+    val anchorSupplement: FiveThreeOneSupplement? = null,
+    val boringButBigPercent: Double? = null,
 )
 
 internal enum class FiveThreeOneSetSection(val label: String) {
@@ -634,9 +637,10 @@ internal fun buildFiveThreeOneProgramState(
             trainingMax = exercise.trainingMax,
             mainScheme = mainScheme,
             phase = FiveThreeOnePhase.Fives,
-            supplement = if (layout == FiveThreeOneProgramLayout.Beginners) FiveThreeOneSupplement.FirstSetLast else supplement,
+            supplement = exercise.supplement
+                ?: if (layout == FiveThreeOneProgramLayout.Beginners) FiveThreeOneSupplement.FirstSetLast else supplement,
             classicFinalSetAmrap = classicFinalSetAmrap,
-            boringButBigPercent = boringButBigPercent,
+            boringButBigPercent = exercise.boringButBigPercent ?: boringButBigPercent,
             jokerSetsEnabled = jokerSetsEnabled,
         )
         val placementKey = nextKey++
@@ -724,6 +728,12 @@ private data class FiveThreeOneGeneratedPhase(
     val protocol: FiveThreeOneSeventhWeekProtocol? = null,
     val allowJokers: Boolean = false,
 )
+
+private fun FiveThreeOneGeneratedPhase.supplementFor(exercise: FiveThreeOneProgramExercise): FiveThreeOneSupplement = when {
+    protocol != null -> FiveThreeOneSupplement.None
+    role == RoutineProgramPhaseRole.Anchor -> exercise.anchorSupplement ?: supplement
+    else -> exercise.supplement ?: supplement
+}
 
 private fun FiveThreeOneProgramRequest.generatedPhases(): List<FiveThreeOneGeneratedPhase> = when (plan) {
     FiveThreeOneProgramPlan.SingleCycle -> listOf(
@@ -814,6 +824,9 @@ internal fun buildFiveThreeOneProgramState(
             exercise.cycleIncrement.isFinite() && exercise.cycleIncrement > 0.0
     })
     require(request.boringButBigPercent.isFinite() && request.boringButBigPercent in 1.0..100.0)
+    require(exercises.all { exercise ->
+        exercise.boringButBigPercent?.let { it.isFinite() && it in 1.0..100.0 } != false
+    })
     require(request.assistance.map(FiveThreeOneAssistanceChoice::category).distinct().size == request.assistance.size)
     require(request.assistance.all { it.category in setOf(
         RoutineAssistanceCategory.Push,
@@ -866,9 +879,9 @@ internal fun buildFiveThreeOneProgramState(
             trainingMax = exercise.trainingMax,
             mainScheme = definition.mainScheme,
             phase = requireNotNull(definition.mainPhase),
-            supplement = definition.supplement,
+            supplement = definition.supplementFor(exercise),
             classicFinalSetAmrap = definition.mainScheme == FiveThreeOneMainScheme.Classic && request.classicFinalSetAmrap,
-            boringButBigPercent = request.boringButBigPercent,
+            boringButBigPercent = exercise.boringButBigPercent ?: request.boringButBigPercent,
             jokerSetsEnabled = ladder.count > 0,
             jokerSetCount = ladder.count,
             jokerStepPercent = ladder.stepPercent,
@@ -889,7 +902,7 @@ internal fun buildFiveThreeOneProgramState(
         val generated = phases.flatMapIndexed { phaseIndex, definition ->
             plansFor(exercise, dayIndex, phaseIndex, definition).filterNot { set ->
                 alternateBbbTarget != null && alternateBbbTarget != exercise.exerciseId &&
-                    definition.supplement == FiveThreeOneSupplement.BoringButBig &&
+                    definition.supplementFor(exercise) == FiveThreeOneSupplement.BoringButBig &&
                     set.workSection == RoutineWorkSection.Supplemental.name
             }
         }
@@ -899,7 +912,7 @@ internal fun buildFiveThreeOneProgramState(
                 trainingMax = exercise.trainingMax,
                 mainScheme = phase.mainScheme,
                 phase = phase.mainPhase ?: FiveThreeOnePhase.Deload,
-                supplement = phase.supplement,
+                supplement = phase.supplementFor(exercise),
             ),
         ).name }.distinct()
         return RoutineBuilderPlacementState(
@@ -931,14 +944,14 @@ internal fun buildFiveThreeOneProgramState(
         if (targetId == mainExercise.exerciseId) return null
         val target = requireNotNull(exerciseById[targetId])
         val generated = phases.flatMapIndexed { phaseIndex, definition ->
-            if (definition.supplement != FiveThreeOneSupplement.BoringButBig) return@flatMapIndexed emptyList()
+            if (definition.supplementFor(mainExercise) != FiveThreeOneSupplement.BoringButBig) return@flatMapIndexed emptyList()
             val config = FiveThreeOneAuthoringConfig(
                 trainingMax = target.trainingMax,
                 mainScheme = definition.mainScheme,
                 phase = requireNotNull(definition.mainPhase),
                 supplement = FiveThreeOneSupplement.BoringButBig,
                 classicFinalSetAmrap = false,
-                boringButBigPercent = request.boringButBigPercent,
+                boringButBigPercent = mainExercise.boringButBigPercent ?: request.boringButBigPercent,
             )
             rekey(
                 fiveThreeOneBuilderSets(
@@ -1013,14 +1026,21 @@ internal fun buildFiveThreeOneProgramState(
             placements = programmed + request.assistance.map(::assistancePlacement),
         )
     }
-    val defaultName = when (request.plan) {
-        FiveThreeOneProgramPlan.SingleCycle -> when (request.layout) {
-            FiveThreeOneProgramLayout.FourDay -> "4-Day 5/3/1"
-            FiveThreeOneProgramLayout.Beginners -> "5/3/1 for Beginners"
-            FiveThreeOneProgramLayout.Custom -> "Custom 5/3/1"
+    val customizedSupplementalWork = phases.any { phase ->
+        exercises.any { phase.supplementFor(it) != phase.supplement }
+    }
+    val defaultName = when {
+        customizedSupplementalWork && request.plan != FiveThreeOneProgramPlan.SingleCycle -> "Custom 5/3/1 Leader → Anchor"
+        customizedSupplementalWork && request.layout == FiveThreeOneProgramLayout.Beginners -> "Custom 5/3/1 · Beginners schedule"
+        else -> when (request.plan) {
+            FiveThreeOneProgramPlan.SingleCycle -> when (request.layout) {
+                FiveThreeOneProgramLayout.FourDay -> "4-Day 5/3/1"
+                FiveThreeOneProgramLayout.Beginners -> "5/3/1 for Beginners"
+                FiveThreeOneProgramLayout.Custom -> "Custom 5/3/1"
+            }
+            FiveThreeOneProgramPlan.ForeverBbbLeaderAnchor -> "5/3/1 BBB Leader → FSL Anchor"
+            FiveThreeOneProgramPlan.ForeverFslLeaderAnchor -> "5/3/1 FSL Leader → FSL Anchor"
         }
-        FiveThreeOneProgramPlan.ForeverBbbLeaderAnchor -> "5/3/1 BBB Leader → FSL Anchor"
-        FiveThreeOneProgramPlan.ForeverFslLeaderAnchor -> "5/3/1 FSL Leader → FSL Anchor"
     }
     val templateKey = when (request.plan) {
         FiveThreeOneProgramPlan.ForeverBbbLeaderAnchor -> RoutineProgramTemplateKey.FiveThreeOneForeverBbbLeaderAnchor

@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260911-002 — Author 5/3/1 supplemental work per main exercise
+
+- Request/behavior: FB/FND/DEC-20260911-001. Each main exercise has its own Supplemental Work selector, BBB percentage and alternate target in guided setup. Custom headings identify Day 1/Day 2. Leader/Anchor exposes independent choices for both roles; untouched defaults follow the preset, while authored choices survive layout/preset changes, reorder, library reconciliation and recreation. Long selected values wrap through the existing SelectionField option.
+- Ownership: Extend FiveThreeOneExerciseSetupState and FiveThreeOneProgramExercise rather than create another state model. Generation resolves supplemental schemes per exercise/phase, including independent alternate-BBB Training Max ownership. Review shows each exercise's rounded supplemental work. Customized named presets receive truthful custom default names. Existing set/placement fields persist the resulting prescriptions; 7th Week protocols and progression boundaries remain intact.
+- Verification/status: Verified; native owner-example journey verifies Bench BBB at 60% of TM 100 and Zercher Deadlift FSL at 65% of TM 200, reorder/recreation, save/reopen and complete workouts on both days with unchanged performed records. All 88 selected Android methods pass after six documented exact navigation replacements; the complete native example and existing Leader/Anchor journey also pass wide. Final readiness passes 387 JVM checks/44 suites, Android compilation/lint/debug packaging; catalog passes 538 states. Nine original pairs personally reviewed and 514 final input hashes match under VER-20260911-002.
+- Compatibility: No Room schema, backup, epoch, application version or saved-history rewrite. Existing program requests retain their default fallback; stored routines are not recomputed. Evidence: artifacts/gym-531/2026-09-11/per-exercise-supplemental/README.md. Git records focused commit/push delivery. No phone deployment or exhaustive audit resumption.
+
 ### IMP-20260911-001 — Align corresponding pages and empty states at the owner's actual width
 
 - Request: FB-20260910-007 rejects remaining 0.3.68 alignment and empty Tracks/Gym hierarchy; implementation and signed phone release are authorized. Actual owner viewport is 360 dp, compared with the preceding 411 dp evidence.

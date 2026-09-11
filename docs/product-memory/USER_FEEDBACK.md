@@ -1,5 +1,11 @@
 # User feedback and acceptance criteria
 
+### FB-20260911-001 — Choose 5/3/1 supplemental work separately for each main exercise
+
+- Date/source: 2026-09-11, direct owner request. Concrete custom routine: Day 1 Flat Barbell Bench Press with BBB; Day 2 Zercher Deadlift with FSL. One supplemental choice must not be forced across all days/exercises.
+- Acceptance: Place an independent Supplemental Work choice with each main exercise, retain it through reorder/library changes/recreation, show the resulting prescription, and generate/save/run the correct work for each day. Preserve existing routines, Training Max ownership, phase boundaries, optional work and completed history. Use existing shared controls and exercise-owned setup state.
+- Related/status: Verified under IMP/VER-20260911-002; extends FB-20260831-001, FB-20260902-006 and DEC-20260910-019. The complete two-day native example, 88 selected Android methods after exact navigation replacements, two wide journeys, 387 JVM/readiness checks and nine original visual reviews pass. Implementation is committed/pushed through the memory workflow; phone delivery is a separate follow-up. The closed exhaustive audit remains closed.
+
 ### FB-20260910-007 — Correct remaining cross-page alignment and empty-state hierarchy, then release
 
 - Date/source: 2026-09-10, owner rejects the appearance of 0.3.68: elements still jump between pages and empty Tracks/Gym appear to use different font sizes.

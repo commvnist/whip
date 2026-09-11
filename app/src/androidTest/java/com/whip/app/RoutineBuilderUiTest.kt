@@ -1,5 +1,7 @@
 package com.whip.app
 
+import androidx.compose.ui.test.hasContentDescription
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
@@ -174,7 +176,7 @@ class RoutineBuilderUiTest {
             compose.onNodeWithTag("five-three-one-program-create")
                 .fetchSemanticsNode().config[SemanticsProperties.StateDescription],
         )
-        compose.onNode(hasText("Choose Your Exercises") and hasClickAction()).assertIsDisplayed()
+        compose.onNode(hasText("Choose Your Exercises") and hasClickAction()).performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("five-three-one-progression-adaptive").performScrollTo().performClick()
         compose.onNodeWithTag("five-three-one-progression-explanation")
             .assertTextContains("Standard stays the recommended 5/3/1 increase", substring = true)
@@ -243,7 +245,7 @@ class RoutineBuilderUiTest {
             hasText("Set Up 5/3/1") and hasClickAction() and
                 hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
         ).performClick()
-        compose.onNode(hasText("Choose Your Exercises") and hasClickAction()).performClick()
+        compose.onNode(hasText("Choose Your Exercises") and hasClickAction()).performScrollTo().performClick()
         compose.onNode(hasText("Add an Exercise") and hasClickAction()).performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("five-three-one-create-custom-exercise").performScrollTo().performClick()
 
@@ -507,7 +509,7 @@ class RoutineBuilderUiTest {
             hasText("Set Up 5/3/1") and hasClickAction() and
                 hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
         ).performClick()
-        compose.onNode(hasText("Choose Your Exercises") and hasClickAction()).performClick()
+        compose.onNode(hasText("Choose Your Exercises") and hasClickAction()).performScrollTo().performClick()
         compose.waitUntil(5_000) {
             compose.onAllNodes(hasTestTag("five-three-one-training-max-Custom-3"))
                 .fetchSemanticsNodes().isNotEmpty()
@@ -575,7 +577,7 @@ class RoutineBuilderUiTest {
             hasText("Set Up 5/3/1") and hasClickAction() and
                 hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
         ).performClick()
-        compose.onNode(hasText("Choose Your Exercises") and hasClickAction()).performClick()
+        compose.onNode(hasText("Choose Your Exercises") and hasClickAction()).performScrollTo().performClick()
         compose.onNodeWithContentDescription("Exercise 1: Bench Press").performScrollTo().performClick()
 
         compose.onNodeWithText("Choose Exercise 1").assertIsDisplayed()
@@ -685,7 +687,7 @@ class RoutineBuilderUiTest {
             hasText("Set Up 5/3/1") and hasClickAction() and
                 hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
         ).performClick()
-        compose.onNodeWithTag("five-three-one-plan-ForeverBbbLeaderAnchor").performClick()
+        compose.onNodeWithTag("five-three-one-plan-ForeverBbbLeaderAnchor").performScrollTo().performClick().assertIsSelected()
         listOf("Squat", "Bench", "Deadlift", "Press")
             .zip(listOf("200", "150", "300", "100"))
             .forEach { (role, tm) ->
@@ -693,7 +695,8 @@ class RoutineBuilderUiTest {
                     .performScrollTo()
                     .performTextReplacement(tm)
             }
-        compose.onNodeWithTag("five-three-one-bbb-exercise-1").performScrollTo().assertIsDisplayed()
+        androidx.test.espresso.Espresso.closeSoftKeyboard()
+        compose.onNodeWithContentDescription("BBB after Squat: Squat · same exercise").performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription("BBB after Squat: Squat · same exercise").performClick()
         compose.onNodeWithContentDescription("BBB after Squat option: Bench Press").performClick()
         compose.onNodeWithContentDescription("BBB after Squat: Bench Press").assertIsDisplayed()
@@ -812,7 +815,7 @@ class RoutineBuilderUiTest {
             hasText("Set Up 5/3/1") and hasClickAction() and
                 hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
         ).performClick()
-        compose.onNode(hasText("Choose Your Exercises") and hasClickAction()).performClick()
+        compose.onNode(hasText("Choose Your Exercises") and hasClickAction()).performScrollTo().performClick()
         compose.waitUntil(5_000) {
             compose.onAllNodes(hasTestTag("five-three-one-training-max-Custom-0"))
                 .fetchSemanticsNodes().isNotEmpty()
@@ -1328,14 +1331,18 @@ class RoutineBuilderUiTest {
         compose.onNodeWithTag("five-three-one-layout-Custom").performScrollTo().performClick()
         compose.onNodeWithTag("five-three-one-training-max-Custom-1").performScrollTo().performTextReplacement("200")
         compose.onNodeWithTag("five-three-one-training-max-Custom-2").performScrollTo().performTextReplacement("300")
-        compose.onNode(hasText("BBB · 5 × 10") and hasClickAction()).performScrollTo().performClick()
+        compose.onNodeWithTag("five-three-one-supplement-2").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Supplemental Work option: BBB · 5 × 10").performClick()
         compose.onNodeWithContentDescription("BBB after Bench Press: Bench Press · same exercise")
             .performScrollTo().performClick()
         compose.onNodeWithContentDescription("BBB after Bench Press option: Deadlift").performClick()
         compose.onNodeWithContentDescription("BBB after Bench Press: Deadlift").assertExists()
         compose.onNodeWithTag("five-three-one-training-max-Custom-0").performScrollTo().performTextReplacement("250")
         compose.onNodeWithContentDescription("BBB after Bench Press: Deadlift").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("BBB after Squat: Squat · same exercise").assertExists()
+        compose.onNodeWithContentDescription("BBB after Squat: Squat · same exercise").assertDoesNotExist()
+        compose.onNodeWithTag("five-three-one-supplement-1").performScrollTo()
+        compose.onNode(hasContentDescription("Supplemental Work: FSL · 5 × 5") and
+            hasAnyAncestor(hasTestTag("five-three-one-supplement-1"))).assertIsDisplayed()
         compose.onNodeWithTag("five-three-one-program-create").performClick()
         compose.onNodeWithTag("routine-builder-save").performClick()
         compose.runOnIdle {

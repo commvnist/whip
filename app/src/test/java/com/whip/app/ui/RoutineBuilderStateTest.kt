@@ -30,6 +30,72 @@ import org.junit.Test
 
 class RoutineBuilderStateTest {
     @Test
+    fun customDaysGenerateIndependentBbbAndFslPrescriptions() {
+        val bench = testProgramExercise(1, "Flat Barbell Bench Press", 100.0).copy(
+            supplement = FiveThreeOneSupplement.BoringButBig, boringButBigPercent = 60.0,
+        )
+        val zercher = testProgramExercise(2, "Zercher Deadlift", 200.0).copy(supplement = FiveThreeOneSupplement.FirstSetLast)
+        val built = buildFiveThreeOneProgramState(RoutineBuilderState(), supplementalRequest(listOf(bench, zercher)))
+        assertEquals(listOf(bench.exerciseName, zercher.exerciseName), built.days.map { it.name })
+        val benchSets = built.days[0].placements.single().sets
+        val zercherSets = built.days[1].placements.single().sets
+        for (phase in 0..2) {
+            val bbb = benchSets.filter { it.routinePhaseIndex == phase && it.workSection == RoutineWorkSection.Supplemental.name }
+            val fsl = zercherSets.filter { it.routinePhaseIndex == phase && it.workSection == RoutineWorkSection.Supplemental.name }
+            assertEquals(5, bbb.size)
+            assertEquals(5, fsl.size)
+            assertTrue(bbb.all { it.repetitionsMin == "10" && it.loadPercentage == "60" && it.supplementalScheme == RoutineSupplementalScheme.BoringButBig.name })
+            assertTrue(fsl.all { it.repetitionsMin == "5" && it.loadPercentage == listOf("65", "70", "75")[phase] && it.supplementalScheme == RoutineSupplementalScheme.FirstSetLast.name })
+            assertEquals(3, benchSets.count { it.routinePhaseIndex == phase && it.workSection == RoutineWorkSection.Main.name })
+            assertEquals(1, zercherSets.count { it.routinePhaseIndex == phase && it.optionalWorkKind == RoutineOptionalWorkKind.Joker.name })
+        }
+        assertFalse((benchSets + zercherSets).any { it.routinePhaseIndex == 3 && it.workSection == RoutineWorkSection.Supplemental.name })
+    }
+
+    @Test
+    fun leaderAndAnchorOverridesKeepAlternateBbbScopedToItsMainExerciseAndPhase() {
+        val bench = testProgramExercise(1, "Bench Press", 100.0).copy(
+            supplement = FiveThreeOneSupplement.BoringButBig, anchorSupplement = FiveThreeOneSupplement.None,
+            boringButBigPercent = 60.0,
+        )
+        val zercher = testProgramExercise(2, "Zercher Deadlift", 200.0).copy(
+            supplement = FiveThreeOneSupplement.FirstSetLast, anchorSupplement = FiveThreeOneSupplement.BoringButBig,
+            boringButBigPercent = 40.0,
+        )
+        val request = supplementalRequest(listOf(bench, zercher)).copy(
+            plan = FiveThreeOneProgramPlan.ForeverBbbLeaderAnchor,
+            bbbExerciseByMainExerciseId = mapOf(1L to 2L, 2L to 1L),
+        )
+        val built = buildFiveThreeOneProgramState(RoutineBuilderState(), request)
+        val benchMain = built.days[0].placements.first()
+        val benchAlternate = built.days[0].placements.last()
+        val zercherMain = built.days[1].placements.first()
+        val zercherAlternate = built.days[1].placements.last()
+        assertEquals(200.0, benchAlternate.trainingMaxValue.toDouble(), 0.0)
+        assertEquals(100.0, zercherAlternate.trainingMaxValue.toDouble(), 0.0)
+        assertEquals((0..5).toSet(), benchAlternate.sets.map { it.routinePhaseIndex }.toSet())
+        assertTrue(benchAlternate.sets.all { it.loadPercentage == "60" && it.repetitionsMin == "10" })
+        assertEquals((7..9).toSet(), zercherAlternate.sets.map { it.routinePhaseIndex }.toSet())
+        assertTrue(zercherAlternate.sets.all { it.loadPercentage == "40" && it.repetitionsMin == "10" })
+        assertFalse(benchMain.sets.any { it.workSection == RoutineWorkSection.Supplemental.name })
+        assertTrue(zercherMain.sets.filter { it.workSection == RoutineWorkSection.Supplemental.name }.all {
+            it.routinePhaseIndex in 0..5 && it.supplementalScheme == RoutineSupplementalScheme.FirstSetLast.name
+        })
+        assertEquals(setOf(2, 6, 10), built.trainingMaxAdvanceAfterPhaseIndices)
+        assertThrows(IllegalArgumentException::class.java) {
+            buildFiveThreeOneProgramState(RoutineBuilderState(), request.copy(exercises = listOf(bench.copy(boringButBigPercent = Double.NaN), zercher)))
+        }
+    }
+
+    private fun supplementalRequest(exercises: List<FiveThreeOneProgramExercise>) = FiveThreeOneProgramRequest(
+        layout = FiveThreeOneProgramLayout.Custom, plan = FiveThreeOneProgramPlan.SingleCycle,
+        exercises = exercises, mainScheme = FiveThreeOneMainScheme.Classic,
+        supplement = FiveThreeOneSupplement.None, closingProtocol = FiveThreeOneSeventhWeekProtocol.Deload,
+        jokerLadder = FiveThreeOneJokerLadder(count = 1), classicFinalSetAmrap = true,
+        boringButBigPercent = 50.0, progressionMode = com.whip.app.domain.RoutineProgressionMode.Standard,
+    )
+
+    @Test
     fun draftSurvivesViewModelRecreationAndClearsOnlyWhenRequested() {
         val handle = SavedStateHandle()
         val original = RoutineBuilderViewModel(handle)

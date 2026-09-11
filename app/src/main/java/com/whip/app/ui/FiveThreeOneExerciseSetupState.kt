@@ -18,7 +18,20 @@ internal data class FiveThreeOneExerciseSetupState(
     val appliedTrainingMaxBasisKind: String = "",
     val appliedDerivedTrainingMax: String = "",
     val bbbTargetId: Long = exerciseId,
+    val supplement: FiveThreeOneSupplement? = null,
+    val anchorSupplement: FiveThreeOneSupplement? = null,
+    val boringButBigPercent: String = "50",
 ) : Serializable
+
+internal fun FiveThreeOneExerciseSetupState.supplementFor(plan: FiveThreeOneProgramPlan): FiveThreeOneSupplement =
+    supplement ?: when (plan) {
+        FiveThreeOneProgramPlan.ForeverBbbLeaderAnchor -> FiveThreeOneSupplement.BoringButBig
+        else -> FiveThreeOneSupplement.FirstSetLast
+    }
+
+internal fun FiveThreeOneExerciseSetupState.usesBoringButBig(plan: FiveThreeOneProgramPlan): Boolean =
+    supplementFor(plan) == FiveThreeOneSupplement.BoringButBig ||
+        (plan != FiveThreeOneProgramPlan.SingleCycle && anchorSupplement == FiveThreeOneSupplement.BoringButBig)
 
 internal fun reconcileFiveThreeOneExerciseSetups(
     previous: List<FiveThreeOneExerciseSetupState>,

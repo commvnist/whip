@@ -16,6 +16,8 @@ class FiveThreeOneExerciseSetupStateTest {
         appliedSourceMax = "125", appliedTrainingMaxPercentage = "80",
         appliedTrainingMaxBasisKind = TrainingMaxBasisKind.EstimatedOneRepMax.name,
         appliedDerivedTrainingMax = "100", bbbTargetId = 2,
+        supplement = FiveThreeOneSupplement.BoringButBig, boringButBigPercent = "60",
+        anchorSupplement = FiveThreeOneSupplement.None,
     )
     private val squat = FiveThreeOneExerciseSetupState(
         exerciseId = 2, cycleIncrement = "7", cycleIncrementAuthored = true,
@@ -24,6 +26,8 @@ class FiveThreeOneExerciseSetupStateTest {
         appliedSourceMax = "250", appliedTrainingMaxPercentage = "80",
         appliedTrainingMaxBasisKind = TrainingMaxBasisKind.ActualOneRepMax.name,
         appliedDerivedTrainingMax = "200", bbbTargetId = 1,
+        supplement = FiveThreeOneSupplement.FirstSetLast, boringButBigPercent = "40",
+        anchorSupplement = FiveThreeOneSupplement.BoringButStrong,
     )
 
     @Test fun libraryRefreshKeepsUserOrderAndCompleteExerciseConfiguration() {
@@ -68,5 +72,15 @@ class FiveThreeOneExerciseSetupStateTest {
         }.toByteArray()
         val restored = ObjectInputStream(ByteArrayInputStream(bytes)).use { it.readObject() }
         assertEquals(original, restored)
+    }
+
+    @Test fun presetDefaultsDoNotOverwriteExplicitSupplementalChoices() {
+        val fresh = FiveThreeOneExerciseSetupState(3, "5")
+        assertEquals(FiveThreeOneSupplement.FirstSetLast, fresh.supplementFor(FiveThreeOneProgramPlan.SingleCycle))
+        assertEquals(FiveThreeOneSupplement.BoringButBig, fresh.supplementFor(FiveThreeOneProgramPlan.ForeverBbbLeaderAnchor))
+        FiveThreeOneProgramPlan.entries.forEach { plan ->
+            assertEquals(FiveThreeOneSupplement.FirstSetLast, squat.supplementFor(plan))
+            assertEquals(FiveThreeOneSupplement.None, fresh.copy(supplement = FiveThreeOneSupplement.None).supplementFor(plan))
+        }
     }
 }

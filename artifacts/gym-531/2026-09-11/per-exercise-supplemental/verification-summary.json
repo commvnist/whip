@@ -1,0 +1,20 @@
+{
+  "readiness_command": "scripts/check --ready",
+  "readiness_exit_code": 0,
+  "jvm": {
+    "tests": 387,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "suites": 44
+  },
+  "latest_android_methods": 88,
+  "wide_methods": 2,
+  "personally_reviewed_native_pairs": 9,
+  "frozen_inputs": 514,
+  "input_mismatches": [],
+  "catalog_required": 538,
+  "catalog_pending": 0,
+  "version_unchanged": "0.3.69 (75)",
+  "physical_phone_release": false
+}

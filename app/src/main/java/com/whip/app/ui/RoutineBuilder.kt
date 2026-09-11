@@ -983,9 +983,7 @@ private fun FiveThreeOneProgramSetupDialog(
     var planName by rememberSaveable { mutableStateOf(FiveThreeOneProgramPlan.SingleCycle.name) }
     var closingProtocolName by rememberSaveable { mutableStateOf(FiveThreeOneSeventhWeekProtocol.Deload.name) }
     var mainSchemeName by rememberSaveable { mutableStateOf(FiveThreeOneMainScheme.Classic.name) }
-    var supplementName by rememberSaveable { mutableStateOf(FiveThreeOneSupplement.FirstSetLast.name) }
     var classicFinalSetAmrap by rememberSaveable { mutableStateOf(true) }
-    var boringButBigPercentText by rememberSaveable { mutableStateOf("50") }
     var previewPhaseName by rememberSaveable { mutableStateOf(FiveThreeOnePhase.Fives.name) }
     var jokerCount by rememberSaveable { mutableStateOf(0) }
     var jokerStepPercent by rememberSaveable { mutableStateOf(5) }
@@ -1059,16 +1057,6 @@ private fun FiveThreeOneProgramSetupDialog(
         FiveThreeOneProgramPlan.ForeverFslLeaderAnchor,
         -> FiveThreeOneMainScheme.FivesPro
     }
-    val supplement = when (plan) {
-        FiveThreeOneProgramPlan.ForeverBbbLeaderAnchor -> FiveThreeOneSupplement.BoringButBig
-        FiveThreeOneProgramPlan.ForeverFslLeaderAnchor -> FiveThreeOneSupplement.FirstSetLast
-        FiveThreeOneProgramPlan.SingleCycle -> if (layout == FiveThreeOneProgramLayout.Beginners) {
-            FiveThreeOneSupplement.FirstSetLast
-        } else {
-            FiveThreeOneSupplement.valueOf(supplementName)
-        }
-    }
-    val boringButBigPercent = boringButBigPercentText.toWhipDoubleOrNull()
     val previewPhase = FiveThreeOnePhase.valueOf(previewPhaseName)
     val selectedExercises = exerciseIds.map { id -> eligible.firstOrNull { it.id == id } }
     val activeRoles = exerciseIds.indices.map { index ->
@@ -1102,6 +1090,10 @@ private fun FiveThreeOneProgramSetupDialog(
             trainingMaxBasisUnitId = exercise.weightUnitId.takeIf {
                 exerciseSetups.getOrNull(index)?.useRecentMaxSuggestion == true
             }.orEmpty(),
+            supplement = exerciseSetups[index].supplementFor(plan),
+            anchorSupplement = exerciseSetups[index].anchorSupplement,
+            boringButBigPercent = exerciseSetups[index].boringButBigPercent.toWhipDoubleOrNull()
+                .takeIf { exerciseSetups[index].usesBoringButBig(plan) },
         )
     }
     val assistanceCategories = listOf(
@@ -1145,17 +1137,12 @@ private fun FiveThreeOneProgramSetupDialog(
         emptyList()
     }
     val requiredExerciseCount = if (layout == FiveThreeOneProgramLayout.Custom) exerciseIds.size else roles.size
-    val bbbExerciseByMainExerciseId = if (
-        supplement == FiveThreeOneSupplement.BoringButBig && layout != FiveThreeOneProgramLayout.Beginners
-    ) {
-        exerciseIds.mapIndexedNotNull { index, mainId ->
-            exerciseSetups.getOrNull(index)?.bbbTargetId?.takeIf { it in exerciseIds }?.let { targetId -> mainId to targetId }
-        }.toMap()
-    } else {
-        emptyMap()
+    val bbbSetups = exerciseSetups.filter { it.exerciseId > 0L && it.usesBoringButBig(plan) }
+    val bbbExerciseByMainExerciseId = bbbSetups.associate { it.exerciseId to it.bbbTargetId }
+    val bbbMappingsValid = bbbSetups.all { it.bbbTargetId in exerciseIds }
+    val bbbPercentagesValid = bbbSetups.all { setup ->
+        setup.boringButBigPercent.toWhipDoubleOrNull()?.let { it.isFinite() && it in 1.0..100.0 } == true
     }
-    val bbbMappingsValid = supplement != FiveThreeOneSupplement.BoringButBig ||
-        layout == FiveThreeOneProgramLayout.Beginners || bbbExerciseByMainExerciseId.size == exerciseIds.size
     val standardSelectionsConfirmed = layout == FiveThreeOneProgramLayout.Custom ||
         exerciseIds.indices.all { index ->
             val selected = selectedExercises.getOrNull(index)
@@ -1180,8 +1167,7 @@ private fun FiveThreeOneProgramSetupDialog(
         standardSelectionsConfirmed && everyDerivedTrainingMaxIsApplied &&
         bbbMappingsValid &&
         programExercises.all { it.trainingMax > 0.0 && it.cycleIncrement > 0.0 } &&
-        (supplement != FiveThreeOneSupplement.BoringButBig ||
-            boringButBigPercent?.let { it.isFinite() && it in 1.0..100.0 } == true)
+        bbbPercentagesValid
     val buildBlocker = when {
         layout == FiveThreeOneProgramLayout.Custom && eligible.isEmpty() ->
             "Add at least one active Weight + Reps exercise to choose a custom program."
@@ -1191,11 +1177,9 @@ private fun FiveThreeOneProgramSetupDialog(
         requiredExerciseCount <= 0 || programExercises.size != requiredExerciseCount -> "Enter a Training Max and cycle increase above zero for every selected exercise."
         programExercises.map(FiveThreeOneProgramExercise::exerciseId).distinct().size != requiredExerciseCount -> "Choose each main exercise only once."
         !standardSelectionsConfirmed -> "Confirm or replace every prefilled standard exercise."
-        !bbbMappingsValid -> "Choose the BBB exercise used after every Main exercise."
+        !bbbMappingsValid -> "Choose the supplemental exercise for each Main exercise using BBB."
         programExercises.any { it.trainingMax <= 0.0 || it.cycleIncrement <= 0.0 } -> "Enter a Training Max and cycle increase above zero for every selected exercise."
-        supplement == FiveThreeOneSupplement.BoringButBig &&
-            boringButBigPercent?.let { it.isFinite() && it in 1.0..100.0 } != true ->
-            "Enter a Boring But Big percentage from 1 to 100%."
+        !bbbPercentagesValid -> "Enter a BBB percentage from 1 to 100% for each exercise using BBB."
         else -> null
     }
     fun <T> List<T>.moved(fromIndex: Int, toIndex: Int): List<T> {
@@ -1372,7 +1356,7 @@ private fun FiveThreeOneProgramSetupDialog(
                         val role = activeRoles[index]
                         val selected = selectedExercises[index] ?: eligible.first()
                         val fieldKey = role?.name ?: "Custom-$index"
-                        val heading = role?.label ?: "Exercise ${index + 1}"
+                        val heading = role?.label ?: "Day ${index + 1}"
                         Row(
                             Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
@@ -1650,6 +1634,53 @@ private fun FiveThreeOneProgramSetupDialog(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        SelectionField(
+                            label = if (plan == FiveThreeOneProgramPlan.SingleCycle) "Supplemental Work" else "Leader Supplemental Work",
+                            values = FiveThreeOneSupplement.entries,
+                            selected = setup.supplementFor(plan),
+                            valueText = FiveThreeOneSupplement::label,
+                            onSelect = { choice -> updateExercise(setup.exerciseId) { it.copy(supplement = choice) } },
+                            modifier = Modifier.testTag("five-three-one-supplement-${setup.exerciseId}"),
+                            selectedValueMaxLines = Int.MAX_VALUE,
+                        )
+                        if (plan != FiveThreeOneProgramPlan.SingleCycle) {
+                            SelectionField(
+                                label = "Anchor Supplemental Work",
+                                values = FiveThreeOneSupplement.entries,
+                                selected = setup.anchorSupplement ?: FiveThreeOneSupplement.FirstSetLast,
+                                valueText = FiveThreeOneSupplement::label,
+                                onSelect = { choice -> updateExercise(setup.exerciseId) { it.copy(anchorSupplement = choice) } },
+                                modifier = Modifier.testTag("five-three-one-anchor-supplement-${setup.exerciseId}"),
+                                selectedValueMaxLines = Int.MAX_VALUE,
+                            )
+                        }
+                        if (setup.usesBoringButBig(plan)) {
+                            OutlinedTextField(
+                                value = setup.boringButBigPercent,
+                                onValueChange = { value -> updateExercise(setup.exerciseId) { it.copy(boringButBigPercent = value.numericInput().take(6)) } },
+                                label = { Text("BBB percentage of Training Max") },
+                                supportingText = { Text("Five sets of 10 for ${selected.name}'s supplemental work.") },
+                                isError = setup.boringButBigPercent.toWhipDoubleOrNull()?.let { it.isFinite() && it in 1.0..100.0 } != true,
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth().testTag("five-three-one-bbb-percent-${setup.exerciseId}"),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            )
+                            val targets = selectedExercises.filterNotNull()
+                            SelectionField(
+                                label = "BBB after ${selected.name}",
+                                values = targets,
+                                selected = targets.firstOrNull { it.id == setup.bbbTargetId } ?: selected,
+                                valueText = { target -> if (target.id == selected.id) "${target.name} · same exercise" else target.name },
+                                onSelect = { target -> updateExercise(setup.exerciseId) { it.copy(bbbTargetId = target.id) } },
+                                modifier = Modifier.testTag("five-three-one-bbb-exercise-${setup.exerciseId}"),
+                                selectedValueMaxLines = Int.MAX_VALUE,
+                            )
+                            Text(
+                                "The supplemental exercise uses its own Training Max.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                     if (layout == FiveThreeOneProgramLayout.Custom) {
                         WhipOutlinedButton(
@@ -1671,7 +1702,7 @@ private fun FiveThreeOneProgramSetupDialog(
                         }
                     } else {
                         Text(
-                            "Leaders use 5s PRO without PR sets. The Anchor uses Classic Main work with PR sets and FSL.",
+                            "Leaders use 5s PRO without PR sets. The Anchor uses Classic Main work with PR sets. Choose supplemental work for each exercise above.",
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.testTag("five-three-one-leader-anchor-policy"),
                         )
@@ -1694,52 +1725,6 @@ private fun FiveThreeOneProgramSetupDialog(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                    }
-                    if (layout != FiveThreeOneProgramLayout.Beginners && plan == FiveThreeOneProgramPlan.SingleCycle) {
-                        Text("Supplemental Work", style = MaterialTheme.typography.labelLarge)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            FiveThreeOneSupplement.entries.forEach { choice ->
-                                WhipFilterChip(supplement == choice, { supplementName = choice.name }, { Text(choice.label) })
-                            }
-                        }
-                    }
-                    if (supplement == FiveThreeOneSupplement.BoringButBig) {
-                        OutlinedTextField(
-                            value = boringButBigPercentText,
-                            onValueChange = { boringButBigPercentText = it.numericInput().take(6) },
-                            label = { Text("BBB percentage of Training Max") },
-                            supportingText = { Text("Creates five Supplemental sets of 10 at this percentage.") },
-                            isError = boringButBigPercent?.let { it !in 1.0..100.0 } != false,
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth().testTag("five-three-one-program-bbb-percent"),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        )
-                        if (layout != FiveThreeOneProgramLayout.Beginners && programExercises.isNotEmpty()) {
-                            Text("BBB exercise mapping", style = MaterialTheme.typography.labelLarge)
-                            Text(
-                                "Use the Main exercise again or choose another selected program exercise. The alternate uses its own Training Max.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            programExercises.forEach { mainExercise ->
-                                val targetId = exerciseSetups.first { it.exerciseId == mainExercise.exerciseId }.bbbTargetId
-                                val selectedTarget = programExercises.firstOrNull { it.exerciseId == targetId }
-                                    ?: mainExercise
-                                SelectionField(
-                                    label = "BBB after ${mainExercise.exerciseName}",
-                                    values = programExercises,
-                                    selected = selectedTarget,
-                                    valueText = { target ->
-                                        if (target.exerciseId == mainExercise.exerciseId) "${target.exerciseName} · same exercise"
-                                        else target.exerciseName
-                                    },
-                                    onSelect = { target ->
-                                        updateExercise(mainExercise.exerciseId) { it.copy(bbbTargetId = target.exerciseId) }
-                                    },
-                                    modifier = Modifier.testTag("five-three-one-bbb-exercise-${mainExercise.exerciseId}"),
-                                )
-                            }
-                        }
                     }
                     Text("7th Week protocol", style = MaterialTheme.typography.labelLarge)
                     Text(
@@ -1906,11 +1891,9 @@ private fun FiveThreeOneProgramSetupDialog(
                             trainingMax = exercise.trainingMax,
                             mainScheme = mainScheme,
                             phase = previewPhase,
-                            supplement = if (layout == FiveThreeOneProgramLayout.Beginners) {
-                                FiveThreeOneSupplement.FirstSetLast
-                            } else supplement,
+                            supplement = requireNotNull(exercise.supplement),
                             classicFinalSetAmrap = classicFinalSetAmrap,
-                            boringButBigPercent = boringButBigPercent ?: 50.0,
+                            boringButBigPercent = exercise.boringButBigPercent ?: 50.0,
                             jokerSetsEnabled = jokerCount > 0 && plan == FiveThreeOneProgramPlan.SingleCycle,
                             jokerSetCount = if (plan == FiveThreeOneProgramPlan.SingleCycle) jokerCount else 0,
                             jokerStepPercent = jokerStepPercent.toDouble(),
@@ -1928,6 +1911,23 @@ private fun FiveThreeOneProgramSetupDialog(
                                 modifier = Modifier.testTag("five-three-one-program-preview-exercise-${exercise.exerciseId}"),
                             )
                         }
+                        val supplementalExercise = if (exercise.supplement == FiveThreeOneSupplement.BoringButBig) {
+                            programExercises.firstOrNull { it.exerciseId == bbbExerciseByMainExerciseId[exercise.exerciseId] } ?: exercise
+                        } else exercise
+                        val supplementalPreview = if (previewPhase == FiveThreeOnePhase.Deload) emptyList() else runCatching {
+                            previewFiveThreeOneSets(
+                                previewConfig.copy(trainingMax = supplementalExercise.trainingMax),
+                                supplementalExercise.loadIncrement,
+                            ).filter { it.plan.section == FiveThreeOneSetSection.Supplemental }
+                        }.getOrDefault(emptyList())
+                        Text(
+                            if (supplementalPreview.isEmpty()) "${exercise.exerciseName} · No Supplemental Work"
+                            else "${exercise.exerciseName} · ${exercise.supplement.label} · " +
+                                "${supplementalExercise.exerciseName} · " +
+                                "${editableNumericValue(supplementalPreview.first().roundedLoad)} ${unitSymbol(supplementalExercise.unitId)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.testTag("five-three-one-program-preview-supplement-${exercise.exerciseId}"),
+                        )
                     }
                     buildBlocker?.let { message ->
                         Text(
@@ -1950,11 +1950,11 @@ private fun FiveThreeOneProgramSetupDialog(
                             plan = plan,
                             exercises = programExercises,
                             mainScheme = mainScheme,
-                            supplement = supplement,
+                            supplement = FiveThreeOneSupplement.FirstSetLast,
                             closingProtocol = closingProtocol,
                             jokerLadder = FiveThreeOneJokerLadder(jokerCount, jokerStepPercent.toDouble()),
                             classicFinalSetAmrap = classicFinalSetAmrap,
-                            boringButBigPercent = boringButBigPercent ?: 50.0,
+                            boringButBigPercent = 50.0,
                             progressionMode = RoutineProgressionMode.valueOf(progressionModeName),
                             allowNonStandardHigherSuggestions = allowNonStandardHigherSuggestions,
                             bbbExerciseByMainExerciseId = bbbExerciseByMainExerciseId,

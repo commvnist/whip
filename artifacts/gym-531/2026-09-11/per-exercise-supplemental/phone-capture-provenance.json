@@ -1,0 +1,42 @@
+{
+  "phone/gym.531-supplemental.bench-setup.png": {
+    "source_file": "gym.531-supplemental.bench-setup (1).png",
+    "source_sha256": "fb791e7c3c9fb3f45f2e6cec7b6eec7685ed388050fbb927b938eedc070f233c",
+    "retained_sha256": "fb791e7c3c9fb3f45f2e6cec7b6eec7685ed388050fbb927b938eedc070f233c"
+  },
+  "phone/gym.531-supplemental.bench-setup.xml": {
+    "source_file": "gym.531-supplemental.bench-setup (1).xml",
+    "source_sha256": "b4fd158d4607dffffb98f6572d1aca9095f8135f1f67eb78a5c7180b11779f92",
+    "retained_sha256": "f43d395b29ed73de59a1a8b12c13f6b63daf0c6697bcfb5efb1e69afbbf68b9f"
+  },
+  "phone/gym.531-supplemental.mixed-preview.png": {
+    "source_file": "gym.531-supplemental.mixed-preview.png",
+    "source_sha256": "b75bb86dfa3dbfcc07e0f42bd06cffc5d5ba582456a0e8961ff9dc8dc8d4a484",
+    "retained_sha256": "b75bb86dfa3dbfcc07e0f42bd06cffc5d5ba582456a0e8961ff9dc8dc8d4a484"
+  },
+  "phone/gym.531-supplemental.mixed-preview.xml": {
+    "source_file": "gym.531-supplemental.mixed-preview.xml",
+    "source_sha256": "1c2171ab046b1955f72cf49f6fd74c8a2b7f2d4531bf721373272a836c6107b0",
+    "retained_sha256": "1bf5b2ce41fb68c402506fca914e9743d9ee7fb3d95b5893d97af39257fa3961"
+  },
+  "phone/gym.531-supplemental.bench-workout.png": {
+    "source_file": "gym.531-supplemental.bench-workout.png",
+    "source_sha256": "36ca543b1f27ce9ad47f6a3c5e5633f3739c4ad5b4c77473866d39d626ceda9b",
+    "retained_sha256": "36ca543b1f27ce9ad47f6a3c5e5633f3739c4ad5b4c77473866d39d626ceda9b"
+  },
+  "phone/gym.531-supplemental.bench-workout.xml": {
+    "source_file": "gym.531-supplemental.bench-workout.xml",
+    "source_sha256": "07ac4f74b4d27764ada247f9598d13566dd18135ec7a454a03b9d4253a4cccfb",
+    "retained_sha256": "61f94c0cabfbabe74e229e1351cfe37069b2652d89168c1cb8cdbc05d8e4a37f"
+  },
+  "phone/gym.531-supplemental.zercher-workout.png": {
+    "source_file": "gym.531-supplemental.zercher-workout.png",
+    "source_sha256": "afc74d96542af5311d79af97925f6841879a2e3914aaa1947516251369869f84",
+    "retained_sha256": "afc74d96542af5311d79af97925f6841879a2e3914aaa1947516251369869f84"
+  },
+  "phone/gym.531-supplemental.zercher-workout.xml": {
+    "source_file": "gym.531-supplemental.zercher-workout.xml",
+    "source_sha256": "dd741c98e550057ae45bcfbbf1409f88ef91ddd9f720dccdf62b9a2ee90ed14d",
+    "retained_sha256": "55c33f1c2e814724d87f968d928d027d9d500756c9e1ef47c7fb3d47e40b3944"
+  }
+}
