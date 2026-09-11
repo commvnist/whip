@@ -1,5 +1,11 @@
 # User feedback and acceptance criteria
 
+### FB-20260911-004 — Release the saved 5/3/1 supplemental edit fix to the phone
+
+- Date/source: 2026-09-11, direct owner follow-up: “release to my phone.”
+- Acceptance: Deliver verified fix 69f4c444 as a higher signed private release, install in place on the owner phone, and verify package/version/hash, preserved signer/first-install identity, cold foreground launch and bounded runtime health through DEC-20260906-003's fast phone lane.
+- Related/status: In progress; FB-20260911-003 / FND, DEC-20260911-002 / IMP, VER-20260911-004. Prepare 0.3.71/code 77; no schema/epoch/backup change or closed-audit resumption.
+
 ### FB-20260911-003 — Existing routine edits must update BBB/FSL prescriptions
 
 - Date/source: 2026-09-11, owner reports that editing an already-created routine after 0.3.70 does not update the exercises; clarification identifies the BBB/FSL sets or weights, not exercise selection.
