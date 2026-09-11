@@ -4,7 +4,8 @@
 
 - Date/source: 2026-09-11, direct owner follow-up: “release to my phone.”
 - Acceptance: Deliver verified fix 69f4c444 as a higher signed private release, install in place on the owner phone, and verify package/version/hash, preserved signer/first-install identity, cold foreground launch and bounded runtime health through DEC-20260906-003's fast phone lane.
-- Related/status: In progress; FB-20260911-003 / FND, DEC-20260911-002 / IMP, VER-20260911-004. Prepare 0.3.71/code 77; no schema/epoch/backup change or closed-audit resumption.
+- Scope correction: After ADB could not connect, the owner replied “it's down right now, just forgo that part.” Finish the signed build and verification; omit phone installation and stop connection attempts.
+- Related/status: Verified build under IMP/VER-20260911-005; phone installation Deferred at owner direction. Signed 0.3.71/code 77 is built and artifact-verified from clean pushed 0f2db675; 389 fast JVM checks pass. Last verified installed version remains 0.3.70/code 76. Contains FB-20260911-003 / FND, DEC-20260911-002 / IMP, VER-20260911-004; no schema/epoch/backup change or closed-audit resumption.
 
 ### FB-20260911-003 — Existing routine edits must update BBB/FSL prescriptions
 

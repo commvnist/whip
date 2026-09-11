@@ -1,0 +1,12 @@
+{
+  "version": "0.3.71",
+  "version_code": 77,
+  "source": "0f2db6758c77e262b386c6760277757ec5ade351",
+  "signer_sha256": "cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788",
+  "apk_sha256": "f1568a9419336ad2c4cf8d3bffe4752702f763c6ad7ee9658808fde1b41f0057",
+  "apk_bytes": 4166194,
+  "aab_sha256": "96bdf49015a62b701ef4425f827cbdf2db61e8dd7b020dda1f02762bfcb97010",
+  "aab_bytes": 11237021,
+  "signatures_verified": true,
+  "zip_integrity_verified": true
+}

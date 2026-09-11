@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260911-005 — Prepare the saved supplemental edit fix as a signed phone build
+
+- Request/status: FB-20260911-004; Verified signed build. Phone installation is Deferred at owner direction after the owner confirms the connection is down and asks to forgo that part. Whip 0.3.71/code 77 is ready from clean pushed source 0f2db6758c77e262b386c6760277757ec5ade351, containing verified saved-edit fix 69f4c444.
+- Changes/compatibility: Only application versionName/code change among 514 verified inputs; other 513 hashes match. Room 46/data epoch 6/backup 26 and existing stored routines/history remain unchanged.
+- Verification: 389 fast JVM methods/44 suites pass; signed optimized APK/AAB build and independent signatures, package/version and ZIP integrity pass under VER-20260911-005.
+- Boundary/evidence: ADB lists no authorized phone and the discovered wireless endpoint refuses connection. No installation or phone smoke occurred; last verified installed version remains 0.3.70/code 76. artifacts/gym-531/2026-09-11/release-0.3.71/README.md records build hashes. Connection attempts stop after the owner correction; no automatic follow-up or closed-audit resumption.
+
 ### IMP-20260911-004 — Apply saved supplemental edits across the intended training weeks
 
 - Request/behavior: FB-20260911-003 / FND, DEC-20260911-002. Program Structure now defaults Supplemental Work edits to every matching Standard, Leader or Anchor training phase. Existing shared chips offer This Phase Only and show exact affected phase numbers. Selection remains exercise-scoped; protocol phases remain individual.

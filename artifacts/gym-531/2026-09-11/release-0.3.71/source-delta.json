@@ -1,0 +1,9 @@
+{
+  "fix_source": "69f4c44478aeaead69aa6cb56790bc47ed0976b0",
+  "verified_inputs": 514,
+  "unchanged_inputs": 513,
+  "changed_inputs": [
+    "app/build.gradle.kts"
+  ],
+  "diff": "diff --git a/app/build.gradle.kts b/app/build.gradle.kts\nindex e2df31a4..033f48b4 100644\n--- a/app/build.gradle.kts\n+++ b/app/build.gradle.kts\n@@ -42,8 +42,8 @@ android {\n         applicationId = \"commvne.com.whip.app\"\n         minSdk = 26\n         targetSdk = 37\n-        versionCode = 76\n-        versionName = \"0.3.70\"\n+        versionCode = 77\n+        versionName = \"0.3.71\"\n \n         testInstrumentationRunner = \"androidx.test.runner.AndroidJUnitRunner\"\n     }\n"
+}

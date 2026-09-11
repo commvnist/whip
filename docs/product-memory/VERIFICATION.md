@@ -1,5 +1,13 @@
 # Verification and release evidence
 
+### VER-20260911-005 — Whip 0.3.71 signed build, phone installation omitted by request
+
+- Scope/status: FB-20260911-004 / IMP-20260911-005; Verified build. Phone installation is Deferred at owner direction. Exact clean pushed source 0f2db6758c77e262b386c6760277757ec5ade351 contains verified saved-edit fix 69f4c444 plus only versionName/code changes among 514 previously verified inputs; other 513 hashes match.
+- Commands/results: `scripts/check` passes 389 JVM methods/44 suites with zero failures/errors/skips; JVM Gradle stage takes 11 seconds. Signed `./gradlew assembleRelease bundleRelease` passes in 1m8s using the established local release configuration. `apksigner verify --verbose --print-certs`, `jarsigner -verify`, `aapt dump badging` and both ZIP integrity checks pass for package commvne.com.whip.app, version 0.3.71/code 77.
+- Artifacts: APK SHA-256 f1568a9419336ad2c4cf8d3bffe4752702f763c6ad7ee9658808fde1b41f0057, 4,166,194 bytes; AAB SHA-256 96bdf49015a62b701ef4425f827cbdf2db61e8dd7b020dda1f02762bfcb97010, 11,237,021 bytes. APK signer cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788 matches the prior verified phone release.
+- Connection boundary: `adb devices -l` lists no authorized phone. The system client's mDNS command is unsupported; the SDK client discovers the wireless endpoint, but both clients fail to connect, including after the empty server is restarted. The owner then confirms the connection is down and explicitly asks to forgo installation. No in-place installation, installed-artifact comparison, first-install comparison or startup smoke is claimed; last verified phone version is 0.3.70/code 76.
+- Evidence/limits: artifacts/gym-531/2026-09-11/release-0.3.71/README.md, build-receipt.json and sanitized build/signature logs. No complete candidate/Android rerun, migration, phone instrumentation, owner-record extraction, scheduled reconnection or closed-audit resumption. Any later requested installation must verify the retained APK hash and perform the existing guarded install/startup checks.
+
 ### VER-20260911-004 — Saved supplemental edit scope and subsequent workout regression
 
 - Scope: FB-20260911-003 / FND, DEC-20260911-002 / IMP-20260911-004, starting from clean pushed 8acd2520. Explicit disposable API 34 emulator at 1080×2520/480 dpi and 1800×1200/160 dpi; synthetic records only.
