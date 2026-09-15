@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260915-001 — Make reminder timing independent of opening Whip
+
+- Request/cause: FB/FND/DEC-20260915-001. Device evidence shows WorkManager's deferrable JobScheduler transport delivered a cold Habit worker 42 seconds late just before MainActivity appeared; opening Whip did not start that worker. The previous Habit chain also queued only one occurrence and searched from late wall time, allowing one late run to skip the remaining authored times.
+- Timing transport: Task, Habit and Goal scheduled/snoozed claims now install an `AlarmManager.setExactAndAllowWhileIdle` wakeup when Android grants Alarms & reminders access. The private receiver promotes the same unique, versioned WorkManager request, so recovery gating, user-data generation, live eligibility, stable identity and definition fingerprints remain the notification authority. A two-minute WorkManager fallback is installed first; denied/revoked access and alarm-quota failures retain the due-time WorkManager path. Settings reports precise-timing access and opens Android's grant surface.
+- Habit/lifecycle behavior: Each Habit keeps up to sixteen upcoming adjusted occurrences independently queued, de-duplicates quiet-hour collisions and replenishes from the delivered claim rather than late wall time. Exact identities are private runtime metadata and are cancelled across entity edits/deletion, reset/restore/quiesce and worker completion. Boot, package replacement, date/time/zone changes, exact-access grants and delivery-claim version 2 rebuild authoritative schedules.
+- Compatibility/version: Whip advances to 0.3.72/code 78. Room schema 46, data epoch 6 and backup version 26 are unchanged; no stored records or history are rewritten. Android can still throttle very close allow-while-idle alarms in deep idle and suppress scheduling after an explicit force stop, so the UI documents the fallback without promising a platform-impossible absolute guarantee.
+- Verification/status: Verified under VER-20260915-001. Five-reminder/late-successor JVM regressions, allowed/denied exact-alarm integration, 31 neighboring Android reminder/recovery tests, all 661 JVM methods, Android compilation, lint and debug packaging pass. Private owner-phone installation remains pending.
+
 ### IMP-20260911-005 — Prepare the saved supplemental edit fix as a signed phone build
 
 - Request/status: FB-20260911-004; Verified signed build. Phone installation is Deferred at owner direction after the owner confirms the connection is down and asks to forgo that part. Whip 0.3.71/code 77 is ready from clean pushed source 0f2db6758c77e262b386c6760277757ec5ade351, containing verified saved-edit fix 69f4c444.

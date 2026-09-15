@@ -20,7 +20,7 @@ class ReleasePrivacyPolicyTest {
     }
 
     @Test
-    fun manifestRequestsOnlyNotificationAndBootPermissions() {
+    fun manifestRequestsOnlyNotificationBootAndExactAlarmPermissions() {
         val permissionNodes = manifest().getElementsByTagName("uses-permission")
         val permissions = (0 until permissionNodes.length)
             .map { (permissionNodes.item(it) as Element).androidAttribute("name") }
@@ -30,6 +30,7 @@ class ReleasePrivacyPolicyTest {
             setOf(
                 "android.permission.POST_NOTIFICATIONS",
                 "android.permission.RECEIVE_BOOT_COMPLETED",
+                "android.permission.SCHEDULE_EXACT_ALARM",
             ),
             permissions,
         )
@@ -71,6 +72,7 @@ class ReleasePrivacyPolicyTest {
             ".reminders.ReminderActionReceiver",
             ".reminders.HabitReminderActionReceiver",
             ".reminders.GoalReminderActionReceiver",
+            ".reminders.ReminderAlarmReceiver",
             ".reminders.ReminderTimeChangeReceiver",
         ).forEach { name -> assertEquals("false", receivers.getValue(name).androidAttribute("exported")) }
 
@@ -81,6 +83,9 @@ class ReleasePrivacyPolicyTest {
                 "android.intent.action.DATE_CHANGED",
                 "android.intent.action.TIME_SET",
                 "android.intent.action.TIMEZONE_CHANGED",
+                "android.intent.action.BOOT_COMPLETED",
+                "android.intent.action.MY_PACKAGE_REPLACED",
+                "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED",
             ),
             (0 until timeActions.length).map {
                 (timeActions.item(it) as Element).androidAttribute("name")

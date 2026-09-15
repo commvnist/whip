@@ -1,5 +1,14 @@
 # User feedback and acceptance criteria
 
+### FB-20260915-001 — Habit reminders must fire consistently while Whip is closed
+
+- Date/source: 2026-09-15, direct owner report after configuring five back-to-back reminders on one Habit: the first due time passed silently, opening Whip caused it to fire, and only the second occurrence then fired without reopening the app.
+- User need: Reminder delivery must not depend on manually opening or foregrounding Whip, including the first due reminder after the app process has stopped and closely spaced reminders on one Habit.
+- Acceptance criteria: Reproduce and identify the lifecycle/scheduling failure; make cold-process and already-running delivery consistent; preserve exact live eligibility, stale-claim rejection, recovery gating, edits, pauses/skips/completions, quiet hours, time-zone handling and subsequent scheduling; add regression coverage for the startup boundary and multiple reminders; build a higher signed private APK, install it in place on the owner phone without clearing data, verify identity/hash/startup/runtime health, and push all work to the configured remote.
+- Affected users/workflows: Habit reminders, especially back-to-back reminder schedules while Whip is backgrounded or its process has been reclaimed; potentially other WorkManager-backed notifications crossing cold process startup.
+- Related: `FND-20260831-008`, `DEC-20260831-009`, `FND/DEC/IMP/VER-20260915-001`.
+- Status: Verified in implementation and on a disposable Android device; private phone release is pending. Exact-alarm wakeup, denied-access fallback, five independent minute-spaced Habit claims, late-delivery succession, lifecycle rebuild/cancellation, 31 neighboring Android reminder/recovery tests, and the 661-JVM readiness gate pass.
+
 ### FB-20260911-004 — Release the saved 5/3/1 supplemental edit fix to the phone
 
 - Date/source: 2026-09-11, direct owner follow-up: “release to my phone.”

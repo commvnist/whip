@@ -66,6 +66,83 @@ class ReminderWorkerRulesTest {
     }
 
     @Test
+    fun backToBackHabitRemindersAreQueuedAsIndependentOccurrences() {
+        val zone = ZoneId.of("UTC")
+        val date = LocalDate.of(2026, 9, 15)
+        val firstMinute = 9 * 60
+        val after = date.atTime(8, 59).atZone(zone).toInstant().toEpochMilli()
+
+        val reminders = nextHabitReminders(
+            afterMillis = after,
+            zone = zone,
+            firstLogicalDate = date,
+            quietStartMinutes = null,
+            quietEndMinutes = null,
+            isEligible = { true },
+            configuredMinutes = { listOf(firstMinute, firstMinute + 1, firstMinute + 2, firstMinute + 3, firstMinute + 4) },
+            limit = 5,
+        )
+
+        assertEquals(
+            (0L..4L).map { offset ->
+                date.atTime(9, offset.toInt()).atZone(zone).toInstant().toEpochMilli()
+            },
+            reminders.map(HabitReminderTime::triggerAtMillis),
+        )
+    }
+
+    @Test
+    fun deliveredHabitOccurrenceAnchorsSuccessorsToItsClaimInsteadOfLateWallClock() {
+        val zone = ZoneId.of("UTC")
+        val date = LocalDate.of(2026, 9, 15)
+        val nine = date.atTime(9, 0).atZone(zone).toInstant().toEpochMilli()
+
+        val successors = nextHabitReminders(
+            afterMillis = nine + 1L,
+            zone = zone,
+            firstLogicalDate = date,
+            quietStartMinutes = null,
+            quietEndMinutes = null,
+            isEligible = { true },
+            configuredMinutes = { listOf(9 * 60, 9 * 60 + 1, 9 * 60 + 2, 9 * 60 + 3, 9 * 60 + 4) },
+            limit = 4,
+        )
+
+        assertEquals(
+            (1L..4L).map { minute -> nine + minute * 60_000L },
+            successors.map(HabitReminderTime::triggerAtMillis),
+        )
+    }
+
+    @Test
+    fun exactAlarmTransportRetainsABoundedWorkManagerFallback() {
+        assertEquals(
+            10_000L + REMINDER_WORK_FALLBACK_GRACE_MILLIS,
+            reminderFallbackDelayMillis(
+                expectedTriggerAtMillis = 100_000L,
+                nowMillis = 90_000L,
+                exactScheduled = true,
+            ),
+        )
+        assertEquals(
+            10_000L,
+            reminderFallbackDelayMillis(
+                expectedTriggerAtMillis = 100_000L,
+                nowMillis = 90_000L,
+                exactScheduled = false,
+            ),
+        )
+        assertEquals(
+            0L,
+            reminderFallbackDelayMillis(
+                expectedTriggerAtMillis = 80_000L,
+                nowMillis = 90_000L,
+                exactScheduled = false,
+            ),
+        )
+    }
+
+    @Test
     fun shiftedGoalReminderCannotCrossItsDeadline() {
         val deadline = LocalDate.of(2026, 8, 17)
 

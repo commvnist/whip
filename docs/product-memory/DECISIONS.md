@@ -1,5 +1,14 @@
 # Durable product and engineering decisions
 
+### DEC-20260915-001 — Exact alarms wake one validated reminder transport and Habits keep independent upcoming claims
+
+- Status: Verified under IMP/VER-20260915-001; private phone release is pending under FB/FND-20260915-001.
+- Decision: Use `SCHEDULE_EXACT_ALARM` plus `AlarmManager.setExactAndAllowWhileIdle` as the timing wakeup for user-authored Task, Habit and Goal reminders when Android grants special access. The alarm never posts directly: it replaces the same uniquely named WorkManager request with immediate work, carrying the existing versioned claim and user-data generation through the existing recovery gate and live validation boundary. Install WorkManager first as a two-minute bounded fallback; without exact access, retain the existing due-time WorkManager path. Do not use policy-restricted `USE_EXACT_ALARM` or present reminders as system alarm-clock events.
+- Habit sequencing: Keep up to sixteen upcoming adjusted Habit occurrences independently queued and anchor replenishment to the delivered claim, not the worker's potentially late wall clock. De-duplicate occurrences that quiet hours collapse onto one delivery instant. This prevents one late occurrence from being the only predecessor of the remaining back-to-back reminders while bounding platform alarms per Habit.
+- Lifecycle/integrity: Persist only private alarm identities, cancel them at every entity/reset/restore boundary, and rebuild after boot, package replacement, time invalidation, exact-access grant and delivery-claim version upgrade. Exact and fallback work share the same unique name; stale definitions, deleted records, old generations and blocked recovery continue to fail closed. Settings must expose current precise-timing access and the Android repair action.
+- Constraint: Android can still throttle very closely spaced allow-while-idle alarms during deep idle or suppress all scheduling after a force stop. The independent fallback path prevents silent sequence loss; Whip must not claim stronger guarantees than the platform provides.
+- Acceptance: Reproduce the observed cold 42-second JobScheduler delay; prove five minute-apart Habit claims are independently queued, a late first claim cannot erase four successors, exact access registers and promotes the validated worker, denied access retains a bounded fallback, lifecycle rebuild/cancellation stays correct, and the signed update preserves the owner's data and app identity.
+
 ### DEC-20260911-002 — Make saved supplemental edits explicit across matching training weeks
 
 - Status: Verified under IMP/VER-20260911-004; FB-20260911-003 / FND-20260911-002. Extend the existing Program Structure edit authority rather than reopen the destructive creation wizard or introduce another program model.

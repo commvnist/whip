@@ -111,6 +111,7 @@ import com.whip.app.reminders.HabitReminderNotifications
 import com.whip.app.reminders.GoalReminderNotifications
 import com.whip.app.reminders.RestTimerNotifications
 import com.whip.app.reminders.FocusTimerNotifications
+import com.whip.app.reminders.canScheduleExactReminderAlarms
 import com.whip.app.BuildConfig
 import com.whip.app.data.BackupPreview
 import com.whip.app.core.OperationStatus
@@ -215,6 +216,9 @@ internal fun SettingsContent(
     }
     var compactSectionOpen by rememberSaveable { mutableStateOf(false) }
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        diagnosticRefresh++
+    }
+    val exactAlarmAccess = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         diagnosticRefresh++
     }
     val createDocument = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
@@ -327,6 +331,7 @@ internal fun SettingsContent(
     val taskNotificationChannelBlocked = taskNotificationChannel?.importance == NotificationManager.IMPORTANCE_NONE
     val batteryUnrestricted = context.getSystemService(PowerManager::class.java)
         .isIgnoringBatteryOptimizations(context.packageName)
+    val exactAlarmAccessGranted = canScheduleExactReminderAlarms(context)
     CompositionLocalProvider(
         LocalSettingsTypedEditorState provides { tag, open ->
             activeTypedSettingTag = if (open) tag else activeTypedSettingTag.takeUnless { it == tag }
@@ -1039,6 +1044,40 @@ internal fun SettingsContent(
                         },
                     )
 
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Precise reminder timing", modifier = Modifier.weight(1f))
+                            Text(
+                                if (exactAlarmAccessGranted) "Allowed" else "Needs access",
+                                color = if (exactAlarmAccessGranted) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.error
+                                },
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                        Text(
+                            if (exactAlarmAccessGranted) {
+                                "Android can wake Whip at reminder times. Whip also keeps a background fallback."
+                            } else {
+                                "Android may defer reminders until it runs Whip. Allow Alarms & reminders for consistent timing."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        if (!exactAlarmAccessGranted) {
+                            WhipButton(
+                                onClick = {
+                                    exactAlarmAccess.launch(
+                                        Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                                            .setData("package:${context.packageName}".toUri()),
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth().testTag("allow-precise-reminder-timing"),
+                            ) { Text("Allow Precise Reminder Timing") }
+                        }
+                    }
+
                     if (!notificationPermissionGranted) {
                         WhipButton(
                             onClick = {
@@ -1079,8 +1118,11 @@ internal fun SettingsContent(
                     DisclosureButton("Troubleshooting", notificationTroubleshootingExpanded, { notificationTroubleshootingExpanded = !notificationTroubleshootingExpanded }, Modifier.fillMaxWidth())
                     if (notificationTroubleshootingExpanded) {
                         Text(
-                            if (batteryUnrestricted) "Battery optimization is unrestricted for Whip."
-                            else "Android battery optimization may delay reminders while Whip is idle.",
+                            when {
+                                batteryUnrestricted -> "Battery optimization is unrestricted for Whip."
+                                exactAlarmAccessGranted -> "Precise reminder wakeups are allowed. Android may still limit very closely spaced alarms during deep idle; Whip keeps a fallback."
+                                else -> "Android battery optimization and missing precise-timing access may delay reminders while Whip is idle."
+                            },
                             style = MaterialTheme.typography.bodySmall,
                         )
                         WhipOutlinedButton(

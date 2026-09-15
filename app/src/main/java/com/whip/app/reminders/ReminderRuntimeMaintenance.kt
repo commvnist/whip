@@ -9,6 +9,10 @@ import kotlinx.coroutines.sync.withLock
 internal const val ACTION_DEVICE_DATE_CHANGED = "android.intent.action.DATE_CHANGED"
 internal const val ACTION_DEVICE_TIME_CHANGED = "android.intent.action.TIME_SET"
 internal const val ACTION_DEVICE_TIME_ZONE_CHANGED = "android.intent.action.TIMEZONE_CHANGED"
+internal const val ACTION_DEVICE_BOOT_COMPLETED = "android.intent.action.BOOT_COMPLETED"
+internal const val ACTION_PACKAGE_REPLACED = "android.intent.action.MY_PACKAGE_REPLACED"
+internal const val ACTION_EXACT_ALARM_ACCESS_CHANGED =
+    "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED"
 
 /**
  * Private runtime metadata only. This version is intentionally not part of the
@@ -64,6 +68,13 @@ internal fun reminderTimeInvalidationPlan(
         resyncReminders = followsDeviceTimeZone,
         refreshWidgets = true,
     )
+    ACTION_DEVICE_BOOT_COMPLETED,
+    ACTION_PACKAGE_REPLACED,
+    ACTION_EXACT_ALARM_ACCESS_CHANGED,
+    -> ReminderTimeInvalidationPlan(
+        resyncReminders = true,
+        refreshWidgets = action != ACTION_EXACT_ALARM_ACCESS_CHANGED,
+    )
     else -> ReminderTimeInvalidationPlan(
         resyncReminders = false,
         refreshWidgets = false,
@@ -80,6 +91,7 @@ internal class ReminderRuntimeMaintenance(
     private val versionStore: ReminderClaimVersionStore,
     private val currentClaimVersion: Int = REMINDER_DELIVERY_CLAIM_VERSION,
     private val cancelVisibleConnectedReminders: () -> Unit,
+    private val cancelScheduledReminderAlarms: () -> Unit,
     private val syncTaskReminders: suspend () -> Unit,
     private val syncHabitReminders: suspend () -> Unit,
     private val syncGoalReminders: suspend () -> Unit,
@@ -96,6 +108,7 @@ internal class ReminderRuntimeMaintenance(
         if (versionStore.read() >= currentClaimVersion) return@withLock false
 
         cancelVisibleConnectedReminders()
+        cancelScheduledReminderAlarms()
         syncAllReminderDomains()
         check(versionStore.write(currentClaimVersion)) {
             "Could not persist the reminder delivery claim schema version"

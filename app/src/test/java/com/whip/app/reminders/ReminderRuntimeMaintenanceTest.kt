@@ -18,7 +18,7 @@ class ReminderRuntimeMaintenanceTest {
 
         assertTrue(maintenance.upgradeDeliveryClaimsIfRequired())
 
-        assertEquals(listOf("cancel", "tasks", "habits", "goals", "write:3"), events)
+        assertEquals(listOf("cancel", "alarms", "tasks", "habits", "goals", "write:3"), events)
         assertEquals(3, store.version)
     }
 
@@ -54,15 +54,15 @@ class ReminderRuntimeMaintenanceTest {
         )
 
         assertFailure { maintenance.upgradeDeliveryClaimsIfRequired() }
-        assertEquals(listOf("cancel", "tasks", "habits"), events)
+        assertEquals(listOf("cancel", "alarms", "tasks", "habits"), events)
         assertEquals(-1, store.version)
 
         habitFails = false
         assertTrue(maintenance.upgradeDeliveryClaimsIfRequired())
         assertEquals(
             listOf(
-                "cancel", "tasks", "habits",
-                "cancel", "tasks", "habits", "goals", "write:3",
+                "cancel", "alarms", "tasks", "habits",
+                "cancel", "alarms", "tasks", "habits", "goals", "write:3",
             ),
             events,
         )
@@ -80,6 +80,7 @@ class ReminderRuntimeMaintenanceTest {
                 events += "cancel"
                 error("platform failure")
             },
+            cancelScheduledReminderAlarms = { events += "alarms" },
             syncTaskReminders = { events += "tasks" },
             syncHabitReminders = { events += "habits" },
             syncGoalReminders = { events += "goals" },
@@ -98,7 +99,7 @@ class ReminderRuntimeMaintenanceTest {
 
         assertFailure { maintenance(store, events, currentVersion = 3).upgradeDeliveryClaimsIfRequired() }
 
-        assertEquals(listOf("cancel", "tasks", "habits", "goals", "write:3"), events)
+        assertEquals(listOf("cancel", "alarms", "tasks", "habits", "goals", "write:3"), events)
         assertEquals(-1, store.version)
     }
 
@@ -151,6 +152,25 @@ class ReminderRuntimeMaintenanceTest {
     }
 
     @Test
+    fun bootPackageReplacementAndExactAlarmGrantAlwaysRebuildReminderTiming() = runBlocking {
+        listOf(
+            ACTION_DEVICE_BOOT_COMPLETED to true,
+            ACTION_PACKAGE_REPLACED to true,
+            ACTION_EXACT_ALARM_ACCESS_CHANGED to false,
+        ).forEach { (action, refreshWidgets) ->
+            val events = mutableListOf<String>()
+            val plan = maintenance(FakeVersionStore(3), events, currentVersion = 3)
+                .handleSystemTimeInvalidation(action, followsDeviceTimeZone = false)
+
+            assertEquals(ReminderTimeInvalidationPlan(true, refreshWidgets), plan)
+            assertEquals(
+                listOf("tasks", "habits", "goals") + if (refreshWidgets) listOf("widgets") else emptyList(),
+                events,
+            )
+        }
+    }
+
+    @Test
     fun startupUpgradeAndTimeInvalidationCannotInterleave() = runBlocking {
         val events = mutableListOf<String>()
         val taskSyncStarted = CompletableDeferred<Unit>()
@@ -160,6 +180,7 @@ class ReminderRuntimeMaintenanceTest {
             versionStore = store,
             currentClaimVersion = 3,
             cancelVisibleConnectedReminders = { events += "cancel" },
+            cancelScheduledReminderAlarms = { events += "alarms" },
             syncTaskReminders = {
                 events += "tasks"
                 if (!taskSyncStarted.isCompleted) {
@@ -178,14 +199,14 @@ class ReminderRuntimeMaintenanceTest {
             maintenance.handleSystemTimeInvalidation(ACTION_DEVICE_TIME_CHANGED, false)
         }
         yield()
-        assertEquals(listOf("cancel", "tasks"), events)
+        assertEquals(listOf("cancel", "alarms", "tasks"), events)
 
         releaseTaskSync.complete(Unit)
         assertTrue(startup.await())
         assertEquals(ReminderTimeInvalidationPlan(true, true), timeChange.await())
         assertEquals(
             listOf(
-                "cancel", "tasks", "habits", "goals", "write:3",
+                "cancel", "alarms", "tasks", "habits", "goals", "write:3",
                 "tasks", "habits", "goals", "widgets",
             ),
             events,
@@ -211,6 +232,7 @@ class ReminderRuntimeMaintenanceTest {
         versionStore = store.onWrite { version -> events += "write:$version" },
         currentClaimVersion = currentVersion,
         cancelVisibleConnectedReminders = { events += "cancel" },
+        cancelScheduledReminderAlarms = { events += "alarms" },
         syncTaskReminders = { events += "tasks" },
         syncHabitReminders = syncHabits,
         syncGoalReminders = { events += "goals" },

@@ -25,6 +25,7 @@ class ReminderWorker(
             ) return@withUserDataAccess Result.success()
             val taskId = inputData.getLong(TASK_ID, -1L)
             if (taskId < 0L) return@withUserDataAccess Result.success()
+            app.reminderAlarmScheduler.cancelFromWorker(inputData)
 
             app.reminderDeliveryCoordinator.withEntity(ReminderDomain.Task, taskId) {
                 app.reminderDeliveryCoordinator.withStateBoundary {

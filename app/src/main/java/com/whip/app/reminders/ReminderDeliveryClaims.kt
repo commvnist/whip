@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicReferenceArray
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-internal const val REMINDER_DELIVERY_CLAIM_VERSION = 1
+internal const val REMINDER_DELIVERY_CLAIM_VERSION = 2
 
 internal enum class ReminderDeliveryKind { Scheduled, Snoozed }
 

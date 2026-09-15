@@ -40,7 +40,9 @@ trend summaries are informational. They are not medical advice, a diagnosis,
 or a guarantee that a load or workout is safe. Correlation does not establish
 causation.
 
-Notifications are scheduled locally through Android WorkManager. Whip uses no
-continuous background service. A workout screen can opt into keeping the
-display awake only while that screen is visible. Rest timers use a single
-replaceable delayed job per active workout.
+Notifications are scheduled locally through Android. User-authored Task, Habit,
+and Goal reminders use the **Alarms & reminders** special access for exact local
+wakeups when allowed, with WorkManager as the validated execution and fallback
+path. Whip uses no continuous background service. A workout screen can opt into
+keeping the display awake only while that screen is visible. Rest timers use a
+single replaceable delayed job per active workout.

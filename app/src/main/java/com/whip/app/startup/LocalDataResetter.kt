@@ -11,6 +11,7 @@ import com.whip.app.core.AppSettings
 import com.whip.app.core.SharedPreferencesSettingsRepository
 import com.whip.app.core.normalized
 import com.whip.app.data.WhipDatabase
+import com.whip.app.reminders.ReminderAlarmScheduler
 import com.whip.app.widget.HabitTrackingWidgetProvider
 import com.whip.app.widget.WhipWidgetProvider
 import java.io.File
@@ -22,6 +23,7 @@ class LocalDataResetter(private val context: Context) {
         val workManager = WorkManager.getInstance(context)
         workManager.cancelAllWork().result.get()
         workManager.pruneWork().result.get()
+        ReminderAlarmScheduler(context).cancelAll()
         NotificationManagerCompat.from(context).cancelAll()
         releasePortableBackupGrant()
 

@@ -39,6 +39,7 @@ import com.whip.app.reminders.CoordinatedHabitRepository
 import com.whip.app.reminders.CoordinatedGoalRepository
 import com.whip.app.reminders.ReminderRuntimeMaintenance
 import com.whip.app.reminders.ReminderTimeInvalidationPlan
+import com.whip.app.reminders.ReminderAlarmScheduler
 import com.whip.app.reminders.ReminderScheduler
 import com.whip.app.reminders.SharedPreferencesReminderClaimVersionStore
 import com.whip.app.reminders.cancelVisibleReminderNotifications
@@ -206,6 +207,7 @@ class WhipApplication : Application(), Configuration.Provider {
     val portableBackupScheduler by lazy { PortableBackupScheduler(this) }
     internal val reminderDeliveryCoordinator by lazy { ReminderDeliveryCoordinator() }
     val reminderScheduler by lazy { ReminderScheduler(this, settingsRepository) }
+    internal val reminderAlarmScheduler by lazy { ReminderAlarmScheduler(this) }
     val restTimerScheduler by lazy { RestTimerScheduler(this) }
     val habitReminderScheduler by lazy { HabitReminderScheduler(this, settingsRepository) }
     val goalReminderScheduler by lazy { GoalReminderScheduler(this, settingsRepository) }
@@ -213,6 +215,7 @@ class WhipApplication : Application(), Configuration.Provider {
         ReminderRuntimeMaintenance(
             versionStore = SharedPreferencesReminderClaimVersionStore(this),
             cancelVisibleConnectedReminders = { cancelVisibleReminderNotifications(this) },
+            cancelScheduledReminderAlarms = { reminderAlarmScheduler.cancelAll() },
             syncTaskReminders = {
                 reminderScheduler.syncAll(allowDuringRecovery = true)
             },
@@ -531,6 +534,7 @@ class WhipApplication : Application(), Configuration.Provider {
         normalRuntimeJob = null
         val workManager = WorkManager.getInstance(this)
         workManager.cancelAllWorkByTag(ALL_WHIP_WORK_TAG).result.get()
+        reminderAlarmScheduler.cancelAll()
         // Also catches a periodic request created by a pre-gate release, when
         // portable work did not yet carry the global tag.
         workManager.cancelUniqueWork(PORTABLE_BACKUP_WORK_NAME).result.get()
@@ -568,6 +572,7 @@ class WhipApplication : Application(), Configuration.Provider {
         areaRepository.ensureDefaultArea()
         val workManager = WorkManager.getInstance(this)
         workManager.cancelAllWorkByTag(ALL_WHIP_WORK_TAG).result.get()
+        reminderAlarmScheduler.cancelAll()
         workManager.cancelUniqueWork(PORTABLE_BACKUP_WORK_NAME).result.get()
         NotificationManagerCompat.from(this).cancelAll()
         reminderScheduler.syncAll(allowDuringRecovery = true)
@@ -613,6 +618,7 @@ class WhipApplication : Application(), Configuration.Provider {
     private fun commitReminderDeletion(domain: ReminderDomain, entityIds: Set<Long>) {
         val notifications = NotificationManagerCompat.from(this)
         entityIds.forEach { id ->
+            reminderAlarmScheduler.cancelEntity(domain, id)
             when (domain) {
                 ReminderDomain.Task -> cancelVisibleTaskNotifications(this, id)
                 ReminderDomain.Habit -> notifications.cancel(HabitReminderNotifications.notificationId(id))

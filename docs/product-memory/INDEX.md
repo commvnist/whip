@@ -1,5 +1,7 @@
 # Whip durable product memory
 
+- **Latest reminder reliability fix — FB/FND/DEC/IMP/VER-20260915-001:** Whip 0.3.72/code 78 uses exact alarms as private timing wakeups when Android grants access while retaining the validated WorkManager path and a bounded fallback. Habits queue sixteen independent upcoming occurrences, so a late first reminder cannot erase the remaining back-to-back times. The owner's cold JobScheduler delay is identified; allowed/denied alarm integration, 31 neighboring Android reminder/recovery methods, all 661 JVM tests, compilation, lint and debug packaging pass. Private owner-phone release is pending. Room 46/epoch 6/backup 26 are unchanged.
+
 - **Latest signed build — FB-20260911-004 / IMP, VER-20260911-005:** **0.3.71 (77)** is built from clean pushed 0f2db675 and passes 389 fast JVM checks, optimized APK/AAB build, signatures/package/ZIP verification. It contains the saved BBB/FSL editing fix below; only release version fields differ among the 514 verified inputs. The owner confirms the phone connection is down and explicitly forgoes installation; phone delivery is Deferred, with no automatic retry or follow-up. [Build evidence](../../artifacts/gym-531/2026-09-11/release-0.3.71/README.md). Last verified installed version remains 0.3.70 (76).
 
 - **Latest verified saved-routine fix — FB-20260911-003 / FND, DEC-20260911-002 / IMP, VER-20260911-004:** Supplemental edits now explicitly cover matching Standard, Leader or Anchor weeks, with a This Phase Only override. Native baseline proves the old week-one-only change. Saved edits now update week-two workouts while preserving the other exercise, exact performed history and program position. All 89 Android checks, final phone/wide replacements, 389 readiness JVM checks, lint/build and 541-state catalog pass; six final originals are reviewed. [Evidence](../../artifacts/gym-531/2026-09-11/saved-supplemental-edit/README.md). This fix is not yet released; phone remains 0.3.70 (76). The closed exhaustive audit stays closed.
@@ -64,7 +66,7 @@
 
 - Previous Settings builder increment: IMP/VER-20260910-006 unifies Settings toggle, choice and typed-value hierarchy while preserving immediate choices and explicit confirmed Save. Final 147 API 34 checks, five API 37 methods, 346 JVM readiness checks and 25 original reviews pass. FND-20260910-007 records a corrected fixture timing failure, not a production draft-loss fix. Evidence: `artifacts/astra-audit/2026-09-10/settings-builders/README.md`. The Set-family increment is now verified below; whole-app acceptance remains open.
 
-Last reconciled: 2026-09-11
+Last reconciled: 2026-09-15
 
 This is the canonical cross-session entry point for Whip product and engineering context. It indexes durable conclusions and evidence; current code and reproducible behavior remain authoritative.
 

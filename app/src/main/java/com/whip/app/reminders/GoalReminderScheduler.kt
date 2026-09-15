@@ -13,9 +13,6 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.work.CoroutineWorker
-import androidx.work.Data
-import androidx.work.ExistingWorkPolicy
-import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.await
@@ -34,7 +31,6 @@ import com.whip.app.startup.USER_DATA_GENERATION_KEY
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -69,6 +65,7 @@ class GoalReminderScheduler(context: Context, private val settingsRepository: Se
     private suspend fun syncGoalCoordinated(id: Long) {
         app.reminderDeliveryCoordinator.withEntity(ReminderDomain.Goal, id) {
             NotificationManagerCompat.from(appContext).cancel(GoalReminderNotifications.notificationId(id))
+            app.reminderAlarmScheduler.cancelEntity(ReminderDomain.Goal, id)
             workManager.cancelAllWorkByTag(tag(id)).await()
             scheduleNextUnlocked(id, System.currentTimeMillis())
         }
@@ -128,26 +125,15 @@ class GoalReminderScheduler(context: Context, private val settingsRepository: Se
                 settings?.quietEndMinutes,
             ),
         )
-        val request = OneTimeWorkRequestBuilder<GoalReminderWorker>()
-            .setInitialDelay(
-                (reminder.triggerAtMillis - System.currentTimeMillis()).coerceAtLeast(0),
-                TimeUnit.MILLISECONDS,
-            )
-            .setInputData(
-                Data.Builder()
-                    .putLong(GoalReminderWorker.GOAL_ID, id)
-                    .putReminderDeliveryClaim(claim)
-                    .putLong(USER_DATA_GENERATION_KEY, app.currentUserDataGeneration())
-                    .build(),
-            )
-            .addTag(tag(id))
-            .addTag(ALL_WHIP_WORK_TAG)
-            .build()
-        workManager.enqueueUniqueWork(
-            "${tag(id)}-${reminder.triggerAtMillis}",
-            ExistingWorkPolicy.REPLACE,
-            request,
-        ).await()
+        app.reminderAlarmScheduler.enqueue(
+            ReminderAlarmPayload(
+                domain = ReminderDomain.Goal,
+                entityId = id,
+                workName = "${tag(id)}-${reminder.triggerAtMillis}",
+                claim = claim,
+                userDataGeneration = app.currentUserDataGeneration(),
+            ),
+        )
     }
 
     internal suspend fun snooze(
@@ -195,25 +181,21 @@ class GoalReminderScheduler(context: Context, private val settingsRepository: Se
                 expectedTriggerAtMillis = trigger,
                 definitionFingerprint = originatingClaim.definitionFingerprint,
             )
-            val request = OneTimeWorkRequestBuilder<GoalReminderWorker>()
-                .setInitialDelay((trigger - System.currentTimeMillis()).coerceAtLeast(0), TimeUnit.MILLISECONDS)
-                .setInputData(
-                    Data.Builder()
-                        .putLong(GoalReminderWorker.GOAL_ID, id)
-                        .putReminderDeliveryClaim(claim)
-                        .putLong(USER_DATA_GENERATION_KEY, app.currentUserDataGeneration())
-                        .build(),
-                )
-                .addTag(tag(id))
-                .addTag(ALL_WHIP_WORK_TAG)
-                .build()
-            workManager.enqueueUniqueWork("${tag(id)}-snooze", ExistingWorkPolicy.REPLACE, request).await()
+            app.reminderAlarmScheduler.enqueue(
+                ReminderAlarmPayload(
+                    domain = ReminderDomain.Goal,
+                    entityId = id,
+                    workName = "${tag(id)}-snooze",
+                    claim = claim,
+                    userDataGeneration = app.currentUserDataGeneration(),
+                ),
+            )
             NotificationManagerCompat.from(appContext).cancel(GoalReminderNotifications.notificationId(id))
             true
         }
     }
 
-    private fun tag(id: Long) = "whip-goal-reminder-$id"
+    private fun tag(id: Long) = reminderEntityTag(ReminderDomain.Goal, id)
 }
 
 internal data class GoalReminderTime(val triggerAtMillis: Long, val logicalDate: LocalDate)
@@ -326,6 +308,7 @@ class GoalReminderWorker(context: Context, params: WorkerParameters) : Coroutine
             ) return@withUserDataAccess Result.success()
             val id = inputData.getLong(GOAL_ID, -1)
             if (id < 0) return@withUserDataAccess Result.success()
+            app.reminderAlarmScheduler.cancelFromWorker(inputData)
             val claim = inputData.reminderDeliveryClaimOrNull()
             var delivered = false
             if (claim != null) {

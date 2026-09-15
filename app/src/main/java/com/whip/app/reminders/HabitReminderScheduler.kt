@@ -14,9 +14,6 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.room.withTransaction
 import androidx.work.CoroutineWorker
-import androidx.work.Data
-import androidx.work.ExistingWorkPolicy
-import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.await
@@ -58,7 +55,6 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.text.NumberFormat
 import java.util.Locale
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -122,6 +118,7 @@ class HabitReminderScheduler(context: Context, private val settingsRepository: S
 
     private suspend fun syncHabitUnlocked(habitId: Long) {
         NotificationManagerCompat.from(appContext).cancel(HabitReminderNotifications.notificationId(habitId))
+        app.reminderAlarmScheduler.cancelEntity(ReminderDomain.Habit, habitId)
         workManager.cancelAllWorkByTag(tag(habitId)).await()
         scheduleNextUnlocked(habitId, System.currentTimeMillis())
     }
@@ -162,7 +159,7 @@ class HabitReminderScheduler(context: Context, private val settingsRepository: S
         val snapshot = loadHabitReminderSnapshot(WhipDatabase.get(appContext), habitId) ?: return
         val settings = settingsRepository?.current() ?: app.settingsRepository.current()
         val zone = settings.zoneId()
-        val reminder = nextHabitReminder(
+        val reminders = nextHabitReminders(
             afterMillis = afterMillis,
             zone = zone,
             firstLogicalDate = snapshot.habit.startDate,
@@ -170,35 +167,32 @@ class HabitReminderScheduler(context: Context, private val settingsRepository: S
             quietEndMinutes = settings.quietEndMinutes,
             isEligible = snapshot::isEligibleOn,
             configuredMinutes = snapshot::configuredMinutes,
-        ) ?: return
-        val trigger = reminder.triggerAtMillis
-        val claim = ReminderDeliveryClaim(
-            kind = ReminderDeliveryKind.Scheduled,
-            stableEntityId = snapshot.stored.uuid,
-            logicalEpochDay = reminder.logicalDate.toEpochDay(),
-            expectedTriggerAtMillis = trigger,
-            definitionFingerprint = snapshot.semanticFingerprint(
-                reminder.logicalDate,
-                zone,
-                settings.quietStartMinutes,
-                settings.quietEndMinutes,
-            ),
+            limit = HABIT_REMINDER_LOOKAHEAD,
         )
-        val delay = (trigger - System.currentTimeMillis()).coerceAtLeast(0)
-        val request = OneTimeWorkRequestBuilder<HabitReminderWorker>()
-            .setInitialDelay(delay, TimeUnit.MILLISECONDS)
-            .setInputData(
-                Data.Builder()
-                        .putLong(HabitReminderWorker.HABIT_ID, habitId)
-                        .putLong(HabitReminderWorker.LOGICAL_EPOCH_DAY, reminder.logicalDate.toEpochDay())
-                        .putReminderDeliveryClaim(claim)
-                        .putLong(USER_DATA_GENERATION_KEY, app.currentUserDataGeneration())
-                    .build(),
+        reminders.forEach { reminder ->
+            val trigger = reminder.triggerAtMillis
+            val claim = ReminderDeliveryClaim(
+                kind = ReminderDeliveryKind.Scheduled,
+                stableEntityId = snapshot.stored.uuid,
+                logicalEpochDay = reminder.logicalDate.toEpochDay(),
+                expectedTriggerAtMillis = trigger,
+                definitionFingerprint = snapshot.semanticFingerprint(
+                    reminder.logicalDate,
+                    zone,
+                    settings.quietStartMinutes,
+                    settings.quietEndMinutes,
+                ),
             )
-            .addTag(tag(habitId))
-            .addTag(ALL_WHIP_WORK_TAG)
-            .build()
-        workManager.enqueueUniqueWork("${tag(habitId)}-$trigger", ExistingWorkPolicy.REPLACE, request).await()
+            app.reminderAlarmScheduler.enqueue(
+                ReminderAlarmPayload(
+                    domain = ReminderDomain.Habit,
+                    entityId = habitId,
+                    workName = "${tag(habitId)}-$trigger",
+                    claim = claim,
+                    userDataGeneration = app.currentUserDataGeneration(),
+                ),
+            )
+        }
     }
 
     suspend fun snooze(
@@ -255,25 +249,20 @@ class HabitReminderScheduler(context: Context, private val settingsRepository: S
             expectedTriggerAtMillis = trigger,
             definitionFingerprint = fingerprint,
         )
-        val request = OneTimeWorkRequestBuilder<HabitReminderWorker>()
-            .setInitialDelay((trigger - System.currentTimeMillis()).coerceAtLeast(0), TimeUnit.MILLISECONDS)
-            .setInputData(
-                Data.Builder()
-                    .putLong(HabitReminderWorker.HABIT_ID, habitId)
-                    .putLong(HabitReminderWorker.LOGICAL_EPOCH_DAY, logicalEpochDay)
-                    .putReminderDeliveryClaim(claim)
-                    .putLong(USER_DATA_GENERATION_KEY, app.currentUserDataGeneration())
-                    .build(),
-            )
-            .addTag(tag(habitId))
-            .addTag(ALL_WHIP_WORK_TAG)
-            .build()
-        workManager.enqueueUniqueWork("${tag(habitId)}-snooze", ExistingWorkPolicy.REPLACE, request).await()
+        app.reminderAlarmScheduler.enqueue(
+            ReminderAlarmPayload(
+                domain = ReminderDomain.Habit,
+                entityId = habitId,
+                workName = "${tag(habitId)}-snooze",
+                claim = claim,
+                userDataGeneration = app.currentUserDataGeneration(),
+            ),
+        )
         NotificationManagerCompat.from(appContext).cancel(HabitReminderNotifications.notificationId(habitId))
         return true
     }
 
-    private fun tag(id: Long) = "whip-habit-reminder-$id"
+    private fun tag(id: Long) = reminderEntityTag(ReminderDomain.Habit, id)
 }
 
 internal data class HabitReminderTime(val triggerAtMillis: Long, val logicalDate: LocalDate)
@@ -288,13 +277,40 @@ internal fun nextHabitReminder(
     quietEndMinutes: Int?,
     isEligible: (LocalDate) -> Boolean,
     configuredMinutes: (LocalDate) -> List<Int>,
-): HabitReminderTime? {
+): HabitReminderTime? = nextHabitReminders(
+    afterMillis = afterMillis,
+    zone = zone,
+    firstLogicalDate = firstLogicalDate,
+    quietStartMinutes = quietStartMinutes,
+    quietEndMinutes = quietEndMinutes,
+    isEligible = isEligible,
+    configuredMinutes = configuredMinutes,
+    limit = 1,
+).firstOrNull()
+
+/**
+ * Queue a rolling window so one delayed delivery is never the sole predecessor
+ * of later reminder times. This is especially important for several reminders
+ * configured minutes apart on the same Habit.
+ */
+internal fun nextHabitReminders(
+    afterMillis: Long,
+    zone: ZoneId,
+    firstLogicalDate: LocalDate,
+    quietStartMinutes: Int?,
+    quietEndMinutes: Int?,
+    isEligible: (LocalDate) -> Boolean,
+    configuredMinutes: (LocalDate) -> List<Int>,
+    limit: Int,
+): List<HabitReminderTime> {
+    if (limit <= 0) return emptyList()
     val physicalDate = Instant.ofEpochMilli(afterMillis).atZone(zone).toLocalDate()
     val start = physicalDate.minusDays(1).coerceAtLeast(firstLogicalDate)
+    val candidates = mutableListOf<HabitReminderTime>()
     for (offset in 0L..3_651L) {
         val logicalDate = start.plusDays(offset)
         if (!isEligible(logicalDate)) continue
-        val best = configuredMinutes(logicalDate).asSequence()
+        configuredMinutes(logicalDate).asSequence()
             .filter { it in 0..1_439 }
             .map { minute ->
                 adjustForQuietHours(
@@ -305,10 +321,18 @@ internal fun nextHabitReminder(
                 ).toEpochMilli()
             }
             .filter { trigger -> trigger >= afterMillis }
-            .minOrNull()
-        if (best != null) return HabitReminderTime(best, logicalDate)
+            .distinct()
+            .sorted()
+            .mapTo(candidates) { trigger -> HabitReminderTime(trigger, logicalDate) }
+        if (candidates.size >= limit) {
+            return candidates.distinctBy(HabitReminderTime::triggerAtMillis)
+                .sortedBy(HabitReminderTime::triggerAtMillis)
+                .take(limit)
+        }
     }
-    return null
+    return candidates.distinctBy(HabitReminderTime::triggerAtMillis)
+        .sortedBy(HabitReminderTime::triggerAtMillis)
+        .take(limit)
 }
 
 internal data class HabitReminderSnapshot(
@@ -565,6 +589,7 @@ class HabitReminderWorker(context: Context, params: WorkerParameters) : Coroutin
             ) return@withUserDataAccess Result.success()
             val id = inputData.getLong(HABIT_ID, -1)
             if (id < 0) return@withUserDataAccess Result.success()
+            app.reminderAlarmScheduler.cancelFromWorker(inputData)
             app.reminderDeliveryCoordinator.withEntity(ReminderDomain.Habit, id) {
                 app.reminderDeliveryCoordinator.withStateBoundary {
                 val scheduler = app.habitReminderScheduler
@@ -596,7 +621,7 @@ class HabitReminderWorker(context: Context, params: WorkerParameters) : Coroutin
                 )
                 scheduler.scheduleNextFromCoordinator(
                     id,
-                    maxOf(System.currentTimeMillis(), requireNotNull(claim).expectedTriggerAtMillis) + 1L,
+                    requireNotNull(claim).expectedTriggerAtMillis + 1L,
                 )
                 Result.success()
                 }
@@ -609,6 +634,8 @@ class HabitReminderWorker(context: Context, params: WorkerParameters) : Coroutin
         const val LOGICAL_EPOCH_DAY = "logical_epoch_day"
     }
 }
+
+private const val HABIT_REMINDER_LOOKAHEAD = 16
 
 internal fun logicalHabitReminderDate(epochDay: Long, fallback: LocalDate): LocalDate =
     epochDay.takeUnless { it == Long.MIN_VALUE }?.let(LocalDate::ofEpochDay) ?: fallback

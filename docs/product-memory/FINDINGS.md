@@ -1,5 +1,16 @@
 # Durable findings
 
+### FND-20260915-001 — Habit reminder timing uses a deferrable transport and can skip a late sequence
+
+- Severity/category: P1 reminder reliability and user trust.
+- Observed: On the owner's Android 17 Samsung, five minute-spaced Habit reminders did not consistently alert at their authored times. The owner experienced the first alert only around opening Whip and only a later occurrence alerting without reopening it.
+- Expected: A user-authored reminder should wake Whip and alert at its selected wall-clock time without requiring foreground use. A delayed occurrence must not cause later configured times to be silently skipped.
+- Evidence: Whip 0.3.70 has granted notification access, active notification channels, standby bucket 10 (Active), `Idle=false`, and is not stopped. Device `JobScheduler`/logcat history on 2026-09-15 shows successful `HabitReminderWorker` runs at 16:52:00 and 16:53:00, a 16:54 job at 16:54:08, and a cold-process 16:55 job at 16:55:42. Android started PID 7300 for `SystemJobService` four seconds before `MainActivity` appeared, disproving app-open initialization as the trigger. Current `HabitReminderScheduler` uses `OneTimeWorkRequest.setInitialDelay`; Android documents this as a minimum delay whose actual execution depends on system optimization.
+- Root cause: WorkManager/JobScheduler is a deferrable persistence transport, not a wall-clock alarm. Habit scheduling also queues only the next configured time; after delivery it searches from `max(now, expectedTrigger) + 1`, so a sufficiently late worker advances past every authored time already crossed. Opening Whip makes the process active and can make the delayed job appear causally tied to foregrounding, but the recorded cold job began before the Activity.
+- Recommended solution: Use Android exact alarms for user-authored Task/Habit/Goal reminder wakeups when the user grants Alarms & reminders access, keep a bounded WorkManager fallback for denied/revoked access and recovery, make either transport converge on one validated delivery path, and advance Habit sequences from the claimed occurrence so late delivery cannot erase later authored times. Reschedule on boot, package replacement, time/zone changes, and exact-alarm access grants; expose truthful delivery readiness in Settings.
+- Related: `FB-20260915-001`, `FND-20260831-008`, `DEC-20260831-009`.
+- Status: Verified under DEC/IMP/VER-20260915-001; private phone release is pending. The automatic two-second alarm test completes before its two-minute fallback without launching an Activity, allowed and denied exact-access branches pass, and five independent successors survive a late first occurrence.
+
 ### FND-20260911-002 — Existing supplemental edits affect only the selected week
 
 - Status: Verified, P2; FB-20260911-003 / IMP, VER-20260911-004. Native baseline EPFaoA reproduces unchanged week-two FSL after saving BBB for week one. Creation applied each exercise's supplemental choice throughout its training weeks, but the saved editor submitted selectedPhase only. Explicit matching-week scope now fixes that mismatch; the native saved-edit/next-workout and focused preservation checks pass.

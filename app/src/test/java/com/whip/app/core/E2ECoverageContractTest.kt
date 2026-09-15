@@ -164,6 +164,8 @@ class E2ECoverageContractTest {
             "accessibility-locale-large-text-rtl",
             "widget-area-scope",
             "legacy-import-history-continuity",
+            "backup-native-decision-continuity",
+            "backup-failure-feedback",
         )
 
         val REQUIRED_REFINED_CAPABILITIES = setOf(

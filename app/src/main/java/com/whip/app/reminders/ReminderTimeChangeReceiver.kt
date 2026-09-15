@@ -11,9 +11,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 /**
- * Android can invalidate WorkManager's wall-clock-derived delays without a
- * Whip settings edit. The application recovery gate is already established
- * before this receiver runs; blocked recovery therefore fails closed.
+ * Android can invalidate persisted reminder timing without a Whip settings
+ * edit. Reboot also clears exact alarms, while a permission grant or package
+ * replacement requires their authoritative rebuild. The application recovery
+ * gate is established before this receiver runs; blocked recovery fails closed.
  */
 class ReminderTimeChangeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -41,6 +42,9 @@ internal val REMINDER_TIME_INVALIDATION_ACTIONS = setOf(
     ACTION_DEVICE_DATE_CHANGED,
     ACTION_DEVICE_TIME_CHANGED,
     ACTION_DEVICE_TIME_ZONE_CHANGED,
+    ACTION_DEVICE_BOOT_COMPLETED,
+    ACTION_PACKAGE_REPLACED,
+    ACTION_EXACT_ALARM_ACCESS_CHANGED,
 )
 
 /** Shared by the manifest receiver and Android integrity tests. */

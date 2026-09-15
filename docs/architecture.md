@@ -84,6 +84,15 @@ coroutine changes cannot create reentrant-lock deadlocks. A private durable
 cleanup journal bridges permanent deletion across Room and Android notification
 state without altering backed-up user data or historical records.
 
+When Android grants **Alarms & reminders** access, an exact `AlarmManager`
+wakeup promotes that same uniquely named request to immediate WorkManager
+execution; it never bypasses the claim resolver. A delayed WorkManager request
+remains as the fallback, and denied access uses WorkManager at the requested
+time. Habits keep a bounded rolling window of independent occurrences so a late
+worker cannot erase closely spaced successors. Private alarm identities are
+cancelled and rebuilt with reminder work across edits, deletion, restore, reset,
+reboot, package replacement, clock changes, and permission grants.
+
 Habit occurrence state has one neutral user action: **Skip Today**. A skip is
 visible in the Today card, History, Insights, and exports; it suppresses that
 day's reminder, is excluded from completion-rate

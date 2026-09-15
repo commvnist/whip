@@ -2,9 +2,6 @@ package com.whip.app.reminders
 
 import android.content.Context
 import androidx.core.app.NotificationManagerCompat
-import androidx.work.Data
-import androidx.work.ExistingWorkPolicy
-import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.await
 import com.whip.app.WhipApplication
@@ -23,11 +20,9 @@ import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.TaskOccurrence
 import com.whip.app.domain.WhipTask
 import com.whip.app.domain.taskReminderInstant
-import com.whip.app.startup.USER_DATA_GENERATION_KEY
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CancellationException
 
 const val ALL_WHIP_WORK_TAG = "whip-background-work"
@@ -119,6 +114,7 @@ class ReminderScheduler(context: Context, private val settingsRepository: Settin
 
     private suspend fun syncTaskLocked(taskId: Long) {
         cancelVisibleTaskNotifications(appContext, taskId)
+        app.reminderAlarmScheduler.cancelEntity(ReminderDomain.Task, taskId)
         workManager.cancelAllWorkByTag(tag(taskId)).await()
         scheduleNextLocked(taskId = taskId, afterMillis = System.currentTimeMillis())
     }
@@ -158,23 +154,17 @@ class ReminderScheduler(context: Context, private val settingsRepository: Settin
                     settings = settings,
                 ),
             )
-            val delayMillis = (reminder.triggerAtMillis - System.currentTimeMillis()).coerceAtLeast(0)
             val workName = "${tag(taskId)}-${reminder.originalDate.toEpochDay()}-$offsetMinutes"
-            val request = OneTimeWorkRequestBuilder<ReminderWorker>()
-                .setInitialDelay(delayMillis, TimeUnit.MILLISECONDS)
-                .setInputData(
-                    Data.Builder()
-                        .putLong(ReminderWorker.TASK_ID, taskId)
-                        .putLong(ReminderWorker.ORIGINAL_EPOCH_DAY, reminder.originalDate.toEpochDay())
-                        .putInt(ReminderWorker.OFFSET_MINUTES, offsetMinutes)
-                        .putReminderDeliveryClaim(claim)
-                        .putLong(USER_DATA_GENERATION_KEY, app.currentUserDataGeneration())
-                        .build(),
-                )
-                .addTag(tag(taskId))
-                .addTag(ALL_WHIP_WORK_TAG)
-                .build()
-            workManager.enqueueUniqueWork(workName, ExistingWorkPolicy.REPLACE, request).await()
+            app.reminderAlarmScheduler.enqueue(
+                ReminderAlarmPayload(
+                    domain = ReminderDomain.Task,
+                    entityId = taskId,
+                    workName = workName,
+                    claim = claim,
+                    userDataGeneration = app.currentUserDataGeneration(),
+                    offsetMinutes = offsetMinutes,
+                ),
+            )
         }
     }
 
@@ -203,28 +193,23 @@ class ReminderScheduler(context: Context, private val settingsRepository: Settin
             expectedTriggerAtMillis = trigger,
             definitionFingerprint = snapshot.definitionFingerprint,
         )
-        val request = OneTimeWorkRequestBuilder<ReminderWorker>()
-            .setInitialDelay((trigger - System.currentTimeMillis()).coerceAtLeast(0), TimeUnit.MILLISECONDS)
-            .setInputData(
-                Data.Builder()
-                    .putLong(ReminderWorker.TASK_ID, taskId)
-                    .putLong(ReminderWorker.ORIGINAL_EPOCH_DAY, originalDate.toEpochDay())
-                    .putInt(ReminderWorker.OFFSET_MINUTES, offsetMinutes)
-                    .putReminderDeliveryClaim(claim)
-                    .putLong(USER_DATA_GENERATION_KEY, app.currentUserDataGeneration())
-                    .build(),
-            )
-            .addTag(tag(taskId))
-            .addTag(ALL_WHIP_WORK_TAG)
-            .build()
-        workManager.enqueueUniqueWork("${tag(taskId)}-snooze", ExistingWorkPolicy.REPLACE, request).await()
+        app.reminderAlarmScheduler.enqueue(
+            ReminderAlarmPayload(
+                domain = ReminderDomain.Task,
+                entityId = taskId,
+                workName = "${tag(taskId)}-snooze",
+                claim = claim,
+                userDataGeneration = app.currentUserDataGeneration(),
+                offsetMinutes = offsetMinutes,
+            ),
+        )
         cancelVisibleTaskReminder(appContext, taskId)
         return true
     }
 
     private fun currentSettings(): AppSettings = settingsRepository?.current() ?: app.settingsRepository.current()
 
-    private fun tag(taskId: Long): String = "whip-reminder-$taskId"
+    private fun tag(taskId: Long): String = reminderEntityTag(ReminderDomain.Task, taskId)
 }
 
 internal class ReminderBatchSyncException(

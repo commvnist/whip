@@ -328,13 +328,13 @@ of the prior day.
 
 ## Notification delivery
 
-**Settings → Reminders** shows whether Android notification permission, each Task, Habit,
-Goal, and rest-timer channel, and battery optimization may affect delivery. It
-links directly to
-Android's notification and battery screens and can send a real test
-notification. Battery policies vary by device, so a successful test confirms
-the current notification path but does not guarantee that Android will never
-delay future background work.
+**Settings → Reminders** shows whether Android notification permission, precise
+**Alarms & reminders** timing access, each Task, Habit, Goal, and rest-timer
+channel, and battery optimization may affect delivery. It links directly to
+Android's timing, notification, and battery screens and can send a real test
+notification. Whip uses exact local wakeups when timing access is allowed and
+keeps a background fallback. Android can still limit very closely spaced alarms
+during deep idle or suppress apps that a person force-stops.
 
 Task reminders can select several offsets, including custom minutes before the
 task time.
@@ -347,7 +347,8 @@ Notifications deep-link to the exact record and support applicable
 complete, snooze, and numeric-increment actions. Action IDs are recorded so an
 Android retry, reboot, or time-zone change cannot apply the same mutation
 twice. Habit reminders stop once the current daily, weekly, or monthly target
-is satisfied.
+is satisfied. Several times on one Habit are queued independently, so a delayed
+occurrence does not erase the remaining times.
 
 ## Backup, restore, and CSV
 
