@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260921-017 — Target the current accessible Task template in the safety journey
+
+- Decision: The Task template safety journey scrolls `task-template-list` to the current Weekly Task button using its accessible description, then chooses it and keeps the existing assertions that selection only prefills a draft and cancellation persists nothing.
+- Rationale: The old recipe label was removed during product design; the user-visible template and its accessibility name are current, while the safety property still matters. Lazy-list scrolling prevents viewport-dependent selection.
+- Rejected alternative: Restoring obsolete product copy to satisfy a test or dropping the no-premature-save assertion would weaken the audit rather than fix the stale selector.
+- Related/status: FB-20260920-001, FND-20260921-020, IMP/VER-20260921-022. Focused replay verified; complete gate In progress.
+
 ### DEC-20260921-016 — Make the wide keyboard test own its foreground setup
 
 - Decision: After applying its disposable 1800×1200/240-dpi display override, the IME/navigation-rail journey force-stops only the retained Android Settings UI task and returns to Home before `ActivityScenario.launch`. It still requires the real keyboard to appear and the rail bounds to remain unchanged.

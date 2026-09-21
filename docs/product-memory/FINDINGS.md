@@ -1,5 +1,12 @@
 # Durable findings
 
+### FND-20260921-020 — Task template safety test targeted a retired label
+
+- Severity/category: P2 full-gate reliability, not a confirmed Task template defect; FB-20260920-001.
+- Observed: The fourth fresh complete gate passed build/lint/JVM and six Android batches, then batch seven failed `ProductivityTemplateSafetyTest#taskRecipeOnlyPrefillsAndNeverPersistsBeforeSave` before its persistence assertion. The test searched for the old “Repeat on Chosen Weekdays” label; the current Task Templates dialog instead offers a “Weekly Task” button with an accessible description in a lazy list. The exact unmodified test fails again in `build/instrumentation-results-4imy8I`.
+- Expected/resolution: Scroll the actual template list to the current accessible Weekly Task choice, then retain the unsaved-draft and no-premature-persistence assertions. The corrected exact method passes 1/1 in `build/instrumentation-results-0bmDtH`. The interrupted gate is not accepted and must restart from the new test source.
+- Related: DEC-20260921-017, IMP/VER-20260921-022. Status: focused harness correction verified; complete gate and whole-product audit In progress.
+
 ### FND-20260921-019 — A retained Settings task can deadlock the wide IME audit test
 
 - Severity/category: P2 complete-gate reliability, not a confirmed Whip UI defect; FB-20260920-001.

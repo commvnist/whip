@@ -1,5 +1,12 @@
 # Verification and release evidence
 
+### VER-20260921-022 — Current Task template selector and full-gate interruption
+
+- Rejected gate: `ANDROID_SERIAL=emulator-5556 scripts/check --full --emulator --fresh-emulator` (`build/instrumentation-results-nOhYev`) passed build/lint/JVM and Android batches 1–6, 526/526 methods with zero failure/skip, including the formerly stalled wide-IME method. Batch seven then failed its first method because `ProductivityTemplateSafetyTest` searched for “Repeat on Chosen Weekdays,” absent from the current Task Templates dialog. The run was stopped; it is not a complete acceptance result.
+- Exact baseline/replay: The unmodified method fails again in `build/instrumentation-results-4imy8I`. After selecting the current accessible Weekly Task button through lazy-list scrolling, `ANDROID_SERIAL=emulator-5556 scripts/qa-targeted --android com.whip.app.ProductivityTemplateSafetyTest#taskRecipeOnlyPrefillsAndNeverPersistsBeforeSave --emulator` passes 1/1, zero failure/skip/reuse, in `build/instrumentation-results-0bmDtH`. It still asserts no Task before Save and none after Discard.
+- Limits: Test-only selector correction. The full JVM/Android/static/build gate and final 523-card visual campaign remain pending; no owner-phone or release action.
+- Related/status: FND-20260921-020, DEC-20260921-017, IMP-20260921-022. Focused test Verified; whole-product audit In progress.
+
 ### VER-20260921-021 — Wide IME foreground recovery under the full-gate load
 
 - Rejected gate: The third `ANDROID_SERIAL=emulator-5556 scripts/check --full --emulator --fresh-emulator` attempt (`build/instrumentation-results-zHRWnX`) passed build/lint/JVM and four Android batches. Batch five remained at 97/134 for more than ten minutes with Android Settings foreground at the test's 1800×1200/240-dpi override. The app thread dump showed `ImeNavigationRailE2ETest` waiting in `Instrumentation.startActivitySync`; Whip's main thread was idle. A manual `am task focus` of its existing task made method 98 and the 134-method batch pass. Because the run required external intervention, it was stopped in batch six and is not complete or accepted evidence. The engine restored the prior 2.0 font scale and normal display size/density.
