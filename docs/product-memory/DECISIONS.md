@@ -1,5 +1,14 @@
 # Durable product and engineering decisions
 
+### DEC-20260921-002 — Collection selection belongs to its persistence request
+
+- Context: FND-20260921-002 separates database atomicity from interaction recovery. Room can roll back a multi-item mutation perfectly while the UI still loses the user's exact target set by closing optimistically before the asynchronous result.
+- Decision: Track bulk pin/archive/restore uses one request ID and `PersistenceRequestState`. The collection keeps selected IDs and disables repeat submission while Running, exits only for the matching Success, and retains selection plus an inline error for Failure or orphan recovery. Reorder stays intentionally silent on success but gives sanitized rollback copy on failure.
+- Commit boundary: The Track rows update in one Room transaction. Home-section reveal happens after a committed pin and may only add a warning; it cannot turn an already-committed Track mutation into a retryable failure. Exact rollback language requires an integration test that compares the complete affected projections.
+- Rejected alternative: Clearing immediately keeps the screen visually simple but makes a failed action expensive and ambiguous. A transient snackbar alone cannot recreate which subset the user selected. Optimistically mutating a local order/selection without an owned result adds a second truth source.
+- Why this is superior for Whip: The visible recovery path mirrors durable truth, survives Activity recreation through an existing shared coordinator, and gives TalkBack/touch users the same bounded retry without introducing a Track-specific dialog.
+- Related/status: FB-20260920-001, FND/IMP/VER-20260921-002; accepted and verified as an unreleased app change.
+
 ### DEC-20260921-001 — Reset shares the same durable rollback boundary as replacement
 
 - Context: FND-20260921-001 disproves the earlier assumption in DEC-20260901-026 that exclusive admission alone was sufficient for Reset. A real injected Room failure preserves records but occurs after default Settings are durably committed, and the marker-free path then returns to normal UI.

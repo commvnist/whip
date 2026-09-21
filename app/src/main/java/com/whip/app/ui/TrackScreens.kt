@@ -109,6 +109,7 @@ import com.whip.app.R
 import com.whip.app.WhipApplication
 import com.whip.app.core.AppSettings
 import com.whip.app.core.OperationStatus
+import com.whip.app.core.PersistenceRequestState
 import com.whip.app.domain.Area
 import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.CustomIdentityEmoji
@@ -327,6 +328,7 @@ internal fun TrackAreaContent(
     val entryDeletePreparationState by viewModel.entryDeletePreparationState.collectAsStateWithLifecycle()
     val entryMutationState by viewModel.entryMutationState.collectAsStateWithLifecycle()
     val trackDeletionState by viewModel.trackDeletionState.collectAsStateWithLifecycle()
+    val collectionMutationState by viewModel.collectionMutationState.collectAsStateWithLifecycle()
     val trackDeletionImpact by viewModel.trackDeletionImpact.collectAsStateWithLifecycle()
     val trackDeletionPreviewError by viewModel.trackDeletionPreviewError.collectAsStateWithLifecycle()
     val trackDeletionTargetMissing by viewModel.trackDeletionTargetMissing.collectAsStateWithLifecycle()
@@ -499,6 +501,8 @@ internal fun TrackAreaContent(
             onShowAllAreasForReorder = onShowAllAreasForReorder,
             onSetPinned = viewModel::setPinned,
             onSetArchived = viewModel::setArchived,
+            collectionMutationState = collectionMutationState,
+            onCollectionMutationResultConsumed = viewModel::consumeCollectionMutationResult,
             masterPane = masterPane,
             onReorderModeChange = onReorderModeChange,
             reorderDismissRequest = reorderDismissRequest,
@@ -1291,8 +1295,10 @@ private fun AllTracksPage(
     onReorder: (List<Long>) -> Unit,
     reorderEnabled: Boolean,
     onShowAllAreasForReorder: () -> Unit,
-    onSetPinned: (Collection<Long>, Boolean) -> Unit,
-    onSetArchived: (Collection<Long>, Boolean) -> Unit,
+    onSetPinned: (Collection<Long>, Boolean, String) -> Boolean,
+    onSetArchived: (Collection<Long>, Boolean, String) -> Boolean,
+    collectionMutationState: PersistenceRequestState<TrackCollectionMutationReceipt>,
+    onCollectionMutationResultConsumed: (String) -> Unit,
     masterPane: Boolean,
     onReorderModeChange: (Boolean) -> Unit = {},
     reorderDismissRequest: Int = 0,
@@ -1302,11 +1308,24 @@ private fun AllTracksPage(
     var reordering by rememberSaveable { mutableStateOf(false) }
     var selecting by rememberSaveable { mutableStateOf(false) }
     var selectedIds by rememberSaveable { mutableStateOf<Set<Long>>(emptySet()) }
+    val collectionMutationCoordinator = rememberPersistenceRequestCoordinator(
+        state = collectionMutationState,
+        consume = onCollectionMutationResultConsumed,
+        key = showArchived,
+        requestNamespace = if (showArchived) "track-collection-archived" else "track-collection-active",
+        onPersisted = {
+            selectedIds = emptySet()
+            selecting = false
+        },
+        orphanedMessage =
+            "The previous Track change was interrupted. Your selection is still here; verify the Tracks, then retry.",
+    )
     val source = if (showArchived) state.archived else state.active
     val sourceIds = source.mapTo(mutableSetOf()) { it.track.id }
     val visibleSelectedIds = selectedIds intersect sourceIds
     val selectionReady = !state.loading && state.errorMessage == null
-    val canApplySelection = selectionReady && visibleSelectedIds.isNotEmpty()
+    val canApplySelection =
+        selectionReady && visibleSelectedIds.isNotEmpty() && !collectionMutationCoordinator.saving
     // Loading after recreation is not evidence that saved selections no longer exist.
     // Action targets are bounded immediately; pruning also prevents hidden IDs from returning.
     LaunchedEffect(sourceIds, selectedIds, selectionReady) {
@@ -1386,27 +1405,45 @@ private fun AllTracksPage(
         if (selecting) item {
             WhipSelectionActionPanel(
                 selectionSummary = "${quantityLabel(visibleSelectedIds.size, "Track")} selected",
-                onDone = { selectedIds = emptySet(); selecting = false },
+                onDone = {
+                    if (!collectionMutationCoordinator.saving) {
+                        collectionMutationCoordinator.clear()
+                        selectedIds = emptySet()
+                        selecting = false
+                    }
+                },
             ) {
                 Text("Only Tracks in this view stay selected.", style = MaterialTheme.typography.bodyMedium)
+                collectionMutationCoordinator.errorMessage?.let { message ->
+                    PersistenceFailureNotice(message, testTag = "track-collection-mutation-problem")
+                }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     if (!showArchived) {
                         val allPinned = visibleSelectedIds.isNotEmpty() && source.filter { it.track.id in visibleSelectedIds }.all { it.track.pinned }
                         WhipOutlinedButton(enabled = canApplySelection, onClick = {
-                            onSetPinned(visibleSelectedIds, !allPinned)
-                            selectedIds = emptySet()
-                            selecting = false
+                            val requestId = collectionMutationCoordinator.begin() ?: return@WhipOutlinedButton
+                            if (!onSetPinned(visibleSelectedIds, !allPinned, requestId)) {
+                                collectionMutationCoordinator.finishFailure(
+                                    "Another Track collection change is already finishing.",
+                                )
+                            }
                         }) { Text(if (allPinned) "Unpin from Whip Home" else "Pin to Whip Home") }
                         WhipOutlinedButton(enabled = canApplySelection, onClick = {
-                            onSetArchived(visibleSelectedIds, true)
-                            selectedIds = emptySet()
-                            selecting = false
+                            val requestId = collectionMutationCoordinator.begin() ?: return@WhipOutlinedButton
+                            if (!onSetArchived(visibleSelectedIds, true, requestId)) {
+                                collectionMutationCoordinator.finishFailure(
+                                    "Another Track collection change is already finishing.",
+                                )
+                            }
                         }) { Text("Archive") }
                     } else {
                         WhipOutlinedButton(enabled = canApplySelection, onClick = {
-                            onSetArchived(visibleSelectedIds, false)
-                            selectedIds = emptySet()
-                            selecting = false
+                            val requestId = collectionMutationCoordinator.begin() ?: return@WhipOutlinedButton
+                            if (!onSetArchived(visibleSelectedIds, false, requestId)) {
+                                collectionMutationCoordinator.finishFailure(
+                                    "Another Track collection change is already finishing.",
+                                )
+                            }
                         }) { Text("Restore") }
                     }
                 }

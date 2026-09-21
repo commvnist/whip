@@ -1,5 +1,14 @@
 # Implementation history
 
+### IMP-20260921-002 — Make Track reorder and bulk failures exactly retryable
+
+- Added a lifecycle-owned collection mutation state and shared persistence coordinator to Tracks. Active/Archived selections now remain exact through failures and recreation, actions are disabled only while the owned request runs, and selection closes only on matching success.
+- Kept archive/restore/pin writes in one Room transaction; added truthful sanitized failure copy. Reorder now explicitly reports that its previous order remains unchanged.
+- Separated committed pinning from Home Quick Log visibility follow-up. Follow-up failure becomes a success warning for both single and bulk pinning rather than a false save failure.
+- Added `TrackCollectionFailureJourneyE2ETest` with real SQLite abort triggers and a new `tracks.collection.mutation-failure` catalog state plus retained original PNG/XML evidence.
+- Compatibility: no schema, data epoch, backup format, version or historical Track data changed.
+- Related/status: FB-20260920-001, FND/DEC-20260921-002, VER-20260921-002. Verified for this Tracks collection boundary; the whole-product audit continues.
+
 ### IMP-20260921-001 — Give Reset durable snapshot rollback and fail-closed retry
 
 - Behavior changed: `RestoreRecoveryManager` now owns one validated, fsynced recovery boundary for both replacement and Reset. Reset snapshots database/settings before generation advance, performs deletion under the existing global/reminder gates, rebuilds background state, durably disconnects the portable folder, and only then verifies marker removal. A transient failure immediately restores and rebuilds; a persistent SQLite failure retains the marker and blocks normal access until the existing Retry flow restores the original records/settings. Replacement uses the same refactored path and now verifies snapshot validity and marker deletion too.
@@ -303,7 +312,7 @@
 - Behavior: Area and active/Archived changes remove hidden Track selections. Counts, pin labels and mutation targets share the current visible set. Visible choices survive narrowing and Activity recreation; loading/failure disables actions without prematurely pruning saved selection. The selection panel explains its scope.
 - Files: AllTracksPage in `ui/TrackScreens.kt`; four native `TrackCollectionJourneyE2ETest` methods, permanent Tracks QA profile, ten catalog/matrix states and two actual-font inventory rows.
 - Compatibility: No schema, backup, version or data interpretation change. Native tests preserve exact Entries, Fields, Options, Areas, positions and unrelated projections through pin/unpin/archive/restore. Cross-Area selection is available in All Areas; Tasks retains its existing explicit hidden-selection behavior.
-- Verification/status: Verified under FND/DEC/VER-20260910-002 / FB-20260908-006. Four final native journeys pass on API 26/34/37, frozen 118 Android checks and 346 JVM readiness tests pass with compilation/lint/debug packaging. All 36 retained originals have personal review. Actual Track drag/reorder, asynchronous bulk-failure recovery, larger histories and full Tracks/app acceptance remain open. Normal main/upstream delivery is recorded in Git history. Next work follows FB-20260910-001/002.
+- Verification/status: Verified under FND/DEC/VER-20260910-002 / FB-20260908-006. Four final native journeys pass on API 26/34/37, frozen 118 Android checks and 346 JVM readiness tests pass with compilation/lint/debug packaging. All 36 retained originals have personal review. Actual Track reorder and asynchronous bulk-failure recovery are subsequently closed by IMP/VER-20260921-002; larger histories and full Tracks/app acceptance remain open. Normal main/upstream delivery is recorded in Git history. Next work follows FB-20260910-001/002.
 
 ### IMP-20260910-001 — Explain incompatible Scale history inside Field editing
 

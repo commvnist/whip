@@ -1,5 +1,14 @@
 # Durable findings
 
+### FND-20260921-002 — Failed multi-Track changes discarded the exact retry selection
+
+- Severity/category: P2 collection recovery, asynchronous outcome ownership and user effort; FB-20260920-001.
+- Observed source: `AllTracksPage` dispatched multi-Track pin/archive/restore through an asynchronous ViewModel call, then immediately cleared `selectedIds` and exited selection mode. The Room mutation was atomic, but any later storage failure returned to an unchanged database after the UI had discarded the only exact retry set. Reorder failure similarly exposed an exception without stating that its transaction retained the prior order.
+- Expected: A collection action owns its target set until the matching persistence request succeeds. Failure must leave that set selected, explain that no Tracks changed, and offer the same action again. Reorder failure must restore database and visible truth without leaking storage diagnostics.
+- Evidence/root cause: Pre-change source contains unconditional post-dispatch clearing. `TrackCollectionFailureJourneyE2ETest` installs real SQLite abort triggers for position update and the second selected archive update; the final journey proves exact graph rollback, retained two-Track selection, successful retry, recreation and durable placement. Evidence: `artifacts/astra-audit/2026-09-21/track-collection-failure/README.md`.
+- Recommended solution: Give bulk collection mutations request-scoped result ownership, clear selection only after the owned success, render failure inline, preserve one Room transaction and treat post-commit Home visibility work as a warning rather than a false mutation failure.
+- Related/status: FB-20260920-001, DEC/IMP/VER-20260921-002. Verified as an unreleased app change; realistic large-history/specialized-analytics and complete whole-product acceptance remain open.
+
 ### FND-20260921-001 — Failed Reset could reopen with old records and default settings
 
 - Severity/category: P1 destructive-operation consistency and recoverability; FB-20260920-001.

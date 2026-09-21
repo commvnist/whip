@@ -16,6 +16,7 @@ import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
 import com.whip.app.core.PersistenceRequestState
 import com.whip.app.core.WhipResult
+import com.whip.app.core.completeCommittedPersistence
 import com.whip.app.core.completeCommittedEntitySave
 import com.whip.app.core.revealHomeSection
 import com.whip.app.core.saveFollowUpWarning
@@ -641,6 +642,20 @@ internal data class TrackCsvExportUiState(
     val errorMessage: String? = null,
 )
 
+internal data class TrackCollectionMutationReceipt(
+    val trackIds: Set<Long>,
+    val warnings: List<String> = emptyList(),
+)
+
+private class CommittedTrackCollectionMutationCancellation(
+    val receipt: TrackCollectionMutationReceipt,
+    cause: CancellationException,
+) : CancellationException(cause.message) {
+    init {
+        initCause(cause)
+    }
+}
+
 class TrackViewModel private constructor(
     application: Application,
     private val savedStateHandle: SavedStateHandle,
@@ -689,6 +704,13 @@ class TrackViewModel private constructor(
     )
     internal val trackDeletionState: StateFlow<PersistenceRequestState<TrackDeletionReceipt>> =
         _trackDeletionState.asStateFlow()
+    private val _collectionMutationState =
+        MutableStateFlow<PersistenceRequestState<TrackCollectionMutationReceipt>>(
+            PersistenceRequestState.Idle,
+        )
+    internal val collectionMutationState:
+        StateFlow<PersistenceRequestState<TrackCollectionMutationReceipt>> =
+        _collectionMutationState.asStateFlow()
     private val _trackDeletionImpact = MutableStateFlow<TrackDeletionImpact?>(null)
     internal val trackDeletionImpact: StateFlow<TrackDeletionImpact?> = _trackDeletionImpact.asStateFlow()
     private val _trackDeletionPreviewError = MutableStateFlow<String?>(null)
@@ -779,6 +801,7 @@ class TrackViewModel private constructor(
                 _entryMutationState.value = PersistenceRequestState.Idle
                 _csvImportRequestState.value = PersistenceRequestState.Idle
                 _trackDeletionState.value = PersistenceRequestState.Idle
+                _collectionMutationState.value = PersistenceRequestState.Idle
                 _trackDeletionImpact.value = null
                 _trackDeletionPreviewError.value = null
                 _trackDeletionTargetMissing.value = false
@@ -800,6 +823,12 @@ class TrackViewModel private constructor(
         _operationStatus.value = OperationStatus.Idle
         recoveryAcknowledgement?.complete(Unit)
         recoveryAcknowledgement = null
+    }
+
+    fun consumeCollectionMutationResult(requestId: String) {
+        if ((_collectionMutationState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
+            _collectionMutationState.value = PersistenceRequestState.Idle
+        }
     }
 
     fun retryLoading() { requestTrackReload() }
@@ -1186,34 +1215,78 @@ class TrackViewModel private constructor(
         return true
     }
 
-    fun duplicate(id: Long) = runOperation("Duplicating Track…", "Track structure duplicated") { repository.duplicate(id) }
+    fun duplicate(id: Long) = runOperation("Duplicating Track…", "Track structure duplicated") {
+        repository.duplicate(id)
+        emptyList()
+    }
     fun setPinned(id: Long, pinned: Boolean) = runOperation(
         "Updating Home Quick Log…",
         if (pinned) "Track added to Home Quick Log" else "Track removed from Home Quick Log",
     ) {
         repository.setPinned(id, pinned)
-        if (pinned) app.settingsRepository.revealHomeSection(HomeSection.Tracks)
+        listOfNotNull(
+            if (pinned) saveFollowUpWarning(
+                "The Track was updated, but Home Quick Log visibility could not be refreshed.",
+            ) {
+                app.settingsRepository.revealHomeSection(HomeSection.Tracks)
+            } else null,
+        )
     }
-    fun setPinned(ids: Collection<Long>, pinned: Boolean) = runOperation(
-        "Updating Home Quick Log…",
-        "${ids.size} Tracks ${if (pinned) "added to" else "removed from"} Home Quick Log",
-    ) {
-        app.database.withTransaction { ids.distinct().forEach { repository.setPinned(it, pinned) } }
-        if (pinned) app.settingsRepository.revealHomeSection(HomeSection.Tracks)
-    }
+    fun setPinned(ids: Collection<Long>, pinned: Boolean, requestId: String): Boolean =
+        runCollectionMutation(
+            running = "Updating Home Quick Log…",
+            success = "${ids.size} Tracks ${if (pinned) "added to" else "removed from"} Home Quick Log",
+            failure = "The selected Tracks could not be ${if (pinned) "added to" else "removed from"} Home Quick Log. No Tracks were changed.",
+            requestId = requestId,
+            savedDescription = "Track Home Quick Log change",
+        ) {
+            val targetIds = ids.toSet()
+            completeCommittedPersistence(
+                commit = {
+                    app.database.withTransaction {
+                        targetIds.forEach { repository.setPinned(it, pinned) }
+                    }
+                    TrackCollectionMutationReceipt(targetIds)
+                },
+                followUp = { receipt ->
+                    if (pinned) app.settingsRepository.revealHomeSection(HomeSection.Tracks)
+                    receipt
+                },
+                onCancellation = { receipt, cancelled ->
+                    CommittedTrackCollectionMutationCancellation(receipt, cancelled)
+                },
+                onOrdinaryFailure = { receipt ->
+                    receipt.copy(
+                        warnings = receipt.warnings +
+                            "The Tracks were updated, but Home Quick Log visibility could not be refreshed.",
+                    )
+                },
+            )
+        }
     fun setArchived(id: Long, archived: Boolean) = runOperation(
         if (archived) "Archiving Track…" else "Restoring Track…",
         if (archived) "Track archived" else "Track restored",
     ) {
         repository.setArchived(id, archived)
+        emptyList()
     }
-    fun setArchived(ids: Collection<Long>, archived: Boolean) = runOperation(
-        if (archived) "Archiving Tracks…" else "Restoring Tracks…",
-        "${ids.size} Tracks ${if (archived) "archived" else "restored"}",
-    ) {
-        app.database.withTransaction { ids.distinct().forEach { repository.setArchived(it, archived) } }
-    }
-    fun reorder(ids: List<Long>) = runSilentReorder { repository.reorder(ids) }
+    fun setArchived(ids: Collection<Long>, archived: Boolean, requestId: String): Boolean =
+        runCollectionMutation(
+            running = if (archived) "Archiving Tracks…" else "Restoring Tracks…",
+            success = "${ids.size} Tracks ${if (archived) "archived" else "restored"}",
+            failure = "The selected Tracks could not be ${if (archived) "archived" else "restored"}. No Tracks were changed.",
+            requestId = requestId,
+            savedDescription = "Track ${if (archived) "archive" else "restore"}",
+        ) {
+            val targetIds = ids.toSet()
+            app.database.withTransaction {
+                targetIds.forEach { repository.setArchived(it, archived) }
+            }
+            TrackCollectionMutationReceipt(targetIds)
+        }
+    fun reorder(ids: List<Long>) = runSilentReorder(
+        failureMessage = "Could not save the new Track order. Your previous order is unchanged. Try again.",
+    ) { repository.reorder(ids) }
     fun deleteTrack(
         id: Long,
         expectedRevisionToken: String,
@@ -1988,7 +2061,10 @@ class TrackViewModel private constructor(
         }
     }
 
-    private fun runSilentReorder(block: suspend () -> Unit) {
+    private fun runSilentReorder(
+        failureMessage: String,
+        block: suspend () -> Unit,
+    ) {
         viewModelScope.launch {
             operationMutex.withLock {
                 try {
@@ -1999,10 +2075,79 @@ class TrackViewModel private constructor(
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (error: Throwable) {
-                    _operationStatus.value = OperationStatus.Failed(error.message ?: "Could not save the new order", error)
+                    _operationStatus.value = OperationStatus.Failed(failureMessage, error)
                 }
             }
         }
+    }
+
+    private fun runCollectionMutation(
+        running: String,
+        success: String,
+        failure: String,
+        requestId: String,
+        savedDescription: String,
+        block: suspend () -> TrackCollectionMutationReceipt,
+    ): Boolean {
+        if (!_collectionMutationState.tryStartPersistenceRequest(requestId)) return false
+        _operationStatus.value = OperationStatus.Running(running)
+        viewModelScope.launch {
+            fun successResult(
+                receipt: TrackCollectionMutationReceipt,
+            ): WhipResult.Success<TrackCollectionMutationReceipt> {
+                val message = if (receipt.warnings.isEmpty()) success else {
+                    "$success · ${receipt.warnings.joinToString(" ")}"
+                }
+                _operationStatus.value = OperationStatus.Succeeded(
+                    message,
+                    transientSuccessPresentation(hasWarnings = receipt.warnings.isNotEmpty()),
+                )
+                return WhipResult.Success(receipt)
+            }
+
+            val result = try {
+                val receipt = checkNotNull(app.withUserDataAccess {
+                    operationMutex.withLock { block() }
+                }) { "Whip data is unavailable while recovery is in progress" }
+                successResult(receipt)
+            } catch (cancelled: CommittedTrackCollectionMutationCancellation) {
+                if (currentCoroutineContext().isActive) {
+                    successResult(
+                        cancelled.receipt.copy(
+                            warnings = cancelled.receipt.warnings +
+                                "Some post-save updates were interrupted; the $savedDescription was saved.",
+                        ),
+                    )
+                } else {
+                    if ((_collectionMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                        _collectionMutationState.value = PersistenceRequestState.Idle
+                    }
+                    _operationStatus.value = OperationStatus.Idle
+                    throw cancelled
+                }
+            } catch (cancelled: CancellationException) {
+                if (currentCoroutineContext().isActive) {
+                    _operationStatus.value = OperationStatus.Idle
+                    WhipResult.Failure(
+                        "The $savedDescription was interrupted. Your selected Tracks are still here.",
+                        cancelled,
+                    )
+                } else {
+                    if ((_collectionMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                        _collectionMutationState.value = PersistenceRequestState.Idle
+                    }
+                    _operationStatus.value = OperationStatus.Idle
+                    throw cancelled
+                }
+            } catch (error: Exception) {
+                _operationStatus.value = OperationStatus.Idle
+                WhipResult.Failure(failure, error)
+            }
+            if ((_collectionMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                _collectionMutationState.value = PersistenceRequestState.Finished(requestId, result)
+            }
+        }
+        return true
     }
 
     private fun recordEntryDeletionRecovery(receipt: TrackEntryMutationReceipt) {
@@ -2082,21 +2227,22 @@ class TrackViewModel private constructor(
         success: String,
         successFeedbackPresentation: OperationFeedbackPresentation = OperationFeedbackPresentation.Inline,
         recoveryToken: Long? = null,
-        block: suspend () -> Unit,
+        block: suspend () -> List<String>,
     ) {
         viewModelScope.launch {
             operationMutex.withLock {
                 _operationStatus.value = OperationStatus.Running(running)
                 try {
-                    checkNotNull(app.withUserDataAccess {
+                    val warnings = checkNotNull(app.withUserDataAccess {
                         block()
-                        Unit
                     }) { "Whip data is unavailable while recovery is in progress" }
                     val acknowledgement = recoveryToken?.let { CompletableDeferred<Unit>() }
                     recoveryAcknowledgement = acknowledgement
                     _operationStatus.value = OperationStatus.Succeeded(
-                        success,
-                        successFeedbackPresentation,
+                        if (warnings.isEmpty()) success else "$success · ${warnings.joinToString(" ")}",
+                        if (warnings.isEmpty()) successFeedbackPresentation else {
+                            transientSuccessPresentation(hasWarnings = true)
+                        },
                         recoveryToken,
                     )
                     acknowledgement?.await()
