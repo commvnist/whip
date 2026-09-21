@@ -1,5 +1,12 @@
 # Verification and release evidence
 
+### VER-20260921-009 — Cold external Task share survives managed process death
+
+- Scope: FB-20260920-001 and IMP-20260921-009. Disposable API 34 emulator, production app shell/Room, current debug APK and completed Setup. [Evidence](../../artifacts/astra-audit/2026-09-21/task-share-process/README.md). No owner phone, release or production-code change.
+- Host replay: Android task 995 survives backgrounding and a managed cached-process kill; PID 1876 is replaced by 2097. The locally edited title stays unsaved before and after death, with no duplicate request prompt. One Save creates exactly one edited-title Task, zero original-title Tasks; Inbox displays the result. Three original PNG/XML pairs were inspected and have no `NAF=true` nodes.
+- Neighboring native class: `PlatformEntrySurfaceE2ETest` passes all 19 methods with zero failure/skip/reuse in `build/instrumentation-results-rwkeVT`. Current `scripts/check --ready` passes route/static/Android-test compilation/lint/debug packaging; catalog lint reports 528 required captures with zero pending selectors/exceptions. This covers the existing share queue and widget Activity entry tests, not actual pinned-widget RemoteViews interaction. The host replay does not test multiple simultaneous shares or another MIME type.
+- Related/status: IMP-20260921-009. Scoped external share process recovery verified; complete platform/product audit In progress.
+
 ### VER-20260921-008 — Active legacy review across managed Android process death
 
 - Scope: FB-20260920-001/002 and IMP-20260921-008. Disposable API 34 phone emulator, production app shell/Room repositories, synthetic active workout. [Evidence](../../artifacts/astra-audit/2026-09-21/legacy-process-death/README.md). No physical phone, release, migration or new product authoring path.

@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260921-009 — Replay external Task share through an OS process kill
+
+- Added a guarded emulator-only host replay for cold `ACTION_SEND` Task capture. It edits the unsaved draft, proves Room contains neither original nor edited title, asks Android to kill the stopped app process, refocuses the same task under a new PID, verifies the edited draft without a duplicate request, then saves and checks exactly one edited Task in Room and visible Inbox.
+- Three original PNG/XML pairs and a task/PID/count receipt are retained under `artifacts/astra-audit/2026-09-21/task-share-process/`. This is test/evidence work only: no production app, schema, data epoch, backup format, version or owner-phone state changes.
+- Related/status: FB-20260920-001 and VER-20260921-009. The single-share process-death boundary is verified; actual pinned-widget actions, queued shares during death and whole-product audit remain In progress.
+
 ### IMP-20260921-008 — Replay active legacy retirement through an OS process kill
 
 - Added an opt-in seed-only mode to the existing real-app `GymLegacyRetirementJourneyE2ETest`. It durably confirms Setup, seeds an already-active legacy session and leaves only that disposable emulator fixture in place for an external host driver; the ordinary test path still performs its full Activity-recreation journey and cleans its synthetic data.
