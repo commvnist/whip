@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260921-008 — Replay active legacy retirement through an OS process kill
+
+- Added an opt-in seed-only mode to the existing real-app `GymLegacyRetirementJourneyE2ETest`. It durably confirms Setup, seeds an already-active legacy session and leaves only that disposable emulator fixture in place for an external host driver; the ordinary test path still performs its full Activity-recreation journey and cleans its synthetic data.
+- Added an emulator-guarded replay that opens the live finish review, backgrounds the app, uses ActivityManager's managed cached-process kill, refocuses the same task in a new PID, applies the original decision, and verifies exact historical session/Set provenance plus a generic future Routine and next workout. Original PNG/XML and a small proof receipt are retained under `artifacts/astra-audit/2026-09-21/legacy-process-death/`.
+- Compatibility: no production app, schema, data epoch, backup format, version or owner-phone change. No retired 5/3/1 wizard/generator is restored; old active sessions still have their necessary finish review.
+- Related/status: FB-20260920-001/002, IMP/VER-20260921-006, VER-20260921-008. Scoped OS-process recovery verified; whole Gym/product audit remains In progress.
+
 ### IMP-20260921-007 — Keep cumulative Track histories readable on every supported SQLite limit
 
 - `TrackDao.getValuesForEntriesBatched` loads value rows in 900-ID pieces. Direct Track projection and therefore CSV export, search-index rebuild, bounded history paging, and transaction-derived permanent-deletion preview now use that one policy under their existing Room transactions. It retains the full graph, original Entry order, exact CSV content, search rows and revision-token calculation; no persisted record is rewritten.

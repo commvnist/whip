@@ -1,5 +1,13 @@
 # Verification and release evidence
 
+### VER-20260921-008 — Active legacy review across managed Android process death
+
+- Scope: FB-20260920-001/002 and IMP-20260921-008. Disposable API 34 phone emulator, production app shell/Room repositories, synthetic active workout. [Evidence](../../artifacts/astra-audit/2026-09-21/legacy-process-death/README.md). No physical phone, release, migration or new product authoring path.
+- Native process journey: The opt-in seed passes 1/1 and durably confirms Setup. The host driver opens the live legacy review, sends Whip to a stopped task, opens Android Settings, then `am kill`s the cached package. PID 30682 is absent; task 951 resumes with PID 30904 and the same selected Standard increase/Apply action. The reviewed Routine remains legacy until the owned finish commits. After Apply, session 7 is `Finished`, retains `FiveThreeOne` and its performed `TrainingMaxTest` Set, and has progress advanced; Routine 6 alone becomes `Custom`. The generic `Phased Routine` card starts session 8 `Active|Custom`. Five exact PNG/XML pairs were individually inspected with no `NAF=true` nodes.
+- Harness exclusions: Immediate `am kill` while Whip was still Android's previous process did not kill it. A raw `SIGKILL` killed it but Android discarded the task as a crash; that route is not claimed as the saved-task process-death acceptance. The guarded managed-kill replay supersedes both.
+- Final normal/gates: The exact unflagged app-shell test passes 1/1 in `build/instrumentation-results-vhOJe5` after durable seed confirmation. All 659 JVM methods, final `scripts/check --ready` in 27 seconds (route/static/Android-test compilation/lint/debug packaging), 528-state catalog lint and `git diff --check` pass. No additional product test method was added; inventory remains 1,760 (659 JVM, 1,101 Android). This is one process-death configuration; remaining advanced Gym, full Android/catalog and whole-product gates remain open.
+- Related/status: IMP/VER-20260921-006/008. Scoped active-legacy OS-process recovery verified; audit In progress.
+
 ### VER-20260921-007 — Cumulative Track history survives SQLite bind ceilings
 
 - Scope: FB-20260920-001, FND/DEC-20260921-006 and IMP-20260921-007. Production Room Track repository and deletion coordinator on disposable API 26/34/37 emulators. [Evidence](../../artifacts/astra-audit/2026-09-21/track-sql-bind/README.md). No owner phone, release, schema, backup or data-epoch change.

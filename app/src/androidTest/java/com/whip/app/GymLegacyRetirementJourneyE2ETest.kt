@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.whip.app.core.AppSettings
 import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.RoutineDayDraft
@@ -26,6 +27,7 @@ import com.whip.app.domain.RoutineWorkSection
 import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.domain.WorkoutSetClassification
 import com.whip.app.domain.WorkoutSetDraft
+import java.io.File
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -40,13 +42,15 @@ import org.junit.runner.RunWith
 class GymLegacyRetirementJourneyE2ETest {
     @get:Rule val compose = createEmptyComposeRule()
     private val app: WhipApplication get() = ApplicationProvider.getApplicationContext()
+    private val seedOnly get() = InstrumentationRegistry.getArguments()
+        .getString("whipLegacyReviewSeedOnly") == "true"
 
-    @After fun clean() = runBlocking { app.backupRepository.deleteAllData() }
+    @After fun clean() = runBlocking { if (!seedOnly) app.backupRepository.deleteAllData() }
 
     @Test fun interruptedLegacyWorkoutRetainsReviewThenConvertsOnlyFutureTemplate() {
         val ids = runBlocking {
             app.backupRepository.deleteAllData()
-            app.settingsRepository.update { AppSettings(setupCompleted = true) }
+            check(app.settingsRepository.updateAndConfirm { AppSettings(setupCompleted = true) })
             val exerciseId = app.gymRepository.createExercise(ExerciseDraft("Legacy Bench Press"))
             val routineId = app.routineRepository.createRoutine(RoutineDraft(
                 name = "Existing strength plan",
@@ -85,6 +89,12 @@ class GymLegacyRetirementJourneyE2ETest {
             routineId to sessionId
         }
         val (routineId, sessionId) = ids
+        if (seedOnly) {
+            File(app.filesDir, "legacy-review-process-fixture.txt").writeText(
+                "routineId=$routineId\nsessionId=$sessionId\n",
+            )
+            return
+        }
 
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             compose.onNodeWithContentDescription("Gym tab").performClick()
