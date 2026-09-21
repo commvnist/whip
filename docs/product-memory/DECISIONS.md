@@ -1,5 +1,13 @@
 # Durable product and engineering decisions
 
+### DEC-20260921-005 — Timer deadlines stay durable until validated delivery
+
+- Context: FND-20260921-005 found Focus expiration was being erased at the repository read boundary, while both completion timers relied on deferrable WorkManager timing. The already-released Task/Habit/Goal reminder alarm policy is the compatible platform precedent.
+- Decision: Persist the exact Focus deadline through its due time, show only future countdowns in UI, and clear only after matching worker delivery is committed. For both Focus and workout Rest, reject an obsolete schedule request against current durable Settings/session state before it can replace a newer fallback or alarm; then enqueue the fallback first and set a private exact `RTC_WAKEUP` alarm when allowed. Its receiver promotes only the still-current timer into immediate work. Serialize scheduling, promotion and worker completion per timer, validate user-data generation and task/session revision, and rebuild on startup, boot, time/package changes and exact-access grants. Bound ancient restored Focus alerts to 24 hours late.
+- Failure boundary: A denied exact-alarm access, per-app alarm quota, disabled notification channel/permission, OEM deferral or explicit force-stop can still delay or suppress an alert; do not promise an unconditional OS guarantee. A transient storage failure leaves the Focus pair for retry rather than marking an unposted alert complete. Reset/replacement cancel alarms and the alarm-registry preference belongs to Whip's data-epoch ownership set.
+- Rejected alternative: Clearing the due deadline on read or replacing it with an in-memory timer recreates a process-death miss. WorkManager-only timing reproduces the platform delay; direct notification from the receiver would bypass the existing durable worker/recovery boundary.
+- Related/status: FB-20260920-001, FND/IMP/VER-20260921-005, FND-20260915-001; accepted for the scoped unreleased timer checkpoint.
+
 ### DEC-20260921-004 — NEXT navigation targets Set identity inside its rendered group
 
 - Context: FND-20260921-004; the execution lane already resolves the right Set, but its click and automatic handoff navigate only to the enclosing lazy-list block.

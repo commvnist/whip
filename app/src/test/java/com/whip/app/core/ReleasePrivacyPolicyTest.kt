@@ -73,6 +73,7 @@ class ReleasePrivacyPolicyTest {
             ".reminders.HabitReminderActionReceiver",
             ".reminders.GoalReminderActionReceiver",
             ".reminders.ReminderAlarmReceiver",
+            ".reminders.TimerAlarmReceiver",
             ".reminders.ReminderTimeChangeReceiver",
         ).forEach { name -> assertEquals("false", receivers.getValue(name).androidAttribute("exported")) }
 

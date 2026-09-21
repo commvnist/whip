@@ -161,11 +161,10 @@ class ReminderWorkerRulesTest {
     }
 
     @Test
-    fun restTimerRecoveryCeilsAnImminentDeadlineInsteadOfCancellingIt() {
-        assertEquals(1, restTimerScheduleDelaySeconds(deadlineMillis = 10_001L, nowMillis = 10_000L))
-        assertEquals(1, restTimerScheduleDelaySeconds(deadlineMillis = 10_999L, nowMillis = 10_000L))
-        assertEquals(2, restTimerScheduleDelaySeconds(deadlineMillis = 11_001L, nowMillis = 10_000L))
-        assertEquals(null, restTimerScheduleDelaySeconds(deadlineMillis = 10_000L, nowMillis = 10_000L))
+    fun exactTimerFallbackKeepsAnImminentDeadlineAndARecoveryGrace() {
+        assertEquals(1L, reminderFallbackDelayMillis(10_001L, 10_000L, exactScheduled = false))
+        assertEquals(121_001L, reminderFallbackDelayMillis(11_001L, 10_000L, exactScheduled = true))
+        assertEquals(0L, reminderFallbackDelayMillis(9_999L, 10_000L, exactScheduled = false))
     }
 
     @Test

@@ -65,6 +65,7 @@ object DataEpochPolicy {
         "whip_widget_areas",
         "whip_widget_snapshots",
         "whip_reminder_runtime",
+        "whip_timer_runtime",
         "notification_action_receipts",
         "reminder-deletion-cleanup",
     )

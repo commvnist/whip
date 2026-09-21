@@ -459,7 +459,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         require(taskId > 0L) { "Focus timer requires a valid Task" }
         val deadline = System.currentTimeMillis() + minutes.coerceIn(1, 240) * 60_000L
         update { it.copy(focusTimerDeadlineMillis = deadline, focusTimerTaskId = taskId) }
-        app.focusTimerScheduler.schedule(taskId, deadline)
+        viewModelScope.launch { app.focusTimerScheduler.schedule(taskId, deadline) }
     }
 
     fun stopFocusTimer() {

@@ -110,6 +110,8 @@ profile_for_name() {
     local lowered="${1,,}"
     case "$lowered" in
         *fivethreeone*|*531*) printf 'gymphased\n' ;;
+        *resttimer*) printf 'gym\n' ;;
+        *timeralarm*) printf 'shell\n' ;;
         *routine*|*workout*|*exercise*|*machine*|*gym*|*trainingmax*) printf 'gym\n' ;;
         *habit*) printf 'habits\n' ;;
         *task*|*recurrence*|*focus*) printf 'tasks\n' ;;

@@ -57,9 +57,9 @@ class DataEpochPolicyTest {
 
     @Test fun resetSelectsOnlyWhipOwnedPreferenceStores() {
         assertEquals(
-            setOf("whip-settings", "portable_backups"),
+            setOf("whip-settings", "portable_backups", "whip_timer_runtime"),
             DataEpochPolicy.selectWhipPreferenceNames(
-                setOf("whip-settings", "portable_backups", "androidx.work.util.preferences", "platform-state"),
+                setOf("whip-settings", "portable_backups", "whip_timer_runtime", "androidx.work.util.preferences", "platform-state"),
             ),
         )
     }

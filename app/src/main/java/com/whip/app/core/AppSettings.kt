@@ -276,8 +276,9 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
         platePresets = preferences.getString("platePresets", null).decodePlatePresets(),
         repPrescriptionSchemes = preferences.getString("repPrescriptionSchemes", null).decodeRepPrescriptionSchemes(),
         trackedGymRecords = preferences.getString("trackedGymRecords", null).decodeTrackedGymRecords(),
-        focusTimerDeadlineMillis = preferences.nullableLong("focusTimerDeadlineMillis")
-            ?.takeIf { it > System.currentTimeMillis() },
+        // A due timer must remain readable until its worker validates and clears it.
+        // Hiding it here made the alert fail exactly when the deadline arrived.
+        focusTimerDeadlineMillis = preferences.nullableLong("focusTimerDeadlineMillis"),
         focusTimerTaskId = preferences.nullableLong("focusTimerTaskId"),
     ).normalized()
 

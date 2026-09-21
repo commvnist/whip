@@ -149,6 +149,7 @@ add_profile() {
                 'com.whip.app.WhipNavigationTest'
                 'com.whip.app.WhipAccessibilityChecksTest'
                 'com.whip.app.ui.InteractionControlUiTest'
+                'com.whip.app.TimerAlarmIntegrationTest'
             )
             ;;
         tasks)

@@ -195,4 +195,17 @@ class AppSettingsPersistenceTest {
         assertEquals(deadline, saved.focusTimerDeadlineMillis)
         assertEquals(42L, saved.focusTimerTaskId)
     }
+
+    @Test
+    fun dueFocusTimerRemainsReadableUntilTheWorkerClearsIt() {
+        val deadline = System.currentTimeMillis() - 1_000L
+        val repository = SharedPreferencesSettingsRepository(context)
+        assertTrue(repository.updateAndConfirm {
+            it.copy(focusTimerDeadlineMillis = deadline, focusTimerTaskId = 42L)
+        })
+
+        val current = SharedPreferencesSettingsRepository(context).current()
+        assertEquals(deadline, current.focusTimerDeadlineMillis)
+        assertEquals(42L, current.focusTimerTaskId)
+    }
 }

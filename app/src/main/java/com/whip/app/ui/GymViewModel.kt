@@ -66,7 +66,6 @@ import com.whip.app.core.PlatePreset
 import com.whip.app.core.RepPrescriptionScheme
 import com.whip.app.core.TrackedGymRecord
 import com.whip.app.core.normalizeRestTimerPresets
-import com.whip.app.reminders.restTimerScheduleDelaySeconds
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -2314,14 +2313,9 @@ class GymViewModel @JvmOverloads constructor(
     private suspend fun reconcilePersistedRestTimer(sessionId: Long, nextLabel: String? = null) {
         val session = repository.sessions.first().firstOrNull { it.id == sessionId } ?: return
         if (!session.restTimerCleanupPending) return
-        val remaining = restTimerScheduleDelaySeconds(
-            session.restTimerDeadlineMillis,
-            clock.now().toEpochMilli(),
-        )
         if (session.state == WorkoutSessionState.Active && session.restTimerDeadlineMillis != null) {
             restTimerScheduler.schedule(
                 sessionId = session.id,
-                seconds = remaining ?: 1,
                 nextLabel = nextLabel,
                 timerRevision = session.restTimerRevision,
                 expectedDeadlineMillis = session.restTimerDeadlineMillis,

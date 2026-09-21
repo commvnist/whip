@@ -1,5 +1,14 @@
 # Durable findings
 
+### FND-20260921-005 — Focus due-state vanished before notification delivery; both timers used deferrable timing
+
+- Severity/category: P1 Focus completion silently missed; P2 workout-rest timing reliability. The owner-reported Habit sequence is separately FND-20260915-001; this is a related whole-product platform finding, not a reclassification of that released fix.
+- Observed: Focus and Rest timers were scheduled only through delayed WorkManager. In a native no-Activity run, Rest posted but Focus did not. The Focus diagnostic showed an enabled channel and notification permission, an enqueued worker, no active notification, and `focusTimerDeadlineMillis=null` after the deadline. The first baseline fails in `build/instrumentation-results-KZ1l2t`; the diagnostic replay fails in `build/instrumentation-results-s7EGZQ`.
+- Root cause: `SharedPreferencesSettingsRepository.current()` filtered expired Focus deadlines before returning Settings. The worker requires that exact persisted deadline to validate delivery, so the elapsed timer disappeared at precisely the time it became eligible. WorkManager initial delay is also a minimum, not an exact user-facing clock.
+- Expected: A user-started completion alert should wake and post without opening Whip when Android allows notification/exact timing access; stale work must never alert for a replaced timer, and old restored deadlines should not surprise the user.
+- Additional source risk: A delayed schedule call for an older Focus deadline or Rest revision could replace the newer timer's unique WorkManager fallback and exact PendingIntent even if its eventual worker correctly rejected the stale payload. Current-state validation must precede any scheduling mutation, not exist only in the receiver/worker.
+- Resolution/status: Retain the due Focus pair until the matching worker posts and durably clears it; use exact AlarmManager wakeups plus delayed WorkManager fallback for Focus and Rest, with recovery/time/access reconciliation and generation/deadline/revision validation. Reject stale schedule calls before they can replace current work. A more-than-24-hour-late Focus timer is cleared. DEC/IMP/VER-20260921-005 pass scoped native tests. OS denial, quota, deferral and force-stop remain external delivery limits; whole-product audit is still open.
+
 ### FND-20260921-004 — Next Set stopped at the start of a long Superset instead of the active Set
 
 - Severity/category: P2 Gym in-workout navigation and one-handed execution; FB-20260920-001.

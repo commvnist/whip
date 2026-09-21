@@ -60,6 +60,7 @@
         <receiver android:name=".reminders.HabitReminderActionReceiver" android:exported="false" />
         <receiver android:name=".reminders.GoalReminderActionReceiver" android:exported="false" />
         <receiver android:name=".reminders.ReminderAlarmReceiver" android:exported="false" />
+        <receiver android:name=".reminders.TimerAlarmReceiver" android:exported="false" />
         <receiver
             android:name=".reminders.ReminderTimeChangeReceiver"
             android:exported="false">

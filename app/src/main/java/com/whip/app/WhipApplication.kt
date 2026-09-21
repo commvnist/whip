@@ -42,19 +42,25 @@ import com.whip.app.reminders.CoordinatedGoalRepository
 import com.whip.app.reminders.ReminderRuntimeMaintenance
 import com.whip.app.reminders.ReminderTimeInvalidationPlan
 import com.whip.app.reminders.ReminderAlarmScheduler
+import com.whip.app.reminders.TimerAlarmScheduler
+import com.whip.app.reminders.ACTION_DEVICE_BOOT_COMPLETED
+import com.whip.app.reminders.ACTION_DEVICE_DATE_CHANGED
+import com.whip.app.reminders.ACTION_DEVICE_TIME_CHANGED
+import com.whip.app.reminders.ACTION_EXACT_ALARM_ACCESS_CHANGED
+import com.whip.app.reminders.ACTION_PACKAGE_REPLACED
 import com.whip.app.reminders.ReminderScheduler
 import com.whip.app.reminders.SharedPreferencesReminderClaimVersionStore
 import com.whip.app.reminders.cancelVisibleReminderNotifications
 import com.whip.app.reminders.cancelVisibleTaskNotifications
 import com.whip.app.reminders.RestTimerNotifications
 import com.whip.app.reminders.RestTimerScheduler
-import com.whip.app.reminders.restTimerScheduleDelaySeconds
 import com.whip.app.reminders.HabitReminderScheduler
 import com.whip.app.reminders.HabitReminderNotifications
 import com.whip.app.reminders.GoalReminderScheduler
 import com.whip.app.reminders.GoalReminderNotifications
 import com.whip.app.reminders.FocusTimerNotifications
 import com.whip.app.reminders.FocusTimerScheduler
+import com.whip.app.reminders.focusTimerDeadlineIsTooOld
 import com.whip.app.startup.StartupRecoveryGate
 import com.whip.app.startup.StartupRecoveryState
 import com.whip.app.startup.DataEpochGate
@@ -211,6 +217,7 @@ class WhipApplication : Application(), Configuration.Provider {
     internal val reminderDeliveryCoordinator by lazy { ReminderDeliveryCoordinator() }
     val reminderScheduler by lazy { ReminderScheduler(this, settingsRepository) }
     internal val reminderAlarmScheduler by lazy { ReminderAlarmScheduler(this) }
+    internal val timerAlarmScheduler by lazy { TimerAlarmScheduler(this) }
     val restTimerScheduler by lazy { RestTimerScheduler(this) }
     val habitReminderScheduler by lazy { HabitReminderScheduler(this, settingsRepository) }
     val goalReminderScheduler by lazy { GoalReminderScheduler(this, settingsRepository) }
@@ -442,16 +449,24 @@ class WhipApplication : Application(), Configuration.Provider {
     internal suspend fun reconcileReminderTimeInvalidation(action: String): ReminderTimeInvalidationPlan? {
         calendarInvalidations.tryEmit(Unit)
         return withUserDataAccess {
-            reminderRuntimeMaintenance.handleSystemTimeInvalidation(
+            val plan = reminderRuntimeMaintenance.handleSystemTimeInvalidation(
                 action = action,
                 followsDeviceTimeZone = settingsRepository.current().timeZoneId == null,
             )
+            if (action in setOf(
+                    ACTION_DEVICE_BOOT_COMPLETED,
+                    ACTION_DEVICE_DATE_CHANGED,
+                    ACTION_DEVICE_TIME_CHANGED,
+                    ACTION_PACKAGE_REPLACED,
+                    ACTION_EXACT_ALARM_ACCESS_CHANGED,
+                )
+            ) reconcilePersistedTimers()
+            plan
         }
     }
 
     private suspend fun initializeNormalRuntime(backgroundAlreadyRebuilt: Boolean) {
         if (normalRuntimeJob?.isActive == true) return
-        val settings = settingsRepository.current()
         if (!backgroundAlreadyRebuilt) {
             areaRepository.ensureDefaultArea()
         }
@@ -465,15 +480,7 @@ class WhipApplication : Application(), Configuration.Provider {
         reminderRuntimeMaintenance.upgradeDeliveryClaimsIfRequired()
         portableBackupScheduler.sync(portableBackupManager.state.value, allowDuringRecovery = true)
         if (!backgroundAlreadyRebuilt) {
-            val deadline = settings.focusTimerDeadlineMillis
-            val taskId = settings.focusTimerTaskId
-            if (deadline != null && taskId != null && deadline > System.currentTimeMillis()) {
-                if (database.taskDao().getTask(taskId) == null) {
-                    clearFocusTimerForDeletedTasks(setOf(taskId))
-                } else {
-                    focusTimerScheduler.schedule(taskId, deadline, allowDuringRecovery = true)
-                }
-            }
+            reconcilePersistedTimers()
         }
         val runtimeJob = SupervisorJob(applicationScope.coroutineContext[Job])
         val runtimeScope = CoroutineScope(runtimeJob + Dispatchers.Default)
@@ -563,6 +570,7 @@ class WhipApplication : Application(), Configuration.Provider {
         val workManager = WorkManager.getInstance(this)
         workManager.cancelAllWorkByTag(ALL_WHIP_WORK_TAG).result.get()
         reminderAlarmScheduler.cancelAll()
+        timerAlarmScheduler.cancelAll()
         // Also catches a periodic request created by a pre-gate release, when
         // portable work did not yet carry the global tag.
         workManager.cancelUniqueWork(PORTABLE_BACKUP_WORK_NAME).result.get()
@@ -601,42 +609,51 @@ class WhipApplication : Application(), Configuration.Provider {
         val workManager = WorkManager.getInstance(this)
         workManager.cancelAllWorkByTag(ALL_WHIP_WORK_TAG).result.get()
         reminderAlarmScheduler.cancelAll()
+        timerAlarmScheduler.cancelAll()
         workManager.cancelUniqueWork(PORTABLE_BACKUP_WORK_NAME).result.get()
         NotificationManagerCompat.from(this).cancelAll()
         reminderScheduler.syncAll(allowDuringRecovery = true)
         habitReminderScheduler.syncAll(allowDuringRecovery = true)
         goalReminderScheduler.syncAll(allowDuringRecovery = true)
-        settingsRepository.current().let { settings ->
-            val deadline = settings.focusTimerDeadlineMillis
-            val taskId = settings.focusTimerTaskId
-            if (deadline != null && taskId != null && deadline > System.currentTimeMillis()) {
-                if (database.taskDao().getTask(taskId) == null) {
-                    clearFocusTimerForDeletedTasks(setOf(taskId))
-                } else {
-                    focusTimerScheduler.schedule(taskId, deadline, allowDuringRecovery = true)
-                }
-            }
-        }
+        reconcilePersistedTimers()
         val sessions = gymRepository.sessions.first()
-        val session = sessions.firstOrNull { it.state == WorkoutSessionState.Active }
-        val seconds = restTimerScheduleDelaySeconds(
-            session?.restTimerDeadlineMillis,
-            System.currentTimeMillis(),
-        )
-        if (session?.restTimerDeadlineMillis != null) {
-            restTimerScheduler.schedule(
-                sessionId = session.id,
-                seconds = seconds ?: 1,
-                nextLabel = null,
-                timerRevision = session.restTimerRevision,
-                expectedDeadlineMillis = session.restTimerDeadlineMillis,
-                allowDuringRecovery = true,
-            )
-        }
         sessions.asSequence()
             .filter { it.restTimerCleanupPending }
             .forEach { gymRepository.acknowledgeRestTimerCleanup(it.id, it.restTimerRevision) }
         portableBackupScheduler.sync(portableBackupManager.state.value, allowDuringRecovery = true)
+    }
+
+    private suspend fun reconcilePersistedTimers() {
+        val settings = settingsRepository.current()
+        val focusDeadline = settings.focusTimerDeadlineMillis
+        val taskId = settings.focusTimerTaskId
+        if (focusDeadline != null && taskId != null) {
+            if (database.taskDao().getTask(taskId) == null) {
+                clearFocusTimerForDeletedTasks(setOf(taskId))
+            } else if (focusTimerDeadlineIsTooOld(focusDeadline, System.currentTimeMillis())) {
+                // A restored or pre-fix timer from long ago is not a useful new alert.
+                // Compare inside the Settings write so a newly started timer is never cleared.
+                settingsRepository.updateAndConfirm { current ->
+                    if (current.focusTimerTaskId == taskId && current.focusTimerDeadlineMillis == focusDeadline) {
+                        current.copy(focusTimerTaskId = null, focusTimerDeadlineMillis = null)
+                    } else current
+                }
+            } else {
+                focusTimerScheduler.schedule(taskId, focusDeadline, allowDuringRecovery = true)
+            }
+        }
+        val session = gymRepository.sessions.first()
+            .firstOrNull { it.state == WorkoutSessionState.Active }
+        val restDeadline = session?.restTimerDeadlineMillis
+        if (session != null && restDeadline != null) {
+            restTimerScheduler.schedule(
+                sessionId = session.id,
+                nextLabel = null,
+                timerRevision = session.restTimerRevision,
+                expectedDeadlineMillis = restDeadline,
+                allowDuringRecovery = true,
+            )
+        }
     }
 
     private fun prepareReminderDeletion(domain: ReminderDomain, entityIds: Set<Long>) {

@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260921-005 — Deliver Focus and workout Rest timers from exact wakeups
+
+- `TimerAlarmScheduler` stores a per-timer identity and durable WorkManager fallback before scheduling exact alarms; private `TimerAlarmReceiver` validates the payload and promotes current work. Focus/Rest scheduler mutexes serialize schedule, promotion and worker completion. Both schedulers reject an old request against current durable Settings/session state before mutating the unique fallback or alarm; worker state checks again reject stale generation, deadline, Task ID and workout revision before posting. Cancellation and reset/replacement quiesce remove alarms as well as work.
+- `SharedPreferencesSettingsRepository.current()` no longer discards an elapsed Focus deadline. `FocusTimerWorker` posts first, then durably clears only the matching pair, and retries on transient persistence failure. Startup and system invalidation reconcile both timers; a Focus deadline over 24 hours late is cleared without an alert. Rest uses the authoritative millisecond deadline rather than a second-ceiling helper.
+- Added native `TimerAlarmIntegrationTest`, due-state persistence and late-cutoff regressions, private-receiver policy assertion, data-epoch ownership assertion, and exact timer routing in the fast QA profiles. The new runtime preference is explicitly included in `DataEpochPolicy` owned stores.
+- Compatibility: No Room schema, data epoch value, portable-backup format, version, existing performed workout or reminder claim change. No owner-phone installation. Existing Task/Habit/Goal reminders remain on their released policy; this is a separate completion-timer correction.
+- Related/status: FB-20260920-001, FND/DEC/VER-20260921-005; scoped platform checkpoint verified, whole-product audit remains In progress.
+
 ### IMP-20260921-004 — Reveal the actual active Set within long workout groups
 
 - `WorkoutContent` now carries an exact Set ID plus repeatable focus request after composing its lazy block. `WorkoutExerciseCard` attaches a `BringIntoViewRequester` to the active composer. Automatic next-Set changes, explicit sticky NEXT taps and externally requested exercise navigation share the same exact target.

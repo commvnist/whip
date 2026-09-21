@@ -280,7 +280,9 @@ Task reminders use one replaceable claim per configured offset; Habits keep a
 bounded rolling window of independently named occurrences; Goals keep one next
 logical reminder. When allowed, an exact AlarmManager wakeup promotes the same
 claim into immediate WorkManager execution, while WorkManager remains the
-fallback. Rest timers use one request per session. Finishing, archiving,
+fallback. Focus and per-session workout-rest timers use the same exact-alarm
+wakeup and durable fallback when timing access is available; the worker still
+checks the current persisted deadline and identity before posting. Finishing, archiving,
 rescheduling, or editing an item cancels/replaces its prior work and alarm.
 Quiet hours shift reminder delivery to the configured end of the quiet window.
 No polling service or held wakelock is used.
@@ -291,7 +293,7 @@ Every product area has fast domain coverage and at least one persisted or UI
 path. New behavior must add its regression to the narrowest applicable suite
 and update this matrix if it introduces a new feature area.
 
-Current baseline: 1747 product tests—658 fast JVM tests and 1089 Android
+Current baseline: 1757 product tests—659 fast JVM tests and 1098 Android
 instrumentation tests—plus 9 Macrobenchmark/Baseline Profile scenarios, lint,
 debug/release/benchmark builds, and the disposable API 34 emulator suite. API
 26 and API 37 compatibility runs cover the minimum and target/latest platform;
@@ -360,7 +362,7 @@ cannot replace the operating system UI.
 | Full backup/restore, encryption, and tamper safety | filename/retention policy and codec rules | all first-class domains, routines, settings, checksum/authentication rejection, recovery rollback, and exact epoch/version rejection | `DataPrivacyJourneyE2ETest` verifies real DocumentsUI encrypted export across Activity recreation, decryptable saved content, one-shot cancellation/lost-request failure, unchanged plain JSON/CSV formats, restore preview and passphrase recovery; folder controls retain separate coverage |
 | Portable folder, crash-safe staging, retention, and scheduled backup | `PortableBackupPolicyTest` | manager recreation, staged write/read/rename/read verification, corrupt cleanup, validate-before-prune, empty-source protection, unique WorkManager job | Settings portable-backup journey |
 | Legacy imported history | source attribution and unit conversion | atomic retirement, rollback/retry, old backup restore/merge and exact history preservation | restored Habit manual continuation and local Data & Privacy controls |
-| Notification delivery, actions, and reminder health | exact versioned claims, independent back-to-back Habit selection, exact/fallback delay policy, live Task/Habit/Goal eligibility, quiet-hour/time-zone rules, malformed/early/stale rejection, definition fingerprints, and invalidation policy | awaited exact-alarm/WorkManager reconstruction, source-backed Habit synchronization, production mutation linearization, serialized Settings snapshots, and durable alarm/deletion cleanup across rollback/process interruption | automatic cold exact-alarm wakeup without opening an Activity, allowed/denied timing access, real worker posting/non-posting, exact idempotent actions, reboot/time broadcasts, per-channel health, exact-record routes, permission-ungranted creation, and explicit opt-in request paths |
+| Notification delivery, actions, reminder health, and Focus/Rest timer alerts | exact versioned claims, independent back-to-back Habit selection, exact/fallback delay policy, live Task/Habit/Goal eligibility, quiet-hour/time-zone rules, malformed/early/stale rejection, definition fingerprints, and invalidation policy | awaited exact-alarm/WorkManager reconstruction, source-backed Habit synchronization, production mutation linearization, serialized Settings snapshots, durable alarm/deletion cleanup, and due Focus deadline retention across rollback/process interruption | automatic exact-alarm wakeup without opening an Activity for reminders and both timer types, allowed/denied reminder timing access, real worker posting/non-posting, exact idempotent actions, reboot/time broadcasts, stale Focus/Rest wakeup rejection, per-channel health, exact-record routes, permission-ungranted creation, and explicit opt-in request paths |
 | Long histories and bounded graphs | 100,000-point `LargeHistoryRegressionTest` | bounded queries/projections | graph screen smoke and `DenseDataBenchmark` |
 | Accessibility, interaction grammar, locale, and large text | localized number/range rules | Compose Accessibility Test Framework on API 34+ | `InteractionControlUiTest` verifies roles, state, 48 dp targets, scrollable tabs, 200% font, and RTL; `ProductivityCardDesignUiTest` locks Task/Habit/Goal identity, action, and edit columns to one hierarchy; adaptive suites cover labeled actions and live/error semantics |
 
