@@ -1,5 +1,15 @@
 # Durable findings
 
+### FND-20260920-002 — Encrypted export loses its secret while the document picker is open
+
+- Severity/category: P1 backup reliability and recovery confidence; FB-20260920-001.
+- Observed source path: `SettingsContent` keeps the selected export kind in `rememberSaveable` but the encrypted passphrase in plain `remember`. `ActivityResultContracts.CreateDocument` launches Android DocumentsUI, which can recreate Whip's Activity while the picker is open. The returned URI callback then calls `SettingsViewModel.export` with a null passphrase; the encrypted branch rejects it before writing, after the provider has created the document.
+- Expected: Choosing a destination after Activity recreation should produce a valid, decryptable encrypted backup; cancellation should forget the secret. Process death must not silently downgrade to plaintext or report a successful backup. The user needs a truthful retry if an in-memory secret is unavailable.
+- Evidence: `SettingsScreens.kt` `pendingExportPassphrase`/`createDocument` and `SettingsViewModel.kt` `export`. Disposable API 34 native DocumentsUI run `build/instrumentation-results-X39bS4`: after the picker opens, `Activity.recreate()` destroys the old screen, then selecting Downloads/Save reaches the result callback. The test expects `Backup saved` but receives `Enter an encryption passphrase`; no valid encrypted backup was written. An earlier `ActivityScenario.recreate()` fixture failed because the app was STOPPED beneath DocumentsUI; the direct Activity recreation is the accepted reproduction.
+- Root cause: The request spans an external Activity, but the secret is owned by a composition instance with a shorter lifetime than the pending Activity result.
+- Recommended solution: Keep the pending export request only in a configuration-retained, non-persisted Settings ViewModel holder; consume it exactly once on picker result and clear on cancel. Fail closed on process loss, with no silent plaintext fallback. Verify real DocumentsUI selection through Activity recreation, encrypted round-trip and unaffected CSV/plain/cancel paths.
+- Related/status: FB-20260920-001, DEC/IMP/VER-20260920-002; Verified as an unreleased app change. The native baseline fails with the exact null-passphrase error, and the same picker interruption now yields a decryptable file. Provider failure and deeper backup recovery remain separate open audit work.
+
 ### FND-20260920-001 — 5/3/1 authoring owns generic routine controls and legacy program identity
 
 - Status: Verified as an unreleased app change under IMP/VER-20260920-001; FB-20260920-002. The owner requested removal of 5/3/1 and retention of useful generic Gym capabilities.

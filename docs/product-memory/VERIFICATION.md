@@ -1,5 +1,15 @@
 # Verification and release evidence
 
+### VER-20260920-002 — Native encrypted-export interruption and format continuity
+
+- Scope/environment: FB-20260920-001 / FND, DEC, IMP-20260920-002. Disposable API 34 emulator; synthetic Task data and native Android DocumentsUI. No owner phone, signed release or store action.
+- Baseline: `ANDROID_SERIAL=emulator-5554 scripts/qa-targeted --android com.whip.app.DataPrivacyJourneyE2ETest#encryptedExportSurvivesActivityRecreationWhileDocumentPickerIsOpen` fails on the old implementation in `build/instrumentation-results-X39bS4`: after main-thread Activity recreation beneath DocumentsUI and selecting Downloads/Save, expected `Backup saved`, actual `Enter an encryption passphrase`. The first `ActivityScenario.recreate()` fixture attempt failed before callback because the Activity was STOPPED; it is excluded from the defect reproduction.
+- Final native behavior: `ANDROID_SERIAL=emulator-5554 scripts/qa-targeted --android com.whip.app.DataPrivacyJourneyE2ETest` passes all 7/7 methods with zero failure/skip in `build/instrumentation-results-nlwRGA`. The encrypted destination decrypts after picker interruption to the seeded Task. Plain JSON/Tasks CSV file content, cancel/lost-request failure, restore/merge, invalid backup and wrong-passphrase retry pass. A 15-method Settings behavior/codec/lost-request run passed earlier in `build/instrumentation-results-fglCoQ`; it preceded only the explicit success-label refinement and is not misrepresented as exact final-source coverage.
+- JVM/static/visual: `scripts/check --ready` passes in 2m30s on final source: 656 JVM methods, Android-test compilation, lint and debug packaging; frozen store-candidate evidence was not made. `scripts/ui-catalog lint` passes 523 required captures, zero pending/exception. Three exact-source original PNG/XML pairs were inspected at normal phone geometry and retained at `artifacts/astra-audit/2026-09-20/backup-export/`; no NAF nodes or duplicate pixels.
+- Counts/exclusions: Current source inventory is 656 JVM + 1072 Android = 1728 methods; 7 native journey methods and the 15-method neighbor run are scoped, not a full Android matrix. The final 523-state whole catalog, portable-folder provider failures, reset/replacement failure injection, multi-API/adaptive/accessibility and whole-product audit remain open.
+- Commit/push: Focused main/origin push is recorded in Git history.
+- Related/status: FB-20260920-001, FND/DEC/IMP-20260920-002. Verified for this export interruption only; the whole-product audit remains In progress.
+
 ### VER-20260920-001 — Ordinary phased-Routine and legacy-retirement checkpoint
 
 - Scope/environment: FB/FND/DEC/IMP-20260920-001/002, disposable API 34 emulator; synthetic Gym data only. Opening worktree was clean at `4b0ade52`, with no pre-existing untracked files. This is an audit feature checkpoint, not a phone or store release.

@@ -150,6 +150,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     internal val tagMutationState = _tagMutationState.asStateFlow()
     private var pendingRestoreJson: String? = null
     private var pendingEncryptedRestoreJson: String? = null
+    // The document picker can recreate its caller. Keep this secret in configuration-retained
+    // memory only; never put it in SavedState, preferences, or a portable backup.
+    private var pendingDocumentExport: PendingDocumentExport? = null
 
     private val taxonomyCore = combine(
         app.measurementRepository.customUnits,
@@ -780,8 +783,35 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         current.copy(platePresets = current.platePresets.filterNot { it.name == name })
     }
 
-    fun export(uri: Uri, kind: ExportKind, passphrase: String? = null) = runIo(
-        if (kind in setOf(ExportKind.Backup, ExportKind.EncryptedBackup)) "Backup saved" else "CSV saved",
+    fun prepareDocumentExport(kind: ExportKind, passphrase: String? = null) {
+        require(kind != ExportKind.EncryptedBackup || !passphrase.isNullOrBlank()) {
+            "Enter an encryption passphrase"
+        }
+        pendingDocumentExport = PendingDocumentExport(kind, passphrase)
+    }
+
+    fun completeDocumentExport(uri: Uri?) {
+        val request = pendingDocumentExport
+        pendingDocumentExport = null
+        if (uri == null) return
+        if (request == null) {
+            runtime.value = runtime.value.copy(
+                operation = OperationStatus.Failed(
+                    "Export was interrupted. The selected file may be empty; choose a location again.",
+                    IllegalStateException("Document export request was lost before its result"),
+                ),
+            )
+            return
+        }
+        export(uri, request.kind, request.passphrase)
+    }
+
+    private fun export(uri: Uri, kind: ExportKind, passphrase: String? = null) = runIo(
+        when (kind) {
+            ExportKind.Backup -> "Plain JSON backup saved"
+            ExportKind.EncryptedBackup -> "Encrypted backup saved"
+            else -> "CSV saved"
+        },
         workingMessage = if (kind in setOf(ExportKind.Backup, ExportKind.EncryptedBackup)) "Saving your backup" else "Saving your CSV file",
     ) {
         app.withUserDataAccess {
@@ -1114,6 +1144,8 @@ private data class SettingsRuntime(
     val operation: OperationStatus = OperationStatus.Idle,
     val encryptedRestorePending: Boolean = false,
 )
+
+private data class PendingDocumentExport(val kind: ExportKind, val passphrase: String?)
 
 private fun OperationStatus.withoutTerminalFeedback(): OperationStatus =
     if (this is OperationStatus.Running) this else OperationStatus.Idle

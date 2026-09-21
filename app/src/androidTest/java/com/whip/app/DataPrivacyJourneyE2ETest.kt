@@ -1,6 +1,7 @@
 package com.whip.app
 
 import android.content.Intent
+import android.net.Uri
 import android.util.Base64
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
@@ -29,14 +30,101 @@ class DataPrivacyJourneyE2ETest {
     private val app = ApplicationProvider.getApplicationContext<WhipApplication>()
     private val device get() = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
     private val fileName = "WhipDataPrivacyJourney.json"
+    private val encryptedFileName = "WhipEncryptedPickerRecreation.whip.enc.json"
+    private val plainFileName = "WhipPlainPickerRegression.whip.json"
+    private val csvFileName = "WhipTasksPickerRegression.csv"
 
     @After fun clean() {
         runBlocking { app.backupRepository.deleteAllData() }
         device.executeShellCommand("rm -f /sdcard/Download/$fileName")
+        device.executeShellCommand("rm -f /sdcard/Download/$encryptedFileName")
+        device.executeShellCommand("rm -f /sdcard/Download/$plainFileName")
+        device.executeShellCommand("rm -f /sdcard/Download/$csvFileName")
     }
 
     @Test fun backupChoicesPreserveRecordsAndSettingsAfterReopening() = journey(AppThemeMode.Dark)
     @Test fun backupChoicesRemainClearInLightTheme() = journey(AppThemeMode.Light)
+
+    @Test fun encryptedExportSurvivesActivityRecreationWhileDocumentPickerIsOpen() {
+        runBlocking {
+            app.backupRepository.deleteAllData()
+            app.settingsRepository.update { AppSettings(setupCompleted = true, themeMode = AppThemeMode.Dark, dynamicColor = false) }
+            app.taskRepository.create(TaskDraft(title = "Picker recreation keeps this task"))
+        }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            lateinit var settingsViewModel: SettingsViewModel
+            lateinit var originalActivity: MainActivity
+            scenario.onActivity {
+                originalActivity = it
+                settingsViewModel = ViewModelProvider(it)[SettingsViewModel::class.java]
+            }
+            compose.onNodeWithContentDescription("Open Settings").performClick()
+            compose.openSettingsCategory("Data & Privacy")
+            scroll(hasText("Save Passphrase-Encrypted Backup")).performClick()
+            compose.onNodeWithText("Passphrase", substring = false).performTextReplacement("test-only-passphrase")
+            compose.onNodeWithText("Confirm passphrase").performTextReplacement("test-only-passphrase")
+            compose.onNodeWithText("Choose Location").performClick()
+            awaitDocuments()
+            InstrumentationRegistry.getInstrumentation().runOnMainSync { originalActivity.recreate() }
+            compose.waitUntil(10_000) { originalActivity.isDestroyed }
+            saveCreatedDocument(encryptedFileName)
+            compose.waitUntil(10_000) { settingsViewModel.uiState.value.message != null }
+            assertEquals("Encrypted backup saved", settingsViewModel.uiState.value.message)
+            capture("encrypted-export.saved")
+            val encrypted = device.executeShellCommand("cat /sdcard/Download/$encryptedFileName")
+            assertTrue(EncryptedBackupCodec.isEncrypted(encrypted))
+            val plaintext = EncryptedBackupCodec.decrypt(encrypted, "test-only-passphrase".toCharArray())
+            assertTrue(plaintext.contains("Picker recreation keeps this task"))
+        }
+    }
+
+    @Test fun plainAndCsvExportsKeepTheirRequestedFormats() {
+        runBlocking {
+            app.backupRepository.deleteAllData()
+            app.settingsRepository.update { AppSettings(setupCompleted = true, themeMode = AppThemeMode.Dark, dynamicColor = false) }
+            app.taskRepository.create(TaskDraft(title = "Export format survives picker"))
+        }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            lateinit var settingsViewModel: SettingsViewModel
+            scenario.onActivity { settingsViewModel = ViewModelProvider(it)[SettingsViewModel::class.java] }
+            compose.onNodeWithContentDescription("Open Settings").performClick()
+            compose.openSettingsCategory("Data & Privacy")
+            scroll(hasText("Save Plain JSON Backup")).performClick()
+            saveCreatedDocument(plainFileName)
+            compose.waitUntil(10_000) { settingsViewModel.uiState.value.message == "Plain JSON backup saved" }
+            capture("plain-export.saved")
+            val plain = device.executeShellCommand("cat /sdcard/Download/$plainFileName")
+            assertFalse(EncryptedBackupCodec.isEncrypted(plain))
+            assertEquals("whip-backup", JSONObject(plain).getString("format"))
+            assertTrue(plain.contains("Export format survives picker"))
+
+            compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Export CSV"))
+            compose.onNode(hasText("Tasks", substring = false) and hasAnyAncestor(hasTestTag("settings-list"))).performClick()
+            saveCreatedDocument(csvFileName)
+            compose.waitUntil(10_000) { settingsViewModel.uiState.value.message == "CSV saved" }
+            capture("csv-export.saved")
+            val csv = device.executeShellCommand("cat /sdcard/Download/$csvFileName")
+            assertTrue(csv.contains("Export format survives picker"))
+            assertFalse(EncryptedBackupCodec.isEncrypted(csv))
+        }
+    }
+
+    @Test fun cancelledOrLostDocumentRequestCannotWriteAnExport() {
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            lateinit var settingsViewModel: SettingsViewModel
+            scenario.onActivity {
+                settingsViewModel = ViewModelProvider(it)[SettingsViewModel::class.java]
+                settingsViewModel.prepareDocumentExport(com.whip.app.ui.ExportKind.EncryptedBackup, "test-only-passphrase")
+                settingsViewModel.completeDocumentExport(null)
+                settingsViewModel.completeDocumentExport(Uri.parse("content://whip.invalid/export"))
+            }
+            compose.waitUntil(10_000) {
+                settingsViewModel.uiState.value.message ==
+                    "Export was interrupted. The selected file may be empty; choose a location again."
+            }
+            assertFalse(settingsViewModel.uiState.value.busy)
+        }
+    }
 
     @Test fun invalidBackupIsReportedAsFailureAndCanBeReplaced() {
         val valid = runBlocking {
@@ -126,6 +214,20 @@ class DataPrivacyJourneyE2ETest {
         device.findObjects(By.text("Downloads")).last().click()
         assertTrue(device.wait(Until.hasObject(By.text(fileName)), 10_000))
         device.findObject(By.text(fileName)).click()
+    }
+
+    private fun saveCreatedDocument(name: String) {
+        awaitDocuments()
+        assertTrue(device.wait(Until.hasObject(By.desc("Show roots")), 10_000))
+        device.findObject(By.desc("Show roots")).click()
+        assertTrue(device.wait(Until.hasObject(By.text("Downloads")), 10_000))
+        device.findObjects(By.text("Downloads")).last().click()
+        requireNotNull(device.findObject(By.clazz("android.widget.EditText"))) {
+            "Document name field should be present"
+        }.text = name
+        val save = device.wait(Until.findObject(By.text("Save")), 10_000)
+            ?: device.wait(Until.findObject(By.text("SAVE")), 10_000)
+        requireNotNull(save) { "Native Save action should be available" }.click()
     }
 
     private fun journey(theme: AppThemeMode) {

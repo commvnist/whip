@@ -185,7 +185,6 @@ internal fun SettingsContent(
 ) {
     val context = LocalContext.current
     val weekdayFormatter = rememberWhipWeekdayFormatter()
-    var pendingExport by rememberSaveable { mutableStateOf(ExportKind.Backup) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var resetSubmitted by rememberSaveable { mutableStateOf(false) }
     var createUnit by rememberSaveable { mutableStateOf(false) }
@@ -204,7 +203,6 @@ internal fun SettingsContent(
     var showEncryptedExport by rememberSaveable { mutableStateOf(false) }
     var exportPassphrase by remember { mutableStateOf("") }
     var exportPassphraseConfirmation by remember { mutableStateOf("") }
-    var pendingExportPassphrase by remember { mutableStateOf<String?>(null) }
     var restorePassphrase by remember { mutableStateOf("") }
     var localSection by rememberSaveable { mutableStateOf(SettingsSection.Appearance) }
     var activeTypedSettingTag by rememberSaveable { mutableStateOf<String?>(null) }
@@ -222,8 +220,7 @@ internal fun SettingsContent(
         diagnosticRefresh++
     }
     val createDocument = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
-        uri?.let { viewModel.export(it, pendingExport, pendingExportPassphrase) }
-        pendingExportPassphrase = null
+        viewModel.completeDocumentExport(uri)
     }
     val openDocument = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let(viewModel::previewRestore)
@@ -1340,7 +1337,10 @@ internal fun SettingsContent(
                     title = "Save Plain JSON Backup",
                     supportingText = "A readable copy of your records and settings. Anyone with the file can read it.",
                     enabled = !state.busy,
-                    onClick = { pendingExport = ExportKind.Backup; createDocument.launch("whip-${LocalDate.now(settings.zoneId())}.whip.json") },
+                    onClick = {
+                        viewModel.prepareDocumentExport(ExportKind.Backup)
+                        createDocument.launch("whip-${LocalDate.now(settings.zoneId())}.whip.json")
+                    },
                 )
                 WhipActionDivider()
                 WhipActionRow(
@@ -1373,7 +1373,10 @@ internal fun SettingsContent(
             ) {
                 listOf(ExportKind.TasksCsv to "Tasks", ExportKind.HabitsCsv to "Habits", ExportKind.GoalsCsv to "Goals", ExportKind.GymCsv to "Gym", ExportKind.TracksCsv to "Tracks").forEach { (kind, label) ->
                     WhipTextButton(
-                        onClick = { pendingExport = kind; createDocument.launch("whip-${label.lowercase()}-${LocalDate.now(settings.zoneId())}.csv") },
+                        onClick = {
+                            viewModel.prepareDocumentExport(kind)
+                            createDocument.launch("whip-${label.lowercase()}-${LocalDate.now(settings.zoneId())}.csv")
+                        },
                         modifier = Modifier.width(96.dp),
                     ) { Text(label) }
                 }
@@ -1471,8 +1474,7 @@ internal fun SettingsContent(
                 WhipTextButton(
                     enabled = exportPassphrase.length >= 8 && exportPassphrase == exportPassphraseConfirmation,
                     onClick = {
-                        pendingExport = ExportKind.EncryptedBackup
-                        pendingExportPassphrase = exportPassphrase
+                        viewModel.prepareDocumentExport(ExportKind.EncryptedBackup, exportPassphrase)
                         exportPassphrase = ""
                         exportPassphraseConfirmation = ""
                         showEncryptedExport = false

@@ -1,5 +1,15 @@
 # Implementation history
 
+### IMP-20260920-002 — Keep encrypted export intact across the Android file picker
+
+- Behavior changed: `SettingsContent` no longer owns a pending file-export kind or passphrase in Compose state. Before opening Android CreateDocument, it gives a one-shot request to `SettingsViewModel`; the ViewModel survives Activity recreation while keeping the secret out of saved state/preferences/backups. The result consumes the request exactly once; cancellation clears it. If a URI returns after process loss with no request, Whip does not write or silently downgrade encryption and reports that the selected file may be empty. Successful receipts now distinguish encrypted backup, plain JSON backup and CSV.
+- Important files/symbols: `SettingsViewModel.prepareDocumentExport`, `completeDocumentExport`, `export`; `SettingsScreens.SettingsContent`; real-picker regressions in `DataPrivacyJourneyE2ETest` and three success-state catalog captures.
+- Persistence/migration/history impact: No Room schema, backup format, data epoch, package version or user-record change. The passphrase exists only in the in-memory ViewModel across configuration recreation; an OS process death intentionally requires a fresh export. Existing restore, checksum, merge and provider-write boundaries remain unchanged.
+- Compatibility and limitations: Android may leave an empty provider-created document if the process dies after destination selection; Whip does not delete a URI that could represent a pre-existing document or falsely report a backup. Portable-folder/revoked-provider recovery and full replacement/reset injection remain audit work.
+- Commit/push: Focused main/origin push is recorded in Git history; no release or phone install.
+- Related: FB-20260920-001, FND/DEC-20260920-002, VER-20260920-002.
+- Verification/status: Verified under VER-20260920-002; exact native picker/format/cancellation paths, three visual receipts, 656 JVM methods and final readiness/lint/build pass. The complete backup and whole-product audits remain open.
+
 ### IMP-20260920-001 — Retire 5/3/1 authoring and make phases an ordinary Routine capability
 
 - Behavior changed: New Gym/Routine creation no longer exposes the 5/3/1 wizard, named templates or set generator. An ordinary Routine can add two independent editable phases to its existing planned sets, then add/reorder/remove phases, edit each prescription, configure a primary-lift Training Max and percentage loads, and opt into a deliberate per-phase increase boundary. Active workout and Routine surfaces use generic phased-Routine language.

@@ -1,5 +1,17 @@
 # Durable product and engineering decisions
 
+### DEC-20260920-002 — Keep a document export request in configuration-retained memory
+
+- Context: FND-20260920-002 confirms that a real encrypted export fails after Whip recreates behind Android DocumentsUI because composition-owned passphrase state disappears before the Activity result. The failure is after the provider creates a destination, so a reassuring success or plaintext fallback would be especially harmful.
+- Position A: Save the passphrase with `rememberSaveable` or `SavedStateHandle` so it survives both configuration and process recreation.
+- Position B: Store the pending kind and passphrase only in the Activity-scoped Settings ViewModel, consume once when DocumentsUI returns, clear on cancellation, and fail closed with a retry message if process death loses the request.
+- Evidence and constraints: The real native baseline returns `Enter an encryption passphrase` after selection (`build/instrumentation-results-X39bS4`). The ViewModel survives configuration recreation but does not serialize the secret into saved instance state, backup or preferences. Android may still kill the process while DocumentsUI is foreground, so successful delivery cannot be guaranteed after that stronger interruption.
+- Failure modes: Persisting a password in saved state broadens secret lifetime; silently defaulting to a plain export breaks user intent; deleting the provider's newly returned URI could erase a pre-existing document after provider collision handling. A one-shot in-memory request avoids all three.
+- Decision: Move every CreateDocument pending request (encrypted, plain backup and CSV) to the ViewModel. Validate encrypted passphrase before launch, atomically consume the matching request on result, clear on cancellation, and surface an explicit interrupted-export failure if a URI returns without an in-memory request. Do not open a stream or downgrade encryption on that path.
+- Why this is superior for Whip: It spans the actual configuration lifetime of the external picker while keeping the secret out of persistence and retaining one callback contract for every export kind.
+- Consequences/reversal conditions: Process death still requires a fresh export and may leave a provider-created empty document; the UI must state failure clearly. Reconsider only if an OS-provided secure result channel can resume without persisting a secret.
+- Related/status: FB-20260920-001, FND/IMP/VER-20260920-002; Verified as an unreleased app change.
+
 ### DEC-20260920-001 — Ordinary Routines own reusable phased programming
 
 - Status: Verified as an unreleased app change under IMP/VER-20260920-001; FB-20260920-002 / FND-20260920-001. Editable conversion uses an explicit active-workout safety gate.
