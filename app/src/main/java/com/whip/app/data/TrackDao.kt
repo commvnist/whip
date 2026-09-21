@@ -182,3 +182,14 @@ interface TrackDao {
     @Query("SELECT rowid FROM track_entry_search WHERE trackId = :trackId AND content LIKE '%' || :token || '%' ORDER BY rowid DESC")
     suspend fun searchEntryIdsContaining(trackId: Long, token: String): List<Long>
 }
+
+/** Keep Room's expanded IN list below the oldest supported Android SQLite bind limit. */
+internal suspend fun TrackDao.getValuesForEntriesBatched(entryIds: List<Long>): List<TrackValueEntity> {
+    val values = ArrayList<TrackValueEntity>()
+    for (chunk in entryIds.chunked(TRACK_VALUE_LOOKUP_BATCH_SIZE)) {
+        values.addAll(getValuesForEntries(chunk))
+    }
+    return values
+}
+
+private const val TRACK_VALUE_LOOKUP_BATCH_SIZE = 900

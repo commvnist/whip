@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260921-007 — Keep cumulative Track histories readable on every supported SQLite limit
+
+- `TrackDao.getValuesForEntriesBatched` loads value rows in 900-ID pieces. Direct Track projection and therefore CSV export, search-index rebuild, bounded history paging, and transaction-derived permanent-deletion preview now use that one policy under their existing Room transactions. It retains the full graph, original Entry order, exact CSV content, search rows and revision-token calculation; no persisted record is rewritten.
+- `TrackCsvImportIntegrityTest` adds a 1,200-Entry production-repository journey for direct detail/export, search rebuild and deletion preview/commit, plus a 33,000-Entry direct projection and bounded-page check. Synthetic rows are seeded through Room in transaction-sized chunks, so this scale test supplements rather than replaces the existing real 5,000×20 CSV import/receipt test.
+- Compatibility: no Room schema, data epoch, backup format, package version, import cap, historical Track data, owner-phone installation or store action changes.
+- Related/status: FB-20260920-001, FND/DEC-20260921-006, VER-20260921-007. Scoped verification closes the binding failure; complete product audit remains In progress.
+
 ### IMP-20260921-006 — Cover the live legacy-to-generic workout boundary
 
 - Added `GymLegacyRetirementJourneyE2ETest` on the production app shell and Room data path. It seeds an already-active legacy routine, opens its live finish review, recreates the Activity mid-review, applies a decision, then verifies that the performed session/Set keep legacy provenance while only the future saved template converts and its next workout starts as a generic Routine.

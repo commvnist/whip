@@ -662,7 +662,7 @@ class DomainDeletionCoordinator internal constructor(
         val entries = database.trackDao().getEntries(trackId)
         val entryIds = entries.map(TrackEntryEntity::id)
         val values = entryIds.takeIf { it.isNotEmpty() }
-            ?.let { database.trackDao().getValuesForEntries(it) }
+            ?.let { database.trackDao().getValuesForEntriesBatched(it) }
             .orEmpty()
         return TrackDeletionImpact(
             trackId = track.id,

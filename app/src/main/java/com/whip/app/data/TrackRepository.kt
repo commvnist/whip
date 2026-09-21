@@ -992,7 +992,7 @@ class RoomTrackRepository(
             .map(TrackChoiceOptionEntity::toDomain)
         val entries = dao.getEntries(trackId)
         val values = entries.takeIf { it.isNotEmpty() }
-            ?.let { dao.getValuesForEntries(it.map(TrackEntryEntity::id)) }
+            ?.let { dao.getValuesForEntriesBatched(it.map(TrackEntryEntity::id)) }
             .orEmpty()
             .groupBy(TrackValueEntity::entryId)
         TrackProjection(
@@ -1014,7 +1014,7 @@ class RoomTrackRepository(
         requireNotNull(dao.getTrack(trackId)) { "Track no longer exists" }
         val entries = dao.getEntryPage(trackId, offset, limit)
         val valuesByEntry = entries.takeIf { it.isNotEmpty() }
-            ?.let { dao.getValuesForEntries(it.map(TrackEntryEntity::id)) }
+            ?.let { dao.getValuesForEntriesBatched(it.map(TrackEntryEntity::id)) }
             .orEmpty()
             .groupBy(TrackValueEntity::entryId)
         TrackEntryPage(
@@ -1063,7 +1063,7 @@ class RoomTrackRepository(
                 .map(TrackChoiceOptionEntity::toDomain)
             val entries = dao.getEntries(id)
             val valuesByEntry = entries.takeIf { it.isNotEmpty() }
-                ?.let { dao.getValuesForEntries(it.map(TrackEntryEntity::id)) }
+                ?.let { dao.getValuesForEntriesBatched(it.map(TrackEntryEntity::id)) }
                 .orEmpty()
                 .groupBy(TrackValueEntity::entryId)
             entries.forEach { entry ->

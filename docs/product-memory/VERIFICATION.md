@@ -1,5 +1,14 @@
 # Verification and release evidence
 
+### VER-20260921-007 — Cumulative Track history survives SQLite bind ceilings
+
+- Scope: FB-20260920-001, FND/DEC-20260921-006 and IMP-20260921-007. Production Room Track repository and deletion coordinator on disposable API 26/34/37 emulators. [Evidence](../../artifacts/astra-audit/2026-09-21/track-sql-bind/README.md). No owner phone, release, schema, backup or data-epoch change.
+- Baseline: The 1,200-Entry direct projection fails on API 26 with Room/SQLite `too many SQL variables` before the fix, before export/search/deletion can proceed. API 34 passes the same source after a test-only CSV trailing-blank-line count correction. Neither that assertion correction nor an early JUnit `runBlocking` return-type error is product-failure evidence.
+- Final exact journeys: The 1,200-Entry detail/CSV/index/deletion case passes 1/1 on API 26 after shared fixture extraction and 1/1 on API 37 using the compiled current app/test APKs. The 33,000-Entry persisted direct projection/paging case passes 1/1 on API 34 in `build/instrumentation-results-8ben7O` (703 ms direct projection on that emulator) and 1/1 on API 37 through direct instrumentation. This is a synthetic cumulative Room fixture, not seven literal CSV imports.
+- Affected-family regression: `ANDROID_SERIAL=emulator-5556 scripts/qa-targeted tracks --emulator` passes the 74-method Track JVM profile and 134/134 Android methods with zero failure/skip/reuse across three batches in `build/instrumentation-results-vwGoew`. The final-source broad run includes both new tests and the existing exact 5,000×20 CSV import/receipt test; its observed API 34 timing is commit 16,872 ms, direct projection 438 ms, page 12 ms, analytics 10 ms, refresh 365 ms. These emulator timings are not owner-device guarantees.
+- Final gate/inventory: `scripts/qa-targeted --all-jvm` passes all 659 JVM methods; `scripts/check --ready` passes in 2m8s with route/harness fixtures, affected tests, Android-test compilation, static checks, lint and debug packaging. `scripts/ui-catalog lint` reports 528 required states, zero pending selectors/exceptions. `git diff --check` passes. Inventory is 1,760 product methods (659 JVM, 1,101 Android). The complete Android matrix, exact 528-state recapture, real-device performance and whole-product audit remain open; no frozen candidate or phone install.
+- Related/status: FND/DEC-20260921-006, IMP-20260921-007. Scoped bind-ceiling correction verified; whole-product audit In progress.
+
 ### VER-20260921-006 — Legacy active-workout review through interruption and retirement
 
 - Scope: Production MainActivity, `WhipApplication`, Room and routine/gym repositories with synthetic active legacy data on disposable API 26, 34 and 37 emulators. [Evidence](../../artifacts/astra-audit/2026-09-21/legacy-retirement/README.md). No owner phone or release.

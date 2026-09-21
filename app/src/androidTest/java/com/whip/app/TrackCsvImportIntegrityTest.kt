@@ -1,6 +1,7 @@
 package com.whip.app
 
 import androidx.room.Room
+import androidx.room.withTransaction
 import android.os.SystemClock
 import android.util.Log
 import androidx.test.core.app.ApplicationProvider
@@ -8,8 +9,11 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.core.WhipClock
 import com.whip.app.core.WhipIdGenerator
 import com.whip.app.data.RoomAreaRepository
+import com.whip.app.data.DomainDeletionCoordinator
+import com.whip.app.data.RoomRoutineRepository
 import com.whip.app.data.RoomTrackRepository
 import com.whip.app.data.TrackEntryEntity
+import com.whip.app.data.TrackValueEntity
 import com.whip.app.data.UnitDefinitionEntity
 import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.TRACK_CSV_MAX_IMPORT_ROWS
@@ -67,6 +71,46 @@ class TrackCsvImportIntegrityTest {
     }
 
     @After fun tearDown() = database.close()
+
+    @Test
+    fun accumulatedHistoryKeepsDetailExportIndexAndDeletionPreviewUsable() = runBlocking {
+        val trackId = tracks.create(textTrack().copy(name = "Accumulated history"))
+        val count = 1_200 // More than the 999-variable binding limit of older SQLite builds.
+        seedTextEntries(trackId, count)
+
+        assertEquals(count, requireNotNull(tracks.projection(trackId)).entries.size)
+        assertEquals(count + 1, tracks.exportCsv(trackId).lineSequence().count(String::isNotBlank))
+        tracks.rebuildSearchIndex(trackId)
+        assertEquals(count, tracks.searchEntryIds(trackId, "Item").size)
+        val deletion = DomainDeletionCoordinator(
+            database,
+            RoomRoutineRepository(database, CsvClock, CsvIds()),
+        )
+        val impact = requireNotNull(deletion.previewTrackDeletion(trackId))
+        assertEquals(count, impact.entryCount)
+        assertEquals(count, impact.savedValueCount)
+        assertTrue(deletion.deleteTrack(trackId, impact.revisionToken).trackDeleted)
+        assertEquals(0, database.trackDao().countEntries(trackId))
+    }
+
+    @Test
+    fun cumulativeHistoryBeyondModernBindLimitRetainsEveryDirectValue() = runBlocking {
+        val trackId = tracks.create(textTrack().copy(name = "Seven accumulated maximum batches"))
+        val count = 33_000 // More than SQLite's modern default 32,766-variable ceiling.
+        seedTextEntries(trackId, count)
+
+        val started = SystemClock.elapsedRealtime()
+        val direct = requireNotNull(tracks.projection(trackId))
+        val directMillis = SystemClock.elapsedRealtime() - started
+        assertEquals(count, direct.entries.size)
+        assertEquals("Item 33000", direct.primaryText(direct.entries.first()))
+        assertEquals("Item 1", direct.primaryText(direct.entries.last()))
+        val page = tracks.entryPage(trackId, offset = 0, limit = 100)
+        assertEquals(count, page.totalCount)
+        assertEquals(100, page.entries.size)
+        Log.i("TrackCsvImportIntegrity", "33,000-entry direct projection took ${directMillis}ms")
+        Unit
+    }
 
     @Test
     fun firstCommitAndExactRetryReturnOneDurableReceiptAndOneBatchOfRows() = runBlocking {
@@ -813,6 +857,42 @@ class TrackCsvImportIntegrityTest {
     ) {
         assertTrue("${case?.let { "$it: " }.orEmpty()}Expected $expected but was $failure", failure is TrackCsvImportConflictException)
         assertEquals(expected, (failure as TrackCsvImportConflictException).kind)
+    }
+
+    private suspend fun seedTextEntries(trackId: Long, count: Int) {
+        val dao = database.trackDao()
+        val fieldId = dao.getFields(trackId).single().id
+        database.withTransaction {
+            (0 until count).chunked(5_000).forEach { indices ->
+                val entryIds = dao.insertEntries(indices.map { index ->
+                    TrackEntryEntity(
+                        uuid = UUID.randomUUID().toString(),
+                        trackId = trackId,
+                        entryEpochDay = CsvClock.today().toEpochDay(),
+                        createdAtMillis = index.toLong(),
+                        updatedAtMillis = index.toLong(),
+                    )
+                })
+                dao.insertValues(entryIds.mapIndexed { position, entryId ->
+                    val index = indices[position]
+                    TrackValueEntity(
+                        uuid = UUID.randomUUID().toString(),
+                        entryId = entryId,
+                        fieldId = fieldId,
+                        textValue = "Item ${index + 1}",
+                        enteredNumber = null,
+                        canonicalNumber = null,
+                        enteredUnitId = null,
+                        dateEpochDay = null,
+                        booleanValue = null,
+                        choiceOptionId = null,
+                        scaleValue = null,
+                        createdAtMillis = index.toLong(),
+                        updatedAtMillis = index.toLong(),
+                    )
+                })
+            }
+        }
     }
 
     private fun textTrack() = TrackDraft(

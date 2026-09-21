@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260921-006 — Bound Track value lookups below SQLite's oldest supported bind ceiling
+
+- Context: FND-20260921-006 reproduces a 1,200-Entry direct projection failure on API 26. Room's collection parameter expands to one placeholder per Entry; the safe SQL bind ceiling is platform/driver dependent and can be below a supported import's 5,000 rows.
+- Decision: Centralize a 900-ID batched value lookup in `TrackDao` and use it for direct projection/export, search-index rebuild and Track deletion impact. Keep each caller's existing Room transaction, complete graph semantics and exact receipt/revision calculations. The bounded page also uses the helper for one consistent lookup policy. Use a fixed conservative bound instead of querying device-specific limits at runtime.
+- Rejected alternative: Reducing the 5,000-row import limit would strand existing histories and would not protect cumulative Entries. Returning partial projection values would corrupt analytics, exports or deletion counts. One unbound `IN` query may pass on recent emulators while still failing on the supported minimum API.
+- Related/status: FB-20260920-001, FND-20260921-006, IMP/VER-20260921-007; implemented and scoped-verification recorded in VER-20260921-007. Whole-product acceptance remains open.
+
 ### DEC-20260921-005 — Timer deadlines stay durable until validated delivery
 
 - Context: FND-20260921-005 found Focus expiration was being erased at the repository read boundary, while both completion timers relied on deferrable WorkManager timing. The already-released Task/Habit/Goal reminder alarm policy is the compatible platform precedent.

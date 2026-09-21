@@ -1,5 +1,13 @@
 # Durable findings
 
+### FND-20260921-006 — Large Track history breaks detail, export and deletion on Android 8
+
+- Severity/category: P1 access/recovery gap for a supported Track history on the minimum Android platform; FB-20260920-001. The per-file CSV limit is 5,000 rows, but several follow-up paths bind every Entry ID in one SQLite `IN` query.
+- Observed: A production Room repository with 1,200 persisted one-field Entries succeeds at creation, then `tracks.projection(trackId)` fails on the disposable API 26 emulator with `SQLiteException: too many SQL variables` from `TrackDao.getValuesForEntries` (`TrackRepository.kt:995`). The exact native regression fails before reaching CSV export, search-index rebuild or deletion preview. The same fixture passes at API 34 after a test-only trailing-newline assertion correction.
+- Expected: A Track that can accumulate or import 1,200 Entries must remain inspectable, exportable, searchable and deletable on every supported Android version. Receipt and history integrity must be preserved; the fix must not lower the supported import limit.
+- Root cause: Direct projection, search-index rebuild and cross-feature Track deletion impact each pass all Entry IDs into `getValuesForEntries(List<Long>)`. SQLite host-parameter ceilings vary by version/build; older Android SQLite commonly limits a statement to 999. The bounded history page uses at most 250 IDs and does not share this failure.
+- Resolution/status: Verified as a scoped unreleased correction in IMP/VER-20260921-007. The internal value lookup now uses 900-ID batches under its callers' existing transactions. The formerly failing 1,200-Entry projection/export/index/deletion journey passes on API 26/34/37, as does a 33,000-Entry direct projection on API 34/37; the 134-method affected Android suite, 659 JVM methods and final readiness gate pass. The large fixture seeds persisted rows directly, not seven literal CSV import requests. Whole-product acceptance remains open.
+
 ### FND-20260921-005 — Focus due-state vanished before notification delivery; both timers used deferrable timing
 
 - Severity/category: P1 Focus completion silently missed; P2 workout-rest timing reliability. The owner-reported Habit sequence is separately FND-20260915-001; this is a related whole-product platform finding, not a reclassification of that released fix.
