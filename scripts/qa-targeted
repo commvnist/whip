@@ -28,7 +28,7 @@ usage() {
         '  scripts/qa-targeted PROFILE --jvm-only' \
         '  scripts/qa-targeted --list' \
         '' \
-        'Profiles: shell, tasks, habits, goals, tracks, gym, gymphased, settings, all' \
+        'Profiles: shell, tasks, habits, goals, tracks, gym, gymphased, settings, widgets, all' \
         'Without --emulator, profiles run their JVM tests and compile Android tests.' \
         '--jvm-only is the fastest edit/test loop and skips Android-test compilation.' \
         'Set WHIP_ANDROID_SECONDARY_SERIAL to use one matching secondary emulator.' \
@@ -45,6 +45,7 @@ list_profiles() {
         'gym       Gym calculations, persistence, routines and active-workout UI' \
         'gymphased Phased Routines, progression, legacy compatibility and builder UI' \
         'settings  Settings, backup/reset, units and responsive UI' \
+        'widgets   External Task share and Task/Habit launcher widgets' \
         'all       Union of every named product profile'
 }
 
@@ -126,6 +127,7 @@ add_profile() {
             add_profile gym
             add_profile gymphased
             add_profile settings
+            add_profile widgets
             ;;
         shell)
             jvm_patterns+=(
@@ -293,6 +295,18 @@ add_profile() {
                 'com.whip.app.SettingItemBuilderJourneyE2ETest'
                 'com.whip.app.OrganizationJourneyE2ETest'
                 'com.whip.app.AreaOrganizationJourneyE2ETest'
+            )
+            ;;
+        widgets)
+            jvm_patterns+=(
+                'com.whip.app.widget.WidgetSnapshotCacheTest'
+                'com.whip.app.widget.WidgetSummaryTest'
+            )
+            android_classes+=(
+                'com.whip.app.PlatformEntrySurfaceE2ETest'
+                'com.whip.app.WhipWidgetAreaScopeTest'
+                'com.whip.app.WidgetExtremeTextTest'
+                'com.whip.app.WidgetCacheConfigurationTest'
             )
             ;;
         *)

@@ -1,5 +1,13 @@
 # Durable findings
 
+### FND-20260921-007 — Widget brand becomes an unlabeled duplicate launcher action
+
+- Severity/category: P2 accessibility and touch-target consistency; FB-20260920-001.
+- Observed: A real Task Agenda widget pinned in Pixel Launcher renders and mutates a Task correctly, but each of four original `run-api34` hierarchy captures marks its `widget_brand` ImageView `NAF=true`. The brand is only 32dp and has no content description, yet `WhipWidgetProvider` attaches a separate PendingIntent to it. The adjacent full-height header opens the identical destination and has a scoped spoken label.
+- Expected: Every actionable widget node needs an accessible name and useful target size. A purely decorative brand mark should not become an extra unlabeled action when a labeled header already provides that navigation.
+- Root cause/evidence: Both Task and Habit widget RemoteViews, plus their update-required fallback, assigned an open action to `widget_brand` despite the XML declaring it decorative with `importantForAccessibility="no"`. Launcher exposure made the separate child actionable. [Baseline and final originals](../../artifacts/astra-audit/2026-09-21/widget-launcher/README.md).
+- Resolution/status: The redundant brand PendingIntents are removed; the labeled header remains. The final real-launcher Task journey keeps Add/render/complete behavior across process death with zero `NAF=true` nodes. This is a scoped hierarchy correction, not a claim of TalkBack speech or all launchers. DEC-20260921-007 and IMP/VER-20260921-010 verify it; whole-product acceptance remains open.
+
 ### FND-20260921-006 — Large Track history breaks detail, export and deletion on Android 8
 
 - Severity/category: P1 access/recovery gap for a supported Track history on the minimum Android platform; FB-20260920-001. The per-file CSV limit is 5,000 rows, but several follow-up paths bind every Entry ID in one SQLite `IN` query.

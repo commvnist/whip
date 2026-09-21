@@ -1,0 +1,12 @@
+{
+  "serial": "emulator-5556",
+  "taskId": "4",
+  "oldPid": "3668",
+  "newPid": "4149",
+  "title": "Widget launcher audit 1789977949",
+  "schedule": "Once",
+  "inbox": false,
+  "completedAtMillis": "1789977980258",
+  "visibleBeforeAndAfterKill": true,
+  "removedAfterWidgetCompletion": true
+}

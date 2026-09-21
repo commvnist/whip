@@ -1,5 +1,13 @@
 # Verification and release evidence
 
+### VER-20260921-010 — Pinned widget operation and accessible launcher hierarchy
+
+- Scope: FB-20260920-001, FND/DEC-20260921-007 and IMP-20260921-010. [Evidence](../../artifacts/astra-audit/2026-09-21/widget-launcher/README.md) is from a real Pixel Launcher-hosted Task Agenda widget on disposable API 34, not an in-app preview, owner phone or release.
+- Pre-fix: The functional pinned-widget journey created/completed Task 3 across an OS cached-process kill (PID 2097 to 3568), but all four original XML captures exposed `NAF=true` on the unlabeled 32dp clickable brand mark. The labeled header provided the same destination.
+- Final: After removing three redundant brand PendingIntents, the same replay creates Task 4 (`Once`, scheduled, not Inbox), shows its exact RemoteViews row before and after process death (PID 3668 to 4149), completes it from the widget, persists `completedAtMillis=1789977980258`, and removes the row. Four final original PNG/XML pairs were individually inspected; zero final `NAF=true` nodes. Four supplemental launcher-host state IDs are inventoried in the evidence README outside the current in-app catalog.
+- Final neighboring native campaign: 43/43 `WhipWidgetAreaScopeTest`, `WidgetExtremeTextTest`, `WidgetCacheConfigurationTest` and `PlatformEntrySurfaceE2ETest` methods pass without failure/skip/reuse in `build/instrumentation-results-lB5Ylt`. The new focused `widgets` profile resolves exactly those classes plus two widget JVM classes; its dry-run and JVM-only route pass. `scripts/qa-targeted --all-jvm` passes, and `scripts/check --ready` passes in 2m7s (routing/static/Android-test compilation/lint/debug packaging). The complete Android inventory, other launchers, actual TalkBack speech, Habit widget interactions and 528-state final capture remain open.
+- Related/status: FND/DEC-20260921-007, IMP-20260921-010. Scoped launcher/widget correction verified; whole-product audit In progress.
+
 ### VER-20260921-009 — Cold external Task share survives managed process death
 
 - Scope: FB-20260920-001 and IMP-20260921-009. Disposable API 34 emulator, production app shell/Room, current debug APK and completed Setup. [Evidence](../../artifacts/astra-audit/2026-09-21/task-share-process/README.md). No owner phone, release or production-code change.

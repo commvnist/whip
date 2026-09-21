@@ -277,7 +277,6 @@ class WhipWidgetProvider : AppWidgetProvider() {
                 setViewVisibility(R.id.widget_empty, android.view.View.VISIBLE)
                 setViewVisibility(R.id.widget_add, android.view.View.GONE)
                 setOnClickPendingIntent(R.id.widget_header, open)
-                setOnClickPendingIntent(R.id.widget_brand, open)
                 setOnClickPendingIntent(R.id.widget_empty, open)
                 setContentDescription(R.id.widget_header, context.getString(R.string.widget_update_required))
             }
@@ -594,7 +593,6 @@ private suspend fun updateTaskAgendaWidgets(
                 context.getString(R.string.widget_agenda_subtitle, preferences.agendaRange.title, scopeLabel),
             )
             setOnClickPendingIntent(R.id.widget_header, openAgenda)
-            setOnClickPendingIntent(R.id.widget_brand, openAgenda)
             setContentDescription(
                 R.id.widget_header,
                 context.getString(R.string.widget_open_task_agenda_for, scopeLabel),
@@ -702,7 +700,6 @@ private suspend fun updateHabitTrackingWidgets(
                 },
             )
             setOnClickPendingIntent(R.id.widget_header, openHabits)
-            setOnClickPendingIntent(R.id.widget_brand, openHabits)
             setContentDescription(
                 R.id.widget_header,
                 context.getString(R.string.widget_open_habit_tracking_for, scopeLabel),

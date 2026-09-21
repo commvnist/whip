@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260921-010 — Remove an unlabeled duplicate widget-logo action
+
+- `WhipWidgetProvider` no longer assigns a PendingIntent to the decorative `widget_brand` ImageView in Task Agenda, Habit Tracking or update-required RemoteViews. The adjacent area-labeled, full-height header remains the open action; Add and row actions stay separate.
+- Added an emulator-guarded replay for an actual Pixel Launcher-pinned Task Agenda widget. It creates a scheduled Task through the widget, verifies the RemoteViews row before/after Android-managed process death, completes the Task from the widget, checks Room and disappearance, and rejects Whip-owned `NAF=true` nodes. Baseline/final original PNG/XML and exact PID/Task receipts are retained under `artifacts/astra-audit/2026-09-21/widget-launcher/`. A focused `widgets` QA profile now collects its two JVM and four Android widget/external-entry classes without bloating unrelated profiles.
+- Compatibility: Widget provider identity, options, saved preferences and launcher binding remain intact. No Room schema, data epoch, backup format, version or owner-phone change. The script requires a pre-pinned disposable widget and does not test every launcher or Habit interaction.
+- Related/status: FB-20260920-001, FND/DEC-20260921-007, VER-20260921-010. Scoped widget correction verified; the whole-product audit remains In progress.
+
 ### IMP-20260921-009 — Replay external Task share through an OS process kill
 
 - Added a guarded emulator-only host replay for cold `ACTION_SEND` Task capture. It edits the unsaved draft, proves Room contains neither original nor edited title, asks Android to kill the stopped app process, refocuses the same task under a new PID, verifies the edited draft without a duplicate request, then saves and checks exactly one edited Task in Room and visible Inbox.

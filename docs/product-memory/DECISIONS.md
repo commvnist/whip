@@ -1,5 +1,13 @@
 # Durable product and engineering decisions
 
+### DEC-20260921-007 — Keep widget navigation on its labeled header
+
+- Context: FND-20260921-007 found an unlabeled 32dp clickable brand mark in actual launcher RemoteViews. The neighboring header already has the same PendingIntent and an area-specific accessible label.
+- Decision: Treat the mark as decorative as its layout declares. Remove its separate PendingIntent from normal Task/Habit and update-required states; retain the full-height labeled header as the single open action. Keep the Add and collection-row controls independent.
+- Alternative considered: Give the brand a second description. That would leave two adjacent actions with identical effect, one below the app's 48dp touch-target rule, and needlessly repeat navigation in assistive traversal.
+- Consequences: Logo taps no longer navigate independently, but the immediately adjacent header continues to open the same destination. No Room, settings, widget identity, schema, backup, data epoch, version or owner-phone state changes. The launcher XML and mutation journey must remain clean after the change.
+- Related/status: FB-20260920-001, FND-20260921-007, IMP/VER-20260921-010; accepted for the scoped pinned-widget correction.
+
 ### DEC-20260921-006 — Bound Track value lookups below SQLite's oldest supported bind ceiling
 
 - Context: FND-20260921-006 reproduces a 1,200-Entry direct projection failure on API 26. Room's collection parameter expands to one placeholder per Entry; the safe SQL bind ceiling is platform/driver dependent and can be below a supported import's 5,000 rows.
