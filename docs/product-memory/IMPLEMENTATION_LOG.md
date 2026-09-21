@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260921-006 — Cover the live legacy-to-generic workout boundary
+
+- Added `GymLegacyRetirementJourneyE2ETest` on the production app shell and Room data path. It seeds an already-active legacy routine, opens its live finish review, recreates the Activity mid-review, applies a decision, then verifies that the performed session/Set keep legacy provenance while only the future saved template converts and its next workout starts as a generic Routine.
+- This adds regression coverage only: no branded authoring or product UI is restored, and no Room schema, backup format, data epoch or package version changes. A true OS process-kill/relaunch remains an open separate journey.
+- Related/status: FB-20260920-001/002, DEC-20260920-001, VER-20260921-006. Verified for the Activity-interruption and legacy conversion boundary; full Gym/product audit remains In progress.
+
 ### IMP-20260921-005 — Deliver Focus and workout Rest timers from exact wakeups
 
 - `TimerAlarmScheduler` stores a per-timer identity and durable WorkManager fallback before scheduling exact alarms; private `TimerAlarmReceiver` validates the payload and promotes current work. Focus/Rest scheduler mutexes serialize schedule, promotion and worker completion. Both schedulers reject an old request against current durable Settings/session state before mutating the unique fallback or alarm; worker state checks again reject stale generation, deadline, Task ID and workout revision before posting. Cancellation and reset/replacement quiesce remove alarms as well as work.

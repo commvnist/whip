@@ -1,5 +1,13 @@
 # Verification and release evidence
 
+### VER-20260921-006 — Legacy active-workout review through interruption and retirement
+
+- Scope: Production MainActivity, `WhipApplication`, Room and routine/gym repositories with synthetic active legacy data on disposable API 26, 34 and 37 emulators. [Evidence](../../artifacts/astra-audit/2026-09-21/legacy-retirement/README.md). No owner phone or release.
+- Native journey: `GymLegacyRetirementJourneyE2ETest` passes 1/1 at API 34 normal text (`build/instrumentation-results-BvMIai`) and actual font scale 2.0 (`TMvGPI`), zero failure/skip. The same exact class passes 1/1 on each API 26 and API 37 with guarded direct Gradle. It verifies real app-shell review survives Activity recreation, legacy routine stays unchanged while the session is active, finish advances and retires the future template, performed session/Set identity remains historical, and the next session is generic.
+- Visual/source: Previously captured `gym.legacy-program.review` and `.large` original PNG/XML pairs from the 87-state Gym family were personally inspected during this checkpoint; normal decisions/footer and large-text scrollable body/fixed footer remain accessible. `FiveThreeOneCycleReviewUiTest` separately covers the component. This test addition changes no production UI.
+- Gates/limits/count: `scripts/check` passes the changed-code JVM route and static/asset checks; exact native execution above includes Android-test compilation. `scripts/ui-catalog lint` reports 528 required, zero pending/exception. A real OS force-stop/cold-process relaunch has not been executed; Activity recreation is not misrepresented as process death. The source inventory is now 1,758 product tests (659 JVM, 1,099 Android) plus 528 catalog states. No complete final-source Android matrix or whole-audit acceptance is claimed.
+- Related/status: FB-20260920-001/002, DEC-20260920-001, IMP-20260921-006; Verified for the scoped lifecycle/data boundary, full audit In progress.
+
 ### VER-20260921-005 — Exact Focus/Rest completion and due-state recovery
 
 - Scope/environment: FND/DEC/IMP-20260921-005 on disposable API 26, 34 and 37 emulators. No owner phone, signed release or store publication. [Evidence](../../artifacts/astra-audit/2026-09-21/timer-delivery/README.md).
