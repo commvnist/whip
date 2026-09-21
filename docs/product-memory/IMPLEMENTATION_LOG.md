@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260921-013 — Keep large-text audit capture stable under emulator configuration latency
+
+- `AndroidFontScaleRule` now waits up to 30 seconds for Android's actual `targetContext.resources.configuration.fontScale` to reach the requested/restored value, rather than failing after 10 seconds during a busy two-emulator run. On timeout it reports both the system setting and resource scale. It does not substitute a synthetic scale or bypass 200% UI assertions.
+- Test harness only; no production app UI/behavior, persisted data, schema, backup format, package version or owner-phone change. The failed full-catalog attempt remains a failed attempt, not accepted visual evidence.
+- Related/status: FB-20260920-001 and VER-20260921-013. Scoped harness improvement implemented; complete current-source catalog and whole-product audit remain In progress.
+
 ### IMP-20260921-012 — Replay a queued second share through process death
 
 - Added an emulator-guarded host replay for two actual `ACTION_SEND text/plain` deliveries to the exported Task entry. The second queues behind an unsaved first draft and displays the native review dialog. Android kills the stopped app, restores the same task in a new PID with the dialog, then both drafts are saved sequentially. Exact one-row Room counts and Inbox display are asserted. Five original PNG/XML pairs and the task/PID receipt are retained at `artifacts/astra-audit/2026-09-21/task-share-queue-process/`.

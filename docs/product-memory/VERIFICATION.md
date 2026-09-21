@@ -1,5 +1,12 @@
 # Verification and release evidence
 
+### VER-20260921-013 — Large-text configuration barrier under catalog load
+
+- Scope: FB-20260920-001 and IMP-20260921-013 on disposable API 34 emulators. The first fresh two-emulator 528-state capture `build/instrumentation-results-nZyYCy` is **failed/incomplete**: batch 2's `AdaptiveWhipScreenTest#compactHabitEditorRemainsReachableAtTwoHundredPercentText` and batch 5's `GymPowerInputUiTest#exerciseDeleteDialogBlocksActiveUseAndPreservesTrainingMaxAuditHistory` time out at the 10-second `AndroidFontScaleRule` setup barrier, before their UI assertions. Batches 1 and 3 pass but do not constitute catalog acceptance. Neither failure demonstrates a product UI defect.
+- Isolated unchanged Habit selector passes 1/1 in `build/instrumentation-results-pxNMcw`. With the 30-second actual-resource barrier, the Goal/Habit/Task 200%-text editor selector trio passes three fresh 3/3 runs (`sOHGx4`, `jzFEqA`, `wAa2j0`), zero failures/skips/reuse. The exact Gym deletion/Training Max selector passes 1/1 in `FW5I8r` on the other emulator. System font settings are restored to 1.0 after those tests.
+- `scripts/ui-catalog lint` remains 528 required/zero pending or exception, `scripts/check --ready` passes routed JVM, Android-test compilation, lint/static and debug packaging in 29 seconds, and `git diff --check` passes. A complete capture rerun and final visual review remain outstanding; do not claim the first attempt's 528 images or all Android tests as accepted. No owner phone or release touched.
+- Related/status: IMP-20260921-013. Harness barrier verified in scoped stress; whole-product audit In progress.
+
 ### VER-20260921-012 — Queued Task shares survive Android process death
 
 - Scope: FB-20260920-001 and IMP-20260921-012. [Evidence](../../artifacts/astra-audit/2026-09-21/task-share-queue-process/README.md) comes from the exported Activity on a disposable API 34 emulator. It is not owner-phone or release evidence.

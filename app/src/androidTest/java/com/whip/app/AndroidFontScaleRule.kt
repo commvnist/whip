@@ -32,9 +32,16 @@ class AndroidFontScaleRule : TestRule {
                 val device = UiDevice.getInstance(instrumentation)
                 val original = device.executeShellCommand("settings get system font_scale").trim()
                 fun awaitScale(expected: Float) {
-                    val deadline = SystemClock.elapsedRealtime() + 10_000
+                    // A busy emulator can acknowledge Settings before delivering the
+                    // configuration change to the instrumentation process. Keep the
+                    // actual resource assertion, but allow that dispatch to settle.
+                    val deadline = SystemClock.elapsedRealtime() + 30_000
                     while (abs(instrumentation.targetContext.resources.configuration.fontScale - expected) >= 0.01f) {
-                        check(SystemClock.elapsedRealtime() < deadline) { "Android did not apply font scale $expected" }
+                        check(SystemClock.elapsedRealtime() < deadline) {
+                            val setting = device.executeShellCommand("settings get system font_scale").trim()
+                            "Android did not apply font scale $expected (setting=$setting, " +
+                                "targetResources=${instrumentation.targetContext.resources.configuration.fontScale})"
+                        }
                         SystemClock.sleep(50)
                     }
                 }
