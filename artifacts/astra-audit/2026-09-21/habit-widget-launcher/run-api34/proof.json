@@ -1,0 +1,14 @@
+{
+  "serial": "emulator-5556",
+  "habitId": "3",
+  "oldPid": "6051",
+  "newPid": "6573",
+  "title": "Habit launcher audit 1789978727",
+  "trackingMode": "CheckOff",
+  "scheduleType": "Daily",
+  "successLogsAfterCheckoff": 1,
+  "successLogsAfterUndo": 0,
+  "visibleBeforeAndAfterKill": true,
+  "incompleteActionVisibleAfterCheckoff": true,
+  "completeActionVisibleAfterUndo": true
+}

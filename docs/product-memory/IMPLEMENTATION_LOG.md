@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260921-011 — Replay the pinned Habit widget's reversible check-off
+
+- Added an emulator-only driver for an actual Pixel Launcher Habit Tracking widget. It creates a Daily/CheckOff Habit through the widget and real editor, backgrounds and Android-kills Whip, confirms the row survives in a new process, checks it off through RemoteViews, verifies one durable success log, undoes it from the widget and verifies the log is removed. Five exact launcher PNG/XML pairs and the Room/PID receipt are retained at `artifacts/astra-audit/2026-09-21/habit-widget-launcher/`.
+- This is evidence/test tooling only; no production UI or persistence, schema, data epoch, backup format, package version or owner-phone change. It supplements IMP-20260921-010's decorative-logo correction on the second widget family.
+- Related/status: FB-20260920-001, IMP/VER-20260921-010, VER-20260921-011. Scoped Habit widget check-off recovery verified; other tracking modes/hosts and whole-product audit remain In progress.
+
 ### IMP-20260921-010 — Remove an unlabeled duplicate widget-logo action
 
 - `WhipWidgetProvider` no longer assigns a PendingIntent to the decorative `widget_brand` ImageView in Task Agenda, Habit Tracking or update-required RemoteViews. The adjacent area-labeled, full-height header remains the open action; Add and row actions stay separate.

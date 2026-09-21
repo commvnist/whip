@@ -1,5 +1,12 @@
 # Verification and release evidence
 
+### VER-20260921-011 — Live Habit widget Add/check-off/undo after process death
+
+- Scope: FB-20260920-001 and IMP-20260921-011. [Evidence](../../artifacts/astra-audit/2026-09-21/habit-widget-launcher/README.md) is from a real Pixel Launcher-hosted Habit Tracking widget on a disposable API 34 emulator, not an in-app preview or owner phone.
+- Host replay: The widget's Add action creates Habit 3 as `Daily|CheckOff` with no logs. Android kills the stopped Whip process (PID 6051); the same due row remains actionable from Home under new PID 6573. One widget check-off saves one `Success|1.0` log and exposes the reverse action; one reverse removes that log and returns to due. Five original PNG/XML pairs were individually reviewed and have zero `NAF=true` nodes.
+- Neighboring final-source coverage: The production app source is unchanged from VER-20260921-010, where all 43 widget/external-entry native methods, all JVM methods and readiness/lint/build pass. This host replay extends that scoped evidence; it does not execute other Habit tracking modes, other launchers, cross-day rollover, actual TalkBack speech, full Android inventory or final catalog capture. Five supplemental launcher states are inventoried outside the 528 in-app catalog.
+- Related/status: IMP-20260921-011 and FND/DEC-20260921-007. Check-off/undo process-recovery boundary verified; whole-product audit In progress.
+
 ### VER-20260921-010 — Pinned widget operation and accessible launcher hierarchy
 
 - Scope: FB-20260920-001, FND/DEC-20260921-007 and IMP-20260921-010. [Evidence](../../artifacts/astra-audit/2026-09-21/widget-launcher/README.md) is from a real Pixel Launcher-hosted Task Agenda widget on disposable API 34, not an in-app preview, owner phone or release.
