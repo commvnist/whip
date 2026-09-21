@@ -1,10 +1,17 @@
 # Verification and release evidence
 
+### VER-20260921-021 — Wide IME foreground recovery under the full-gate load
+
+- Rejected gate: The third `ANDROID_SERIAL=emulator-5556 scripts/check --full --emulator --fresh-emulator` attempt (`build/instrumentation-results-zHRWnX`) passed build/lint/JVM and four Android batches. Batch five remained at 97/134 for more than ten minutes with Android Settings foreground at the test's 1800×1200/240-dpi override. The app thread dump showed `ImeNavigationRailE2ETest` waiting in `Instrumentation.startActivitySync`; Whip's main thread was idle. A manual `am task focus` of its existing task made method 98 and the 134-method batch pass. Because the run required external intervention, it was stopped in batch six and is not complete or accepted evidence. The engine restored the prior 2.0 font scale and normal display size/density.
+- Corrected exact replay: The test closes the retained Settings task and returns Home during its own setup. Starting with Settings deliberately foreground, `ANDROID_SERIAL=emulator-5556 scripts/qa-targeted --android com.whip.app.ImeNavigationRailE2ETest#openingTheImeDoesNotMovePersistentNavigationOnAWideLayout --emulator` passes 1/1 with zero failure/skip/reuse in `build/instrumentation-results-FWCUBJ`. It still checks actual IME visibility and identical rail bounds.
+- Limits: Harness correction only. Fresh complete Android/JVM/static/build and exact 523-card visual acceptance must be rerun on one final source revision. No owner-phone or release operation.
+- Related/status: FND-20260921-019, DEC-20260921-016, IMP-20260921-021. Focused replay verified; whole-product audit In progress.
+
 ### VER-20260921-020 — Android gate text-scale baseline and restoration
 
 - Failed checkpoint: The second `ANDROID_SERIAL=emulator-5556 scripts/check --full --emulator --fresh-emulator` attempt passed production/test compilation, lint and JVM coverage, then failed two ordinary `InteractionControlUiTest` graphics methods in batch one (`build/instrumentation-results-eEDC0T`). The disposable emulator's system `font_scale` was 2.0, inherited from earlier audit work. That failed gate does not establish a product layout defect or a complete Android run.
 - Exact replay: After the runner change, `bash -n scripts/android-test-engine` passes. Starting with the system setting at 2.0, `scripts/qa-targeted` runs `destinationTabsUseShortVisibleLabelsWithoutLosingFullAccessibleNames` and `pageHeaderActionsDoNotShiftTitleOrSupportingText` together: 2/2 pass, zero failures/skips/reuse, in `build/instrumentation-results-LPQsHw`. The setting reads 1.0 inside the run and restores to 2.0 afterward.
-- A new fresh full gate is running. No complete Android/JVM/static or visual-catalog acceptance is inferred from this focused replay; no physical phone/release operation.
+- The later third full gate encountered the separate wide-IME foreground issue in VER-20260921-021 and was stopped. No complete Android/JVM/static or visual-catalog acceptance is inferred from either focused replay; no physical phone/release operation.
 - Related/status: FND-20260921-018, DEC-20260921-015, IMP-20260921-020. Focused harness replay verified, whole-product audit In progress.
 
 ### VER-20260921-019 — Exact SAF fixture exemption in the full gate

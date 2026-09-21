@@ -47,6 +47,12 @@ class ImeNavigationRailE2ETest {
         device.executeShellCommand("wm density 240")
         device.wakeUp()
         device.executeShellCommand("wm dismiss-keyguard")
+        // A Settings task retained by earlier platform journeys can reclaim the
+        // foreground during the phone-to-wide display transition. If it does,
+        // ActivityScenario.startActivitySync waits indefinitely for Whip to
+        // resume. Close only that disposable system UI task before launching.
+        device.executeShellCommand("am force-stop com.android.settings")
+        device.pressHome()
 
         val app = ApplicationProvider.getApplicationContext<WhipApplication>()
         app.backupRepository.deleteAllData()

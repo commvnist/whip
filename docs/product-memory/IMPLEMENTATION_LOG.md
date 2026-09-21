@@ -1,9 +1,15 @@
 # Implementation history
 
+### IMP-20260921-021 — Stabilize wide IME journey after display transitions
+
+- `ImeNavigationRailE2ETest` now closes the disposable emulator's stale Android Settings task and returns to Home after its wide size/density change. The Activity and real IME/rail geometry assertions are unchanged. A new emulator-only host driver is also prepared to test a full external Task-share queue through process death after the main gate.
+- Test/harness only: no production app behavior, schema, data epoch, backup format, release version or owner-phone operation changed. The exact IME test passes from a deliberately foreground Settings task; the interrupted complete gate is rejected because it needed external focus and the next fresh run remains necessary.
+- Related/status: FB-20260920-001, FND-20260921-019, DEC-20260921-016, VER-20260921-021. Focused harness correction verified; whole-product audit In progress.
+
 ### IMP-20260921-020 — Make full Android batches independent of prior font-scale audits
 
 - `scripts/android-test-engine` now validates and saves each disposable emulator's system font scale, normalizes ordinary test batches to 1.0, and restores the saved value alongside its error-dialog setting at exit. Explicit `AndroidFontScaleRule` tests continue to apply and assert their requested actual scale inside a batch.
-- Harness only: no production app behavior, Room schema, data epoch, backup format, release version or owner-phone operation changed. The exact failed methods pass when the emulator begins at 2.0; the complete fresh gate is rerunning.
+- Harness only: no production app behavior, Room schema, data epoch, backup format, release version or owner-phone operation changed. The exact failed methods pass when the emulator begins at 2.0; the later third gate encountered the separate wide-IME foreground issue and is not accepted.
 - Related/status: FB-20260920-001, FND-20260921-018, DEC-20260921-015, VER-20260921-020. Focused harness correction verified; whole-product audit In progress.
 
 ### IMP-20260921-019 — Keep the full gate strict around actual SAF fixtures

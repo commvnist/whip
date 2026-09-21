@@ -1,11 +1,18 @@
 # Durable product and engineering decisions
 
+### DEC-20260921-016 — Make the wide keyboard test own its foreground setup
+
+- Decision: After applying its disposable 1800×1200/240-dpi display override, the IME/navigation-rail journey force-stops only the retained Android Settings UI task and returns to Home before `ActivityScenario.launch`. It still requires the real keyboard to appear and the rail bounds to remain unchanged.
+- Rationale: A previously opened Settings task can reclaim the foreground across the display transition; Android's synchronous Activity launch then waits without a test timeout. A deterministic foreground boundary keeps the geometry assertion meaningful in a long full suite.
+- Rejected alternative: Manually focusing Whip during the test could make one run green but cannot be accepted as unattended gate evidence. Removing the IME test or weakening its geometry assertion would lose a real wide/keyboard regression check.
+- Related/status: FB-20260920-001, FND-20260921-019, IMP/VER-20260921-021. Focused replay verified; complete gate In progress.
+
 ### DEC-20260921-015 — Normalize and restore Android gate text scale
 
 - Decision: The common Android test engine, like the visual collector, records each disposable emulator's system `font_scale`, sets 1.0 before ordinary test batches, and restores the recorded setting when it exits. Tests explicitly requesting large text continue to assert the actual Android resource scale.
 - Rationale: A prior interrupted audit can leave emulator configuration behind. Ordinary layout contracts must not silently inherit that configuration, while large-text evidence must remain real and deliberate.
 - Rejected alternative: Manually resetting one emulator before a rerun would leave the gate environment-dependent; weakening the graphics/layout assertions would conceal their baseline requirement.
-- Related/status: FB-20260920-001, FND-20260921-018, IMP/VER-20260921-020. Exact contaminated-baseline replay verified; complete gate In progress.
+- Related/status: FB-20260920-001, FND-20260921-018, IMP/VER-20260921-020. Exact contaminated-baseline replay verified; later third gate encountered FND-20260921-019 and complete acceptance remains pending.
 
 ### DEC-20260921-014 — Allow exact SAF test input owners without weakening artifact collection
 

@@ -1,11 +1,18 @@
 # Durable findings
 
+### FND-20260921-019 — A retained Settings task can deadlock the wide IME audit test
+
+- Severity/category: P2 complete-gate reliability, not a confirmed Whip UI defect; FB-20260920-001.
+- Observed: The third fresh full gate passed build/lint/JVM coverage and four Android batches, then stopped advancing at method 98 of batch five, `ImeNavigationRailE2ETest#openingTheImeDoesNotMovePersistentNavigationOnAWideLayout`. Its setup changed the disposable display to 1800×1200/240 dpi. Android Settings remained the foreground task; a native thread dump showed the instrumentation thread waiting in `ActivityScenario.launch` → `Instrumentation.startActivitySync` while Whip's main thread was idle. Focusing the already-created Whip task externally allowed the method and batch to finish, proving a launch/focus test-environment failure rather than a rail-layout assertion failure. That intervention invalidates the attempted full gate.
+- Expected/resolution: The wide test closes only the retained Android Settings task and returns to Home after display resizing, before launching Whip through `ActivityScenario`. With Settings deliberately foreground beforehand, the exact corrected test passes without external focus in `build/instrumentation-results-FWCUBJ`.
+- Related: DEC-20260921-016, IMP/VER-20260921-021. Status: focused harness correction verified; complete gate and whole-product audit In progress.
+
 ### FND-20260921-018 — Full Android gate inherited 200% emulator text
 
 - Severity/category: P2 audit-gate reproducibility, not a confirmed product layout defect; FB-20260920-001.
 - Observed: The corrected fresh full gate passed build, lint and JVM coverage, then two ordinary `InteractionControlUiTest` graphics/layout methods failed in Android batch one. The disposable emulator still had `font_scale=2.0` after an earlier interrupted visual campaign; these methods assume the standard 1.0 baseline. The catalog collector already normalized its own runs, but the shared Android test engine did not.
-- Expected/resolution: Each Android test-engine run saves the emulator's prior system text scale, establishes 1.0 before ordinary batches, and restores the original scale at exit. Explicit large-text tests still set and verify actual Android scale through their rule. Starting at 2.0, the two exact failed methods pass on the corrected engine and the setting restores to 2.0. The fresh complete gate is rerunning; its prior batch failure is not accepted.
-- Related: DEC-20260921-015, IMP/VER-20260921-020. Status: exact failure replay verified, complete gate In progress.
+- Expected/resolution: Each Android test-engine run saves the emulator's prior system text scale, establishes 1.0 before ordinary batches, and restores the original scale at exit. Explicit large-text tests still set and verify actual Android scale through their rule. Starting at 2.0, the two exact failed methods pass on the corrected engine and the setting restores to 2.0. The later third gate encountered the distinct wide-IME foreground issue in FND-20260921-019; neither failed attempt is accepted.
+- Related: DEC-20260921-015, IMP/VER-20260921-020. Status: exact failure replay verified, complete gate pending.
 
 ### FND-20260921-017 — Full gate mistook real SAF test inputs for QA artifacts
 
