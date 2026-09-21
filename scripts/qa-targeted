@@ -28,7 +28,7 @@ usage() {
         '  scripts/qa-targeted PROFILE --jvm-only' \
         '  scripts/qa-targeted --list' \
         '' \
-        'Profiles: shell, tasks, habits, goals, tracks, gym, gym531, settings, all' \
+        'Profiles: shell, tasks, habits, goals, tracks, gym, gymphased, settings, all' \
         'Without --emulator, profiles run their JVM tests and compile Android tests.' \
         '--jvm-only is the fastest edit/test loop and skips Android-test compilation.' \
         'Set WHIP_ANDROID_SECONDARY_SERIAL to use one matching secondary emulator.' \
@@ -43,7 +43,7 @@ list_profiles() {
         'goals     Goal rules, persistence, mutation, history and UI coverage' \
         'tracks    Track schema, entry, CSV, search and workspace coverage' \
         'gym       Gym calculations, persistence, routines and active-workout UI' \
-        'gym531    5/3/1 planning, progression, routine persistence and builder UI' \
+        'gymphased Phased Routines, progression, legacy compatibility and builder UI' \
         'settings  Settings, backup/reset, units and responsive UI' \
         'all       Union of every named product profile'
 }
@@ -124,7 +124,7 @@ add_profile() {
             add_profile goals
             add_profile tracks
             add_profile gym
-            add_profile gym531
+            add_profile gymphased
             add_profile settings
             ;;
         shell)
@@ -253,9 +253,8 @@ add_profile() {
                 'com.whip.app.RoutineBuilderUiTest'
             )
             ;;
-        gym531)
+        gymphased|gym531)
             jvm_patterns+=(
-                'com.whip.app.ui.FiveThreeOneExerciseSetupStateTest'
                 'com.whip.app.domain.FiveThreeOneProgressionTest'
                 'com.whip.app.ui.FiveThreeOneCycleReviewTest'
                 'com.whip.app.ui.RoutineBuilderStateTest'
@@ -263,9 +262,7 @@ add_profile() {
                 'com.whip.app.data.RoutineProgrammingTest'
             )
             android_classes+=(
-                'com.whip.app.GymFiveThreeOneJourneyE2ETest'
-                'com.whip.app.FiveThreeOneAuthorshipJourneyE2ETest'
-                'com.whip.app.FiveThreeOneCycleJourneyE2ETest'
+                'com.whip.app.GymPhasedRoutineJourneyE2ETest'
                 'com.whip.app.RoutineRepositoryTest'
                 'com.whip.app.RoutineBuilderUiTest'
                 'com.whip.app.FiveThreeOneCycleReviewUiTest'

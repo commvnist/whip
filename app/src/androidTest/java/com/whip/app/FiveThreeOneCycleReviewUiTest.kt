@@ -47,7 +47,7 @@ class FiveThreeOneCycleReviewUiTest {
             }
         }
 
-        captureVisualCatalogSurface("gym.531.review")
+        captureVisualCatalogSurface("gym.legacy-program.review")
         compose.onNodeWithTag("training-max-adaptive-label-7")
             .assertTextContains("Adaptive review · optional non-standard", substring = true)
         compose.onNodeWithTag("training-max-decision-summary-7")
@@ -114,7 +114,7 @@ class FiveThreeOneCycleReviewUiTest {
         }
 
         compose.assertDialogFontScale()
-        captureVisualCatalogSurface("gym.531.cycle-review.large")
+        captureVisualCatalogSurface("gym.legacy-program.review.large")
 
         compose.onNodeWithTag("training-max-review-7").assertIsDisplayed()
         compose.onNodeWithTag("apply-training-max-decisions").assertIsDisplayed().assertIsEnabled()

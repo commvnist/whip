@@ -59,7 +59,6 @@ import com.whip.app.domain.paceSecondsPerKilometre
 import com.whip.app.domain.speedMetresPerSecond
 import com.whip.app.domain.volumeKg
 import com.whip.app.domain.balancedOncePerExerciseDayOwners
-import com.whip.app.domain.FIVE_THREE_ONE_ONCE_PER_EXERCISE_PROTOCOL_REVISION
 import java.time.ZoneId
 import kotlin.math.round
 import kotlinx.coroutines.flow.Flow
@@ -263,15 +262,19 @@ class RoomRoutineRepository(
         }
     }
 
-    override suspend fun duplicateRoutine(id: Long): Long {
+    override suspend fun duplicateRoutine(id: Long): Long = database.withTransaction {
         val routine = dao.getRoutine(id)?.toDomain() ?: error("Routine no longer exists")
         val source = loadDraft(id)
-        return createRoutine(
+        val copyId = createRoutine(
             source.copy(
                 name = "${routine.name} copy",
                 days = source.days.map { it.copy(progressionIndex = 0) },
             ),
         )
+        // A source workout can keep its old routine unconverted until it finishes. Its duplicate
+        // has no active session, so retire the template before observers can expose it for editing.
+        database.retireLegacyFiveThreeOneRoutinesInTransaction(onlyRoutineId = copyId)
+        copyId
     }
 
     override suspend fun setRoutineArchived(id: Long, archived: Boolean) {
@@ -392,12 +395,9 @@ class RoomRoutineRepository(
             ?.let { runCatching { RoutineProgramPhaseRole.valueOf(it) }.getOrNull() }
             ?: RoutineProgramPhaseRole.Standard
         val activeProgramPhaseRole = authoredProgramPhaseRole.semanticRole()
-        val templateKey = runCatching { RoutineProgramTemplateKey.valueOf(routine.programTemplateKey) }
-            .getOrDefault(RoutineProgramTemplateKey.None)
-        val oncePerExerciseProtocolPhase =
-            templateKey != RoutineProgramTemplateKey.None &&
-                routine.programTemplateRevision >= FIVE_THREE_ONE_ONCE_PER_EXERCISE_PROTOCOL_REVISION &&
-                authoredProgramPhaseRole.usesOncePerExerciseProtocol()
+        // The role is an execution contract in its own right. Retired templates keep it after
+        // their 5/3/1 provenance is removed, so repeated primary lifts still execute once.
+        val oncePerExerciseProtocolPhase = authoredProgramPhaseRole.usesOncePerExerciseProtocol()
         val protocolOwnerDayIdByExerciseId = if (programmed && oncePerExerciseProtocolPhase) {
             val mainExercisesByDay = days.map { day ->
                 dao.getExercises(day.id).filter { exercise ->

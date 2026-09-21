@@ -22,9 +22,9 @@ scripts/candidate verify
 
 # Explicit development selectors remain available.
 scripts/coverage
-scripts/qa-targeted gym531
-scripts/qa-targeted gym531 --jvm-only
-ANDROID_SERIAL=emulator-5554 scripts/qa-targeted gym531 --emulator
+scripts/qa-targeted gymphased
+scripts/qa-targeted gymphased --jvm-only
+ANDROID_SERIAL=emulator-5554 scripts/qa-targeted gymphased --emulator
 ANDROID_SERIAL=emulator-5554 scripts/qa-targeted --android com.whip.app.RoutineRepositoryTest#testName --repeat 3
 ```
 
@@ -291,7 +291,7 @@ Every product area has fast domain coverage and at least one persisted or UI
 path. New behavior must add its regression to the narrowest applicable suite
 and update this matrix if it introduces a new feature area.
 
-Current baseline: 1742 product tests—661 fast JVM tests and 1081 Android
+Current baseline: 1725 product tests—656 fast JVM tests and 1069 Android
 instrumentation tests—plus 9 Macrobenchmark/Baseline Profile scenarios, lint,
 debug/release/benchmark builds, and the disposable API 34 emulator suite. API
 26 and API 37 compatibility runs cover the minimum and target/latest platform;
@@ -350,7 +350,7 @@ cannot replace the operating system UI.
 | Gym exercises, sessions, sets, equipment-native units/increments, timer, next-set focus, one information-preserving set-row density, plate presets, routine-day shortcuts, and history | `GymCalculationsTest`, `DisplayUnitsTest`, `NumericSequenceTest`, `PowerUserSettingsTest` | `GymRepositoryTest`, settings round trip | pound hardware switching, input-before-save ordering, a single incomplete-set completion path, visible classification/prescription/effort context, and accessible reorder actions in `GymPowerInputUiTest`; active workout and exercise render through real flows |
 | Exercise-specific machines, compact/custom mass stacks, ordinal pin/level ranges, exact-value stepping, machine-scoped history, routines, records, and graphs | `GymAnalyticsTest`, `NumericSequenceTest` | `GymRepositoryTest`, `RoutineRepositoryTest`, backup/CSV coverage | `GymPowerInputUiTest`; machine library and unit explanation in `WhipComposeSemanticsTest` |
 | Scalable routine composer, duplicate placements, user-owned rep-scheme library, structured rep-range prescriptions, equipment bindings, supersets, day lifecycle, records, accessible graphs, e1RM, and volume | `GymAnalyticsTest`, `RoutineBuilderStateTest`, `PowerUserSettingsTest` | settings encoding, `RoutineRepositoryTest`, and full-domain/settings backup round trip | 205-exercise search/multi-select, blank/add/apply/edit/delete rep schemes, and nested exercise/machine creation in `RoutineBuilderUiTest`; chart summary/semantics in `CoreFeatureJourneyE2ETest` |
-| First-class 5/3/1 programs, standard or user-chosen main exercises, actual/e1RM-derived or direct Training Maxes, adjustable TM percentages, PR sets or 5s PRO, FSL/SSL/BBB/BBS, optional Jokers, assistance roles, structured test weeks, and standard or performance-informed per-exercise cycle decisions | `FiveThreeOneProgressionTest`, `FiveThreeOneCycleReviewTest`, `RoutineBuilderStateTest`, `GymUxRulesTest`, and central 300 lb/kg/lb calculation tests cover rounding, effort evidence, independent exposures, failed TM tests, unique repeated-exercise TM-test ownership, timer boundaries, and advisory increase/decrease/hold behavior | `RoutineRepositoryTest` proves immutable prescriptions, failed-test identity, exactly one TM-test prescription per logical exercise, transactional decision recomputation/auditing, custom chosen exercises, repeated-exercise consistency, and immutable History; `BackupRepositoryTest` validates the current clean data contract | `RoutineBuilderUiTest` and `FiveThreeOneCycleReviewUiTest` cover the top-level template entry, neutral current-Exercise selection distinct from optional workout substitutes, actual/e1RM source selection, explicit Apply before derived provenance can be saved—even when rounding is unchanged—adjustable TM percentage, a three-exercise Bench/Deadlift/Zercher program, phase structure, ordinary-routine Training Max discovery, responsive editing, explicit standard/suggestion/hold/ignore/custom decisions, and 200% text reachability |
+| Ordinary phased Routines, independent per-phase prescriptions, primary-lift Training Max percentage loads and cycle boundaries, plus saved-template and active-workout compatibility for retired 5/3/1 data | `RoutineBuilderStateTest`, `GymCalculationsTest`, and `GymUxRulesTest` cover exact two-phase copying, units and progression rules; retained `FiveThreeOneProgressionTest` and `FiveThreeOneCycleReviewTest` serve legacy History and in-progress workouts only | `RoutineRepositoryTest` covers Custom start/hold/advance, in-place legacy conversion, immutable performed snapshots, an active-source safety gate, and immediately converted duplicates; `BackupRepositoryTest` retains the current data contract | `RoutineBuilderUiTest` covers ordinary phased creation, warm-up versus primary work, explicit Training Max and boundary editing; `GymPhasedRoutineJourneyE2ETest` starts the saved plan through the real app shell; `FiveThreeOneCycleReviewUiTest` covers only a legacy workout already in progress. There is no new 5/3/1 setup path. |
 | Dependency-aware habit/goal/gym deletion | source/derived-data rules | cascade, orphan, graph-preset, PR, and history-preservation checks in `DomainDeletionCoordinatorTest` | impact confirmation in domain screens and `TaskDeletionUiTest` |
 | Measurements and custom units, including custom mass-to-kilogram factors | `MeasurementTest`, `DisplayUnitsTest` | habit, goal, and gym repository suites | `InteractionControlUiTest` creates and selects a unit from the in-editor chooser; Settings retains dimension-specific management |
 | Settings, units, week start, timezone, quiet hours, and notification diagnostics | `AppSettingsTest`, `QuietHoursTest`, `SettingsCauseEffectContractTest` | every setting is registered in `docs/quality/settings-cause-effect.tsv`; settings repositories and background schedulers | diagnostics and test-notification controls in `WhipComposeSemanticsTest` |

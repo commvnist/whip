@@ -906,9 +906,9 @@ internal fun SettingsContent(
             ) { selected -> viewModel.update { it.copy(categoryAllocationMode = selected) } }
             Text(
                 if (settings.categoryAllocationMode == "PrimaryOnly") {
-                    "Counts the set only in the first linked category in your Gym Categories order. Reorder categories to control which one wins; this is unrelated to 5/3/1 Push/Pull assistance roles."
+                    "Counts the set only in the first linked category in your Gym Categories order. Reorder categories to control which one wins."
                 } else {
-                    "Controls how one hard set contributes when an exercise belongs to multiple Exercise Library categories. These categories do not assign 5/3/1 assistance roles."
+                    "Controls how one hard set contributes when an exercise belongs to multiple Exercise Library categories. Routine roles are configured separately."
                 },
                 style = MaterialTheme.typography.bodySmall,
             )

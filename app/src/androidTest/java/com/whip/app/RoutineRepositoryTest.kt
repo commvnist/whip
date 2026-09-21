@@ -1,6 +1,7 @@
 package com.whip.app
 
 import androidx.room.Room
+import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.core.WhipClock
@@ -10,6 +11,7 @@ import com.whip.app.core.SettingsRepository
 import com.whip.app.data.RoomGymRepository
 import com.whip.app.data.RoomRoutineRepository
 import com.whip.app.data.WhipDatabase
+import com.whip.app.data.retireLegacyFiveThreeOneRoutinesInTransaction
 import com.whip.app.domain.ExerciseDraft
 import com.whip.app.domain.FiveThreeOneProgression
 import com.whip.app.domain.GymMachineDraft
@@ -72,6 +74,156 @@ class RoutineRepositoryTest {
     }
 
     @After fun tearDown() = database.close()
+
+    @Test
+    fun legacyRoutineConversionWaitsForActiveWorkoutAndKeepsCompletedSnapshot() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Bench Press"))
+        val routineId = routines.createRoutine(RoutineDraft(
+            name = "Legacy strength plan",
+            program = RoutineProgramDraft(
+                kind = RoutineProgramKind.FiveThreeOne,
+                phaseCount = 1,
+                phaseLabels = listOf("Test"),
+                phaseRoles = listOf(RoutineProgramPhaseRole.TrainingMaxTest),
+                trainingMaxAdvanceAfterPhaseIndices = setOf(0),
+                templateKey = RoutineProgramTemplateKey.FiveThreeOneCustom,
+                templateRevision = 2,
+                progressionMode = RoutineProgressionMode.PerformanceInformed,
+            ),
+            days = listOf(RoutineDayDraft("Bench", listOf(RoutineExerciseDraft(
+                exerciseId = exerciseId,
+                placementKind = RoutinePlacementKind.MainExercise,
+                trainingMaxValue = 100.0,
+                trainingMaxUnitId = "kilogram",
+                cycleIncrementValue = 2.5,
+                plannedSets = listOf(WorkoutSetDraft(
+                    reps = 3,
+                    classification = WorkoutSetClassification.TrainingMaxTest,
+                    loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax,
+                    loadPercentage = 100.0,
+                    routinePhaseIndex = 0,
+                    workSection = RoutineWorkSection.Main,
+                )),
+            )))),
+        ))
+        val sessionId = routines.startRoutine(routineId)
+        val originalSet = gym.sets.first().single()
+        assertEquals(0, database.withTransaction { database.retireLegacyFiveThreeOneRoutinesInTransaction() })
+        assertEquals(RoutineProgramKind.FiveThreeOne, routines.routines.first().single().programKind)
+
+        gym.setSetCompleted(originalSet.id, completed = true, autoStartRest = false)
+        gym.finishWorkout(sessionId)
+        assertEquals(1, database.withTransaction { database.retireLegacyFiveThreeOneRoutinesInTransaction() })
+
+        val converted = routines.routines.first().single()
+        assertEquals(RoutineProgramKind.Custom, converted.programKind)
+        assertEquals(RoutineProgramTemplateKey.None, converted.programTemplateKey)
+        assertEquals(emptySet<Int>(), converted.trainingMaxAdvanceAfterPhaseIndices)
+        val planned = routines.sets.first().single()
+        assertEquals(WorkoutSetClassification.Working, planned.draft.classification)
+        assertEquals(RoutineLoadPrescriptionType.PercentTrainingMax, planned.draft.loadPrescriptionType)
+        assertEquals(100.0, planned.draft.loadPercentage!!, 0.0)
+        val completedSession = gym.sessions.first().single { it.id == sessionId }
+        assertEquals(RoutineProgramKind.FiveThreeOne, completedSession.sourceRoutineProgramKind)
+        assertEquals(WorkoutSetClassification.TrainingMaxTest, gym.sets.first().single().classification)
+        assertEquals(0, database.withTransaction { database.retireLegacyFiveThreeOneRoutinesInTransaction() })
+
+        val nextSessionId = routines.startRoutine(routineId)
+        assertEquals(RoutineProgramKind.Custom,
+            gym.sessions.first().single { it.id == nextSessionId }.sourceRoutineProgramKind)
+    }
+
+    @Test
+    fun duplicatingActiveLegacyRoutineCreatesAnEditablePhasedCopy() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Bench Press"))
+        val routineId = routines.createRoutine(RoutineDraft(
+            name = "Older strength plan",
+            program = RoutineProgramDraft(
+                kind = RoutineProgramKind.FiveThreeOne,
+                phaseCount = 1,
+                phaseLabels = listOf("Test"),
+                phaseRoles = listOf(RoutineProgramPhaseRole.TrainingMaxTest),
+                trainingMaxAdvanceAfterPhaseIndices = setOf(0),
+                templateKey = RoutineProgramTemplateKey.FiveThreeOneCustom,
+                templateRevision = 2,
+            ),
+            days = listOf(RoutineDayDraft("Bench", listOf(RoutineExerciseDraft(
+                exerciseId = exerciseId,
+                placementKind = RoutinePlacementKind.MainExercise,
+                trainingMaxValue = 100.0,
+                trainingMaxUnitId = "kilogram",
+                cycleIncrementValue = 2.5,
+                plannedSets = listOf(WorkoutSetDraft(
+                    reps = 3,
+                    classification = WorkoutSetClassification.TrainingMaxTest,
+                    loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax,
+                    loadPercentage = 100.0,
+                    routinePhaseIndex = 0,
+                    workSection = RoutineWorkSection.Main,
+                )),
+            )))),
+        ))
+        routines.startRoutine(routineId)
+
+        val copyId = routines.duplicateRoutine(routineId)
+        val all = routines.routines.first()
+        assertEquals(RoutineProgramKind.FiveThreeOne, all.single { it.id == routineId }.programKind)
+        val copy = all.single { it.id == copyId }
+        assertEquals(RoutineProgramKind.Custom, copy.programKind)
+        assertEquals(RoutineProgramTemplateKey.None, copy.programTemplateKey)
+        assertEquals("Older strength plan copy", copy.name)
+        val copyDay = database.routineDao().getDays(copyId).single()
+        val copyPlacement = database.routineDao().getExercises(copyDay.id).single()
+        val copySet = database.routineDao().getSets(copyPlacement.id).single()
+        assertEquals(WorkoutSetClassification.Working.name, copySet.classification)
+        assertEquals(100.0, copySet.loadPercentage!!, 0.0)
+    }
+
+    @Test
+    fun customPhasedRoutineAdvancesOnlyItsCompletedPrimaryLiftAtConfiguredBoundary() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Bench Press"))
+        val routineId = routines.createRoutine(RoutineDraft(
+            name = "Strength blocks",
+            program = RoutineProgramDraft(
+                kind = RoutineProgramKind.Custom,
+                phaseCount = 2,
+                phaseLabels = listOf("Volume", "Heavy"),
+                trainingMaxAdvanceAfterPhaseIndices = setOf(1),
+            ),
+            days = listOf(RoutineDayDraft("Upper", listOf(RoutineExerciseDraft(
+                exerciseId = exerciseId,
+                placementKind = RoutinePlacementKind.MainExercise,
+                trainingMaxValue = 100.0,
+                trainingMaxUnitId = "kilogram",
+                cycleIncrementValue = 2.5,
+                plannedSets = listOf(
+                    WorkoutSetDraft(reps = 5, routinePhaseIndex = 0, workSection = RoutineWorkSection.Main,
+                        loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax, loadPercentage = 80.0),
+                    WorkoutSetDraft(reps = 3, routinePhaseIndex = 1, workSection = RoutineWorkSection.Main,
+                        loadPrescriptionType = RoutineLoadPrescriptionType.PercentTrainingMax, loadPercentage = 90.0),
+                ),
+            )))),
+        ))
+        suspend fun startCompleteAndFinish(expectedReps: Int, complete: Boolean) {
+            val sessionId = routines.startRoutine(routineId)
+            val set = gym.sets.first().single { it.workoutExerciseId ==
+                gym.workoutExercises.first().single { placement -> placement.sessionId == sessionId }.id }
+            assertEquals(expectedReps, set.prescribedRepetitions)
+            if (complete) gym.setSetCompleted(set.id, completed = true, autoStartRest = false)
+            gym.finishWorkout(sessionId)
+        }
+        startCompleteAndFinish(5, complete = true)
+        assertEquals(100.0, routines.exercises.first().single().trainingMaxValue!!, 0.0)
+        startCompleteAndFinish(3, complete = false)
+        assertEquals(100.0, routines.exercises.first().single().trainingMaxValue!!, 0.0)
+        startCompleteAndFinish(5, complete = true)
+        startCompleteAndFinish(3, complete = true)
+        assertEquals(102.5, routines.exercises.first().single().trainingMaxValue!!, 0.0)
+        val progressed = routines.routines.first().single()
+        assertEquals(3, progressed.currentProgramCycle)
+        assertEquals(0, progressed.currentProgramPhaseIndex)
+        assertEquals("routine-standard/1", routines.trainingMaxDecisions.first().last().engineVersion)
+    }
 
     @Test
     fun startingRoutineDoesNotMutateTemplate() = runBlocking {

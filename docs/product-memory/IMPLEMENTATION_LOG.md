@@ -1,5 +1,15 @@
 # Implementation history
 
+### IMP-20260920-001 — Retire 5/3/1 authoring and make phases an ordinary Routine capability
+
+- Behavior changed: New Gym/Routine creation no longer exposes the 5/3/1 wizard, named templates or set generator. An ordinary Routine can add two independent editable phases to its existing planned sets, then add/reorder/remove phases, edit each prescription, configure a primary-lift Training Max and percentage loads, and opt into a deliberate per-phase increase boundary. Active workout and Routine surfaces use generic phased-Routine language.
+- Important files/symbols: `RoutineBuilder.kt` (`startCustomPhasedRoutine` and generic phase/editor controls), `RoutineRepository.kt`, `GymRepository.kt`, `GymScreens.kt`, `LegacyRoutineRetirement.kt`, `WhipApplication.kt`, `RoutineDao.kt`; native tests in `RoutineBuilderUiTest`, `RoutineRepositoryTest` and `GymPhasedRoutineJourneyE2ETest`. The obsolete setup/generator UI and three 5/3/1 authoring/cycle journey classes are removed. Internal historical progression/storage semantics remain only where existing sessions require them.
+- Persistence/migration/history impact: At normal startup and restore, an idempotent Room transaction converts saved legacy template rows in place to `Custom`, preserving routine/day/exercise/set IDs, phase labels and exact planned values. It clears retired scheme/Joker template metadata and maps planned Training Max Test classification to ordinary Working without changing the 100% TM prescription. Completed workouts and decisions remain immutable snapshots. The source of an already-active legacy workout stays untouched until it exits; an immediate duplicate converts its new copy before exposure. Once-per-exercise protocol behavior follows the retained phase role, independent of the retired template key. Adaptive-review boundaries are paused instead of silently becoming automatic, while Standard boundaries are retained.
+- Compatibility and limitations: No Room schema, data epoch, backup format, package version or owner-phone installation change. Old active sessions can finish using their legacy review; completed history may truthfully name its source program. Program-specific generator code remaining outside ordinary UI is compatibility/test-only and does not create a new entry point. The whole-product audit and final 520-state recapture remain separate open work.
+- Commit/push: Focused main/origin push is recorded in Git history; no release or phone install.
+- Related: FB-20260920-002, FND-20260920-001, DEC-20260920-001, VER-20260920-001.
+- Verification/status: Verified under VER-20260920-001; 173/173 affected Gym Android tests, all 656 JVM tests, scoped 86-state/three refined captures, and `scripts/check --ready` pass. The whole-product audit remains open.
+
 ### IMP-20260915-002 — Release reliable reminder timing to the owner phone
 
 - Request/delivery: Follow-up to FB/FND/DEC/IMP/VER-20260915-001. Whip 0.3.72/code 78 is installed in place on the physical Samsung SM-F976W from exact clean pushed application source `71c9e7f257852339e5abbe1ea4ae4f1b0ed64030`.

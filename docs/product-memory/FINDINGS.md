@@ -1,5 +1,15 @@
 # Durable findings
 
+### FND-20260920-001 — 5/3/1 authoring owns generic routine controls and legacy program identity
+
+- Status: Verified as an unreleased app change under IMP/VER-20260920-001; FB-20260920-002. The owner requested removal of 5/3/1 and retention of useful generic Gym capabilities.
+- Observed source: The ordinary Routine model already stores custom phases, phase-specific prescriptions, percentage-of-Training-Max loads, explicit per-exercise Training Max and increases, and advancement boundaries. The Routine editor exposes some generic Training Max controls but only the 5/3/1 path opens Program Structure or creates a multi-phase routine. That page also exposes 5/3/1-only generator/preset/PR-set/Joker controls without a mode boundary.
+- Data boundary: Completed workouts snapshot their source program kind and prescriptions. An active workout carries a source program identity that `advanceRoutineProgressForSession` compares to its saved routine; changing the saved routine kind during that workout could silently prevent progression. Existing 5/3/1 Training Max Test set classification is rejected by Custom validation, and revision-2 once-per-exercise protocol ownership depends on saved template provenance. A conversion therefore needs explicit compatibility handling rather than simply renaming an enum or dropping tables.
+- Expected: New authoring and ordinary Gym navigation contain no 5/3/1-specific setup, presets, or advice. The generic Routine path lets people configure phases, phase-specific sets, Training Max and deliberate progression. Existing routines and performed history remain usable and truthful; no active workout loses its completion/progression behavior.
+- Evidence: `RoutineBuilder.kt`, `RoutineRepository.kt`, `GymRepository.kt`, `LegacyRoutineRetirement.kt` and `WhipApplication.kt`; focused native creation/conversion/active-workout tests, 35-method/86-state Gym catalog capture and three refined current-source screenshots. See IMP/VER-20260920-001 for final accepted counts and boundaries.
+- Root cause/disposition: Generic phase storage and execution already existed, but a 5/3/1 wizard owned creation and a legacy template key gated once-per-exercise semantics. The wizard and generator are removed; ordinary Routines now own phase creation, TM and percentage prescriptions. Saved templates convert transactionally in place, while historical snapshots and in-progress sessions retain their provenance until safe exit.
+
+
 ### FND-20260915-001 — Habit reminder timing uses a deferrable transport and can skip a late sequence
 
 - Severity/category: P1 reminder reliability and user trust.

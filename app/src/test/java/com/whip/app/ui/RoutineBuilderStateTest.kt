@@ -29,6 +29,44 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RoutineBuilderStateTest {
+    @Test fun ordinaryRoutineStartsIndependentEditablePhasesWithoutChangingPrescriptions() {
+        val original = RoutineBuilderState(
+            nextKey = 10,
+            days = listOf(
+                RoutineBuilderDayState(1, "Upper", placements = listOf(
+                    RoutineBuilderPlacementState(
+                        key = 2,
+                        exerciseId = 11,
+                        exerciseNameSnapshot = "Bench",
+                        sets = listOf(RoutineBuilderSetState(3, load = "80", repetitionsMin = "5", note = "Pause")),
+                    ),
+                )),
+                RoutineBuilderDayState(4, "Lower", placements = listOf(
+                    RoutineBuilderPlacementState(
+                        key = 5,
+                        exerciseId = 12,
+                        exerciseNameSnapshot = "Squat",
+                        sets = listOf(RoutineBuilderSetState(6, load = "100", repetitionsMin = "3")),
+                    ),
+                )),
+            ),
+        )
+        val phased = original.startCustomPhasedRoutine()
+        assertEquals(RoutineProgramKind.Custom.name, phased.programKind)
+        assertEquals(listOf("Phase 1", "Phase 2"), phased.programPhaseLabels)
+        assertEquals(RoutineProgramTemplateKey.None.name, phased.programTemplateKey)
+        assertEquals(emptySet<Int>(), phased.trainingMaxAdvanceAfterPhaseIndices)
+        assertEquals(2, phased.days[0].placements[0].sets.size)
+        assertEquals(2, phased.days[1].placements[0].sets.size)
+        val upper = phased.days[0].placements[0].sets
+        assertEquals(listOf(0, 1), upper.map { it.routinePhaseIndex })
+        assertEquals(listOf("80", "80"), upper.map { it.load })
+        assertEquals(listOf("Pause", "Pause"), upper.map { it.note })
+        assertEquals(upper.size, upper.map { it.key }.distinct().size)
+        assertEquals(phased, phased.startCustomPhasedRoutine())
+        assertEquals(original.days[0].placements[0].sets.single().routinePhaseIndex, null)
+    }
+
     @Test fun supplementalEditsUpdateMatchingWeeksAndPreserveOtherPrescriptions() {
         val exercises = listOf(testProgramExercise(1, "Bench", 100.0), testProgramExercise(2, "Zercher Deadlift", 200.0))
         val original = buildFiveThreeOneProgramState(RoutineBuilderState(), supplementalRequest(exercises))

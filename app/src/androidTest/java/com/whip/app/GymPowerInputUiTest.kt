@@ -402,7 +402,7 @@ class GymPowerInputUiTest {
         assertTrue(reconstructed.program?.allowNonStandardHigherSuggestions == true)
         assertEquals(plannedSet.draft, reconstructedPlacement.plannedSets.single())
         assertEquals(
-            "5/3/1 · Cycle 3 · 5/3/1 · Next · Upper",
+            "Phased Routine · Cycle 3 · 5/3/1 · Next · Upper",
             routineProgramStatusLabel(routine, "Upper"),
         )
     }

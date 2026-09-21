@@ -1,5 +1,23 @@
 # User feedback and acceptance criteria
 
+### FB-20260920-001 — Resume the whole-product quality audit through completion
+
+- Date/source: 2026-09-20, direct owner request after reviewing the September 10 closeout: “Pick up the whole product audit and continue until completion. Use fast development and testing methods to speed through this without wasted time.”
+- User need: Resume the deferred exhaustive Whip audit against the current app, not the historical 0.3.67 source, and finish the substantive product, behavior, design, accessibility, reliability and verification work.
+- Acceptance criteria: Reconcile the frozen 534-state matrix with the current 541-state catalog and all intervening released changes; review remaining journeys and consequential states to the original whole-product standard in FB-20260908-006; fix confirmed high-impact defects in coherent chunks; execute focused fast checks during development and a fresh complete final regression/build/lint/adaptive/accessibility/visual campaign; record exact evidence and remaining limitations, commit and push independently verified chunks. Do not count historical scoped passes as fresh final acceptance.
+- Affected users/workflows: Entire current Whip app, including backup/recovery, Tracks, Gym/Routines, Tasks/Habits/Goals, widgets/external capture, reminders/timers, Settings, navigation and platform behavior.
+- Related: FB-20260908-006; FB-20260910-001/002/004; the frozen `docs/quality/astra-surface-review-2026-09-08.tsv` and `docs/quality/ASTRA_GOAL_CLOSEOUT_2026-09-10.md`.
+- Status: In progress. This new owner authorization resumes the deferred scope; it does not change the historical September 10 closeout or imply a phone release or Play Store publication.
+
+### FB-20260920-002 — Remove 5/3/1 and retain broadly useful Gym capabilities
+
+- Date/source: 2026-09-20, direct owner steering during the resumed audit: “id like the 531 feature to be removed from the app, and any useful features that are generic and useful to users should be folded into the normal routines/exercises/gym part of the app. Implement this change then return back to the audit.”
+- User need: Whip's Gym should offer one understandable, flexible ordinary Routine/Exercise path rather than a separate 5/3/1 product mode; generally useful planning, progression, review or execution capabilities should remain available without 5/3/1-specific framing.
+- Acceptance criteria: Inventory 5/3/1 entry points, saved program structures, calculations, active execution, review and history; classify generic capabilities versus program-specific machinery; remove 5/3/1 creation/management and language from the current product, integrate justified generic capabilities into ordinary Gym paths, preserve completed workouts and user-authored data, handle existing saved programs through an explicit safe compatibility path, and verify fresh/new, existing, interrupted and historical journeys. Resume FB-20260920-001 after this coherent change.
+- Affected users/workflows: Gym Exercise library, Routine authoring/editing, active workouts, progression/review, saved 5/3/1 programs and historical workouts.
+- Related: FB-20260920-001; FB-20260831-001; FB-20260911-001/003; DEC-20260910-019; the historical 5/3/1 audit and later supplemental releases.
+- Status: Verified as an unreleased app change under IMP/VER-20260920-001. Existing saved templates convert in place to ordinary phased Routines, except the source of an active legacy workout until that workout exits. Completed history is retained as a truthful snapshot; subjective owner validation and the separate whole-product audit remain open.
+
 ### FB-20260915-001 — Habit reminders must fire consistently while Whip is closed
 
 - Date/source: 2026-09-15, direct owner report after configuring five back-to-back reminders on one Habit: the first due time passed silently, opening Whip caused it to fire, and only the second occurrence then fired without reopening the app.

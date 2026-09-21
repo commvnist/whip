@@ -753,7 +753,9 @@ class RoomGymRepository(
         val phase = session.sourceRoutinePhaseIndex ?: return false
         val cycle = session.sourceRoutineCycle ?: return false
         val dayPosition = session.sourceRoutineDayPosition ?: return false
-        if (routine.programKind != kind.name ||
+        val compatibleKind = routine.programKind == kind.name ||
+            kind == RoutineProgramKind.FiveThreeOne && routine.programKind == RoutineProgramKind.Custom.name
+        if (!compatibleKind ||
             routine.currentProgramPhaseIndex != phase ||
             routine.currentProgramCycle != cycle ||
             routine.nextProgramDayPosition != dayPosition
@@ -964,12 +966,20 @@ class RoomGymRepository(
                         confidence = 1.0,
                         reasons = listOf(
                             if (eligible) {
-                                "Applied the configured standard 5/3/1 cycle increase after completed Main work."
+                                if (kind == RoutineProgramKind.FiveThreeOne) {
+                                    "Applied the configured standard 5/3/1 cycle increase after completed Main work."
+                                } else {
+                                    "Applied the configured cycle increase after completed primary work."
+                                }
                             } else {
-                                "Held this exercise because its required Main work was not completed."
+                                "Held this exercise because its required primary work was not completed."
                             },
                         ),
-                        engineVersion = "five-three-one-standard/1",
+                        engineVersion = if (kind == RoutineProgramKind.FiveThreeOne) {
+                            "five-three-one-standard/1"
+                        } else {
+                            "routine-standard/1"
+                        },
                         action = if (eligible) TrainingMaxDecisionAction.UseStandard else TrainingMaxDecisionAction.Hold,
                     )
                     else -> null

@@ -39,7 +39,7 @@ class RoutineAuthoringJourneyE2ETest {
             compose.onNodeWithTag("gym-library-Routines").performClick()
             compose.onNodeWithTag("workspace-add-action").performClick()
             compose.onNodeWithTag("routine-add-exercises").assertIsDisplayed()
-            compose.onNodeWithTag("routine-five-three-one-program-entry").assertIsDisplayed()
+            compose.onNodeWithTag("routine-five-three-one-program-entry").assertDoesNotExist()
             capture("new")
             compose.onNodeWithTag("routine-editor-name").performTextReplacement("Two day strength")
             closeSoftKeyboard()

@@ -2,6 +2,7 @@ package com.whip.app
 
 import android.app.Application
 import android.util.Log
+import androidx.room.withTransaction
 import com.whip.app.core.SettingsWhipClock
 import com.whip.app.core.AndroidHabitTimerClock
 import com.whip.app.core.SharedPreferencesSettingsRepository
@@ -28,6 +29,7 @@ import com.whip.app.data.PortableBackupScheduler
 import com.whip.app.data.PORTABLE_BACKUP_WORK_NAME
 import com.whip.app.data.WhipDatabase
 import com.whip.app.data.retireLegacyHealthHabitSources
+import com.whip.app.data.retireLegacyFiveThreeOneRoutinesInTransaction
 import com.whip.app.data.RestoreRecoveryManager
 import com.whip.app.reminders.ReminderNotifications
 import com.whip.app.reminders.ReminderDeliveryCoordinator
@@ -69,6 +71,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.collect
@@ -444,6 +447,7 @@ class WhipApplication : Application(), Configuration.Provider {
             areaRepository.ensureDefaultArea()
         }
         database.retireLegacyHealthHabitSources()
+        database.withTransaction { database.retireLegacyFiveThreeOneRoutinesInTransaction() }
         habitRepository.reconcileTimerClockState()
         // Existing persisted reminder work cannot be trusted across a delivery
         // claim schema change. This is awaited while the startup recovery gate
@@ -466,6 +470,21 @@ class WhipApplication : Application(), Configuration.Provider {
         val runtimeScope = CoroutineScope(runtimeJob + Dispatchers.Default)
         normalRuntimeJob = runtimeJob
         runtimeScope.launch { runCatching { portableBackupManager.recoverInterruptedWrites() } }
+        runtimeScope.launch {
+            gymRepository.sessions
+                .map { sessions -> sessions.any { session ->
+                    session.state == WorkoutSessionState.Active &&
+                        session.sourceRoutineProgramKind == com.whip.app.domain.RoutineProgramKind.FiveThreeOne
+                } }
+                .distinctUntilChanged()
+                .collect { hasActiveLegacyWorkout ->
+                    if (!hasActiveLegacyWorkout) {
+                        withUserDataAccess {
+                            database.withTransaction { database.retireLegacyFiveThreeOneRoutinesInTransaction() }
+                        }
+                    }
+                }
+        }
         runtimeScope.launch {
             merge(
                 taskRepository.tasks.map { Unit }, taskRepository.occurrences.map { Unit },

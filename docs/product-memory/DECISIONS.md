@@ -1,5 +1,15 @@
 # Durable product and engineering decisions
 
+### DEC-20260920-001 — Ordinary Routines own reusable phased programming
+
+- Status: Verified as an unreleased app change under IMP/VER-20260920-001; FB-20260920-002 / FND-20260920-001. Editable conversion uses an explicit active-workout safety gate.
+- Decision: Retire new 5/3/1 setup/generation and branded authoring. Expose an optional phased Routine directly in the ordinary editor. It starts with two editable copies of the user's existing sets, preserving exact values and allowing phase-specific edits, additional/reordered phases and deliberate Training Max boundaries. Per-exercise Training Max/percentage prescriptions and cycle increases remain generic Gym tools.
+- Partition: 5/3/1's named schedules, BBB/FSL/SSL generator, 7th Week presets, Joker ladder and adaptive recommendation do not become generic defaults. Completed snapshots retain their historical identity; only an already-active legacy workout retains the old review path until it exits. Do not rewrite completed sessions or advance an active workout against a mismatched source-routine identity.
+- Alternatives: Keeping a disguised 5/3/1 wizard would leave the removed feature active. Removing all program storage would discard useful generic controls and invalidate existing routines. Reusing the existing Custom program model avoids a second persistence or backup schema.
+- Acceptance: A new ordinary multi-day Routine can add phases, edit distinct phase prescriptions, configure a Training Max/boundary, save/reopen/start/finish/advance, and keep workout History. No new 5/3/1 path appears in ordinary UI. Legacy disposition and whole-product audit retain separate verification gates.
+- Legacy conversion: Update saved template rows in place to Custom without deleting/recreating routine days, exercises or sets. Preserve IDs, phase labels/positions, exact planned load/reps/notes, and all performed snapshots/decisions. Remove only future 5/3/1 scheme/Joker metadata and remap a planned Training Max Test classification to ordinary Working; its 100%-TM prescription stays exact. Existing once-per-exercise roles retain their behavior independent of template provenance. Skip the source routine of an active workout and convert it only after that session finishes or on the next safe startup. Standard automatic TM boundaries stay configured. A legacy Adaptive-review boundary becomes paused rather than silently switching to automatic progression; the user can deliberately re-enable a generic boundary in Program Structure.
+
+
 ### DEC-20260915-001 — Exact alarms wake one validated reminder transport and Habits keep independent upcoming claims
 
 - Status: Released in Whip 0.3.72/code 78 under IMP/VER-20260915-001 and IMP/VER-20260915-002; FB/FND-20260915-001.

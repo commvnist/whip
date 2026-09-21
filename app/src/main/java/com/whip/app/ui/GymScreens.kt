@@ -2884,8 +2884,8 @@ private fun WorkoutContent(
             if (session.sourceRoutineProgramKind != RoutineProgramKind.Static) {
                 val programLabel = when (session.sourceRoutineProgramKind) {
                     RoutineProgramKind.Static -> "Routine"
-                    RoutineProgramKind.Custom -> "Program"
-                    RoutineProgramKind.FiveThreeOne -> "5/3/1"
+                    RoutineProgramKind.Custom -> "Phased Routine"
+                    RoutineProgramKind.FiveThreeOne -> "Phased Routine"
                 }
                 val phaseLabel = session.sourceRoutinePhaseLabel.takeIf(String::isNotBlank)
                     ?: session.sourceRoutinePhaseIndex?.let { "Phase ${it + 1}" }
@@ -5325,7 +5325,7 @@ internal fun WorkoutPermanentDeleteDialog(
                 if (preparing && !targetMissing) item {
                     WhipNoticeCard(
                         title = "Reviewing impact",
-                        message = "Checking the exact workout, set, record, and 5/3/1 history impact…",
+                        message = "Checking the exact workout, set, record, and routine progression impact…",
                         tone = WhipNoticeTone.Informative,
                         showProgress = true,
                         semanticStateLabel = "Reviewing workout deletion impact",
@@ -5398,7 +5398,7 @@ internal fun WorkoutPermanentDeleteDialog(
                         Text(
                             "Exercise definitions and routine templates remain. " +
                                 "${exact.trainingMaxDecisionCount} Training Max decision${if (exact.trainingMaxDecisionCount == 1) " remains" else "s remain"} " +
-                                "as immutable 5/3/1 audit history.",
+                                "as immutable routine progression history.",
                         )
                     }
                     item {
@@ -7085,7 +7085,7 @@ internal fun workoutProgramSnapshotLabel(session: WorkoutSession): String? {
     }
     val program = when (session.sourceRoutineProgramKind) {
         RoutineProgramKind.Static -> return null
-        RoutineProgramKind.Custom -> "Program"
+        RoutineProgramKind.Custom -> "Phased Routine"
         RoutineProgramKind.FiveThreeOne -> "5/3/1"
     }
     return buildList {
@@ -9101,8 +9101,8 @@ internal fun RoutineProgramPositionDialog(
 internal fun routineProgramStatusLabel(routine: GymRoutine, nextDayName: String?): String {
     val program = when (routine.programKind) {
         RoutineProgramKind.Static -> "Static Routine"
-        RoutineProgramKind.Custom -> "Program"
-        RoutineProgramKind.FiveThreeOne -> "5/3/1"
+        RoutineProgramKind.Custom -> "Phased Routine"
+        RoutineProgramKind.FiveThreeOne -> "Phased Routine"
     }
     val phase = routine.programPhaseLabels.getOrNull(routine.currentProgramPhaseIndex)
         ?.takeIf(String::isNotBlank)

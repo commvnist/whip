@@ -1,0 +1,11 @@
+# Ordinary phased-Routine retirement evidence — 2026-09-20
+
+This is a scoped Gym checkpoint for FB-20260920-002, not whole-product audit closure or a phone release. All screenshots use synthetic data on a disposable API 34 emulator.
+
+- The 520-state current UI catalog has zero pending selectors and zero platform exceptions. The Gym family replacement captured 86 states across 35 native methods with no missing/duplicate PNGs or unlabeled (NAF) nodes. Its unrefined gallery is local under `build/astra-gym-retirement-final-20260920/`; it preceded the final supporting-copy change and is not represented as exact final-source visual evidence.
+- The three PNG/XML pairs here were captured after the final copy refinement by `RoutineBuilderUiTest#ordinaryRoutineCanAddIndependentPhasesWithoutFiveThreeOneSetup` and `#phasedRoutineCanConfigurePrimaryTrainingMaxAndBoundary`, both passing. The originals were personally inspected at 1080×2520/480 dpi: ordinary Routine outline offers phases, phase structure exposes two editable phases without program-specific presets, and primary progression exposes explicit Training Max plus a saved cycle increase. XML inspection found no NAF node or retired feature language.
+- The old 87-state candidate included an unreachable legacy program-builder page. That selector was retired, not counted as accepted coverage. Historical completed-session and already-active cycle-review surfaces retain truthful provenance.
+- Persistence, active-session safety, duplication, completion and cycle advancement are tested in `RoutineRepositoryTest`; creation/draft semantics are in `RoutineBuilderStateTest` and `RoutineBuilderUiTest`; actual app navigation into a phased workout is in `GymPhasedRoutineJourneyE2ETest`.
+- Final scoped regression: `ANDROID_SERIAL=emulator-5554 scripts/qa-targeted gym gymphased --emulator` passes 173/173 Android methods with zero failure/skip (`build/instrumentation-results-wRPKjd`); `scripts/qa-targeted --all-jvm` passes all 656 JVM methods; `scripts/check --ready` passes route/harness fixtures, JVM, Android-test compilation, lint and debug packaging in 2m33s.
+
+The full 520-state exact-current-source capture, adaptive/platform review and remaining product families belong to FB-20260920-001 and remain open.

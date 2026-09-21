@@ -1,5 +1,15 @@
 # Verification and release evidence
 
+### VER-20260920-001 — Ordinary phased-Routine and legacy-retirement checkpoint
+
+- Scope/environment: FB/FND/DEC/IMP-20260920-001/002, disposable API 34 emulator; synthetic Gym data only. Opening worktree was clean at `4b0ade52`, with no pre-existing untracked files. This is an audit feature checkpoint, not a phone or store release.
+- Commands/results: `ANDROID_SERIAL=emulator-5554 scripts/qa-targeted gym gymphased --emulator` passes 173/173 Android methods, zero failure/skip, in `build/instrumentation-results-wRPKjd`. `scripts/qa-targeted --all-jvm` passes all 656 JVM methods after the final Kotlin changes. `scripts/ui-catalog lint` passes 520 required states, zero pending/exception. Targeted native creation/conversion/duplication and generic workout navigation passed before the broad run; an earlier 172-method campaign was discarded because its test inputs changed while it ran, then superseded by this clean 173-method run.
+- Visual: The replacement Gym family catalog captured 86 states in 35 methods, zero missing/duplicate PNGs and zero NAF nodes (`build/instrumentation-results-xz5Pej`, `build/astra-gym-retirement-final-20260920`). The first 87-state capture contained an unreachable legacy builder page and was not accepted. After a final copy correction, two exact affected builder methods passed in `build/instrumentation-results-VfJoeN`; three final-source original PNG/XML pairs were inspected and retained at `artifacts/astra-audit/2026-09-20/gym-retirement/`.
+- Counts/exclusions: Current source inventory is 656 JVM + 1069 Android = 1725 methods; the 173-method Gym profile is not the complete Android matrix. The full 520-state catalog, multi-API/adaptive/accessibility campaign and other product families remain open under FB-20260920-001. No physical phone installation, signed release, backup-version or schema migration occurred.
+- Static/build gate: `scripts/check --ready` exits zero in 2m33s after all route/harness fixtures, 656 JVM checks, Android-test compilation, lint and debug packaging. It did not create frozen store-candidate evidence. `git diff --check` passes.
+- Commit/push: Focused main/origin push is recorded in Git history.
+- Related/status: FB-20260920-001/002, FND-20260920-001, DEC-20260920-001, IMP-20260920-001. Verified for this Gym change only; the whole-product audit remains In progress.
+
 ### VER-20260915-002 — Whip 0.3.72 private owner-phone reminder release
 
 - Scope/status: Released under FB/FND/DEC/IMP/VER-20260915-001 and IMP-20260915-002. Exact application source `71c9e7f257852339e5abbe1ea4ae4f1b0ed64030` was clean, pushed and equal to `origin/main` before construction. The prior `scripts/check --ready` passes all 661 JVM methods, Android-test compilation, lint and debug packaging.

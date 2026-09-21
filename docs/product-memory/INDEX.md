@@ -1,5 +1,7 @@
 # Whip durable product memory
 
+- **Current unreleased Gym checkpoint — FB/FND/DEC/IMP/VER-20260920-001/002:** 5/3/1 authoring is retired; ordinary Routines now create/edit phases and expose primary-lift Training Max, percentage loads and deliberate progression boundaries. Saved legacy templates convert in place with an active-workout gate; performed history is preserved. All 173 affected Gym Android methods, 656 JVM tests, final readiness/lint/build and scoped Gym captures pass. [Evidence](../../artifacts/astra-audit/2026-09-20/gym-retirement/README.md). This source is not installed on the owner phone. The resumed [whole-product audit](../quality/ASTRA_CONTINUATION_2026-09-20.md) remains in progress, with complete 520-state recapture and cross-product/platform journeys outstanding.
+
 - **Latest private release and reminder reliability fix — FB/FND/DEC/IMP/VER-20260915-001; IMP/VER-20260915-002:** Whip **0.3.72 (78)** is installed in place on the owner Samsung SM-F976W from exact clean pushed application source `71c9e7f257852339e5abbe1ea4ae4f1b0ed64030`. Exact alarms privately wake the validated WorkManager path when Android grants access, a bounded fallback remains, and Habits queue sixteen independent upcoming occurrences. Allowed/denied alarm integration, 31 neighboring Android reminder/recovery methods, all 661 JVM tests and readiness pass. Installed APK hash `029d2a3db8010768bef945c4846e92a3c6351969729d000d8c59d4f7f3b05e13` matches the signed build; signer/first-install identity, precise-alarm and notification access, enabled reminder channels, foreground process and bounded runtime health pass. [Release receipt](../../artifacts/reminders/2026-09-15/release-0.3.72/README.md). Room 46/epoch 6/backup 26 are unchanged.
 
 - **Previous signed build — FB-20260911-004 / IMP, VER-20260911-005:** **0.3.71 (77)** was built from clean pushed 0f2db675 and passed 389 fast JVM checks, optimized APK/AAB build, signatures/package/ZIP verification. Its requested installation was Deferred when the owner confirmed the phone was offline; its saved BBB/FSL fix is now included in installed 0.3.72 above. [Build evidence](../../artifacts/gym-531/2026-09-11/release-0.3.71/README.md).
@@ -66,7 +68,7 @@
 
 - Previous Settings builder increment: IMP/VER-20260910-006 unifies Settings toggle, choice and typed-value hierarchy while preserving immediate choices and explicit confirmed Save. Final 147 API 34 checks, five API 37 methods, 346 JVM readiness checks and 25 original reviews pass. FND-20260910-007 records a corrected fixture timing failure, not a production draft-loss fix. Evidence: `artifacts/astra-audit/2026-09-10/settings-builders/README.md`. The Set-family increment is now verified below; whole-app acceptance remains open.
 
-Last reconciled: 2026-09-15
+Last reconciled: 2026-09-20
 
 This is the canonical cross-session entry point for Whip product and engineering context. It indexes durable conclusions and evidence; current code and reproducible behavior remain authoritative.
 
@@ -78,6 +80,8 @@ This is the canonical cross-session entry point for Whip product and engineering
 4. Use [the maximum-quality goal](MAXIMUM_QUALITY_GOAL.md) for an exhaustive product iteration.
 
 ## Current product snapshot
+
+- **Active owner work — FB-20260920-001/002:** The whole-product audit is resumed against the current source under [the continuation record](../quality/ASTRA_CONTINUATION_2026-09-20.md), with the September 10 frozen matrix retained as history. The prioritized 5/3/1 retirement and generic phased-Routine integration are verified in the unreleased IMP/VER-20260920-001 checkpoint. The current UI catalog has 520 required states, with scoped Gym capture complete; whole-catalog final-source capture, remaining journeys and audit reconciliation are open. The last verified owner-phone release remains 0.3.72/code 78 under IMP/VER-20260915-002.
 
 - Latest ordinary-UX correction: IMP/VER-20260910-005 restores every authored elapsed unit to visible Goal/Home summaries using the existing small full-width text role. The old three-part policy and a misleading accessibility-only visibility assertion are corrected. Final 46 API 34 Android, four wide checks, 34 focused JVM and 37 readiness JVM checks pass with compilation/lint/debug packaging. Twelve original reviews and evidence: `artifacts/astra-audit/2026-09-10/elapsed-summary/README.md`. Full-app acceptance remains open.
 

@@ -37,6 +37,7 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Density
+import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.domain.BodyweightLoadPolicy
 import com.whip.app.core.AppSettings
@@ -137,59 +138,97 @@ class RoutineBuilderUiTest {
     }
 
     @Test
-    fun blankRoutineSurfacesTopLevelFiveThreeOneEntry() {
+    fun ordinaryRoutineCanAddIndependentPhasesWithoutFiveThreeOneSetup() {
+        var saved: RoutineDraft? = null
         compose.setContent {
             WhipTheme(darkTheme = true, dynamicColor = false) {
                 RoutineBuilderScreen(
                     routineId = null,
-                    gymState = GymUiState(loading = false),
-                    initial = null,
+                    gymState = GymUiState(exercises = listOf(exercise(1, "Bench Press")), loading = false),
+                    initial = RoutineDraft(
+                        name = "Strength",
+                        days = listOf(RoutineDayDraft("Day A", listOf(
+                            RoutineExerciseDraft(1, plannedSets = listOf(WorkoutSetDraft(weight = 80.0, reps = 5))),
+                        ))),
+                    ),
                     onDismiss = {},
-                    onSave = { _, complete -> complete(true) },
+                    onSave = { draft, complete -> saved = draft; complete(true) },
                     onCreateExercise = { _, _ -> },
                     onCreateMachine = { _, _ -> },
                 )
             }
         }
 
-        compose.onNodeWithTag("routine-five-three-one-program-entry").assertIsDisplayed()
+        compose.onAllNodesWithText("Set Up 5/3/1").assertCountEquals(0)
         captureVisualCatalogSurface("gym.routine-builder.outline")
-        compose.onNode(
-            hasText("Set Up 5/3/1") and hasClickAction() and
-                hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
-        ).performClick()
-
-        compose.onNodeWithText("Choose a program, configure its exercises, then review the exact work before building your routine.")
-            .assertIsDisplayed()
-        compose.onNodeWithTag("five-three-one-program-setup").assertIsDisplayed()
-        compose.onNodeWithTag("five-three-one-plan-SingleCycle").assertIsSelected()
-        FiveThreeOneProgramLayout.entries.forEach { choice ->
-            compose.onNodeWithTag("five-three-one-layout-${choice.name}").assertExists()
-            compose.onNodeWithText(choice.supportingText).assertExists()
+        compose.onNodeWithTag("routine-add-phases").performScrollTo().performClick()
+        compose.onNodeWithTag("routine-program-structure").assertExists()
+        compose.onNodeWithTag("routine-open-program-structure").performClick()
+        compose.onNodeWithTag("routine-program-phase-select-1").assertExists()
+        compose.onAllNodesWithText("Apply 7th Week preset").assertCountEquals(0)
+        captureVisualCatalogSurface("gym.routine-builder.phases")
+        compose.onNodeWithContentDescription("Back to routine outline").performClick()
+        compose.onNodeWithTag("routine-builder-save").performClick()
+        compose.runOnIdle {
+            val draft = requireNotNull(saved)
+            assertEquals(RoutineProgramKind.Custom, draft.program?.kind)
+            assertEquals(2, draft.program?.phaseCount)
+            assertEquals(listOf(0, 1), draft.days.single().exercises.single().plannedSets.map { it.routinePhaseIndex })
+            assertEquals(listOf(80.0, 80.0), draft.days.single().exercises.single().plannedSets.map { it.weight })
         }
-        compose.onNodeWithTag("five-three-one-layout-FourDay").assertIsSelected()
-        compose.onNodeWithTag("five-three-one-program-status")
-            .assertTextContains("Still needed · Create the missing standard Weight + Reps exercises below, or choose your own exercises.")
-        compose.onNodeWithTag("five-three-one-program-create").assertIsNotEnabled()
-        assertEquals(
-            "Unavailable. Create the missing standard Weight + Reps exercises below, or choose your own exercises.",
-            compose.onNodeWithTag("five-three-one-program-create")
-                .fetchSemanticsNode().config[SemanticsProperties.StateDescription],
-        )
-        compose.onNode(hasText("Choose Your Exercises") and hasClickAction()).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("five-three-one-progression-adaptive").performScrollTo().performClick()
-        compose.onNodeWithTag("five-three-one-progression-explanation")
-            .assertTextContains("Standard stays the recommended 5/3/1 increase", substring = true)
-        compose.onNodeWithTag("five-three-one-setup-allow-higher-suggestions")
-            .performScrollTo()
-            .assertIsOff()
-            .performClick()
-            .assertIsOn()
-        captureVisualCatalogSurface("gym.531.setup-blocked")
-        compose.onNodeWithTag("five-three-one-create-standard-exercises").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("five-three-one-layout-Custom").performClick()
-        compose.onNodeWithTag("five-three-one-program-status")
-            .assertTextContains("Still needed · Add at least one active Weight + Reps exercise to choose a custom program.")
+    }
+
+    @Test
+    fun phasedRoutineCanConfigurePrimaryTrainingMaxAndBoundary() {
+        var saved: RoutineDraft? = null
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                RoutineBuilderScreen(
+                    routineId = null,
+                    gymState = GymUiState(exercises = listOf(exercise(1, "Bench Press")), loading = false),
+                    initial = RoutineDraft("Strength", days = listOf(RoutineDayDraft("Upper", listOf(
+                        RoutineExerciseDraft(1, plannedSets = listOf(
+                            WorkoutSetDraft(weight = 40.0, reps = 5, classification = WorkoutSetClassification.WarmUp),
+                            WorkoutSetDraft(weight = 80.0, reps = 5),
+                        )),
+                    )))),
+                    onDismiss = {},
+                    onSave = { draft, complete -> saved = draft; complete(true) },
+                    onCreateExercise = { _, _ -> },
+                    onCreateMachine = { _, _ -> },
+                )
+            }
+        }
+        compose.onNodeWithTag("routine-add-phases").performScrollTo().performClick()
+        compose.onNodeWithTag("routine-open-program-structure").performClick()
+        compose.onNodeWithTag("routine-program-phase-select-1").performClick()
+        compose.onNodeWithTag("routine-program-structure-page")
+            .performScrollToNode(hasTestTag("routine-program-phase-tm-boundary-1"))
+        compose.onNodeWithTag("routine-program-phase-tm-boundary-1").performClick()
+        compose.onNodeWithContentDescription("Back to routine outline").performClick()
+        compose.onNodeWithText("Bench Press", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("routine-primary-lift-progression").performClick()
+        compose.onNodeWithTag("routine-training-max-disclosure").performClick()
+        compose.onNodeWithTag("routine-training-max-source-explicit").performClick()
+        compose.onNodeWithTag("routine-training-max-value").performScrollTo().performTextInput("100")
+        compose.onNodeWithTag("routine-cycle-increase").performScrollTo().performTextInput("2.5")
+        compose.onNodeWithTag("routine-cycle-increase").assertTextContains("2.5")
+        closeSoftKeyboard()
+        captureVisualCatalogSurface("gym.routine-builder.primary-progression")
+        compose.onNodeWithTag("routine-builder-save").performClick()
+        compose.runOnIdle {
+            val draft = requireNotNull(saved)
+            assertEquals(RoutineProgramKind.Custom, draft.program?.kind)
+            assertEquals(setOf(1), draft.program?.trainingMaxAdvanceAfterPhaseIndices)
+            val placement = draft.days.single().exercises.single()
+            assertEquals(RoutinePlacementKind.MainExercise, placement.placementKind)
+            assertEquals(100.0, placement.trainingMaxValue)
+            assertEquals(2.5, placement.cycleIncrementValue)
+            assertTrue(placement.plannedSets.filter { it.classification == WorkoutSetClassification.WarmUp }
+                .all { it.workSection == RoutineWorkSection.Optional })
+            assertTrue(placement.plannedSets.filter { it.classification != WorkoutSetClassification.WarmUp }
+                .all { it.workSection == RoutineWorkSection.Main })
+        }
     }
 
     @Test
@@ -219,198 +258,7 @@ class RoutineBuilderUiTest {
         captureVisualCatalogSurface("gym.routine-builder.workout-picker")
     }
 
-    @Test
-    fun emptyCustomFiveThreeOneCanCreateAndAddSeveralExercisesWithoutLeavingSetup() {
-        val exercises = mutableStateOf<List<Exercise>>(emptyList())
-        var nextId = 1L
-        compose.setContent {
-            WhipTheme(darkTheme = true, dynamicColor = false) {
-                RoutineBuilderScreen(
-                    routineId = null,
-                    gymState = GymUiState(exercises = exercises.value, loading = false),
-                    initial = null,
-                    onDismiss = {},
-                    onSave = { _, complete -> complete(true) },
-                    onCreateExercise = { draft, complete ->
-                        val id = nextId++
-                        exercises.value = exercises.value + exercise(id, draft.name)
-                        complete(id)
-                    },
-                    onCreateMachine = { _, _ -> },
-                )
-            }
-        }
 
-        compose.onNode(
-            hasText("Set Up 5/3/1") and hasClickAction() and
-                hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
-        ).performClick()
-        compose.onNode(hasText("Choose Your Exercises") and hasClickAction()).performScrollTo().performClick()
-        compose.onNode(hasText("Add an Exercise") and hasClickAction()).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("five-three-one-create-custom-exercise").performScrollTo().performClick()
-
-        compose.onNodeWithTag("exercise-picker-empty").assertIsDisplayed()
-        compose.onNodeWithTag("exercise-picker-search").performTextInput("Bench Press")
-        compose.onNodeWithTag("exercise-picker-create-empty").performClick()
-        compose.onNodeWithTag("exercise-editor-name").assertTextContains("Bench Press")
-        compose.onNode(
-            hasText("Save") and hasAnyAncestor(hasTestTag("exercise-editor-surface")),
-        ).performClick()
-        compose.waitUntil(5_000) {
-            compose.onAllNodes(
-                hasText("Bench Press", substring = true) and hasAnyAncestor(hasTestTag("workout-exercise-picker-list")),
-                useUnmergedTree = true,
-            ).fetchSemanticsNodes().isNotEmpty()
-        }
-        compose.onNode(
-            hasText("Bench Press", substring = true) and hasAnyAncestor(hasTestTag("workout-exercise-picker-list")),
-            useUnmergedTree = true,
-        ).performClick()
-
-        compose.onNodeWithTag("five-three-one-add-custom-exercise").performScrollTo().performClick()
-        compose.onNodeWithTag("exercise-picker-empty").assertIsDisplayed()
-        compose.onNodeWithTag("exercise-picker-search").performTextInput("Deadlift")
-        compose.onNodeWithTag("exercise-picker-create-empty").performClick()
-        compose.onNodeWithTag("exercise-editor-name").assertTextContains("Deadlift")
-        compose.onNode(
-            hasText("Save") and hasAnyAncestor(hasTestTag("exercise-editor-surface")),
-        ).performClick()
-        compose.waitUntil(5_000) {
-            compose.onAllNodes(
-                hasText("Deadlift", substring = true) and hasAnyAncestor(hasTestTag("workout-exercise-picker-list")),
-                useUnmergedTree = true,
-            ).fetchSemanticsNodes().isNotEmpty()
-        }
-        compose.onNode(
-            hasText("Deadlift", substring = true) and hasAnyAncestor(hasTestTag("workout-exercise-picker-list")),
-            useUnmergedTree = true,
-        ).performClick()
-
-        compose.onNodeWithContentDescription("Exercise 1: Bench Press").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Exercise 2: Deadlift").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("five-three-one-add-custom-exercise").performScrollTo().assertIsDisplayed()
-    }
-
-    @Test
-    fun emptyLibraryCreatesUniqueStandardExercisesAndBuildsExactFourDayProgram() {
-        val exercises = mutableStateOf<List<Exercise>>(emptyList())
-        val createdNames = mutableListOf<String>()
-        var nextExerciseId = 101L
-        var savedDraft: RoutineDraft? = null
-        compose.setContent {
-            WhipTheme(darkTheme = true, dynamicColor = false) {
-                RoutineBuilderScreen(
-                    routineId = null,
-                    gymState = GymUiState(exercises = exercises.value, loading = false),
-                    initial = null,
-                    onDismiss = {},
-                    onSave = { draft, complete -> savedDraft = draft; complete(true) },
-                    onCreateExercise = { draft, complete ->
-                        val id = nextExerciseId++
-                        createdNames += draft.name
-                        exercises.value = exercises.value + exercise(id, draft.name)
-                        complete(id)
-                    },
-                    onCreateMachine = { _, _ -> },
-                )
-            }
-        }
-
-        compose.onNode(
-            hasText("Set Up 5/3/1") and hasClickAction() and
-                hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
-        ).performClick()
-        compose.onNodeWithTag("five-three-one-create-standard-exercises").performScrollTo().performClick()
-
-        compose.waitUntil(5_000) { createdNames.size == 4 }
-        compose.waitForIdle()
-        listOf("Squat", "Bench", "Deadlift", "Press").forEach { role ->
-            compose.onNodeWithTag("five-three-one-training-max-$role").assertExists()
-        }
-        assertEquals(listOf("Squat", "Bench Press", "Deadlift", "Overhead Press"), createdNames)
-        listOf("Squat", "Bench", "Deadlift", "Press")
-            .zip(listOf("100", "110", "120", "130"))
-            .forEach { (role, trainingMax) ->
-                compose.onNodeWithTag("five-three-one-training-max-$role")
-                    .performScrollTo()
-                    .performTextReplacement(trainingMax)
-            }
-        compose.onNodeWithTag("five-three-one-program-create").assertIsEnabled().performClick()
-
-        listOf("Squat · 1", "Bench · 1", "Deadlift · 1", "Press · 1").forEach { day ->
-            compose.onNodeWithText(day).performScrollTo().assertIsDisplayed()
-        }
-        compose.onNodeWithText(
-            "4 phases · 4–8 active sets/phase · Main + FSL",
-            substring = true,
-        ).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("routine-program-structure").assertIsDisplayed()
-        compose.onNodeWithTag("routine-open-program-structure").performClick()
-        compose.onNodeWithTag("routine-program-structure-page").assertIsDisplayed()
-        compose.onNodeWithTag("routine-program-structure-page")
-            .performScrollToNode(hasTestTag("routine-program-apply-seventh-week-TrainingMaxTest"))
-        compose.onNodeWithTag("routine-program-apply-seventh-week-TrainingMaxTest")
-            .assertTextContains("70/80/90% × 5, then 100% × 3–5")
-        compose.onNodeWithTag("routine-program-structure-page")
-            .performScrollToNode(hasText("Leader and Anchor describe block membership", substring = true))
-        compose.onNodeWithText("Leader and Anchor describe block membership", substring = true)
-            .assertIsDisplayed()
-        compose.onNodeWithTag("routine-program-structure-page")
-            .performScrollToNode(hasTestTag("routine-program-phase-role-0"))
-        compose.onNodeWithTag("routine-program-phase-role-0").assertIsDisplayed()
-        compose.onNodeWithTag("routine-program-structure-page")
-            .performScrollToNode(hasTestTag("routine-program-phase-joker-count-0-1"))
-        compose.onNodeWithTag("routine-program-phase-joker-count-0-1")
-            .performClick()
-            .assertIsSelected()
-        compose.onNodeWithTag("routine-program-structure-page")
-            .performScrollToNode(hasTestTag("routine-program-phase-role-0"))
-        compose.onNodeWithContentDescription("Phase role: Standard").performClick()
-        compose.onNodeWithContentDescription("Phase role option: Deload").performClick()
-        compose.onNodeWithTag("routine-program-structure-page")
-            .performScrollToNode(hasTestTag("routine-program-phase-joker-count-0-1"))
-        compose.onNodeWithTag("routine-program-phase-joker-count-0-1")
-            .assertIsNotEnabled()
-        compose.onNodeWithTag("routine-program-structure-page")
-            .performScrollToNode(hasTestTag("routine-program-phase-tm-boundary-0"))
-        compose.onNodeWithTag("routine-program-phase-tm-boundary-0").assertIsDisplayed()
-        compose.onNodeWithTag("routine-program-structure-page")
-            .performScrollToNode(hasTestTag("routine-program-add-phase"))
-        compose.onNodeWithTag("routine-program-add-phase").performClick()
-        compose.onNodeWithTag("routine-program-structure-page")
-            .performScrollToNode(hasTestTag("routine-program-phase-select-4"))
-        compose.onNodeWithTag("routine-program-phase-select-4").assertIsDisplayed()
-        compose.onNodeWithTag("routine-program-structure-page")
-            .performScrollToNode(hasTestTag("routine-program-remove-phase"))
-        compose.onNodeWithTag("routine-program-remove-phase").performClick()
-        compose.onNodeWithTag("routine-program-confirm-remove-phase").performClick()
-        compose.onAllNodes(hasTestTag("routine-program-phase-select-4")).assertCountEquals(0)
-        compose.onNodeWithContentDescription("Back to routine outline").performClick()
-        compose.onNodeWithTag("routine-selected-exercises")
-            .performScrollToNode(hasTestTag("routine-add-assistance-Push"))
-        compose.onNodeWithTag("routine-add-assistance-Push").assertIsDisplayed()
-        compose.onNodeWithTag("routine-add-assistance-Pull").assertExists()
-        compose.onNodeWithTag("routine-add-assistance-SingleLegCore").assertExists()
-        compose.onNodeWithTag("routine-add-assistance-Pull").performScrollTo().performClick()
-        compose.waitForIdle()
-        compose.onNodeWithText("Choose Pull assistance").assertIsDisplayed()
-        compose.onNodeWithText("For Squat · every exercise selected here will be assigned as Pull in this routine.")
-            .assertIsDisplayed()
-        compose.onNodeWithTag("routine-add-selected").assertTextEquals("Add 0 as Pull to Squat")
-        compose.onNodeWithContentDescription("Back to routine outline").performClick()
-        compose.onNodeWithTag("routine-builder-save").performClick()
-
-        compose.runOnIdle {
-            val draft = requireNotNull(savedDraft)
-            assertEquals("4-Day 5/3/1", draft.name)
-            assertEquals(listOf("Squat", "Bench", "Deadlift", "Press"), draft.days.map(RoutineDayDraft::name))
-            assertEquals(listOf(101L, 102L, 103L, 104L), draft.days.map { it.exercises.single().exerciseId })
-            assertEquals(listOf(100.0, 110.0, 120.0, 130.0), draft.days.map { it.exercises.single().trainingMaxValue })
-            assertEquals(4, draft.days.flatMap(RoutineDayDraft::exercises).map(RoutineExerciseDraft::exerciseId).distinct().size)
-            assertEquals(RoutineProgramKind.FiveThreeOne, draft.program?.kind)
-            assertEquals(4, draft.program?.phaseCount)
-        }
-    }
 
     @Test
     fun assistanceIntentNamesItsSourceAndPersistsOnTheRoutinePlacement() {
@@ -482,114 +330,7 @@ class RoutineBuilderUiTest {
         compose.onNodeWithTag("routine-assistance-category-Pull").assertIsSelected()
     }
 
-    @Test
-    fun customFiveThreeOneBuildsBenchDeadliftAndZercherWithoutRequiringFourStandardExercises() {
-        val exercises = listOf(
-            exercise(21, "Bench Press"),
-            exercise(22, "Deadlift"),
-            exercise(23, "Zercher Squat"),
-            exercise(24, "Overhead Press"),
-        )
-        var savedDraft: RoutineDraft? = null
-        compose.setContent {
-            WhipTheme(darkTheme = true, dynamicColor = false) {
-                RoutineBuilderScreen(
-                    routineId = null,
-                    gymState = GymUiState(exercises = exercises, loading = false),
-                    initial = null,
-                    onDismiss = {},
-                    onSave = { draft, complete -> savedDraft = draft; complete(true) },
-                    onCreateExercise = { _, _ -> },
-                    onCreateMachine = { _, _ -> },
-                )
-            }
-        }
 
-        compose.onNode(
-            hasText("Set Up 5/3/1") and hasClickAction() and
-                hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
-        ).performClick()
-        compose.onNode(hasText("Choose Your Exercises") and hasClickAction()).performScrollTo().performClick()
-        compose.waitUntil(5_000) {
-            compose.onAllNodes(hasTestTag("five-three-one-training-max-Custom-3"))
-                .fetchSemanticsNodes().isNotEmpty()
-        }
-
-        compose.onNodeWithContentDescription("Exercise 1: Bench Press").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("Exercise 2: Deadlift").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("Exercise 3: Zercher Squat").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("five-three-one-remove-Custom-3").performScrollTo().performClick()
-        compose.onNodeWithTag("five-three-one-add-custom-exercise").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("Move Bench Press later").performScrollTo().performClick()
-        compose.onNodeWithContentDescription("Exercise 1: Deadlift").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("Move Bench Press earlier").performScrollTo().performClick()
-        compose.onNodeWithContentDescription("Exercise 1: Bench Press").performScrollTo().assertIsDisplayed()
-
-        listOf("200", "300", "250").forEachIndexed { index, trainingMax ->
-            compose.onNodeWithTag("five-three-one-training-max-Custom-$index")
-                .performScrollTo()
-                .performTextReplacement(trainingMax)
-        }
-        compose.onNodeWithTag("five-three-one-program-create").assertIsEnabled().performClick()
-
-        listOf("Bench Press", "Deadlift", "Zercher Squat").forEach { day ->
-            compose.onNodeWithText("$day ·", substring = true).performScrollTo().assertIsDisplayed()
-        }
-        compose.onNodeWithTag("routine-builder-save").performClick()
-
-        compose.runOnIdle {
-            val draft = requireNotNull(savedDraft)
-            val placements = draft.days.flatMap(RoutineDayDraft::exercises)
-            assertEquals("Custom 5/3/1", draft.name)
-            assertEquals(listOf("Bench Press", "Deadlift", "Zercher Squat"), draft.days.map(RoutineDayDraft::name))
-            assertEquals(listOf(21L, 22L, 23L), placements.map(RoutineExerciseDraft::exerciseId))
-            assertEquals(listOf(200.0, 300.0, 250.0), placements.map(RoutineExerciseDraft::trainingMaxValue))
-            assertTrue(placements.all { it.placementKind == RoutinePlacementKind.MainExercise })
-            assertTrue(placements.all { it.alternativeExerciseIds.isEmpty() })
-            assertEquals(RoutineProgramKind.FiveThreeOne, draft.program?.kind)
-        }
-    }
-
-    @Test
-    fun customFiveThreeOneExerciseSelectionSearchesAFullExerciseLibrary() {
-        val exercises = listOf(
-            exercise(1, "Bench Press"),
-            exercise(2, "Deadlift"),
-            exercise(3, "Zercher Squat"),
-            exercise(4, "Overhead Press"),
-            exercise(5, "Safety Bar Squat"),
-        ) + (6L..85L).map { exercise(it, "Accessory $it") }
-        compose.setContent {
-            WhipTheme(darkTheme = true, dynamicColor = false) {
-                RoutineBuilderScreen(
-                    routineId = null,
-                    gymState = GymUiState(exercises = exercises, loading = false),
-                    initial = null,
-                    onDismiss = {},
-                    onSave = { _, complete -> complete(true) },
-                    onCreateExercise = { _, _ -> },
-                    onCreateMachine = { _, _ -> },
-                )
-            }
-        }
-
-        compose.onNode(
-            hasText("Set Up 5/3/1") and hasClickAction() and
-                hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
-        ).performClick()
-        compose.onNode(hasText("Choose Your Exercises") and hasClickAction()).performScrollTo().performClick()
-        compose.onNodeWithContentDescription("Exercise 1: Bench Press").performScrollTo().performClick()
-
-        compose.onNodeWithText("Choose Exercise 1").assertIsDisplayed()
-        compose.onNodeWithText("Bench Press · Current selection").assertIsDisplayed()
-        compose.onAllNodesWithText("alternative", substring = true, ignoreCase = true).assertCountEquals(0)
-        compose.onNodeWithTag("exercise-picker-search").performTextInput("Safety Bar")
-        compose.onNode(
-            hasText("Safety Bar Squat") and hasAnyAncestor(hasTestTag("workout-exercise-picker-list")),
-            useUnmergedTree = true,
-        ).performClick()
-        compose.onNodeWithContentDescription("Exercise 1: Safety Bar Squat").assertIsDisplayed()
-    }
 
     @Test
     fun structuredMainExerciseUsesProgramStructureAndHidesGenericRewriteControls() {
@@ -657,280 +398,9 @@ class RoutineBuilderUiTest {
         captureVisualCatalogSurface("gym.routine-builder.program")
     }
 
-    @Test
-    fun leaderAnchorSetupShowsProgressiveReviewAndBuildsAssistanceAndJokers() {
-        val exercises = listOf(
-            exercise(1, "Squat"),
-            exercise(2, "Bench Press"),
-            exercise(3, "Deadlift"),
-            exercise(4, "Overhead Press"),
-            exercise(5, "Push-up", "chest triceps"),
-            exercise(6, "Chest Supported Row", "upper back"),
-            exercise(7, "Ab Wheel", "core"),
-        )
-        var savedDraft: RoutineDraft? = null
-        compose.setContent {
-            WhipTheme(darkTheme = true, dynamicColor = false) {
-                RoutineBuilderScreen(
-                    routineId = null,
-                    gymState = GymUiState(exercises = exercises, loading = false),
-                    initial = null,
-                    onDismiss = {},
-                    onSave = { draft, complete -> savedDraft = draft; complete(true) },
-                    onCreateExercise = { _, _ -> },
-                    onCreateMachine = { _, _ -> },
-                )
-            }
-        }
 
-        compose.onNode(
-            hasText("Set Up 5/3/1") and hasClickAction() and
-                hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
-        ).performClick()
-        compose.onNodeWithTag("five-three-one-plan-ForeverBbbLeaderAnchor").performScrollTo().performClick().assertIsSelected()
-        listOf("Squat", "Bench", "Deadlift", "Press")
-            .zip(listOf("200", "150", "300", "100"))
-            .forEach { (role, tm) ->
-                compose.onNodeWithTag("five-three-one-training-max-$role")
-                    .performScrollTo()
-                    .performTextReplacement(tm)
-            }
-        androidx.test.espresso.Espresso.closeSoftKeyboard()
-        compose.onNodeWithContentDescription("BBB after Squat: Squat · same exercise").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("BBB after Squat: Squat · same exercise").performClick()
-        compose.onNodeWithContentDescription("BBB after Squat option: Bench Press").performClick()
-        compose.onNodeWithContentDescription("BBB after Squat: Bench Press").assertIsDisplayed()
-        compose.onNodeWithTag("five-three-one-joker-count-3").performScrollTo().performClick()
-        compose.onNodeWithTag("five-three-one-assistance-Push").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("five-three-one-assistance-Pull").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("five-three-one-assistance-SingleLegCore").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("five-three-one-program-timeline").performScrollTo()
-            .assertTextContains("11 weeks", substring = true)
-        captureVisualCatalogSurface("gym.531.setup")
-        compose.onNodeWithTag("five-three-one-program-create").assertIsEnabled().performClick()
-        compose.onNodeWithTag("routine-builder-save").performClick()
 
-        compose.runOnIdle {
-            val draft = requireNotNull(savedDraft)
-            assertEquals(11, draft.program?.phaseCount)
-            assertEquals(setOf(2, 6, 10), draft.program?.trainingMaxAdvanceAfterPhaseIndices)
-            assertEquals(RoutineProgramPhaseRole.OncePerExerciseDeload, draft.program?.phaseRoles?.get(6))
-            assertEquals(RoutineProgramPhaseRole.OncePerExerciseTrainingMaxTest, draft.program?.phaseRoles?.get(10))
-            assertEquals(4, draft.days.size)
-            assertTrue(draft.days.all { day ->
-                day.exercises.count { it.placementKind == RoutinePlacementKind.Assistance } == 3
-            })
-            val alternateBbb = draft.days.first().exercises.single {
-                it.placementKind == RoutinePlacementKind.Supplemental
-            }
-            assertEquals(2L, alternateBbb.exerciseId)
-            assertEquals(150.0, alternateBbb.trainingMaxValue)
-            assertEquals(5, alternateBbb.plannedSets.count {
-                it.routinePhaseIndex == 0 && it.workSection == RoutineWorkSection.Supplemental
-            })
-            val main = draft.days.first().exercises.first { it.placementKind == RoutinePlacementKind.MainExercise }
-            assertEquals(3, main.plannedSets.count {
-                it.routinePhaseIndex == 7 && it.optionalWorkKind == RoutineOptionalWorkKind.Joker
-            })
-            assertEquals(
-                setOf(
-                    RoutineAssistanceCategory.Push,
-                    RoutineAssistanceCategory.Pull,
-                    RoutineAssistanceCategory.SingleLegCore,
-                ),
-                draft.days.first().exercises.filter { it.placementKind == RoutinePlacementKind.Assistance }
-                    .mapTo(mutableSetOf(), RoutineExerciseDraft::assistanceCategory),
-            )
-        }
-    }
 
-    @Test
-    fun trainingMaxSuggestionCopiesRoundedValueWithoutStayingLinked() {
-        val exercises = listOf(
-            exercise(1, "Squat"),
-            exercise(2, "Bench Press"),
-            exercise(3, "Deadlift"),
-            exercise(4, "Overhead Press"),
-        )
-        compose.setContent {
-            WhipTheme(darkTheme = true, dynamicColor = false) {
-                RoutineBuilderScreen(
-                    routineId = null,
-                    gymState = GymUiState(exercises = exercises, loading = false),
-                    initial = null,
-                    onDismiss = {},
-                    onSave = { _, complete -> complete(true) },
-                    onCreateExercise = { _, _ -> },
-                    onCreateMachine = { _, _ -> },
-                )
-            }
-        }
-
-        compose.onNode(
-            hasText("Set Up 5/3/1") and hasClickAction() and
-                hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
-        ).performClick()
-        compose.onNodeWithTag("five-three-one-calculate-tm-Squat")
-            .performScrollTo()
-            .performClick()
-        compose.onNodeWithTag("five-three-one-recent-max-Squat")
-            .performScrollTo()
-            .performTextReplacement("200")
-        compose.onNodeWithTag("five-three-one-use-tm-suggestion-Squat")
-            .performScrollTo()
-            .assertIsEnabled()
-            .performClick()
-        compose.waitUntil(5_000) {
-            compose.onAllNodes(hasText("Current explicit TM · 170 lb"))
-                .fetchSemanticsNodes().isNotEmpty()
-        }
-        compose.onNodeWithText("Current explicit TM · 170 lb").performScrollTo().assertIsDisplayed()
-
-        compose.onNodeWithTag("five-three-one-recent-max-Squat")
-            .performTextReplacement("300")
-        compose.onNodeWithText("Current explicit TM · 170 lb").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("five-three-one-use-tm-suggestion-Squat")
-            .assertTextContains("Use 255 lb as Training Max")
-    }
-
-    @Test
-    fun setupWizardRequiresReapplyBeforePersistingChangedTrainingMaxProvenance() {
-        val squat = exercise(1, "Squat")
-        var savedDraft: RoutineDraft? = null
-        compose.setContent {
-            WhipTheme(darkTheme = true, dynamicColor = false) {
-                RoutineBuilderScreen(
-                    routineId = null,
-                    gymState = GymUiState(exercises = listOf(squat), loading = false),
-                    initial = null,
-                    onDismiss = {},
-                    onSave = { draft, complete -> savedDraft = draft; complete(true) },
-                    onCreateExercise = { _, _ -> },
-                    onCreateMachine = { _, _ -> },
-                )
-            }
-        }
-
-        compose.onNode(
-            hasText("Set Up 5/3/1") and hasClickAction() and
-                hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
-        ).performClick()
-        compose.onNode(hasText("Choose Your Exercises") and hasClickAction()).performScrollTo().performClick()
-        compose.waitUntil(5_000) {
-            compose.onAllNodes(hasTestTag("five-three-one-training-max-Custom-0"))
-                .fetchSemanticsNodes().isNotEmpty()
-        }
-        compose.onNode(hasText("Calculate from max / e1RM") and hasClickAction())
-            .performScrollTo()
-            .performClick()
-        compose.onNodeWithTag("five-three-one-recent-max-Custom-0")
-            .performScrollTo()
-            .performTextReplacement("200")
-        compose.onNodeWithTag("five-three-one-use-tm-suggestion-Custom-0")
-            .performScrollTo()
-            .assertIsEnabled()
-            .performClick()
-        compose.onAllNodes(hasTestTag("five-three-one-program-build-blocker")).assertCountEquals(0)
-        compose.onNodeWithTag("five-three-one-program-create").assertIsEnabled()
-
-        compose.onNodeWithTag("five-three-one-recent-max-Custom-0").performTextReplacement("300")
-        compose.onNodeWithTag("five-three-one-use-tm-suggestion-Custom-0")
-            .assertTextContains("Use 255 lb as Training Max")
-        compose.onNodeWithTag("five-three-one-tm-unapplied-Custom-0").assertExists()
-        compose.onNodeWithTag("five-three-one-program-create").assertIsNotEnabled().performClick()
-        compose.runOnIdle { assertNull(savedDraft) }
-
-        // A different source that rounds to the already-applied 170 lb is still a provenance edit.
-        compose.onNodeWithTag("five-three-one-recent-max-Custom-0").performTextReplacement("201")
-        compose.onNodeWithTag("five-three-one-use-tm-suggestion-Custom-0")
-            .assertTextContains("Use 170 lb as Training Max")
-        compose.onNodeWithTag("five-three-one-program-create").assertIsNotEnabled()
-        compose.onNodeWithTag("five-three-one-use-tm-suggestion-Custom-0")
-            .performScrollTo()
-            .performClick()
-        compose.onNodeWithTag("five-three-one-program-create").assertIsEnabled().performClick()
-        compose.onNodeWithTag("routine-builder-save").performClick()
-
-        compose.runOnIdle {
-            val placement = requireNotNull(savedDraft).days.single().exercises.single()
-            assertEquals(170.0, placement.trainingMaxValue)
-            assertEquals(201.0, placement.trainingMaxBasisValue)
-            assertEquals(85.0, placement.trainingMaxPercent, 0.0)
-            assertEquals(TrainingMaxBasisKind.ActualOneRepMax, placement.trainingMaxBasisKind)
-        }
-    }
-
-    @Test
-    fun trainingMaxSourceChipsLoadMatchingActualAndEstimatedRecordsAndEditablePercentage() {
-        val exercises = listOf(
-            exercise(1, "Squat"),
-            exercise(2, "Bench Press"),
-            exercise(3, "Deadlift"),
-            exercise(4, "Overhead Press"),
-        )
-        val records = listOf(
-            PersonalRecord(
-                uuid = "actual",
-                exerciseId = 1,
-                type = PersonalRecordType.BestWeightForRepCount,
-                value = massToKilograms(200.0, "pound"),
-                secondaryValue = 1.0,
-                unitId = "pound",
-                sourceSetId = 1,
-                sourceSessionId = 1,
-                achievedAtMillis = 1,
-                current = true,
-                imported = false,
-                createdAtMillis = 1,
-                updatedAtMillis = 1,
-            ),
-            PersonalRecord(
-                uuid = "estimated",
-                exerciseId = 1,
-                type = PersonalRecordType.EstimatedOneRepMax,
-                value = massToKilograms(250.0, "pound"),
-                secondaryValue = null,
-                unitId = "pound",
-                sourceSetId = 2,
-                sourceSessionId = 2,
-                achievedAtMillis = 2,
-                current = true,
-                imported = false,
-                createdAtMillis = 2,
-                updatedAtMillis = 2,
-            ),
-        )
-        compose.setContent {
-            WhipTheme(darkTheme = true, dynamicColor = false) {
-                RoutineBuilderScreen(
-                    routineId = null,
-                    gymState = GymUiState(exercises = exercises, personalRecords = records, loading = false),
-                    initial = null,
-                    onDismiss = {},
-                    onSave = { _, complete -> complete(true) },
-                    onCreateExercise = { _, _ -> },
-                    onCreateMachine = { _, _ -> },
-                )
-            }
-        }
-
-        compose.onNode(
-            hasText("Set Up 5/3/1") and hasClickAction() and
-                hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
-        ).performClick()
-        compose.onNodeWithTag("five-three-one-calculate-tm-Squat")
-            .performScrollTo()
-            .performClick()
-        compose.onNodeWithTag("five-three-one-recent-max-Squat").performScrollTo().assertTextContains("200")
-
-        compose.onNode(hasText("Estimated 1RM") and hasClickAction()).performClick()
-        compose.onNodeWithTag("five-three-one-recent-max-Squat").assertTextContains("250")
-        compose.onNode(hasText("Actual 1RM") and hasClickAction()).performClick()
-        compose.onNodeWithTag("five-three-one-recent-max-Squat").assertTextContains("200")
-        compose.onNodeWithTag("five-three-one-tm-percent-Squat").performTextReplacement("80")
-        compose.onNodeWithTag("five-three-one-use-tm-suggestion-Squat")
-            .assertTextContains("Use 160 lb as Training Max")
-    }
 
     @Test
     fun programTrainingMaxBasisEditsMustBeAppliedBeforeSaveEvenWhenTheyRoundToSameValue() {
@@ -1195,72 +665,6 @@ class RoutineBuilderUiTest {
         compose.onNodeWithText("Push / Pull / Legs").assertIsDisplayed()
     }
 
-    @Test
-    @AndroidFontScale
-    fun leaderAnchorSetupRemainsNavigableAtCompactWidthAndLargeText() {
-        val exercises = listOf(
-            exercise(1, "Squat"),
-            exercise(2, "Bench Press"),
-            exercise(3, "Deadlift"),
-            exercise(4, "Overhead Press"),
-            exercise(5, "Push-up", "chest triceps"),
-            exercise(6, "Chest Supported Row", "upper back"),
-            exercise(7, "Ab Wheel", "core"),
-        )
-        compose.setContent {
-            CompositionLocalProvider(
-                LocalDensity provides Density(compose.density.density, fontScale = 2f),
-                LocalWhipDialogPlacement provides WhipDialogPlacement(maxWidth = 320.dp),
-            ) {
-                WhipTheme(darkTheme = true, dynamicColor = false) {
-                    Box(Modifier.width(320.dp).height(600.dp)) {
-                        RoutineBuilderScreen(
-                            routineId = null,
-                            gymState = GymUiState(exercises = exercises, loading = false),
-                            initial = null,
-                            onDismiss = {},
-                            onSave = { _, complete -> complete(true) },
-                            onCreateExercise = { _, _ -> },
-                            onCreateMachine = { _, _ -> },
-                        )
-                    }
-                }
-            }
-        }
-
-        compose.onNode(
-            hasText("Set Up 5/3/1") and hasClickAction() and
-                hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry")),
-        ).performScrollTo().performClick()
-        compose.assertDialogFontScale()
-        captureVisualCatalogSurface("gym.531.setup.large")
-        compose.onNodeWithTag("five-three-one-plan-ForeverBbbLeaderAnchor")
-            .performScrollTo()
-            .assertIsDisplayed()
-            .performClick()
-        compose.onAllNodes(hasTestTag("five-three-one-layout-Beginners")).assertCountEquals(0)
-        compose.onNodeWithTag("five-three-one-beginners-plan-boundary")
-            .performScrollTo()
-            .assertIsDisplayed()
-            .assertTextContains("Choose Classic cycle above to use it.", substring = true)
-        compose.onNodeWithTag("five-three-one-protocol-PersonalRecordTest")
-            .performScrollTo()
-            .assertIsDisplayed()
-        compose.onNodeWithTag("five-three-one-joker-count-3")
-            .performScrollTo()
-            .assertIsDisplayed()
-        compose.onNodeWithTag("five-three-one-assistance-Push")
-            .performScrollTo()
-            .assertIsDisplayed()
-        compose.onNodeWithTag("five-three-one-program-timeline")
-            .performScrollTo()
-            .assertIsDisplayed()
-        compose.onNodeWithTag("five-three-one-program-create").assertIsDisplayed().assertIsNotEnabled()
-
-        val presetBounds = compose.onNodeWithTag("five-three-one-plan-ForeverBbbLeaderAnchor")
-            .getUnclippedBoundsInRoot()
-        assertTrue("Preset must retain a 48 dp touch target", presetBounds.bottom - presetBounds.top >= 48.dp)
-    }
 
     @Test
     fun exerciseListUsesTheRoutinePaneInsteadOfAOneRowNestedViewport() {
@@ -1307,140 +711,8 @@ class RoutineBuilderUiTest {
         compose.onNodeWithText("Exercise 5", useUnmergedTree = true).assertIsDisplayed()
     }
 
-    @Test
-    fun supplementalChoiceBelongsToItsMainExerciseWhileEarlierTrainingMaxIsIncomplete() {
-        var savedDraft: RoutineDraft? = null
-        compose.setContent {
-            WhipTheme(darkTheme = true, dynamicColor = false) {
-                RoutineBuilderScreen(
-                    routineId = null,
-                    gymState = GymUiState(
-                        exercises = listOf(exercise(1, "Squat"), exercise(2, "Bench Press"), exercise(3, "Deadlift")),
-                        loading = false,
-                    ),
-                    initial = null,
-                    onDismiss = {},
-                    onSave = { draft, complete -> savedDraft = draft; complete(true) },
-                    onCreateExercise = { _, _ -> },
-                    onCreateMachine = { _, _ -> },
-                )
-            }
-        }
-        compose.onNode(hasText("Set Up 5/3/1") and hasClickAction() and
-            hasAnyAncestor(hasTestTag("routine-five-three-one-program-entry"))).performClick()
-        compose.onNodeWithTag("five-three-one-layout-Custom").performScrollTo().performClick()
-        compose.onNodeWithTag("five-three-one-training-max-Custom-1").performScrollTo().performTextReplacement("200")
-        compose.onNodeWithTag("five-three-one-training-max-Custom-2").performScrollTo().performTextReplacement("300")
-        compose.onNodeWithTag("five-three-one-supplement-2").performScrollTo().performClick()
-        compose.onNodeWithContentDescription("Supplemental Work option: BBB · 5 × 10").performClick()
-        compose.onNodeWithContentDescription("BBB after Bench Press: Bench Press · same exercise")
-            .performScrollTo().performClick()
-        compose.onNodeWithContentDescription("BBB after Bench Press option: Deadlift").performClick()
-        compose.onNodeWithContentDescription("BBB after Bench Press: Deadlift").assertExists()
-        compose.onNodeWithTag("five-three-one-training-max-Custom-0").performScrollTo().performTextReplacement("250")
-        compose.onNodeWithContentDescription("BBB after Bench Press: Deadlift").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("BBB after Squat: Squat · same exercise").assertDoesNotExist()
-        compose.onNodeWithTag("five-three-one-supplement-1").performScrollTo()
-        compose.onNode(hasContentDescription("Supplemental Work: FSL · 5 × 5") and
-            hasAnyAncestor(hasTestTag("five-three-one-supplement-1"))).assertIsDisplayed()
-        compose.onNodeWithTag("five-three-one-program-create").performClick()
-        compose.onNodeWithTag("routine-builder-save").performClick()
-        compose.runOnIdle {
-            val days = requireNotNull(savedDraft).days
-            assertEquals(listOf(1L), days.single { it.name == "Squat" }.exercises.map { it.exerciseId })
-            assertEquals(listOf(2L, 3L), days.single { it.name == "Bench Press" }.exercises.map { it.exerciseId })
-            assertEquals(300.0, days.single { it.name == "Bench Press" }.exercises.last().trainingMaxValue)
-        }
-    }
 
-    @Test
-    fun guidedFiveThreeOneBuilderPersistsCompleteExplicitBbbCycle() {
-        val bench = exercise(1, "Bench")
-        var savedDraft: RoutineDraft? = null
-        compose.setContent {
-            WhipTheme(darkTheme = true, dynamicColor = false) {
-                RoutineBuilderScreen(
-                    routineId = 7,
-                    gymState = GymUiState(exercises = listOf(bench), loading = false),
-                    initial = RoutineDraft(
-                        name = "5/3/1",
-                        days = listOf(RoutineDayDraft("Press", listOf(RoutineExerciseDraft(bench.id)))),
-                    ),
-                    onDismiss = {},
-                    onSave = { draft, complete -> savedDraft = draft; complete(true) },
-                    onCreateExercise = { _, _ -> },
-                    onCreateMachine = { _, _ -> },
-                )
-            }
-        }
 
-        compose.onNodeWithText("Bench", useUnmergedTree = true).performClick()
-        compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasTestTag("routine-five-three-one-toggle"))
-        compose.onNodeWithTag("routine-five-three-one-toggle").performClick()
-        compose.onNodeWithTag("routine-placement-editor")
-            .performScrollToNode(hasTestTag("five-three-one-training-max"))
-        compose.onNodeWithTag("five-three-one-training-max").performTextReplacement("200")
-        compose.onNodeWithTag("routine-placement-editor")
-            .performScrollToNode(hasTestTag("five-three-one-main-FivesPro"))
-        compose.onNodeWithTag("five-three-one-main-FivesPro").performClick()
-        compose.onNodeWithTag("routine-placement-editor")
-            .performScrollToNode(hasTestTag("five-three-one-supplement-BoringButBig"))
-        compose.onNodeWithTag("five-three-one-supplement-BoringButBig").performClick()
-        compose.onNodeWithTag("routine-placement-editor")
-            .performScrollToNode(hasTestTag("five-three-one-apply"))
-        compose.onNodeWithTag("five-three-one-apply").performClick()
-        compose.onNodeWithTag("routine-builder-save").performClick()
-
-        compose.runOnIdle {
-            val draft = requireNotNull(savedDraft)
-            assertEquals(RoutineProgramKind.FiveThreeOne, draft.program?.kind)
-            assertEquals(4, draft.program?.phaseCount)
-            assertEquals(listOf("5s Week", "3s Week", "5/3/1 Week", "Deload"), draft.program?.phaseLabels)
-            val placement = draft.days.single().exercises.single()
-            assertEquals(200.0, placement.trainingMaxValue)
-            assertEquals("pound", placement.trainingMaxUnitId)
-            assertEquals(5.0, placement.cycleIncrementValue)
-            assertEquals(RoutineTrainingMaxSource.Explicit, placement.trainingMaxSource)
-            assertEquals(RoutineMainWorkScheme.FivesPro, placement.mainWorkScheme)
-            assertEquals(RoutineSupplementalScheme.BoringButBig, placement.supplementalScheme)
-            assertEquals(17, placement.plannedSets.size)
-            assertEquals(12, placement.plannedSets.count { it.routinePhaseIndex != null })
-            assertEquals(5, placement.plannedSets.count { it.routinePhaseIndex == null && it.reps == 10 })
-        }
-    }
-
-    @Test
-    fun multiDayRoutineRoutesFiveThreeOneConversionThroughWholeProgramReview() {
-        val bench = exercise(1, "Bench")
-        val deadlift = exercise(2, "Deadlift")
-        compose.setContent {
-            WhipTheme(darkTheme = true, dynamicColor = false) {
-                RoutineBuilderScreen(
-                    routineId = 7,
-                    gymState = GymUiState(exercises = listOf(bench, deadlift), loading = false),
-                    initial = RoutineDraft(
-                        name = "Two day draft",
-                        days = listOf(
-                            RoutineDayDraft("Bench day", listOf(RoutineExerciseDraft(bench.id))),
-                            RoutineDayDraft("Deadlift day", listOf(RoutineExerciseDraft(deadlift.id))),
-                        ),
-                    ),
-                    onDismiss = {},
-                    onSave = { _, complete -> complete(true) },
-                    onCreateExercise = { _, _ -> },
-                    onCreateMachine = { _, _ -> },
-                )
-            }
-        }
-
-        compose.onNodeWithText("Bench", useUnmergedTree = true).performClick()
-        compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasTestTag("routine-five-three-one-whole-program-required"))
-        compose.onNodeWithTag("routine-five-three-one-whole-program-required").assertIsDisplayed()
-        compose.onAllNodes(hasTestTag("routine-five-three-one-toggle")).assertCountEquals(0)
-        compose.onNodeWithTag("routine-five-three-one-replace-with-program").performClick()
-        compose.onNodeWithTag("five-three-one-program-replacement-warning").assertIsDisplayed()
-        compose.onNodeWithTag("five-three-one-program-create").assertTextContains("Replace Draft with Program")
-    }
 
     @Test
     fun singleDayRoutineHidesActionsThatCannotApply() {
