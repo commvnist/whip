@@ -1,5 +1,15 @@
 # Verification and release evidence
 
+### VER-20260920-003 — Portable-backup shared-folder deletion boundary
+
+- Scope/environment: FB-20260920-001 / FND, DEC, IMP-20260920-003. Disposable API 34 emulator using an in-memory fake SAF provider and synthetic backup content; current Data & Privacy UI through the real app shell. No owner phone, real external provider, signed release or store action.
+- Baseline: Two exact methods in `build/instrumentation-results-Q91s4s` both execute and fail on prior production: `automaticRetentionNeverPrunesAManuallySavedPlainBackup` reports `Manual backup must remain even when it is old`; `crashCleanupDoesNotDeleteAnUnrelatedFileWithTheIncompletePrefix` reports `Unrelated note must remain`.
+- Final native/JVM: `ANDROID_SERIAL=emulator-5556 scripts/qa-targeted --android com.whip.app.PortableBackupManagerTest` passes 13/13 methods with zero failure/skip in `build/instrumentation-results-AzZcef`. The exact Settings boundary-copy method passes in `build/instrumentation-results-gKcq66`; the existing dark Data & Privacy journey passes in `build/instrumentation-results-p7DT6c`. `scripts/qa-targeted --all-jvm` passes 657/657 methods, including exact automatic/staging-name policy. One intermediate combined run passed all 13 manager methods and failed only because the new copy assertion requested exact rather than substring semantics; `gKcq66` is its exact fixture replacement.
+- Visual/static: One exact-source original PNG/XML pair is personally inspected and retained at `artifacts/astra-audit/2026-09-20/portable-retention/`; it shows the enforceable filename boundary with no NAF nodes. Current catalog remains 523 required states, zero pending/exception. Final `scripts/check --ready` passes in 2m9s with 657 JVM methods, Android-test compilation, lint and debug packaging; no frozen candidate is created.
+- Counts/exclusions: Current inventory is 657 JVM + 1075 Android = 1732 methods. Real Google Drive/removable-storage revocation and process recovery, complete Settings/provider/reset campaigns, full Android matrix and whole-catalog capture remain open.
+- Commit/push: Focused main/origin push is recorded in Git history.
+- Related/status: FB-20260920-001, FND/DEC/IMP-20260920-003. Verified for this shared-folder deletion boundary; the whole-product audit remains In progress.
+
 ### VER-20260920-002 — Native encrypted-export interruption and format continuity
 
 - Scope/environment: FB-20260920-001 / FND, DEC, IMP-20260920-002. Disposable API 34 emulator; synthetic Task data and native Android DocumentsUI. No owner phone, signed release or store action.

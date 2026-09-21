@@ -1258,7 +1258,7 @@ internal fun SettingsContent(
             WhipSettingsSectionCard {
                     Text("Portable Backup Folder", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(
-                        "Save verified backups to Files, Drive, or removable storage. Automatic backups use plain JSON, without encryption. Unrelated files are never deleted.",
+                        "Save verified plain-JSON backups to Files, Drive, or removable storage. Retention and cleanup act only on Whip's automatic-backup and incomplete-write filenames.",
                         style = MaterialTheme.typography.bodySmall,
                     )
                     if (state.portableBackup.configured) {

@@ -305,7 +305,7 @@ class PortableBackupManager(
 
             val allFiles = documentStore.list(treeUri)
             val eligibleExisting = allFiles.filter {
-                it.uri != created.uri && it.displayName.startsWith("whip-") && it.displayName.endsWith(".whip.json")
+                it.uri != created.uri && isPortableBackupFileName(it.displayName)
             }
             val validExisting = eligibleExisting.filter { file ->
                 runCatching {
@@ -338,7 +338,7 @@ class PortableBackupManager(
     }
 
     private fun cleanupStagingFiles(treeUri: Uri): Int = documentStore.list(treeUri)
-        .filter { it.displayName.startsWith(PORTABLE_BACKUP_STAGING_PREFIX) }
+        .filter { isPortableBackupStagingFileName(it.displayName) }
         .count { file -> runCatching { documentStore.delete(file.uri) }.getOrDefault(false) }
 
     private fun readState(): PortableBackupState = PortableBackupState(
@@ -466,7 +466,7 @@ fun <T> portableBackupItemsToPrune(
 ): List<T> {
     val keep = retentionCount.coerceIn(MIN_PORTABLE_BACKUP_RETENTION, MAX_PORTABLE_BACKUP_RETENTION)
     val eligible = items
-        .filter { displayName(it).startsWith("whip-") && displayName(it).endsWith(".whip.json") }
+        .filter { isPortableBackupFileName(displayName(it)) }
     val protectedCount = eligible.count(protected).coerceAtMost(keep)
     return eligible
         .filterNot(protected)
@@ -484,6 +484,12 @@ private fun android.content.SharedPreferences.Editor.putNullableLong(key: String
 
 private const val BACKUP_MIME_TYPE = "application/json"
 internal const val PORTABLE_BACKUP_STAGING_PREFIX = "whip-INCOMPLETE-"
+internal fun isPortableBackupStagingFileName(name: String): Boolean = PORTABLE_BACKUP_STAGING_NAME.matches(name)
+internal fun isPortableBackupFileName(name: String): Boolean = PORTABLE_BACKUP_FINAL_NAME.matches(name)
+private val PORTABLE_BACKUP_STAGING_NAME = Regex(
+    "^whip-INCOMPLETE-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\.partial$",
+)
+private val PORTABLE_BACKUP_FINAL_NAME = Regex("^whip-[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6}\\.whip\\.json$")
 private const val PORTABLE_BACKUP_PREFERENCES = "portable_backups"
 private const val KEY_FOLDER_URI = "folder_uri"
 private const val KEY_FOLDER_LABEL = "folder_label"

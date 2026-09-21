@@ -1,5 +1,15 @@
 # Implementation history
 
+### IMP-20260920-003 — Restrict portable-backup deletion to exact automatic filenames
+
+- Behavior changed: Portable-folder retention now considers only Whip's generated `whip-YYYY-MM-DD-HHmmss.whip.json` finals, and interrupted-write cleanup only deletes `whip-INCOMPLETE-<UUID>.partial`. A manual `whip-YYYY-MM-DD.whip.json` export, unrelated prefixed note and malformed lookalikes remain untouched. Settings replaces the absolute unrelated-file promise with the enforceable exact filename boundary.
+- Important files/symbols: `PortableBackupManager.isPortableBackupFileName`, `isPortableBackupStagingFileName`, `cleanupStagingFiles`, `backupNow`, `portableBackupItemsToPrune`; `PortableBackupPolicyTest`, `PortableBackupManagerTest`, `SettingsBehaviorUiTest`, and Data & Privacy overview evidence.
+- Persistence/migration/history impact: No Room schema, portable-backup format, data epoch, package version, grant or user-record change. Existing automatic files continue to participate in verified retention. Unrecognized/older/future filenames are conservatively retained rather than deleted.
+- Compatibility and limitations: Exact names establish ownership only at the product convention level, not cryptographically. A user can deliberately create the same automatic pattern; avoiding that residual ambiguity would require durable file receipts/provider identity. Provider-renamed collisions and future formats may remain unpruned, favoring storage use over unsafe deletion.
+- Commit/push: Focused main/origin push is recorded in Git history; no release or phone install.
+- Related: FB-20260920-001, FND/DEC-20260920-003, VER-20260920-003.
+- Verification/status: Verified under VER-20260920-003; two native deletion baselines fail before the fix, all 13 manager tests and the exact Settings copy/capture pass afterward, and final readiness passes 657 JVM methods, compilation, lint and debug packaging.
+
 ### IMP-20260920-002 — Keep encrypted export intact across the Android file picker
 
 - Behavior changed: `SettingsContent` no longer owns a pending file-export kind or passphrase in Compose state. Before opening Android CreateDocument, it gives a one-shot request to `SettingsViewModel`; the ViewModel survives Activity recreation while keeping the secret out of saved state/preferences/backups. The result consumes the request exactly once; cancellation clears it. If a URI returns after process loss with no request, Whip does not write or silently downgrade encryption and reports that the selected file may be empty. Successful receipts now distinguish encrypted backup, plain JSON backup and CSV.

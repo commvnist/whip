@@ -1,5 +1,17 @@
 # Durable product and engineering decisions
 
+### DEC-20260920-003 — Destructive portable-backup ownership requires exact generated names
+
+- Context: FND-20260920-003 identifies two deletion paths operating inside a user-selected, potentially shared folder. Existing checksum validity proves a file is a Whip backup, not that automatic retention owns it. A broad incomplete prefix does not prove an abandoned Whip staging write.
+- Position A: Continue prefix/suffix matching and rely on checksum validation plus friendly UI disclosure.
+- Position B: Only automatic filenames matching Whip's exact timestamp grammar enter retention; only UUID-shaped `.partial` filenames enter crash cleanup. Preserve other files without trying to inspect or delete them.
+- Evidence and constraints: Manual plain export defaults to `whip-YYYY-MM-DD.whip.json`, automatic final export to `whip-YYYY-MM-DD-HHmmss.whip.json`, and staging to `whip-INCOMPLETE-<UUID>.partial`. SAF providers may return unreliable modified times and may rename a colliding final file, so URI protection and failure-tolerant read/verification remain necessary. Old test fixtures use invented `whip-old` names that production never generated and must be corrected.
+- Failure modes: Position A may silently delete a user backup or note. Position B may leave a provider-renamed or future-version automatic file unpruned; this consumes storage but is safer than deleting a file without ownership proof. An exact same-shape user-created name is still not cryptographic ownership, so product copy must not promise more than can be enforced.
+- Decision: Select Position B and centralize the predicates. Retention can still prune verified automatic files by modified time while protecting the newly created URI. The operation does not erase unrecognized files, including manual exports.
+- Why this is superior for Whip: It makes the stated shared-folder boundary true for common real names and favors harmless retained files over irrecoverable deletion.
+- Consequences/reversal conditions: The naming grammar becomes a compatibility boundary; change it only with explicit migration/tests or a durable receipt ownership model.
+- Related/status: FB-20260920-001, FND/IMP/VER-20260920-003; Verified as an unreleased app change.
+
 ### DEC-20260920-002 — Keep a document export request in configuration-retained memory
 
 - Context: FND-20260920-002 confirms that a real encrypted export fails after Whip recreates behind Android DocumentsUI because composition-owned passphrase state disappears before the Activity result. The failure is after the provider creates a destination, so a reassuring success or plaintext fallback would be especially harmful.

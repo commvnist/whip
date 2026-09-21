@@ -34,25 +34,25 @@ class PortableBackupPolicyTest {
 
     @Test
     fun retentionIsClampedToAtLeastOneVerifiedBackup() {
-        val files = listOf(file("whip-old.whip.json", 1), file("whip-new.whip.json", 2))
+        val files = listOf(file("whip-2026-08-16-120000.whip.json", 1), file("whip-2026-08-17-120000.whip.json", 2))
 
         assertEquals(
-            listOf("whip-old.whip.json"),
+            listOf("whip-2026-08-16-120000.whip.json"),
             portableBackupItemsToPrune(files, retentionCount = 0, Item::name, Item::modified).map(Item::name),
         )
     }
 
     @Test
     fun newlyWrittenBackupIsProtectedWhenProviderHasNoModifiedTimestamp() {
-        val newestWrite = file("whip-new-write.whip.json", 0)
+        val newestWrite = file("whip-2026-08-18-190102.whip.json", 0)
         val files = listOf(
-            file("whip-old.whip.json", 100),
-            file("whip-older.whip.json", 50),
+            file("whip-2026-08-17-120000.whip.json", 100),
+            file("whip-2026-08-16-120000.whip.json", 50),
             newestWrite,
         )
 
         assertEquals(
-            listOf("whip-old.whip.json", "whip-older.whip.json"),
+            listOf("whip-2026-08-17-120000.whip.json", "whip-2026-08-16-120000.whip.json"),
             portableBackupItemsToPrune(
                 files,
                 retentionCount = 1,
@@ -61,6 +61,17 @@ class PortableBackupPolicyTest {
                 protected = { it === newestWrite },
             ).map(Item::name),
         )
+    }
+
+    @Test
+    fun ownershipPredicatesExcludeManualAndLookalikeFiles() {
+        assertEquals(true, isPortableBackupFileName("whip-2026-08-18-190102.whip.json"))
+        assertEquals(false, isPortableBackupFileName("whip-2026-08-18.whip.json"))
+        assertEquals(false, isPortableBackupFileName("whip-old.whip.json"))
+        assertEquals(false, isPortableBackupFileName("whip-2026-08-18-190102.whip.json.txt"))
+        assertEquals(true, isPortableBackupStagingFileName("whip-INCOMPLETE-00000000-0000-0000-0000-000000000001.partial"))
+        assertEquals(false, isPortableBackupStagingFileName("whip-INCOMPLETE-personal-notes.txt"))
+        assertEquals(false, isPortableBackupStagingFileName("whip-INCOMPLETE-crashed.partial"))
     }
 
     private fun file(name: String, modified: Long) = Item(name, modified)

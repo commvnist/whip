@@ -1,5 +1,15 @@
 # Durable findings
 
+### FND-20260920-003 — Portable retention and crash cleanup can delete unrelated files
+
+- Severity/category: P1 preventable user-file deletion; FB-20260920-001.
+- Observed source: `PortableBackupManager.cleanupStagingFiles` deletes every child whose display name starts `whip-INCOMPLETE-`, regardless of the UUID/`.partial` shape of Whip's generated staging files. Retention accepts every checksum-valid `whip-*.whip.json` file, although manual plain exports default to `whip-YYYY-MM-DD.whip.json` while automatic backups use `whip-YYYY-MM-DD-HHmmss.whip.json`. Thus a chosen folder containing a manual Whip export can have that separate backup pruned; a user note named `whip-INCOMPLETE-notes.txt` can be deleted during startup cleanup. The UI explicitly says unrelated files are never deleted.
+- Expected: Crash cleanup and retention must only target names matching the exact automatic staging/final naming grammar Whip itself generates, and preserve manual backups and unrelated files even when their contents are valid Whip JSON.
+- Evidence: `PortableBackupManager.kt` `cleanupStagingFiles`, `backupNow` `eligibleExisting`, `portableBackupItemsToPrune`, and `SettingsScreens.kt` portable-folder explanation. Native fake-provider baseline `build/instrumentation-results-Q91s4s` fails both newly added assertions: `Manual backup must remain even when it is old` and `Unrelated note must remain`.
+- Root cause: Broad prefix/suffix filters are being treated as ownership proof for destructive operations in a shared user-selected document tree.
+- Recommended solution: Centralize exact generated-filename predicates for UUID-shaped `.partial` staging and timestamp-shaped `.whip.json` finals. Apply them consistently before read/verify/prune and in startup cleanup; retain checksum validation and protected newly-created URI. Do not change provider grants, backup format or historical records.
+- Related/status: FB-20260920-001, DEC/IMP/VER-20260920-003; Verified as an unreleased app change. The exact two-failure deletion baseline is corrected; all manager checks and final readiness pass. Real external-provider recovery remains separate open audit work.
+
 ### FND-20260920-002 — Encrypted export loses its secret while the document picker is open
 
 - Severity/category: P1 backup reliability and recovery confidence; FB-20260920-001.

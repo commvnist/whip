@@ -64,8 +64,8 @@ class PortableBackupManagerTest {
     @Test
     fun successfulWritePrunesOldBackupsButLeavesUnrelatedFiles() = runBlocking {
         val store = FakeDocumentStore().apply {
-            addExisting("whip-older.whip.json", 1)
-            addExisting("whip-old.whip.json", 2)
+            addExisting("whip-2026-08-16-120000.whip.json", 1)
+            addExisting("whip-2026-08-17-120000.whip.json", 2)
             addExisting("notes.txt", 0)
         }
         val manager = manager(uniquePreferences(), FakeBackupRepository(5), store)
@@ -74,10 +74,46 @@ class PortableBackupManagerTest {
 
         manager.backupNow()
 
-        assertFalse(store.files.any { it.displayName == "whip-older.whip.json" })
-        assertTrue(store.files.any { it.displayName == "whip-old.whip.json" })
+        assertFalse(store.files.any { it.displayName == "whip-2026-08-16-120000.whip.json" })
+        assertTrue(store.files.any { it.displayName == "whip-2026-08-17-120000.whip.json" })
         assertTrue(store.files.any { it.displayName == "notes.txt" })
         assertEquals(2, store.files.count { it.displayName.endsWith(".whip.json") })
+    }
+
+    @Test
+    fun automaticRetentionNeverPrunesAManuallySavedPlainBackup() = runBlocking {
+        val manualName = "whip-2026-08-17.whip.json"
+        val oldAutomaticName = "whip-2026-08-16-120000.whip.json"
+        val store = FakeDocumentStore().apply {
+            addExisting(manualName, 1)
+            addExisting(oldAutomaticName, 2)
+        }
+        val manager = manager(uniquePreferences(), FakeBackupRepository(5), store)
+        manager.configureFolder(TREE_URI)
+        manager.setRetentionCount(1)
+
+        manager.backupNow()
+
+        assertTrue("Manual backup must remain even when it is old", store.files.any { it.displayName == manualName })
+        assertFalse(store.files.any { it.displayName == oldAutomaticName })
+        assertTrue(store.files.any { it.displayName == "whip-2026-08-18-190102.whip.json" })
+    }
+
+    @Test
+    fun crashCleanupDoesNotDeleteAnUnrelatedFileWithTheIncompletePrefix() = runBlocking {
+        val unrelatedName = "whip-INCOMPLETE-personal-notes.txt"
+        val stagedName = "whip-INCOMPLETE-00000000-0000-0000-0000-000000000001.partial"
+        val store = FakeDocumentStore().apply {
+            addExisting(unrelatedName, 1)
+            addExisting(stagedName, 2)
+        }
+        val manager = manager(uniquePreferences(), FakeBackupRepository(5), store)
+        manager.configureFolder(TREE_URI)
+
+        manager.recoverInterruptedWrites()
+
+        assertTrue("Unrelated note must remain", store.files.any { it.displayName == unrelatedName })
+        assertFalse(store.files.any { it.displayName == stagedName })
     }
 
     @Test
@@ -111,8 +147,8 @@ class PortableBackupManagerTest {
     @Test
     fun corruptNewestFileDoesNotDisplaceAnOlderVerifiedBackup() = runBlocking {
         val store = FakeDocumentStore().apply {
-            addExisting("whip-valid.whip.json", 1)
-            addExisting("whip-corrupt.whip.json", 2, content = "corrupt")
+            addExisting("whip-2026-08-16-120000.whip.json", 1)
+            addExisting("whip-2026-08-17-120000.whip.json", 2, content = "corrupt")
         }
         val manager = manager(uniquePreferences(), FakeBackupRepository(4), store)
         manager.configureFolder(TREE_URI)
@@ -120,8 +156,8 @@ class PortableBackupManagerTest {
 
         manager.backupNow()
 
-        assertTrue(store.files.any { it.displayName == "whip-valid.whip.json" })
-        assertTrue(store.files.any { it.displayName == "whip-corrupt.whip.json" })
+        assertTrue(store.files.any { it.displayName == "whip-2026-08-16-120000.whip.json" })
+        assertTrue(store.files.any { it.displayName == "whip-2026-08-17-120000.whip.json" })
         assertTrue(manager.state.value.lastError!!.contains("ignored during retention"))
     }
 
@@ -141,13 +177,14 @@ class PortableBackupManagerTest {
 
     @Test
     fun abandonedStagingFilesAreCleanedBeforeTheNextBackup() = runBlocking {
-        val store = FakeDocumentStore().apply { addExisting("whip-INCOMPLETE-crashed.partial", 5) }
+        val stagedName = "whip-INCOMPLETE-00000000-0000-0000-0000-000000000002.partial"
+        val store = FakeDocumentStore().apply { addExisting(stagedName, 5) }
         val manager = manager(uniquePreferences(), FakeBackupRepository(1), store)
         manager.configureFolder(TREE_URI)
 
         manager.backupNow()
 
-        assertTrue(store.files.none { it.displayName == "whip-INCOMPLETE-crashed.partial" })
+        assertTrue(store.files.none { it.displayName == stagedName })
     }
 
     @Test
@@ -169,14 +206,15 @@ class PortableBackupManagerTest {
 
     @Test
     fun scheduledBackupDoesNotRotateGoodHistoryWhenDatabaseIsEmpty() = runBlocking {
-        val store = FakeDocumentStore().apply { addExisting("whip-last-good.whip.json", 1) }
+        val lastGoodName = "whip-2026-08-17-120000.whip.json"
+        val store = FakeDocumentStore().apply { addExisting(lastGoodName, 1) }
         val manager = manager(uniquePreferences(), FakeBackupRepository(0), store)
         manager.configureFolder(TREE_URI)
 
         val outcome = manager.backupNow(allowEmpty = false)
 
         assertEquals(PortableBackupOutcome.SkippedEmptyDatabase, outcome)
-        assertEquals(listOf("whip-last-good.whip.json"), store.files.map(PortableBackupFile::displayName))
+        assertEquals(listOf(lastGoodName), store.files.map(PortableBackupFile::displayName))
     }
 
     @Test

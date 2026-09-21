@@ -165,6 +165,7 @@ class E2ECoverageContractTest {
             "widget-area-scope",
             "legacy-import-history-continuity",
             "backup-native-decision-continuity",
+            "backup-native-export-interruption",
             "backup-failure-feedback",
         )
 

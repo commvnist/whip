@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -270,6 +271,15 @@ class SettingsBehaviorUiTest {
                 compose.onNodeWithContentDescription("Back to Settings").performClick()
             }
         }
+    }
+
+    @Test
+    fun portableBackupExplainsItsExactSharedFolderDeletionBoundary() {
+        compose.onNodeWithTag("workspace-settings-action").performClick()
+        selectSettingsCategory("Data & Privacy")
+        val copy = "Retention and cleanup act only on Whip's automatic-backup and incomplete-write filenames."
+        compose.onNodeWithTag("settings-list").performScrollToNode(hasText(copy, substring = true))
+        compose.onNodeWithText(copy, substring = true).assertIsDisplayed()
     }
 
     @Test
