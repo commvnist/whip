@@ -1,5 +1,13 @@
 # Durable findings
 
+### FND-20260921-004 — Next Set stopped at the start of a long Superset instead of the active Set
+
+- Severity/category: P2 Gym in-workout navigation and one-handed execution; FB-20260920-001.
+- Observed: After Bench Set 1 in a two-exercise Superset with ten Bench Sets, rotation correctly named Row Set 1 as NEXT. Tapping the sticky NEXT row scrolled the lazy list to the Superset block's top, leaving Row's active composer off-screen. The real-app baseline `build/instrumentation-results-LfGWbz` failed the exact `active-set-composer` visibility assertion.
+- Expected: Automatic next-Set handoff and a tapped NEXT row reveal the actual actionable Set, including a later group member or Set, without changing the selected exercise, group order or logged data. The same rule applies when another app surface opens an active exercise.
+- Root cause/evidence: `WorkoutContent` knew the exact `WorkoutSet` but passed only its group's LazyColumn index to `scrollToItem`/`animateScrollToItem`. The group can be much taller than the viewport. The corrected API 34 journey and original image/XML are in `artifacts/astra-audit/2026-09-21/gym-grouped-navigation/README.md`.
+- Resolution/status: Bring the exact active composer into view after the group item is composed; retain the group scroll as the first stage. FND/DEC/IMP/VER-20260921-004 verifies scoped normal-phone handoff, tap, scroll-away, recreation and exact Set visibility. Other Gym configurations and whole-product audit remain open.
+
 ### FND-20260921-003 — Date ranges silently excluded every Track Entry; maximum imports stalled on per-cell DAO calls
 
 - Severity/category: P2 Track history/insight correctness and large-history responsiveness; FB-20260920-001.

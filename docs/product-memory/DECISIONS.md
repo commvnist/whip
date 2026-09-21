@@ -1,5 +1,13 @@
 # Durable product and engineering decisions
 
+### DEC-20260921-004 — NEXT navigation targets Set identity inside its rendered group
+
+- Context: FND-20260921-004; the execution lane already resolves the right Set, but its click and automatic handoff navigate only to the enclosing lazy-list block.
+- Decision: Keep the existing block scroll to ensure the long group is composed, then issue a `BringIntoViewRequester` request from the exact active Set card. Bind requests to both Set identity and a repeatable request version, so tapping NEXT again after scrolling away works even when the next Set has not changed. Use the same two-stage target for external active-exercise navigation.
+- Rejected alternative: Expanding or flattening Superset members into separate lazy-list items would change grouped composition and reordering semantics solely to solve scrolling. Scrolling only to the block top reproduces the failure.
+- Consequences: No persistence or workout selection changes. Compose's active Set owns the final in-viewport placement; automatic handoff no longer leaves later group members out of reach. Validate with a long real grouped workout and Activity recreation.
+- Related/status: FB-20260920-001, FND/IMP/VER-20260921-004; accepted for scoped Gym navigation.
+
 ### DEC-20260921-003 — Keep complete Track truth but bound import crossings and move projection work off main
 
 - Context: FND-20260921-003 exposed an actual Date-range correctness defect and a measured maximum-import cost. Whip's current Track list, search, insights and exports rely on complete projections, even though the default history view also reads bounded database pages. Replacing that model with list summaries or partial analytics would require a broader cross-feature contract rewrite without evidence that the measured 100,000-cell read is currently too slow.

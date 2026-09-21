@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260921-004 — Reveal the actual active Set within long workout groups
+
+- `WorkoutContent` now carries an exact Set ID plus repeatable focus request after composing its lazy block. `WorkoutExerciseCard` attaches a `BringIntoViewRequester` to the active composer. Automatic next-Set changes, explicit sticky NEXT taps and externally requested exercise navigation share the same exact target.
+- `WorkoutGroupedSetNavigationE2ETest` creates a real two-exercise Superset with ten earlier-member Sets, completes the first, checks automatic visibility, scrolls away/taps NEXT, recreates and repeats. The new `gym.workout.grouped-next-set` catalog state retains original phone PNG/XML evidence. The Gym targeted QA profile includes the regression.
+- Compatibility: No Room schema, data epoch, backup format, package version, routine prescription, group ordering, completed Set or workout-history change. No owner-phone installation. Broad Gym and whole-product acceptance remain separate.
+- Related/status: FB-20260920-001, FND/DEC/VER-20260921-004; scoped normal/wide/200% and Gym-family verification passed; whole-product audit continues.
+
 ### IMP-20260921-003 — Correct Date-range filtering and bound maximum Track import work
 
 - `TrackAnalytics.matches` now handles `Between` for Date Fields as an inclusive Date range, independent of numeric and Entry Date branches. A complete typed-operator JVM sweep covers text, choice, canonical Number, Scale, Date, Yes/No, blank, missing and reversed boundaries. A native history journey chooses two dates through the production picker, verifies all three inclusive matches, recreates the Activity and checks unchanged persisted projections.

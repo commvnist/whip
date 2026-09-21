@@ -32,6 +32,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
@@ -2734,6 +2736,8 @@ private fun WorkoutContent(
     var acceptedOptionalSetIds by rememberSaveable(session.id) { mutableStateOf<List<Long>>(emptyList()) }
     val skippedOptionalSetId = lastSkippedOptionalSetId
     var requestedExecutionExerciseId by rememberSaveable(session.id) { mutableStateOf<Long?>(null) }
+    var focusRequestSetId by rememberSaveable(session.id) { mutableStateOf<Long?>(null) }
+    var focusRequestVersion by rememberSaveable(session.id) { mutableIntStateOf(0) }
     var arrangingWorkout by rememberSaveable(session.id) { mutableStateOf(false) }
     var arrangementExerciseIds by rememberSaveable(session.id) { mutableStateOf<List<Long>>(emptyList()) }
     var arrangementSetOrdersEncoded by rememberSaveable(session.id) { mutableStateOf<List<String>>(emptyList()) }
@@ -2846,6 +2850,10 @@ private fun WorkoutContent(
         if (blockIndex >= 0) {
             requestedExecutionExerciseId = requestedId
             workoutListState.scrollToItem(blockIndex + firstWorkoutBlockIndex, workoutBlockScrollOffset)
+            selectRequestedWorkoutSet(displayWorkoutExercises, requestedId)?.second?.id?.let { setId ->
+                focusRequestSetId = setId
+                focusRequestVersion++
+            }
             onRequestedWorkoutExerciseConsumed()
         }
     }
@@ -2862,7 +2870,11 @@ private fun WorkoutContent(
             val blockIndex = workoutBlocks.indexOfFirst { block ->
                 block.exercises.any { it.workoutExercise.id == next.first.workoutExercise.id }
             }
-            if (blockIndex >= 0) workoutListState.animateScrollToItem(blockIndex + firstWorkoutBlockIndex, workoutBlockScrollOffset)
+            if (blockIndex >= 0) {
+                workoutListState.animateScrollToItem(blockIndex + firstWorkoutBlockIndex, workoutBlockScrollOffset)
+                focusRequestSetId = next.second.id
+                focusRequestVersion++
+            }
         }
         lastFocusedSetId = next.second.id
     }
@@ -3017,6 +3029,8 @@ private fun WorkoutContent(
                                     }
                                     if (blockIndex >= 0) workoutScrollScope.launch {
                                         workoutListState.scrollToItem(blockIndex + firstWorkoutBlockIndex, workoutBlockScrollOffset)
+                                        focusRequestSetId = set.id
+                                        focusRequestVersion++
                                     }
                                 }
                                 .padding(horizontal = 12.dp, vertical = 8.dp)
@@ -3235,6 +3249,9 @@ private fun WorkoutContent(
                     sessionMutationError = sessionMutationError,
                     onClearSessionMutationError = onClearSessionMutationError,
                     nextSetId = nextSet?.second?.id.takeUnless { arrangingWorkout },
+                    focusRequestVersion = focusRequestVersion.takeIf {
+                        focusRequestSetId == nextSet?.second?.id && item.sets.any { set -> set.id == focusRequestSetId }
+                    },
                     nextInGroup = item.group?.let { nextExerciseByGroup[it.id] == item.workoutExercise.id } == true,
                     arranging = arrangingWorkout,
                     canMoveUp = canMoveUp,
@@ -3447,6 +3464,7 @@ internal fun WorkoutExerciseCard(
     sessionMutationError: String? = null,
     onClearSessionMutationError: () -> Unit = {},
     nextSetId: Long?,
+    focusRequestVersion: Int? = null,
     nextInGroup: Boolean,
     arranging: Boolean = false,
     canMoveUp: Boolean,
@@ -3667,6 +3685,10 @@ internal fun WorkoutExerciseCard(
                         status(set.workoutExecutionStatusLabel(), Modifier.testTag("workout-set-status-${set.id}"))
                     }
                 } else if (set.id == nextSetId) {
+                    val focusRequester = remember { BringIntoViewRequester() }
+                    LaunchedEffect(focusRequestVersion) {
+                        if (focusRequestVersion != null) focusRequester.bringIntoView()
+                    }
                     val setReorderInteraction = rememberWhipReorderInteractionState()
                     val suggestedSet = orderedSets.take(index).lastOrNull { candidate ->
                         candidate.completed && candidate.deletedAtMillis == null
@@ -3683,6 +3705,7 @@ internal fun WorkoutExerciseCard(
                                     layoutScope = "workout-sets-${item.workoutExercise.id}",
                                 ) else Modifier,
                             )
+                            .bringIntoViewRequester(focusRequester)
                             .testTag("active-set-composer"),
                         emphasis = WhipExecutionEmphasis.Active,
                     ) {
