@@ -5,9 +5,10 @@ import android.util.AtomicFile
 import java.io.File
 
 /**
- * Keeps the pre-restore state in app-private storage until database, settings,
- * and background reconstruction have all succeeded. A process death at any
- * point causes the next launch to restore the old, internally consistent state.
+ * Keeps the pre-mutation state in app-private storage until a replacement or
+ * reset, settings, and background reconstruction have all succeeded. A process
+ * death at any point causes the next launch to restore the old, internally
+ * consistent state.
  */
 class RestoreRecoveryManager(
     context: Context,
@@ -20,23 +21,50 @@ class RestoreRecoveryManager(
         targetJson: String,
         onRecoveryPrepared: suspend () -> Unit = {},
         rebuildBackgroundState: suspend () -> Unit,
+    ) = runWithRecovery(
+        onRecoveryPrepared = onRecoveryPrepared,
+        mutateLiveState = { backups.restoreBackup(targetJson) },
+        rebuildBackgroundState = rebuildBackgroundState,
+    )
+
+    suspend fun reset(
+        onRecoveryPrepared: suspend () -> Unit = {},
+        resetLiveState: suspend () -> Unit,
+        rebuildBackgroundState: suspend () -> Unit,
+        onResetCommitted: suspend () -> Unit = {},
+    ) = runWithRecovery(
+        onRecoveryPrepared = onRecoveryPrepared,
+        mutateLiveState = resetLiveState,
+        rebuildBackgroundState = rebuildBackgroundState,
+        onMutationCommitted = onResetCommitted,
+    )
+
+    private suspend fun runWithRecovery(
+        onRecoveryPrepared: suspend () -> Unit,
+        mutateLiveState: suspend () -> Unit,
+        rebuildBackgroundState: suspend () -> Unit,
+        onMutationCommitted: suspend () -> Unit = {},
     ) {
-        require(!recoveryFile.baseFile.exists()) { "A previous restore still needs recovery" }
+        require(!recoveryFile.baseFile.exists()) { "A previous data change still needs recovery" }
         val rollbackJson = backups.exportRecoveryBackup()
+        require(backups.previewBackup(rollbackJson).checksumValid) {
+            "Recovery snapshot checksum does not match"
+        }
         writeRecovery(rollbackJson)
         try {
             // Anything that invalidates old external actions must happen only
             // after the rollback snapshot is durable, but before target data
             // can replace live data.
             onRecoveryPrepared()
-            backups.restoreBackup(targetJson)
+            mutateLiveState()
             rebuildBackgroundState()
-            recoveryFile.delete()
+            onMutationCommitted()
+            deleteRecovery()
         } catch (restoreError: Throwable) {
             val rollback = runCatching {
                 backups.restoreBackup(rollbackJson)
                 rebuildBackgroundState()
-                recoveryFile.delete()
+                deleteRecovery()
             }
             rollback.exceptionOrNull()?.let(restoreError::addSuppressed)
             throw restoreError
@@ -50,7 +78,7 @@ class RestoreRecoveryManager(
         require(preview.checksumValid) { "Restore recovery snapshot is corrupt" }
         backups.restoreBackup(rollbackJson)
         rebuildBackgroundState()
-        recoveryFile.delete()
+        deleteRecovery()
         return true
     }
 
@@ -66,6 +94,11 @@ class RestoreRecoveryManager(
             recoveryFile.failWrite(output)
             throw error
         }
+    }
+
+    private fun deleteRecovery() {
+        recoveryFile.delete()
+        check(!recoveryFile.baseFile.exists()) { "Whip could not remove the completed recovery snapshot" }
     }
 
     private companion object {

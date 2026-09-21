@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260921-001 — Give Reset durable snapshot rollback and fail-closed retry
+
+- Behavior changed: `RestoreRecoveryManager` now owns one validated, fsynced recovery boundary for both replacement and Reset. Reset snapshots database/settings before generation advance, performs deletion under the existing global/reminder gates, rebuilds background state, durably disconnects the portable folder, and only then verifies marker removal. A transient failure immediately restores and rebuilds; a persistent SQLite failure retains the marker and blocks normal access until the existing Retry flow restores the original records/settings. Replacement uses the same refactored path and now verifies snapshot validity and marker deletion too.
+- Important files/symbols: `RestoreRecoveryManager.runWithRecovery`, `reset`, `deleteRecovery`; `WhipApplication.resetAllData`; `PortableBackupManager.clearFolder`; real SQLite fault journeys in `RecoveryBoundaryIntegrationTest`; manager policy tests in `RestoreRecoveryManagerTest`.
+- Persistence/migration/history impact: No Room schema, data epoch, backup format, package version or historical-record rewrite. The existing app-private `restore-recovery.whip.json` carries reset rollback; portable exports remain unchanged. User-data generation still advances before mutation and is intentionally not decremented by rollback. External backup files remain untouched.
+- Compatibility and limitations: The existing startup recovery screen and Retry action are reused; no new UI/catalog state. If the process dies after durable portable-folder disconnection but before marker deletion, startup conservatively restores old app data while the folder remains disconnected; the files remain safe and the user can reconnect. No phone install or release.
+- Related/status: FB-20260920-001, FND/DEC-20260921-001, VER-20260921-001.
+
 ### IMP-20260920-004 — Surface and recover portable-folder access loss
 
 - Behavior changed: Interrupted-write recovery now records provider inspection failures and refused deletion of exact-owned partial files in durable portable-backup state without blocking app startup, forgetting the folder, or changing a prior verified receipt. A later verified backup retains an incomplete-cleanup warning instead of silently erasing it. Platform permission failures are reduced to user-safe copy while the original exception remains attached as the cause. The Data & Privacy card announces the warning and changes its existing action to `Reconnect or Change Folder` until a successful reselection clears it. Replacing a folder now commits the new grant independently of best-effort release of an already-stale old grant, so cleanup cannot undo a successful selection.

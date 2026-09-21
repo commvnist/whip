@@ -1,0 +1,12 @@
+# Replacement and Reset recovery evidence — 2026-09-21
+
+This is the scoped fault-recovery checkpoint for FND/DEC/IMP/VER-20260921-001 under FB-20260920-001, not completion of the whole-product audit. All records and failures are synthetic on disposable API 34 emulator `whip_api34_parallel`; no owner phone, external backup file, release or schema changed.
+
+- Baseline `build/instrumentation-results-7uO7N5` injects a real SQLite abort before Task deletion. Reset reports failure and Room retains the original Task, but the Dark preference has already become System. With no recovery marker, normal UI returns `Ready` over mixed pre/post-reset state.
+- Reset now shares `RestoreRecoveryManager`'s validated, fsynced private snapshot with replacement. Generation advances only after the marker is durable. Success retains the marker through database/settings mutation, background reconstruction and confirmed portable-folder disconnection, then verifies marker deletion.
+- `build/instrumentation-results-LgE4vi` passes 10/10 manager methods. A transient partial reset restores the private snapshot immediately; successful reset proves rebuild and external cleanup occur while the marker still exists.
+- `build/instrumentation-results-ueNi2G` passes 8/8 real application-boundary methods. A persistent delete trigger prevents both reset and immediate rollback, so Whip retains the marker and rejects normal access. Removing the trigger and invoking Retry restores the exact Task and Dark setting. A separate conditional target-insert trigger proves replacement rolls back records/settings immediately and leaves no marker.
+- `build/instrumentation-results-iKGEUZ` passes 65/65 affected Android methods across the real backup repository, all Data & Privacy journeys, Settings behavior and portable-backup manager. Focused `StartupRecoveryGateTest` JVM checks pass. Current source inventory is 657 JVM + 1086 Android = 1743 product methods; the catalog remains 524 states.
+- Final `scripts/check --ready` passes in 2m10s with all 657 JVM methods, Android-test compilation, lint and debug packaging. `scripts/ui-catalog lint` remains clean at 524 required states with no pending selector or platform exception; no frozen candidate is created.
+
+The existing recovery screen is deliberately reused, so this chunk adds no visual catalog state. Complete current-source Android execution, full catalog recapture, third-party/process-kill provider variants and the remaining cross-product audit stay open.

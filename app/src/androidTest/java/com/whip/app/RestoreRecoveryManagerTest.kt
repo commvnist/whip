@@ -181,6 +181,57 @@ class RestoreRecoveryManagerTest {
         assertFalse(manager.hasPendingRecovery())
     }
 
+    @Test
+    fun failedResetRestoresThePrivateSnapshotBeforeRemovingItsMarker() = runBlocking {
+        val repository = FakeBackupRepository("old")
+        val manager = manager(repository)
+        var rebuilds = 0
+
+        val result = runCatching {
+            manager.reset(
+                resetLiveState = {
+                    repository.state = "partially reset"
+                    error("injected reset failure")
+                },
+                rebuildBackgroundState = { rebuilds++ },
+            )
+        }
+
+        assertTrue(result.isFailure)
+        assertEquals("old", repository.state)
+        assertEquals(1, rebuilds)
+        assertFalse(manager.hasPendingRecovery())
+    }
+
+    @Test
+    fun successfulResetKeepsItsMarkerUntilRebuildAndExternalCleanupFinish() = runBlocking {
+        val repository = FakeBackupRepository("old")
+        val fileName = "restore-test-${UUID.randomUUID()}.json"
+        val recoveryFile = File(
+            ApplicationProvider.getApplicationContext<android.content.Context>().noBackupFilesDir,
+            fileName,
+        )
+        val manager = manager(repository, fileName)
+        val events = mutableListOf<String>()
+
+        manager.reset(
+            onRecoveryPrepared = { events += "prepared" },
+            resetLiveState = {
+                repository.state = "empty"
+                events += "reset"
+            },
+            rebuildBackgroundState = { events += "rebuilt" },
+            onResetCommitted = {
+                assertTrue(recoveryFile.exists())
+                events += "external cleanup"
+            },
+        )
+
+        assertEquals("empty", repository.state)
+        assertEquals(listOf("prepared", "reset", "rebuilt", "external cleanup"), events)
+        assertFalse(manager.hasPendingRecovery())
+    }
+
     private fun manager(repository: BackupRepository, name: String = "restore-test-${UUID.randomUUID()}.json") =
         RestoreRecoveryManager(ApplicationProvider.getApplicationContext(), repository, name)
 

@@ -1,5 +1,15 @@
 # Durable product and engineering decisions
 
+### DEC-20260921-001 — Reset shares the same durable rollback boundary as replacement
+
+- Context: FND-20260921-001 disproves the earlier assumption in DEC-20260901-026 that exclusive admission alone was sufficient for Reset. A real injected Room failure preserves records but occurs after default Settings are durably committed, and the marker-free path then returns to normal UI.
+- Position A: Keep Reset marker-free because the user authorized deletion; document that a reported failure may leave any durable subset of the reset applied.
+- Position B: Reuse `RestoreRecoveryManager` for both replacement and Reset, while retaining the global admission/drain boundary. Snapshot and validate current database/settings state, advance generation only after the marker is durable, rebuild before success, perform portable-folder cleanup before marker removal, and block on any rollback that cannot complete.
+- Evidence and constraints: The private recovery format already includes device-local journals and exact settings, startup already knows how to recover its marker, and generation must remain advanced after rollback so stale external actions stay invalid. External backup files are never deleted. Portable-folder grant release cannot be rolled back, so local disconnection is durably committed last; a process death in that narrow final interval may restore old app data with the folder disconnected, which is safe and explicitly repairable.
+- Decision: Select Position B and supersede only DEC-20260901-026's “no rollback marker” constraint. Keep its global gate, drain, lock ordering and stale-owner invalidation. Require verified marker removal so a successful mutation cannot silently leave a future rollback armed.
+- Why this is superior for Whip: A failed destructive command never exposes a hybrid workspace. It uses one already-proven recovery protocol instead of inventing reset-specific journals, and persistent storage trouble produces a truthful blocking state rather than normal UI over ambiguous data.
+- Related/status: FB-20260920-001, FND/IMP/VER-20260921-001; accepted and verified as an unreleased app change.
+
 ### DEC-20260920-004 — Backup recovery warnings belong to the durable manager state
 
 - Context: FND-20260920-004 shows that startup deliberately isolates portable-provider failures, but the isolation also discards the only failure signal. A provider may throw while listing after grant revocation, or return `false` while refusing deletion of an owned partial.

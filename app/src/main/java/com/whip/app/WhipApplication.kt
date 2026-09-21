@@ -382,22 +382,31 @@ class WhipApplication : Application(), Configuration.Provider {
 
     /**
      * Whole-app reset is exclusive with every repository lease, worker, and
-     * editor. Old ownership is invalidated before any table can be cleared.
+     * editor. Old ownership is invalidated only after a private recovery
+     * snapshot is durable, and normal access stays blocked until reset or
+     * rollback has rebuilt every background projection.
      */
     suspend fun resetAllData() {
         try {
-            startupRecoveryGate.runExclusiveMaintenance(
-                prepareForMaintenance = ::quiesceNormalRuntime,
-                maintenance = {
-                    portableBackupManager.clearFolder()
-                    reminderDeliveryCoordinator.withStateBoundary {
-                        NotificationManagerCompat.from(this).cancelAll()
-                        advanceUserDataGeneration()
-                        backupRepository.deleteAllData()
-                        NotificationManagerCompat.from(this).cancelAll()
-                    }
+            startupRecoveryGate.runRestore(
+                prepareForRestore = ::quiesceNormalRuntime,
+                restore = {
+                    restoreRecoveryManager.reset(
+                        onRecoveryPrepared = { advanceUserDataGeneration() },
+                        resetLiveState = {
+                            reminderDeliveryCoordinator.withStateBoundary {
+                                NotificationManagerCompat.from(this).cancelAll()
+                                backupRepository.deleteAllData()
+                                NotificationManagerCompat.from(this).cancelAll()
+                            }
+                        },
+                        rebuildBackgroundState = ::rebuildBackgroundState,
+                        onResetCommitted = { portableBackupManager.clearFolder() },
+                    )
                 },
+                hasPendingRecovery = restoreRecoveryManager::hasPendingRecovery,
                 resumeNormalRuntime = ::resumeAfterRestoreMaintenance,
+                backgroundAlreadyRebuiltOnSuccess = true,
             )
         } finally {
             mutableStartupState.value = startupRecoveryGate.state.value

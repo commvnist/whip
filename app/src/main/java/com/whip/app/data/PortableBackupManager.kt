@@ -251,17 +251,20 @@ class PortableBackupManager(
     }
 
     suspend fun clearFolder() = mutex.withLock {
-        // A provider may already have revoked access. Forgetting the local
-        // configuration must still succeed even when releasing that stale grant does not.
-        runCatching { mutableState.value.folderUri?.let(Uri::parse)?.let(documentStore::releaseAccess) }
-        updateState {
-            it.copy(
-                folderUri = null,
-                folderLabel = null,
-                automaticEnabled = false,
-                lastError = null,
-            )
-        }
+        val previousUri = mutableState.value.folderUri?.let(Uri::parse)
+        check(
+            updateState(confirm = true) {
+                it.copy(
+                    folderUri = null,
+                    folderLabel = null,
+                    automaticEnabled = false,
+                    lastError = null,
+                )
+            },
+        ) { "Whip could not durably forget the selected backup folder" }
+        // A provider may already have revoked access. Once the local change is
+        // durable, releasing that stale external grant remains best-effort.
+        runCatching { previousUri?.let(documentStore::releaseAccess) }
     }
 
     suspend fun recoverInterruptedWrites() = mutex.withLock {

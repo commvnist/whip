@@ -119,9 +119,9 @@ class StartupRecoveryGate(
     }
 
     /**
-     * Runs a destructive whole-app operation only after every admitted data
-     * lease has drained. Unlike replace-restore, maintenance has no rollback
-     * marker, so a failure resumes whatever durable state the operation left.
+     * Runs a whole-app operation only after every admitted data lease has
+     * drained. Callers that need cross-store rollback must create and report
+     * their own durable recovery marker from the maintenance block.
      */
     suspend fun <T> runExclusiveMaintenance(
         prepareForMaintenance: suspend () -> Unit,

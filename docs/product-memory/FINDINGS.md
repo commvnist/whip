@@ -1,5 +1,15 @@
 # Durable findings
 
+### FND-20260921-001 — Failed Reset could reopen with old records and default settings
+
+- Severity/category: P1 destructive-operation consistency and recoverability; FB-20260920-001.
+- Observed: `RoomBackupRepository.deleteAllData` durably resets SharedPreferences before `RoomDatabase.clearAllTables`. The previously accepted whole-app gate drained concurrent work but deliberately had no rollback marker. A real SQLite abort trigger therefore makes Reset fail after settings commit: Room rolls its transaction back and preserves records, while Settings remain at defaults; `StartupRecoveryGate` sees no pending marker and reopens Whip as `Ready` with mixed pre/post-reset state.
+- Expected: Replace and Reset must both snapshot the complete database/settings state before invalidating ownership. A transient failure restores that snapshot before normal access returns. If the same storage fault prevents rollback, the durable marker must keep every reader/writer behind the existing recovery screen until Retry succeeds. A successful reset must not remove the marker until background reconstruction and durable portable-folder disconnection finish.
+- Evidence: Baseline `build/instrumentation-results-7uO7N5` fails the exact real-app reset assertion: the original Task remains but theme changes from Dark to System. `RestoreRecoveryManager`, `WhipApplication.resetAllData`, `StartupRecoveryGate`, and the production Room/SharedPreferences repositories define the boundary. A separate conditional SQLite insert trigger proves real replace-restore still rolls records and settings back immediately.
+- Root cause: Cross-store reset was treated as exclusive maintenance rather than a recoverable destructive mutation. Room protected its tables, but the Settings commit, user-data generation, portable-folder ownership and background projections cannot share that SQLite transaction.
+- Recommended solution: Reuse the app-private recovery snapshot for Reset. Validate and fsync the snapshot before generation advance; keep it through reset, background rebuild and confirmed external cleanup; verify its removal; on any failure restore and rebuild, or retain the marker and fail closed for Retry.
+- Related/status: FB-20260920-001, DEC/IMP/VER-20260921-001. Verified as an unreleased app change; full whole-product acceptance remains open.
+
 ### FND-20260920-004 — Portable-folder recovery failures are discarded at startup
 
 - Severity/category: P1 backup trust and recoverability; FB-20260920-001.

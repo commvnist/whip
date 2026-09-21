@@ -27,6 +27,7 @@ import com.whip.app.widget.persistWidgetConfiguration
 import com.whip.app.widget.WhipWidgetConfigureActivity
 import android.appwidget.AppWidgetManager
 import com.whip.app.core.OperationStatus
+import com.whip.app.core.AppThemeMode
 import com.whip.app.ui.TaskViewModel
 import java.io.File
 import kotlinx.coroutines.delay
@@ -44,6 +45,99 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class RecoveryBoundaryIntegrationTest {
+    @Test
+    fun failedResetRestoresSettingsAndRecordsBeforeReturningReady() = runBlocking {
+        val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+        app.backupRepository.deleteAllData()
+        check(app.settingsRepository.updateAndConfirm { it.copy(themeMode = AppThemeMode.Dark) })
+        val taskId = app.taskRepository.create(TaskDraft(title = "Keep after rejected reset"))
+        val initialGeneration = app.currentUserDataGeneration()
+        val sql = app.database.openHelper.writableDatabase
+        sql.execSQL(
+            """
+            CREATE TRIGGER fail_reset_before_task_delete
+            BEFORE DELETE ON tasks
+            BEGIN
+                SELECT RAISE(ABORT, 'injected reset failure');
+            END
+            """.trimIndent(),
+        )
+        var triggerInstalled = true
+
+        try {
+            val result = runCatching { app.resetAllData() }
+
+            assertTrue(result.isFailure)
+            assertEquals(
+                StartupRecoveryState.Blocked(com.whip.app.startup.StartupBlockReason.Recovery),
+                app.startupRecoveryState.value,
+            )
+            assertEquals(initialGeneration + 1L, app.currentUserDataGeneration())
+            assertTrue(File(app.noBackupFilesDir, "restore-recovery.whip.json").exists())
+            assertNull(app.withUserDataAccess { "must remain blocked" })
+
+            sql.execSQL("DROP TRIGGER fail_reset_before_task_delete")
+            triggerInstalled = false
+            app.retryStartupRecovery()
+            withTimeout(10_000) {
+                while (app.startupRecoveryState.value != StartupRecoveryState.Ready) delay(20)
+            }
+
+            assertEquals("Keep after rejected reset", app.taskRepository.getTask(taskId)?.title)
+            assertEquals(AppThemeMode.Dark, app.settingsRepository.current().themeMode)
+            assertFalse(File(app.noBackupFilesDir, "restore-recovery.whip.json").exists())
+        } finally {
+            if (triggerInstalled) sql.execSQL("DROP TRIGGER IF EXISTS fail_reset_before_task_delete")
+            if (app.startupRecoveryState.value is StartupRecoveryState.Blocked) {
+                app.retryStartupRecovery()
+                withTimeout(10_000) {
+                    while (app.startupRecoveryState.value != StartupRecoveryState.Ready) delay(20)
+                }
+            }
+            app.backupRepository.deleteAllData()
+            app.rebuildBackgroundState()
+        }
+    }
+
+    @Test
+    fun failedRealReplacementRollsBackRecordsAndSettingsWithoutLeavingARecoveryMarker() = runBlocking {
+        val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+        app.backupRepository.deleteAllData()
+        app.taskRepository.create(TaskDraft(title = "Replacement target"))
+        val target = app.backupRepository.exportBackup()
+        app.backupRepository.deleteAllData()
+        check(app.settingsRepository.updateAndConfirm { it.copy(themeMode = AppThemeMode.Dark) })
+        val originalTaskId = app.taskRepository.create(TaskDraft(title = "Original live task"))
+        val initialGeneration = app.currentUserDataGeneration()
+        val sql = app.database.openHelper.writableDatabase
+        sql.execSQL(
+            """
+            CREATE TRIGGER fail_replacement_target_insert
+            BEFORE INSERT ON tasks
+            WHEN NEW.title = 'Replacement target'
+            BEGIN
+                SELECT RAISE(ABORT, 'injected replacement failure');
+            END
+            """.trimIndent(),
+        )
+
+        try {
+            val result = runCatching { app.restoreBackup(target) }
+
+            assertTrue(result.isFailure)
+            assertEquals(StartupRecoveryState.Ready, app.startupRecoveryState.value)
+            assertEquals("Original live task", app.taskRepository.getTask(originalTaskId)?.title)
+            assertEquals(listOf("Original live task"), app.taskRepository.tasks.first().map { it.title })
+            assertEquals(AppThemeMode.Dark, app.settingsRepository.current().themeMode)
+            assertEquals(initialGeneration + 1L, app.currentUserDataGeneration())
+            assertFalse(File(app.noBackupFilesDir, "restore-recovery.whip.json").exists())
+        } finally {
+            sql.execSQL("DROP TRIGGER IF EXISTS fail_replacement_target_insert")
+            app.backupRepository.deleteAllData()
+            app.rebuildBackgroundState()
+        }
+    }
+
     @Test
     fun resetAllDrainsAnAdmittedGymMutationThenDeletesItAndInvalidatesOldOwnership() = runBlocking {
         val app = ApplicationProvider.getApplicationContext<WhipApplication>()
