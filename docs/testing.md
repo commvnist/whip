@@ -174,10 +174,12 @@ empty. The physical owner phone is never a capture or test target; it is
 reserved for the final signed deployment.
 
 The shared Android test engine also suppresses unrelated background-process
-error sheets for the scoped campaign, wakes and unlocks the emulator before
-each batch, dismisses only a pre-existing application-error/ANR window, and
-restores the prior emulator setting on exit. Whip crashes still fail the Gradle
-task and the catalog's foreground hierarchy check.
+error sheets for the scoped campaign, saves the emulator's prior system font
+scale, establishes 1.0 for ordinary batches, wakes and unlocks before each
+batch, dismisses only a pre-existing application-error/ANR window, and
+restores both saved settings on exit. Explicit large-text rules still request
+and assert actual Android font scale within their test. Whip crashes still fail
+the Gradle task and the catalog's foreground hierarchy check.
 
 Review the accepted gallery using the criteria and closure rules in
 `docs/quality/UI_VISUAL_REVIEW_PROTOCOL.md`. A screenshot run proves inventory
@@ -210,7 +212,11 @@ user-visible development files under `/storage/emulated/0/whip-debug` and
 shell-only tooling under `/data/local/tmp/whip-debug`; it never writes directly
 to either storage root. Normal release exports remain user-initiated through
 Android's document picker and should use `/storage/emulated/0/whip` when local
-shared storage is desired.
+shared storage is desired. The full-gate direct-root guard exempts only
+`TrackCsvJourneyE2ETest` and `DataPrivacyJourneyE2ETest`, which stage temporary
+inputs in disposable emulator Downloads folders for real DocumentsUI flows;
+they are not QA artifact collectors. `scripts/test-check-full` verifies those
+exact exemptions and rejects a new direct-root path in any other test.
 
 The Macrobenchmark fixture communicates seed readiness through its visible
 benchmark-only Activity. Benchmark JSON, messages, and Perfetto traces are
@@ -293,7 +299,7 @@ Every product area has fast domain coverage and at least one persisted or UI
 path. New behavior must add its regression to the narrowest applicable suite
 and update this matrix if it introduces a new feature area.
 
-Current baseline: 1764 product tests—659 fast JVM tests and 1105 Android
+Current baseline: 1768 product tests—659 fast JVM tests and 1109 Android
 instrumentation tests—plus 9 Macrobenchmark/Baseline Profile scenarios, lint,
 debug/release/benchmark builds, and the disposable API 34 emulator suite. API
 26 and API 37 compatibility runs cover the minimum and target/latest platform;

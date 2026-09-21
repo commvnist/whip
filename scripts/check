@@ -52,10 +52,15 @@ run_complete_local_gate() {
         die "docs/testing.md test baseline is stale; expected: $documented_baseline instrumentation tests"
 
     java scripts/RenderBrandIcon.java --verify
+    # These two instrumentation journeys stage real SAF DocumentsUI inputs in
+    # disposable Download folders; they do not collect QA artifacts. Keep the
+    # exemption exact so new direct device-root paths still fail closed.
     unexpected_device_paths="$(
         rg -n '/sdcard|/storage/emulated/0|/data/local/tmp' app/src benchmark/src scripts \
             --glob '!scripts/device-artifacts' --glob '!scripts/check' --glob '!scripts/candidate' \
-            --glob '!scripts/test-*' --glob '!**/build/**' || true
+            --glob '!scripts/test-*' --glob '!**/build/**' \
+            --glob '!**/TrackCsvJourneyE2ETest.kt' \
+            --glob '!**/DataPrivacyJourneyE2ETest.kt' || true
     )"
     [[ -z "$unexpected_device_paths" ]] ||
         die "direct device-root artifact path bypasses scripts/device-artifacts: $unexpected_device_paths"

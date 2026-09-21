@@ -914,13 +914,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         } ?: error("Whip data is unavailable while recovery is in progress")
     }
 
-    fun setPortableBackupAutomatic(enabled: Boolean) {
-        runCatching {
-            app.portableBackupManager.setAutomaticEnabled(enabled)
-            app.portableBackupScheduler.sync(app.portableBackupManager.state.value)
-        }.onFailure { error ->
-            runtime.value = runtime.value.copy(operation = OperationStatus.Failed(error.message ?: "Could not update automatic backups", error))
-        }
+    fun setPortableBackupAutomatic(enabled: Boolean) = runIo(
+        success = if (enabled) "Automatic daily backup enabled" else "Automatic daily backup disabled",
+        workingMessage = "Saving automatic backup setting",
+    ) {
+        app.portableBackupManager.setAutomaticEnabled(enabled)
+        app.portableBackupScheduler.sync(app.portableBackupManager.state.value)
     }
 
     fun setPortableBackupRetention(requestId: String, count: Int): Boolean {

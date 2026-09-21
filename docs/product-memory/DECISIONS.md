@@ -1,5 +1,33 @@
 # Durable product and engineering decisions
 
+### DEC-20260921-015 — Normalize and restore Android gate text scale
+
+- Decision: The common Android test engine, like the visual collector, records each disposable emulator's system `font_scale`, sets 1.0 before ordinary test batches, and restores the recorded setting when it exits. Tests explicitly requesting large text continue to assert the actual Android resource scale.
+- Rationale: A prior interrupted audit can leave emulator configuration behind. Ordinary layout contracts must not silently inherit that configuration, while large-text evidence must remain real and deliberate.
+- Rejected alternative: Manually resetting one emulator before a rerun would leave the gate environment-dependent; weakening the graphics/layout assertions would conceal their baseline requirement.
+- Related/status: FB-20260920-001, FND-20260921-018, IMP/VER-20260921-020. Exact contaminated-baseline replay verified; complete gate In progress.
+
+### DEC-20260921-014 — Allow exact SAF test input owners without weakening artifact collection
+
+- Decision: Exempt only the two Android DocumentsUI test files from the full gate's direct device-root source scan. Keep the rule for production, benchmark and every other test/script; retain `scripts/device-artifacts` as the exclusive QA capture/export path.
+- Rationale: A real document-provider journey needs an actual temporary Download input on a disposable emulator, while the QA artifact rule protects evidence provenance. These are different operations despite sharing a path prefix.
+- Rejected alternative: Excluding all Android tests or disabling the scan would let a new test write audit evidence outside the controlled collector. Replacing picker integration with an in-memory fake would lose the platform boundary under review.
+- Related/status: FB-20260920-001, FND-20260921-017, IMP/VER-20260921-019. Accepted for the full-gate harness.
+
+### DEC-20260921-013 — Receipt first, then best-effort retention pruning
+
+- Decision: After verifying the renamed backup and inspecting existing files, commit the new receipt before deleting any old valid file. Then apply the retention count and confirm any failure warning separately. A failed receipt leaves the prior receipted file and the new recoverable file; a later pruning or warning-write failure cannot erase the new committed receipt.
+- Rationale: The receipt is the UI's durable claim about which file was last verified. Storage failure must not leave that claim naming a file Whip already removed. Temporary over-retention after process interruption is a safe, reconcilable outcome.
+- Rejected alternative: Prune-first reduces extra copies but can invalidate the old receipt when the final local write fails. Deleting the newly verified file to restore a pristine old state would discard a recovery copy for no user benefit.
+- Related/status: FB-20260920-001, FND-20260921-016, IMP/VER-20260921-017. Accepted for this audit correction.
+
+### DEC-20260921-012 — Commit automatic-backup choice before changing scheduler intent
+
+- Decision: Serialize the automatic toggle with portable-folder and backup operations; confirm its local preference write before publishing the switch state or calling scheduler synchronization. Run that write on the Settings I/O path, expose in-progress/error feedback and disable repeat input while busy.
+- Rationale: Automatic backup is a promise about future data protection. An in-memory `apply()` state cannot establish that promise across abrupt process loss. The existing WorkManager job is reconciled from durable settings at app startup, but the immediate Settings success claim still needs confirmed choice storage.
+- Rejected alternative: Synchronously committing on the main thread risks input stalls; keeping `apply()` and relying on eventual lifecycle flushing cannot report storage failure or prove the switch survived.
+- Related/status: FB-20260920-001, FND-20260921-015, IMP/VER-20260921-016. Accepted for the audit correction; remaining provider/OEM scheduling limits remain separate.
+
 ### DEC-20260921-011 — Confirm consequential portable-backup preference writes before success
 
 - Decision: Folder replacement and the saved-and-verified backup receipt use `SharedPreferences.commit()` on their existing I/O paths. A failed folder commit keeps the previous URI/grant and releases only the new one; a failed receipt commit reports uncertainty without advancing the last verified timestamp/name. The committed file is not deleted merely because local receipt storage failed.

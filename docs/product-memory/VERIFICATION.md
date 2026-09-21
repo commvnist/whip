@@ -1,18 +1,53 @@
 # Verification and release evidence
 
+### VER-20260921-020 — Android gate text-scale baseline and restoration
+
+- Failed checkpoint: The second `ANDROID_SERIAL=emulator-5556 scripts/check --full --emulator --fresh-emulator` attempt passed production/test compilation, lint and JVM coverage, then failed two ordinary `InteractionControlUiTest` graphics methods in batch one (`build/instrumentation-results-eEDC0T`). The disposable emulator's system `font_scale` was 2.0, inherited from earlier audit work. That failed gate does not establish a product layout defect or a complete Android run.
+- Exact replay: After the runner change, `bash -n scripts/android-test-engine` passes. Starting with the system setting at 2.0, `scripts/qa-targeted` runs `destinationTabsUseShortVisibleLabelsWithoutLosingFullAccessibleNames` and `pageHeaderActionsDoNotShiftTitleOrSupportingText` together: 2/2 pass, zero failures/skips/reuse, in `build/instrumentation-results-LPQsHw`. The setting reads 1.0 inside the run and restores to 2.0 afterward.
+- A new fresh full gate is running. No complete Android/JVM/static or visual-catalog acceptance is inferred from this focused replay; no physical phone/release operation.
+- Related/status: FND-20260921-018, DEC-20260921-015, IMP-20260921-020. Focused harness replay verified, whole-product audit In progress.
+
+### VER-20260921-019 — Exact SAF fixture exemption in the full gate
+
+- Baseline: `ANDROID_SERIAL=emulator-5556 scripts/check --full --emulator --fresh-emulator` stopped at its pre-build direct-root scan. The only matches were the two real DocumentsUI test owners that stage disposable Downloads inputs; no JVM, Android or build acceptance was produced by that attempt.
+- Correction: `bash -n scripts/check scripts/test-check-full` and `scripts/test-check-full` pass. The fixture includes both exact allowed files and then proves an unrelated direct-root test path is rejected. The corrected fresh full gate is running; its result is not yet claimed.
+- Scope: Harness/static gate only; no owner-phone operation, signed release or production behavior change.
+- Related/status: FND-20260921-017, DEC-20260921-014, IMP-20260921-019. Focused harness regression verified; whole-product audit In progress.
+
+### VER-20260921-018 — Seven literal maximum Track CSV imports
+
+- Scope: Production in-memory Room repository on disposable API 34 `emulator-5556`, with seven successive distinct 5,000-row CSV preparation/commit requests for the same Track. No owner-phone or release operation.
+- The first test build `Aj5PJf` failed JUnit discovery because the Kotlin expression body returned the final diagnostic `Log.i` integer; it executed no test logic. Explicit `Unit` corrected the test signature. `ANDROID_SERIAL=emulator-5556 scripts/qa-targeted --android com.whip.app.TrackCsvImportIntegrityTest#sevenSuccessiveMaximumCsvImportsKeepCompleteHistoryAndReceipts` then passes 1/1, zero failure/skip/reuse, in `build/instrumentation-results-OSJcnq` (33-second instrumentation batch). Each receipt is unique and durable; all 35,000 Entries and direct values remain, the first and seventh titles are retained, CSV exports 35,000 data rows and the bounded page reports the exact total.
+- Limits: This is a repository-level real import path, not seven DocumentsUI picker operations or a real-device jank measurement. Full Tracks neighbors, complete Android/JVM/static/build and final visual audit remain pending.
+- Related/status: FND-20260921-006, IMP-20260921-018. Scoped cumulative-import gap verified; whole-product audit In progress.
+
+### VER-20260921-017 — Receipt-before-retention boundary
+
+- Scope: Disposable API 34 `emulator-5556`, no owner-phone or release operation. Retention count one, an already verified file, a second verified file, and an injected failed local receipt commit.
+- Baseline: `PortableBackupManagerTest#failedNewReceiptCannotPruneThePreviouslyVerifiedFile` fails on the prune-first implementation because the prior receipted file is gone (`build/instrumentation-results-PJCOTp`). The receipt-first exact test passes 1/1, zero failure/skip/reuse, in `build/instrumentation-results-8NFUMq`.
+- Additional boundary: A fault-injected second preference commit and a provider-refused prune test the post-receipt warning path. `ANDROID_SERIAL=emulator-5556 scripts/qa-targeted --android com.whip.app.PortableBackupManagerTest --android com.whip.app.SafPortableBackupDocumentStoreTest` passes 26/26 methods, zero failure/skip/reuse, in `build/instrumentation-results-DjJdNz`. Settings neighbors, full Android/JVM/static/build and exact 523-state final-source capture remain pending.
+- Related/status: FND-20260921-016, DEC-20260921-013, IMP-20260921-017. Focused correction verified; whole-product audit In progress.
+
+### VER-20260921-016 — Automatic-backup toggle durability
+
+- Scope: Disposable API 34 `emulator-5556`; no owner-phone installation or release. A fault-injected preference Editor rejects a commit for both enable and disable, and a new manager instance reads the retained durable state.
+- Baseline: The original `apply()` implementation falsely completed a failed enable; the exact test fails at “An unconfirmed toggle must not report success” in `build/instrumentation-results-i9A9AF`. The corrected exact test passes 1/1, zero failure/skip/reuse, in `build/instrumentation-results-YnRVmu`.
+- Implementation evidence: The manager now uses confirmed writes under its mutex. Settings calls it on the existing I/O path and disables repeat taps while busy. The broader Settings profile, complete Android/JVM/static/build gates and fresh 523-state visual capture remain pending.
+- Related/status: FND-20260921-015, DEC-20260921-012, IMP-20260921-016. Focused correction verified, whole-product audit In progress.
+
 ### VER-20260921-015 — Provider-null and confirmed-receipt recovery
 
 - Scope: IMP-20260921-015 on disposable API 34 `emulator-5556`, with no owner-phone or release operation. A test-only real `ContentProvider` returns either a null Cursor or a non-null zero-row Cursor for child documents; a separate preference wrapper rejects `commit()` without mutating persisted state.
-- Baseline: The provider-null assertion fails against `.orEmpty()` while the empty-Cursor control passes. The two preference regressions fail against the original `apply()` success path. One initial test-provider attempt crashed because a Kotlin provider class loaded in the separate test APK before its Kotlin runtime; a Java test-only provider replaced it. An initial preference wrapper lost interception through fluent Editor methods and its failed run `u2GoNU` is excluded; the final wrapper retains interception through every relevant chained put/remove method.
+- Baseline: The provider-null assertion fails against `.orEmpty()` while the empty-Cursor control passes. Source review proves the original `apply()` paths had no confirmed disk result; the early preference-fault attempt used a wrapper that lost interception through fluent Editor methods, so its failure is **not** a valid pre-fix behavioral reproduction. The corrected wrapper retains interception through every relevant chained put/remove method. One initial test-provider attempt also crashed because a Kotlin provider class loaded in the separate test APK before its Kotlin runtime; a Java test-only provider replaced it.
 - Final: `ANDROID_SERIAL=emulator-5556 scripts/qa-targeted --android com.whip.app.SafPortableBackupDocumentStoreTest --android com.whip.app.PortableBackupManagerTest --emulator` passes 23/23 methods, zero failures/skips/reuse, in `build/instrumentation-results-7BbzYI`. The null/empty provider distinction, previous-folder retention/new-grant release and no-false-receipt assertions all pass. `taBaLH`/`u2GoNU` are failed diagnostic attempts, not acceptance evidence.
-- Limits: Full Settings neighbors, JVM/static/build, complete Android inventory and exact 523-state catalog are still pending on final source. The sixth full-catalog attempt was deliberately stopped after five accepted batches when these production defects were found; it is not a complete capture. The seventh is running.
+- Limits: Full Settings neighbors, JVM/static/build, complete Android inventory and exact 523-state catalog are still pending on final source. The sixth full-catalog attempt was deliberately stopped after five accepted batches when these production defects were found; the seventh stopped after six when the separate automatic-toggle defect was confirmed. Neither is a complete capture.
 - Related/status: FND-20260921-013/014, DEC-20260921-010/011 and IMP-20260921-015. Focused provider/durability correction verified; whole-product audit In progress.
 
 ### VER-20260921-014 — Distinct current catalog fixtures and stable capture setup
 
 - Scope: IMP-20260921-014 on disposable API 34 emulator(s), not the owner phone. The v2 full attempt executed all 193 selectors and exported 528 PNG/XML pairs but rejected five byte-identical pairs; a sixth Whip-identical pair differed only by the Android clock. The six transition assertions remain; [the alias mapping](../quality/ASTRA_VISUAL_ALIAS_DISPOSITION_2026-09-21.md) preserves frozen-matrix history.
 - Focused final-source Android checks: six alias-affected selectors pass 6/6 in `build/instrumentation-results-Phc7Wm`; four generic Gym-fixture selectors pass 4/4 in `N43jYv`; the new scrolled Settings consequences selector passes 1/1 in `7CKpDJ`; corrected Home 200% RTL selector passes 1/1 in `yyRONV`; all three Area lifecycle methods pass at retained actual 2.0 text in `ucDxKX`; the exact real SAF access-loss/reselection journey passes 1/1 in `cWg6rq`. Every cited run reports zero failure/skip/reuse.
-- `scripts/ui-catalog lint` reports 523 captures, zero pending/exceptions; `scripts/test-ui-catalog` passes all fixtures; `bash -n scripts/ui-catalog` and `git diff --check` pass. The full v3 capture stopped on emulator disconnect, v4 on inherited font scale, and v5 on unproven provider-test setup. None is a complete accepted catalog. The fresh v6 run is ongoing; individual current-source image/XML review, complete Android inventory, final JVM/static gates and whole-product acceptance are not claimed here.
+- `scripts/ui-catalog lint` reports 523 captures, zero pending/exceptions; `scripts/test-ui-catalog` passes all fixtures; `bash -n scripts/ui-catalog` and `git diff --check` pass. The full v3 capture stopped on emulator disconnect, v4 on inherited font scale, and v5 on unproven provider-test setup. Later v6/v7 attempts were deliberately stopped after separate backup defects; none is a complete accepted catalog. Individual current-source image/XML review, complete Android inventory, final JVM/static gates and whole-product acceptance are not claimed here.
 - Related/status: FND-20260921-008/009/010/011/012, DEC-20260921-008/009, IMP-20260921-014. Scoped evidence/test correction verified; full audit In progress.
 
 ### VER-20260921-013 — Large-text configuration barrier under catalog load

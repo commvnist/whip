@@ -239,9 +239,11 @@ class PortableBackupManager(
         }
     }
 
-    fun setAutomaticEnabled(enabled: Boolean) {
+    suspend fun setAutomaticEnabled(enabled: Boolean) = mutex.withLock {
         require(!enabled || mutableState.value.configured) { "Choose a backup folder first" }
-        updateState { it.copy(automaticEnabled = enabled, lastError = null) }
+        check(updateState(confirm = true) { it.copy(automaticEnabled = enabled, lastError = null) }) {
+            "Whip could not save the automatic backup setting"
+        }
     }
 
     fun setRetentionCount(count: Int) {
@@ -338,24 +340,37 @@ class PortableBackupManager(
                 }.getOrDefault(false)
             }
             val invalidCount = eligibleExisting.size - validExisting.size
-            val pruneFailures = portableBackupFilesToPrune(
+            val filesToPrune = portableBackupFilesToPrune(
                 files = validExisting + created,
                 retentionCount = current.retentionCount,
                 protectedUri = created.uri,
-            ).count { old -> runCatching { documentStore.delete(old.uri) }.getOrDefault(false).not() }
+            )
+            val receiptWarnings = buildList {
+                if (cleanupFailures > 0) add(incompleteCleanupWarning(cleanupFailures))
+                if (invalidCount > 0) add("$invalidCount corrupt or unreadable backup${if (invalidCount == 1) " was" else "s were"} ignored during retention")
+            }
             val savedAt = now().toEpochMilli()
             check(updateState(confirm = true) {
                 it.copy(
                     lastBackupAtMillis = savedAt,
                     lastBackupFileName = created.displayName,
-                    lastError = buildList {
-                        if (cleanupFailures > 0) add(incompleteCleanupWarning(cleanupFailures))
-                        if (invalidCount > 0) add("$invalidCount corrupt or unreadable backup${if (invalidCount == 1) " was" else "s were"} ignored during retention")
-                        if (pruneFailures > 0) add("$pruneFailures old backup${if (pruneFailures == 1) "" else "s"} could not be removed")
-                    }.takeIf(List<String>::isNotEmpty)?.joinToString("; "),
+                    lastError = receiptWarnings.takeIf(List<String>::isNotEmpty)?.joinToString("; "),
                 )
             }) {
                 "The verified backup was saved, but its receipt could not be recorded; check the selected folder before retrying"
+            }
+            // A failed receipt must never point at a file that retention has
+            // already deleted. Extra copies after an interrupted prune are safe.
+            val pruneFailures = filesToPrune.count { old ->
+                runCatching { documentStore.delete(old.uri) }.getOrDefault(false).not()
+            }
+            if (pruneFailures > 0) {
+                val warning = "$pruneFailures old backup${if (pruneFailures == 1) "" else "s"} could not be removed"
+                check(updateState(confirm = true) {
+                    it.copy(lastError = (receiptWarnings + warning).joinToString("; "))
+                }) {
+                    "The verified backup was saved, but its retention warning could not be recorded; check the selected folder"
+                }
             }
             PortableBackupOutcome.Saved(created, sourcePreview.totalRecords)
         } catch (error: Throwable) {

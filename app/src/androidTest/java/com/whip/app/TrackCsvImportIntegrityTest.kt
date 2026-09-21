@@ -113,6 +113,41 @@ class TrackCsvImportIntegrityTest {
     }
 
     @Test
+    fun sevenSuccessiveMaximumCsvImportsKeepCompleteHistoryAndReceipts() = runBlocking {
+        val trackId = tracks.create(textTrack().copy(name = "Seven real CSV batches"))
+        val countPerBatch = TRACK_CSV_MAX_IMPORT_ROWS
+        repeat(7) { batchIndex ->
+            val batchUuid = UUID.randomUUID().toString()
+            val batch = prepareTextBatch(
+                trackId,
+                batchUuid,
+                List(countPerBatch) { rowIndex -> "Batch ${batchIndex + 1} item ${rowIndex + 1}" },
+            )
+            val receipt = tracks.importEntries(batch.preparation.request, batch.drafts)
+            assertEquals(countPerBatch, receipt.rowCount)
+            assertFalse(receipt.alreadyApplied)
+            assertEquals(1, receiptCount(batchUuid))
+            assertEquals((batchIndex + 1) * countPerBatch, database.trackDao().countEntries(trackId))
+        }
+
+        val total = 7 * countPerBatch
+        val started = SystemClock.elapsedRealtime()
+        val direct = requireNotNull(tracks.projection(trackId))
+        val projectionMillis = SystemClock.elapsedRealtime() - started
+        assertEquals(total, direct.entries.size)
+        assertEquals(total, direct.entries.sumOf { it.values.size })
+        val titles = direct.entries.map(direct::primaryText).toSet()
+        assertTrue("The first imported batch must remain", "Batch 1 item 1" in titles)
+        assertTrue("The seventh imported batch must remain", "Batch 7 item $countPerBatch" in titles)
+        assertEquals(total + 1, tracks.exportCsv(trackId).lineSequence().count(String::isNotBlank))
+        val page = tracks.entryPage(trackId, offset = 0, limit = 100)
+        assertEquals(total, page.totalCount)
+        assertEquals(100, page.entries.size)
+        Log.i("TrackCsvImportIntegrity", "Seven $countPerBatch-row CSV imports: $total Entries; projection ${projectionMillis}ms")
+        Unit
+    }
+
+    @Test
     fun firstCommitAndExactRetryReturnOneDurableReceiptAndOneBatchOfRows() = runBlocking {
         val trackId = tracks.create(textTrack())
         val batch = prepareTextBatch(

@@ -1,10 +1,42 @@
 # Implementation history
 
+### IMP-20260921-020 — Make full Android batches independent of prior font-scale audits
+
+- `scripts/android-test-engine` now validates and saves each disposable emulator's system font scale, normalizes ordinary test batches to 1.0, and restores the saved value alongside its error-dialog setting at exit. Explicit `AndroidFontScaleRule` tests continue to apply and assert their requested actual scale inside a batch.
+- Harness only: no production app behavior, Room schema, data epoch, backup format, release version or owner-phone operation changed. The exact failed methods pass when the emulator begins at 2.0; the complete fresh gate is rerunning.
+- Related/status: FB-20260920-001, FND-20260921-018, DEC-20260921-015, VER-20260921-020. Focused harness correction verified; whole-product audit In progress.
+
+### IMP-20260921-019 — Keep the full gate strict around actual SAF fixtures
+
+- `scripts/check --full` now excludes only `TrackCsvJourneyE2ETest.kt` and `DataPrivacyJourneyE2ETest.kt` from its direct-root artifact scan; both stage disposable Downloads inputs for real Android file-picker journeys. `scripts/test-check-full` covers allowed exact owners and a rejected unrelated test file. `docs/testing.md` states the boundary.
+- No production app behavior, Room schema, data epoch, backup format, release version or owner-phone operation changed. The prior full-gate attempt stopped before build/tests; the corrected fresh gate is in progress.
+- Related/status: FB-20260920-001, FND-20260921-017, DEC-20260921-014, VER-20260921-019. Harness fixture verified; whole-product audit In progress.
+
+### IMP-20260921-018 — Exercise seven successive maximum Track CSV commits
+
+- Added a production Room repository regression that prepares and imports seven distinct 5,000-row CSV batches into one Track, checking each durable receipt and cumulative Entry count. It then reads all 35,000 Entries/values through the direct projection, exports complete CSV and checks a bounded page. This complements the earlier 33,000-row direct-database fixture and the single 5,000×20 maximum-cell import.
+- Test/evidence only: no production app behavior, Room schema, data epoch, backup format, release version or owner-phone change.
+- Related/status: FB-20260920-001, FND-20260921-006, VER-20260921-018. Scoped cumulative-import gap verified; whole-product audit In progress.
+
+### IMP-20260921-017 — Preserve the last receipted backup through replacement failure
+
+- `PortableBackupManager.backupNow()` now commits verified-file metadata before applying the bounded retention plan. Cleanup/corrupt-file warnings join that receipt; any deletion failure is stored as a separately confirmed warning. A failed warning write reports uncertainty while leaving the new receipt in place.
+- New fault-injected tests cover retention-one receipt failure with an existing verified file and warning-write failure after a new receipt. Successful retention and provider paths retain their existing coverage.
+- No Room schema, data epoch, backup format, release version or owner-phone operation changed. The current-source 523-state catalog still requires a fresh complete capture.
+- Related/status: FB-20260920-001, FND-20260921-016, DEC-20260921-013, VER-20260921-017. Focused ordering fix verified; broader audit In progress.
+
+### IMP-20260921-016 — Make the automatic-backup switch a confirmed I/O mutation
+
+- `PortableBackupManager.setAutomaticEnabled()` now runs under the manager mutex and requires a successful preference commit before publishing `automaticEnabled`. A failed write retains the prior enabled state and prevents scheduler synchronization.
+- `SettingsViewModel` uses its existing I/O mutation path for the toggle; Data & Privacy disables the row while that request is busy and reports success/failure through the existing operation channel. A new fault-injected manager test covers failed enable and failed disable against a recreated manager.
+- No Room schema, data epoch, backup format, release version or owner-phone data changed. The incomplete seventh catalog capture was stopped after six accepted batches to keep the eventual full capture on one production revision.
+- Related/status: FB-20260920-001, FND-20260921-015, DEC-20260921-012, VER-20260921-016. Focused regression passed; broader audit remains In progress.
+
 ### IMP-20260921-015 — Fail closed on provider listing and confirm backup receipts
 
 - `SafPortableBackupDocumentStore.list()` now requires a non-null child Cursor; a real test-only Android provider proves that null means failure while a zero-row Cursor is still a legitimate empty directory. The provider is confined to the instrumentation APK.
 - Portable folder replacement and verified backup receipt now require confirmed preference writes on their existing I/O paths. Failed selection keeps the previous grant and releases only the new one; a failed receipt reports that the verified file may remain while preserving the old timestamp/name. Two fault-injected manager regressions cover these boundaries.
-- No Room schema, data epoch, backup format, release version or owner-phone data changed. The interrupted sixth catalog run is not accepted; a seventh exact recapture is running against this corrected source.
+- No Room schema, data epoch, backup format, release version or owner-phone data changed. The interrupted sixth and seventh catalog attempts are not accepted; the latter stopped when the separate automatic-toggle defect was confirmed.
 - Related/status: FB-20260920-001, FND-20260921-013/014, DEC-20260921-010/011 and VER-20260921-015. Scoped correction verified; whole-product audit In progress.
 
 ### IMP-20260921-014 — Make current audit evidence distinct and deterministic

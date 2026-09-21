@@ -75,27 +75,40 @@ readonly emulator_count="${#test_serials[@]}"
 ((emulator_count >= 1 && emulator_count <= 2)) || die 'expected one or two validated Android emulators'
 
 previous_hide_error_dialogs=()
+previous_font_scales=()
 for test_serial in "${test_serials[@]}"; do
     previous_setting="$(adb -s "$test_serial" shell settings get global hide_error_dialogs | tr -d '\r')"
     [[ "$previous_setting" =~ ^(null|0|1)$ ]] ||
         die "could not determine emulator error-dialog setting: ${previous_setting:-missing}"
     previous_hide_error_dialogs+=("$previous_setting")
+    previous_font_scale="$(adb -s "$test_serial" shell settings get system font_scale | tr -d '\r')"
+    [[ "$previous_font_scale" =~ ^(null|[0-9]+([.][0-9]+)?)$ ]] ||
+        die "could not determine emulator font scale: ${previous_font_scale:-missing}"
+    previous_font_scales+=("$previous_font_scale")
 done
 
 restore_emulator_window_environment() {
-    local index serial setting
+    local index serial setting font_scale
     for index in "${!test_serials[@]}"; do
         serial="${test_serials[$index]}"
         setting="${previous_hide_error_dialogs[$index]}"
+        font_scale="${previous_font_scales[$index]}"
         case "$setting" in
             null) adb -s "$serial" shell settings delete global hide_error_dialogs >/dev/null || true ;;
             0|1) adb -s "$serial" shell settings put global hide_error_dialogs "$setting" >/dev/null || true ;;
+        esac
+        case "$font_scale" in
+            null) adb -s "$serial" shell settings delete system font_scale >/dev/null || true ;;
+            *) adb -s "$serial" shell settings put system font_scale "$font_scale" >/dev/null || true ;;
         esac
     done
 }
 
 prepare_emulator_window_environment() {
     local serial="$1"
+    # Ordinary graphics and journey selectors must not inherit a prior actual
+    # large-text audit. Individual font rules still set/restore their own scale.
+    adb -s "$serial" shell settings put system font_scale 1.0 >/dev/null
     adb -s "$serial" shell input keyevent KEYCODE_WAKEUP >/dev/null
     adb -s "$serial" shell wm dismiss-keyguard >/dev/null
     if adb -s "$serial" shell dumpsys window | rg -q \

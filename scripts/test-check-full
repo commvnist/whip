@@ -36,6 +36,14 @@ printf '%s\n' \
     '}' \
     > "${PROJECT}/app/src/androidTest/java/com/whip/app/FullAndroidFixtureTest.kt"
 printf '%s\n' \
+    'package com.whip.app' \
+    'class TrackCsvJourneyE2ETest { val realSafInput = "/sdcard/Download/import.csv" }' \
+    > "${PROJECT}/app/src/androidTest/java/com/whip/app/TrackCsvJourneyE2ETest.kt"
+printf '%s\n' \
+    'package com.whip.app' \
+    'class DataPrivacyJourneyE2ETest { val realSafInput = "/sdcard/Download/backup.json" }' \
+    > "${PROJECT}/app/src/androidTest/java/com/whip/app/DataPrivacyJourneyE2ETest.kt"
+printf '%s\n' \
     'android {' \
     '    defaultConfig {' \
     '        versionCode = 53' \
@@ -150,5 +158,25 @@ grep -Fq 'Complete local quality/build gate passed. Frozen-candidate evidence wa
     exit 1
 }
 
+printf '%s\n' \
+    'package com.whip.app' \
+    'class UnrelatedJourneyTest { val forbiddenArtifact = "/sdcard/Download/audit.png" }' \
+    > "${PROJECT}/app/src/androidTest/java/com/whip/app/UnrelatedJourneyTest.kt"
+if env -u ANDROID_SERIAL -u WHIP_DEVICE \
+    WHIP_FULL_FIXTURE_GRADLE_LOG="$GRADLE_LOG" \
+    WHIP_FULL_FIXTURE_JAVA_LOG="$JAVA_LOG" \
+    WHIP_FULL_FIXTURE_FORBIDDEN_LOG="$FORBIDDEN_LOG" \
+    PATH="${FAKE_BIN}:${PATH}" \
+    "${PROJECT}/scripts/check" --full > "$OUTPUT" 2>&1; then
+    printf 'FAIL unrelated-device-root-path-was-accepted\n' >&2
+    exit 1
+fi
+grep -Fq 'UnrelatedJourneyTest.kt' "$OUTPUT" || {
+    printf 'FAIL unrelated-device-root-path-was-not-reported\n' >&2
+    sed -n '1,160p' "$OUTPUT" >&2
+    exit 1
+}
+
 printf 'PASS check-full-without-android-serial\n'
+printf 'PASS exact-saf-fixture-exemption\n'
 printf 'All complete-local-gate fixtures passed.\n'

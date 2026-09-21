@@ -100,6 +100,78 @@ class PortableBackupManagerTest {
     }
 
     @Test
+    fun failedAutomaticToggleCommitKeepsThePreviousDurableSetting() = runBlocking {
+        val preferences = uniquePreferences()
+        val store = FakeDocumentStore()
+        val contextWithFailure = CommitFailureContext(context)
+        val manager = manager(preferences, FakeBackupRepository(2), store, contextWithFailure)
+        manager.configureFolder(TREE_URI)
+        contextWithFailure.failCommit = true
+
+        val enable = runCatching { manager.setAutomaticEnabled(true) }
+
+        assertTrue("An unconfirmed toggle must not report success", enable.isFailure)
+        assertFalse(manager.state.value.automaticEnabled)
+        assertFalse(manager(preferences, FakeBackupRepository(2), store).state.value.automaticEnabled)
+
+        contextWithFailure.failCommit = false
+        manager.setAutomaticEnabled(true)
+        contextWithFailure.failCommit = true
+
+        val disable = runCatching { manager.setAutomaticEnabled(false) }
+
+        assertTrue("An unconfirmed disable must not report success", disable.isFailure)
+        assertTrue(manager.state.value.automaticEnabled)
+        assertTrue(manager(preferences, FakeBackupRepository(2), store).state.value.automaticEnabled)
+    }
+
+    @Test
+    fun failedNewReceiptCannotPruneThePreviouslyVerifiedFile() = runBlocking {
+        val preferences = uniquePreferences()
+        val store = FakeDocumentStore()
+        val contextWithFailure = CommitFailureContext(context)
+        var clock = FIXED_NOW
+        val manager = manager(preferences, FakeBackupRepository(2), store, contextWithFailure) { clock }
+        manager.configureFolder(TREE_URI)
+        assertTrue(manager.setRetentionCountAndConfirm(1))
+        val previous = manager.backupNow() as PortableBackupOutcome.Saved
+        val previousReceipt = manager.state.value
+        clock = clock.plusSeconds(10)
+        contextWithFailure.failCommit = true
+
+        val replacement = runCatching { manager.backupNow() }
+
+        assertTrue(replacement.isFailure)
+        assertEquals(previousReceipt.lastBackupAtMillis, manager.state.value.lastBackupAtMillis)
+        assertEquals(previousReceipt.lastBackupFileName, manager.state.value.lastBackupFileName)
+        assertTrue("The old receipt must still identify a real file", store.files.any { it.uri == previous.file.uri })
+        assertTrue("The newly verified file may remain for manual recovery", store.files.any { it.displayName != previous.file.displayName && it.displayName.endsWith(".whip.json") })
+    }
+
+    @Test
+    fun failedRetentionWarningCommitStillKeepsTheNewVerifiedReceipt() = runBlocking {
+        val preferences = uniquePreferences()
+        val store = FakeDocumentStore(failOperation = "delete-backup").apply {
+            addExisting("whip-2026-08-17-120000.whip.json", 1)
+        }
+        val contextWithFailure = CommitFailureContext(context)
+        val manager = manager(preferences, FakeBackupRepository(2), store, contextWithFailure)
+        manager.configureFolder(TREE_URI)
+        assertTrue(manager.setRetentionCountAndConfirm(1))
+        contextWithFailure.successfulCommitsBeforeFailure = 1
+
+        val backup = runCatching { manager.backupNow() }
+
+        assertTrue(backup.isFailure)
+        assertTrue(backup.exceptionOrNull()?.message.orEmpty().contains("retention warning could not be recorded"))
+        val receipt = manager.state.value
+        assertEquals(FIXED_NOW.toEpochMilli(), receipt.lastBackupAtMillis)
+        assertTrue(receipt.lastBackupFileName.orEmpty().endsWith(".whip.json"))
+        assertTrue(store.files.any { it.displayName == receipt.lastBackupFileName })
+        assertEquals(receipt.lastBackupFileName, manager(preferences, FakeBackupRepository(2), store).state.value.lastBackupFileName)
+    }
+
+    @Test
     fun successfulWritePrunesOldBackupsButLeavesUnrelatedFiles() = runBlocking {
         val store = FakeDocumentStore().apply {
             addExisting("whip-2026-08-16-120000.whip.json", 1)
@@ -400,11 +472,12 @@ class PortableBackupManagerTest {
         repository: BackupRepository,
         store: PortableBackupDocumentStore,
         managerContext: Context = context,
+        now: () -> Instant = { FIXED_NOW },
     ) = PortableBackupManager(
         context = managerContext,
         backupRepository = repository,
         documentStore = store,
-        now = { FIXED_NOW },
+        now = now,
         zoneId = { ZoneId.of("America/Toronto") },
         preferencesName = preferences,
     )
@@ -413,6 +486,7 @@ class PortableBackupManagerTest {
 
     private class CommitFailureContext(base: Context) : ContextWrapper(base) {
         var failCommit = false
+        var successfulCommitsBeforeFailure: Int? = null
 
         override fun getSharedPreferences(name: String, mode: Int): SharedPreferences {
             val actual = super.getSharedPreferences(name, mode)
@@ -445,7 +519,17 @@ class PortableBackupManagerTest {
                             return this
                         }
 
-                        override fun commit(): Boolean = if (failCommit) false else editor.commit()
+                        override fun commit(): Boolean {
+                            val remaining = successfulCommitsBeforeFailure
+                            if (remaining != null) {
+                                if (remaining == 0) {
+                                    successfulCommitsBeforeFailure = null
+                                    return false
+                                }
+                                successfulCommitsBeforeFailure = remaining - 1
+                            }
+                            return if (failCommit) false else editor.commit()
+                        }
                     }
                 }
             }
@@ -537,6 +621,9 @@ class PortableBackupManagerTest {
         }
         override fun delete(fileUri: Uri): Boolean {
             if (failOperation == "delete-staging" && files.any { it.uri == fileUri && it.displayName.startsWith("whip-INCOMPLETE-") }) {
+                return false
+            }
+            if (failOperation == "delete-backup" && files.any { it.uri == fileUri && it.displayName.endsWith(".whip.json") }) {
                 return false
             }
             content.remove(fileUri)

@@ -1,5 +1,36 @@
 # Durable findings
 
+### FND-20260921-018 — Full Android gate inherited 200% emulator text
+
+- Severity/category: P2 audit-gate reproducibility, not a confirmed product layout defect; FB-20260920-001.
+- Observed: The corrected fresh full gate passed build, lint and JVM coverage, then two ordinary `InteractionControlUiTest` graphics/layout methods failed in Android batch one. The disposable emulator still had `font_scale=2.0` after an earlier interrupted visual campaign; these methods assume the standard 1.0 baseline. The catalog collector already normalized its own runs, but the shared Android test engine did not.
+- Expected/resolution: Each Android test-engine run saves the emulator's prior system text scale, establishes 1.0 before ordinary batches, and restores the original scale at exit. Explicit large-text tests still set and verify actual Android scale through their rule. Starting at 2.0, the two exact failed methods pass on the corrected engine and the setting restores to 2.0. The fresh complete gate is rerunning; its prior batch failure is not accepted.
+- Related: DEC-20260921-015, IMP/VER-20260921-020. Status: exact failure replay verified, complete gate In progress.
+
+### FND-20260921-017 — Full gate mistook real SAF test inputs for QA artifacts
+
+- Severity/category: P2 audit-gate reliability, not a production app defect; FB-20260920-001.
+- Observed: `scripts/check --full --emulator --fresh-emulator` stopped before any build/test work because its broad `/sdcard` source scan matched two Android instrumentation journeys. Those tests intentionally stage temporary files in disposable emulator Downloads for real DocumentsUI import/export and cleanup, not QA screenshots or evidence.
+- Expected: Keep the direct-device-root artifact guard for production and unrelated tests, while allowing only the two reviewed SAF fixture owners to exercise Android's actual picker location.
+- Evidence/resolution: The gate failure named only `TrackCsvJourneyE2ETest.kt` and `DataPrivacyJourneyE2ETest.kt`. Exact file exemptions now let `scripts/test-check-full` pass; its new negative fixture proves an unrelated `UnrelatedJourneyTest.kt` path still fails. The full fresh gate is being rerun.
+- Related: DEC-20260921-014, IMP/VER-20260921-019. Status: harness fixture verified, final gate In progress.
+
+### FND-20260921-016 — Retention could delete the file named by an uncommitted replacement receipt
+
+- Severity/category: P2 portable-backup history integrity and recoverability; FB-20260920-001.
+- Observed: `backupNow()` verified a new file, then pruned older valid files before committing its new saved-file receipt. With retention set to one, a failed receipt commit preserved the previous timestamp/name in Settings but had already deleted that previous file. The new file remained in the folder, yet the displayed last-verified receipt pointed at a nonexistent file.
+- Expected: Confirm the new verified-file receipt before any retention deletion. If receipt storage fails, leave the previously receipted file untouched; an extra copy is safer than a false receipt. If post-commit pruning fails, retain the new receipt and record a warning.
+- Evidence/resolution: `PortableBackupManagerTest#failedNewReceiptCannotPruneThePreviouslyVerifiedFile` fails against the pre-fix order at “The old receipt must still identify a real file” in `build/instrumentation-results-PJCOTp` and passes after reordering in `8NFUMq`. A second injected case covers a failed retention-warning write after the new receipt; all 26 manager/provider methods pass in `DjJdNz`. Broader Settings and final audit gates remain pending.
+- Related: FND-20260921-014/015, DEC-20260921-013, IMP/VER-20260921-017. Status: focused ordering fix verified, whole-product audit In progress.
+
+### FND-20260921-015 — Automatic daily backup could appear enabled without a confirmed setting
+
+- Severity/category: P2 portable-backup scheduling durability and truthful Settings feedback; FB-20260920-001.
+- Observed: The Data & Privacy switch called `PortableBackupManager.setAutomaticEnabled()` on the UI path. That method used `SharedPreferences.apply()`, published the new in-memory state and immediately queued scheduler synchronization. Android does not provide a disk-write result for `apply()`, so an abrupt loss or storage failure could leave the switch and scheduled job apparently enabled while the next process reads the old setting. The analogous disable has the same ambiguity.
+- Expected: A switch change must be committed before it appears successful or informs scheduling. A failed commit keeps the prior enabled state and shows an error; repeat taps cannot race an in-flight folder/backup operation.
+- Evidence/resolution: Fault-injected `PortableBackupManagerTest#failedAutomaticToggleCommitKeepsThePreviousDurableSetting` fails on the original code in `build/instrumentation-results-i9A9AF`, then passes on the confirmed-write implementation in `YnRVmu`. The manager serializes the toggle with folder/backup operations; Settings moves it to the existing I/O request path and disables the row while busy. Broader Settings and final audit gates are pending.
+- Related: FND-20260921-014, DEC-20260921-012, IMP/VER-20260921-016. Status: focused fix verified, whole-product audit In progress.
+
 ### FND-20260921-014 — Backup folder selection and verified receipt could be acknowledged before durable storage
 
 - Severity/category: P2 portable-backup durability and honest success feedback; FB-20260920-001.

@@ -1292,6 +1292,7 @@ internal fun SettingsContent(
                         SettingsToggle(
                             "Automatic daily backup",
                             state.portableBackup.automaticEnabled,
+                            enabled = !state.busy,
                             onChange = viewModel::setPortableBackupAutomatic,
                         )
                         Text(
