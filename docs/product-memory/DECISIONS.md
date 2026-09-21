@@ -1,5 +1,19 @@
 # Durable product and engineering decisions
 
+### DEC-20260921-011 — Confirm consequential portable-backup preference writes before success
+
+- Decision: Folder replacement and the saved-and-verified backup receipt use `SharedPreferences.commit()` on their existing I/O paths. A failed folder commit keeps the previous URI/grant and releases only the new one; a failed receipt commit reports uncertainty without advancing the last verified timestamp/name. The committed file is not deleted merely because local receipt storage failed.
+- Rationale: `apply()` updates in-memory state without a durable success result. These two operations cross a provider-grant/file boundary and their UI success claims must not precede local confirmation. Existing routine toggle behavior is not silently changed in this scoped correction.
+- Rejected alternative: Treating an `apply()`-updated `StateFlow` as proof of persistence, or deleting a verified file after a local receipt failure, would either overstate durability or destroy a possible recovery copy.
+- Related/status: FND-20260921-014 and IMP/VER-20260921-015; accepted for this audit chunk.
+
+### DEC-20260921-010 — Distinguish null provider results from genuinely empty backup folders
+
+- Decision: `SafPortableBackupDocumentStore.list()` requires a non-null Cursor and throws a user-facing provider failure otherwise; a non-null zero-row Cursor remains a valid empty folder. Existing manager recovery/backup catches retain the prior verified receipt and surface the error.
+- Rationale: Android permits null on provider failure. Treating it as an empty collection makes cleanup and retention outcomes unverifiable.
+- Rejected alternative: Retrying as an empty list, deleting files speculatively, or suppressing the warning would conceal the provider state and risk backup-history mistakes.
+- Related/status: FND-20260921-013 and IMP/VER-20260921-015; accepted for this audit chunk.
+
 ### DEC-20260921-009 — Establish ordinary text scale for each full visual capture
 
 - Context: FND-20260921-011 found that an interrupted emulator run can leave a non-default system text scale; unannotated visual selectors then produce mislabeled ordinary cards and may fail on lazy content outside their starting viewport.

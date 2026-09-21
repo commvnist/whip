@@ -1,11 +1,27 @@
 # Durable findings
 
+### FND-20260921-014 — Backup folder selection and verified receipt could be acknowledged before durable storage
+
+- Severity/category: P2 portable-backup durability and honest success feedback; FB-20260920-001.
+- Observed: `PortableBackupManager.configureFolder()` and `backupNow()` updated consequential `SharedPreferences` state with `apply()` and immediately reported success. Android's [storage contract](https://developer.android.com/reference/android/content/SharedPreferences.Editor) makes `apply()` an asynchronous disk write with no failure result. A provider grant could be switched, or a verified backup file created, while the folder selection or success receipt had not been durably recorded.
+- Expected: Commit the new folder before releasing the previous grant; acknowledge a verified file only after its receipt is durably recorded. On failed commit, keep the previous selection, release only the uncommitted new grant, leave the success timestamp/name unchanged and report that the file may still exist.
+- Resolution/status: Both boundaries now use confirmed writes on the Settings/worker I/O path. Fault-injected preference commits prove the old selection and last receipt remain unchanged on failure, the new grant is released, and a written file is not falsely reported as a saved-and-recorded backup. The two new tests and 21 neighboring backup tests pass in `build/instrumentation-results-7BbzYI`. Other immediate toggle preference writes remain a separate lifecycle-safety review, not part of this confirmed receipt path.
+- Related: FND-20260921-013, DEC-20260921-011, IMP/VER-20260921-015.
+
+### FND-20260921-013 — A failed document-provider query looked like an empty backup folder
+
+- Severity/category: P2 backup recovery, retention accuracy and failure feedback; FB-20260920-001.
+- Observed: `SafPortableBackupDocumentStore.list()` ended its nullable `ContentResolver.query()` with `.orEmpty()`. Android [documents that a provider may return a null Cursor or crash](https://developer.android.com/reference/android/content/ContentResolver). A failed child listing therefore appeared to contain zero backup files: startup cleanup could clear a warning without examining partial writes, and backup retention could report success without knowing which older files remained.
+- Expected: A null query is an explicit provider failure; a non-null zero-row Cursor alone means an empty folder. Preserve the last verified receipt and surface a retry/reconnect warning through the existing manager error path.
+- Resolution/status: The document store now throws on a null child Cursor. A test-only real Android `ContentProvider` returns null or a legitimate empty Cursor; the former failed before the correction and both paths pass after it. All 23 provider/manager methods pass in `build/instrumentation-results-7BbzYI`; the broader Settings/full-catalog audit is still in progress.
+- Related: FND-20260921-012, DEC-20260921-010, IMP/VER-20260921-015.
+
 ### FND-20260921-012 — Real portable-folder disappearance test did not prove its setup
 
 - Severity/category: P2 audit-evidence reliability, not a demonstrated current backup data-loss defect; FB-20260920-001.
 - Observed: The fifth full-catalog attempt's real `DataPrivacyJourneyE2ETest` expected folder inspection to fail after moving a selected Android SAF tree, but `recoverInterruptedWrites()` returned success. The test had not asserted which tree was selected or that the shell move actually removed it; its earlier picker helper silently accepted a missing target folder.
 - Expected: The test must select exactly `primary:Download/WhipPortableRecoveryTest`, prove the disposable source folder exists and moves offline, then verify missing-provider warning, retained last verified backup timestamp and unchanged Task rows, and explicit re-selection/back-up recovery.
-- Resolution/status: Strict target-URI/move checks now guard setup; a genuine moved tree makes `recoverInterruptedWrites()` fail and preserve data. The Data & Privacy list requires an explicit scroll to the reconnect action before visual capture. The exact native journey passes 1/1 with zero skip in `build/instrumentation-results-cWg6rq`. The full current-source capture is still pending. `SafPortableBackupDocumentStore.list` separately treats a provider's null cursor as empty; this is a source-backed resilience question for later provider-fault review, not proven by this moved-tree case.
+- Resolution/status: Strict target-URI/move checks now guard setup; a genuine moved tree makes `recoverInterruptedWrites()` fail and preserve data. The Data & Privacy list requires an explicit scroll to the reconnect action before visual capture. The exact native journey passes 1/1 with zero skip in `build/instrumentation-results-cWg6rq`. The distinct null-Cursor provider defect is resolved by FND-20260921-013; the full current-source capture is still pending.
 
 ### FND-20260921-011 — Full-catalog capture inherited a non-default emulator text scale
 

@@ -118,23 +118,25 @@ class SafPortableBackupDocumentStore(
             treeUri,
             DocumentsContract.getTreeDocumentId(treeUri),
         )
-        return resolver.query(childrenUri, DOCUMENT_PROJECTION, null, null, null)?.use { cursor ->
+        val cursor = resolver.query(childrenUri, DOCUMENT_PROJECTION, null, null, null)
+            ?: error("The selected backup folder could not list its files")
+        return cursor.use { result ->
             buildList {
-                val idIndex = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
-                val nameIndex = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
-                val modifiedIndex = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_LAST_MODIFIED)
-                while (cursor.moveToNext()) {
-                    val documentId = cursor.getString(idIndex)
+                val idIndex = result.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
+                val nameIndex = result.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+                val modifiedIndex = result.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_LAST_MODIFIED)
+                while (result.moveToNext()) {
+                    val documentId = result.getString(idIndex)
                     add(
                         PortableBackupFile(
                             uri = DocumentsContract.buildDocumentUriUsingTree(treeUri, documentId),
-                            displayName = cursor.getString(nameIndex).orEmpty(),
-                            lastModifiedMillis = if (cursor.isNull(modifiedIndex)) 0L else cursor.getLong(modifiedIndex),
+                            displayName = result.getString(nameIndex).orEmpty(),
+                            lastModifiedMillis = if (result.isNull(modifiedIndex)) 0L else result.getLong(modifiedIndex),
                         ),
                     )
                 }
             }
-        }.orEmpty()
+        }
     }
 
     override fun delete(fileUri: Uri): Boolean = DocumentsContract.deleteDocument(resolver, fileUri)
@@ -219,13 +221,13 @@ class PortableBackupManager(
             throw userFacingProviderError(error)
         }
         try {
-            updateState {
+            check(updateState(confirm = true) {
                 it.copy(
                     folderUri = treeUri.toString(),
                     folderLabel = label,
                     lastError = null,
                 )
-            }
+            }) { "Whip could not save the selected backup folder" }
         } catch (error: Throwable) {
             if (previousUri != treeUri) runCatching { documentStore.releaseAccess(treeUri) }
             throw userFacingProviderError(error)
@@ -342,7 +344,7 @@ class PortableBackupManager(
                 protectedUri = created.uri,
             ).count { old -> runCatching { documentStore.delete(old.uri) }.getOrDefault(false).not() }
             val savedAt = now().toEpochMilli()
-            updateState {
+            check(updateState(confirm = true) {
                 it.copy(
                     lastBackupAtMillis = savedAt,
                     lastBackupFileName = created.displayName,
@@ -352,6 +354,8 @@ class PortableBackupManager(
                         if (pruneFailures > 0) add("$pruneFailures old backup${if (pruneFailures == 1) "" else "s"} could not be removed")
                     }.takeIf(List<String>::isNotEmpty)?.joinToString("; "),
                 )
+            }) {
+                "The verified backup was saved, but its receipt could not be recorded; check the selected folder before retrying"
             }
             PortableBackupOutcome.Saved(created, sourcePreview.totalRecords)
         } catch (error: Throwable) {

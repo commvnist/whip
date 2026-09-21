@@ -1,5 +1,13 @@
 # Verification and release evidence
 
+### VER-20260921-015 — Provider-null and confirmed-receipt recovery
+
+- Scope: IMP-20260921-015 on disposable API 34 `emulator-5556`, with no owner-phone or release operation. A test-only real `ContentProvider` returns either a null Cursor or a non-null zero-row Cursor for child documents; a separate preference wrapper rejects `commit()` without mutating persisted state.
+- Baseline: The provider-null assertion fails against `.orEmpty()` while the empty-Cursor control passes. The two preference regressions fail against the original `apply()` success path. One initial test-provider attempt crashed because a Kotlin provider class loaded in the separate test APK before its Kotlin runtime; a Java test-only provider replaced it. An initial preference wrapper lost interception through fluent Editor methods and its failed run `u2GoNU` is excluded; the final wrapper retains interception through every relevant chained put/remove method.
+- Final: `ANDROID_SERIAL=emulator-5556 scripts/qa-targeted --android com.whip.app.SafPortableBackupDocumentStoreTest --android com.whip.app.PortableBackupManagerTest --emulator` passes 23/23 methods, zero failures/skips/reuse, in `build/instrumentation-results-7BbzYI`. The null/empty provider distinction, previous-folder retention/new-grant release and no-false-receipt assertions all pass. `taBaLH`/`u2GoNU` are failed diagnostic attempts, not acceptance evidence.
+- Limits: Full Settings neighbors, JVM/static/build, complete Android inventory and exact 523-state catalog are still pending on final source. The sixth full-catalog attempt was deliberately stopped after five accepted batches when these production defects were found; it is not a complete capture. The seventh is running.
+- Related/status: FND-20260921-013/014, DEC-20260921-010/011 and IMP-20260921-015. Focused provider/durability correction verified; whole-product audit In progress.
+
 ### VER-20260921-014 — Distinct current catalog fixtures and stable capture setup
 
 - Scope: IMP-20260921-014 on disposable API 34 emulator(s), not the owner phone. The v2 full attempt executed all 193 selectors and exported 528 PNG/XML pairs but rejected five byte-identical pairs; a sixth Whip-identical pair differed only by the Android clock. The six transition assertions remain; [the alias mapping](../quality/ASTRA_VISUAL_ALIAS_DISPOSITION_2026-09-21.md) preserves frozen-matrix history.

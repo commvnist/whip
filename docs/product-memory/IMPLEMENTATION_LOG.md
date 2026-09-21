@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260921-015 — Fail closed on provider listing and confirm backup receipts
+
+- `SafPortableBackupDocumentStore.list()` now requires a non-null child Cursor; a real test-only Android provider proves that null means failure while a zero-row Cursor is still a legitimate empty directory. The provider is confined to the instrumentation APK.
+- Portable folder replacement and verified backup receipt now require confirmed preference writes on their existing I/O paths. Failed selection keeps the previous grant and releases only the new one; a failed receipt reports that the verified file may remain while preserving the old timestamp/name. Two fault-injected manager regressions cover these boundaries.
+- No Room schema, data epoch, backup format, release version or owner-phone data changed. The interrupted sixth catalog run is not accepted; a seventh exact recapture is running against this corrected source.
+- Related/status: FB-20260920-001, FND-20260921-013/014, DEC-20260921-010/011 and VER-20260921-015. Scoped correction verified; whole-product audit In progress.
+
 ### IMP-20260921-014 — Make current audit evidence distinct and deterministic
 
 - Kept native transition assertions while removing six current catalog screenshots that showed an already-accounted-for visual state; [each frozen/current alias is mapped](../quality/ASTRA_VISUAL_ALIAS_DISPOSITION_2026-09-21.md). Added a genuinely different scrolled 200%-text Settings card for final destructive consequences and backup advice. Current catalog: 523 required states, no pending selector or platform exception.

@@ -1,6 +1,8 @@
 package com.whip.app
 
 import android.content.Context
+import android.content.ContextWrapper
+import android.content.SharedPreferences
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -59,6 +61,42 @@ class PortableBackupManagerTest {
         assertTrue(recreated.state.value.automaticEnabled)
         assertEquals(3, recreated.state.value.retentionCount)
         assertEquals(FIXED_NOW.toEpochMilli(), recreated.state.value.lastBackupAtMillis)
+    }
+
+    @Test
+    fun failedFolderCommitKeepsThePreviousSelectionAndReleasesOnlyTheNewGrant() = runBlocking {
+        val preferences = uniquePreferences()
+        val store = FakeDocumentStore()
+        val contextWithFailure = CommitFailureContext(context)
+        val manager = manager(preferences, FakeBackupRepository(2), store, contextWithFailure)
+        manager.configureFolder(TREE_URI)
+        contextWithFailure.failCommit = true
+
+        val replacement = runCatching { manager.configureFolder(SECOND_TREE_URI) }
+
+        assertTrue(replacement.isFailure)
+        assertEquals(TREE_URI.toString(), manager.state.value.folderUri)
+        assertEquals(TREE_URI.toString(), manager(preferences, FakeBackupRepository(2), store).state.value.folderUri)
+        assertTrue(SECOND_TREE_URI in store.releasedUris)
+        assertFalse(TREE_URI in store.releasedUris)
+    }
+
+    @Test
+    fun failedReceiptCommitCannotReportAVerifiedBackupAsSaved() = runBlocking {
+        val preferences = uniquePreferences()
+        val store = FakeDocumentStore()
+        val contextWithFailure = CommitFailureContext(context)
+        val manager = manager(preferences, FakeBackupRepository(2), store, contextWithFailure)
+        manager.configureFolder(TREE_URI)
+        contextWithFailure.failCommit = true
+
+        val backup = runCatching { manager.backupNow() }
+
+        assertTrue(backup.isFailure)
+        assertEquals(null, manager.state.value.lastBackupAtMillis)
+        assertEquals(null, manager.state.value.lastBackupFileName)
+        assertTrue(manager.state.value.lastError.orEmpty().contains("receipt could not be recorded"))
+        assertTrue(store.files.any { it.displayName.endsWith(".whip.json") })
     }
 
     @Test
@@ -361,8 +399,9 @@ class PortableBackupManagerTest {
         preferences: String,
         repository: BackupRepository,
         store: PortableBackupDocumentStore,
+        managerContext: Context = context,
     ) = PortableBackupManager(
-        context = context,
+        context = managerContext,
         backupRepository = repository,
         documentStore = store,
         now = { FIXED_NOW },
@@ -371,6 +410,47 @@ class PortableBackupManagerTest {
     )
 
     private fun uniquePreferences(): String = "portable-backup-test-${UUID.randomUUID()}".also(preferenceNames::add)
+
+    private class CommitFailureContext(base: Context) : ContextWrapper(base) {
+        var failCommit = false
+
+        override fun getSharedPreferences(name: String, mode: Int): SharedPreferences {
+            val actual = super.getSharedPreferences(name, mode)
+            return object : SharedPreferences by actual {
+                override fun edit(): SharedPreferences.Editor {
+                    val editor = actual.edit()
+                    return object : SharedPreferences.Editor by editor {
+                        override fun putString(key: String?, value: String?): SharedPreferences.Editor {
+                            editor.putString(key, value)
+                            return this
+                        }
+
+                        override fun putBoolean(key: String?, value: Boolean): SharedPreferences.Editor {
+                            editor.putBoolean(key, value)
+                            return this
+                        }
+
+                        override fun putInt(key: String?, value: Int): SharedPreferences.Editor {
+                            editor.putInt(key, value)
+                            return this
+                        }
+
+                        override fun putLong(key: String?, value: Long): SharedPreferences.Editor {
+                            editor.putLong(key, value)
+                            return this
+                        }
+
+                        override fun remove(key: String?): SharedPreferences.Editor {
+                            editor.remove(key)
+                            return this
+                        }
+
+                        override fun commit(): Boolean = if (failCommit) false else editor.commit()
+                    }
+                }
+            }
+        }
+    }
 
     private class FakeBackupRepository(private val records: Int) : BackupRepository {
         override suspend fun exportBackup() = "backup-test"
@@ -405,6 +485,7 @@ class PortableBackupManagerTest {
         var lastWrittenContent: String? = null
         var renames = 0
         val writtenNames = mutableListOf<String>()
+        val releasedUris = mutableListOf<Uri>()
 
         override fun persistAccess(treeUri: Uri) {
             if (failOperation == "persist-revoked-security") {
@@ -412,6 +493,7 @@ class PortableBackupManagerTest {
             }
         }
         override fun releaseAccess(treeUri: Uri) {
+            releasedUris += treeUri
             if (failOperation == "release") error("Provider already revoked access")
         }
         override fun folderLabel(treeUri: Uri) = "Whip backups"
