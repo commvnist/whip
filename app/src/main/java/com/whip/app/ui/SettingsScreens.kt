@@ -1277,7 +1277,12 @@ internal fun SettingsContent(
                             )
                         }
                         state.portableBackup.lastError?.let { error ->
-                            Text("Last backup warning or error: $error", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                "Last backup warning or error: $error. Reconnect this folder below, or forget it and choose another folder.",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+                            )
                         }
                         WhipButton(
                             onClick = viewModel::createPortableBackup,
@@ -1310,7 +1315,9 @@ internal fun SettingsContent(
                                     onClick = { backupFolder.launch(state.portableBackup.folderUri?.let(android.net.Uri::parse)) },
                                     enabled = !state.busy,
                                     modifier = buttonModifier,
-                                ) { Text("Change Folder") }
+                                ) {
+                                    Text(if (state.portableBackup.lastError == null) "Change Folder" else "Reconnect or Change Folder")
+                                }
                             },
                             second = { buttonModifier ->
                                 WhipTextButton(

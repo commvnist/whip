@@ -1,5 +1,15 @@
 # Implementation history
 
+### IMP-20260920-004 — Surface and recover portable-folder access loss
+
+- Behavior changed: Interrupted-write recovery now records provider inspection failures and refused deletion of exact-owned partial files in durable portable-backup state without blocking app startup, forgetting the folder, or changing a prior verified receipt. A later verified backup retains an incomplete-cleanup warning instead of silently erasing it. Platform permission failures are reduced to user-safe copy while the original exception remains attached as the cause. The Data & Privacy card announces the warning and changes its existing action to `Reconnect or Change Folder` until a successful reselection clears it. Replacing a folder now commits the new grant independently of best-effort release of an already-stale old grant, so cleanup cannot undo a successful selection.
+- Important files/symbols: `PortableBackupManager.configureFolder`, `recoverInterruptedWrites`, `cleanupStagingFiles`, `userFacingProviderError`, and `backupNow`; `SettingsScreens` portable-folder card; fake-provider regressions in `PortableBackupManagerTest`; real SAF loss/reselection journey in `DataPrivacyJourneyE2ETest`; current catalog state `settings.data-controls.portable-folder-reconnect`.
+- Persistence/migration/history impact: No Room schema, data epoch, backup format, version code, record or external-backup mutation. `lastError` continues to use the existing private preferences receipt. Folder URI, automatic setting, retention and last verified timestamp/name survive the failure. Reselection renews Android's persisted grant and clears the warning; forgetting still succeeds after grant loss.
+- Compatibility and limitations: Startup remains best-effort and non-fatal. A cleanup refusal does not block a separately verified new backup, but stays visible. The native campaign uses Android's ExternalStorageProvider and a disposable subfolder whose persisted grant is released and whose tree is temporarily moved out of reach; a true third-party cloud outage and OS process-kill grant revocation are not conflated with that evidence.
+- Commit/push: Focused main/origin push is recorded in Git history; no release or phone install.
+- Related: FB-20260920-001, FND/DEC-20260920-004, VER-20260920-004.
+- Verification/status: Verified under VER-20260920-004; targeted fake/real provider and complete Data & Privacy journeys, all JVM methods, catalog lint and final readiness pass.
+
 ### IMP-20260920-003 — Restrict portable-backup deletion to exact automatic filenames
 
 - Behavior changed: Portable-folder retention now considers only Whip's generated `whip-YYYY-MM-DD-HHmmss.whip.json` finals, and interrupted-write cleanup only deletes `whip-INCOMPLETE-<UUID>.partial`. A manual `whip-YYYY-MM-DD.whip.json` export, unrelated prefixed note and malformed lookalikes remain untouched. Settings replaces the absolute unrelated-file promise with the enforceable exact filename boundary.

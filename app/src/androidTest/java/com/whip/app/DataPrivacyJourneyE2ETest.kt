@@ -33,9 +33,20 @@ class DataPrivacyJourneyE2ETest {
     private val encryptedFileName = "WhipEncryptedPickerRecreation.whip.enc.json"
     private val plainFileName = "WhipPlainPickerRegression.whip.json"
     private val csvFileName = "WhipTasksPickerRegression.csv"
+    private val portableFolderName = "WhipPortableRecoveryTest"
+    private val portableFolderOfflineName = "WhipPortableRecoveryTest-offline"
+    private val portableBackupFileNames = linkedSetOf<String>()
 
     @After fun clean() {
-        runBlocking { app.backupRepository.deleteAllData() }
+        device.executeShellCommand("mv /sdcard/Download/$portableFolderOfflineName /sdcard/Download/$portableFolderName")
+        portableBackupFileNames.forEach { name ->
+            device.executeShellCommand("rm -f /sdcard/Download/$portableFolderName/$name")
+        }
+        device.executeShellCommand("rmdir /sdcard/Download/$portableFolderName")
+        runBlocking {
+            app.portableBackupManager.clearFolder()
+            app.backupRepository.deleteAllData()
+        }
         device.executeShellCommand("rm -f /sdcard/Download/$fileName")
         device.executeShellCommand("rm -f /sdcard/Download/$encryptedFileName")
         device.executeShellCommand("rm -f /sdcard/Download/$plainFileName")
@@ -123,6 +134,77 @@ class DataPrivacyJourneyE2ETest {
                     "Export was interrupted. The selected file may be empty; choose a location again."
             }
             assertFalse(settingsViewModel.uiState.value.busy)
+        }
+    }
+
+    @Test fun unavailablePortableFolderAccessIsVisibleAndRecoverableThroughReselection() {
+        device.executeShellCommand("mkdir -p /sdcard/Download/$portableFolderName")
+        val before = runBlocking {
+            app.portableBackupManager.clearFolder()
+            app.backupRepository.deleteAllData()
+            app.settingsRepository.update { AppSettings(setupCompleted = true, themeMode = AppThemeMode.Dark, dynamicColor = false) }
+            app.taskRepository.create(TaskDraft(title = "Portable recovery preserves this task"))
+            app.taskRepository.tasks.first()
+        }
+        lateinit var treeUri: Uri
+        var verifiedAt = Long.MIN_VALUE
+
+        launchMainActivity(Intent(app, MainActivity::class.java)).use {
+            compose.onNodeWithContentDescription("Open Settings").performClick()
+            compose.openSettingsCategory("Data & Privacy")
+            scroll(hasText("Choose Backup Folder")).performClick()
+            selectDownloadsTree()
+            compose.waitUntil(10_000) { app.portableBackupManager.state.value.configured }
+            treeUri = Uri.parse(requireNotNull(app.portableBackupManager.state.value.folderUri))
+            assertTrue(app.contentResolver.persistedUriPermissions.any { permission -> permission.uri == treeUri })
+
+            scroll(hasText("Back Up Now")).performClick()
+            compose.waitUntil(10_000) { app.portableBackupManager.state.value.lastBackupAtMillis != null }
+            val state = app.portableBackupManager.state.value
+            verifiedAt = requireNotNull(state.lastBackupAtMillis)
+            portableBackupFileNames += requireNotNull(state.lastBackupFileName)
+            assertEquals(null, state.lastError)
+            assertEquals(before, tasks())
+        }
+
+        val uriGrantFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+        app.contentResolver.releasePersistableUriPermission(treeUri, uriGrantFlags)
+        assertFalse(app.contentResolver.persistedUriPermissions.any { permission -> permission.uri == treeUri })
+        device.executeShellCommand(
+            "mv /sdcard/Download/$portableFolderName /sdcard/Download/$portableFolderOfflineName",
+        )
+        val recovery = runBlocking { runCatching { app.portableBackupManager.recoverInterruptedWrites() } }
+        assertTrue("A real SAF tree that disappears must fail folder inspection", recovery.isFailure)
+        val failedState = app.portableBackupManager.state.value
+        assertTrue(failedState.lastError.orEmpty().startsWith("Backup folder recovery failed:"))
+        assertFalse(failedState.lastError.orEmpty().contains("ProcessRecord"))
+        assertFalse(failedState.lastError.orEmpty().contains("uid="))
+        assertEquals(verifiedAt, failedState.lastBackupAtMillis)
+        assertEquals(before, tasks())
+        device.executeShellCommand(
+            "mv /sdcard/Download/$portableFolderOfflineName /sdcard/Download/$portableFolderName",
+        )
+
+        launchMainActivity(Intent(app, MainActivity::class.java)).use {
+            compose.onNodeWithContentDescription("Open Settings").performClick()
+            compose.openSettingsCategory("Data & Privacy")
+            scroll(hasText("Last backup warning or error:", substring = true)).assertIsDisplayed()
+            compose.onNodeWithText("Reconnect or Change Folder").assertIsDisplayed()
+            capture("portable-folder-reconnect")
+
+            compose.onNodeWithText("Reconnect or Change Folder").performClick()
+            selectDownloadsTree()
+            compose.waitUntil(10_000) { app.portableBackupManager.state.value.lastError == null }
+            assertTrue(app.contentResolver.persistedUriPermissions.any { permission -> permission.uri == treeUri })
+
+            scroll(hasText("Back Up Now")).performClick()
+            compose.waitUntil(10_000) {
+                app.portableBackupManager.state.value.lastBackupAtMillis?.let { it > verifiedAt } == true
+            }
+            val recoveredState = app.portableBackupManager.state.value
+            portableBackupFileNames += requireNotNull(recoveredState.lastBackupFileName)
+            assertEquals(null, recoveredState.lastError)
+            assertEquals(before, tasks())
         }
     }
 
@@ -228,6 +310,28 @@ class DataPrivacyJourneyE2ETest {
         val save = device.wait(Until.findObject(By.text("Save")), 10_000)
             ?: device.wait(Until.findObject(By.text("SAVE")), 10_000)
         requireNotNull(save) { "Native Save action should be available" }.click()
+    }
+
+    private fun selectDownloadsTree() {
+        awaitDocuments()
+        val localDownloadFolder = device.wait(Until.findObject(By.text("Download")), 2_000)
+        if (localDownloadFolder != null) {
+            localDownloadFolder.click()
+        } else {
+            device.wait(Until.findObject(By.desc("Show roots")), 2_000)?.click()
+            if (device.wait(Until.hasObject(By.text("Downloads")), 2_000)) {
+                device.findObjects(By.text("Downloads")).last().click()
+            }
+        }
+        val targetFolder = device.wait(Until.findObject(By.text(portableFolderName)), 10_000)
+        if (targetFolder != null) targetFolder.click()
+        val useFolder = device.wait(Until.findObject(By.res("android", "button1")), 10_000)
+        requireNotNull(useFolder) { "Native folder picker should expose its selection action" }
+        require(useFolder.isEnabled) { "Dedicated portable-backup test folder should be selectable" }
+        useFolder.click()
+        val allow = device.wait(Until.findObject(By.text("ALLOW")), 3_000)
+            ?: device.wait(Until.findObject(By.text("Allow")), 2_000)
+        allow?.click()
     }
 
     private fun journey(theme: AppThemeMode) {

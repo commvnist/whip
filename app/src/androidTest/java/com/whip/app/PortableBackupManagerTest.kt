@@ -117,6 +117,110 @@ class PortableBackupManagerTest {
     }
 
     @Test
+    fun startupRecoveryReportsRevokedProviderAndReselectionClearsTheWarning() = runBlocking {
+        val stagedName = "whip-INCOMPLETE-00000000-0000-0000-0000-000000000003.partial"
+        val store = FakeDocumentStore().apply { addExisting(stagedName, 1) }
+        val manager = manager(uniquePreferences(), FakeBackupRepository(5), store)
+        manager.configureFolder(TREE_URI)
+        manager.setAutomaticEnabled(true)
+        store.failOperation = "list-offline"
+
+        val recovery = runCatching { manager.recoverInterruptedWrites() }
+
+        assertTrue(recovery.isFailure)
+        assertTrue(manager.state.value.lastError.orEmpty().contains("offline"))
+        assertTrue(manager.state.value.automaticEnabled)
+        assertEquals(null, manager.state.value.lastBackupAtMillis)
+
+        store.failOperation = null
+        manager.configureFolder(TREE_URI)
+        manager.recoverInterruptedWrites()
+
+        assertEquals(null, manager.state.value.lastError)
+        assertFalse(store.files.any { it.displayName == stagedName })
+    }
+
+    @Test
+    fun revokedProviderWarningNeverExposesPlatformProcessDetails() = runBlocking {
+        val store = FakeDocumentStore(failOperation = "list-revoked-security")
+        val manager = manager(uniquePreferences(), FakeBackupRepository(5), store)
+        manager.configureFolder(TREE_URI)
+
+        val recovery = runCatching { manager.recoverInterruptedWrites() }
+
+        assertEquals(
+            "Whip no longer has access to the selected backup folder",
+            recovery.exceptionOrNull()?.message,
+        )
+        val warning = manager.state.value.lastError.orEmpty()
+        assertTrue(warning.contains("no longer has access"))
+        assertFalse(warning.contains("ProcessRecord"))
+        assertFalse(warning.contains("uid="))
+    }
+
+    @Test
+    fun grantLossDuringFolderSelectionUsesTheSameSafeRecoveryMessage() = runBlocking {
+        val store = FakeDocumentStore(failOperation = "persist-revoked-security")
+        val manager = manager(uniquePreferences(), FakeBackupRepository(5), store)
+
+        val selection = runCatching { manager.configureFolder(TREE_URI) }
+
+        assertEquals(
+            "Whip no longer has access to the selected backup folder",
+            selection.exceptionOrNull()?.message,
+        )
+        assertFalse(manager.state.value.configured)
+        assertFalse(selection.exceptionOrNull()?.message.orEmpty().contains("ProcessRecord"))
+    }
+
+    @Test
+    fun changingFolderStillSucceedsWhenTheOldGrantIsAlreadyGone() = runBlocking {
+        val store = FakeDocumentStore()
+        val manager = manager(uniquePreferences(), FakeBackupRepository(5), store)
+        manager.configureFolder(TREE_URI)
+        manager.setAutomaticEnabled(true)
+        store.failOperation = "release"
+
+        manager.configureFolder(SECOND_TREE_URI)
+
+        assertEquals(SECOND_TREE_URI.toString(), manager.state.value.folderUri)
+        assertTrue(manager.state.value.automaticEnabled)
+        assertEquals(null, manager.state.value.lastError)
+    }
+
+    @Test
+    fun startupRecoveryReportsAnOwnedPartialThatProviderRefusesToDelete() = runBlocking {
+        val stagedName = "whip-INCOMPLETE-00000000-0000-0000-0000-000000000004.partial"
+        val store = FakeDocumentStore().apply { addExisting(stagedName, 1) }
+        val manager = manager(uniquePreferences(), FakeBackupRepository(5), store)
+        manager.configureFolder(TREE_URI)
+        store.failOperation = "delete-staging"
+
+        manager.recoverInterruptedWrites()
+
+        assertTrue(manager.state.value.lastError.orEmpty().contains("could not be removed"))
+        assertTrue(store.files.any { it.displayName == stagedName })
+        assertEquals(null, manager.state.value.lastBackupAtMillis)
+    }
+
+    @Test
+    fun verifiedBackupKeepsSuccessReceiptAndReportsRefusedPartialCleanup() = runBlocking {
+        val stagedName = "whip-INCOMPLETE-00000000-0000-0000-0000-000000000005.partial"
+        val store = FakeDocumentStore().apply { addExisting(stagedName, 1) }
+        val manager = manager(uniquePreferences(), FakeBackupRepository(5), store)
+        manager.configureFolder(TREE_URI)
+        store.failOperation = "delete-staging"
+
+        val outcome = manager.backupNow()
+
+        assertTrue(outcome is PortableBackupOutcome.Saved)
+        assertEquals(FIXED_NOW.toEpochMilli(), manager.state.value.lastBackupAtMillis)
+        assertTrue(manager.state.value.lastError.orEmpty().contains("could not be removed"))
+        assertTrue(store.files.any { it.displayName == stagedName })
+        assertTrue(store.files.any { it.displayName == "whip-2026-08-18-190102.whip.json" })
+    }
+
+    @Test
     fun corruptProviderWriteIsDeletedAndNeverReportedAsSuccessful() = runBlocking {
         val store = FakeDocumentStore(corruptWrites = true)
         val manager = manager(uniquePreferences(), FakeBackupRepository(2), store)
@@ -293,7 +397,7 @@ class PortableBackupManagerTest {
 
     private class FakeDocumentStore(
         private val corruptWrites: Boolean = false,
-        private val failOperation: String? = null,
+        var failOperation: String? = null,
     ) : PortableBackupDocumentStore {
         val files = mutableListOf<PortableBackupFile>()
         private val content = mutableMapOf<Uri, String>()
@@ -302,7 +406,11 @@ class PortableBackupManagerTest {
         var renames = 0
         val writtenNames = mutableListOf<String>()
 
-        override fun persistAccess(treeUri: Uri) = Unit
+        override fun persistAccess(treeUri: Uri) {
+            if (failOperation == "persist-revoked-security") {
+                throw SecurityException("Permission Denial from ProcessRecord{test} (pid=123, uid=456)")
+            }
+        }
         override fun releaseAccess(treeUri: Uri) {
             if (failOperation == "release") error("Provider already revoked access")
         }
@@ -340,9 +448,15 @@ class PortableBackupManagerTest {
         }
         override fun list(treeUri: Uri): List<PortableBackupFile> {
             if (failOperation == "list-offline") error("Selected provider is offline")
+            if (failOperation == "list-revoked-security") {
+                throw SecurityException("Permission Denial from ProcessRecord{test} (pid=123, uid=456)")
+            }
             return files.toList()
         }
         override fun delete(fileUri: Uri): Boolean {
+            if (failOperation == "delete-staging" && files.any { it.uri == fileUri && it.displayName.startsWith("whip-INCOMPLETE-") }) {
+                return false
+            }
             content.remove(fileUri)
             return files.removeAll { it.uri == fileUri }
         }
@@ -355,6 +469,7 @@ class PortableBackupManagerTest {
 
     private companion object {
         val TREE_URI: Uri = Uri.parse("content://test/tree/whip")
+        val SECOND_TREE_URI: Uri = Uri.parse("content://test/tree/whip-new")
         val FIXED_NOW: Instant = Instant.parse("2026-08-18T23:01:02Z")
     }
 }

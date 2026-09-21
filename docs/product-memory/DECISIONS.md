@@ -1,5 +1,17 @@
 # Durable product and engineering decisions
 
+### DEC-20260920-004 — Backup recovery warnings belong to the durable manager state
+
+- Context: FND-20260920-004 shows that startup deliberately isolates portable-provider failures, but the isolation also discards the only failure signal. A provider may throw while listing after grant revocation, or return `false` while refusing deletion of an owned partial.
+- Position A: Let startup continue swallowing recovery failures and rely on the next scheduled/manual backup to expose the provider problem.
+- Position B: Keep startup non-fatal while having `PortableBackupManager` persist an actionable warning for every inspection failure or refused owned-partial deletion. Preserve configuration and prior success metadata; clear the warning when the user reselects a writable folder or a later verified backup succeeds.
+- Evidence and constraints: `lastError` already survives process recreation and is rendered on the portable-folder card. `Change Folder` already relaunches `OpenDocumentTree` with the current URI, and `clearFolder` already tolerates a revoked grant. A cleanup warning need not block creation of a separately verified final backup if the provider still supports it, but it must remain visible alongside that success.
+- Failure modes: Making cleanup fatal could prevent a new recoverable backup solely because an old partial cannot be deleted. Clearing every warning after a no-op startup cleanup could hide the original backup failure without proving write health. Forgetting the folder automatically would discard the user's automatic-backup choice and recovery path.
+- Decision: Select Position B. Count failed exact-owned staging deletions, persist recovery exceptions before rethrowing to the non-fatal startup boundary, include cleanup failures in a successful backup's warning receipt, and label the folder action as reconnect-or-change while a warning is present. Do not advance success metadata on recovery. Once a replacement folder is persisted and committed, release of the superseded grant is best-effort: Android may already have removed it, and that stale cleanup must not invalidate or release the new selection.
+- Why this is superior for Whip: The app stays launchable and does not sacrifice an otherwise valid backup, while Settings truthfully reports that external protection needs attention and gives an immediate repair path.
+- Consequences/reversal conditions: A warning remains until explicit folder reselection or a later verified backup result supersedes it. Provider-specific authorization UI is still owned by Android; real SAF revocation/reselection must be verified separately.
+- Related/status: FB-20260920-001, FND/IMP/VER-20260920-004; Verified as an unreleased app change.
+
 ### DEC-20260920-003 — Destructive portable-backup ownership requires exact generated names
 
 - Context: FND-20260920-003 identifies two deletion paths operating inside a user-selected, potentially shared folder. Existing checksum validity proves a file is a Whip backup, not that automatic retention owns it. A broad incomplete prefix does not prove an abandoned Whip staging write.

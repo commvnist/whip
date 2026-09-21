@@ -211,9 +211,14 @@ class PortableBackupManager(
 
     suspend fun configureFolder(treeUri: Uri) = mutex.withLock {
         val previousUri = mutableState.value.folderUri?.let(Uri::parse)
-        documentStore.persistAccess(treeUri)
+        val label = try {
+            documentStore.persistAccess(treeUri)
+            documentStore.folderLabel(treeUri)
+        } catch (error: Throwable) {
+            if (previousUri != treeUri) runCatching { documentStore.releaseAccess(treeUri) }
+            throw userFacingProviderError(error)
+        }
         try {
-            val label = documentStore.folderLabel(treeUri)
             updateState {
                 it.copy(
                     folderUri = treeUri.toString(),
@@ -221,10 +226,14 @@ class PortableBackupManager(
                     lastError = null,
                 )
             }
-            if (previousUri != null && previousUri != treeUri) documentStore.releaseAccess(previousUri)
         } catch (error: Throwable) {
-            if (previousUri != treeUri) documentStore.releaseAccess(treeUri)
-            throw error
+            if (previousUri != treeUri) runCatching { documentStore.releaseAccess(treeUri) }
+            throw userFacingProviderError(error)
+        }
+        // A stale old grant must not invalidate a newly persisted and committed
+        // folder selection. Android may already have removed it.
+        if (previousUri != null && previousUri != treeUri) {
+            runCatching { documentStore.releaseAccess(previousUri) }
         }
     }
 
@@ -257,7 +266,17 @@ class PortableBackupManager(
 
     suspend fun recoverInterruptedWrites() = mutex.withLock {
         val treeUri = mutableState.value.folderUri?.let(Uri::parse) ?: return@withLock
-        cleanupStagingFiles(treeUri)
+        try {
+            val cleanupFailures = cleanupStagingFiles(treeUri)
+            if (cleanupFailures > 0) {
+                updateState { it.copy(lastError = incompleteCleanupWarning(cleanupFailures)) }
+            }
+        } catch (error: Throwable) {
+            val reported = userFacingProviderError(error)
+            val detail = reported.message?.takeIf(String::isNotBlank) ?: "The selected provider is unavailable"
+            updateState { it.copy(lastError = "Backup folder recovery failed: $detail") }
+            throw reported
+        }
     }
 
     suspend fun backupNow(allowEmpty: Boolean = true): PortableBackupOutcome = mutex.withLock {
@@ -272,7 +291,7 @@ class PortableBackupManager(
                 return@withLock PortableBackupOutcome.SkippedEmptyDatabase
             }
 
-            cleanupStagingFiles(treeUri)
+            val cleanupFailures = cleanupStagingFiles(treeUri)
             val requestedName = portableBackupFileName(now(), zoneId())
             val stagingName = "$PORTABLE_BACKUP_STAGING_PREFIX${UUID.randomUUID()}.partial"
             val staged = documentStore.write(treeUri, stagingName, json)
@@ -325,6 +344,7 @@ class PortableBackupManager(
                     lastBackupAtMillis = savedAt,
                     lastBackupFileName = created.displayName,
                     lastError = buildList {
+                        if (cleanupFailures > 0) add(incompleteCleanupWarning(cleanupFailures))
                         if (invalidCount > 0) add("$invalidCount corrupt or unreadable backup${if (invalidCount == 1) " was" else "s were"} ignored during retention")
                         if (pruneFailures > 0) add("$pruneFailures old backup${if (pruneFailures == 1) "" else "s"} could not be removed")
                     }.takeIf(List<String>::isNotEmpty)?.joinToString("; "),
@@ -332,14 +352,28 @@ class PortableBackupManager(
             }
             PortableBackupOutcome.Saved(created, sourcePreview.totalRecords)
         } catch (error: Throwable) {
-            updateState { it.copy(lastError = error.message ?: "Portable backup failed") }
-            throw error
+            val reported = userFacingProviderError(error)
+            updateState { it.copy(lastError = reported.message ?: "Portable backup failed") }
+            throw reported
         }
     }
 
     private fun cleanupStagingFiles(treeUri: Uri): Int = documentStore.list(treeUri)
         .filter { isPortableBackupStagingFileName(it.displayName) }
-        .count { file -> runCatching { documentStore.delete(file.uri) }.getOrDefault(false) }
+        .count { file -> !runCatching { documentStore.delete(file.uri) }.getOrDefault(false) }
+
+    private fun incompleteCleanupWarning(count: Int): String =
+        "$count incomplete backup file${if (count == 1) "" else "s"} could not be removed"
+
+    private fun userFacingProviderError(error: Throwable): Throwable =
+        if (error.hasSecurityCause()) {
+            IllegalStateException("Whip no longer has access to the selected backup folder", error)
+        } else {
+            error
+        }
+
+    private fun Throwable.hasSecurityCause(): Boolean =
+        this is SecurityException || cause?.hasSecurityCause() == true
 
     private fun readState(): PortableBackupState = PortableBackupState(
         folderUri = preferences.getString(KEY_FOLDER_URI, null),
