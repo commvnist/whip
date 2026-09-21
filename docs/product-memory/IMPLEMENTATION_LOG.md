@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260921-023 — Align machine-library semantics with current guidance
+
+- `WhipComposeSemanticsTest` now checks the visible Machines purpose, optional Exercise linking and Create Machine action after real Gym/Library navigation. The separate versioning and immutable performed-history paths remain covered by Gym lifecycle journeys.
+- Test only: no production behavior, schema, data epoch, backup format, release version or owner-phone operation changed. The exact method passes; the remaining Android tail and fresh complete gate are still required.
+- Related/status: FB-20260920-001, FND-20260921-021, DEC-20260921-018, VER-20260921-023. Focused correction Verified; whole-product audit In progress.
+
 ### IMP-20260921-022 — Keep Task template safety coverage on the current recipe
 
 - `ProductivityTemplateSafetyTest` now scrolls the Task Templates lazy list to the accessible Weekly Task choice. It still proves that template selection creates only a draft and Cancel/Discard leave Task storage empty.

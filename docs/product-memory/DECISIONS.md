@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260921-018 — Verify current machine empty-state guidance without restoring old copy
+
+- Decision: Rename the machine-library semantics journey for the current screen and assert its equipment-profile purpose, optional Exercise-link explanation and Create Machine action. Keep history/version integrity in the dedicated Gym Library lifecycle journeys and the version-creation UI, not an obsolete empty-list sentence.
+- Rationale: The old string disappeared during the product's tighter empty-state design; the user-facing guidance remains concrete, and machine history behavior was not shown to regress.
+- Rejected alternative: Reintroducing the old empty-state phrase solely for a test would add copy without evidence of user benefit. Removing the machine-library test would lose a reachable-navigation and semantic contract.
+- Related/status: FB-20260920-001, FND-20260921-021, IMP/VER-20260921-023. Focused correction Verified; complete gate In progress.
+
 ### DEC-20260921-017 — Target the current accessible Task template in the safety journey
 
 - Decision: The Task template safety journey scrolls `task-template-list` to the current Weekly Task button using its accessible description, then chooses it and keeps the existing assertions that selection only prefills a draft and cancellation persists nothing.

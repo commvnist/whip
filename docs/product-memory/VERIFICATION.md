@@ -1,5 +1,12 @@
 # Verification and release evidence
 
+### VER-20260921-023 — Machine-library empty-state semantics preflight
+
+- The targeted Android tail preflight after IMP-20260921-022 accepted its first five batches (355 methods, zero failure/skip). Batch six executed 46 methods with exactly one failure: `WhipComposeSemanticsTest#machineLibraryExplainsMachineScopedTracking` expected retired “keeps its history” copy in an empty Machines list. The campaign stopped at that batch; `build/instrumentation-results-0KdRb3` is partial, not whole-inventory acceptance.
+- Current source shows “Equipment and resistance profiles,” optional Exercise creation/linking, and Create Machine. The corrected `machineLibraryExplainsEquipmentAndOptionalExerciseLinks` method passes 1/1 with zero failure/skip/reuse through `ANDROID_SERIAL=emulator-5556 scripts/qa-targeted --android com.whip.app.WhipComposeSemanticsTest#machineLibraryExplainsEquipmentAndOptionalExerciseLinks --emulator` in `build/instrumentation-results-pFkk9f`. It still navigates into and back from the real Library.
+- Limits: Test-only copy contract; complete remaining Android tail, fresh full build/JVM/Android gate and final 523-card visual review remain open. No phone/release action.
+- Related/status: FND-20260921-021, DEC-20260921-018, IMP-20260921-023. Focused test Verified; whole-product audit In progress.
+
 ### VER-20260921-022 — Current Task template selector and full-gate interruption
 
 - Rejected gate: `ANDROID_SERIAL=emulator-5556 scripts/check --full --emulator --fresh-emulator` (`build/instrumentation-results-nOhYev`) passed build/lint/JVM and Android batches 1–6, 526/526 methods with zero failure/skip, including the formerly stalled wide-IME method. Batch seven then failed its first method because `ProductivityTemplateSafetyTest` searched for “Repeat on Chosen Weekdays,” absent from the current Task Templates dialog. The run was stopped; it is not a complete acceptance result.

@@ -448,7 +448,7 @@ class WhipComposeSemanticsTest {
     }
 
     @Test
-    fun machineLibraryExplainsMachineScopedTracking() {
+    fun machineLibraryExplainsEquipmentAndOptionalExerciseLinks() {
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         device.wakeUp()
         device.executeShellCommand("wm dismiss-keyguard")
@@ -462,7 +462,10 @@ class WhipComposeSemanticsTest {
             compose.waitForIdle()
             compose.onNodeWithTag("gym-destination-Library").assertIsSelected()
             compose.onNodeWithTag("gym-machine-list").assertIsDisplayed()
-            compose.onNodeWithText("keeps its history", substring = true).assertIsDisplayed()
+            compose.onNodeWithText("Equipment and resistance profiles.").assertIsDisplayed()
+            compose.onNodeWithText("Exercises are optional and can be created or linked inside the machine editor.", substring = true)
+                .assertIsDisplayed()
+            compose.onNodeWithText("Create Machine").assertIsDisplayed()
             device.pressBack()
             compose.waitForIdle()
             compose.onNodeWithTag("gym-library-Machines").assertIsDisplayed()

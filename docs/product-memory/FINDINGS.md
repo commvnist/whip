@@ -1,5 +1,12 @@
 # Durable findings
 
+### FND-20260921-021 — Machine-library semantics test asserted removed empty-state copy
+
+- Severity/category: P2 full-gate reliability, not a confirmed Gym history defect; FB-20260920-001.
+- Observed: The post-Task-fix Android tail preflight passed five batches, then `WhipComposeSemanticsTest#machineLibraryExplainsMachineScopedTracking` alone failed in batch six because “keeps its history” is no longer displayed in the empty Machines list. Current production copy says “Equipment and resistance profiles” and explains that Exercises are optional and may be created or linked in the machine editor. Creating a new configuration version still explicitly preserves the old version as immutable history.
+- Expected/resolution: The empty-library semantics check should verify the current equipment/linking explanation and Create Machine action. The exact corrected method passes 1/1 in `build/instrumentation-results-pFkk9f`; the interrupted tail preflight in `0KdRb3` is not accepted as a complete tail or whole-product gate.
+- Related: DEC-20260921-018, IMP/VER-20260921-023. Status: focused test correction Verified; full gate and audit In progress.
+
 ### FND-20260921-020 — Task template safety test targeted a retired label
 
 - Severity/category: P2 full-gate reliability, not a confirmed Task template defect; FB-20260920-001.
