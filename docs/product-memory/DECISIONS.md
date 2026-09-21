@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260921-019 — Parse Goal progress at Save activation
+
+- Decision: Keep the displayed validation state composition-derived, but have `GoalMeasurementDialog` parse its current mutable `value` inside Save's click callback. Preserve the test's immediate edit→tap sequence and assert that the host receives exactly one submission before checking its saving overlay.
+- Rationale: Compose can process a text update and a click before recomposing the click handler. A captured `parsedValue` can therefore be stale even though the underlying state has the new text. The user consequence is an apparently unresponsive Save button.
+- Rejected alternative: Adding a pre-click idle wait only to the test made the race disappear without protecting real fast input. Delaying every user click or broadly changing numeric-field behavior was unnecessary for the confirmed path.
+- Related/status: FB-20260920-001, FND-20260921-022, IMP/VER-20260921-024. Scoped production correction Verified; complete gate In progress.
+
 ### DEC-20260921-018 — Verify current machine empty-state guidance without restoring old copy
 
 - Decision: Rename the machine-library semantics journey for the current screen and assert its equipment-profile purpose, optional Exercise-link explanation and Create Machine action. Keep history/version integrity in the dedicated Gym Library lifecycle journeys and the version-creation UI, not an obsolete empty-list sentence.

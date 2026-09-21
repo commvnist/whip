@@ -2171,7 +2171,7 @@ internal fun GoalMeasurementDialog(
                 enabled = !saving && !dateInFuture,
                 onClick = {
                     validationRequested = true
-                    parsedValue?.let { parsed ->
+                    value.toWhipDoubleOrNull()?.let { parsed ->
                         if (dateOutsideGoalWindow) confirmOutsideWindow = true
                         else onRecord(parsed, date, note)
                     }

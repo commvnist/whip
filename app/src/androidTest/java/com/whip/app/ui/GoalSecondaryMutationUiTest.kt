@@ -214,6 +214,10 @@ class GoalSecondaryMutationUiTest {
 
         compose.onNodeWithTag("goal-measurement-value").performTextReplacement("123.5")
         compose.onNodeWithTag("goal-measurement-save").performClick()
+        compose.runOnIdle {
+            assertEquals("The progress request must be submitted once", 1, submissions)
+            assertTrue("The host should hold the save state", saving)
+        }
         fun waitForSavingOverlay() {
             compose.waitUntil(5_000) {
                 runCatching {

@@ -1,5 +1,12 @@
 # Durable findings
 
+### FND-20260921-022 — Rapid Goal progress entry could silently ignore Save
+
+- Severity/category: P2 user-visible Goals data-entry reliability; FB-20260920-001.
+- Observed: In the strict Android tail preflight, `GoalSecondaryMutationUiTest#progressFailureKeepsDraftAndSavingBlocksBackAndDuplicateSubmit` timed out waiting for its saving overlay (`build/instrumentation-results-9kFObo`). The unchanged exact method failed again in `zQ08Go`. Isolated timing barriers could make it pass, but a later immediate-click replay observed zero submissions after replacing the field text and tapping Save. `GoalMeasurementDialog` computed `parsedValue` during composition and the Save callback captured it; a fast text edit updated mutable state before recomposition, so the callback still saw the old null value and silently did nothing.
+- Expected/resolution: Save must parse the current field state when the tap occurs, while validation feedback can remain composition-derived. The exact rapid-input method now passes six consecutive isolated runs (initial `7C01bT` plus `kNjOtX`, `yyQhMn`, `IFLyvG`, `03wnol`, `dP3bTe`) without a pre-click idle barrier. Full class and final audit gate remain separate.
+- Related: DEC-20260921-019, IMP/VER-20260921-024. Status: scoped production fix Verified; whole-product audit In progress.
+
 ### FND-20260921-021 — Machine-library semantics test asserted removed empty-state copy
 
 - Severity/category: P2 full-gate reliability, not a confirmed Gym history defect; FB-20260920-001.

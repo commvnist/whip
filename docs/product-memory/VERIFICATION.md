@@ -1,5 +1,12 @@
 # Verification and release evidence
 
+### VER-20260921-024 — Rapid Goal progress Save and mutation neighbors
+
+- Rejected tail/diagnostic baselines: The first of the three untouched Android-tail batches ran 76 methods with one failure in `GoalSecondaryMutationUiTest#progressFailureKeepsDraftAndSavingBlocksBackAndDuplicateSubmit` (`build/instrumentation-results-9kFObo`). The unchanged exact method failed in `zQ08Go`; a timing-only pre-click wait initially passed but later immediate-click replay observed zero submissions, exposing the product race. Neither partial tail nor timing-only replay is acceptance evidence.
+- Final focused source: Save parses the live field text at click time. `ANDROID_SERIAL=emulator-5556 scripts/qa-targeted --android com.whip.app.ui.GoalSecondaryMutationUiTest#progressFailureKeepsDraftAndSavingBlocksBackAndDuplicateSubmit --emulator` passes six consecutive independent 1/1 replays, zero failure/skip/reuse, with an immediate text replacement and click: `build/instrumentation-results-7C01bT`, `kNjOtX`, `yyQhMn`, `IFLyvG`, `03wnol`, `dP3bTe`. The full eight-method `GoalSecondaryMutationUiTest` class then passes 8/8, zero failure/skip/reuse, in `build/instrumentation-results-kGw4af`.
+- Limits: API 34 focused native verification. The two still-untouched tail batches, fresh complete build/JVM/Android gate, final 523-card catalog and cross-platform smoke remain open; no owner-phone or release operation.
+- Related/status: FND-20260921-022, DEC-20260921-019, IMP-20260921-024. Focused production fix Verified; whole-product audit In progress.
+
 ### VER-20260921-023 — Machine-library empty-state semantics preflight
 
 - The targeted Android tail preflight after IMP-20260921-022 accepted its first five batches (355 methods, zero failure/skip). Batch six executed 46 methods with exactly one failure: `WhipComposeSemanticsTest#machineLibraryExplainsMachineScopedTracking` expected retired “keeps its history” copy in an empty Machines list. The campaign stopped at that batch; `build/instrumentation-results-0KdRb3` is partial, not whole-inventory acceptance.

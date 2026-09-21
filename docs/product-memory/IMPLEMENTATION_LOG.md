@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260921-024 — Make Goal progress Save use the latest text
+
+- In `GoalMeasurementDialog`, the Save callback parses `value` at activation instead of using a numeric result captured by the previous composition. Existing date-window confirmation, invalid-input feedback, persistence-error draft and saving block remain unchanged.
+- The native failure/retry journey keeps an immediate `performTextReplacement` → `performClick` sequence, then checks one host submission and saving before inspecting the overlay, Back guard, duplicate-submit guard and failure draft. It intentionally has no pre-click settling barrier.
+- Production UI and native regression only; no Room schema, data epoch, backup format, version or owner-phone change.
+- Related/status: FB-20260920-001, FND-20260921-022, DEC-20260921-019, VER-20260921-024. Scoped correction Verified; full audit In progress.
+
 ### IMP-20260921-023 — Align machine-library semantics with current guidance
 
 - `WhipComposeSemanticsTest` now checks the visible Machines purpose, optional Exercise linking and Create Machine action after real Gym/Library navigation. The separate versioning and immutable performed-history paths remain covered by Gym lifecycle journeys.
