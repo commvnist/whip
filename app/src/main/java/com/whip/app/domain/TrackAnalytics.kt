@@ -158,9 +158,23 @@ private fun TrackProjection.matches(entry: TrackEntryProjection, condition: Trac
         TrackConditionOperator.AtLeast -> compareNumber(entry, field, condition.numberValue) { a, b -> a >= b }
         TrackConditionOperator.LessThan -> compareNumber(entry, field, condition.numberValue) { a, b -> a < b }
         TrackConditionOperator.AtMost -> compareNumber(entry, field, condition.numberValue) { a, b -> a <= b }
-        TrackConditionOperator.Between -> entry.numericValue(field)?.let { number ->
-            condition.numberValue?.let { first -> condition.secondNumberValue?.let { second -> number in minOf(first, second)..maxOf(first, second) } }
-        } == true
+        TrackConditionOperator.Between -> when (field.type) {
+            TrackFieldType.Number, TrackFieldType.Scale -> entry.numericValue(field)?.let { number ->
+                condition.numberValue?.let { first ->
+                    condition.secondNumberValue?.let { second ->
+                        number in minOf(first, second)..maxOf(first, second)
+                    }
+                }
+            } == true
+            TrackFieldType.Date -> condition.dateValue?.let { first ->
+                condition.secondDateValue?.let { second ->
+                    value?.dateValue?.let { date ->
+                        date in minOf(first, second)..maxOf(first, second)
+                    }
+                }
+            } == true
+            else -> false
+        }
         TrackConditionOperator.On -> value?.dateValue == condition.dateValue
         TrackConditionOperator.Before -> compareDate(value?.dateValue, condition.dateValue) { a, b -> a < b }
         TrackConditionOperator.OnOrBefore -> compareDate(value?.dateValue, condition.dateValue) { a, b -> a <= b }

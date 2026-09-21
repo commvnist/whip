@@ -114,7 +114,9 @@ interface TrackDao {
     @Insert suspend fun insertOption(entity: TrackChoiceOptionEntity): Long
     @Update suspend fun updateOption(entity: TrackChoiceOptionEntity)
     @Insert suspend fun insertEntry(entity: TrackEntryEntity): Long
+    @Insert suspend fun insertEntries(entities: List<TrackEntryEntity>): List<Long>
     @Update suspend fun updateEntry(entity: TrackEntryEntity): Int
+    @Insert suspend fun insertValues(entities: List<TrackValueEntity>): List<Long>
     @Upsert suspend fun upsertValue(entity: TrackValueEntity): Long
 
     @Query("SELECT * FROM track_csv_import_receipts WHERE batchUuid = :batchUuid")
@@ -164,6 +166,9 @@ interface TrackDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertSearch(entity: TrackEntrySearchEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertSearch(entities: List<TrackEntrySearchEntity>)
 
     @Query("DELETE FROM track_entry_search WHERE rowid = :entryId")
     suspend fun deleteSearch(entryId: Long): Int

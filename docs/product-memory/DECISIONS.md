@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260921-003 — Keep complete Track truth but bound import crossings and move projection work off main
+
+- Context: FND-20260921-003 exposed an actual Date-range correctness defect and a measured maximum-import cost. Whip's current Track list, search, insights and exports rely on complete projections, even though the default history view also reads bounded database pages. Replacing that model with list summaries or partial analytics would require a broader cross-feature contract rewrite without evidence that the measured 100,000-cell read is currently too slow.
+- Decision: Preserve full transactional Track graph semantics and the 5,000-row import limit. Insert entries, values and FTS rows in bounded 100-row DAO batches inside one Room transaction; retain row-level cancellation/checkpoints and exact receipt identity. Shift invalidation read/projection mapping to `Dispatchers.Default`, keeping Room's own transaction scheduling. Evaluate Date `Between` according to Date Field values just as Entry Date already does, including inclusive reversed bounds.
+- Tradeoff: Batching reduces coroutine/DAO call overhead but a maximum import still takes about 20 seconds on the audit emulator; the UI must retain its existing progress/retry handling. The complete projection still scales with cumulative history and remains a future architectural risk if multiple maximum files are imported. Do not claim a universal device performance guarantee from one API 34 measurement.
+- Related/status: FB-20260920-001, FND/IMP/VER-20260921-003; accepted as an unreleased audit checkpoint.
+
 ### DEC-20260921-002 — Collection selection belongs to its persistence request
 
 - Context: FND-20260921-002 separates database atomicity from interaction recovery. Room can roll back a multi-item mutation perfectly while the UI still loses the user's exact target set by closing optimistically before the asynchronous result.

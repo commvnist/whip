@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260921-003 — Correct Date-range filtering and bound maximum Track import work
+
+- `TrackAnalytics.matches` now handles `Between` for Date Fields as an inclusive Date range, independent of numeric and Entry Date branches. A complete typed-operator JVM sweep covers text, choice, canonical Number, Scale, Date, Yes/No, blank, missing and reversed boundaries. A native history journey chooses two dates through the production picker, verifies all three inclusive matches, recreates the Activity and checks unchanged persisted projections.
+- `TrackDao` adds list inserts for CSV Entries/Values and search rows. `RoomTrackRepository.insertCsvEntriesLocked` writes 100-row chunks within its existing transaction, retaining stable request entry UUIDs, generated value UUIDs, exact FTS content, per-row checkpoints and rollback/receipt behavior. `projections` assembles on `Dispatchers.Default` instead of the UI collector dispatcher.
+- The maximum 5,000-row/100,000-value integrity test now verifies full projection/Field/value fidelity, the first bounded page, exact affine custom-unit analytics, FTS and receipt idempotency, then measures a metadata-change projection refresh. The native journey filters an authored Date Field (distinct from every Entry's common Entry Date) through both history and Insights. `tracks.history-controls.date-range` and `tracks.detail.insights.date-range` have reviewed original PNG/XML pairs.
+- Compatibility: no Room schema, data epoch, backup format, package version or historical Track records changed. This checkpoint does not install on the owner phone or assert whole-product acceptance.
+- Related/status: FB-20260920-001, FND/DEC/VER-20260921-003; verified for the scoped boundary.
+
 ### IMP-20260921-002 — Make Track reorder and bulk failures exactly retryable
 
 - Added a lifecycle-owned collection mutation state and shared persistence coordinator to Tracks. Active/Archived selections now remain exact through failures and recreation, actions are disabled only while the owned request runs, and selection closes only on matching success.

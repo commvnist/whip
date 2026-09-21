@@ -32,6 +32,52 @@ class TrackHistoryControlsJourneyE2ETest {
     @Test fun pagedHistoryCanCombineAndRecoverFilters() = filters(false)
     @Test @AndroidFontScale
     fun pagedHistoryCanCombineAndRecoverFiltersAtLargeText() = filters(true)
+    @Test fun dateBetweenConditionIncludesBothBoundariesAndSurvivesRecreation() {
+        val before = seedDateRange()
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            open(before.track.id)
+            history(hasContentDescription("Filter Entries", substring = true)).performClick()
+            compose.onNodeWithText("Add Condition").performScrollTo().performClick()
+            choose("Field", "Entry Date", "Observed")
+            choose("Operator", "is on", "is between")
+            chooseConditionDate("track-condition-first-date", 2)
+            chooseConditionDate("track-condition-second-date", 4)
+            compose.onNodeWithText("Add", substring = false).performClick()
+            compose.onNodeWithText("Apply Filters").performClick()
+
+            history(hasText("Range 2")).assertIsDisplayed()
+            history(hasText("Range 4")).assertIsDisplayed()
+            compose.onAllNodesWithContentDescription("Edit Entry", substring = true).assertCountEquals(3)
+            capture("tracks.history-controls.date-range")
+
+            scenario.recreate()
+            history(hasText("Range 3")).assertIsDisplayed()
+            compose.onAllNodesWithContentDescription("Edit Entry", substring = true).assertCountEquals(3)
+            val insights = compose.onNodeWithTag("track-destination-Track Insights")
+            if (!insights.isDisplayed()) insights.performScrollTo()
+            insights.performClick()
+            compose.onNodeWithTag("track-insights-list").performScrollToNode(hasContentDescription("Filter Insights"))
+            compose.onNodeWithContentDescription("Filter Insights").performClick()
+            compose.onNodeWithText("Add Condition").performScrollTo().performClick()
+            choose("Field", "Entry Date", "Observed")
+            choose("Operator", "is on", "is between")
+            chooseConditionDate("track-condition-first-date", 2)
+            chooseConditionDate("track-condition-second-date", 4)
+            compose.onNodeWithText("Add", substring = false).performClick()
+            compose.onNodeWithText("Apply Filters").performClick()
+            compose.onNodeWithTag("track-insights-list").performScrollToNode(hasText("Matching Entries"))
+            compose.onNodeWithText("Matching Entries").assertIsDisplayed()
+            compose.onNodeWithText("Total", useUnmergedTree = true).onParent().onChildren()
+                .filter(hasText("3")).assertCountEquals(1)
+            capture("tracks.detail.insights.date-range")
+            scenario.recreate()
+            compose.onNodeWithTag("track-insights-list").performScrollToNode(hasText("Matching Entries"))
+            compose.onNodeWithText("Matching Entries").assertIsDisplayed()
+            compose.onNodeWithText("Total", useUnmergedTree = true).onParent().onChildren()
+                .filter(hasText("3")).assertCountEquals(1)
+            assertEquals(before, projection(before.track.id))
+        }
+    }
     @Test fun removingSelectedSortFieldKeepsHistoryUsable() = removedSort(false)
     @Test @AndroidFontScale
     fun removingSelectedSortFieldKeepsHistoryUsableAtLargeText() = removedSort(true)
@@ -148,6 +194,16 @@ class TrackHistoryControlsJourneyE2ETest {
         control.performClick()
         compose.onNodeWithContentDescription("$label option: $next").performScrollTo().performClick()
     }
+
+    private fun chooseConditionDate(controlTag: String, dayOfMonth: Int) {
+        compose.onNodeWithTag(controlTag).performScrollTo().performClick()
+        if (compose.onAllNodesWithTag("date-picker-wheel-selector").fetchSemanticsNodes().isEmpty()) {
+            compose.onNodeWithTag("date-picker-month-year").performClick()
+        }
+        compose.onNodeWithTag("date-picker-day-wheel").performScrollToIndex(dayOfMonth - 1)
+        compose.onNodeWithTag("date-picker-day-$dayOfMonth").performClick()
+        compose.onNodeWithText("Set", substring = false).performClick()
+    }
     private fun open(id: Long) {
         compose.onNodeWithContentDescription("Tracks tab").performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithTag("track-list").fetchSemanticsNodes().isNotEmpty() }
@@ -181,6 +237,38 @@ class TrackHistoryControlsJourneyE2ETest {
                     form.fields.single { it.name == "Distance" }.uuid to TrackValueDraft(enteredNumber = index / 10.0, enteredUnitId = "distance_m"),
                 ),
             ))
+        }
+        projection(id)
+    }
+
+    private fun seedDateRange(): TrackProjection = runBlocking {
+        app.backupRepository.deleteAllData()
+        app.settingsRepository.update {
+            AppSettings(setupCompleted = true, dynamicColor = false, themeMode = AppThemeMode.Light)
+        }
+        val id = app.trackRepository.create(
+            TrackDraft(
+                "Date range history",
+                fields = listOf(
+                    TrackFieldDraft("Name", TrackFieldType.ShortText, primary = true),
+                    TrackFieldDraft("Observed", TrackFieldType.Date, showInList = true),
+                ),
+            ),
+        )
+        val form = projection(id)
+        val month = app.clock.today().withDayOfMonth(1)
+        val observed = form.fields.single { it.name == "Observed" }
+        (1..5).forEach { day ->
+            app.trackRepository.addEntry(
+                id,
+                TrackEntryDraft(
+                    entryDate = month.withDayOfMonth(5),
+                    values = mapOf(
+                        form.primaryField.uuid to TrackValueDraft(textValue = "Range $day"),
+                        observed.uuid to TrackValueDraft(dateValue = month.withDayOfMonth(day)),
+                    ),
+                ),
+            )
         }
         projection(id)
     }

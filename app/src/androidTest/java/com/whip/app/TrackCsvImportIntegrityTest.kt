@@ -13,6 +13,7 @@ import com.whip.app.data.TrackEntryEntity
 import com.whip.app.data.UnitDefinitionEntity
 import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.TRACK_CSV_MAX_IMPORT_ROWS
+import com.whip.app.domain.TrackAggregation
 import com.whip.app.domain.TrackChoiceOptionDraft
 import com.whip.app.domain.TrackCsvImportConflictException
 import com.whip.app.domain.TrackCsvImportConflictKind
@@ -26,6 +27,7 @@ import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.TrackProjection
 import com.whip.app.domain.TrackValueDraft
 import com.whip.app.domain.UnitDimension
+import com.whip.app.domain.aggregate
 import com.whip.app.domain.trackCsvPayloadFingerprint
 import com.whip.app.domain.receiptEnvelope
 import java.time.Instant
@@ -36,6 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -263,7 +266,7 @@ class TrackCsvImportIntegrityTest {
     }
 
     @Test
-    fun failureAfterTheFirstRowWritesRollsBackEntriesValuesSearchAndReceipt() = runBlocking {
+    fun failureAtFirstRowCheckpointRollsBackEntireWriteChunkAndReceipt() = runBlocking {
         val trackId = tracks.create(textTrack())
         val batch = prepareTextBatch(
             trackId,
@@ -413,7 +416,7 @@ class TrackCsvImportIntegrityTest {
         )
         val openingForm = requireNotNull(tracks.csvImportForm(trackId))
         val fields = openingForm.fields.sortedBy { it.name.removePrefix("Measurement ").toInt() }
-        val drafts = List(TRACK_CSV_MAX_IMPORT_ROWS) { rowIndex ->
+        val drafts = MutableList(TRACK_CSV_MAX_IMPORT_ROWS) { rowIndex ->
             TrackEntryDraft(
                 entryDate = CsvClock.today().minusDays((rowIndex % 365).toLong()),
                 values = fields.mapIndexed { fieldIndex, field ->
@@ -442,8 +445,29 @@ class TrackCsvImportIntegrityTest {
         val retryStarted = SystemClock.elapsedRealtime()
         val retry = tracks.importEntries(preparation.request, drafts)
         val retryMillis = SystemClock.elapsedRealtime() - retryStarted
+        drafts.clear()
+        val projectionStarted = SystemClock.elapsedRealtime()
+        val projection = tracks.projections.first { rows ->
+            rows.any { it.track.id == trackId && it.entries.size == TRACK_CSV_MAX_IMPORT_ROWS }
+        }.single { it.track.id == trackId }
+        val projectionMillis = SystemClock.elapsedRealtime() - projectionStarted
+        val pageStarted = SystemClock.elapsedRealtime()
+        val firstPage = tracks.entryPage(trackId, offset = 0, limit = 100)
+        val pageMillis = SystemClock.elapsedRealtime() - pageStarted
+        val analyticsStarted = SystemClock.elapsedRealtime()
+        val lastField = projection.fields.maxBy { it.position }
+        val sum = projection.aggregate(TrackAggregation.Sum, lastField.uuid)
+        val analyticsMillis = SystemClock.elapsedRealtime() - analyticsStarted
+        val refreshStarted = SystemClock.elapsedRealtime()
+        tracks.setPinned(trackId, true)
+        val refreshed = tracks.projections.first { rows ->
+            rows.any { it.track.id == trackId && it.track.pinned }
+        }.single { it.track.id == trackId }
+        val refreshMillis = SystemClock.elapsedRealtime() - refreshStarted
         val totalMillis = prepareMillis + commitMillis + retryMillis
-        val timing = "prepare=${prepareMillis}ms commit=${commitMillis}ms retry=${retryMillis}ms total=${totalMillis}ms"
+        val timing = "prepare=${prepareMillis}ms commit=${commitMillis}ms retry=${retryMillis}ms " +
+            "projection=${projectionMillis}ms page=${pageMillis}ms analytics=${analyticsMillis}ms " +
+            "refresh=${refreshMillis}ms total=${totalMillis}ms"
         Log.i("TrackCsvImportIntegrity", "Exact 5,000-row/100,000-cell custom-unit timing: $timing")
 
         assertTrue(first.changed)
@@ -456,6 +480,17 @@ class TrackCsvImportIntegrityTest {
         assertEquals(TRACK_CSV_MAX_IMPORT_ROWS, count("SELECT COUNT(*) FROM track_entry_search WHERE trackId = $trackId"))
         assertEquals(TRACK_CSV_MAX_IMPORT_ROWS, tracks.searchEntryIds(trackId, unit.id).size)
         assertEquals(1, receiptCount(preparation.request.batchUuid))
+        assertEquals(TRACK_CSV_MAX_IMPORT_ROWS, projection.entries.size)
+        assertEquals(fieldCount, projection.fields.size)
+        assertEquals(fieldCount, projection.entries.first().values.size)
+        assertEquals(100, firstPage.entries.size)
+        assertEquals(TRACK_CSV_MAX_IMPORT_ROWS, firstPage.totalCount)
+        assertEquals(fieldCount, firstPage.entries.first().values.size)
+        assertEquals(TRACK_CSV_MAX_IMPORT_ROWS, sum.eligibleEntryCount)
+        assertEquals(500_110_000.0, sum.value ?: -1.0, 0.0)
+        assertTrue(refreshed.track.pinned)
+        assertEquals(TRACK_CSV_MAX_IMPORT_ROWS, refreshed.entries.size)
+        assertEquals(firstPage.entries.first(), refreshed.entries.first())
         assertTrue(
             tracks.verifyCsvImportReceipt(first.receiptEnvelope()) is TrackCsvImportReceiptVerification.Exact,
         )
@@ -463,6 +498,10 @@ class TrackCsvImportIntegrityTest {
             "Exact 5,000-row/100,000-cell custom-unit import exceeded the 120-second practical harness bound: $timing",
             totalMillis < 120_000L,
         )
+        assertTrue("Maximum supported live projection exceeded 20 seconds: $timing", projectionMillis < 20_000L)
+        assertTrue("A metadata change exceeded 20 seconds to refresh maximum history: $timing", refreshMillis < 20_000L)
+        assertTrue("A 100-row maximum-history page exceeded 5 seconds: $timing", pageMillis < 5_000L)
+        assertTrue("Maximum supported numeric analytics exceeded 5 seconds: $timing", analyticsMillis < 5_000L)
     }
 
     @Test
@@ -864,5 +903,5 @@ class TrackCsvImportIntegrityTest {
         override fun nextId(): String = "csv-integrity-${next.incrementAndGet()}"
     }
 
-    private class InjectedCsvWriteFailure : IllegalStateException("Injected failure after one complete CSV row")
+    private class InjectedCsvWriteFailure : IllegalStateException("Injected failure at the first CSV row checkpoint")
 }

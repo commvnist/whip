@@ -1,5 +1,14 @@
 # Durable findings
 
+### FND-20260921-003 — Date ranges silently excluded every Track Entry; maximum imports stalled on per-cell DAO calls
+
+- Severity/category: P2 Track history/insight correctness and large-history responsiveness; FB-20260920-001.
+- Observed: The Track condition editor offers `is between` for Date Fields, but `TrackProjection.matches` evaluated `Between` only via `numericValue`. A valid Date Field range therefore returned no Entries, although the same operator worked for Entry Date and numeric Fields. Separately, the supported 5,000-row/20-Field CSV import crossed a suspending DAO boundary for every one of 100,000 values and 5,000 search rows; on the audit API 34 emulator, commit took 27,207 ms. `projections` also assembled the complete 100,000-value graph on the collector's dispatcher, which is the main dispatcher when the Track ViewModel observes it.
+- Expected: Date Field ranges include both endpoints regardless of entry order or reversed input bounds. Maximum supported imports remain atomic and idempotent while minimizing per-cell overhead; large projection assembly must not block the UI dispatcher. Paged history, search and analytics must retain exact values.
+- Evidence/root cause: The new operator sweep initially failed at the Date `Between` assertion; the final native journey applies Sep 2–4 and shows exactly Entries 2–4 after Activity recreation. Pre-change maximum-batch timing was prepare 2,381 ms, commit 27,207 ms, retry 1,029 ms. Exact post-change timing and limitation are in `artifacts/astra-audit/2026-09-21/track-history-analytics/README.md`.
+- Recommended solution: Dispatch `Between` by Field type; bulk-insert bounded CSV chunks inside the existing transaction while keeping each row's checkpoint/cancellation and FTS receipt; assemble invalidated projections on `Dispatchers.Default`.
+- Related/status: DEC/IMP/VER-20260921-003. Verified for the supported 5,000×20 boundary and Date-range journey. Arbitrary multi-import growth, device-specific jank, residual accessibility/design and the whole-product audit remain open.
+
 ### FND-20260921-002 — Failed multi-Track changes discarded the exact retry selection
 
 - Severity/category: P2 collection recovery, asynchronous outcome ownership and user effort; FB-20260920-001.

@@ -64,12 +64,15 @@ import com.whip.app.domain.validateTrackEntryDraft
 import com.whip.app.domain.validated
 import java.security.MessageDigest
 import java.time.LocalDate
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 
 internal const val TRACK_CSV_MAX_EXPORT_BYTES = 25 * 1024 * 1024
+private const val TRACK_CSV_INSERT_CHUNK_SIZE = 100
 
 internal suspend fun requireTrackCsvExportWithinLimit(
     csv: String,
@@ -222,7 +225,7 @@ class RoomTrackRepository(
                 },
             )
         }
-    }
+    }.flowOn(Dispatchers.Default)
 
     override suspend fun definitionBoundary(
         id: Long,
@@ -1421,27 +1424,57 @@ class RoomTrackRepository(
         val track = form.track.toDomain()
         val fields = form.fields.map(TrackFieldEntity::toDomain)
         val options = form.options.map(TrackChoiceOptionEntity::toDomain)
-        normalized.forEachIndexed { index, entry ->
+        normalized.indices.chunked(TRACK_CSV_INSERT_CHUNK_SIZE).forEach { indices ->
             currentCoroutineContext().ensureActive()
-            val now = clock.now().toEpochMilli()
-            val entryId = dao.insertEntry(
+            val timestamps = indices.map { clock.now().toEpochMilli() }
+            val entryIds = dao.insertEntries(indices.mapIndexed { offset, index ->
+                val entry = normalized[index]
                 TrackEntryEntity(
                     uuid = entryUuids[index],
                     trackId = form.track.id,
                     entryEpochDay = entry.entryDate.toEpochDay(),
-                    createdAtMillis = now,
-                    updatedAtMillis = now,
-                ),
-            )
-            upsertNormalizedValues(entryId, entry.values, emptyMap(), now)
-            dao.upsertSearch(
+                    createdAtMillis = timestamps[offset],
+                    updatedAtMillis = timestamps[offset],
+                )
+            })
+            check(entryIds.size == indices.size)
+            val values = buildList {
+                indices.forEachIndexed { offset, index ->
+                    val entryId = entryIds[offset]
+                    val now = timestamps[offset]
+                    normalized[index].values.forEach { (fieldId, value) ->
+                        add(
+                            TrackValueEntity(
+                                uuid = ids.nextId(),
+                                entryId = entryId,
+                                fieldId = fieldId,
+                                textValue = value.textValue,
+                                enteredNumber = value.enteredNumber,
+                                canonicalNumber = value.canonicalNumber,
+                                enteredUnitId = value.enteredUnitId,
+                                dateEpochDay = value.dateEpochDay,
+                                booleanValue = value.booleanValue,
+                                choiceOptionId = value.choiceOptionId,
+                                scaleValue = value.scaleValue,
+                                createdAtMillis = now,
+                                updatedAtMillis = now,
+                            ),
+                        )
+                    }
+                }
+            }
+            if (values.isNotEmpty()) dao.insertValues(values)
+            dao.upsertSearch(indices.mapIndexed { offset, index ->
                 TrackEntrySearchEntity(
-                    rowId = entryId,
+                    rowId = entryIds[offset],
                     trackId = form.track.id,
-                    content = csvSearchContent(track, fields, options, entry),
-                ),
-            )
-            csvImportCheckpoint(index + 1)
+                    content = csvSearchContent(track, fields, options, normalized[index]),
+                )
+            })
+            // The checkpoint remains row-addressable for cancellation/fault
+            // injection, although this chunk is written before callbacks run.
+            // Any failure still rolls every row back with the outer transaction.
+            indices.forEach { index -> csvImportCheckpoint(index + 1) }
         }
     }
 

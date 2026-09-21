@@ -170,6 +170,64 @@ class TrackDomainTest {
         assertEquals(1, track.matchingEntries(listOf(TrackCondition(rating.uuid, TrackConditionOperator.LessThan, numberValue = 3.0))).size)
     }
 
+    @Test fun everyTypedConditionOperatorHandlesBoundariesMissingValuesAndReverseRanges() {
+        val track = sampleProjection()
+        val title = track.fields.first { it.name == "Title" }
+        val genre = track.fields.first { it.name == "Genre" }
+        val rating = track.fields.first { it.name == "Rating" }
+        val notes = track.fields.first { it.name == "Notes" }
+        val recommend = track.fields.first { it.name == "Recommend" }
+        val finished = track.fields.first { it.name == "Finished" }
+        val effort = track.fields.first { it.name == "Effort" }
+        val history = track.options.first { it.label == "History" }
+        val fiction = track.options.first { it.label == "Fiction" }
+        fun names(condition: TrackCondition, projection: TrackProjection = track) =
+            projection.matchingEntries(listOf(condition)).map(projection::primaryText)
+
+        assertEquals(listOf("A"), names(TrackCondition(title.uuid, TrackConditionOperator.Is, textValue = "a")))
+        assertEquals(listOf("B", "C"), names(TrackCondition(title.uuid, TrackConditionOperator.IsNot, textValue = "A")))
+        assertEquals(listOf("A"), names(TrackCondition(notes.uuid, TrackConditionOperator.Contains, textValue = "GREAT")))
+        assertEquals(listOf("B", "C"), names(TrackCondition(title.uuid, TrackConditionOperator.DoesNotContain, textValue = "a")))
+        assertEquals(listOf("B", "C"), names(TrackCondition(notes.uuid, TrackConditionOperator.IsBlank)))
+        assertEquals(listOf("A"), names(TrackCondition(notes.uuid, TrackConditionOperator.IsNotBlank)))
+
+        assertEquals(listOf("A", "C"), names(TrackCondition(genre.uuid, TrackConditionOperator.Is, choiceOptionUuids = setOf(history.uuid))))
+        assertEquals(listOf("B"), names(TrackCondition(genre.uuid, TrackConditionOperator.IsNot, choiceOptionUuids = setOf(history.uuid))))
+        assertEquals(listOf("A", "B", "C"), names(TrackCondition(genre.uuid, TrackConditionOperator.IsOneOf, choiceOptionUuids = setOf(history.uuid, fiction.uuid))))
+
+        assertEquals(listOf("B"), names(TrackCondition(rating.uuid, TrackConditionOperator.Equals, numberValue = 3.0)))
+        assertEquals(listOf("A", "C"), names(TrackCondition(rating.uuid, TrackConditionOperator.NotEqual, numberValue = 3.0)))
+        assertEquals(listOf("A"), names(TrackCondition(rating.uuid, TrackConditionOperator.GreaterThan, numberValue = 3.0)))
+        assertEquals(listOf("A", "B"), names(TrackCondition(rating.uuid, TrackConditionOperator.AtLeast, numberValue = 3.0)))
+        assertEquals(listOf("C"), names(TrackCondition(rating.uuid, TrackConditionOperator.LessThan, numberValue = 3.0)))
+        assertEquals(listOf("B", "C"), names(TrackCondition(rating.uuid, TrackConditionOperator.AtMost, numberValue = 3.0)))
+        assertEquals(listOf("A", "B", "C"), names(TrackCondition(rating.uuid, TrackConditionOperator.Between, numberValue = 4.0, secondNumberValue = 2.0)))
+        assertEquals(emptyList<String>(), names(TrackCondition(rating.uuid, TrackConditionOperator.Equals)))
+
+        assertEquals(listOf("A"), names(TrackCondition(effort.uuid, TrackConditionOperator.Equals, numberValue = 4.5)))
+        assertEquals(listOf("A", "B"), names(TrackCondition(effort.uuid, TrackConditionOperator.Between, numberValue = 4.5, secondNumberValue = 2.0)))
+        assertEquals(listOf("C"), names(TrackCondition(effort.uuid, TrackConditionOperator.IsBlank)))
+
+        val firstFinished = LocalDate.of(2026, 1, 10)
+        assertEquals(listOf("A"), names(TrackCondition(finished.uuid, TrackConditionOperator.On, dateValue = firstFinished)))
+        assertEquals(listOf("B"), names(TrackCondition(finished.uuid, TrackConditionOperator.Before, dateValue = firstFinished)))
+        assertEquals(listOf("A", "B"), names(TrackCondition(finished.uuid, TrackConditionOperator.OnOrBefore, dateValue = firstFinished)))
+        assertEquals(listOf("A"), names(TrackCondition(finished.uuid, TrackConditionOperator.After, dateValue = LocalDate.of(2026, 1, 1))))
+        assertEquals(listOf("A"), names(TrackCondition(finished.uuid, TrackConditionOperator.OnOrAfter, dateValue = firstFinished)))
+        assertEquals(listOf("A", "B"), names(TrackCondition(finished.uuid, TrackConditionOperator.Between, dateValue = firstFinished, secondDateValue = LocalDate.of(2025, 12, 10))))
+        assertEquals(listOf("C"), names(TrackCondition(finished.uuid, TrackConditionOperator.IsBlank)))
+
+        assertEquals(listOf("A"), names(TrackCondition(recommend.uuid, TrackConditionOperator.IsYes)))
+        assertEquals(listOf("B"), names(TrackCondition(recommend.uuid, TrackConditionOperator.IsNo)))
+        assertEquals(listOf("C"), names(TrackCondition(recommend.uuid, TrackConditionOperator.IsUnanswered)))
+        assertEquals(listOf("A", "B"), names(TrackCondition(recommend.uuid, TrackConditionOperator.IsAnswered)))
+
+        assertEquals(listOf("A"), names(TrackCondition(TRACK_ENTRY_DATE_CONDITION_UUID, TrackConditionOperator.On, dateValue = LocalDate.of(2026, 1, 2))))
+        assertEquals(listOf("B"), names(TrackCondition(TRACK_ENTRY_DATE_CONDITION_UUID, TrackConditionOperator.Before, dateValue = LocalDate.of(2026, 1, 1))))
+        assertEquals(listOf("A", "C"), names(TrackCondition(TRACK_ENTRY_DATE_CONDITION_UUID, TrackConditionOperator.OnOrAfter, dateValue = LocalDate.of(2026, 1, 1))))
+        assertEquals(listOf("A", "B", "C"), names(TrackCondition(TRACK_ENTRY_DATE_CONDITION_UUID, TrackConditionOperator.Between, dateValue = LocalDate.of(2026, 2, 1), secondDateValue = LocalDate.of(2025, 12, 1))))
+    }
+
     @Test fun compositeIdentityUsesAllSelectedFieldsInStableOrder() {
         val base = sampleProjection()
         val composite = base.copy(fields = base.fields.map { field ->
@@ -210,7 +268,9 @@ B,Unknown,nope,,Maybe,wrong
 """.trimIndent()
         val mapping = TrackCsvMapping(
             entryDateColumn = "Entry Date",
-            fieldColumns = track.fields.associate { it.uuid to it.name.replace("Title", "Title") },
+            fieldColumns = track.fields
+                .filter { it.name in setOf("Title", "Genre", "Rating", "Notes", "Recommend") }
+                .associate { it.uuid to it.name },
         )
         val preview = previewTrackCsvImport(track, csv, mapping, LocalDate.of(2026, 8, 23))
         assertEquals(2, preview.totalRows)
@@ -262,9 +322,21 @@ B,Unknown,nope,,Maybe,wrong
         val rating = field(3, "rating", "Rating", TrackFieldType.Number, dimension = UnitDimension.Unitless, unitId = "unitless")
         val notes = field(4, "notes", "Notes", TrackFieldType.LongText)
         val recommend = field(5, "recommend", "Recommend", TrackFieldType.YesNo)
+        val finished = field(6, "finished", "Finished", TrackFieldType.Date)
+        val effort = field(7, "effort", "Effort", TrackFieldType.Scale)
         val history = TrackChoiceOption(1, "history", genre.id, "History", 0, 1, 1)
         val fiction = TrackChoiceOption(2, "fiction", genre.id, "Fiction", 1, 1, 1)
-        fun entry(id: Long, titleValue: String, option: TrackChoiceOption, score: Double, date: LocalDate, note: String?, yes: Boolean?) =
+        fun entry(
+            id: Long,
+            titleValue: String,
+            option: TrackChoiceOption,
+            score: Double,
+            date: LocalDate,
+            note: String?,
+            yes: Boolean?,
+            finishedDate: LocalDate?,
+            effortValue: Double?,
+        ) =
             TrackEntryProjection(
                 TrackEntry(id, "entry-$id", 1, date, createdAtMillis = id, updatedAtMillis = id),
                 buildMap {
@@ -273,16 +345,18 @@ B,Unknown,nope,,Maybe,wrong
                     put(rating.id, TrackFieldValue(id * 10 + 2, "rating-$id", id, rating.id, enteredNumber = score, canonicalNumber = score, enteredUnitId = "unitless", createdAtMillis = id, updatedAtMillis = id))
                     note?.let { put(notes.id, TrackFieldValue(id * 10 + 3, "notes-$id", id, notes.id, textValue = it, createdAtMillis = id, updatedAtMillis = id)) }
                     yes?.let { put(recommend.id, TrackFieldValue(id * 10 + 4, "yes-$id", id, recommend.id, booleanValue = it, createdAtMillis = id, updatedAtMillis = id)) }
+                    finishedDate?.let { put(finished.id, TrackFieldValue(id * 10 + 5, "finished-$id", id, finished.id, dateValue = it, createdAtMillis = id, updatedAtMillis = id)) }
+                    effortValue?.let { put(effort.id, TrackFieldValue(id * 10 + 6, "effort-$id", id, effort.id, scaleValue = it, createdAtMillis = id, updatedAtMillis = id)) }
                 },
             )
         return TrackProjection(
             Track(1, "track", "Books", "", "▤", "main", "Main", emptyList(), false, false, 0, 1, 1),
-            listOf(title, genre, rating, notes, recommend),
+            listOf(title, genre, rating, notes, recommend, finished, effort),
             listOf(history, fiction),
             listOf(
-                entry(1, "A", history, 4.0, LocalDate.of(2026, 1, 2), "A great book", true),
-                entry(2, "B", fiction, 3.0, LocalDate.of(2025, 12, 1), null, false),
-                entry(3, "C", history, 2.0, LocalDate.of(2026, 2, 1), null, null),
+                entry(1, "A", history, 4.0, LocalDate.of(2026, 1, 2), "A great book", true, LocalDate.of(2026, 1, 10), 4.5),
+                entry(2, "B", fiction, 3.0, LocalDate.of(2025, 12, 1), null, false, LocalDate.of(2025, 12, 10), 2.0),
+                entry(3, "C", history, 2.0, LocalDate.of(2026, 2, 1), null, null, null, null),
             ),
         )
     }

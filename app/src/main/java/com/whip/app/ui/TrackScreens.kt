@@ -4242,8 +4242,14 @@ internal fun TrackConditionEditor(
                     projection.optionsFor(requireNotNull(field).id).forEach { option -> WhipFilterChip(option.uuid in selectedChoices, { selectedChoices = if (option.uuid in selectedChoices) selectedChoices - option.uuid else selectedChoices + option.uuid }, { Text(option.label) }) }
                 }
                 TrackFieldType.Date -> {
-                    WhipOutlinedButton(onClick = { datePicker = 1 }, modifier = Modifier.fillMaxWidth()) { Text(firstDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))) }
-                    if (operator == TrackConditionOperator.Between) WhipOutlinedButton(onClick = { datePicker = 2 }, modifier = Modifier.fillMaxWidth()) { Text(secondDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))) }
+                    WhipOutlinedButton(
+                        onClick = { datePicker = 1 },
+                        modifier = Modifier.fillMaxWidth().testTag("track-condition-first-date"),
+                    ) { Text(firstDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))) }
+                    if (operator == TrackConditionOperator.Between) WhipOutlinedButton(
+                        onClick = { datePicker = 2 },
+                        modifier = Modifier.fillMaxWidth().testTag("track-condition-second-date"),
+                    ) { Text(secondDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))) }
                 }
                 TrackFieldType.YesNo -> Unit
             }
