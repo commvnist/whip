@@ -1,0 +1,13 @@
+{
+  "serial": "emulator-5556",
+  "taskId": "1037",
+  "oldPid": "7070",
+  "newPid": "7229",
+  "first": "Queue first audit 1789981498",
+  "second": "Queue second audit 1789981498",
+  "unsavedBeforeKill": true,
+  "pendingDialogRecovered": true,
+  "firstSaveCount": 1,
+  "secondSaveCount": 1,
+  "secondDraftOpenedAfterFirstSave": true
+}

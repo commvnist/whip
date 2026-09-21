@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260921-012 — Replay a queued second share through process death
+
+- Added an emulator-guarded host replay for two actual `ACTION_SEND text/plain` deliveries to the exported Task entry. The second queues behind an unsaved first draft and displays the native review dialog. Android kills the stopped app, restores the same task in a new PID with the dialog, then both drafts are saved sequentially. Exact one-row Room counts and Inbox display are asserted. Five original PNG/XML pairs and the task/PID receipt are retained at `artifacts/astra-audit/2026-09-21/task-share-queue-process/`.
+- Test/evidence only; no production app, Room schema, data epoch, backup format, version or owner-phone change. This complements the single-share interruption in IMP-20260921-009 and the pre-existing native queue/recreation cases.
+- Related/status: FB-20260920-001, IMP/VER-20260921-009 and VER-20260921-012. Two-share process recovery verified on API 34; queue-overflow interruption, other MIME/API variants and whole-product audit remain In progress.
+
 ### IMP-20260921-011 — Replay the pinned Habit widget's reversible check-off
 
 - Added an emulator-only driver for an actual Pixel Launcher Habit Tracking widget. It creates a Daily/CheckOff Habit through the widget and real editor, backgrounds and Android-kills Whip, confirms the row survives in a new process, checks it off through RemoteViews, verifies one durable success log, undoes it from the widget and verifies the log is removed. Five exact launcher PNG/XML pairs and the Room/PID receipt are retained at `artifacts/astra-audit/2026-09-21/habit-widget-launcher/`.

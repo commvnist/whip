@@ -1,5 +1,12 @@
 # Verification and release evidence
 
+### VER-20260921-012 — Queued Task shares survive Android process death
+
+- Scope: FB-20260920-001 and IMP-20260921-012. [Evidence](../../artifacts/astra-audit/2026-09-21/task-share-queue-process/README.md) comes from the exported Activity on a disposable API 34 emulator. It is not owner-phone or release evidence.
+- Live result: Two external shares arrive in order while the first draft is unsaved. The second produces “Review New Task Request?” and neither title exists in Room. Whip's stopped process dies (PID 7070); original task 1037 resumes in PID 7229 with the dialog. “Keep Editing” retains the first draft and waiting notice; saving opens the second draft. Saving again creates exactly one of each Task, both visibly in Inbox, with no extra review dialog.
+- Five individually reviewed original 1080×2400 PNG/XML pairs show all decisions and data in sequence; zero Whip-owned `NAF=true` nodes. Five supplemental states are inventoried outside the current 528 in-app catalog. The production app source and 43-method neighboring native/JVM/readiness results are unchanged from VER-20260921-010; this new host driver was executed once to completion, after an initial driver-only mistaken assertion that a modal dialog's UIAutomator tree must include its background field. Queue overflow under death, other MIME/API combinations, full Android/catalog acceptance and phone release remain open.
+- Related/status: IMP-20260921-012, VER-20260921-009. Two-share process-death boundary verified; whole-product audit In progress.
+
 ### VER-20260921-011 — Live Habit widget Add/check-off/undo after process death
 
 - Scope: FB-20260920-001 and IMP-20260921-011. [Evidence](../../artifacts/astra-audit/2026-09-21/habit-widget-launcher/README.md) is from a real Pixel Launcher-hosted Habit Tracking widget on a disposable API 34 emulator, not an in-app preview or owner phone.
