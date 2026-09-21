@@ -1,5 +1,47 @@
 # Durable findings
 
+### FND-20260921-012 — Real portable-folder disappearance test did not prove its setup
+
+- Severity/category: P2 audit-evidence reliability, not a demonstrated current backup data-loss defect; FB-20260920-001.
+- Observed: The fifth full-catalog attempt's real `DataPrivacyJourneyE2ETest` expected folder inspection to fail after moving a selected Android SAF tree, but `recoverInterruptedWrites()` returned success. The test had not asserted which tree was selected or that the shell move actually removed it; its earlier picker helper silently accepted a missing target folder.
+- Expected: The test must select exactly `primary:Download/WhipPortableRecoveryTest`, prove the disposable source folder exists and moves offline, then verify missing-provider warning, retained last verified backup timestamp and unchanged Task rows, and explicit re-selection/back-up recovery.
+- Resolution/status: Strict target-URI/move checks now guard setup; a genuine moved tree makes `recoverInterruptedWrites()` fail and preserve data. The Data & Privacy list requires an explicit scroll to the reconnect action before visual capture. The exact native journey passes 1/1 with zero skip in `build/instrumentation-results-cWg6rq`. The full current-source capture is still pending. `SafPortableBackupDocumentStore.list` separately treats a provider's null cursor as empty; this is a source-backed resilience question for later provider-fault review, not proven by this moved-tree case.
+
+### FND-20260921-011 — Full-catalog capture inherited a non-default emulator text scale
+
+- Severity/category: P2 audit-harness reproducibility, not a confirmed Area deletion defect; FB-20260920-001.
+- Observed: The fourth complete-catalog attempt failed two `AreaOrganizationJourneyE2ETest` methods in its second batch because `Delete Area Permanently` was not composed at the current scroll position. A read of the disposable emulator after failure returned `settings get system font_scale = 2.0`. These ordinary Area selectors had no font-scale rule and were inadvertently run at large text. The earlier interrupted attempt may have left that setting behind; its exact provenance is not proven.
+- Expected: Every ordinary catalog card starts at 1.0 text scale, while explicitly annotated large-text selectors still use actual Android 200%/320% configuration. A long lazy Area detail must scroll to its destructive action by list semantics, not require the action to be composed before scrolling.
+- Resolution/status: `scripts/ui-catalog capture` now saves and restores each emulator's prior scale but normalizes it to 1.0 before collecting evidence; the Area detail list has a stable semantics tag and its journey uses `performScrollToNode` for the danger action. The exact three-method Area class passes at the retained 2.0 setting in `build/instrumentation-results-ucDxKX`, and catalog harness fixtures/lint pass. Full recapture is pending.
+
+### FND-20260921-010 — Home 200% RTL audit fixture overflowed the screen
+
+- Severity/category: P2 audit-fixture accuracy, not a demonstrated production Home defect; FB-20260920-001.
+- Observed: The original `shared.home.summary-large-rtl` PNG clips the date and `Home` heading at the right edge. The test mounts `TodayHeader` in a fixed 320dp-wide column on a narrower emulator viewport and still passes because its assertions inspect only the summary cards.
+- Expected: A current visual card should represent the production page's viewport-constrained width and visibly preserve the heading/date at large text and RTL. The real Home `LazyColumn` uses `WhipPageContentPadding` and a width-filling `TodayHeader`.
+- Resolution/status: The test-only mount now fills the available width inside a 20dp page gutter; the exact native selector passes 1/1 in `build/instrumentation-results-yyRONV`. Fresh capture and original-image inspection are pending. No production UI code changed.
+
+### FND-20260921-009 — Four current Gym cards still stage retired 5/3/1 names or phases
+
+- Severity/category: P2 audit-truth/retirement evidence, not a demonstrated new-authoring path; FB-20260920-001/002.
+- Observed: The current `gym.routine.program-position` screenshot shows “Strength Cycle” with `5s`, `3s`, `5/3/1`, and `Deload` chips even though the card is inventoried as a normal Gym Routine control after 5/3/1 retirement. Three generic deletion cards also use the synthetic name “5/3/1 Anchor” or “Custom 5/3/1” despite their reusable deletion UI.
+- Expected: Current generic Routine visual evidence should use a generic phased-Routine fixture; retained 5/3/1 provenance belongs only to explicitly marked legacy workout/history compatibility checks.
+- Evidence/root cause: `GymPowerInputUiTest#captureWorkoutComponentCatalog` constructs an in-memory `GymRoutine` with `RoutineProgramKind.FiveThreeOne` and old branded phase labels, then directly renders the reusable `RoutineProgramPositionDialog`. `GymPowerInputUiTest#routineDeleteDialogBlocksActiveSourceAndKeepsWorkoutAndTrainingMaxHistory` and `WorkoutDeletionUiTest` likewise stage branded names for generic deletion dialogs. In production the position dialog is a reusable `programmed` Routine control; inactive legacy templates are converted by `LegacyRoutineRetirement` before normal use and active legacy workouts block editing. These screenshots overstate normal-app brand exposure; no reachable new 5/3/1 authoring path was observed.
+- Recommended solution: Change the four current generic catalog fixtures to a `Custom` phased Routine and neutral Workout/Routine names while keeping real legacy-retirement/History tests, deletion impact counts and historical provenance intact. Recheck the current catalog and the ordinary phased journey.
+- Resolution/status: The four generic fixtures now use a `Custom` phased Routine, `Volume`/`Build`/`Peak`/`Recovery` roles and neutral Routine/Workout names; the active-legacy compatibility cards remain intentionally historical. All four affected native selectors pass 4/4 in `build/instrumentation-results-N43jYv`. Fresh complete visual recapture is pending.
+- Related: FB-20260920-002, DEC-20260920-001.
+
+### FND-20260921-008 — Six catalog cards depict already-accounted-for visual states
+
+- Severity/category: P2 audit-evidence completeness, not a confirmed production UI defect; FB-20260920-001.
+- Observed: The fresh two-emulator current-source run executed all 193 catalog selectors without failure and exported 528 PNG/XML pairs, but final duplicate-pixel validation rejected five exact pairs. Source and original-image review shows six extra IDs depict the same Whip surface after a behavioral check: destructive-dialog error text is already visible before `performScrollTo`; Review reopening restores the same collapsed empty view; the Track Unpin action is already visible in the narrowed selection; cancelling CSV replacement returns to the same invalid review. The large-text CSV pair differs only because the Android system clock advanced one minute, not because Whip's surface changed.
+- Expected: One visual card per distinct rendered state, while lifecycle, selection, scroll and picker-return behavior remain tested even when the end image is identical.
+- Why it matters: Counting repeated pixels as independently reviewed surfaces falsely inflates final visual completeness and blocks the exact-capture acceptance gate. It does not indicate that the underlying transitions failed.
+- Evidence/root cause: `build/astra-full-current-20260921-v2/manifest.tsv`, original PNG/XML pairs, `SettingsResponsiveUiTest`, `ReviewJourneyE2ETest`, `TrackCollectionJourneyE2ETest` and `TrackCsvJourneyE2ETest`. Both large CSV XML files differ only in `com.android.systemui:id/clock` text; the app hierarchy is identical.
+- Recommended solution: Keep behavioral assertions and one canonical visual capture per equal state, give each removed current-catalog ID an explicit mapping to its retained card, and leave the September 8 historical matrix immutable.
+- Resolution/status: Six redundant capture calls/rows are removed but all transition assertions remain. A distinct scrolled `settings.delete-retry.large-impacts` card now records the previously unshown backup/consequence copy; its focused native selector passes 1/1 in `build/instrumentation-results-7CKpDJ`. The current catalog lints at 523 with zero pending/exception. Fresh complete capture is pending.
+- Related: DEC-20260921-008 and [visual-alias disposition](../quality/ASTRA_VISUAL_ALIAS_DISPOSITION_2026-09-21.md).
+
 ### FND-20260921-007 — Widget brand becomes an unlabeled duplicate launcher action
 
 - Severity/category: P2 accessibility and touch-target consistency; FB-20260920-001.

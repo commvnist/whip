@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260921-014 — Make current audit evidence distinct and deterministic
+
+- Kept native transition assertions while removing six current catalog screenshots that showed an already-accounted-for visual state; [each frozen/current alias is mapped](../quality/ASTRA_VISUAL_ALIAS_DISPOSITION_2026-09-21.md). Added a genuinely different scrolled 200%-text Settings card for final destructive consequences and backup advice. Current catalog: 523 required states, no pending selector or platform exception.
+- Replaced four misleading ordinary Gym catalog fixtures with a `Custom` phased Routine and neutral Routine/Workout names. Retained explicit active-legacy review cards and historical performed data. Mounted the Home 200% RTL summary in a viewport-constrained page gutter instead of an overflowing fixed-width fixture.
+- `scripts/ui-catalog capture` now saves each disposable emulator's prior font scale, establishes 1.0 for ordinary captures and restores it after the run. The Area detail lazy list has a stable semantics tag; its real journey scrolls to the destructive action by list semantics even at 200% text. The real SAF portable-folder journey now proves the exact Downloads child tree and a successful move before assessing missing-access recovery, and scrolls to its reconnect action.
+- Only a test tag was added to production UI; no app behavior, data/schema/backup format, version or owner-phone state changed in this chunk. The interrupted/incomplete full-catalog attempts remain unaccepted; full current-source capture, broad Android matrix and audit review are separate.
+- Related/status: FB-20260920-001/002, FND-20260921-008/009/010/011/012, DEC-20260921-008/009 and VER-20260921-014. Scoped implementation verified; whole-product audit In progress.
+
 ### IMP-20260921-013 — Keep large-text audit capture stable under emulator configuration latency
 
 - `AndroidFontScaleRule` now waits up to 30 seconds for Android's actual `targetContext.resources.configuration.fontScale` to reach the requested/restored value, rather than failing after 10 seconds during a busy two-emulator run. On timeout it reports both the system setting and resource scale. It does not substitute a synthetic scale or bypass 200% UI assertions.

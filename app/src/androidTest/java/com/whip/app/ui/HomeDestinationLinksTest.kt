@@ -3,6 +3,7 @@ package com.whip.app.ui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -128,8 +129,8 @@ class HomeDestinationLinksTest {
             ) {
                 WhipTheme(darkTheme = true, dynamicColor = false) {
                     Surface(Modifier.fillMaxSize()) {
-                        Box {
-                            Column(Modifier.width(if (expandedText.value) 320.dp else 360.dp).verticalScroll(rememberScrollState())) {
+                        Box(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
+                            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                                 TodayHeader(
                                     date = LocalDate.of(2026, 9, 8),
                                     taskTotal = 125,

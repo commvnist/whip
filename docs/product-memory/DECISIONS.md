@@ -1,5 +1,24 @@
 # Durable product and engineering decisions
 
+### DEC-20260921-009 — Establish ordinary text scale for each full visual capture
+
+- Context: FND-20260921-011 found that an interrupted emulator run can leave a non-default system text scale; unannotated visual selectors then produce mislabeled ordinary cards and may fail on lazy content outside their starting viewport.
+- Decision: At capture entry, save each disposable emulator's existing `font_scale`, set 1.0 for ordinary cards, and restore the saved setting on exit. Explicit large-text tests continue to use `AndroidFontScaleRule`, which checks Android's actual resource scale and restores this capture baseline. The Area journey independently scrolls its lazy detail list to the danger action, so it remains valid at 200% outside the catalog too.
+- Alternatives/reversal: Merely rerunning after manually changing the emulator would leave the collector nondeterministic; assuming all actions are initially composed is invalid for lazy lists. Revisit if a future capture contract deliberately includes a different ordinary scale, in which case it needs an explicit named baseline and manifest.
+- Related/status: FB-20260920-001, FND-20260921-011. Scoped Area regression and harness fixtures pass; complete normalized catalog capture remains pending.
+
+### DEC-20260921-008 — Count visually identical transition endpoints once
+
+- Context: FND-20260921-008 found six current catalog IDs whose behavior is meaningful but whose resulting Whip pixels and semantics match another captured state.
+- Position A: Keep a separate screenshot for each transition and relax the duplicate-pixel gate, allowing clock-only differences to imply distinct app states.
+- Position B: Retain the journey assertions but map each visual alias to one canonical card, with explicit frozen-matrix disposition.
+- Evidence and constraints: Five pairs have byte-identical PNG/XML; the sixth has identical Whip content with only system-clock movement. All four journeys test their transition and endpoint without needing a second visual card. The September 8 review matrix is immutable history.
+- Failure modes: Dropping the journey assertion would lose lifecycle or picker-return coverage; changing the app simply to distinguish evidence would introduce false UI state; weakening the pixel gate would hide accidental duplicate captures later.
+- Decision: Select Position B. Remove only the six redundant capture calls/catalog rows, preserve their associated behavior assertions, and document the canonical mapping in a separate disposition. Keep the strict duplicate check.
+- Why this is superior for Whip: The final visual denominator measures distinct surfaces without throwing away behavior evidence or rewriting historical review claims.
+- Consequences / reversal conditions: If a future product change makes one endpoint visually different, add it back as a new current catalog state with a distinct source capture and review.
+- Related/status: FB-20260920-001, FND-20260921-008; In progress pending fresh complete capture.
+
 ### DEC-20260921-007 — Keep widget navigation on its labeled header
 
 - Context: FND-20260921-007 found an unlabeled 32dp clickable brand mark in actual launcher RemoteViews. The neighboring header already has the same PendingIntent and an area-specific accessible label.

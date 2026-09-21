@@ -168,7 +168,6 @@ class ReviewJourneyE2ETest {
             compose.onNodeWithTag("review-close-action").assertIsDisplayed().performClick()
             openReview()
             compose.onNodeWithText("No Outcomes in This View").performScrollTo().assertIsDisplayed()
-            captureVisualCatalogSurface("shared.review.empty-selection-reopened")
         }
     }
 

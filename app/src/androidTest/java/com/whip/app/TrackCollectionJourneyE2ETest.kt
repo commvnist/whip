@@ -71,7 +71,6 @@ class TrackCollectionJourneyE2ETest {
             capture("tracks.collection.visible-selection.$suffix")
             if (large) assertFontScale("1 Track selected")
             scroll(hasText("Unpin from Whip Home")).assertIsEnabled().assertIsDisplayed()
-            capture("tracks.collection.unpin.$suffix")
             compose.onNodeWithText("Unpin from Whip Home").performClick()
             compose.waitUntil(10_000) { !projection(trail.track.id).track.pinned }
             assertEquals(pinnedReading, projection(reading.track.id))

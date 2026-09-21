@@ -50,7 +50,7 @@ class WorkoutDeletionUiTest {
         )
 
         captureVisualCatalogSurface("gym.workout.permanent-delete")
-        compose.onNodeWithText("Delete “5/3/1 Anchor” Permanently?").assertIsDisplayed()
+        compose.onNodeWithText("Delete “Strength Session” Permanently?").assertIsDisplayed()
         compose.onNodeWithText("Removed").assertIsDisplayed()
         compose.onNodeWithText("Recalculated").assertIsDisplayed()
         compose.onNodeWithTag("workout-delete-impact-list").performScrollToNode(
@@ -149,7 +149,7 @@ class WorkoutDeletionUiTest {
     private fun impact() = WorkoutDeletionImpact(
         sessionId = 41,
         sessionUuid = "workout-41",
-        displayName = "5/3/1 Anchor",
+        displayName = "Strength Session",
         localDate = LocalDate.of(2026, 9, 1),
         state = WorkoutSessionState.Finished.name,
         archived = false,

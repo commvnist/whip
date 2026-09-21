@@ -1,5 +1,12 @@
 # Verification and release evidence
 
+### VER-20260921-014 — Distinct current catalog fixtures and stable capture setup
+
+- Scope: IMP-20260921-014 on disposable API 34 emulator(s), not the owner phone. The v2 full attempt executed all 193 selectors and exported 528 PNG/XML pairs but rejected five byte-identical pairs; a sixth Whip-identical pair differed only by the Android clock. The six transition assertions remain; [the alias mapping](../quality/ASTRA_VISUAL_ALIAS_DISPOSITION_2026-09-21.md) preserves frozen-matrix history.
+- Focused final-source Android checks: six alias-affected selectors pass 6/6 in `build/instrumentation-results-Phc7Wm`; four generic Gym-fixture selectors pass 4/4 in `N43jYv`; the new scrolled Settings consequences selector passes 1/1 in `7CKpDJ`; corrected Home 200% RTL selector passes 1/1 in `yyRONV`; all three Area lifecycle methods pass at retained actual 2.0 text in `ucDxKX`; the exact real SAF access-loss/reselection journey passes 1/1 in `cWg6rq`. Every cited run reports zero failure/skip/reuse.
+- `scripts/ui-catalog lint` reports 523 captures, zero pending/exceptions; `scripts/test-ui-catalog` passes all fixtures; `bash -n scripts/ui-catalog` and `git diff --check` pass. The full v3 capture stopped on emulator disconnect, v4 on inherited font scale, and v5 on unproven provider-test setup. None is a complete accepted catalog. The fresh v6 run is ongoing; individual current-source image/XML review, complete Android inventory, final JVM/static gates and whole-product acceptance are not claimed here.
+- Related/status: FND-20260921-008/009/010/011/012, DEC-20260921-008/009, IMP-20260921-014. Scoped evidence/test correction verified; full audit In progress.
+
 ### VER-20260921-013 — Large-text configuration barrier under catalog load
 
 - Scope: FB-20260920-001 and IMP-20260921-013 on disposable API 34 emulators. The first fresh two-emulator 528-state capture `build/instrumentation-results-nZyYCy` is **failed/incomplete**: batch 2's `AdaptiveWhipScreenTest#compactHabitEditorRemainsReachableAtTwoHundredPercentText` and batch 5's `GymPowerInputUiTest#exerciseDeleteDialogBlocksActiveUseAndPreservesTrainingMaxAuditHistory` time out at the 10-second `AndroidFontScaleRule` setup barrier, before their UI assertions. Batches 1 and 3 pass but do not constitute catalog acceptance. Neither failure demonstrates a product UI defect.

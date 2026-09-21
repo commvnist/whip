@@ -2,6 +2,7 @@ package com.whip.app
 
 import android.content.Intent
 import android.net.Uri
+import android.provider.DocumentsContract
 import android.util.Base64
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
@@ -156,6 +157,11 @@ class DataPrivacyJourneyE2ETest {
             selectDownloadsTree()
             compose.waitUntil(10_000) { app.portableBackupManager.state.value.configured }
             treeUri = Uri.parse(requireNotNull(app.portableBackupManager.state.value.folderUri))
+            assertEquals(
+                "Picker must grant the dedicated Downloads folder",
+                "primary:Download/$portableFolderName",
+                DocumentsContract.getTreeDocumentId(treeUri),
+            )
             assertTrue(app.contentResolver.persistedUriPermissions.any { permission -> permission.uri == treeUri })
 
             scroll(hasText("Back Up Now")).performClick()
@@ -170,8 +176,16 @@ class DataPrivacyJourneyE2ETest {
         val uriGrantFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
         app.contentResolver.releasePersistableUriPermission(treeUri, uriGrantFlags)
         assertFalse(app.contentResolver.persistedUriPermissions.any { permission -> permission.uri == treeUri })
-        device.executeShellCommand(
+        val sourceFolder = device.executeShellCommand("ls -ld /sdcard/Download/$portableFolderName 2>&1")
+        assertTrue("Selected folder is missing before the test move: $sourceFolder", sourceFolder.contains(portableFolderName))
+        val moveOutput = device.executeShellCommand(
             "mv /sdcard/Download/$portableFolderName /sdcard/Download/$portableFolderOfflineName",
+        )
+        val sourceAfter = device.executeShellCommand("ls -ld /sdcard/Download/$portableFolderName 2>&1")
+        val offlineAfter = device.executeShellCommand("ls -ld /sdcard/Download/$portableFolderOfflineName 2>&1")
+        assertTrue(
+            "Folder move failed: $moveOutput (source before: $sourceFolder; after: $sourceAfter; offline: $offlineAfter)",
+            sourceAfter.isBlank() && offlineAfter.contains(portableFolderOfflineName),
         )
         val recovery = runBlocking { runCatching { app.portableBackupManager.recoverInterruptedWrites() } }
         assertTrue("A real SAF tree that disappears must fail folder inspection", recovery.isFailure)
@@ -189,10 +203,10 @@ class DataPrivacyJourneyE2ETest {
             compose.onNodeWithContentDescription("Open Settings").performClick()
             compose.openSettingsCategory("Data & Privacy")
             scroll(hasText("Last backup warning or error:", substring = true)).assertIsDisplayed()
-            compose.onNodeWithText("Reconnect or Change Folder").assertIsDisplayed()
+            scroll(hasText("Reconnect or Change Folder")).assertIsDisplayed()
             capture("portable-folder-reconnect")
 
-            compose.onNodeWithText("Reconnect or Change Folder").performClick()
+            scroll(hasText("Reconnect or Change Folder")).performClick()
             selectDownloadsTree()
             compose.waitUntil(10_000) { app.portableBackupManager.state.value.lastError == null }
             assertTrue(app.contentResolver.persistedUriPermissions.any { permission -> permission.uri == treeUri })
@@ -323,8 +337,9 @@ class DataPrivacyJourneyE2ETest {
                 device.findObjects(By.text("Downloads")).last().click()
             }
         }
-        val targetFolder = device.wait(Until.findObject(By.text(portableFolderName)), 10_000)
-        if (targetFolder != null) targetFolder.click()
+        requireNotNull(device.wait(Until.findObject(By.text(portableFolderName)), 10_000)) {
+            "Native folder picker must show the dedicated backup test folder"
+        }.click()
         val useFolder = device.wait(Until.findObject(By.res("android", "button1")), 10_000)
         requireNotNull(useFolder) { "Native folder picker should expose its selection action" }
         require(useFolder.isEnabled) { "Dedicated portable-backup test folder should be selectable" }

@@ -752,7 +752,18 @@ class SettingsResponsiveUiTest {
             .assertIsDisplayed()
             .getUnclippedBoundsInRoot()
         assertTrue("The complete recovery message must fit after scrolling", errorBounds.top >= viewport.top && errorBounds.bottom <= viewport.bottom)
-        captureVisualCatalogSurface("settings.delete-retry.large-message")
+        val backupBounds = compose.onNodeWithText("Export a backup first if you may need this history.")
+            .performScrollTo()
+            .assertIsDisplayed()
+            .getUnclippedBoundsInRoot()
+        assertTrue(
+            "The final destructive consequence and backup advice must be readable after scrolling",
+            backupBounds.top >= viewport.top && backupBounds.bottom <= viewport.bottom,
+        )
+        captureVisualCatalogSurface(
+            "settings.delete-retry.large-impacts",
+            visuallyDistinctFrom = "settings.delete-retry.large",
+        )
         compose.onNodeWithText("Cancel").assertIsDisplayed()
         compose.onNodeWithText("Retry Deletion").assertIsDisplayed()
         assertEquals(cancelBefore, compose.onNodeWithText("Cancel").getUnclippedBoundsInRoot())

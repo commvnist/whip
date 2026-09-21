@@ -10,6 +10,7 @@ readonly SOURCE_ROOT="${WHIP_UI_SOURCE_ROOT:-${PROJECT_ROOT}/app/src/main/java/c
 capture_serials=()
 capture_previous_night_modes=()
 capture_previous_hide_error_dialogs=()
+capture_previous_font_scales=()
 
 usage() {
     cat <<'EOF'
@@ -37,17 +38,23 @@ die() {
 }
 
 restore_capture_environment() {
-    local index serial night_mode hide_error_dialogs
+    local index serial night_mode hide_error_dialogs font_scale
     for index in "${!capture_serials[@]}"; do
         serial="${capture_serials[$index]}"
         night_mode="${capture_previous_night_modes[$index]:-}"
         hide_error_dialogs="${capture_previous_hide_error_dialogs[$index]:-}"
+        font_scale="${capture_previous_font_scales[$index]:-}"
         if [[ "$night_mode" =~ ^(yes|no|auto)$ ]]; then
             adb -s "$serial" shell cmd uimode night "$night_mode" >/dev/null || true
         fi
         case "$hide_error_dialogs" in
             null) adb -s "$serial" shell settings delete global hide_error_dialogs >/dev/null || true ;;
             0|1) adb -s "$serial" shell settings put global hide_error_dialogs "$hide_error_dialogs" >/dev/null || true ;;
+        esac
+        case "$font_scale" in
+            null) adb -s "$serial" shell settings delete system font_scale >/dev/null || true ;;
+            '') ;;
+            *) adb -s "$serial" shell settings put system font_scale "$font_scale" >/dev/null || true ;;
         esac
     done
 }
@@ -288,7 +295,7 @@ capture_catalog() {
         die "output directory must be empty: $output_dir"
 
     trap restore_capture_environment EXIT
-    local serial night_mode hide_error_dialogs
+    local serial night_mode hide_error_dialogs font_scale
     for serial in "${capture_serials[@]}"; do
         night_mode="$(adb -s "$serial" shell cmd uimode night | sed -n 's/^Night mode: //p' | tr -d '\r')"
         [[ "$night_mode" =~ ^(yes|no|auto)$ ]] ||
@@ -298,7 +305,14 @@ capture_catalog() {
         [[ "$hide_error_dialogs" =~ ^(null|0|1)$ ]] ||
             die "could not determine emulator error-dialog setting: ${hide_error_dialogs:-missing}"
         capture_previous_hide_error_dialogs+=("$hide_error_dialogs")
+        font_scale="$(adb -s "$serial" shell settings get system font_scale | tr -d '\r')"
+        [[ "$font_scale" == null || "$font_scale" =~ ^[0-9]+([.][0-9]+)?$ ]] ||
+            die "could not determine emulator font scale: ${font_scale:-missing}"
+        capture_previous_font_scales+=("$font_scale")
         adb -s "$serial" shell cmd uimode night yes >/dev/null
+        # Ordinary catalog cards need a deterministic text baseline; explicitly
+        # large-text selectors change it with AndroidFontScaleRule and restore it.
+        adb -s "$serial" shell settings put system font_scale 1.0 >/dev/null
         # Background Google processes on the stock AVD can crash independently of
         # Whip. Suppress those OS sheets during evidence collection, while the
         # hierarchy guard still rejects any overlay that reaches a captured frame.
@@ -370,6 +384,7 @@ capture_catalog() {
     capture_serials=()
     capture_previous_night_modes=()
     capture_previous_hide_error_dialogs=()
+    capture_previous_font_scales=()
 }
 
 main() {

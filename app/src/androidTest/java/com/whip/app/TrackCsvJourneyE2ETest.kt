@@ -100,7 +100,6 @@ class TrackCsvJourneyE2ETest {
                 device.pressBack()
                 csvScroll(hasText("Row 2: Distance: enter a number")).assertIsDisplayed()
                 compose.onNodeWithTag("track-csv-import-confirm").assertIsNotEnabled()
-                capture("tracks.csv-recovery.replacement-cancelled.$suffix")
                 writeFixture(csv)
                 csvScroll(hasText("Choose Another File")).performClick()
                 selectDownload()

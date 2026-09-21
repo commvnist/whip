@@ -27,7 +27,7 @@ class AreaOrganizationJourneyE2ETest {
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             openAreas()
             openArea("Main")
-            compose.onNodeWithText("Delete Area Permanently").performScrollTo().performClick()
+            openDelete()
             compose.onNodeWithText("Create Another Area First").assertIsDisplayed()
             capture("last-required")
             compose.onNodeWithText("Create Area", substring = false).performClick()
@@ -237,7 +237,10 @@ class AreaOrganizationJourneyE2ETest {
     private fun openArea(name: String) {
         compose.onNodeWithContentDescription("Open area details for $name").performScrollTo().performClick()
     }
-    private fun openDelete() = compose.onNodeWithText("Delete Area Permanently").performScrollTo().performClick()
+    private fun openDelete() {
+        compose.onNodeWithTag("area-detail-content").performScrollToNode(hasText("Delete Area Permanently"))
+        compose.onNodeWithText("Delete Area Permanently").performClick()
+    }
     private fun capture(name: String) {
         compose.waitForIdle()
         captureVisualCatalogSurface("organization.lifecycle.$name")

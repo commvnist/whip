@@ -716,7 +716,7 @@ private fun AreaDetailContent(
     onDelete: () -> Unit,
 ) {
     LazyColumn(
-        modifier = modifier,
+        modifier = modifier.testTag("area-detail-content"),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(24.dp, 20.dp, 24.dp, 88.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
