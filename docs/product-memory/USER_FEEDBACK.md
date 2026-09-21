@@ -1,5 +1,12 @@
 # User feedback and acceptance criteria
 
+### FB-20260921-001 — Wrap the audit at a clean checkpoint and provide the APK
+
+- Date/source: 2026-09-21, direct owner steering: “wrap up the last thing you are doing, bring the repo to a healthy/complete state again, and report the progress on the audit. afterwards, send a link to the apk in chat.”
+- User need: Stop expanding the whole-product audit now, finish the in-flight Task-share-overflow replay, preserve truthful progress/remaining scope, leave verified source/evidence committed and pushed with a clean worktree, and provide a directly accessible current APK. This supersedes FB-20260920-001's instruction to continue immediately through complete audit acceptance, without declaring the audit complete.
+- Acceptance: Verify/document the in-flight replay, run a fresh device-independent complete local build/JVM/lint gate on current source, record the exact unfinished Android/catalog/platform/accessibility/performance work, verify the signed APK identity/hash, and link it in the final response. No owner-phone installation or Play Store publication is requested in this turn.
+- Related/status: FB-20260920-001/002, IMP/VER-20260921-025/026 and the audit continuation. The scoped wrap-up is verified; whole-product audit remains paused and incomplete.
+
 ### FB-20260920-001 — Resume the whole-product quality audit through completion
 
 - Date/source: 2026-09-20, direct owner request after reviewing the September 10 closeout: “Pick up the whole product audit and continue until completion. Use fast development and testing methods to speed through this without wasted time.”
@@ -7,7 +14,7 @@
 - Acceptance criteria: Reconcile the frozen 534-state matrix with the current 541-state catalog and all intervening released changes; review remaining journeys and consequential states to the original whole-product standard in FB-20260908-006; fix confirmed high-impact defects in coherent chunks; execute focused fast checks during development and a fresh complete final regression/build/lint/adaptive/accessibility/visual campaign; record exact evidence and remaining limitations, commit and push independently verified chunks. Do not count historical scoped passes as fresh final acceptance.
 - Affected users/workflows: Entire current Whip app, including backup/recovery, Tracks, Gym/Routines, Tasks/Habits/Goals, widgets/external capture, reminders/timers, Settings, navigation and platform behavior.
 - Related: FB-20260908-006; FB-20260910-001/002/004; the frozen `docs/quality/astra-surface-review-2026-09-08.tsv` and `docs/quality/ASTRA_GOAL_CLOSEOUT_2026-09-10.md`.
-- Status: In progress. This new owner authorization resumes the deferred scope; it does not change the historical September 10 closeout or imply a phone release or Play Store publication.
+- Status: Paused at owner request under FB-20260921-001 before final full Android/catalog/platform acceptance. This authorization did not change the historical September 10 closeout or imply a phone release or Play Store publication.
 
 ### FB-20260920-002 — Remove 5/3/1 and retain broadly useful Gym capabilities
 

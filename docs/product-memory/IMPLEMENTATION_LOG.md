@@ -1,5 +1,17 @@
 # Implementation history
 
+### IMP-20260921-026 — Package the paused-audit source as a private APK
+
+- Advance the private app version from 0.3.72/code 78 to 0.3.73/code 79 so the owner can install this distinct signed build over the earlier phone release. Build with Whip's existing local release signer and provide the generated APK link without installing or publishing it.
+- This is version metadata and delivery evidence, not whole-product audit acceptance. Room schema 46, data epoch 6 and portable-backup format 26 are unchanged; the new Goal Save and previously verified Gym/backup/Tracks/timer work are included in source.
+- Related/status: FB-20260921-001, VER-20260921-026. Private signed artifact Verified; whole-product audit Paused by owner.
+
+### IMP-20260921-025 — Close the Task-share overflow interruption at the owner pause
+
+- `artifacts/astra-audit/2026-09-21/task-share-overflow-process/replay.py` drives eight actual text shares through the production Activity, Android-managed process death, ordered review and exact Room persistence checks; nine original launcher/editor PNG/XML pairs and `run-api34/proof.json` retain evidence. Six accepted shares save once; two rejected shares remain absent and are disclosed as a count of two.
+- The prepared `habit-widget-modes/replay.py` is preserved with an explicit not-executed README rather than silently treating Count/Timer widget modes as verified. The replay itself changes no product behavior, Room schema, data epoch, backup format or owner-phone state; the separate APK version increment is IMP-20260921-026.
+- Related/status: FB-20260920-001, FB-20260921-001, VER-20260921-025. Task-share overflow replay Verified; wider audit Paused by owner.
+
 ### IMP-20260921-024 — Make Goal progress Save use the latest text
 
 - In `GoalMeasurementDialog`, the Save callback parses `value` at activation instead of using a numeric result captured by the previous composition. Existing date-window confirmation, invalid-input feedback, persistence-error draft and saving block remain unchanged.

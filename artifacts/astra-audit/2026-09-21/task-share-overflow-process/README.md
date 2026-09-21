@@ -1,0 +1,7 @@
+# Full Task-share queue across Android process death
+
+The guarded `replay.py` ran on the disposable API 34 `emulator-5556` with current debug Whip and completed Setup. Eight distinct real `ACTION_SEND` text shares targeted the production `MainActivity` while the first unsaved Task draft stayed open. The bounded queue accepted the active draft, its waiting review, and four pending Task shares; two excess shares were rejected. No Task was persisted before explicit Save.
+
+Android cached-killed the stopped process at PID 28184, then restored the same task (3604) under PID 28407 with the unsaved review dialog intact. The replay saved the six accepted titles in order, exactly once each, and confirmed both rejected titles stayed absent from Room. “Share Queue Full” visibly reported two rejected shares after recovery. `run-api34/proof.json` records the exact title/PID/task assertions, and the eight launch logs and nine original 1080×2400 PNG/XML pairs retain the UI progression. The before/after review, overflow notice, and first/last accepted drafts were visually inspected; all nine captures passed the replay's Whip-owned `NAF=true` check.
+
+This closes the scoped full-queue/process-death evidence gap on one launcher/API. It does not establish other MIME types, cross-app share-sheet behavior, API 26/37, TalkBack speech order or complete whole-product acceptance. It changes no production code, Room schema, backup format, data epoch, release version or owner phone.

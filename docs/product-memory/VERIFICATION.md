@@ -1,5 +1,20 @@
 # Verification and release evidence
 
+### VER-20260921-026 — Clean local gate and signed APK at audit pause
+
+- After version 0.3.73/code 79 was assigned, the device-independent `scripts/check --full` passed in 4m01s (156 Gradle tasks, debug Android-test compilation, release APK/AAB and benchmark assembly, lint, all JVM tests, coverage floors, source/artifact checks). Deterministic domain lines 83.14% (4,409/5,303), branches 59.65% (2,593/4,347), and Settings/policy lines 68.88% (549/797) exceed their gates. `scripts/ui-catalog lint` separately reports 523 required captures, zero pending/platform exceptions.
+- `app/build/outputs/apk/release/app-release.apk`: package `commvne.com.whip.app`, version 0.3.73/code 79, min API 26, target API 37, SHA-256 `c41873410bfd5db99f32e6d69526e055f7fab314a11a577fda58220f538eb334`. APK v2 signature and ZIP integrity pass. Release certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788` matches the earlier private release. Signed AAB SHA-256 `eae0fcbb205c73e3997b3774ce511cae149a9089b84cb503d20c50f045cbbbfc` verifies with the expected self-signed private certificate warning.
+- Disposable API 34 installability smoke: streamed install succeeds, `MainActivity` cold-launches in 1,031 ms with a live process, and the installed base APK hash matches the local signed file exactly. A bounded PID-scoped log sample has no fatal/ANR/SQLite exception. This is not an owner-data upgrade test.
+- This is a local signed private artifact, **not** an owner-phone installation, Play publication, frozen candidate or final product audit pass. The fresh complete Android inventory, exact 523-card visual review, API 26/37, TalkBack and performance work remain open. [Full receipt](../../artifacts/astra-audit/2026-09-21/audit-wrapup/README.md).
+- Related/status: FB-20260921-001, IMP-20260921-026. Signed artifact verified; whole-product audit Paused.
+
+### VER-20260921-025 — Android tail and full Task-share queue recovery
+
+- After the Goal Save repair, the last 19 previously untouched Android classes passed 105/105 methods across two strict, fresh batches with zero failure/skip/reuse: `build/instrumentation-results-eCRduz`. This is diagnostic tail coverage, not a fresh complete Android inventory; prior partial gate attempts remain rejected.
+- The guarded `task-share-overflow-process/replay.py` ran eight real text shares on API 34, killed Whip's stopped PID 28184 and returned to task 3604 in new PID 28407. The six accepted titles saved once each, the two excess titles remained absent, and “Share Queue Full” visibly reported two rejected shares after recovery. `artifacts/astra-audit/2026-09-21/task-share-overflow-process/run-api34/proof.json`, eight launch logs and nine original PNG/XML pairs retain evidence. All nine capture XMLs passed the replay's Whip-owned `NAF=true` assertion; review, overflow and endpoint originals were personally inspected.
+- The prepared Count/Timer Habit-widget replay is explicitly not executed. Full current-source 1,109-method Android gate, 523-card catalog, API 26/37, TalkBack and performance work remain open under the owner-requested pause. No owner-phone install.
+- Related/status: FB-20260920-001, FB-20260921-001, IMP-20260921-025. Scoped Task-share replay Verified; whole-product audit Paused.
+
 ### VER-20260921-024 — Rapid Goal progress Save and mutation neighbors
 
 - Rejected tail/diagnostic baselines: The first of the three untouched Android-tail batches ran 76 methods with one failure in `GoalSecondaryMutationUiTest#progressFailureKeepsDraftAndSavingBlocksBackAndDuplicateSubmit` (`build/instrumentation-results-9kFObo`). The unchanged exact method failed in `zQ08Go`; a timing-only pre-click wait initially passed but later immediate-click replay observed zero submissions, exposing the product race. Neither partial tail nor timing-only replay is acceptance evidence.
