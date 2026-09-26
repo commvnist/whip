@@ -1,5 +1,11 @@
 # Verification and release evidence
 
+### VER-20260926-004 — Second frozen candidate stopped at Android font-scale setup
+
+- The clean pushed `49998813` candidate passed all 659 JVM tests, deterministic coverage floors (domain lines 83.14% = 4,409/5,303, branches 59.65% = 2,593/4,347; Settings/policy lines 68.88% = 549/797), debug/release lint, debug/release APKs, signed AAB, benchmark build and artifact signature preflight. Seven Android batches accepted 569 fresh methods with zero failures/skips/reuse. Batch nine then ran 87 methods with one pre-assertion failure and zero skips in `TrackCollectionJourneyE2ETest#archivedAndActiveSelectionsStaySeparateAtLargeText`: the system setting and target resources both stayed 1.0 after the 2.0 request (`build/coverage-results-V0xedC`). The candidate was stopped; incomplete evidence remains `build/candidate-evidence/.pending-s9EGDu`. This is **not** a complete Android or accepted candidate result.
+- The unchanged exact method passed 1/1 on the same emulator in `build/instrumentation-results-FniLev`. After bounded setting retries were added to `AndroidFontScaleRule`, the affected four-method Track collection class passed 4/4, zero failures/skips/reuse in `build/instrumentation-results-QunYCY`; the final exact-restoration branch was additionally corrected before the next full compile/gate. A fresh complete candidate is required.
+- Related/status: FB-20260926-001, FND-20260926-008, DEC-20260926-004, IMP-20260926-005, VER-20260921-013. Focused correction Verified; full candidate pending.
+
 ### VER-20260926-003 — First frozen candidate rejected by stale navigation assertion
 
 - `ANDROID_SERIAL=emulator-5554 WHIP_ANDROID_SECONDARY_SERIAL=emulator-5556 scripts/candidate` snapshotted clean pushed `b3923194` and completed static preflight. Its JVM run executed 659 tests with exactly one failure, `WhipVisualLanguageTest#destinationNavigationKeepsEveryPeerDirectAndStable` at line 105, because the source contract forbade `canScrollBackward/Forward` in the shared tab bar. Other build tasks had begun, but the run was stopped after the known required-gate failure; incomplete evidence remains in `build/candidate-evidence/.pending-UhFwc0`. No complete JVM/build/Android candidate is claimed from it.

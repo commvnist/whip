@@ -1,5 +1,12 @@
 # Durable findings
 
+### FND-20260926-008 — Android could revert an enlarged-text test setting under full-suite load
+
+- Severity/category: P2 full Android audit reliability; no confirmed Track UI defect.
+- Observed: The second frozen candidate passed complete JVM/build/lint/signature gates and 569 fresh Android methods in seven accepted batches. Batch nine executed 87 methods with one failure at `TrackCollectionJourneyE2ETest#archivedAndActiveSelectionsStaySeparateAtLargeText`. Its outer `AndroidFontScaleRule` exhausted 30 seconds before any UI assertion; both `settings get system font_scale` and target resources remained at 1.0 after requesting 2.0. The unchanged exact method passed 1/1 on the same emulator immediately afterward.
+- Expected/root cause: The rule must require the actual system setting and resource scale, and tolerate a bounded reverted or lost setting write during a heavily loaded emulator campaign. Its previous single write only waited for resource delivery; the setting itself could change back without recovery. This extends VER-20260921-013's earlier configuration-delivery barrier.
+- Resolution/status: The rule now retries its requested write every two seconds for up to 30 seconds, requires both setting and resource scale, and restores the exact prior setting including absence. The affected four-method Track class passes; a new complete candidate is required. Related: FB-20260926-001, DEC-20260926-004, IMP-20260926-005, VER-20260926-004.
+
 ### FND-20260926-007 — Navigation source contract forbade the new discoverable scroll cues
 
 - Severity/category: P3 stale JVM design contract, not a product navigation defect.

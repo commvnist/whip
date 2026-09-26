@@ -1,5 +1,11 @@
 # Durable product and engineering decisions
 
+### DEC-20260926-004 — Retry a reverted font setting while retaining real 200% assertions
+
+- Context: FND-20260926-008 failed before a Track UI assertion because an Android 2.0 font-scale write had reverted to 1.0 during the long full inventory. The exact Track method passed alone; the previous 30-second rule only waited for resources after one write.
+- Decision: Within the existing 30-second barrier, repeat the setting command at two-second intervals until both the system setting and target resources match. Apply the same bounded procedure to restore the original value, including a previously absent setting. Keep the real rendered-scale assertions and do not downgrade tests to a Compose-local fake or skip large-text cases.
+- Related/status: FB-20260926-001, FND-20260926-008, IMP-20260926-005, VER-20260926-004, VER-20260921-013. Implemented; focused Track replay passes, final candidate pending.
+
 ### DEC-20260926-003 — Keep direct tabs and require purposeful overflow cues
 
 - Context: FND-20260926-007 stopped the first frozen JVM gate because an older source-text rule banned all use of `canScrollBackward/Forward`. The current shared tab bar uses those properties for the visible directional affordance requested by the UX audit; every destination remains a direct tab and the selected tab is brought into view.

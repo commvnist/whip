@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260926-005 — Keep actual large-text test configuration under load
+
+- `AndroidFontScaleRule` now retries the actual Android font-scale write every two seconds within its existing 30-second barrier when the setting or target resources do not match. It verifies both values before a test runs, then restores the original setting with the same bounded check, preserving a previously absent setting exactly.
+- Instrumentation harness only; no production UI, persistence, schema, backup format or release version change. The unchanged failing Track method passed alone, and the affected four-method class passed after the retry change. The failed frozen candidate remains rejected.
+- Related/status: FB-20260926-001, FND-20260926-008, DEC-20260926-004, VER-20260926-004. Focused correction Verified; full candidate pending.
+
 ### IMP-20260926-004 — Update the navigation contract for visible tab overflow
 
 - `WhipVisualLanguageTest` no longer rejects `DestinationTabBar`'s native backward/forward scroll-state checks. It now requires the two named directional cues while preserving the no-gradient, no-shadow, no-dropdown and direct-peer rules. The six-method JVM class passes.
