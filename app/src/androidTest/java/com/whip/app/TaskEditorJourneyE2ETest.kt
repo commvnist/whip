@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -111,6 +112,7 @@ class TaskEditorJourneyE2ETest {
     private fun openExistingTask(title: String) {
         val label = "Open task details for $title"
         compose.waitUntil(15_000) { compose.onAllNodesWithTag("home-list").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription(label).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("home-list").performScrollToNode(hasContentDescription(label))
         compose.onNodeWithContentDescription(label).performClick()
         compose.onNodeWithTag("entity-inspector-edit").performClick()

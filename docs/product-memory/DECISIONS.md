@@ -1,5 +1,11 @@
 # Durable product and engineering decisions
 
+### DEC-20260926-002 — Wait for the Task row before opening it in capture journeys
+
+- Context: FND-20260926-006 exposed an occasional four-second failure under the complete visual campaign. The Task Home list container was present, but its seeded row had not reached the semantics tree. The same production Task row label and journey passed in the prior complete campaign and focused replays.
+- Decision: `TaskEditorJourneyE2ETest.openExistingTask` waits up to 15 seconds for the exact accessible row description, then retains the existing lazy-list scroll, edit/recreate/save/reopen and field-visibility assertions. Do not add a fixed delay or weaken the user-facing behavior check.
+- Related/status: FB-20260926-001, FND-20260926-006, IMP-20260926-003, VER-20260926-002. Affected-family verification passed; final full gate pending.
+
 ### DEC-20260926-001 — Extend existing semantic UI owners and cut proven duplicate plumbing
 
 - Context: FB-20260926-001 asks for one reusable Whip design and intuitive UX. Prior shared builders are real, but current-source FND-20260926-001 through -005 find controls, visual roles, nested navigation, stale width values, and guarded non-UI plumbing that still diverge.

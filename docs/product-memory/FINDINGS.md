@@ -1,5 +1,12 @@
 # Durable findings
 
+### FND-20260926-006 — Task editor capture could search Home before its seeded row appeared
+
+- Severity/category: P3 test timing and complete-catalog reliability, not a confirmed product data or accessibility defect.
+- Observed: A fresh final-source 523-state recapture accepted nine batches, then batch ten's ordinary `TaskEditorJourneyE2ETest#existingTaskCanBeReadEditedRecreatedSavedAndReopened` failed in four seconds because `home-list` existed before “Open task details for Review release notes” entered its semantics tree. The large-text variant in the same batch passed; all nine other batch-ten methods passed. The prior complete 523-state capture, an isolated ordinary replay, and a two-method class replay passed on unchanged production UI.
+- Expected/root cause: The journey must wait for the actual seeded row after list creation, not treat the list container as proof that asynchronous Home content is ready. The product still gives the Task row the expected accessible label in `TaskComponents.kt`.
+- Resolution/status: `openExistingTask` now waits for that content description before scrolling and tapping. The corrected two-method native class and 44-state Task-family catalog pass; the final full gate is pending. Related: FB-20260926-001, DEC-20260926-002, IMP-20260926-003, VER-20260926-002. Verified for the affected journey.
+
 ### FND-20260926-001 — Equivalent toggle and search controls still have multiple owners
 
 - Severity/category: P2, reusable interaction and editor consistency.

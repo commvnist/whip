@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260926-003 — Stabilize Task editor capture on the actual Home row
+
+- `TaskEditorJourneyE2ETest.openExistingTask` now waits for the exact accessible seeded Task row after the Home list container appears, then performs its existing scroll/tap and full edit/recreate/save/reopen checks. The test no longer assumes that list composition and asynchronous Task content arrive together.
+- Test-only change; production UI, Task persistence, Room schema, data epoch, backup format and release version are unchanged. A failed final-source catalog attempt remains rejected diagnostic evidence; the prior complete catalog remains a valid visual review for unchanged UI code.
+- Related/status: FB-20260926-001, FND-20260926-006, DEC-20260926-002, VER-20260926-002. Focused two-method and 44-state Task-family verification pass; final full gate pending.
+
 ### IMP-20260926-001 — Unify the repeated control, layout, and navigation roles
 
 - Equivalent Task, Habit, Routine, Settings, and setup switches now use the whole-row `WhipSettingItem` role through `WhipToggleRow`; the local Routine switch and setup toggle renderers were removed. Track, Gym, Routine, global, and picker searches use `WhipSearchField`, with clear, submit, hint, enabled, and caller-owned query rules preserved.

@@ -6,7 +6,7 @@
 - User need: Whip's models, elements, navigation bars, and layouts should feel and behave as one product because equivalent roles share underlying code. Reduce accidental one-offs and reshape layouts or components where that produces a clearer reusable model. Make journeys intuitive and consistent.
 - Acceptance criteria: Audit the current whole codebase and rendered design/UX; identify genuine duplication, divergent semantics, hierarchy, navigation, spacing, typography, responsiveness, and accessibility; publish a ranked resolution plan; implement every accepted finding in coherent chunks using the smallest durable shared owners; remove obsolete variants; verify representative cross-domain behavior and current visual states in efficient batches on no more than two disposable emulators; preserve product data and existing domain behavior; record exact evidence, commit, and push verified chunks. Do not equate old screenshots or a narrow green test with current whole-product acceptance.
 - Related: FB-20260903-017, FB-20260910-002/005/007, FB-20260920-001, FB-20260921-001; current audit plan and findings to follow.
-- Status: Investigating.
+- Status: In progress. The audit and fixes are implemented with scoped/visual verification; the frozen full product-test and build candidate remains.
 
 ### FB-20260921-001 — Wrap the audit at a clean checkpoint and provide the APK
 
