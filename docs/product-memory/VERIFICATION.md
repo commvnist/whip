@@ -1,5 +1,11 @@
 # Verification and release evidence
 
+### VER-20260926-003 — First frozen candidate rejected by stale navigation assertion
+
+- `ANDROID_SERIAL=emulator-5554 WHIP_ANDROID_SECONDARY_SERIAL=emulator-5556 scripts/candidate` snapshotted clean pushed `b3923194` and completed static preflight. Its JVM run executed 659 tests with exactly one failure, `WhipVisualLanguageTest#destinationNavigationKeepsEveryPeerDirectAndStable` at line 105, because the source contract forbade `canScrollBackward/Forward` in the shared tab bar. Other build tasks had begun, but the run was stopped after the known required-gate failure; incomplete evidence remains in `build/candidate-evidence/.pending-UhFwc0`. No complete JVM/build/Android candidate is claimed from it.
+- After the contract was aligned with the accepted visible cues, `./gradlew :app:testDebugUnitTest --tests com.whip.app.ui.theme.WhipVisualLanguageTest --offline` passed all six methods, zero failures/skips. This is a focused replay; a fresh frozen full candidate must rerun the complete 659 JVM and 1,110 Android inventories.
+- Related/status: FB-20260926-001, FND-20260926-007, DEC-20260926-003, IMP-20260926-004. Focused correction Verified; complete candidate pending.
+
 ### VER-20260926-002 — Task editor load-order correction during final capture
 
 - Rejected diagnostic capture: The second full `scripts/ui-catalog capture` on the final product source accepted nine 10-method batches, then batch ten executed 10 methods with one failure and zero skips in `build/instrumentation-results-Y5ULZ5`; the attempt was stopped and is not a 523-state acceptance. The ordinary Task editor test's `performScrollToNode` failed after four seconds because `home-list` existed but the seeded Task row description was absent. Its large-text peer and all other batch-ten methods passed.

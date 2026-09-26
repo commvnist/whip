@@ -1,5 +1,12 @@
 # Durable findings
 
+### FND-20260926-007 — Navigation source contract forbade the new discoverable scroll cues
+
+- Severity/category: P3 stale JVM design contract, not a product navigation defect.
+- Observed: The first frozen candidate executed 659 JVM tests and failed one: `WhipVisualLanguageTest#destinationNavigationKeepsEveryPeerDirectAndStable` still forbade the strings `canScrollBackward` and `canScrollForward`. The new `DestinationTabBar` uses those exact native scroll-state properties to show the accepted directional cues while keeping every peer tab direct, selected-tab reveal, and no overflow menu. The native overflow/selection test and full visual catalog had passed.
+- Expected/root cause: The source contract must reject ambiguous decoration/hidden destinations but permit the intentional scroll cues and require both directions. The assertion encoded an older no-cue rule.
+- Resolution/status: The contract now checks the two cue tags and scroll-state properties, while retaining its bans on gradients, shadows, dropdown overflow and hidden destinations. The six-method JVM class passes; a new frozen candidate is required. Related: FB-20260926-001, DEC-20260926-003, IMP-20260926-004, VER-20260926-003.
+
 ### FND-20260926-006 — Task editor capture could search Home before its seeded row appeared
 
 - Severity/category: P3 test timing and complete-catalog reliability, not a confirmed product data or accessibility defect.

@@ -95,8 +95,6 @@ class WhipVisualLanguageTest {
             .substringBefore("internal fun <T> SegmentedChoiceBar(")
         val forbiddenTreatments = listOf(
             "Brush.",
-            "canScrollBackward",
-            "canScrollForward",
             ".shadow(",
             "stringResource(R.string.action_more)",
             "Icons.Outlined.ArrowDropDown",
@@ -112,6 +110,10 @@ class WhipVisualLanguageTest {
         assertFalse(destinationBar.contains("pagesExpanded"))
         assertTrue(destinationBar.contains("horizontalScroll"))
         assertTrue(destinationBar.contains("bringIntoViewRequester"))
+        assertTrue(destinationBar.contains("scrollState.canScrollBackward"))
+        assertTrue(destinationBar.contains("scrollState.canScrollForward"))
+        assertTrue(destinationBar.contains("-scroll-back-cue"))
+        assertTrue(destinationBar.contains("-scroll-forward-cue"))
         assertTrue(destinationBar.contains("TextOverflow.Clip"))
     }
 

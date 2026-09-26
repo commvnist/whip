@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260926-004 — Update the navigation contract for visible tab overflow
+
+- `WhipVisualLanguageTest` no longer rejects `DestinationTabBar`'s native backward/forward scroll-state checks. It now requires the two named directional cues while preserving the no-gradient, no-shadow, no-dropdown and direct-peer rules. The six-method JVM class passes.
+- Test-only correction; production navigation, data formats, schema and release version are unchanged. The first frozen candidate was stopped after its JVM failure and is not accepted; a fresh full gate is required.
+- Related/status: FB-20260926-001, FND-20260926-003/007, DEC-20260926-003, VER-20260926-003. Focused correction Verified; final candidate pending.
+
 ### IMP-20260926-003 — Stabilize Task editor capture on the actual Home row
 
 - `TaskEditorJourneyE2ETest.openExistingTask` now waits for the exact accessible seeded Task row after the Home list container appears, then performs its existing scroll/tap and full edit/recreate/save/reopen checks. The test no longer assumes that list composition and asynchronous Task content arrive together.

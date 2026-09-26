@@ -1,5 +1,11 @@
 # Durable product and engineering decisions
 
+### DEC-20260926-003 — Keep direct tabs and require purposeful overflow cues
+
+- Context: FND-20260926-007 stopped the first frozen JVM gate because an older source-text rule banned all use of `canScrollBackward/Forward`. The current shared tab bar uses those properties for the visible directional affordance requested by the UX audit; every destination remains a direct tab and the selected tab is brought into view.
+- Decision: Keep the ban on gradients, shadows, dropdown overflow and hiding peers. Require both scroll-state checks and named backward/forward cue tags in the source contract, with native UI tests checking selected-tab reveal and cue visibility.
+- Related/status: FB-20260926-001, FND-20260926-003/007, IMP-20260926-004, VER-20260926-003. Implemented; focused class passes, final candidate pending.
+
 ### DEC-20260926-002 — Wait for the Task row before opening it in capture journeys
 
 - Context: FND-20260926-006 exposed an occasional four-second failure under the complete visual campaign. The Task Home list container was present, but its seeded row had not reached the semantics tree. The same production Task row label and journey passed in the prior complete campaign and focused replays.
