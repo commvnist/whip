@@ -1,6 +1,5 @@
 package com.whip.app.ui
 
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -19,7 +18,6 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,9 +27,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -186,7 +182,7 @@ fun FirstRunSetupDialog(
                     if (selectedSections.isEmpty()) {
                         Text("Choose at least one Home section.", color = MaterialTheme.colorScheme.error)
                     }
-                    SetupToggle("Show advanced controls by default", powerMode) { powerMode = it }
+                    WhipToggleRow("Show advanced controls by default", powerMode, { powerMode = it })
                     Text(
                         if (powerMode) "Advanced choices open automatically where useful." else "Advanced choices stay folded until requested.",
                         style = MaterialTheme.typography.bodySmall,
@@ -203,9 +199,9 @@ fun FirstRunSetupDialog(
                         Text(if (showOptionalPreferences) "Hide Optional Preferences" else "Optional Preferences")
                     }
                     if (showOptionalPreferences) {
-                        SetupToggle("Use low-pressure presentation", lowPressureMode) { lowPressureMode = it }
+                        WhipToggleRow("Use low-pressure presentation", lowPressureMode, { lowPressureMode = it })
                         Text("Reduces streak emphasis without changing your data.", style = MaterialTheme.typography.bodySmall)
-                        SetupToggle("Ask for reminder notifications", notifications) { notifications = it }
+                        WhipToggleRow("Ask for reminder notifications", notifications, { notifications = it })
                     } else {
                         Text(
                             "You can change reminders in Settings → Reminders and presentation in Settings → Appearance & Home.",
@@ -253,20 +249,5 @@ private fun SetupValue(icon: ImageVector, title: String, supportingText: String)
             Text(title, style = MaterialTheme.typography.titleSmall)
             Text(supportingText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-    }
-}
-
-@Composable
-private fun SetupToggle(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .toggleable(value = checked, role = Role.Switch, onValueChange = onChange)
-            .semantics(mergeDescendants = true) { contentDescription = label }
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, Modifier.weight(1f))
-        Switch(checked, onCheckedChange = null)
     }
 }

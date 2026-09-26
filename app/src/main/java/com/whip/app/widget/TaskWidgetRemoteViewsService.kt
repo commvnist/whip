@@ -38,85 +38,66 @@ internal class TaskWidgetRemoteViewsFactory(
     private val appWidgetId: Int,
     private val snapshotLoaderOverride: (() -> TaskWidgetSnapshot)? = null,
 ) : RemoteViewsService.RemoteViewsFactory {
-    private var rows: List<TaskCollectionEntry> = emptyList()
-    private var renderedDate: LocalDate = LocalDate.MIN
-    private var renderedDataGeneration: Long = 0L
+    private val collection = WidgetCollectionSnapshotState<TaskWidgetRow>(
+        context = context,
+        kind = WidgetSnapshotKind.TaskAgenda,
+        appWidgetId = appWidgetId,
+    )
 
     override fun onCreate() = Unit
 
     override fun onDataSetChanged() {
         val app = context.applicationContext as WhipApplication
-        val result = runCatching {
-            snapshotLoaderOverride?.invoke() ?: runBlocking(Dispatchers.IO) {
-                app.withUserDataAccess {
-                    val preferences = WhipWidgetPreferences.load(context, appWidgetId)
-                    val today = app.clock.today()
-                    val content = calculateTaskAgendaContent(
-                        tasks = app.taskRepository.tasks.first(),
-                        taskOccurrences = app.taskRepository.occurrences.first(),
-                        taskSteps = app.taskRepository.steps.first(),
-                        taskStepStates = app.taskRepository.stepStates.first(),
-                        taskStepSnapshots = app.taskRepository.stepSnapshots.first(),
-                        today = today,
-                        areaScope = preferences.areaScope,
-                        range = preferences.agendaRange,
-                        zoneId = app.settingsRepository.current().zoneId(),
-                    )
-                    val preferencesWithValidExpansions = WhipWidgetPreferences.pruneTaskExpansions(
-                        context = context,
-                        appWidgetId = appWidgetId,
-                        eligibleTaskKeys = content.items
-                            .filter { it.subtasks.isNotEmpty() }
-                            .mapTo(mutableSetOf()) { it.stableKey },
-                    )
-                    TaskWidgetSnapshot(
-                        rows = taskWidgetRows(content.items, preferencesWithValidExpansions.expandedTaskKeys),
-                        date = today,
-                        dataGeneration = app.currentUserDataGeneration(),
-                    )
-                } ?: error("Whip data is unavailable while recovery is in progress")
-            }
-        }
-        val snapshot = result.getOrNull()
-        if (snapshot != null) {
-            rows = snapshot.rows.map(TaskCollectionEntry::Current)
-            renderedDate = snapshot.date
-            renderedDataGeneration = snapshot.dataGeneration
-            WidgetSnapshotCache.save(
-                context = context,
-                kind = WidgetSnapshotKind.TaskAgenda,
-                appWidgetId = appWidgetId,
-                rows = snapshot.rows.map { it.toCachedRow(context, snapshot.date) },
-                dataGeneration = snapshot.dataGeneration,
-            )
-        } else {
-            val cached = WidgetSnapshotCache.load(context, WidgetSnapshotKind.TaskAgenda, appWidgetId)
-            rows = buildList {
-                add(TaskCollectionEntry.RefreshError(hasCachedRows = cached?.rows?.isNotEmpty() == true))
-                cached?.rows?.mapTo(this, TaskCollectionEntry::Cached)
-            }
-            renderedDate = LocalDate.MIN
-            renderedDataGeneration = 0L
-        }
+        collection.refresh(
+            loadSnapshot = {
+                snapshotLoaderOverride?.invoke() ?: runBlocking(Dispatchers.IO) {
+                    app.withUserDataAccess {
+                        val preferences = WhipWidgetPreferences.load(context, appWidgetId)
+                        val today = app.clock.today()
+                        val content = calculateTaskAgendaContent(
+                            tasks = app.taskRepository.tasks.first(),
+                            taskOccurrences = app.taskRepository.occurrences.first(),
+                            taskSteps = app.taskRepository.steps.first(),
+                            taskStepStates = app.taskRepository.stepStates.first(),
+                            taskStepSnapshots = app.taskRepository.stepSnapshots.first(),
+                            today = today,
+                            areaScope = preferences.areaScope,
+                            range = preferences.agendaRange,
+                            zoneId = app.settingsRepository.current().zoneId(),
+                        )
+                        val preferencesWithValidExpansions = WhipWidgetPreferences.pruneTaskExpansions(
+                            context = context,
+                            appWidgetId = appWidgetId,
+                            eligibleTaskKeys = content.items
+                                .filter { it.subtasks.isNotEmpty() }
+                                .mapTo(mutableSetOf()) { it.stableKey },
+                        )
+                        TaskWidgetSnapshot(
+                            rows = taskWidgetRows(content.items, preferencesWithValidExpansions.expandedTaskKeys),
+                            date = today,
+                            dataGeneration = app.currentUserDataGeneration(),
+                        )
+                    } ?: error("Whip data is unavailable while recovery is in progress")
+                }
+            },
+            toCachedRow = { row, today -> row.toCachedRow(context, today) },
+        )
     }
 
-    override fun onDestroy() {
-        rows = emptyList()
-        renderedDataGeneration = 0L
-    }
+    override fun onDestroy() = collection.clear()
 
-    override fun getCount(): Int = rows.size
+    override fun getCount(): Int = collection.rows.size
 
-    override fun getViewAt(position: Int): RemoteViews? = rows.getOrNull(position)?.let { entry ->
+    override fun getViewAt(position: Int): RemoteViews? = collection.rows.getOrNull(position)?.let { entry ->
         when (entry) {
-            is TaskCollectionEntry.Current -> taskCollectionRow(
+            is WidgetCollectionEntry.Current -> taskCollectionRow(
                 context,
                 entry.row,
-                renderedDate,
-                renderedDataGeneration,
+                collection.date,
+                collection.dataGeneration,
             )
-            is TaskCollectionEntry.Cached -> cachedCollectionRow(context, entry.row)
-            is TaskCollectionEntry.RefreshError -> refreshErrorRow(
+            is WidgetCollectionEntry.Cached -> cachedCollectionRow(context, entry.row)
+            is WidgetCollectionEntry.RefreshError -> refreshErrorRow(
                 context = context,
                 hasCachedRows = entry.hasCachedRows,
                 retryActionKey = WhipWidgetProvider.EXTRA_TASK_COLLECTION_ACTION,
@@ -129,28 +110,22 @@ internal class TaskWidgetRemoteViewsFactory(
 
     override fun getViewTypeCount(): Int = 3
 
-    override fun getItemId(position: Int): Long = when (val entry = rows.getOrNull(position)) {
-        is TaskCollectionEntry.Current ->
+    override fun getItemId(position: Int): Long = when (val entry = collection.rows.getOrNull(position)) {
+        is WidgetCollectionEntry.Current ->
             "${entry.row.item.stableKey}:${entry.row.subtask?.step?.id ?: "task"}".hashCode().toLong()
-        is TaskCollectionEntry.Cached -> "cached:${entry.row.title}:${entry.row.meta}".hashCode().toLong()
-        is TaskCollectionEntry.RefreshError -> Long.MIN_VALUE
+        is WidgetCollectionEntry.Cached -> "cached:${entry.row.title}:${entry.row.meta}".hashCode().toLong()
+        is WidgetCollectionEntry.RefreshError -> Long.MIN_VALUE
         null -> position.toLong()
     }
 
     override fun hasStableIds(): Boolean = true
 }
 
-private sealed interface TaskCollectionEntry {
-    data class Current(val row: TaskWidgetRow) : TaskCollectionEntry
-    data class Cached(val row: CachedWidgetRow) : TaskCollectionEntry
-    data class RefreshError(val hasCachedRows: Boolean) : TaskCollectionEntry
-}
-
 internal data class TaskWidgetSnapshot(
-    val rows: List<TaskWidgetRow>,
-    val date: LocalDate,
-    val dataGeneration: Long,
-)
+    override val rows: List<TaskWidgetRow>,
+    override val date: LocalDate,
+    override val dataGeneration: Long,
+) : WidgetCollectionSnapshot<TaskWidgetRow>
 
 private fun TaskWidgetRow.toCachedRow(context: Context, today: LocalDate): CachedWidgetRow =
     CachedWidgetRow(

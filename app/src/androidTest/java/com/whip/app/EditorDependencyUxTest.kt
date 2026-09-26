@@ -35,6 +35,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.SemanticsMatcher
 import com.whip.app.domain.RecurrenceAnchor
 import com.whip.app.domain.RecurrenceUnit
@@ -325,8 +326,13 @@ class EditorDependencyUxTest {
         ).forEach { (tag, label) ->
             compose.onNodeWithTag(tag)
                 .performScrollTo()
-                .assertContentDescriptionContains(label)
+                .assertContentDescriptionContains(label, substring = true)
         }
+
+        compose.onNodeWithText("Separate Deadline").performScrollTo().performClick()
+        compose.onNodeWithTag("task-deadline-toggle")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.ToggleableState, ToggleableState.On))
+        compose.onNodeWithText("Deadline", substring = false).performScrollTo().assertIsDisplayed()
     }
 
     @Test

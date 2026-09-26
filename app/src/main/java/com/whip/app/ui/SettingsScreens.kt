@@ -467,7 +467,7 @@ internal fun SettingsContent(
             ) { selected -> viewModel.update { it.copy(lowPressureMode = selected) } }
         }
         item {
-            WhipSettingsSectionCard {
+            WhipGroupedInformationCard {
                 Text("Hardware Keyboard", fontWeight = FontWeight.Bold)
                 Text("Ctrl+H Home · Ctrl+K Search · Ctrl+N contextual add · Ctrl+1–5 switch Tasks, Habits, Goals, Tracks, Gym", style = MaterialTheme.typography.bodySmall)
             }
@@ -568,7 +568,7 @@ internal fun SettingsContent(
                     ),
                 ) {
                     Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                        WhipSettingsRow(
+                        WhipToggleRow(
                             title = "Show ${section.label} on Home",
                             supportingText = when {
                                 !visible -> "Hidden from the Home overview and its empty-day shortcuts."
@@ -794,7 +794,7 @@ internal fun SettingsContent(
                 style = MaterialTheme.typography.bodySmall,
             )
             if (settings.naturalLanguageTaskCapture) {
-                WhipSettingsSectionCard(
+                WhipGroupedInformationCard(
                     modifier = Modifier.padding(top = 8.dp).testTag("smart-task-capture-examples"),
                 ) {
                         Text("Try Smart Capture", fontWeight = FontWeight.Bold)
@@ -916,7 +916,7 @@ internal fun SettingsContent(
 
         if (section == SettingsSection.Organization) {
         item {
-            WhipSettingsSectionCard {
+            WhipGroupedInformationCard {
                     Text("Areas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text("Create named areas to group related tasks, habits, goals, and tracks across search and review.")
                     Text("${state.areas.count { !it.archived }} active · ${state.areas.count { it.archived }} archived · ${state.areaUsage.values.sumOf(AreaUsageCounts::total) + state.unassignedAreaUsage.total} items", style = MaterialTheme.typography.bodySmall)
@@ -1002,7 +1002,7 @@ internal fun SettingsContent(
             }
         }
         item {
-            WhipSettingsSectionCard(Modifier.testTag("settings-tags-summary")) {
+            WhipGroupedInformationCard(Modifier.testTag("settings-tags-summary")) {
                     Text("Tags", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text("Use flexible labels across Tasks, Habits, Goals, and Tracks while each item keeps one primary Area.")
                     Text(
@@ -1020,7 +1020,7 @@ internal fun SettingsContent(
         if (section == SettingsSection.Reminders) {
         item { SettingsHeading("Notifications") }
         item(key = "notification-diagnostics-$diagnosticRefresh") {
-            WhipSettingsSectionCard(Modifier.testTag("notification-diagnostics")) {
+            WhipGroupedInformationCard(Modifier.testTag("notification-diagnostics")) {
                     Text("Reminder Delivery", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(overallNotificationState.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     Text(
@@ -1255,7 +1255,7 @@ internal fun SettingsContent(
         if (dataPrivacyPass == DataPrivacyGroup.Backup) {
         item { SettingsHeading("Backup & Export") }
         item {
-            WhipSettingsSectionCard {
+            WhipGroupedInformationCard {
                     Text("Portable Backup Folder", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(
                         "Save verified plain-JSON backups to Files, Drive, or removable storage. Retention and cleanup act only on Whip's automatic-backup and incomplete-write filenames.",
@@ -1420,7 +1420,7 @@ internal fun SettingsContent(
         }
         if (section == SettingsSection.AboutDiagnostics) {
         item {
-            WhipSettingsSectionCard {
+            WhipGroupedInformationCard {
                     Text("Whip", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Text(
                         "${if (BuildConfig.DEBUG) "Development" else "Release"} · ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
@@ -1955,7 +1955,7 @@ internal fun formatSettingsTimestamp(
     modifier: Modifier = Modifier,
     onChange: (Boolean) -> Unit,
 ) {
-    WhipSettingsRow(
+    WhipToggleRow(
         title = label,
         supportingText = supportingText,
         checked = checked,

@@ -20,7 +20,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -234,14 +233,12 @@ internal fun WhipEmojiPicker(
                         .testTag("emoji-picker-presets"),
                     verticalArrangement = Arrangement.spacedBy(if (query.isBlank()) 12.dp else 4.dp),
                 ) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it.take(80) },
+                    WhipSearchField(
+                        label = "Search Activities",
+                        query = searchQuery,
+                        onQueryChange = { searchQuery = it.take(80) },
                         modifier = Modifier.fillMaxWidth().testTag("emoji-picker-search"),
-                        label = { Text("Search Activities") },
-                        placeholder = { Text("Try reading, dentist, bills…") },
-                        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-                        singleLine = true,
+                        hint = "Try reading, dentist, bills…",
                     )
                     if (query.isBlank()) customEditorControls()
 

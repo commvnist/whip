@@ -1,5 +1,13 @@
 # User feedback and acceptance criteria
 
+### FB-20260926-001 — Reusable product architecture and complete UX consistency audit
+
+- Date/source: 2026-09-26, direct owner request for a top-down codebase, design, and UX audit followed by full implementation.
+- User need: Whip's models, elements, navigation bars, and layouts should feel and behave as one product because equivalent roles share underlying code. Reduce accidental one-offs and reshape layouts or components where that produces a clearer reusable model. Make journeys intuitive and consistent.
+- Acceptance criteria: Audit the current whole codebase and rendered design/UX; identify genuine duplication, divergent semantics, hierarchy, navigation, spacing, typography, responsiveness, and accessibility; publish a ranked resolution plan; implement every accepted finding in coherent chunks using the smallest durable shared owners; remove obsolete variants; verify representative cross-domain behavior and current visual states in efficient batches on no more than two disposable emulators; preserve product data and existing domain behavior; record exact evidence, commit, and push verified chunks. Do not equate old screenshots or a narrow green test with current whole-product acceptance.
+- Related: FB-20260903-017, FB-20260910-002/005/007, FB-20260920-001, FB-20260921-001; current audit plan and findings to follow.
+- Status: Investigating.
+
 ### FB-20260921-001 — Wrap the audit at a clean checkpoint and provide the APK
 
 - Date/source: 2026-09-21, direct owner steering: “wrap up the last thing you are doing, bring the repo to a healthy/complete state again, and report the progress on the audit. afterwards, send a link to the apk in chat.”

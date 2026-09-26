@@ -1031,7 +1031,7 @@ private fun TrackActivityPage(
     ).count { it }
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize().widthIn(max = 1040.dp).align(Alignment.TopCenter),
+            modifier = Modifier.fillMaxSize().align(Alignment.TopCenter),
             contentPadding = WhipPageContentPadding,
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
@@ -1059,17 +1059,12 @@ private fun TrackActivityPage(
                 }
             }
             if (searchVisible) item {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
+                WhipSearchField(
+                    label = "Search Activity",
+                    query = query,
+                    onQueryChange = { query = it },
                     modifier = Modifier.fillMaxWidth().testTag("track-activity-search"),
-                    label = { Text("Search Activity") },
-                    placeholder = { Text("Entry, Track, Area, or Field value") },
-                    singleLine = true,
-                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-                    trailingIcon = if (query.isNotEmpty()) {{
-                        IconButton(onClick = { query = "" }) { Icon(Icons.Outlined.Close, contentDescription = "Clear Search") }
-                    }} else null,
+                    hint = "Entry, Track, Area, or Field value",
                 )
             }
             if (filtersVisible) item {
@@ -1200,7 +1195,7 @@ private fun TrackWorkspaceInsightsPage(
     }
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize().widthIn(max = 1040.dp).align(Alignment.TopCenter).testTag("track-workspace-insights-list"),
+            modifier = Modifier.fillMaxSize().align(Alignment.TopCenter).testTag("track-workspace-insights-list"),
             contentPadding = WhipPageContentPadding,
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
@@ -1251,7 +1246,7 @@ private fun TrackWorkspaceInsightsPage(
                     )
                 }
                 if (recentTracks.isNotEmpty()) {
-                    item { Text("Recently Active Tracks", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
+                    item { WhipSectionHeading("Recently Active Tracks") }
                     items(recentTracks.take(8), key = { "recent-track-${it.first.track.id}" }) { (projection, entry) ->
                         WhipRecordItem(
                             itemKey = projection.track.uuid,
@@ -1267,7 +1262,7 @@ private fun TrackWorkspaceInsightsPage(
                     }
                 }
                 if (numericSummaries.isNotEmpty()) {
-                    item { Text("Numeric Summaries", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
+                    item { WhipSectionHeading("Numeric Summaries") }
                     items(numericSummaries, key = { "numeric-${it.projection.track.id}-${it.field.id}" }) { summary ->
                         WhipSummaryCard("${summary.projection.track.icon} ${summary.projection.track.name} · ${summary.field.name}") {
                             if (summary.numberFormat.showTotal) {
@@ -1467,7 +1462,7 @@ private fun AllTracksPage(
             )
         } else {
             if (pinned.isNotEmpty() && !showArchived) {
-                item { Text("Pinned Tracks", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
+                item { WhipSectionHeading("Pinned Tracks", compact = true) }
                 itemsIndexed(pinned, key = { _, item -> "track-pinned-${item.track.id}" }) { index, item ->
                     TrackRow(
                         item, onOpen, onEdit, onAddEntry,
@@ -1484,7 +1479,7 @@ private fun AllTracksPage(
                         compact = masterPane,
                     )
                 }
-                item { Text("Other Tracks", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
+                item { WhipSectionHeading("Other Tracks", compact = true) }
             }
             itemsIndexed(unpinned, key = { _, item -> "track-${item.track.id}" }) { index, item ->
                 TrackRow(
@@ -1748,7 +1743,7 @@ private fun TrackDetailPage(
                 Column(Modifier.weight(1f)) {
                     Text(
                         projection.track.name,
-                        modifier = Modifier.testTag("track-detail-title"),
+                        modifier = Modifier.testTag("track-detail-title").semantics { heading() },
                         style = if (constrainedHeader) MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         maxLines = if (constrainedHeader) 1 else 2,
@@ -1959,20 +1954,13 @@ private fun TrackEntriesPage(
             }
         }
         if (searchVisible) item {
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
+            WhipSearchField(
+                label = "Search Entries",
+                query = query,
+                onQueryChange = { query = it },
                 modifier = Modifier.fillMaxWidth().then(queryVisibility)
                     .testTag("track-entry-search"),
-                label = { Text("Search Entries") },
-                placeholder = { Text("Any recorded value") },
-                singleLine = true,
-                leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-                trailingIcon = if (query.isNotEmpty()) {{
-                    IconButton(onClick = { query = "" }) {
-                        Icon(Icons.Outlined.Close, contentDescription = "Clear Search")
-                    }
-                }} else null,
+                hint = "Any recorded value",
             )
         }
         if (conditions.isNotEmpty()) item {
@@ -2231,7 +2219,17 @@ private fun TrackInsightsPage(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            WhipPageHeader("Track Insights", "Summaries of your recorded entries.") {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "Summaries of your recorded entries.",
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 WhipPageIconAction(Icons.Outlined.FilterAlt, "Filter Insights", { filterOpen = true }, badgeCount = conditions.size, active = conditions.isNotEmpty())
             }
         }
@@ -2785,7 +2783,13 @@ private fun TrackOptionsPage(
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        item { WhipPageHeader("Track Options", "Manage this Track and its data.") }
+        item {
+            Text(
+                "Manage this Track and its data.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         item {
             WhipActionList {
                 WhipActionRow("Edit Track", onEdit, supportingText = "Change identity, Fields, Area, and tags.")
@@ -2972,7 +2976,7 @@ internal fun TrackEditor(
     ) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Scaffold(
-            modifier = Modifier.widthIn(max = 720.dp)
+            modifier = Modifier.widthIn(max = WhipContentWidth.authoredForm)
                 .then(if (busy) Modifier.clearAndSetSemantics {} else Modifier),
             topBar = {
                 WhipEditorHeader(
@@ -3710,7 +3714,7 @@ internal fun TrackEntryEditor(
     ) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Scaffold(
-            modifier = Modifier.widthIn(max = 720.dp)
+            modifier = Modifier.widthIn(max = WhipContentWidth.authoredForm)
                 .then(if (saving) Modifier.clearAndSetSemantics {} else Modifier),
             topBar = { WhipEditorHeader(
                 title = { Text(if (!editing) "Add Entry" else "Edit Entry") },

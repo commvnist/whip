@@ -39,87 +39,68 @@ internal class HabitWidgetRemoteViewsFactory(
     private val appWidgetId: Int,
     private val snapshotLoaderOverride: (() -> HabitWidgetSnapshot)? = null,
 ) : RemoteViewsService.RemoteViewsFactory {
-    private var rows: List<HabitCollectionEntry> = emptyList()
-    private var renderedDate: LocalDate = LocalDate.MIN
-    private var renderedDataGeneration: Long = 0L
+    private val collection = WidgetCollectionSnapshotState<HabitWidgetRow>(
+        context = context,
+        kind = WidgetSnapshotKind.HabitTracking,
+        appWidgetId = appWidgetId,
+    )
 
     override fun onCreate() = Unit
 
     override fun onDataSetChanged() {
         val app = context.applicationContext as WhipApplication
-        val result = runCatching {
-            snapshotLoaderOverride?.invoke() ?: runBlocking(Dispatchers.IO) {
-                app.withUserDataAccess {
-                    val preferences = WhipWidgetPreferences.load(context, appWidgetId)
-                    val today = app.clock.today()
-                    val content = calculateHabitTrackingContent(
-                        habits = app.habitRepository.habits.first(),
-                        habitLogs = app.habitRepository.logs.first(),
-                        habitChecklistItems = app.habitRepository.checklistItems.first(),
-                        habitChecklistStates = app.habitRepository.checklistStates.first(),
-                        habitPauses = app.habitRepository.pauses.first(),
-                        habitSkips = app.habitRepository.skips.first(),
-                        measurementEntries = app.measurementRepository.entries.first(),
-                        customUnits = app.measurementRepository.customUnits.first(),
-                        today = today,
-                        areaScope = preferences.areaScope,
-                        showCompleted = preferences.showCompletedHabits,
-                        selectedHabitIds = preferences.selectedHabitIds,
-                        expandedHabitIds = preferences.expandedHabitIds,
-                    )
-                    WhipWidgetPreferences.pruneHabitExpansions(
-                        context = context,
-                        appWidgetId = appWidgetId,
-                        eligibleHabitIds = content.rows
-                            .asSequence()
-                            .filter { !it.isChecklistItem && it.expandable }
-                            .map { it.habit.id }
-                            .toSet(),
-                    )
-                    HabitWidgetSnapshot(content.rows, today, app.currentUserDataGeneration())
-                } ?: error("Whip data is unavailable while recovery is in progress")
-            }
-        }
-        val snapshot = result.getOrNull()
-        if (snapshot != null) {
-            rows = snapshot.rows.map(HabitCollectionEntry::Current)
-            renderedDate = snapshot.date
-            renderedDataGeneration = snapshot.dataGeneration
-            WidgetSnapshotCache.save(
-                context = context,
-                kind = WidgetSnapshotKind.HabitTracking,
-                appWidgetId = appWidgetId,
-                rows = snapshot.rows.map { it.toCachedRow(context) },
-                dataGeneration = snapshot.dataGeneration,
-            )
-        } else {
-            val cached = WidgetSnapshotCache.load(context, WidgetSnapshotKind.HabitTracking, appWidgetId)
-            rows = buildList {
-                add(HabitCollectionEntry.RefreshError(hasCachedRows = cached?.rows?.isNotEmpty() == true))
-                cached?.rows?.mapTo(this, HabitCollectionEntry::Cached)
-            }
-            renderedDate = LocalDate.MIN
-            renderedDataGeneration = 0L
-        }
+        collection.refresh(
+            loadSnapshot = {
+                snapshotLoaderOverride?.invoke() ?: runBlocking(Dispatchers.IO) {
+                    app.withUserDataAccess {
+                        val preferences = WhipWidgetPreferences.load(context, appWidgetId)
+                        val today = app.clock.today()
+                        val content = calculateHabitTrackingContent(
+                            habits = app.habitRepository.habits.first(),
+                            habitLogs = app.habitRepository.logs.first(),
+                            habitChecklistItems = app.habitRepository.checklistItems.first(),
+                            habitChecklistStates = app.habitRepository.checklistStates.first(),
+                            habitPauses = app.habitRepository.pauses.first(),
+                            habitSkips = app.habitRepository.skips.first(),
+                            measurementEntries = app.measurementRepository.entries.first(),
+                            customUnits = app.measurementRepository.customUnits.first(),
+                            today = today,
+                            areaScope = preferences.areaScope,
+                            showCompleted = preferences.showCompletedHabits,
+                            selectedHabitIds = preferences.selectedHabitIds,
+                            expandedHabitIds = preferences.expandedHabitIds,
+                        )
+                        WhipWidgetPreferences.pruneHabitExpansions(
+                            context = context,
+                            appWidgetId = appWidgetId,
+                            eligibleHabitIds = content.rows
+                                .asSequence()
+                                .filter { !it.isChecklistItem && it.expandable }
+                                .map { it.habit.id }
+                                .toSet(),
+                        )
+                        HabitWidgetSnapshot(content.rows, today, app.currentUserDataGeneration())
+                    } ?: error("Whip data is unavailable while recovery is in progress")
+                }
+            },
+            toCachedRow = { row, _ -> row.toCachedRow(context) },
+        )
     }
 
-    override fun onDestroy() {
-        rows = emptyList()
-        renderedDataGeneration = 0L
-    }
+    override fun onDestroy() = collection.clear()
 
-    override fun getCount(): Int = rows.size
+    override fun getCount(): Int = collection.rows.size
 
-    override fun getViewAt(position: Int): RemoteViews? = rows.getOrNull(position)?.let { entry ->
+    override fun getViewAt(position: Int): RemoteViews? = collection.rows.getOrNull(position)?.let { entry ->
         when (entry) {
-            is HabitCollectionEntry.Current -> habitCollectionRow(
+            is WidgetCollectionEntry.Current -> habitCollectionRow(
                 context,
                 entry.row,
-                renderedDate,
-                renderedDataGeneration,
+                collection.date,
+                collection.dataGeneration,
             )
-            is HabitCollectionEntry.Cached -> cachedCollectionRow(context, entry.row)
-            is HabitCollectionEntry.RefreshError -> refreshErrorRow(
+            is WidgetCollectionEntry.Cached -> cachedCollectionRow(context, entry.row)
+            is WidgetCollectionEntry.RefreshError -> refreshErrorRow(
                 context = context,
                 hasCachedRows = entry.hasCachedRows,
                 retryActionKey = HabitTrackingWidgetProvider.EXTRA_COLLECTION_ACTION,
@@ -132,28 +113,22 @@ internal class HabitWidgetRemoteViewsFactory(
 
     override fun getViewTypeCount(): Int = 3
 
-    override fun getItemId(position: Int): Long = when (val entry = rows.getOrNull(position)) {
-        is HabitCollectionEntry.Current ->
+    override fun getItemId(position: Int): Long = when (val entry = collection.rows.getOrNull(position)) {
+        is WidgetCollectionEntry.Current ->
             "${entry.row.habit.id}:${entry.row.checklistItem?.id ?: "habit"}".hashCode().toLong()
-        is HabitCollectionEntry.Cached -> "cached:${entry.row.title}:${entry.row.meta}".hashCode().toLong()
-        is HabitCollectionEntry.RefreshError -> Long.MIN_VALUE
+        is WidgetCollectionEntry.Cached -> "cached:${entry.row.title}:${entry.row.meta}".hashCode().toLong()
+        is WidgetCollectionEntry.RefreshError -> Long.MIN_VALUE
         null -> position.toLong()
     }
 
     override fun hasStableIds(): Boolean = true
 }
 
-private sealed interface HabitCollectionEntry {
-    data class Current(val row: HabitWidgetRow) : HabitCollectionEntry
-    data class Cached(val row: CachedWidgetRow) : HabitCollectionEntry
-    data class RefreshError(val hasCachedRows: Boolean) : HabitCollectionEntry
-}
-
 internal data class HabitWidgetSnapshot(
-    val rows: List<HabitWidgetRow>,
-    val date: LocalDate,
-    val dataGeneration: Long,
-)
+    override val rows: List<HabitWidgetRow>,
+    override val date: LocalDate,
+    override val dataGeneration: Long,
+) : WidgetCollectionSnapshot<HabitWidgetRow>
 
 private fun HabitWidgetRow.toCachedRow(context: Context): CachedWidgetRow = CachedWidgetRow(
     title = checklistItem?.name ?: "${habit.icon} ${habit.name}",

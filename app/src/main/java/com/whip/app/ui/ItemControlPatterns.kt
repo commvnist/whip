@@ -1100,15 +1100,24 @@ internal fun WhipItemCard(
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = containerColor),
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(
-                horizontal = WhipCardGeometry.horizontalInset,
-                vertical = WhipCardGeometry.verticalInset,
-            ),
-            verticalArrangement = Arrangement.spacedBy(WhipCardGeometry.contentGap),
-            content = content,
-        )
+        WhipItemCardBody(content = content)
     }
+}
+
+/** Uses the item inset and rhythm inside an existing collection or reorder card. */
+@Composable
+internal fun WhipItemCardBody(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth().padding(
+            horizontal = WhipCardGeometry.horizontalInset,
+            vertical = WhipCardGeometry.verticalInset,
+        ),
+        verticalArrangement = Arrangement.spacedBy(WhipCardGeometry.contentGap),
+        content = content,
+    )
 }
 
 @Composable
@@ -1260,6 +1269,38 @@ internal fun <T> DestinationTabBar(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp),
                             thickness = 3.dp,
                             color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        )
+                    }
+                }
+            }
+            if (!labelsFit && scrollState.canScrollBackward) {
+                Surface(
+                    modifier = Modifier.align(Alignment.CenterStart).width(24.dp).height(48.dp)
+                        .testTag("${barTestTag ?: "destination-tab"}-scroll-back-cue"),
+                    color = MaterialTheme.colorScheme.surface,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.AutoMirrored.Outlined.NavigateNext,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp).graphicsLayer { scaleX = -1f },
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+            if (!labelsFit && scrollState.canScrollForward) {
+                Surface(
+                    modifier = Modifier.align(Alignment.CenterEnd).width(24.dp).height(48.dp)
+                        .testTag("${barTestTag ?: "destination-tab"}-scroll-forward-cue"),
+                    color = MaterialTheme.colorScheme.surface,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.AutoMirrored.Outlined.NavigateNext,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }

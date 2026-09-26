@@ -1,5 +1,19 @@
 # Implementation history
 
+### IMP-20260926-001 — Unify the repeated control, layout, and navigation roles
+
+- Equivalent Task, Habit, Routine, Settings, and setup switches now use the whole-row `WhipSettingItem` role through `WhipToggleRow`; the local Routine switch and setup toggle renderers were removed. Track, Gym, Routine, global, and picker searches use `WhipSearchField`, with clear, submit, hint, enabled, and caller-owned query rules preserved.
+- `WhipSectionHeading` owns ordinary section typography and heading semantics; `WhipItemCardBody` owns ordinary collection-card insets; support-pane selection rows and bottom/rail navigation use their common visual owners. Informative notices use the primary container distinct from success. Track Insights/Options no longer repeat their selected tab as a body headline; long tab bars show both scroll directions and reveal the selected tab. `WhipPageHeader` stacks actions when its measured title needs the width. Dead width tokens and ineffective Track caps are removed, and authored forms share the 720 dp token.
+- Production UI, adjacent native semantics/navigation tests, and source-linked visual artifacts changed. Room schema, data epoch, portable-backup format, persistence rules, and release version did not change. Specialist charts, execution, selection, and destructive review composition remain domain-owned.
+- Related/status: FB-20260926-001, FND-20260926-001/002/003/004, DEC-20260926-001, VER-20260926-001. Implemented; final frozen-candidate verification pending.
+
+### IMP-20260926-002 — Consolidate duplicate guarded update and source checks
+
+- Task/Habit widget providers now use one asynchronous `goAsync` completion and collection-update wrapper while retaining separate renderers and domain actions. `WidgetCollectionSnapshotState` shares their identical snapshot/cache/error-first fallback lifecycle, while loader, row conversion, renderers and stable IDs stay domain-owned. The Gradle emulator target guard has one launch helper used by both registrations. `scripts/check` and `scripts/candidate` call one source-policy scanner with the same two precise DocumentsUI input exemptions.
+- Alarm schedulers keep separate claim, registry, and cancellation ordering because their behavior differs. Their superficial similarity is not enough to justify a shared lifecycle.
+- No data-format, schema, release-version, device-policy, or owner-phone change. The exact source-policy fixtures pass; widget boundaries are included in final native verification.
+- Related/status: FB-20260926-001, FND-20260926-005, DEC-20260926-001, VER-20260926-001. Implemented; 24 focused widget methods pass, final gate pending.
+
 ### IMP-20260921-026 — Package the paused-audit source as a private APK
 
 - Advance the private app version from 0.3.72/code 78 to 0.3.73/code 79 so the owner can install this distinct signed build over the earlier phone release. Build with Whip's existing local release signer and provide the generated APK link without installing or publishing it.

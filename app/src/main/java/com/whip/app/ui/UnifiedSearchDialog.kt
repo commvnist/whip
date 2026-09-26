@@ -21,11 +21,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.Icon
@@ -55,7 +52,6 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -756,14 +752,12 @@ private fun UnifiedSearchStickyControls(
             .testTag("unified-search-sticky-controls"),
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
-        OutlinedTextField(
-            value = model.query,
-            onValueChange = onQueryChange,
-            label = { Text(stringResource(R.string.search_title)) },
-            placeholder = { Text(model.placeholder) },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { onSubmit() }),
+        WhipSearchField(
+            label = stringResource(R.string.search_title),
+            query = model.query,
+            onQueryChange = onQueryChange,
+            hint = model.placeholder,
+            onSubmit = onSubmit,
             modifier = queryModifier.fillMaxWidth().testTag("unified-search-query"),
         )
         if (includeContext) {

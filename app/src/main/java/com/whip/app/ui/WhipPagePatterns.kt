@@ -49,6 +49,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -82,17 +83,7 @@ internal object WhipSpacing {
 
 internal object WhipContentWidth {
     val compactDialog = 560.dp
-    val readable = 920.dp
-    val dashboard = 1200.dp
-}
-
-/** Gives a standalone visual switch an explicit setting name and state. */
-internal fun Modifier.whipLabeledSwitchSemantics(
-    label: String,
-    checked: Boolean,
-) = semantics {
-    contentDescription = label
-    stateDescription = if (checked) "On" else "Off"
+    val authoredForm = 720.dp
 }
 
 /**
@@ -246,31 +237,34 @@ internal fun WhipPageHeader(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val fontScale = LocalDensity.current.fontScale.coerceIn(1f, 2f)
-            if (actions != null && maxWidth < 300.dp * fontScale) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
-                ) {
-                    Box(Modifier.heightIn(min = 48.dp), contentAlignment = Alignment.CenterStart) {
-                        titleContent()
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically,
-                        content = actions,
-                    )
+        Layout(
+            modifier = Modifier.fillMaxWidth(),
+            content = {
+                Box { titleContent() }
+                Row(verticalAlignment = Alignment.CenterVertically, content = actions ?: {})
+            },
+        ) { measurables, constraints ->
+            val availableWidth = constraints.maxWidth
+            val looseConstraints = constraints.copy(minWidth = 0, minHeight = 0)
+            val titlePlaceable = measurables[0].measure(looseConstraints)
+            val actionsPlaceable = measurables[1].measure(looseConstraints)
+            val minimumRowHeight = 48.dp.roundToPx()
+            val titleRowHeight = maxOf(minimumRowHeight, titlePlaceable.height)
+            val stackActions = actionsPlaceable.width > 0 && (
+                availableWidth < 300.dp.roundToPx() ||
+                    titlePlaceable.width + WhipSpacing.sibling.roundToPx() + actionsPlaceable.width > availableWidth
+                )
+            if (stackActions) {
+                val actionsTop = titleRowHeight + WhipSpacing.micro.roundToPx()
+                layout(availableWidth, actionsTop + actionsPlaceable.height) {
+                    titlePlaceable.placeRelative(0, (titleRowHeight - titlePlaceable.height) / 2)
+                    actionsPlaceable.placeRelative(availableWidth - actionsPlaceable.width, actionsTop)
                 }
             } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(Modifier.weight(1f)) { titleContent() }
-                    actions?.invoke(this)
+                val rowHeight = maxOf(titleRowHeight, actionsPlaceable.height)
+                layout(availableWidth, rowHeight) {
+                    titlePlaceable.placeRelative(0, (rowHeight - titlePlaceable.height) / 2)
+                    actionsPlaceable.placeRelative(availableWidth - actionsPlaceable.width, (rowHeight - actionsPlaceable.height) / 2)
                 }
             }
         }
@@ -506,17 +500,23 @@ internal fun WhipSection(
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro)) {
-            Text(
-                title.uiTitleCase(),
-                modifier = Modifier.semantics { heading() },
-                style = MaterialTheme.typography.titleLarge,
-            )
+            WhipSectionHeading(title)
             supportingText?.let {
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         content()
     }
+}
+
+@Composable
+internal fun WhipSectionHeading(title: String, modifier: Modifier = Modifier, compact: Boolean = false) {
+    Text(
+        title.uiTitleCase(),
+        modifier = modifier.semantics { heading() },
+        style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.Bold,
+    )
 }
 
 /** Canonical low-emphasis surface for a tappable or display-only collection item. */
@@ -642,7 +642,7 @@ internal fun WhipNoticeCard(
 ) {
     val (containerColor, contentColor) = when (tone) {
         WhipNoticeTone.Neutral -> MaterialTheme.colorScheme.surfaceContainerLow to MaterialTheme.colorScheme.onSurface
-        WhipNoticeTone.Informative -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+        WhipNoticeTone.Informative -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
         WhipNoticeTone.Success -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
         WhipNoticeTone.Warning -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
         WhipNoticeTone.Error -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
@@ -711,13 +711,6 @@ internal fun WhipGroupedInformationCard(
     }
 }
 
-/** Canonical grouped Settings block for explanatory or multi-control content. */
-@Composable
-internal fun WhipSettingsSectionCard(
-    modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit,
-) = WhipGroupedInformationCard(modifier, content)
-
 @Composable
 internal fun WhipSettingsRow(
     title: String,
@@ -725,7 +718,7 @@ internal fun WhipSettingsRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     enabled: Boolean = true,
-) = WhipSettingsRow(title, Modifier, supportingText, checked, onCheckedChange, enabled)
+) = WhipToggleRow(title, checked, onCheckedChange, supportingText = supportingText, enabled = enabled)
 
 @Composable
 internal fun WhipSettingsRow(
@@ -734,6 +727,17 @@ internal fun WhipSettingsRow(
     supportingText: String? = null,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
+    enabled: Boolean = true,
+) = WhipToggleRow(title, checked, onCheckedChange, modifier, supportingText, enabled)
+
+/** One whole-row switch role for preferences and authored editor choices. */
+@Composable
+internal fun WhipToggleRow(
+    title: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    supportingText: String? = null,
     enabled: Boolean = true,
 ) = WhipSettingItem(title, modifier, enabled) {
     description(supportingText)

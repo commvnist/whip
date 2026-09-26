@@ -10,6 +10,7 @@ import android.widget.RemoteViews
 import androidx.core.content.edit
 import com.whip.app.R
 import java.nio.charset.StandardCharsets
+import java.time.LocalDate
 import java.util.Base64
 
 internal enum class WidgetSnapshotKind {
@@ -34,6 +35,63 @@ internal data class CachedWidgetSnapshot(
     val savedAtMillis: Long,
     val dataGeneration: Long = 0L,
 )
+
+internal interface WidgetCollectionSnapshot<Row> {
+    val rows: List<Row>
+    val date: LocalDate
+    val dataGeneration: Long
+}
+
+internal sealed interface WidgetCollectionEntry<out Row> {
+    data class Current<Row>(val row: Row) : WidgetCollectionEntry<Row>
+    data class Cached(val row: CachedWidgetRow) : WidgetCollectionEntry<Nothing>
+    data class RefreshError(val hasCachedRows: Boolean) : WidgetCollectionEntry<Nothing>
+}
+
+internal class WidgetCollectionSnapshotState<Row>(
+    private val context: Context,
+    private val kind: WidgetSnapshotKind,
+    private val appWidgetId: Int,
+) {
+    var rows: List<WidgetCollectionEntry<Row>> = emptyList()
+        private set
+    var date: LocalDate = LocalDate.MIN
+        private set
+    var dataGeneration: Long = 0L
+        private set
+
+    fun refresh(
+        loadSnapshot: () -> WidgetCollectionSnapshot<Row>,
+        toCachedRow: (Row, LocalDate) -> CachedWidgetRow,
+    ) {
+        val snapshot = runCatching(loadSnapshot).getOrNull()
+        if (snapshot != null) {
+            rows = snapshot.rows.map { WidgetCollectionEntry.Current(it) }
+            date = snapshot.date
+            dataGeneration = snapshot.dataGeneration
+            WidgetSnapshotCache.save(
+                context = context,
+                kind = kind,
+                appWidgetId = appWidgetId,
+                rows = snapshot.rows.map { toCachedRow(it, snapshot.date) },
+                dataGeneration = snapshot.dataGeneration,
+            )
+        } else {
+            val cached = WidgetSnapshotCache.load(context, kind, appWidgetId)
+            rows = buildList<WidgetCollectionEntry<Row>> {
+                add(WidgetCollectionEntry.RefreshError(hasCachedRows = cached?.rows?.isNotEmpty() == true))
+                cached?.rows?.mapTo(this) { WidgetCollectionEntry.Cached(it) }
+            }
+            date = LocalDate.MIN
+            dataGeneration = 0L
+        }
+    }
+
+    fun clear() {
+        rows = emptyList()
+        dataGeneration = 0L
+    }
+}
 
 internal object WidgetSnapshotCache {
     private const val PREFS = "whip_widget_snapshots"

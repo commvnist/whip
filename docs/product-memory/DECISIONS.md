@@ -1,5 +1,13 @@
 # Durable product and engineering decisions
 
+### DEC-20260926-001 — Extend existing semantic UI owners and cut proven duplicate plumbing
+
+- Context: FB-20260926-001 asks for one reusable Whip design and intuitive UX. Prior shared builders are real, but current-source FND-20260926-001 through -005 find controls, visual roles, nested navigation, stale width values, and guarded non-UI plumbing that still diverge.
+- Decision: Use the existing item, control, page, theme, and adaptive-shell roles as the shared model. Migrate equivalent callers completely and remove their copies. Keep one 1000 dp workspace measure from DEC-20260910-030; share only genuine authored-form widths. Keep specialized domain composition where behavior differs. Refactor non-UI lifecycle code only after proving identical ordering and fallback behavior.
+- Rejected alternatives: A universal UI DSL, splitting giant files merely for size, forcing charts/execution/destructive reviews into ordinary cards, reviving per-destination workspace widths, changing data formats to solve presentation, or removing backup/recovery compatibility for line count.
+- Verification: Affected native journeys and visual states at ordinary and enlarged text, strict widget/alarm/guard fixtures, one final fresh whole-product campaign, and exact current-source visual review. Use proportionate edit-loop checks and at most two disposable emulators.
+- Related/status: FB-20260926-001, FND-20260926-001 through -005, IMP-20260926-001/002, [current plan and outcome](../quality/REUSABLE_ARCHITECTURE_UX_AUDIT_2026-09-26.md). Implemented; focused UX review found no further actionable inconsistency, and the final frozen gate remains pending.
+
 ### DEC-20260921-019 — Parse Goal progress at Save activation
 
 - Decision: Keep the displayed validation state composition-derived, but have `GoalMeasurementDialog` parse its current mutable `value` inside Save's click callback. Preserve the test's immediate edit→tap sequence and assert that the host receives exactly one submission before checking its saving overlay.

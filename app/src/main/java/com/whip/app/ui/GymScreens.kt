@@ -447,12 +447,11 @@ private fun ExerciseSelectionField(
                 onDismissRequest = { expanded = false; query = "" },
                 modifier = Modifier.widthIn(max = 320.dp).testTag("gym-exercise-filter-menu"),
             ) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    label = { Text("Search Exercises") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                WhipSearchField(
+                    label = "Search Exercises",
+                    query = query,
+                    onQueryChange = { query = it },
+                    modifier = Modifier.padding(8.dp),
                 )
                 if (allLabel != null) {
                     val isSelected = selectedExerciseId == null
@@ -532,12 +531,11 @@ internal fun ExerciseComparisonField(
                 onDismissRequest = { expanded = false; query = "" },
                 modifier = Modifier.widthIn(max = 320.dp).testTag("gym-exercise-comparison-menu"),
             ) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    label = { Text("Search Exercises") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                WhipSearchField(
+                    label = "Search Exercises",
+                    query = query,
+                    onQueryChange = { query = it },
+                    modifier = Modifier.padding(8.dp),
                 )
                 matches.take(50).forEach { exercise ->
                     val selected = exercise.id in selectedExerciseIds
@@ -6853,13 +6851,7 @@ internal fun WorkoutHistoryCard(
     val exerciseNames = workoutExercises.mapNotNull { exerciseById[it.exerciseId]?.name }
 
     WhipCollectionCard(modifier = modifier.fillMaxWidth().testTag("history-workout-card-${session.id}")) {
-        Column(
-            modifier = Modifier.padding(
-                horizontal = WhipCardGeometry.horizontalInset,
-                vertical = WhipCardGeometry.verticalInset,
-            ),
-            verticalArrangement = Arrangement.spacedBy(WhipCardGeometry.contentGap),
-        ) {
+        WhipItemCardBody {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(
@@ -8701,13 +8693,7 @@ private fun RoutineContent(
                     layoutScope = "routine-browse",
                 ),
             ) {
-                Column(
-                    modifier = Modifier.padding(
-                        horizontal = WhipCardGeometry.horizontalInset,
-                        vertical = WhipCardGeometry.verticalInset,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
+                WhipItemCardBody {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (reordering && !showArchived) {
                             WhipReorderHandle(

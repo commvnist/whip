@@ -40,7 +40,7 @@ internal fun ReviewOutcomeDetails(
     val sourceAvailability = ReviewAvailability(availability.sources.filterKeys { it.section == section })
     Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
         Row(
-            Modifier.widthIn(max = 720.dp).fillMaxWidth().padding(WhipSpacing.compact),
+            Modifier.widthIn(max = WhipContentWidth.authoredForm).fillMaxWidth().padding(WhipSpacing.compact),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
@@ -49,7 +49,7 @@ internal fun ReviewOutcomeDetails(
         }
         HorizontalDivider()
         LazyColumn(
-            modifier = Modifier.widthIn(max = 720.dp).fillMaxSize().testTag("review-outcome-list"),
+            modifier = Modifier.widthIn(max = WhipContentWidth.authoredForm).fillMaxSize().testTag("review-outcome-list"),
             contentPadding = PaddingValues(WhipSpacing.screenCompact),
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {

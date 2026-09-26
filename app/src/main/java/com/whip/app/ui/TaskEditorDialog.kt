@@ -39,7 +39,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
@@ -178,7 +177,7 @@ fun TaskEditorDialog(
     onSaveIdentityEmoji: (CustomIdentityEmoji) -> Unit = {},
     onRemoveSavedIdentityEmoji: (String) -> Unit = {},
     paneOffsetX: Dp = 0.dp,
-    paneMaxWidth: Dp = 720.dp,
+    paneMaxWidth: Dp = WhipContentWidth.authoredForm,
     saving: Boolean = false,
     persistenceError: String? = null,
     pendingTaskRequestWaiting: Boolean = false,
@@ -730,34 +729,17 @@ fun TaskEditorDialog(
                         testTag = "task-schedule-consequence",
                     )
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            FieldLabel("Repeat")
-                            Text(
-                                if (scheduleKind == ScheduleKind.Recurring) "Repeating schedule is on."
-                                else "Create future occurrences from a schedule.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Switch(
-                            checked = scheduleKind == ScheduleKind.Recurring,
-                            modifier = Modifier
-                                .testTag("task-repeat-toggle")
-                                .whipLabeledSwitchSemantics(
-                                    label = "Repeat",
-                                    checked = scheduleKind == ScheduleKind.Recurring,
-                                ),
-                            onCheckedChange = { enabled ->
-                                if (enabled && scheduleKind == ScheduleKind.Anytime) pendingRepeatEnable = true
-                                else setRepeatEnabled(enabled)
-                            },
-                        )
-                    }
+                    WhipToggleRow(
+                        title = "Repeat",
+                        supportingText = if (scheduleKind == ScheduleKind.Recurring) "Repeating schedule is on."
+                            else "Create future occurrences from a schedule.",
+                        checked = scheduleKind == ScheduleKind.Recurring,
+                        modifier = Modifier.testTag("task-repeat-toggle"),
+                        onCheckedChange = { enabled ->
+                            if (enabled && scheduleKind == ScheduleKind.Anytime) pendingRepeatEnable = true
+                            else setRepeatEnabled(enabled)
+                        },
+                    )
 
                     if (scheduleKind != ScheduleKind.Anytime) {
                         ValueButton(
@@ -776,31 +758,17 @@ fun TaskEditorDialog(
                     }
 
                     if (scheduleKind != ScheduleKind.Anytime) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                FieldLabel("Separate Deadline")
-                                Text(
-                                    if (scheduleKind == ScheduleKind.Once) {
-                                        "Plan work on one date and keep the final Deadline visible."
-                                    } else {
-                                        "Keep one final Deadline visible across this repeating series."
-                                    },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            Switch(
-                                checked = hasDeadline,
-                                onCheckedChange = { hasDeadline = it },
-                                modifier = Modifier
-                                    .testTag("task-deadline-toggle")
-                                    .whipLabeledSwitchSemantics("Separate Deadline", hasDeadline),
-                            )
-                        }
+                        WhipToggleRow(
+                            title = "Separate Deadline",
+                            supportingText = if (scheduleKind == ScheduleKind.Once) {
+                                "Plan work on one date and keep the final Deadline visible."
+                            } else {
+                                "Keep one final Deadline visible across this repeating series."
+                            },
+                            checked = hasDeadline,
+                            onCheckedChange = { hasDeadline = it },
+                            modifier = Modifier.testTag("task-deadline-toggle"),
+                        )
                         if (hasDeadline) {
                             ValueButton(
                                 label = "Deadline",
@@ -1161,28 +1129,12 @@ fun TaskEditorDialog(
                     }
 
                     if (stepDrafts.isNotEmpty()) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                FieldLabel("Show Progress on Task Card")
-                                Text(
-                                    "Display completion based on these Subtasks.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            Switch(
-                                checked = showSubtaskProgress,
-                                onCheckedChange = { showSubtaskProgress = it },
-                                modifier = Modifier.whipLabeledSwitchSemantics(
-                                    "Show Progress on Task Card",
-                                    showSubtaskProgress,
-                                ),
-                            )
-                        }
+                        WhipToggleRow(
+                            title = "Show Progress on Task Card",
+                            supportingText = "Display completion based on these Subtasks.",
+                            checked = showSubtaskProgress,
+                            onCheckedChange = { showSubtaskProgress = it },
+                        )
                         if (showSubtaskProgress) {
                             FlowRow(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1197,28 +1149,12 @@ fun TaskEditorDialog(
                                 }
                             }
                         }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                FieldLabel("Complete Task With Final Subtask")
-                                Text(
-                                    "Automatically finish the parent Task at 100%.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            Switch(
-                                checked = autoCompleteFromSteps,
-                                onCheckedChange = { autoCompleteFromSteps = it },
-                                modifier = Modifier.whipLabeledSwitchSemantics(
-                                    "Complete Task With Final Subtask",
-                                    autoCompleteFromSteps,
-                                ),
-                            )
-                        }
+                        WhipToggleRow(
+                            title = "Complete Task With Final Subtask",
+                            supportingText = "Automatically finish the parent Task at 100%.",
+                            checked = autoCompleteFromSteps,
+                            onCheckedChange = { autoCompleteFromSteps = it },
+                        )
                     }
                     }
 
@@ -1476,55 +1412,27 @@ private fun TaskTimeSettings(
     onReminderOffsetsChange: (Set<Int>) -> Unit,
     onCustomReminderTextChange: (String) -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            FieldLabel("Time")
-            Text(
-                if (hasTime) {
-                    LocalTime.of(timeMinutes / 60, timeMinutes % 60)
-                        .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
-                } else {
-                    "No time"
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Switch(
-            checked = hasTime,
-            onCheckedChange = onHasTimeChange,
-            modifier = Modifier
-                .testTag("task-time-toggle")
-                .whipLabeledSwitchSemantics("Time", hasTime),
-        )
-    }
+    WhipToggleRow(
+        title = "Time",
+        supportingText = if (hasTime) {
+            LocalTime.of(timeMinutes / 60, timeMinutes % 60)
+                .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
+        } else {
+            "No time"
+        },
+        checked = hasTime,
+        onCheckedChange = onHasTimeChange,
+        modifier = Modifier.testTag("task-time-toggle"),
+    )
     if (!hasTime) return
     WhipTextButton(onClick = onChangeTime) { Text("Change Time") }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            FieldLabel("Reminder")
-            Text(
-                "Notify me relative to the Task time.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Switch(
-            checked = reminderEnabled,
-            onCheckedChange = onReminderEnabledChange,
-            modifier = Modifier
-                .testTag("task-reminder-toggle")
-                .whipLabeledSwitchSemantics("Reminder", reminderEnabled),
-        )
-    }
+    WhipToggleRow(
+        title = "Reminder",
+        supportingText = "Notify me relative to the Task time.",
+        checked = reminderEnabled,
+        onCheckedChange = onReminderEnabledChange,
+        modifier = Modifier.testTag("task-reminder-toggle"),
+    )
     if (!reminderEnabled) return
     FieldLabel("Reminder Times")
     FlowRow(

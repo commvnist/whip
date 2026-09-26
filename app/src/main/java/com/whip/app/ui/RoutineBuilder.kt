@@ -18,14 +18,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -46,7 +44,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
@@ -61,14 +58,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
@@ -150,40 +144,6 @@ private fun String.numericallyEquals(other: String): Boolean {
     val first = toWhipDoubleOrNull()
     val second = other.toWhipDoubleOrNull()
     return if (first != null && second != null) (first - second).absoluteValue < 1e-9 else this == other
-}
-
-@Composable
-internal fun RoutineLabeledSwitchRow(
-    label: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-    supportingText: String? = null,
-    testTag: String? = null,
-    enabled: Boolean = true,
-) {
-    Row(
-        modifier = modifier.fillMaxWidth().heightIn(min = 48.dp)
-            .then(if (testTag == null) Modifier else Modifier.testTag(testTag))
-            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
-            .semantics(mergeDescendants = true) {
-                contentDescription = label
-                stateDescription = if (checked) "On" else "Off"
-            }
-            .padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(label, style = MaterialTheme.typography.bodyLarge)
-            supportingText?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        Switch(checked = checked, enabled = enabled, onCheckedChange = null,
-            modifier = Modifier.clearAndSetSemantics {})
-    }
 }
 
 @Composable
@@ -950,14 +910,14 @@ private fun RoutineProgramStructurePage(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (builder.progressionMode == RoutineProgressionMode.PerformanceInformed.name) {
-                    RoutineLabeledSwitchRow(
-                        label = "Allow above-standard suggestions",
+                    WhipToggleRow(
+                        title = "Allow above-standard suggestions",
                         checked = builder.allowNonStandardHigherSuggestions,
                         onCheckedChange = { checked ->
                             onBuilderChange { it.copy(allowNonStandardHigherSuggestions = checked) }
                         },
                         supportingText = "Optional and non-standard. Two strong load-adjusted AMRAPs can support a small alternative without RPE/RIR; favorable effort or a strong Joker can support more. Never selected automatically.",
-                        testTag = "five-three-one-allow-higher-suggestions",
+                        modifier = Modifier.testTag("five-three-one-allow-higher-suggestions"),
                     )
                 }
             }
@@ -1564,8 +1524,8 @@ private fun RoutineProgramStructurePage(
             }
         }
         item {
-            RoutineLabeledSwitchRow(
-                label = "Advance Training Max after this phase",
+            WhipToggleRow(
+                title = "Advance Training Max after this phase",
                 checked = selectedPhase in builder.trainingMaxAdvanceAfterPhaseIndices,
                 onCheckedChange = { checked ->
                     onBuilderChange { current ->
@@ -1577,7 +1537,7 @@ private fun RoutineProgramStructurePage(
                 } else {
                     "Use only at an intentional cycle/block boundary. Incomplete required primary work holds the increase; History remains unchanged."
                 },
-                testTag = "routine-program-phase-tm-boundary-$selectedPhase",
+                modifier = Modifier.testTag("routine-program-phase-tm-boundary-$selectedPhase"),
             )
         }
         item {
@@ -2336,8 +2296,8 @@ private fun RoutinePlacementEditor(
                 RoutinePlacementKind.General,
                 RoutinePlacementKind.MainExercise,
             )) item {
-            RoutineLabeledSwitchRow(
-                label = "Primary lift for Training Max progression",
+            WhipToggleRow(
+                title = "Primary lift for Training Max progression",
                 checked = placementKind == RoutinePlacementKind.MainExercise,
                 onCheckedChange = { enabled ->
                     onUpdate { current ->
@@ -2355,7 +2315,7 @@ private fun RoutinePlacementEditor(
                     }
                 },
                 supportingText = "At a selected phase boundary, completed primary sets can advance this exercise's Training Max by its saved cycle increase.",
-                testTag = "routine-primary-lift-progression",
+                modifier = Modifier.testTag("routine-primary-lift-progression"),
             )
         }
         if (placementKind == RoutinePlacementKind.MainExercise && !isCustomPhasedRoutine) item {
@@ -2586,11 +2546,11 @@ private fun RoutinePlacementEditor(
         }
         item {
             EditorSectionHeader("Set prescriptions")
-            RoutineLabeledSwitchRow(
-                label = "Show Advanced Prescription Fields",
+            WhipToggleRow(
+                title = "Show Advanced Prescription Fields",
                 checked = showAdvanced,
                 onCheckedChange = onShowAdvanced,
-                testTag = "routine-show-advanced",
+                modifier = Modifier.testTag("routine-show-advanced"),
             )
             if (showAdvanced) {
                 DependentSettingsNotice(
@@ -2761,11 +2721,11 @@ private fun RoutinePlacementEditor(
             }
         }
         if (!isProgramControlledPlacement) item {
-            RoutineLabeledSwitchRow(
-                label = "Copy Previous Values When No Plan",
+            WhipToggleRow(
+                title = "Copy Previous Values When No Plan",
                 checked = placement.copyPreviousWorkout,
                 onCheckedChange = { checked -> onUpdate { it.copy(copyPreviousWorkout = checked) } },
-                testTag = "routine-copy-previous",
+                modifier = Modifier.testTag("routine-copy-previous"),
             )
             if (placement.copyPreviousWorkout) {
                 Text(
@@ -3263,8 +3223,8 @@ private fun RoutineSetEditorCard(
                     second = { field -> OutlinedTextField(set.tempo, { value -> onUpdate { it.copy(tempo = value) } }, label = { Text("Tempo") }, modifier = field, singleLine = true) },
                 )
                 OutlinedTextField(set.note, { value -> onUpdate { it.copy(note = value) } }, label = { Text("Set note") }, modifier = Modifier.fillMaxWidth(), maxLines = 2)
-                RoutineLabeledSwitchRow(
-                    label = "Unilateral Set",
+                WhipToggleRow(
+                    title = "Unilateral Set",
                     checked = set.unilateral,
                     onCheckedChange = { checked -> onUpdate { it.copy(unilateral = checked) } },
                 )
@@ -3458,7 +3418,7 @@ private fun EquipmentPickerPane(
             Text("Choose Equipment", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text("This list shows machines linked to the exercise; one machine can support many movements.")
         }
-        item { OutlinedTextField(query, { query = it }, label = { Text("Search machine or location") }, modifier = Modifier.fillMaxWidth()) }
+        item { WhipSearchField("Search machine or location", query, { query = it }) }
         item { WhipOutlinedButton(onClick = onNoMachine, modifier = Modifier.fillMaxWidth()) { Text("No Machine / Free Weights") } }
         items(machines, key = GymMachine::id) { machine ->
             WhipCollectionCard(

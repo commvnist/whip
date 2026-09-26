@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
+
+# These journeys stage real SAF DocumentsUI inputs in disposable Download
+# folders. Keep their exemptions exact so other direct device paths fail.
+rg -n '/sdcard|/storage/emulated/0|/data/local/tmp' app/src benchmark/src scripts \
+    --glob '!scripts/device-artifacts' \
+    --glob '!scripts/device-path-guard' \
+    --glob '!scripts/check' \
+    --glob '!scripts/candidate' \
+    --glob '!scripts/test-*' \
+    --glob '!**/build/**' \
+    --glob '!**/TrackCsvJourneyE2ETest.kt' \
+    --glob '!**/DataPrivacyJourneyE2ETest.kt' || true

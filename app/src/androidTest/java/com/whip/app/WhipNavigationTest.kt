@@ -265,7 +265,7 @@ class WhipNavigationTest {
             listOf("Entries", "Track Insights", "Options").forEach { destination ->
                 selectDestination("track-destination-$destination")
             }
-            compose.onNodeWithText("Track Options").assertIsDisplayed()
+            compose.onNodeWithText("Manage this Track and its data.").assertIsDisplayed()
         }
     }
 

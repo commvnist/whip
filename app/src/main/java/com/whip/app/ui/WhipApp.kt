@@ -1503,7 +1503,7 @@ fun WhipScreen(
             ?.coerceAtLeast(1.dp)
             ?: 0.dp
     }
-    val dialogPaneWidth = minOf(dialogContentWidth * 0.94f, 720.dp)
+    val dialogPaneWidth = minOf(dialogContentWidth * 0.94f, WhipContentWidth.authoredForm)
     val paneDialogModifier = Modifier
         .absoluteOffset(x = dialogPaneOffset)
         .width(dialogPaneWidth)
@@ -4023,7 +4023,6 @@ private fun RowScope.WhipNavigationBarItem(
     enabled: Boolean = true,
     showLabel: Boolean = true,
 ) {
-    val itemColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     Column(
         modifier = modifier
             .weight(1f)
@@ -4038,23 +4037,7 @@ private fun RowScope.WhipNavigationBarItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
     ) {
-        Surface(
-            shape = MaterialTheme.shapes.small,
-            color = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-            contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else itemColor,
-        ) {
-            Box(
-                modifier = Modifier.size(width = 48.dp, height = 32.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                icon()
-            }
-        }
-        if (showLabel) {
-            Surface(color = Color.Transparent, contentColor = itemColor) {
-                label()
-            }
-        }
+        WhipNavigationItemVisuals(selected, icon, label, showLabel, 48.dp, 32.dp)
     }
 }
 
@@ -4070,7 +4053,6 @@ private fun WhipNavigationRailItem(
     width: Dp = 80.dp,
     minimumHeight: Dp = if (showLabel) 72.dp else 56.dp,
 ) {
-    val itemColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     Column(
         modifier = modifier
             .width(width)
@@ -4085,22 +4067,35 @@ private fun WhipNavigationRailItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
     ) {
-        Surface(
-            shape = MaterialTheme.shapes.small,
-            color = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-            contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else itemColor,
+        WhipNavigationItemVisuals(selected, icon, label, showLabel, 56.dp, 36.dp)
+    }
+}
+
+@Composable
+private fun WhipNavigationItemVisuals(
+    selected: Boolean,
+    icon: @Composable () -> Unit,
+    label: @Composable () -> Unit,
+    showLabel: Boolean,
+    indicatorWidth: Dp,
+    indicatorHeight: Dp,
+) {
+    val itemColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+        contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else itemColor,
+    ) {
+        Box(
+            modifier = Modifier.size(width = indicatorWidth, height = indicatorHeight),
+            contentAlignment = Alignment.Center,
         ) {
-            Box(
-                modifier = Modifier.size(width = 56.dp, height = 36.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                icon()
-            }
+            icon()
         }
-        if (showLabel) {
-            Surface(color = Color.Transparent, contentColor = itemColor) {
-                label()
-            }
+    }
+    if (showLabel) {
+        Surface(color = Color.Transparent, contentColor = itemColor) {
+            label()
         }
     }
 }
@@ -4629,6 +4624,42 @@ private fun SupportPaneEmptyMessage(
 }
 
 @Composable
+private fun SupportPaneSelectionCard(
+    title: String,
+    supportingText: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    supportingMaxLines: Int = 2,
+    leading: @Composable (() -> Unit)? = null,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth().selectable(selected = selected, role = Role.Tab, onClick = onClick),
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer,
+        ),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            leading?.invoke()
+            Column(Modifier.weight(1f)) {
+                Text(title, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(
+                    supportingText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = supportingMaxLines,
+                )
+            }
+            Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)
+        }
+    }
+}
+
+@Composable
 private fun TrackSupportPane(
     projections: List<TrackProjection>,
     selectedTrackId: Long?,
@@ -4660,36 +4691,15 @@ private fun TrackSupportPane(
             ) {
                 items(projections, key = { it.track.id }) { projection ->
                     val selected = projection.track.id == selectedTrackId
-                    Card(
+                    SupportPaneSelectionCard(
+                        title = projection.track.name,
+                        supportingText = "${pluralStringResource(R.plurals.entry_count, projection.entries.size, projection.entries.size)} · ${projection.track.area}",
+                        selected = selected,
+                        onClick = { onSelect(projection.track.id) },
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .selectable(
-                                selected = selected,
-                                role = Role.Tab,
-                                onClick = { onSelect(projection.track.id) },
-                            )
                             .semantics { contentDescription = "Open ${projection.track.name}" },
-                        colors = androidx.compose.material3.CardDefaults.cardColors(
-                            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer,
-                        ),
                     ) {
-                        Row(
-                            Modifier.fillMaxWidth().padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            WhipIdentityEmoji(projection.track.icon)
-                            Column(Modifier.weight(1f)) {
-                                Text(projection.track.name, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                Text(
-                                    "${pluralStringResource(R.plurals.entry_count, projection.entries.size, projection.entries.size)} · ${projection.track.area}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 2,
-                                )
-                            }
-                            Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)
-                        }
+                        WhipIdentityEmoji(projection.track.icon)
                     }
                 }
             }
@@ -4720,27 +4730,14 @@ private fun SettingsSupportPane(
         ) {
             items(SettingsSection.entries, key = SettingsSection::name) { section ->
                 val active = section == selected
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("settings-support-section-${section.label}")
-                        .selectable(selected = active, role = Role.Tab, onClick = { onSelect(section) }),
-                    colors = androidx.compose.material3.CardDefaults.cardColors(
-                        containerColor = if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer,
-                    ),
-                ) {
-                    Row(
-                        Modifier.fillMaxWidth().padding(12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(section.label, fontWeight = FontWeight.SemiBold)
-                            Text(section.supportingText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3)
-                        }
-                        Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)
-                    }
-                }
+                SupportPaneSelectionCard(
+                    title = section.label,
+                    supportingText = section.supportingText,
+                    selected = active,
+                    onClick = { onSelect(section) },
+                    modifier = Modifier.testTag("settings-support-section-${section.label}"),
+                    supportingMaxLines = 3,
+                )
             }
         }
     }
@@ -6816,23 +6813,12 @@ private fun TaskAreaContent(
                     modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    OutlinedTextField(
-                        value = textQuery,
-                        onValueChange = { textQuery = it },
-                        label = { Text("Search Current List") },
-                        placeholder = { Text("Titles, notes, or step text") },
-                        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-                        trailingIcon = if (textQuery.isNotBlank()) {
-                            {
-                                IconButton(onClick = { textQuery = "" }) {
-                                    Icon(
-                                        Icons.Outlined.Close,
-                                        contentDescription = "Clear current-list search",
-                                    )
-                                }
-                            }
-                        } else null,
-                        singleLine = true,
+                    WhipSearchField(
+                        label = "Search Current List",
+                        query = textQuery,
+                        onQueryChange = { textQuery = it },
+                        hint = "Titles, notes, or step text",
+                        clearLabel = "Clear current-list search",
                         modifier = Modifier.fillMaxWidth().testTag("task-filter-query"),
                     )
                     val sortOptions = when (destination) {

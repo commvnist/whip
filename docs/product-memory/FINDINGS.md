@@ -1,5 +1,50 @@
 # Durable findings
 
+### FND-20260926-001 — Equivalent toggle and search controls still have multiple owners
+
+- Severity/category: P2, reusable interaction and editor consistency.
+- Observed: Settings toggles use the whole-row `WhipSettingItem` (56 dp minimum), while six Routine toggles use `RoutineLabeledSwitchRow` (48 dp) and several Task/Habit editor toggles hand-compose a label, explanation, and control whose activation is limited to the Switch. Track Activity/Entry search, Gym menus, and Routine equipment selection repeat query/clear field composition beside `WhipSearchField`.
+- Expected: Equivalent toggles and searches share visual geometry, accessible names, whole-row activation where appropriate, and clear-query behavior. Draft rules and domain callbacks remain local.
+- Evidence/root cause: `WhipSettingItemBuilder.kt`, `RoutineBuilder.kt:156`, `TaskEditorDialog.kt:733`, `HabitScreens.kt:2272`, `WhipSearchField.kt`, `TrackScreens.kt:1062,1962`, `GymScreens.kt:450,535`, `RoutineBuilder.kt:3461`; independent feature composition bypasses existing presentation owners.
+- Recommended solution: Extend the existing toggle/search roles minimally and migrate equivalent callers; retain specialized authored fields and selection/reorder rows.
+- Resolution/status: `WhipToggleRow` now uses the existing `WhipSettingItem` whole-row switch owner, and equivalent Task/Habit/Routine/Settings/setup controls migrated; `WhipSearchField` now owns equivalent queries across Track/Gym/Routine/global/pickers. The Routine and setup copies were removed. Related: FB-20260926-001, FB-20260903-017, FB-20260910-002, IMP/VER-20260926-001. Implemented; final full gate pending.
+
+### FND-20260926-002 — Shared visual roles still have local heading, card, and notice variants
+
+- Severity/category: P2, design and accessibility consistency.
+- Observed: Track collections/Insights and Goal History render raw bold section labels without the shared heading semantics; Gym history and Routine rows manually copy `WhipCardGeometry` inside `WhipCollectionCard`; Track and Settings support panes independently build the same selected navigation-row appearance. `WhipNoticeTone.Informative` and `Success` use the same green container despite distinct meanings.
+- Expected: Equivalent sections, ordinary collection insets, selected support rows, and status tones have one visual owner; specialist execution, calendar, selection, and warning surfaces remain distinct.
+- Evidence/root cause: `WhipPagePatterns.kt:498,524,645`, `TrackScreens.kt:1254,1470`, `GoalScreens.kt:2526`, `GymScreens.kt:6855,8697`, `RoutineBuilder.kt:2154`, `WhipApp.kt:4663,4723`; repeated composition around existing primitives.
+- Recommended solution: Reuse a shared heading renderer and ordinary item shell, share the support-row content, and give information the existing primary-container semantic color while keeping success green.
+- Resolution/status: `WhipSectionHeading`, `WhipItemCardBody`, shared support-pane selection and navigation content, and semantic notice colors own the equivalent roles. Specialized composition stays domain-owned. Related: FB-20260926-001, DEC-20260903-015, DEC-20260910-030, IMP/VER-20260926-001. Implemented; final full gate pending.
+
+### FND-20260926-003 — Nested navigation and long tabs consume context or hide choices
+
+- Severity/category: P2, navigation hierarchy and discoverability.
+- Observed: Track detail places `Track Insights` and `Track Options` body headings immediately after their corresponding inner tabs beneath the Track identity and workspace tabs. Fresh API 34 captures at 200% text show the rightmost peer tab partly outside the viewport in Tasks, Habits, Goals, Tracks, and Gym, with no explicit continuation cue. The shared bar already scrolls and brings the selected tab into view, so the remaining problem is discoverability.
+- Expected: A selected tab gives sufficient page identity without a duplicate headline; horizontal overflow is visibly discoverable, and the content area remains useful on compact/enlarged screens.
+- Evidence/root cause: `TrackScreens.kt:1772,2234,2788`, `ItemControlPatterns.kt:1155`; current emulator captures under `artifacts/reusable-architecture-ux/2026-09-26/` are being retained. The September 21 Track Insights original corroborates repeated chrome, but is historical evidence only.
+- Recommended solution: Remove redundant Track headings while preserving Filter access and guidance; improve the shared tab overflow cue and verify selected-tab reachability/viewport on current normal and enlarged captures.
+- Resolution/status: Track Insights/Options duplicate body headlines were removed while guidance/filter access stayed. `DestinationTabBar` now shows scroll-direction cues and reveals the selected tab; `WhipPageHeader` measures title/action fit before stacking. Current ordinary and 200% catalog states reviewed. Related: FB-20260926-001, DEC-20260910-030, IMP/VER-20260926-001. Implemented; final full gate pending.
+
+### FND-20260926-004 — Editor width tokens and collection caps carry obsolete layout choices
+
+- Severity/category: P3, layout ownership and dead flexibility.
+- Observed: `WhipContentWidth.readable=920.dp` and `dashboard=1200.dp` have no production callers; `WhipWorkspaceLayout` caps the full page at 1000 dp while two Track children add ineffective 1040 dp caps. Full-screen authored forms repeat a genuine 720 dp measure.
+- Expected: One 1000 dp workspace measure as established by DEC-20260910-030, and one named 720 dp authored-form measure where it is actually shared. No inactive alternatives.
+- Evidence/root cause: `WhipPagePatterns.kt:83`, `WhipWorkspaceLayout.kt:24`, `TrackScreens.kt:1034,1203,2975,3713`, `ReviewOutcomeDetails.kt:43,52`; stale width tokens and local values.
+- Recommended solution: Delete dead tokens and redundant Track caps; name and reuse only the active workspace/form widths. Do not restore the superseded per-destination workspace split.
+- Resolution/status: Unused 920/1200 dp tokens and ineffective 1040 dp Track caps were deleted. Authored forms use one 720 dp token while the existing 1000 dp workspace owner remains. Related: FB-20260926-001, DEC-20260910-030, IMP/VER-20260926-001. Implemented; final full gate pending.
+
+### FND-20260926-005 — Non-UI lifecycle and build checks repeat guarded plumbing
+
+- Severity/category: P3, codebase complexity with reliability-sensitive boundaries.
+- Observed: Task/Habit RemoteViews factories repeat snapshot/cache/fallback lifecycle; Task/Habit widget providers repeat asynchronous update/deletion wrappers; timer/reminder alarm schedulers repeat exact-alarm registration/cancellation setup; Gradle has two copies of the emulator target-guard launch; `scripts/check` and `scripts/candidate` repeat source-policy scans.
+- Expected: Shared plumbing only where exact ordering and failure behavior are identical. Task/Habit rendering, alarm claim/fallback policy, both Gradle hook registrations, and distinct SAF fixture exemptions remain explicit.
+- Evidence/root cause: `widget/*RemoteViewsService.kt`, `widget/WhipWidgetProvider.kt`, `reminders/*AlarmScheduler.kt`, `app/build.gradle.kts:250`, `scripts/check:58`, `scripts/candidate:321`; current source audit found active duplicate paths and no safe deletion of compatibility/recovery machinery.
+- Recommended solution: Extract the smallest verified common helpers after caller-by-caller lifecycle review, run existing widget/alarm/guard tests and source-policy fixtures, and remove only duplicated code.
+- Resolution/status: Widget provider update/deletion and collection-factory snapshot/cache/fallback lifecycle, Gradle guard launch, and source-policy scans are consolidated. Task/Habit loaders, row renderers and IDs remain separate. Timer/reminder alarm ordering differs, so it remains intentionally separate. Related: FB-20260926-001, DEC-20260926-001, IMP-20260926-002, VER-20260926-001. Implemented; 24 focused widget methods pass, final full gate pending.
+
 ### FND-20260921-022 — Rapid Goal progress entry could silently ignore Save
 
 - Severity/category: P2 user-visible Goals data-entry reliability; FB-20260920-001.

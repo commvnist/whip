@@ -445,7 +445,7 @@ class UiDesignArchitectureTest {
         }
 
         val patterns = File(sourceRoot, "com/whip/app/ui/WhipPagePatterns.kt").readText()
-        listOf("WhipCollectionCard", "WhipMetricTile", "WhipNoticeCard", "WhipSettingsSectionCard")
+        listOf("WhipCollectionCard", "WhipMetricTile", "WhipNoticeCard", "WhipGroupedInformationCard")
             .forEach { primitive ->
                 assertTrue("The design system is missing its canonical $primitive role", patterns.contains("fun $primitive("))
             }
@@ -489,8 +489,8 @@ class UiDesignArchitectureTest {
         assertTrue(patterns.contains("fun WhipGroupedInformationCard("))
         val groupedInformationCard = patterns
             .substringAfter("fun WhipGroupedInformationCard(")
-            .substringBefore("/** Canonical grouped Settings block")
-        assertTrue(patterns.contains("WhipGroupedInformationCard(modifier, content)"))
+            .substringBefore("internal fun WhipSettingsRow(")
+        assertFalse(patterns.contains("fun WhipSettingsSectionCard("))
         assertTrue(groupedInformationCard.contains("padding(WhipSpacing.standard)"))
         assertTrue(groupedInformationCard.contains("Arrangement.spacedBy(WhipSpacing.sibling)"))
         listOf(
@@ -503,7 +503,7 @@ class UiDesignArchitectureTest {
         ).forEach { equivalentGroup ->
             assertTrue("Equivalent Settings group '$equivalentGroup' must use the shared section card", settings.contains(equivalentGroup))
         }
-        assertTrue(Regex("WhipSettingsSectionCard\\s*[({]").findAll(settings).count() >= 6)
+        assertTrue(Regex("WhipGroupedInformationCard\\s*[({]").findAll(settings).count() >= 6)
         // Reorder and item-specific cards remain semantic exceptions; this is not a raw Card ban.
         assertTrue(settings.contains("whipReorderItem("))
         assertTrue(Regex("Card\\(\\s*Modifier\\.fillMaxWidth\\(\\)\\.whipReorderItem\\(").containsMatchIn(settings))

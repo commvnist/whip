@@ -21,7 +21,8 @@ mkdir -p \
     "${PROJECT}/docs" \
     "$FAKE_BIN"
 cp -- "${SCRIPT_DIR}/check" "${PROJECT}/scripts/check"
-chmod 755 "${PROJECT}/scripts/check"
+cp -- "${SCRIPT_DIR}/device-path-guard" "${PROJECT}/scripts/device-path-guard"
+chmod 755 "${PROJECT}/scripts/check" "${PROJECT}/scripts/device-path-guard"
 
 printf '%s\n' \
     'package com.whip.app' \

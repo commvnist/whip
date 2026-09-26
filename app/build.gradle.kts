@@ -229,6 +229,21 @@ val androidTargetGuard = rootProject.layout.projectDirectory.file("scripts/andro
 val explicitAndroidSerial = providers.environmentVariable("ANDROID_SERIAL")
 val androidTestOutputSlot = providers.environmentVariable("WHIP_ANDROID_TEST_SLOT")
 val commandPath = providers.environmentVariable("PATH")
+val validateInstrumentationTarget: (String) -> Unit = { taskPath ->
+    val validationProcess = ProcessBuilder(
+        "bash",
+        androidTargetGuard.asFile.absolutePath,
+        "instrumentation",
+    )
+    explicitAndroidSerial.orNull?.let {
+        validationProcess.environment()["ANDROID_SERIAL"] = it
+    } ?: validationProcess.environment().remove("ANDROID_SERIAL")
+    commandPath.orNull?.let { validationProcess.environment()["PATH"] = it }
+    validationProcess.inheritIO()
+    if (validationProcess.start().waitFor() != 0) {
+        throw GradleException("Android instrumentation target validation failed for $taskPath.")
+    }
+}
 
 gradle.projectsEvaluated {
     if (androidTestOutputSlot.isPresent) {
@@ -263,19 +278,7 @@ tasks.withType<TestSuiteTestTask>().configureEach {
                 )
             }
 
-            val validationProcess = ProcessBuilder(
-                "bash",
-                androidTargetGuard.asFile.absolutePath,
-                "instrumentation",
-            )
-            explicitAndroidSerial.orNull?.let {
-                validationProcess.environment()["ANDROID_SERIAL"] = it
-            } ?: validationProcess.environment().remove("ANDROID_SERIAL")
-            commandPath.orNull?.let { validationProcess.environment()["PATH"] = it }
-            validationProcess.inheritIO()
-            if (validationProcess.start().waitFor() != 0) {
-                throw GradleException("Android instrumentation target validation failed for ${testTask.path}.")
-            }
+            validateInstrumentationTarget(testTask.path)
         }
     }
     doFirst("validateWhipAndroidInstrumentationTarget", validateTarget)
@@ -298,19 +301,7 @@ tasks.configureEach {
                     )
                 }
 
-                val validationProcess = ProcessBuilder(
-                    "bash",
-                    androidTargetGuard.asFile.absolutePath,
-                    "instrumentation",
-                )
-                explicitAndroidSerial.orNull?.let {
-                    validationProcess.environment()["ANDROID_SERIAL"] = it
-                } ?: validationProcess.environment().remove("ANDROID_SERIAL")
-                commandPath.orNull?.let { validationProcess.environment()["PATH"] = it }
-                validationProcess.inheritIO()
-                if (validationProcess.start().waitFor() != 0) {
-                    throw GradleException("Android instrumentation target validation failed for ${guardedTask.path}.")
-                }
+                validateInstrumentationTarget(guardedTask.path)
             }
         }
         doFirst("validateWhipAndroidInstrumentationTarget", validateTarget)

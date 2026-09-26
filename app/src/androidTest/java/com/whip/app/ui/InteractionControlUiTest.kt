@@ -891,14 +891,15 @@ class InteractionControlUiTest {
     @Test
     fun narrowLargeTextUsesFullLabelsAndRevealsTheSelectedDestination() {
         val largeText = Density(compose.density.density, fontScale = 2f)
+        var selectedDestination by mutableStateOf("Configuration")
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides largeText) {
                 WhipTheme(dynamicColor = false) {
                     Box(Modifier.width(240.dp)) {
                         DestinationTabBar(
-                            selected = "Configuration",
+                            selected = selectedDestination,
                             destinations = listOf("Entries", "Insights", "Configuration"),
-                            onSelect = {},
+                            onSelect = { selectedDestination = it },
                             label = { it },
                             compactLabel = { if (it == "Configuration") "Config" else it },
                             testTagPrefix = "overflow-tab",
@@ -915,6 +916,13 @@ class InteractionControlUiTest {
         val selected = compose.onNodeWithTag("overflow-tab-Configuration").fetchSemanticsNode().boundsInRoot
         val expectedRightEdge = with(compose.density) { (240.dp - 12.dp).toPx() }
         assertTrue("Selected destination was not brought into view: $selected", selected.right <= expectedRightEdge + 0.5f)
+        compose.onNodeWithTag("destination-tab-scroll-back-cue").assertIsDisplayed()
+        compose.onAllNodesWithTag("destination-tab-scroll-forward-cue").assertCountEquals(0)
+
+        compose.runOnIdle { selectedDestination = "Entries" }
+        compose.onNodeWithTag("overflow-tab-Entries").assertIsDisplayed().assertIsSelected()
+        compose.onNodeWithTag("destination-tab-scroll-forward-cue").assertIsDisplayed()
+        compose.onAllNodesWithTag("destination-tab-scroll-back-cue").assertCountEquals(0)
     }
 
     @Test
@@ -1360,6 +1368,47 @@ class InteractionControlUiTest {
         assertEquals(plainHeader.height, actionHeader.height, 0.5f)
         val searchAction = compose.onNodeWithContentDescription("Search Track Activity").fetchSemanticsNode().boundsInRoot
         assertTrue(searchAction.bottom <= actionSupporting.top)
+    }
+
+    @Test
+    fun pageHeaderWrapsActionsOnlyWhenTheLargeTextTitleNeedsRoom() {
+        val largeText = Density(compose.density.density, fontScale = 2f)
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides largeText) {
+                WhipTheme(dynamicColor = false) {
+                    Column(Modifier.width(320.dp)) {
+                        WhipPageHeader("Today", Modifier.testTag("short-large-header")) {
+                            WhipPageIconAction(
+                                Icons.Outlined.FilterAlt,
+                                "Filter Today",
+                                onClick = {},
+                                modifier = Modifier.testTag("short-large-action"),
+                            )
+                        }
+                        WhipPageHeader("Saturday Strength", Modifier.testTag("long-large-header")) {
+                            WhipTextButton(onClick = {}, modifier = Modifier.testTag("long-large-action")) {
+                                Text("Edit Workout")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        val shortTitle = compose.onNodeWithText("Today").fetchSemanticsNode().boundsInRoot
+        val shortAction = compose.onNodeWithTag("short-large-action").fetchSemanticsNode().boundsInRoot
+        assertTrue(shortTitle.right <= shortAction.left)
+        assertTrue(shortTitle.top < shortAction.bottom && shortAction.top < shortTitle.bottom)
+
+        val longTitleNode = compose.onNodeWithText("Saturday Strength")
+        val longTitle = longTitleNode.fetchSemanticsNode().boundsInRoot
+        val longAction = compose.onNodeWithTag("long-large-action").fetchSemanticsNode().boundsInRoot
+        assertTrue(longAction.top >= longTitle.bottom)
+        val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        longTitleNode.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        val titleLayout = layouts.single()
+        assertTrue("The workout title should not be ellipsized", (0 until titleLayout.lineCount).none(titleLayout::isLineEllipsized))
+        assertEquals("The full workout title should be laid out", "Saturday Strength".length, titleLayout.getLineEnd(titleLayout.lineCount - 1))
     }
 
     @Test

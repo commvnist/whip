@@ -3,8 +3,6 @@ package com.whip.app
 import android.content.Intent
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasAnyDescendant
-import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -70,7 +68,7 @@ class TrackDeletionUiTest {
             }
             compose.onNodeWithTag("track-card-$trackId").performClick()
             compose.onNodeWithTag("track-destination-Options").performClick()
-            compose.onNode(hasScrollAction() and hasAnyDescendant(hasText("Track Options")))
+            compose.onNodeWithTag("track-options-list")
                 .performScrollToNode(hasText("Delete Track Permanently"))
             captureVisualCatalogSurface("tracks.cleanup.entry")
             compose.onNodeWithText("Delete Track Permanently").performClick()

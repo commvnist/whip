@@ -58,9 +58,12 @@ internal fun WhipSettingItem(
         if (!enabled || control !is WhipSettingControl.Choice) menuOpen = false
     }
     val interaction = when (control) {
-        is WhipSettingControl.Toggle -> Modifier.toggleable(
-            value = control.checked, enabled = enabled, role = Role.Switch, onValueChange = control.change,
-        )
+        is WhipSettingControl.Toggle -> Modifier
+            .toggleable(value = control.checked, enabled = enabled, role = Role.Switch, onValueChange = control.change)
+            .semantics(mergeDescendants = true) {
+                contentDescription = listOfNotNull(title, item.explanation?.takeIf(String::isNotBlank)).joinToString(". ")
+                stateDescription = if (control.checked) "On" else "Off"
+            }
         is WhipSettingControl.Choice -> Modifier
             .clickable(enabled = enabled, role = Role.Button, onClickLabel = "Choose $title") { menuOpen = true }
             .semantics {

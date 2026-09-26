@@ -2523,7 +2523,7 @@ internal fun GoalActionsDialog(
                 if (section == GoalDetailSection.History) {
                     if (projection.closureSnapshots.isNotEmpty()) {
                         item {
-                            Text("Lifecycle History", fontWeight = FontWeight.Bold)
+                            WhipSectionHeading("Lifecycle History", compact = true)
                             Text(
                                 "Completion and abandonment outcomes are permanent history. Reopening does not erase them.",
                                 style = MaterialTheme.typography.bodySmall,
@@ -2544,7 +2544,7 @@ internal fun GoalActionsDialog(
                     }
                     if (projection.elapsedResetEvents.isNotEmpty()) {
                         item {
-                            Text("Timer Reset History", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
+                            WhipSectionHeading("Timer Reset History", modifier = Modifier.padding(top = 8.dp), compact = true)
                             Text(
                                 "Each reset preserves the previous and new counter origin.",
                                 style = MaterialTheme.typography.bodySmall,
@@ -2571,7 +2571,7 @@ internal fun GoalActionsDialog(
                             )
                         }
                     } else {
-                        item { Text("Progress History", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp)) }
+                        item { WhipSectionHeading("Progress History", modifier = Modifier.padding(top = 8.dp), compact = true) }
                         if (projection.entries.isEmpty()) item {
                             Text("No progress updates yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }

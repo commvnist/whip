@@ -17,7 +17,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -85,12 +84,11 @@ internal fun GymExercisePickerBody(
                 color = MaterialTheme.colorScheme.error,
             )
         }
-        OutlinedTextField(
-            value = query,
-            onValueChange = { query = it },
+        WhipSearchField(
+            label = "Search ${displayLabel.lowercase()}s",
+            query = query,
+            onQueryChange = { query = it },
             enabled = !saving,
-            label = { Text("Search ${displayLabel.lowercase()}s") },
-            singleLine = true,
             modifier = Modifier.fillMaxWidth().testTag(searchTag),
         )
         filters?.invoke()

@@ -36,7 +36,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -2271,30 +2270,13 @@ internal fun HabitEditorDialog(
                                 Spacer(Modifier.width(6.dp))
                                 Text("Add Checklist Item")
                             }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("Complete Habit With Final Item", fontWeight = FontWeight.Medium)
-                                    Text(
-                                        "Automatically complete the parent Habit when every checklist item is checked.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                                Switch(
-                                    checked = autoCompleteFromItems,
-                                    onCheckedChange = { autoCompleteFromItems = it },
-                                    modifier = Modifier
-                                        .testTag("habit-auto-complete-from-items")
-                                        .whipLabeledSwitchSemantics(
-                                            "Complete Habit With Final Item",
-                                            autoCompleteFromItems,
-                                        ),
-                                )
-                            }
+                            WhipToggleRow(
+                                title = "Complete Habit With Final Item",
+                                supportingText = "Automatically complete the parent Habit when every checklist item is checked.",
+                                checked = autoCompleteFromItems,
+                                onCheckedChange = { autoCompleteFromItems = it },
+                                modifier = Modifier.testTag("habit-auto-complete-from-items"),
+                            )
                             if (checklistDrafts.none { it.name.isNotBlank() }) {
                                 Text(
                                     "Add at least one checklist item.",
