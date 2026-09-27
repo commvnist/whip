@@ -4,7 +4,8 @@
 
 - Advance the private release from 0.3.73/code 79 to 0.3.74/code 80 because the selected owner phone already has the prior 0.3.73 APK. The app/test implementation remains the accepted architecture source in VER-20260926-005; only release version metadata changes.
 - Use the existing release signer and guarded physical-device lane for an in-place update. Preserve Room schema 46, data epoch 6, portable-backup format 26, package ID, history and local data. No reset, uninstall, downgrade or Play Store publication is part of this request.
-- Related/status: FB-20260926-002, FB-20260926-001, VER-20260926-005/006. Implemented; signed build and physical installation pending.
+- Release source `751fab37` is clean, pushed to `origin/main`, signed and installed on the selected physical Samsung SM-F976W. The installed package hash matches the signed APK; first-install identity, cold launch and bounded runtime checks pass under VER-20260926-006.
+- Related/status: FB-20260926-002, FB-20260926-001, VER-20260926-005/006. Released; subjective appearance awaits owner use.
 
 ### IMP-20260926-005 — Keep actual large-text test configuration under load
 

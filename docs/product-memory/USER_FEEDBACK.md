@@ -5,7 +5,7 @@
 - Date/source: 2026-09-26, direct owner follow-up: “send to my phone, it's connected through wireless debugging.”
 - User need: Receive the completed reusable architecture and UX changes from FB-20260926-001 on the existing personal Whip installation.
 - Acceptance criteria: Identify the explicitly connected physical phone; advance the private version above its installed 0.3.73/code 79; build with the established release signer from the verified audit source; install in place without reset, data clearing, uninstall or downgrade; verify package, signer continuity, installed artifact hash, preserved first-install identity, cold launch, foreground process and bounded runtime health; commit and push the release record. No Play Store publication is requested.
-- Related/status: FB-20260926-001, VER-20260926-005, IMP/VER-20260926-006. In progress.
+- Related/status: FB-20260926-001, VER-20260926-005, IMP/VER-20260926-006. Released as private 0.3.74/code 80 to the selected owner phone; appearance awaits normal owner use.
 
 ### FB-20260926-001 — Reusable product architecture and complete UX consistency audit
 
@@ -13,7 +13,7 @@
 - User need: Whip's models, elements, navigation bars, and layouts should feel and behave as one product because equivalent roles share underlying code. Reduce accidental one-offs and reshape layouts or components where that produces a clearer reusable model. Make journeys intuitive and consistent.
 - Acceptance criteria: Audit the current whole codebase and rendered design/UX; identify genuine duplication, divergent semantics, hierarchy, navigation, spacing, typography, responsiveness, and accessibility; publish a ranked resolution plan; implement every accepted finding in coherent chunks using the smallest durable shared owners; remove obsolete variants; verify representative cross-domain behavior and current visual states in efficient batches on no more than two disposable emulators; preserve product data and existing domain behavior; record exact evidence, commit, and push verified chunks. Do not equate old screenshots or a narrow green test with current whole-product acceptance.
 - Related: FB-20260903-017, FB-20260910-002/005/007, FB-20260920-001, FB-20260921-001; current audit plan and findings to follow.
-- Status: Verified for this reusable architecture and UX consistency scope. The ranked plan and all accepted findings are implemented; the current UI visual campaign and final frozen JVM/Android/build candidate pass under VER-20260926-001/002/005. The separate September 21 whole-product audit remains paused, and no owner-phone install or publication occurred.
+- Status: Verified for this reusable architecture and UX consistency scope. The ranked plan and all accepted findings are implemented; the current UI visual campaign and final frozen JVM/Android/build candidate pass under VER-20260926-001/002/005. The completed source was subsequently installed on the owner phone as private 0.3.74/code 80 under FB-20260926-002 / VER-20260926-006. The separate September 21 whole-product audit remains paused; no Play publication occurred.
 
 ### FB-20260921-001 — Wrap the audit at a clean checkpoint and provide the APK
 
