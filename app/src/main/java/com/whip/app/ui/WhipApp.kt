@@ -5156,7 +5156,14 @@ private fun HomeContent(
                     else if (habitState.errorMessage != null) item {
                         HomeDomainLoadNotice("Habits", habitState.errorMessage, onRetryHabitLoading)
                     } else if (!collapsed) {
-                        if (habitState.today.isEmpty()) item { HomeStatusCard(areaScopeLabel?.let { "No habits due in $it" } ?: "No habits due", "Create a habit on the Habits screen.", onOpenHabits) }
+                        if (habitState.today.isEmpty()) item {
+                            HomeStatusCard(
+                                areaScopeLabel?.let { "No Habits Due in $it" } ?: "No habits due",
+                                "Create a habit on the Habits screen.",
+                                onOpenHabits,
+                                preserveTitleCase = areaScopeLabel != null,
+                            )
+                        }
                         if (homePinnedHabits.isNotEmpty()) item {
                             HomeItemGroupHeading("Pinned and due", homePinnedHabits.size, pinned = true, testTag = "home-pinned-habits")
                         }
@@ -5228,7 +5235,14 @@ private fun HomeContent(
                     else if (goalState.errorMessage != null) item {
                         HomeDomainLoadNotice("Goals", goalState.errorMessage, onRetryGoalLoading)
                     } else if (!collapsed) {
-                        if (goalState.active.isEmpty()) item { HomeStatusCard(areaScopeLabel?.let { "No active goals in $it" } ?: "No active goals", "Create a measurable or milestone goal.", onOpenGoals) }
+                        if (goalState.active.isEmpty()) item {
+                            HomeStatusCard(
+                                areaScopeLabel?.let { "No Active Goals in $it" } ?: "No active goals",
+                                "Create a measurable or milestone goal.",
+                                onOpenGoals,
+                                preserveTitleCase = areaScopeLabel != null,
+                            )
+                        }
                         if (homePinnedGoals.isNotEmpty()) item {
                             HomeItemGroupHeading("Pinned goals", homePinnedGoals.size, pinned = true, testTag = "home-pinned-goals")
                         }
@@ -5311,15 +5325,19 @@ private fun HomeContent(
                                     else -> "Start and resume workouts from the Gym screen."
                                 },
                                 onOpenGym,
+                                preserveTitleCase = active != null,
                             )
                         }
                         if (gymState.activeSession == null) {
                             items(pinnedRoutines, key = { "pinned-routine-${it.id}" }) { routine ->
                                 val days = gymState.routineDays.filter { it.routineId == routine.id }.sortedBy { it.position }
                                 if (days.size <= 1) {
-                                    HomeStatusCard(routine.name, "Pinned · ${days.firstOrNull()?.name ?: "Start routine"}") {
-                                        onStartRoutine(routine.id, days.firstOrNull()?.id)
-                                    }
+                                    HomeStatusCard(
+                                        routine.name,
+                                        "Pinned · ${days.firstOrNull()?.name ?: "Start routine"}",
+                                        onClick = { onStartRoutine(routine.id, days.firstOrNull()?.id) },
+                                        preserveTitleCase = true,
+                                    )
                                 } else {
                                     Card(Modifier.fillMaxWidth()) {
                                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -7728,10 +7746,16 @@ private fun HomeItemGroupHeading(
 }
 
 @Composable
-private fun HomeStatusCard(title: String, detail: String, onClick: () -> Unit) = NavigationRow(
+private fun HomeStatusCard(
+    title: String,
+    detail: String,
+    onClick: () -> Unit,
+    preserveTitleCase: Boolean = false,
+) = NavigationRow(
     title = title,
     supportingText = detail,
     onClick = onClick,
+    preserveTitleCase = preserveTitleCase,
 )
 
 

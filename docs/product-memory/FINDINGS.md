@@ -1,12 +1,12 @@
 # Durable findings
 
-### FND-20260926-015 — Adaptive support rows silently title-case authored item names
+### FND-20260926-015 — Shared navigation rows silently title-case authored item names
 
 - Severity/category: P2 identity fidelity and UI consistency; FB-20260926-003.
-- Observed: A populated 200% Task support-pane regression could not find authored `Pane task 6` because `NavigationRow` converted it to `Pane Task 6`. Task/Habit/Goal support items pass user-authored names through the same row.
-- Expected: User-authored item names should retain exact casing in adaptive support, matching their main cards and saved data.
-- Evidence/root cause: `NavigationRow` in `ItemControlPatterns.kt` unconditionally calls `uiTitleCase()`; `DestinationSupportPane` uses it for authored names. The observed test failure exposed the rendered text, rather than a missing row.
-- Resolution/status: `NavigationRow` now preserves authored casing for Task/Habit/Goal support callers while static navigation labels keep their established display. The real 200% tabletop journey asserts exact `Pane task 6` after scrolling. Implemented and focused verified; full candidate pending. Related: DEC-20260926-005, IMP-20260926-007, VER-20260926-007.
+- Observed: A populated 200% Task support-pane regression could not find authored `Pane task 6` because `NavigationRow` converted it to `Pane Task 6`. Task/Habit/Goal support rows share the problem. Further caller review found Home's one-day pinned Routine and active Workout cards also pass authored names through `NavigationRow`, while the multi-day Routine card displays the same type of name unchanged. Area-scoped Home empty states could alter an authored Area name too.
+- Expected: User-authored Task, Habit, Goal, Routine, Workout, and Area names should retain exact casing wherever the shared navigation role renders them.
+- Evidence/root cause: `NavigationRow` in `ItemControlPatterns.kt` unconditionally called `uiTitleCase()`; `DestinationSupportPane` and `HomeStatusCard` route authored titles through it. The native Task failure exposed rendered casing rather than a missing row; the Home review exposed inconsistent one-day versus multi-day Routine presentation.
+- Resolution/status: `NavigationRow` has an explicit authored-casing option. Adaptive Task/Habit/Goal support, Home Routine/active Workout, and Area-scoped Home statuses select it; chrome wording remains title-cased. The 200% Task journey passes exact `Pane task 6`; a real Home journey passes exact one-day Routine, multi-day Routine, and active Workout names. Implemented and focused verified; full candidate pending. Related: DEC-20260926-005, IMP-20260926-007, VER-20260926-007.
 
 ### FND-20260926-014 — English first-run sentences wrap punctuation incorrectly in RTL
 

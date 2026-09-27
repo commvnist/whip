@@ -63,10 +63,15 @@ import com.whip.app.ui.theme.WhipTheme
 import com.whip.app.core.OperationFeedbackPresentation
 import com.whip.app.core.OperationStatus
 import com.whip.app.core.AppSettings
+import com.whip.app.core.HomeSection
 import com.whip.app.core.WhipLaunchActions
+import com.whip.app.domain.GymRoutine
+import com.whip.app.domain.RoutineDay
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.ScheduledTask
 import com.whip.app.domain.WhipTask
+import com.whip.app.domain.WorkoutSession
+import com.whip.app.domain.WorkoutSessionState
 import com.whip.app.domain.ElapsedDisplayUnit
 import com.whip.app.domain.ElapsedDisplayFormat
 import com.whip.app.domain.Goal
@@ -82,6 +87,7 @@ import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.TrackProjection
 import com.whip.app.domain.UnitDimension
 import java.time.LocalDate
+import java.time.Instant
 import org.junit.Rule
 import org.junit.rules.RuleChain
 import org.junit.Test
@@ -884,6 +890,73 @@ class AdaptiveWhipScreenTest {
         compose.onNode(hasText("Pane task 6") and hasAnyAncestor(hasTestTag("destination-support-content")))
             .assertIsDisplayed()
         compose.onNodeWithTag("adaptive-tabletop-navigation").assertIsDisplayed()
+    }
+
+    @Test
+    fun homeKeepsAuthoredWorkoutAndRoutineNamesAcrossDayCounts() {
+        val oneDay = GymRoutine(1, "routine-1", "lowerCase one", "", 0, false, true, 1, 1)
+        val manyDays = GymRoutine(2, "routine-2", "lowerCase multi", "", 1, false, true, 1, 1)
+        val routineDays = listOf(
+            RoutineDay(11, "day-11", 1, "Day A", 0, 1, 1),
+            RoutineDay(21, "day-21", 2, "Day A", 0, 1, 1),
+            RoutineDay(22, "day-22", 2, "Day B", 1, 1, 1),
+        )
+        val gym = mutableStateOf(
+            GymUiState(
+                routines = listOf(oneDay, manyDays),
+                routineDays = routineDays,
+                loading = false,
+            ),
+        )
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipScreen(
+                    state = TaskUiState(loading = false),
+                    habitState = HabitUiState(loading = false),
+                    goalState = GoalUiState(loading = false),
+                    trackState = TrackUiState(loading = false),
+                    gymState = gym.value,
+                    settingsState = SettingsUiState(settings = AppSettings(homeSections = listOf(HomeSection.Gym))),
+                    onSaveTask = { _, _, _ -> },
+                    onComplete = {},
+                    onSkip = {},
+                    onReschedule = { _, _ -> },
+                    onArchive = {},
+                    onReopen = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("home-list").performScrollToNode(hasText("lowerCase one"))
+        compose.onNodeWithText("lowerCase one").assertIsDisplayed()
+        compose.onNodeWithTag("home-list").performScrollToNode(hasText("lowerCase multi"))
+        compose.onNodeWithText("lowerCase multi").assertIsDisplayed()
+
+        val now = Instant.parse("2026-09-26T12:00:00Z")
+        compose.runOnIdle {
+            gym.value = GymUiState(
+                activeSession = WorkoutSession(
+                    id = 3,
+                    uuid = "workout-3",
+                    name = "lowerCase workout",
+                    notes = "",
+                    startedAt = now,
+                    endedAt = null,
+                    localDate = LocalDate.of(2026, 9, 26),
+                    zoneId = "UTC",
+                    state = WorkoutSessionState.Active,
+                    keepScreenAwake = false,
+                    restTimerDeadlineMillis = null,
+                    restTimerDurationSeconds = null,
+                    archived = false,
+                    createdAtMillis = 1,
+                    updatedAtMillis = 1,
+                ),
+                loading = false,
+            )
+        }
+        compose.onNodeWithTag("home-list").performScrollToNode(hasText("lowerCase workout"))
+        compose.onNodeWithText("lowerCase workout").assertIsDisplayed()
     }
 
     @Test
