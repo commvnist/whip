@@ -1,5 +1,14 @@
 # Durable findings
 
+### FND-20260927-009 — Celebration exit is abrupt and numeric Goal progress is capped
+
+- Severity/category: P2 animation continuity and Goal progress truth.
+- Observed: `GoalCelebrationOverlay` fades/scales the card in but removes it immediately after its four-second timeline. `calculateGoalProgress` caps every numeric ratio at 1.0, so active Goals with measurements beyond their target still read 100% across shared Goal surfaces.
+- Expected: The card exits with its matching entry fade before the existing deadline. Reach, reduce, accumulate and average Goals retain their true over-target ratios until explicitly completed or abandoned.
+- Root cause: The one-way `reveal` in `GoalCelebration.kt` and the shared `raw.coerceIn(0.0, 1.0)` in `GoalModels.kt`. Review's normalized outcome score consumes the shared projection and therefore needs its own 100% ceiling when display progress is uncapped.
+- Resolution: The shared numeric projection now retains finite ratios above one, the shared locale-aware formatter distinguishes a tiny overshoot, and Review caps only its scoring inputs. A symmetric card opacity/scale envelope on a linear four-second timeline handles the exit. The fill bar remains capped, and the Goal lifecycle still requires an explicit status change.
+- Related/status: FB-20260927-008, DEC-20260927-006, FND-20260910-019, IMP-20260927-013, VER-20260927-021. Focused verified; subjective phone appearance awaits owner use.
+
 ### FND-20260927-008 — Two register files were missing from Gradle test inputs
 
 - Severity/category: Test result freshness, correctness risk.

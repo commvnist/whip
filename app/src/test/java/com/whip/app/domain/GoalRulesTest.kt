@@ -16,6 +16,23 @@ class GoalRulesTest {
         assertEquals(.5, calculateGoalProgress(goal(baseline = 100.0, target = 80.0, type = GoalType.ReduceValue), 90.0)!!, 0.0)
     }
 
+    @Test fun numericGoalsKeepOverTargetProgressWithoutInflatingReviewOutcomes() {
+        val reach = goal(target = 10.0)
+        assertEquals(1.2, calculateGoalProgress(reach, 12.0)!!, 0.0)
+        assertEquals(0.0, calculateGoalProgress(reach, -1.0)!!, 0.0)
+        assertEquals(1.5, calculateGoalProgress(goal(baseline = 100.0, target = 80.0, type = GoalType.ReduceValue), 70.0)!!, 0.0)
+        assertEquals(1.2, calculateGoalProgress(goal(target = 10.0, type = GoalType.AccumulateTotal), 12.0)!!, 0.0)
+        assertEquals(1.2, calculateGoalProgress(goal(target = 10.0, type = GoalType.MeetAverage), 12.0)!!, 0.0)
+        assertNull(calculateGoalProgress(goal(target = Double.MIN_VALUE), Double.MAX_VALUE))
+
+        val entries = listOf(entry(9.0, today), entry(12.0, today.plusDays(1)).copy(id = "later"))
+        assertEquals(1.2, projectGoal(reach, entries, emptyList(), today.plusDays(1)).progress!!, 0.0)
+        assertEquals(1.2, buildGoalInsights(reach, entries).points.last().progress!!, 0.0)
+        assertEquals(0.1, goalOutcomeScoreOnDate(reach, entries, emptyList(), today.plusDays(1)), 0.0000001)
+        val beyondEntries = entries + entry(13.0, today.plusDays(2)).copy(id = "later-still")
+        assertEquals(0.0, goalOutcomeScoreOnDate(reach, beyondEntries, emptyList(), today.plusDays(2)), 0.0)
+    }
+
     @Test fun baselineEqualTargetIsDefined() {
         val goal = goal(baseline = 75.0, target = 75.0)
         assertEquals(1.0, calculateGoalProgress(goal, 75.0)!!, 0.0)

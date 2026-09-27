@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260927-013 — Symmetric Goal celebration fade and truthful over-target progress
+
+- Behavior changed: Victory Shower's checkmark card fades and scales out over the last 0.8 seconds, matching its 0.8-second entrance on the existing four-second linear timeline. A tap still hides only the card. Reach, reduce, accumulate and average Goals keep finite progress above 100% while active, and a tiny overshoot reads `>100%` rather than `100%`. The collection, inspector, Insights and newly saved closure history use the same ratio and formatter. The visual bar and Review outcome score remain bounded, and completion remains explicit.
+- Important files/symbols: `GoalCelebrationOverlay`, `celebrationCardVisibility`, `calculateGoalProgress`, `goalOutcomeScoreOnDate`, `formatGoalProgressPercent`, and the Goal Insights list; focused JVM tests and the existing Goal journey.
+- Persistence/migration/history impact: New closure snapshots may store ratios above one; existing frozen snapshots remain unchanged. Room schema 46, data epoch 6 and backup format 26 do not change. The private build advances to 0.3.79/code 85.
+- Compatibility/limits: Consistency, range, milestone and zero-length baseline goals retain their bounded domain meanings. Motion-disabled Android settings still show a static four-second acknowledgement. This is a private phone update, not a Play candidate.
+- Related/status: FB-20260927-008, FND-20260927-009, DEC-20260927-006, VER-20260927-021/022. Implemented and focused verified; phone delivery in progress.
+
 ### IMP-20260927-012 — Retire Goal styles and decouple card dismissal from confetti
 
 - Behavior changed: Appearance & Home keeps only the default-on celebration toggle. Saved Goal completion uses Victory Shower for four seconds; a screen tap or accessible card action hides the checkmark message without ending confetti. After dismissal, app navigation can receive taps during the remaining animation.

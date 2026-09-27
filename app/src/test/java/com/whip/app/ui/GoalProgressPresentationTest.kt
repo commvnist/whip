@@ -10,6 +10,7 @@ class GoalProgressPresentationTest {
             0.0 to "0%", -0.0 to "0%", Double.MIN_VALUE to "<0.1%",
             0.00005 to "<0.1%", 0.001 to "0.1%", 0.005 to "0.5%",
             0.999 to "99.9%", 0.99901 to ">99.9%", Math.nextDown(1.0) to ">99.9%", 1.0 to "100%",
+            Math.nextUp(1.0) to ">100%", 1.00001 to ">100%", 1.005 to "100.5%", 1.2 to "120%",
         )
         cases.forEach { (progress, expected) -> assertEquals("Ratio $progress", expected, formatGoalProgressPercent(progress, Locale.US)) }
     }
@@ -26,5 +27,7 @@ class GoalProgressPresentationTest {
         assertEquals("<0,1\u00a0%", formatGoalProgressPercent(0.00005, Locale.GERMANY))
         assertEquals(">99,9\u00a0%", formatGoalProgressPercent(0.99999, Locale.GERMANY))
         assertEquals("100\u00a0%", formatGoalProgressPercent(1.0, Locale.GERMANY))
+        assertEquals(">100\u00a0%", formatGoalProgressPercent(1.00001, Locale.GERMANY))
+        assertEquals("120\u00a0%", formatGoalProgressPercent(1.2, Locale.GERMANY))
     }
 }

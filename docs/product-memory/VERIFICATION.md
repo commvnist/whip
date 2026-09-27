@@ -1,5 +1,13 @@
 # Verification and release evidence
 
+### VER-20260927-021 — Focused fade and over-target Goal acceptance
+
+- Scope/environment: Whip 0.3.79/code 85 source on one disposable API 34 emulator (`emulator-5554`); private owner-phone release follows separately in VER-20260927-022. No full Android inventory or Play candidate ran.
+- Readiness: Final `scripts/check --ready` passed 392 selected JVM methods in 45 XML reports with zero failures/errors/skips, Android-test compilation, debug lint, static checks and debug packaging in 2m40s. This includes the new symmetric-fade and over-target domain/locale assertions. `git diff --check` passed.
+- Native checks: Exact `GoalProgressJourneyE2ETest#tinyAndNearlyCompleteGoalsRemainDistinctFromTheirEndpoints` passed 1/1 in `build/instrumentation-results-fBtOtB`: active `>100%` and `120%` cards, inspector, trend table and Insights; explicit status remained Active; a later saved completion retained 1.2 and displayed 120% in History. Exact `#savedGoalCompletionKeepsCardFourSecondsAndTapOnlyDismissesCard` passed 1/1 after the final linear timeline edit in `build/instrumentation-results-QQmG2g`: card lifetime, tap-only dismissal, continuing confetti and disabled preference. Both accepted runs had zero failures/skips/reuse.
+- Diagnostic correction: The first two-method Android batch had one pass and one test failure because the sixth lazy Insights card was offscreen (`build/instrumentation-results-6CfKyY`). A stable list tag plus `performScrollToNode` fixed the test navigation; the exact failed method was rerun and accepted. This was not counted as a product failure or a fully green original batch.
+- Limits/status: The focused unit test checks symmetric visibility values; native checks verify the four-second lifecycle but do not claim pixel-level motion review. Subjective fade appearance awaits owner use. A fresh complete candidate remains required only for a future Play release. FB-20260927-008, FND-20260927-009, DEC-20260927-006, IMP-20260927-013. Verified.
+
 ### VER-20260927-020 — Exact 0.3.78 private APK on the owner phone
 
 - Source/artifact: Clean pushed `fea88943` produced 0.3.78/code 84. Signed APK SHA-256 `61cb88b7751fa9bcb8f5041ee0c545ef7477286a5909f35d8577fc18c71fc060`; signed AAB SHA-256 `b602b5d5741c7913b8b537b2d89ef363ff79c17e365b095780c6f058f783ca48`. Package, established APK v2 certificate, AAB JAR signature and both ZIP archives verified. [Private release receipt and local handoff links](../../artifacts/goal-celebration/2026-09-27/phone-release-0.3.78/README.md).

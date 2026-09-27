@@ -1,5 +1,13 @@
 # User feedback and acceptance criteria
 
+### FB-20260927-008 — Match the celebration exit and show over-target Goal progress
+
+- Date/source: 2026-09-27, direct owner follow-up to FB-20260927-007.
+- User need: Let the four-second checkmark card fade out as smoothly as it fades in, and show progress above 100% while an over-target Goal remains active.
+- Acceptance criteria: Use matching entry/exit fades within the existing four-second Victory Shower; tapping still dismisses only the card while confetti continues. Numeric Goals display the actual over-target percentage throughout active, insight and saved-history surfaces without changing their explicit completion lifecycle. Preserve a bounded visual bar and normalized Review scoring. Use the fast testing method with focused checks at the end, then install the updated verified app in place on the connected owner phone.
+- Affected workflows: Goal collection/Home, detail, Insights, Review, closure history, celebration, and private phone update.
+- Related/status: FB-20260927-007, FND-20260927-009, DEC-20260927-006, IMP-20260927-013, VER-20260927-021. Focused verified; private phone delivery in progress.
+
 ### FB-20260927-007 — Keep only Victory Shower and dismiss its card independently
 
 - Date/source: 2026-09-27, direct owner revision of FB-20260927-004 after the 0.3.77 phone release.

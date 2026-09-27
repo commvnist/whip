@@ -9,10 +9,12 @@ internal fun formatGoalProgressPercent(progress: Double, locale: Locale = Locale
         maximumFractionDigits = 1
         isGroupingUsed = false
     }
+    val formatted = percent.format(progress)
     return when {
         progress == 0.0 -> percent.format(0.0)
         progress > 0.0 && progress < 0.001 -> "<${percent.format(0.001)}"
         progress > 0.999 && progress < 1.0 -> ">${percent.format(0.999)}"
-        else -> percent.format(progress)
+        progress > 1.0 && formatted == percent.format(1.0) -> ">$formatted"
+        else -> formatted
     }
 }

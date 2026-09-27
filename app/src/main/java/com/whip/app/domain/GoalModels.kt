@@ -722,7 +722,7 @@ fun calculateGoalProgress(
         GoalDirection.Increase, GoalDirection.Neutral -> (value - baseline) / (target - baseline)
         GoalDirection.Decrease -> (baseline - value) / (baseline - target)
     }
-    return raw.coerceIn(0.0, 1.0)
+    return raw.takeIf(Double::isFinite)?.coerceAtLeast(0.0)
 }
 
 fun projectGoal(
@@ -786,7 +786,8 @@ fun goalOutcomeScoreOnDate(
     val previous = if (date.isAfter(goal.startDate)) {
         projectGoal(goal, relevant, milestones, date.minusDays(1)).progress ?: 0.0
     } else 0.0
-    return (current - previous).coerceIn(0.0, 1.0)
+    // Display progress can exceed the target; Review counts only movement toward it.
+    return (current.coerceAtMost(1.0) - previous.coerceAtMost(1.0)).coerceIn(0.0, 1.0)
 }
 
 fun calculateConsistencyProgress(

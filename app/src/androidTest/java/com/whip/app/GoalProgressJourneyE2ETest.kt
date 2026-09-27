@@ -87,11 +87,13 @@ class GoalProgressJourneyE2ETest {
         val ids = runBlocking {
             prepare()
             listOf(goal("A small beginning", 0.0005), goal("Almost at the target", 9.99999),
-                goal("Not started", 0.0), goal("Target reached", 10.0))
+                goal("Not started", 0.0), goal("Target reached", 10.0),
+                goal("Just beyond the target", 10.00001), goal("Past the target", 12.0))
         }
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             compose.onNodeWithContentDescription("Goals tab").performClick()
-            val expected = listOf("<0.1% complete", ">99.9% complete", "0% complete", "100% complete")
+            val expected = listOf("<0.1% complete", ">99.9% complete", "0% complete", "100% complete",
+                ">100% complete", "120% complete")
             ids.zip(expected).forEachIndexed { index, (id, text) ->
                 compose.onNodeWithTag("goal-card-$id").performScrollTo()
                 if (index == 0) captureVisualCatalogSurface("goals.progress.endpoints")
@@ -103,6 +105,28 @@ class GoalProgressJourneyE2ETest {
             compose.onNodeWithTag("goal-inspector-outcome").assertTextEquals(">99.9% complete")
             captureVisualCatalogSurface("goals.progress.near-target")
             assertEquals(GoalStatus.Active, runBlocking { app.goalRepository.get(ids[1])?.status })
+
+            compose.onNodeWithTag("entity-inspector-close").performClick()
+            compose.onNodeWithTag("goal-card-${ids[5]}").performScrollTo().performClick()
+            compose.onNodeWithTag("goal-inspector-outcome").assertTextEquals("120% complete")
+            compose.onNodeWithText("Trend Data Table").performScrollTo().performClick()
+            compose.onNodeWithText("progress 120%", substring = true).performScrollTo().assertIsDisplayed()
+            assertEquals(GoalStatus.Active, runBlocking { app.goalRepository.get(ids[5])?.status })
+
+            compose.onNodeWithTag("entity-inspector-close").performClick()
+            compose.onNodeWithTag("goal-destination-Insights").performClick()
+            compose.onNodeWithTag("goal-insights-list").performScrollToNode(hasTestTag("goal-insight-${ids[5]}"))
+            compose.onNode(hasText("120% complete", substring = true) and hasAnyAncestor(hasTestTag("goal-insight-${ids[5]}")),
+                useUnmergedTree = true).assertIsDisplayed()
+            runBlocking { app.goalRepository.setStatus(ids[5], GoalStatus.Completed) }
+            compose.onNodeWithTag("goal-destination-History").performClick()
+            compose.onNodeWithTag("goal-card-${ids[5]}").performScrollTo().performClick()
+            compose.onNodeWithTag("goal-inspector-outcome").assertTextEquals("120% complete")
+            compose.onNodeWithTag("goal-detail-section-History").performClick()
+            val snapshot = runBlocking { app.goalRepository.closureSnapshots.first().single { it.goalId == ids[5] } }
+            assertEquals(1.2, requireNotNull(snapshot.progress), 0.0000001)
+            compose.onNodeWithTag("goal-closure-history-${snapshot.id}").performScrollTo()
+                .assertTextContains("120% progress", substring = true)
         }
     }
 

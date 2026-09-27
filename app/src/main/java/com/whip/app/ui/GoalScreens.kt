@@ -1196,7 +1196,7 @@ private fun GoalInsightsContent(
     onOpen: (GoalProjection) -> Unit,
 ) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().testTag("goal-insights-list"),
         contentPadding = innerPadding,
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {

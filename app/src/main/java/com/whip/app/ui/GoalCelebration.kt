@@ -2,6 +2,7 @@ package com.whip.app.ui
 
 import android.animation.ValueAnimator
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -89,7 +90,7 @@ internal fun GoalCelebrationOverlay(event: GoalCelebrationEvent, onFinished: (Lo
     val progress = remember(event.id) { Animatable(0f) }
     var cardVisible by remember(event.id) { mutableStateOf(true) }
     LaunchedEffect(event.id, motionEnabled) {
-        if (motionEnabled) progress.animateTo(1f, tween(4_000)) else delay(4_000)
+        if (motionEnabled) progress.animateTo(1f, tween(4_000, easing = LinearEasing)) else delay(4_000)
         onFinished(event.id)
     }
 
@@ -99,7 +100,7 @@ internal fun GoalCelebrationOverlay(event: GoalCelebrationEvent, onFinished: (Lo
         MaterialTheme.colorScheme.primary,
         MaterialTheme.colorScheme.secondary,
     )
-    val reveal = if (motionEnabled) min(1f, progress.value * 5f) else 1f
+    val visibility = if (motionEnabled) celebrationCardVisibility(progress.value) else 1f
     val dismissOnTap = if (cardVisible) Modifier.pointerInput(event.id) {
         detectTapGestures { cardVisible = false }
     } else Modifier
@@ -111,8 +112,8 @@ internal fun GoalCelebrationOverlay(event: GoalCelebrationEvent, onFinished: (Lo
                 .padding(24.dp)
                 .widthIn(max = 360.dp)
                 .graphicsLayer {
-                    alpha = reveal
-                    scaleX = 0.9f + reveal * 0.1f
+                    alpha = visibility
+                    scaleX = 0.9f + visibility * 0.1f
                     scaleY = scaleX
                 }
                 .testTag("goal-celebration-card")
@@ -148,6 +149,8 @@ internal fun GoalCelebrationOverlay(event: GoalCelebrationEvent, onFinished: (Lo
         }
     }
 }
+
+internal fun celebrationCardVisibility(progress: Float): Float = min(1f, min(progress, 1f - progress) * 5f)
 
 @Composable
 private fun CompletionBadge() {
