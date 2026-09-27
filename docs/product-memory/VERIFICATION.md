@@ -1,5 +1,12 @@
 # Verification and release evidence
 
+### VER-20260927-012 — Documentation and plan reconciliation
+
+- Scope/environment: Current `main` documentation and source review on 2026-09-27. Compared the September 2, 9, 20–21 and 26–27 plans with present Track/widget source, latest release and candidate evidence, and the owner-paused audit record.
+- Result: The proposed next-work plan cites a live 30-day weekly-rate label ambiguity and two explicitly bounded evidence gaps; the older CSV singular-row wording was already corrected by Android plurals and was excluded. The memory index no longer states old release/test checkpoints as current. Historical ledgers, audits and release receipts remain intact.
+- Checks: `git diff --check` and a local relative-link existence check for every changed/new Markdown file passed. These are documentation checks only; no app build, JVM/Android suite, emulator, phone action or new spoken-accessibility test ran.
+- Related/status: FB-20260927-001, IMP-20260927-007. Verified for documentation accuracy at this checkpoint; N-01 through N-03 are Proposed product follow-ups, not completed work.
+
 ### VER-20260927-011 — Exact accepted APK on the owner phone
 
 - While the final emulator batches were finishing, `WHIP_DEVICE=<selected-phone> scripts/device release-install` streamed the exact APK that the complete candidate subsequently accepted: 0.3.75/code 81, in place on the connected Samsung. The installed base APK and retained release copy both have SHA-256 `43e5806b7f7f1d1d46caa2e72dc2b1a4fdfbc8f3890e7cae9886d5d55c5177f3`, matching the accepted candidate artifact manifest. Package `commvne.com.whip.app`, signer SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788` and original `firstInstallTime=2026-08-26 17:59:24` are preserved; final `lastUpdateTime=2026-09-27 03:09:43` local. The matching signed AAB SHA-256 is `b57eb6611a53f55fe6a7d607d129890aa87e7da995813cb0d8944ae93ff27c01`; both copied release archives pass ZIP integrity, the APK signer verifies, and the AAB reports `jar verified.`

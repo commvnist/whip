@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260927-007 — Make the current plan and documentation status clear
+
+- Replaced the long, contradictory product-memory index with a short current snapshot, canonical ledger links and an explicit paused-audit boundary. Added a quality-plan index and a three-item Ponytail Ultra next-work plan. Marked older plans and working audit registers as dated or completed without changing their historical evidence.
+- Current source still calculates Track weekly rate over 30 days without naming the window. The latest design evidence did not measure spoken TalkBack output. The September 21 Count/Timer launcher replay remains explicitly unexecuted. The plan treats the latter two as verification gaps, not confirmed product defects, and leaves broad speculative re-audits unscheduled.
+- Documentation only: no app source, test, data format, build/version, installed phone or release artifact changed. Related/status: FB-20260927-001, VER-20260927-012. Verified after the final documentation checks.
+
 ### IMP-20260927-006 — Align adaptive support regression with exact authored names
 
 - `AdaptiveWhipScreenTest#adaptiveDestinationSupportSeparatesErrorLoadingAndRealEmpty` now asserts that the loaded support pane visibly contains the exact seeded title `Cached task`. It retains the error, loading and empty-state checks and scopes the title to the support pane, so the regression tests the approved casing behavior instead of an obsolete transformed string.

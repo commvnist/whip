@@ -1,5 +1,7 @@
 # Fast whole-product UI/UX remediation plan
 
+> Historical 2026-09-02 execution plan. Its “Immediate trajectory” and “Current execution state” describe that checkpoint, not work scheduled today. Use the [current plan](NEXT_WORK_PONYTAIL_ULTRA_2026-09-27.md) and [quality index](README.md) for present status.
+
 ## Outcome
 
 Audit every user-reachable route, dialog, state, and platform handoff without

@@ -1,5 +1,7 @@
 # Whip top-down design consistency overhaul — 2026-09-26
 
+Status: **Completed for its documented scope** on 2026-09-27. The [current next-work plan](NEXT_WORK_PONYTAIL_ULTRA_2026-09-27.md) keeps only bounded, still-relevant follow-ups.
+
 Owner request: FB-20260926-003. This audit starts from private-release source `a42a30d9` on `main` and rechecks the September 26 reusable-architecture audit against current code and rendered states. The earlier 523-state catalog is a baseline, not proof that every viewport and interaction was sound.
 
 ## Method and acceptance

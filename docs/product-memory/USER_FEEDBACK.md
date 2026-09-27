@@ -1,5 +1,12 @@
 # User feedback and acceptance criteria
 
+### FB-20260927-001 — Clean up plans and retain only justified next work
+
+- Date/source: 2026-09-27, direct owner request to clean up documentation and plans and compile the items Ponytail Ultra judges worth doing into a new expandable plan.
+- User need: One trustworthy current entry point and a short, source-backed plan, without old completed or paused audit instructions appearing to be active work.
+- Acceptance criteria: Reconcile plan claims with the current app and verification records; preserve dated evidence; mark misleading historical plans; remove duplicate or stale current-state prose from the memory index; publish a ranked plan with evidence, smallest next step, completion criteria and a rule for adding later items; check documentation links and commit/push the coherent documentation change. Do not revive the owner-paused whole-product audit or change the app during documentation cleanup.
+- Related/status: FB-20260921-001, FB-20260926-001/003, IMP-20260927-007, VER-20260927-012. Verified for this documentation scope; the proposed app follow-ups remain unimplemented.
+
 ### FB-20260926-003 — Deep top-down design consistency overhaul
 
 - Date/source: 2026-09-26, direct owner request after the 0.3.74 private update: perform an in-depth, top-down design consistency audit and overhaul, implement every confirmed fix, and use fast development and testing. The owner reauthorized the previously stated subagent allocation.

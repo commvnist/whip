@@ -1,4 +1,6 @@
-# Current-source surface disposition — working audit register
+# Surface disposition — 2026-09-21 working register
+
+> Historical 2026-09-21 working register for the owner-paused whole-product audit. “Current source” means the source at that checkpoint; this file is not a current acceptance matrix. See the [quality index](README.md).
 
 This register continues FB-20260920-001 without rewriting the frozen [534-row September 8 matrix](astra-surface-review-2026-09-08.tsv). Its review denominator is 181 rows: 160 frozen unfinished IDs that still exist in the [current UI catalog](ui-surface-catalog.tsv), 14 post-freeze current IDs, and seven retired/replaced 5/3/1 IDs whose exact disposition is in [the retirement record](ASTRA_GYM_RETIREMENT_DISPOSITION_2026-09-21.md). Previously Verified rows keep their historical evidence and still participate in the final whole-product campaign.
 

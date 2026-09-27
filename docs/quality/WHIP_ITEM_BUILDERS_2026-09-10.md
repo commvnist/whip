@@ -1,5 +1,7 @@
 # Whip item builders
 
+> Historical 2026-09-10 design and implementation record. Early pilot instructions below preceded the verified builder migrations later in this document and the [September 26 reusable-architecture audit](REUSABLE_ARCHITECTURE_UX_AUDIT_2026-09-26.md). Use the [current next-work plan](NEXT_WORK_PONYTAIL_ULTRA_2026-09-27.md) for proposed work.
+
 Owner direction: FB-20260910-001/002. Working investigation: VER-20260910-003. Prioritize the normal 100% app experience.
 
 Builders should let feature code describe an item's content and available actions while the shared renderer owns its reading order, spacing, typography, surfaces and responsive composition. Uniformity should be visible in the app and make common interactions predictable.

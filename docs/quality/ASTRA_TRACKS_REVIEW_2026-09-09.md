@@ -1,4 +1,6 @@
-# Tracks review in progress
+# Tracks review — 2026-09-09 checkpoint
+
+> Historical 2026-09-09 review checkpoint. Later fixes closed several observations below; treat remaining leads as unconfirmed until rechecked against current source. The [current plan](NEXT_WORK_PONYTAIL_ULTRA_2026-09-27.md) retains only the still-present weekly-rate copy ambiguity.
 
 Owner: FB-20260908-006. Verification: VER-20260909-016. The whole Tracks area remains Investigating.
 

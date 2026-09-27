@@ -1,5 +1,7 @@
 # Whip reusable architecture and UX audit — 2026-09-26
 
+Status: **Completed for its documented scope.** Later design changes and the 0.3.75 phone release are in the [design overhaul](DESIGN_CONSISTENCY_OVERHAUL_2026-09-26.md). The [current next-work plan](NEXT_WORK_PONYTAIL_ULTRA_2026-09-27.md) is separate.
+
 Owner request: FB-20260926-001. This is the current-source plan and implementation ledger for the new audit. The September 3 and 10 shared-component work is the foundation; the September 21 whole-product audit remains historically paused, not silently accepted by this document.
 
 ## Baseline and method

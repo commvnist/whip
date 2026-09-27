@@ -1,8 +1,8 @@
-# Reusable Whip maximum-quality goal
+# Archived Whip maximum-quality goal template
 
-> Run status: **Closed by user direction on 2026-09-02.** The two-day mission stopped before the original definition of done and must not resume automatically. The text below remains a reusable future goal; preserved residual work is indexed in `INDEX.md`.
+> Run status: **Closed by user direction on 2026-09-02.** The two-day mission stopped before the original definition of done and must not resume automatically. This template includes retired 5/3/1 and Health Connect requirements and older release assumptions. It is historical source material, not a current task list; use the [current snapshot](INDEX.md) and [next-work plan](../quality/NEXT_WORK_PONYTAIL_ULTRA_2026-09-27.md) before drafting any future goal.
 
-Copy the text below into a new Codex request when ready to run the whole-product program.
+Reconcile the text below with current product decisions before reusing any part of it.
 
 ```text
 /goal Whip Maximum-Quality Product Remediation — Durable, Focused, Iterative Implementation
