@@ -6,6 +6,9 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -16,6 +19,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toPixelMap
@@ -815,6 +819,71 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithTag("fold-support-pane").assertIsDisplayed()
         compose.onNodeWithTag("adaptive-tabletop-navigation").assertIsDisplayed()
         compose.onNodeWithContentDescription("Device hinge separator").assertIsDisplayed()
+    }
+
+    @Test
+    @AndroidFontScale
+    fun tabletopSupportContextScrollsToLaterTasksAtTwoHundredPercentText() {
+        val today = LocalDate.of(2026, 9, 26)
+        val dueTasks = (1..6).map { number ->
+            ScheduledTask(
+                task = WhipTask(
+                    id = number.toLong(),
+                    title = "Pane task $number",
+                    notes = "",
+                    scheduleKind = ScheduleKind.Once,
+                    date = today,
+                    recurrence = null,
+                    timeMinutes = null,
+                    reminderEnabled = false,
+                    archived = false,
+                    completedAtMillis = null,
+                    createdAtMillis = number.toLong(),
+                    updatedAtMillis = number.toLong(),
+                ),
+                originalDate = today,
+                scheduledDate = today,
+            )
+        }
+        val largeText = Density(compose.density.density, fontScale = 2f)
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides largeText) {
+                WhipTheme(dynamicColor = false) {
+                    WhipScreen(
+                        state = TaskUiState(today = dueTasks, currentDate = today, loading = false),
+                        habitState = HabitUiState(loading = false),
+                        goalState = GoalUiState(loading = false),
+                        trackState = TrackUiState(loading = false),
+                        gymState = GymUiState(loading = false),
+                        adaptiveLayout = WhipAdaptiveLayout.TabletopFold,
+                        foldInfo = WhipFoldInfo(
+                            orientation = WhipFoldOrientation.Horizontal,
+                            leftPx = 0,
+                            topPx = 700,
+                            rightPx = 1_800,
+                            bottomPx = 740,
+                            separating = true,
+                            halfOpened = true,
+                        ),
+                        onSaveTask = { _, _, _ -> },
+                        onComplete = {},
+                        onSkip = {},
+                        onReschedule = { _, _ -> },
+                        onArchive = {},
+                        onReopen = {},
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithContentDescription("Tasks tab").performClick()
+        compose.onNodeWithTag("support-pane-title")
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+        compose.onNodeWithTag("destination-support-content")
+            .performScrollToIndex(7)
+        compose.onNode(hasText("Pane task 6") and hasAnyAncestor(hasTestTag("destination-support-content")))
+            .assertIsDisplayed()
+        compose.onNodeWithTag("adaptive-tabletop-navigation").assertIsDisplayed()
     }
 
     @Test

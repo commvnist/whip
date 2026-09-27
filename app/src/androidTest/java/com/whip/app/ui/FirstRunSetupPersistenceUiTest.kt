@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
@@ -17,8 +18,11 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.whip.app.AndroidFontScale
@@ -31,6 +35,7 @@ import com.whip.app.core.WhipResult
 import com.whip.app.ui.theme.WhipTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
@@ -209,15 +214,40 @@ class FirstRunSetupPersistenceUiTest {
         compose.onNodeWithText("Optional Preferences").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Ask for reminder notifications").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Save and Start").assertIsDisplayed()
+        assertEnglishSentenceEndsWithPunctuation(
+            "Advanced choices stay folded until requested.",
+        )
         compose.waitForIdle()
         captureVisualCatalogSurface("shared.first-run.optional-large-rtl")
         compose.onNodeWithText("Save and Start").performClick()
         fail("Setup could not be saved. Your choices are still here; try again.")
         compose.onNodeWithText("Setup could not be saved. Your choices are still here; try again.").assertIsDisplayed()
+        assertEnglishSentenceEndsWithPunctuation(
+            "Setup could not be saved. Your choices are still here; try again.",
+        )
         compose.onNodeWithText("Save and Start").assertIsDisplayed()
         compose.onNodeWithText("Back").assertIsDisplayed()
         compose.waitForIdle()
         captureVisualCatalogSurface("shared.first-run.error-large-rtl", visuallyDistinctFrom = "shared.first-run.optional-large-rtl")
+    }
+
+    private fun assertEnglishSentenceEndsWithPunctuation(text: String) {
+        val layouts = mutableListOf<TextLayoutResult>()
+        compose.onNodeWithText(text, useUnmergedTree = true)
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { getResults ->
+                assertTrue(getResults(layouts))
+            }
+        val layout = layouts.single()
+        assertEquals(ResolvedTextDirection.Ltr, layout.getParagraphDirection(0))
+        assertEquals(
+            "Final punctuation should stay on the final word's wrapped line.",
+            layout.getLineForOffset(text.lastIndex - 1),
+            layout.getLineForOffset(text.lastIndex),
+        )
+        assertTrue(
+            "In an English sentence, final punctuation should follow the final letter visually in RTL.",
+            layout.getBoundingBox(text.lastIndex).left > layout.getBoundingBox(text.lastIndex - 1).left,
+        )
     }
 
     private fun fail(message: String) = compose.runOnIdle {

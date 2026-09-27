@@ -16,21 +16,24 @@ import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import com.whip.app.core.HomeSection
 
@@ -115,103 +118,109 @@ fun FirstRunSetupDialog(
         inputBlockedLabel = "Saving setup",
         title = { Text(if (customizing) "Customize Whip" else "Welcome to Whip") },
         text = {
-            Column(
-                modifier = Modifier.fillMaxWidth().verticalScroll(scroll),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+            CompositionLocalProvider(
+                LocalTextStyle provides LocalTextStyle.current.copy(textDirection = TextDirection.Content),
             ) {
-                errorMessage?.let { message ->
-                    Text(
-                        message,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                    )
-                }
-                if (!customizing) {
-                    Text(
-                        "Turn plans into action without giving up ownership of your data.",
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        shape = MaterialTheme.shapes.medium,
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                Column(
+                    modifier = Modifier.fillMaxWidth().verticalScroll(scroll),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    errorMessage?.let { message ->
+                        Text(
+                            message,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                        )
+                    }
+                    if (!customizing) {
+                        Text(
+                            "Turn plans into action without giving up ownership of your data.",
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            shape = MaterialTheme.shapes.medium,
                         ) {
-                            SetupValue(
-                                Icons.Outlined.CheckCircle,
-                                "Plan What Matters",
-                                "Capture Tasks and keep today's next actions clear.",
-                            )
-                            SetupValue(
-                                Icons.Outlined.Autorenew,
-                                "Build Momentum",
-                                "Practice Habits, pursue Goals, record evidence, and train.",
-                            )
-                            SetupValue(
-                                Icons.Outlined.Lock,
-                                "Private by Default",
-                                "Your data stays on this device. No account is required.",
-                            )
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(14.dp),
+                            ) {
+                                SetupValue(
+                                    Icons.Outlined.CheckCircle,
+                                    "Plan What Matters",
+                                    "Capture Tasks and keep today's next actions clear.",
+                                )
+                                SetupValue(
+                                    Icons.Outlined.Autorenew,
+                                    "Build Momentum",
+                                    "Practice Habits, pursue Goals, record evidence, and train.",
+                                )
+                                SetupValue(
+                                    Icons.Outlined.Lock,
+                                    "Private by Default",
+                                    "Your data stays on this device. No account is required.",
+                                )
+                            }
                         }
-                    }
-                    Text(
-                        "The recommended setup puts Tasks and Habits on Home and keeps advanced controls folded. Every feature remains one tap away.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                } else {
-                    Text("Choose what appears on Home. Every feature remains available from main navigation.")
-                    Text("Home Overview", style = MaterialTheme.typography.titleSmall)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        HomeSection.entries.forEach { section ->
-                            WhipFilterChip(
-                                selected = section in selectedSections,
-                                onClick = {
-                                    selectedSections = if (section in selectedSections) {
-                                        selectedSections - section
-                                    } else {
-                                        selectedSections + section
-                                    }
-                                },
-                                label = { Text(section.label) },
-                            )
-                        }
-                    }
-                    if (selectedSections.isEmpty()) {
-                        Text("Choose at least one Home section.", color = MaterialTheme.colorScheme.error)
-                    }
-                    WhipToggleRow("Show advanced controls by default", powerMode, { powerMode = it })
-                    Text(
-                        if (powerMode) "Advanced choices open automatically where useful." else "Advanced choices stay folded until requested.",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    Text("Weight Units", style = MaterialTheme.typography.titleSmall)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        WhipFilterChip(!usePounds, { usePounds = false }, { Text("kg") })
-                        WhipFilterChip(usePounds, { usePounds = true }, { Text("lb") })
-                    }
-                    WhipTextButton(
-                        onClick = { showOptionalPreferences = !showOptionalPreferences },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(if (showOptionalPreferences) "Hide Optional Preferences" else "Optional Preferences")
-                    }
-                    if (showOptionalPreferences) {
-                        WhipToggleRow("Use low-pressure presentation", lowPressureMode, { lowPressureMode = it })
-                        Text("Reduces streak emphasis without changing your data.", style = MaterialTheme.typography.bodySmall)
-                        WhipToggleRow("Ask for reminder notifications", notifications, { notifications = it })
+                        Text(
+                            "The recommended setup puts Tasks and Habits on Home and keeps advanced controls folded. Every feature remains one tap away.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     } else {
                         Text(
-                            "You can change reminders in Settings → Reminders and presentation in Settings → Appearance & Home.",
+                            "Choose what appears on Home. Every feature remains available from main navigation."
+                        )
+                        Text("Home Overview", style = MaterialTheme.typography.titleSmall)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            HomeSection.entries.forEach { section ->
+                                WhipFilterChip(
+                                    selected = section in selectedSections,
+                                    onClick = {
+                                        selectedSections = if (section in selectedSections) {
+                                            selectedSections - section
+                                        } else {
+                                            selectedSections + section
+                                        }
+                                    },
+                                    label = { Text(section.label) },
+                                )
+                            }
+                        }
+                        if (selectedSections.isEmpty()) {
+                            Text("Choose at least one Home section.", color = MaterialTheme.colorScheme.error)
+                        }
+                        WhipToggleRow("Show advanced controls by default", powerMode, { powerMode = it })
+                        Text(
+                            if (powerMode) "Advanced choices open automatically where useful." else "Advanced choices stay folded until requested.",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        Text("Weight Units", style = MaterialTheme.typography.titleSmall)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            WhipFilterChip(!usePounds, { usePounds = false }, { Text("kg") })
+                            WhipFilterChip(usePounds, { usePounds = true }, { Text("lb") })
+                        }
+                        WhipTextButton(
+                            onClick = { showOptionalPreferences = !showOptionalPreferences },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(if (showOptionalPreferences) "Hide Optional Preferences" else "Optional Preferences")
+                        }
+                        if (showOptionalPreferences) {
+                            WhipToggleRow("Use low-pressure presentation", lowPressureMode, { lowPressureMode = it })
+                            Text("Reduces streak emphasis without changing your data.", style = MaterialTheme.typography.bodySmall)
+                            WhipToggleRow("Ask for reminder notifications", notifications, { notifications = it })
+                        } else {
+                            Text(
+                                "You can change reminders in Settings → Reminders and presentation in Settings → Appearance & Home.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                        Text(
+                            "Whip stores your data locally. Configure backups anytime in Settings → Data & Privacy.",
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
-                    Text(
-                        "Whip stores your data locally. Configure backups anytime in Settings → Data & Privacy.",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
                 }
             }
         },

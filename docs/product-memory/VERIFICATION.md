@@ -1,5 +1,14 @@
 # Verification and release evidence
 
+### VER-20260926-007 — Focused design consistency regressions on disposable API 34
+
+- Scope/environment: Current uncommitted design-overhaul source on two guarded API 34 emulators, `emulator-5554` and `emulator-5556`; the connected physical Samsung was never selected for instrumentation. Focused checks intentionally preceded a frozen final candidate.
+- Command/result: The populated 200% tabletop `AdaptiveWhipScreenTest#tabletopSupportContextScrollsToLaterTasksAtTwoHundredPercentText` passed 1/1 fresh on 5554 (`build/instrumentation-results-FB5FwT`). Four Gym permanent-delete methods passed 4/4 fresh on 5556 (`build/instrumentation-results-oZZ3kh`), covering Exercise, Workout, Routine, and Machine blockers, scrollable impact, and pinned actions. Three wide Settings and actual-200% RTL first-run methods passed 3/3 fresh on 5556 (`app/build/whip-android-workers/design-settings-rtl-20260926/results/`), including 900 dp category description/selection/focus and the two wrapped English sentence punctuation checks. [Current 900 dp expanded screenshot](../../artifacts/design-consistency/2026-09-26/final/README.md) now matches the split card grammar. `scripts/ui-catalog lint` passed with 523 required captures, zero pending and zero platform exceptions. `git diff --check` passed.
+- Diagnostic failures: An early compilation attempt caught an in-flight missing RTL test import and unfinished warning enum; both were corrected. A simultaneous Gradle run later raced over the shared JaCoCo output and stopped before instrumentation. A test iteration also showed the original folded Tasks support pane owner and the unintended title casing; both were fixed and the final focused Task method passed. None of those attempts is counted as an accepted native run.
+- Limitations: Current-source visual recapture, full JVM/Android/build/lint candidate, real TalkBack speech, other API levels, and owner-phone subjective review remain separate. No owner-phone install or release occurred.
+- Related/status: FB-20260926-003, FND-20260926-009 through -015, IMP-20260926-007. Focused 8/8 methods verified; final campaign pending.
+
+
 ### VER-20260926-006 — Signed 0.3.74 private update on the owner phone
 
 - Scope: FB-20260926-002 delivers the accepted architecture-audit source (VER-20260926-005) with only version metadata advanced to Whip 0.3.74/code 80. Release source `751fab37f3464438d5006fc0efa37e5a60698c5b` was clean and equal to `origin/main` before construction. The selected wireless target passed `scripts/android-target-guard release`: physical Samsung SM-F976W, API 37, `ro.kernel.qemu=0`. It had the prior 0.3.73/code 79 APK hash `c41873410bfd5db99f32e6d69526e055f7fab314a11a577fda58220f538eb334` and original `firstInstallTime=2026-08-26 17:59:24`.

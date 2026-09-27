@@ -4956,12 +4956,13 @@ internal fun ExercisePermanentDeleteDialog(
     PaneAwareAlertDialog(
         modifier = modifier.testTag("exercise-delete-dialog"),
         onDismissRequest = { if (!deleting) onDismiss() },
-        title = { Text("Delete “${exerciseName.ifBlank { "Exercise" }}” Permanently?") },
+        title = null,
         text = {
             LazyColumn(
                 modifier = Modifier.testTag("exercise-delete-impact-list"),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                item { WhipDialogHeading("Delete “${exerciseName.ifBlank { "Exercise" }}” Permanently?") }
                 if (preparing && !targetMissing) item {
                     WhipNoticeCard(
                         title = "Reviewing impact",
@@ -5337,12 +5338,13 @@ internal fun WorkoutPermanentDeleteDialog(
     PaneAwareAlertDialog(
         modifier = modifier.testTag("workout-delete-dialog"),
         onDismissRequest = { if (!deleting) onDismiss() },
-        title = { Text("Delete “${workoutName.ifBlank { "Workout" }}” Permanently?") },
+        title = null,
         text = {
             LazyColumn(
                 modifier = Modifier.testTag("workout-delete-impact-list"),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                item { WhipDialogHeading("Delete “${workoutName.ifBlank { "Workout" }}” Permanently?") }
                 if (preparing && !targetMissing) item {
                     WhipNoticeCard(
                         title = "Reviewing impact",
@@ -5471,12 +5473,13 @@ internal fun RoutinePermanentDeleteDialog(
     PaneAwareAlertDialog(
         modifier = modifier.testTag("routine-delete-dialog"),
         onDismissRequest = { if (!deleting) onDismiss() },
-        title = { Text("Delete “${routineName.ifBlank { "Routine" }}” Permanently?") },
+        title = null,
         text = {
             LazyColumn(
                 modifier = Modifier.testTag("routine-delete-impact-list"),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                item { WhipDialogHeading("Delete “${routineName.ifBlank { "Routine" }}” Permanently?") }
                 if (preparing && !targetMissing) item {
                     WhipNoticeCard(
                         title = "Reviewing impact",
@@ -5599,18 +5602,19 @@ internal fun MachinePermanentDeleteDialog(
     PaneAwareAlertDialog(
         modifier = modifier.testTag("machine-delete-dialog"),
         onDismissRequest = { if (!deleting) onDismiss() },
-        title = {
-            Text(
-                "Delete “${machineName.ifBlank { "Machine Profile" }}”" +
-                    (impact?.let { " v${it.configurationVersion}" } ?: "") +
-                    " Permanently?",
-            )
-        },
+        title = null,
         text = {
             LazyColumn(
                 modifier = Modifier.testTag("machine-delete-impact-list"),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                item {
+                    WhipDialogHeading(
+                        "Delete “${machineName.ifBlank { "Machine Profile" }}”" +
+                            (impact?.let { " v${it.configurationVersion}" } ?: "") +
+                            " Permanently?",
+                    )
+                }
                 if (preparing && !targetMissing) item {
                     WhipNoticeCard(
                         title = "Reviewing impact",
@@ -5644,6 +5648,16 @@ internal fun MachinePermanentDeleteDialog(
                     )
                 } }
                 impact?.let { exact ->
+                    if (blocked) item {
+                        WhipNoticeCard(
+                            title = "Active Workout",
+                            message = "This profile is currently in use. Finish the workout or change that exercise’s equipment before deleting it.",
+                            tone = WhipNoticeTone.Warning,
+                            actionLabel = "Open Active Workout",
+                            onAction = onOpenActiveWorkout,
+                            semanticStateLabel = "Deletion blocked by active workout",
+                        )
+                    }
                     if (errorMessage == null) item {
                         Text(
                             "Deletion impact ready — review it before confirming.",
@@ -5678,16 +5692,6 @@ internal fun MachinePermanentDeleteDialog(
                                 ).orEmpty(),
                         )
                         WhipTextButton(onClick = onReviewRoutines) { Text("Review Routines") }
-                    }
-                    if (blocked) item {
-                        WhipNoticeCard(
-                            title = "Active Workout",
-                            message = "This profile is currently in use. Finish the workout or change that exercise’s equipment before deleting it.",
-                            tone = WhipNoticeTone.Warning,
-                            actionLabel = "Open Active Workout",
-                            onAction = onOpenActiveWorkout,
-                            semanticStateLabel = "Deletion blocked by active workout",
-                        )
                     }
                     item {
                         Text(

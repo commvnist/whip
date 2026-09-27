@@ -1,5 +1,15 @@
 # Implementation history
 
+### IMP-20260926-007 — Make Whip support panes, review dialogs, and Settings navigation consistent
+
+- Behavior changed: Task/Habit/Goal/Track/Settings adaptive support panes now scroll their title, explanation, and rows as one bounded list; Home/Gym fold context uses the same whole-pane scroll ownership and keeps tabletop navigation outside it. Support titles, Task/Habit/Goal grouping labels, and Settings section labels expose headings without changing authored group casing or compact type. Authored Task/Habit/Goal names keep exact casing in shared support navigation rows.
+- Gym Exercise/Workout/Routine/Machine permanent-delete reviews use the established in-list dialog heading so long titles and impact rows scroll together while actions stay available. Machine's Active Workout blocker now precedes impact details. Settings' six wide category choices reuse the same selected support-card renderer in both reachable 900 dp modes; saved-with-warning results use the shared warning tone and state. English first-run copy resolves its paragraph direction from content at 200% RTL while the layout remains RTL.
+- Important files: `WhipApp.kt`, `WhipPagePatterns.kt`, `ItemControlPatterns.kt`, `HabitScreens.kt`, `GoalScreens.kt`, `GymScreens.kt`, `SettingsScreens.kt`, `FirstRunSetupDialog.kt`, and focused native UI tests. The before-change Settings comparison is retained in `artifacts/design-consistency/2026-09-26/baseline/`.
+- Persistence/migration/history impact: None. Room schema, data epoch, backup format, package/version, and domain mutation rules are unchanged; the owner phone was not selected for development tests.
+- Compatibility and limitations: Domain-specific workout execution, chart, calendar, multi-day Routine actions, and Gym's no-Area identity remain intentional. The prior visual catalog remains baseline evidence; current-source full capture and frozen candidate remain pending.
+- Related/status: FB-20260926-003, FND-20260926-009 through -015, DEC-20260926-005, VER-20260926-007. Implemented; focused tests passed, final visual/candidate verification pending.
+
+
 ### IMP-20260926-006 — Package the completed reuse audit for an in-place phone update
 
 - Advance the private release from 0.3.73/code 79 to 0.3.74/code 80 because the selected owner phone already has the prior 0.3.73 APK. The app/test implementation remains the accepted architecture source in VER-20260926-005; only release version metadata changes.

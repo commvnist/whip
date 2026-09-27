@@ -4379,7 +4379,7 @@ private val SupportPaneItemSpacing = 10.dp
 private fun SupportPaneTitle(title: String) {
     Text(
         title,
-        modifier = Modifier.testTag("support-pane-title"),
+        modifier = Modifier.semantics { heading() }.testTag("support-pane-title"),
         style = MaterialTheme.typography.headlineSmall,
         fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.onSurface,
@@ -4560,49 +4560,50 @@ private fun DestinationSupportPane(
     onOpen: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing).padding(SupportPaneContentPadding),
+    LazyColumn(
+        modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing).testTag("destination-support-content"),
+        contentPadding = SupportPaneContentPadding,
         verticalArrangement = Arrangement.spacedBy(SupportPaneItemSpacing),
     ) {
-        SupportPaneTitle(title)
-        SupportPaneDescription(supportingText)
+        item { SupportPaneTitle(title) }
+        item { SupportPaneDescription(supportingText) }
         if (loadState != AdaptiveLoadState.Ready) {
-            AdaptiveLoadNotice(
-                domain = domain,
-                loadState = loadState,
-                onRetry = onRetry,
-                modifier = Modifier.testTag(
-                    "$statusTagPrefix-${if (loadState == AdaptiveLoadState.Loading) "loading" else "error"}",
-                ),
-            )
+            item {
+                AdaptiveLoadNotice(
+                    domain = domain,
+                    loadState = loadState,
+                    onRetry = onRetry,
+                    modifier = Modifier.testTag(
+                        "$statusTagPrefix-${if (loadState == AdaptiveLoadState.Loading) "loading" else "error"}",
+                    ),
+                )
+            }
         }
         if (items.isNotEmpty()) {
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(items, key = SupportPaneItem::id) { item ->
-                    val elapsedDisplay = item.elapsedDisplay
-                    NavigationRow(
-                        title = item.title,
-                        supportingText = item.supportingText.takeIf { elapsedDisplay == null },
-                        supportingContent = elapsedDisplay?.let { display ->
-                            {
-                                ElapsedGoalMetric(
-                                    display = display,
-                                    modifier = Modifier.testTag("support-pane-item-metric-${item.id}"),
-                                )
-                            }
-                        },
-                        onClick = { onOpen(item.id) },
-                    )
-                }
+            items(items, key = SupportPaneItem::id) { item ->
+                val elapsedDisplay = item.elapsedDisplay
+                NavigationRow(
+                    title = item.title,
+                    preserveTitleCase = true,
+                    supportingText = item.supportingText.takeIf { elapsedDisplay == null },
+                    supportingContent = elapsedDisplay?.let { display ->
+                        {
+                            ElapsedGoalMetric(
+                                display = display,
+                                modifier = Modifier.testTag("support-pane-item-metric-${item.id}"),
+                            )
+                        }
+                    },
+                    onClick = { onOpen(item.id) },
+                )
             }
         } else if (loadState == AdaptiveLoadState.Ready) {
-            SupportPaneEmptyMessage(
-                text = emptyText,
-                testTag = "$statusTagPrefix-empty",
-            )
+            item {
+                SupportPaneEmptyMessage(
+                    text = emptyText,
+                    testTag = "$statusTagPrefix-empty",
+                )
+            }
         }
     }
 }
@@ -4624,42 +4625,6 @@ private fun SupportPaneEmptyMessage(
 }
 
 @Composable
-private fun SupportPaneSelectionCard(
-    title: String,
-    supportingText: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    supportingMaxLines: Int = 2,
-    leading: @Composable (() -> Unit)? = null,
-) {
-    Card(
-        modifier = modifier.fillMaxWidth().selectable(selected = selected, role = Role.Tab, onClick = onClick),
-        colors = androidx.compose.material3.CardDefaults.cardColors(
-            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer,
-        ),
-    ) {
-        Row(
-            Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            leading?.invoke()
-            Column(Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(
-                    supportingText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = supportingMaxLines,
-                )
-            }
-            Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)
-        }
-    }
-}
-
-@Composable
 private fun TrackSupportPane(
     projections: List<TrackProjection>,
     selectedTrackId: Long?,
@@ -4668,46 +4633,46 @@ private fun TrackSupportPane(
     onSelect: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing).padding(SupportPaneContentPadding),
+    LazyColumn(
+        modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing).testTag("track-support-list"),
+        contentPadding = SupportPaneContentPadding,
         verticalArrangement = Arrangement.spacedBy(SupportPaneItemSpacing),
     ) {
-        SupportPaneTitle(stringResource(R.string.nav_tracks))
-        SupportPaneDescription(stringResource(R.string.support_tracks_description))
+        item { SupportPaneTitle(stringResource(R.string.nav_tracks)) }
+        item { SupportPaneDescription(stringResource(R.string.support_tracks_description)) }
         if (loadState != AdaptiveLoadState.Ready) {
-            AdaptiveLoadNotice(
-                domain = stringResource(R.string.nav_tracks),
-                loadState = loadState,
-                onRetry = onRetry,
-                modifier = Modifier.testTag(
-                    "track-support-${if (loadState == AdaptiveLoadState.Loading) "loading" else "error"}",
-                ),
-            )
+            item {
+                AdaptiveLoadNotice(
+                    domain = stringResource(R.string.nav_tracks),
+                    loadState = loadState,
+                    onRetry = onRetry,
+                    modifier = Modifier.testTag(
+                        "track-support-${if (loadState == AdaptiveLoadState.Loading) "loading" else "error"}",
+                    ),
+                )
+            }
         }
         if (projections.isNotEmpty()) {
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth().weight(1f).testTag("track-support-list"),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(projections, key = { it.track.id }) { projection ->
-                    val selected = projection.track.id == selectedTrackId
-                    SupportPaneSelectionCard(
-                        title = projection.track.name,
-                        supportingText = "${pluralStringResource(R.plurals.entry_count, projection.entries.size, projection.entries.size)} · ${projection.track.area}",
-                        selected = selected,
-                        onClick = { onSelect(projection.track.id) },
-                        modifier = Modifier
-                            .semantics { contentDescription = "Open ${projection.track.name}" },
-                    ) {
-                        WhipIdentityEmoji(projection.track.icon)
-                    }
+            items(projections, key = { it.track.id }) { projection ->
+                val selected = projection.track.id == selectedTrackId
+                SupportPaneSelectionCard(
+                    title = projection.track.name,
+                    supportingText = "${pluralStringResource(R.plurals.entry_count, projection.entries.size, projection.entries.size)} · ${projection.track.area}",
+                    selected = selected,
+                    onClick = { onSelect(projection.track.id) },
+                    modifier = Modifier
+                        .semantics { contentDescription = "Open ${projection.track.name}" },
+                ) {
+                    WhipIdentityEmoji(projection.track.icon)
                 }
             }
         } else if (loadState == AdaptiveLoadState.Ready) {
-            SupportPaneEmptyMessage(
-                text = stringResource(R.string.support_tracks_empty),
-                testTag = "track-support-empty",
-            )
+            item {
+                SupportPaneEmptyMessage(
+                    text = stringResource(R.string.support_tracks_empty),
+                    testTag = "track-support-empty",
+                )
+            }
         }
     }
 }
@@ -4718,27 +4683,23 @@ private fun SettingsSupportPane(
     onSelect: (SettingsSection) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing).padding(SupportPaneContentPadding),
+    LazyColumn(
+        modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing).testTag("settings-support-list"),
+        contentPadding = SupportPaneContentPadding,
         verticalArrangement = Arrangement.spacedBy(SupportPaneItemSpacing),
     ) {
-        SupportPaneTitle(stringResource(R.string.nav_settings))
-        SupportPaneDescription("Choose a category.")
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth().weight(1f).testTag("settings-support-list"),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            items(SettingsSection.entries, key = SettingsSection::name) { section ->
-                val active = section == selected
-                SupportPaneSelectionCard(
-                    title = section.label,
-                    supportingText = section.supportingText,
-                    selected = active,
-                    onClick = { onSelect(section) },
-                    modifier = Modifier.testTag("settings-support-section-${section.label}"),
-                    supportingMaxLines = 3,
-                )
-            }
+        item { SupportPaneTitle(stringResource(R.string.nav_settings)) }
+        item { SupportPaneDescription("Choose a category.") }
+        items(SettingsSection.entries, key = SettingsSection::name) { section ->
+            val active = section == selected
+            SupportPaneSelectionCard(
+                title = section.label,
+                supportingText = section.supportingText,
+                selected = active,
+                onClick = { onSelect(section) },
+                modifier = Modifier.testTag("settings-support-section-${section.label}"),
+                supportingMaxLines = 3,
+            )
         }
     }
 }
@@ -4772,6 +4733,8 @@ private fun FoldContextPane(
             modifier = Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
+                .verticalScroll(rememberScrollState())
+                .testTag("fold-context-content")
                 .padding(SupportPaneContentPadding),
             verticalArrangement = Arrangement.spacedBy(SupportPaneItemSpacing),
         ) {
@@ -4809,7 +4772,6 @@ private fun FoldContextPane(
                 } else if (contextLines.isNotEmpty()) {
                     Text(summary.gymContextTitle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Column(
-                        modifier = Modifier.verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         contextLines.forEachIndexed { index, line ->
@@ -4863,7 +4825,6 @@ private fun FoldContextPane(
                     }
                 } else {
                     Column(
-                        modifier = Modifier.verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         if (todayLines.isEmpty()) {
@@ -6747,7 +6708,7 @@ private fun TaskAreaContent(
                 else -> groupedTasks.entries.sortedBy { it.key }
             }
             sortedGroups.forEach { (label, tasks) ->
-                item(key = "task-group-$groupMode-$label") { Text(label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
+                item(key = "task-group-$groupMode-$label") { WhipGroupHeading(label) }
                 items(tasks, key = ScheduledTask::stableKey) { item ->
                     TaskPlanningListRow(
                         item = item,
@@ -6771,11 +6732,9 @@ private fun TaskAreaContent(
                     reordering &&
                     (index == 0 || visibleTasks[index - 1].task.pinned != item.task.pinned)
                 ) {
-                    Text(
+                    WhipGroupHeading(
                         if (item.task.pinned) "Pinned Tasks" else "Other Tasks",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(vertical = 4.dp),
+                        compact = true,
                     )
                 }
                 TaskPlanningListRow(

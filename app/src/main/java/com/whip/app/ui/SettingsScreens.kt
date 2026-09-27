@@ -45,7 +45,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
@@ -442,7 +441,7 @@ internal fun SettingsContent(
         } }
         typedSettingWarning?.let { warning -> item {
             WhipStatusCard(
-                kind = WhipStatusKind.Status,
+                kind = WhipStatusKind.Warning,
                 title = "Setting Saved with Warnings",
                 message = warning,
                 actionLabel = "Dismiss",
@@ -695,7 +694,7 @@ internal fun SettingsContent(
             )
         }
         item {
-            Text("Custom Units", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            WhipGroupHeading("Custom Units")
             Text(
                 "Create reusable units for Habit entries, Goal progress, and number fields in Tracks. Units can also be created beside the Unit control while editing a supported item.",
                 style = MaterialTheme.typography.bodySmall,
@@ -876,7 +875,7 @@ internal fun SettingsContent(
             SettingsToggle("Include warm-ups in volume and PRs", settings.includeWarmupsInGymStats) { value -> viewModel.update { it.copy(includeWarmupsInGymStats = value) } }
         }
         item {
-            Text("Hard-Set Classifications", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text("Hard-Set Classifications", modifier = Modifier.semantics { heading() }, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 WorkoutSetClassification.entries.forEach { classification ->
                     val value = classification.name
@@ -917,7 +916,7 @@ internal fun SettingsContent(
         if (section == SettingsSection.Organization) {
         item {
             WhipGroupedInformationCard {
-                    Text("Areas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    WhipGroupHeading("Areas")
                     Text("Create named areas to group related tasks, habits, goals, and tracks across search and review.")
                     Text("${state.areas.count { !it.archived }} active · ${state.areas.count { it.archived }} archived · ${state.areaUsage.values.sumOf(AreaUsageCounts::total) + state.unassignedAreaUsage.total} items", style = MaterialTheme.typography.bodySmall)
                     WhipButton(onClick = onEditAreas, modifier = Modifier.fillMaxWidth()) { Text("Manage Areas") }
@@ -1003,7 +1002,7 @@ internal fun SettingsContent(
         }
         item {
             WhipGroupedInformationCard(Modifier.testTag("settings-tags-summary")) {
-                    Text("Tags", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    WhipGroupHeading("Tags")
                     Text("Use flexible labels across Tasks, Habits, Goals, and Tracks while each item keeps one primary Area.")
                     Text(
                         "${state.tags.count { !it.archived }} active · ${state.tags.count { it.archived }} archived · ${state.tagUsage.values.sumOf(TagUsageCounts::total)} current references",
@@ -1021,7 +1020,7 @@ internal fun SettingsContent(
         item { SettingsHeading("Notifications") }
         item(key = "notification-diagnostics-$diagnosticRefresh") {
             WhipGroupedInformationCard(Modifier.testTag("notification-diagnostics")) {
-                    Text("Reminder Delivery", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    WhipGroupHeading("Reminder Delivery")
                     Text(overallNotificationState.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     Text(
                         when (overallNotificationState) {
@@ -1256,7 +1255,7 @@ internal fun SettingsContent(
         item { SettingsHeading("Backup & Export") }
         item {
             WhipGroupedInformationCard {
-                    Text("Portable Backup Folder", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    WhipGroupHeading("Portable Backup Folder")
                     Text(
                         "Save verified plain-JSON backups to Files, Drive, or removable storage. Retention and cleanup act only on Whip's automatic-backup and incomplete-write filenames.",
                         style = MaterialTheme.typography.bodySmall,
@@ -1367,7 +1366,7 @@ internal fun SettingsContent(
             }
         }
         item {
-            Text("Export CSV", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text("Export CSV", modifier = Modifier.semantics { heading() }, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             Text(
                 "Export individual tables for spreadsheets. Use a backup to restore Whip.",
                 style = MaterialTheme.typography.bodySmall,
@@ -1660,16 +1659,18 @@ internal fun WideSettingsSectionSidebar(
     LazyColumn(
         modifier = modifier.selectableGroup().testTag("settings-wide-section-list"),
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items(SettingsSection.entries, key = SettingsSection::name) { choice ->
-            NavigationDrawerItem(
-                label = { Text(choice.label) },
+            SupportPaneSelectionCard(
+                title = choice.label,
+                supportingText = choice.supportingText,
                 selected = selectedSection == choice,
                 onClick = { onSectionSelected(choice) },
                 modifier = Modifier
                     .testTag("settings-section-${choice.label}")
                     .focusable(),
+                supportingMaxLines = 3,
             )
         }
     }

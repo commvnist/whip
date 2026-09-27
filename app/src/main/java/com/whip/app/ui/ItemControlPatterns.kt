@@ -1518,11 +1518,12 @@ internal fun NavigationRow(
     supportingText: String? = null,
     enabled: Boolean = true,
     supportingContent: (@Composable ColumnScope.() -> Unit)? = null,
+    preserveTitleCase: Boolean = false,
 ) {
     require(supportingText == null || supportingContent == null) {
         "NavigationRow accepts text or structured supporting content, not both"
     }
-    val displayTitle = title.uiTitleCase()
+    val displayTitle = if (preserveTitleCase) title else title.uiTitleCase()
     Card(
         modifier = modifier
             .fillMaxWidth()

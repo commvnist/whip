@@ -484,11 +484,9 @@ fun GoalAreaContent(
                         manageOrder && destination == GoalDestination.Active &&
                         (index == 0 || list[index - 1].goal.pinned != projection.goal.pinned)
                     ) {
-                        Text(
+                        WhipGroupHeading(
                             if (projection.goal.pinned) "Pinned Goals" else "Other Goals",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(vertical = 4.dp),
+                            compact = true,
                         )
                     }
                     val card: @Composable () -> Unit = {

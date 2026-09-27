@@ -1431,11 +1431,9 @@ private fun HabitList(
                     manageOrder &&
                     (index == 0 || sections.actionNeeded[index - 1].habit.pinned != item.habit.pinned)
                 ) {
-                    Text(
+                    WhipGroupHeading(
                         if (item.habit.pinned) "Pinned Habits" else "Other Habits",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(vertical = 4.dp),
+                        compact = true,
                     )
                 }
                 val card: @Composable () -> Unit = {

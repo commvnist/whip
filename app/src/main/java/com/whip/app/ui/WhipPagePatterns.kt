@@ -519,6 +519,56 @@ internal fun WhipSectionHeading(title: String, modifier: Modifier = Modifier, co
     )
 }
 
+/** Keeps authored labels intact while exposing list partitions as headings. */
+@Composable
+internal fun WhipGroupHeading(title: String, compact: Boolean = false) {
+    Text(
+        title,
+        modifier = Modifier
+            .then(if (compact) Modifier.padding(vertical = WhipSpacing.micro) else Modifier)
+            .semantics { heading() },
+        style = if (compact) MaterialTheme.typography.labelLarge else MaterialTheme.typography.titleMedium,
+        color = if (compact) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+        fontWeight = if (compact) null else FontWeight.Bold,
+    )
+}
+
+@Composable
+internal fun SupportPaneSelectionCard(
+    title: String,
+    supportingText: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    supportingMaxLines: Int = 2,
+    leading: @Composable (() -> Unit)? = null,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth().selectable(selected = selected, role = Role.Tab, onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer,
+        ),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(WhipSpacing.compact),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            leading?.invoke()
+            Column(Modifier.weight(1f)) {
+                Text(title, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(
+                    supportingText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = supportingMaxLines,
+                )
+            }
+            Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)
+        }
+    }
+}
+
 /** Canonical low-emphasis surface for a tappable or display-only collection item. */
 @Composable
 internal fun WhipCollectionCard(
@@ -589,7 +639,7 @@ internal fun WhipMetricTile(
 
 internal enum class WhipNoticeTone { Neutral, Informative, Success, Warning, Error }
 
-internal enum class WhipStatusKind { Loading, Status, Success, Error }
+internal enum class WhipStatusKind { Loading, Status, Success, Warning, Error }
 
 /**
  * A named, announced status for work that changes after the surrounding page is
@@ -608,12 +658,14 @@ internal fun WhipStatusCard(
     val tone = when (kind) {
         WhipStatusKind.Loading, WhipStatusKind.Status -> WhipNoticeTone.Informative
         WhipStatusKind.Success -> WhipNoticeTone.Success
+        WhipStatusKind.Warning -> WhipNoticeTone.Warning
         WhipStatusKind.Error -> WhipNoticeTone.Error
     }
     val stateLabel = when (kind) {
         WhipStatusKind.Loading -> "Loading"
         WhipStatusKind.Status -> "Status"
         WhipStatusKind.Success -> "Success"
+        WhipStatusKind.Warning -> "Warning"
         WhipStatusKind.Error -> "Error"
     }
     WhipNoticeCard(

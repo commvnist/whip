@@ -646,10 +646,13 @@ class SettingsResponsiveUiTest {
         }
 
         compose.onNodeWithTag("settings-section-Appearance & Home").assertIsSelected()
+            .assertTextContains("Theme, presentation, home sections", substring = true)
         compose.onNodeWithTag("settings-wide-section-list")
             .performScrollToNode(hasTestTag("settings-section-About Whip"))
 
-        val about = compose.onNodeWithTag("settings-section-About Whip").assertIsDisplayed()
+        val about = compose.onNodeWithTag("settings-section-About Whip")
+            .assertIsDisplayed()
+            .assertTextContains("App identity, version, package", substring = true)
         about.performSemanticsAction(SemanticsActions.RequestFocus).assertIsFocused()
         about.performClick().assertIsSelected().assertIsFocused()
         assertTrue(about.fetchSemanticsNode().boundsInRoot.height >= with(compose.density) { 48.dp.toPx() })

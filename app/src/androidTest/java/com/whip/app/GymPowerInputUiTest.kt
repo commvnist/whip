@@ -768,15 +768,18 @@ class GymPowerInputUiTest {
 
         compose.assertDialogFontScale()
 
-        captureVisualCatalogSurface("gym.machine.permanent-delete")
         compose.onNodeWithText("Delete “Downtown cable stack” v2 Permanently?").assertIsDisplayed()
+        compose.onNodeWithText("Active Workout").assertIsDisplayed()
+        compose.onNodeWithTag("machine-delete-confirm").assertIsDisplayed().assertIsNotEnabled()
+        compose.onNodeWithText("Cancel").assertIsDisplayed()
+        captureVisualCatalogSurface("gym.machine.permanent-delete")
         compose.onNodeWithTag("machine-delete-impact-list").performScrollToNode(hasText("Kept"))
         compose.onNodeWithText("Kept").assertIsDisplayed()
         compose.onNodeWithTag("machine-delete-impact-list").performScrollToNode(hasText("Needs Attention"))
         compose.onNodeWithText("Needs Attention").assertIsDisplayed()
-        compose.onNodeWithTag("machine-delete-impact-list").performScrollToNode(hasText("Active Workout"))
-        compose.onNodeWithText("Active Workout").assertIsDisplayed()
-        compose.onNodeWithTag("machine-delete-confirm").assertIsNotEnabled()
+        compose.onNodeWithTag("machine-delete-impact-list").performScrollToNode(hasText("Other configuration versions stay.", substring = true))
+        compose.onNodeWithText("Other configuration versions stay.", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag("machine-delete-confirm").assertIsDisplayed().assertIsNotEnabled()
     }
 
     @Test
