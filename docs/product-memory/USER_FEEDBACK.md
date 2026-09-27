@@ -1,5 +1,12 @@
 # User feedback and acceptance criteria
 
+### FB-20260926-002 — Install the completed architecture audit on the owner phone
+
+- Date/source: 2026-09-26, direct owner follow-up: “send to my phone, it's connected through wireless debugging.”
+- User need: Receive the completed reusable architecture and UX changes from FB-20260926-001 on the existing personal Whip installation.
+- Acceptance criteria: Identify the explicitly connected physical phone; advance the private version above its installed 0.3.73/code 79; build with the established release signer from the verified audit source; install in place without reset, data clearing, uninstall or downgrade; verify package, signer continuity, installed artifact hash, preserved first-install identity, cold launch, foreground process and bounded runtime health; commit and push the release record. No Play Store publication is requested.
+- Related/status: FB-20260926-001, VER-20260926-005, IMP/VER-20260926-006. In progress.
+
 ### FB-20260926-001 — Reusable product architecture and complete UX consistency audit
 
 - Date/source: 2026-09-26, direct owner request for a top-down codebase, design, and UX audit followed by full implementation.

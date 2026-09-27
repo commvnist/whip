@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260926-006 — Package the completed reuse audit for an in-place phone update
+
+- Advance the private release from 0.3.73/code 79 to 0.3.74/code 80 because the selected owner phone already has the prior 0.3.73 APK. The app/test implementation remains the accepted architecture source in VER-20260926-005; only release version metadata changes.
+- Use the existing release signer and guarded physical-device lane for an in-place update. Preserve Room schema 46, data epoch 6, portable-backup format 26, package ID, history and local data. No reset, uninstall, downgrade or Play Store publication is part of this request.
+- Related/status: FB-20260926-002, FB-20260926-001, VER-20260926-005/006. Implemented; signed build and physical installation pending.
+
 ### IMP-20260926-005 — Keep actual large-text test configuration under load
 
 - `AndroidFontScaleRule` now retries the actual Android font-scale write every two seconds within its existing 30-second barrier when the setting or target resources do not match. It verifies both values before a test runs, then restores the original setting with the same bounded check, preserving a previously absent setting exactly.
