@@ -1,5 +1,18 @@
 # Verification and release evidence
 
+### VER-20260927-005 — Shared warning notice meaning and rendered tone
+
+- The exact `SharedConsistencyUiTest#statusAndEmptyStateExposeSeverityAnnouncementAndHierarchy` passed 1/1 fresh on disposable emulator-5554 (`build/instrumentation-results-8DcEBI/aggregate.tsv`). The same real `WhipStatusCard` now verifies that `Warning` is a polite live-region state and that its rendered card background matches the theme's tertiary warning surface; the neighboring Loading/Error/empty-state assertions still pass.
+- `SettingsScreens.kt` routes `Setting Saved with Warnings` through that shared Warning kind. The actual Settings warning receipt is not a catalog surface and was not forced through a real backup/provider failure in this design-specific run; that interaction remains covered by its separate persistence journeys.
+- Related/status: FB-20260926-003, FND-20260926-011, IMP-20260926-007. Focused Verified; full candidate pending.
+
+### VER-20260927-004 — Accepted final 523-state design visual catalog
+
+- From pushed production source `c10d837a`, `ANDROID_SERIAL=emulator-5554 WHIP_ANDROID_SECONDARY_SERIAL=emulator-5556 scripts/ui-catalog capture build/design-consistency-catalog-accepted-20260927` passed 20/20 batches and 193 fresh Android methods with zero failures, skips, or reused results (`build/instrumentation-results-fpubb2/aggregate.tsv`). The exact same 523 required surface IDs produced 523 PNG/XML pairs, no missing/extra/duplicate captures, and zero `NAF=true` XML nodes. Manifest SHA-256: `4bc8c873bee86a58e886ff6eec368820a564b1562e4c410d45f2bb6529277582`; full local gallery: `build/design-consistency-catalog-accepted-20260927/index.html`.
+- Manual and independent final image review confirmed the two diagnostic defects are corrected: 200% RTL first-run English copy wraps with final punctuation and left alignment; blocked/error Gym destructive confirms are muted while enabled Workout remains accented. The independent reviewer sampled the migrated Task, Habit, Goal, Track, Area, Settings and shared delete actions plus seven representative destinations and light/dark states, finding no remaining concrete mismatch. [Six retained final originals and checksums](../../artifacts/design-consistency/2026-09-27/final/README.md) support the affected-state comparison.
+- Bounds: Screenshots do not measure spoken TalkBack output, a populated 200% tabletop support pane, or a real saved-with-warning Settings receipt. The first has focused native scroll/heading proof under VER-20260926-007, and the shared warning's semantics and pixels pass under VER-20260927-005. The complete frozen build/Android candidate remains a separate required gate.
+- Related/status: FB-20260926-003, FND-20260926-009 through -015, FND-20260927-001. Final visual catalog Verified; candidate pending.
+
 ### VER-20260927-003 — Destructive button state and color regression
 
 - `ANDROID_SERIAL=emulator-5556 scripts/qa-targeted --android 'com.whip.app.TaskDeletionUiTest#permanentDeleteConfirmMutesItsLabelWhenBusy'` passed 1/1 fresh on a disposable API 34 emulator, zero failures/skips (`build/instrumentation-results-HQ5p4v/aggregate.tsv`). Production and native-test Kotlin compiled. The test renders the actual shared permanent-delete dialog with identical enabled/disabled text, asserts button semantics in both states, and confirms the disabled label's maximum chroma is at least 0.15 below the enabled error label.

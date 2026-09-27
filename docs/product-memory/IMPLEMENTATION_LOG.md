@@ -10,13 +10,13 @@
 
 - `WhipControls.kt` now provides `WhipDestructiveTextButton`: enabled content uses the theme error color and disabled content uses the theme's muted on-surface tone. Destructive text buttons across Gym, Task, Habit, Goal, Track, Area, Routine Builder and the shared permanent-delete dialog now use that role instead of forcing an error color on inner `Text`. Existing labels, click/disabled conditions and test tags remain unchanged.
 - A focused native `TaskDeletionUiTest` renders the actual shared dialog with identical enabled/disabled labels, asserts the button state and compares text chroma. The changed Gym blocked/allowed deletion frames will be reviewed in the final catalog. No persistence, schema, backup, action, or release-signing behavior changes.
-- Related/status: FB-20260926-003, FND-20260927-001, DEC-20260926-005, VER-20260927-003. Focused Verified; final visual/candidate verification pending.
+- Related/status: FB-20260926-003, FND-20260927-001, DEC-20260926-005, VER-20260927-003/004. Focused and final visual Verified; candidate pending.
 
 ### IMP-20260927-001 — Keep first-run English copy readable in RTL
 
 - `FirstRunSetupDialog.kt` now gives explicit body-small English copy one shared LTR and left-aligned text style, including welcome supporting text, advanced choices, optional preference explanation and backup/reminder guidance. Its existing content-direction provider still covers unstyled copy and error text; control order remains RTL. This corrects the residual line-leading punctuation found in the complete catalog after the initial provider-only change.
 - `FirstRunSetupPersistenceUiTest` adds the optional explanation sentence and requires wrapped copy's last line to begin at its text box's left edge. The exact native 200% RTL journey passed 1/1, and the optional/error PNGs were inspected. No persisted data, schema, domain action, or release metadata changes.
-- Related/status: FB-20260926-003, FND-20260926-014, VER-20260927-001/002. Focused Verified; final shared-family recapture and candidate pending.
+- Related/status: FB-20260926-003, FND-20260926-014, VER-20260927-001/002/004. Focused and final visual Verified; candidate pending.
 
 ### IMP-20260926-010 — Reject scaled emulator display before catalog capture
 

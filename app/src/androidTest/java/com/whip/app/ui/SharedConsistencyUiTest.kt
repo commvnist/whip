@@ -8,8 +8,11 @@ import com.whip.app.captureVisualCatalogSurface
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -20,6 +23,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -38,6 +42,7 @@ import com.whip.app.domain.TaskDraft
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.ui.theme.WhipTheme
 import java.time.LocalDate
+import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -52,14 +57,22 @@ class SharedConsistencyUiTest {
 
     @Test
     fun statusAndEmptyStateExposeSeverityAnnouncementAndHierarchy() {
+        var warningColor = Color.Unspecified
         compose.setContent {
             WhipTheme(dynamicColor = false) {
+                warningColor = MaterialTheme.colorScheme.tertiaryContainer
                 Column {
                     WhipStatusCard(
                         kind = WhipStatusKind.Loading,
                         title = "Loading Entries",
                         message = "Preparing saved Entries.",
                         modifier = Modifier.testTag("loading-status"),
+                    )
+                    WhipStatusCard(
+                        kind = WhipStatusKind.Warning,
+                        title = "Setting Saved with Warnings",
+                        message = "Reminder permission was denied.",
+                        modifier = Modifier.testTag("warning-status"),
                     )
                     WhipStatusCard(
                         kind = WhipStatusKind.Error,
@@ -75,6 +88,19 @@ class SharedConsistencyUiTest {
         val loading = compose.onNodeWithTag("loading-status").fetchSemanticsNode().config
         assertEquals(LiveRegionMode.Polite, loading[SemanticsProperties.LiveRegion])
         assertEquals("Loading", loading[SemanticsProperties.StateDescription])
+        val warning = compose.onNodeWithTag("warning-status").fetchSemanticsNode().config
+        assertEquals(LiveRegionMode.Polite, warning[SemanticsProperties.LiveRegion])
+        assertEquals("Warning", warning[SemanticsProperties.StateDescription])
+        val pixels = compose.onNodeWithTag("warning-status").captureToImage().toPixelMap()
+        val renderedBackground = pixels[pixels.width / 2, pixels.height - 5]
+        assertTrue(
+            "A saved warning should render with the theme's warning surface.",
+            maxOf(
+                abs(renderedBackground.red - warningColor.red),
+                abs(renderedBackground.green - warningColor.green),
+                abs(renderedBackground.blue - warningColor.blue),
+            ) < 0.03f,
+        )
         val error = compose.onNodeWithTag("error-status").fetchSemanticsNode().config
         assertEquals(LiveRegionMode.Polite, error[SemanticsProperties.LiveRegion])
         assertEquals("Error", error[SemanticsProperties.StateDescription])

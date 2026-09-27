@@ -6,7 +6,7 @@
 - Observed: In the complete 523-state catalog, blocked Machine and Exercise deletion confirmations, and Machine's retry/error confirmation, show the same vivid pink label as an enabled Workout confirmation. Their native buttons are disabled, but the label still suggests an available destructive action.
 - Expected: Destructive labels use the warning/error accent only while actionable; disabled labels share the muted disabled content tone and remain semantically disabled.
 - Evidence/root cause: `GymScreens.kt` passes `enabled = false` in those states, while inner `Text(color = MaterialTheme.colorScheme.error)` overrides `WhipTextButton`'s disabled content color. Other destructive button callers use the same pattern. Independent current-source PNG review confirmed the mismatch; inspect and migrate applicable callers through one shared button owner.
-- Resolution/status: `WhipDestructiveTextButton` owns enabled error color and muted disabled color. Gym, Task, Habit, Goal, Track, Area, Routine Builder and shared permanent-delete callers now use it without explicit inner text color. The real shared dialog passes enabled/disabled semantics and rendered-chroma regression 1/1; final Gym pixels/candidate pending. Related: FND-20260926-010, DEC-20260926-005, IMP-20260927-002, VER-20260927-003.
+- Resolution/status: `WhipDestructiveTextButton` owns enabled error color and muted disabled color. Gym, Task, Habit, Goal, Track, Area, Routine Builder and shared permanent-delete callers now use it without explicit inner text color. The real shared dialog passes enabled/disabled semantics and rendered-chroma regression 1/1; the accepted final catalog and independent review confirm muted blocked Machine/Exercise/Routine and accented enabled Workout pixels with no sampled cross-domain drift. Verified for this scope; full candidate pending. Related: FND-20260926-010, DEC-20260926-005, IMP-20260927-002, VER-20260927-003/004.
 
 ### FND-20260926-015 — Shared navigation rows silently title-case authored item names
 
@@ -22,7 +22,7 @@
 - Observed: Actual 200% RTL `shared.first-run.optional-large-rtl.png` and `shared.first-run.error-large-rtl.png` place English sentence-ending periods at the start of wrapped lines, including “.folded” and “.again”. Controls remain in RTL layout.
 - Expected: English copy should retain its own sentence direction and punctuation while the app layout remains RTL.
 - Evidence/root cause: `FirstRunSetupDialog.kt` copy and the two named 200% RTL catalog originals; mixed paragraph direction lets the RTL context reorder English punctuation at line breaks. The first `LocalTextStyle` content-direction change fixed unstyled error text but explicit `MaterialTheme.typography.bodySmall` styles bypassed it. The later complete catalog exposed `“.folded”` and `“.changing your data”` still at line starts.
-- Resolution/status: All English first-run body-small copy now shares an explicit LTR, left-aligned style while controls retain RTL layout. The exact 200% RTL journey asserts both affected body sentences and the error sentence, including left edge alignment. It passed 1/1 fresh; pulled updated optional/error images were visually checked. Shared-family final recapture pending. Related: DEC-20260926-005, IMP-20260926-007, IMP-20260927-001, VER-20260927-001/002.
+- Resolution/status: All English first-run body-small copy now shares an explicit LTR, left-aligned style while controls retain RTL layout. The exact 200% RTL journey asserts both affected body sentences and the error sentence, including left edge alignment. It passed 1/1 fresh; the complete final catalog and independent image review confirm both corrected RTL states. Verified for this scope; full candidate pending. Related: DEC-20260926-005, IMP-20260926-007, IMP-20260927-001, VER-20260927-001/002/004.
 
 ### FND-20260926-013 — Settings categories switch visual identity between reachable 900 dp modes
 
@@ -45,7 +45,7 @@
 - Severity/category: P2 notice meaning and accessibility; FB-20260926-003.
 - Observed: `Setting Saved with Warnings` uses `WhipStatusKind.Status` at `SettingsScreens.kt:443-451`, producing informative tone and “Status” semantics although the result includes warnings. Gym warnings use the established warning tone.
 - Expected: Saved-with-warning outcomes announce and render as warnings while preserving their completed-save message.
-- Resolution/status: `WhipStatusKind.Warning` maps to the existing warning tone and “Warning” state, and Settings uses it for saved-with-warning results. Implemented; final candidate and visual review pending. Related: DEC-20260926-005, IMP-20260926-007.
+- Resolution/status: `WhipStatusKind.Warning` maps to the existing warning tone and “Warning” state, and Settings uses it for saved-with-warning results. A native shared-card check passes Warning live-region semantics and rendered tertiary warning color 1/1. The actual Settings receipt has no catalog screenshot; full candidate pending. Related: DEC-20260926-005, IMP-20260926-007, VER-20260927-005.
 
 ### FND-20260926-010 — Gym deletion blocker appears below truncated large-text review
 
