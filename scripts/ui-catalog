@@ -295,8 +295,14 @@ capture_catalog() {
         die "output directory must be empty: $output_dir"
 
     trap restore_capture_environment EXIT
-    local serial night_mode hide_error_dialogs font_scale
+    local serial night_mode hide_error_dialogs font_scale display_density display_size
     for serial in "${capture_serials[@]}"; do
+        display_density="$(adb -s "$serial" shell wm density | tr -d '\r')"
+        display_size="$(adb -s "$serial" shell wm size | tr -d '\r')"
+        [[ "$display_density" == *"Physical density:"* && "$display_density" != *"Override density:"* ]] ||
+            die "emulator has a display density override; reset it before catalog capture: $serial"
+        [[ "$display_size" == *"Physical size:"* && "$display_size" != *"Override size:"* ]] ||
+            die "emulator has a display size override; reset it before catalog capture: $serial"
         night_mode="$(adb -s "$serial" shell cmd uimode night | sed -n 's/^Night mode: //p' | tr -d '\r')"
         [[ "$night_mode" =~ ^(yes|no|auto)$ ]] ||
             die "could not determine emulator night mode: ${night_mode:-missing}"

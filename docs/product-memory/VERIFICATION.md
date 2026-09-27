@@ -1,5 +1,11 @@
 # Verification and release evidence
 
+### VER-20260926-010 — Gym popup capture display-baseline diagnosis
+
+- Diagnostic: The third complete-catalog attempt from pushed `cd678255` was stopped after batch 8 recorded one failure in `RoutineBuilderUiTest#captureRepSchemeCatalog` (`build/instrumentation-results-EYTRnM/batch-8/result-1.xml`): the `gym.classification.menu` screenshot did not clear the whole-screen distinctness threshold versus `gym.rep-scheme`. The menu's Warm-up and AMRAP options had passed visible-node assertions. The second disposable emulator still had a 192dpi override from the earlier manual 900dp Settings comparison, versus its physical 420dpi baseline. An isolated diagnostic capture with the pixel guard temporarily omitted showed both screenshots and a real visible popup; the guard was restored before source verification. The attempt is not an accepted 523-state catalog.
+- Correction/result: `adb -s emulator-5556 shell wm density reset` restored physical 420dpi. The exact guarded Gym method passed 1/1 fresh, zero failures/skips, under `ANDROID_SERIAL=emulator-5556 scripts/qa-targeted --android 'com.whip.app.RoutineBuilderUiTest#captureRepSchemeCatalog'` (`build/instrumentation-results-7vprVW`). `bash -n scripts/ui-catalog` passed. A deliberate 192dpi preflight attempt exited with `emulator has a display density override` before running Android tests; the emulator was reset to 420dpi afterward. Both emulator display sizes are physical 1080×2400; the first is also at 420dpi. A fresh complete catalog on clean physical metrics is required.
+- Related/status: FB-20260926-003, IMP-20260926-010. Focused Verified; full catalog pending.
+
 ### VER-20260926-009 — Task catalog assertion after authored-casing fix
 
 - Diagnostic: The second complete-catalog attempt from pushed `b3d7b446` was stopped after batch 6 found two failures in `InlineTaskCaptureE2ETest` (`build/instrumentation-results-MgJxkd/batch-6/result-1.xml`). Both ordinary and 200% methods had already saved the Task and reached their final assertion; `onNodeWithText(title)` matched the main card and now-correctly-cased adaptive support row. The other eight methods in that batch passed; the interrupted run is not accepted as a 523-state capture.

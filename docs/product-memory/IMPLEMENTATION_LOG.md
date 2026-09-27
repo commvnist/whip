@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260926-010 — Reject scaled emulator display before catalog capture
+
+- `scripts/ui-catalog capture` now checks each disposable emulator's `wm density` and `wm size` before clearing evidence or starting native tests. An inherited display override caused a Gym popup to occupy too little of the whole-screen screenshot for the distinct-image guard, even though the popup was visible and functional.
+- The check stops immediately with the offending emulator name; it does not change device metrics. The second emulator was returned from a temporary 192dpi override to its physical 420dpi baseline. This changes the test lane only, not the app, Room schema, backups, or release version.
+- Related/status: FB-20260926-003, VER-20260926-010. Verified by a targeted Gym replay at physical density and a deliberate rejected preflight at overridden density; full catalog pending.
+
 ### IMP-20260926-009 — Scope the Task capture check to its saved card
 
 - `InlineTaskCaptureE2ETest` now scrolls to the saved Task card by ID and checks its title there. On the expanded layout, both the main Task card and adaptive support navigation correctly show the exact authored title after FND-20260926-015, so a global text assertion is ambiguous.
