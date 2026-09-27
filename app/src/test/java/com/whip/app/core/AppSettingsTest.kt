@@ -56,7 +56,6 @@ class AppSettingsTest {
         assertEquals(false, AppSettings().showHabitsInTaskPlanning)
         assertEquals(false, AppSettings().dynamicColor)
         assertTrue(AppSettings().goalCelebrationEnabled)
-        assertEquals(GoalCelebrationStyle.ConfettiMoment, AppSettings().goalCelebrationStyle)
         assertEquals(true, AppSettings().naturalLanguageTaskCapture)
         assertEquals(emptyList<RepPrescriptionScheme>(), AppSettings().repPrescriptionSchemes)
         assertEquals(AreaScope.All.storageKey, AppSettings().activeAreaScope)

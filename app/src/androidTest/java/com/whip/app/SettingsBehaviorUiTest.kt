@@ -29,7 +29,6 @@ import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import com.whip.app.core.AppSettings
 import com.whip.app.core.AreaOpeningMode
-import com.whip.app.core.GoalCelebrationStyle
 import com.whip.app.core.HomeSection
 import com.whip.app.domain.CustomIdentityEmoji
 import com.whip.app.domain.AreaScope
@@ -121,44 +120,20 @@ class SettingsBehaviorUiTest {
     }
 
     @Test
-    fun celebrationStyleRemainsSelectableWhenCelebrationsAreOff() {
+    fun celebrationToggleIsTheOnlyCelebrationSetting() {
         openAppearanceSettings()
         compose.onNodeWithTag("settings-list")
             .performScrollToNode(hasText("Celebrate completed Goals"))
+        assertTrue(app.settingsRepository.current().goalCelebrationEnabled)
+        compose.onAllNodesWithText("Goal celebration style").assertCountEquals(0)
         compose.onNodeWithContentDescription(
-            "Celebrate completed Goals. Play a brief effect when you complete a Goal.",
+            "Celebrate completed Goals. Show Victory Shower for four seconds when you complete a Goal.",
         ).performClick()
         compose.waitUntil { !app.settingsRepository.current().goalCelebrationEnabled }
-
-        compose.onNodeWithTag("settings-list")
-            .performScrollToNode(hasText("Goal celebration style"))
-        compose.onNodeWithContentDescription("Goal celebration style: Confetti Moment").performClick()
-        compose.onNodeWithText("Quiet Glow").assertIsDisplayed()
-        compose.mainClock.autoAdvance = false
-        compose.onNodeWithText("Quiet Glow").performClick()
-        compose.mainClock.advanceTimeByFrame()
-        compose.onNodeWithTag("goal-celebration-QuietGlow").assertIsDisplayed()
-        compose.mainClock.autoAdvance = true
-        compose.waitUntil { app.settingsRepository.current().goalCelebrationStyle == GoalCelebrationStyle.QuietGlow }
-        compose.onNodeWithContentDescription("Goal celebration style: Quiet Glow").assertIsDisplayed()
-
-        compose.waitUntil(5_000) { compose.onAllNodesWithTag("goal-celebration-QuietGlow").fetchSemanticsNodes().isEmpty() }
-        compose.onNodeWithContentDescription("Goal celebration style: Quiet Glow").performClick()
-        compose.onNodeWithText("Victory Shower").assertIsDisplayed()
-        compose.mainClock.autoAdvance = false
-        compose.onNodeWithText("Victory Shower").performClick()
-        compose.mainClock.advanceTimeByFrame()
-        compose.onNodeWithTag("goal-celebration-VictoryShower").assertIsDisplayed()
-        compose.mainClock.autoAdvance = true
-
-        compose.waitUntil(5_000) { compose.onAllNodesWithTag("goal-celebration-VictoryShower").fetchSemanticsNodes().isEmpty() }
-        compose.onNodeWithContentDescription("Goal celebration style: Victory Shower").performClick()
-        compose.onNodeWithText("Confetti Moment").assertIsDisplayed()
-        compose.mainClock.autoAdvance = false
-        compose.onNodeWithText("Confetti Moment").performClick()
-        compose.mainClock.advanceTimeByFrame()
-        compose.onNodeWithTag("goal-celebration-ConfettiMoment").assertIsDisplayed()
-        compose.mainClock.autoAdvance = true
+        compose.onNodeWithContentDescription(
+            "Celebrate completed Goals. Show Victory Shower for four seconds when you complete a Goal.",
+        ).performClick()
+        compose.waitUntil { app.settingsRepository.current().goalCelebrationEnabled }
     }
 
     @Test

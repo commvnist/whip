@@ -1,5 +1,13 @@
 # Verification and release evidence
 
+### VER-20260927-019 — Focused single-style Goal celebration acceptance
+
+- Scope/environment: Current 0.3.78 Goal/Settings source on disposable API 34 `emulator-5554`; Android animator scale one and zero were both exercised. The connected owner phone was not used for instrumentation.
+- Readiness: `scripts/check --ready` passed affected JVM selectors, Android-test compilation, lint, debug packaging, assets and static checks in 4m21s. No hour-long Android inventory or frozen Play candidate ran. `git diff --check` passed.
+- Native checks: The first five-method focused Android batch passed Settings toggle-only behavior, retired local preference cleanup, legacy backup import and new backup round-trip, but the Goal journey failed its outside-tap assertion at a coordinate near the system inset (`build/instrumentation-results-EkQyq8`). A follow-up test edit briefly failed Android-test compilation because the injection scope has no `size` property. After moving the tap inside the app and waiting a Compose frame for recomposition, the exact Goal journey passed 1/1 with motion on (`build/instrumentation-results-cKYwKC`) and 1/1 with motion off (`build/instrumentation-results-NbjWbA`), zero failures/skips/reuse in each accepted run. It checks the card near four seconds, outside-tap dismissal without ending the effect, navigation while the effect continues, disabled preference suppression and truthful stored progress.
+- Counts/limits: Five distinct focused Android methods eventually passed; they were not all green in one original batch. The first failure and compile correction are retained as diagnostic, not accepted evidence. This does not claim all 1,118 Android methods, a new visual catalog or a Play Store qualification.
+- Related/status: FB-20260927-007, DEC-20260927-005, IMP-20260927-012. Focused and affected readiness Verified; private phone release recorded separately.
+
 ### VER-20260927-018 — Exact 0.3.77 private APK on the owner phone
 
 - Source/artifact: Clean pushed `8eb78bdc` produced 0.3.77/code 83. Signed APK SHA-256 `54abe0285f718ed1e4411743313e1a49a1b4bb8c9da2fc3b20fa561b457c4b79`; signed AAB SHA-256 `fd11b2aeff42823584aa70302b85a30caea8fb566e9b8951f22dc7c89539a4f4`. Package, APK v2 certificate, AAB JAR signature and ZIP integrity passed. [Private release receipt and local handoff links](../../artifacts/goal-celebration/2026-09-27/phone-release-0.3.77/README.md).

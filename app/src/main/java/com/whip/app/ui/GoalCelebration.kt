@@ -5,6 +5,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,18 +28,18 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.whip.app.core.GoalCelebrationStyle
 import com.whip.app.core.AppSettings
 import com.whip.app.ui.theme.whipColors
 import kotlinx.coroutines.delay
@@ -48,9 +49,7 @@ import kotlin.random.Random
 
 internal data class GoalCelebrationEvent(
     val id: Long,
-    val style: GoalCelebrationStyle,
     val goalName: String,
-    val preview: Boolean = false,
 )
 
 internal class GoalCelebrationController {
@@ -58,13 +57,7 @@ internal class GoalCelebrationController {
     private var nextId = 0L
 
     fun complete(settings: AppSettings, goalName: String) {
-        if (settings.goalCelebrationEnabled) show(settings.goalCelebrationStyle, goalName, preview = false)
-    }
-
-    fun preview(style: GoalCelebrationStyle) = show(style, "Your Goal", preview = true)
-
-    private fun show(style: GoalCelebrationStyle, goalName: String, preview: Boolean) {
-        event = GoalCelebrationEvent(++nextId, style, goalName, preview)
+        if (settings.goalCelebrationEnabled) event = GoalCelebrationEvent(++nextId, goalName)
     }
 
     @Composable
@@ -89,18 +82,14 @@ internal fun GoalCelebrationHost(content: @Composable () -> Unit) {
     }
 }
 
-/** One presentation owner for saved Goal completions and Settings previews. */
+/** One presentation owner for saved Goal completions. */
 @Composable
 internal fun GoalCelebrationOverlay(event: GoalCelebrationEvent, onFinished: (Long) -> Unit) {
     val motionEnabled = ValueAnimator.areAnimatorsEnabled()
     val progress = remember(event.id) { Animatable(0f) }
-    val duration = when (event.style) {
-        GoalCelebrationStyle.QuietGlow -> 850
-        GoalCelebrationStyle.ConfettiMoment -> 1_300
-        GoalCelebrationStyle.VictoryShower -> 2_000
-    }
+    var cardVisible by remember(event.id) { mutableStateOf(true) }
     LaunchedEffect(event.id, motionEnabled) {
-        if (motionEnabled) progress.animateTo(1f, tween(duration)) else delay(1_600)
+        if (motionEnabled) progress.animateTo(1f, tween(4_000)) else delay(4_000)
         onFinished(event.id)
     }
 
@@ -111,23 +100,26 @@ internal fun GoalCelebrationOverlay(event: GoalCelebrationEvent, onFinished: (Lo
         MaterialTheme.colorScheme.secondary,
     )
     val reveal = if (motionEnabled) min(1f, progress.value * 5f) else 1f
-    val fade = if (motionEnabled) min(1f, (1f - progress.value) * 6f) else 1f
-    Box(Modifier.fillMaxSize().testTag("goal-celebration-${event.style.name}")) {
-        if (motionEnabled && event.style != GoalCelebrationStyle.QuietGlow) {
-            ConfettiField(event.style, progress.value, palette)
-        }
-        Surface(
+    val dismissOnTap = if (cardVisible) Modifier.pointerInput(event.id) {
+        detectTapGestures { cardVisible = false }
+    } else Modifier
+    Box(Modifier.fillMaxSize().testTag("goal-celebration").then(dismissOnTap)) {
+        if (motionEnabled) ConfettiField(progress.value, palette)
+        if (cardVisible) Surface(
             modifier = Modifier
                 .align(Alignment.Center)
                 .padding(24.dp)
                 .widthIn(max = 360.dp)
                 .graphicsLayer {
-                    alpha = min(reveal, fade)
+                    alpha = reveal
                     scaleX = 0.9f + reveal * 0.1f
                     scaleY = scaleX
                 }
                 .testTag("goal-celebration-card")
-                .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+                .semantics(mergeDescendants = true) {
+                    liveRegion = LiveRegionMode.Polite
+                    onClick(label = "Dismiss completion message") { cardVisible = false; true }
+                },
             shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             shadowElevation = 8.dp,
@@ -137,10 +129,9 @@ internal fun GoalCelebrationOverlay(event: GoalCelebrationEvent, onFinished: (Lo
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                if (event.preview) Text("Preview · ${event.style.label}", style = MaterialTheme.typography.labelMedium)
-                CompletionBadge(event.style, progress.value, motionEnabled, palette[0])
+                CompletionBadge()
                 Text(
-                    if (event.style == GoalCelebrationStyle.VictoryShower) "You did it!" else "Goal completed",
+                    "You did it!",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
@@ -159,23 +150,11 @@ internal fun GoalCelebrationOverlay(event: GoalCelebrationEvent, onFinished: (Lo
 }
 
 @Composable
-private fun CompletionBadge(style: GoalCelebrationStyle, progress: Float, motionEnabled: Boolean, color: Color) {
-    Box(Modifier.size(if (style == GoalCelebrationStyle.VictoryShower) 88.dp else 76.dp), contentAlignment = Alignment.Center) {
-        if (style == GoalCelebrationStyle.QuietGlow && motionEnabled) Canvas(
-            Modifier.fillMaxSize().clearAndSetSemantics {},
-        ) {
-            repeat(2) { index ->
-                val phase = ((progress * 1.35f) - index * 0.35f).coerceIn(0f, 1f)
-                drawCircle(
-                    color = color.copy(alpha = (1f - phase) * 0.55f),
-                    radius = (24 + phase * 14).dp.toPx(),
-                    style = Stroke(width = 3.dp.toPx()),
-                )
-            }
-        }
+private fun CompletionBadge() {
+    Box(Modifier.size(88.dp), contentAlignment = Alignment.Center) {
         Box(
             Modifier
-                .size(if (style == GoalCelebrationStyle.VictoryShower) 64.dp else 56.dp)
+                .size(64.dp)
                 .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape)
                 .clearAndSetSemantics {},
             contentAlignment = Alignment.Center,
@@ -196,15 +175,14 @@ private data class ConfettiPiece(
 )
 
 @Composable
-private fun ConfettiField(style: GoalCelebrationStyle, progress: Float, palette: List<Color>) {
-    val fullShower = style == GoalCelebrationStyle.VictoryShower
-    val pieces = remember(style) {
-        val random = Random(if (fullShower) 73 else 29)
-        List(if (fullShower) 92 else 36) {
+private fun ConfettiField(progress: Float, palette: List<Color>) {
+    val pieces = remember {
+        val random = Random(73)
+        List(92) {
             ConfettiPiece(
                 x = random.nextFloat(),
-                delay = random.nextFloat() * if (fullShower) 0.4f else 0.25f,
-                fall = (if (fullShower) 1.45f else 0.95f) + random.nextFloat() * 0.45f,
+                delay = random.nextFloat() * 0.6f,
+                fall = 1.1f + random.nextFloat() * 0.45f,
                 drift = (random.nextFloat() - 0.5f) * 0.3f,
                 size = 4f + random.nextFloat() * 5f,
                 color = random.nextInt(palette.size),

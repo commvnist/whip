@@ -30,11 +30,6 @@ enum class AppThemeMode(val label: String) {
     Light("Light"),
     Dark("Dark"),
 }
-enum class GoalCelebrationStyle(val label: String) {
-    ConfettiMoment("Confetti Moment"),
-    QuietGlow("Quiet Glow"),
-    VictoryShower("Victory Shower"),
-}
 enum class AreaOpeningMode { LastUsed, Chosen }
 enum class HomeSection(val label: String) {
     Tasks("Tasks"),
@@ -74,7 +69,6 @@ data class AppSettings(
     val themeMode: AppThemeMode = AppThemeMode.System,
     val dynamicColor: Boolean = false,
     val goalCelebrationEnabled: Boolean = true,
-    val goalCelebrationStyle: GoalCelebrationStyle = GoalCelebrationStyle.ConfettiMoment,
     val firstDayOfWeek: DayOfWeek = DayOfWeek.MONDAY,
     val timeZoneId: String? = null,
     val dayCutoffMinutes: Int = 0,
@@ -203,7 +197,7 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
 
     init {
         // Retired integration preferences must never survive into new settings/exports.
-        val retiredKeys = listOf("healthEnabled", "healthTypes", "healthSyncDays", "healthLastSyncMillis", "healthLastSyncCount", "healthDeletionPending")
+        val retiredKeys = listOf("healthEnabled", "healthTypes", "healthSyncDays", "healthLastSyncMillis", "healthLastSyncCount", "healthDeletionPending", "goalCelebrationStyle")
         if (retiredKeys.any(preferences::contains)) {
             preferences.edit().also { editor -> retiredKeys.forEach(editor::remove) }.apply()
         }
@@ -229,7 +223,6 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
         themeMode = preferences.enum("theme", AppThemeMode.System),
         dynamicColor = preferences.getBoolean("dynamicColor", false),
         goalCelebrationEnabled = preferences.getBoolean("goalCelebrationEnabled", true),
-        goalCelebrationStyle = preferences.enum("goalCelebrationStyle", GoalCelebrationStyle.ConfettiMoment),
         firstDayOfWeek = preferences.enum("firstDay", DayOfWeek.MONDAY),
         timeZoneId = preferences.getString("timeZoneId", null)?.takeIf { runCatching { ZoneId.of(it) }.isSuccess },
         dayCutoffMinutes = preferences.getInt("dayCutoff", 0).coerceIn(0, 1439),
@@ -318,7 +311,6 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
             .putString("theme", value.themeMode.name)
             .putBoolean("dynamicColor", value.dynamicColor)
             .putBoolean("goalCelebrationEnabled", value.goalCelebrationEnabled)
-            .putString("goalCelebrationStyle", value.goalCelebrationStyle.name)
             .putString("firstDay", value.firstDayOfWeek.name)
             .putNullableString("timeZoneId", value.timeZoneId)
             .putInt("dayCutoff", value.dayCutoffMinutes)

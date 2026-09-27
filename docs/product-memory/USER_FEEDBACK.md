@@ -1,5 +1,13 @@
 # User feedback and acceptance criteria
 
+### FB-20260927-007 — Keep only Victory Shower and dismiss its card independently
+
+- Date/source: 2026-09-27, direct owner revision of FB-20260927-004 after the 0.3.77 phone release.
+- User need: One consistent Goal celebration, with less Settings choice and enough time to enjoy the result without trapping the user in the checkmark message.
+- Acceptance criteria: Delete Quiet Glow and Confetti Moment, remove the style dropdown and stored style choice, keep the default-on celebration toggle, show the Victory Shower checkmark card for up to four seconds, and let a tap dismiss that card immediately while confetti continues to the end of its four-second run. Preserve saved-completion-only triggering, reduced-motion acknowledgement, Goal progress truth, legacy preference/backup compatibility and in-place phone delivery. Batch focused checks only after implementation; skip the hour-long suite.
+- Affected users/workflows: Goal completion, Appearance & Home Settings, legacy preferences and portable backups, reduced-motion use, private phone update.
+- Related/status: FB-20260927-003/004, DEC-20260927-005, IMP-20260927-012, VER-20260927-019/020. Implemented and focused verified; phone delivery pending.
+
 ### FB-20260927-006 — Keep routine development validation under one minute
 
 - Date/source: 2026-09-27, direct owner follow-up with Ponytail Ultra steering.
@@ -24,7 +32,7 @@
 - User need: Offer all three proposed Goal completion effects rather than choosing one for everyone, with a Settings dropdown that immediately previews each newly selected style.
 - Acceptance criteria: Implement Quiet Glow, Confetti Moment, and Victory Shower as visibly distinct, theme-aware effects; add a persistent default-on enable/disable control and a style dropdown in Appearance & Home, with Confetti Moment as the initial style; changing the dropdown plays that exact style for comparison even when the enable toggle is off; real effects play once after a successful authored Complete Goal save and not after failure, abandonment, History loading, or restore; show accessible static success when device motion is disabled and keep Goal progress truthful; verify after implementation in a final batch, then deliver a higher signed private build in place to the previously selected connected owner phone with identity/data safeguards.
 - Affected users/workflows: Goal detail completion from Goals and Home, Settings appearance, local/portable preferences, reduced-motion devices, backup compatibility, and owner-phone release.
-- Related/status: FB-20260927-003, DEC-20260927-004, IMP-20260927-011, VER-20260927-017/018. Released privately as 0.3.77/code 83; subjective motion/appearance awaits owner validation.
+- Related/status: FB-20260927-003, DEC-20260927-004, IMP-20260927-011, VER-20260927-017/018. Released privately as 0.3.77/code 83; style choice is superseded for the current app by FB-20260927-007. The historical release and its evidence remain intact.
 
 ### FB-20260927-003 — Explore a configurable Goal completion celebration
 

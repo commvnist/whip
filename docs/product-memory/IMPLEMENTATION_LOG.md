@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260927-012 — Retire Goal styles and decouple card dismissal from confetti
+
+- Behavior changed: Appearance & Home keeps only the default-on celebration toggle. Saved Goal completion uses Victory Shower for four seconds; a screen tap or accessible card action hides the checkmark message without ending confetti. After dismissal, app navigation can receive taps during the remaining animation.
+- Important files/symbols: `GoalCelebration.kt`, `SettingsScreens.kt`, `AppSettings.kt`, `BackupRepository.kt`, the focused Goal/Settings/persistence/backup tests and Settings cause/effect register.
+- Persistence/migration/history impact: The obsolete `goalCelebrationStyle` local preference is removed on repository initialization; new portable backups omit the field, while imports of older backups tolerate it. The enable preference persists. Room schema 46, data epoch 6 and backup format 26 remain unchanged; prior 0.3.77 behavior is preserved in IMP-20260927-011 and VER-20260927-017/018.
+- Compatibility/limits: Motion-disabled devices show the static card for the same four-second maximum. No celebration is triggered by history, restore, abandonment or failed saves. Private release metadata advances to 0.3.78/code 84.
+- Related/status: FB-20260927-007, DEC-20260927-005, VER-20260927-019/020. Implemented and focused verified; phone delivery pending.
+
 ### IMP-20260927-011 — Add three selectable Goal completion effects
 
 - Behavior changed: Completing a Goal through an authored, successfully saved action shows the selected Quiet Glow, Confetti Moment or Victory Shower effect once. Appearance & Home has a default-on celebration switch and a style dropdown that previews each newly selected style even when the switch is off. The renderer shares one theme-aware badge/card owner, scales particle density/duration per style, avoids blocking input, and shows a static acknowledgement when device motion is disabled.

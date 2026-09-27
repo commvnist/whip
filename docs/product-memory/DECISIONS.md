@@ -1,11 +1,18 @@
 # Durable product and engineering decisions
 
+### DEC-20260927-005 — Keep one four-second Goal celebration
+
+- Context: After seeing 0.3.77, the owner revised FB-20260927-004 to keep Victory Shower alone, remove the style dropdown and let a tap dismiss only the checkmark card.
+- Decision: Retain the one shared celebration host and default-on enable switch. Remove the style enum/setting and preview path; retire the old local preference and ignore the obsolete field in legacy backups. Run Victory Shower for four seconds, with independently dismissible card state and an animated confetti lifetime that a tap does not shorten. Keep a static card for Android's motion-disabled setting.
+- Consequences: The first tap while the card is visible dismisses that message; subsequent taps reach the app while the confetti continues. No new animation dependency, schema migration or backup format version is needed.
+- Related/status: FB-20260927-007, DEC-20260927-004, IMP-20260927-012, VER-20260927-019. Accepted and focused verified.
+
 ### DEC-20260927-004 — Share one Goal celebration host across saves and previews
 
 - Context: FB-20260927-004 needs three distinct effects, a default-on preference, and immediate comparison in Settings without playing effects for failed or restored changes.
 - Decision: Keep the effect renderer and transient event controller in one app-level Compose host. Settings sends explicit preview events; Goals sends a completion event only after its authored lifecycle mutation returns a committed `Completed` receipt. Persist only the enable/style choices, including in portable backups. Keep numeric progress unchanged and show a static success card when Android animation is disabled.
 - Consequences: The effect never becomes part of Goal history or replay. A new preview replaces the previous transient event; the overlay does not intercept input. The app uses Compose/Android primitives without an animation dependency.
-- Related/status: FB-20260927-003/004, IMP-20260927-011, VER-20260927-017. Accepted.
+- Related/status: FB-20260927-003/004, IMP-20260927-011, VER-20260927-017. Superseded by DEC-20260927-005 for style choice and previews; the shared saved-completion host remains.
 
 ### DEC-20260927-003 — Bound edit feedback and batch broader checks
 
