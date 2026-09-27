@@ -246,7 +246,8 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithContentDescription("Tasks tab").performClick()
         compose.onNodeWithTag("support-pane-tasks-error").assertIsDisplayed()
         check(compose.onAllNodesWithText("Task refresh failed").fetchSemanticsNodes().isNotEmpty())
-        check(compose.onAllNodesWithText("Cached Task").fetchSemanticsNodes().isNotEmpty())
+        compose.onNode(hasText("Cached task") and hasAnyAncestor(hasTestTag("destination-support-content")))
+            .assertIsDisplayed()
         compose.onAllNodesWithTag("support-pane-tasks-empty").assertCountEquals(0)
 
         compose.onNodeWithContentDescription("Habits tab").performClick()

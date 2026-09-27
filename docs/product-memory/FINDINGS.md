@@ -1,5 +1,12 @@
 # Durable findings
 
+### FND-20260927-003 — Adaptive support regression expected altered casing
+
+- Severity/category: P3 stale Android test contract; FB-20260926-003.
+- Observed: The frozen candidate from pushed `f3148754` passed all 659 JVM methods, coverage floors, lint, and signed builds, then failed one of 120 methods in Android batch 2: `AdaptiveWhipScreenTest#adaptiveDestinationSupportSeparatesErrorLoadingAndRealEmpty` looked for `Cached Task` after seeding the authored title `Cached task`.
+- Expected/root cause: FND-20260926-015 deliberately preserves authored casing in shared support navigation. This older error/loading/empty-state regression still assumed the former automatic title casing. Its other state checks and 119 neighboring batch methods passed; the second emulator accepted its remaining seven assigned batches without further failures.
+- Resolution/status: The assertion now finds the exact authored `Cached task` inside `destination-support-content` and requires it to be displayed. Test-only correction; a fresh complete candidate is required to verify the correction and the seven even batches not run after worker 1 stopped. Related: FND-20260926-015, IMP-20260927-006, VER-20260927-008. Implemented; final verification pending.
+
 ### FND-20260927-002 — Settings architecture check assumed the old raw Areas label
 
 - Severity/category: P3 stale JVM source contract, not a product UI regression; FB-20260926-003.

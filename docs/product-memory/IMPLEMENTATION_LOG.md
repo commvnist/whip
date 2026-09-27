@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260927-006 — Align adaptive support regression with exact authored names
+
+- `AdaptiveWhipScreenTest#adaptiveDestinationSupportSeparatesErrorLoadingAndRealEmpty` now asserts that the loaded support pane visibly contains the exact seeded title `Cached task`. It retains the error, loading and empty-state checks and scopes the title to the support pane, so the regression tests the approved casing behavior instead of an obsolete transformed string.
+- Android test source only. Production UI, persistence, Room schema 46, data epoch 6, backup format 26, package/version, signer and installed owner-phone data are unchanged. The frozen `f3148754` candidate's Android batch 2 is diagnostic; the correction requires an entirely fresh complete candidate.
+- Related/status: FB-20260926-003, FND-20260926-015, FND-20260927-003, VER-20260927-008. Implemented; final candidate pending.
+
 ### IMP-20260927-005 — Align the Settings grouping contract with semantic headings
 
 - `UiDesignArchitectureTest` now requires the Areas label to be a shared `WhipGroupHeading` immediately inside its `WhipGroupedInformationCard`. The check no longer demands the obsolete raw `Text("Areas")` call; it still checks Settings' other shared card owners and bounded role.
@@ -14,9 +20,9 @@
 
 ### IMP-20260927-003 — Prepare private 0.3.75 owner-phone update
 
-- `app/build.gradle.kts` advances Whip from 0.3.74/code 80 to 0.3.75/code 81 so the completed design overhaul can be installed in place on the already connected owner phone after final source and visual acceptance. The prior release's signer, package ID, Room schema 46, data epoch 6 and portable-backup format 26 are unchanged.
-- The explicitly selected physical Samsung still reports 0.3.74/code 80 and the original 2026-08-26 first-install time; the release target guard passes. Build, install, hash/signature continuity and smoke checks remain pending. No emulator test will select the owner phone.
-- Related/status: FB-20260926-002/003, IMP-20260927-001/002. In progress.
+- `app/build.gradle.kts` advances Whip from 0.3.74/code 80 to 0.3.75/code 81 for the completed design overhaul. The prior release's signer, package ID, Room schema 46, data epoch 6 and portable-backup format 26 are unchanged.
+- At the owner's request, the signed release APK was installed in place on the connected Samsung while the frozen emulator candidate ran. The installed APK hash matches `bf171c249e2a2fe9a0df75f297a9a4b6b137afd8fbfa454c91f391f14f2bc7c4`; signer continuity, version 0.3.75/code 81, original 2026-08-26 first-install time, cold foreground launch and bounded runtime-log smoke passed. The candidate subsequently rejected one stale Android test assertion, so complete release qualification is still pending. No physical instrumentation, data reset, uninstall or Play publication occurred.
+- Related/status: FB-20260926-002/003, IMP-20260927-001/002, VER-20260927-009. Installed; final candidate pending.
 
 ### IMP-20260927-002 — Give destructive text actions one enabled-state color owner
 

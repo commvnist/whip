@@ -1,5 +1,17 @@
 # Verification and release evidence
 
+### VER-20260927-009 — Parallel private 0.3.75 installation and phone smoke
+
+- At the owner's explicit request, the existing connected Samsung received `WHIP_DEVICE=<selected-phone> scripts/device release-install` while the frozen emulator campaign continued. The prior installed version was 0.3.74/code 80; guarded streamed in-place installation reports 0.3.75/code 81, package `commvne.com.whip.app`, matching installed-base/APK SHA-256 `bf171c249e2a2fe9a0df75f297a9a4b6b137afd8fbfa454c91f391f14f2bc7c4`, and the established signer SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`. `firstInstallTime=2026-08-26 17:59:24` was preserved; `lastUpdateTime=2026-09-27 01:43:37` local.
+- `scripts/device release-run` cold-launched `com.whip.app.MainActivity` in 132 ms; foreground Activity and live PID were confirmed. A bounded 224-line process log scan found no fatal, ANR, SQLite or Room matches. No physical-device instrumentation, data clear/reset, uninstall, downgrade or Play publication occurred. The build's complete Android candidate later failed a stale test assertion (VER-20260927-008); signed-artifact qualification remains pending a fresh full run.
+- Related/status: FB-20260926-002/003, IMP-20260927-003. Phone installation and smoke Verified; complete candidate pending.
+
+### VER-20260927-008 — Second frozen candidate exposed stale support-title assertion
+
+- From clean pushed `f3148754`, `ANDROID_SERIAL=emulator-5554 WHIP_ANDROID_SECONDARY_SERIAL=emulator-5556 scripts/candidate` passed static preflight, all 659 JVM methods, deterministic domain coverage floors (83.14% lines and 59.65% branches), Settings/policy coverage (68.88% lines), debug/release lint, and signed APK/AAB and benchmark builds. Android batch 1 accepted 44/44; batch 2 executed 120 methods with one failure at `AdaptiveWhipScreenTest.kt:249`. The seven further batches assigned to the second emulator (3, 5, 7, 9, 11, 13, 15) all accepted with zero failures/skips. Worker 1 stopped after batch 2, so even batches 4–16 were not executed in this attempt.
+- The failed test seeded `Cached task` but demanded `Cached Task`, contradicting the approved authored-casing fix. It now scopes a visible exact-casing assertion to the support pane. The incomplete candidate evidence at `build/candidate-evidence/.pending-zhPxlP` and Android reports at `build/coverage-results-Lvbtbd` are diagnostic only; no whole-candidate acceptance is claimed. A fresh run must execute all 1,113 Android methods with zero failures/skips/reuse and verify artifacts.
+- Related/status: FB-20260926-003, FND-20260926-015, FND-20260927-003, IMP-20260927-006. Diagnostic failure; corrected source pending full verification.
+
 ### VER-20260927-007 — First full candidate stopped by stale Settings source contract
 
 - From pushed `0cead2be`, the frozen candidate passed static preflight and began JVM/build/lint gates. All 659 JVM methods executed; one failed in `UiDesignArchitectureTest#groupedInformationAndDatePickerHaveNeutralBoundedOwnership` because it required `Text("Areas")` after the approved `WhipGroupHeading("Areas")` migration. The candidate stopped before Android coverage or accepted artifacts, retaining only rejected local evidence at `build/candidate-evidence/.pending-8DX0b4`. This is a source-contract assertion, not an observed Settings render or functional failure.
