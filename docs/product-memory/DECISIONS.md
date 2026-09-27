@@ -1,5 +1,11 @@
 # Durable product and engineering decisions
 
+### DEC-20260927-001 — Give shared status notices one spoken context node
+
+- Context: TalkBack focused a warning `WhipStatusCard` as a node that said only “Warning,” leaving its visible title and explanation on separate stops (FND-20260927-005).
+- Decision: The existing `WhipNoticeCard` merges its non-interactive descendants into the severity/live-region Card node. A contained action remains a separate clickable control. Keep the visible color and content unchanged and avoid an authored `contentDescription` that would duplicate or replace the real title/message.
+- Verification/status: The native status test proves merged title/message and a working Retry control; TalkBack's displayed speech says “Warning. Setting Saved with Warnings. Reminder permission was denied.” Verified on API 34 under VER-20260927-013. Related: FB-20260927-002, IMP-20260927-008.
+
 ### DEC-20260926-005 — Reuse semantic roles and native scroll for the remaining design seams
 
 - Context: FB-20260926-003 reopened a full design audit after the 523-state architecture campaign. Current-source, enlarged-view, populated 200% adaptive test and two reachable 900 dp Settings modes confirm FND-20260926-009 through -015; final image review adds FND-20260927-001 for disabled destructive labels.

@@ -1,5 +1,12 @@
 # Verification and release evidence
 
+### VER-20260927-014 — Exact 0.3.76 private APK on the owner phone
+
+- Source/artifact: Clean pushed `7f3b510d` produced the final signed 0.3.76/code 82 APK SHA-256 `2492f10c150ce36f3f5c1c40c755e7cd29b83a0135f719b9385b45a0fe99b9c3` and AAB SHA-256 `bee180b6ee5bc39453ebb50337f9c64d72a9d12a9bdbe91154c125e7147f7d72`. The APK is package `commvne.com.whip.app`, signed by the established RSA-4096 certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`; APK signature, AAB JAR signature and both ZIP archives verify. [Private release receipt and local handoff links](../../artifacts/quality/2026-09-27/phone-release-0.3.76/README.md).
+- Phone result: Guarded `WHIP_DEVICE=192.168.2.165:33701 scripts/device release-deploy` installed the final signed APK in place on the selected Samsung `SM-F976W`. Installed base APK hash equals the final source APK hash. The prior installed version was 0.3.75/code 81; the final version is 0.3.76/code 82. Original `firstInstallTime=2026-08-26 17:59:24` remained unchanged; final `lastUpdateTime=2026-09-27 07:15:53` local. MainActivity cold-launched in 105 ms and became foreground with live PID 18916. A bounded 137-line process log found zero fatal, ANR, AndroidRuntime, SQLiteException or RoomDatabase matches.
+- Sequence/bounds: An earlier in-place 0.3.76 build was delivered in parallel with final evidence work, then replaced by the exact clean-source build when commit metadata changed the APK hash. There was no phone instrumentation, data clear/reset, uninstall, downgrade, private-record inspection or Play Store publication. This private release used focused `VER-20260927-013` acceptance, not a new frozen Play candidate. Room schema 46, data epoch 6 and backup format 26 remain unchanged.
+- Related/status: FB-20260927-002, IMP-20260927-008, VER-20260927-013. Released and device verified; subjective appearance awaits normal owner use.
+
 ### VER-20260927-013 — Focused Ponytail Ultra plan acceptance
 
 - Scope/environment: Disposable API 34 Pixel emulators `emulator-5554` and `emulator-5556`; the owner phone was not used for tests. The Track and shared-UI methods ran on 5554. The real Habit Tracking widget was pinned in Pixel Launcher on 5556. No more than two emulators were active.
