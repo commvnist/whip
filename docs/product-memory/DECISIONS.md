@@ -4,19 +4,19 @@
 
 - Context: FND-20260926-008 failed before a Track UI assertion because an Android 2.0 font-scale write had reverted to 1.0 during the long full inventory. The exact Track method passed alone; the previous 30-second rule only waited for resources after one write.
 - Decision: Within the existing 30-second barrier, repeat the setting command at two-second intervals until both the system setting and target resources match. Apply the same bounded procedure to restore the original value, including a previously absent setting. Keep the real rendered-scale assertions and do not downgrade tests to a Compose-local fake or skip large-text cases.
-- Related/status: FB-20260926-001, FND-20260926-008, IMP-20260926-005, VER-20260926-004, VER-20260921-013. Implemented; focused Track replay passes, final candidate pending.
+- Related/status: FB-20260926-001, FND-20260926-008, IMP-20260926-005, VER-20260926-004/005, VER-20260921-013. Verified by the focused Track replay and accepted final candidate.
 
 ### DEC-20260926-003 — Keep direct tabs and require purposeful overflow cues
 
 - Context: FND-20260926-007 stopped the first frozen JVM gate because an older source-text rule banned all use of `canScrollBackward/Forward`. The current shared tab bar uses those properties for the visible directional affordance requested by the UX audit; every destination remains a direct tab and the selected tab is brought into view.
 - Decision: Keep the ban on gradients, shadows, dropdown overflow and hiding peers. Require both scroll-state checks and named backward/forward cue tags in the source contract, with native UI tests checking selected-tab reveal and cue visibility.
-- Related/status: FB-20260926-001, FND-20260926-003/007, IMP-20260926-004, VER-20260926-003. Implemented; focused class passes, final candidate pending.
+- Related/status: FB-20260926-001, FND-20260926-003/007, IMP-20260926-004, VER-20260926-003/005. Verified by the focused class and accepted final candidate.
 
 ### DEC-20260926-002 — Wait for the Task row before opening it in capture journeys
 
 - Context: FND-20260926-006 exposed an occasional four-second failure under the complete visual campaign. The Task Home list container was present, but its seeded row had not reached the semantics tree. The same production Task row label and journey passed in the prior complete campaign and focused replays.
 - Decision: `TaskEditorJourneyE2ETest.openExistingTask` waits up to 15 seconds for the exact accessible row description, then retains the existing lazy-list scroll, edit/recreate/save/reopen and field-visibility assertions. Do not add a fixed delay or weaken the user-facing behavior check.
-- Related/status: FB-20260926-001, FND-20260926-006, IMP-20260926-003, VER-20260926-002. Affected-family verification passed; final full gate pending.
+- Related/status: FB-20260926-001, FND-20260926-006, IMP-20260926-003, VER-20260926-002/005. Verified by the affected family and accepted final candidate.
 
 ### DEC-20260926-001 — Extend existing semantic UI owners and cut proven duplicate plumbing
 
@@ -24,7 +24,7 @@
 - Decision: Use the existing item, control, page, theme, and adaptive-shell roles as the shared model. Migrate equivalent callers completely and remove their copies. Keep one 1000 dp workspace measure from DEC-20260910-030; share only genuine authored-form widths. Keep specialized domain composition where behavior differs. Refactor non-UI lifecycle code only after proving identical ordering and fallback behavior.
 - Rejected alternatives: A universal UI DSL, splitting giant files merely for size, forcing charts/execution/destructive reviews into ordinary cards, reviving per-destination workspace widths, changing data formats to solve presentation, or removing backup/recovery compatibility for line count.
 - Verification: Affected native journeys and visual states at ordinary and enlarged text, strict widget/alarm/guard fixtures, one final fresh whole-product campaign, and exact current-source visual review. Use proportionate edit-loop checks and at most two disposable emulators.
-- Related/status: FB-20260926-001, FND-20260926-001 through -005, IMP-20260926-001/002, [current plan and outcome](../quality/REUSABLE_ARCHITECTURE_UX_AUDIT_2026-09-26.md). Implemented; focused UX review found no further actionable inconsistency, and the final frozen gate remains pending.
+- Related/status: FB-20260926-001, FND-20260926-001 through -005, IMP-20260926-001/002, VER-20260926-005, [current plan and outcome](../quality/REUSABLE_ARCHITECTURE_UX_AUDIT_2026-09-26.md). Verified; visual review found no further actionable inconsistency and the final frozen gate passed.
 
 ### DEC-20260921-019 — Parse Goal progress at Save activation
 

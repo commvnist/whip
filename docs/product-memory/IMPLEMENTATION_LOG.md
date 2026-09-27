@@ -4,33 +4,33 @@
 
 - `AndroidFontScaleRule` now retries the actual Android font-scale write every two seconds within its existing 30-second barrier when the setting or target resources do not match. It verifies both values before a test runs, then restores the original setting with the same bounded check, preserving a previously absent setting exactly.
 - Instrumentation harness only; no production UI, persistence, schema, backup format or release version change. The unchanged failing Track method passed alone, and the affected four-method class passed after the retry change. The failed frozen candidate remains rejected.
-- Related/status: FB-20260926-001, FND-20260926-008, DEC-20260926-004, VER-20260926-004. Focused correction Verified; full candidate pending.
+- Related/status: FB-20260926-001, FND-20260926-008, DEC-20260926-004, VER-20260926-004/005. Verified in focus and the accepted full candidate.
 
 ### IMP-20260926-004 — Update the navigation contract for visible tab overflow
 
 - `WhipVisualLanguageTest` no longer rejects `DestinationTabBar`'s native backward/forward scroll-state checks. It now requires the two named directional cues while preserving the no-gradient, no-shadow, no-dropdown and direct-peer rules. The six-method JVM class passes.
 - Test-only correction; production navigation, data formats, schema and release version are unchanged. The first frozen candidate was stopped after its JVM failure and is not accepted; a fresh full gate is required.
-- Related/status: FB-20260926-001, FND-20260926-003/007, DEC-20260926-003, VER-20260926-003. Focused correction Verified; final candidate pending.
+- Related/status: FB-20260926-001, FND-20260926-003/007, DEC-20260926-003, VER-20260926-003/005. Verified in focus and the accepted full candidate.
 
 ### IMP-20260926-003 — Stabilize Task editor capture on the actual Home row
 
 - `TaskEditorJourneyE2ETest.openExistingTask` now waits for the exact accessible seeded Task row after the Home list container appears, then performs its existing scroll/tap and full edit/recreate/save/reopen checks. The test no longer assumes that list composition and asynchronous Task content arrive together.
 - Test-only change; production UI, Task persistence, Room schema, data epoch, backup format and release version are unchanged. A failed final-source catalog attempt remains rejected diagnostic evidence; the prior complete catalog remains a valid visual review for unchanged UI code.
-- Related/status: FB-20260926-001, FND-20260926-006, DEC-20260926-002, VER-20260926-002. Focused two-method and 44-state Task-family verification pass; final full gate pending.
+- Related/status: FB-20260926-001, FND-20260926-006, DEC-20260926-002, VER-20260926-002/005. Verified by the two-method and 44-state Task-family runs and accepted full candidate.
 
 ### IMP-20260926-001 — Unify the repeated control, layout, and navigation roles
 
 - Equivalent Task, Habit, Routine, Settings, and setup switches now use the whole-row `WhipSettingItem` role through `WhipToggleRow`; the local Routine switch and setup toggle renderers were removed. Track, Gym, Routine, global, and picker searches use `WhipSearchField`, with clear, submit, hint, enabled, and caller-owned query rules preserved.
 - `WhipSectionHeading` owns ordinary section typography and heading semantics; `WhipItemCardBody` owns ordinary collection-card insets; support-pane selection rows and bottom/rail navigation use their common visual owners. Informative notices use the primary container distinct from success. Track Insights/Options no longer repeat their selected tab as a body headline; long tab bars show both scroll directions and reveal the selected tab. `WhipPageHeader` stacks actions when its measured title needs the width. Dead width tokens and ineffective Track caps are removed, and authored forms share the 720 dp token.
 - Production UI, adjacent native semantics/navigation tests, and source-linked visual artifacts changed. Room schema, data epoch, portable-backup format, persistence rules, and release version did not change. Specialist charts, execution, selection, and destructive review composition remain domain-owned.
-- Related/status: FB-20260926-001, FND-20260926-001/002/003/004, DEC-20260926-001, VER-20260926-001. Implemented; final frozen-candidate verification pending.
+- Related/status: FB-20260926-001, FND-20260926-001/002/003/004, DEC-20260926-001, VER-20260926-001/005. Verified by focused UX and accepted frozen candidate.
 
 ### IMP-20260926-002 — Consolidate duplicate guarded update and source checks
 
 - Task/Habit widget providers now use one asynchronous `goAsync` completion and collection-update wrapper while retaining separate renderers and domain actions. `WidgetCollectionSnapshotState` shares their identical snapshot/cache/error-first fallback lifecycle, while loader, row conversion, renderers and stable IDs stay domain-owned. The Gradle emulator target guard has one launch helper used by both registrations. `scripts/check` and `scripts/candidate` call one source-policy scanner with the same two precise DocumentsUI input exemptions.
 - Alarm schedulers keep separate claim, registry, and cancellation ordering because their behavior differs. Their superficial similarity is not enough to justify a shared lifecycle.
 - No data-format, schema, release-version, device-policy, or owner-phone change. The exact source-policy fixtures pass; widget boundaries are included in final native verification.
-- Related/status: FB-20260926-001, FND-20260926-005, DEC-20260926-001, VER-20260926-001. Implemented; 24 focused widget methods pass, final gate pending.
+- Related/status: FB-20260926-001, FND-20260926-005, DEC-20260926-001, VER-20260926-001/005. Verified by 24 focused widget methods and accepted frozen candidate.
 
 ### IMP-20260921-026 — Package the paused-audit source as a private APK
 

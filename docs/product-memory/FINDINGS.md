@@ -5,21 +5,21 @@
 - Severity/category: P2 full Android audit reliability; no confirmed Track UI defect.
 - Observed: The second frozen candidate passed complete JVM/build/lint/signature gates and 569 fresh Android methods in seven accepted batches. Batch nine executed 87 methods with one failure at `TrackCollectionJourneyE2ETest#archivedAndActiveSelectionsStaySeparateAtLargeText`. Its outer `AndroidFontScaleRule` exhausted 30 seconds before any UI assertion; both `settings get system font_scale` and target resources remained at 1.0 after requesting 2.0. The unchanged exact method passed 1/1 on the same emulator immediately afterward.
 - Expected/root cause: The rule must require the actual system setting and resource scale, and tolerate a bounded reverted or lost setting write during a heavily loaded emulator campaign. Its previous single write only waited for resource delivery; the setting itself could change back without recovery. This extends VER-20260921-013's earlier configuration-delivery barrier.
-- Resolution/status: The rule now retries its requested write every two seconds for up to 30 seconds, requires both setting and resource scale, and restores the exact prior setting including absence. The affected four-method Track class passes; a new complete candidate is required. Related: FB-20260926-001, DEC-20260926-004, IMP-20260926-005, VER-20260926-004.
+- Resolution/status: The rule now retries its requested write every two seconds for up to 30 seconds, requires both setting and resource scale, and restores the exact prior setting including absence. The affected four-method Track class and final fresh 1,110-method Android candidate pass. Verified under VER-20260926-005. Related: FB-20260926-001, DEC-20260926-004, IMP-20260926-005, VER-20260926-004.
 
 ### FND-20260926-007 — Navigation source contract forbade the new discoverable scroll cues
 
 - Severity/category: P3 stale JVM design contract, not a product navigation defect.
 - Observed: The first frozen candidate executed 659 JVM tests and failed one: `WhipVisualLanguageTest#destinationNavigationKeepsEveryPeerDirectAndStable` still forbade the strings `canScrollBackward` and `canScrollForward`. The new `DestinationTabBar` uses those exact native scroll-state properties to show the accepted directional cues while keeping every peer tab direct, selected-tab reveal, and no overflow menu. The native overflow/selection test and full visual catalog had passed.
 - Expected/root cause: The source contract must reject ambiguous decoration/hidden destinations but permit the intentional scroll cues and require both directions. The assertion encoded an older no-cue rule.
-- Resolution/status: The contract now checks the two cue tags and scroll-state properties, while retaining its bans on gradients, shadows, dropdown overflow and hidden destinations. The six-method JVM class passes; a new frozen candidate is required. Related: FB-20260926-001, DEC-20260926-003, IMP-20260926-004, VER-20260926-003.
+- Resolution/status: The contract now checks the two cue tags and scroll-state properties, while retaining its bans on gradients, shadows, dropdown overflow and hidden destinations. The six-method JVM class and final 659-method JVM candidate pass. Verified under VER-20260926-005. Related: FB-20260926-001, DEC-20260926-003, IMP-20260926-004, VER-20260926-003.
 
 ### FND-20260926-006 — Task editor capture could search Home before its seeded row appeared
 
 - Severity/category: P3 test timing and complete-catalog reliability, not a confirmed product data or accessibility defect.
 - Observed: A fresh final-source 523-state recapture accepted nine batches, then batch ten's ordinary `TaskEditorJourneyE2ETest#existingTaskCanBeReadEditedRecreatedSavedAndReopened` failed in four seconds because `home-list` existed before “Open task details for Review release notes” entered its semantics tree. The large-text variant in the same batch passed; all nine other batch-ten methods passed. The prior complete 523-state capture, an isolated ordinary replay, and a two-method class replay passed on unchanged production UI.
 - Expected/root cause: The journey must wait for the actual seeded row after list creation, not treat the list container as proof that asynchronous Home content is ready. The product still gives the Task row the expected accessible label in `TaskComponents.kt`.
-- Resolution/status: `openExistingTask` now waits for that content description before scrolling and tapping. The corrected two-method native class and 44-state Task-family catalog pass; the final full gate is pending. Related: FB-20260926-001, DEC-20260926-002, IMP-20260926-003, VER-20260926-002. Verified for the affected journey.
+- Resolution/status: `openExistingTask` now waits for that content description before scrolling and tapping. The corrected two-method native class, 44-state Task-family catalog and final fresh Android candidate pass. Verified under VER-20260926-002/005. Related: FB-20260926-001, DEC-20260926-002, IMP-20260926-003.
 
 ### FND-20260926-001 — Equivalent toggle and search controls still have multiple owners
 
@@ -28,7 +28,7 @@
 - Expected: Equivalent toggles and searches share visual geometry, accessible names, whole-row activation where appropriate, and clear-query behavior. Draft rules and domain callbacks remain local.
 - Evidence/root cause: `WhipSettingItemBuilder.kt`, `RoutineBuilder.kt:156`, `TaskEditorDialog.kt:733`, `HabitScreens.kt:2272`, `WhipSearchField.kt`, `TrackScreens.kt:1062,1962`, `GymScreens.kt:450,535`, `RoutineBuilder.kt:3461`; independent feature composition bypasses existing presentation owners.
 - Recommended solution: Extend the existing toggle/search roles minimally and migrate equivalent callers; retain specialized authored fields and selection/reorder rows.
-- Resolution/status: `WhipToggleRow` now uses the existing `WhipSettingItem` whole-row switch owner, and equivalent Task/Habit/Routine/Settings/setup controls migrated; `WhipSearchField` now owns equivalent queries across Track/Gym/Routine/global/pickers. The Routine and setup copies were removed. Related: FB-20260926-001, FB-20260903-017, FB-20260910-002, IMP/VER-20260926-001. Implemented; final full gate pending.
+- Resolution/status: `WhipToggleRow` now uses the existing `WhipSettingItem` whole-row switch owner, and equivalent Task/Habit/Routine/Settings/setup controls migrated; `WhipSearchField` now owns equivalent queries across Track/Gym/Routine/global/pickers. The Routine and setup copies were removed. Related: FB-20260926-001, FB-20260903-017, FB-20260910-002, IMP/VER-20260926-001/005. Verified.
 
 ### FND-20260926-002 — Shared visual roles still have local heading, card, and notice variants
 
@@ -37,7 +37,7 @@
 - Expected: Equivalent sections, ordinary collection insets, selected support rows, and status tones have one visual owner; specialist execution, calendar, selection, and warning surfaces remain distinct.
 - Evidence/root cause: `WhipPagePatterns.kt:498,524,645`, `TrackScreens.kt:1254,1470`, `GoalScreens.kt:2526`, `GymScreens.kt:6855,8697`, `RoutineBuilder.kt:2154`, `WhipApp.kt:4663,4723`; repeated composition around existing primitives.
 - Recommended solution: Reuse a shared heading renderer and ordinary item shell, share the support-row content, and give information the existing primary-container semantic color while keeping success green.
-- Resolution/status: `WhipSectionHeading`, `WhipItemCardBody`, shared support-pane selection and navigation content, and semantic notice colors own the equivalent roles. Specialized composition stays domain-owned. Related: FB-20260926-001, DEC-20260903-015, DEC-20260910-030, IMP/VER-20260926-001. Implemented; final full gate pending.
+- Resolution/status: `WhipSectionHeading`, `WhipItemCardBody`, shared support-pane selection and navigation content, and semantic notice colors own the equivalent roles. Specialized composition stays domain-owned. Related: FB-20260926-001, DEC-20260903-015, DEC-20260910-030, IMP/VER-20260926-001/005. Verified.
 
 ### FND-20260926-003 — Nested navigation and long tabs consume context or hide choices
 
@@ -46,7 +46,7 @@
 - Expected: A selected tab gives sufficient page identity without a duplicate headline; horizontal overflow is visibly discoverable, and the content area remains useful on compact/enlarged screens.
 - Evidence/root cause: `TrackScreens.kt:1772,2234,2788`, `ItemControlPatterns.kt:1155`; current emulator captures under `artifacts/reusable-architecture-ux/2026-09-26/` are being retained. The September 21 Track Insights original corroborates repeated chrome, but is historical evidence only.
 - Recommended solution: Remove redundant Track headings while preserving Filter access and guidance; improve the shared tab overflow cue and verify selected-tab reachability/viewport on current normal and enlarged captures.
-- Resolution/status: Track Insights/Options duplicate body headlines were removed while guidance/filter access stayed. `DestinationTabBar` now shows scroll-direction cues and reveals the selected tab; `WhipPageHeader` measures title/action fit before stacking. Current ordinary and 200% catalog states reviewed. Related: FB-20260926-001, DEC-20260910-030, IMP/VER-20260926-001. Implemented; final full gate pending.
+- Resolution/status: Track Insights/Options duplicate body headlines were removed while guidance/filter access stayed. `DestinationTabBar` now shows scroll-direction cues and reveals the selected tab; `WhipPageHeader` measures title/action fit before stacking. Current ordinary and 200% catalog states reviewed. Related: FB-20260926-001, DEC-20260910-030, IMP/VER-20260926-001/005. Verified.
 
 ### FND-20260926-004 — Editor width tokens and collection caps carry obsolete layout choices
 
@@ -55,7 +55,7 @@
 - Expected: One 1000 dp workspace measure as established by DEC-20260910-030, and one named 720 dp authored-form measure where it is actually shared. No inactive alternatives.
 - Evidence/root cause: `WhipPagePatterns.kt:83`, `WhipWorkspaceLayout.kt:24`, `TrackScreens.kt:1034,1203,2975,3713`, `ReviewOutcomeDetails.kt:43,52`; stale width tokens and local values.
 - Recommended solution: Delete dead tokens and redundant Track caps; name and reuse only the active workspace/form widths. Do not restore the superseded per-destination workspace split.
-- Resolution/status: Unused 920/1200 dp tokens and ineffective 1040 dp Track caps were deleted. Authored forms use one 720 dp token while the existing 1000 dp workspace owner remains. Related: FB-20260926-001, DEC-20260910-030, IMP/VER-20260926-001. Implemented; final full gate pending.
+- Resolution/status: Unused 920/1200 dp tokens and ineffective 1040 dp Track caps were deleted. Authored forms use one 720 dp token while the existing 1000 dp workspace owner remains. Related: FB-20260926-001, DEC-20260910-030, IMP/VER-20260926-001/005. Verified.
 
 ### FND-20260926-005 — Non-UI lifecycle and build checks repeat guarded plumbing
 
@@ -64,7 +64,7 @@
 - Expected: Shared plumbing only where exact ordering and failure behavior are identical. Task/Habit rendering, alarm claim/fallback policy, both Gradle hook registrations, and distinct SAF fixture exemptions remain explicit.
 - Evidence/root cause: `widget/*RemoteViewsService.kt`, `widget/WhipWidgetProvider.kt`, `reminders/*AlarmScheduler.kt`, `app/build.gradle.kts:250`, `scripts/check:58`, `scripts/candidate:321`; current source audit found active duplicate paths and no safe deletion of compatibility/recovery machinery.
 - Recommended solution: Extract the smallest verified common helpers after caller-by-caller lifecycle review, run existing widget/alarm/guard tests and source-policy fixtures, and remove only duplicated code.
-- Resolution/status: Widget provider update/deletion and collection-factory snapshot/cache/fallback lifecycle, Gradle guard launch, and source-policy scans are consolidated. Task/Habit loaders, row renderers and IDs remain separate. Timer/reminder alarm ordering differs, so it remains intentionally separate. Related: FB-20260926-001, DEC-20260926-001, IMP-20260926-002, VER-20260926-001. Implemented; 24 focused widget methods pass, final full gate pending.
+- Resolution/status: Widget provider update/deletion and collection-factory snapshot/cache/fallback lifecycle, Gradle guard launch, and source-policy scans are consolidated. Task/Habit loaders, row renderers and IDs remain separate. Timer/reminder alarm ordering differs, so it remains intentionally separate. Related: FB-20260926-001, DEC-20260926-001, IMP-20260926-002, VER-20260926-001/005. Verified; 24 focused widget methods and the final full gate pass.
 
 ### FND-20260921-022 — Rapid Goal progress entry could silently ignore Save
 
