@@ -130,6 +130,26 @@ internal fun WhipTextButton(
     )
 }
 
+/** Destructive action text follows the button's enabled state and theme. */
+@Composable
+internal fun WhipDestructiveTextButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable RowScope.() -> Unit,
+) {
+    WhipTextButton(
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        colors = ButtonDefaults.textButtonColors(
+            contentColor = MaterialTheme.colorScheme.error,
+            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+        ),
+        content = content,
+    )
+}
+
 /** A rectangular, single-accent choice control used for filters and modes. */
 @Composable
 internal fun WhipFilterChip(

@@ -826,11 +826,11 @@ fun PermanentTaskDeleteDialog(
             }
         },
         confirmButton = {
-            WhipTextButton(
+            WhipDestructiveTextButton(
                 enabled = !saving && impact?.taskId == targetTaskId && impact.exists,
                 onClick = onConfirm,
             ) {
-                Text("Delete Permanently", color = MaterialTheme.colorScheme.error)
+                Text("Delete Permanently")
             }
         },
         dismissButton = {

@@ -58,8 +58,8 @@ fun PermanentDeleteDialog(
             }
         },
         confirmButton = {
-            WhipTextButton(onClick = onConfirm, enabled = !busy, modifier = confirmModifier) {
-                Text(if (busy) busyLabel else confirmLabel, color = MaterialTheme.colorScheme.error)
+            WhipDestructiveTextButton(onClick = onConfirm, enabled = !busy, modifier = confirmModifier) {
+                Text(if (busy) busyLabel else confirmLabel)
             }
         },
         dismissButton = { WhipTextButton(onClick = onDismiss, enabled = !busy) { Text("Cancel") } },

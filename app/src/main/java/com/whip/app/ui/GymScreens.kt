@@ -5063,12 +5063,12 @@ internal fun ExercisePermanentDeleteDialog(
             }
         },
         confirmButton = {
-            WhipTextButton(
+            WhipDestructiveTextButton(
                 enabled = impact != null && !blocked && !deleting && errorMessage == null,
                 onClick = { impact?.let(onConfirm) },
                 modifier = Modifier.testTag("exercise-delete-confirm"),
             ) {
-                Text(if (deleting) "Deleting…" else "Delete permanently", color = MaterialTheme.colorScheme.error)
+                Text(if (deleting) "Deleting…" else "Delete permanently")
             }
         },
         dismissButton = {
@@ -5435,12 +5435,12 @@ internal fun WorkoutPermanentDeleteDialog(
             }
         },
         confirmButton = {
-            WhipTextButton(
+            WhipDestructiveTextButton(
                 enabled = impact != null && !blocked && !deleting && errorMessage == null,
                 onClick = { impact?.let(onConfirm) },
                 modifier = Modifier.testTag("workout-delete-confirm"),
             ) {
-                Text(if (deleting) "Deleting…" else "Delete permanently", color = MaterialTheme.colorScheme.error)
+                Text(if (deleting) "Deleting…" else "Delete permanently")
             }
         },
         dismissButton = {
@@ -5562,12 +5562,12 @@ internal fun RoutinePermanentDeleteDialog(
             }
         },
         confirmButton = {
-            WhipTextButton(
+            WhipDestructiveTextButton(
                 enabled = impact != null && !blocked && !deleting && errorMessage == null,
                 onClick = { impact?.let(onConfirm) },
                 modifier = Modifier.testTag("routine-delete-confirm"),
             ) {
-                Text(if (deleting) "Deleting…" else "Delete permanently", color = MaterialTheme.colorScheme.error)
+                Text(if (deleting) "Deleting…" else "Delete permanently")
             }
         },
         dismissButton = {
@@ -5705,11 +5705,11 @@ internal fun MachinePermanentDeleteDialog(
             }
         },
         confirmButton = {
-            WhipTextButton(
+            WhipDestructiveTextButton(
                 enabled = impact != null && !blocked && !deleting && errorMessage == null,
                 onClick = { impact?.let(onConfirm) },
                 modifier = Modifier.testTag("machine-delete-confirm"),
-            ) { Text(if (deleting) "Deleting…" else "Delete profile permanently", color = MaterialTheme.colorScheme.error) }
+            ) { Text(if (deleting) "Deleting…" else "Delete profile permanently") }
         },
         dismissButton = { WhipTextButton(enabled = !deleting, onClick = onDismiss) { Text("Cancel") } },
         inputBlocked = deleting,

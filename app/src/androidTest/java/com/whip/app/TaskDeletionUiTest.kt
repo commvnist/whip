@@ -5,11 +5,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.RecurrenceRule
@@ -362,5 +368,43 @@ class TaskDeletionUiTest {
         compose.onNodeWithText("12 check-ins will be removed", substring = true).assertIsDisplayed()
         compose.onNodeWithText("Cancel").performClick()
         compose.runOnIdle { assertEquals(0, confirmations.get()) }
+    }
+
+    @Test
+    fun permanentDeleteConfirmMutesItsLabelWhenBusy() {
+        var busy by mutableStateOf(false)
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                PermanentDeleteDialog(
+                    title = "Delete saved history?",
+                    impacts = listOf("History will be removed."),
+                    confirmLabel = "Delete Permanently",
+                    busyLabel = "Delete Permanently",
+                    busy = busy,
+                    confirmModifier = Modifier.testTag("destructive-confirm"),
+                    onDismiss = {},
+                    onConfirm = {},
+                )
+            }
+        }
+
+        fun peakButtonChroma(): Float {
+            val pixels = compose.onNodeWithTag("destructive-confirm").captureToImage().toPixelMap()
+            var peak = 0f
+            for (x in 0 until pixels.width) for (y in 0 until pixels.height) {
+                val color = pixels[x, y]
+                peak = maxOf(peak, maxOf(color.red, color.green, color.blue) - minOf(color.red, color.green, color.blue))
+            }
+            return peak
+        }
+
+        compose.onNodeWithTag("destructive-confirm").assertIsEnabled()
+        val enabledChroma = peakButtonChroma()
+        compose.runOnIdle { busy = true }
+        compose.onNodeWithTag("destructive-confirm").assertIsNotEnabled()
+        val disabledChroma = peakButtonChroma()
+        check(enabledChroma > disabledChroma + 0.15f) {
+            "Disabled destructive label stayed as vivid as enabled: $enabledChroma vs $disabledChroma"
+        }
     }
 }

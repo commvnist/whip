@@ -1,5 +1,23 @@
 # Verification and release evidence
 
+### VER-20260927-003 — Destructive button state and color regression
+
+- `ANDROID_SERIAL=emulator-5556 scripts/qa-targeted --android 'com.whip.app.TaskDeletionUiTest#permanentDeleteConfirmMutesItsLabelWhenBusy'` passed 1/1 fresh on a disposable API 34 emulator, zero failures/skips (`build/instrumentation-results-HQ5p4v/aggregate.tsv`). Production and native-test Kotlin compiled. The test renders the actual shared permanent-delete dialog with identical enabled/disabled text, asserts button semantics in both states, and confirms the disabled label's maximum chroma is at least 0.15 below the enabled error label.
+- The shared color owner is used by all identified destructive text-button callers, including four Gym deletion reviews. Their blocked/allowed screenshots remain to be recaptured and reviewed in the complete current-source catalog.
+- Related/status: FB-20260926-003, FND-20260927-001, IMP-20260927-002. Focused Verified; final visual/candidate pending.
+
+### VER-20260927-002 — Focused enlarged RTL first-run correction
+
+- On disposable API 34 emulator-5554, the exact `FirstRunSetupPersistenceUiTest` 200% RTL visual journey passed 1/1 fresh with zero failures/skips (`build/instrumentation-results-x6l6c4/aggregate.tsv`). It asserts the final period and left-edge line alignment of “Advanced choices stay folded until requested.” and “Reduces streak emphasis without changing your data.”, as well as the saved-error sentence.
+- Updated `shared.first-run.optional-large-rtl` and `shared.first-run.error-large-rtl` PNGs were pulled and visually checked: sentence periods follow the final words, with wrapped English text starting at the left edge; controls retain RTL order. The images were still in a temporary inspection directory at this checkpoint. Final current-source shared-family capture is required for retained evidence.
+- Related/status: FB-20260926-003, FND-20260926-014, IMP-20260927-001. Focused Verified; final visual/candidate campaign pending.
+
+### VER-20260927-001 — Complete 523-state diagnostic catalog and independent image review
+
+- From pushed source `39e68f25`, `ANDROID_SERIAL=emulator-5554 WHIP_ANDROID_SECONDARY_SERIAL=emulator-5556 scripts/ui-catalog capture build/design-consistency-catalog-final-20260927` completed 20/20 batches and 193 fresh Android methods with zero failures, skips, or reused methods (`build/instrumentation-results-pgdRuk/aggregate.tsv`). It produced every required 523 PNG/XML pair, no unexpected/missing/duplicate pixels, and zero `NAF=true` nodes. The manifest SHA-256 is `60f5c3ceeced966e2fed4c8d59dc3f15f6d242afa05ea18f12b4e49b579b60e4`; retained local gallery is `build/design-consistency-catalog-final-20260927/index.html`.
+- Manual and independent agent review of all seven representative populated/empty destinations, five Settings sections, light/dark inversions, Gym reviews/retries, and three RTL states found two remaining actionable visual defects: residual line-leading English punctuation in explicitly styled first-run body copy (FND-20260926-014), and disabled destructive Gym labels using active error color (FND-20260927-001). The complete run is accepted as capture/test inventory evidence, but its affected pixels are diagnostic baseline rather than final visual acceptance. Its coverage does not include a rendered 200% populated tabletop support screenshot or saved-with-warning Settings state; those have focused source/native evidence and require distinct pixel evidence if claimed visually verified.
+- Related/status: FB-20260926-003, FND-20260926-009 through -015, FND-20260927-001. Inventory Verified; final visual acceptance pending scoped recapture and candidate.
+
 ### VER-20260926-011 — System picker timeout under emulator memory pressure
 
 - Diagnostic: The fourth complete-catalog attempt from pushed `95e24aaa` used physical 420dpi/1080×2400 on both disposable emulators. Its native campaign stopped after batch 3 recorded one `DataPrivacyJourneyE2ETest#plainAndCsvExportsKeepTheirRequestedFormats` timeout waiting 10 seconds for the CSV completion message (`build/instrumentation-results-KSlplg/batch-3/result-1.xml`). Ten other batches had completed by abort, with no further failures; this is not an accepted 523-state catalog. The failing method's retained log shows Android low-memory-killer activity and repeated `com.google.android.googlequicksearchbox:search` out-of-memory errors during the document picker flow.

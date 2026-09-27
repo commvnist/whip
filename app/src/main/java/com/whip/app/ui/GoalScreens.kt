@@ -2201,8 +2201,8 @@ internal fun GoalMeasurementDialog(
             title = { Text("Delete Progress Update?") },
             text = { Text("This removes the update from the Goal's history and recalculates its progress.") },
             confirmButton = {
-                WhipTextButton(onClick = { confirmDelete = false; onDelete() }) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                WhipDestructiveTextButton(onClick = { confirmDelete = false; onDelete() }) {
+                    Text("Delete")
                 }
             },
             dismissButton = { WhipTextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
@@ -2326,12 +2326,12 @@ internal fun GoalPermanentDeleteDialog(
             }
         },
         confirmButton = {
-            WhipTextButton(
+            WhipDestructiveTextButton(
                 enabled = impact != null && persistenceError.isNullOrBlank() && !saving,
                 onClick = { impact?.let(onConfirm) },
                 modifier = Modifier.testTag("goal-delete-confirm"),
             ) {
-                Text(if (saving) "Deleting…" else "Delete Permanently", color = MaterialTheme.colorScheme.error)
+                Text(if (saving) "Deleting…" else "Delete Permanently")
             }
         },
         dismissButton = {

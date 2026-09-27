@@ -217,6 +217,9 @@ class FirstRunSetupPersistenceUiTest {
         assertEnglishSentenceEndsWithPunctuation(
             "Advanced choices stay folded until requested.",
         )
+        assertEnglishSentenceEndsWithPunctuation(
+            "Reduces streak emphasis without changing your data.",
+        )
         compose.waitForIdle()
         captureVisualCatalogSurface("shared.first-run.optional-large-rtl")
         compose.onNodeWithText("Save and Start").performClick()
@@ -247,6 +250,10 @@ class FirstRunSetupPersistenceUiTest {
         assertTrue(
             "In an English sentence, final punctuation should follow the final letter visually in RTL.",
             layout.getBoundingBox(text.lastIndex).left > layout.getBoundingBox(text.lastIndex - 1).left,
+        )
+        assertTrue(
+            "Wrapped English copy should begin at the left edge of its text box in RTL.",
+            layout.getLineLeft(layout.getLineForOffset(text.lastIndex)) <= 1f,
         )
     }
 

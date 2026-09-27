@@ -2865,8 +2865,8 @@ private fun RoutinePlacementEditor(
                 title = { Text("Delete ${scheme.displayLabel}?") },
                 text = { Text("This removes the saved shortcut. Existing routine prescriptions stay unchanged.") },
                 confirmButton = {
-                    WhipTextButton(onClick = { onDeletePrescriptionScheme(scheme.id); pendingDeleteSchemeId = null }) {
-                        Text("Delete Scheme", color = MaterialTheme.colorScheme.error)
+                    WhipDestructiveTextButton(onClick = { onDeletePrescriptionScheme(scheme.id); pendingDeleteSchemeId = null }) {
+                        Text("Delete Scheme")
                     }
                 },
                 dismissButton = { WhipTextButton(onClick = { pendingDeleteSchemeId = null }) { Text("Cancel") } },

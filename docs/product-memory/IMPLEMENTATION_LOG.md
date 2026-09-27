@@ -1,5 +1,23 @@
 # Implementation history
 
+### IMP-20260927-003 — Prepare private 0.3.75 owner-phone update
+
+- `app/build.gradle.kts` advances Whip from 0.3.74/code 80 to 0.3.75/code 81 so the completed design overhaul can be installed in place on the already connected owner phone after final source and visual acceptance. The prior release's signer, package ID, Room schema 46, data epoch 6 and portable-backup format 26 are unchanged.
+- The explicitly selected physical Samsung still reports 0.3.74/code 80 and the original 2026-08-26 first-install time; the release target guard passes. Build, install, hash/signature continuity and smoke checks remain pending. No emulator test will select the owner phone.
+- Related/status: FB-20260926-002/003, IMP-20260927-001/002. In progress.
+
+### IMP-20260927-002 — Give destructive text actions one enabled-state color owner
+
+- `WhipControls.kt` now provides `WhipDestructiveTextButton`: enabled content uses the theme error color and disabled content uses the theme's muted on-surface tone. Destructive text buttons across Gym, Task, Habit, Goal, Track, Area, Routine Builder and the shared permanent-delete dialog now use that role instead of forcing an error color on inner `Text`. Existing labels, click/disabled conditions and test tags remain unchanged.
+- A focused native `TaskDeletionUiTest` renders the actual shared dialog with identical enabled/disabled labels, asserts the button state and compares text chroma. The changed Gym blocked/allowed deletion frames will be reviewed in the final catalog. No persistence, schema, backup, action, or release-signing behavior changes.
+- Related/status: FB-20260926-003, FND-20260927-001, DEC-20260926-005, VER-20260927-003. Focused Verified; final visual/candidate verification pending.
+
+### IMP-20260927-001 — Keep first-run English copy readable in RTL
+
+- `FirstRunSetupDialog.kt` now gives explicit body-small English copy one shared LTR and left-aligned text style, including welcome supporting text, advanced choices, optional preference explanation and backup/reminder guidance. Its existing content-direction provider still covers unstyled copy and error text; control order remains RTL. This corrects the residual line-leading punctuation found in the complete catalog after the initial provider-only change.
+- `FirstRunSetupPersistenceUiTest` adds the optional explanation sentence and requires wrapped copy's last line to begin at its text box's left edge. The exact native 200% RTL journey passed 1/1, and the optional/error PNGs were inspected. No persisted data, schema, domain action, or release metadata changes.
+- Related/status: FB-20260926-003, FND-20260926-014, VER-20260927-001/002. Focused Verified; final shared-family recapture and candidate pending.
+
 ### IMP-20260926-010 — Reject scaled emulator display before catalog capture
 
 - `scripts/ui-catalog capture` now checks each disposable emulator's `wm density` and `wm size` before clearing evidence or starting native tests. An inherited display override caused a Gym popup to occupy too little of the whole-screen screenshot for the distinct-image guard, even though the popup was visible and functional.

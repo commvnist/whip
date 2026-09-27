@@ -685,11 +685,11 @@ internal fun TrackAreaContent(
                             viewModel.preparePermanentTrackDeletion(id)
                         },
                     ) { Text("Try Again") }
-                    trackDeletionImpact != null -> WhipTextButton(
+                    trackDeletionImpact != null -> WhipDestructiveTextButton(
                         enabled = !coordinator.saving,
                         onClick = {
-                            val impact = trackDeletionImpact ?: return@WhipTextButton
-                            val requestId = coordinator.begin() ?: return@WhipTextButton
+                            val impact = trackDeletionImpact ?: return@WhipDestructiveTextButton
+                            val requestId = coordinator.begin() ?: return@WhipDestructiveTextButton
                             if (!viewModel.deleteTrack(id, impact.revisionToken, requestId)) {
                                 coordinator.finishFailure(
                                     "Another Track change is still finishing. Wait for it, then review again.",
@@ -699,7 +699,6 @@ internal fun TrackAreaContent(
                     ) {
                         Text(
                             if (coordinator.saving) "Deleting…" else "Delete Permanently",
-                            color = MaterialTheme.colorScheme.error,
                         )
                     }
                 }
@@ -942,7 +941,7 @@ private fun TrackEntryDeleteRoute(
                     coordinator.clear()
                     onReviewEntry()
                 }) { Text("Review Entry") }
-            } else WhipTextButton(
+            } else WhipDestructiveTextButton(
                 enabled = !coordinator.saving,
                 onClick = {
                     val requestId = coordinator.begin()
@@ -950,7 +949,7 @@ private fun TrackEntryDeleteRoute(
                         coordinator.finishFailure("Another Entry change is already finishing.")
                     }
                 },
-            ) { Text("Delete Entry", color = MaterialTheme.colorScheme.error) }
+            ) { Text("Delete Entry") }
         },
         dismissButton = {
             WhipTextButton(
@@ -3198,11 +3197,11 @@ internal fun TrackEditor(
                     )
                 }
             },
-            confirmButton = { WhipTextButton(onClick = {
+            confirmButton = { WhipDestructiveTextButton(onClick = {
                 stateHolder.updateDraft { current -> current.copy(fields = current.fields.toMutableList().also { it.removeAt(index) }) }
                 confirmFieldDeleteIndex = null
                 closeFieldEditor()
-            }) { Text("Remove Field", color = MaterialTheme.colorScheme.error) } },
+            }) { Text("Remove Field") } },
             dismissButton = {
                 Row {
                     WhipTextButton(onClick = { confirmFieldDeleteIndex = null }) { Text("Cancel") }
@@ -3214,7 +3213,7 @@ internal fun TrackEditor(
         onDismissRequest = { unsavedConfirm = false },
         title = { Text("Discard Unsaved Changes?") },
         text = { Text("Your Track and Field edits have not been saved.") },
-        confirmButton = { WhipTextButton(onClick = { unsavedConfirm = false; dismissAndClear() }) { Text("Discard", color = MaterialTheme.colorScheme.error) } },
+        confirmButton = { WhipDestructiveTextButton(onClick = { unsavedConfirm = false; dismissAndClear() }) { Text("Discard") } },
         dismissButton = { WhipTextButton(onClick = { unsavedConfirm = false }) { Text("Keep Editing") } },
     )
     if (removalReviewOpen && editorState.removalReview != null) {
@@ -3569,7 +3568,7 @@ private fun TrackFieldEditor(
                 item { TrackToggleRow("Required", "Entries cannot be saved without this Field.", required || primary, { required = it }, enabled = !primary) }
                 item { TrackToggleRow("Entry Identity", "Combine one or more required Fields to distinguish Entries with the same name.", primary, { primary = it; if (it) required = true }) }
                 item { TrackToggleRow("Show Label in Entry List", "Show this Field name and value beneath the combined Entry identity.", showInList, { showInList = it }) }
-                onDelete?.let { action -> item { HorizontalDivider(); WhipTextButton(onClick = action, modifier = Modifier.fillMaxWidth()) { Text("Delete Field", color = MaterialTheme.colorScheme.error) } } }
+                onDelete?.let { action -> item { HorizontalDivider(); WhipDestructiveTextButton(onClick = action, modifier = Modifier.fillMaxWidth()) { Text("Delete Field") } } }
             }
         },
         confirmButton = { WhipTextButton(enabled = name.isNotBlank() && (type != TrackFieldType.SingleChoice || (choices.all { it.label.isNotBlank() } && duplicateChoiceIndices.isEmpty())) && (type != TrackFieldType.Scale || (scaleValues != null && incompatibleScaleValue == null)), onClick = {
@@ -3582,8 +3581,8 @@ private fun TrackFieldEditor(
         title = { Text("Discard Field Changes?") },
         text = { Text("Your changes to this Field have not been applied to the Track draft.") },
         confirmButton = {
-            WhipTextButton(onClick = { discardConfirm = false; onDismiss() }) {
-                Text("Discard Changes", color = MaterialTheme.colorScheme.error)
+            WhipDestructiveTextButton(onClick = { discardConfirm = false; onDismiss() }) {
+                Text("Discard Changes")
             }
         },
         dismissButton = {
@@ -3824,11 +3823,11 @@ internal fun TrackEntryEditor(
                 }
                 onDelete?.let { action -> item {
                     HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                    WhipTextButton(
+                    WhipDestructiveTextButton(
                         enabled = !saving,
                         onClick = { deleteConfirm = true },
                         modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Delete Entry", color = MaterialTheme.colorScheme.error) }
+                    ) { Text("Delete Entry") }
                 } }
             }
         }
@@ -3840,7 +3839,7 @@ internal fun TrackEntryEditor(
         onDismissRequest = { unsavedConfirm = false },
         title = { Text("Discard Unsaved Entry?") },
         text = { Text("Your changes to this Entry have not been saved.") },
-        confirmButton = { WhipTextButton(onClick = { unsavedConfirm = false; dismissAndClear() }) { Text("Discard", color = MaterialTheme.colorScheme.error) } },
+        confirmButton = { WhipDestructiveTextButton(onClick = { unsavedConfirm = false; dismissAndClear() }) { Text("Discard") } },
         dismissButton = { WhipTextButton(onClick = { unsavedConfirm = false }) { Text("Keep Editing") } },
     )
     if (!saving) possibleMatchId?.let { matchId -> projection.entries.firstOrNull { it.entry.id == matchId }?.let { match ->
@@ -3882,12 +3881,12 @@ internal fun TrackEntryEditor(
             }
         },
         confirmButton = {
-            WhipTextButton(
+            WhipDestructiveTextButton(
                 enabled = !saving,
                 onClick = deleteAction,
                 modifier = Modifier.testTag("track-entry-delete-confirm"),
             ) {
-                Text("Delete Entry", color = MaterialTheme.colorScheme.error)
+                Text("Delete Entry")
             }
         },
         dismissButton = {

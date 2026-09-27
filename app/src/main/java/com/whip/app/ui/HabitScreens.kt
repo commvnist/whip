@@ -796,7 +796,7 @@ internal fun HabitPermanentDeleteDialog(
             }
         },
         confirmButton = {
-            WhipTextButton(
+            WhipDestructiveTextButton(
                 enabled = impact != null && !state.preparing && !requiresFreshReview && !saving,
                 onClick = { impact?.let(onConfirm) },
                 modifier = Modifier.testTag("habit-delete-confirm"),
@@ -807,7 +807,6 @@ internal fun HabitPermanentDeleteDialog(
                         persistenceError != null -> "Retry Delete"
                         else -> "Delete Permanently"
                     },
-                    color = MaterialTheme.colorScheme.error,
                 )
             }
         },
@@ -945,10 +944,10 @@ internal fun HabitTimerReviewDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().testTag("habit-timer-review-minutes"),
                 )
-                WhipTextButton(
+                WhipDestructiveTextButton(
                     onClick = onDiscard,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                ) { Text("Discard Timer", color = MaterialTheme.colorScheme.error) }
+                ) { Text("Discard Timer") }
             }
         },
         confirmButton = {
@@ -2735,8 +2734,8 @@ internal fun HabitHistoryLogDialog(
         },
         dismissButton = {
             Row {
-                if (onDelete != null) WhipTextButton(enabled = !saving, onClick = { confirmDelete = true }) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                if (onDelete != null) WhipDestructiveTextButton(enabled = !saving, onClick = { confirmDelete = true }) {
+                    Text("Delete")
                 }
                 WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") }
             }
@@ -2753,11 +2752,11 @@ internal fun HabitHistoryLogDialog(
             title = { Text("Delete Check-In?") },
             text = { Text("This removes the check-in from ${item.habit.name}'s history and recalculates its progress and streak.") },
             confirmButton = {
-                WhipTextButton(
+                WhipDestructiveTextButton(
                     onClick = { confirmDelete = false; onDelete() },
                     modifier = Modifier.testTag("habit-history-confirm-delete"),
                 ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text("Delete")
                 }
             },
             dismissButton = { WhipTextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
@@ -3438,11 +3437,11 @@ internal fun HabitPauseDialog(
         },
         dismissButton = {
             Row {
-                if (onDelete != null) WhipTextButton(
+                if (onDelete != null) WhipDestructiveTextButton(
                     enabled = !saving,
                     onClick = { confirmDelete = true },
                     modifier = Modifier.testTag("habit-pause-delete"),
-                ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                ) { Text("Delete") }
                 WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") }
             }
         },
@@ -3475,13 +3474,13 @@ internal fun HabitPauseDialog(
             )
         },
         confirmButton = {
-            WhipTextButton(
+            WhipDestructiveTextButton(
                 onClick = {
                     confirmDelete = false
                     onDelete()
                 },
                 modifier = Modifier.testTag("habit-pause-confirm-delete"),
-            ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            ) { Text("Delete") }
         },
         dismissButton = { WhipTextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
     )

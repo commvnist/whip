@@ -28,11 +28,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import com.whip.app.core.HomeSection
@@ -108,6 +110,7 @@ fun FirstRunSetupDialog(
     var showOptionalPreferences by rememberSaveable { mutableStateOf(false) }
     var customizing by rememberSaveable { mutableStateOf(false) }
     val scroll = rememberScrollState()
+    val englishBodyStyle = firstRunEnglishBodyStyle()
     LaunchedEffect(errorMessage) {
         if (errorMessage != null) scroll.scrollTo(0)
     }
@@ -164,7 +167,7 @@ fun FirstRunSetupDialog(
                         }
                         Text(
                             "The recommended setup puts Tasks and Habits on Home and keeps advanced controls folded. Every feature remains one tap away.",
-                            style = MaterialTheme.typography.bodySmall,
+                            style = englishBodyStyle,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     } else {
@@ -193,7 +196,7 @@ fun FirstRunSetupDialog(
                         WhipToggleRow("Show advanced controls by default", powerMode, { powerMode = it })
                         Text(
                             if (powerMode) "Advanced choices open automatically where useful." else "Advanced choices stay folded until requested.",
-                            style = MaterialTheme.typography.bodySmall,
+                            style = englishBodyStyle,
                         )
                         Text("Weight Units", style = MaterialTheme.typography.titleSmall)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -208,17 +211,17 @@ fun FirstRunSetupDialog(
                         }
                         if (showOptionalPreferences) {
                             WhipToggleRow("Use low-pressure presentation", lowPressureMode, { lowPressureMode = it })
-                            Text("Reduces streak emphasis without changing your data.", style = MaterialTheme.typography.bodySmall)
+                            Text("Reduces streak emphasis without changing your data.", style = englishBodyStyle)
                             WhipToggleRow("Ask for reminder notifications", notifications, { notifications = it })
                         } else {
                             Text(
                                 "You can change reminders in Settings → Reminders and presentation in Settings → Appearance & Home.",
-                                style = MaterialTheme.typography.bodySmall,
+                                style = englishBodyStyle,
                             )
                         }
                         Text(
                             "Whip stores your data locally. Configure backups anytime in Settings → Data & Privacy.",
-                            style = MaterialTheme.typography.bodySmall,
+                            style = englishBodyStyle,
                         )
                     }
                 }
@@ -245,6 +248,12 @@ fun FirstRunSetupDialog(
 }
 
 @Composable
+private fun firstRunEnglishBodyStyle(): TextStyle = MaterialTheme.typography.bodySmall.copy(
+    textDirection = TextDirection.Ltr,
+    textAlign = TextAlign.Left,
+)
+
+@Composable
 private fun SetupValue(icon: ImageVector, title: String, supportingText: String) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
         Icon(
@@ -256,7 +265,11 @@ private fun SetupValue(icon: ImageVector, title: String, supportingText: String)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
-            Text(supportingText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                supportingText,
+                style = firstRunEnglishBodyStyle(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

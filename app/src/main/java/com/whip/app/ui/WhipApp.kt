@@ -7315,11 +7315,11 @@ private fun PermanentTaskBatchDeleteDialog(
             }
         },
         confirmButton = {
-            WhipTextButton(
+            WhipDestructiveTextButton(
                 enabled = !saving && exactImpact != null,
                 onClick = onConfirm,
                 modifier = Modifier.testTag("confirm-task-selection-delete"),
-            ) { Text("Delete Permanently", color = MaterialTheme.colorScheme.error) }
+            ) { Text("Delete Permanently") }
         },
         dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
     )

@@ -891,12 +891,9 @@ internal fun PermanentAreaDeleteDialog(
                         onClick = { replacement?.let { onMoveItems(it.id) } },
                     ) { Text(if (saving) "Deleting…" else "Move Items and Delete Area") }
                 }
-                WhipTextButton(
+                WhipDestructiveTextButton(
                     enabled = !saving,
                     onClick = onDeleteItems,
-                    colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error,
-                    ),
                 ) {
                     Text(if (usage.total == 0) "Delete Area" else "Delete Area and ${usage.total} Items")
                 }

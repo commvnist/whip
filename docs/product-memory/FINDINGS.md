@@ -1,5 +1,13 @@
 # Durable findings
 
+### FND-20260927-001 — Disabled destructive actions retain active error color
+
+- Severity/category: P2 action affordance and design consistency; FB-20260926-003.
+- Observed: In the complete 523-state catalog, blocked Machine and Exercise deletion confirmations, and Machine's retry/error confirmation, show the same vivid pink label as an enabled Workout confirmation. Their native buttons are disabled, but the label still suggests an available destructive action.
+- Expected: Destructive labels use the warning/error accent only while actionable; disabled labels share the muted disabled content tone and remain semantically disabled.
+- Evidence/root cause: `GymScreens.kt` passes `enabled = false` in those states, while inner `Text(color = MaterialTheme.colorScheme.error)` overrides `WhipTextButton`'s disabled content color. Other destructive button callers use the same pattern. Independent current-source PNG review confirmed the mismatch; inspect and migrate applicable callers through one shared button owner.
+- Resolution/status: `WhipDestructiveTextButton` owns enabled error color and muted disabled color. Gym, Task, Habit, Goal, Track, Area, Routine Builder and shared permanent-delete callers now use it without explicit inner text color. The real shared dialog passes enabled/disabled semantics and rendered-chroma regression 1/1; final Gym pixels/candidate pending. Related: FND-20260926-010, DEC-20260926-005, IMP-20260927-002, VER-20260927-003.
+
 ### FND-20260926-015 — Shared navigation rows silently title-case authored item names
 
 - Severity/category: P2 identity fidelity and UI consistency; FB-20260926-003.
@@ -13,8 +21,8 @@
 - Severity/category: P3 reading order in enlarged RTL setup; FB-20260926-003.
 - Observed: Actual 200% RTL `shared.first-run.optional-large-rtl.png` and `shared.first-run.error-large-rtl.png` place English sentence-ending periods at the start of wrapped lines, including “.folded” and “.again”. Controls remain in RTL layout.
 - Expected: English copy should retain its own sentence direction and punctuation while the app layout remains RTL.
-- Evidence/root cause: `FirstRunSetupDialog.kt` copy and the two named accepted catalog originals; mixed paragraph direction lets the RTL context reorder English punctuation at line breaks.
-- Resolution/status: First-run body text resolves paragraph direction from content while its RTL controls retain their layout. The exact enlarged RTL journey asserts paragraph direction and punctuation position for both affected sentences. Implemented and focused verified; full catalog pending. Related: DEC-20260926-005, IMP-20260926-007, VER-20260926-007.
+- Evidence/root cause: `FirstRunSetupDialog.kt` copy and the two named 200% RTL catalog originals; mixed paragraph direction lets the RTL context reorder English punctuation at line breaks. The first `LocalTextStyle` content-direction change fixed unstyled error text but explicit `MaterialTheme.typography.bodySmall` styles bypassed it. The later complete catalog exposed `“.folded”` and `“.changing your data”` still at line starts.
+- Resolution/status: All English first-run body-small copy now shares an explicit LTR, left-aligned style while controls retain RTL layout. The exact 200% RTL journey asserts both affected body sentences and the error sentence, including left edge alignment. It passed 1/1 fresh; pulled updated optional/error images were visually checked. Shared-family final recapture pending. Related: DEC-20260926-005, IMP-20260926-007, IMP-20260927-001, VER-20260927-001/002.
 
 ### FND-20260926-013 — Settings categories switch visual identity between reachable 900 dp modes
 
