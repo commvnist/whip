@@ -6,7 +6,7 @@
 - User need: One consistent Goal celebration, with less Settings choice and enough time to enjoy the result without trapping the user in the checkmark message.
 - Acceptance criteria: Delete Quiet Glow and Confetti Moment, remove the style dropdown and stored style choice, keep the default-on celebration toggle, show the Victory Shower checkmark card for up to four seconds, and let a tap dismiss that card immediately while confetti continues to the end of its four-second run. Preserve saved-completion-only triggering, reduced-motion acknowledgement, Goal progress truth, legacy preference/backup compatibility and in-place phone delivery. Batch focused checks only after implementation; skip the hour-long suite.
 - Affected users/workflows: Goal completion, Appearance & Home Settings, legacy preferences and portable backups, reduced-motion use, private phone update.
-- Related/status: FB-20260927-003/004, DEC-20260927-005, IMP-20260927-012, VER-20260927-019/020. Implemented and focused verified; phone delivery pending.
+- Related/status: FB-20260927-003/004, DEC-20260927-005, IMP-20260927-012, VER-20260927-019/020. Released privately as 0.3.78/code 84; subjective motion/appearance awaits owner validation.
 
 ### FB-20260927-006 — Keep routine development validation under one minute
 

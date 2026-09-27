@@ -1,12 +1,19 @@
 # Verification and release evidence
 
+### VER-20260927-020 — Exact 0.3.78 private APK on the owner phone
+
+- Source/artifact: Clean pushed `fea88943` produced 0.3.78/code 84. Signed APK SHA-256 `61cb88b7751fa9bcb8f5041ee0c545ef7477286a5909f35d8577fc18c71fc060`; signed AAB SHA-256 `b602b5d5741c7913b8b537b2d89ef363ff79c17e365b095780c6f058f783ca48`. Package, established APK v2 certificate, AAB JAR signature and both ZIP archives verified. [Private release receipt and local handoff links](../../artifacts/goal-celebration/2026-09-27/phone-release-0.3.78/README.md).
+- Phone result: `scripts/device release-deploy` guarded the selected wireless Samsung `SM-F976W`, ran its fast affected check, built signed outputs, installed the APK in place over 0.3.77/code 83 and cold-launched MainActivity in 133 ms, foreground. Installed APK hash matches the artifact. Original `firstInstallTime=2026-08-26 17:59:24` remains unchanged; final `lastUpdateTime=2026-09-27 11:15:24` local. Android later recorded `USER_REQUESTED / REMOVE_TASK` after another app became foreground, not a crash; the sampled recent log had no fatal exception or ANR match.
+- Bounds: Focused emulator behavior and affected readiness are in VER-20260927-019. This private phone update is not a new frozen Play candidate. No phone instrumentation, app-data clear/reset, uninstall, downgrade, private-record inspection or Play publication occurred. Room schema 46, data epoch 6 and backup format 26 are unchanged.
+- Related/status: FB-20260927-007, IMP-20260927-012, VER-20260927-019. Released and device verified; subjective appearance awaits owner use.
+
 ### VER-20260927-019 — Focused single-style Goal celebration acceptance
 
 - Scope/environment: Current 0.3.78 Goal/Settings source on disposable API 34 `emulator-5554`; Android animator scale one and zero were both exercised. The connected owner phone was not used for instrumentation.
 - Readiness: `scripts/check --ready` passed affected JVM selectors, Android-test compilation, lint, debug packaging, assets and static checks in 4m21s. No hour-long Android inventory or frozen Play candidate ran. `git diff --check` passed.
 - Native checks: The first five-method focused Android batch passed Settings toggle-only behavior, retired local preference cleanup, legacy backup import and new backup round-trip, but the Goal journey failed its outside-tap assertion at a coordinate near the system inset (`build/instrumentation-results-EkQyq8`). A follow-up test edit briefly failed Android-test compilation because the injection scope has no `size` property. After moving the tap inside the app and waiting a Compose frame for recomposition, the exact Goal journey passed 1/1 with motion on (`build/instrumentation-results-cKYwKC`) and 1/1 with motion off (`build/instrumentation-results-NbjWbA`), zero failures/skips/reuse in each accepted run. It checks the card near four seconds, outside-tap dismissal without ending the effect, navigation while the effect continues, disabled preference suppression and truthful stored progress.
 - Counts/limits: Five distinct focused Android methods eventually passed; they were not all green in one original batch. The first failure and compile correction are retained as diagnostic, not accepted evidence. This does not claim all 1,118 Android methods, a new visual catalog or a Play Store qualification.
-- Related/status: FB-20260927-007, DEC-20260927-005, IMP-20260927-012. Focused and affected readiness Verified; private phone release recorded separately.
+- Commit/push and related/status: `fea88943` on `origin/main`; FB-20260927-007, DEC-20260927-005, IMP-20260927-012, VER-20260927-020. Focused and affected readiness Verified.
 
 ### VER-20260927-018 — Exact 0.3.77 private APK on the owner phone
 
