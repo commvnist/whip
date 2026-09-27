@@ -2,7 +2,7 @@
 
 Status: **Paused at owner request** under FB-20260921-001, with the whole-product audit unfinished. This is a new owner-authorized continuation of the [September 8 whole-product audit](ASTRA_PRODUCT_AUDIT_2026-09-08.md). The [September 10 closeout](ASTRA_GOAL_CLOSEOUT_2026-09-10.md) remains historically closed; its 534-row [surface matrix](astra-surface-review-2026-09-08.tsv) is frozen rather than silently rewritten.
 
-The baseline and unfinished gate counts below are dated September 20–21 facts. The later [scoped design overhaul](DESIGN_CONSISTENCY_OVERHAUL_2026-09-26.md) passed a fresh 523-state catalog and 1,113 Android methods for its own scope; it does not close this broader audit. See the [current plan](NEXT_WORK_PONYTAIL_ULTRA_2026-09-27.md) for selected bounded next work.
+The baseline and unfinished gate counts below are dated September 20–21 facts. The later [scoped design overhaul](DESIGN_CONSISTENCY_OVERHAUL_2026-09-26.md) passed a fresh 523-state catalog and 1,113 Android methods for its own scope; it does not close this broader audit. The later [Ponytail Ultra plan](NEXT_WORK_PONYTAIL_ULTRA_2026-09-27.md) completed three bounded items, including the formerly unexecuted Count/Timer widget replay, without resuming the broader audit.
 
 ## Current-source baseline
 

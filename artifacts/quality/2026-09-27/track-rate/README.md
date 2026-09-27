@@ -1,0 +1,3 @@
+# Track weekly-rate window
+
+The focused `TrackInsightWindowJourneyE2ETest#recentWindowsExcludeFutureEntriesWithoutChangingHistory` passed on API 34. The current label is `Weekly Rate (Last 30 Days)`; the original 30-day calculation and fixture value `0.93 Entries` are unchanged. The [Track detail screenshot](tracks.detail.insights.recent-windows.png) shows the label on two complete lines beside the uncut value. Its paired [hierarchy](tracks.detail.insights.recent-windows.xml) contains the exact label and value. The broader [Track Insights screenshot](tracks.insights.recent-windows.png) and hierarchy were also retained from the same run.

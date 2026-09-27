@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -58,10 +59,12 @@ class SharedConsistencyUiTest {
     @Test
     fun statusAndEmptyStateExposeSeverityAnnouncementAndHierarchy() {
         var warningColor = Color.Unspecified
+        var retries = 0
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 warningColor = MaterialTheme.colorScheme.tertiaryContainer
                 Column {
+                    WhipGroupHeading("Areas")
                     WhipStatusCard(
                         kind = WhipStatusKind.Loading,
                         title = "Loading Entries",
@@ -79,6 +82,8 @@ class SharedConsistencyUiTest {
                         title = "Entries Unavailable",
                         message = "Storage is offline",
                         modifier = Modifier.testTag("error-status"),
+                        actionLabel = "Retry",
+                        onAction = { retries += 1 },
                     )
                     WhipEmptyState("No Entries Yet", "Add the first Entry when it is ready.")
                 }
@@ -91,6 +96,10 @@ class SharedConsistencyUiTest {
         val warning = compose.onNodeWithTag("warning-status").fetchSemanticsNode().config
         assertEquals(LiveRegionMode.Polite, warning[SemanticsProperties.LiveRegion])
         assertEquals("Warning", warning[SemanticsProperties.StateDescription])
+        assertEquals(
+            listOf("Setting Saved with Warnings", "Reminder permission was denied."),
+            warning[SemanticsProperties.Text].map { it.text },
+        )
         val pixels = compose.onNodeWithTag("warning-status").captureToImage().toPixelMap()
         val renderedBackground = pixels[pixels.width / 2, pixels.height - 5]
         assertTrue(
@@ -105,7 +114,51 @@ class SharedConsistencyUiTest {
         assertEquals(LiveRegionMode.Polite, error[SemanticsProperties.LiveRegion])
         assertEquals("Error", error[SemanticsProperties.StateDescription])
         assertEquals("Storage is offline", error[SemanticsProperties.Error])
+        compose.onNodeWithText("Retry").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(1, retries) }
         assertTrue(SemanticsProperties.Heading in compose.onNodeWithText("No Entries Yet").fetchSemanticsNode().config)
+        assertTrue(SemanticsProperties.Heading in compose.onNodeWithText("Areas").fetchSemanticsNode().config)
+        if (androidx.test.platform.app.InstrumentationRegistry.getArguments().getString("talkbackProbe") == "warning") {
+            focusTalkBackNode("Setting Saved with Warnings", parent = true)
+            Thread.sleep(20_000)
+        }
+    }
+
+    @Test
+    fun groupHeadingIsAnnouncedAsAHeading() {
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                Surface { WhipGroupHeading("Areas") }
+            }
+        }
+        assertTrue(SemanticsProperties.Heading in compose.onNodeWithText("Areas").fetchSemanticsNode().config)
+        if (androidx.test.platform.app.InstrumentationRegistry.getArguments().getString("talkbackProbe") == "heading") {
+            focusTalkBackNode("Areas")
+            Thread.sleep(20_000)
+        }
+    }
+
+    private fun focusTalkBackNode(label: String, parent: Boolean = false) {
+        val automation = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().getUiAutomation(
+            android.app.UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES,
+        )
+        var textNode: android.view.accessibility.AccessibilityNodeInfo? = null
+        for (attempt in 0 until 30) {
+            val nodes = mutableListOf<android.view.accessibility.AccessibilityNodeInfo>()
+            fun collect(node: android.view.accessibility.AccessibilityNodeInfo?) {
+                if (node == null) return
+                nodes += node
+                for (index in 0 until node.childCount) collect(node.getChild(index))
+            }
+            collect(automation.rootInActiveWindow)
+            textNode = nodes.firstOrNull { it.text?.toString()?.contains(label) == true }
+            if (textNode != null) break
+            Thread.sleep(100)
+        }
+        assertTrue("Accessibility target $label is missing", textNode != null)
+        val focusNode = if (parent) textNode!!.parent else textNode!!
+        focusNode.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLEAR_ACCESSIBILITY_FOCUS)
+        assertTrue(focusNode.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS))
     }
 
     @Test

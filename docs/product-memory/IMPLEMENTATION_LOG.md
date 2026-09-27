@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260927-008 — Complete the selected Track, spoken-role and widget plan
+
+- Track Insights now labels its existing summary `Weekly Rate (Last 30 Days)`; the 30-day normalization expression, stored Entries and `0.93 Entries` regression value are unchanged.
+- `WhipNoticeCard` now merges its non-interactive title and explanation with its live-region severity. The focused shared UI check verifies both fields on the status node and that an optional Retry button still works. The shared heading and disabled destructive control needed no production change after the TalkBack check.
+- The previously prepared pinned Habit-widget replay now verifies exact Count and Timer Room state, two managed process deaths, widget states and in-app Timer History. No widget product fix was indicated. A probe-only accessibility focus path enabled retained TalkBack speech-output screenshots without changing normal app behavior.
+- Private build identity advances to 0.3.76/code 82 for the requested updated phone installation. Package/signing identity, Room schema 46, data epoch 6, portable-backup format 26 and domain behavior remain unchanged.
+- Related/status: FB-20260927-002, FND-20260927-004/005, plan N-01 through N-03, VER-20260927-013. Implemented and focused emulator verified; private phone delivery is recorded separately.
+
 ### IMP-20260927-007 — Make the current plan and documentation status clear
 
 - Replaced the long, contradictory product-memory index with a short current snapshot, canonical ledger links and an explicit paused-audit boundary. Added a quality-plan index and a three-item Ponytail Ultra next-work plan. Marked older plans and working audit registers as dated or completed without changing their historical evidence.

@@ -1,5 +1,5 @@
-# Pending Habit widget Count/Timer replay
+# Habit widget Count/Timer replay
 
-`replay.py` is a prepared, syntax-checked host replay for a disposable API 34 Pixel Launcher with a real pinned Habit Tracking widget. It would create synthetic Count and Timer Habits through that widget, check Count increments, retain a running timer through Android-managed process death, and verify exactly one elapsed log on Stop. It refuses non-emulators and does not clear app data.
+`replay.py` is a host replay for a disposable API 34 Pixel Launcher with a real pinned Habit Tracking widget. It creates synthetic Count and Timer Habits through that widget, checks Count increments, retains a running timer through Android-managed process death, and verifies exactly one elapsed log on Stop plus in-app History. It refuses non-emulators and does not clear app data.
 
-The owner paused the audit before this script was executed or its widget precondition was established on the current emulator. No Count/Timer behavior, screenshot or process-death result is claimed from it. The previously accepted Daily/CheckOff pinned-widget journey remains recorded in `../habit-widget-launcher/README.md`.
+The owner paused the September 21 audit before this script was executed. It was completed on September 27 for the separately authorized Ponytail Ultra plan; the [execution receipt](../../2026-09-27/habit-widget-modes/README.md) retains exact saved and rendered results. The earlier Daily/CheckOff pinned-widget journey remains recorded in `../habit-widget-launcher/README.md`.

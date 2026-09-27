@@ -1,5 +1,14 @@
 # Verification and release evidence
 
+### VER-20260927-013 — Focused Ponytail Ultra plan acceptance
+
+- Scope/environment: Disposable API 34 Pixel emulators `emulator-5554` and `emulator-5556`; the owner phone was not used for tests. The Track and shared-UI methods ran on 5554. The real Habit Tracking widget was pinned in Pixel Launcher on 5556. No more than two emulators were active.
+- Functional/build result: `scripts/check --ready` passed affected JVM, Android-test compilation, debug build, lint and static checks in 2m48s after the production change; the final source rerun passed in 36s. The final Android-test source also passed the exact four-method batch 4/4 in 11.55s: Track recent-window journey, shared status/heading and disabled destructive confirmation. The Track calculation still produced `0.93 Entries`; its [rendered detail and paired hierarchy](../../artifacts/quality/2026-09-27/track-rate/README.md) show the 30-day label without clipping. `git diff --check` passed.
+- Spoken result: TalkBack 14.2 with Display speech output showed “Areas. Heading” and “Delete Permanently. Button. disabled.” The original warning Card showed only “Warning”; after the shared descendant merge it showed “Warning. Setting Saved with Warnings. Reminder permission was denied.” A real Retry action remained clickable after the merge. [Four retained focused screenshots](../../artifacts/quality/2026-09-27/talkback/README.md) document the actual displayed speech; this is not an audio recording or a whole-product TalkBack matrix.
+- Widget result: The [pinned-launcher replay](../../artifacts/astra-audit/2026-09-27/habit-widget-modes/README.md) passed through two managed process deaths. Count stored exactly one `1.0|1.0|Recorded` log and changed `0 of 1` to `1 of 1`. Timer stayed `Running|2` across its death, then stored exactly one canonical `12.217` second log, completed its session, returned to Start and showed `Logged 12 sec` in Habit History. Seven PNG/XML pairs and exact `proof.json` are retained. No widget defect reproduced on this configuration.
+- Bounds: This is proportionate private-development acceptance of N-01 through N-03, not a fresh frozen Play Store candidate or full OEM/API accessibility matrix. The previous 523-state design catalog and 659 JVM + 1,113 Android frozen candidate belong to their earlier source. Current test inventory is 659 JVM + 1,114 Android. Room schema 46, data epoch 6, backup format 26 and owner data are unchanged. Phone delivery is recorded separately.
+- Related/status: FB-20260927-002, FND-20260927-004/005, IMP-20260927-008. Verified for the bounded plan.
+
 ### VER-20260927-012 — Documentation and plan reconciliation
 
 - Scope/environment: Current `main` documentation and source review on 2026-09-27. Compared the September 2, 9, 20–21 and 26–27 plans with present Track/widget source, latest release and candidate evidence, and the owner-paused audit record.

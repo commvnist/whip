@@ -709,7 +709,7 @@ internal fun WhipNoticeCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .semantics {
+            .semantics(mergeDescendants = true) {
                 effectiveStateLabel?.let {
                     liveRegion = LiveRegionMode.Polite
                     stateDescription = it

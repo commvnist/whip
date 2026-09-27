@@ -2267,7 +2267,7 @@ private fun TrackInsightsPage(
                 metric("Last 90 Days", dates.trackInsightCount(today, 90).toString())
                 fact("First", dates.minOrNull()?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "—")
                 fact("Latest", dates.maxOrNull()?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "—")
-                fact("Recent Weekly Rate", "${(dates.trackInsightCount(today, 30) / 30.0 * 7.0).formatCompact()} Entries")
+                fact("Weekly Rate (Last 30 Days)", "${(dates.trackInsightCount(today, 30) / 30.0 * 7.0).formatCompact()} Entries")
             }
         }
         items(scoped.fields.filterNot(TrackField::primary), key = { "insight-field-${it.id}" }) { field ->

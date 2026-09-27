@@ -34,6 +34,7 @@ import com.whip.app.ui.theme.WhipTheme
 import java.util.concurrent.atomic.AtomicInteger
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -405,6 +406,29 @@ class TaskDeletionUiTest {
         val disabledChroma = peakButtonChroma()
         check(enabledChroma > disabledChroma + 0.15f) {
             "Disabled destructive label stayed as vivid as enabled: $enabledChroma vs $disabledChroma"
+        }
+        if (androidx.test.platform.app.InstrumentationRegistry.getArguments().getString("talkbackProbe") == "disabled-delete") {
+            val automation = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().getUiAutomation(
+                android.app.UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES,
+            )
+            var button: android.view.accessibility.AccessibilityNodeInfo? = null
+            for (attempt in 0 until 30) {
+                val nodes = mutableListOf<android.view.accessibility.AccessibilityNodeInfo>()
+                fun collect(node: android.view.accessibility.AccessibilityNodeInfo?) {
+                    if (node == null) return
+                    nodes += node
+                    for (index in 0 until node.childCount) collect(node.getChild(index))
+                }
+                collect(automation.rootInActiveWindow)
+                button = nodes.firstOrNull { it.text?.toString() == "Delete Permanently" }
+                if (button != null) break
+                Thread.sleep(100)
+            }
+            assertTrue("Disabled confirmation is absent from the accessibility tree", button != null)
+            val control = button!!.parent
+            control.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLEAR_ACCESSIBILITY_FOCUS)
+            assertTrue(control.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS))
+            Thread.sleep(20_000)
         }
     }
 }

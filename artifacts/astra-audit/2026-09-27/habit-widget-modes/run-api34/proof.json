@@ -1,0 +1,18 @@
+{
+  "serial": "emulator-5556",
+  "oldPid": "28314",
+  "afterFirstKillPid": "29362",
+  "beforeSecondKillPid": "29362",
+  "afterSecondKillPid": "29578",
+  "countHabitId": "1",
+  "timerHabitId": "2",
+  "countLog": "1.0|1.0|Recorded",
+  "countWidgetBefore": "0 of 1",
+  "countWidgetAfter": "1 of 1",
+  "timerLog": "12.217|12.217|second|Recorded|habit-timer-v1:d6280577-c901-4c76-9405-0a0509508469",
+  "timerSessionId": "d6280577-c901-4c76-9405-0a0509508469",
+  "timerSessionBeforeAndAfterDeath": "Running|2",
+  "timerSessionAfterStop": "Completed|",
+  "timerHistoryLabel": "Logged 12 sec",
+  "widgetActionsSurvivedProcessDeath": true
+}

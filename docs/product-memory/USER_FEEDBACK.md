@@ -1,5 +1,12 @@
 # User feedback and acceptance criteria
 
+### FB-20260927-002 — Implement the selected Ponytail Ultra plan
+
+- Date/source: 2026-09-27, direct owner request to implement the [three-item next-work plan](../quality/NEXT_WORK_PONYTAIL_ULTRA_2026-09-27.md) in full. Prior owner steering requests testing only after implementation, batching any fixes, and installing an updated app on the connected phone when the app changes.
+- User need: Clarify the Track weekly-rate window; directly verify spoken accessibility of the recently changed shared roles; exercise real Count and Timer Habit widget interactions through a launcher and persistence boundary; correct any reproduced failure; receive the verified updated private app.
+- Acceptance criteria: Keep the 30-day rate calculation unchanged while labeling its window and checking an actual Insights rendering; run TalkBack on a supported Android target and retain actual speech evidence for a heading, warning and disabled destructive action; exercise pinned Count increment and Timer start/stop/review with exact saved state after return or process recreation; fix confirmed defects at their shared owner; run proportionate final checks only after implementation is ready; build/sign/install the verified higher private version in place on the selected owner phone with identity/hash and launch checks; update plan and durable records, commit and push. The separate owner-paused whole-product audit stays paused.
+- Related/status: FB-20260927-001, FND-20260927-004, IMP/VER to follow. In progress.
+
 ### FB-20260927-001 — Clean up plans and retain only justified next work
 
 - Date/source: 2026-09-27, direct owner request to clean up documentation and plans and compile the items Ponytail Ultra judges worth doing into a new expandable plan.

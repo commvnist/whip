@@ -62,7 +62,7 @@ class TrackInsightWindowJourneyE2ETest {
             assertReading("track-insights-list", "Last 7 Days", "2")
             assertReading("track-insights-list", "Last 30 Days", "4")
             assertReading("track-insights-list", "Last 90 Days", "6")
-            assertReading("track-insights-list", "Recent Weekly Rate", "0.93 Entries")
+            assertReading("track-insights-list", "Weekly Rate (Last 30 Days)", "0.93 Entries")
             compose.waitForIdle()
             captureVisualCatalogSurface("tracks.detail.insights.recent-windows")
             scenario.recreate()

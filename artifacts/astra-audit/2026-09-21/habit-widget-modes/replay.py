@@ -56,10 +56,65 @@ def find(attribute, value, substring=False, attempts=20):
     raise AssertionError((attribute, value))
 
 
+def find_widget(attribute, value, substring=False):
+    for downward in (True, False):
+        previous = None
+        stationary = 0
+        for _ in range(20):
+            xml, nodes = hierarchy()
+            matches = [
+                node for node in nodes
+                if (value in node.get(attribute, "") if substring else node.get(attribute) == value)
+            ]
+            if matches:
+                return xml, matches[0]
+            widget = next((
+                node for node in nodes
+                if node.get("resource-id") == f"{pkg}:id/widget_habit_list"
+            ), None)
+            assert widget is not None, "Pinned Habit Tracking widget is not visible"
+            visible = tuple(
+                node.get("content-desc") for node in widget.iter("node")
+                if node.get("resource-id") == f"{pkg}:id/widget_row_body"
+            )
+            if visible == previous:
+                stationary += 1
+                if stationary == 5:
+                    break
+                time.sleep(.4)
+                continue
+            previous = visible
+            stationary = 0
+            x1, y1, x2, y2 = map(int, re.findall(r"\d+", widget.get("bounds")))
+            x = (x1 + x2) // 2
+            start, end = (y2 - 30, y1 + 30) if downward else (y1 + 30, y2 - 30)
+            shell("input", "swipe", str(x), str(start), str(x), str(end), "250")
+    (out / "unexpected.xml").write_text(xml)
+    raise AssertionError((attribute, value))
+
+
 def tap(attribute, value, substring=False):
     _, node = find(attribute, value, substring)
     x1, y1, x2, y2 = map(int, re.findall(r"\d+", node.get("bounds")))
     shell("input", "tap", str((x1 + x2) // 2), str((y1 + y2) // 2))
+
+
+def tap_widget(attribute, value, substring=False):
+    _, node = find_widget(attribute, value, substring)
+    x1, y1, x2, y2 = map(int, re.findall(r"\d+", node.get("bounds")))
+    shell("input", "tap", str((x1 + x2) // 2), str((y1 + y2) // 2))
+
+
+def widget_meta(xml, action):
+    for row in ET.fromstring(xml).iter("node"):
+        if row.get("resource-id") != f"{pkg}:id/widget_row":
+            continue
+        if any(node.get("content-desc", "").startswith(action) for node in row.iter("node")):
+            return next(
+                node.get("text") for node in row.iter("node")
+                if node.get("resource-id") == f"{pkg}:id/widget_row_meta"
+            )
+    raise AssertionError(("Widget action has no visible row", action))
 
 
 def capture(name, xml):
@@ -119,9 +174,13 @@ count_id, _ = create_habit(count_title, "Count", "Count")
 timer_id, _ = create_habit(timer_title, "Timer", "Duration")
 assert query(f"SELECT COUNT(*) FROM habit_logs WHERE habitId IN ({count_id},{timer_id});") == "0"
 shell("input", "keyevent", "3")
-before, _ = find("content-desc", "Add 1 to " + count_title)
-find("content-desc", "Start " + timer_title)
-capture("count-and-timer-before-death", before)
+count_action = "Add 1 to " + count_title
+start_action = "Start " + timer_title
+stop_action = "Stop and log " + timer_title
+before, _ = find_widget("content-desc", count_action)
+count_before = widget_meta(before, count_action)
+capture("count-before-death", before)
+find_widget("content-desc", start_action)
 old_pid = shell("pidof", pkg).strip()
 assert old_pid.isdecimal()
 shell("am", "start", "-W", "-n", "com.android.settings/.Settings")
@@ -133,29 +192,46 @@ for _ in range(30):
 else:
     raise AssertionError("Whip was not killed as a cached process")
 shell("input", "keyevent", "3")
-survived, _ = find("content-desc", "Add 1 to " + count_title)
-find("content-desc", "Start " + timer_title)
-capture("count-and-timer-after-death", survived)
+survived, _ = find_widget("content-desc", count_action)
+assert widget_meta(survived, count_action) == count_before
+capture("count-after-death", survived)
+find_widget("content-desc", start_action)
 
-for expected in (1, 2):
-    tap("content-desc", "Add 1 to " + count_title)
-    wait_for(
-        f"SELECT COUNT(*) FROM habit_logs WHERE habitId={count_id} AND value=1.0;",
-        lambda value: value == str(expected),
-        "Count widget did not record one increment",
-    )
-counted, _ = find("content-desc", "Add 1 to " + count_title)
-capture("count-twice", counted)
+tap_widget("content-desc", count_action)
+count_log = wait_for(
+    f"SELECT value,canonicalValue,status FROM habit_logs WHERE habitId={count_id};",
+    lambda value: value.split("|") == ["1.0", "1.0", "Recorded"],
+    "Count widget did not record exactly one increment",
+)
+for _ in range(20):
+    counted, _ = find_widget("content-desc", count_action)
+    count_after = widget_meta(counted, count_action)
+    if count_after != count_before:
+        break
+    time.sleep(.4)
+assert count_after != count_before and count_after.split()[0] == "1"
+capture("count-once", counted)
+after_first_pid = shell("pidof", pkg).strip()
+assert after_first_pid.isdecimal() and after_first_pid != old_pid
 
-tap("content-desc", "Start " + timer_title)
+tap_widget("content-desc", start_action)
 timer_state = wait_for(
     f"SELECT timerStartedAtMillis,timerSessionId FROM habits WHERE id={timer_id};",
     lambda value: len(value.split("|")) == 2 and all(value.split("|")),
     "Timer widget did not start",
 )
-running, _ = find("content-desc", "Stop and log " + timer_title, substring=True)
+session_id = timer_state.split("|")[1]
+running_session = wait_for(
+    f"SELECT state,activeHabitId FROM habit_timer_sessions WHERE sessionId='{session_id}';",
+    lambda value: value == f"Running|{timer_id}",
+    "Timer session was not saved as running",
+)
+running, _ = find_widget("content-desc", stop_action, substring=True)
+assert widget_meta(running, stop_action).endswith(" elapsed")
 capture("timer-running", running)
 time.sleep(2)
+before_second_pid = shell("pidof", pkg).strip()
+assert before_second_pid.isdecimal()
 shell("am", "start", "-W", "-n", "com.android.settings/.Settings")
 for _ in range(30):
     shell("am", "kill", pkg)
@@ -165,24 +241,44 @@ for _ in range(30):
 else:
     raise AssertionError("Whip timer process was not killed as a cached process")
 shell("input", "keyevent", "3")
-continued, _ = find("content-desc", "Stop and log " + timer_title, substring=True)
+continued, _ = find_widget("content-desc", stop_action, substring=True)
+assert widget_meta(continued, stop_action).endswith(" elapsed")
+assert query(f"SELECT state,activeHabitId FROM habit_timer_sessions WHERE sessionId='{session_id}';") == running_session
 capture("timer-running-after-death", continued)
-tap("content-desc", "Stop and log " + timer_title, substring=True)
+tap_widget("content-desc", stop_action, substring=True)
 timer_log = wait_for(
-    f"SELECT COUNT(*),COALESCE(SUM(value),0) FROM habit_logs WHERE habitId={timer_id};",
-    lambda value: value.split("|")[0] == "1" and float(value.split("|")[1]) > 0,
+    f"SELECT value,canonicalValue,enteredUnitId,status,sourceId FROM habit_logs WHERE habitId={timer_id};",
+    lambda value: len(value.split("|")) == 5 and value.split("|")[2:] == [
+        "second", "Recorded", "habit-timer-v1:" + session_id,
+    ] and float(value.split("|")[0]) > 0 and float(value.split("|")[1]) > 0,
     "Timer widget did not record elapsed time exactly once",
 )
+assert float(timer_log.split("|")[0]) == float(timer_log.split("|")[1])
 assert query(f"SELECT timerStartedAtMillis,timerSessionId FROM habits WHERE id={timer_id};") == "|"
-stopped, _ = find("content-desc", "Start " + timer_title)
+assert query(f"SELECT state,activeHabitId FROM habit_timer_sessions WHERE sessionId='{session_id}';") == "Completed|"
+stopped, _ = find_widget("content-desc", start_action)
+assert widget_meta(stopped, start_action) == "Start"
 capture("timer-stopped", stopped)
 new_pid = shell("pidof", pkg).strip()
-assert new_pid and new_pid != old_pid
+assert new_pid.isdecimal() and new_pid != before_second_pid
+assert query(f"SELECT COUNT(*) FROM habit_logs WHERE habitId={count_id};") == "1"
+tap_widget("content-desc", "Open habit " + timer_title)
+find("content-desc", "Close Habit details")
+find("text", timer_title)
+tap("text", "History")
+find("text", "Habit History")
+history, entry = find("text", "Logged ", substring=True)
+assert re.fullmatch(r"Logged \d+ sec", entry.get("text", ""))
+assert abs(int(entry.get("text").split()[1]) - float(timer_log.split("|")[1])) <= .5
+capture("timer-history", history)
 proof = dict(
-    serial=serial, oldPid=old_pid, newPid=new_pid,
+    serial=serial, oldPid=old_pid, afterFirstKillPid=after_first_pid,
+    beforeSecondKillPid=before_second_pid, afterSecondKillPid=new_pid,
     countHabitId=count_id, timerHabitId=timer_id,
-    countLogs=2, countTotal=2, timerLog=timer_log,
-    timerSessionBeforeSecondDeath=timer_state.split("|")[1],
+    countLog=count_log, countWidgetBefore=count_before, countWidgetAfter=count_after,
+    timerLog=timer_log, timerSessionId=session_id,
+    timerSessionBeforeAndAfterDeath=running_session,
+    timerSessionAfterStop="Completed|", timerHistoryLabel=entry.get("text"),
     widgetActionsSurvivedProcessDeath=True,
 )
 (out / "proof.json").write_text(json.dumps(proof, indent=2) + "\n")

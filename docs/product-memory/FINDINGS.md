@@ -1,5 +1,22 @@
 # Durable findings
 
+### FND-20260927-005 — Shared warning card announces its severity without context
+
+- Severity/category: P2 spoken accessibility and shared status consistency.
+- Observed: On API 34 with TalkBack's Display speech output, focusing the shared warning card announced only “Warning.” Its visible title and explanation were separate accessibility nodes, despite the shared card's stated single-node status contract.
+- Expected: One focus stop announces the severity, title and explanation; a separate action button, when present, remains operable.
+- Root cause/resolution: `WhipNoticeCard` set live-region and state semantics on the Card without merging its non-interactive text descendants. The existing shared Card now merges descendants. A focused native assertion proves both text fields on the status node and a Retry action remains clickable. The retained TalkBack screenshot shows “Warning. Setting Saved with Warnings. Reminder permission was denied.”
+- Related/status: FB-20260927-002, plan N-02, IMP-20260927-008, VER-20260927-013. Verified on the focused API 34 configuration.
+
+### FND-20260927-004 — Track weekly rate hides its measurement window
+
+- Severity/category: P2 comprehension/copy.
+- Observed: Current Track Insights divides the last 30 days' Entry count by 30 and multiplies by seven, but labels the result only `Recent Weekly Rate`; the adjacent 7-, 30- and 90-day counts do not identify the rate's own denominator.
+- Expected: State the fixed 30-day window alongside the weekly rate while keeping its value and existing summary owner.
+- Why it matters / affected users: A user comparing recent activity cannot tell which of the three visible windows the normalized rate represents.
+- Evidence/root cause: `TrackScreens.kt` Insights summary and the dated per-frame review in `ASTRA_TRACKS_REVIEW_2026-09-09.md`; the calculation is correct, its label omits scope.
+- Resolution/related/status: The existing label is now `Weekly Rate (Last 30 Days)` with the same 0.93 Entry fixture result. The focused Android journey passed and its original screenshot shows both label lines without clipping. FB-20260927-002, plan N-01, IMP-20260927-008, VER-20260927-013. Verified.
+
 ### FND-20260927-003 — Adaptive support regression expected altered casing
 
 - Severity/category: P3 stale Android test contract; FB-20260926-003.

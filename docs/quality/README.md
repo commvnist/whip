@@ -1,9 +1,10 @@
 # Quality plans and audit evidence
 
-Start with the [current product-memory snapshot](../product-memory/INDEX.md). The only proposed next-work queue is the [Ponytail Ultra plan](NEXT_WORK_PONYTAIL_ULTRA_2026-09-27.md); its items need current verification before app changes.
+Start with the [current product-memory snapshot](../product-memory/INDEX.md). The three selected items in the [Ponytail Ultra plan](NEXT_WORK_PONYTAIL_ULTRA_2026-09-27.md) are completed with linked focused evidence; the separate whole-product continuation remains paused.
 
 | Record | Status and use |
 | --- | --- |
+| [Ponytail Ultra plan](NEXT_WORK_PONYTAIL_ULTRA_2026-09-27.md) | Completed Track-rate copy, spoken shared-role check and pinned Count/Timer widget journey. |
 | [Design consistency overhaul](DESIGN_CONSISTENCY_OVERHAUL_2026-09-26.md) | Completed scope and final 2026-09-27 evidence for eight shared-design fixes. |
 | [Reusable architecture and UX audit](REUSABLE_ARCHITECTURE_UX_AUDIT_2026-09-26.md) | Completed scope and 2026-09-26 evidence for shared UI and plumbing. |
 | [Whole-product continuation](ASTRA_CONTINUATION_2026-09-20.md) and [working surface disposition](ASTRA_CURRENT_SURFACE_DISPOSITION_2026-09-21.md) | Paused at the owner's 2026-09-21 checkpoint. Its broad acceptance contract has not been completed or automatically resumed by the later scoped design audits. |
