@@ -2,6 +2,8 @@
 
 Start with the [current product-memory snapshot](../product-memory/INDEX.md). The three selected items in the [Ponytail Ultra plan](NEXT_WORK_PONYTAIL_ULTRA_2026-09-27.md) are completed with linked focused evidence; the separate whole-product continuation remains paused.
 
+The [testing speed plan](TESTING_SPEED_PLAN_2026-09-27.md) records the measured SDLC gates, the exact quality-register route improvement, and the next performance experiment.
+
 | Record | Status and use |
 | --- | --- |
 | [Ponytail Ultra plan](NEXT_WORK_PONYTAIL_ULTRA_2026-09-27.md) | Completed Track-rate copy, spoken shared-role check and pinned Count/Timer widget journey. |

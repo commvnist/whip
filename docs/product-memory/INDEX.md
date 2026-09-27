@@ -11,6 +11,7 @@ Current snapshot: **2026-09-27**. This page is the entry point, not a replay of 
 
 ## Current work and boundaries
 
+- The [testing speed plan](../quality/TESTING_SPEED_PLAN_2026-09-27.md) uses the existing fast/ready/affected-emulator/frozen-candidate ladder. Three known quality TSVs now route to exact JVM contracts and quality Markdown routes as docs-only instead of the 45-JVM/76-Android `all` profile; see FB-20260927-005 and VER-20260927-015. Fresh Android execution remains the measured candidate bottleneck, with capture cost still to profile.
 - A default-on Goal completion celebration is at concept stage under [FB-20260927-003](USER_FEEDBACK.md); the owner is reviewing visual directions. No application change has been made for it.
 - The [Ponytail Ultra plan](../quality/NEXT_WORK_PONYTAIL_ULTRA_2026-09-27.md) is **Completed**. See the [quality plan index](../quality/README.md) to distinguish completed and paused records.
 - The separate [whole-product audit continuation](../quality/ASTRA_CONTINUATION_2026-09-20.md) is **paused at owner request** under FB-20260921-001. Its frozen unfinished review rows are not confirmed defects. The later design-specific catalog and full candidate do not retroactively satisfy that broader audit's journey, platform, accessibility and performance contract. The [September 10 goal closeout](../quality/ASTRA_GOAL_CLOSEOUT_2026-09-10.md) also stays closed.

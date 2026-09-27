@@ -42,6 +42,25 @@ require_line docs-only $'PROFILE\tdocs'
 require_line docs-only $'CANDIDATE\tfalse'
 reject_line docs-only $'STATIC\ttrue'
 
+route_fixture quality-docs $'M\tdocs/quality/README.md'
+require_line quality-docs $'PROFILE\tdocs'
+require_line quality-docs $'CANDIDATE\tfalse'
+reject_line quality-docs $'STATIC\ttrue'
+
+route_fixture quality-contracts \
+    $'M\tdocs/quality/settings-cause-effect.tsv' \
+    $'M\tdocs/quality/e2e-coverage.tsv' \
+    $'M\tdocs/quality/QA_CAUSE_EFFECT_MATRIX_2026-08-27.tsv'
+require_line quality-contracts $'JVM\tcom.whip.app.core.SettingsCauseEffectContractTest'
+require_line quality-contracts $'JVM\tcom.whip.app.core.E2ECoverageContractTest'
+[[ "$(grep -c $'^JVM\t' "$OUTPUT")" -eq 2 ]] || {
+    printf 'FAIL quality-contracts: contract tests were not deduplicated\n' >&2
+    exit 1
+}
+require_line quality-contracts $'CANDIDATE\ttrue'
+reject_line quality-contracts $'PROFILE\tall'
+reject_line quality-contracts $'STATIC\ttrue'
+
 route_fixture jvm-test-only $'M\tapp/src/test/java/com/whip/app/domain/TaskProgressTest.kt'
 require_line jvm-test-only $'JVM\tcom.whip.app.domain.TaskProgressTest'
 require_line jvm-test-only $'ANDROID_ALL\tfalse'

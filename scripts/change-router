@@ -151,6 +151,20 @@ route_path() {
     [[ -n "$path" && "$path" != /* && "$path" != *$'\t'* && "$path" != *$'\n'* ]] ||
         die "changed path must be a safe repository-relative path: $path"
     case "$path" in
+        docs/quality/*.md)
+            add_profile docs
+            add_route "$status" "$path" 'profile:docs' 'quality documentation path'
+            ;;
+        docs/quality/settings-cause-effect.tsv)
+            jvm_selectors['com.whip.app.core.SettingsCauseEffectContractTest']=1
+            candidate_required=true
+            add_route "$status" "$path" 'jvm:com.whip.app.core.SettingsCauseEffectContractTest' 'Settings register contract'
+            ;;
+        docs/quality/e2e-coverage.tsv|docs/quality/QA_CAUSE_EFFECT_MATRIX_2026-08-27.tsv)
+            jvm_selectors['com.whip.app.core.E2ECoverageContractTest']=1
+            candidate_required=true
+            add_route "$status" "$path" 'jvm:com.whip.app.core.E2ECoverageContractTest' 'coverage register contract'
+            ;;
         docs/quality/*)
             add_profile all
             static_required=true

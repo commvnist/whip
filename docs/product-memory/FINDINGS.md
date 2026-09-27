@@ -1,5 +1,34 @@
 # Durable findings
 
+### FND-20260927-008 — Two register files were missing from Gradle test inputs
+
+- Severity/category: Test result freshness, correctness risk.
+- Observed: `app/build.gradle.kts` declared only `docs/quality/e2e-coverage.tsv` as a JVM Test task input, while `E2ECoverageContractTest` also reads `QA_CAUSE_EFFECT_MATRIX_2026-08-27.tsv` and `SettingsCauseEffectContractTest` reads `settings-cause-effect.tsv`.
+- Expected: Editing any of the three registers invalidates a cached test result before its exact contract runs.
+- Evidence/root cause: The two contract test file reads and the prior single-file `inputs.file` declaration in `app/build.gradle.kts`.
+- Recommended solution: Declare all three files as Test task inputs; retain the exact changed-path routes.
+- Related/status: FB-20260927-005, DEC-20260927-002, IMP-20260927-009, VER-20260927-015. Implemented and targeted tests pass; an actual cache-invalidation mutation was not run against the shared dirty register.
+
+### FND-20260927-007 — Fresh Android execution dominates complete candidate time
+
+- Severity/category: Development throughput, measured bottleneck.
+- Observed: The last accepted two-emulator candidate's Android portion ran 1,113 methods in 16 batches over 50.1 wall minutes; XML sums to 92.2 test-minutes. Batches ranged from 2.5 to 14.0 minutes. The separate 523-state visual catalog took 34.9 wall minutes for 193 methods.
+- Expected: Keep routine edits on the narrow check ladder and pay complete fresh execution once for a frozen Play candidate.
+- Evidence: `build/coverage-results-cUu8eR/batch-*.started` and `batch-*/result-*.xml`; `build/instrumentation-results-fpubb2`; VER-20260927-010/004.
+- Root cause: The complete candidate intentionally runs every Android method fresh. Visual capture is a plausible contributor; its incremental cost is unmeasured.
+- Recommended solution: Profile capture-heavy methods before modifying their synchronization. The recorded fixed-versus-next-free batch replay predicts under one minute of scheduler benefit, so leave scheduling unchanged.
+- Related/status: FB-20260927-005, [testing speed plan](../quality/TESTING_SPEED_PLAN_2026-09-27.md). Investigating capture cost; measured baseline Confirmed.
+
+### FND-20260927-006 — Known quality registers routed through every product profile
+
+- Severity/category: Development throughput, overbroad change route.
+- Observed: A standalone `docs/quality/settings-cause-effect.tsv` edit selected profile `all`, which expands to 45 JVM and 76 Android classes, despite one JVM contract test reading that register. The two E2E coverage TSVs have the same exact owner. Documentation such as `docs/quality/README.md` also selected `all`.
+- Expected: Run each register's owning contract in the edit loop, treat quality Markdown as documentation, and retain frozen candidate qualification for a Play release involving the TSVs.
+- Evidence: Previous `scripts/change-router` `docs/quality/*` branch, `scripts/qa-targeted --profile all --dry-run`, `SettingsCauseEffectContractTest`, `E2ECoverageContractTest`.
+- Root cause: The broad wildcard preceded any quality-register-specific route.
+- Recommended solution: Exact routes for the three known TSVs and docs-only routing for Markdown; leave unowned quality data fail-closed.
+- Related/status: FB-20260927-005, DEC-20260927-002, IMP-20260927-009, VER-20260927-015. Verified by router and fast-check fixtures.
+
 ### FND-20260927-005 — Shared warning card announces its severity without context
 
 - Severity/category: P2 spoken accessibility and shared status consistency.

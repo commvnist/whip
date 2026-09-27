@@ -46,6 +46,17 @@ if grep -Eq 'compileDebugAndroidTestKotlin|lintDebug|assembleDebug' "$GRADLE_LOG
 fi
 grep -Fq 'Fast affected-test loop passed.' "$OUTPUT"
 
+printf 'M\tdocs/quality/settings-cause-effect.tsv\n' > "${TEST_ROOT}/quality-changes.tsv"
+: > "$GRADLE_LOG"
+env WHIP_FAST_FIXTURE_GRADLE_LOG="$GRADLE_LOG" PATH="${FAKE_BIN}:${PATH}" \
+    "${PROJECT}/scripts/check" --changes-file "${TEST_ROOT}/quality-changes.tsv" > "$OUTPUT"
+grep -Fq -- '--tests com.whip.app.core.SettingsCauseEffectContractTest' "$GRADLE_LOG"
+if grep -Eq -- '--tests com.whip.app.ui.ReviewEvidenceTest|compileDebugAndroidTestKotlin|lintDebug|assembleDebug' "$GRADLE_LOG"; then
+    printf 'FAIL quality register invoked unrelated development checks\n' >&2
+    exit 1
+fi
+grep -Fq 'Frozen candidate required: true' "$OUTPUT"
+
 : > "$GRADLE_LOG"
 env WHIP_FAST_FIXTURE_GRADLE_LOG="$GRADLE_LOG" PATH="${FAKE_BIN}:${PATH}" \
     "${PROJECT}/scripts/check" --ready > "$OUTPUT"

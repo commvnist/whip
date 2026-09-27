@@ -1,5 +1,14 @@
 # User feedback and acceptance criteria
 
+### FB-20260927-005 — Shorten Whip testing through the SDLC
+
+- Date/source: 2026-09-27, direct owner request with Ponytail Ultra steering.
+- User need: Investigate actual test cost, provide the fastest practical change-to-feedback and release path, and make justified speed improvements.
+- Acceptance criteria: Measure the current lanes, remove demonstrated avoidable work from routine change checks, preserve exact checks for affected code and complete fresh Play candidate authority, and provide a prioritized plan with verification and limits.
+- Affected workflows: Changed-path routing, JVM/Android development checks, frozen candidate qualification, and contributor guidance.
+- Related: FB-20260904-004/005, FB-20260906-003, FND-20260927-006/007/008, DEC-20260927-002, IMP-20260927-009, VER-20260927-015.
+- Status: Implemented and targeted-JVM verified; further visual-capture profiling is proposed in the linked plan.
+
 ### FB-20260927-003 — Explore a configurable Goal completion celebration
 
 - Date/source: 2026-09-27, direct owner design request.

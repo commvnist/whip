@@ -1,5 +1,15 @@
 # Durable product and engineering decisions
 
+### DEC-20260927-002 — Route owned quality registers to their exact contracts
+
+- Context: FND-20260927-006 shows register-only edits paid for every product profile even though existing JVM contracts read and validate the changed files.
+- Position A: Keep the broad `docs/quality/*` route for every file.
+- Position B: Match the three known TSVs to their existing contract tests, treat Markdown as documentation, and leave the wildcard for other files.
+- Evidence and constraints: `SettingsCauseEffectContractTest` owns the Settings TSV; `E2ECoverageContractTest` owns both E2E/cause-effect matrices. These tests validate row shape and evidence references, and Gradle must track each file as a test input to rerun its check. Store candidate authority remains complete and fresh.
+- Decision: Use exact JVM selectors in the fast gate for those three TSVs, declare each a Gradle Test input, and keep `candidate_required=true`; route quality Markdown as docs-only; keep the existing broad route for unowned quality data. Preserve the current Android, coverage and release gates.
+- Consequences/reversal conditions: A register-only edit no longer compiles or runs unrelated profiles. Revisit if a register acquires a runtime consumer beyond its current contract.
+- Related/status: FB-20260927-005, FND-20260927-006/008, IMP-20260927-009, VER-20260927-015. Accepted and targeted-JVM verified.
+
 ### DEC-20260927-001 — Give shared status notices one spoken context node
 
 - Context: TalkBack focused a warning `WhipStatusCard` as a node that said only “Warning,” leaving its visible title and explanation on separate stops (FND-20260927-005).

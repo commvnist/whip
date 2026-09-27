@@ -153,11 +153,14 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 
-// The E2E contract test validates this repository-level capability register.
-// Declare it explicitly so Gradle cannot reuse a stale passing test result after
-// the matrix changes.
+// Contract tests read these repository-level registers at runtime.
+// Declare them so Gradle cannot reuse a stale result after a register changes.
 tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
-    inputs.file(rootProject.file("docs/quality/e2e-coverage.tsv"))
+    inputs.files(
+        rootProject.file("docs/quality/e2e-coverage.tsv"),
+        rootProject.file("docs/quality/QA_CAUSE_EFFECT_MATRIX_2026-08-27.tsv"),
+        rootProject.file("docs/quality/settings-cause-effect.tsv"),
+    )
 }
 
 val batchedAndroidCoverageDirectory =

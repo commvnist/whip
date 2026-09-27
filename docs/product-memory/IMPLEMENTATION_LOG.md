@@ -1,5 +1,14 @@
 # Implementation history
 
+### IMP-20260927-009 — Make known quality-register edits fast
+
+- Behavior changed: `scripts/change-router` maps Settings and E2E coverage TSVs to their existing exact JVM contracts, deduplicates the E2E pair, and still requires a fresh Play candidate. Gradle now tracks all three registers as Test inputs so cached results cannot mask edits. Quality Markdown is docs-only; unowned quality data keeps the broad route. `docs/testing.md` states that contract and removes the obsolete fixed Android runner count; the [speed plan](../quality/TESTING_SPEED_PLAN_2026-09-27.md) records measured priorities.
+- Important files/symbols: `scripts/change-router`, `scripts/test-change-router`, `scripts/test-check-fast`, `app/build.gradle.kts`, `SettingsCauseEffectContractTest`, `E2ECoverageContractTest`.
+- Persistence/migration/history impact: None. No app behavior, schema, backup format, version, installed package or user data changed.
+- Compatibility and limitations: Exact routing passed shell fixtures and three real JVM contract methods. Android and a new frozen candidate were deferred while unrelated Goal implementation is unfinished in the same worktree; the preexisting full candidate remains evidence for its earlier source only.
+- Related: FB-20260927-005, FND-20260927-006/007/008, DEC-20260927-002, VER-20260927-015.
+- Verification/status: VER-20260927-015. Implemented and targeted-JVM verified.
+
 ### IMP-20260927-008 — Complete the selected Track, spoken-role and widget plan
 
 - Track Insights now labels its existing summary `Weekly Rate (Last 30 Days)`; the 30-day normalization expression, stored Entries and `0.93 Entries` regression value are unchanged.

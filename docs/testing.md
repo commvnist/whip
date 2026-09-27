@@ -35,9 +35,13 @@ then explains every route and unions/deduplicates named profiles and exact
 JVM/Android selectors. Documentation-only, JVM-test-only, Android-test-only,
 feature-domain, and shared UI/core changes stay proportionate. Deletions and
 renames route both affected names. Unknown production, build/configuration,
-benchmark, quality-register, automation, and harness paths remain marked as
-requiring `scripts/candidate` before Play Store release. Harness changes first run their
-focused deterministic fixture rather than the product suite.
+benchmark, unowned quality-data, automation, and harness paths remain marked as
+requiring `scripts/candidate` before Play Store release. The three quality TSVs
+owned by `SettingsCauseEffectContractTest` or `E2ECoverageContractTest` run only
+their exact JVM contract in the fast loop; they still require candidate
+qualification for Play Store release. Quality Markdown is documentation-only.
+Harness changes first run their focused deterministic fixture rather than the
+product suite.
 
 The default runs only selected JVM tests plus millisecond-scale source guards;
 it deliberately defers Android-test compilation, lint, and packaging.
@@ -116,9 +120,9 @@ remains an alias for compatibility but has the same emulator-only guard.
 Execution remains deliberately opt-in. Instrumentation classes run in bounded
 batches so Compose and graphics state is released between runner processes.
 Every `*Test.kt` class is still included, and the gate fails if a test file does
-not declare the matching top-level class. At the current 96-class baseline this
-is exactly 12 runner processes: one graphics process, ten batches of at most ten
-ordinary classes, and one reset process.
+not declare the matching top-level class. It runs one graphics process, batches
+of at most ten ordinary classes, and one reset process; the number of ordinary
+batches follows the current class inventory.
 
 ## Systematic UI surface catalog
 
@@ -307,7 +311,7 @@ the gate must not claim configurations that were not run.
 
 `scripts/coverage` generates AGP/JaCoCo's deterministic report and enforces the
 audited domain/core floors. `scripts/coverage --emulator` additionally runs the
-complete suite using the same 12-process graphics-first/ten-class/reset-last
+complete suite using the same graphics-first/ten-class/reset-last
 topology as `scripts/check`. Every nested connected task revalidates its explicit
 emulator target. After every process the script requires fresh XML proving the
 exact requested class set, nonzero execution, and zero failures/skips, plus
