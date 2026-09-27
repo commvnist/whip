@@ -669,6 +669,7 @@ fun WhipApp(
             LocalLaunchDeliveryConsumer provides onLaunchDeliveryConsumed,
         ) {
             UserDataGenerationBoundary(userDataGeneration) {
+                GoalCelebrationHost {
                 WhipScreen(
                     state = state.forArea(areaScope),
                     unscopedTaskState = state,
@@ -801,6 +802,7 @@ fun WhipApp(
                     launchAreaSelectionReady = requestedLaunchDeliveryId == 0L ||
                         transientAreaScopeDelivery == requestedLaunchDeliveryId,
                 )
+                }
             }
         }
     }

@@ -9,6 +9,7 @@ import com.whip.app.core.HabitTimerClockReading
 import com.whip.app.core.WhipIdGenerator
 import com.whip.app.core.AppSettings
 import com.whip.app.core.AppThemeMode
+import com.whip.app.core.GoalCelebrationStyle
 import com.whip.app.core.RepPrescriptionScheme
 import com.whip.app.core.TrackedGymRecord
 import com.whip.app.core.SettingsRepository
@@ -119,6 +120,8 @@ class BackupRepositoryTest {
         settings = FakeSettingsRepository(
             AppSettings(
                 themeMode = AppThemeMode.Dark,
+                goalCelebrationEnabled = false,
+                goalCelebrationStyle = GoalCelebrationStyle.QuietGlow,
                 timeZoneId = "America/Toronto",
                 dayCutoffMinutes = 180,
                 showAllUpcomingTaskOccurrences = true,
@@ -225,6 +228,23 @@ class BackupRepositoryTest {
         }
     }
 
+    @Test fun olderBackupsWithoutCelebrationSettingsRestoreTheNewDefaults() = runBlocking {
+        val older = JSONObject(backups.exportBackup())
+        older.getJSONObject("settings")
+            .remove("goalCelebrationEnabled")
+        older.getJSONObject("settings")
+            .remove("goalCelebrationStyle")
+        refreshBackupChecksum(older)
+        settings.update {
+            it.copy(goalCelebrationEnabled = false, goalCelebrationStyle = GoalCelebrationStyle.VictoryShower)
+        }
+
+        backups.restoreBackup(older.toString())
+
+        assertTrue(settings.current().goalCelebrationEnabled)
+        assertEquals(GoalCelebrationStyle.ConfettiMoment, settings.current().goalCelebrationStyle)
+    }
+
     @Test fun backupPreviewAndTransactionalRestoreRoundTrip() = runBlocking {
         val id = habits.create(HabitDraft(name = "Hydrate, safely", unitId = "glass", startDate = FixedClock.today()))
         habits.log(id, 2.0, note = "morning \"large\" glass")
@@ -264,6 +284,8 @@ class BackupRepositoryTest {
         val exportedTables = exportedRoot.getJSONObject("tables")
         assertFalse(exportedRoot.getJSONObject("settings").has("compact" + "ItemLayout"))
         assertFalse(exportedRoot.getJSONObject("settings").has("gymCompact" + "SetRows"))
+        assertFalse(exportedRoot.getJSONObject("settings").getBoolean("goalCelebrationEnabled"))
+        assertEquals("QuietGlow", exportedRoot.getJSONObject("settings").getString("goalCelebrationStyle"))
         assertEquals(false, exportedTables.has("entity_tag_links"))
         assertEquals(true, exportedTables.has("goal_completion_snapshots"))
         assertEquals(true, exportedTables.has("goal_elapsed_reset_events"))
@@ -278,6 +300,8 @@ class BackupRepositoryTest {
         assertEquals(FixedClock.today().plusDays(1), habits.skips.first().single().localDate)
         assertEquals("🚀", tasks.tasks.first().single().icon)
         assertEquals(AppThemeMode.Dark, settings.current().themeMode)
+        assertFalse(settings.current().goalCelebrationEnabled)
+        assertEquals(GoalCelebrationStyle.QuietGlow, settings.current().goalCelebrationStyle)
         assertEquals("America/Toronto", settings.current().timeZoneId)
         assertEquals(180, settings.current().dayCutoffMinutes)
         assertEquals(true, settings.current().showAllUpcomingTaskOccurrences)

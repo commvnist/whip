@@ -85,6 +85,7 @@ internal enum class GoalMutationKind {
 internal data class GoalMutationReceipt(
     val kind: GoalMutationKind,
     val goalId: Long,
+    val newStatus: GoalStatus? = null,
     val createdGoalId: Long? = null,
     val measurementEntryId: String? = null,
     val deletion: GoalDeletionSummary? = null,
@@ -352,7 +353,7 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
         completeCommittedGoalMutation(
             commit = {
                 repository.setStatus(boundary, status)
-                GoalMutationReceipt(GoalMutationKind.LifecycleChanged, boundary.goalId)
+                GoalMutationReceipt(GoalMutationKind.LifecycleChanged, boundary.goalId, newStatus = status)
             },
             followUp = { committed -> committed.withReminderRefresh(reminders, boundary.goalId) },
         )

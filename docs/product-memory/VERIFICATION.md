@@ -1,5 +1,13 @@
 # Verification and release evidence
 
+### VER-20260927-017 — Focused Goal celebration acceptance
+
+- Scope/environment: Final Goal/Settings source on a disposable API 34 `emulator-5554`; connected physical Samsung was not used for instrumentation. Android animator scale was tested at both zero and one.
+- Source/build checks: The first batched JVM run executed 659 methods with one `SettingsCauseEffectContractTest` failure caused by missing new Settings-register rows. After adding those rows, the exact contract and `AppSettingsTest` passed. Android-test compilation passed. `:app:lintDebug` passed. On the final source and 0.3.77 version metadata, `scripts/check --ready` passed the affected JVM selectors, Android-test compilation, lint, debug packaging, assets and static checks in 2m41s. `git diff --check` passed. A prior instrumentation attempt failed before test execution because JaCoCo could not instrument the enlarged `WhipScreen`; moving the celebration host to `WhipApp` resolved that build issue.
+- Native behavior: Five focused methods passed together with zero failures/skips under animator scale zero (`build/instrumentation-results-D3bVPW`), covering Settings selection while off, one saved completion versus disabled behavior, old-backup defaults, backup round-trip and stored defaults. The Settings preview method passed again under motion scale one (`build/instrumentation-results-S2euZu`); the saved-completion journey passed again under motion scale one (`build/instrumentation-results-S5jYkA`). A separate scale-zero capture run passed and produced three visually reviewed Settings preview screenshots in `artifacts/goal-celebration/2026-09-27/`.
+- Counts/limits: These are selected Android methods, not the full Android inventory or a frozen Play candidate. The 659-method first JVM run is diagnostic because one contract failed; the corrected exact contract passed separately. Final affected readiness passed. Private phone release is recorded separately.
+- Related/status: FB-20260927-004, DEC-20260927-004, IMP-20260927-011. Focused emulator and affected readiness Verified.
+
 ### VER-20260927-016 — Bounded agent check on current Whip source
 
 - Scope/environment: Current shared Goal worktree, using the installed `timeout` and existing targeted JVM runner; no emulator, device or release operation.

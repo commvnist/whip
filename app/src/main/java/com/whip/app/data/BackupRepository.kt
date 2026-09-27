@@ -7,6 +7,7 @@ import android.util.Base64
 import androidx.room.withTransaction
 import com.whip.app.core.AppSettings
 import com.whip.app.core.AppThemeMode
+import com.whip.app.core.GoalCelebrationStyle
 import com.whip.app.core.AreaOpeningMode
 import com.whip.app.core.HomeSection
 import com.whip.app.core.ReviewSection
@@ -1312,6 +1313,8 @@ private fun AppSettings.toJson(): JSONObject = JSONObject()
     .put("includeAssistedInPersonalRecords", includeAssistedInPersonalRecords)
     .put("themeMode", themeMode.name)
     .put("dynamicColor", dynamicColor)
+    .put("goalCelebrationEnabled", goalCelebrationEnabled)
+    .put("goalCelebrationStyle", goalCelebrationStyle.name)
     .put("firstDayOfWeek", firstDayOfWeek.name)
     .put("timeZoneId", timeZoneId ?: JSONObject.NULL)
     .put("dayCutoffMinutes", dayCutoffMinutes)
@@ -1411,6 +1414,8 @@ private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
     includeAssistedInPersonalRecords = optBoolean("includeAssistedInPersonalRecords", false),
     themeMode = enumValue("themeMode", AppThemeMode.System),
     dynamicColor = optBoolean("dynamicColor", true),
+    goalCelebrationEnabled = optBoolean("goalCelebrationEnabled", true),
+    goalCelebrationStyle = enumValue("goalCelebrationStyle", GoalCelebrationStyle.ConfettiMoment),
     firstDayOfWeek = enumValue("firstDayOfWeek", DayOfWeek.MONDAY),
     timeZoneId = optString("timeZoneId").takeUnless { !has("timeZoneId") || isNull("timeZoneId") || runCatching { java.time.ZoneId.of(it) }.isFailure },
     dayCutoffMinutes = optInt("dayCutoffMinutes", 0).coerceIn(0, 1439),

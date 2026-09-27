@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260927-011 — Add three selectable Goal completion effects
+
+- Behavior changed: Completing a Goal through an authored, successfully saved action shows the selected Quiet Glow, Confetti Moment or Victory Shower effect once. Appearance & Home has a default-on celebration switch and a style dropdown that previews each newly selected style even when the switch is off. The renderer shares one theme-aware badge/card owner, scales particle density/duration per style, avoids blocking input, and shows a static acknowledgement when device motion is disabled.
+- Important files/symbols: `GoalCelebration.kt`, `GoalScreens.kt`, `GoalViewModel.kt`, `WhipApp.kt`, `SettingsScreens.kt`, `AppSettings.kt`, `BackupRepository.kt`; focused persistence, backup, Settings and Goal journey tests; `settings-cause-effect.tsv`.
+- Persistence/migration/history impact: SharedPreferences and portable backup add optional enable/style fields with enabled + Confetti Moment defaults for older data or unknown styles. Room schema 46, data epoch 6 and backup format 26 are unchanged. Goal progress values and history are unchanged.
+- Compatibility/limits: The effect follows explicit saved completion; viewing History, restoring a backup, abandoning a Goal or a failed save does not generate a celebration. Release metadata advances to 0.3.77/code 83 for an in-place private phone update. Subjective motion/appearance on the physical phone awaits owner use.
+- Related/status: FB-20260927-003/004, DEC-20260927-004, VER-20260927-017/018. Implemented and focused verified; phone delivery in progress.
+
 ### IMP-20260927-010 — Make sub-minute agent checks the default edit workflow
 
 - Behavior changed: Added a short root `AGENTS.md` rule to batch edits, run only a relevant exact JVM class/method or harness fixture under a 55-second timeout when feedback matters, and treat timeout/kill as incomplete. Broader affected readiness and selected emulator checks run once after implementation stabilizes; fresh candidate authority remains tied to a frozen Play release.

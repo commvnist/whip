@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260927-004 — Share one Goal celebration host across saves and previews
+
+- Context: FB-20260927-004 needs three distinct effects, a default-on preference, and immediate comparison in Settings without playing effects for failed or restored changes.
+- Decision: Keep the effect renderer and transient event controller in one app-level Compose host. Settings sends explicit preview events; Goals sends a completion event only after its authored lifecycle mutation returns a committed `Completed` receipt. Persist only the enable/style choices, including in portable backups. Keep numeric progress unchanged and show a static success card when Android animation is disabled.
+- Consequences: The effect never becomes part of Goal history or replay. A new preview replaces the previous transient event; the overlay does not intercept input. The app uses Compose/Android primitives without an animation dependency.
+- Related/status: FB-20260927-003/004, IMP-20260927-011, VER-20260927-017. Accepted.
+
 ### DEC-20260927-003 — Bound edit feedback and batch broader checks
 
 - Context: The current shared-source route can select all 45 JVM profile classes, while a frozen candidate's fresh Android portion took 50.1 wall minutes. The owner wants routine development validation under one minute.

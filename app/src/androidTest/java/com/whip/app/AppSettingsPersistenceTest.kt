@@ -6,6 +6,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.core.AppSettings
 import com.whip.app.core.AppThemeMode
 import com.whip.app.core.AreaOpeningMode
+import com.whip.app.core.GoalCelebrationStyle
 import com.whip.app.core.HomeSection
 import com.whip.app.core.ReviewPeriod
 import com.whip.app.core.SharedPreferencesSettingsRepository
@@ -87,6 +88,8 @@ class AppSettingsPersistenceTest {
             chosenOpeningAreaScope = AreaScope.One("opening-area").storageKey,
             themeMode = AppThemeMode.Dark,
             dynamicColor = false,
+            goalCelebrationEnabled = false,
+            goalCelebrationStyle = GoalCelebrationStyle.VictoryShower,
             firstDayOfWeek = DayOfWeek.SUNDAY,
             timeZoneId = "America/Toronto",
             dayCutoffMinutes = 180,
@@ -141,6 +144,18 @@ class AppSettingsPersistenceTest {
         SharedPreferencesSettingsRepository(context).update { expected }
 
         assertEquals(expected, SharedPreferencesSettingsRepository(context).current())
+    }
+
+    @Test
+    fun goalCelebrationDefaultsAndUnknownStoredStyleAreSafe() {
+        val preferences = context.getSharedPreferences("whip-settings", Context.MODE_PRIVATE)
+        preferences.edit().clear().commit()
+
+        assertTrue(SharedPreferencesSettingsRepository(context).current().goalCelebrationEnabled)
+        assertEquals(GoalCelebrationStyle.ConfettiMoment, SharedPreferencesSettingsRepository(context).current().goalCelebrationStyle)
+
+        preferences.edit().putString("goalCelebrationStyle", "UnknownFutureStyle").commit()
+        assertEquals(GoalCelebrationStyle.ConfettiMoment, SharedPreferencesSettingsRepository(context).current().goalCelebrationStyle)
     }
 
     @Test

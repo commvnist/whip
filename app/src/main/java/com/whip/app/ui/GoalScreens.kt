@@ -186,6 +186,7 @@ fun GoalAreaContent(
     reorderDismissRequest: Int = 0,
     mutationRequestNamespace: String = "goal-workspace",
 ) {
+    val goalCelebration = LocalGoalCelebration.current
     val localDestinationState = rememberSaveable { mutableStateOf(GoalDestination.Active) }
     val activeDestinationState = destinationState ?: localDestinationState
     var destination by activeDestinationState
@@ -304,7 +305,7 @@ fun GoalAreaContent(
             consume = viewModel::consumeAuthoredMutationResult,
             key = mutationRequestNamespace,
             requestNamespace = mutationRequestNamespace,
-            onPersisted = {
+            onPersisted = { receipt ->
                 actionsGoalId = null
                 recordingGoalId = null
                 editingMeasurementGoalId = null
@@ -312,6 +313,12 @@ fun GoalAreaContent(
                 resettingElapsedGoalId = null
                 deleteCandidateGoalId = null
                 viewModel.clearPermanentDeletionPreview()
+                if (receipt.kind == GoalMutationKind.LifecycleChanged && receipt.newStatus == GoalStatus.Completed) {
+                    goalCelebration?.complete(
+                        viewModel.defaultSettings(),
+                        editorProjectionById[receipt.goalId]?.goal?.name ?: "Goal",
+                    )
+                }
             },
         )
     } else null

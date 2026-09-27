@@ -18,6 +18,14 @@
 - Related: FB-20260904-004/005, FB-20260906-003, FND-20260927-006/007/008, DEC-20260927-002, IMP-20260927-009, VER-20260927-015.
 - Status: Implemented and targeted-JVM verified; further visual-capture profiling is proposed in the linked plan.
 
+### FB-20260927-004 — Ship three selectable Goal celebrations with live Settings previews
+
+- Date/source: 2026-09-27, direct owner follow-up to FB-20260927-003.
+- User need: Offer all three proposed Goal completion effects rather than choosing one for everyone, with a Settings dropdown that immediately previews each newly selected style.
+- Acceptance criteria: Implement Quiet Glow, Confetti Moment, and Victory Shower as visibly distinct, theme-aware effects; add a persistent default-on enable/disable control and a style dropdown in Appearance & Home, with Confetti Moment as the initial style; changing the dropdown plays that exact style for comparison even when the enable toggle is off; real effects play once after a successful authored Complete Goal save and not after failure, abandonment, History loading, or restore; show accessible static success when device motion is disabled and keep Goal progress truthful; verify after implementation in a final batch, then deliver a higher signed private build in place to the previously selected connected owner phone with identity/data safeguards.
+- Affected users/workflows: Goal detail completion from Goals and Home, Settings appearance, local/portable preferences, reduced-motion devices, backup compatibility, and owner-phone release.
+- Related/status: FB-20260927-003. In progress.
+
 ### FB-20260927-003 — Explore a configurable Goal completion celebration
 
 - Date/source: 2026-09-27, direct owner design request.

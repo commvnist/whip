@@ -57,6 +57,7 @@ class GoalProgressJourneyE2ETest {
             compose.onNodeWithText("Abandon Goal").performScrollTo().performClick()
             compose.waitUntil(10_000) { compose.onAllNodesWithTag("entity-inspector-close").fetchSemanticsNodes().isEmpty() }
             assertEquals(GoalStatus.Abandoned, runBlocking { app.goalRepository.get(id)?.status })
+            compose.onAllNodesWithTag("goal-celebration-ConfettiMoment").assertCountEquals(0)
             compose.onNodeWithTag("goal-destination-History").performClick()
             compose.onNodeWithTag("goal-card-$id").performScrollTo().performClick()
             compose.onNodeWithTag("goal-inspector-outcome").assertTextEquals("0.5% complete")
@@ -102,6 +103,51 @@ class GoalProgressJourneyE2ETest {
             compose.onNodeWithTag("goal-inspector-outcome").assertTextEquals(">99.9% complete")
             captureVisualCatalogSurface("goals.progress.near-target")
             assertEquals(GoalStatus.Active, runBlocking { app.goalRepository.get(ids[1])?.status })
+        }
+    }
+
+    @Test fun savedGoalCompletionCelebratesOnceAndDisabledPreferenceSuppressesIt() {
+        val ids = runBlocking {
+            prepare()
+            app.settingsRepository.update {
+                it.copy(goalCelebrationStyle = com.whip.app.core.GoalCelebrationStyle.VictoryShower)
+            }
+            listOf(goal("Finish the chapter", 4.0), goal("Make the appointment", 2.0))
+        }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use {
+            compose.onNodeWithContentDescription("Goals tab").performClick()
+            compose.onNodeWithTag("goal-card-${ids[0]}").performScrollTo().performClick()
+            compose.onNodeWithTag("goal-detail-section-Options").performClick()
+            val complete = compose.onNodeWithText("Complete Goal").performScrollTo()
+            compose.mainClock.autoAdvance = false
+            try {
+                complete.performClick()
+                compose.waitUntil(10_000) {
+                    compose.mainClock.advanceTimeByFrame()
+                    compose.onAllNodesWithTag("goal-celebration-VictoryShower").fetchSemanticsNodes().isNotEmpty()
+                }
+                compose.onNodeWithTag("goal-celebration-card").assertIsDisplayed()
+            } finally {
+                compose.mainClock.autoAdvance = true
+            }
+            assertEquals(GoalStatus.Completed, runBlocking { app.goalRepository.get(ids[0])?.status })
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithTag("goal-celebration-VictoryShower").fetchSemanticsNodes().isEmpty()
+            }
+            compose.onNodeWithTag("goal-destination-History").performClick()
+            compose.onAllNodesWithTag("goal-celebration-VictoryShower").assertCountEquals(0)
+            compose.onNodeWithTag("goal-card-${ids[0]}").performScrollTo().performClick()
+            compose.onNodeWithTag("goal-inspector-outcome").assertTextEquals("40% complete")
+            compose.onNodeWithTag("entity-inspector-close").performClick()
+
+            app.settingsRepository.update { current -> current.copy(goalCelebrationEnabled = false) }
+            compose.waitForIdle()
+            compose.onNodeWithTag("goal-destination-Active").performClick()
+            compose.onNodeWithTag("goal-card-${ids[1]}").performScrollTo().performClick()
+            compose.onNodeWithTag("goal-detail-section-Options").performClick()
+            compose.onNodeWithText("Complete Goal").performScrollTo().performClick()
+            compose.waitUntil(10_000) { runBlocking { app.goalRepository.get(ids[1])?.status == GoalStatus.Completed } }
+            compose.onAllNodesWithTag("goal-celebration-VictoryShower").assertCountEquals(0)
         }
     }
 

@@ -88,6 +88,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import com.whip.app.R
 import com.whip.app.core.AppThemeMode
+import com.whip.app.core.GoalCelebrationStyle
 import com.whip.app.core.AreaOpeningMode
 import com.whip.app.core.HomeSection
 import com.whip.app.core.ReviewPeriod
@@ -183,6 +184,7 @@ internal fun SettingsContent(
     onSectionChange: (SettingsSection) -> Unit = {},
 ) {
     val context = LocalContext.current
+    val goalCelebration = LocalGoalCelebration.current
     val weekdayFormatter = rememberWhipWeekdayFormatter()
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var resetSubmitted by rememberSaveable { mutableStateOf(false) }
@@ -484,6 +486,24 @@ internal fun SettingsContent(
                     "Requires Android 12 or newer. Whip uses its selected Theme on this device."
                 },
             ) { selected -> viewModel.update { it.copy(dynamicColor = selected) } }
+        }
+        item {
+            SettingsToggle(
+                "Celebrate completed Goals",
+                settings.goalCelebrationEnabled,
+                supportingText = "Play a brief effect when you complete a Goal.",
+            ) { selected -> viewModel.update { it.copy(goalCelebrationEnabled = selected) } }
+        }
+        item {
+            WhipSettingItem("Goal celebration style") {
+                description("Select a style to preview it, even when celebrations are off.")
+                choice(GoalCelebrationStyle.entries, settings.goalCelebrationStyle, GoalCelebrationStyle::label) { selected ->
+                    if (selected != settings.goalCelebrationStyle) {
+                        viewModel.update { it.copy(goalCelebrationStyle = selected) }
+                        goalCelebration?.preview(selected)
+                    }
+                }
+            }
         }
         item {
             SettingsHeading("Opening Area")
