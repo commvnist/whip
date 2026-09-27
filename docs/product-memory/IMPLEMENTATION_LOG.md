@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260927-010 — Make sub-minute agent checks the default edit workflow
+
+- Behavior changed: Added a short root `AGENTS.md` rule to batch edits, run only a relevant exact JVM class/method or harness fixture under a 55-second timeout when feedback matters, and treat timeout/kill as incomplete. Broader affected readiness and selected emulator checks run once after implementation stabilizes; fresh candidate authority remains tied to a frozen Play release.
+- Files: `AGENTS.md`, `docs/testing.md`, and the [testing speed plan](../quality/TESTING_SPEED_PLAN_2026-09-27.md). Existing scripts and product behavior are unchanged; no dependency was added.
+- Related/status: FB-20260927-005/006, DEC-20260927-003, VER-20260927-016. Verified for the warm exact-JVM command and documentation scope; cold-build timing remains open.
+
 ### IMP-20260927-009 — Make known quality-register edits fast
 
 - Behavior changed: `scripts/change-router` maps Settings and E2E coverage TSVs to their existing exact JVM contracts, deduplicates the E2E pair, and still requires a fresh Play candidate. Gradle now tracks all three registers as Test inputs so cached results cannot mask edits. Quality Markdown is docs-only; unowned quality data keeps the broad route. `docs/testing.md` states that contract and removes the obsolete fixed Android runner count; the [speed plan](../quality/TESTING_SPEED_PLAN_2026-09-27.md) records measured priorities.

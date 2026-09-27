@@ -3,12 +3,13 @@
 Local quality gate:
 
 ```bash
-# Explain or execute checks selected from the current working-tree changes.
+# During implementation, run one relevant JVM class or method when feedback
+# can guide the next edit. A timeout or forced kill is incomplete, not passed.
+timeout --kill-after=3s 55s scripts/qa-targeted --jvm com.whip.app.domain.GoalRulesTest --jvm-only
+# After the implementation stabilizes, inspect and run its affected checks.
 scripts/check --explain
-scripts/check
-# Before commit: compile Android tests and run affected lint/debug-build checks.
 scripts/check --ready
-# Run only affected Android tests when UI/device behavior actually changed.
+# Run selected Android tests once if UI/device behavior changed.
 ANDROID_SERIAL=emulator-5554 scripts/check --emulator
 # Optionally split independent Android batches across two matching emulators.
 ANDROID_SERIAL=emulator-5554 WHIP_ANDROID_SECONDARY_SERIAL=emulator-5556 \
@@ -28,8 +29,18 @@ ANDROID_SERIAL=emulator-5554 scripts/qa-targeted gymphased --emulator
 ANDROID_SERIAL=emulator-5554 scripts/qa-targeted --android com.whip.app.RoutineRepositoryTest#testName --repeat 3
 ```
 
-`scripts/check` is the primary development/change gate. Its default is the
-fast edit/test loop: it consumes Git
+For agents, the routine edit loop has a **55-second command budget**: select
+the smallest relevant JVM class or method with `scripts/qa-targeted --jvm
+PATTERN --jvm-only`, or run the changed harness's focused `scripts/test-*`
+fixture, under `timeout --kill-after=3s 55s`. Batch related edits instead of
+testing after every file change. A timeout (exit 124, or 137 after a forced kill)
+is incomplete evidence;
+do not keep retrying the same slow command in the edit loop. Finish the change,
+then run the broader affected checks once. A cold build or broad shared-source
+change can exceed one minute, so the time budget is for routine feedback, not
+for final validation.
+
+`scripts/check` is the primary affected-change gate. Its default consumes Git
 name-status changes, or explicit `--base`, `--path`, or `--changes-file` inputs,
 then explains every route and unions/deduplicates named profiles and exact
 JVM/Android selectors. Documentation-only, JVM-test-only, Android-test-only,
@@ -56,9 +67,9 @@ tool: profiles may be unioned, exact `--jvm` and `--android Class#method`
 selectors and `--jvm-only` are supported, and `--repeat` is reserved for timing investigations.
 Development evidence is not a release claim.
 
-The intended personal-development ladder is `scripts/check` while editing,
-`scripts/check --emulator` only for affected UI/integration behavior,
-`scripts/check --ready` before handoff, and separately authorized
+The intended personal-development ladder is exact, bounded checks during
+implementation, `scripts/check --ready` once after a coherent change,
+`scripts/check --emulator` once for affected UI/integration behavior, and separately authorized
 `scripts/device release-deploy` for a fast signed in-place build/install on the
 owner's phone. Personal-phone deployment does not claim complete-suite or store
 candidate evidence.

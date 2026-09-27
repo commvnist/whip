@@ -1,5 +1,12 @@
 # Verification and release evidence
 
+### VER-20260927-016 — Bounded agent check on current Whip source
+
+- Scope/environment: Current shared Goal worktree, using the installed `timeout` and existing targeted JVM runner; no emulator, device or release operation.
+- Commands/results: `scripts/qa-targeted --jvm com.whip.app.domain.GoalRulesTest --jvm-only --dry-run` selected that class alone. `time timeout --kill-after=3s 55s scripts/qa-targeted --jvm com.whip.app.domain.GoalRulesTest --jvm-only` passed 17/17 methods, zero failures/skips, in 1.655 seconds total (Gradle reported 1 second). A separate one-second `timeout` probe exited 124 as expected. `scripts/check --explain --path AGENTS.md` routed documentation only; `git diff --check` passed.
+- Counts/limits: This is one warm JVM class, not a cold-build benchmark or proof that all changes finish within a minute. A future agent starts with the new root instruction; this already-running session loaded its initial instructions before the file existed. Readiness, Android instrumentation and candidate were not run for documentation-only changes.
+- Related/status: FB-20260927-006, DEC-20260927-003, IMP-20260927-010. Focused verification passed; five representative timing samples remain in the testing speed plan.
+
 ### VER-20260927-015 — Quality-register routing and testing-speed baseline
 
 - Scope/environment: Current repository scripts and Gradle on the shared in-progress Goal worktree; unchanged accepted 2026-09-27 two-emulator Android evidence is used only for timing baseline. No emulator or physical-device test was started.

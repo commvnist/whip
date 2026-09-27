@@ -1,5 +1,14 @@
 # User feedback and acceptance criteria
 
+### FB-20260927-006 — Keep routine development validation under one minute
+
+- Date/source: 2026-09-27, direct owner follow-up with Ponytail Ultra steering.
+- User need: Stop long test runs after every change; give coding agents a practical sub-minute validation rule during implementation.
+- Acceptance criteria: Use the smallest relevant check within a one-minute wall budget, avoid repeated broad runs during edits, report a timed-out check as incomplete, and run proportionate broader validation once the implementation is stable. Preserve the complete fresh candidate for a frozen Play release.
+- Affected workflows: Contributor agent instructions, focused JVM checks, affected-change readiness, Android emulator testing and release qualification.
+- Related: FB-20260927-005, FND-20260927-007, DEC-20260927-003, IMP-20260927-010, VER-20260927-016.
+- Status: Verified for the agent rule and warm exact-JVM path; representative cold/shared-code timings remain to measure.
+
 ### FB-20260927-005 — Shorten Whip testing through the SDLC
 
 - Date/source: 2026-09-27, direct owner request with Ponytail Ultra steering.

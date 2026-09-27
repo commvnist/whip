@@ -1,5 +1,13 @@
 # Durable product and engineering decisions
 
+### DEC-20260927-003 — Bound edit feedback and batch broader checks
+
+- Context: The current shared-source route can select all 45 JVM profile classes, while a frozen candidate's fresh Android portion took 50.1 wall minutes. The owner wants routine development validation under one minute.
+- Alternatives: Build a new runner or weaken the complete gate; keep the existing exact selector and use a shell time budget for routine checks.
+- Decision: During implementation, run only a relevant exact JVM selector or harness fixture when feedback can guide the next edit, under `timeout --kill-after=3s 55s`. Treat timeout/kill as incomplete. Once the change is stable, run affected readiness and selected emulator checks in a batch; keep a fresh candidate for frozen Play releases.
+- Evidence/limits: A warm `GoalRulesTest` run passed 17 methods in 1.655 seconds. A cold compile or broad shared-code validation may exceed the budget; one narrow test cannot claim coverage of unrelated behavior.
+- Related/status: FB-20260927-005/006, FND-20260927-007, IMP-20260927-010, VER-20260927-016. Accepted for the development workflow.
+
 ### DEC-20260927-002 — Route owned quality registers to their exact contracts
 
 - Context: FND-20260927-006 shows register-only edits paid for every product profile even though existing JVM contracts read and validate the changed files.
