@@ -1,5 +1,15 @@
 # User feedback and acceptance criteria
 
+### FB-20260927-003 — Explore a configurable Goal completion celebration
+
+- Date/source: 2026-09-27, direct owner design request.
+- User need: Give a person a satisfying moment when they complete a Goal, potentially with confetti across the screen, while letting them disable the effect in Settings. The preference should be on by default.
+- Acceptance criteria for this request: Return distinct animation concepts and a recommendation; identify a default-on Settings control. This request asks for ideas, not an app change.
+- Affected users/workflows: Explicit Goal completion from the Goal detail view, the post-save return to Goals, Appearance & Home settings, reduced-motion users, and future backup/restore of the preference.
+- Observed current behavior: `GoalScreens.kt` offers an explicit Complete Goal action. `GoalViewModel.setStatus` returns a committed lifecycle receipt and the detail surface closes on persistence; `GoalRepository.setStatus` also permits completion below measured target progress. No completion celebration or preference currently exists.
+- Proposed direction, awaiting owner selection: A brief, nonblocking theme-colored confetti burst behind a compact “Goal completed” confirmation with the Goal name, after the save succeeds. Alternatives are a quiet check/halo around the Goal identity or a fuller screen-wide shower. Keep the numeric progress truthful; play only for an explicit Active-to-Completed success, never for Abandoned, history loading, import, or failed saves. Put “Celebrate completed Goals” in Appearance & Home, default on; when device motion is disabled, show a static completion acknowledgement.
+- Status: Proposed. No app code, tests, build, or phone installation was changed for this design exploration.
+
 ### FB-20260927-002 — Implement the selected Ponytail Ultra plan
 
 - Date/source: 2026-09-27, direct owner request to implement the [three-item next-work plan](../quality/NEXT_WORK_PONYTAIL_ULTRA_2026-09-27.md) in full. Prior owner steering requests testing only after implementation, batching any fixes, and installing an updated app on the connected phone when the app changes.
