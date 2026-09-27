@@ -1,5 +1,13 @@
 # Durable product and engineering decisions
 
+### DEC-20260926-005 — Reuse semantic roles and native scroll for the remaining design seams
+
+- Context: FB-20260926-003 reopened a full design audit after the 523-state architecture campaign. Current-source, enlarged-view and two reachable 900 dp Settings modes confirm FND-20260926-009 through -014.
+- Decision: Use the existing Whip dialog heading, warning notice, heading semantics, support/navigation row and native scrolling patterns to resolve confirmed drift. Preserve dynamic labels, compact reorder type, domain content and pinned destructive actions. Confirm width-specific changes in rendered states before adopting them.
+- Rejected approaches: A new global design framework, generic replacement of all domain cards, redesigning Gym's intentional no-Area header, or changing data/domain behavior to solve presentation.
+- Verification: Focused 200% native reachability/semantics tests, affected family captures, one current-source final visual review and proportionate full candidate gate on no more than two disposable emulators.
+- Related/status: FB-20260926-003, FND-20260926-009 through -014, [ranked plan](../quality/DESIGN_CONSISTENCY_OVERHAUL_2026-09-26.md). In progress.
+
 ### DEC-20260926-004 — Retry a reverted font setting while retaining real 200% assertions
 
 - Context: FND-20260926-008 failed before a Track UI assertion because an Android 2.0 font-scale write had reverted to 1.0 during the long full inventory. The exact Track method passed alone; the previous 30-second rule only waited for resources after one write.
