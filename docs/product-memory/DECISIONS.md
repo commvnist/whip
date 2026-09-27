@@ -5,7 +5,7 @@
 - Context: FB-20260927-008 follows the one-style celebration and shared locale-aware percentage rule in DEC-20260927-005 / DEC-20260910-012.
 - Decision: Give the checkmark card matching entry/exit visibility ramps on a linear four-second timeline so the fade durations match; retain tap-only card dismissal and a static reduced-motion card. For numeric Goals, floor negative progress at zero but retain ratios above one in the shared domain projection; format values just over the target distinctly from exactly 100%. Keep visual progress-bar fill and Review's normalized outcome score capped at 100%.
 - Boundaries: Consistency is bounded by its authored period window, weighted milestones by their total weight, and range success by its defined range; these are not unbounded numeric targets. A zero-length baseline-to-target interval remains a binary reached/not-reached result.
-- Related/status: FB-20260927-008, FND-20260927-009, DEC-20260910-012, IMP-20260927-013, VER-20260927-021. Accepted and focused verified; private delivery pending.
+- Related/status: FB-20260927-008, FND-20260927-009, DEC-20260910-012, IMP-20260927-013, VER-20260927-021/022. Accepted, focused verified and released privately.
 
 ### DEC-20260927-005 — Keep one four-second Goal celebration
 

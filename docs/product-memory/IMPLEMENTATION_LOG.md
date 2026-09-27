@@ -6,7 +6,8 @@
 - Important files/symbols: `GoalCelebrationOverlay`, `celebrationCardVisibility`, `calculateGoalProgress`, `goalOutcomeScoreOnDate`, `formatGoalProgressPercent`, and the Goal Insights list; focused JVM tests and the existing Goal journey.
 - Persistence/migration/history impact: New closure snapshots may store ratios above one; existing frozen snapshots remain unchanged. Room schema 46, data epoch 6 and backup format 26 do not change. The private build advances to 0.3.79/code 85.
 - Compatibility/limits: Consistency, range, milestone and zero-length baseline goals retain their bounded domain meanings. Motion-disabled Android settings still show a static four-second acknowledgement. This is a private phone update, not a Play candidate.
-- Related/status: FB-20260927-008, FND-20260927-009, DEC-20260927-006, VER-20260927-021/022. Implemented and focused verified; phone delivery in progress.
+- Commit/push: `1b3d242b` on `origin/main` built the exact private APK installed on the phone.
+- Related/status: FB-20260927-008, FND-20260927-009, DEC-20260927-006, VER-20260927-021/022. Implemented, focused verified and released privately as 0.3.79/code 85.
 
 ### IMP-20260927-012 — Retire Goal styles and decouple card dismissal from confetti
 
