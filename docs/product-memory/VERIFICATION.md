@@ -1,5 +1,11 @@
 # Verification and release evidence
 
+### VER-20260927-006 — Final-candidate test inventory preflight
+
+- The first frozen-candidate attempt on pushed `faff967b` stopped at its initial static preflight, before JVM, Android, lint, coverage or artifact assertions: `docs/testing.md` still listed the previous 659 JVM + 1,110 Android method baseline. The current source contains 659 JVM + 1,113 Android `@Test` methods, including the focused design regressions. The rejected incomplete candidate is retained locally at `build/candidate-evidence/.pending-PjJe32`; it is not accepted evidence.
+- `docs/testing.md` now records 1,772 product methods (659 JVM and 1,113 Android), matching the source inventory. This is documentation/test-lane reconciliation only; production app source and accepted 523-state visual pixels are unchanged. A fresh frozen candidate is required.
+- Related/status: FB-20260926-003. Preflight corrected; complete candidate pending.
+
 ### VER-20260927-005 — Shared warning notice meaning and rendered tone
 
 - The exact `SharedConsistencyUiTest#statusAndEmptyStateExposeSeverityAnnouncementAndHierarchy` passed 1/1 fresh on disposable emulator-5554 (`build/instrumentation-results-8DcEBI/aggregate.tsv`). The same real `WhipStatusCard` now verifies that `Warning` is a polite live-region state and that its rendered card background matches the theme's tertiary warning surface; the neighboring Loading/Error/empty-state assertions still pass.

@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260927-004 — Reconcile the final Android test inventory
+
+- `docs/testing.md` now records 1,772 product methods: 659 fast JVM and 1,113 Android instrumentation. Three new native methods entered during the design overhaul; the earlier 1,110 count made the frozen candidate stop at static preflight before any product assertion.
+- Documentation/test-lane only; no production UI, persistence, schema, backup format or release metadata change. The rejected preflight is recorded in VER-20260927-006; a fresh complete candidate remains required.
+- Related/status: FB-20260926-003, VER-20260927-006. Implemented, candidate pending.
+
 ### IMP-20260927-003 — Prepare private 0.3.75 owner-phone update
 
 - `app/build.gradle.kts` advances Whip from 0.3.74/code 80 to 0.3.75/code 81 so the completed design overhaul can be installed in place on the already connected owner phone after final source and visual acceptance. The prior release's signer, package ID, Room schema 46, data epoch 6 and portable-backup format 26 are unchanged.
