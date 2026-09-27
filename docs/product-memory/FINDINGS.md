@@ -5,14 +5,14 @@
 - Severity/category: P3 stale Android test contract; FB-20260926-003.
 - Observed: The frozen candidate from pushed `f3148754` passed all 659 JVM methods, coverage floors, lint, and signed builds, then failed one of 120 methods in Android batch 2: `AdaptiveWhipScreenTest#adaptiveDestinationSupportSeparatesErrorLoadingAndRealEmpty` looked for `Cached Task` after seeding the authored title `Cached task`.
 - Expected/root cause: FND-20260926-015 deliberately preserves authored casing in shared support navigation. This older error/loading/empty-state regression still assumed the former automatic title casing. Its other state checks and 119 neighboring batch methods passed; the second emulator accepted its remaining seven assigned batches without further failures.
-- Resolution/status: The assertion now finds the exact authored `Cached task` inside `destination-support-content` and requires it to be displayed. Test-only correction; a fresh complete candidate is required to verify the correction and the seven even batches not run after worker 1 stopped. Related: FND-20260926-015, IMP-20260927-006, VER-20260927-008. Implemented; final verification pending.
+- Resolution/status: The assertion now finds the exact authored `Cached task` inside `destination-support-content` and requires it to be displayed. The corrected method and all 1,113 Android methods passed in the fresh complete candidate. Test-only correction; production UI is unchanged. Related: FND-20260926-015, IMP-20260927-006, VER-20260927-008/010. Verified.
 
 ### FND-20260927-002 — Settings architecture check assumed the old raw Areas label
 
 - Severity/category: P3 stale JVM source contract, not a product UI regression; FB-20260926-003.
 - Observed: The first full frozen candidate after test-inventory reconciliation executed all 659 JVM methods and failed one: `UiDesignArchitectureTest#groupedInformationAndDatePickerHaveNeutralBoundedOwnership` still searched for literal `Text("Areas"` in `SettingsScreens.kt`.
 - Expected/root cause: FND-20260926-012 intentionally moved equivalent Settings group labels to `WhipGroupHeading` for semantic heading parity. The source contract was not updated with that approved design, even though the final 523-state visual catalog and focused native heading checks passed.
-- Resolution/status: The JVM rule now requires `WhipGroupHeading("Areas")` directly inside `WhipGroupedInformationCard`, while retaining the other card-owner checks. The exact method passes 1/1; the rejected candidate remains diagnostic, and a fresh complete candidate is required. Related: DEC-20260926-005, IMP-20260927-005, VER-20260927-007.
+- Resolution/status: The JVM rule now requires `WhipGroupHeading("Areas")` directly inside `WhipGroupedInformationCard`, while retaining the other card-owner checks. The exact method and all 659 JVM methods pass in the final candidate; the rejected attempt remains diagnostic. Related: DEC-20260926-005, IMP-20260927-005, VER-20260927-007/010. Verified.
 
 ### FND-20260927-001 — Disabled destructive actions retain active error color
 
@@ -20,7 +20,7 @@
 - Observed: In the complete 523-state catalog, blocked Machine and Exercise deletion confirmations, and Machine's retry/error confirmation, show the same vivid pink label as an enabled Workout confirmation. Their native buttons are disabled, but the label still suggests an available destructive action.
 - Expected: Destructive labels use the warning/error accent only while actionable; disabled labels share the muted disabled content tone and remain semantically disabled.
 - Evidence/root cause: `GymScreens.kt` passes `enabled = false` in those states, while inner `Text(color = MaterialTheme.colorScheme.error)` overrides `WhipTextButton`'s disabled content color. Other destructive button callers use the same pattern. Independent current-source PNG review confirmed the mismatch; inspect and migrate applicable callers through one shared button owner.
-- Resolution/status: `WhipDestructiveTextButton` owns enabled error color and muted disabled color. Gym, Task, Habit, Goal, Track, Area, Routine Builder and shared permanent-delete callers now use it without explicit inner text color. The real shared dialog passes enabled/disabled semantics and rendered-chroma regression 1/1; the accepted final catalog and independent review confirm muted blocked Machine/Exercise/Routine and accented enabled Workout pixels with no sampled cross-domain drift. Verified for this scope; full candidate pending. Related: FND-20260926-010, DEC-20260926-005, IMP-20260927-002, VER-20260927-003/004.
+- Resolution/status: `WhipDestructiveTextButton` owns enabled error color and muted disabled color. Gym, Task, Habit, Goal, Track, Area, Routine Builder and shared permanent-delete callers now use it without explicit inner text color. The real shared dialog passes enabled/disabled semantics and rendered-chroma regression 1/1; the accepted final catalog and independent review confirm muted blocked Machine/Exercise/Routine and accented enabled Workout pixels with no sampled cross-domain drift. The complete candidate passes. Related: FND-20260926-010, DEC-20260926-005, IMP-20260927-002, VER-20260927-003/004/010. Verified.
 
 ### FND-20260926-015 — Shared navigation rows silently title-case authored item names
 
@@ -28,7 +28,7 @@
 - Observed: A populated 200% Task support-pane regression could not find authored `Pane task 6` because `NavigationRow` converted it to `Pane Task 6`. Task/Habit/Goal support rows share the problem. Further caller review found Home's one-day pinned Routine and active Workout cards also pass authored names through `NavigationRow`, while the multi-day Routine card displays the same type of name unchanged. Area-scoped Home empty states could alter an authored Area name too.
 - Expected: User-authored Task, Habit, Goal, Routine, Workout, and Area names should retain exact casing wherever the shared navigation role renders them.
 - Evidence/root cause: `NavigationRow` in `ItemControlPatterns.kt` unconditionally called `uiTitleCase()`; `DestinationSupportPane` and `HomeStatusCard` route authored titles through it. The native Task failure exposed rendered casing rather than a missing row; the Home review exposed inconsistent one-day versus multi-day Routine presentation.
-- Resolution/status: `NavigationRow` has an explicit authored-casing option. Adaptive Task/Habit/Goal support, Home Routine/active Workout, and Area-scoped Home statuses select it; chrome wording remains title-cased. The 200% Task journey passes exact `Pane task 6`; a real Home journey passes exact one-day Routine, multi-day Routine, and active Workout names. Implemented and focused verified; full candidate pending. Related: DEC-20260926-005, IMP-20260926-007, VER-20260926-007.
+- Resolution/status: `NavigationRow` has an explicit authored-casing option. Adaptive Task/Habit/Goal support, Home Routine/active Workout, and Area-scoped Home statuses select it; chrome wording remains title-cased. The 200% Task journey passes exact `Pane task 6`; a real Home journey passes exact one-day Routine, multi-day Routine, and active Workout names. The final 1,113-method Android candidate passes. Related: DEC-20260926-005, IMP-20260926-007, VER-20260926-007, VER-20260927-010. Verified.
 
 ### FND-20260926-014 — English first-run sentences wrap punctuation incorrectly in RTL
 
@@ -36,7 +36,7 @@
 - Observed: Actual 200% RTL `shared.first-run.optional-large-rtl.png` and `shared.first-run.error-large-rtl.png` place English sentence-ending periods at the start of wrapped lines, including “.folded” and “.again”. Controls remain in RTL layout.
 - Expected: English copy should retain its own sentence direction and punctuation while the app layout remains RTL.
 - Evidence/root cause: `FirstRunSetupDialog.kt` copy and the two named 200% RTL catalog originals; mixed paragraph direction lets the RTL context reorder English punctuation at line breaks. The first `LocalTextStyle` content-direction change fixed unstyled error text but explicit `MaterialTheme.typography.bodySmall` styles bypassed it. The later complete catalog exposed `“.folded”` and `“.changing your data”` still at line starts.
-- Resolution/status: All English first-run body-small copy now shares an explicit LTR, left-aligned style while controls retain RTL layout. The exact 200% RTL journey asserts both affected body sentences and the error sentence, including left edge alignment. It passed 1/1 fresh; the complete final catalog and independent image review confirm both corrected RTL states. Verified for this scope; full candidate pending. Related: DEC-20260926-005, IMP-20260926-007, IMP-20260927-001, VER-20260927-001/002/004.
+- Resolution/status: All English first-run body-small copy now shares an explicit LTR, left-aligned style while controls retain RTL layout. The exact 200% RTL journey asserts both affected body sentences and the error sentence, including left edge alignment. It passed 1/1 fresh; the complete final catalog, independent image review and complete candidate pass. Related: DEC-20260926-005, IMP-20260926-007, IMP-20260927-001, VER-20260927-001/002/004/010. Verified.
 
 ### FND-20260926-013 — Settings categories switch visual identity between reachable 900 dp modes
 
@@ -44,7 +44,7 @@
 - Observed: At the same 900 dp width, split Settings uses descriptive rectangular support cards, while Settings opened from expanded Home uses bare green Material drawer pills for the same six categories.
 - Expected: The same Settings choices should use one selected/unselected shape and information hierarchy within their respective available widths.
 - Evidence/root cause: [Retained disposable-emulator comparison](../../artifacts/design-consistency/2026-09-26/baseline/README.md); `SettingsScreens.kt` internal `WideSettingsSectionSidebar` versus `WhipApp.kt` external `SettingsSupportPane`.
-- Resolution/status: The 240 dp sidebar now reuses `SupportPaneSelectionCard` with descriptions, selected tone, and chevrons. The 900 dp native journey and [current-source expanded capture](../../artifacts/design-consistency/2026-09-26/final/README.md) pass comparison with split mode. Implemented and focused verified; full candidate pending. Related: DEC-20260926-005, IMP-20260926-007, VER-20260926-007.
+- Resolution/status: The 240 dp sidebar now reuses `SupportPaneSelectionCard` with descriptions, selected tone, and chevrons. The 900 dp native journey and [current-source expanded capture](../../artifacts/design-consistency/2026-09-26/final/README.md) pass comparison with split mode; the complete candidate passes. Related: DEC-20260926-005, IMP-20260926-007, VER-20260926-007, VER-20260927-010. Verified.
 
 ### FND-20260926-012 — Equivalent group labels lack a consistent heading role
 
@@ -52,14 +52,14 @@
 - Observed: Track collection groups use semantic `WhipSectionHeading`, while Task ordinary/reorder groups, Habit/Goal reorder groups, multiple Settings card sections, and the adaptive support title use raw text without heading semantics.
 - Expected: Equivalent group labels should be discoverable as headings without changing authored casing or forcing small reorder labels to a larger type size.
 - Evidence/root cause: `WhipApp.kt` Task groups, `SupportPaneTitle`, `HabitScreens.kt`, `GoalScreens.kt`, `SettingsScreens.kt`; local composition bypasses established heading roles.
-- Resolution/status: The shared `WhipGroupHeading` gives Task/Habit/Goal group labels and Settings title-medium sections one semantic role without altering casing/size; smaller Settings labels retain type with direct heading semantics. Adaptive support titles also expose Heading and the populated native journey asserts it. Implemented and focused verified for support; full candidate pending. Related: FND-20260926-002, DEC-20260926-005, IMP-20260926-007, VER-20260926-007.
+- Resolution/status: The shared `WhipGroupHeading` gives Task/Habit/Goal group labels and Settings title-medium sections one semantic role without altering casing/size; smaller Settings labels retain type with direct heading semantics. Adaptive support titles also expose Heading and the populated native journey asserts it. The final complete candidate passes. Related: FND-20260926-002, DEC-20260926-005, IMP-20260926-007, VER-20260926-007, VER-20260927-010. Verified.
 
 ### FND-20260926-011 — Settings save warnings use neutral notice semantics
 
 - Severity/category: P2 notice meaning and accessibility; FB-20260926-003.
 - Observed: `Setting Saved with Warnings` uses `WhipStatusKind.Status` at `SettingsScreens.kt:443-451`, producing informative tone and “Status” semantics although the result includes warnings. Gym warnings use the established warning tone.
 - Expected: Saved-with-warning outcomes announce and render as warnings while preserving their completed-save message.
-- Resolution/status: `WhipStatusKind.Warning` maps to the existing warning tone and “Warning” state, and Settings uses it for saved-with-warning results. A native shared-card check passes Warning live-region semantics and rendered tertiary warning color 1/1. The actual Settings receipt has no catalog screenshot; full candidate pending. Related: DEC-20260926-005, IMP-20260926-007, VER-20260927-005.
+- Resolution/status: `WhipStatusKind.Warning` maps to the existing warning tone and “Warning” state, and Settings uses it for saved-with-warning results. A native shared-card check passes Warning live-region semantics and rendered tertiary warning color 1/1; the complete candidate passes. The actual Settings warning receipt has no catalog screenshot. Related: DEC-20260926-005, IMP-20260926-007, VER-20260927-005/010. Verified for the shared status routing and tone.
 
 ### FND-20260926-010 — Gym deletion blocker appears below truncated large-text review
 
@@ -67,7 +67,7 @@
 - Observed: Four Gym permanent-delete dialogs pin potentially multiline titles above long scroll bodies. A 320 dp/200% Machine capture initially exposes Removed/Kept while the Active Workout blocker that disables confirmation is lower, after Needs Attention.
 - Expected: The blocked reason should appear immediately in the review; titles and all impact rows should remain scrollable while action buttons remain available.
 - Evidence/root cause: `GymScreens.kt` Exercise/Workout/Routine/Machine permanent-delete dialogs; accepted original `build/reusable-architecture-ux-catalog-accepted-20260926/raw/gym.machine.permanent-delete.png`. Their content does not use the existing scrollable-title convention.
-- Resolution/status: All four Gym delete titles now scroll with their impact body through `WhipDialogHeading`; Machine's blocker appears before impact sections. Four focused native deletion methods pass, including an initial-view blocked reason and reachable final Machine impact at 200%. Implemented and focused verified; final catalog pending. Related: DEC-20260926-005, IMP-20260926-007, VER-20260926-007.
+- Resolution/status: All four Gym delete titles now scroll with their impact body through `WhipDialogHeading`; Machine's blocker appears before impact sections. Four focused native deletion methods pass, including an initial-view blocked reason and reachable final Machine impact at 200%. The final catalog and complete candidate pass. Related: DEC-20260926-005, IMP-20260926-007, VER-20260926-007, VER-20260927-004/010. Verified.
 
 ### FND-20260926-009 — Folded support content can leave later rows unreachable
 
@@ -75,7 +75,7 @@
 - Observed: In actual Task/Habit/Goal navigation, `DestinationSupportPane` fixes a title/description above a weighted list. Track/Settings repeat that shape. At 200% tabletop height, the header can consume almost the whole 180 dp pane; later rows are effectively unreachable. `FoldContextPane` also had branch-specific scrolling for Home/Gym.
 - Expected: Every support row is reachable at 200% text by scrolling the whole content, while destination navigation remains fixed and the title can be reached by scrolling back.
 - Evidence/root cause: `WhipApp.kt` adaptive `DestinationSupportPane`, `TrackSupportPane`, `SettingsSupportPane`, `FoldContextPane`; fixed headers and separate inner scroll ownership were inconsistent across branches. A new populated tabletop native test exposed the actual owner after the initial source hypothesis targeted `FoldContextPane` alone.
-- Resolution/status: Destination/Track/Settings support panes now use one whole-content LazyColumn, Home retains its whole-pane list, and Gym fold context uses whole-pane vertical scroll. The populated 200% tabletop Task journey reaches the sixth row with navigation fixed. Implemented and focused verified; final catalog/candidate pending. Related: DEC-20260926-005, IMP-20260926-007, VER-20260926-007.
+- Resolution/status: Destination/Track/Settings support panes now use one whole-content LazyColumn, Home retains its whole-pane list, and Gym fold context uses whole-pane vertical scroll. The populated 200% tabletop Task journey reaches the sixth row with navigation fixed; the final 523-state catalog and complete candidate pass. That populated 200% view has no retained catalog screenshot. Related: DEC-20260926-005, IMP-20260926-007, VER-20260926-007, VER-20260927-004/010. Verified.
 
 ### FND-20260926-008 — Android could revert an enlarged-text test setting under full-suite load
 

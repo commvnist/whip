@@ -6,7 +6,7 @@
 - Decision: Use the existing Whip dialog heading, warning notice, heading semantics, support/navigation row and native scrolling patterns to resolve confirmed drift. Preserve authored item names and dynamic group labels exactly, compact reorder type, domain content and pinned destructive actions. Confirm width-specific changes in rendered states before adopting them.
 - Rejected approaches: A new global design framework, generic replacement of all domain cards, redesigning Gym's intentional no-Area header, or changing data/domain behavior to solve presentation.
 - Verification: Focused 200% native reachability/semantics tests, affected family captures, one current-source final visual review and proportionate full candidate gate on no more than two disposable emulators.
-- Related/status: FB-20260926-003, FND-20260926-009 through -015, FND-20260927-001, [ranked plan](../quality/DESIGN_CONSISTENCY_OVERHAUL_2026-09-26.md). Implemented and visual Verified; full candidate pending.
+- Related/status: FB-20260926-003, FND-20260926-009 through -015, FND-20260927-001, [ranked plan](../quality/DESIGN_CONSISTENCY_OVERHAUL_2026-09-26.md), VER-20260927-004/010. Verified by the final visual catalog and complete fresh candidate; released privately on the owner phone.
 
 ### DEC-20260926-004 — Retry a reverted font setting while retaining real 200% assertions
 

@@ -3,56 +3,56 @@
 ### IMP-20260927-006 — Align adaptive support regression with exact authored names
 
 - `AdaptiveWhipScreenTest#adaptiveDestinationSupportSeparatesErrorLoadingAndRealEmpty` now asserts that the loaded support pane visibly contains the exact seeded title `Cached task`. It retains the error, loading and empty-state checks and scopes the title to the support pane, so the regression tests the approved casing behavior instead of an obsolete transformed string.
-- Android test source only. Production UI, persistence, Room schema 46, data epoch 6, backup format 26, package/version, signer and installed owner-phone data are unchanged. The frozen `f3148754` candidate's Android batch 2 is diagnostic; the correction requires an entirely fresh complete candidate.
-- Related/status: FB-20260926-003, FND-20260926-015, FND-20260927-003, VER-20260927-008. Implemented; final candidate pending.
+- Android test source only. Production UI, persistence, Room schema 46, data epoch 6, backup format 26, package/version, signer and installed owner-phone data are unchanged. The frozen `f3148754` candidate's Android batch 2 remains diagnostic; the corrected method passed in the accepted 1,113-method candidate.
+- Related/status: FB-20260926-003, FND-20260926-015, FND-20260927-003, VER-20260927-008/010. Verified.
 
 ### IMP-20260927-005 — Align the Settings grouping contract with semantic headings
 
 - `UiDesignArchitectureTest` now requires the Areas label to be a shared `WhipGroupHeading` immediately inside its `WhipGroupedInformationCard`. The check no longer demands the obsolete raw `Text("Areas")` call; it still checks Settings' other shared card owners and bounded role.
-- Test-only correction; production UI, data, schema, backup format and release metadata are unchanged. The exact JVM method passes after the first full candidate's one stale-contract failure. A fresh complete candidate remains required.
-- Related/status: FB-20260926-003, FND-20260927-002, DEC-20260926-005, VER-20260927-007. Focused Verified; final candidate pending.
+- Test-only correction; production UI, data, schema, backup format and release metadata are unchanged. The exact JVM method and all 659 JVM methods pass in the final candidate.
+- Related/status: FB-20260926-003, FND-20260927-002, DEC-20260926-005, VER-20260927-007/010. Verified.
 
 ### IMP-20260927-004 — Reconcile the final Android test inventory
 
 - `docs/testing.md` now records 1,772 product methods: 659 fast JVM and 1,113 Android instrumentation. Three new native methods entered during the design overhaul; the earlier 1,110 count made the frozen candidate stop at static preflight before any product assertion.
-- Documentation/test-lane only; no production UI, persistence, schema, backup format or release metadata change. The rejected preflight is recorded in VER-20260927-006; a fresh complete candidate remains required.
-- Related/status: FB-20260926-003, VER-20260927-006. Implemented, candidate pending.
+- Documentation/test-lane only; no production UI, persistence, schema, backup format or release metadata change. The rejected preflight is recorded in VER-20260927-006; the corrected inventory passed final candidate preflight.
+- Related/status: FB-20260926-003, VER-20260927-006/010. Verified.
 
 ### IMP-20260927-003 — Prepare private 0.3.75 owner-phone update
 
 - `app/build.gradle.kts` advances Whip from 0.3.74/code 80 to 0.3.75/code 81 for the completed design overhaul. The prior release's signer, package ID, Room schema 46, data epoch 6 and portable-backup format 26 are unchanged.
-- At the owner's request, the signed release APK was installed in place on the connected Samsung while the frozen emulator candidate ran. The installed APK hash matches `bf171c249e2a2fe9a0df75f297a9a4b6b137afd8fbfa454c91f391f14f2bc7c4`; signer continuity, version 0.3.75/code 81, original 2026-08-26 first-install time, cold foreground launch and bounded runtime-log smoke passed. The candidate subsequently rejected one stale Android test assertion, so complete release qualification is still pending. No physical instrumentation, data reset, uninstall or Play publication occurred.
-- Related/status: FB-20260926-002/003, IMP-20260927-001/002, VER-20260927-009. Installed; final candidate pending.
+- At the owner's request, an interim signed APK was installed in place on the connected Samsung while the emulator campaign ran (VER-20260927-009). The final accepted candidate then produced a differently hashed APK of the same version, so that exact signed APK was installed in place as well. Its installed-base SHA-256 is `43e5806b7f7f1d1d46caa2e72dc2b1a4fdfbc8f3890e7cae9886d5d55c5177f3`; signer continuity, original 2026-08-26 first-install time, cold foreground launch and bounded runtime-log smoke pass. No physical instrumentation, data reset, uninstall or Play publication occurred.
+- Related/status: FB-20260926-002/003, IMP-20260927-001/002, VER-20260927-009/010/011. Released; subjective phone appearance awaits owner validation.
 
 ### IMP-20260927-002 — Give destructive text actions one enabled-state color owner
 
 - `WhipControls.kt` now provides `WhipDestructiveTextButton`: enabled content uses the theme error color and disabled content uses the theme's muted on-surface tone. Destructive text buttons across Gym, Task, Habit, Goal, Track, Area, Routine Builder and the shared permanent-delete dialog now use that role instead of forcing an error color on inner `Text`. Existing labels, click/disabled conditions and test tags remain unchanged.
-- A focused native `TaskDeletionUiTest` renders the actual shared dialog with identical enabled/disabled labels, asserts the button state and compares text chroma. The changed Gym blocked/allowed deletion frames will be reviewed in the final catalog. No persistence, schema, backup, action, or release-signing behavior changes.
-- Related/status: FB-20260926-003, FND-20260927-001, DEC-20260926-005, VER-20260927-003/004. Focused and final visual Verified; candidate pending.
+- A focused native `TaskDeletionUiTest` renders the actual shared dialog with identical enabled/disabled labels, asserts the button state and compares text chroma. The final catalog confirms muted Gym blocked and accented enabled states. No persistence, schema, backup, action, or release-signing behavior changes.
+- Related/status: FB-20260926-003, FND-20260927-001, DEC-20260926-005, VER-20260927-003/004/010. Verified.
 
 ### IMP-20260927-001 — Keep first-run English copy readable in RTL
 
 - `FirstRunSetupDialog.kt` now gives explicit body-small English copy one shared LTR and left-aligned text style, including welcome supporting text, advanced choices, optional preference explanation and backup/reminder guidance. Its existing content-direction provider still covers unstyled copy and error text; control order remains RTL. This corrects the residual line-leading punctuation found in the complete catalog after the initial provider-only change.
 - `FirstRunSetupPersistenceUiTest` adds the optional explanation sentence and requires wrapped copy's last line to begin at its text box's left edge. The exact native 200% RTL journey passed 1/1, and the optional/error PNGs were inspected. No persisted data, schema, domain action, or release metadata changes.
-- Related/status: FB-20260926-003, FND-20260926-014, VER-20260927-001/002/004. Focused and final visual Verified; candidate pending.
+- Related/status: FB-20260926-003, FND-20260926-014, VER-20260927-001/002/004/010. Verified.
 
 ### IMP-20260926-010 — Reject scaled emulator display before catalog capture
 
 - `scripts/ui-catalog capture` now checks each disposable emulator's `wm density` and `wm size` before clearing evidence or starting native tests. An inherited display override caused a Gym popup to occupy too little of the whole-screen screenshot for the distinct-image guard, even though the popup was visible and functional.
 - The check stops immediately with the offending emulator name; it does not change device metrics. The second emulator was returned from a temporary 192dpi override to its physical 420dpi baseline. This changes the test lane only, not the app, Room schema, backups, or release version.
-- Related/status: FB-20260926-003, VER-20260926-010. Verified by a targeted Gym replay at physical density and a deliberate rejected preflight at overridden density; full catalog pending.
+- Related/status: FB-20260926-003, VER-20260926-010, VER-20260927-004. Verified by targeted replay, rejected overridden-density preflight and the complete accepted final catalog.
 
 ### IMP-20260926-009 — Scope the Task capture check to its saved card
 
 - `InlineTaskCaptureE2ETest` now scrolls to the saved Task card by ID and checks its title there. On the expanded layout, both the main Task card and adaptive support navigation correctly show the exact authored title after FND-20260926-015, so a global text assertion is ambiguous.
 - Test-only correction; the Task quick-capture behavior, source UI, persistence, schema, release version, and catalog inventory are unchanged. Both ordinary and 200% native keyboard journeys pass.
-- Related/status: FB-20260926-003, FND-20260926-015, VER-20260926-009. Verified in the focused Task replay; complete current-source catalog pending.
+- Related/status: FB-20260926-003, FND-20260926-015, VER-20260926-009, VER-20260927-004/010. Verified by focused Task replay, complete final catalog and candidate.
 
 ### IMP-20260926-008 — Wait for the seeded Goal row in the visual journey
 
 - `GoalProgressJourneyE2ETest` now waits for the exact seeded Goal card after Home opens before scrolling to it. Home's list container can appear while its repository-backed Goal content is still loading; the previous immediate scroll could fail before a product assertion or screenshot.
 - Test-only timing correction. Production UI, persistence, schema, release version, and catalog inventory are unchanged. The interrupted catalog attempt is diagnostic only; the exact Goal journey passes after the correction.
-- Related/status: FB-20260926-003, VER-20260926-008. Verified in the focused Goal replay; complete current-source catalog pending.
+- Related/status: FB-20260926-003, VER-20260926-008, VER-20260927-004/010. Verified by focused Goal replay, complete final catalog and candidate.
 
 ### IMP-20260926-007 — Make Whip support panes, review dialogs, and Settings navigation consistent
 
@@ -60,8 +60,8 @@
 - Gym Exercise/Workout/Routine/Machine permanent-delete reviews use the established in-list dialog heading so long titles and impact rows scroll together while actions stay available. Machine's Active Workout blocker now precedes impact details. Settings' six wide category choices reuse the same selected support-card renderer in both reachable 900 dp modes; saved-with-warning results use the shared warning tone and state. English first-run copy resolves its paragraph direction from content at 200% RTL while the layout remains RTL.
 - Important files: `WhipApp.kt`, `WhipPagePatterns.kt`, `ItemControlPatterns.kt`, `HabitScreens.kt`, `GoalScreens.kt`, `GymScreens.kt`, `SettingsScreens.kt`, `FirstRunSetupDialog.kt`, and focused native UI tests. The before-change Settings comparison is retained in `artifacts/design-consistency/2026-09-26/baseline/`.
 - Persistence/migration/history impact: None. Room schema, data epoch, backup format, package/version, and domain mutation rules are unchanged; the owner phone was not selected for development tests.
-- Compatibility and limitations: Domain-specific workout execution, chart, calendar, multi-day Routine actions, and Gym's no-Area identity remain intentional. The prior visual catalog remains baseline evidence; current-source full capture and frozen candidate remain pending.
-- Related/status: FB-20260926-003, FND-20260926-009 through -015, DEC-20260926-005, VER-20260926-007. Implemented; focused tests passed, final visual/candidate verification pending.
+- Compatibility and limitations: Domain-specific workout execution, chart, calendar, multi-day Routine actions, and Gym's no-Area identity remain intentional. The final 523-state capture and complete frozen candidate pass; spoken TalkBack output and subjective normal-use phone appearance were not measured.
+- Related/status: FB-20260926-003, FND-20260926-009 through -015, DEC-20260926-005, VER-20260926-007, VER-20260927-004/010/011. Verified and released on the owner phone.
 
 
 ### IMP-20260926-006 — Package the completed reuse audit for an in-place phone update
