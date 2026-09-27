@@ -23,6 +23,10 @@ class GoalProgressJourneyE2ETest {
     @Test fun smallProgressStaysVisibleThroughHomeDetailsAndArchivedHistory() {
         val id = runBlocking { prepare(); goal("Read a little every day", 0.05) }
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            compose.waitUntil(15_000) {
+                compose.onAllNodesWithContentDescription("Open goal details for Read a little every day")
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
             compose.onNodeWithTag("home-list").performScrollToNode(hasTestTag("goal-card-$id"))
             captureVisualCatalogSurface("goals.progress.home")
             assertCard(id, "0.5% complete")

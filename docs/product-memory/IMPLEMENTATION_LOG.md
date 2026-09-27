@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260926-008 — Wait for the seeded Goal row in the visual journey
+
+- `GoalProgressJourneyE2ETest` now waits for the exact seeded Goal card after Home opens before scrolling to it. Home's list container can appear while its repository-backed Goal content is still loading; the previous immediate scroll could fail before a product assertion or screenshot.
+- Test-only timing correction. Production UI, persistence, schema, release version, and catalog inventory are unchanged. The interrupted catalog attempt is diagnostic only; the exact Goal journey passes after the correction.
+- Related/status: FB-20260926-003, VER-20260926-008. Verified in the focused Goal replay; complete current-source catalog pending.
+
 ### IMP-20260926-007 — Make Whip support panes, review dialogs, and Settings navigation consistent
 
 - Behavior changed: Task/Habit/Goal/Track/Settings adaptive support panes now scroll their title, explanation, and rows as one bounded list; Home/Gym fold context uses the same whole-pane scroll ownership and keeps tabletop navigation outside it. Support titles, Task/Habit/Goal grouping labels, and Settings section labels expose headings without changing authored group casing or compact type. Authored Task/Habit/Goal names keep exact casing in support navigation rows; one-day Routine, active Workout, and Area-scoped Home names do too, matching the multi-day Routine card.

@@ -1,5 +1,11 @@
 # Verification and release evidence
 
+### VER-20260926-008 — Goal catalog load-order correction
+
+- Diagnostic: The first complete-catalog attempt from pushed `dc0c5da5` was stopped after batch 4 recorded one failure in `GoalProgressJourneyE2ETest#smallProgressStaysVisibleThroughHomeDetailsAndArchivedHistory` (`build/instrumentation-results-mIfe9b/batch-4/result-1.xml`). The Home list was present, but `goal-card-1` had not loaded when `performScrollToNode` ran. The other nine methods in that batch passed; no 523-state acceptance is claimed from the interrupted attempt.
+- Correction/result: `GoalProgressJourneyE2ETest` waits for the exact repository-backed card before its scroll. `ANDROID_SERIAL=emulator-5554 scripts/qa-targeted --android 'com.whip.app.GoalProgressJourneyE2ETest#smallProgressStaysVisibleThroughHomeDetailsAndArchivedHistory'` passed 1/1 fresh, zero failures/skips (`build/instrumentation-results-aZDILj`). This is a test timing repair, not a product layout change. A full catalog on the corrected source is still required.
+- Related/status: FB-20260926-003, IMP-20260926-008. Focused Verified; full catalog pending.
+
 ### VER-20260926-007 — Focused design consistency regressions on disposable API 34
 
 - Scope/environment: Current uncommitted design-overhaul source on two guarded API 34 emulators, `emulator-5554` and `emulator-5556`; the connected physical Samsung was never selected for instrumentation. Focused checks intentionally preceded a frozen final candidate.
