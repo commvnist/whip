@@ -1,5 +1,12 @@
 # Durable findings
 
+### FND-20260927-002 — Settings architecture check assumed the old raw Areas label
+
+- Severity/category: P3 stale JVM source contract, not a product UI regression; FB-20260926-003.
+- Observed: The first full frozen candidate after test-inventory reconciliation executed all 659 JVM methods and failed one: `UiDesignArchitectureTest#groupedInformationAndDatePickerHaveNeutralBoundedOwnership` still searched for literal `Text("Areas"` in `SettingsScreens.kt`.
+- Expected/root cause: FND-20260926-012 intentionally moved equivalent Settings group labels to `WhipGroupHeading` for semantic heading parity. The source contract was not updated with that approved design, even though the final 523-state visual catalog and focused native heading checks passed.
+- Resolution/status: The JVM rule now requires `WhipGroupHeading("Areas")` directly inside `WhipGroupedInformationCard`, while retaining the other card-owner checks. The exact method passes 1/1; the rejected candidate remains diagnostic, and a fresh complete candidate is required. Related: DEC-20260926-005, IMP-20260927-005, VER-20260927-007.
+
 ### FND-20260927-001 — Disabled destructive actions retain active error color
 
 - Severity/category: P2 action affordance and design consistency; FB-20260926-003.

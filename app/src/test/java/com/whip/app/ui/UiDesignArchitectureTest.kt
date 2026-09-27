@@ -498,11 +498,14 @@ class UiDesignArchitectureTest {
             "settings-tags-summary",
             "notification-diagnostics",
             "Portable Backup Folder",
-            "Text(\"Areas\"",
             "Text(\"Whip\"",
         ).forEach { equivalentGroup ->
             assertTrue("Equivalent Settings group '$equivalentGroup' must use the shared section card", settings.contains(equivalentGroup))
         }
+        assertTrue(
+            "Areas must use the shared section card and semantic group heading",
+            Regex("""WhipGroupedInformationCard\s*\{\s*WhipGroupHeading\("Areas"\)""").containsMatchIn(settings),
+        )
         assertTrue(Regex("WhipGroupedInformationCard\\s*[({]").findAll(settings).count() >= 6)
         // Reorder and item-specific cards remain semantic exceptions; this is not a raw Card ban.
         assertTrue(settings.contains("whipReorderItem("))

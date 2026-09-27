@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260927-005 — Align the Settings grouping contract with semantic headings
+
+- `UiDesignArchitectureTest` now requires the Areas label to be a shared `WhipGroupHeading` immediately inside its `WhipGroupedInformationCard`. The check no longer demands the obsolete raw `Text("Areas")` call; it still checks Settings' other shared card owners and bounded role.
+- Test-only correction; production UI, data, schema, backup format and release metadata are unchanged. The exact JVM method passes after the first full candidate's one stale-contract failure. A fresh complete candidate remains required.
+- Related/status: FB-20260926-003, FND-20260927-002, DEC-20260926-005, VER-20260927-007. Focused Verified; final candidate pending.
+
 ### IMP-20260927-004 — Reconcile the final Android test inventory
 
 - `docs/testing.md` now records 1,772 product methods: 659 fast JVM and 1,113 Android instrumentation. Three new native methods entered during the design overhaul; the earlier 1,110 count made the frozen candidate stop at static preflight before any product assertion.

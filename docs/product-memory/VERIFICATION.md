@@ -1,5 +1,11 @@
 # Verification and release evidence
 
+### VER-20260927-007 — First full candidate stopped by stale Settings source contract
+
+- From pushed `0cead2be`, the frozen candidate passed static preflight and began JVM/build/lint gates. All 659 JVM methods executed; one failed in `UiDesignArchitectureTest#groupedInformationAndDatePickerHaveNeutralBoundedOwnership` because it required `Text("Areas")` after the approved `WhipGroupHeading("Areas")` migration. The candidate stopped before Android coverage or accepted artifacts, retaining only rejected local evidence at `build/candidate-evidence/.pending-8DX0b4`. This is a source-contract assertion, not an observed Settings render or functional failure.
+- The corrected rule requires the shared heading within the shared section card. `./gradlew :app:testDebugUnitTest --tests 'com.whip.app.ui.UiDesignArchitectureTest.groupedInformationAndDatePickerHaveNeutralBoundedOwnership' --console=plain` passed the exact method 1/1, zero failures, after the change. A fresh frozen candidate is required; the earlier JVM failure is not silently counted as an accepted run.
+- Related/status: FB-20260926-003, FND-20260927-002, IMP-20260927-005. Focused Verified; complete candidate pending.
+
 ### VER-20260927-006 — Final-candidate test inventory preflight
 
 - The first frozen-candidate attempt on pushed `faff967b` stopped at its initial static preflight, before JVM, Android, lint, coverage or artifact assertions: `docs/testing.md` still listed the previous 659 JVM + 1,110 Android method baseline. The current source contains 659 JVM + 1,113 Android `@Test` methods, including the focused design regressions. The rejected incomplete candidate is retained locally at `build/candidate-evidence/.pending-PjJe32`; it is not accepted evidence.
