@@ -24,7 +24,7 @@
 - User need: Offer all three proposed Goal completion effects rather than choosing one for everyone, with a Settings dropdown that immediately previews each newly selected style.
 - Acceptance criteria: Implement Quiet Glow, Confetti Moment, and Victory Shower as visibly distinct, theme-aware effects; add a persistent default-on enable/disable control and a style dropdown in Appearance & Home, with Confetti Moment as the initial style; changing the dropdown plays that exact style for comparison even when the enable toggle is off; real effects play once after a successful authored Complete Goal save and not after failure, abandonment, History loading, or restore; show accessible static success when device motion is disabled and keep Goal progress truthful; verify after implementation in a final batch, then deliver a higher signed private build in place to the previously selected connected owner phone with identity/data safeguards.
 - Affected users/workflows: Goal detail completion from Goals and Home, Settings appearance, local/portable preferences, reduced-motion devices, backup compatibility, and owner-phone release.
-- Related/status: FB-20260927-003. In progress.
+- Related/status: FB-20260927-003, DEC-20260927-004, IMP-20260927-011, VER-20260927-017/018. Released privately as 0.3.77/code 83; subjective motion/appearance awaits owner validation.
 
 ### FB-20260927-003 — Explore a configurable Goal completion celebration
 
@@ -34,7 +34,7 @@
 - Affected users/workflows: Explicit Goal completion from the Goal detail view, the post-save return to Goals, Appearance & Home settings, reduced-motion users, and future backup/restore of the preference.
 - Observed current behavior: `GoalScreens.kt` offers an explicit Complete Goal action. `GoalViewModel.setStatus` returns a committed lifecycle receipt and the detail surface closes on persistence; `GoalRepository.setStatus` also permits completion below measured target progress. No completion celebration or preference currently exists.
 - Proposed direction, awaiting owner selection: A brief, nonblocking theme-colored confetti burst behind a compact “Goal completed” confirmation with the Goal name, after the save succeeds. Alternatives are a quiet check/halo around the Goal identity or a fuller screen-wide shower. Keep the numeric progress truthful; play only for an explicit Active-to-Completed success, never for Abandoned, history loading, import, or failed saves. Put “Celebrate completed Goals” in Appearance & Home, default on; when device motion is disabled, show a static completion acknowledgement.
-- Status: Proposed. No app code, tests, build, or phone installation was changed for this design exploration.
+- Status: Superseded by FB-20260927-004 after the owner selected all three styles. No app code, tests, build, or phone installation was changed during this design exploration.
 
 ### FB-20260927-002 — Implement the selected Ponytail Ultra plan
 

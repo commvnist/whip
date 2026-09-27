@@ -1,12 +1,19 @@
 # Verification and release evidence
 
+### VER-20260927-018 — Exact 0.3.77 private APK on the owner phone
+
+- Source/artifact: Clean pushed `8eb78bdc` produced 0.3.77/code 83. Signed APK SHA-256 `54abe0285f718ed1e4411743313e1a49a1b4bb8c9da2fc3b20fa561b457c4b79`; signed AAB SHA-256 `fd11b2aeff42823584aa70302b85a30caea8fb566e9b8951f22dc7c89539a4f4`. Package, APK v2 certificate, AAB JAR signature and ZIP integrity passed. [Private release receipt and local handoff links](../../artifacts/goal-celebration/2026-09-27/phone-release-0.3.77/README.md).
+- Phone result: `scripts/device release-deploy` guarded the selected wireless Samsung `SM-F976W`, reran the fast affected check, built signed outputs, installed the APK in place over 0.3.76/code 82 and cold-launched MainActivity in 112 ms. Installed APK hash matches the artifact. Original `firstInstallTime=2026-08-26 17:59:24` remains unchanged; final `lastUpdateTime=2026-09-27 10:53:54` local. App PID 9722 was live and foreground; 202 bounded process-log lines contained zero fatal exception, ANR, AndroidRuntime, SQLiteException or RoomDatabase matches.
+- Bounds: Focused emulator behavior and affected readiness are recorded in VER-20260927-017. This was a private phone update, not a new frozen Play candidate. No phone instrumentation, app-data clear/reset, uninstall, downgrade, private-record inspection or Play publication occurred. Room schema 46, data epoch 6 and backup format 26 are unchanged.
+- Related/status: FB-20260927-004, IMP-20260927-011, VER-20260927-017. Released and device verified; subjective appearance awaits owner use.
+
 ### VER-20260927-017 — Focused Goal celebration acceptance
 
 - Scope/environment: Final Goal/Settings source on a disposable API 34 `emulator-5554`; connected physical Samsung was not used for instrumentation. Android animator scale was tested at both zero and one.
 - Source/build checks: The first batched JVM run executed 659 methods with one `SettingsCauseEffectContractTest` failure caused by missing new Settings-register rows. After adding those rows, the exact contract and `AppSettingsTest` passed. Android-test compilation passed. `:app:lintDebug` passed. On the final source and 0.3.77 version metadata, `scripts/check --ready` passed the affected JVM selectors, Android-test compilation, lint, debug packaging, assets and static checks in 2m41s. `git diff --check` passed. A prior instrumentation attempt failed before test execution because JaCoCo could not instrument the enlarged `WhipScreen`; moving the celebration host to `WhipApp` resolved that build issue.
 - Native behavior: Five focused methods passed together with zero failures/skips under animator scale zero (`build/instrumentation-results-D3bVPW`), covering Settings selection while off, one saved completion versus disabled behavior, old-backup defaults, backup round-trip and stored defaults. The Settings preview method passed again under motion scale one (`build/instrumentation-results-S2euZu`); the saved-completion journey passed again under motion scale one (`build/instrumentation-results-S5jYkA`). A separate scale-zero capture run passed and produced three visually reviewed Settings preview screenshots in `artifacts/goal-celebration/2026-09-27/`.
 - Counts/limits: These are selected Android methods, not the full Android inventory or a frozen Play candidate. The 659-method first JVM run is diagnostic because one contract failed; the corrected exact contract passed separately. Final affected readiness passed. Private phone release is recorded separately.
-- Related/status: FB-20260927-004, DEC-20260927-004, IMP-20260927-011. Focused emulator and affected readiness Verified.
+- Commit/push and related/status: `8eb78bdc` on `origin/main`; FB-20260927-004, DEC-20260927-004, IMP-20260927-011, VER-20260927-018. Focused emulator and affected readiness Verified.
 
 ### VER-20260927-016 — Bounded agent check on current Whip source
 

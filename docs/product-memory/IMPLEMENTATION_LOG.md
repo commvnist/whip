@@ -6,7 +6,8 @@
 - Important files/symbols: `GoalCelebration.kt`, `GoalScreens.kt`, `GoalViewModel.kt`, `WhipApp.kt`, `SettingsScreens.kt`, `AppSettings.kt`, `BackupRepository.kt`; focused persistence, backup, Settings and Goal journey tests; `settings-cause-effect.tsv`.
 - Persistence/migration/history impact: SharedPreferences and portable backup add optional enable/style fields with enabled + Confetti Moment defaults for older data or unknown styles. Room schema 46, data epoch 6 and backup format 26 are unchanged. Goal progress values and history are unchanged.
 - Compatibility/limits: The effect follows explicit saved completion; viewing History, restoring a backup, abandoning a Goal or a failed save does not generate a celebration. Release metadata advances to 0.3.77/code 83 for an in-place private phone update. Subjective motion/appearance on the physical phone awaits owner use.
-- Related/status: FB-20260927-003/004, DEC-20260927-004, VER-20260927-017/018. Implemented and focused verified; phone delivery in progress.
+- Commit/push: `8eb78bdc` on `origin/main` built the exact private APK installed on the phone.
+- Related/status: FB-20260927-003/004, DEC-20260927-004, VER-20260927-017/018. Implemented, focused verified and released privately as 0.3.77/code 83.
 
 ### IMP-20260927-010 — Make sub-minute agent checks the default edit workflow
 
