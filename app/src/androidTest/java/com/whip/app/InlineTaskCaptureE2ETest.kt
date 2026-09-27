@@ -8,7 +8,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
-import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -94,9 +94,10 @@ class InlineTaskCaptureE2ETest {
             compose.onNodeWithContentDescription("Tracks tab").assertIsDisplayed()
             scenario.recreate()
             waitForWorkspace()
-            compose.onNodeWithTag("task-workspace-list").performScrollToNode(hasText(title))
-            compose.onNodeWithText(title).assertIsDisplayed()
             val saved = runBlocking { app.taskRepository.tasks.first().single { it.title == title } }
+            compose.onNodeWithTag("task-workspace-list").performScrollToNode(hasTestTag("task-card-${saved.id}"))
+            compose.onNodeWithTag("task-card-${saved.id}").assertIsDisplayed()
+            compose.onNodeWithTag("task-card-title-${saved.id}", useUnmergedTree = true).assertTextContains(title)
             assertEquals(app.clock.today(), saved.date)
         }
     }

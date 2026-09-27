@@ -1,5 +1,11 @@
 # Verification and release evidence
 
+### VER-20260926-009 — Task catalog assertion after authored-casing fix
+
+- Diagnostic: The second complete-catalog attempt from pushed `b3d7b446` was stopped after batch 6 found two failures in `InlineTaskCaptureE2ETest` (`build/instrumentation-results-MgJxkd/batch-6/result-1.xml`). Both ordinary and 200% methods had already saved the Task and reached their final assertion; `onNodeWithText(title)` matched the main card and now-correctly-cased adaptive support row. The other eight methods in that batch passed; the interrupted run is not accepted as a 523-state capture.
+- Correction/result: The assertion now targets the repository-identified `task-card-ID` inside `task-workspace-list` and its exact title. `ANDROID_SERIAL=emulator-5556 scripts/qa-targeted --android 'com.whip.app.InlineTaskCaptureE2ETest#inlineTaskDraftSurvivesRecreationAndSavesWithTheNativeKeyboard' --android 'com.whip.app.InlineTaskCaptureE2ETest#inlineTaskDraftSurvivesRecreationAndSavesWithTheNativeKeyboardAtLargeText'` passed 2/2 fresh, zero failures/skips (`build/instrumentation-results-SH12Jh`). A new full catalog is required.
+- Related/status: FB-20260926-003, FND-20260926-015, IMP-20260926-009. Focused Verified; full catalog pending.
+
 ### VER-20260926-008 — Goal catalog load-order correction
 
 - Diagnostic: The first complete-catalog attempt from pushed `dc0c5da5` was stopped after batch 4 recorded one failure in `GoalProgressJourneyE2ETest#smallProgressStaysVisibleThroughHomeDetailsAndArchivedHistory` (`build/instrumentation-results-mIfe9b/batch-4/result-1.xml`). The Home list was present, but `goal-card-1` had not loaded when `performScrollToNode` ran. The other nine methods in that batch passed; no 523-state acceptance is claimed from the interrupted attempt.

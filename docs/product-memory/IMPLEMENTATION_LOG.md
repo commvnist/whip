@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260926-009 — Scope the Task capture check to its saved card
+
+- `InlineTaskCaptureE2ETest` now scrolls to the saved Task card by ID and checks its title there. On the expanded layout, both the main Task card and adaptive support navigation correctly show the exact authored title after FND-20260926-015, so a global text assertion is ambiguous.
+- Test-only correction; the Task quick-capture behavior, source UI, persistence, schema, release version, and catalog inventory are unchanged. Both ordinary and 200% native keyboard journeys pass.
+- Related/status: FB-20260926-003, FND-20260926-015, VER-20260926-009. Verified in the focused Task replay; complete current-source catalog pending.
+
 ### IMP-20260926-008 — Wait for the seeded Goal row in the visual journey
 
 - `GoalProgressJourneyE2ETest` now waits for the exact seeded Goal card after Home opens before scrolling to it. Home's list container can appear while its repository-backed Goal content is still loading; the previous immediate scroll could fail before a product assertion or screenshot.
