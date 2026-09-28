@@ -8,6 +8,7 @@
 - Files: FocusTimerNotifications, MainActivity, WhipApplication, SettingsViewModel, WhipApp, FocusTimerUi, TaskComponents, TaskEditorDialog, GymScreens, manifest and focused JVM/native fixtures.
 - Compatibility: Room 46, epoch 6, backup 26, release 0.3.81/code 87, package/signing and dependencies unchanged. No owner-phone install or new Play candidate.
 - Related/status: FB-20260928-004, FND-20260928-005/006/007/008, DEC-20260928-002. Implemented and Verified under VER-20260928-004. Fresh 412-method readiness, 45 distinct native methods across 56 accepted executions and external permission/cold-process proof close the accepted scope.
+- Delivered source: acc4cd4bafc21904173974dd75ff9467e866b6a5 pushed normally to origin/main. The feature commit includes implementation, exact failed/accepted receipts, original captures/gallery and the final Focus plan; subsequent delivery bookkeeping changes no production/test bytes.
 
 ### IMP-20260928-005 — Package the second component audit as private update 0.3.81
 
