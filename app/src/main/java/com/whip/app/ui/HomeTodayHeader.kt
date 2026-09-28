@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import com.whip.app.domain.HabitDayProgress
 import com.whip.app.domain.HabitDayState
+import com.whip.app.domain.TargetComparison
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -42,24 +43,30 @@ internal data class HomeHabitSummary(
     val total: Int = 0,
     val skipped: Int = 0,
     val timersToReview: Int = 0,
+    val recordedCheckIns: Int = 0,
+    val targetlessCheckIns: Int = 0,
 ) {
-    val attentionCount: Int get() = total - completed + timersToReview
-    val hasContent: Boolean get() = total > 0 || skipped > 0 || timersToReview > 0
+    val attentionCount: Int get() = total - completed + targetlessCheckIns - recordedCheckIns + timersToReview
+    val hasContent: Boolean get() = total > 0 || targetlessCheckIns > 0 || skipped > 0 || timersToReview > 0
 }
 
 internal fun List<HabitDayProgress>.homeHabitSummary(): HomeHabitSummary {
-    val scored = filter {
+    val expected = filter {
         it.scheduled && !it.habit.paused && !it.habit.archived &&
             it.dayState !in setOf(HabitDayState.Skipped, HabitDayState.Paused, HabitDayState.NotScheduled)
     }
+    val scored = expected.filter { it.habit.comparison != TargetComparison.None }
+    val targetless = expected.filter { it.habit.comparison == TargetComparison.None }
     return HomeHabitSummary(
         completed = scored.count { it.isDoneForToday() },
         total = scored.size,
         skipped = count { it.dayState == HabitDayState.Skipped },
+        recordedCheckIns = targetless.count { it.status != null },
+        targetlessCheckIns = targetless.size,
         // A timer can remain after completion or after restored data makes its Habit unavailable.
         // It still needs attention, but must not add a check-in to the completion denominator.
         timersToReview = count {
-            it.habit.timerSessionId != null && (it !in scored || it.isDoneForToday())
+            it.habit.timerSessionId != null && (it !in expected || it.isDoneForToday() || it in targetless && it.status != null)
         },
     )
 }
@@ -115,12 +122,14 @@ internal fun TodayHeader(
                 )
             }
             val habitCard: @Composable (Modifier) -> Unit = { modifier ->
-                val value = if (habitSummary.total > 0) {
-                    "${habitSummary.completed} of ${habitSummary.total} complete"
-                } else {
-                    "No check-ins due"
+                val value = when {
+                    habitSummary.total > 0 -> "${habitSummary.completed} of ${habitSummary.total} complete"
+                    habitSummary.targetlessCheckIns > 0 -> "${habitSummary.recordedCheckIns} of ${habitSummary.targetlessCheckIns} check-ins recorded"
+                    else -> "No check-ins due"
                 }
                 val context = listOfNotNull(
+                    "${habitSummary.recordedCheckIns} of ${habitSummary.targetlessCheckIns} check-ins without targets recorded"
+                        .takeIf { habitSummary.total > 0 && habitSummary.targetlessCheckIns > 0 },
                     "${habitSummary.skipped} skipped".takeIf { habitSummary.skipped > 0 },
                     "${habitSummary.timersToReview} ${if (habitSummary.timersToReview == 1) "timer" else "timers"} to review"
                         .takeIf { habitSummary.timersToReview > 0 },

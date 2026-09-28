@@ -104,6 +104,7 @@ import com.whip.app.domain.MeasurementSourceType
 import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.compactNumericSequence
 import com.whip.app.domain.editableNumericValue
+import com.whip.app.domain.plainNumericValue
 import com.whip.app.domain.parseNumericSequence
 import com.whip.app.domain.periodBounds
 import com.whip.app.domain.isScheduledOn
@@ -613,6 +614,7 @@ fun HabitAreaContent(
         numericLog?.let { item ->
             HabitValueDialog(
                 item = item,
+                customUnits = state.customUnits,
                 saving = authoredMutationCoordinator.saving,
                 persistenceError = authoredMutationCoordinator.errorMessage,
                 onDismiss = {
@@ -637,6 +639,7 @@ fun HabitAreaContent(
         historicalLogHabit?.let { item ->
             HabitHistoryLogDialog(
                 item = item,
+                customUnits = state.customUnits,
                 log = null,
                 initialDate = if (historicalLogForToday) state.currentDate else state.currentDate.minusDays(1),
                 saving = authoredMutationCoordinator.saving,
@@ -665,6 +668,7 @@ fun HabitAreaContent(
         editingLog?.let { (item, log) ->
             HabitHistoryLogDialog(
                 item = item,
+                customUnits = state.customUnits,
                 log = log,
                 initialDate = log.localDate,
                 saving = authoredMutationCoordinator.saving,
@@ -901,6 +905,9 @@ internal fun Habit.streakUnitLabel(count: Int): String {
 }
 
 internal fun Habit.unitSymbol(customUnits: List<UnitDefinition> = emptyList()): String =
+    habitUnitSymbol(unitId, customUnits)
+
+internal fun habitUnitSymbol(unitId: String, customUnits: List<UnitDefinition> = emptyList()): String =
     if (unitId in setOf("count", "unitless")) "" else
         (BuiltInUnits.get(unitId) ?: customUnits.firstOrNull { it.id == unitId })?.symbol ?: unitId.unitLabel()
 
@@ -1307,7 +1314,7 @@ fun HabitProgressCard(
                     item.value != 0.0 &&
                     habit.trackingMode !in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist)
                 ) {
-                    val formattedValue = "${formatHabitValue(item.value, habit.precision)} ${habit.unitId.unitLabel()}".trim()
+                    val formattedValue = "${formatHabitValue(item.value, habit.precision)} ${habit.unitSymbol(customUnits)}".trim()
                     Text(
                         when (habit.trackingMode) {
                             HabitTrackingMode.Rating -> "Rating: $formattedValue"
@@ -1625,6 +1632,12 @@ internal fun HabitInsights(
                     area(habit.areaId, habit.area)
                     details { text(habit.trackingMode.uiLabel()) }
                 }
+                if (habit.paused) Text(
+                    "Paused now. Past dates use your schedule and saved pause dates. Choose Schedule Pause Dates in Habit Options to mark time away in history.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("habit-insights-current-pause-context"),
+                )
                 if (habitHistoryEvents(logs, skips, pauses, state.currentDate).isEmpty()) {
                     Text("No activity yet. Your recorded entries and pauses will appear here.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
@@ -1657,14 +1670,7 @@ internal fun HabitInsights(
                         val end = minOf(start.plusDays(6), state.currentDate)
                         val days = generateSequence(start) { it.plusDays(1) }.takeWhile { !it.isAfter(end) }.filter { !it.isBefore(habit.startDate) }.toList()
                         if (showOutcomes) {
-                            val outcomes = days.mapNotNull { day ->
-                                when (habit.dayStateOn(day, end, logs, pauses, skips, state.customUnits)) {
-                                    HabitDayState.Completed -> true
-                                    HabitDayState.Missed, HabitDayState.BelowTarget -> false
-                                    else -> null
-                                }
-                            }
-                            outcomes.takeIf { it.isNotEmpty() }?.let { it.count { done -> done }.toDouble() / it.size }
+                            habit.scheduledCompletionRateForDays(days, state.currentDate, logs, pauses, skips, state.customUnits)
                         } else days.takeIf { it.isNotEmpty() }?.let { it.count(recordedDates::contains).toDouble() / it.size }
                     }
                     WhipGroupHeading(if (showOutcomes) "Eight-Week Consistency" else "Days with Entries", compact = true)
@@ -1686,6 +1692,24 @@ internal fun HabitInsights(
             }
         }
     }
+}
+
+internal fun Habit.scheduledCompletionRateForDays(
+    days: List<LocalDate>,
+    today: LocalDate,
+    logs: List<HabitLog>,
+    pauses: List<HabitPause> = emptyList(),
+    skips: List<HabitSkip> = emptyList(),
+    customUnits: List<UnitDefinition> = emptyList(),
+): Double? {
+    val outcomes = days.mapNotNull { day ->
+        when (dayStateOn(day, today, logs, pauses, skips, customUnits)) {
+            HabitDayState.Completed -> true
+            HabitDayState.Missed, HabitDayState.BelowTarget -> false
+            else -> null
+        }
+    }
+    return outcomes.takeIf { it.isNotEmpty() }?.let { it.count { done -> done }.toDouble() / it.size }
 }
 
 @Composable
@@ -2041,21 +2065,21 @@ internal fun HabitEditorDialog(
     var icon by rememberSaveable(editorKey) { mutableStateOf(initial.icon) }
     var mode by rememberSaveable(editorKey) { mutableStateOf(initial.trackingMode) }
     var comparison by rememberSaveable(editorKey) { mutableStateOf(initial.comparison) }
-    var targetMin by rememberSaveable(editorKey) { mutableStateOf(initial.targetMin?.let(::editableNumericValue) ?: "1") }
-    var targetMax by rememberSaveable(editorKey) { mutableStateOf(initial.targetMax?.let(::editableNumericValue).orEmpty()) }
+    var targetMin by rememberSaveable(editorKey) { mutableStateOf(initial.targetMin?.let(::plainNumericValue) ?: "1") }
+    var targetMax by rememberSaveable(editorKey) { mutableStateOf(initial.targetMax?.let(::plainNumericValue).orEmpty()) }
     var targetPeriod by rememberSaveable(editorKey) { mutableStateOf(initial.targetPeriod) }
     var schedule by rememberSaveable(editorKey) { mutableStateOf(initial.scheduleType) }
     var interval by rememberSaveable(editorKey) { mutableStateOf(initial.scheduleInterval.toString()) }
     var weekdays by rememberSaveable(editorKey) { mutableStateOf(initial.weekdays) }
     var flexible by rememberSaveable(editorKey) { mutableStateOf(initial.flexibleTimesPerWeek?.toString() ?: "3") }
     var rollingDays by rememberSaveable(editorKey) { mutableStateOf(initial.rollingDays?.toString() ?: "7") }
-    var quickIncrement by rememberSaveable(editorKey) { mutableStateOf(initial.quickIncrement.let(::editableNumericValue)) }
+    var quickIncrement by rememberSaveable(editorKey) { mutableStateOf(initial.quickIncrement.let(::plainNumericValue)) }
     var quickActions by rememberSaveable(editorKey) {
         mutableStateOf(
             initial.quickActions.let { values ->
                 val compact = compactNumericSequence(values)
                 if (compact.increment == initial.quickIncrement) compact.specification
-                else values.joinToString(",", transform = ::editableNumericValue)
+                else values.joinToString(",", transform = ::plainNumericValue)
             },
         )
     }
@@ -2069,7 +2093,7 @@ internal fun HabitEditorDialog(
     }
     var endType by rememberSaveable(editorKey) { mutableStateOf(initial.endType) }
     var endDate by rememberSaveable(editorKey) { mutableStateOf(initial.endDate) }
-    var endValue by rememberSaveable(editorKey) { mutableStateOf(initial.endValue?.let(::editableNumericValue).orEmpty()) }
+    var endValue by rememberSaveable(editorKey) { mutableStateOf(initial.endValue?.let(::plainNumericValue).orEmpty()) }
     var weekStart by rememberSaveable(editorKey) { mutableStateOf(initial.weekStart) }
     var showEndDatePicker by rememberSaveable(editorKey) { mutableStateOf(false) }
     var unitId by rememberSaveable(editorKey) { mutableStateOf(initial.unitId) }
@@ -2273,8 +2297,9 @@ internal fun HabitEditorDialog(
                         HabitTrackingMode.entries.forEach { selected ->
                             WhipFilterChip(
                                 selected = mode == selected,
-                                enabled = sourceMeasurementId == null,
+                                enabled = sourceMeasurementId == null && (habit == null || habit.canChangeTrackingModeTo(selected)),
                                 onClick = {
+                                    val existingUnit = unitId
                                     mode = selected
                                     when (selected) {
                                         HabitTrackingMode.Duration -> { unitId = "second"; dimension = UnitDimension.Duration; precision = "0"; comparison = TargetComparison.AtLeast }
@@ -2283,6 +2308,10 @@ internal fun HabitEditorDialog(
                                         HabitTrackingMode.LogOnly -> { unitId = "unitless"; dimension = UnitDimension.Unitless; precision = defaults.numberPrecision.toString(); comparison = TargetComparison.None }
                                         HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist -> { unitId = "count"; dimension = UnitDimension.Count; precision = "0"; comparison = TargetComparison.AtLeast; targetMin = "1"; targetPeriod = TargetPeriod.Occurrence }
                                         HabitTrackingMode.Count -> { unitId = "count"; dimension = UnitDimension.Count; precision = "0"; comparison = TargetComparison.AtLeast }
+                                    }
+                                    if (habit != null) {
+                                        dimension = habit.dimension
+                                        unitId = existingUnit
                                     }
                                 },
                                 label = { Text(selected.uiLabel()) },
@@ -2295,6 +2324,11 @@ internal fun HabitEditorDialog(
                             enabled = sourceMeasurementId == null,
                             unavailableExplanation = "The linked measurement determines this value.",
                         ),
+                    )
+                    if (habit != null && sourceMeasurementId == null) Text(
+                        "This Habit keeps its ${habit.dimension.uiLabel()} measurement type. Create a new Habit for a different type or timer.",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.testTag("habit-edit-measurement-contract"),
                     )
                 }
                 if (mode == HabitTrackingMode.Checklist) {
@@ -2403,7 +2437,8 @@ internal fun HabitEditorDialog(
                 } else {
                     if (sourceMeasurementId == null && mode != HabitTrackingMode.Rating) {
                         item {
-                            EnumDropdown("What are you tracking?", UnitDimension.entries, dimension, UnitDimension::uiLabel) { selected ->
+                            if (habit != null) Text("Measurement type · ${dimension.uiLabel()}")
+                            else EnumDropdown("What are you tracking?", UnitDimension.entries, dimension, UnitDimension::uiLabel) { selected ->
                                 dimension = selected
                                 val units = BuiltInUnits.all + customUnits.filter { !it.archived || it.id == unitId }
                                 val preferred = defaults.preferredUnitId(selected)
@@ -2423,6 +2458,9 @@ internal fun HabitEditorDialog(
                                 onSelect = { unitId = it },
                                 onCreateUnit = onCreateCustomUnit,
                                 dialogModifier = modifier,
+                                enabled = habit?.timerSessionId == null,
+                                supportingText = if (habit?.timerSessionId != null) "Stop or discard the timer before changing its unit."
+                                    else "Create or choose the unit used for targets, check-ins, and history.",
                             )
                         }
                     }
@@ -2644,6 +2682,14 @@ internal fun HabitEditorDialog(
     }
 }
 
+internal fun Habit.canChangeTrackingModeTo(mode: HabitTrackingMode): Boolean = when {
+    sourceMeasurementId != null -> false
+    trackingMode == HabitTrackingMode.Duration || mode == HabitTrackingMode.Duration -> mode == trackingMode
+    mode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist) -> dimension == UnitDimension.Count
+    mode == HabitTrackingMode.Rating -> dimension == UnitDimension.Unitless
+    else -> true
+}
+
 @Composable
 internal fun HabitValueDialog(
     item: HabitDayProgress,
@@ -2651,11 +2697,12 @@ internal fun HabitValueDialog(
     onLog: (Double?, String) -> Unit,
     saving: Boolean = false,
     persistenceError: String? = null,
+    customUnits: List<UnitDefinition> = emptyList(),
 ) {
     var value by rememberSaveable(item.habit.id, item.date) {
         mutableStateOf(
-            if (item.habit.trackingMode == HabitTrackingMode.LogOnly && item.value == 0.0) ""
-            else editableNumericValue(item.value),
+            if (item.habit.trackingMode == HabitTrackingMode.LogOnly) ""
+            else plainNumericValue(item.value),
         )
     }
     var note by rememberSaveable(item.habit.id, item.date) { mutableStateOf("") }
@@ -2681,15 +2728,15 @@ internal fun HabitValueDialog(
                 if (setsPeriodTotal) Text(
                     "Current ${item.habit.periodTotalDescription()}: " +
                         "${formatHabitValue(item.value, item.habit.precision)} " +
-                        "${item.habit.unitId.unitLabel()}. Saving sets this total; it does not add to it.",
+                        "${item.habit.unitSymbol(customUnits)}. Saving sets this total; it does not add to it.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 NumberTextField(
                     value,
                     { value = it },
-                    if (setsPeriodTotal) item.habit.periodTotalAmountLabel()
-                    else item.habit.historyAmountLabel(optional = logOnly),
+                    if (setsPeriodTotal) item.habit.periodTotalAmountLabel(customUnits)
+                    else item.habit.historyAmountLabel(optional = logOnly, customUnits = customUnits),
                     modifier = Modifier.testTag("habit-value-input"),
                     enabled = !saving,
                 )
@@ -2741,16 +2788,20 @@ internal fun HabitHistoryLogDialog(
     onDelete: (() -> Unit)? = null,
     saving: Boolean = false,
     persistenceError: String? = null,
+    customUnits: List<UnitDefinition> = emptyList(),
 ) {
     val editorKey = "habit-log-${log?.id ?: "${item.habit.id}-${initialDate.toEpochDay()}"}"
-    var value by rememberSaveable(editorKey) { mutableStateOf(log?.value?.let(::editableNumericValue).orEmpty()) }
+    var value by rememberSaveable(editorKey) { mutableStateOf(log?.value?.let(::plainNumericValue).orEmpty()) }
     var date by rememberSaveable(editorKey) { mutableStateOf(initialDate) }
     var note by rememberSaveable(editorKey) { mutableStateOf(log?.note.orEmpty()) }
     var showDatePicker by rememberSaveable(editorKey) { mutableStateOf(false) }
     var confirmDelete by rememberSaveable(editorKey) { mutableStateOf(false) }
     val mode = item.habit.trackingMode
-    val showsAmount = mode !in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist)
-    val requiresAmount = mode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal, HabitTrackingMode.Duration, HabitTrackingMode.Rating)
+    val checkBased = mode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist)
+    val showsAmount = !checkBased || (log?.value != null && log.value !in setOf(0.0, 1.0))
+    val requiresAmount = if (log != null) log.value != null else
+        mode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal, HabitTrackingMode.Duration, HabitTrackingMode.Rating)
+    val dateIsValid = !date.isAfter(LocalWhipToday.current)
     val parsedValue = value.toWhipDoubleOrNull()
     val amountIsValid = when {
         requiresAmount -> parsedValue?.isFinite() == true
@@ -2775,6 +2826,15 @@ internal fun HabitHistoryLogDialog(
                 ) {
                     Text("Date · ${date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
                 }
+                if (!dateIsValid) Text(
+                    "Choose today or an earlier date. Future check-ins cannot be recorded.",
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.testTag("habit-history-date-error"),
+                )
+                if (log != null) Text(
+                    "Recorded outcome: ${log.status.activityLabel()}. Editing the note or date keeps this outcome.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
                 if (showsAmount) {
                     NumberTextField(
                         value,
@@ -2782,6 +2842,7 @@ internal fun HabitHistoryLogDialog(
                         item.habit.historyAmountLabel(
                             unitId = log?.enteredUnitId ?: item.habit.unitId,
                             optional = !requiresAmount,
+                            customUnits = customUnits,
                         ),
                         modifier = Modifier.testTag("habit-history-value"),
                         enabled = !saving,
@@ -2803,13 +2864,10 @@ internal fun HabitHistoryLogDialog(
         },
         confirmButton = {
             WhipTextButton(
-                enabled = amountIsValid && !saving,
+                enabled = amountIsValid && dateIsValid && !saving,
                 onClick = {
-                    val effectiveValue = when (mode) {
-                        HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist -> 1.0
-                        else -> parsedValue
-                    }
-                    val effectiveStatus = when (mode) {
+                    val effectiveValue = if (showsAmount) parsedValue else if (log != null) log.value else 1.0
+                    val effectiveStatus = log?.status ?: when (mode) {
                         HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist -> HabitLogStatus.Success
                         else -> HabitLogStatus.Recorded
                     }
@@ -2893,7 +2951,7 @@ internal fun HabitActionsDialog(
     val primaryAction = when {
         item.habit.timerStartedAtMillis != null -> EntityInspectorPrimaryAction(
             "timer",
-            item.inspectorPrimaryActionLabel(),
+            item.inspectorPrimaryActionLabel(customUnits),
             onQuick,
         )
         item.habit.archived -> EntityInspectorPrimaryAction("restore", "Restore", onArchive)
@@ -2906,7 +2964,7 @@ internal fun HabitActionsDialog(
             item.inspectorOutsideScheduleActionLabel(),
             onQuick,
         )
-        else -> EntityInspectorPrimaryAction("check-in", item.inspectorPrimaryActionLabel(), onQuick)
+        else -> EntityInspectorPrimaryAction("check-in", item.inspectorPrimaryActionLabel(customUnits), onQuick)
     }
     EntityInspector(
         entityType = "Habit",
@@ -3051,7 +3109,7 @@ internal fun HabitActionsDialog(
                                 when (event) {
                                     is HabitHistoryEvent.Log -> EntityInspectorAction(
                                         id = "log-${event.value.id}",
-                                        label = event.value.activityTitle(item.habit),
+                                        label = event.value.activityTitle(item.habit, customUnits),
                                         supportingText = event.value.activitySupportingText(item.date),
                                         enabled = event.value.isUserEditable(),
                                         onClick = { if (event.value.isUserEditable()) onEditLog(event.value) },
@@ -3105,7 +3163,7 @@ internal fun HabitActionsDialog(
                                             title = "Pause Indefinitely",
                                             onClick = onPause,
                                             modifier = Modifier.testTag("entity-inspector-action-pause"),
-                                            supportingText = "Stops scheduled check-ins until you resume this Habit.",
+                                            supportingText = "Stops check-ins until you resume. Use Schedule Pause Dates to mark a period as neutral in history.",
                                             icon = Icons.Outlined.PauseCircleOutline,
                                             navigates = false,
                                         )
@@ -3306,11 +3364,11 @@ internal fun HabitDayProgress.inspectorStatusTone(): WhipStatusTone = when {
     else -> WhipStatusTone.Info
 }
 
-private fun HabitDayProgress.inspectorPrimaryActionLabel(): String = when (habit.trackingMode) {
+internal fun HabitDayProgress.inspectorPrimaryActionLabel(customUnits: List<UnitDefinition> = emptyList()): String = when (habit.trackingMode) {
     HabitTrackingMode.CheckOff -> if (successful == true) "Undo Check-In" else "Check In"
     HabitTrackingMode.Count, HabitTrackingMode.Decimal -> {
         val value = formatHabitValue(habit.quickIncrement, habit.precision)
-        "Add $value ${habit.unitId.unitLabel()}".trim()
+        "Add $value ${habit.unitSymbol(customUnits)}".trim()
     }
     HabitTrackingMode.Duration -> when {
         habit.timerStartedAtMillis == null -> "Start Timer"
@@ -3353,8 +3411,8 @@ internal fun Habit.periodTotalDescription(): String = when (targetPeriod) {
     TargetPeriod.RollingDays -> "current ${rollingDays?.coerceAtLeast(1) ?: 1}-day total"
 }
 
-private fun Habit.periodTotalAmountLabel(): String {
-    val unit = unitId.unitLabel()
+internal fun Habit.periodTotalAmountLabel(customUnits: List<UnitDefinition> = emptyList()): String {
+    val unit = unitSymbol(customUnits)
     return buildString {
         append(periodTotalTitle())
         if (unit.isNotBlank()) append(" ($unit)")
@@ -3386,14 +3444,14 @@ internal fun Habit.historyDialogTitle(editing: Boolean): String = if (editing) {
     }
 }
 
-internal fun Habit.historyAmountLabel(unitId: String = this.unitId, optional: Boolean = false): String {
+internal fun Habit.historyAmountLabel(unitId: String = this.unitId, optional: Boolean = false, customUnits: List<UnitDefinition> = emptyList()): String {
     val base = when (trackingMode) {
         HabitTrackingMode.Duration -> "Duration"
         HabitTrackingMode.Rating -> "Rating"
         HabitTrackingMode.LogOnly -> "Number"
         else -> "Amount"
     }
-    val unit = unitId.unitLabel()
+    val unit = habitUnitSymbol(unitId, customUnits)
     return buildString {
         append(base)
         if (unit.isNotBlank()) append(" ($unit)")
@@ -3403,11 +3461,15 @@ internal fun Habit.historyAmountLabel(unitId: String = this.unitId, optional: Bo
 
 internal fun HabitLog.isUserEditable(): Boolean = id > 0L && sourceType == MeasurementSourceType.Manual
 
-internal fun HabitLog.activityTitle(habit: Habit): String {
+internal fun HabitLog.activityTitle(habit: Habit, customUnits: List<UnitDefinition> = emptyList()): String {
+    if (status == HabitLogStatus.Recorded && value == null) return if (note.isNotBlank()) "Added a note" else "Added an entry"
     if (status == HabitLogStatus.Failed && value == null) return "Below target"
     val amount = value?.let { raw ->
-        "${formatHabitValue(raw, habit.precision)} ${(enteredUnitId ?: habit.unitId).unitLabel()}".trim()
+        "${formatHabitValue(raw, habit.precision)} ${habitUnitSymbol(enteredUnitId ?: habit.unitId, customUnits)}".trim()
     }
+    if (habit.trackingMode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist) &&
+        value != null && value !in setOf(0.0, 1.0)
+    ) return "Logged $amount"
     return when (habit.trackingMode) {
         HabitTrackingMode.CheckOff -> if (status == HabitLogStatus.Failed) "Not completed" else "Checked in"
         HabitTrackingMode.Checklist -> if (status == HabitLogStatus.Failed) "Not completed" else "Marked complete"

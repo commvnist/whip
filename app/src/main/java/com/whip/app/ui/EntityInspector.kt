@@ -1,6 +1,8 @@
 package com.whip.app.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.Box
@@ -42,6 +44,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import com.whip.app.ui.theme.WhipDialog
 import androidx.compose.ui.window.DialogProperties
 import com.whip.app.ui.theme.whipColors
@@ -143,6 +146,11 @@ internal fun EntityInspector(
                         onDismiss = onDismiss,
                         onEdit = onEdit,
                         editLabel = editLabel,
+                        // Preserve evidence space on short enlarged-text windows.
+                        // Only identity scrolls; Edit/Close and the action dock stay fixed.
+                        maxIdentityHeight = if (inspectorHeight < 560.dp && LocalDensity.current.fontScale >= 1.5f) {
+                            (inspectorHeight * 0.4f - 75.dp).coerceAtLeast(48.dp)
+                        } else null,
                     )
                     if (sections.size > 1) {
                         EntityInspectorSectionSelector(
@@ -198,6 +206,7 @@ private fun EntityInspectorHeader(
     onDismiss: () -> Unit,
     onEdit: (() -> Unit)?,
     editLabel: String,
+    maxIdentityHeight: Dp? = null,
 ) {
     BoxWithConstraints(
         modifier = Modifier
@@ -205,7 +214,7 @@ private fun EntityInspectorHeader(
             .testTag("entity-inspector-header")
             .padding(start = 16.dp, top = 12.dp, end = 8.dp, bottom = 12.dp),
     ) {
-        val expandedIdentity = maxWidth < 336.dp * LocalDensity.current.fontScale.coerceIn(1f, 2f)
+        val expandedIdentity = maxIdentityHeight != null || maxWidth < 336.dp * LocalDensity.current.fontScale.coerceIn(1f, 2f)
         if (expandedIdentity) {
             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(
@@ -219,7 +228,12 @@ private fun EntityInspectorHeader(
                 }
                 EntityInspectorIdentity(
                     entityType, title, context, status, statusTone,
-                    Modifier.fillMaxWidth().padding(end = 8.dp),
+                    Modifier.fillMaxWidth().padding(end = 8.dp).then(
+                        if (maxIdentityHeight != null) {
+                            Modifier.heightIn(max = maxIdentityHeight).verticalScroll(rememberScrollState())
+                        } else Modifier,
+                    ),
+                    scrollableIdentity = maxIdentityHeight != null,
                 )
             }
         } else {
@@ -246,13 +260,14 @@ private fun EntityInspectorIdentity(
     status: String,
     statusTone: WhipStatusTone,
     modifier: Modifier,
+    scrollableIdentity: Boolean = false,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
         Text(
             title,
             modifier = Modifier.fillMaxWidth().testTag("entity-inspector-title").semantics { heading() },
             style = MaterialTheme.typography.titleLarge,
-            maxLines = 2,
+            maxLines = if (scrollableIdentity) Int.MAX_VALUE else 2,
             overflow = TextOverflow.Ellipsis,
         )
         Text(
@@ -260,7 +275,7 @@ private fun EntityInspectorIdentity(
             modifier = Modifier.testTag("entity-inspector-context"),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 2,
+            maxLines = if (scrollableIdentity) Int.MAX_VALUE else 2,
             overflow = TextOverflow.Ellipsis,
         )
         WhipStatusBadge(label = status, tone = statusTone, modifier = Modifier.testTag("entity-inspector-status"))

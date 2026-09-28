@@ -59,7 +59,11 @@ interface TaskRepository {
     suspend fun duplicate(taskId: Long): Long
     suspend fun completeAll(items: List<ScheduledTask>)
     suspend fun rescheduleAll(items: List<ScheduledTask>, newDate: LocalDate)
-    suspend fun planAll(items: List<ScheduledTask>, newDate: LocalDate)
+    suspend fun planAll(
+        items: List<ScheduledTask>,
+        newDate: LocalDate,
+        validatePlanningSnapshot: ((List<WhipTask>, List<TaskOccurrence>) -> Unit)? = null,
+    )
     suspend fun restoreSchedulesIfCurrent(items: List<ScheduledTask>, expectedDate: LocalDate)
     suspend fun archiveAll(taskIds: List<Long>)
     suspend fun archiveAllIfCurrent(items: List<ScheduledTask>)
@@ -549,8 +553,14 @@ class RoomTaskRepository(
         items.distinctBy(ScheduledTask::stableKey).forEach { reschedule(it, newDate) }
     }
 
-    override suspend fun planAll(items: List<ScheduledTask>, newDate: LocalDate) = database.withTransaction {
+    override suspend fun planAll(
+        items: List<ScheduledTask>,
+        newDate: LocalDate,
+        validatePlanningSnapshot: ((List<WhipTask>, List<TaskOccurrence>) -> Unit)?,
+    ) = database.withTransaction {
         val unique = items.distinctBy(ScheduledTask::stableKey)
+        // Synchronous policy validation sees the same authoritative transaction as the writes.
+        validatePlanningSnapshot?.invoke(dao.getAllTasks().map { it.toDomain() }, dao.getAllOccurrences().map { it.toDomain() })
         unique.forEach { reschedule(it, newDate) }
     }
 

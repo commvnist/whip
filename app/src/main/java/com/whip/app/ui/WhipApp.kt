@@ -113,6 +113,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -385,6 +386,8 @@ internal fun homeHasAnyUserData(
         gymState.exercises.isNotEmpty() || gymState.archivedExercises.isNotEmpty() ||
         gymState.machines.isNotEmpty() || gymState.archivedMachines.isNotEmpty() ||
         gymState.routines.isNotEmpty() || gymState.archivedRoutines.isNotEmpty()
+
+internal fun homeUpcomingTaskCount(state: TaskUiState): Int = state.upcoming.distinctBy(ScheduledTask::stableKey).size
 
 data class DomainRetryActions(
     val tasks: () -> Unit = {},
@@ -791,6 +794,7 @@ fun WhipApp(
                     onClearBulkTaskDeletionPreview = taskViewModel::clearPermanentDeletionBatchPreview,
                     onReorderTasks = taskViewModel::reorder,
                     onPlanMyDay = taskViewModel::planMyDay,
+                    onPlanMyDayRequest = taskViewModel::planMyDayRequest,
                     onDuplicateTask = taskViewModel::duplicate,
                     onRequestNotificationPermission = onRequestNotificationPermission,
                     initialAction = initialAction,
@@ -917,6 +921,7 @@ fun WhipScreen(
     onClearBulkTaskDeletionPreview: () -> Unit = {},
     onReorderTasks: (List<ScheduledTask>) -> Unit = {},
     onPlanMyDay: (List<ScheduledTask>, Int) -> Unit = { _, _ -> },
+    onPlanMyDayRequest: ((List<ScheduledTask>, Int, String) -> Boolean)? = null,
     onDuplicateTask: (Long) -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {},
     initialAction: String? = null,
@@ -1468,44 +1473,12 @@ fun WhipScreen(
     // particular, opening Settings from a split/fold layout must not replace the
     // persistent rail with compact bottom navigation.
     val contentPaneIsExpanded = supportsPaneExpansion && contentPaneExpanded
-    val layoutDirection = LocalLayoutDirection.current
-    // Match AdaptiveNavigationFrame's normalized support-pane geometry exactly. A raw
-    // folding-feature bound can be narrower than our 260 dp usable support pane, so
-    // centering dialogs from the raw bound can otherwise place them across the hinge.
-    val (dialogSupportExtent, dialogContentWidth) = with(LocalDensity.current) {
-        val totalWidth = LocalWindowInfo.current.containerSize.width.toDp()
-        foldInfo
-            ?.takeIf {
-                adaptiveLayout == WhipAdaptiveLayout.BookFold &&
-                    it.orientation == WhipFoldOrientation.Vertical &&
-                    !contentPaneIsExpanded
-            }
-            ?.let { fold ->
-                val rawPaneWidth = fold.leftPx.toDp()
-                val largestPaneWidth = (totalWidth - 300.dp).coerceAtLeast(260.dp)
-                val paneWidth = rawPaneWidth.coerceIn(260.dp, largestPaneWidth)
-                val hingeWidth = fold.widthPx.toDp().coerceAtLeast(1.dp)
-                val supportExtent = paneWidth + hingeWidth
-                supportExtent to (totalWidth - supportExtent).coerceAtLeast(1.dp)
-            }
-            ?: (0.dp to totalWidth)
-    }
-    val dialogPaneOffset = (dialogSupportExtent / 2).let { offset ->
-        if (layoutDirection == LayoutDirection.Ltr) offset else -offset
-    }
-    val dialogHingeWidth = with(LocalDensity.current) {
-        foldInfo
-            ?.takeIf {
-                adaptiveLayout == WhipAdaptiveLayout.BookFold &&
-                    it.orientation == WhipFoldOrientation.Vertical &&
-                    !contentPaneIsExpanded
-            }
-            ?.widthPx
-            ?.toDp()
-            ?.coerceAtLeast(1.dp)
-            ?: 0.dp
-    }
-    val dialogPaneWidth = minOf(dialogContentWidth * 0.94f, WhipContentWidth.authoredForm)
+    val dialogGeometry = whipScreenDialogGeometry(adaptiveLayout, foldInfo, contentPaneIsExpanded)
+    val dialogSupportExtent = dialogGeometry.supportExtent
+    val dialogContentWidth = dialogGeometry.contentWidth
+    val dialogPaneOffset = dialogGeometry.offsetX
+    val dialogHingeWidth = dialogGeometry.hingeWidth
+    val dialogPaneWidth = dialogGeometry.authoredWidth
     val paneDialogModifier = Modifier
         .absoluteOffset(x = dialogPaneOffset)
         .width(dialogPaneWidth)
@@ -1832,7 +1805,9 @@ fun WhipScreen(
         // The active content owns keyboard space; persistent side navigation stays put.
         modifier = Modifier.fillMaxSize().imePadding(),
         topBar = {
-            if (!gymRoutineEditorOpen && !inlineKeyboardVisible && !focusedTrackDetail) TopAppBar(
+            if (!gymRoutineEditorOpen && !inlineKeyboardVisible && !focusedTrackDetail &&
+                !(appDestination == AppDestination.Tasks && taskSelectionMode)
+            ) TopAppBar(
                 modifier = Modifier.testTag("workspace-top-app-bar"),
                 title = {
                     Row(
@@ -2050,6 +2025,8 @@ fun WhipScreen(
                     gymState = gymState,
                     goalState = goalState,
                     trackState = trackState,
+                    hasUnscopedUserData = homeHasAnyUserData(unscopedTaskState, unscopedHabitState, unscopedGoalState, unscopedTrackState, gymState),
+                    unscopedDataSettled = homeEmptyStateEligible(HomeSection.entries, unscopedTaskState, unscopedHabitState, unscopedGoalState, unscopedTrackState, gymState),
                     appSettings = settingsState.settings,
                     innerPadding = innerPadding,
                     onQuickHabit = { item ->
@@ -2148,7 +2125,7 @@ fun WhipScreen(
                         AreaScope.Unassigned -> "Main"
                         is AreaScope.One -> settingsState.areas.firstOrNull { it.id == areaScope.areaId }?.name
                     },
-                    onShowAllAreas = { onSelectAreaScope(AreaScope.All) },
+                    onShowAllAreas = { onTemporarilySelectAreaScope(AreaScope.All) },
                     onRetryTaskLoading = domainRetryActions.tasks,
                     onRetryHabitLoading = domainRetryActions.habits,
                     onRetryGoalLoading = domainRetryActions.goals,
@@ -2246,6 +2223,8 @@ fun WhipScreen(
                     onOpenPlanningHabit = { habitId -> openHabitIdRequested = habitId; appDestination = AppDestination.Habits },
                     onReorder = onReorderTasks,
                     onPlanMyDay = onPlanMyDay,
+                    onPlanMyDayRequest = onPlanMyDayRequest,
+                    dayPlanTodayTasks = unscopedTaskState.today,
                     onStopFocus = { settingsViewModel?.stopFocusTimer() },
                     onQuickCapture = onQuickAddTaskWithResult,
                     onQuickCaptureRequest = onQuickAddTaskRequest,
@@ -2468,6 +2447,8 @@ fun WhipScreen(
             gymState = gymState,
             modifier = primaryEditorPaneModifier,
             trackState = unscopedTrackState,
+            customUnits = settingsState.customUnits,
+            customUnitsLoaded = settingsState.taxonomyLoaded,
             onDismiss = { searchOpen = false },
             areaScope = areaScope,
             areaScopeLabel = when (val scope = areaScope) {
@@ -2490,9 +2471,14 @@ fun WhipScreen(
                     allScheduledTasks
                         .firstOrNull { it.task.id == result.id }
                         ?.let { found ->
+                            taskDestination = when {
+                                found.task.archived -> TaskDestination.Archived
+                                found in unscopedTaskState.completed -> TaskDestination.Completed
+                                found in unscopedTaskState.inbox -> TaskDestination.Inbox
+                                found in unscopedTaskState.today -> TaskDestination.Today
+                                else -> TaskDestination.Upcoming
+                            }
                             if (found in unscopedTaskState.completed) completedItemKey = found.stableKey else {
-                                if (found in unscopedTaskState.inbox) taskDestination = TaskDestination.Inbox
-                                else if (found in unscopedTaskState.planning) taskDestination = TaskDestination.Upcoming
                                 actionItemKey = found.stableKey
                             }
                         }
@@ -2540,6 +2526,7 @@ fun WhipScreen(
         item = homeHabitValueItem,
         itemIdState = homeHabitValueItemIdState,
         viewModel = habitViewModel,
+        customUnits = habitState.customUnits,
     )
 
     TaskEditorRouteHost(
@@ -2813,11 +2800,52 @@ fun WhipScreen(
     )
 }
 
+private data class WhipScreenDialogGeometry(
+    val supportExtent: Dp,
+    val contentWidth: Dp,
+    val offsetX: Dp,
+    val hingeWidth: Dp,
+) {
+    val authoredWidth: Dp get() = minOf(contentWidth * 0.94f, WhipContentWidth.authoredForm)
+}
+
+/** Stateless presentation boundary keeps the workspace coordinator small enough to instrument. */
+@Composable
+private fun whipScreenDialogGeometry(
+    adaptiveLayout: WhipAdaptiveLayout,
+    foldInfo: WhipFoldInfo?,
+    contentPaneIsExpanded: Boolean,
+): WhipScreenDialogGeometry {
+    val layoutDirection = LocalLayoutDirection.current
+    return with(LocalDensity.current) {
+        val totalWidth = LocalWindowInfo.current.containerSize.width.toDp()
+        val fold = foldInfo?.takeIf {
+            adaptiveLayout == WhipAdaptiveLayout.BookFold &&
+                it.orientation == WhipFoldOrientation.Vertical && !contentPaneIsExpanded
+        }
+        // Match AdaptiveNavigationFrame's normalized geometry; a raw folding bound
+        // can be narrower than the usable 260 dp support pane.
+        val hingeWidth = fold?.widthPx?.toDp()?.coerceAtLeast(1.dp) ?: 0.dp
+        val supportExtent = fold?.let {
+            val largestPaneWidth = (totalWidth - 300.dp).coerceAtLeast(260.dp)
+            it.leftPx.toDp().coerceIn(260.dp, largestPaneWidth) + hingeWidth
+        } ?: 0.dp
+        val contentWidth = if (fold == null) totalWidth else (totalWidth - supportExtent).coerceAtLeast(1.dp)
+        val offset = supportExtent / 2
+        WhipScreenDialogGeometry(
+            supportExtent, contentWidth,
+            if (layoutDirection == LayoutDirection.Ltr) offset else -offset,
+            hingeWidth,
+        )
+    }
+}
+
 @Composable
 private fun HomeHabitValueRoute(
     item: HabitDayProgress?,
     itemIdState: MutableState<Long?>,
     viewModel: HabitViewModel?,
+    customUnits: List<com.whip.app.domain.UnitDefinition> = emptyList(),
 ) {
     item ?: return
     viewModel ?: return
@@ -2831,6 +2859,7 @@ private fun HomeHabitValueRoute(
     )
     HabitValueDialog(
         item = item,
+        customUnits = customUnits,
         saving = authoredMutationCoordinator.saving,
         persistenceError = authoredMutationCoordinator.errorMessage,
         onDismiss = {
@@ -4892,6 +4921,8 @@ private fun HomeContent(
     gymState: GymUiState,
     goalState: GoalUiState,
     trackState: TrackUiState,
+    hasUnscopedUserData: Boolean,
+    unscopedDataSettled: Boolean,
     appSettings: AppSettings,
     innerPadding: PaddingValues,
     onQuickHabit: (com.whip.app.domain.HabitDayProgress) -> Unit,
@@ -5005,9 +5036,9 @@ private fun HomeContent(
             trackState.projections.any { it.entries.isNotEmpty() } ||
             gymState.history.any { it.state == com.whip.app.domain.WorkoutSessionState.Finished }
     val hasAnyUserData = homeHasAnyUserData(state, habitState, goalState, trackState, gymState)
-    val showGettingStarted = shouldShowHomeGettingStarted(hasAnyUserData)
+    val showGettingStarted = unscopedDataSettled && shouldShowHomeGettingStarted(hasUnscopedUserData)
     val inboxTaskCount = state.inbox.size
-    val upcomingTaskCount = (state.upcoming + state.planning).distinctBy(ScheduledTask::stableKey).size
+    val upcomingTaskCount = homeUpcomingTaskCount(state)
     val savedHabitCount = (habitState.all.map { it.habit.id } + habitState.archived.map { it.id }).distinct().size
     val savedGoalCount = (goalState.active + goalState.completed + goalState.archived).distinctBy { it.goal.id }.size
     val savedTrackCount = trackState.projections.size
@@ -5051,7 +5082,16 @@ private fun HomeContent(
             )
         }
         if (!hasHomeContent && emptyStateEligible) {
-            if (hasReviewEvidence) {
+            if (!hasAnyUserData && hasUnscopedUserData && areaScopeLabel != null) {
+                item {
+                    WhipEmptyState(
+                        title = "No Items in $areaScopeLabel",
+                        supportingText = "Your saved items are in other Areas. Show all Areas to find them.",
+                        primaryActionLabel = "Show All Areas",
+                        onPrimaryAction = onShowAllAreas,
+                    )
+                }
+            } else if (hasReviewEvidence) {
                 item {
                     WhipEmptyState(
                         title = stringResource(R.string.home_support_clear_title),
@@ -5707,6 +5747,8 @@ private fun TaskAreaContent(
     onOpenPlanningHabit: (Long) -> Unit,
     onReorder: (List<ScheduledTask>) -> Unit,
     onPlanMyDay: (List<ScheduledTask>, Int) -> Unit,
+    onPlanMyDayRequest: ((List<ScheduledTask>, Int, String) -> Boolean)?,
+    dayPlanTodayTasks: List<ScheduledTask>,
     onStopFocus: () -> Unit,
     onQuickCapture: (String, LocalDate?, String?, (Boolean) -> Unit) -> Unit,
     onQuickCaptureRequest: ((String, LocalDate?, String?, String) -> Boolean)?,
@@ -5796,6 +5838,13 @@ private fun TaskAreaContent(
     var dayCapacityText by rememberSaveable { mutableStateOf("240") }
     var showDayPlanner by rememberSaveable { mutableStateOf(false) }
     var dayPlanCandidateKeys by rememberSaveable { mutableStateOf<Set<String>?>(null) }
+    val dayPlanCoordinator = rememberPersistenceRequestCoordinator(
+        state = authoredMutationState,
+        consume = onAuthoredMutationResultConsumed,
+        key = "task-day-plan",
+        requestNamespace = "task-day-plan",
+        onPersisted = { dayPlanCandidateKeys = null },
+    )
     var taskToolsExpanded by rememberSaveable { mutableStateOf(false) }
     var quickCapture by rememberSaveable { mutableStateOf("") }
     var quickCaptureViewport by remember { mutableStateOf(IntSize.Zero) }
@@ -5871,7 +5920,7 @@ private fun TaskAreaContent(
         dateMode = when (destination) {
             TaskDestination.Completed -> dateMode.takeIf { it in setOf("Any", "Today", "Last7Days") } ?: "Any"
             TaskDestination.Archived -> "Any"
-            else -> dateMode
+            else -> dateMode.takeIf { it in setOf("Any", "Today", "Overdue", "PastScheduled", "Next7Days", "NoDate") } ?: "Any"
         }
         val supportedSortModes = when (destination) {
             TaskDestination.Completed -> setOf("Smart", "Completion Date", "Priority", "Title")
@@ -5980,10 +6029,10 @@ private fun TaskAreaContent(
         }
     }
     val selectedItems = visibleTasks.filter { it.stableKey in selectedKeys }
-    val existingTodayMinutes = state.today
+    val existingTodayMinutes = dayPlanTodayTasks
         .distinctBy(ScheduledTask::stableKey)
         .sumOf(ScheduledTask::estimatedDurationMinutes)
-    val existingTodayAssumptions = state.today.distinctBy(ScheduledTask::stableKey).count { it.task.durationMinutes == null }
+    val existingTodayAssumptions = dayPlanTodayTasks.distinctBy(ScheduledTask::stableKey).count { it.task.durationMinutes == null }
     val hiddenSelectedCount = (selectedKeys - visibleTasks.mapTo(mutableSetOf(), ScheduledTask::stableKey)).size
     val habitPlanningDates = when (planningView) {
         TaskPlanningView.List -> emptyList()
@@ -6146,7 +6195,7 @@ private fun TaskAreaContent(
     Column(
         Modifier
             .fillMaxSize()
-            .then(if (quickMoveCoordinator.saving) Modifier.clearAndSetSemantics { } else Modifier),
+            .then(if (quickMoveCoordinator.saving || dayPlanCoordinator.saving) Modifier.clearAndSetSemantics { } else Modifier),
     ) {
         DestinationTabBar(
             selected = workspaceDestination,
@@ -6161,7 +6210,9 @@ private fun TaskAreaContent(
             barTestTag = "task-workspace-navigation",
         )
         Column(
-            modifier = Modifier.padding(whipPagePadding(bottom = 0.dp)),
+            modifier = Modifier.padding(
+                whipPagePadding(top = if (selectionMode) 0.dp else WhipSpacing.compact, bottom = 0.dp),
+            ),
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
             if (!selectionMode && !quickCaptureHasKeyboard) WhipPageHeader(
@@ -6534,34 +6585,43 @@ private fun TaskAreaContent(
                     supportingText = "Build a realistic plan from your available time.",
                     expanded = showDayPlanner,
                     onClick = {
-                        showDayPlanner = !showDayPlanner
-                        if (!showDayPlanner) dayPlanCandidateKeys = null
+                        if (!dayPlanCoordinator.saving) {
+                            showDayPlanner = !showDayPlanner
+                            if (!showDayPlanner) dayPlanCandidateKeys = null
+                        }
                     },
                 )
                 if (showDayPlanner) Card(Modifier.fillMaxWidth().padding(top = 8.dp)) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            "Set your total capacity for Today. Existing Today tasks count first; new tasks are ranked by priority, then deadline. Tasks without a duration count as 30 minutes.",
+                            "Capacity includes Today tasks across all Areas. Candidates follow this Inbox's Area and filters, ranked by priority then deadline. Unknown durations count as 30 minutes.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         OutlinedTextField(
                             dayCapacityText,
-                            { dayCapacityText = it.filter(Char::isDigit).take(4) },
-                            label = { Text("Available Minutes") },
+                            { dayCapacityText = it },
+                            label = { Text("Daily Capacity in Minutes") },
+                            enabled = !dayPlanCoordinator.saving,
+                            isError = dayCapacityText.toIntOrNull()?.let { it in 1..1440 } != true,
+                            supportingText = if (dayCapacityText.toIntOrNull()?.let { it in 1..1440 } != true) {
+                                { Text("Enter 1–1440 minutes.") }
+                            } else null,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().testTag("task-day-plan-capacity"),
                         )
+                        PersistenceFailureNotice(dayPlanCoordinator.errorMessage, testTag = "task-day-plan-error")
                         Text(
                             buildString {
-                                append("Already planned: $existingTodayMinutes minutes")
+                                append("Already planned across all Areas: $existingTodayMinutes minutes")
                                 if (existingTodayAssumptions > 0) append(" · $existingTodayAssumptions without estimates counted as 30 min")
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         WhipButton(
-                            enabled = (dayCapacityText.toIntOrNull() ?: 0) > existingTodayMinutes && filtered.isNotEmpty(),
+                            enabled = !dayPlanCoordinator.saving && dayCapacityText.toIntOrNull()?.let { it in 1..1440 && it > existingTodayMinutes } == true && filtered.isNotEmpty(),
                             onClick = {
                                 val remainingCapacity = ((dayCapacityText.toIntOrNull() ?: 240) - existingTodayMinutes)
                                     .coerceAtLeast(0)
@@ -6572,6 +6632,10 @@ private fun TaskAreaContent(
                             },
                             modifier = Modifier.fillMaxWidth(),
                         ) { Text("Preview Plan") }
+                        if (dayCapacityText.toIntOrNull()?.let { it in 1..1440 && it <= existingTodayMinutes } == true) Text(
+                            "Today's existing plan fills this capacity. Increase it to add tasks, or review Tasks Today.",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
                         dayPlanCandidateKeys?.let { selected ->
                             val capacity = dayCapacityText.toIntOrNull() ?: 240
                             val selectedMinutes = filtered.filter { it.stableKey in selected }
@@ -6579,7 +6643,7 @@ private fun TaskAreaContent(
                             val totalMinutes = existingTodayMinutes + selectedMinutes
                             HorizontalDivider()
                             Text(
-                                "Proposed: ${selected.size} of ${filtered.size} new tasks · $totalMinutes of $capacity minutes total",
+                                "Proposed: ${filtered.count { it.stableKey in selected }} of ${filtered.size} new tasks · $totalMinutes of $capacity minutes total",
                                 fontWeight = FontWeight.Bold,
                             )
                             filtered.forEach { candidate ->
@@ -6590,6 +6654,7 @@ private fun TaskAreaContent(
                                         .heightIn(min = 48.dp)
                                         .toggleable(
                                             value = checked,
+                                            enabled = !dayPlanCoordinator.saving,
                                             role = Role.Checkbox,
                                             onValueChange = {
                                                 dayPlanCandidateKeys = if (checked) selected - candidate.stableKey
@@ -6601,13 +6666,8 @@ private fun TaskAreaContent(
                                     Column(Modifier.weight(1f)) {
                                         Text(candidate.task.title)
                                         Text(
-                                            if (checked) {
-                                                "Selected · ${candidate.estimatedDurationMinutes()} min${if (candidate.task.durationMinutes == null) " assumed" else ""} · ${candidate.task.priority.label} priority"
-                                            } else if (totalMinutes + candidate.estimatedDurationMinutes() > capacity) {
-                                                "Skipped · would exceed capacity"
-                                            } else {
-                                                "Skipped · lower planning rank"
-                                            },
+                                            "${if (checked) "Selected" else "Not selected"} · ${candidate.estimatedDurationMinutes()} min${if (candidate.task.durationMinutes == null) " assumed (no estimate)" else ""} · ${candidate.task.priority.label} priority" +
+                                                if (!checked && totalMinutes + candidate.estimatedDurationMinutes() > capacity) " · would exceed capacity" else "",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
@@ -6621,14 +6681,23 @@ private fun TaskAreaContent(
                                 }
                             }
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                WhipTextButton(onClick = { dayPlanCandidateKeys = null }) { Text("Cancel") }
+                                WhipTextButton(enabled = !dayPlanCoordinator.saving, onClick = { dayPlanCandidateKeys = null }) { Text("Cancel") }
                                 WhipButton(
-                                    enabled = selected.isNotEmpty() && totalMinutes <= capacity,
+                                    enabled = !dayPlanCoordinator.saving && filtered.any { it.stableKey in selected } && capacity in 1..1440 && totalMinutes <= capacity,
                                     onClick = {
-                                        onPlanMyDay(filtered.filter { it.stableKey in selected }, capacity)
-                                        dayPlanCandidateKeys = null
+                                        val selectedTasks = filtered.filter { it.stableKey in selected }
+                                        if (onPlanMyDayRequest != null) {
+                                            val requestId = dayPlanCoordinator.begin() ?: return@WhipButton
+                                            if (!onPlanMyDayRequest(selectedTasks, capacity, requestId)) {
+                                                dayPlanCoordinator.finishFailure("Another Task change is already finishing. Your plan is still here.")
+                                            }
+                                        } else {
+                                            onPlanMyDay(selectedTasks, capacity)
+                                            dayPlanCandidateKeys = null
+                                        }
                                     },
-                                ) { Text("Apply Plan") }
+                                    modifier = Modifier.testTag("task-day-plan-apply"),
+                                ) { Text(if (dayPlanCoordinator.saving) "Applying…" else "Apply Plan") }
                             }
                             if (totalMinutes > capacity) Text(
                                 "Remove ${totalMinutes - capacity} minutes before applying.",
@@ -6804,7 +6873,7 @@ private fun TaskAreaContent(
         }
     }
     PersistenceSavingOverlay(
-        active = quickMoveCoordinator.saving,
+        active = quickMoveCoordinator.saving || dayPlanCoordinator.saving,
         label = "Saving selected Task schedules",
     )
     }
@@ -7515,15 +7584,7 @@ private fun ScheduledTask.matches(filter: SavedTaskFilter, today: LocalDate, zon
             val required = filter.tags.mapTo(mutableSetOf()) { it.lowercase() }
             required.isEmpty() || if (filter.requireAllTags) normalized.containsAll(required) else normalized.any(required::contains)
         } &&
-        when (filter.dateMode) {
-            "Today" -> planningDate(zoneId) == today
-            "Overdue" -> isDeadlineOverdue
-            "PastScheduled" -> isPastScheduledDate
-            "Next7Days" -> planningDate(zoneId)?.let { it in today..today.plusDays(7) } == true
-            "Last7Days" -> planningDate(zoneId)?.let { it in today.minusDays(6)..today } == true
-            "NoDate" -> planningDate(zoneId) == null
-            else -> true
-        }
+        matchesTaskDateFilter(filter, today, zoneId)
 
 private fun ScheduledTask.planningDate(zoneId: java.time.ZoneId = java.time.ZoneId.systemDefault()): LocalDate? =
     completedAtMillis?.let { java.time.Instant.ofEpochMilli(it).atZone(zoneId).toLocalDate() }

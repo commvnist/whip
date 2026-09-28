@@ -319,7 +319,7 @@
     <string name="search_results">Results</string>
     <string name="search_loading_sources">Still loading · %1$s</string>
     <string name="search_failed_sources">Couldn\'t load · %1$s</string>
-    <string name="search_limited_sources">Index limit reached · %1$s</string>
+    <string name="search_limited_sources">Some records are outside this search · %1$s. Open the relevant section to browse all records.</string>
     <string name="search_index_source">Search index</string>
     <string name="search_results_may_be_incomplete">Results may be incomplete.</string>
     <string name="search_start_hint">Search by name, note, tag, area, status, or date within %1$s.</string>

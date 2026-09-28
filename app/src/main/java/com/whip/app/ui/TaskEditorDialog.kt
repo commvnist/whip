@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.lazy.LazyColumn
@@ -66,6 +67,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -357,14 +359,16 @@ fun TaskEditorDialog(
         )
     val deadlineValid = !hasDeadline || scheduleKind == ScheduleKind.Anytime || !deadline.isBefore(mainDate)
     val areaSelectionValid = request.task != null || areas.count { !it.archived } <= 1 || areaId != null
+    val durationValid = durationMinutes.isBlank() || durationMinutes.toIntOrNull()?.let { it in 1..1_440 } == true
     val canSave = title.isNotBlank() && recurrenceValid && deadlineValid && areaSelectionValid &&
-        (!reminderEnabled || reminderOffsets.isNotEmpty())
+        durationValid && (!reminderEnabled || reminderOffsets.isNotEmpty())
     val saveProblem = when {
         title.isBlank() -> "Enter a Task title to save."
         !recurrenceValid -> "Finish the Repeat settings to save."
         !deadlineValid -> "Deadline cannot be before the Task's scheduled start."
         reminderEnabled && reminderOffsets.isEmpty() -> "Choose at least one reminder time."
         !areaSelectionValid -> "Choose an Area for this Task."
+        !durationValid -> "Task duration must be between 1 minute and 24 hours, or left blank."
         else -> null
     }
     val recurrence = if (scheduleKind == ScheduleKind.Recurring && recurrenceValid) {
@@ -403,7 +407,7 @@ fun TaskEditorDialog(
         reminderOffsetsMinutes = reminderOffsets.toList().takeIf { scheduleKind != ScheduleKind.Anytime }.orEmpty(),
         missedOccurrencePolicy = missedOccurrencePolicy,
         inbox = scheduleKind == ScheduleKind.Anytime,
-        durationMinutes = durationMinutes.toIntOrNull()?.coerceIn(1, 1_440), effort = effort,
+        durationMinutes = durationMinutes.toIntOrNull(), effort = effort,
     )
     val nestedDialogModifier = Modifier
         .absoluteOffset(x = paneOffsetX)
@@ -428,6 +432,12 @@ fun TaskEditorDialog(
         scheduleKind = if (enabled) ScheduleKind.Recurring else ScheduleKind.Once
     }
     val editorScrollState = rememberScrollState()
+    LaunchedEffect(validationRequested, durationValid) {
+        if (validationRequested && !durationValid) {
+            showAdvanced = true
+            editorScrollState.scrollTo(0)
+        }
+    }
     LaunchedEffect(persistenceError) {
         if (!persistenceError.isNullOrBlank()) editorScrollState.scrollTo(0)
     }
@@ -992,10 +1002,13 @@ fun TaskEditorDialog(
                     if (showAdvanced) {
                         OutlinedTextField(
                             value = durationMinutes,
-                            onValueChange = { durationMinutes = it.filter(Char::isDigit).take(4) },
-                            modifier = Modifier.fillMaxWidth(),
+                            onValueChange = { durationMinutes = it },
+                            modifier = Modifier.fillMaxWidth().testTag("task-editor-duration"),
                             label = { Text("Duration in Minutes (Optional)") },
-                            supportingText = { Text("Used by Plan My Day; unknown tasks use 30 minutes.") },
+                            supportingText = { Text(if (!durationValid) "Enter 1–1440 minutes, or leave blank for an unknown estimate."
+                                else "Used by Plan My Day; unknown tasks use 30 minutes.") },
+                            isError = !durationValid,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
                         )
                         FieldLabel("Effort")

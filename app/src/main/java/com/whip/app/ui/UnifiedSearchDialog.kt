@@ -39,6 +39,9 @@ import java.time.LocalDate
 import java.util.PriorityQueue
 import com.whip.app.R
 import com.whip.app.domain.AreaScope
+import com.whip.app.domain.BuiltInUnits
+import com.whip.app.domain.plainNumericValue
+import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.formatTrackScaleValue
 import com.whip.app.domain.matches
 import androidx.compose.ui.Modifier
@@ -174,6 +177,16 @@ internal class BoundedSearchIndexBuilder(
         }
     }
 
+    fun <T, C : Comparable<C>> history(
+        domain: SearchDomain,
+        values: List<T>,
+        limit: Int,
+        selector: (T) -> C,
+    ): List<T> {
+        if (values.size > limit) limited += domain
+        return newestSearchValues(values, limit, selector)
+    }
+
     fun build(): BoundedSearchIndex = BoundedSearchIndex(results.toList(), limited.toSet())
 }
 
@@ -202,6 +215,7 @@ internal fun unifiedSearchDataStatus(
     goalState: GoalUiState,
     trackState: TrackUiState,
     gymState: GymUiState,
+    customUnitsLoaded: Boolean = true,
 ): UnifiedSearchDataStatus {
     val loadingSources = mutableListOf<String>()
     val failedSources = mutableListOf<String>()
@@ -217,6 +231,10 @@ internal fun unifiedSearchDataStatus(
     includeSource(SearchDomain.Task in domains, "Tasks", taskState.loading, taskState.errorMessage)
     includeSource(SearchDomain.Habit in domains, "Habits", habitState.loading, habitState.errorMessage)
     includeSource(SearchDomain.Goal in domains, "Goals", goalState.loading, goalState.errorMessage)
+    includeSource(
+        domains.any { it in setOf(SearchDomain.Habit, SearchDomain.Goal, SearchDomain.TrackEntry) },
+        "Measurement units", !customUnitsLoaded, null,
+    )
     includeSource(
         domains.any { it == SearchDomain.Track || it == SearchDomain.TrackEntry },
         "Tracks",
@@ -270,6 +288,8 @@ internal fun UnifiedSearchDialog(
     gymState: GymUiState,
     modifier: Modifier = Modifier,
     trackState: TrackUiState = TrackUiState(loading = false),
+    customUnits: List<UnitDefinition> = habitState.customUnits,
+    customUnitsLoaded: Boolean = true,
     onDismiss: () -> Unit,
     areaScope: AreaScope = AreaScope.All,
     areaScopeLabel: String? = null,
@@ -296,16 +316,16 @@ internal fun UnifiedSearchDialog(
         goalState,
         gymState,
         trackState,
+        customUnits,
         resourceConfiguration,
         activeZoneId,
         yesLabel,
         noLabel,
     ) {
         value = withContext(Dispatchers.Default) {
-            val recentHabitLogs = habitState.logs.groupBy { it.habitId }.mapValues { (_, logs) ->
-                newestSearchValues(logs, MaxSearchHistoryValuesPerEntity) { it.timestamp }
-            }
             buildBoundedSearchIndex(MaxSearchResultsPerDomain) {
+            val habitLogs = habitState.logs.groupBy { it.habitId }
+            val units = BuiltInUnits.all + customUnits
             (taskState.inbox + taskState.today + taskState.upcoming + taskState.planning + taskState.completed + taskState.archived)
                 .distinctBy { it.task.id }
                 .forEach { item ->
@@ -334,15 +354,15 @@ internal fun UnifiedSearchDialog(
                     )
             }
             (habitState.all.map { it.habit } + habitState.archived).distinctBy { it.id }.forEach { habit ->
-                val logText = recentHabitLogs[habit.id].orEmpty().asSequence()
+                val logText = history(SearchDomain.Habit, habitLogs[habit.id].orEmpty(), MaxSearchHistoryValuesPerEntity) { it.timestamp }.asSequence()
                     .joinToString(" · ") { log ->
-                        "${log.activityTitle(habit)} · ${log.activitySupportingText(habitState.currentDate)}"
+                        "${log.activityTitle(habit, customUnits)} · ${log.activitySupportingText(habitState.currentDate)}"
                     }
                 add(WhipSearchResult(SearchDomain.Habit, habit.id, habit.name, listOf(habit.notes, logText).filter(String::isNotBlank).joinToString(" · "), area = habit.area, areaId = habit.areaId, tags = habit.tags.toSet(), status = if (habit.archived) "archived" else "active"))
             }
             (goalState.active + goalState.completed + goalState.archived).distinctBy { it.goal.id }.forEach { item ->
-                val measurementText = newestSearchValues(item.entries, MaxSearchHistoryValuesPerEntity) { it.timestamp }
-                    .joinToString(" · ") { entry -> "${entry.historyTitle()} · ${entry.historySupportingText()}" }
+                val measurementText = history(SearchDomain.Goal, item.entries, MaxSearchHistoryValuesPerEntity) { it.timestamp }
+                    .joinToString(" · ") { entry -> "${entry.historyTitle(customUnits)} · ${entry.historySupportingText()}" }
                 add(WhipSearchResult(SearchDomain.Goal, item.goal.id, item.goal.name, listOf(item.goal.description, measurementText).filter(String::isNotBlank).joinToString(" · "), area = item.goal.area, areaId = item.goal.areaId, tags = item.goal.tags.toSet(), deadline = item.goal.deadline, status = if (item.goal.archived) "archived" else item.goal.status.label.lowercase()))
             }
             trackState.projections.forEach { projection ->
@@ -363,17 +383,21 @@ internal fun UnifiedSearchDialog(
                         status = if (projection.track.archived) "archived" else "active",
                     ),
                 )
-                newestSearchValues(projection.entries, MaxSearchEntriesPerTrack) { it.entry.createdAtMillis }.forEach { entry ->
+                history(SearchDomain.TrackEntry, projection.entries, MaxSearchEntriesPerTrack) { it.entry.createdAtMillis }.forEach { entry ->
                     add(
                         WhipSearchResult(
                             SearchDomain.TrackEntry,
                             entry.entry.id,
-                            projection.primaryText(entry),
+                            projection.entryDisplayTitle(entry, units),
                             projection.fields.joinToString(" · ") { field ->
                                 val value = entry.value(field.id)
                                 when (field.type) {
                                     com.whip.app.domain.TrackFieldType.ShortText, com.whip.app.domain.TrackFieldType.LongText -> value?.textValue.orEmpty()
-                                    com.whip.app.domain.TrackFieldType.Number -> value?.enteredNumber?.toString().orEmpty() + value?.enteredUnitId?.let { " $it" }.orEmpty()
+                                    com.whip.app.domain.TrackFieldType.Number -> value?.enteredNumber?.let { number ->
+                                        val unit = units.firstOrNull { it.id == value.enteredUnitId }
+                                        listOf(plainNumericValue(number), unit?.symbol?.ifBlank { unit.name } ?: value.enteredUnitId.orEmpty())
+                                            .filter(String::isNotBlank).joinToString(" ")
+                                    }.orEmpty()
                                     com.whip.app.domain.TrackFieldType.SingleChoice -> projection.options.firstOrNull { it.id == value?.choiceOptionId }?.label.orEmpty()
                                     com.whip.app.domain.TrackFieldType.Scale -> value?.scaleValue?.let(::formatTrackScaleValue).orEmpty()
                                     com.whip.app.domain.TrackFieldType.Date -> value?.dateValue?.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)).orEmpty()
@@ -475,6 +499,7 @@ internal fun UnifiedSearchDialog(
         goalState = goalState,
         trackState = trackState,
         gymState = gymState,
+        customUnitsLoaded = customUnitsLoaded,
     )
     val dataStatus = baseDataStatus.copy(
         loadingSources = baseDataStatus.loadingSources +

@@ -14,6 +14,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -22,6 +23,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performKeyInput
@@ -30,6 +32,15 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.ui.theme.WhipTheme
+import com.whip.app.domain.Track
+import com.whip.app.domain.TrackEntry
+import com.whip.app.domain.TrackEntryProjection
+import com.whip.app.domain.TrackField
+import com.whip.app.domain.TrackFieldType
+import com.whip.app.domain.TrackFieldValue
+import com.whip.app.domain.TrackProjection
+import com.whip.app.domain.UnitDefinition
+import com.whip.app.domain.UnitDimension
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -41,6 +52,45 @@ import org.junit.runner.RunWith
 class UnifiedSearchAdaptiveUiTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun trackOnlySearchUsesSharedUnitsWhenHabitLoadingFails() {
+        val field = TrackField(1, "field", 1, "Distance", TrackFieldType.Number, 0, true, true, true,
+            UnitDimension.Distance, "private-track-unit-id", 1, null, null, "", "", 1, 1)
+        val value = TrackFieldValue(1, "value", 1, 1, enteredNumber = 3.125, canonicalNumber = 6250.0,
+            enteredUnitId = "private-track-unit-id", createdAtMillis = 1, updatedAtMillis = 1)
+        val entry = TrackEntryProjection(TrackEntry(1, "entry", 1, java.time.LocalDate.of(2026, 9, 28), 1, 1), mapOf(1L to value))
+        val projection = TrackProjection(Track(id = 1, uuid = "track", name = "Routes", description = "", icon = "📓",
+            areaId = "main", area = "Main", tags = emptyList(), pinned = false, archived = false, position = 0,
+            createdAtMillis = 1, updatedAtMillis = 1), listOf(field), emptyList(), listOf(entry))
+        val customUnit = UnitDefinition("private-track-unit-id", "trail lengths", "ztrail", UnitDimension.Distance, 2000.0, archived = true)
+        var selected: WhipSearchResult? = null
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                UnifiedSearchDialog(
+                    taskState = TaskUiState(loading = false),
+                    habitState = HabitUiState(loading = false, errorMessage = "Synthetic Habit load failure"),
+                    goalState = GoalUiState(loading = false), gymState = GymUiState(loading = false),
+                    trackState = TrackUiState(projections = listOf(projection), loading = false),
+                    customUnits = listOf(customUnit), customUnitsLoaded = true,
+                    initialScope = WhipSearchScope("Tracks", setOf(SearchDomain.Track, SearchDomain.TrackEntry)),
+                    onDismiss = {}, onSelect = { selected = it },
+                )
+            }
+        }
+        compose.onNodeWithTag("unified-search-query").performTextReplacement("ztrail")
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("unified-search-result-TrackEntry-1").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("unified-search-results-list").performScrollToNode(hasTestTag("unified-search-result-TrackEntry-1"))
+        compose.onNodeWithTag("unified-search-result-TrackEntry-1").assertTextContains("3.125 ztrail", substring = true).assertIsDisplayed()
+        compose.onAllNodesWithText("Results incomplete").assertCountEquals(0)
+        compose.onAllNodesWithText("private-track-unit-id", substring = true).assertCountEquals(0)
+        com.whip.app.captureVisualCatalogSurface("audit2.shared.search-track-custom-unit")
+        compose.onNodeWithTag("unified-search-result-TrackEntry-1").performClick()
+        compose.runOnIdle {
+            assertEquals(SearchDomain.TrackEntry, selected?.domain)
+            assertEquals(1L, selected?.id)
+        }
+    }
 
     @Test
     fun wideToShortWorkspaceRetainsTheFocusedQuery() {
@@ -181,6 +231,26 @@ class UnifiedSearchAdaptiveUiTest {
             .assertIsDisplayed()
         compose.onNodeWithTag("unified-search-query").assertIsDisplayed()
         compose.onNodeWithTag("search-filter-disclosure").assertIsDisplayed()
+    }
+
+    @Test
+    fun limitedHistoryExplainsMissingRecordsWithoutDefinitiveNoMatch() {
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                Box(Modifier.width(360.dp).height(520.dp)) {
+                    SearchWorkspaceForTest(
+                        modifier = Modifier.fillMaxSize(),
+                        resultCount = 0,
+                        dataStatus = UnifiedSearchDataStatus(limitedSources = listOf("Habits", "Track Entry")),
+                    )
+                }
+            }
+        }
+        val explanation = "Some records are outside this search · Habits, Track Entry. Open the relevant section to browse all records."
+        compose.onNodeWithTag("unified-search-results-list").performScrollToNode(androidx.compose.ui.test.hasText(explanation))
+        compose.onNodeWithText(explanation).assertIsDisplayed()
+        compose.onAllNodesWithText("No matching items. Try another search or adjust Filters.").assertCountEquals(0)
+        com.whip.app.captureVisualCatalogSurface("audit2.shared.search-partial-history")
     }
 
     @Test

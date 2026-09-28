@@ -65,6 +65,17 @@ class UnifiedSearchRulesTest {
     }
 
     @Test
+    fun omittedEntityHistoryMarksItsDomainPartialEvenBelowResultLimit() {
+        val builder = BoundedSearchIndexBuilder(2_000)
+        assertEquals(listOf(3, 2), builder.history(SearchDomain.Habit, listOf(1, 3, 2), 2) { it })
+        builder.history(SearchDomain.Goal, listOf(1, 2), 2) { it }
+        builder.history(SearchDomain.TrackEntry, listOf(1), 2) { it }
+        assertEquals(setOf(SearchDomain.Habit), builder.build().limitedDomains)
+        builder.history(SearchDomain.TrackEntry, (1..501).toList(), 500) { it }
+        assertEquals(setOf(SearchDomain.Habit, SearchDomain.TrackEntry), builder.build().limitedDomains)
+    }
+
+    @Test
     fun tenThousandHistoryValuesUseOneBoundedSelectorPass() {
         val history = (0 until 10_000).map { index -> (index * 7_919) % 10_000 }
         var selectorCalls = 0
@@ -139,6 +150,19 @@ class UnifiedSearchRulesTest {
         assertFalse(status.complete)
         assertEquals(listOf("Tracks", "Gym"), status.loadingSources)
         assertEquals(listOf("Habits"), status.failedSources)
+    }
+
+    @Test
+    fun sharedUnitReadinessBelongsOnlyToSelectedMeasurementSources() {
+        fun status(domain: SearchDomain, loaded: Boolean) = unifiedSearchDataStatus(
+            setOf(domain), TaskUiState(loading = false), HabitUiState(loading = false, errorMessage = "Unavailable"),
+            GoalUiState(loading = false), TrackUiState(loading = false), GymUiState(loading = false),
+            customUnitsLoaded = loaded,
+        )
+        assertEquals(listOf("Measurement units"), status(SearchDomain.TrackEntry, false).loadingSources)
+        assertTrue(status(SearchDomain.TrackEntry, true).complete)
+        assertTrue(status(SearchDomain.Task, false).complete)
+        assertTrue(status(SearchDomain.Track, false).complete)
     }
 
     @Test

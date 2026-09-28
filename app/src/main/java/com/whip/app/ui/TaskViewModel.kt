@@ -834,21 +834,40 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun planMyDay(candidates: List<ScheduledTask>, capacityMinutes: Int) {
+        planMyDayMutation(candidates, capacityMinutes, requestId = null)
+    }
+
+    fun planMyDayRequest(candidates: List<ScheduledTask>, capacityMinutes: Int, requestId: String): Boolean =
+        planMyDayMutation(candidates, capacityMinutes, requestId)
+
+    private fun planMyDayMutation(candidates: List<ScheduledTask>, capacityMinutes: Int, requestId: String?): Boolean {
         val selected = candidates.distinctBy(ScheduledTask::stableKey)
-        val plannedDate = clock.today()
+        if (selected.isEmpty()) return false
+        val plannedDate = clock.today(clock.zoneId())
         val selectedMinutes = selected.sumOf(ScheduledTask::estimatedDurationMinutes)
         val assumedCount = selected.count { it.task.durationMinutes == null }
         val assumption = if (assumedCount == 0) "" else " · $assumedCount without estimates counted as 30 min"
-        runOperation(
-            "Planning today…",
-            "${selected.size} tasks added to Today · $selectedMinutes min of $capacityMinutes daily capacity$assumption",
-            successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
+        return runAuthoredTaskMutation(
+            running = "Planning today…",
+            success = "${selected.size} tasks added to Today · $selectedMinutes new minutes · $capacityMinutes daily capacity$assumption",
+            requestId = requestId,
+            savedDescription = "day plan",
         ) {
-            repository.planAll(selected, plannedDate)
-            refreshReminders(selected.map { it.task.id })
-            offerUndo(
-                "Plan My Day can be undone",
-                TaskUndoAction.PlanMyDay(selected, plannedDate),
+            completeCommittedTaskMutation(
+                commit = {
+                    require(clock.today(clock.zoneId()) == plannedDate) { "The day changed. Review your plan for Today again." }
+                    repository.planAll(selected, plannedDate) { tasks, occurrences ->
+                        validateDayPlanCapacity(tasks, occurrences, selected, plannedDate, clock.zoneId(), capacityMinutes)
+                    }
+                    installUndo("Plan My Day can be undone", TaskUndoAction.PlanMyDay(selected, plannedDate))
+                    TaskMutationReceipt(
+                        kind = TaskMutationKind.BulkRescheduled,
+                        taskIds = selected.mapTo(linkedSetOf()) { it.task.id },
+                        occurrenceKeys = selected.mapTo(linkedSetOf(), ScheduledTask::stableKey),
+                        effectiveDate = plannedDate,
+                    )
+                },
+                followUp = { committed -> committed.withReminderRefresh(reminders) },
             )
         }
     }
@@ -1405,6 +1424,28 @@ private data class TaskData(
     val stepStates: List<TaskStepState>,
     val stepSnapshots: List<TaskStepSnapshot>,
 )
+
+internal fun validateDayPlanCapacity(
+    tasks: List<WhipTask>,
+    occurrences: List<TaskOccurrence>,
+    selected: List<ScheduledTask>,
+    today: LocalDate,
+    zoneId: ZoneId,
+    capacityMinutes: Int,
+) {
+    require(capacityMinutes in 1..1440) { "Daily capacity must be between 1 and 1440 minutes." }
+    require(selected.all { candidate ->
+        tasks.any { it.id == candidate.task.id && it.scheduleKind == ScheduleKind.Anytime && !it.archived && it.completedAtMillis == null }
+    }) { "One of these Tasks is no longer in Inbox. Review the plan before applying it." }
+    // Subtask rows/snapshots decorate projection results; they never determine occurrence membership.
+    val currentToday = buildUiState(tasks, occurrences, emptyList(), emptyList(), emptyList(), today,
+        showAllUpcomingRecurringOccurrences = false, zoneId = zoneId).today
+    val plannedMinutes = currentToday.distinctBy(ScheduledTask::stableKey).sumOf(ScheduledTask::estimatedDurationMinutes)
+    val selectedMinutes = selected.distinctBy(ScheduledTask::stableKey).sumOf(ScheduledTask::estimatedDurationMinutes)
+    require(plannedMinutes + selectedMinutes <= capacityMinutes) {
+        "Today now has $plannedMinutes planned minutes across all Areas. Review your selection or increase daily capacity."
+    }
+}
 
 internal fun buildUiState(
     tasks: List<WhipTask>,

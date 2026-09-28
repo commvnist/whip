@@ -113,6 +113,50 @@ class HomeHabitRecoveryUiTest {
         }
     }
 
+    @Test fun emptyHomeAreaRecoversExistingDataWithoutFirstUseGuidance() {
+        val storedScope = runBlocking {
+            app.taskRepository.create(TaskDraft("Saved work elsewhere", scheduleKind = ScheduleKind.Once, date = app.clock.today(), inbox = false))
+            val emptyArea = app.areaRepository.create("Quiet area")
+            val scope = AreaScope.One(emptyArea).storageKey
+            app.settingsRepository.update { it.copy(activeAreaScope = scope, homeSections = listOf(HomeSection.Tasks)) }
+            scope
+        }
+        launch().use {
+            awaitText("No Items in Quiet area")
+            compose.onAllNodesWithTag("home-getting-started").assertCountEquals(0)
+            captureVisualCatalogSurface("ux-audit2.home-empty-area")
+            compose.onAllNodesWithText("Show All Areas")[0].performClick()
+            awaitText("Saved work elsewhere")
+            compose.onNodeWithText("Saved work elsewhere").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithContentDescription("Area scope: All Areas").assertIsDisplayed()
+            check(runBlocking { app.settingsRepository.current().activeAreaScope } == storedScope)
+        }
+    }
+
+    @Test fun addingNoteAfterNumericLogDoesNotRepeatItsAmount() {
+        val habitId = runBlocking {
+            val id = app.habitRepository.create(HabitDraft(name = "Optional amount", trackingMode = HabitTrackingMode.LogOnly,
+                comparison = TargetComparison.None, startDate = app.clock.today()))
+            app.habitRepository.log(id, 5.0, note = "Existing amount")
+            id
+        }
+        launch().use {
+            openHabits()
+            awaitText("Optional amount")
+            compose.onNode(hasText("Log") and hasAnyAncestor(hasTestTag("habit-card-$habitId"))).performScrollTo().performClick()
+            check(compose.onNodeWithTag("habit-value-input").fetchSemanticsNode().config[SemanticsProperties.EditableText].text.isEmpty())
+            compose.onNodeWithTag("habit-value-note").performScrollTo().performTextInput("Only a new note")
+            androidx.test.espresso.Espresso.closeSoftKeyboard()
+            captureVisualCatalogSurface("ux-audit2.habit-additive-note")
+            compose.onNodeWithText("Add Entry").performClick()
+            compose.waitUntil(10_000) { compose.onAllNodesWithTag("habit-value-dialog").fetchSemanticsNodes().isEmpty() }
+            val logs = runBlocking { app.habitRepository.logs.first().filter { it.habitId == habitId } }
+            check(logs.size == 2 && logs.sumOf { it.value ?: 0.0 } == 5.0)
+            val note = logs.single { it.note == "Only a new note" }
+            check(note.value == null && note.measurementEntryId == null)
+        }
+    }
+
     @Test fun firstHabitStillOffersTemplates() {
         launch().use {
             openHabits()

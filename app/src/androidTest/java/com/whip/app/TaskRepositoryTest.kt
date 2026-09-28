@@ -907,6 +907,44 @@ class TaskRepositoryTest {
         assertTrue(requireNotNull(repository.getTask(connectedUndatedId)).inbox)
     }
 
+    @Test fun dayPlanRechecksAddedWorkloadAndRejectsMovedCandidatesAtomically() = runBlocking {
+        val firstId = repository.create(TaskDraft(title = "First candidate", durationMinutes = 30))
+        val secondId = repository.create(TaskDraft(title = "Second candidate", durationMinutes = 30))
+        val selected = listOf(firstId, secondId).map { ScheduledTask(requireNotNull(repository.getTask(it)), null, null) }
+        // This work arrived after the user saw a 60-minute preview.
+        repository.create(TaskDraft(title = "New Today workload", scheduleKind = ScheduleKind.Once, date = monday, durationMinutes = 50))
+        assertTrue(runCatching {
+            repository.planAll(selected, monday) { tasks, occurrences ->
+                com.whip.app.ui.validateDayPlanCapacity(tasks, occurrences, selected, monday, ZoneId.of("UTC"), 60)
+            }
+        }.isFailure)
+        selected.forEach { assertEquals(ScheduleKind.Anytime, requireNotNull(repository.getTask(it.task.id)).scheduleKind) }
+
+        repository.reschedule(selected.last(), monday)
+        assertTrue(runCatching {
+            repository.planAll(selected, monday) { tasks, occurrences ->
+                com.whip.app.ui.validateDayPlanCapacity(tasks, occurrences, selected, monday, ZoneId.of("UTC"), 240)
+            }
+        }.isFailure)
+        assertEquals(ScheduleKind.Anytime, requireNotNull(repository.getTask(firstId)).scheduleKind)
+        assertEquals(monday, requireNotNull(repository.getTask(secondId)).date)
+    }
+
+    @Test fun dayPlanRollsBackEarlierWritesWhenALaterSelectedRevisionChanged() = runBlocking {
+        val firstId = repository.create(TaskDraft(title = "Unchanged", durationMinutes = 30))
+        val secondId = repository.create(TaskDraft(title = "Changed later", durationMinutes = 30))
+        val selected = listOf(firstId, secondId).map { ScheduledTask(requireNotNull(repository.getTask(it)), null, null) }
+        repository.update(secondId, TaskDraft(title = "Changed later", durationMinutes = 90))
+        assertTrue(runCatching {
+            repository.planAll(selected, monday) { tasks, occurrences ->
+                com.whip.app.ui.validateDayPlanCapacity(tasks, occurrences, selected, monday, ZoneId.of("UTC"), 240)
+            }
+        }.isFailure)
+        assertEquals(ScheduleKind.Anytime, requireNotNull(repository.getTask(firstId)).scheduleKind)
+        assertEquals(ScheduleKind.Anytime, requireNotNull(repository.getTask(secondId)).scheduleKind)
+        assertEquals(90, requireNotNull(repository.getTask(secondId)).durationMinutes)
+    }
+
     @Test
     fun planMyDayUndoCannotEraseACompletionThatHappenedAfterPlanning() = runBlocking {
         val id = repository.create(TaskDraft(title = "Plan then complete"))

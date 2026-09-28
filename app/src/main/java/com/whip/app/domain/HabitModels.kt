@@ -496,7 +496,7 @@ fun Habit.completionRateOverRecentPeriods(
     if (scheduleType !in setOf(HabitScheduleType.FlexibleTimesPerWeek, HabitScheduleType.FlexibleTimesPerMonth)) {
         val scheduled = generateSequence(through) { it.minusDays(1) }
             .takeWhile { !it.isBefore(since) && !it.isBefore(startDate) }
-            .filter(::isScheduledOn)
+            .filter { followsScheduleOn(it) && !(paused && it == through) }
             .toList()
         val outcomes = scheduled.mapNotNull { day ->
             if (isNeutralDate(day, pauses, skips)) return@mapNotNull null
@@ -532,11 +532,14 @@ fun Habit.completionRateOverRecentPeriods(
     }
 }
 
-fun Habit.isScheduledOn(date: LocalDate, weekSuccesses: Int = 0, monthSuccesses: Int = 0): Boolean {
+fun Habit.isScheduledOn(date: LocalDate, weekSuccesses: Int = 0, monthSuccesses: Int = 0): Boolean =
+    !paused && followsScheduleOn(date, weekSuccesses, monthSuccesses)
+
+/** A current availability flag is not a dated historical pause record. */
+private fun Habit.followsScheduleOn(date: LocalDate, weekSuccesses: Int = 0, monthSuccesses: Int = 0): Boolean {
     if (
         date.isBefore(startDate) ||
-        (endType == HabitEndType.OnDate && endDate?.let(date::isAfter) == true) ||
-        paused
+        (endType == HabitEndType.OnDate && endDate?.let(date::isAfter) == true)
     ) return false
     return when (scheduleType) {
         HabitScheduleType.Daily -> true
@@ -629,7 +632,7 @@ fun Habit.successfulPeriodOutcomeDates(
     if (scheduleType !in setOf(HabitScheduleType.FlexibleTimesPerWeek, HabitScheduleType.FlexibleTimesPerMonth)) {
         return generateSequence(from) { it.plusDays(1) }
             .takeWhile { !it.isAfter(through) }
-            .filter { isScheduledOn(it) && !isNeutralDate(it, pauses, skips) && outcomeForPeriod(habitLogs, it, customUnits) == true }
+            .filter { followsScheduleOn(it) && !isNeutralDate(it, pauses, skips) && outcomeForPeriod(habitLogs, it, customUnits) == true }
             .toSet()
     }
     val firstStart = when (scheduleType) {
@@ -695,7 +698,7 @@ fun habitStreak(
     var date = through
     var streak = 0
     while (!date.isBefore(habit.startDate)) {
-        if (!habit.isScheduledOn(date)) {
+        if (!habit.followsScheduleOn(date)) {
             date = date.minusDays(1)
             continue
         }
@@ -724,11 +727,11 @@ fun Habit.dayStateOn(
     skips: List<HabitSkip> = emptyList(),
     customUnits: List<UnitDefinition> = emptyList(),
 ): HabitDayState {
-    if (paused || pauses.any { it.habitId == id && !date.isBefore(it.startDate) && (it.endDate == null || !date.isAfter(it.endDate)) }) {
+    if ((paused && !date.isBefore(today)) || pauses.any { it.habitId == id && !date.isBefore(it.startDate) && (it.endDate == null || !date.isAfter(it.endDate)) }) {
         return HabitDayState.Paused
     }
     if (skips.any { it.habitId == id && it.localDate == date }) return HabitDayState.Skipped
-    if (!isScheduledOn(date)) return HabitDayState.NotScheduled
+    if (!followsScheduleOn(date)) return HabitDayState.NotScheduled
     return when (outcomeForPeriod(logs, date, customUnits)) {
         true -> HabitDayState.Completed
         false -> HabitDayState.BelowTarget

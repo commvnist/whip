@@ -11,6 +11,17 @@ import org.junit.Test
 
 class PowerUserSettingsTest {
     @Test
+    fun everySupportedDateRecipeSurvivesStorageIncludingLegacyEncoding() {
+        val modes = listOf("Any", "Today", "Overdue", "PastScheduled", "Next7Days", "Last7Days", "NoDate")
+        val filters = modes.map { SavedTaskFilter(name = it, dateMode = it) }
+        assertEquals(filters, filters.encodeTaskFilters().decodeTaskFilters())
+        val legacy = filters.encodeTaskFilters().lineSequence().joinToString("\n") { it.substringBeforeLast('|') }
+        assertEquals(filters, legacy.decodeTaskFilters())
+        val unknown = listOf(SavedTaskFilter("Unknown", dateMode = "MissingMode"))
+        assertEquals("Any", unknown.encodeTaskFilters().decodeTaskFilters().single().dateMode)
+    }
+
+    @Test
     fun pinningRevealsAndExpandsOnlyItsOwningHomeSection() {
         val original = AppSettings(
             hiddenHomeSections = setOf(HomeSection.Tasks, HomeSection.Goals),

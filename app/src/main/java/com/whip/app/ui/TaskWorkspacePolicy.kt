@@ -10,6 +10,24 @@ import com.whip.app.domain.TaskPriority
 import com.whip.app.domain.TaskQuickCaptureParser
 import com.whip.app.domain.TaskStepDraft
 import java.time.LocalDate
+import java.time.Instant
+import java.time.ZoneId
+
+/** Date-filter labels describe schedules or actual completion, never a deadline fallback. */
+internal fun ScheduledTask.matchesTaskDateFilter(filter: SavedTaskFilter, today: LocalDate, zoneId: ZoneId): Boolean {
+    val date = if (filter.destination == TaskDestination.Completed.name) {
+        completedAtMillis?.let { Instant.ofEpochMilli(it).atZone(zoneId).toLocalDate() }
+    } else scheduledDate
+    return when (filter.dateMode) {
+        "Today" -> date == today
+        "Overdue" -> isDeadlineOverdue
+        "PastScheduled" -> scheduledDate?.isBefore(today) == true
+        "Next7Days" -> date?.let { it in today..today.plusDays(6) } == true
+        "Last7Days" -> date?.let { it in today.minusDays(6)..today } == true
+        "NoDate" -> scheduledDate == null
+        else -> true
+    }
+}
 
 /** Primary destinations shown in the Tasks workspace. */
 internal enum class TaskWorkspaceDestination(val label: String) {

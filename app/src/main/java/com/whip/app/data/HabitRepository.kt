@@ -397,11 +397,9 @@ class RoomHabitRepository(
             "Habit log does not belong to the selected Habit"
         }
         val habit = dao.getHabit(existing.habitId)?.toDomain() ?: error("Habit no longer exists")
-        val effectiveValue = if (habit.trackingMode == HabitTrackingMode.CheckOff && status in setOf(HabitLogStatus.Recorded, HabitLogStatus.Success)) {
-            value ?: 1.0
-        } else {
-            value
-        }
+        require(!date.isAfter(clock.today(clock.zoneId()))) { "Habit check-ins cannot be recorded in the future" }
+        // History edits retain authored nullable facts, even after a compatible mode change.
+        val effectiveValue = value
         val entryStatus = when (status) {
             HabitLogStatus.Failed -> MeasurementEntryStatus.Failed
             else -> MeasurementEntryStatus.Recorded
@@ -410,7 +408,9 @@ class RoomHabitRepository(
         val zone = ZoneId.of(existing.zoneId)
         val instant = Instant.ofEpochMilli(existing.timestampMillis)
         val effectiveUnitId = enteredUnitId ?: existing.enteredUnitId ?: habit.unitId
-        val noteOnly = habit.trackingMode == HabitTrackingMode.LogOnly &&
+        val existingNoteOnly = existing.value == null && existing.measurementEntryId == null &&
+            existing.status == HabitLogStatus.Recorded.name
+        val noteOnly = (habit.trackingMode == HabitTrackingMode.LogOnly || existingNoteOnly) &&
             status == HabitLogStatus.Recorded && effectiveValue == null
         val measurementEntryId = if (noteOnly) {
             existing.measurementEntryId?.let { measurementRepository.deleteEntry(it) }

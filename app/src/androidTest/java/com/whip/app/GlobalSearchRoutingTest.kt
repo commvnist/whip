@@ -122,6 +122,8 @@ class GlobalSearchRoutingTest {
             compose.waitUntil(10_000) { compose.onAllNodesWithTag("entity-inspector-header").fetchSemanticsNodes().isNotEmpty() }
             compose.onNode(hasText("Native search report") and hasAnyAncestor(hasTestTag("entity-inspector-header")))
                 .assertIsDisplayed()
+            compose.onNodeWithContentDescription("Close Task details").performClick()
+            compose.onNodeWithTag("task-destination-Today").assertIsSelected()
         }
     }
 

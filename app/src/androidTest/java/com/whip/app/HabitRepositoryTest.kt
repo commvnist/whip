@@ -61,6 +61,47 @@ class HabitRepositoryTest {
 
     @After fun tearDown() = database.close()
 
+    @Test fun futureHistoryEditsRejectBeforeChangingQuantitativeOrNoteOnlyFacts() = runBlocking {
+        val today = FixedClock.today()
+        val id = repository.create(HabitDraft(name = "History", trackingMode = HabitTrackingMode.LogOnly,
+            comparison = TargetComparison.None, startDate = today.minusDays(2)))
+        val numeric = repository.log(id, 5.0)
+        val note = repository.log(id, null, note = "Original note")
+        val originalLogs = repository.logs.first()
+        val originalEntries = database.measurementDao().observeEntries().first()
+        for ((logId, value) in listOf(numeric to null, note to 2.0)) {
+            assertTrue(runCatching { repository.updateLog(logId, value, HabitLogStatus.Recorded, today.plusDays(1), "Invalid future edit") }
+                .exceptionOrNull() is IllegalArgumentException)
+            assertEquals(originalLogs, repository.logs.first())
+            assertEquals(originalEntries, database.measurementDao().observeEntries().first())
+        }
+        repository.updateLog(note, null, HabitLogStatus.Recorded, today, "Valid today")
+        assertEquals("Valid today", repository.logs.first().single { it.id == note }.note)
+    }
+
+    @Test fun historicalNullAndFailedFactsSurviveCompatibleCurrentModeChanges() = runBlocking {
+        val today = FixedClock.today()
+        val draft = HabitDraft(name = "Changing method", trackingMode = HabitTrackingMode.LogOnly,
+            dimension = UnitDimension.Count, unitId = "count", comparison = TargetComparison.None, startDate = today.minusDays(2))
+        val id = repository.create(draft)
+        val noteId = repository.log(id, null, note = "Authored note")
+        val failedId = repository.log(id, 1.234567891, HabitLogStatus.Failed)
+        val failedBefore = repository.logs.first().single { it.id == failedId }
+        repository.update(id, draft.copy(trackingMode = HabitTrackingMode.CheckOff, comparison = TargetComparison.AtLeast, targetMin = 1.0))
+        repository.updateLog(noteId, null, HabitLogStatus.Recorded, today.minusDays(1), "Corrected note")
+        repository.updateLog(failedId, failedBefore.value, HabitLogStatus.Failed, today.minusDays(1), "Corrected failure note")
+        val note = repository.logs.first().single { it.id == noteId }
+        val failed = repository.logs.first().single { it.id == failedId }
+        assertEquals(null, note.value)
+        assertEquals(null, note.measurementEntryId)
+        assertEquals(HabitLogStatus.Recorded, note.status)
+        assertEquals(HabitLogStatus.Failed, failed.status)
+        assertEquals(1.234567891, failed.value ?: -1.0, 0.0)
+        assertEquals(failedBefore.measurementEntryId, failed.measurementEntryId)
+        assertEquals(failedBefore.timestamp, failed.timestamp)
+        assertEquals(MeasurementEntryStatus.Failed.name, database.measurementDao().getEntry(requireNotNull(failed.measurementEntryId))?.status)
+    }
+
     @Test fun androidTimerClockProvidesMonotonicBootOwnedReadings() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         val first = AndroidHabitTimerClock(context, FixedClock).read()

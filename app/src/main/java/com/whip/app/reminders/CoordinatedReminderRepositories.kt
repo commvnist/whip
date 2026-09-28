@@ -71,8 +71,11 @@ internal class CoordinatedTaskRepository(
     override suspend fun completeAll(items: List<ScheduledTask>) = mutate { delegate.completeAll(items) }
     override suspend fun rescheduleAll(items: List<ScheduledTask>, newDate: LocalDate) =
         mutate { delegate.rescheduleAll(items, newDate) }
-    override suspend fun planAll(items: List<ScheduledTask>, newDate: LocalDate) =
-        mutate { delegate.planAll(items, newDate) }
+    override suspend fun planAll(
+        items: List<ScheduledTask>,
+        newDate: LocalDate,
+        validatePlanningSnapshot: ((List<com.whip.app.domain.WhipTask>, List<com.whip.app.domain.TaskOccurrence>) -> Unit)?,
+    ) = mutate { delegate.planAll(items, newDate, validatePlanningSnapshot) }
     override suspend fun restoreSchedulesIfCurrent(items: List<ScheduledTask>, expectedDate: LocalDate) =
         mutate { delegate.restoreSchedulesIfCurrent(items, expectedDate) }
     override suspend fun archiveAll(taskIds: List<Long>) = mutate { delegate.archiveAll(taskIds) }

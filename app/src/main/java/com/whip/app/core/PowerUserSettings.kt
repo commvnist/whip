@@ -16,7 +16,7 @@ data class SavedTaskFilter(
     val pinnedOnly: Boolean = false,
     val tags: Set<String> = emptySet(),
     val requireAllTags: Boolean = true,
-    /** Any, Today, Overdue, Next7Days, NoDate. */
+    /** Any, Today, Overdue, PastScheduled, Next7Days, Last7Days, NoDate. */
     val dateMode: String = "Any",
     val deadlineOnly: Boolean = false,
     val inboxOnly: Boolean = false,
@@ -129,7 +129,7 @@ internal fun String?.decodeTaskFilters(): List<SavedTaskFilter> = this.orEmpty()
             pinnedOnly = parts[2].toBooleanStrictOrNull() ?: false,
             tags = parts[3].split(',').map(String::decoded).filterTo(linkedSetOf(), String::isNotBlank),
             requireAllTags = parts[4].toBooleanStrictOrNull() ?: true,
-            dateMode = parts[5].takeIf { it in setOf("Any", "Today", "Overdue", "Next7Days", "NoDate") } ?: "Any",
+            dateMode = parts[5].takeIf { it in setOf("Any", "Today", "Overdue", "PastScheduled", "Next7Days", "Last7Days", "NoDate") } ?: "Any",
             deadlineOnly = parts[6].toBooleanStrictOrNull() ?: false,
             inboxOnly = parts[7].toBooleanStrictOrNull() ?: false,
             efforts = parts[8].split(',').mapNotNullTo(linkedSetOf()) {
