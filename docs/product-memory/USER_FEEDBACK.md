@@ -1,5 +1,12 @@
 # User feedback and acceptance criteria
 
+### FB-20260928-006 — Release the completed product audit and Focus overhaul to the phone
+
+- Date/source: 2026-09-28, explicit owner request: “Release to phone”.
+- Acceptance: Package the current verified source as the next signed private update, install in place on the selected physical phone, preserve app data and signing identity, and verify exact installed version/hash and foreground launch.
+- Scope: Include the Focus overhaul (IMP-20260928-006 / VER-20260928-004) and all 20 current product-audit groups (IMP-20260928-007/008/009 / VER-20260928-005). Preserve the owner's focused-check/no-full-batches instruction; verify packaging and device installation without repeating broad behavioral campaigns. No Play publication.
+- Status: In progress. The phone is initially disconnected; the current wireless debugging address was requested while packaging proceeds.
+
 ### FB-20260928-005 — Audit the whole app and implement the complete remediation plan
 
 - Date/source: 2026-09-28, explicit owner goal after the Focus overhaul.
