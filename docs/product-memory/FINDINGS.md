@@ -1,5 +1,19 @@
 # Durable findings
 
+### FND-20260928-005 — Focus starts silently on Home and cannot accept an authored duration
+
+- Observed/root cause: The shared Task inspector offers 15/25/45/60 without custom entry; the default is 25 and ViewModel input is silently clamped. The start closure dismisses the inspector without a saved-start result. Only Tasks renders the deadline, and its scoped title lookup loses identity when Area changes. Home receives settings but renders no active Focus state. Previous audit notice claims refer to Tasks alone.
+- Expected/remedy: 15/30/45/60 and validated Custom Time; request-owned confirmed feedback; shared visible Home/Tasks timer with unscoped identity, upward-rounded seconds, Open and Stop. Keep the Home card visible even if its list was scrolled. Align custom duration affordances and unit-bearing fields on Focus, Gym rest and reminder offsets.
+- Evidence: `TaskComponents.kt`, `SettingsViewModel.kt`, `WhipApp.kt` (`HomeContent`, `TaskAreaContent`, shared inspector callback), `GymScreens.kt`, `TaskEditorDialog.kt`; three independent Sol/medium source traces. Runtime acceptance remains to execute.
+- Related/status: FB-20260928-004; [plan](../quality/FOCUS_TIMER_UX_2026-09-28.md). Confirmed.
+
+### FND-20260928-006 — Focus lacks running notification and serialized start/stop ownership
+
+- Observed/root cause: Scheduler only enqueues completion delivery; Worker alone posts. ViewModel mutates the pair outside the scheduler mutex, then schedules/cancels asynchronously. Unconditional queued cancellation can cancel a later timer. Publishing after the suspending enqueue must recheck the exact current generation/Task/deadline.
+- Expected/remedy: Silent native countdown with Open/Stop, completion replacement, confirmed durable start/stop inside the delivery boundary, identity-safe private Stop action and current-state checks before publication. Preserve existing exact/fallback reconciliation, Task deletion and recovery cancellation. Explain denied notification/channel access without pretending persistence failed.
+- Evidence: `FocusTimerNotifications.kt`, `TimerAlarmScheduler.kt`, `SettingsViewModel.kt`, `WhipApplication.kt`, current completion/action/recovery tests. Race is source-confirmed; exact new native regression acceptance remains to execute.
+- Related/status: FB-20260928-004, FND-20260921-005, FND-20260903-009; [plan](../quality/FOCUS_TIMER_UX_2026-09-28.md). Confirmed.
+
 ### FND-20260928-002 — Home/Task/Habit displayed meaning diverges from authored state
 
 - Confirmed source findings: Habit history edit coerces status/value, future edit bypasses creation guard, additive Log Only repeats current amount, custom-unit IDs leak, incompatible edit choices reach unsavable states. Rounded raw numeric initializers can alter precise facts during unrelated edits. Tasks silently clamp duration, confuse deadline/schedule filters, lose two saved date modes and misrepresent scoped daily planning. Home scoped first use/counts and targetless summaries need correction.

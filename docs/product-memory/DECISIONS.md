@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260928-002 — Upgrade Focus through shared confirmed state and native timing
+
+- Decision: Implement the full [Focus plan](../quality/FOCUS_TIMER_UX_2026-09-28.md). Reuse exact alarm/WorkManager delivery, Compose inspector/dialog primitives, request-owned mutation results and native notification chronometer; add no periodic ticker service or dependency. Serialize confirmed Focus starts/stops with delivery and validate immutable action identities. Make an active timer visible on Home and Tasks, with truthful completion/notification availability context and explicit replacement consent.
+- Custom-time meaning: Use “Custom Time” for arbitrary duration/offset entry affordances. Fields name their actual unit and range; Focus minutes, Gym seconds, reminder minutes-before, measured Habit elapsed time and time-of-day selection retain their distinct semantics. Native clock pickers and measured elapsed editors are not interchangeable with duration selectors.
+- Compatibility: No new Room schema, data epoch, portable-backup format or Focus history/statistics model. Reuse the durable Task/deadline pair, preserve data and existing completion alerts. Android denial/force-stop/OEM deferral and explicit ongoing-notification dismissal remain external boundaries.
+- Related/status: FB-20260928-004, FND-20260928-005/006. In progress; verification will record actual runtime outcomes.
+
 ### DEC-20260928-001 — Second audit focuses on end-to-end meaning and recovery
 
 - Decision: Implement the accepted groups in the [second-pass plan](../quality/UX_AUDIT_2_2026-09-28.md), after reviewing three fresh Astra/high workflow matrices. Preserve authored history, exact identities, compatible units and persisted data; improve forms, feedback and evidence where real state contradicts presentation.

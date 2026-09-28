@@ -12,6 +12,8 @@ Current snapshot: **2026-09-28**. This page is the entry point, not a replay of 
 
 ## Current work and boundaries
 
+- **Focus timing upgrade in progress:** FB-20260928-004 requires 15/30/45/60-minute shortcuts, consistent Custom Time entry, a native running countdown notification, and immediate Home acknowledgement with a visible timer. Three Sol/medium agents investigated duration UI, notification lifecycle and Home feedback; the Sol/max parent owns integration and verification. [Plan and acceptance](../quality/FOCUS_TIMER_UX_2026-09-28.md). The installed 0.3.81 release and historical paused audit remain separate dated facts.
+
 - **Second audit completed:** FB-20260928-002 / IMP-20260928-002/003/004 / VER-20260928-002 close every accepted workstream from baseline `7c77c075`. Final documentation separates measured fixes, justified keeps and unavailable historical metadata. No implementation or verification gate remains open in this scoped task.
 
 - The expanded [major-component UX overhaul](../quality/MAJOR_COMPONENT_UX_UPGRADES_2026-09-27.md) is **Implemented and Verified**, and released privately in 0.3.80, under FB-20260927-011 / VER-20260927-025 / VER-20260928-001. Three Astra/high agents reviewed roughly 100 workflow rows plus shared interactions and delivered all 19 workstreams. Final readiness passes 409 JVM tests; all 171 selected Android methods and four constrained 200% layouts are accepted. Native execution also uncovered and repaired true note-only Habit persistence, including edit/backup compatibility. [Originals, gallery and exact receipts](../../artifacts/ux-overhaul/2026-09-27/README.md) preserve failed attempts and accepted outcomes. Subjective appearance awaits normal owner use.
