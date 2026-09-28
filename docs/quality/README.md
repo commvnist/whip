@@ -6,6 +6,7 @@ The [testing speed plan](TESTING_SPEED_PLAN_2026-09-27.md) records the measured 
 
 | Record | Status and use |
 | --- | --- |
+| [Full product audit](PRODUCT_AUDIT_2026-09-28.md) | In progress: fresh workflow/design/reuse/bug review and full implementation; parent plus two Astra/max agents, selected sub-minute QA only. |
 | [Focus timer overhaul](FOCUS_TIMER_UX_2026-09-28.md) | Implemented and Verified: five workstreams, 40 reviewed workflow dispositions; fresh 412 JVM methods, 45 distinct Android methods across 56 accepted executions, short actual 200% layouts and external permission/cold-process proof. Native countdown, immediate Home feedback and consistent Custom Time are complete; no new phone install. |
 | [Second major-component UX/UI/quality audit](UX_AUDIT_2_2026-09-28.md) | 190 reviewed workflow rows; all32 workstreams implemented.419 distinct JVM and175 selected Android methods accepted, including61 new regressions, with150 original captures and five before/after comparisons. |
 | [Major-component UX overhaul](MAJOR_COMPONENT_UX_UPGRADES_2026-09-27.md) | All 19 workstreams implemented; 409 JVM tests, 171 selected Android methods and four constrained layouts accepted, with workflow matrices and original evidence. |

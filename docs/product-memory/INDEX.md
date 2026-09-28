@@ -12,6 +12,8 @@ Current snapshot: **2026-09-28**. This page is the entry point, not a replay of 
 
 ## Current work and boundaries
 
+- **Active full-app audit:** FB-20260928-005 requests a fresh complete workflow, UX/design/language, reuse/architecture and bug audit from `d737209a`, followed by implementation of every accepted item in [the plan](../quality/PRODUCT_AUDIT_2026-09-28.md). Parent plus two Astra/max agents. This request explicitly limits QA to selected sub-minute checks and excludes broad batches; prior audit evidence is context, not new execution.
+
 - **Focus timer overhaul completed:** FB-20260928-004 / IMP-20260928-006 / VER-20260928-004 close all five workstreams and 40 reviewed workflow dispositions: 15/30/45/60, consistent Custom Time, pinned Home/Tasks feedback, native countdown/Open/Stop, completion/replacement/recovery and grounded layout/accessibility repairs. Three Sol/medium agents and the Sol/max parent implemented and verified fresh 412 JVM methods, 45 distinct Android methods across 56 accepted executions, actual 200% short layouts and external real-permission/cold-process checks. [Plan](../quality/FOCUS_TIMER_UX_2026-09-28.md); [originals and exact evidence](../../artifacts/focus-timer/2026-09-28/README.md). The owner phone remains on the preceding 0.3.81/code 87 release; this source update is not a new phone install. The historical audit remains paused.
 
 - **Second audit completed:** FB-20260928-002 / IMP-20260928-002/003/004 / VER-20260928-002 close every accepted workstream from baseline `7c77c075`. Final documentation separates measured fixes, justified keeps and unavailable historical metadata. No implementation or verification gate remains open in this scoped task.

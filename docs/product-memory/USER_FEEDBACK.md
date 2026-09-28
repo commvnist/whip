@@ -1,5 +1,14 @@
 # User feedback and acceptance criteria
 
+### FB-20260928-005 — Audit the whole app and implement the complete remediation plan
+
+- Date/source: 2026-09-28, explicit owner goal after the Focus overhaul.
+- User need: Thoroughly assess use cases, workflow reachability, visual design and language, consistency, dialog ordering, reusable components, extensibility/coupling and bugs; publish a concrete plan and fully implement it.
+- Acceptance: Recheck current source and representative rendered workflows, distinguish confirmed defects from improvements and justified keeps, implement every accepted plan item, preserve authored data, and document exact verification and limitations. Up to two additional GPT-6 Astra/max agents are authorized.
+- QA constraint: Maximize development speed; only selected focused checks bounded by `timeout --kill-after=3s 55s`. No full batches or affected-readiness batch for this request. Timeouts are incomplete evidence and must not be retried repeatedly.
+- Baseline/scope: Clean pushed `d737209a` on `main`; current product-wide investigation is recorded in [the plan](../quality/PRODUCT_AUDIT_2026-09-28.md). Historical completed/paused audits remain evidence with their original status. This request does not include a release or phone installation.
+- Status: In progress.
+
 ### FB-20260928-004 — Make Focus duration, Home feedback and phone timing coherent
 
 - Date/source: 2026-09-28, explicit owner goal. The lack of Home indication is a defect to fix. Owner authorizes the Sol/max parent and three Sol/medium agents and clarifies that this is a Focus timer overhaul.
