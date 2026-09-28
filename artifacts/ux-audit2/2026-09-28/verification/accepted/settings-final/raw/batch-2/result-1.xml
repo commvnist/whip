@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="6" failures="0" errors="0" skipped="0" time="43.541" timestamp="2026-09-28T06:24:52" hostname="localhost">
+  <testsuite name="com.whip.app.ui.GoalSecondaryMutationUiTest" tests="4" failures="0" errors="0" skipped="0" time="28.724" timestamp="2026-09-28T06:24:52" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="rangeAndConsistencyOutcomesKeepTheirMeasurementMeaning" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="7.932" />
+    <testcase name="editingOnlyAProgressNotePreservesItsTinyEnteredValueThroughRestoration" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="3.754" />
+    <testcase name="startDateControlsBackdatedProgressAndSurvivesRestoration" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="8.415" />
+    <testcase name="unitChangesPreserveTargetsAndPartialDrafts" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="8.623" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.SettingsResponsiveUiTest" tests="2" failures="0" errors="0" skipped="0" time="13.213" timestamp="2026-09-28T06:24:52" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="encryptedBackupInputsKeepSecretKeyboardAndExplainMismatchAtLargeText" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="8.891" />
+    <testcase name="deepDataOperationMakesItsSettledResultVisible" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="4.322" />
+  </testsuite>
+</testsuites>

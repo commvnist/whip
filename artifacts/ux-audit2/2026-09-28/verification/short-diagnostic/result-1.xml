@@ -1,0 +1,96 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="7" failures="4" errors="0" skipped="0" time="25.724" timestamp="2026-09-28T05:31:49" hostname="localhost">
+  <testsuite name="com.whip.app.GymPowerInputUiTest" tests="2" failures="0" errors="0" skipped="0" time="9.485" timestamp="2026-09-28T05:31:49" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="populatedHistoryCalendarKeepsDatesAndCountsReadableAtNativeLargeText" classname="com.whip.app.GymPowerInputUiTest" time="4.888" />
+    <testcase name="compactActiveLaneLeavesRoomForSetEntryAtNativeLargeText" classname="com.whip.app.GymPowerInputUiTest" time="4.597" />
+  </testsuite>
+  <testsuite name="com.whip.app.HomeHabitAudit2UiTest" tests="1" failures="1" errors="0" skipped="0" time="3.472" timestamp="2026-09-28T05:31:49" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="futureHistoryDateRetainsDraftAndOffersReachableCorrection" classname="com.whip.app.HomeHabitAudit2UiTest" time="3.472">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'scoop of concentrated mixture' (ignoreCase: false))
+Semantics of the node:
+Node #374 at (l=63.0, t=1039.0, r=1017.0, b=1313.0)px, Tag: 'habit-history-value'
+ContentDataType = 'AndroidContentDataType(androidAutofillType=1)'
+EditableText = '1'
+FillableData = 'androidx.compose.ui.autofill.AndroidFillableData&#64;db3219e'
+Focused = 'false'
+ImeAction = 'Default'
+InputText = '1'
+IsEditable = 'true'
+Text = '[Amount (scoop of concentrated mixture)]'
+TextSelectionRange = 'TextRange(0, 0)'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, InsertTextAtCursor, OnClick, OnFillData, OnLongClick, PasteText, PerformImeAction, RequestFocus, SetSelection, SetText, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 5 siblings
+Selector used: (TestTag = 'habit-history-value')
+
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+at com.whip.app.HomeHabitAudit2UiTest.futureHistoryDateRetainsDraftAndOffersReachableCorrection(HomeHabitAudit2UiTest.kt:64)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.TaskDayPlannerUiTest" tests="2" failures="2" errors="0" skipped="0" time="5.307" timestamp="2026-09-28T05:31:49" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="manyCandidatesAndExhaustedCapacityRemainReachableWithKeyboard" classname="com.whip.app.TaskDayPlannerUiTest" time="2.717">
+      <failure>java.lang.AssertionError: No node found that matches Text + InputText + EditableText contains 'Plan My Day' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #549 at (l=0.0, t=663.0, r=1080.0, b=1159.0)px, Tag: 'task-workspace-list'
+CollectionInfo = 'CollectionInfo(rowCount=2, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape&#64;9d4f2b8'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=672.0, maxValue=672.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 1 child, 7 siblings
+Selector used: (TestTag = 'task-workspace-list')
+
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+at com.whip.app.TaskDayPlannerUiTest.openPlanner(TaskDayPlannerUiTest.kt:106)
+at com.whip.app.TaskDayPlannerUiTest.manyCandidatesAndExhaustedCapacityRemainReachableWithKeyboard(TaskDayPlannerUiTest.kt:71)
+</failure>
+    </testcase>
+    <testcase name="shortLargeTextSelectionKeepsResultsAndCompletionReachable" classname="com.whip.app.TaskDayPlannerUiTest" time="2.59">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Select' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.TaskDayPlannerUiTest.shortLargeTextSelectionKeepsResultsAndCompletionReachable(TaskDayPlannerUiTest.kt:95)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.ui.SettingsResponsiveUiTest" tests="2" failures="1" errors="0" skipped="0" time="6.106" timestamp="2026-09-28T05:31:49" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="encryptedBackupInputsKeepSecretKeyboardAndExplainMismatchAtLargeText" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="1.835">
+      <failure>java.lang.AssertionError: Semantic Node has no parent layout with a Scroll SemanticsAction
+at androidx.compose.ui.test.ActionsKt.scrollToNode(Actions.kt:98)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:83)
+at com.whip.app.ui.SettingsResponsiveUiTest.encryptedBackupInputsKeepSecretKeyboardAndExplainMismatchAtLargeText(SettingsResponsiveUiTest.kt:90)
+</failure>
+    </testcase>
+    <testcase name="deepDataOperationMakesItsSettledResultVisible" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="4.271" />
+  </testsuite>
+</testsuites>

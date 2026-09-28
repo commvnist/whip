@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="3" failures="1" errors="0" skipped="0" time="39.527" timestamp="2026-09-28T05:37:44" hostname="localhost">
+  <testsuite name="com.whip.app.GymPowerInputUiTest" tests="3" failures="1" errors="0" skipped="0" time="28.523" timestamp="2026-09-28T05:37:44" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="chartPointsRetainExactWorkoutAndSeriesIdentity" classname="com.whip.app.GymPowerInputUiTest" time="16.009" />
+    <testcase name="exerciseInspectorDefaultsFollowMeasurementCapabilities" classname="com.whip.app.GymPowerInputUiTest" time="2.038" />
+    <testcase name="restAlertExplainsBlockedCurrentChannel" classname="com.whip.app.GymPowerInputUiTest" time="10.476">
+      <failure></failure>
+    </testcase>
+  </testsuite>
+  <system-err>Test run failed to complete. Instrumentation run failed due to Process crashed.
+</system-err>
+</testsuites>

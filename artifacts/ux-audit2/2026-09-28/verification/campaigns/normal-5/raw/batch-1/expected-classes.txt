@@ -1,0 +1,4 @@
+com.whip.app.GymLibraryJourneyE2ETest
+com.whip.app.GymPowerInputUiTest
+com.whip.app.RoutineBuilderUiTest
+com.whip.app.WhipComposeSemanticsTest

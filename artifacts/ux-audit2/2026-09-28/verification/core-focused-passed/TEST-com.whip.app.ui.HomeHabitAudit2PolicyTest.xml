@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.HomeHabitAudit2PolicyTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-09-28T05:06:17.380Z" hostname="beast" time="0.369">
+  <properties/>
+  <testcase name="customUnitLabelsPreserveHistoricalUnitsAndCompatibleEditCapabilities" classname="com.whip.app.ui.HomeHabitAudit2PolicyTest" time="0.181"/>
+  <testcase name="targetlessRecordedFactsStayNeutralBesideScoredHabitsAndTimers" classname="com.whip.app.ui.HomeHabitAudit2PolicyTest" time="0.005"/>
+  <testcase name="dateFiltersSeparateScheduleCompletionAndDeadlineWithSevenInclusiveDates" classname="com.whip.app.ui.HomeHabitAudit2PolicyTest" time="0.006"/>
+  <testcase name="currentPausePreservesHistoricalOutcomesReviewAndEarnedEndConditions" classname="com.whip.app.ui.HomeHabitAudit2PolicyTest" time="0.022"/>
+  <testcase name="aClosedWeeksFinalMissingDayRemainsInTheChartDenominator" classname="com.whip.app.ui.HomeHabitAudit2PolicyTest" time="0.001"/>
+  <testcase name="capacityUsesAllAreasAndExcludesClosedRecurringOccurrences" classname="com.whip.app.ui.HomeHabitAudit2PolicyTest" time="0.015"/>
+  <testcase name="upcomingResumeCountsOnlyTheDestinationSource" classname="com.whip.app.ui.HomeHabitAudit2PolicyTest" time="0.137"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[java.lang.instrument.IllegalClassFormatException: Error while instrumenting com/whip/app/ui/WhipAppKt with JaCoCo 0.8.14.202510111229/2eb2483.
+	at org.jacoco.agent.rt.internal_29a6edd.CoverageTransformer.transform(CoverageTransformer.java:94)
+	at java.instrument/java.lang.instrument.ClassFileTransformer.transform(ClassFileTransformer.java:244)
+	at java.instrument/sun.instrument.TransformerManager.transform(TransformerManager.java:188)
+	at java.instrument/sun.instrument.InstrumentationImpl.transform(InstrumentationImpl.java:541)
+	at java.base/java.lang.ClassLoader.defineClass1(Native Method)
+	at java.base/java.lang.ClassLoader.defineClass(ClassLoader.java:1017)
+	at java.base/java.security.SecureClassLoader.defineClass(SecureClassLoader.java:150)
+	at java.base/jdk.internal.loader.BuiltinClassLoader.defineClass(BuiltinClassLoader.java:862)
+	at java.base/jdk.internal.loader.BuiltinClassLoader.findClassOnClassPathOrNull(BuiltinClassLoader.java:760)
+	at java.base/jdk.internal.loader.BuiltinClassLoader.loadClassOrNull(BuiltinClassLoader.java:681)
+	at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:639)
+	at java.base/jdk.internal.loader.ClassLoaders$AppClassLoader.loadClass(ClassLoaders.java:188)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:525)
+	at com.whip.app.ui.HomeHabitAudit2PolicyTest.upcomingResumeCountsOnlyTheDestinationSource(HomeHabitAudit2PolicyTest.kt:38)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:137)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:115)
+	at org.gradle.api.internal.tasks.testing.junit.JUnitTestExecutor.runRequest(JUnitTestExecutor.java:175)
+	at org.gradle.api.internal.tasks.testing.junit.JUnitTestExecutor.accept(JUnitTestExecutor.java:84)
+	at org.gradle.api.internal.tasks.testing.junit.JUnitTestExecutor.accept(JUnitTestExecutor.java:47)
+	at org.gradle.api.internal.tasks.testing.junit.AbstractJUnitTestDefinitionProcessor.processTestDefinition(AbstractJUnitTestDefinitionProcessor.java:65)
+	at org.gradle.api.internal.tasks.testing.SuiteTestDefinitionProcessor.processTestDefinition(SuiteTestDefinitionProcessor.java:53)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at org.gradle.internal.dispatch.MethodInvocation.invokeOn(MethodInvocation.java:77)
+	at org.gradle.internal.dispatch.ReflectionDispatch.dispatch(ReflectionDispatch.java:28)
+	at org.gradle.internal.dispatch.ReflectionDispatch.dispatch(ReflectionDispatch.java:19)
+	at org.gradle.internal.dispatch.ContextClassLoaderDispatch.dispatch(ContextClassLoaderDispatch.java:33)
+	at org.gradle.internal.dispatch.ProxyDispatchAdapter$DispatchingInvocationHandler.invoke(ProxyDispatchAdapter.java:88)
+	at jdk.proxy2/jdk.proxy2.$Proxy6.processTestDefinition(Unknown Source)
+	at org.gradle.api.internal.tasks.testing.worker.TestWorker$2.run(TestWorker.java:178)
+	at org.gradle.api.internal.tasks.testing.worker.TestWorker.executeAndMaintainThreadName(TestWorker.java:126)
+	at org.gradle.api.internal.tasks.testing.worker.TestWorker.execute(TestWorker.java:103)
+	at org.gradle.api.internal.tasks.testing.worker.TestWorker.execute(TestWorker.java:63)
+	at org.gradle.process.internal.worker.child.ActionExecutionWorker.execute(ActionExecutionWorker.java:56)
+	at org.gradle.process.internal.worker.child.SystemApplicationClassLoaderWorker.call(SystemApplicationClassLoaderWorker.java:122)
+	at org.gradle.process.internal.worker.child.SystemApplicationClassLoaderWorker.call(SystemApplicationClassLoaderWorker.java:72)
+	at worker.org.gradle.process.internal.worker.GradleWorkerMain.run(GradleWorkerMain.java:69)
+	at worker.org.gradle.process.internal.worker.GradleWorkerMain.main(GradleWorkerMain.java:74)
+Caused by: java.io.IOException: Error while instrumenting com/whip/app/ui/WhipAppKt with JaCoCo 0.8.14.202510111229/2eb2483.
+	at org.jacoco.agent.rt.internal_29a6edd.core.instr.Instrumenter.instrumentError(Instrumenter.java:161)
+	at org.jacoco.agent.rt.internal_29a6edd.core.instr.Instrumenter.instrument(Instrumenter.java:111)
+	at org.jacoco.agent.rt.internal_29a6edd.CoverageTransformer.transform(CoverageTransformer.java:92)
+	... 59 more
+Caused by: org.jacoco.agent.rt.internal_29a6edd.asm.MethodTooLargeException: Method too large: com/whip/app/ui/WhipAppKt.WhipScreen (Lcom/whip/app/ui/TaskUiState;Landroidx/compose/ui/Modifier;Lcom/whip/app/ui/TaskUiState;Lcom/whip/app/ui/GymUiState;Lcom/whip/app/ui/GymViewModel;Lcom/whip/app/ui/HabitUiState;Lcom/whip/app/ui/HabitUiState;Lcom/whip/app/ui/HabitViewModel;Lcom/whip/app/ui/GoalUiState;Lcom/whip/app/ui/GoalUiState;Lcom/whip/app/ui/GoalViewModel;Lcom/whip/app/ui/SettingsUiState;Lcom/whip/app/ui/SettingsViewModel;Lcom/whip/app/ui/TrackUiState;Lcom/whip/app/ui/TrackUiState;Lcom/whip/app/ui/TrackViewModel;JLcom/whip/app/domain/AreaScope;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function0;Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lcom/whip/app/core/OperationStatus;Lcom/whip/app/core/PersistenceRequestState;Lkotlin/jvm/functions/Function1;Lcom/whip/app/core/PersistenceRequestState;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/Long;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lcom/whip/app/core/OperationStatus;Lkotlin/jvm/functions/Function0;Ljava/lang/Long;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lcom/whip/app/core/OperationStatus;Lkotlin/jvm/functions/Function0;Lcom/whip/app/core/OperationStatus;Lkotlin/jvm/functions/Function0;Lcom/whip/app/core/OperationStatus;Lkotlin/jvm/functions/Function0;Ljava/lang/Long;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lcom/whip/app/ui/DomainRetryActions;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function5;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function4;Lkotlin/jvm/functions/Function4;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;Lcom/whip/app/data/TaskDeletionImpact;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;Lcom/whip/app/data/TaskDeletionBatchImpact;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/String;ZJZLcom/whip/app/ui/WhipAdaptiveLayout;Lcom/whip/app/ui/WhipFoldInfo;Landroidx/compose/runtime/Composer;IIIIIIIIIIIIII)V
+	at org.jacoco.agent.rt.internal_29a6edd.asm.MethodWriter.computeMethodInfoSize(MethodWriter.java:2088)
+	at org.jacoco.agent.rt.internal_29a6edd.asm.ClassWriter.toByteArray(ClassWriter.java:506)
+	at org.jacoco.agent.rt.internal_29a6edd.core.instr.Instrumenter.instrument(Instrumenter.java:92)
+	at org.jacoco.agent.rt.internal_29a6edd.core.instr.Instrumenter.instrument(Instrumenter.java:109)
+	... 60 more
+]]></system-err>
+</testsuite>

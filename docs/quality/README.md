@@ -1,11 +1,12 @@
 # Quality plans and audit evidence
 
-Start with the [current product-memory snapshot](../product-memory/INDEX.md). The [major-component UX upgrade plan](MAJOR_COMPONENT_UX_UPGRADES_2026-09-27.md) is implemented and verified within its accepted scope. The three selected items in the [Ponytail Ultra plan](NEXT_WORK_PONYTAIL_ULTRA_2026-09-27.md) are completed with linked focused evidence; the separate whole-product continuation remains paused.
+Start with the [current product-memory snapshot](../product-memory/INDEX.md). The [second major-component audit](UX_AUDIT_2_2026-09-28.md) and earlier [UX upgrade plan](MAJOR_COMPONENT_UX_UPGRADES_2026-09-27.md) are implemented and verified within their accepted scopes. The three selected items in the [Ponytail Ultra plan](NEXT_WORK_PONYTAIL_ULTRA_2026-09-27.md) are completed with linked focused evidence; the separate whole-product continuation remains paused.
 
 The [testing speed plan](TESTING_SPEED_PLAN_2026-09-27.md) records the measured SDLC gates, the exact quality-register route improvement, and the next performance experiment.
 
 | Record | Status and use |
 | --- | --- |
+| [Second major-component UX/UI/quality audit](UX_AUDIT_2_2026-09-28.md) | 190 reviewed workflow rows; all32 workstreams implemented.419 distinct JVM and175 selected Android methods accepted, including61 new regressions, with150 original captures and five before/after comparisons. |
 | [Major-component UX overhaul](MAJOR_COMPONENT_UX_UPGRADES_2026-09-27.md) | All 19 workstreams implemented; 409 JVM tests, 171 selected Android methods and four constrained layouts accepted, with workflow matrices and original evidence. |
 | [Ponytail Ultra plan](NEXT_WORK_PONYTAIL_ULTRA_2026-09-27.md) | Completed Track-rate copy, spoken shared-role check and pinned Count/Timer widget journey. |
 | [Design consistency overhaul](DESIGN_CONSISTENCY_OVERHAUL_2026-09-26.md) | Completed scope and final 2026-09-27 evidence for eight shared-design fixes. |

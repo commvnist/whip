@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="0" errors="0" skipped="0" time="11.649" timestamp="2026-09-28T05:36:49" hostname="localhost">
+  <testsuite name="com.whip.app.ui.SharedResilienceAuditUiTest" tests="2" failures="0" errors="0" skipped="0" time="10.52" timestamp="2026-09-28T05:36:49" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="shortInspectorKeepsContentSectionsAndActionsReachable" classname="com.whip.app.ui.SharedResilienceAuditUiTest" time="5.897" />
+    <testcase name="longLoadFailureKeepsRetryReachableAtLargeText" classname="com.whip.app.ui.SharedResilienceAuditUiTest" time="4.623" />
+  </testsuite>
+</testsuites>

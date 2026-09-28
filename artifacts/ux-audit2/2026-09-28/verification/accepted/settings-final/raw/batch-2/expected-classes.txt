@@ -1,0 +1,2 @@
+com.whip.app.ui.GoalSecondaryMutationUiTest
+com.whip.app.ui.SettingsResponsiveUiTest

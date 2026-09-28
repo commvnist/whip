@@ -1,0 +1,227 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="120" failures="2" errors="0" skipped="0" time="151.665" timestamp="2026-09-28T05:41:20" hostname="localhost">
+  <testsuite name="com.whip.app.GlobalSearchRoutingTest" tests="2" failures="0" errors="0" skipped="0" time="51.217" timestamp="2026-09-28T05:41:20" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="largeTextSearchRetainsQueryFiltersAndResultsAcrossRecreation" classname="com.whip.app.GlobalSearchRoutingTest" time="24.0" />
+    <testcase name="everyNonTaskSearchDomainLandsOnTheExactActiveOrArchivedRecord" classname="com.whip.app.GlobalSearchRoutingTest" time="27.217" />
+  </testsuite>
+  <testsuite name="com.whip.app.GoalProgressJourneyE2ETest" tests="7" failures="1" errors="0" skipped="0" time="72.549" timestamp="2026-09-28T05:41:20" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="datedTrendShowsItsMeasureAndEarlierDaysRemainReachable" classname="com.whip.app.GoalProgressJourneyE2ETest" time="9.687" />
+    <testcase name="smallProgressStaysVisibleThroughHomeDetailsAndArchivedHistory" classname="com.whip.app.GoalProgressJourneyE2ETest" time="22.585" />
+    <testcase name="tinyAndNearlyCompleteGoalsRemainDistinctFromTheirEndpoints" classname="com.whip.app.GoalProgressJourneyE2ETest" time="12.656" />
+    <testcase name="windowedInsightsMatchCurrentProgressAndRetainExcludedHistory" classname="com.whip.app.GoalProgressJourneyE2ETest" time="4.663">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but found '2' nodes that satisfy: (Text + InputText + EditableText contains 'History' (ignoreCase: false))
+Nodes found:
+1) Node #6281 at (l=288.0, t=311.0, r=534.0, b=437.0)px, Tag: 'goal-destination-History'
+ContentDescription = '[History]'
+Focused = 'false'
+Role = 'Tab'
+Selected = 'false'
+Text = '[History]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 3 siblings
+2) Node #6359 at (l=385.0, t=409.0, r=695.0, b=535.0)px, Tag: 'goal-detail-section-History'
+ContentDescription = '[History]'
+Focused = 'false'
+Role = 'Tab'
+Selected = 'false'
+Text = '[History]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 2 siblings
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.GoalProgressJourneyE2ETest.windowedInsightsMatchCurrentProgressAndRetainExcludedHistory(GoalProgressJourneyE2ETest.kt:52)
+</failure>
+    </testcase>
+    <testcase name="milestoneInsightsDescribeWeightedProgressAndRetainClosedOutcome" classname="com.whip.app.GoalProgressJourneyE2ETest" time="8.45" />
+    <testcase name="poundGoalTrendValuesTargetsAndRatesKeepTheirSelectedUnit" classname="com.whip.app.GoalProgressJourneyE2ETest" time="4.406" />
+    <testcase name="savedGoalCompletionKeepsCardFourSecondsAndTapOnlyDismissesCard" classname="com.whip.app.GoalProgressJourneyE2ETest" time="10.102" />
+  </testsuite>
+  <testsuite name="com.whip.app.GoalRepositoryTest" tests="18" failures="0" errors="0" skipped="0" time="1.728" timestamp="2026-09-28T05:41:20" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="closedOutcomeKindCannotBeReinterpretedByDefinitionEdit" classname="com.whip.app.GoalRepositoryTest" time="0.227" />
+    <testcase name="reorderNormalizesOmittedCompletedGoalsWithoutDuplicatePositions" classname="com.whip.app.GoalRepositoryTest" time="0.102" />
+    <testcase name="cumulativeGoalStoresBackdatedContributions" classname="com.whip.app.GoalRepositoryTest" time="0.102" />
+    <testcase name="consistencyKeepsItsOwnPeriodAndDropsTheUnrelatedAggregationWindow" classname="com.whip.app.GoalRepositoryTest" time="0.051" />
+    <testcase name="changingGoalDisplayUnitDoesNotRelabelOrResaveHistoricalEntry" classname="com.whip.app.GoalRepositoryTest" time="0.102" />
+    <testcase name="goalTypeOwnsCalculationDirectionAndDeadlinePace" classname="com.whip.app.GoalRepositoryTest" time="0.026" />
+    <testcase name="milestonesAreActiveOnlyAndSameStatePreservesTimestamp" classname="com.whip.app.GoalRepositoryTest" time="0.101" />
+    <testcase name="customUnitTargetsEntriesAndDisplayShareOneCanonicalScale" classname="com.whip.app.GoalRepositoryTest" time="0.101" />
+    <testcase name="numericGoalsRequireFiniteTargets" classname="com.whip.app.GoalRepositoryTest" time="0.051" />
+    <testcase name="closedOrArchivedGoalsCannotBeNewlyPinnedButConnectedPinsCanBeRemoved" classname="com.whip.app.GoalRepositoryTest" time="0.152" />
+    <testcase name="elapsedResetWritesImmutableHistoryAndNoOpDoesNotDuplicate" classname="com.whip.app.GoalRepositoryTest" time="0.077" />
+    <testcase name="milestoneStateAndCompletedStatusPersist" classname="com.whip.app.GoalRepositoryTest" time="0.076" />
+    <testcase name="closureSnapshotsFreezeOutcomeSurviveReopenAndArchiveIsOrthogonal" classname="com.whip.app.GoalRepositoryTest" time="0.102" />
+    <testcase name="closedAndArchivedHistoryCanBeCorrectedWithoutRewritingClosure" classname="com.whip.app.GoalRepositoryTest" time="0.102" />
+    <testcase name="milestoneInsertReorderAndRemovalPreserveStableIdentity" classname="com.whip.app.GoalRepositoryTest" time="0.126" />
+    <testcase name="progressRejectsNonFiniteFutureAndStaleEntryWrites" classname="com.whip.app.GoalRepositoryTest" time="0.101" />
+    <testcase name="elapsedGoalPersistsCompositeDisplayRejectsMeasurementsAndResetsExactStart" classname="com.whip.app.GoalRepositoryTest" time="0.077" />
+    <testcase name="exactBoundariesRejectStaleDefinitionButProgressIgnoresUnrelatedPinChange" classname="com.whip.app.GoalRepositoryTest" time="0.052" />
+  </testsuite>
+  <testsuite name="com.whip.app.HabitRepositoryTest" tests="40" failures="0" errors="0" skipped="0" time="1.932" timestamp="2026-09-28T05:41:20" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="customVolumeUnitUsesItsCanonicalConversionFactor" classname="com.whip.app.HabitRepositoryTest" time="0.076" />
+    <testcase name="rebootRequiresReviewBeforeLoggingAndCanContinueFromConfirmedDuration" classname="com.whip.app.HabitRepositoryTest" time="0.052" />
+    <testcase name="archiveRetainsHistoryAndUndoRemovesBothRepresentations" classname="com.whip.app.HabitRepositoryTest" time="0.053" />
+    <testcase name="userDefinedEightCountHabitStoresSixIndependentIncrements" classname="com.whip.app.HabitRepositoryTest" time="0.052" />
+    <testcase name="customMassUnitUsesKilogramsAsItsCanonicalBase" classname="com.whip.app.HabitRepositoryTest" time="0.052" />
+    <testcase name="checklistPersistenceDiscardsIrrelevantNumericQuickAdds" classname="com.whip.app.HabitRepositoryTest" time="0.026" />
+    <testcase name="fiveMinuteTimerWritesMinutesAndCanonicalSecondsExactlyOnce" classname="com.whip.app.HabitRepositoryTest" time="0.052" />
+    <testcase name="archivedChecklistHistoryDoesNotCompleteTheRemainingActiveChecklist" classname="com.whip.app.HabitRepositoryTest" time="0.051" />
+    <testcase name="reorderNormalizesOmittedArchivedHabitsWithoutDuplicatePositions" classname="com.whip.app.HabitRepositoryTest" time="0.051" />
+    <testcase name="checkOffCanBeToggledWithoutLeavingAZeroLog" classname="com.whip.app.HabitRepositoryTest" time="0.026" />
+    <testcase name="runningTimerBlocksArchivePauseAndIncompatibleEdit" classname="com.whip.app.HabitRepositoryTest" time="0.052" />
+    <testcase name="androidTimerClockProvidesMonotonicBootOwnedReadings" classname="com.whip.app.HabitRepositoryTest" time="0.0" />
+    <testcase name="aRealCheckInClearsSkipAndFailedCheckOffDoesNotInventValueOne" classname="com.whip.app.HabitRepositoryTest" time="0.026" />
+    <testcase name="skipUndoRequiresAnExistingExactRecord" classname="com.whip.app.HabitRepositoryTest" time="0.051" />
+    <testcase name="historyDeletionRejectsTheWrongHabitOwnerWithoutRemovingAnything" classname="com.whip.app.HabitRepositoryTest" time="0.026" />
+    <testcase name="scheduledPausesCanBeCreatedEditedMadeOpenEndedAndDeleted" classname="com.whip.app.HabitRepositoryTest" time="0.051" />
+    <testcase name="futureHistoryEditsRejectBeforeChangingQuantitativeOrNoteOnlyFacts" classname="com.whip.app.HabitRepositoryTest" time="0.076" />
+    <testcase name="settingCustomUnitTotalUsesStoredConversionsAndNoOpsWhenUnchanged" classname="com.whip.app.HabitRepositoryTest" time="0.076" />
+    <testcase name="scheduledPauseMutationsRejectInvalidOrMissingTargets" classname="com.whip.app.HabitRepositoryTest" time="0.027" />
+    <testcase name="notificationIncrementSourceIsIdempotentAcrossRetry" classname="com.whip.app.HabitRepositoryTest" time="0.076" />
+    <testcase name="checklistInsertReorderAndRemovalPreserveItemCompletionIdentity" classname="com.whip.app.HabitRepositoryTest" time="0.027" />
+    <testcase name="customUnitVersionArchivesOldMeaningWithoutReinterpretingHistory" classname="com.whip.app.HabitRepositoryTest" time="0.051" />
+    <testcase name="skipIsASeparateOccurrenceThatNeverCreatesAMeasurement" classname="com.whip.app.HabitRepositoryTest" time="0.052" />
+    <testcase name="settingDisplayedDecimalTotalDoesNotCreateMicroscopicCorrectionLog" classname="com.whip.app.HabitRepositoryTest" time="0.051" />
+    <testcase name="checklistOnlyAutoCompletesAfterTheFinalItem" classname="com.whip.app.HabitRepositoryTest" time="0.052" />
+    <testcase name="historicalNullAndFailedFactsSurviveCompatibleCurrentModeChanges" classname="com.whip.app.HabitRepositoryTest" time="0.051" />
+    <testcase name="invalidSourcesAndUnavailableHabitsRejectNewProgress" classname="com.whip.app.HabitRepositoryTest" time="0.051" />
+    <testcase name="noteOnlyLogsTransitionToNumbersAndBackWithoutInventingMeasurements" classname="com.whip.app.HabitRepositoryTest" time="0.076" />
+    <testcase name="repositoryPersistsOnlyTheControlsEnabledByTheHabitConfiguration" classname="com.whip.app.HabitRepositoryTest" time="0.027" />
+    <testcase name="settingAPeriodValueUsesTheAuthoritativeStoredTotalInsteadOfAStaleProjection" classname="com.whip.app.HabitRepositoryTest" time="0.078" />
+    <testcase name="competingStartRequestIsConsumedAndCannotStartLater" classname="com.whip.app.HabitRepositoryTest" time="0.026" />
+    <testcase name="editingHabitLogKeepsBackingMeasurementOwnedByHabitWrapper" classname="com.whip.app.HabitRepositoryTest" time="0.051" />
+    <testcase name="timerUsesSnapshottedCustomDurationUnitAndRejectsStaleStop" classname="com.whip.app.HabitRepositoryTest" time="0.052" />
+    <testcase name="changingHabitDisplayUnitDoesNotRelabelOrResaveHistoricalEntry" classname="com.whip.app.HabitRepositoryTest" time="0.052" />
+    <testcase name="optionalHabitNotesDoNotRelaxQuantitativeMeasurementValidation" classname="com.whip.app.HabitRepositoryTest" time="0.076" />
+    <testcase name="settingHighMagnitudeTotalNeverTreatsARealChangeAsFloatingNoise" classname="com.whip.app.HabitRepositoryTest" time="0.026" />
+    <testcase name="historyAndPauseUpdatesRejectTheWrongHabitOwnerWithoutMutation" classname="com.whip.app.HabitRepositoryTest" time="0.052" />
+    <testcase name="checklistCanKeepItemsIndependentAndUseManualParentCompletion" classname="com.whip.app.HabitRepositoryTest" time="0.052" />
+    <testcase name="logCanBeBackdatedAndEditedWithoutChangingItsIdentity" classname="com.whip.app.HabitRepositoryTest" time="0.051" />
+    <testcase name="invalidEndConditionsAreRejectedAndIrrelevantFieldsAreCleared" classname="com.whip.app.HabitRepositoryTest" time="0.026" />
+  </testsuite>
+  <testsuite name="com.whip.app.TaskRepositoryTest" tests="48" failures="0" errors="0" skipped="0" time="2.11" timestamp="2026-09-28T05:41:20" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="planMyDayUndoCannotEraseACompletionThatHappenedAfterPlanning" classname="com.whip.app.TaskRepositoryTest" time="0.052" />
+    <testcase name="editingCompletedRecurringHistoryUpdatesSeriesWithoutCreatingDuplicateBoundary" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="editThisAndFutureCanMoveFutureWorkToInboxWithoutMutatingTheOldSeries" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="dayPlanRollsBackEarlierWritesWhenALaterSelectedRevisionChanged" classname="com.whip.app.TaskRepositoryTest" time="0.052" />
+    <testcase name="explicitSkipRecordsTheRealClosureTime" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="promoteStepCreatesInboxTaskAndArchivesDefinition" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="moveUndoRejectsANewerScheduleInsteadOfOverwritingIt" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="dayPlanRechecksAddedWorkloadAndRejectsMovedCandidatesAtomically" classname="com.whip.app.TaskRepositoryTest" time="0.076" />
+    <testcase name="sameMillisecondStepDefinitionChangeInvalidatesAStaleCompletion" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="reminderQueryExcludesOrdinaryAndArchivedTasks" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="bulkMetadataRollsBackEveryTaskWhenAnyTargetIsMissing" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="repeatedNotificationCompletionDoesNotRewriteCompletionTime" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="editThisAndFutureRejectsOccurrenceCompletedWhileEditorWasOpen" classname="com.whip.app.TaskRepositoryTest" time="0.076" />
+    <testcase name="editThisAndFutureCanEndRecurrenceWithoutRewritingRecordedHistory" classname="com.whip.app.TaskRepositoryTest" time="0.076" />
+    <testcase name="bulkMoveUndoRestoresAnAlreadyMovedRecurringOccurrence" classname="com.whip.app.TaskRepositoryTest" time="0.027" />
+    <testcase name="bulkReopenValidatesEverySnapshotBeforeChangingAnyTask" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="manualOrderIsStableAndRejectsMissingTargetsAtomically" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="currentWeeklyRuleRejectsAnInvalidVirtualTuesdayAcrossMutations" classname="com.whip.app.TaskRepositoryTest" time="0.052" />
+    <testcase name="bulkMoveUndoRestoresInboxOnceAndRecurringSchedulesAtomically" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="sameMillisecondBulkMetadataCannotOverwriteNewerTaskContent" classname="com.whip.app.TaskRepositoryTest" time="0.052" />
+    <testcase name="manualCompletionSnapshotsNamesAndUnfinishedProgress" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="archivedTaskCanBeRestoredWithItsSteps" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="unchangedFiniteOccurrenceCountPreservesOriginalSeriesTotalAcrossSplit" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="futureSplitKeepsLaterStateOnlyOccurrenceReachableWhenCadenceChanges" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="planMyDayAndItsUndoRestoreEveryUndatedTaskToInbox" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="currentOnlyPolicyDoesNotManufactureOccurrenceHistory" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="bulkRescheduleIsAtomicAndKeepsRecurringScopeAtOccurrenceLevel" classname="com.whip.app.TaskRepositoryTest" time="0.052" />
+    <testcase name="stepStateIsPerOccurrenceAndAllStepsCanAutoCompleteParent" classname="com.whip.app.TaskRepositoryTest" time="0.052" />
+    <testcase name="staleRecurringRescheduleCannotOverwriteCompletedHistory" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="skippedAndMovedOccurrencesCanReturnToTheSeriesSchedule" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="repeatedHistoricalReopenCannotOverwriteAnAlreadyOpenOccurrence" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="bulkMetadataRejectsAnEnabledButUnselectedArea" classname="com.whip.app.TaskRepositoryTest" time="0.027" />
+    <testcase name="notificationStyleCompletionSnapshotsOnlyCarryUnfinishedStepsVisibleThisOccurrence" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="permanentDeleteCascadesSubtasksOccurrenceStateAndHistory" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="bulkMetadataReplacesOnlySelectedFieldsAndKeepsPlacementSemantics" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="powerTaskFieldsPersistAndUpdateTogether" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="futureSplitMigratesRescheduledBoundaryAndItsSubtaskStateExactlyOnce" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="staleOneShotProjectionCannotReplaceANewerRecurringDefinition" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="editThisAndFutureSplitsSeriesWithoutRewritingRecordedHistory" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="invalidTaskDraftsAreRejectedWithoutPartialRows" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="carryUnfinishedUsesCumulativePerStepHistoryAcrossThreeOccurrences" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="futureSplitPreservesCarryUnfinishedBaselineForRetainedSubtasks" classname="com.whip.app.TaskRepositoryTest" time="0.052" />
+    <testcase name="sameMillisecondBulkArchiveCannotHideAChangedTask" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="completedRecurringOccurrenceCanBeReopenedWithoutLosingItsStepState" classname="com.whip.app.TaskRepositoryTest" time="0.052" />
+    <testcase name="staleSkipCannotReplaceCompletedOccurrenceHistory" classname="com.whip.app.TaskRepositoryTest" time="0.052" />
+    <testcase name="moveUndoRejectsACompletionThatHappenedAfterTheMove" classname="com.whip.app.TaskRepositoryTest" time="0.051" />
+    <testcase name="sameMillisecondStaleOneShotMoveCannotOverwriteTheAuthoritativeDate" classname="com.whip.app.TaskRepositoryTest" time="0.026" />
+    <testcase name="staleSubtaskToggleCannotRewriteAClosedOccurrence" classname="com.whip.app.TaskRepositoryTest" time="0.052" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.TrackHistorySearchUiTest" tests="3" failures="1" errors="0" skipped="0" time="13.825" timestamp="2026-09-28T05:41:20" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="numericConditionReopeningPreservesSubMicroCanonicalBound" classname="com.whip.app.ui.TrackHistorySearchUiTest" time="1.108">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains '0.000000012345678' (ignoreCase: false))
+Semantics of the node:
+Node #8807 at (l=63.0, t=1301.0, r=1017.0, b=1469.0)px
+ContentDataType = 'AndroidContentDataType(androidAutofillType=1)'
+EditableText = '0.000000012345677999999998'
+FillableData = 'androidx.compose.ui.autofill.AndroidFillableData&#64;da97fb'
+Focused = 'false'
+ImeAction = 'Default'
+InputText = '0.000000012345677999999998'
+IsEditable = 'true'
+Text = '[Value (km)]'
+TextSelectionRange = 'TextRange(0, 0)'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, InsertTextAtCursor, OnClick, OnFillData, OnLongClick, PasteText, PerformImeAction, RequestFocus, SetSelection, SetText, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 4 siblings
+Selector used: (SetText is defined)
+
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+at com.whip.app.ui.TrackHistorySearchUiTest.numericConditionReopeningPreservesSubMicroCanonicalBound(TrackHistorySearchUiTest.kt:39)
+</failure>
+    </testcase>
+    <testcase name="changedQueriesCannotShowStaleMatchesAndFailuresRemainRetryableAtLargeText" classname="com.whip.app.ui.TrackHistorySearchUiTest" time="6.781" />
+    <testcase name="changedQueriesCannotShowStaleMatchesAndFailuresRemainRetryable" classname="com.whip.app.ui.TrackHistorySearchUiTest" time="5.936" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.UnifiedSearchAdaptiveUiTest" tests="2" failures="0" errors="0" skipped="0" time="6.611" timestamp="2026-09-28T05:41:20" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="limitedHistoryExplainsMissingRecordsWithoutDefinitiveNoMatch" classname="com.whip.app.ui.UnifiedSearchAdaptiveUiTest" time="2.589" />
+    <testcase name="trackOnlySearchUsesSharedUnitsWhenHabitLoadingFails" classname="com.whip.app.ui.UnifiedSearchAdaptiveUiTest" time="4.022" />
+  </testsuite>
+</testsuites>

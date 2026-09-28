@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="2" errors="0" skipped="0" time="9.594" timestamp="2026-09-28T04:36:27" hostname="localhost">
+  <testsuite name="com.whip.app.ui.SharedResilienceAuditUiTest" tests="2" failures="2" errors="0" skipped="0" time="8.439" timestamp="2026-09-28T04:36:27" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="shortInspectorKeepsContentSectionsAndActionsReachable" classname="com.whip.app.ui.SharedResilienceAuditUiTest" time="5.17">
+      <failure>java.lang.AssertionError: Inspector must leave usable space for evidence
+at org.junit.Assert.fail(Assert.java:89)
+at org.junit.Assert.assertTrue(Assert.java:42)
+at com.whip.app.ui.SharedResilienceAuditUiTest.shortInspectorKeepsContentSectionsAndActionsReachable(SharedResilienceAuditUiTest.kt:97)
+</failure>
+    </testcase>
+    <testcase name="longLoadFailureKeepsRetryReachableAtLargeText" classname="com.whip.app.ui.SharedResilienceAuditUiTest" time="3.269">
+      <failure>java.lang.IllegalStateException: Visual catalog hierarchy for audit2.shared.load-failure-initial contains an unlabeled interactive node:                 &lt;node NAF="true" index="2" text="" resource-id="" class="android.view.View" package="commvne.com.whip.app.debug" content-desc="" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" visible-to-user="true" bounds="[413,728][755,854]" drawing-order="2" hint="" display-id="0" /&gt;
+at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface(VisualCatalogCapture.kt:95)
+at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface$default(VisualCatalogCapture.kt:26)
+at com.whip.app.ui.SharedResilienceAuditUiTest.longLoadFailureKeepsRetryReachableAtLargeText(SharedResilienceAuditUiTest.kt:58)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

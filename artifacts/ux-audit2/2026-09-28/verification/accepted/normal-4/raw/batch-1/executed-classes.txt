@@ -1,0 +1,7 @@
+com.whip.app.DataPrivacyJourneyE2ETest
+com.whip.app.EntityInspectorUiTest
+com.whip.app.RoutineBuilderUiTest
+com.whip.app.TrackAuthoringJourneyE2ETest
+com.whip.app.TrackHistoryJourneyE2ETest
+com.whip.app.TrackInsightsJourneyE2ETest
+com.whip.app.TrackWorkspaceUiTest

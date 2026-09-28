@@ -1,0 +1,7 @@
+com.whip.app.DataPrivacyJourneyE2ETest
+com.whip.app.GoalProgressJourneyE2ETest
+com.whip.app.HomeHabitRecoveryUiTest
+com.whip.app.RoutineBuilderUiTest
+com.whip.app.SettingsBehaviorUiTest
+com.whip.app.TaskDayPlannerUiTest
+com.whip.app.TrackWorkspaceUiTest

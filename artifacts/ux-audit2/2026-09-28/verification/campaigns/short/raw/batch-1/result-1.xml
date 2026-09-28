@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="7" failures="1" errors="0" skipped="0" time="41.474" timestamp="2026-09-28T05:36:23" hostname="localhost">
+  <testsuite name="com.whip.app.GymPowerInputUiTest" tests="2" failures="0" errors="0" skipped="0" time="9.088" timestamp="2026-09-28T05:36:23" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="populatedHistoryCalendarKeepsDatesAndCountsReadableAtNativeLargeText" classname="com.whip.app.GymPowerInputUiTest" time="4.363" />
+    <testcase name="compactActiveLaneLeavesRoomForSetEntryAtNativeLargeText" classname="com.whip.app.GymPowerInputUiTest" time="4.725" />
+  </testsuite>
+  <testsuite name="com.whip.app.HomeHabitAudit2UiTest" tests="1" failures="0" errors="0" skipped="0" time="6.161" timestamp="2026-09-28T05:36:23" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="futureHistoryDateRetainsDraftAndOffersReachableCorrection" classname="com.whip.app.HomeHabitAudit2UiTest" time="6.161" />
+  </testsuite>
+  <testsuite name="com.whip.app.TaskDayPlannerUiTest" tests="2" failures="1" errors="0" skipped="0" time="13.075" timestamp="2026-09-28T05:36:23" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="manyCandidatesAndExhaustedCapacityRemainReachableWithKeyboard" classname="com.whip.app.TaskDayPlannerUiTest" time="10.076" />
+    <testcase name="shortLargeTextSelectionKeepsResultsAndCompletionReachable" classname="com.whip.app.TaskDayPlannerUiTest" time="2.999">
+      <failure>java.lang.AssertionError: Actual height is 90.285706.dp, expected at least 96.0.dp (tolerance: 0.5.dp)
+at androidx.compose.ui.test.BoundsAssertionsKt.assertIsAtLeast-cWfXhoU(BoundsAssertions.kt:342)
+at androidx.compose.ui.test.BoundsAssertionsKt.assertIsAtLeast-cWfXhoU$default(BoundsAssertions.kt:339)
+at androidx.compose.ui.test.BoundsAssertionsKt.assertHeightIsAtLeast_3ABfNKs$lambda$0(BoundsAssertions.kt:98)
+at androidx.compose.ui.test.BoundsAssertionsKt$$ExternalSyntheticLambda2.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.test.BoundsAssertionsKt.withUnclippedBoundsInRoot(BoundsAssertions.kt:266)
+at androidx.compose.ui.test.BoundsAssertionsKt.assertHeightIsAtLeast-3ABfNKs(BoundsAssertions.kt:98)
+at com.whip.app.TaskDayPlannerUiTest.shortLargeTextSelectionKeepsResultsAndCompletionReachable(TaskDayPlannerUiTest.kt:100)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.ui.SettingsResponsiveUiTest" tests="2" failures="0" errors="0" skipped="0" time="11.723" timestamp="2026-09-28T05:36:23" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="encryptedBackupInputsKeepSecretKeyboardAndExplainMismatchAtLargeText" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="7.675" />
+    <testcase name="deepDataOperationMakesItsSettledResultVisible" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="4.048" />
+  </testsuite>
+</testsuites>

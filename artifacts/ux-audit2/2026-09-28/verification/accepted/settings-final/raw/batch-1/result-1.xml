@@ -1,0 +1,68 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="16" failures="0" errors="0" skipped="0" time="164.559" timestamp="2026-09-28T06:24:00" hostname="localhost">
+  <testsuite name="com.whip.app.DataPrivacyJourneyE2ETest" tests="2" failures="0" errors="0" skipped="0" time="45.016" timestamp="2026-09-28T06:24:00" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="wrongBackupPassphraseExplainsFailureInsideDialogAndRetries" classname="com.whip.app.DataPrivacyJourneyE2ETest" time="21.611" />
+    <testcase name="encryptedExportSurvivesActivityRecreationWhileDocumentPickerIsOpen" classname="com.whip.app.DataPrivacyJourneyE2ETest" time="23.405" />
+  </testsuite>
+  <testsuite name="com.whip.app.GoalProgressJourneyE2ETest" tests="7" failures="0" errors="0" skipped="0" time="72.611" timestamp="2026-09-28T06:24:00" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="datedTrendShowsItsMeasureAndEarlierDaysRemainReachable" classname="com.whip.app.GoalProgressJourneyE2ETest" time="9.455" />
+    <testcase name="smallProgressStaysVisibleThroughHomeDetailsAndArchivedHistory" classname="com.whip.app.GoalProgressJourneyE2ETest" time="22.445" />
+    <testcase name="tinyAndNearlyCompleteGoalsRemainDistinctFromTheirEndpoints" classname="com.whip.app.GoalProgressJourneyE2ETest" time="12.357" />
+    <testcase name="windowedInsightsMatchCurrentProgressAndRetainExcludedHistory" classname="com.whip.app.GoalProgressJourneyE2ETest" time="6.719" />
+    <testcase name="milestoneInsightsDescribeWeightedProgressAndRetainClosedOutcome" classname="com.whip.app.GoalProgressJourneyE2ETest" time="7.775" />
+    <testcase name="poundGoalTrendValuesTargetsAndRatesKeepTheirSelectedUnit" classname="com.whip.app.GoalProgressJourneyE2ETest" time="4.277" />
+    <testcase name="savedGoalCompletionKeepsCardFourSecondsAndTapOnlyDismissesCard" classname="com.whip.app.GoalProgressJourneyE2ETest" time="9.583" />
+  </testsuite>
+  <testsuite name="com.whip.app.HomeHabitRecoveryUiTest" tests="2" failures="0" errors="0" skipped="0" time="7.917" timestamp="2026-09-28T06:24:00" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="emptyHomeAreaRecoversExistingDataWithoutFirstUseGuidance" classname="com.whip.app.HomeHabitRecoveryUiTest" time="3.052" />
+    <testcase name="addingNoteAfterNumericLogDoesNotRepeatItsAmount" classname="com.whip.app.HomeHabitRecoveryUiTest" time="4.865" />
+  </testsuite>
+  <testsuite name="com.whip.app.RoutineBuilderUiTest" tests="1" failures="0" errors="0" skipped="0" time="6.34" timestamp="2026-09-28T06:24:00" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="timedAndDistancePrescriptionsKeepApplicableFieldsAndCollapsedTargets" classname="com.whip.app.RoutineBuilderUiTest" time="6.34" />
+  </testsuite>
+  <testsuite name="com.whip.app.SettingsBehaviorUiTest" tests="2" failures="0" errors="0" skipped="0" time="20.283" timestamp="2026-09-28T06:24:00" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="notificationDeliveryRefreshesAfterAndroidSettingsReturn" classname="com.whip.app.SettingsBehaviorUiTest" time="16.308" />
+    <testcase name="notificationTestExplainsAvailabilityOrAnnouncesResult" classname="com.whip.app.SettingsBehaviorUiTest" time="3.975" />
+  </testsuite>
+  <testsuite name="com.whip.app.TaskDayPlannerUiTest" tests="1" failures="0" errors="0" skipped="0" time="4.708" timestamp="2026-09-28T06:24:00" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="allAreaCapacityAndFailedApplyKeepTheRequestOwnedPreview" classname="com.whip.app.TaskDayPlannerUiTest" time="4.708" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackWorkspaceUiTest" tests="1" failures="0" errors="0" skipped="0" time="6.085" timestamp="2026-09-28T06:24:00" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="numericIdentitiesAndEveryLatestTrackRemainReachableInInsights" classname="com.whip.app.TrackWorkspaceUiTest" time="6.085" />
+  </testsuite>
+</testsuites>

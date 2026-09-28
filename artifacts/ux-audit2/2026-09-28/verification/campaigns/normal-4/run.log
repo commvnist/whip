@@ -1,0 +1,1199 @@
+Reusing configuration cache.
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:preDebugAndroidTestBuild SKIPPED
+> Task :app:processDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:generateDebugAndroidTestResValues UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:generateDebugAndroidTestResources UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:packageDebugAndroidTestResources UP-TO-DATE
+> Task :app:parseDebugAndroidTestLocalResources UP-TO-DATE
+> Task :app:generateDebugAndroidTestRFile UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:mergeDebugAndroidTestManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugAndroidTestManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:generateDebugAndroidTestBuildConfig UP-TO-DATE
+> Task :app:kspDebugKotlin UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:kspDebugAndroidTestKotlin SKIPPED
+> Task :app:copyRoomSchemas NO-SOURCE
+> Task :app:compileDebugAndroidTestKotlin UP-TO-DATE
+
+BUILD SUCCESSFUL in 430ms
+32 actionable tasks: 32 up-to-date
+Configuration cache entry reused.
+Targeted Android run 1/1.
+Reusing configuration cache.
+> Task :app:preBuild UP-TO-DATE
+> Task :app:generateDebugAndroidTestAssets UP-TO-DATE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:copyRoomSchemasToAndroidTestAssetsDebugAndroidTest UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:preDebugAndroidTestBuild SKIPPED
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:generateDebugGlobalSynthetics UP-TO-DATE
+> Task :app:javaPreCompileDebugAndroidTest UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:desugarDebugAndroidTestFileDependencies UP-TO-DATE
+> Task :app:mergeDebugAndroidTestJniLibFolders UP-TO-DATE
+> Task :app:validateSigningDebugAndroidTest UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :app:generateDebugAndroidTestGlobalSynthetics UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:writeDebugAndroidTestSigningConfigVersions UP-TO-DATE
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:generateDebugJacocoPropertiesFile UP-TO-DATE
+> Task :app:generateDebugAndroidTestResValues UP-TO-DATE
+> Task :app:processDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:generateDebugAndroidTestResources UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:mapDebugAndroidTestSourceSetPaths UP-TO-DATE
+> Task :app:packageDebugAndroidTestResources UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:parseDebugAndroidTestLocalResources UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:compileDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:generateDebugAndroidTestRFile UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:checkDebugAndroidTestDuplicateClasses UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAndroidTestAssets UP-TO-DATE
+> Task :app:compressDebugAndroidTestAssets UP-TO-DATE
+> Task :app:mergeDebugNativeLibs UP-TO-DATE
+> Task :app:stripDebugDebugSymbols UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:checkDebugAndroidTestAarMetadata UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:mergeDebugAndroidTestManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:mergeDebugAndroidTestNativeLibs NO-SOURCE
+> Task :app:processDebugAndroidTestManifest UP-TO-DATE
+> Task :app:stripDebugAndroidTestDebugSymbols NO-SOURCE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:mergeLibDexDebugAndroidTest UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:generateDebugAndroidTestBuildConfig UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:mergeDebugAndroidTestResources UP-TO-DATE
+> Task :app:mergeExtDexDebugAndroidTest UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:kspDebugKotlin UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:processDebugAndroidTestResources UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:jacocoDebug UP-TO-DATE
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:kspDebugAndroidTestKotlin SKIPPED
+> Task :app:dexBuilderDebug UP-TO-DATE
+> Task :app:mergeProjectDexDebug UP-TO-DATE
+> Task :app:mergeDebugJavaResource UP-TO-DATE
+> Task :app:packageDebug UP-TO-DATE
+> Task :app:assembleDebug UP-TO-DATE
+> Task :app:createDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:compileDebugAndroidTestKotlin UP-TO-DATE
+> Task :app:processDebugAndroidTestJavaRes UP-TO-DATE
+> Task :app:compileDebugAndroidTestJavaWithJavac UP-TO-DATE
+> Task :app:copyRoomSchemas NO-SOURCE
+> Task :app:dexBuilderDebugAndroidTest UP-TO-DATE
+> Task :app:mergeProjectDexDebugAndroidTest UP-TO-DATE
+> Task :app:mergeDebugAndroidTestJavaResource UP-TO-DATE
+> Task :app:packageDebugAndroidTest UP-TO-DATE
+> Task :app:assembleDebugAndroidTest UP-TO-DATE
+> Task :app:createDebugAndroidTestApkListingFileRedirect UP-TO-DATE
+
+BUILD SUCCESSFUL in 440ms
+77 actionable tasks: 77 up-to-date
+Configuration cache entry reused.
+Android batch 1/1 (ordinary, 10 selector(s)).
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:kspDebugKotlin UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:preDebugAndroidTestBuild SKIPPED
+> Task :app:mergeDebugAndroidTestManifest UP-TO-DATE
+> Task :app:processDebugAndroidTestManifest UP-TO-DATE
+> Task :app:generateDebugAndroidTestBuildConfig UP-TO-DATE
+> Task :app:generateDebugAndroidTestResValues UP-TO-DATE
+> Task :app:generateDebugAndroidTestResources UP-TO-DATE
+> Task :app:packageDebugAndroidTestResources UP-TO-DATE
+> Task :app:processDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:parseDebugAndroidTestLocalResources UP-TO-DATE
+> Task :app:generateDebugAndroidTestRFile UP-TO-DATE
+> Task :app:kspDebugAndroidTestKotlin SKIPPED
+> Task :app:compileDebugAndroidTestKotlin UP-TO-DATE
+> Task :app:javaPreCompileDebugAndroidTest UP-TO-DATE
+> Task :app:compileDebugAndroidTestJavaWithJavac UP-TO-DATE
+> Task :app:copyRoomSchemas NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:generateDebugGlobalSynthetics UP-TO-DATE
+> Task :app:generateDebugJacocoPropertiesFile UP-TO-DATE
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:mergeDebugJavaResource UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:jacocoDebug UP-TO-DATE
+> Task :app:dexBuilderDebug UP-TO-DATE
+> Task :app:mergeProjectDexDebug UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeDebugNativeLibs UP-TO-DATE
+> Task :app:stripDebugDebugSymbols UP-TO-DATE
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :app:packageDebug UP-TO-DATE
+> Task :app:createDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:copyRoomSchemasToAndroidTestAssetsDebugAndroidTest UP-TO-DATE
+> Task :app:generateDebugAndroidTestAssets UP-TO-DATE
+> Task :app:mergeDebugAndroidTestAssets UP-TO-DATE
+> Task :app:compressDebugAndroidTestAssets UP-TO-DATE
+> Task :app:generateDebugAndroidTestGlobalSynthetics UP-TO-DATE
+> Task :app:processDebugAndroidTestJavaRes UP-TO-DATE
+> Task :app:mergeDebugAndroidTestJavaResource UP-TO-DATE
+> Task :app:checkDebugAndroidTestDuplicateClasses UP-TO-DATE
+> Task :app:desugarDebugAndroidTestFileDependencies UP-TO-DATE
+> Task :app:mergeExtDexDebugAndroidTest UP-TO-DATE
+> Task :app:mergeLibDexDebugAndroidTest UP-TO-DATE
+> Task :app:checkDebugAndroidTestAarMetadata UP-TO-DATE
+> Task :app:mapDebugAndroidTestSourceSetPaths UP-TO-DATE
+> Task :app:compileDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:mergeDebugAndroidTestResources UP-TO-DATE
+> Task :app:processDebugAndroidTestResources UP-TO-DATE
+> Task :app:dexBuilderDebugAndroidTest UP-TO-DATE
+> Task :app:mergeProjectDexDebugAndroidTest UP-TO-DATE
+> Task :app:mergeDebugAndroidTestJniLibFolders UP-TO-DATE
+> Task :app:mergeDebugAndroidTestNativeLibs NO-SOURCE
+> Task :app:stripDebugAndroidTestDebugSymbols NO-SOURCE
+> Task :app:validateSigningDebugAndroidTest UP-TO-DATE
+> Task :app:writeDebugAndroidTestSigningConfigVersions UP-TO-DATE
+> Task :app:packageDebugAndroidTest UP-TO-DATE
+> Task :app:createDebugAndroidTestApkListingFileRedirect UP-TO-DATE
+Starting 15 tests on whip_api34(AVD) - 14
+whip_api34(AVD) - 14 Tests 0/15 completed. (0 skipped) (0 failed)
+> Task :app:connectedDebugAndroidTest
+
+whip_api34(AVD) - 14 Tests 1/15 completed. (0 skipped) (0 failed)
+whip_api34(AVD) - 14 Tests 2/15 completed. (0 skipped) (0 failed)
+whip_api34(AVD) - 14 Tests 6/15 completed. (0 skipped) (0 failed)
+whip_api34(AVD) - 14 Tests 8/15 completed. (0 skipped) (0 failed)
+whip_api34(AVD) - 14 Tests 9/15 completed. (0 skipped) (0 failed)
+
+com.whip.app.TrackAuthoringJourneyE2ETest > mixedTrackCanBeAuthoredRecoveredAndUsed[whip_api34(AVD) - 14] [31mFAILED [0m
+	java.lang.IllegalStateException: Vertically scrollable component was measured with an infinity maximum height constraints, which is disallowed. One of the common reasons is nesting layouts like LazyColumn and Column(Modifier.verticalScroll()). If you want to add a header before the list of items please add a header as a separate item() before the main items() inside the LazyColumn scope. There could be other reasons for this to happen: your ComposeView was added into a LinearLayout with some weight, you applied Modifier.wrapContentSize(unbounded = true) or wrote a custom layout. Please try to remove the source of infinite constraints in the hierarchy above the scrolling container.
+	at androidx.compose.foundation.internal.InlineClassHelperKt.throwIllegalStateException(InlineClassHelper.kt:26)
+
+com.whip.app.TrackHistoryJourneyE2ETest > emptyArchivedTrackExplainsRestoreThenOffersFirstEntry[whip_api34(AVD) - 14] [31mFAILED [0m
+	java.lang.IllegalStateException: Vertically scrollable component was measured with an infinity maximum height constraints, which is disallowed. One of the common reasons is nesting layouts like LazyColumn and Column(Modifier.verticalScroll()). If you want to add a header before the list of items please add a header as a separate item() before the main items() inside the LazyColumn scope. There could be other reasons for this to happen: your ComposeView was added into a LinearLayout with some weight, you applied Modifier.wrapContentSize(unbounded = true) or wrote a custom layout. Please try to remove the source of infinite constraints in the hierarchy above the scrolling container.
+	at androidx.compose.foundation.internal.InlineClassHelperKt.throwIllegalStateException(InlineClassHelper.kt:26)
+whip_api34(AVD) - 14 Tests 12/15 completed. (0 skipped) (2 failed)
+
+com.whip.app.TrackInsightsJourneyE2ETest > mixedDistanceUnitsUseTheFieldUnitAndPrecisionAcrossInsights[whip_api34(AVD) - 14] [31mFAILED [0m
+	java.lang.IllegalStateException: Vertically scrollable component was measured with an infinity maximum height constraints, which is disallowed. One of the common reasons is nesting layouts like LazyColumn and Column(Modifier.verticalScroll()). If you want to add a header before the list of items please add a header as a separate item() before the main items() inside the LazyColumn scope. There could be other reasons for this to happen: your ComposeView was added into a LinearLayout with some weight, you applied Modifier.wrapContentSize(unbounded = true) or wrote a custom layout. Please try to remove the source of infinite constraints in the hierarchy above the scrolling container.
+	at androidx.compose.foundation.internal.InlineClassHelperKt.throwIllegalStateException(InlineClassHelper.kt:26)
+whip_api34(AVD) - 14 Tests 14/15 completed. (0 skipped) (3 failed)
+Tests on whip_api34(AVD) - 14 failed: There was 3 failure(s).
+Finished 15 tests on whip_api34(AVD) - 14
+Execute com.whip.app.TrackAuthoringJourneyE2ETest.mixedTrackCanBeAuthoredRecoveredAndUsed: FAILED
+java.lang.IllegalStateException: java.lang.IllegalStateException: Vertically scrollable component was measured with an infinity maximum height constraints, which is disallowed. One of the common reasons is nesting layouts like LazyColumn and Column(Modifier.verticalScroll()). If you want to add a header before the list of items please add a header as a separate item() before the main items() inside the LazyColumn scope. There could be other reasons for this to happen: your ComposeView was added into a LinearLayout with some weight, you applied Modifier.wrapContentSize(unbounded = true) or wrote a custom layout. Please try to remove the source of infinite constraints in the hierarchy above the scrolling container.
+at androidx.compose.foundation.internal.InlineClassHelperKt.throwIllegalStateException(InlineClassHelper.kt:26)
+at androidx.compose.foundation.CheckScrollableContainerConstraintsKt.checkScrollableContainerConstraints-K40F9xA(CheckScrollableContainerConstraints.kt:59)
+at androidx.compose.foundation.ScrollNode.measure-3p2s80s(Scroll.kt:447)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.graphics.SimpleGraphicsLayerModifier.measure-3p2s80s(GraphicsLayerModifier.kt:962)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.PaddingValuesModifier.measure-3p2s80s(Padding.kt:513)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.lazy.layout.LazyLayoutMeasuredItemProvider.getPlaceables-3p2s80s(LazyLayoutMeasuredItem.kt:119)
+at androidx.compose.foundation.lazy.LazyListMeasuredItemProvider.getAndMeasure-0kLqBqw(LazyListMeasuredItemProvider.kt:54)
+at androidx.compose.foundation.lazy.LazyListMeasuredItemProvider.getAndMeasure-0kLqBqw$default(LazyListMeasuredItemProvider.kt:48)
+at androidx.compose.foundation.lazy.LazyListMeasureKt.measureLazyList-pIk1_oM(LazyListMeasure.kt:226)
+at androidx.compose.foundation.lazy.LazyListKt$rememberLazyListMeasurePolicy$1$1.measure-0kLqBqw(LazyList.kt:361)
+at androidx.compose.foundation.lazy.layout.LazyLayoutKt.LazyLayout$lambda$1$3$0(LazyLayout.kt:141)
+at androidx.compose.foundation.lazy.layout.LazyLayoutKt.$r8$lambda$rf3vllu87hDgmhs57JbwRZ1rpS4(Unknown Source:0)
+at androidx.compose.foundation.lazy.layout.LazyLayoutKt$$ExternalSyntheticLambda6.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:955)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.ui.graphics.SimpleGraphicsLayerModifier.measure-3p2s80s(GraphicsLayerModifier.kt:962)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.lazy.layout.LazyLayoutBeyondBoundsProviderModifierNode.measure-3p2s80s(LazyLayoutBeyondBoundsModifierLocal.kt:122)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.PaddingValuesModifier.measure-3p2s80s(Padding.kt:513)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:145)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.BoxWithConstraints$lambda$0$0(BoxWithConstraints.kt:68)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.$r8$lambda$p9yh-8kbO_kwrsRP1ZyRK8puGy8(Unknown Source:0)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:955)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.RowColumnMeasurePolicyKt.measure(RowColumnMeasurePolicy.kt:208)
+at androidx.compose.foundation.layout.RowColumnMeasurePolicyKt.measure$default(RowColumnMeasurePolicy.kt:77)
+at androidx.compose.foundation.layout.ColumnMeasurePolicy.measure-3p2s80s(Column.kt:211)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:145)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.BoxWithConstraints$lambda$0$0(BoxWithConstraints.kt:68)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.$r8$lambda$p9yh-8kbO_kwrsRP1ZyRK8puGy8(Unknown Source:0)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:955)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.PaddingValuesModifier.measure-3p2s80s(Padding.kt:513)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:145)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:758)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui(LayoutNode.kt:1288)
+at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui$default(LayoutNode.kt:1281)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.doRemeasure-sdFAvZA(MeasureAndLayoutDelegate.kt:385)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.remeasureIfNeeded(MeasureAndLayoutDelegate.kt:674)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.access$remeasureIfNeeded(MeasureAndLayoutDelegate.kt:46)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.measureAndLayout(MeasureAndLayoutDelegate.kt:411)
+at androidx.compose.ui.platform.AndroidComposeView.measureAndLayout(AndroidComposeView.android.kt:1883)
+at androidx.compose.ui.node.Owner.measureAndLayout$default(Owner.kt:257)
+at androidx.compose.ui.platform.AndroidComposeView.measureAndLayoutForTest(AndroidComposeView.android.kt:1963)
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment._init_$lambda$0(ComposeUiTest.android.kt:557)
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.test.TestMonotonicFrameClock.performFrame$lambda$0(TestMonotonicFrameClock.jvmAndAndroid.kt:156)
+at androidx.compose.ui.test.TestMonotonicFrameClock$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.test.FrameDeferringContinuationInterceptor.runWithoutResumingCoroutines(FrameDeferringContinuationInterceptor.jvmAndAndroid.kt:59)
+at androidx.compose.ui.test.TestMonotonicFrameClock.performFrame(TestMonotonicFrameClock.jvmAndAndroid.kt:135)
+at androidx.compose.ui.test.TestMonotonicFrameClock.access$performFrame(TestMonotonicFrameClock.jvmAndAndroid.kt:57)
+at androidx.compose.ui.test.TestMonotonicFrameClock$withFrameNanos$2$1$2.invokeSuspend(TestMonotonicFrameClock.jvmAndAndroid.kt:113)
+at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+at kotlinx.coroutines.DispatchedTaskKt.resume(DispatchedTask.kt:221)
+at kotlinx.coroutines.DispatchedTaskKt.dispatch(DispatchedTask.kt:154)
+at kotlinx.coroutines.CancellableContinuationImpl.dispatchResume(CancellableContinuationImpl.kt:470)
+at kotlinx.coroutines.CancellableContinuationImpl.resumeImpl$kotlinx_coroutines_core(CancellableContinuationImpl.kt:504)
+at kotlinx.coroutines.CancellableContinuationImpl.resumeImpl$kotlinx_coroutines_core$default(CancellableContinuationImpl.kt:493)
+at kotlinx.coroutines.CancellableContinuationImpl.resumeUndispatched(CancellableContinuationImpl.kt:596)
+at kotlinx.coroutines.test.CancellableContinuationRunnable.run(TestDispatcher.kt:60)
+at kotlinx.coroutines.test.TestDispatcher.processEvent$kotlinx_coroutines_test(TestDispatcher.kt:24)
+at kotlinx.coroutines.test.TestCoroutineScheduler.runCurrent(TestCoroutineScheduler.kt:132)
+at androidx.compose.ui.test.AbstractMainTestClock.advanceScheduler$lambda$0(AbstractMainTestClock.kt:105)
+at androidx.compose.ui.test.AbstractMainTestClock$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.test.AndroidSynchronization_androidKt.runOnUiThread(AndroidSynchronization.android.kt:35)
+at androidx.compose.ui.test.MainTestClockImpl$1.invoke(MainTestClockImpl.android.kt:32)
+at androidx.compose.ui.test.MainTestClockImpl$1.invoke(MainTestClockImpl.android.kt:32)
+at androidx.compose.ui.test.AbstractMainTestClock.advanceScheduler(AbstractMainTestClock.kt:101)
+at androidx.compose.ui.test.AbstractMainTestClock.advanceTimeByFrame(AbstractMainTestClock.kt:41)
+at androidx.compose.ui.test.ComposeIdlingResource.isIdleNow(ComposeIdlingResource.android.kt:110)
+at androidx.compose.ui.test.IdlingResourceRegistry.areAllResourcesIdle(IdlingResourceRegistry.jvmAndAndroid.kt:115)
+at androidx.compose.ui.test.IdlingResourceRegistry.isIdleOrEnsurePolling$ui_test(IdlingResourceRegistry.jvmAndAndroid.kt:93)
+at androidx.compose.ui.test.EspressoLink.isIdleNow(EspressoLink.android.kt:49)
+at androidx.test.espresso.base.IdlingResourceRegistry.allResourcesAreIdle(IdlingResourceRegistry.java:281)
+at androidx.test.espresso.base.IdlingResourceRegistry$6.isIdleNow(IdlingResourceRegistry.java:320)
+at androidx.test.espresso.base.UiControllerImpl.loopMainThreadUntilIdle(UiControllerImpl.java:407)
+at androidx.test.espresso.Espresso.lambda$onIdle$2(Espresso.java:340)
+at androidx.test.espresso.Espresso$$ExternalSyntheticLambda1.call(D8$$SyntheticClass:0)
+at java.util.concurrent.FutureTask.run(FutureTask.java:264)
+at android.os.Handler.handleCallback(Handler.java:958)
+at android.os.Handler.dispatchMessage(Handler.java:99)
+at android.os.Looper.loopOnce(Looper.java:205)
+at android.os.Looper.loop(Looper.java:294)
+at android.app.ActivityThread.main(ActivityThread.java:8177)
+at java.lang.reflect.Method.invoke(Native Method)
+at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:552)
+at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:971)
+
+java.lang.IllegalStateException: Vertically scrollable component was measured with an infinity maximum height constraints, which is disallowed. One of the common reasons is nesting layouts like LazyColumn and Column(Modifier.verticalScroll()). If you want to add a header before the list of items please add a header as a separate item() before the main items() inside the LazyColumn scope. There could be other reasons for this to happen: your ComposeView was added into a LinearLayout with some weight, you applied Modifier.wrapContentSize(unbounded = true) or wrote a custom layout. Please try to remove the source of infinite constraints in the hierarchy above the scrolling container.
+at androidx.compose.foundation.internal.InlineClassHelperKt.throwIllegalStateException(InlineClassHelper.kt:26)
+at androidx.compose.foundation.CheckScrollableContainerConstraintsKt.checkScrollableContainerConstraints-K40F9xA(CheckScrollableContainerConstraints.kt:59)
+at androidx.compose.foundation.ScrollNode.measure-3p2s80s(Scroll.kt:447)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.graphics.SimpleGraphicsLayerModifier.measure-3p2s80s(GraphicsLayerModifier.kt:962)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.PaddingValuesModifier.measure-3p2s80s(Padding.kt:513)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.lazy.layout.LazyLayoutMeasuredItemProvider.getPlaceables-3p2s80s(LazyLayoutMeasuredItem.kt:119)
+at androidx.compose.foundation.lazy.LazyListMeasuredItemProvider.getAndMeasure-0kLqBqw(LazyListMeasuredItemProvider.kt:54)
+at androidx.compose.foundation.lazy.LazyListMeasuredItemProvider.getAndMeasure-0kLqBqw$default(LazyListMeasuredItemProvider.kt:48)
+at androidx.compose.foundation.lazy.LazyListMeasureKt.measureLazyList-pIk1_oM(LazyListMeasure.kt:226)
+at androidx.compose.foundation.lazy.LazyListKt$rememberLazyListMeasurePolicy$1$1.measure-0kLqBqw(LazyList.kt:361)
+at androidx.compose.foundation.lazy.layout.LazyLayoutKt.LazyLayout$lambda$1$3$0(LazyLayout.kt:141)
+at androidx.compose.foundation.lazy.layout.LazyLayoutKt.$r8$lambda$rf3vllu87hDgmhs57JbwRZ1rpS4(Unknown Source:0)
+at androidx.compose.foundation.lazy.layout.LazyLayoutKt$$ExternalSyntheticLambda6.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:955)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.ui.graphics.SimpleGraphicsLayerModifier.measure-3p2s80s(GraphicsLayerModifier.kt:962)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.lazy.layout.LazyLayoutBeyondBoundsProviderModifierNode.measure-3p2s80s(LazyLayoutBeyondBoundsModifierLocal.kt:122)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.PaddingValuesModifier.measure-3p2s80s(Padding.kt:513)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:145)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.BoxWithConstraints$lambda$0$0(BoxWithConstraints.kt:68)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.$r8$lambda$p9yh-8kbO_kwrsRP1ZyRK8puGy8(Unknown Source:0)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:955)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.RowColumnMeasurePolicyKt.measure(RowColumnMeasurePolicy.kt:208)
+at androidx.compose.foundation.layout.RowColumnMeasurePolicyKt.measure$default(RowColumnMeasurePolicy.kt:77)
+at androidx.compose.foundation.layout.ColumnMeasurePolicy.measure-3p2s80s(Column.kt:211)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:145)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.BoxWithConstraints$lambda$0$0(BoxWithConstraints.kt:68)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.$r8$lambda$p9yh-8kbO_kwrsRP1ZyRK8puGy8(Unknown Source:0)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:955)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.PaddingValuesModifier.measure-3p2s80s(Padding.kt:513)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:145)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:758)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui(LayoutNode.kt:1288)
+at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui$default(LayoutNode.kt:1281)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.doRemeasure-sdFAvZA(MeasureAndLayoutDelegate.kt:385)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.remeasureIfNeeded(MeasureAndLayoutDelegate.kt:674)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.access$remeasureIfNeeded(MeasureAndLayoutDelegate.kt:46)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.measureAndLayout(MeasureAndLayoutDelegate.kt:411)
+at androidx.compose.ui.platform.AndroidComposeView.measureAndLayout(AndroidComposeView.android.kt:1883)
+at androidx.compose.ui.node.Owner.measureAndLayout$default(Owner.kt:257)
+at androidx.compose.ui.platform.AndroidComposeView.measureAndLayoutForTest(AndroidComposeView.android.kt:1963)
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment._init_$lambda$0(ComposeUiTest.android.kt:557)
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.test.TestMonotonicFrameClock.performFrame$lambda$0(TestMonotonicFrameClock.jvmAndAndroid.kt:156)
+at androidx.compose.ui.test.TestMonotonicFrameClock$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.test.FrameDeferringContinuationInterceptor.runWithoutResumingCoroutines(FrameDeferringContinuationInterceptor.jvmAndAndroid.kt:59)
+at androidx.compose.ui.test.TestMonotonicFrameClock.performFrame(TestMonotonicFrameClock.jvmAndAndroid.kt:135)
+at androidx.compose.ui.test.TestMonotonicFrameClock.access$performFrame(TestMonotonicFrameClock.jvmAndAndroid.kt:57)
+at androidx.compose.ui.test.TestMonotonicFrameClock$withFrameNanos$2$1$2.invokeSuspend(TestMonotonicFrameClock.jvmAndAndroid.kt:113)
+at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+at kotlinx.coroutines.DispatchedTaskKt.resume(DispatchedTask.kt:221)
+at kotlinx.coroutines.DispatchedTaskKt.dispatch(DispatchedTask.kt:154)
+at kotlinx.coroutines.CancellableContinuationImpl.dispatchResume(CancellableContinuationImpl.kt:470)
+at kotlinx.coroutines.CancellableContinuationImpl.resumeImpl$kotlinx_coroutines_core(CancellableContinuationImpl.kt:504)
+at kotlinx.coroutines.CancellableContinuationImpl.resumeImpl$kotlinx_coroutines_core$default(CancellableContinuationImpl.kt:493)
+at kotlinx.coroutines.CancellableContinuationImpl.resumeUndispatched(CancellableContinuationImpl.kt:596)
+at kotlinx.coroutines.test.CancellableContinuationRunnable.run(TestDispatcher.kt:60)
+at kotlinx.coroutines.test.TestDispatcher.processEvent$kotlinx_coroutines_test(TestDispatcher.kt:24)
+at kotlinx.coroutines.test.TestCoroutineScheduler.runCurrent(TestCoroutineScheduler.kt:132)
+at androidx.compose.ui.test.AbstractMainTestClock.advanceScheduler$lambda$0(AbstractMainTestClock.kt:105)
+at androidx.compose.ui.test.AbstractMainTestClock$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.test.AndroidSynchronization_androidKt.runOnUiThread(AndroidSynchronization.android.kt:35)
+at androidx.compose.ui.test.MainTestClockImpl$1.invoke(MainTestClockImpl.android.kt:32)
+at androidx.compose.ui.test.MainTestClockImpl$1.invoke(MainTestClockImpl.android.kt:32)
+at androidx.compose.ui.test.AbstractMainTestClock.advanceScheduler(AbstractMainTestClock.kt:101)
+at androidx.compose.ui.test.AbstractMainTestClock.advanceTimeByFrame(AbstractMainTestClock.kt:41)
+at androidx.compose.ui.test.ComposeIdlingResource.isIdleNow(ComposeIdlingResource.android.kt:110)
+at androidx.compose.ui.test.IdlingResourceRegistry.areAllResourcesIdle(IdlingResourceRegistry.jvmAndAndroid.kt:115)
+at androidx.compose.ui.test.IdlingResourceRegistry.isIdleOrEnsurePolling$ui_test(IdlingResourceRegistry.jvmAndAndroid.kt:93)
+at androidx.compose.ui.test.EspressoLink.isIdleNow(EspressoLink.android.kt:49)
+at androidx.test.espresso.base.IdlingResourceRegistry.allResourcesAreIdle(IdlingResourceRegistry.java:281)
+at androidx.test.espresso.base.IdlingResourceRegistry$6.isIdleNow(IdlingResourceRegistry.java:320)
+at androidx.test.espresso.base.UiControllerImpl.loopMainThreadUntilIdle(UiControllerImpl.java:407)
+at androidx.test.espresso.Espresso.lambda$onIdle$2(Espresso.java:340)
+at androidx.test.espresso.Espresso$$ExternalSyntheticLambda1.call(D8$$SyntheticClass:0)
+at java.util.concurrent.FutureTask.run(FutureTask.java:264)
+at android.os.Handler.handleCallback(Handler.java:958)
+at android.os.Handler.dispatchMessage(Handler.java:99)
+at android.os.Looper.loopOnce(Looper.java:205)
+at android.os.Looper.loop(Looper.java:294)
+at android.app.ActivityThread.main(ActivityThread.java:8177)
+at java.lang.reflect.Method.invoke(Native Method)
+at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:552)
+at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:971)
+Execute com.whip.app.TrackHistoryJourneyE2ETest.emptyArchivedTrackExplainsRestoreThenOffersFirstEntry: FAILED
+java.lang.IllegalStateException: java.lang.IllegalStateException: Vertically scrollable component was measured with an infinity maximum height constraints, which is disallowed. One of the common reasons is nesting layouts like LazyColumn and Column(Modifier.verticalScroll()). If you want to add a header before the list of items please add a header as a separate item() before the main items() inside the LazyColumn scope. There could be other reasons for this to happen: your ComposeView was added into a LinearLayout with some weight, you applied Modifier.wrapContentSize(unbounded = true) or wrote a custom layout. Please try to remove the source of infinite constraints in the hierarchy above the scrolling container.
+at androidx.compose.foundation.internal.InlineClassHelperKt.throwIllegalStateException(InlineClassHelper.kt:26)
+at androidx.compose.foundation.CheckScrollableContainerConstraintsKt.checkScrollableContainerConstraints-K40F9xA(CheckScrollableContainerConstraints.kt:59)
+at androidx.compose.foundation.ScrollNode.measure-3p2s80s(Scroll.kt:447)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.graphics.SimpleGraphicsLayerModifier.measure-3p2s80s(GraphicsLayerModifier.kt:962)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.PaddingValuesModifier.measure-3p2s80s(Padding.kt:513)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.lazy.layout.LazyLayoutMeasuredItemProvider.getPlaceables-3p2s80s(LazyLayoutMeasuredItem.kt:119)
+at androidx.compose.foundation.lazy.LazyListMeasuredItemProvider.getAndMeasure-0kLqBqw(LazyListMeasuredItemProvider.kt:54)
+at androidx.compose.foundation.lazy.LazyListMeasuredItemProvider.getAndMeasure-0kLqBqw$default(LazyListMeasuredItemProvider.kt:48)
+at androidx.compose.foundation.lazy.LazyListMeasureKt.measureLazyList-pIk1_oM(LazyListMeasure.kt:226)
+at androidx.compose.foundation.lazy.LazyListKt$rememberLazyListMeasurePolicy$1$1.measure-0kLqBqw(LazyList.kt:361)
+at androidx.compose.foundation.lazy.layout.LazyLayoutKt.LazyLayout$lambda$1$3$0(LazyLayout.kt:141)
+at androidx.compose.foundation.lazy.layout.LazyLayoutKt.$r8$lambda$rf3vllu87hDgmhs57JbwRZ1rpS4(Unknown Source:0)
+at androidx.compose.foundation.lazy.layout.LazyLayoutKt$$ExternalSyntheticLambda6.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:955)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.ui.graphics.SimpleGraphicsLayerModifier.measure-3p2s80s(GraphicsLayerModifier.kt:962)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.lazy.layout.LazyLayoutBeyondBoundsProviderModifierNode.measure-3p2s80s(LazyLayoutBeyondBoundsModifierLocal.kt:122)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.PaddingValuesModifier.measure-3p2s80s(Padding.kt:513)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:145)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.BoxWithConstraints$lambda$0$0(BoxWithConstraints.kt:68)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.$r8$lambda$p9yh-8kbO_kwrsRP1ZyRK8puGy8(Unknown Source:0)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:955)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.RowColumnMeasurePolicyKt.measure(RowColumnMeasurePolicy.kt:208)
+at androidx.compose.foundation.layout.RowColumnMeasurePolicyKt.measure$default(RowColumnMeasurePolicy.kt:77)
+at androidx.compose.foundation.layout.ColumnMeasurePolicy.measure-3p2s80s(Column.kt:211)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:145)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.BoxWithConstraints$lambda$0$0(BoxWithConstraints.kt:68)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.$r8$lambda$p9yh-8kbO_kwrsRP1ZyRK8puGy8(Unknown Source:0)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:955)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.PaddingValuesModifier.measure-3p2s80s(Padding.kt:513)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:145)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:758)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui(LayoutNode.kt:1288)
+at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui$default(LayoutNode.kt:1281)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.doRemeasure-sdFAvZA(MeasureAndLayoutDelegate.kt:385)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.remeasureIfNeeded(MeasureAndLayoutDelegate.kt:674)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.access$remeasureIfNeeded(MeasureAndLayoutDelegate.kt:46)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.measureAndLayout(MeasureAndLayoutDelegate.kt:411)
+at androidx.compose.ui.platform.AndroidComposeView.measureAndLayout(AndroidComposeView.android.kt:1883)
+at androidx.compose.ui.node.Owner.measureAndLayout$default(Owner.kt:257)
+at androidx.compose.ui.platform.AndroidComposeView.measureAndLayoutForTest(AndroidComposeView.android.kt:1963)
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment._init_$lambda$0(ComposeUiTest.android.kt:557)
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.test.TestMonotonicFrameClock.performFrame$lambda$0(TestMonotonicFrameClock.jvmAndAndroid.kt:156)
+at androidx.compose.ui.test.TestMonotonicFrameClock$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.test.FrameDeferringContinuationInterceptor.runWithoutResumingCoroutines(FrameDeferringContinuationInterceptor.jvmAndAndroid.kt:59)
+at androidx.compose.ui.test.TestMonotonicFrameClock.performFrame(TestMonotonicFrameClock.jvmAndAndroid.kt:135)
+at androidx.compose.ui.test.TestMonotonicFrameClock.access$performFrame(TestMonotonicFrameClock.jvmAndAndroid.kt:57)
+at androidx.compose.ui.test.TestMonotonicFrameClock$withFrameNanos$2$1$2.invokeSuspend(TestMonotonicFrameClock.jvmAndAndroid.kt:113)
+at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+at kotlinx.coroutines.DispatchedTaskKt.resume(DispatchedTask.kt:221)
+at kotlinx.coroutines.DispatchedTaskKt.dispatch(DispatchedTask.kt:154)
+at kotlinx.coroutines.CancellableContinuationImpl.dispatchResume(CancellableContinuationImpl.kt:470)
+at kotlinx.coroutines.CancellableContinuationImpl.resumeImpl$kotlinx_coroutines_core(CancellableContinuationImpl.kt:504)
+at kotlinx.coroutines.CancellableContinuationImpl.resumeImpl$kotlinx_coroutines_core$default(CancellableContinuationImpl.kt:493)
+at kotlinx.coroutines.CancellableContinuationImpl.resumeUndispatched(CancellableContinuationImpl.kt:596)
+at kotlinx.coroutines.test.CancellableContinuationRunnable.run(TestDispatcher.kt:60)
+at kotlinx.coroutines.test.TestDispatcher.processEvent$kotlinx_coroutines_test(TestDispatcher.kt:24)
+at kotlinx.coroutines.test.TestCoroutineScheduler.runCurrent(TestCoroutineScheduler.kt:132)
+at androidx.compose.ui.test.AbstractMainTestClock.advanceScheduler$lambda$0(AbstractMainTestClock.kt:105)
+at androidx.compose.ui.test.AbstractMainTestClock$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.test.AndroidSynchronization_androidKt.runOnUiThread(AndroidSynchronization.android.kt:35)
+at androidx.compose.ui.test.MainTestClockImpl$1.invoke(MainTestClockImpl.android.kt:32)
+at androidx.compose.ui.test.MainTestClockImpl$1.invoke(MainTestClockImpl.android.kt:32)
+at androidx.compose.ui.test.AbstractMainTestClock.advanceScheduler(AbstractMainTestClock.kt:101)
+at androidx.compose.ui.test.AbstractMainTestClock.advanceTimeByFrame(AbstractMainTestClock.kt:41)
+at androidx.compose.ui.test.ComposeIdlingResource.isIdleNow(ComposeIdlingResource.android.kt:110)
+at androidx.compose.ui.test.IdlingResourceRegistry.areAllResourcesIdle(IdlingResourceRegistry.jvmAndAndroid.kt:115)
+at androidx.compose.ui.test.IdlingResourceRegistry.isIdleOrEnsurePolling$ui_test(IdlingResourceRegistry.jvmAndAndroid.kt:93)
+at androidx.compose.ui.test.EspressoLink.isIdleNow(EspressoLink.android.kt:49)
+at androidx.test.espresso.base.IdlingResourceRegistry.allResourcesAreIdle(IdlingResourceRegistry.java:281)
+at androidx.test.espresso.base.IdlingResourceRegistry$6.isIdleNow(IdlingResourceRegistry.java:320)
+at androidx.test.espresso.base.UiControllerImpl.loopMainThreadUntilIdle(UiControllerImpl.java:407)
+at androidx.test.espresso.Espresso.lambda$onIdle$2(Espresso.java:340)
+at androidx.test.espresso.Espresso$$ExternalSyntheticLambda1.call(D8$$SyntheticClass:0)
+at java.util.concurrent.FutureTask.run(FutureTask.java:264)
+at android.os.Handler.handleCallback(Handler.java:958)
+at android.os.Handler.dispatchMessage(Handler.java:99)
+at android.os.Looper.loopOnce(Looper.java:205)
+at android.os.Looper.loop(Looper.java:294)
+at android.app.ActivityThread.main(ActivityThread.java:8177)
+at java.lang.reflect.Method.invoke(Native Method)
+at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:552)
+at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:971)
+
+java.lang.IllegalStateException: Vertically scrollable component was measured with an infinity maximum height constraints, which is disallowed. One of the common reasons is nesting layouts like LazyColumn and Column(Modifier.verticalScroll()). If you want to add a header before the list of items please add a header as a separate item() before the main items() inside the LazyColumn scope. There could be other reasons for this to happen: your ComposeView was added into a LinearLayout with some weight, you applied Modifier.wrapContentSize(unbounded = true) or wrote a custom layout. Please try to remove the source of infinite constraints in the hierarchy above the scrolling container.
+at androidx.compose.foundation.internal.InlineClassHelperKt.throwIllegalStateException(InlineClassHelper.kt:26)
+at androidx.compose.foundation.CheckScrollableContainerConstraintsKt.checkScrollableContainerConstraints-K40F9xA(CheckScrollableContainerConstraints.kt:59)
+at androidx.compose.foundation.ScrollNode.measure-3p2s80s(Scroll.kt:447)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.graphics.SimpleGraphicsLayerModifier.measure-3p2s80s(GraphicsLayerModifier.kt:962)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.PaddingValuesModifier.measure-3p2s80s(Padding.kt:513)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.lazy.layout.LazyLayoutMeasuredItemProvider.getPlaceables-3p2s80s(LazyLayoutMeasuredItem.kt:119)
+at androidx.compose.foundation.lazy.LazyListMeasuredItemProvider.getAndMeasure-0kLqBqw(LazyListMeasuredItemProvider.kt:54)
+at androidx.compose.foundation.lazy.LazyListMeasuredItemProvider.getAndMeasure-0kLqBqw$default(LazyListMeasuredItemProvider.kt:48)
+at androidx.compose.foundation.lazy.LazyListMeasureKt.measureLazyList-pIk1_oM(LazyListMeasure.kt:226)
+at androidx.compose.foundation.lazy.LazyListKt$rememberLazyListMeasurePolicy$1$1.measure-0kLqBqw(LazyList.kt:361)
+at androidx.compose.foundation.lazy.layout.LazyLayoutKt.LazyLayout$lambda$1$3$0(LazyLayout.kt:141)
+at androidx.compose.foundation.lazy.layout.LazyLayoutKt.$r8$lambda$rf3vllu87hDgmhs57JbwRZ1rpS4(Unknown Source:0)
+at androidx.compose.foundation.lazy.layout.LazyLayoutKt$$ExternalSyntheticLambda6.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:955)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.ui.graphics.SimpleGraphicsLayerModifier.measure-3p2s80s(GraphicsLayerModifier.kt:962)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.lazy.layout.LazyLayoutBeyondBoundsProviderModifierNode.measure-3p2s80s(LazyLayoutBeyondBoundsModifierLocal.kt:122)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.PaddingValuesModifier.measure-3p2s80s(Padding.kt:513)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:145)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.BoxWithConstraints$lambda$0$0(BoxWithConstraints.kt:68)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.$r8$lambda$p9yh-8kbO_kwrsRP1ZyRK8puGy8(Unknown Source:0)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:955)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.RowColumnMeasurePolicyKt.measure(RowColumnMeasurePolicy.kt:208)
+at androidx.compose.foundation.layout.RowColumnMeasurePolicyKt.measure$default(RowColumnMeasurePolicy.kt:77)
+at androidx.compose.foundation.layout.ColumnMeasurePolicy.measure-3p2s80s(Column.kt:211)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:145)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.BoxWithConstraints$lambda$0$0(BoxWithConstraints.kt:68)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.$r8$lambda$p9yh-8kbO_kwrsRP1ZyRK8puGy8(Unknown Source:0)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:955)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.PaddingValuesModifier.measure-3p2s80s(Padding.kt:513)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:145)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:758)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui(LayoutNode.kt:1288)
+at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui$default(LayoutNode.kt:1281)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.doRemeasure-sdFAvZA(MeasureAndLayoutDelegate.kt:385)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.remeasureIfNeeded(MeasureAndLayoutDelegate.kt:674)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.access$remeasureIfNeeded(MeasureAndLayoutDelegate.kt:46)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.measureAndLayout(MeasureAndLayoutDelegate.kt:411)
+at androidx.compose.ui.platform.AndroidComposeView.measureAndLayout(AndroidComposeView.android.kt:1883)
+at androidx.compose.ui.node.Owner.measureAndLayout$default(Owner.kt:257)
+at androidx.compose.ui.platform.AndroidComposeView.measureAndLayoutForTest(AndroidComposeView.android.kt:1963)
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment._init_$lambda$0(ComposeUiTest.android.kt:557)
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.test.TestMonotonicFrameClock.performFrame$lambda$0(TestMonotonicFrameClock.jvmAndAndroid.kt:156)
+at androidx.compose.ui.test.TestMonotonicFrameClock$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.test.FrameDeferringContinuationInterceptor.runWithoutResumingCoroutines(FrameDeferringContinuationInterceptor.jvmAndAndroid.kt:59)
+at androidx.compose.ui.test.TestMonotonicFrameClock.performFrame(TestMonotonicFrameClock.jvmAndAndroid.kt:135)
+at androidx.compose.ui.test.TestMonotonicFrameClock.access$performFrame(TestMonotonicFrameClock.jvmAndAndroid.kt:57)
+at androidx.compose.ui.test.TestMonotonicFrameClock$withFrameNanos$2$1$2.invokeSuspend(TestMonotonicFrameClock.jvmAndAndroid.kt:113)
+at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+at kotlinx.coroutines.DispatchedTaskKt.resume(DispatchedTask.kt:221)
+at kotlinx.coroutines.DispatchedTaskKt.dispatch(DispatchedTask.kt:154)
+at kotlinx.coroutines.CancellableContinuationImpl.dispatchResume(CancellableContinuationImpl.kt:470)
+at kotlinx.coroutines.CancellableContinuationImpl.resumeImpl$kotlinx_coroutines_core(CancellableContinuationImpl.kt:504)
+at kotlinx.coroutines.CancellableContinuationImpl.resumeImpl$kotlinx_coroutines_core$default(CancellableContinuationImpl.kt:493)
+at kotlinx.coroutines.CancellableContinuationImpl.resumeUndispatched(CancellableContinuationImpl.kt:596)
+at kotlinx.coroutines.test.CancellableContinuationRunnable.run(TestDispatcher.kt:60)
+at kotlinx.coroutines.test.TestDispatcher.processEvent$kotlinx_coroutines_test(TestDispatcher.kt:24)
+at kotlinx.coroutines.test.TestCoroutineScheduler.runCurrent(TestCoroutineScheduler.kt:132)
+at androidx.compose.ui.test.AbstractMainTestClock.advanceScheduler$lambda$0(AbstractMainTestClock.kt:105)
+at androidx.compose.ui.test.AbstractMainTestClock$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.test.AndroidSynchronization_androidKt.runOnUiThread(AndroidSynchronization.android.kt:35)
+at androidx.compose.ui.test.MainTestClockImpl$1.invoke(MainTestClockImpl.android.kt:32)
+at androidx.compose.ui.test.MainTestClockImpl$1.invoke(MainTestClockImpl.android.kt:32)
+at androidx.compose.ui.test.AbstractMainTestClock.advanceScheduler(AbstractMainTestClock.kt:101)
+at androidx.compose.ui.test.AbstractMainTestClock.advanceTimeByFrame(AbstractMainTestClock.kt:41)
+at androidx.compose.ui.test.ComposeIdlingResource.isIdleNow(ComposeIdlingResource.android.kt:110)
+at androidx.compose.ui.test.IdlingResourceRegistry.areAllResourcesIdle(IdlingResourceRegistry.jvmAndAndroid.kt:115)
+at androidx.compose.ui.test.IdlingResourceRegistry.isIdleOrEnsurePolling$ui_test(IdlingResourceRegistry.jvmAndAndroid.kt:93)
+at androidx.compose.ui.test.EspressoLink.isIdleNow(EspressoLink.android.kt:49)
+at androidx.test.espresso.base.IdlingResourceRegistry.allResourcesAreIdle(IdlingResourceRegistry.java:281)
+at androidx.test.espresso.base.IdlingResourceRegistry$6.isIdleNow(IdlingResourceRegistry.java:320)
+at androidx.test.espresso.base.UiControllerImpl.loopMainThreadUntilIdle(UiControllerImpl.java:407)
+at androidx.test.espresso.Espresso.lambda$onIdle$2(Espresso.java:340)
+at androidx.test.espresso.Espresso$$ExternalSyntheticLambda1.call(D8$$SyntheticClass:0)
+at java.util.concurrent.FutureTask.run(FutureTask.java:264)
+at android.os.Handler.handleCallback(Handler.java:958)
+at android.os.Handler.dispatchMessage(Handler.java:99)
+at android.os.Looper.loopOnce(Looper.java:205)
+at android.os.Looper.loop(Looper.java:294)
+at android.app.ActivityThread.main(ActivityThread.java:8177)
+at java.lang.reflect.Method.invoke(Native Method)
+at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:552)
+at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:971)
+Execute com.whip.app.TrackInsightsJourneyE2ETest.mixedDistanceUnitsUseTheFieldUnitAndPrecisionAcrossInsights: FAILED
+java.lang.IllegalStateException: java.lang.IllegalStateException: Vertically scrollable component was measured with an infinity maximum height constraints, which is disallowed. One of the common reasons is nesting layouts like LazyColumn and Column(Modifier.verticalScroll()). If you want to add a header before the list of items please add a header as a separate item() before the main items() inside the LazyColumn scope. There could be other reasons for this to happen: your ComposeView was added into a LinearLayout with some weight, you applied Modifier.wrapContentSize(unbounded = true) or wrote a custom layout. Please try to remove the source of infinite constraints in the hierarchy above the scrolling container.
+at androidx.compose.foundation.internal.InlineClassHelperKt.throwIllegalStateException(InlineClassHelper.kt:26)
+at androidx.compose.foundation.CheckScrollableContainerConstraintsKt.checkScrollableContainerConstraints-K40F9xA(CheckScrollableContainerConstraints.kt:59)
+at androidx.compose.foundation.ScrollNode.measure-3p2s80s(Scroll.kt:447)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.graphics.SimpleGraphicsLayerModifier.measure-3p2s80s(GraphicsLayerModifier.kt:962)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.PaddingValuesModifier.measure-3p2s80s(Padding.kt:513)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.lazy.layout.LazyLayoutMeasuredItemProvider.getPlaceables-3p2s80s(LazyLayoutMeasuredItem.kt:119)
+at androidx.compose.foundation.lazy.LazyListMeasuredItemProvider.getAndMeasure-0kLqBqw(LazyListMeasuredItemProvider.kt:54)
+at androidx.compose.foundation.lazy.LazyListMeasuredItemProvider.getAndMeasure-0kLqBqw$default(LazyListMeasuredItemProvider.kt:48)
+at androidx.compose.foundation.lazy.LazyListMeasureKt.measureLazyList-pIk1_oM(LazyListMeasure.kt:226)
+at androidx.compose.foundation.lazy.LazyListKt$rememberLazyListMeasurePolicy$1$1.measure-0kLqBqw(LazyList.kt:361)
+at androidx.compose.foundation.lazy.layout.LazyLayoutKt.LazyLayout$lambda$1$3$0(LazyLayout.kt:141)
+at androidx.compose.foundation.lazy.layout.LazyLayoutKt.$r8$lambda$rf3vllu87hDgmhs57JbwRZ1rpS4(Unknown Source:0)
+at androidx.compose.foundation.lazy.layout.LazyLayoutKt$$ExternalSyntheticLambda6.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:955)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.ui.graphics.SimpleGraphicsLayerModifier.measure-3p2s80s(GraphicsLayerModifier.kt:962)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.lazy.layout.LazyLayoutBeyondBoundsProviderModifierNode.measure-3p2s80s(LazyLayoutBeyondBoundsModifierLocal.kt:122)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.PaddingValuesModifier.measure-3p2s80s(Padding.kt:513)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:145)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.BoxWithConstraints$lambda$0$0(BoxWithConstraints.kt:68)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.$r8$lambda$p9yh-8kbO_kwrsRP1ZyRK8puGy8(Unknown Source:0)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:955)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.RowColumnMeasurePolicyKt.measure(RowColumnMeasurePolicy.kt:208)
+at androidx.compose.foundation.layout.RowColumnMeasurePolicyKt.measure$default(RowColumnMeasurePolicy.kt:77)
+at androidx.compose.foundation.layout.ColumnMeasurePolicy.measure-3p2s80s(Column.kt:211)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:145)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.BoxWithConstraints$lambda$0$0(BoxWithConstraints.kt:68)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.$r8$lambda$p9yh-8kbO_kwrsRP1ZyRK8puGy8(Unknown Source:0)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:955)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.PaddingValuesModifier.measure-3p2s80s(Padding.kt:513)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:145)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui(LayoutNode.kt:1288)
+at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui$default(LayoutNode.kt:1281)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.doRemeasure-sdFAvZA(MeasureAndLayoutDelegate.kt:385)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.remeasureIfNeeded(MeasureAndLayoutDelegate.kt:674)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.remeasureIfNeeded$default(MeasureAndLayoutDelegate.kt:650)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.onlyRemeasureIfPending(MeasureAndLayoutDelegate.kt:756)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.forceMeasureTheSubtreeInternal(MeasureAndLayoutDelegate.kt:783)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.forceMeasureTheSubtreeInternal(MeasureAndLayoutDelegate.kt:790)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.forceMeasureTheSubtree(MeasureAndLayoutDelegate.kt:747)
+at androidx.compose.ui.platform.AndroidComposeView.forceMeasureTheSubtree(AndroidComposeView.android.kt:1917)
+at androidx.compose.ui.node.Owner.forceMeasureTheSubtree$default(Owner.kt:270)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:508)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.material3.ScaffoldKt.ScaffoldLayout_FMILGgc$lambda$15$lambda$14(Scaffold.kt:276)
+at androidx.compose.material3.ScaffoldKt$$ExternalSyntheticLambda2.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:955)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui(LayoutNode.kt:1288)
+at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui$default(LayoutNode.kt:1281)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.doRemeasure-sdFAvZA(MeasureAndLayoutDelegate.kt:385)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.remeasureIfNeeded(MeasureAndLayoutDelegate.kt:674)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.remeasureIfNeeded$default(MeasureAndLayoutDelegate.kt:650)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.onlyRemeasureIfPending(MeasureAndLayoutDelegate.kt:756)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.forceMeasureTheSubtreeInternal(MeasureAndLayoutDelegate.kt:783)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.forceMeasureTheSubtreeInternal(MeasureAndLayoutDelegate.kt:790)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.forceMeasureTheSubtreeInternal(MeasureAndLayoutDelegate.kt:790)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.forceMeasureTheSubtree(MeasureAndLayoutDelegate.kt:747)
+at androidx.compose.ui.platform.AndroidComposeView.forceMeasureTheSubtree(AndroidComposeView.android.kt:1917)
+at androidx.compose.ui.node.Owner.forceMeasureTheSubtree$default(Owner.kt:270)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:508)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:145)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.BoxWithConstraints$lambda$0$0(BoxWithConstraints.kt:68)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.$r8$lambda$p9yh-8kbO_kwrsRP1ZyRK8puGy8(Unknown Source:0)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:955)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:758)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui(LayoutNode.kt:1288)
+at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui$default(LayoutNode.kt:1281)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.doRemeasure-sdFAvZA(MeasureAndLayoutDelegate.kt:385)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.remeasureIfNeeded(MeasureAndLayoutDelegate.kt:674)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.access$remeasureIfNeeded(MeasureAndLayoutDelegate.kt:46)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.measureAndLayout(MeasureAndLayoutDelegate.kt:411)
+at androidx.compose.ui.platform.AndroidComposeView.measureAndLayout(AndroidComposeView.android.kt:1883)
+at androidx.compose.ui.node.Owner.measureAndLayout$default(Owner.kt:257)
+at androidx.compose.ui.platform.AndroidComposeView.measureAndLayoutForTest(AndroidComposeView.android.kt:1963)
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment._init_$lambda$0(ComposeUiTest.android.kt:557)
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.test.TestMonotonicFrameClock.performFrame$lambda$0(TestMonotonicFrameClock.jvmAndAndroid.kt:156)
+at androidx.compose.ui.test.TestMonotonicFrameClock$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.test.FrameDeferringContinuationInterceptor.runWithoutResumingCoroutines(FrameDeferringContinuationInterceptor.jvmAndAndroid.kt:59)
+at androidx.compose.ui.test.TestMonotonicFrameClock.performFrame(TestMonotonicFrameClock.jvmAndAndroid.kt:135)
+at androidx.compose.ui.test.TestMonotonicFrameClock.access$performFrame(TestMonotonicFrameClock.jvmAndAndroid.kt:57)
+at androidx.compose.ui.test.TestMonotonicFrameClock$withFrameNanos$2$1$2.invokeSuspend(TestMonotonicFrameClock.jvmAndAndroid.kt:113)
+at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+at kotlinx.coroutines.DispatchedTaskKt.resume(DispatchedTask.kt:221)
+at kotlinx.coroutines.DispatchedTaskKt.dispatch(DispatchedTask.kt:154)
+at kotlinx.coroutines.CancellableContinuationImpl.dispatchResume(CancellableContinuationImpl.kt:470)
+at kotlinx.coroutines.CancellableContinuationImpl.resumeImpl$kotlinx_coroutines_core(CancellableContinuationImpl.kt:504)
+at kotlinx.coroutines.CancellableContinuationImpl.resumeImpl$kotlinx_coroutines_core$default(CancellableContinuationImpl.kt:493)
+at kotlinx.coroutines.CancellableContinuationImpl.resumeUndispatched(CancellableContinuationImpl.kt:596)
+at kotlinx.coroutines.test.CancellableContinuationRunnable.run(TestDispatcher.kt:60)
+at kotlinx.coroutines.test.TestDispatcher.processEvent$kotlinx_coroutines_test(TestDispatcher.kt:24)
+at kotlinx.coroutines.test.TestCoroutineScheduler.runCurrent(TestCoroutineScheduler.kt:132)
+at androidx.compose.ui.test.AbstractMainTestClock.advanceScheduler$lambda$0(AbstractMainTestClock.kt:105)
+at androidx.compose.ui.test.AbstractMainTestClock$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.test.AndroidSynchronization_androidKt.runOnUiThread(AndroidSynchronization.android.kt:35)
+at androidx.compose.ui.test.MainTestClockImpl$1.invoke(MainTestClockImpl.android.kt:32)
+at androidx.compose.ui.test.MainTestClockImpl$1.invoke(MainTestClockImpl.android.kt:32)
+at androidx.compose.ui.test.AbstractMainTestClock.advanceScheduler(AbstractMainTestClock.kt:101)
+at androidx.compose.ui.test.AbstractMainTestClock.advanceTimeByFrame(AbstractMainTestClock.kt:41)
+at androidx.compose.ui.test.ComposeIdlingResource.isIdleNow(ComposeIdlingResource.android.kt:110)
+at androidx.compose.ui.test.IdlingResourceRegistry.areAllResourcesIdle(IdlingResourceRegistry.jvmAndAndroid.kt:115)
+at androidx.compose.ui.test.IdlingResourceRegistry.isIdleOrEnsurePolling$ui_test(IdlingResourceRegistry.jvmAndAndroid.kt:93)
+at androidx.compose.ui.test.EspressoLink.isIdleNow(EspressoLink.android.kt:49)
+at androidx.test.espresso.base.IdlingResourceRegistry.allResourcesAreIdle(IdlingResourceRegistry.java:281)
+at androidx.test.espresso.base.IdlingResourceRegistry$6.isIdleNow(IdlingResourceRegistry.java:320)
+at androidx.test.espresso.base.UiControllerImpl.loopMainThreadUntilIdle(UiControllerImpl.java:407)
+at androidx.test.espresso.Espresso.lambda$onIdle$2(Espresso.java:340)
+at androidx.test.espresso.Espresso$$ExternalSyntheticLambda1.call(D8$$SyntheticClass:0)
+at java.util.concurrent.FutureTask.run(FutureTask.java:264)
+at android.os.Handler.handleCallback(Handler.java:958)
+at android.os.Handler.dispatchMessage(Handler.java:99)
+at android.os.Looper.loopOnce(Looper.java:205)
+at android.os.Looper.loop(Looper.java:294)
+at android.app.ActivityThread.main(ActivityThread.java:8177)
+at java.lang.reflect.Method.invoke(Native Method)
+at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:552)
+at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:971)
+
+java.lang.IllegalStateException: Vertically scrollable component was measured with an infinity maximum height constraints, which is disallowed. One of the common reasons is nesting layouts like LazyColumn and Column(Modifier.verticalScroll()). If you want to add a header before the list of items please add a header as a separate item() before the main items() inside the LazyColumn scope. There could be other reasons for this to happen: your ComposeView was added into a LinearLayout with some weight, you applied Modifier.wrapContentSize(unbounded = true) or wrote a custom layout. Please try to remove the source of infinite constraints in the hierarchy above the scrolling container.
+at androidx.compose.foundation.internal.InlineClassHelperKt.throwIllegalStateException(InlineClassHelper.kt:26)
+at androidx.compose.foundation.CheckScrollableContainerConstraintsKt.checkScrollableContainerConstraints-K40F9xA(CheckScrollableContainerConstraints.kt:59)
+at androidx.compose.foundation.ScrollNode.measure-3p2s80s(Scroll.kt:447)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.graphics.SimpleGraphicsLayerModifier.measure-3p2s80s(GraphicsLayerModifier.kt:962)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.PaddingValuesModifier.measure-3p2s80s(Padding.kt:513)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.lazy.layout.LazyLayoutMeasuredItemProvider.getPlaceables-3p2s80s(LazyLayoutMeasuredItem.kt:119)
+at androidx.compose.foundation.lazy.LazyListMeasuredItemProvider.getAndMeasure-0kLqBqw(LazyListMeasuredItemProvider.kt:54)
+at androidx.compose.foundation.lazy.LazyListMeasuredItemProvider.getAndMeasure-0kLqBqw$default(LazyListMeasuredItemProvider.kt:48)
+at androidx.compose.foundation.lazy.LazyListMeasureKt.measureLazyList-pIk1_oM(LazyListMeasure.kt:226)
+at androidx.compose.foundation.lazy.LazyListKt$rememberLazyListMeasurePolicy$1$1.measure-0kLqBqw(LazyList.kt:361)
+at androidx.compose.foundation.lazy.layout.LazyLayoutKt.LazyLayout$lambda$1$3$0(LazyLayout.kt:141)
+at androidx.compose.foundation.lazy.layout.LazyLayoutKt.$r8$lambda$rf3vllu87hDgmhs57JbwRZ1rpS4(Unknown Source:0)
+at androidx.compose.foundation.lazy.layout.LazyLayoutKt$$ExternalSyntheticLambda6.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:955)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.ui.graphics.SimpleGraphicsLayerModifier.measure-3p2s80s(GraphicsLayerModifier.kt:962)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.lazy.layout.LazyLayoutBeyondBoundsProviderModifierNode.measure-3p2s80s(LazyLayoutBeyondBoundsModifierLocal.kt:122)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.PaddingValuesModifier.measure-3p2s80s(Padding.kt:513)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:145)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.BoxWithConstraints$lambda$0$0(BoxWithConstraints.kt:68)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.$r8$lambda$p9yh-8kbO_kwrsRP1ZyRK8puGy8(Unknown Source:0)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:955)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.RowColumnMeasurePolicyKt.measure(RowColumnMeasurePolicy.kt:208)
+at androidx.compose.foundation.layout.RowColumnMeasurePolicyKt.measure$default(RowColumnMeasurePolicy.kt:77)
+at androidx.compose.foundation.layout.ColumnMeasurePolicy.measure-3p2s80s(Column.kt:211)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:145)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.BoxWithConstraints$lambda$0$0(BoxWithConstraints.kt:68)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.$r8$lambda$p9yh-8kbO_kwrsRP1ZyRK8puGy8(Unknown Source:0)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:955)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.PaddingValuesModifier.measure-3p2s80s(Padding.kt:513)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:145)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui(LayoutNode.kt:1288)
+at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui$default(LayoutNode.kt:1281)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.doRemeasure-sdFAvZA(MeasureAndLayoutDelegate.kt:385)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.remeasureIfNeeded(MeasureAndLayoutDelegate.kt:674)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.remeasureIfNeeded$default(MeasureAndLayoutDelegate.kt:650)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.onlyRemeasureIfPending(MeasureAndLayoutDelegate.kt:756)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.forceMeasureTheSubtreeInternal(MeasureAndLayoutDelegate.kt:783)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.forceMeasureTheSubtreeInternal(MeasureAndLayoutDelegate.kt:790)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.forceMeasureTheSubtree(MeasureAndLayoutDelegate.kt:747)
+at androidx.compose.ui.platform.AndroidComposeView.forceMeasureTheSubtree(AndroidComposeView.android.kt:1917)
+at androidx.compose.ui.node.Owner.forceMeasureTheSubtree$default(Owner.kt:270)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:508)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.material3.ScaffoldKt.ScaffoldLayout_FMILGgc$lambda$15$lambda$14(Scaffold.kt:276)
+at androidx.compose.material3.ScaffoldKt$$ExternalSyntheticLambda2.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:955)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:729)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui(LayoutNode.kt:1288)
+at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui$default(LayoutNode.kt:1281)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.doRemeasure-sdFAvZA(MeasureAndLayoutDelegate.kt:385)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.remeasureIfNeeded(MeasureAndLayoutDelegate.kt:674)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.remeasureIfNeeded$default(MeasureAndLayoutDelegate.kt:650)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.onlyRemeasureIfPending(MeasureAndLayoutDelegate.kt:756)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.forceMeasureTheSubtreeInternal(MeasureAndLayoutDelegate.kt:783)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.forceMeasureTheSubtreeInternal(MeasureAndLayoutDelegate.kt:790)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.forceMeasureTheSubtreeInternal(MeasureAndLayoutDelegate.kt:790)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.forceMeasureTheSubtree(MeasureAndLayoutDelegate.kt:747)
+at androidx.compose.ui.platform.AndroidComposeView.forceMeasureTheSubtree(AndroidComposeView.android.kt:1917)
+at androidx.compose.ui.node.Owner.forceMeasureTheSubtree$default(Owner.kt:270)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:508)
+at androidx.compose.ui.node.MeasurePassDelegate.measure-BRTryo0(MeasurePassDelegate.kt:470)
+at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:145)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.BoxWithConstraints$lambda$0$0(BoxWithConstraints.kt:68)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt.$r8$lambda$p9yh-8kbO_kwrsRP1ZyRK8puGy8(Unknown Source:0)
+at androidx.compose.foundation.layout.BoxWithConstraintsKt$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:955)
+at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:130)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:721)
+at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+at androidx.compose.ui.node.MeasurePassDelegate.performMeasureBlock$lambda$0(MeasurePassDelegate.kt:173)
+at androidx.compose.ui.node.MeasurePassDelegate$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:758)
+at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:1077)
+at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui(LayoutNode.kt:1288)
+at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui$default(LayoutNode.kt:1281)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.doRemeasure-sdFAvZA(MeasureAndLayoutDelegate.kt:385)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.remeasureIfNeeded(MeasureAndLayoutDelegate.kt:674)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.access$remeasureIfNeeded(MeasureAndLayoutDelegate.kt:46)
+at androidx.compose.ui.node.MeasureAndLayoutDelegate.measureAndLayout(MeasureAndLayoutDelegate.kt:411)
+at androidx.compose.ui.platform.AndroidComposeView.measureAndLayout(AndroidComposeView.android.kt:1883)
+at androidx.compose.ui.node.Owner.measureAndLayout$default(Owner.kt:257)
+at androidx.compose.ui.platform.AndroidComposeView.measureAndLayoutForTest(AndroidComposeView.android.kt:1963)
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment._init_$lambda$0(ComposeUiTest.android.kt:557)
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.test.TestMonotonicFrameClock.performFrame$lambda$0(TestMonotonicFrameClock.jvmAndAndroid.kt:156)
+at androidx.compose.ui.test.TestMonotonicFrameClock$$ExternalSyntheticLambda1.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.test.FrameDeferringContinuationInterceptor.runWithoutResumingCoroutines(FrameDeferringContinuationInterceptor.jvmAndAndroid.kt:59)
+at androidx.compose.ui.test.TestMonotonicFrameClock.performFrame(TestMonotonicFrameClock.jvmAndAndroid.kt:135)
+at androidx.compose.ui.test.TestMonotonicFrameClock.access$performFrame(TestMonotonicFrameClock.jvmAndAndroid.kt:57)
+at androidx.compose.ui.test.TestMonotonicFrameClock$withFrameNanos$2$1$2.invokeSuspend(TestMonotonicFrameClock.jvmAndAndroid.kt:113)
+at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+at kotlinx.coroutines.DispatchedTaskKt.resume(DispatchedTask.kt:221)
+at kotlinx.coroutines.DispatchedTaskKt.dispatch(DispatchedTask.kt:154)
+at kotlinx.coroutines.CancellableContinuationImpl.dispatchResume(CancellableContinuationImpl.kt:470)
+at kotlinx.coroutines.CancellableContinuationImpl.resumeImpl$kotlinx_coroutines_core(CancellableContinuationImpl.kt:504)
+at kotlinx.coroutines.CancellableContinuationImpl.resumeImpl$kotlinx_coroutines_core$default(CancellableContinuationImpl.kt:493)
+at kotlinx.coroutines.CancellableContinuationImpl.resumeUndispatched(CancellableContinuationImpl.kt:596)
+at kotlinx.coroutines.test.CancellableContinuationRunnable.run(TestDispatcher.kt:60)
+at kotlinx.coroutines.test.TestDispatcher.processEvent$kotlinx_coroutines_test(TestDispatcher.kt:24)
+at kotlinx.coroutines.test.TestCoroutineScheduler.runCurrent(TestCoroutineScheduler.kt:132)
+at androidx.compose.ui.test.AbstractMainTestClock.advanceScheduler$lambda$0(AbstractMainTestClock.kt:105)
+at androidx.compose.ui.test.AbstractMainTestClock$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.test.AndroidSynchronization_androidKt.runOnUiThread(AndroidSynchronization.android.kt:35)
+at androidx.compose.ui.test.MainTestClockImpl$1.invoke(MainTestClockImpl.android.kt:32)
+at androidx.compose.ui.test.MainTestClockImpl$1.invoke(MainTestClockImpl.android.kt:32)
+at androidx.compose.ui.test.AbstractMainTestClock.advanceScheduler(AbstractMainTestClock.kt:101)
+at androidx.compose.ui.test.AbstractMainTestClock.advanceTimeByFrame(AbstractMainTestClock.kt:41)
+at androidx.compose.ui.test.ComposeIdlingResource.isIdleNow(ComposeIdlingResource.android.kt:110)
+at androidx.compose.ui.test.IdlingResourceRegistry.areAllResourcesIdle(IdlingResourceRegistry.jvmAndAndroid.kt:115)
+at androidx.compose.ui.test.IdlingResourceRegistry.isIdleOrEnsurePolling$ui_test(IdlingResourceRegistry.jvmAndAndroid.kt:93)
+at androidx.compose.ui.test.EspressoLink.isIdleNow(EspressoLink.android.kt:49)
+at androidx.test.espresso.base.IdlingResourceRegistry.allResourcesAreIdle(IdlingResourceRegistry.java:281)
+at androidx.test.espresso.base.IdlingResourceRegistry$6.isIdleNow(IdlingResourceRegistry.java:320)
+at androidx.test.espresso.base.UiControllerImpl.loopMainThreadUntilIdle(UiControllerImpl.java:407)
+at androidx.test.espresso.Espresso.lambda$onIdle$2(Espresso.java:340)
+at androidx.test.espresso.Espresso$$ExternalSyntheticLambda1.call(D8$$SyntheticClass:0)
+at java.util.concurrent.FutureTask.run(FutureTask.java:264)
+at android.os.Handler.handleCallback(Handler.java:958)
+at android.os.Handler.dispatchMessage(Handler.java:99)
+at android.os.Looper.loopOnce(Looper.java:205)
+at android.os.Looper.loop(Looper.java:294)
+at android.app.ActivityThread.main(ActivityThread.java:8177)
+at java.lang.reflect.Method.invoke(Native Method)
+at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:552)
+at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:971)
+
+> Task :app:connectedDebugAndroidTest FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:connectedDebugAndroidTest' (registered by plugin 'com.android.internal.application').
+> There were failing tests. See the report at: file:///root/repos/whip/app/build/whip-android-workers/instrumentation-results-9tb4q4-worker-1/reports/index.html
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 4m 4s
+78 actionable tasks: 1 executed, 77 up-to-date
+error: Android batch 1 requires a successful Gradle task, nonzero tests, and zero failures/skips; got status/tests/failures/skips 1/15/3/0; results retained in /root/repos/whip/build/instrumentation-results-9TB4Q4

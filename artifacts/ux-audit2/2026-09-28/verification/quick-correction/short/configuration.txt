@@ -1,0 +1,1 @@
+API34 emulator-5554; 1080x1600; density420; actual200% where annotated.

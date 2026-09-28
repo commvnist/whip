@@ -1,0 +1,4 @@
+com.whip.app.GymPowerInputUiTest
+com.whip.app.HomeHabitAudit2UiTest
+com.whip.app.TaskDayPlannerUiTest
+com.whip.app.ui.SettingsResponsiveUiTest

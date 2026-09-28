@@ -1,0 +1,444 @@
+Route A app/src/androidTest/java/com/whip/app/HomeHabitAudit2UiTest.kt -> android:com.whip.app.HomeHabitAudit2UiTest (exact Android test class)
+Route A app/src/androidTest/java/com/whip/app/TaskDayPlannerUiTest.kt -> android:com.whip.app.TaskDayPlannerUiTest (exact Android test class)
+Route A app/src/androidTest/java/com/whip/app/ui/SharedResilienceAuditUiTest.kt -> android:com.whip.app.ui.SharedResilienceAuditUiTest (exact Android test class)
+Route A app/src/androidTest/java/com/whip/app/ui/TrackHistorySearchUiTest.kt -> android:com.whip.app.ui.TrackHistorySearchUiTest (exact Android test class)
+Route A app/src/main/java/com/whip/app/ui/TrackEntryPresentation.kt -> profile:tracks (feature-owned production path)
+Route A app/src/test/java/com/whip/app/ui/HomeHabitAudit2PolicyTest.kt -> jvm:com.whip.app.ui.HomeHabitAudit2PolicyTest (exact JVM test class)
+Route A app/src/test/java/com/whip/app/ui/TrackEntryPresentationTest.kt -> jvm:com.whip.app.ui.TrackEntryPresentationTest (exact JVM test class)
+Route A artifacts/ux-audit2/2026-09-28/.gitattributes -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/README.md -> profile:docs (documentation-only path)
+Route A artifacts/ux-audit2/2026-09-28/after/normal-5/gym.library-builder.machine-archived.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/normal-5/gym.library-builder.machine-archived.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/normal-5/gym.library-builder.machine-draft.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/normal-5/gym.library-builder.machine-draft.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/normal-5/gym.library-builder.machine-list.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/normal-5/gym.library-builder.machine-list.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/normal-5/gym.library-builder.machine-version-draft.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/normal-5/gym.library-builder.machine-version-draft.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/normal-5/gym.library-builder.machine-versions.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/normal-5/gym.library-builder.machine-versions.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/normal-5/ux-upgrades.gym.chart-point-visible.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/normal-5/ux-upgrades.gym.chart-point-visible.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/normal-5/ux-upgrades.gym.history-calendar-empty.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/normal-5/ux-upgrades.gym.history-calendar-empty.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/normal-5/ux-upgrades.gym.progress-context.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/normal-5/ux-upgrades.gym.progress-context.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/normal-5/ux-upgrades.gym.progress-deleted-reverse-machine.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/normal-5/ux-upgrades.gym.progress-deleted-reverse-machine.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/normal-5/ux-upgrades.gym.progress-invalid-reps.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/normal-5/ux-upgrades.gym.progress-invalid-reps.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/normal-5/ux-upgrades.gym.routine-selected-set.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/normal-5/ux-upgrades.gym.routine-selected-set.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/shared/audit2.shared.load-failure-initial.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/shared/audit2.shared.load-failure-initial.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/shared/audit2.shared.load-failure-retry.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/shared/audit2.shared.load-failure-retry.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/shared/audit2.shared.short-inspector-history.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/shared/audit2.shared.short-inspector-history.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/shared/audit2.shared.short-inspector-initial.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/after/shared/audit2.shared.short-inspector-initial.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/before/audit2.gym.calendar.native200.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/before/audit2.gym.calendar.native200.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/before/audit2.settings.deep-operation.before.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/before/audit2.settings.deep-operation.before.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/before/audit2.settings.deep-operation.failure.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/before/audit2.settings.deep-operation.failure.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/before/audit2.shared.load-failure-initial.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/before/audit2.shared.short-inspector-initial.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/before/audit2.shared.short-inspector-initial.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/before/audit2.task-selection.empty-toolbar.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/before/audit2.task-selection.empty-toolbar.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/audit2-core-focused-2.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/audit2-core-focused-3.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/audit2-core-focused.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/audit2-gym-settings-reproduction-2.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/audit2-gym-settings-reproduction.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/audit2-jacoco-diagnostic.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/audit2-readiness-resume.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-1/configuration.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-1/exit-code.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-1/raw/aggregate.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-1/raw/batch-1.started -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-1/raw/batch-1/executed-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-1/raw/batch-1/expected-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-1/raw/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-1/run.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-1/selectors.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-2/configuration.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-2/exit-code.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-2/raw/aggregate.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-2/raw/batch-1.started -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-2/raw/batch-1/executed-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-2/raw/batch-1/expected-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-2/raw/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-2/run.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-2/selectors.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-3/configuration.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-3/exit-code.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-3/raw/aggregate.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-3/raw/batch-1.started -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-3/raw/batch-1/executed-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-3/raw/batch-1/expected-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-3/raw/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-3/run.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-3/selectors.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-4/configuration.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-4/exit-code.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-4/raw/aggregate.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-4/raw/batch-1.started -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-4/raw/batch-1/executed-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-4/raw/batch-1/expected-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-4/raw/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-4/run.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-4/selectors.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-5/configuration.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-5/exit-code.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-5/raw/aggregate.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-5/raw/batch-1.started -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-5/raw/batch-1/executed-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-5/raw/batch-1/expected-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-5/raw/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-5/raw/batch-rows/batch-1.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-5/run.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/normal-5/selectors.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/shared/configuration.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/shared/exit-code.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/shared/raw/aggregate.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/shared/raw/batch-1.started -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/shared/raw/batch-1/executed-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/shared/raw/batch-1/expected-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/shared/raw/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/shared/raw/batch-rows/batch-1.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/shared/run.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/shared/selectors.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/short/configuration.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/short/exit-code.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/short/raw/aggregate.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/short/raw/batch-1.started -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/short/raw/batch-1/executed-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/short/raw/batch-1/expected-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/short/raw/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/short/run.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/campaigns/short/selectors.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/core-focused-diagnostic/TEST-com.whip.app.ui.GoalProgressPresentationTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/core-focused-passed/TEST-com.whip.app.core.PowerUserSettingsTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/core-focused-passed/TEST-com.whip.app.domain.GoalRulesTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/core-focused-passed/TEST-com.whip.app.ui.GoalProgressPresentationTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/core-focused-passed/TEST-com.whip.app.ui.HomeHabitAudit2PolicyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/core-focused-passed/TEST-com.whip.app.ui.RoutineBuilderStateTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/core-focused-passed/TEST-com.whip.app.ui.TrackEditorStateTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/core-focused-passed/TEST-com.whip.app.ui.TrackEntryPresentationTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/core-focused-passed/TEST-com.whip.app.ui.UnifiedSearchRulesTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/gym-settings-baseline/audit2-gated-native.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/gym-settings-baseline/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/permission-diagnostic/logcat-com.whip.app.GymPowerInputUiTest-restAlertExplainsBlockedCurrentChannel.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/normal-1/configuration.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/normal-1/exit-code.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/normal-1/raw/aggregate.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/normal-1/raw/batch-1.started -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/normal-1/raw/batch-1/executed-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/normal-1/raw/batch-1/expected-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/normal-1/raw/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/normal-1/run.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/normal-1/selectors.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/normal-2/configuration.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/normal-2/exit-code.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/normal-2/raw/aggregate.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/normal-2/raw/batch-1.started -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/normal-2/raw/batch-1/executed-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/normal-2/raw/batch-1/expected-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/normal-2/raw/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/normal-2/run.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/normal-2/selectors.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/short/configuration.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/short/exit-code.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/short/raw/aggregate.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/short/raw/batch-1.started -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/short/raw/batch-1/executed-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/short/raw/batch-1/expected-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/short/raw/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/short/raw/batch-rows/batch-1.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/short/run.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/quick-correction/short/selectors.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-contract-correction/TEST-com.whip.app.ui.UiDesignArchitectureTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-final/TEST-com.whip.app.ui.UiDesignArchitectureTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-final/audit2-jacoco-correction.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-final/audit2-readiness-final.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.core.AppSettingsTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.core.HabitTimerClockTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.core.PowerUserSettingsTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.core.SettingsCauseEffectContractTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.data.PortableBackupPolicyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.data.RoutineProgrammingTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.domain.CrossDomainInsightsTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.domain.FiveThreeOneProgressionTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.domain.GoalRulesTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.domain.GymAnalyticsTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.domain.GymCalculationsTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.domain.HabitRulesTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.domain.HabitTimerDomainTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.domain.RecurrenceEngineTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.domain.TaskProgressTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.domain.TaskQuickCaptureParserTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.domain.TrackCsvBatchIdentityTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.domain.TrackDomainTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.AreaScopeFilterRelationshipsTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.ElapsedGoalPresentationTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.FiveThreeOneCycleReviewTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.GoalMutationCommitTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.GoalProgressPresentationTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.GymQuickSetFlowTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.GymUxRulesTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.HabitMutationCommitTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.HabitTimerPresentationTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.HomeHabitAudit2PolicyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.InteractionConsistencyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.ReviewAvailabilityTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.ReviewCopyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.ReviewEvidenceTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.ReviewOutcomesTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.RoutineBuilderStateTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.SettingsPresentationPolicyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.TaskMutationCommitTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.TaskWorkspacePolicyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.TrackCsvReliabilityPolicyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.TrackEditorStateTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.TrackEntryPresentationTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.TrackInsightNumberFormatTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.TrackInsightWindowTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.UiDesignArchitectureTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.UnifiedSearchRulesTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.WhipNavigationPolicyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.ui.theme.WhipVisualLanguageTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/TEST-com.whip.app.widget.WidgetSnapshotCacheTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/readiness-initial/audit2-readiness.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/shared-baseline.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/shared-baseline.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/shared-unaccepted-diagnostic.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/short-diagnostic/audit2-short-native.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/short-diagnostic/result-1.xml -> candidate:required (unclassified repository path)
+Route A docs/quality/UX_AUDIT_2_2026-09-28.md -> profile:docs (quality documentation path)
+Route A docs/quality/UX_AUDIT_2_GOALS_TRACK_2026-09-28.md -> profile:docs (quality documentation path)
+Route A docs/quality/UX_AUDIT_2_GYM_SETTINGS_2026-09-28.md -> profile:docs (quality documentation path)
+Route A docs/quality/UX_AUDIT_2_HOME_HABITS_2026-09-28.md -> profile:docs (quality documentation path)
+Route A docs/quality/UX_AUDIT_2_SHARED_2026-09-28.md -> profile:docs (quality documentation path)
+Route M app/src/androidTest/java/com/whip/app/DataPrivacyJourneyE2ETest.kt -> android:com.whip.app.DataPrivacyJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/GlobalSearchRoutingTest.kt -> android:com.whip.app.GlobalSearchRoutingTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/GoalProgressJourneyE2ETest.kt -> android:com.whip.app.GoalProgressJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/GoalRepositoryTest.kt -> android:com.whip.app.GoalRepositoryTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/GymPowerInputUiTest.kt -> android:com.whip.app.GymPowerInputUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/HabitRepositoryTest.kt -> android:com.whip.app.HabitRepositoryTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/HomeHabitRecoveryUiTest.kt -> android:com.whip.app.HomeHabitRecoveryUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/RoutineBuilderUiTest.kt -> android:com.whip.app.RoutineBuilderUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/SettingsBehaviorUiTest.kt -> android:com.whip.app.SettingsBehaviorUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/TaskRepositoryTest.kt -> android:com.whip.app.TaskRepositoryTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/TrackAuthoringJourneyE2ETest.kt -> android:com.whip.app.TrackAuthoringJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/TrackHistoryJourneyE2ETest.kt -> android:com.whip.app.TrackHistoryJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/TrackWorkspaceUiTest.kt -> android:com.whip.app.TrackWorkspaceUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/ui/GoalSecondaryMutationUiTest.kt -> android:com.whip.app.ui.GoalSecondaryMutationUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/ui/SettingsResponsiveUiTest.kt -> android:com.whip.app.ui.SettingsResponsiveUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/ui/UnifiedSearchAdaptiveUiTest.kt -> android:com.whip.app.ui.UnifiedSearchAdaptiveUiTest (exact Android test class)
+Route M app/src/main/java/com/whip/app/core/PowerUserSettings.kt -> profile:all (shared UI/core production path)
+Route M app/src/main/java/com/whip/app/data/GoalRepository.kt -> profile:goals (feature-owned production path)
+Route M app/src/main/java/com/whip/app/data/HabitRepository.kt -> profile:habits (feature-owned production path)
+Route M app/src/main/java/com/whip/app/data/TaskRepository.kt -> profile:tasks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/domain/GoalModels.kt -> profile:goals (feature-owned production path)
+Route M app/src/main/java/com/whip/app/domain/HabitModels.kt -> profile:habits (feature-owned production path)
+Route M app/src/main/java/com/whip/app/domain/NumericSequence.kt -> candidate:required (unknown production path)
+Route M app/src/main/java/com/whip/app/domain/TrackModels.kt -> profile:tracks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/reminders/CoordinatedReminderRepositories.kt -> candidate:required (unknown production path)
+Route M app/src/main/java/com/whip/app/ui/DomainLoadContent.kt -> candidate:required (unknown production path)
+Route M app/src/main/java/com/whip/app/ui/EntityInspector.kt -> candidate:required (unknown production path)
+Route M app/src/main/java/com/whip/app/ui/GoalProgressPresentation.kt -> profile:goals (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/GoalScreens.kt -> profile:goals (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/GymScreens.kt -> profile:gym (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/HabitScreens.kt -> profile:habits (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/HomeTodayHeader.kt -> candidate:required (unknown production path)
+Route M app/src/main/java/com/whip/app/ui/RoutineBuilder.kt -> profile:gym (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/SettingsScreens.kt -> profile:settings (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/TaskEditorDialog.kt -> profile:tasks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/TaskViewModel.kt -> profile:tasks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/TaskWorkspacePolicy.kt -> profile:tasks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/TrackEditorViewModels.kt -> profile:tracks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/TrackScreens.kt -> profile:tracks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/UnifiedSearchDialog.kt -> profile:tracks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/WhipApp.kt -> profile:all (shared UI/core production path)
+Route M app/src/main/res/values/strings.xml -> profile:shell (application resource or manifest path)
+Route M app/src/test/java/com/whip/app/core/PowerUserSettingsTest.kt -> jvm:com.whip.app.core.PowerUserSettingsTest (exact JVM test class)
+Route M app/src/test/java/com/whip/app/domain/GoalRulesTest.kt -> jvm:com.whip.app.domain.GoalRulesTest (exact JVM test class)
+Route M app/src/test/java/com/whip/app/ui/GoalProgressPresentationTest.kt -> jvm:com.whip.app.ui.GoalProgressPresentationTest (exact JVM test class)
+Route M app/src/test/java/com/whip/app/ui/RoutineBuilderStateTest.kt -> jvm:com.whip.app.ui.RoutineBuilderStateTest (exact JVM test class)
+Route M app/src/test/java/com/whip/app/ui/TrackEditorStateTest.kt -> jvm:com.whip.app.ui.TrackEditorStateTest (exact JVM test class)
+Route M app/src/test/java/com/whip/app/ui/UiDesignArchitectureTest.kt -> jvm:com.whip.app.ui.UiDesignArchitectureTest (exact JVM test class)
+Route M app/src/test/java/com/whip/app/ui/UnifiedSearchRulesTest.kt -> jvm:com.whip.app.ui.UnifiedSearchRulesTest (exact JVM test class)
+Route M docs/product-memory/DECISIONS.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/FINDINGS.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/INDEX.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/USER_FEEDBACK.md -> profile:docs (documentation-only path)
+Route M docs/testing.md -> profile:docs (documentation-only path)
+Profile: all
+Profile: docs
+Profile: goals
+Profile: gym
+Profile: habits
+Profile: settings
+Profile: shell
+Profile: tasks
+Profile: tracks
+JVM selector: com.whip.app.core.PowerUserSettingsTest
+JVM selector: com.whip.app.domain.GoalRulesTest
+JVM selector: com.whip.app.ui.GoalProgressPresentationTest
+JVM selector: com.whip.app.ui.HomeHabitAudit2PolicyTest
+JVM selector: com.whip.app.ui.RoutineBuilderStateTest
+JVM selector: com.whip.app.ui.TrackEditorStateTest
+JVM selector: com.whip.app.ui.TrackEntryPresentationTest
+JVM selector: com.whip.app.ui.UiDesignArchitectureTest
+JVM selector: com.whip.app.ui.UnifiedSearchRulesTest
+Android selector: com.whip.app.DataPrivacyJourneyE2ETest
+Android selector: com.whip.app.GlobalSearchRoutingTest
+Android selector: com.whip.app.GoalProgressJourneyE2ETest
+Android selector: com.whip.app.GoalRepositoryTest
+Android selector: com.whip.app.GymPowerInputUiTest
+Android selector: com.whip.app.HabitRepositoryTest
+Android selector: com.whip.app.HomeHabitAudit2UiTest
+Android selector: com.whip.app.HomeHabitRecoveryUiTest
+Android selector: com.whip.app.RoutineBuilderUiTest
+Android selector: com.whip.app.SettingsBehaviorUiTest
+Android selector: com.whip.app.TaskDayPlannerUiTest
+Android selector: com.whip.app.TaskRepositoryTest
+Android selector: com.whip.app.TrackAuthoringJourneyE2ETest
+Android selector: com.whip.app.TrackHistoryJourneyE2ETest
+Android selector: com.whip.app.TrackWorkspaceUiTest
+Android selector: com.whip.app.ui.GoalSecondaryMutationUiTest
+Android selector: com.whip.app.ui.SettingsResponsiveUiTest
+Android selector: com.whip.app.ui.SharedResilienceAuditUiTest
+Android selector: com.whip.app.ui.TrackHistorySearchUiTest
+Android selector: com.whip.app.ui.UnifiedSearchAdaptiveUiTest
+All JVM tests: false
+All Android tests: false
+Static checks: true
+Frozen candidate required: true
+Reusing configuration cache.
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:generateDebugJacocoPropertiesFile UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:kspDebugKotlin
+> Task :app:compileDebugKotlin
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:bundleDebugClassesToRuntimeJar
+> Task :app:bundleDebugClassesToCompileJar
+> Task :app:kspDebugUnitTestKotlin SKIPPED
+> Task :app:compileDebugUnitTestKotlin
+> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:copyRoomSchemas NO-SOURCE
+> Task :app:testDebugUnitTest
+
+BUILD SUCCESSFUL in 12s
+29 actionable tasks: 6 executed, 23 up-to-date
+Configuration cache entry reused.
+Targeted JVM checks passed; Android-test compilation was intentionally deferred.
+Play Store assets verified: 512x512 icon, 1024x500 feature graphic, and 5 phone screenshots
+Reusing configuration cache.
+> Task :app:preBuild UP-TO-DATE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:preDebugAndroidTestBuild SKIPPED
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:generateDebugAndroidTestResValues UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:generateDebugAndroidTestResources UP-TO-DATE
+> Task :app:generateDebugJacocoPropertiesFile UP-TO-DATE
+> Task :app:generateDebugGlobalSynthetics UP-TO-DATE
+> Task :app:processDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :app:packageDebugAndroidTestResources UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:parseDebugAndroidTestLocalResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:generateDebugAndroidTestRFile UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:mergeDebugNativeLibs UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:stripDebugDebugSymbols UP-TO-DATE
+> Task :app:kspDebugKotlin UP-TO-DATE
+> Task :app:mergeDebugAndroidTestManifest UP-TO-DATE
+> Task :app:processDebugAndroidTestManifest UP-TO-DATE
+> Task :app:generateDebugAndroidTestBuildConfig UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:kspDebugAndroidTestKotlin SKIPPED
+> Task :app:mergeDebugJavaResource UP-TO-DATE
+> Task :app:copyRoomSchemas NO-SOURCE
+> Task :app:generateDebugUnitTestLintModel
+> Task :app:generateDebugLintReportModel
+> Task :app:generateDebugAndroidTestLintModel
+> Task :app:compileDebugAndroidTestKotlin
+> Task :app:jacocoDebug
+> Task :app:dexBuilderDebug
+> Task :app:mergeProjectDexDebug
+> Task :app:packageDebug
+> Task :app:assembleDebug
+> Task :app:createDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:lintAnalyzeDebugUnitTest
+> Task :app:lintAnalyzeDebug
+> Task :app:lintAnalyzeDebugAndroidTest
+
+> Task :app:lintReportDebug
+Wrote HTML report to file:///root/repos/whip/app/build/reports/lint-results-debug.html
+Wrote SARIF report to file:///root/repos/whip/app/build/reports/lint-results-debug.sarif
+
+> Task :app:lintDebug
+
+BUILD SUCCESSFUL in 2m 58s
+62 actionable tasks: 13 executed, 49 up-to-date
+Configuration cache entry reused.
+Affected-change readiness gate passed. Frozen-candidate evidence was not created.
+Play Store note: qualify these inputs with a fresh scripts/candidate run only when preparing a store release.

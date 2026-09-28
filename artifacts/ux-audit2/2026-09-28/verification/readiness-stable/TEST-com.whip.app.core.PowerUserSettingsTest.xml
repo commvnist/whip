@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.core.PowerUserSettingsTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-09-28T05:56:43.868Z" hostname="beast" time="0.031">
+  <properties/>
+  <testcase name="savedFiltersAndPlatePresetsRoundTripSpecialCharacters" classname="com.whip.app.core.PowerUserSettingsTest" time="0.027"/>
+  <testcase name="invalidRepPrescriptionSchemesAreNeverPersistedOrDecoded" classname="com.whip.app.core.PowerUserSettingsTest" time="0.0"/>
+  <testcase name="deletingAnAreaClearsEverySavedReferenceWithoutRemovingFilters" classname="com.whip.app.core.PowerUserSettingsTest" time="0.001"/>
+  <testcase name="persistedTaskNavigationIsNormalizedWhileDecoding" classname="com.whip.app.core.PowerUserSettingsTest" time="0.0"/>
+  <testcase name="pinningRevealsAndExpandsOnlyItsOwningHomeSection" classname="com.whip.app.core.PowerUserSettingsTest" time="0.001"/>
+  <testcase name="everySupportedDateRecipeSurvivesStorageIncludingLegacyEncoding" classname="com.whip.app.core.PowerUserSettingsTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

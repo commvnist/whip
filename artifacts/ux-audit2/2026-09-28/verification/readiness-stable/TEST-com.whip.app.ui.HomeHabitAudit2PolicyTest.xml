@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.HomeHabitAudit2PolicyTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-09-28T05:56:45.205Z" hostname="beast" time="0.284">
+  <properties/>
+  <testcase name="customUnitLabelsPreserveHistoricalUnitsAndCompatibleEditCapabilities" classname="com.whip.app.ui.HomeHabitAudit2PolicyTest" time="0.002"/>
+  <testcase name="targetlessRecordedFactsStayNeutralBesideScoredHabitsAndTimers" classname="com.whip.app.ui.HomeHabitAudit2PolicyTest" time="0.003"/>
+  <testcase name="dateFiltersSeparateScheduleCompletionAndDeadlineWithSevenInclusiveDates" classname="com.whip.app.ui.HomeHabitAudit2PolicyTest" time="0.002"/>
+  <testcase name="currentPausePreservesHistoricalOutcomesReviewAndEarnedEndConditions" classname="com.whip.app.ui.HomeHabitAudit2PolicyTest" time="0.004"/>
+  <testcase name="aClosedWeeksFinalMissingDayRemainsInTheChartDenominator" classname="com.whip.app.ui.HomeHabitAudit2PolicyTest" time="0.001"/>
+  <testcase name="capacityUsesAllAreasAndExcludesClosedRecurringOccurrences" classname="com.whip.app.ui.HomeHabitAudit2PolicyTest" time="0.01"/>
+  <testcase name="upcomingResumeCountsOnlyTheDestinationSource" classname="com.whip.app.ui.HomeHabitAudit2PolicyTest" time="0.262"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

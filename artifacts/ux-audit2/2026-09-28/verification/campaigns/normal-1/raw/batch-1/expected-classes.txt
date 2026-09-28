@@ -1,0 +1,2 @@
+com.whip.app.GymPowerInputUiTest
+com.whip.app.HomeHabitAudit2UiTest

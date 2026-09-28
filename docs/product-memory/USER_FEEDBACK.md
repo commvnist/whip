@@ -5,7 +5,7 @@
 - Date/source: 2026-09-28, explicit owner request and goal after private 0.3.80 installation.
 - User need: Another thorough investigation of Home/Tasks, Habits, Goals, Track, Gym and Settings, using three Astra agents at high reasoning; plan and implement supported improvements.
 - Acceptance criteria: Audit complete workflows and surrounding behavior rather than stop at one issue per area; challenge prior keeps/gaps; distinguish observed defects, grounded improvements and untested assumptions; record coverage and an evidence-backed plan before broad edits; implement all accepted suggestions; review integration and verify affected behavior/layout with exact recorded outcomes.
-- Scope/status: In progress. Baseline clean `7c77c075`, following completed FB-20260927-011 and release VER-20260928-001. Three existing Astra/high domain agents are reassigned; parent owns shared workflows, plan integration and verification. This new scoped audit does not silently resume the separate paused historical whole-product audit. No new phone installation is implied.
+- Scope/status: Verified within the accepted affected scope under VER-20260928-002. Three Astra/high agents reviewed 190 workflow rows and implemented all 32 accepted workstreams with parent integration. All 21 new JVM and 40 new Android methods are included in 419 distinct passing JVM and 175 selected Android methods; exact receipts and limits are retained. Baseline clean `7c77c075`, following FB-20260927-011 and private 0.3.80. Subjective design acceptance awaits owner use; the separate historical audit remains paused and no new phone installation occurred.
 
 ### FB-20260928-001 — Install the completed overhaul on the owner phone
 

@@ -1,0 +1,7 @@
+com.whip.app.GlobalSearchRoutingTest
+com.whip.app.GoalProgressJourneyE2ETest
+com.whip.app.GoalRepositoryTest
+com.whip.app.HabitRepositoryTest
+com.whip.app.TaskRepositoryTest
+com.whip.app.ui.TrackHistorySearchUiTest
+com.whip.app.ui.UnifiedSearchAdaptiveUiTest

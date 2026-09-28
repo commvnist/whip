@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="4" failures="0" errors="0" skipped="0" time="31.229" timestamp="2026-09-28T06:13:56" hostname="localhost">
+  <testsuite name="com.whip.app.TaskBulkSelectionUiTest" tests="4" failures="0" errors="0" skipped="0" time="29.924" timestamp="2026-09-28T06:13:56" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="fixedDateBulkMoveFailureKeepsSelectionAndShowsRetryContext" classname="com.whip.app.TaskBulkSelectionUiTest" time="6.476" />
+    <testcase name="activeSelectionKeepsPrimaryActionsVisibleAndSecondaryActionsInOverflow" classname="com.whip.app.TaskBulkSelectionUiTest" time="14.692" />
+    <testcase name="bulkEditDraftAndSelectionSurviveSavedStateRestoration" classname="com.whip.app.TaskBulkSelectionUiTest" time="4.855" />
+    <testcase name="historySelectionOffersRelevantActionsForCompletedAndArchivedTasks" classname="com.whip.app.TaskBulkSelectionUiTest" time="3.901" />
+  </testsuite>
+</testsuites>

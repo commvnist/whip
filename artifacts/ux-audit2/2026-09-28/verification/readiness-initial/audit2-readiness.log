@@ -1,0 +1,189 @@
+Route A app/src/androidTest/java/com/whip/app/HomeHabitAudit2UiTest.kt -> android:com.whip.app.HomeHabitAudit2UiTest (exact Android test class)
+Route A app/src/androidTest/java/com/whip/app/TaskDayPlannerUiTest.kt -> android:com.whip.app.TaskDayPlannerUiTest (exact Android test class)
+Route A app/src/androidTest/java/com/whip/app/ui/SharedResilienceAuditUiTest.kt -> android:com.whip.app.ui.SharedResilienceAuditUiTest (exact Android test class)
+Route A app/src/androidTest/java/com/whip/app/ui/TrackHistorySearchUiTest.kt -> android:com.whip.app.ui.TrackHistorySearchUiTest (exact Android test class)
+Route A app/src/main/java/com/whip/app/ui/TrackEntryPresentation.kt -> profile:tracks (feature-owned production path)
+Route A app/src/test/java/com/whip/app/ui/HomeHabitAudit2PolicyTest.kt -> jvm:com.whip.app.ui.HomeHabitAudit2PolicyTest (exact JVM test class)
+Route A app/src/test/java/com/whip/app/ui/TrackEntryPresentationTest.kt -> jvm:com.whip.app.ui.TrackEntryPresentationTest (exact JVM test class)
+Route A artifacts/ux-audit2/2026-09-28/.gitattributes -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/README.md -> profile:docs (documentation-only path)
+Route A artifacts/ux-audit2/2026-09-28/before/audit2.shared.load-failure-initial.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/before/audit2.shared.short-inspector-initial.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/before/audit2.shared.short-inspector-initial.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/audit2-core-focused-2.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/audit2-core-focused-3.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/audit2-core-focused.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/audit2-gym-settings-reproduction-2.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/audit2-gym-settings-reproduction.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/core-focused-diagnostic/TEST-com.whip.app.ui.GoalProgressPresentationTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/core-focused-passed/TEST-com.whip.app.core.PowerUserSettingsTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/core-focused-passed/TEST-com.whip.app.domain.GoalRulesTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/core-focused-passed/TEST-com.whip.app.ui.GoalProgressPresentationTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/core-focused-passed/TEST-com.whip.app.ui.HomeHabitAudit2PolicyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/core-focused-passed/TEST-com.whip.app.ui.RoutineBuilderStateTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/core-focused-passed/TEST-com.whip.app.ui.TrackEditorStateTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/core-focused-passed/TEST-com.whip.app.ui.TrackEntryPresentationTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/core-focused-passed/TEST-com.whip.app.ui.UnifiedSearchRulesTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/shared-baseline.log -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/shared-baseline.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-audit2/2026-09-28/verification/shared-unaccepted-diagnostic.log -> candidate:required (unclassified repository path)
+Route A docs/quality/UX_AUDIT_2_2026-09-28.md -> profile:docs (quality documentation path)
+Route A docs/quality/UX_AUDIT_2_GOALS_TRACK_2026-09-28.md -> profile:docs (quality documentation path)
+Route A docs/quality/UX_AUDIT_2_GYM_SETTINGS_2026-09-28.md -> profile:docs (quality documentation path)
+Route A docs/quality/UX_AUDIT_2_HOME_HABITS_2026-09-28.md -> profile:docs (quality documentation path)
+Route A docs/quality/UX_AUDIT_2_SHARED_2026-09-28.md -> profile:docs (quality documentation path)
+Route M app/src/androidTest/java/com/whip/app/DataPrivacyJourneyE2ETest.kt -> android:com.whip.app.DataPrivacyJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/GlobalSearchRoutingTest.kt -> android:com.whip.app.GlobalSearchRoutingTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/GoalProgressJourneyE2ETest.kt -> android:com.whip.app.GoalProgressJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/GoalRepositoryTest.kt -> android:com.whip.app.GoalRepositoryTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/GymPowerInputUiTest.kt -> android:com.whip.app.GymPowerInputUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/HabitRepositoryTest.kt -> android:com.whip.app.HabitRepositoryTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/HomeHabitRecoveryUiTest.kt -> android:com.whip.app.HomeHabitRecoveryUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/RoutineBuilderUiTest.kt -> android:com.whip.app.RoutineBuilderUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/SettingsBehaviorUiTest.kt -> android:com.whip.app.SettingsBehaviorUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/TaskRepositoryTest.kt -> android:com.whip.app.TaskRepositoryTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/TrackAuthoringJourneyE2ETest.kt -> android:com.whip.app.TrackAuthoringJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/TrackHistoryJourneyE2ETest.kt -> android:com.whip.app.TrackHistoryJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/TrackWorkspaceUiTest.kt -> android:com.whip.app.TrackWorkspaceUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/ui/GoalSecondaryMutationUiTest.kt -> android:com.whip.app.ui.GoalSecondaryMutationUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/ui/SettingsResponsiveUiTest.kt -> android:com.whip.app.ui.SettingsResponsiveUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/ui/UnifiedSearchAdaptiveUiTest.kt -> android:com.whip.app.ui.UnifiedSearchAdaptiveUiTest (exact Android test class)
+Route M app/src/main/java/com/whip/app/core/PowerUserSettings.kt -> profile:all (shared UI/core production path)
+Route M app/src/main/java/com/whip/app/data/GoalRepository.kt -> profile:goals (feature-owned production path)
+Route M app/src/main/java/com/whip/app/data/HabitRepository.kt -> profile:habits (feature-owned production path)
+Route M app/src/main/java/com/whip/app/data/TaskRepository.kt -> profile:tasks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/domain/GoalModels.kt -> profile:goals (feature-owned production path)
+Route M app/src/main/java/com/whip/app/domain/HabitModels.kt -> profile:habits (feature-owned production path)
+Route M app/src/main/java/com/whip/app/domain/NumericSequence.kt -> candidate:required (unknown production path)
+Route M app/src/main/java/com/whip/app/domain/TrackModels.kt -> profile:tracks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/reminders/CoordinatedReminderRepositories.kt -> candidate:required (unknown production path)
+Route M app/src/main/java/com/whip/app/ui/DomainLoadContent.kt -> candidate:required (unknown production path)
+Route M app/src/main/java/com/whip/app/ui/EntityInspector.kt -> candidate:required (unknown production path)
+Route M app/src/main/java/com/whip/app/ui/GoalProgressPresentation.kt -> profile:goals (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/GoalScreens.kt -> profile:goals (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/GymScreens.kt -> profile:gym (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/HabitScreens.kt -> profile:habits (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/HomeTodayHeader.kt -> candidate:required (unknown production path)
+Route M app/src/main/java/com/whip/app/ui/RoutineBuilder.kt -> profile:gym (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/SettingsScreens.kt -> profile:settings (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/TaskEditorDialog.kt -> profile:tasks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/TaskViewModel.kt -> profile:tasks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/TaskWorkspacePolicy.kt -> profile:tasks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/TrackEditorViewModels.kt -> profile:tracks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/TrackScreens.kt -> profile:tracks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/UnifiedSearchDialog.kt -> profile:tracks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/WhipApp.kt -> profile:all (shared UI/core production path)
+Route M app/src/main/res/values/strings.xml -> profile:shell (application resource or manifest path)
+Route M app/src/test/java/com/whip/app/core/PowerUserSettingsTest.kt -> jvm:com.whip.app.core.PowerUserSettingsTest (exact JVM test class)
+Route M app/src/test/java/com/whip/app/domain/GoalRulesTest.kt -> jvm:com.whip.app.domain.GoalRulesTest (exact JVM test class)
+Route M app/src/test/java/com/whip/app/ui/GoalProgressPresentationTest.kt -> jvm:com.whip.app.ui.GoalProgressPresentationTest (exact JVM test class)
+Route M app/src/test/java/com/whip/app/ui/RoutineBuilderStateTest.kt -> jvm:com.whip.app.ui.RoutineBuilderStateTest (exact JVM test class)
+Route M app/src/test/java/com/whip/app/ui/TrackEditorStateTest.kt -> jvm:com.whip.app.ui.TrackEditorStateTest (exact JVM test class)
+Route M app/src/test/java/com/whip/app/ui/UnifiedSearchRulesTest.kt -> jvm:com.whip.app.ui.UnifiedSearchRulesTest (exact JVM test class)
+Route M docs/product-memory/DECISIONS.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/FINDINGS.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/INDEX.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/USER_FEEDBACK.md -> profile:docs (documentation-only path)
+Profile: all
+Profile: docs
+Profile: goals
+Profile: gym
+Profile: habits
+Profile: settings
+Profile: shell
+Profile: tasks
+Profile: tracks
+JVM selector: com.whip.app.core.PowerUserSettingsTest
+JVM selector: com.whip.app.domain.GoalRulesTest
+JVM selector: com.whip.app.ui.GoalProgressPresentationTest
+JVM selector: com.whip.app.ui.HomeHabitAudit2PolicyTest
+JVM selector: com.whip.app.ui.RoutineBuilderStateTest
+JVM selector: com.whip.app.ui.TrackEditorStateTest
+JVM selector: com.whip.app.ui.TrackEntryPresentationTest
+JVM selector: com.whip.app.ui.UnifiedSearchRulesTest
+Android selector: com.whip.app.DataPrivacyJourneyE2ETest
+Android selector: com.whip.app.GlobalSearchRoutingTest
+Android selector: com.whip.app.GoalProgressJourneyE2ETest
+Android selector: com.whip.app.GoalRepositoryTest
+Android selector: com.whip.app.GymPowerInputUiTest
+Android selector: com.whip.app.HabitRepositoryTest
+Android selector: com.whip.app.HomeHabitAudit2UiTest
+Android selector: com.whip.app.HomeHabitRecoveryUiTest
+Android selector: com.whip.app.RoutineBuilderUiTest
+Android selector: com.whip.app.SettingsBehaviorUiTest
+Android selector: com.whip.app.TaskDayPlannerUiTest
+Android selector: com.whip.app.TaskRepositoryTest
+Android selector: com.whip.app.TrackAuthoringJourneyE2ETest
+Android selector: com.whip.app.TrackHistoryJourneyE2ETest
+Android selector: com.whip.app.TrackWorkspaceUiTest
+Android selector: com.whip.app.ui.GoalSecondaryMutationUiTest
+Android selector: com.whip.app.ui.SettingsResponsiveUiTest
+Android selector: com.whip.app.ui.SharedResilienceAuditUiTest
+Android selector: com.whip.app.ui.TrackHistorySearchUiTest
+Android selector: com.whip.app.ui.UnifiedSearchAdaptiveUiTest
+All JVM tests: false
+All Android tests: false
+Static checks: true
+Frozen candidate required: true
+Calculating task graph as no cached configuration is available for tasks: :app:testDebugUnitTest --tests com.whip.app.core.AppSettingsTest --tests com.whip.app.core.HabitTimerClockTest --tests com.whip.app.core.PowerUserSettingsTest --tests com.whip.app.core.SettingsCauseEffectContractTest --tests com.whip.app.data.PortableBackupPolicyTest --tests com.whip.app.data.RoutineProgrammingTest --tests com.whip.app.domain.CrossDomainInsightsTest --tests com.whip.app.domain.FiveThreeOneProgressionTest --tests com.whip.app.domain.GoalRulesTest --tests com.whip.app.domain.GymAnalyticsTest --tests com.whip.app.domain.GymCalculationsTest --tests com.whip.app.domain.HabitRulesTest --tests com.whip.app.domain.HabitTimerDomainTest --tests com.whip.app.domain.RecurrenceEngineTest --tests com.whip.app.domain.TaskProgressTest --tests com.whip.app.domain.TaskQuickCaptureParserTest --tests com.whip.app.domain.TrackCsvBatchIdentityTest --tests com.whip.app.domain.TrackDomainTest --tests com.whip.app.ui.AreaScopeFilterRelationshipsTest --tests com.whip.app.ui.ElapsedGoalPresentationTest --tests com.whip.app.ui.FiveThreeOneCycleReviewTest --tests com.whip.app.ui.GoalMutationCommitTest --tests com.whip.app.ui.GoalProgressPresentationTest --tests com.whip.app.ui.GymQuickSetFlowTest --tests com.whip.app.ui.GymUxRulesTest --tests com.whip.app.ui.HabitMutationCommitTest --tests com.whip.app.ui.HabitTimerPresentationTest --tests com.whip.app.ui.HomeHabitAudit2PolicyTest --tests com.whip.app.ui.InteractionConsistencyTest --tests com.whip.app.ui.ReviewAvailabilityTest --tests com.whip.app.ui.ReviewCopyTest --tests com.whip.app.ui.ReviewEvidenceTest --tests com.whip.app.ui.ReviewOutcomesTest --tests com.whip.app.ui.RoutineBuilderStateTest --tests com.whip.app.ui.SettingsPresentationPolicyTest --tests com.whip.app.ui.TaskMutationCommitTest --tests com.whip.app.ui.TaskWorkspacePolicyTest --tests com.whip.app.ui.TrackCsvReliabilityPolicyTest --tests com.whip.app.ui.TrackEditorStateTest --tests com.whip.app.ui.TrackEntryPresentationTest --tests com.whip.app.ui.TrackInsightNumberFormatTest --tests com.whip.app.ui.TrackInsightWindowTest --tests com.whip.app.ui.UiDesignArchitectureTest --tests com.whip.app.ui.UnifiedSearchRulesTest --tests com.whip.app.ui.WhipNavigationPolicyTest --tests com.whip.app.ui.theme.WhipVisualLanguageTest --tests com.whip.app.widget.WidgetSnapshotCacheTest --tests com.whip.app.widget.WidgetSummaryTest
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:generateDebugJacocoPropertiesFile UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:kspDebugKotlin
+
+> Task :app:compileDebugKotlin
+w: file:///root/repos/whip/app/src/main/java/com/whip/app/ui/GoalScreens.kt:1580:54 Unnecessary safe call on a non-null receiver of type 'GoalProjection'.
+
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:bundleDebugClassesToRuntimeJar
+> Task :app:bundleDebugClassesToCompileJar
+> Task :app:kspDebugUnitTestKotlin SKIPPED
+> Task :app:compileDebugUnitTestKotlin
+> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:copyRoomSchemas NO-SOURCE
+> Task :app:processDebugUnitTestJavaRes UP-TO-DATE
+
+> Task :app:testDebugUnitTest
+
+UiDesignArchitectureTest > statusColorAndTypographyAreExplicitDesignSystemContracts FAILED
+    java.lang.AssertionError at UiDesignArchitectureTest.kt:469
+
+417 tests completed, 1 failed
+
+> Task :app:testDebugUnitTest FAILED
+
+[Incubating] Problems report is available at: file:///root/repos/whip/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:testDebugUnitTest'.
+> There were failing tests. See the report at: file:///root/repos/whip/app/build/reports/tests/testDebugUnitTest/index.html
+
+* Try:
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 16s
+29 actionable tasks: 6 executed, 23 up-to-date
+Configuration cache entry stored.

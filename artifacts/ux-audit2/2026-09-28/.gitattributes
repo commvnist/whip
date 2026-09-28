@@ -1,0 +1,4 @@
+*.xml -text whitespace=cr-at-eol
+*.tsv -text whitespace=cr-at-eol
+# Preserve the compiler's original trailing space in this failed diagnostic receipt.
+verification/audit2-gym-settings-reproduction-2.log -text whitespace=-blank-at-eol

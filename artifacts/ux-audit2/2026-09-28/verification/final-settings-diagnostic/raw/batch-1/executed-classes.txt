@@ -1,0 +1,6 @@
+com.whip.app.HomeHabitRecoveryUiTest
+com.whip.app.RoutineBuilderUiTest
+com.whip.app.SettingsBehaviorUiTest
+com.whip.app.TaskDayPlannerUiTest
+com.whip.app.TrackWorkspaceUiTest
+com.whip.app.ui.GoalSecondaryMutationUiTest

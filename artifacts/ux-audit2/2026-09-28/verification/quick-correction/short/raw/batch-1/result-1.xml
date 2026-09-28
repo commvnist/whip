@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="7" failures="0" errors="0" skipped="0" time="41.513" timestamp="2026-09-28T05:51:14" hostname="localhost">
+  <testsuite name="com.whip.app.GymPowerInputUiTest" tests="2" failures="0" errors="0" skipped="0" time="8.61" timestamp="2026-09-28T05:51:14" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="populatedHistoryCalendarKeepsDatesAndCountsReadableAtNativeLargeText" classname="com.whip.app.GymPowerInputUiTest" time="4.461" />
+    <testcase name="compactActiveLaneLeavesRoomForSetEntryAtNativeLargeText" classname="com.whip.app.GymPowerInputUiTest" time="4.149" />
+  </testsuite>
+  <testsuite name="com.whip.app.HomeHabitAudit2UiTest" tests="1" failures="0" errors="0" skipped="0" time="5.71" timestamp="2026-09-28T05:51:14" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="futureHistoryDateRetainsDraftAndOffersReachableCorrection" classname="com.whip.app.HomeHabitAudit2UiTest" time="5.71" />
+  </testsuite>
+  <testsuite name="com.whip.app.TaskDayPlannerUiTest" tests="2" failures="0" errors="0" skipped="0" time="13.909" timestamp="2026-09-28T05:51:14" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="manyCandidatesAndExhaustedCapacityRemainReachableWithKeyboard" classname="com.whip.app.TaskDayPlannerUiTest" time="9.161" />
+    <testcase name="shortLargeTextSelectionKeepsResultsAndCompletionReachable" classname="com.whip.app.TaskDayPlannerUiTest" time="4.748" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.SettingsResponsiveUiTest" tests="2" failures="0" errors="0" skipped="0" time="12.013" timestamp="2026-09-28T05:51:14" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="encryptedBackupInputsKeepSecretKeyboardAndExplainMismatchAtLargeText" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="7.919" />
+    <testcase name="deepDataOperationMakesItsSettledResultVisible" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="4.094" />
+  </testsuite>
+</testsuites>

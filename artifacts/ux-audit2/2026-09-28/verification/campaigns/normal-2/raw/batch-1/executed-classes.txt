@@ -1,0 +1,3 @@
+com.whip.app.HomeHabitRecoveryUiTest
+com.whip.app.RoutineBuilderUiTest
+com.whip.app.SettingsBehaviorUiTest
