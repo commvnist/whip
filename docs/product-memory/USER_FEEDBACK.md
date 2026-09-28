@@ -5,7 +5,7 @@
 - Date/source: 2026-09-28, explicit owner request: “Release to phone”.
 - Acceptance: Package the current verified source as the next signed private update, install in place on the selected physical phone, preserve app data and signing identity, and verify exact installed version/hash and foreground launch.
 - Scope: Include the Focus overhaul (IMP-20260928-006 / VER-20260928-004) and all 20 current product-audit groups (IMP-20260928-007/008/009 / VER-20260928-005). Preserve the owner's focused-check/no-full-batches instruction; verify packaging and device installation without repeating broad behavioral campaigns. No Play publication.
-- Status: In progress. The phone is initially disconnected; the current wireless debugging address was requested while packaging proceeds.
+- Status: Released under VER-20260928-006. Owner supplied the current wireless endpoint; Whip 0.3.82/code 88 is installed in place on the selected Samsung. Exact installed hash, preserved first-install/app identity and 140 ms cold foreground launch verify. No full test batch or Play publication; subjective appearance awaits owner use.
 
 ### FB-20260928-005 — Audit the whole app and implement the complete remediation plan
 

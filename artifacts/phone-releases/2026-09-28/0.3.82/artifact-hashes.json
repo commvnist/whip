@@ -1,0 +1,14 @@
+[
+  {
+    "path": "build/releases/Whip-0.3.82-code88-private.apk",
+    "sha256": "a78163ca965204f41d4f8f3336a4dd4b228f2b9fea6650ef0c3358d08942559c",
+    "bytes": 4228126,
+    "zip_integrity": "passed"
+  },
+  {
+    "path": "build/releases/Whip-0.3.82-code88-private.aab",
+    "sha256": "f24aba37b94b6aa86c2fc4cb6cea9748a9d885fee385ae54845ece70a7f41be9",
+    "bytes": 11339990,
+    "zip_integrity": "passed"
+  }
+]

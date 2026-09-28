@@ -1,0 +1,2 @@
+# Preserve original signer warning spacing in the release receipt.
+aab-signature.log -text whitespace=-blank-at-eol

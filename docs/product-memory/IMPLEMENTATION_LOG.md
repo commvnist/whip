@@ -5,7 +5,7 @@
 - Related: FB-20260928-006; IMP-20260928-006/007/008/009; VER-20260928-004/005.
 - Changes: Advance the release to 0.3.82/code 88, including the accepted Focus overhaul and all 20 current product-audit groups. Preserve package/signing identity, Room schema 46, data epoch 6 and backup format 26.
 - Verification: Existing behavior acceptance remains authoritative for unchanged production source. Per the owner, no full or affected-readiness batch is repeated; signed release compilation/minification, artifact metadata/signature/integrity checks and guarded physical installation/launch provide packaging acceptance.
-- Status: Implemented; signed packaging and phone verification pending. No new product behavior beyond the verified source and no Play candidate claim.
+- Status: Released under VER-20260928-006. Clean pushed source `5e3f492b` produced the signed artifacts; guarded in-place installation verifies the exact APK hash, preserved first-install/app identity and 140 ms cold foreground launch. No new product behavior beyond the verified source and no Play candidate claim. [Release receipt](../../artifacts/phone-releases/2026-09-28/0.3.82/README.md).
 
 ### IMP-20260928-009 — Preserve Gym evidence and make Settings recovery actionable
 

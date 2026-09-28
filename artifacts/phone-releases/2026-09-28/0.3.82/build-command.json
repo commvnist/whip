@@ -1,0 +1,12 @@
+{
+  "command": [
+    "timeout",
+    "--kill-after=3s",
+    "300s",
+    "./gradlew",
+    "assembleRelease",
+    "bundleRelease"
+  ],
+  "signing": "Existing private release credential files; no credentials retained in receipt.",
+  "source": "5e3f492bd568677ea3a3c17cd2e4f448941c900c"
+}

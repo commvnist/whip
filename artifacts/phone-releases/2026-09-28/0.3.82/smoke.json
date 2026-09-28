@@ -1,0 +1,12 @@
+{
+  "scope": "Read-only bounded process/crash sample after the successful guarded launch; no UI capture or private records.",
+  "process_present": true,
+  "process_log_lines": 181,
+  "crash_buffer_lines_excluding_headers": 0,
+  "error_matches": {
+    "FATAL EXCEPTION": 0,
+    "ANR in": 0,
+    "SQLiteException": 0,
+    "Unable to start activity": 0
+  }
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "command": [
+      "timeout",
+      "--kill-after=3s",
+      "55s",
+      "scripts/device",
+      "release-install"
+    ],
+    "physical_target": "selected-owner-phone",
+    "elapsed_seconds": 2.986,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "timeout",
+      "--kill-after=3s",
+      "55s",
+      "scripts/device",
+      "release-run"
+    ],
+    "physical_target": "selected-owner-phone",
+    "elapsed_seconds": 0.792,
+    "exit_code": 0
+  }
+]

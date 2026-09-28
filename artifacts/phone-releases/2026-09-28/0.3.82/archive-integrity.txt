@@ -1,0 +1,1 @@
+APK and AAB ZIP integrity checks passed. Package/version/code, non-debuggable APK, established APK/AAB certificate, and retired-location-permission checks passed.
