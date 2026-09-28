@@ -2,6 +2,7 @@
 
 ### IMP-20260928-009 — Preserve Gym evidence and make Settings recovery actionable
 
+- Delivered source: All three integrated audit implementation groups (IMP-20260928-007/008/009), their final reports and exact evidence are committed as `d5fe57840599512eb87eae8bd39c640618afc336` and pushed normally to origin/main. The complete accepted source/test and evidence hashes match the committed bytes.
 - Behavior: Context-aware numbered-machine record eligibility across every consumer; saveable ordered tracked-record drafts and dirty close. Archived Exercise/Category/Routine identity remains available to Progress, historical filters and sharing. Entered historical mass converts from its saved unit before adding qualifiers. Older Training Max decisions are reachable through Show All; filters remain authoritative. Weekly count language uses the existing shared count owner.
 - Recovery/export: Refresh Notification Status now retries Task/Habit/Goal scheduling through the existing Settings mutation receipt, attempts independent domains after partial failure and reports truthful terminal state. Gym CSV uses the saved workout tracking type and appends workoutState/workoutArchived/workoutExerciseOutcome/setCompleted, retaining the original leading columns.
 - Owners: TrackedGymRecords, GymScreens, SettingsScreens/ViewModel and BackupRepository with exact JVM/native fixtures. No dependency, Room/epoch/backup migration or release change.
