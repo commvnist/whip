@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="0" errors="0" skipped="0" time="19.493" timestamp="2026-09-28T20:58:42" hostname="localhost">
+  <testsuite name="com.whip.app.HomeHabitAudit2UiTest" tests="1" failures="0" errors="0" skipped="0" time="11.634" timestamp="2026-09-28T20:58:42" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="habitUnitChangesSaveConvertedConfigurationAndRetainOriginalHistory" classname="com.whip.app.HomeHabitAudit2UiTest" time="11.634" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.ProductAuditSharedUiTest" tests="1" failures="0" errors="0" skipped="0" time="6.769" timestamp="2026-09-28T20:58:42" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="emptyCustomDimensionCanCreateAndSelectItsFirstUnit" classname="com.whip.app.ui.ProductAuditSharedUiTest" time="6.769" />
+  </testsuite>
+</testsuites>

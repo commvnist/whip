@@ -44,7 +44,7 @@ import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.MeasurementEntry
 import com.whip.app.domain.MeasurementEntryStatus
 import com.whip.app.domain.BuiltInUnits
-import com.whip.app.domain.habitStreak
+import com.whip.app.domain.currentStreak
 import com.whip.app.domain.hasEnded
 import com.whip.app.domain.completionRateOverRecentPeriods
 import com.whip.app.domain.flexiblePeriodStreak
@@ -1346,10 +1346,6 @@ private fun buildProgress(
     val weekCompletions = flexibleProgress?.completed.takeIf { habit.scheduleType == HabitScheduleType.FlexibleTimesPerWeek } ?: 0
     val monthCompletions = flexibleProgress?.completed.takeIf { habit.scheduleType == HabitScheduleType.FlexibleTimesPerMonth } ?: 0
     val status = habitLogs.filter { it.localDate == date }.maxByOrNull(HabitLog::timestamp)?.status
-    val successByDate = (0L..365L).associate { offset ->
-        val day = date.minusDays(offset)
-        day to habit.outcomeForPeriod(habitLogs, day, customUnits)
-    }
     val completionRate = habit.completionRateOverRecentPeriods(
         habitLogs,
         date,
@@ -1360,10 +1356,7 @@ private fun buildProgress(
     val streak = if (habit.scheduleType in setOf(HabitScheduleType.FlexibleTimesPerWeek, HabitScheduleType.FlexibleTimesPerMonth)) {
         habit.flexiblePeriodStreak(habitLogs, date, habitPauses, habitSkips)
     } else {
-        val neutralDates = (0L..365L).mapNotNullTo(mutableSetOf()) { offset ->
-            date.minusDays(offset).takeIf { habit.isNeutralDate(it, habitPauses, habitSkips) }
-        }
-        habitStreak(habit, date, successByDate, neutralDates)
+        habit.currentStreak(habitLogs, date, habitPauses, habitSkips, customUnits)
     }
     val ended = habit.hasEnded(habitLogs, date, habitPauses, customUnits, habitSkips)
     val explicitlyPaused = data.pauses.any { it.habitId == habit.id && !date.isBefore(it.startDate) && (it.endDate == null || !date.isAfter(it.endDate)) }

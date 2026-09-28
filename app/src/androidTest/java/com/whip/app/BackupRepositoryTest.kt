@@ -148,6 +148,44 @@ class BackupRepositoryTest {
     }
     @After fun tearDown() = database.close()
 
+    @Test fun gymCsvPreservesHistoricalTypeAndDistinguishesPerformedActiveAndDiscardedSets() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft(name = "CSV exercise"))
+        val finished = gym.startWorkout("Finished work")
+        val finishedPlacement = gym.addExerciseToWorkout(finished, exerciseId)
+        gym.addSet(finishedPlacement, WorkoutSetDraft(weight = 20.0, reps = 5, completed = true))
+        gym.finishWorkout(finished)
+        val discarded = gym.startWorkout("Discarded plan")
+        val discardedPlacement = gym.addExerciseToWorkout(discarded, exerciseId)
+        gym.addSet(discardedPlacement, WorkoutSetDraft(weight = 30.0, reps = 5, planned = true))
+        gym.discardWorkout(discarded)
+        val active = gym.startWorkout("Active plan")
+        val activePlacement = gym.addExerciseToWorkout(active, exerciseId)
+        gym.addSet(activePlacement, WorkoutSetDraft(weight = 40.0, reps = 5, planned = true))
+        gym.updateExercise(exerciseId, ExerciseDraft(name = "CSV exercise", trackingType = com.whip.app.domain.ExerciseTrackingType.WeightOnly))
+        gym.setExerciseArchived(exerciseId, true)
+
+        val rows = com.whip.app.domain.parseCsv(backups.exportGymCsv())
+        val header = rows.first()
+        assertEquals(listOf("workoutState", "workoutArchived", "workoutExerciseOutcome", "setCompleted"), header.takeLast(4))
+        assertEquals("note", header[header.size - 5])
+        val exported = rows.drop(1).filter { it.size == header.size }.map { header.zip(it).toMap() }
+        val completed = exported.single { it["workout"] == "Finished work" }
+        assertEquals("WeightReps", completed["trackingType"])
+        assertEquals("Finished", completed["workoutState"])
+        assertEquals("1", completed["setCompleted"])
+        assertEquals("1", completed["exerciseArchived"])
+        val abandoned = exported.single { it["workout"] == "Discarded plan" }
+        assertEquals("Discarded", abandoned["workoutState"])
+        assertEquals("1", abandoned["workoutArchived"])
+        assertEquals("0", abandoned["setCompleted"])
+        val pending = exported.single { it["workout"] == "Active plan" }
+        assertEquals("Active", pending["workoutState"])
+        assertEquals("0", pending["workoutArchived"])
+        assertEquals("Active", pending["workoutExerciseOutcome"])
+        assertEquals("0", pending["setCompleted"])
+        assertEquals("WeightReps", pending["trackingType"])
+    }
+
     @Test fun portableBackupReviewsActiveTimerPrivateRecoveryPreservesItAndMergeDropsIt() = runBlocking {
         val habitId = habits.create(
             HabitDraft(

@@ -105,6 +105,8 @@ import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.compactNumericSequence
 import com.whip.app.domain.editableNumericValue
 import com.whip.app.domain.plainNumericValue
+import com.whip.app.domain.preciseSum
+import com.whip.app.domain.preciseAverage
 import com.whip.app.domain.parseNumericSequence
 import com.whip.app.domain.periodBounds
 import com.whip.app.domain.isScheduledOn
@@ -1649,9 +1651,9 @@ internal fun HabitInsights(
                                 HabitTodayMetric("streak-${habit.id}", habit.streakUnitLabel(item.streak), "Current streak")
                             }
                             if (habit.trackingMode == HabitTrackingMode.Rating && values.isNotEmpty()) {
-                                HabitTodayMetric("average-${habit.id}", formatHabitValue(values.average(), habit.precision), "Average rating")
+                                HabitTodayMetric("average-${habit.id}", formatHabitValue(values.preciseAverage(), habit.precision), "Average rating")
                             } else if (habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal, HabitTrackingMode.Duration) && values.isNotEmpty()) {
-                                HabitTodayMetric("total-${habit.id}", "${formatHabitValue(values.sum(), habit.precision)} ${habit.unitSymbol(state.customUnits)}".trim(), "All-time logged")
+                                HabitTodayMetric("total-${habit.id}", "${formatHabitValue(values.preciseSum(), habit.precision)} ${habit.unitSymbol(state.customUnits)}".trim(), "All-time logged")
                             }
                         }
                         if (habit.comparison != TargetComparison.None && !lowPressureMode) {
@@ -2097,6 +2099,7 @@ internal fun HabitEditorDialog(
     var weekStart by rememberSaveable(editorKey) { mutableStateOf(initial.weekStart) }
     var showEndDatePicker by rememberSaveable(editorKey) { mutableStateOf(false) }
     var unitId by rememberSaveable(editorKey) { mutableStateOf(initial.unitId) }
+    var unitChangeError by rememberSaveable(editorKey) { mutableStateOf<String?>(null) }
     var dimension by rememberSaveable(editorKey) { mutableStateOf(initial.dimension) }
     var precision by rememberSaveable(editorKey) { mutableStateOf(initial.precision.toString()) }
     var sourceMeasurementId by rememberSaveable(editorKey) { mutableStateOf(initial.sourceMeasurementId) }
@@ -2455,13 +2458,53 @@ internal fun HabitEditorDialog(
                                 units = BuiltInUnits.all + customUnits,
                                 selectedUnitId = unitId,
                                 dimension = dimension,
-                                onSelect = { unitId = it },
+                                onSelect = { selectedId ->
+                                    val units = BuiltInUnits.all + customUnits
+                                    val from = units.firstOrNull { it.id == unitId }
+                                    val to = units.firstOrNull { it.id == selectedId }
+                                    if (selectedId == unitId) {
+                                        unitChangeError = null
+                                    } else if (from == null || to == null || from.dimension != to.dimension) {
+                                        unitId = selectedId
+                                        unitChangeError = null
+                                    } else if (habit != null && from.toCanonicalOffset != to.toCanonicalOffset) {
+                                        // Adding affine readings is unit-dependent; there is no constant
+                                        // target conversion that preserves every possible period total.
+                                        unitChangeError = "These units use different zero points, so changing them would change this Habit's totals. Create a new Habit to use ${to.symbol.ifBlank { to.name }}. Your current unit and values are unchanged."
+                                    } else {
+                                        val raw = listOf(
+                                            targetMin.takeIf { comparison in setOf(TargetComparison.AtLeast, TargetComparison.Exactly, TargetComparison.WithinRange) }.orEmpty(),
+                                            targetMax.takeIf { comparison in setOf(TargetComparison.AtMost, TargetComparison.WithinRange) }.orEmpty(),
+                                            quickIncrement.takeIf { quickAddsEnabled }.orEmpty(),
+                                            endValue.takeIf { endType == HabitEndType.AfterTotal }.orEmpty())
+                                        val converted = convertNumericDraftValues(raw, from, to)
+                                        val actions = if (quickAddsEnabled && quickActionResult.error == null) {
+                                            convertNumericDraftValues(quickActionResult.values.map(::plainNumericValue), from, to)
+                                        } else if (!quickAddsEnabled) emptyList() else null
+                                        if (converted == null || actions == null) {
+                                            unitChangeError = "Finish or clear the numeric targets, quick actions, and ending total before changing the unit. Values must be finite in the selected unit. Your current unit and draft are unchanged."
+                                        } else {
+                                            targetMin = converted[0]
+                                            targetMax = converted[1]
+                                            if (quickAddsEnabled) {
+                                                quickIncrement = converted[2]
+                                                quickActions = actions.joinToString(";")
+                                            }
+                                            if (endType == HabitEndType.AfterTotal) endValue = converted[3]
+                                            unitId = selectedId
+                                            unitChangeError = null
+                                        }
+                                    }
+                                },
                                 onCreateUnit = onCreateCustomUnit,
                                 dialogModifier = modifier,
                                 enabled = habit?.timerSessionId == null,
                                 supportingText = if (habit?.timerSessionId != null) "Stop or discard the timer before changing its unit."
-                                    else "Create or choose the unit used for targets, check-ins, and history.",
+                                    else "Changing the unit converts your targets and quick amounts. Saved check-ins keep their original values and units.",
                             )
+                            unitChangeError?.let { message ->
+                                Text(message, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("habit-unit-change-error"))
+                            }
                         }
                     }
                     item {
@@ -2699,13 +2742,18 @@ internal fun HabitValueDialog(
     persistenceError: String? = null,
     customUnits: List<UnitDefinition> = emptyList(),
 ) {
+    val initialValue by rememberSaveable(item.habit.id, item.date) {
+        mutableStateOf(if (item.habit.trackingMode == HabitTrackingMode.LogOnly) "" else plainNumericValue(item.value))
+    }
     var value by rememberSaveable(item.habit.id, item.date) {
-        mutableStateOf(
-            if (item.habit.trackingMode == HabitTrackingMode.LogOnly) ""
-            else plainNumericValue(item.value),
-        )
+        mutableStateOf(initialValue)
     }
     var note by rememberSaveable(item.habit.id, item.date) { mutableStateOf("") }
+    var confirmDiscard by rememberSaveable(item.habit.id, item.date) { mutableStateOf(false) }
+    fun requestDismiss() {
+        if (saving) return
+        if (value != initialValue || note.isNotEmpty()) confirmDiscard = true else onDismiss()
+    }
     val logOnly = item.habit.trackingMode == HabitTrackingMode.LogOnly
     val setsPeriodTotal = item.habit.trackingMode in setOf(
         HabitTrackingMode.Count,
@@ -2716,7 +2764,7 @@ internal fun HabitValueDialog(
     val validValue = if (logOnly) value.isBlank() || parsedValue?.isFinite() == true else parsedValue?.isFinite() == true
     PaneAwareAlertDialog(
         testTag = "habit-value-dialog",
-        onDismissRequest = onDismiss,
+        onDismissRequest = ::requestDismiss,
         title = { Text(item.habit.todayCheckInTitle()) },
         text = {
             Column(
@@ -2772,9 +2820,14 @@ internal fun HabitValueDialog(
                 onClick = { onLog(parsedValue, note) },
             ) { Text(if (saving) "Saving…" else if (logOnly) "Add Entry" else "Save") }
         },
-        dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(enabled = !saving, onClick = ::requestDismiss) { Text("Cancel") } },
         inputBlocked = saving,
         inputBlockedLabel = "Saving Habit Check-In",
+    )
+    if (confirmDiscard && !saving) UnsavedChangesDialog(
+        subject = "Habit check-in",
+        onKeepEditing = { confirmDiscard = false },
+        onDiscard = { confirmDiscard = false; onDismiss() },
     )
 }
 
@@ -2791,11 +2844,19 @@ internal fun HabitHistoryLogDialog(
     customUnits: List<UnitDefinition> = emptyList(),
 ) {
     val editorKey = "habit-log-${log?.id ?: "${item.habit.id}-${initialDate.toEpochDay()}"}"
-    var value by rememberSaveable(editorKey) { mutableStateOf(log?.value?.let(::plainNumericValue).orEmpty()) }
-    var date by rememberSaveable(editorKey) { mutableStateOf(initialDate) }
-    var note by rememberSaveable(editorKey) { mutableStateOf(log?.note.orEmpty()) }
+    val openingValue by rememberSaveable(editorKey) { mutableStateOf(log?.value?.let(::plainNumericValue).orEmpty()) }
+    val openingDate by rememberSaveable(editorKey) { mutableStateOf(initialDate) }
+    val openingNote by rememberSaveable(editorKey) { mutableStateOf(log?.note.orEmpty()) }
+    var value by rememberSaveable(editorKey) { mutableStateOf(openingValue) }
+    var date by rememberSaveable(editorKey) { mutableStateOf(openingDate) }
+    var note by rememberSaveable(editorKey) { mutableStateOf(openingNote) }
     var showDatePicker by rememberSaveable(editorKey) { mutableStateOf(false) }
     var confirmDelete by rememberSaveable(editorKey) { mutableStateOf(false) }
+    var confirmDiscard by rememberSaveable(editorKey) { mutableStateOf(false) }
+    fun requestDismiss() {
+        if (saving) return
+        if (value != openingValue || date != openingDate || note != openingNote) confirmDiscard = true else onDismiss()
+    }
     val mode = item.habit.trackingMode
     val checkBased = mode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist)
     val showsAmount = !checkBased || (log?.value != null && log.value !in setOf(0.0, 1.0))
@@ -2810,7 +2871,7 @@ internal fun HabitHistoryLogDialog(
     }
     PaneAwareAlertDialog(
         testTag = "habit-history-dialog",
-        onDismissRequest = onDismiss,
+        onDismissRequest = ::requestDismiss,
         title = { Text(item.habit.historyDialogTitle(editing = log != null)) },
         text = {
             Column(
@@ -2880,7 +2941,7 @@ internal fun HabitHistoryLogDialog(
                 if (onDelete != null) WhipDestructiveTextButton(enabled = !saving, onClick = { confirmDelete = true }) {
                     Text("Delete")
                 }
-                WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") }
+                WhipTextButton(enabled = !saving, onClick = ::requestDismiss) { Text("Cancel") }
             }
         },
         inputBlocked = saving,
@@ -2905,6 +2966,11 @@ internal fun HabitHistoryLogDialog(
             dismissButton = { WhipTextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
         )
     }
+    if (confirmDiscard && !saving) UnsavedChangesDialog(
+        subject = "Habit history update",
+        onKeepEditing = { confirmDiscard = false },
+        onDiscard = { confirmDiscard = false; onDismiss() },
+    )
 }
 
 @Composable
@@ -3505,16 +3571,24 @@ internal fun HabitPauseDialog(
     persistenceError: String? = null,
 ) {
     val editorKey = "habit-pause-${pause?.id ?: "new"}"
-    var start by rememberSaveable(editorKey) { mutableStateOf(pause?.startDate ?: today) }
-    var end by rememberSaveable(editorKey) { mutableStateOf(pause?.endDate ?: today.takeIf { pause == null }) }
-    var note by rememberSaveable(editorKey) { mutableStateOf(pause?.note.orEmpty()) }
+    val openingStart by rememberSaveable(editorKey) { mutableStateOf(pause?.startDate ?: today) }
+    val openingEnd by rememberSaveable(editorKey) { mutableStateOf(pause?.endDate ?: today.takeIf { pause == null }) }
+    val openingNote by rememberSaveable(editorKey) { mutableStateOf(pause?.note.orEmpty()) }
+    var start by rememberSaveable(editorKey) { mutableStateOf(openingStart) }
+    var end by rememberSaveable(editorKey) { mutableStateOf(openingEnd) }
+    var note by rememberSaveable(editorKey) { mutableStateOf(openingNote) }
     var pickingStart by rememberSaveable(editorKey) { mutableStateOf(false) }
     var pickingEnd by rememberSaveable(editorKey) { mutableStateOf(false) }
     var confirmDelete by rememberSaveable(editorKey) { mutableStateOf(false) }
+    var confirmDiscard by rememberSaveable(editorKey) { mutableStateOf(false) }
+    fun requestDismiss() {
+        if (saving) return
+        if (start != openingStart || end != openingEnd || note != openingNote) confirmDiscard = true else onDismiss()
+    }
     val validRange = end == null || !requireNotNull(end).isBefore(start)
     PaneAwareAlertDialog(
         testTag = "habit-pause-dialog",
-        onDismissRequest = onDismiss,
+        onDismissRequest = ::requestDismiss,
         title = { Text(if (pause == null) "Schedule Habit Pause" else "Edit Scheduled Pause") },
         text = {
             Column(
@@ -3596,7 +3670,7 @@ internal fun HabitPauseDialog(
                     onClick = { confirmDelete = true },
                     modifier = Modifier.testTag("habit-pause-delete"),
                 ) { Text("Delete") }
-                WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") }
+                WhipTextButton(enabled = !saving, onClick = ::requestDismiss) { Text("Cancel") }
             }
         },
         inputBlocked = saving,
@@ -3637,6 +3711,11 @@ internal fun HabitPauseDialog(
             ) { Text("Delete") }
         },
         dismissButton = { WhipTextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+    )
+    if (confirmDiscard && !saving) UnsavedChangesDialog(
+        subject = "scheduled Habit pause",
+        onKeepEditing = { confirmDiscard = false },
+        onDiscard = { confirmDiscard = false; onDismiss() },
     )
 }
 

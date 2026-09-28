@@ -383,6 +383,50 @@ class HabitRulesTest {
         )
     }
 
+    @Test fun exactDecimalTargetsAndTotalsRetainTheAuthoredAmounts() {
+        val exact = habit(comparison = TargetComparison.Exactly, min = 0.3)
+        val logs = listOf(0.1, 0.2).mapIndexed { index, value ->
+            log(index + 1L, monday, HabitLogStatus.Recorded).copy(value = value, canonicalValue = value)
+        }
+        assertEquals(0.3, exact.valueForPeriod(logs, monday), 0.0)
+        assertEquals(true, exact.outcomeForPeriod(logs, monday))
+        val cancelling = listOf(1e16, 1.0, -1e16).mapIndexed { index, value ->
+            log(index + 1L, monday, HabitLogStatus.Recorded).copy(value = value, canonicalValue = value)
+        }
+        assertEquals(1.0, exact.valueForPeriod(cancelling, monday), 0.0)
+        assertTrue(exact.copy(endType = HabitEndType.AfterTotal, endValue = 1.0).hasEnded(cancelling, monday))
+    }
+
+    @Test fun currentStreakKeepsMoreThanOneYearAndOlderNeutralDays() {
+        val start = monday.minusDays(500)
+        val daily = habit().copy(startDate = start)
+        val logs = (0L until 500L).map { log(it + 1, start.plusDays(it), HabitLogStatus.Success) }
+        assertEquals(500, daily.currentStreak(logs, monday))
+        val skip = HabitSkip("old-skip", daily.id, start.plusDays(10), 1, 1, 1)
+        val pause = HabitPause(1, daily.id, start.plusDays(20), start.plusDays(21), "Time away")
+        assertEquals(497, daily.currentStreak(logs, monday, listOf(pause), listOf(skip)))
+        assertEquals(3, daily.currentStreak(logs.filterNot { it.localDate == monday.minusDays(4) }, monday))
+    }
+
+    @Test fun flexibleCompletionRateIncludesTheFirstPartialWeekAndMonth() {
+        DayOfWeek.entries.forEach { firstDay ->
+            val periodStart = monday.with(java.time.temporal.TemporalAdjusters.previousOrSame(firstDay))
+            val start = periodStart.plusDays(4)
+            val habit = habit(schedule = HabitScheduleType.FlexibleTimesPerWeek, flexible = 3)
+                .copy(startDate = start, weekStart = firstDay)
+            val logs = listOf(log(1, start, HabitLogStatus.Success), log(2, start.plusDays(1), HabitLogStatus.Success), log(3, start.plusDays(2), HabitLogStatus.Success))
+            assertEquals(1.0, habit.completionRateOverRecentPeriods(logs, start.plusDays(2)), 0.0)
+            assertEquals(1.0, habit.completionRateOverRecentPeriods(logs, periodStart.plusWeeks(1)), 0.0)
+            assertEquals(0.0, habit.completionRateOverRecentPeriods(emptyList(), periodStart.plusWeeks(1)), 0.0)
+        }
+        val start = LocalDate.of(2026, 8, 30)
+        val monthly = habit(schedule = HabitScheduleType.FlexibleTimesPerMonth, flexible = 3).copy(startDate = start)
+        val logs = listOf(log(1, start, HabitLogStatus.Success), log(2, start.plusDays(1), HabitLogStatus.Success))
+        assertEquals(2, monthly.flexibleProgress(logs, start.plusDays(1))?.target)
+        assertEquals(1.0, monthly.completionRateOverRecentPeriods(logs, start.plusDays(1)), 0.0)
+        assertEquals(1, monthly.flexiblePeriodStreak(logs, start.plusDays(1)))
+    }
+
     private fun habit(
         comparison: TargetComparison = TargetComparison.AtLeast,
         min: Double? = 1.0,

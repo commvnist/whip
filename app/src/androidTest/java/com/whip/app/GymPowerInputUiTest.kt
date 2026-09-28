@@ -99,6 +99,7 @@ import com.whip.app.ui.WorkoutExerciseNotesDialog
 import com.whip.app.ui.WorkoutExerciseGroupSurface
 import com.whip.app.ui.WorkoutExerciseUi
 import com.whip.app.ui.WorkoutHistoryCard
+import com.whip.app.ui.WorkoutHistoryContent
 import com.whip.app.ui.WorkoutSetEditorDialog
 import com.whip.app.ui.GymUiState
 import com.whip.app.ui.GymProgressContent
@@ -127,6 +128,139 @@ import java.time.Instant
 class GymPowerInputUiTest {
     private val compose = createComposeRule()
     @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
+
+    @Test
+    fun trackedMachineRecordDraftSurvivesRecreationAndOpensItsSource() {
+        val exercise = testExercise()
+        val session = testHistorySession()
+        val record = com.whip.app.domain.PersonalRecord(uuid = "level-record", exerciseId = exercise.id,
+            type = com.whip.app.domain.PersonalRecordType.MaxMachineSetting, value = 3.0, secondaryValue = null,
+            unitId = "level", sourceSetId = 9, sourceSessionId = session.id, achievedAtMillis = 1,
+            current = true, imported = false, createdAtMillis = 1, updatedAtMillis = 1,
+            machineProfileUuidSnapshot = "removed-level-profile")
+        var saved by mutableStateOf(emptyList<com.whip.app.core.TrackedGymRecord>())
+        var editorOpen by mutableStateOf(true)
+        var firstOpen by mutableStateOf(true)
+        var openedSource: Long? = null
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            val state = GymUiState(loading = false, exercises = listOf(exercise), history = listOf(session),
+                personalRecords = listOf(record), appSettings = com.whip.app.core.AppSettings(trackedGymRecords = saved))
+            WhipTheme(dynamicColor = false) {
+                if (editorOpen) {
+                    TrackedRecordsManagerDialog(Modifier, state, exercise.id.takeIf { firstOpen },
+                        onDismiss = { editorOpen = false }, onSave = { saved = it; firstOpen = false; editorOpen = false })
+                } else {
+                    GymProgressContent(state, {}, {}, { openedSource = it }, { editorOpen = true })
+                }
+            }
+        }
+        compose.onNodeWithContentDescription("Track Heaviest Weight").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Stop tracking Best Machine Setting").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Track Best Machine Setting").performScrollTo().performClick()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithContentDescription("Stop tracking Heaviest Weight").performScrollTo().assertIsDisplayed()
+        compose.runOnIdle { assertTrue(saved.isEmpty()) }
+        captureVisualCatalogSurface("product-audit.gym.tracked-record-draft")
+        compose.onNodeWithContentDescription("Close tracked records editor").performClick()
+        compose.onNodeWithText("Discard Unsaved Changes?").assertIsDisplayed()
+        compose.onNodeWithText("Keep Editing").performClick()
+        compose.onNodeWithTag("tracked-records-save").performClick()
+        compose.runOnIdle {
+            assertEquals(listOf(com.whip.app.domain.PersonalRecordType.MaxWeight,
+                com.whip.app.domain.PersonalRecordType.MaxMachineSetting), saved.map { it.type })
+        }
+        compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasText("Best Machine Setting"))
+        compose.onNodeWithText("Best Machine Setting").performClick()
+        compose.runOnIdle { assertEquals(session.id, openedSource) }
+        captureVisualCatalogSurface("product-audit.gym.machine-record")
+        compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasTestTag("gym-manage-tracked-records"))
+        compose.onNodeWithTag("gym-manage-tracked-records").performClick()
+        compose.onNodeWithContentDescription("Stop tracking Best Machine Setting").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("tracked-records-save").performClick()
+        compose.runOnIdle { assertEquals(2, saved.size) }
+    }
+
+    @Test
+    fun archivedExerciseKeepsWeeklyVolumeAndHistoricalEnteredUnits() {
+        val exercise = testExercise().copy(name = "Archived dumbbell row", archived = true, weightUnitId = "pound",
+            defaultGraphMetric = GymGraphMetric.MaxWeight.name)
+        val session = testHistorySession().copy(localDate = LocalDate.now())
+        val placement = testWorkoutExercise(exercise).copy(sessionId = session.id, loadInterpretationSnapshot = LoadInterpretation.PerHand)
+        val set = testWorkoutSet(501, placement.id).copy(completed = true, canonicalWeightKg = 40.0, enteredWeight = 20.0)
+        val category = com.whip.app.domain.ExerciseCategory(3, "category", "Back", "Muscle", 0, true, 1, 1)
+        val state = GymUiState(loading = false, archivedExercises = listOf(exercise), history = listOf(session),
+            allSessions = listOf(session), allWorkoutExercises = listOf(placement), allSets = listOf(set),
+            archivedCategories = listOf(category), categoryLinks = listOf(com.whip.app.domain.ExerciseCategoryLink(exercise.id, category.id)),
+            appSettings = com.whip.app.core.AppSettings(numberPrecision = 2))
+        var openedSource by mutableStateOf<Long?>(null)
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                if (openedSource == null) {
+                    GymProgressContent(state, {}, {}, { openedSource = it }, {})
+                } else {
+                    WorkoutHistoryContent(history = state.history, state = state, onCopy = {}, onResume = {},
+                        onEditDetails = {}, onOpenActiveWorkout = {}, onSaveAsRoutine = { _, _ -> }, onCopyExercise = {},
+                        onShare = {}, onRestore = {}, onDelete = {}, focusedWorkoutId = openedSource)
+                }
+            }
+        }
+        compose.onAllNodesWithText("No Exercises to Track").assertCountEquals(0)
+        val progress = compose.onNodeWithTag("gym-progress-list")
+        progress.performScrollToNode(hasText("Weekly Details"))
+        compose.onNodeWithText("Weekly Details").performClick()
+        progress.performScrollToNode(hasText("5 reps · 200 kg·rep", substring = true))
+        compose.onNodeWithText("5 reps · 200 kg·rep", substring = true).assertIsDisplayed()
+        progress.performScrollToNode(hasText("Back · Archived: 1 allocated hard set · 200 kg·rep"))
+        compose.onNodeWithText("Back · Archived: 1 allocated hard set · 200 kg·rep").assertIsDisplayed()
+        captureVisualCatalogSurface("product-audit.gym.archived-progress")
+        progress.performScrollToNode(hasText("Data Points"))
+        compose.onNodeWithText("Data Points").performClick()
+        progress.performScrollToNode(hasText("88.18 lb"))
+        compose.onNodeWithText("88.18 lb").performClick()
+        compose.onNodeWithTag("gym-chart-point-open-workout").performClick()
+        compose.runOnIdle { assertEquals(session.id, openedSource) }
+        compose.onNodeWithTag("history-set-performed-${set.id}", useUnmergedTree = true)
+            .performScrollTo().assertTextContains("44.09 lb per hand (88.18 total)", substring = true)
+        captureVisualCatalogSurface("product-audit.gym.archived-history-units")
+        compose.runOnIdle { assertEquals(20.0, set.enteredWeight!!, 0.0) }
+    }
+
+    @Test
+    fun archivedHistoryFiltersKeepOlderTrainingMaxChangesReachable() {
+        val exercise = testExercise().copy(archived = true)
+        val routine = GymRoutine(4, "archived-routine", "Old routine", "", 0, true, false, 1, 1)
+        val category = com.whip.app.domain.ExerciseCategory(3, "category", "Back", "Muscle", 0, true, 1, 1)
+        val decisions = (1..21).map { index ->
+            com.whip.app.domain.TrainingMaxDecision("decision-$index", routine.uuid, "manual-$index", exercise.uuid,
+                exercise.name, index, 100.0, 2.5, 102.5, "kilogram", 2.5, "Manual", 2.5, 1.0,
+                listOf("Manual decision $index"), "manual", com.whip.app.domain.TrainingMaxDecisionAction.Custom,
+                index * 86_400_000L)
+        }
+        val state = GymUiState(loading = false, archivedExercises = listOf(exercise), archivedRoutines = listOf(routine),
+            archivedCategories = listOf(category), categoryLinks = listOf(com.whip.app.domain.ExerciseCategoryLink(exercise.id, category.id)),
+            trainingMaxDecisions = decisions)
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                WorkoutHistoryContent(history = emptyList(), state = state, onCopy = {}, onResume = {},
+                    onEditDetails = {}, onOpenActiveWorkout = {}, onSaveAsRoutine = { _, _ -> }, onCopyExercise = {},
+                    onShare = {}, onRestore = {}, onDelete = {})
+            }
+        }
+        compose.onNodeWithText("History Options").performClick()
+        compose.onNodeWithText("All Exercises").performScrollTo().performClick()
+        compose.onNodeWithText("${exercise.name} · Archived").performClick()
+        compose.onNodeWithText("All Routines").performScrollTo().performClick()
+        compose.onNodeWithText("Old routine · Archived").performClick()
+        compose.onNodeWithText("All Categories").performScrollTo().performClick()
+        compose.onNodeWithText("Back · Archived").performClick()
+        compose.onNodeWithText("Program Training Max Changes").performScrollTo().performClick()
+        compose.onNodeWithText("Show All 21 Changes").performScrollTo().performClick()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithText("Manual decision 1", substring = false).performScrollTo().assertIsDisplayed()
+        captureVisualCatalogSurface("product-audit.gym.training-max-history")
+    }
 
     @Test
     fun restAlertExplainsBlockedCurrentChannel() {

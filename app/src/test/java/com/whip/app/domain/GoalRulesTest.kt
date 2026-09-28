@@ -11,6 +11,38 @@ import org.junit.Test
 class GoalRulesTest {
     private val today = LocalDate.of(2026, 8, 17)
 
+    @Test fun backfilledObservationsDoNotReplaceLaterDatedLatestProgressOrHistory() {
+        val current = entry(75.0, today.plusDays(2)).copy(id = "current")
+        val backfill = entry(80.0, today.plusDays(1)).copy(id = "backfill", timestamp = current.timestamp.plusSeconds(60))
+        val observations = listOf(backfill, current)
+        val authored = goal(baseline = 90.0, target = 70.0, type = GoalType.ReduceValue)
+        val projection = projectGoal(authored, observations, emptyList(), today.plusDays(2))
+        assertEquals(75.0, projection.currentValue!!, 0.0)
+        assertEquals(listOf("current", "backfill"), projection.entries.map { it.id })
+        assertEquals(listOf(80.0, 75.0), buildGoalInsights(authored, observations).points.map { it.canonicalValue })
+        assertEquals(current.timestamp.plusSeconds(60), projection.entries.last().timestamp)
+
+        val corrected = backfill.copy(localDate = today.plusDays(3))
+        assertEquals(80.0, projectGoal(authored, listOf(corrected, current), emptyList(), today.plusDays(3)).currentValue!!, 0.0)
+        assertEquals(80.0, buildGoalInsights(authored, listOf(corrected, current)).points.last().canonicalValue!!, 0.0)
+    }
+
+    @Test fun openTrendReviewExcludesHistoryOnlyAndNonRecordedEvidence() {
+        val trend = goal(type = GoalType.OpenEndedTrend).copy(deadline = today.plusDays(2))
+        listOf(today.minusDays(1), today.plusDays(3)).forEach { outside ->
+            assertEquals(0.0, goalOutcomeScoreOnDate(trend, listOf(entry(1.0, outside)), emptyList(), outside), 0.0)
+        }
+        listOf(
+            entry(Double.NaN, today),
+            entry(1.0, today).copy(status = MeasurementEntryStatus.Failed),
+            entry(1.0, today).copy(canonicalValue = null, status = MeasurementEntryStatus.Missing),
+            entry(1.0, today).copy(measurementId = "another-measurement"),
+        ).forEach { invalid ->
+            assertEquals(0.0, goalOutcomeScoreOnDate(trend, listOf(invalid), emptyList(), today), 0.0)
+        }
+        assertEquals(1.0, goalOutcomeScoreOnDate(trend, listOf(entry(0.0, today)), emptyList(), today), 0.0)
+    }
+
     @Test fun increasingAndDecreasingProgressUseBaseline() {
         assertEquals(.5, calculateGoalProgress(goal(baseline = 0.0, target = 100.0), 50.0)!!, 0.0)
         assertEquals(.5, calculateGoalProgress(goal(baseline = 100.0, target = 80.0, type = GoalType.ReduceValue), 90.0)!!, 0.0)

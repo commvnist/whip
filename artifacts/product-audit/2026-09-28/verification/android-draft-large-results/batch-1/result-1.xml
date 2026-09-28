@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="0" errors="0" skipped="0" time="21.686" timestamp="2026-09-28T20:49:56" hostname="localhost">
+  <testsuite name="com.whip.app.HomeHabitAudit2UiTest" tests="1" failures="0" errors="0" skipped="0" time="14.092" timestamp="2026-09-28T20:49:56" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="secondaryHabitDraftsSurviveDismissalAndRecreation" classname="com.whip.app.HomeHabitAudit2UiTest" time="14.092" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.ProductAuditSharedUiTest" tests="1" failures="0" errors="0" skipped="0" time="6.511" timestamp="2026-09-28T20:49:56" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="areaCreationLongFailureCanScrollWhileActionsStayReachable" classname="com.whip.app.ui.ProductAuditSharedUiTest" time="6.511" />
+  </testsuite>
+</testsuites>

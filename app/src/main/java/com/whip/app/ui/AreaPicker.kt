@@ -1,6 +1,8 @@
 package com.whip.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,8 +20,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -207,29 +211,40 @@ internal fun CreateAreaDialog(
 ) {
     var name by rememberSaveable { mutableStateOf("") }
     var color by rememberSaveable { mutableStateOf<Long?>(null) }
-    var localSaving by rememberSaveable { mutableStateOf(false) }
+    var localSaving by remember { mutableStateOf(false) }
+    var interruptedSave by rememberSaveable { mutableStateOf(false) }
+    var active by remember { mutableStateOf(true) }
+    DisposableEffect(Unit) { onDispose { active = false } }
     var localError by rememberSaveable { mutableStateOf<String?>(null) }
     val saving = controlledSaving ?: localSaving
-    val error = controlledError ?: localError
+    val error = controlledError ?: localError ?: if (controlledSaving == null && interruptedSave && !localSaving) {
+        "Area creation was interrupted. Your draft is still here. Try again; an Area with this name will be selected instead of duplicated."
+    } else null
     val duplicate = existingAreas.firstOrNull { it.name.equals(name.trim(), true) }
     fun submitCreate(displayName: String, requestedColor: Long?) {
         if (onCreateRequested != null) {
             onCreateRequested(displayName, requestedColor)
         } else {
             localSaving = true
+            interruptedSave = true
             onCreate(displayName, requestedColor) { result ->
-                localSaving = false
-                result.onSuccess { onSelected(it, displayName) }
-                    .onFailure { localError = it.message ?: "Could not create area" }
+                if (active) {
+                    localSaving = false
+                    interruptedSave = false
+                    result.onSuccess { onSelected(it, displayName) }
+                        .onFailure { localError = it.message ?: "Could not create Area" }
+                }
             }
         }
     }
     PaneAwareAlertDialog(
         modifier = modifier,
         onDismissRequest = { if (!saving) onDismiss() },
+        inputBlocked = saving,
+        inputBlockedLabel = "Saving Area",
         title = { Text("Create Area") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            WhipDialogBody(Modifier.verticalScroll(rememberScrollState())) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it.take(40); localError = null },

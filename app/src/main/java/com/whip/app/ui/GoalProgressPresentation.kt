@@ -6,27 +6,11 @@ import com.whip.app.domain.GoalAggregation
 import com.whip.app.domain.GoalType
 import com.whip.app.domain.GoalProjection
 import com.whip.app.domain.editableNumericValue
-import com.whip.app.domain.toWhipDoubleOrNull
-import com.whip.app.domain.plainNumericValue
 import com.whip.app.domain.UnitDefinition
 import java.text.NumberFormat
 import java.util.Locale
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
-
-/** A display-unit edit preserves physical targets; incomplete text is retained by the caller. */
-internal fun convertGoalDraftValues(raw: List<String>, from: UnitDefinition, to: UnitDefinition): List<String>? {
-    if (from.id == to.id) return raw
-    if (from.dimension != to.dimension) return null
-    return raw.map { text ->
-        if (text.isBlank()) "" else {
-            val value = text.toWhipDoubleOrNull() ?: return null
-            val converted = to.fromCanonical(from.toCanonical(value))
-            if (!converted.isFinite()) return null
-            plainNumericValue(converted)
-        }
-    }
-}
 
 internal fun GoalProjection.typedOutcomeReading(customUnits: List<UnitDefinition> = emptyList()): String? = when (goal.type) {
     GoalType.MaintainRange -> {

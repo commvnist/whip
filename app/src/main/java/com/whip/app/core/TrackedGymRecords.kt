@@ -2,6 +2,8 @@ package com.whip.app.core
 
 import com.whip.app.domain.Exercise
 import com.whip.app.domain.ExerciseTrackingType
+import com.whip.app.domain.GymMachine
+import com.whip.app.domain.MachineLoadType
 import com.whip.app.domain.PersonalRecord
 import com.whip.app.domain.PersonalRecordType
 
@@ -13,6 +15,24 @@ data class TrackedGymRecord(
     val machineProfileUuid: String? = null,
     val position: Int = 0,
 )
+
+/** Retained equipment records remain valid even after their profile is archived or removed. */
+fun TrackedGymRecord.isSupportedFor(
+    exercise: Exercise,
+    machines: List<GymMachine>,
+    records: List<PersonalRecord>,
+): Boolean = exerciseUuid == exercise.uuid && (
+    type in exercise.supportedTrackedRecordTypes() ||
+        type == PersonalRecordType.MaxMachineSetting && (
+            machines.any { machine ->
+                machine.loadType == MachineLoadType.Level && machine.supportsExercise(exercise.id) &&
+                    (machineProfileUuid == null || machine.uuid == machineProfileUuid)
+            } || records.any { record ->
+                record.exerciseId == exercise.id && record.type == type &&
+                    (machineProfileUuid == null || record.machineProfileUuidSnapshot == machineProfileUuid)
+            }
+        )
+    )
 
 internal fun normalizeTrackedGymRecords(records: Iterable<TrackedGymRecord>): List<TrackedGymRecord> = records
     .filter { selection ->

@@ -1,0 +1,14 @@
+{
+  "command": [
+    "timeout",
+    "--kill-after=3s",
+    "55s",
+    "scripts/qa-targeted",
+    "--jvm",
+    "com.whip.app.domain.TrackDomainTest.decimalAggregatesRetainCancellationAndFiniteMeans",
+    "--jvm",
+    "com.whip.app.domain.HabitRulesTest.exactDecimalTargetsAndTotalsRetainTheAuthoredAmounts",
+    "--jvm-only"
+  ],
+  "ANDROID_SERIAL": null
+}

@@ -181,7 +181,7 @@ class RoomGoalRepository(
         val milestoneDrafts = dao.getMilestones(current.id).map {
             GoalMilestoneDraft(name = it.name, weight = it.weight, reward = it.reward)
         }
-        create(goal.toDraft(milestoneDrafts, resolveUnit(goal.unitId)).copy(name = "${goal.name} copy"))
+        create(goal.toDraft(milestoneDrafts, resolveUnit(goal.unitId)).copy(name = com.whip.app.domain.copiedItemName(goal.name)))
     }
 
     override suspend fun setStatus(id: Long, status: GoalStatus) {

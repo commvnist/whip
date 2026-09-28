@@ -79,12 +79,12 @@ internal fun UnitSelectionField(
     onDimensionSelect: (UnitDimension) -> Unit = {},
 ) {
     val available = units.filter { (allowAnyDimension || it.dimension == dimension) && (!it.archived || it.id == selectedUnitId) }
-    val selected = available.firstOrNull { it.id == selectedUnitId } ?: available.firstOrNull()
+    val selected = available.firstOrNull { it.id == selectedUnitId }
     var expanded by rememberSaveable(label) { mutableStateOf(false) }
     LaunchedEffect(enabled) { if (!enabled) expanded = false }
     var creating by rememberSaveable(label) { mutableStateOf(false) }
     var requestedUnitId by rememberSaveable(label) { mutableStateOf(UUID.randomUUID().toString()) }
-    var pendingDimension by rememberSaveable(label) { mutableStateOf(dimension) }
+    var pendingSelectionId by rememberSaveable(label) { mutableStateOf<String?>(null) }
     val creationState by onCreateUnit.state.collectAsStateWithLifecycle()
     val creationCoordinator = rememberPersistenceRequestCoordinator(
         state = creationState,
@@ -92,30 +92,45 @@ internal fun UnitSelectionField(
         key = requestedUnitId,
         requestNamespace = "inline-custom-unit-$requestedUnitId",
         onPersisted = { receipt ->
-            onDimensionSelect(pendingDimension)
-            onSelect(receipt.unitId)
+            pendingSelectionId = receipt.unitId
             creating = false
             requestedUnitId = UUID.randomUUID().toString()
         },
         orphanedMessage = "The previous custom-unit save was interrupted. Your draft is still here; retrying with the same identity is safe.",
     )
+    LaunchedEffect(pendingSelectionId, units) {
+        val createdUnit = units.firstOrNull { it.id == pendingSelectionId } ?: return@LaunchedEffect
+        onDimensionSelect(createdUnit.dimension)
+        onSelect(createdUnit.id)
+        pendingSelectionId = null
+    }
+    fun createUnit() {
+        expanded = false
+        pendingSelectionId = null
+        creationCoordinator.clear()
+        requestedUnitId = UUID.randomUUID().toString()
+        creating = true
+    }
+    val selectionLabel = selected?.let {
+        if (it.id == "unitless") "No Unit" else unitDefinitionDisplayLabel(it)
+    } ?: if (available.isEmpty()) "Create Custom Unit…" else "Choose Unit"
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, style = MaterialTheme.typography.labelMedium)
         Box(Modifier.fillMaxWidth()) {
             WhipOutlinedButton(
-                enabled = enabled && selected != null,
-                onClick = { expanded = true },
+                enabled = enabled,
+                onClick = { if (available.isEmpty()) createUnit() else expanded = true },
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 48.dp)
                     .semantics {
-                        contentDescription = "$label: ${selected?.let(::unitDefinitionDisplayLabel) ?: "No compatible units"}"
+                        contentDescription = "$label: $selectionLabel"
                         stateDescription = if (expanded && enabled) "Menu open" else "Menu closed"
                     },
             ) {
                 Text(
-                    selected?.let { if (it.id == "unitless") "No Unit" else unitDefinitionDisplayLabel(it) } ?: "No compatible units",
+                    selectionLabel,
                     modifier = Modifier.weight(1f),
                 )
                 Icon(Icons.Outlined.ArrowDropDown, contentDescription = null)
@@ -126,7 +141,12 @@ internal fun UnitSelectionField(
                     DropdownMenuItem(
                         text = { Text(if (unit.id == "unitless") "No Unit" else unitDefinitionDisplayLabel(unit)) },
                         leadingIcon = if (isSelected) {{ Icon(Icons.Outlined.Check, contentDescription = null) }} else null,
-                        onClick = { onDimensionSelect(unit.dimension); onSelect(unit.id); expanded = false },
+                        onClick = {
+                            pendingSelectionId = null
+                            onDimensionSelect(unit.dimension)
+                            onSelect(unit.id)
+                            expanded = false
+                        },
                         modifier = Modifier.semantics { this.selected = isSelected },
                     )
                 }
@@ -142,17 +162,12 @@ internal fun UnitSelectionField(
                             )
                         }
                     },
-                    onClick = {
-                        expanded = false
-                        creationCoordinator.clear()
-                        requestedUnitId = UUID.randomUUID().toString()
-                        creating = true
-                    },
+                    onClick = ::createUnit,
                 )
             }
         }
         Text(
-            supportingText,
+            if (pendingSelectionId != null) "The unit was saved. Waiting for the updated unit list…" else supportingText,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -173,7 +188,6 @@ internal fun UnitSelectionField(
                 }
             },
             onSave = { name, symbol, selectedDimension, factor ->
-                pendingDimension = selectedDimension
                 val requestId = creationCoordinator.begin() ?: return@CustomUnitDialog
                 if (!onCreateUnit.submit(
                         requestId,

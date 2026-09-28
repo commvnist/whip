@@ -600,6 +600,9 @@ data class GoalInsightSummary(
     val forecastExplanation: String? = null,
 )
 
+/** Observation dates describe when a value applies; timestamp only breaks same-day ties. */
+private val goalObservationOrder = compareBy<MeasurementEntry> { it.localDate }.thenBy { it.timestamp }
+
 /** Builds an inspectable timeline without repeatedly rescanning the entire
  * history. Missing/failed/skipped values remain visible in the quality count
  * but never become numeric progress. */
@@ -609,7 +612,7 @@ fun buildGoalInsights(
     milestones: List<GoalMilestone> = emptyList(),
     through: LocalDate = entries.maxOfOrNull(MeasurementEntry::localDate) ?: goal.startDate,
 ): GoalInsightSummary {
-    val relevant = entries.filter { it.measurementId == goal.measurementId }.sortedBy(MeasurementEntry::timestamp)
+    val relevant = entries.filter { it.measurementId == goal.measurementId }.sortedWith(goalObservationOrder)
     val end = minOf(through, goal.deadline ?: through)
     val recordedByDate = relevant.filter {
         it.status == MeasurementEntryStatus.Recorded && it.canonicalValue?.isFinite() == true &&
@@ -690,7 +693,7 @@ private class GoalInsightWindow(private val goal: Goal, originalOrder: Map<Measu
     private val entries = java.util.ArrayDeque<MeasurementEntry>()
     private val values = java.util.TreeMap<Double, Int>()
     // aggregateGoalValue keeps the first input when timestamps tie.
-    private val timestamps = java.util.TreeSet(compareBy<MeasurementEntry> { it.timestamp }.thenByDescending { originalOrder[it] ?: 0 })
+    private val timestamps = java.util.TreeSet(goalObservationOrder.thenByDescending { originalOrder[it] ?: 0 })
     private var sum = BigDecimal.ZERO
     private var positive = 0
     private var inRange = 0
@@ -730,14 +733,6 @@ private class GoalInsightWindow(private val goal: Goal, originalOrder: Map<Measu
     }
 }
 
-private fun List<Double>.decimalTotal(): BigDecimal = fold(BigDecimal.ZERO) { total, value ->
-    total.add(BigDecimal.valueOf(value))
-}
-
-// Divide before converting: an overflowing Double total can still have a finite mean.
-private fun BigDecimal.decimalMean(count: Int): Double =
-    divide(BigDecimal.valueOf(count.toLong()), MathContext.DECIMAL128).toDouble()
-
 private fun forecastGoalDate(goal: Goal, last: GoalHistoryPoint?, rate: Double?): LocalDate? {
     val value = last?.canonicalValue ?: return null
     val daily = rate?.takeIf { it.isFinite() && kotlin.math.abs(it) > 1e-9 } ?: return null
@@ -765,7 +760,7 @@ fun aggregateGoalValue(
     val values = relevantEntries.map { requireNotNull(it.canonicalValue) }
     if (values.isEmpty()) return null
     return when (goal.aggregation) {
-        GoalAggregation.Latest -> relevantEntries.maxByOrNull(MeasurementEntry::timestamp)?.canonicalValue
+        GoalAggregation.Latest -> relevantEntries.maxWithOrNull(goalObservationOrder)?.canonicalValue
         GoalAggregation.Sum -> values.decimalTotal().toDouble()
         GoalAggregation.Average -> values.decimalTotal().decimalMean(values.size)
         GoalAggregation.Minimum -> values.min()
@@ -849,7 +844,7 @@ fun projectGoal(
         forecastDate = forecast,
         onPace = paceDelta?.let { it >= -0.02 },
         milestones = milestones.sortedBy(GoalMilestone::position),
-        entries = entries.sortedByDescending(MeasurementEntry::timestamp),
+        entries = entries.sortedWith(goalObservationOrder.reversed()),
         consistency = consistency,
     )
 }
@@ -862,13 +857,28 @@ fun goalOutcomeScoreOnDate(
     entries: List<MeasurementEntry>,
     milestones: List<GoalMilestone>,
     date: LocalDate,
+    zoneId: ZoneId = ZoneId.systemDefault(),
 ): Double {
-    val relevant = entries.filter { it.measurementId == goal.measurementId && it.status == MeasurementEntryStatus.Recorded }
-    if (relevant.none { it.localDate == date }) return 0.0
+    if (date.isBefore(goal.startDate) || goal.deadline?.let(date::isAfter) == true) return 0.0
     if (goal.type == GoalType.ElapsedSince) return 0.0
+    if (goal.type == GoalType.WeightedMilestones) {
+        val weighted = milestones.filter { it.goalId == goal.id && it.weight.isFinite() && it.weight > 0.0 }
+        val total = weighted.map(GoalMilestone::weight).decimalTotal()
+        if (total.signum() == 0) return 0.0
+        val earned = weighted.filter {
+            it.completed && it.completedAtMillis?.let { completed ->
+                Instant.ofEpochMilli(completed).atZone(zoneId).toLocalDate() == date
+            } == true
+        }.map(GoalMilestone::weight).decimalTotal()
+        return earned.divide(total, MathContext.DECIMAL128).toDouble().coerceIn(0.0, 1.0)
+    }
+    val relevant = entries.filter {
+        it.measurementId == goal.measurementId && it.status == MeasurementEntryStatus.Recorded &&
+            it.canonicalValue?.isFinite() == true
+    }
+    if (relevant.none { it.localDate == date }) return 0.0
     if (goal.type == GoalType.OpenEndedTrend) return 1.0
     if (goal.type == GoalType.MaintainRange) {
-        if (date.isBefore(goal.startDate) || goal.deadline?.let(date::isAfter) == true) return 0.0
         val min = goal.targetMin ?: return 0.0
         val max = goal.targetMax ?: min
         val observed = relevant.filter { it.localDate == date && it.canonicalValue?.isFinite() == true }
@@ -914,7 +924,7 @@ fun calculateConsistencyProgress(
         if (values.isEmpty()) return 0.0
         return when (goal.aggregation) {
             GoalAggregation.Latest -> eligibleEntries.filter { it.localDate in start..end }
-                .maxByOrNull(MeasurementEntry::timestamp)?.canonicalValue ?: 0.0
+                .maxWithOrNull(goalObservationOrder)?.canonicalValue ?: 0.0
             GoalAggregation.Sum -> values.decimalTotal().toDouble()
             GoalAggregation.Average -> values.decimalTotal().decimalMean(values.size)
             GoalAggregation.Minimum -> values.min()

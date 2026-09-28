@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="3" failures="0" errors="0" skipped="0" time="19.303" timestamp="2026-09-28T21:00:57" hostname="localhost">
+  <testsuite name="com.whip.app.BackupRepositoryTest" tests="1" failures="0" errors="0" skipped="0" time="0.288" timestamp="2026-09-28T21:00:57" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="gymCsvPreservesHistoricalTypeAndDistinguishesPerformedActiveAndDiscardedSets" classname="com.whip.app.BackupRepositoryTest" time="0.288" />
+  </testsuite>
+  <testsuite name="com.whip.app.GymPowerInputUiTest" tests="1" failures="0" errors="0" skipped="0" time="8.923" timestamp="2026-09-28T21:00:57" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedHistoryFiltersKeepOlderTrainingMaxChangesReachable" classname="com.whip.app.GymPowerInputUiTest" time="8.923" />
+  </testsuite>
+  <testsuite name="com.whip.app.SettingsBehaviorUiTest" tests="1" failures="0" errors="0" skipped="0" time="8.947" timestamp="2026-09-28T21:00:57" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="notificationTestExplainsAvailabilityOrAnnouncesResult" classname="com.whip.app.SettingsBehaviorUiTest" time="8.947" />
+  </testsuite>
+</testsuites>

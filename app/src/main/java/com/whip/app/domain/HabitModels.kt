@@ -425,7 +425,7 @@ fun Habit.valueForPeriod(
         HabitTrackingMode.Checklist, HabitTrackingMode.Rating ->
             relevant.maxByOrNull(HabitLog::timestamp)?.valueInUnit(unitId, customUnits) ?: 0.0
         HabitTrackingMode.CheckOff -> if (relevant.any { (it.valueInUnit(unitId, customUnits) ?: 0.0) > 0.0 }) 1.0 else 0.0
-        else -> relevant.sumOf { it.valueInUnit(unitId, customUnits) ?: 0.0 }
+        else -> relevant.mapNotNull { it.valueInUnit(unitId, customUnits) }.preciseSum()
     }
 }
 
@@ -505,13 +505,15 @@ fun Habit.completionRateOverRecentPeriods(
         }
         return if (outcomes.isEmpty()) 0.0 else outcomes.count { it }.toDouble() / outcomes.size
     }
+    fun periodStart(day: LocalDate): LocalDate = when (scheduleType) {
+        HabitScheduleType.FlexibleTimesPerWeek -> day.with(TemporalAdjusters.previousOrSame(weekStart))
+        HabitScheduleType.FlexibleTimesPerMonth -> day.withDayOfMonth(1)
+        else -> day
+    }
     val starts = buildList {
-        var cursor = when (scheduleType) {
-            HabitScheduleType.FlexibleTimesPerWeek -> through.with(TemporalAdjusters.previousOrSame(weekStart))
-            HabitScheduleType.FlexibleTimesPerMonth -> through.withDayOfMonth(1)
-            else -> through
-        }
-        while (!cursor.isBefore(startDate) && !cursor.isBefore(since)) {
+        val firstPeriod = maxOf(periodStart(startDate), periodStart(since))
+        var cursor = periodStart(through)
+        while (!cursor.isBefore(firstPeriod)) {
             add(cursor)
             cursor = if (scheduleType == HabitScheduleType.FlexibleTimesPerWeek) cursor.minusWeeks(1) else cursor.minusMonths(1)
         }
@@ -598,7 +600,8 @@ fun Habit.hasEnded(
                     it.habitId == id && !it.localDate.isAfter(date) &&
                         it.status in setOf(HabitLogStatus.Recorded, HabitLogStatus.Success)
                 }
-                .sumOf { it.valueInUnit(unitId, customUnits) ?: 0.0 } >= target
+                .mapNotNull { it.valueInUnit(unitId, customUnits) }
+                .toList().preciseSum() >= target
         } ?: false
     }
     HabitEndType.AfterStreak -> {
@@ -694,6 +697,33 @@ fun habitStreak(
     through: LocalDate,
     successByDate: Map<LocalDate, Boolean?>,
     neutralDates: Set<LocalDate> = emptySet(),
+): Int = habitStreak(habit, through, { successByDate[it] }, { it in neutralDates })
+
+/** Walk only the earned streak; daily lookups do not rescan the entire log history. */
+fun Habit.currentStreak(
+    logs: List<HabitLog>,
+    through: LocalDate,
+    pauses: List<HabitPause> = emptyList(),
+    skips: List<HabitSkip> = emptyList(),
+    customUnits: List<UnitDefinition> = emptyList(),
+): Int {
+    val byDate = logs.filter { it.habitId == id }.groupBy(HabitLog::localDate)
+    val periodOutcomes = mutableMapOf<LocalDate, Boolean?>()
+    return habitStreak(this, through, { day ->
+        val bounds = periodBounds(day)
+        periodOutcomes.getOrPut(bounds.start) {
+            val periodLogs = if (bounds.start == bounds.endInclusive) byDate[day].orEmpty()
+                else byDate.filterKeys { it in bounds }.values.flatten()
+            outcomeForPeriod(periodLogs, day, customUnits)
+        }
+    }, { isNeutralDate(it, pauses, skips) })
+}
+
+private fun habitStreak(
+    habit: Habit,
+    through: LocalDate,
+    outcome: (LocalDate) -> Boolean?,
+    neutral: (LocalDate) -> Boolean,
 ): Int {
     var date = through
     var streak = 0
@@ -702,11 +732,11 @@ fun habitStreak(
             date = date.minusDays(1)
             continue
         }
-        if (date in neutralDates) {
+        if (neutral(date)) {
             date = date.minusDays(1)
             continue
         }
-        when (successByDate[date]) {
+        when (outcome(date)) {
             true -> streak++
             false -> return streak
             null -> if (date == through) {

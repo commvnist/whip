@@ -3,6 +3,8 @@ package com.whip.app.ui
 import android.content.Context
 import android.text.format.DateFormat
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
@@ -36,6 +38,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimeInput
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,6 +59,8 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
@@ -631,28 +636,13 @@ internal fun ClockPickerButton(
         Text(if (minutes == null) "$label · Not set" else "$label · ${formatClockMinutes(context, minutes)}")
     }
     if (pickerOpen) {
-        val picker = rememberTimePickerState(
-            initialHour = (minutes ?: 8 * 60) / 60,
-            initialMinute = (minutes ?: 0) % 60,
-            is24Hour = DateFormat.is24HourFormat(context),
-        )
-        PaneAwareAlertDialog(
-            onDismissRequest = { pickerOpen = false },
-            paneTitle = label,
-            title = { Text(label) },
-            text = { TimePicker(state = picker) },
-            confirmButton = {
-                WhipTextButton(onClick = {
-                    onChange(picker.hour * 60 + picker.minute)
-                    pickerOpen = false
-                }) { Text("Set Time") }
-            },
-            dismissButton = {
-                Row {
-                    if (minutes != null) WhipTextButton(onClick = { onChange(null); pickerOpen = false }) { Text("Clear") }
-                    WhipTextButton(onClick = { pickerOpen = false }) { Text("Cancel") }
-                }
-            },
+        ClockPickerDialog(
+            title = label,
+            initialMinutes = minutes ?: 8 * 60,
+            onDismiss = { pickerOpen = false },
+            onSet = { onChange(it); pickerOpen = false },
+            confirmLabel = "Set Time",
+            onClear = if (minutes == null) null else {{ onChange(null); pickerOpen = false }},
         )
     }
 }
@@ -828,6 +818,9 @@ internal fun ClockPickerDialog(
     occupiedMinutes: Collection<Int> = emptyList(),
     onDismiss: () -> Unit,
     onSet: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    confirmLabel: String = "Add",
+    onClear: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val picker = rememberTimePickerState(
@@ -837,13 +830,21 @@ internal fun ClockPickerDialog(
     )
     val selectedMinutes = picker.hour * 60 + picker.minute
     val isDuplicate = selectedMinutes in occupiedMinutes.filter { it in 0..1439 }.toSet()
+    val preferKeyboard = LocalConfiguration.current.screenHeightDp < 600 || LocalDensity.current.fontScale >= 1.5f
+    var keyboardMode by rememberSaveable { mutableStateOf(preferKeyboard) }
     PaneAwareAlertDialog(
+        modifier = modifier,
         onDismissRequest = onDismiss,
         paneTitle = title,
         title = { Text(title) },
         text = {
-            WhipDialogBody {
-                TimePicker(state = picker)
+            WhipDialogBody(Modifier.verticalScroll(rememberScrollState()).testTag("clock-picker-content")) {
+                WhipTextButton(
+                    onClick = { keyboardMode = !keyboardMode },
+                    modifier = Modifier.testTag("clock-picker-mode-toggle"),
+                ) { Text(if (keyboardMode) "Use Clock" else "Use Keyboard") }
+                if (keyboardMode) TimeInput(state = picker, modifier = Modifier.testTag("clock-picker-keyboard"))
+                else TimePicker(state = picker, modifier = Modifier.testTag("clock-picker-dial"))
                 if (isDuplicate) {
                     Text(
                         "This time already has a reminder. Choose a different time.",
@@ -854,7 +855,10 @@ internal fun ClockPickerDialog(
             }
         },
         confirmButton = {
-            WhipTextButton(enabled = !isDuplicate, onClick = { onSet(selectedMinutes) }) { Text("Add") }
+            FlowRow(horizontalArrangement = Arrangement.End) {
+                onClear?.let { WhipTextButton(onClick = it) { Text("Clear Time") } }
+                WhipTextButton(enabled = !isDuplicate, onClick = { onSet(selectedMinutes) }) { Text(confirmLabel) }
+            }
         },
         dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )

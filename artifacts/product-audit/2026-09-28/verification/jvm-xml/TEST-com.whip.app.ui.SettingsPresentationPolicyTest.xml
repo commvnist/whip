@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.SettingsPresentationPolicyTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-09-28T20:41:08.137Z" hostname="beast" time="0.036">
+  <properties/>
+  <testcase name="reminderRefreshAttemptsEveryDomainAndKeepsPartialFailureRetryable" classname="com.whip.app.ui.SettingsPresentationPolicyTest" time="0.036"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

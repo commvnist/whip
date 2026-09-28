@@ -62,6 +62,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -194,6 +195,9 @@ import com.whip.app.core.WhipResult
 import com.whip.app.core.DEFAULT_REST_TIMER_PRESET_SECONDS
 import com.whip.app.core.normalizeRestTimerPresets
 import com.whip.app.core.TrackedGymRecord
+import com.whip.app.core.decodeTrackedGymRecords
+import com.whip.app.core.encodeTrackedGymRecords
+import com.whip.app.core.isSupportedFor
 import com.whip.app.core.recommendedTrackedRecordTypes
 import com.whip.app.core.resolveForExercise
 import com.whip.app.core.supportedTrackedRecordTypes
@@ -429,7 +433,7 @@ private fun ExerciseSelectionField(
 ) {
     var expanded by rememberSaveable(label) { mutableStateOf(false) }
     var query by rememberSaveable(label) { mutableStateOf("") }
-    val selectedName = exercises.firstOrNull { it.id == selectedExerciseId }?.name
+    val selectedName = exercises.firstOrNull { it.id == selectedExerciseId }?.historyDisplayName()
     val matches = exercises.filter { exerciseMatchesQuery(it, query) }
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -476,7 +480,7 @@ private fun ExerciseSelectionField(
                 matches.take(50).forEach { exercise ->
                     val isSelected = exercise.id == selectedExerciseId
                     DropdownMenuItem(
-                        text = { Text(exercise.name) },
+                        text = { Text(exercise.historyDisplayName()) },
                         trailingIcon = if (isSelected) {{
                             Text(
                                 "Selected",
@@ -545,7 +549,7 @@ internal fun ExerciseComparisonField(
                 matches.take(50).forEach { exercise ->
                     val selected = exercise.id in selectedExerciseIds
                     DropdownMenuItem(
-                        text = { Text(exercise.name) },
+                        text = { Text(exercise.historyDisplayName()) },
                         trailingIcon = if (selected) {{
                             Text(
                                 "Selected",
@@ -1580,7 +1584,7 @@ fun GymAreaContent(
             modifier = dialogModifier,
             exercise = exercise,
             trackedInProgress = state.appSettings.trackedGymRecords.any {
-                it.exerciseUuid == exercise.uuid && it.type in exercise.supportedTrackedRecordTypes()
+                it.isSupportedFor(exercise, state.machines + state.archivedMachines, state.personalRecords)
             },
             onDismiss = { exerciseActionsId = null },
             onEdit = {
@@ -4938,7 +4942,7 @@ private fun ExerciseLibraryContent(
                     " · ${unitSymbol(exercise.weightUnitId)} · ±${editableNumber(exercise.weightIncrement)}"
                 } else ""
                 val trackedDetail = if (state.appSettings.trackedGymRecords.any {
-                        it.exerciseUuid == exercise.uuid && it.type in exercise.supportedTrackedRecordTypes()
+                        it.isSupportedFor(exercise, state.machines + state.archivedMachines, state.personalRecords)
                     }
                 ) " · Tracked" else ""
                 context(exercise.trackingType.label.uiTitleCase() + unitDetail + trackedDetail)
@@ -6581,7 +6585,7 @@ private fun ExerciseCategoryContent(
 }
 
 @Composable
-private fun WorkoutHistoryContent(
+internal fun WorkoutHistoryContent(
     history: List<WorkoutSession>,
     state: GymUiState,
     onCopy: (Long) -> Unit,
@@ -6610,6 +6614,7 @@ private fun WorkoutHistoryContent(
     var showArchived by rememberSaveable { mutableStateOf(false) }
     var historyOptionsExpanded by rememberSaveable { mutableStateOf(false) }
     var trainingMaxHistoryExpanded by rememberSaveable { mutableStateOf(false) }
+    var showAllTrainingMaxHistory by rememberSaveable { mutableStateOf(false) }
     var actionMenuId by rememberSaveable { mutableStateOf<Long?>(null) }
     var expandedSessionId by rememberSaveable { mutableStateOf<Long?>(null) }
     var resumeCandidateId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -6636,6 +6641,8 @@ private fun WorkoutHistoryContent(
     val sourceHistory = focusedSession?.let(::listOf)
         ?: if (showArchived) state.archivedWorkouts else history
     val exerciseById = (state.exercises + state.archivedExercises).associateBy(Exercise::id)
+    val historyCategories = state.categories + state.archivedCategories
+    val historyRoutines = state.routines + state.archivedRoutines
     val workoutExercisesBySession = remember(state.allWorkoutExercises) {
         state.allWorkoutExercises.groupBy(WorkoutExercise::sessionId)
     }
@@ -6685,9 +6692,12 @@ private fun WorkoutHistoryContent(
     val routineUuidById = (state.routines + state.archivedRoutines).associate { it.id to it.uuid }
     val selectedRoutineUuid = selectedRoutineId?.let(routineUuidById::get)
     val standaloneTrainingMaxDecisions = state.trainingMaxDecisions.filter { decision ->
-        decision.sessionUuid !in sessionUuids &&
+        !recordsOnly && decision.sessionUuid !in sessionUuids &&
             (selectedExerciseUuid == null || decision.exerciseUuid == selectedExerciseUuid) &&
             (selectedRoutineUuid == null || decision.routineUuid == selectedRoutineUuid) &&
+            (selectedCategoryId == null || exerciseById.values.any { exercise ->
+                exercise.uuid == decision.exerciseUuid && selectedCategoryId in categoryIdsByExercise[exercise.id].orEmpty()
+            }) &&
             (query.isBlank() || decision.exerciseName.contains(query, ignoreCase = true)) &&
             (from == null || !java.time.Instant.ofEpochMilli(decision.createdAtMillis)
                 .atZone(state.appSettings.zoneId()).toLocalDate().isBefore(from))
@@ -6744,9 +6754,9 @@ private fun WorkoutHistoryContent(
                     append(if (calendarView) " · Calendar" else " · List")
                     if (effectiveShowArchived) append(" · Archived")
                     if (recordsOnly) append(" · Records only")
-                    state.exercises.firstOrNull { it.id == selectedExerciseId }?.let { append(" · ${it.name}") }
-                    state.categories.firstOrNull { it.id == selectedCategoryId }?.let { append(" · ${it.name}") }
-                    state.routines.firstOrNull { it.id == selectedRoutineId }?.let { append(" · ${it.name}") }
+                    exerciseById[selectedExerciseId]?.let { append(" · ${it.historyDisplayName()}") }
+                    historyCategories.firstOrNull { it.id == selectedCategoryId }?.let { append(" · ${it.name}${if (it.archived) " · Archived" else ""}") }
+                    historyRoutines.firstOrNull { it.id == selectedRoutineId }?.let { append(" · ${it.name}${if (it.archived) " · Archived" else ""}") }
                 },
                 expanded = historyOptionsExpanded,
                 onClick = { historyOptionsExpanded = !historyOptionsExpanded },
@@ -6765,21 +6775,21 @@ private fun WorkoutHistoryContent(
                 }
                 ToggleRow("Show discarded or archived workouts", showArchived) { showArchived = it }
                 GymEnumDropdown("Date range", WorkoutHistoryRange.entries, historyRange, WorkoutHistoryRange::uiLabel) { historyRange = it }
-                if (state.exercises.isNotEmpty()) {
+                if (exerciseById.isNotEmpty()) {
                     ExerciseSelectionField(
                         label = "Exercise Filter",
-                        exercises = state.exercises,
+                        exercises = exerciseById.values.toList(),
                         selectedExerciseId = selectedExerciseId,
                         onSelect = { selectedExerciseId = it },
                         modifier = Modifier.fillMaxWidth().testTag("history-exercise-filter"),
                         allLabel = "All Exercises",
                     )
                 }
-                if (state.categories.isNotEmpty()) {
-                    GymEnumDropdown("Category filter", listOf<Long?>(null) + state.categories.map(ExerciseCategory::id), selectedCategoryId, { id -> state.categories.firstOrNull { it.id == id }?.name ?: "All Categories" }, titleCaseValues = false) { selectedCategoryId = it }
+                if (historyCategories.isNotEmpty()) {
+                    GymEnumDropdown("Category filter", listOf<Long?>(null) + historyCategories.map(ExerciseCategory::id), selectedCategoryId, { id -> historyCategories.firstOrNull { it.id == id }?.let { "${it.name}${if (it.archived) " · Archived" else ""}" } ?: "All Categories" }, titleCaseValues = false) { selectedCategoryId = it }
                 }
-                if (state.routines.isNotEmpty()) {
-                    GymEnumDropdown("Routine filter", listOf<Long?>(null) + state.routines.map(GymRoutine::id), selectedRoutineId, { id -> state.routines.firstOrNull { it.id == id }?.name ?: "All Routines" }, titleCaseValues = false) { selectedRoutineId = it }
+                if (historyRoutines.isNotEmpty()) {
+                    GymEnumDropdown("Routine filter", listOf<Long?>(null) + historyRoutines.map(GymRoutine::id), selectedRoutineId, { id -> historyRoutines.firstOrNull { it.id == id }?.let { "${it.name}${if (it.archived) " · Archived" else ""}" } ?: "All Routines" }, titleCaseValues = false) { selectedRoutineId = it }
                 }
                 ToggleRow("Personal-record workouts only", recordsOnly) { recordsOnly = it }
                 if (query.isNotBlank() || selectedExerciseId != null || selectedCategoryId != null || selectedRoutineId != null ||
@@ -6830,7 +6840,12 @@ private fun WorkoutHistoryContent(
                             onClick = { trainingMaxHistoryExpanded = !trainingMaxHistoryExpanded },
                         )
                         if (trainingMaxHistoryExpanded) {
-                            standaloneTrainingMaxDecisions.take(20).forEach { decision ->
+                            if (standaloneTrainingMaxDecisions.size > 20) {
+                                WhipTextButton(onClick = { showAllTrainingMaxHistory = !showAllTrainingMaxHistory }) {
+                                    Text(if (showAllTrainingMaxHistory) "Show Latest 20" else "Show All ${standaloneTrainingMaxDecisions.size} Changes")
+                                }
+                            }
+                            (if (showAllTrainingMaxHistory) standaloneTrainingMaxDecisions else standaloneTrainingMaxDecisions.take(20)).forEach { decision ->
                                 val date = java.time.Instant.ofEpochMilli(decision.createdAtMillis)
                                     .atZone(state.appSettings.zoneId()).toLocalDate()
                                 Text(
@@ -7464,10 +7479,10 @@ private fun TrackedRecordsSection(
     onManage: () -> Unit,
     onOpenWorkoutHistory: (Long) -> Unit,
 ) {
-    val activeExercisesByUuid = state.exercises.associateBy(Exercise::uuid)
+    val exercisesByUuid = (state.exercises + state.archivedExercises).associateBy(Exercise::uuid)
     val configured = state.appSettings.trackedGymRecords.filter { selection ->
-        activeExercisesByUuid[selection.exerciseUuid]?.let { exercise ->
-            selection.type in exercise.supportedTrackedRecordTypes()
+        exercisesByUuid[selection.exerciseUuid]?.let { exercise ->
+            selection.isSupportedFor(exercise, state.machines + state.archivedMachines, state.personalRecords)
         } == true
     }
     val groups = configured.groupBy(TrackedGymRecord::exerciseUuid)
@@ -7498,7 +7513,7 @@ private fun TrackedRecordsSection(
             Text("No tracked records yet. Choose benchmarks to keep in view.", style = MaterialTheme.typography.bodySmall)
         } else {
             groups.forEach { (exerciseUuid, selections) ->
-                val exercise = activeExercisesByUuid.getValue(exerciseUuid)
+                val exercise = exercisesByUuid.getValue(exerciseUuid)
                 val weightUnitId = exercise.weightUnitId.ifBlank { state.appSettings.gymWeightUnitId }
                 Surface(
                     modifier = Modifier.fillMaxWidth().semantics {
@@ -7508,7 +7523,7 @@ private fun TrackedRecordsSection(
                     shape = MaterialTheme.shapes.medium,
                 ) {
                     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-                        Text(exercise.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        Text(exercise.historyDisplayName(), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                         selections.sortedBy(TrackedGymRecord::position).forEachIndexed { index, selection ->
                             if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             val record = selection.resolveForExercise(exercise.id, state.personalRecords)
@@ -7610,7 +7625,7 @@ private fun recommendedTrackedRecords(exercise: Exercise, state: GymUiState): Li
 
 private fun availableTrackedRecords(exercise: Exercise, state: GymUiState): List<TrackedGymRecord> {
     val existing = state.appSettings.trackedGymRecords.filter {
-        it.exerciseUuid == exercise.uuid && it.type in exercise.supportedTrackedRecordTypes()
+        it.isSupportedFor(exercise, state.machines + state.archivedMachines, state.personalRecords)
     }
     val current = state.personalRecords.filter { it.exerciseId == exercise.id && it.current }
     val choices = buildList {
@@ -7647,17 +7662,29 @@ internal fun TrackedRecordsManagerDialog(
 ) {
     val allExercises = state.exercises + state.archivedExercises
     val initialExercise = allExercises.firstOrNull { it.id == initialExerciseId }
-    val original = state.appSettings.trackedGymRecords.filter { selection ->
+    val savedRecords = state.appSettings.trackedGymRecords.filter { selection ->
         allExercises.firstOrNull { it.uuid == selection.exerciseUuid }
-            ?.let { exercise -> selection.type in exercise.supportedTrackedRecordTypes() } != false
+            ?.let { exercise -> selection.isSupportedFor(exercise, state.machines + state.archivedMachines, state.personalRecords) } != false
     }
-    var draft by remember(initialExerciseId, original) {
+    val original by rememberSaveable(initialExerciseId) { mutableStateOf(savedRecords.encodeTrackedGymRecords()) }
+    var draft by rememberSaveable(
+        initialExerciseId,
+        stateSaver = Saver<List<TrackedGymRecord>, String>(
+            save = { it.encodeTrackedGymRecords() },
+            restore = { it.decodeTrackedGymRecords() },
+        ),
+    ) {
         mutableStateOf(
-            if (initialExercise != null && original.none { it.exerciseUuid == initialExercise.uuid }) {
-                original + recommendedTrackedRecords(initialExercise, state)
-            } else original,
+            if (initialExercise != null && savedRecords.none { it.exerciseUuid == initialExercise.uuid }) {
+                savedRecords + recommendedTrackedRecords(initialExercise, state)
+            } else savedRecords,
         )
     }
+    var showDiscardConfirmation by rememberSaveable(initialExerciseId) { mutableStateOf(false) }
+    val requestDismiss = {
+        if (draft.encodeTrackedGymRecords() != original) showDiscardConfirmation = true else onDismiss()
+    }
+    BackHandler(enabled = !showDiscardConfirmation, onBack = requestDismiss)
     var editingExerciseUuid by rememberSaveable(initialExerciseId) {
         mutableStateOf(initialExercise?.uuid ?: draft.firstOrNull()?.exerciseUuid)
     }
@@ -7680,7 +7707,7 @@ internal fun TrackedRecordsManagerDialog(
         testTag = "tracked-records-manager",
         primary = true,
         paneTitle = "Manage Tracked Records",
-        onDismissRequest = onDismiss,
+        onDismissRequest = requestDismiss,
         title = { Text("Manage Tracked Records") },
         text = {
             WhipReorderLazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -7873,11 +7900,16 @@ internal fun TrackedRecordsManagerDialog(
         dismissButton = {
             WhipTrailingCloseAction(
                 label = "Close tracked records editor",
-                onClick = onDismiss,
+                onClick = requestDismiss,
             )
         },
     )
+    if (showDiscardConfirmation) {
+        UnsavedChangesDialog("tracked records", { showDiscardConfirmation = false }, onDismiss, modifier)
+    }
 }
+
+private fun Exercise.historyDisplayName(): String = name + if (archived) " · Archived" else ""
 
 private fun TrackedGymRecord.sameTrackedChoice(other: TrackedGymRecord): Boolean =
     exerciseUuid == other.exerciseUuid && type == other.type && secondaryValue == other.secondaryValue &&
@@ -7892,11 +7924,13 @@ internal fun GymProgressContent(
     onManageTrackedRecords: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val historyExercises = state.exercises + state.archivedExercises
+    val historyCategories = state.categories + state.archivedCategories
     var selectedExerciseId by rememberSaveable { mutableStateOf<Long?>(null) }
-    LaunchedEffect(state.exercises) {
-        if (state.exercises.none { it.id == selectedExerciseId }) selectedExerciseId = state.exercises.firstOrNull()?.id
+    LaunchedEffect(historyExercises) {
+        if (historyExercises.none { it.id == selectedExerciseId }) selectedExerciseId = historyExercises.firstOrNull()?.id
     }
-    if (state.exercises.isEmpty()) {
+    if (historyExercises.isEmpty()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().testTag("gym-progress-list"),
             contentPadding = WhipPageContentPadding,
@@ -7950,7 +7984,7 @@ internal fun GymProgressContent(
         }
         return
     }
-    val exercise = state.exercises.firstOrNull { it.id == selectedExerciseId }
+    val exercise = historyExercises.firstOrNull { it.id == selectedExerciseId }
     val exercisePlacements = state.allWorkoutExercises.filter { it.exerciseId == selectedExerciseId }
     val usedMachineScopes = exercisePlacements.mapNotNull(WorkoutExercise::equipmentScopeKey).distinct()
     val hasUnassignedHistory = exercisePlacements.any { it.equipmentScopeKey == null }
@@ -8010,8 +8044,8 @@ internal fun GymProgressContent(
         if (measurement !in availableMeasurements) measurement = availableMeasurements.first()
         if (machineScoped) comparisonIds = emptySet()
     }
-    LaunchedEffect(measurement, state.exercises) {
-        val compatibleExerciseIds = state.exercises
+    LaunchedEffect(measurement, historyExercises) {
+        val compatibleExerciseIds = historyExercises
             .filter { measurement in it.trackingType.supportedGraphMetrics() }
             .mapTo(mutableSetOf(), Exercise::id)
         comparisonIds = comparisonIds.intersect(compatibleExerciseIds)
@@ -8048,7 +8082,7 @@ internal fun GymProgressContent(
             machineLevelDirection = machineLevelDirection,
         ).map { point -> point.copy(value = measurement.displayValue(point.value, displayWeightUnitId, state.appSettings.distanceUnitId)) }
     }.orEmpty()
-    val comparisons = if (machineScoped || validatedRange.error != null || !repTargetValid) emptyMap() else comparisonIds.mapNotNull { id -> state.exercises.firstOrNull { it.id == id } }.associateWith { compared ->
+    val comparisons = if (machineScoped || validatedRange.error != null || !repTargetValid) emptyMap() else comparisonIds.mapNotNull { id -> historyExercises.firstOrNull { it.id == id } }.associateWith { compared ->
         buildExerciseGraph(
             exercise = compared, sessions = state.history, workoutExercises = state.allWorkoutExercises,
             sets = state.allSets, measurement = measurement, aggregation = aggregation, from = effectiveFrom,
@@ -8088,7 +8122,7 @@ internal fun GymProgressContent(
         }
         item {
             val weekStart = through.with(java.time.temporal.TemporalAdjusters.previousOrSame(state.appSettings.firstDayOfWeek))
-            val week = buildWeeklyGymSummary(weekStart, state.history, state.allWorkoutExercises, state.allSets, state.exercises, state.personalRecords)
+            val week = buildWeeklyGymSummary(weekStart, state.history, state.allWorkoutExercises, state.allSets, historyExercises, state.personalRecords)
             WhipGroupedInformationCard {
                 WhipGroupHeading("This Week")
                 Text("${quantityLabel(week.workouts, "workout")} · ${quantityLabel(week.trainingDays, "training day")} · ${quantityLabel(week.completedSets, "completed set")}")
@@ -8099,26 +8133,26 @@ internal fun GymProgressContent(
                 expanded = weeklyDetailsExpanded, onClick = { weeklyDetailsExpanded = !weeklyDetailsExpanded })
             if (weeklyDetailsExpanded) {
             val weekStart = through.with(java.time.temporal.TemporalAdjusters.previousOrSame(state.appSettings.firstDayOfWeek))
-            val summary = buildWeeklyGymSummary(weekStart, state.history, state.allWorkoutExercises, state.allSets, state.exercises, state.personalRecords)
+            val summary = buildWeeklyGymSummary(weekStart, state.history, state.allWorkoutExercises, state.allSets, historyExercises, state.personalRecords)
             Text("Week of ${summary.weekStart}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text("${summary.workouts} workouts · ${summary.trainingDays} days · ${formatDuration(summary.elapsedSeconds)}")
+            Text("${quantityLabel(summary.workouts, "workout")} · ${quantityLabel(summary.trainingDays, "training day")} · ${formatDuration(summary.elapsedSeconds)}")
             Text(
-                "${summary.completedSets} sets · ${summary.repetitions} reps · " +
+                "${quantityLabel(summary.completedSets, "set")} · ${quantityLabel(summary.repetitions, "rep")} · " +
                     "${formatNumber(massFromKilograms(summary.volumeKg, state.appSettings.gymWeightUnitId), state.appSettings.numberPrecision)} " +
                     "${unitSymbol(state.appSettings.gymWeightUnitId)}·rep",
             )
-            val exerciseByUuid = state.exercises.associateBy(Exercise::uuid)
+            val exerciseByUuid = historyExercises.associateBy(Exercise::uuid)
             val trackedImprovements = state.appSettings.trackedGymRecords.count { selection ->
                 val trackedExercise = exerciseByUuid[selection.exerciseUuid] ?: return@count false
-                if (selection.type !in trackedExercise.supportedTrackedRecordTypes()) return@count false
+                if (!selection.isSupportedFor(trackedExercise, state.machines + state.archivedMachines, state.personalRecords)) return@count false
                 val record = selection.resolveForExercise(trackedExercise.id, state.personalRecords) ?: return@count false
                 val achievedDate = java.time.Instant.ofEpochMilli(record.achievedAtMillis)
                     .atZone(state.appSettings.zoneId()).toLocalDate()
                 achievedDate in summary.weekStart..summary.weekStart.plusDays(6)
             }
             Text("$trackedImprovements tracked record improvement${if (trackedImprovements == 1) "" else "s"}")
-            val categoryPositionById = state.categories.associate { it.id to it.position }
-            state.categories.forEach { category ->
+            val categoryPositionById = historyCategories.associate { it.id to it.position }
+            historyCategories.forEach { category ->
                 val exerciseIds = state.categoryLinks.filter { it.categoryId == category.id }.mapTo(mutableSetOf()) { it.exerciseId }
                 val weekSessionIds = state.history.filter { it.localDate in weekStart..weekStart.plusDays(6) }.mapTo(mutableSetOf()) { it.id }
                 val weekWorkoutExerciseById = state.allWorkoutExercises
@@ -8141,14 +8175,14 @@ internal fun GymProgressContent(
                 }
                 val categoryVolume = categorySets.sumOf { set ->
                     val workoutExercise = weekWorkoutExerciseById[set.workoutExerciseId]
-                    val categoryExercise = state.exercises.firstOrNull { it.id == workoutExercise?.exerciseId }
+                    val categoryExercise = historyExercises.firstOrNull { it.id == workoutExercise?.exerciseId }
                     if (categoryExercise == null || workoutExercise == null) 0.0 else {
                         set.volumeKg(workoutExercise.applyPolicySnapshot(categoryExercise), includeWarmups = true) * allocationFor(set)
                     }
                 }
                 val allocatedSetCount = categorySets.sumOf(::allocationFor)
                 if (allocatedSetCount > 0.0) Text(
-                    "${category.name}: ${formatNumber(allocatedSetCount, state.appSettings.numberPrecision)} allocated hard sets · " +
+                    "${category.name}${if (category.archived) " · Archived" else ""}: ${formatNumber(allocatedSetCount, state.appSettings.numberPrecision)} allocated hard ${if (allocatedSetCount == 1.0) "set" else "sets"} · " +
                         "${formatNumber(massFromKilograms(categoryVolume, state.appSettings.gymWeightUnitId), state.appSettings.numberPrecision)} " +
                         "${unitSymbol(state.appSettings.gymWeightUnitId)}·rep",
                     style = MaterialTheme.typography.bodySmall,
@@ -8178,10 +8212,10 @@ internal fun GymProgressContent(
         item {
             ExerciseSelectionField(
                 label = "Exercise",
-                exercises = state.exercises,
+                exercises = historyExercises,
                 selectedExerciseId = selectedExerciseId,
                 onSelect = { id ->
-                    val selected = state.exercises.firstOrNull { it.id == id } ?: return@ExerciseSelectionField
+                    val selected = historyExercises.firstOrNull { it.id == id } ?: return@ExerciseSelectionField
                     selectedExerciseId = selected.id
                     val measurements = selected.trackingType.supportedGraphMetrics()
                     measurement = runCatching { GymGraphMetric.valueOf(selected.defaultGraphMetric) }
@@ -8276,9 +8310,9 @@ internal fun GymProgressContent(
                 if (range == GymGraphRange.Custom && validatedRange.error != null) {
                     Text(requireNotNull(validatedRange.error), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
-                if (state.exercises.size > 1 && !machineScoped) {
+                if (historyExercises.size > 1 && !machineScoped) {
                     ExerciseComparisonField(
-                        exercises = state.exercises.filter { measurement in it.trackingType.supportedGraphMetrics() },
+                        exercises = historyExercises.filter { measurement in it.trackingType.supportedGraphMetrics() },
                         excludedExerciseId = selectedExerciseId,
                         selectedExerciseIds = comparisonIds,
                         onSelectionChange = { comparisonIds = it },
@@ -10846,7 +10880,7 @@ internal fun WorkoutGroupDialog(
     }
 }
 
-private fun WorkoutSet.shortLabel(
+internal fun WorkoutSet.shortLabel(
     preferredWeightUnitId: String,
     preferredDistanceUnitId: String,
     precision: Int,
@@ -10865,7 +10899,11 @@ private fun WorkoutSet.shortLabel(
                 exerciseWeightUnitId.ifBlank { preferredWeightUnitId }
             }
             val meaning = workoutExercise?.loadInterpretationSnapshot ?: LoadInterpretation.Total
-            val raw = enteredWeight
+            val enteredUnit = enteredWeightUnitId
+                ?: workoutExercise?.machineUnitIdSnapshot?.takeIf(String::isNotBlank)
+                ?: workoutExercise?.exerciseWeightUnitSnapshot
+                ?: displayUnit
+            val raw = enteredWeight?.let { massFromKilograms(massToKilograms(it, enteredUnit), displayUnit) }
             val total = canonicalWeightKg?.let { massFromKilograms(it, displayUnit) }
             if (raw != null && meaning != LoadInterpretation.Total) {
                 val qualifier = when (meaning) {
@@ -11165,9 +11203,9 @@ internal fun steppedWorkoutLoad(
     return ((current ?: 0.0) + if (direction >= 0) increment else -increment).coerceAtLeast(0.0)
 }
 
-private fun shareWorkout(context: android.content.Context, session: WorkoutSession, state: GymUiState) {
-    val exerciseById = state.exercises.associateBy(Exercise::id)
-    val body = buildString {
+internal fun workoutShareText(session: WorkoutSession, state: GymUiState): String {
+    val exerciseById = (state.exercises + state.archivedExercises).associateBy(Exercise::id)
+    return buildString {
         appendLine(session.name.ifBlank { "Workout" })
         appendLine(session.localDate)
         if (session.notes.isNotBlank()) appendLine(session.notes)
@@ -11190,11 +11228,14 @@ private fun shareWorkout(context: android.content.Context, session: WorkoutSessi
         appendLine()
         append("Shared from Whip")
     }
+}
+
+private fun shareWorkout(context: android.content.Context, session: WorkoutSession, state: GymUiState) {
     context.startActivity(
         Intent.createChooser(
             Intent(Intent.ACTION_SEND).setType("text/plain")
                 .putExtra(Intent.EXTRA_SUBJECT, session.name.ifBlank { "Workout ${session.localDate}" })
-                .putExtra(Intent.EXTRA_TEXT, body),
+                .putExtra(Intent.EXTRA_TEXT, workoutShareText(session, state)),
             "Share workout",
         ),
     )

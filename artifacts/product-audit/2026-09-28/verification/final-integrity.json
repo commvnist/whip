@@ -1,0 +1,19 @@
+{
+  "status": "passed",
+  "accepted_groups": 20,
+  "reviewed_workflow_rows": [
+    24,
+    84,
+    69
+  ],
+  "source_test_hashes_verified": 47,
+  "jvm_distinct_passing": 14,
+  "jvm_passing_executions": 17,
+  "native_distinct_passing": 15,
+  "native_passing_executions": 18,
+  "native_retained_fixture_failures": 3,
+  "gallery_acceptance_states": 13,
+  "current_report_and_gallery_links": "exist",
+  "staged_whitespace": "passed",
+  "scope": "Artifact/source integrity only; not an additional product test run."
+}

@@ -2,22 +2,22 @@
 
 ### FND-20260928-010 — Current productivity projections and edits can change authored meaning
 
-- Source findings: Compatible Habit unit changes do not convert target/quick-action/end values; recurring Task projections omit overdue-deadline state; Duplicate can exceed valid name limits; secondary Habit dialogs drop dirty drafts; Goal Latest orders recording time ahead of effective date; Review mishandles out-of-window trends and weighted milestones; flexible Habit completion rate omits the first partial period.
+- Source findings: Compatible Habit unit changes do not convert target/quick-action/end values; recurring Task projections omit overdue-deadline state; Duplicate can exceed valid name limits; secondary Habit dialogs drop dirty drafts; Goal Latest orders recording time ahead of effective date; Review mishandles out-of-window trends and weighted milestones; flexible Habit completion rate omits the first partial period. Follow-through confirms a one-year lookup truncates earned Habit streaks and binary summation can reject an ordinary Exactly 0.3 target after 0.1 + 0.2 entries; the accepted plan includes both domain-owner repairs.
 - Evidence/remedy: [Productivity report](../quality/PRODUCT_AUDIT_2026-09-28_PRODUCTIVITY.md) traces the actual owners and accepted remedies. Preserve authored values/history, correct shared projections and bounded copy naming, and reuse unsaved-draft protection.
-- Related/status: FB-20260928-005, DEC-20260928-003. Confirmed from source; implementation in progress, selected execution pending.
+- Related/status: FB-20260928-005, DEC-20260928-003, IMP-20260928-008. Implemented and Verified within the selected scope under VER-20260928-005; exact passing methods, original captures and boundaries are retained in the linked report.
 
 ### FND-20260928-011 — Gym evidence and Settings recovery lose context
 
 - Source findings: Numbered-machine tracked choices are filtered out by a narrower capability helper; tracked-record drafts are not saveable or dirty-close protected; active-only lookup changes archived exercise volume/filter/share; historical entered loads are relabelled without conversion; Settings advertises a scheduler retry that only refreshes diagnostics; older Training Max decisions are truncated; Gym CSV omits state/completion and uses current tracking type.
 - Evidence/remedy: All seven groups in [Gym/Settings report](../quality/PRODUCT_AUDIT_2026-09-28_GYM_SETTINGS.md) are accepted. Share contextual capability and load formatting, preserve historical identity/drafts, connect a real retry, reveal retained history and add explicit export context.
-- Related/status: FB-20260928-005, DEC-20260928-003. Confirmed from source; implementation in progress, selected execution pending.
+- Related/status: FB-20260928-005, DEC-20260928-003, IMP-20260928-009. Implemented and Verified within the selected scope under VER-20260928-005; exact passing methods, original captures and boundaries are retained in the linked report.
 
 ### FND-20260928-009 — Shared authoring has unreachable creation and broken save recovery
 
 - Observed/source: `UnitSelectionField` disables itself for an empty compatible-unit collection, including the explicitly offered Custom dimension; fallback display can silently name an unselected unit. `CreateAreaDialog` restores a local busy flag whose callback cannot survive recreation. Area/Tag rejection paths clear the context used to show the error in their open child. Color/move/merge bodies remain editable while saving, and taxonomy/time dialogs duplicate non-scrolling form composition.
 - Consequence/remedy: Custom measurement setup can stall, inline Area creation can remain permanently busy after recreation, save errors can hide behind dialogs, and pending saves can discard further edits. [Plan S1–S4](../quality/PRODUCT_AUDIT_2026-09-28.md) reuses existing unit, body, saving and clock owners; preserves retained drafts and actual selected values; adds consistent keyboard-mode clock authoring.
-- Evidence boundary: Current source/caller/repository trace from baseline `d737209a`; native regression/rendering checks follow implementation. No claim that every layout has been reproduced yet.
-- Related/status: FB-20260928-005. Confirmed; implementation in progress.
+- Evidence: Current source/caller/repository trace from baseline `d737209a`, six distinct passing native methods, selected short actual-200% originals and final custom-unit receipt-before-projection restoration. The projection wait prevents new-unit selection from silently relabelling existing numeric drafts. Selected evidence does not certify every layout.
+- Related/status: FB-20260928-005, DEC-20260928-003, IMP-20260928-007. Implemented and Verified under VER-20260928-005.
 
 ### FND-20260928-008 — Focus metadata crowds out Home on short enlarged-text screens
 

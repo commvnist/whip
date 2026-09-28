@@ -1,0 +1,10 @@
+{
+  "command": [
+    "timeout",
+    "--kill-after=3s",
+    "55s",
+    "./gradlew",
+    ":app:compileDebugUnitTestKotlin"
+  ],
+  "ANDROID_SERIAL": null
+}

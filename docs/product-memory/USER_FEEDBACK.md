@@ -7,7 +7,7 @@
 - Acceptance: Recheck current source and representative rendered workflows, distinguish confirmed defects from improvements and justified keeps, implement every accepted plan item, preserve authored data, and document exact verification and limitations. Up to two additional GPT-6 Astra/max agents are authorized.
 - QA constraint: Maximize development speed; only selected focused checks bounded by `timeout --kill-after=3s 55s`. No full batches or affected-readiness batch for this request. Timeouts are incomplete evidence and must not be retried repeatedly.
 - Baseline/scope: Clean pushed `d737209a` on `main`; current product-wide investigation is recorded in [the plan](../quality/PRODUCT_AUDIT_2026-09-28.md). Historical completed/paused audits remain evidence with their original status. This request does not include a release or phone installation.
-- Status: In progress.
+- Status: Implemented and Verified within the requested focused scope. All 20 accepted groups complete across 177 reviewed workflow dispositions; IMP-20260928-007/008/009 and VER-20260928-005 link 14 distinct JVM and 15 distinct Android passing methods, original captures and explicit limits. No full batch or phone release.
 
 ### FB-20260928-004 — Make Focus duration, Home feedback and phone timing coherent
 

@@ -1769,7 +1769,7 @@ internal fun GoalEditorDialog(
                                 val newUnit = allUnits.firstOrNull { it.id == selectedId }
                                 val rawValues = listOf(baseline, targetMin, targetMax)
                                 if (oldUnit != null && newUnit != null && oldUnit.dimension == newUnit.dimension) {
-                                    val converted = convertGoalDraftValues(rawValues, oldUnit, newUnit)
+                                    val converted = convertNumericDraftValues(rawValues, oldUnit, newUnit)
                                     if (converted == null) {
                                         unitChangeError = "Finish or clear the numeric values before changing the unit. Values must be finite in the selected unit. Your current unit and draft are unchanged."
                                     } else {

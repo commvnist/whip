@@ -584,7 +584,7 @@ class RoomTrackRepository(
         val source = projection(id) ?: error("Track no longer exists")
         create(
             TrackDraft(
-                name = "${source.track.name} Copy",
+                name = com.whip.app.domain.copiedItemName(source.track.name, suffix = " Copy"),
                 description = source.track.description,
                 icon = source.track.icon,
                 areaId = source.track.areaId,

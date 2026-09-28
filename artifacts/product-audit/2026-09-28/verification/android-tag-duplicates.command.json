@@ -1,0 +1,13 @@
+{
+  "command": [
+    "timeout",
+    "--kill-after=3s",
+    "55s",
+    "scripts/qa-targeted",
+    "--android",
+    "com.whip.app.ui.TagManagementUiTest#failedRenameKeepsTheDialogAndDraftOwnedByTheRequest",
+    "--android",
+    "com.whip.app.ProductivityDuplicateRepositoryTest#maximumNamesDuplicateIndependentStructuresWithoutCopyingHistory"
+  ],
+  "ANDROID_SERIAL": "emulator-5554"
+}

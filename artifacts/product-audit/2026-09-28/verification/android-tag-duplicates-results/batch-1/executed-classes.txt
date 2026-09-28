@@ -1,0 +1,2 @@
+com.whip.app.ProductivityDuplicateRepositoryTest
+com.whip.app.ui.TagManagementUiTest

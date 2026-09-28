@@ -1,5 +1,26 @@
 # Implementation history
 
+### IMP-20260928-009 — Preserve Gym evidence and make Settings recovery actionable
+
+- Behavior: Context-aware numbered-machine record eligibility across every consumer; saveable ordered tracked-record drafts and dirty close. Archived Exercise/Category/Routine identity remains available to Progress, historical filters and sharing. Entered historical mass converts from its saved unit before adding qualifiers. Older Training Max decisions are reachable through Show All; filters remain authoritative. Weekly count language uses the existing shared count owner.
+- Recovery/export: Refresh Notification Status now retries Task/Habit/Goal scheduling through the existing Settings mutation receipt, attempts independent domains after partial failure and reports truthful terminal state. Gym CSV uses the saved workout tracking type and appends workoutState/workoutArchived/workoutExerciseOutcome/setCompleted, retaining the original leading columns.
+- Owners: TrackedGymRecords, GymScreens, SettingsScreens/ViewModel and BackupRepository with exact JVM/native fixtures. No dependency, Room/epoch/backup migration or release change.
+- Related/status: FB-20260928-005, FND-20260928-011, DEC-20260928-003. All PGS-1–7 implemented and verified under VER-20260928-005: four exact JVM and five distinct native methods; the affected weekly-copy method passed again after final inspection. [Detailed report](../quality/PRODUCT_AUDIT_2026-09-28_GYM_SETTINGS.md).
+
+### IMP-20260928-008 — Keep productivity edits and projections faithful to authored meaning
+
+- Behavior: Compatible Habit unit changes convert target, quick-action and ending values together; incomplete drafts and unsupported additive affine changes remain actionable. Value/History/Pause drafts survive dismissal and recreation. Task deadline state covers every active schedule. Bounded Unicode-safe copy names serve all four repositories without copying history.
+- Calculations: Goal Latest/current/history order effective local date before recording time; Review respects saved dates, finite eligible evidence and weighted milestones. Flexible Habit periods include the first partial week/month, earned streaks retain history beyond a year, and Habit/Track totals/means reuse the existing decimal accumulator. Convenience helpers preserve prior nonfinite propagation rather than dropping overflowed conversions.
+- Reuse: CopiedItemName, NumericDraftUnits and NumericAggregates share actual duplicate rules; domain-specific eligibility and history remain with their owners. No dependency or persisted-format change.
+- Related/status: FB-20260928-005, FND-20260928-010, DEC-20260928-003. All P-01–09 implemented and verified under VER-20260928-005: ten distinct JVM and four native methods, with only the changed numeric methods repeated. [Detailed report](../quality/PRODUCT_AUDIT_2026-09-28_PRODUCTIVITY.md).
+
+### IMP-20260928-007 — Unify shared authoring, recovery and constrained dialogs
+
+- Behavior: Empty Custom units remain creatable and unresolved selections are truthful. A committed creation waits for its actual definition before selecting/converting, with a saveable pending identity across recreation. Inline Area creation restores a retryable draft after interruption and rejects disposed callbacks. Area/Tag failures stay owned by the active child; existing saving overlays block conflicting edits.
+- Design: Shared scrolling bodies keep long taxonomy identity/errors inside fixed actions; the shared Color choice uses a dropdown arrow to retain its value at 200%. Discard uses the existing destructive action. Task Time, optional time and reminders reuse one native clock/keyboard dialog with preserved time, 12/24-hour policy and duplicate guidance.
+- Owners: UnitSelectionField, AreaPicker/AreaManagementDialog, TagManagementDialog, WhipColorPicker, EditorProtection, ProductivityEditorComponents and TaskEditorDialog; five new shared native methods plus the corrected existing Tag failure fixture.
+- Related/status: FB-20260928-005, FND-20260928-009, DEC-20260928-003. All S1–S4 implemented and verified under VER-20260928-005: six distinct native methods, including short actual-200% layouts and receipt-before-projection restoration. [Plan and final mapping](../quality/PRODUCT_AUDIT_2026-09-28.md).
+
 ### IMP-20260928-006 — Overhaul Focus duration, active feedback and phone timing
 
 - Behavior: Direct 15/30/45/60 shortcuts and validated saveable Custom Time, replacement confirmation and busy/failure recovery. Matching Gym rest/reminder affordances preserve unit-bearing fields and explicit ranges. Android clock selection/labels and Focus finish time respect the chosen 12/24-hour format. The shared card stays above Home's list and also appears on Tasks; unscoped identity, Open/Stop, alert state and system recovery remain visible. Confirmed receipts drive start/stop feedback; once-only non-replaying committed completion leaves Task completion explicit.

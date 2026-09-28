@@ -3,6 +3,8 @@ package com.whip.app.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -47,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
@@ -161,7 +164,6 @@ internal fun AreaManagementDialog(
         val requestId = mutationCoordinator.begin() ?: return
         pendingAction = kind.name
         if (!submit(requestId)) {
-            pendingAction = null
             mutationCoordinator.finishFailure(
                 "Another Area change is still finishing. Review the current Areas and try again.",
             )
@@ -180,7 +182,7 @@ internal fun AreaManagementDialog(
 
     WhipFullScreenSurface(title = "Areas") {
         Box(Modifier.fillMaxSize()) {
-            Column(Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize().then(if (mutationCoordinator.saving) Modifier.clearAndSetSemantics {} else Modifier)) {
                 WhipManagementHeader(
                     title = selectedArea?.name ?: "Areas",
                     supportingText = when {
@@ -319,6 +321,7 @@ internal fun AreaManagementDialog(
                 }
             }
             SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(16.dp))
+            PersistenceSavingOverlay(mutationCoordinator.saving, "Saving Area Change")
         }
     }
 
@@ -410,9 +413,13 @@ internal fun AreaManagementDialog(
             PaneAwareAlertDialog(
                 modifier = childDialogModifier,
                 onDismissRequest = { if (!saving(AreaMutationKind.Archive)) archiveId = null },
-                title = { Text("Archive ${area.name}?") },
+                inputBlocked = saving(AreaMutationKind.Archive),
+                inputBlockedLabel = "Archiving Area",
+                paneTitle = "Archive ${area.name}",
+                title = null,
                 text = {
-                    WhipDialogBody {
+                    WhipDialogBody(Modifier.verticalScroll(rememberScrollState())) {
+                        WhipDialogHeading("Archive ${area.name}?")
                         Text(if (usage.total == 0) "It will be hidden from area pickers." else "${usageText(usage)} will keep this assignment. The area will be hidden from pickers until restored.")
                         error(AreaMutationKind.Archive)?.let { message ->
                             Text(message, color = MaterialTheme.colorScheme.error)
@@ -795,9 +802,13 @@ internal fun MoveAreaItemsDialog(
     PaneAwareAlertDialog(
         modifier = modifier.testTag("move-area-items-dialog"),
         onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text("Move Everything from $sourceName") },
+        inputBlocked = saving,
+        inputBlockedLabel = "Moving Area Items",
+        paneTitle = "Move Everything from $sourceName",
+        title = null,
         text = {
             WhipChoiceList(Modifier.testTag("move-area-choice-list")) {
+                item { WhipDialogHeading("Move Everything from $sourceName") }
                 item {
                     Text("Move ${usageText(usage)} together. The source area and all item history will remain unchanged.")
                 }
@@ -846,6 +857,8 @@ internal fun PermanentAreaDeleteDialog(
     PaneAwareAlertDialog(
         modifier = modifier.testTag("permanent-area-delete-dialog"),
         onDismissRequest = { if (!saving) onDismiss() },
+        inputBlocked = saving,
+        inputBlockedLabel = "Deleting Area",
         paneTitle = title,
         title = null,
         text = {
@@ -958,9 +971,11 @@ private fun RenameAreaDialog(
     PaneAwareAlertDialog(
         modifier = modifier.testTag("rename-area-dialog"),
         onDismissRequest = { if (!saving) onDismiss() },
+        inputBlocked = saving,
+        inputBlockedLabel = "Renaming Area",
         title = { Text("Rename Area") },
-        text = { Column {
-            OutlinedTextField(name, { name = it.take(40) }, label = { Text("Area name") }, supportingText = { Text("${name.length}/40") }, singleLine = true, isError = conflict != null || error != null, enabled = !saving, modifier = Modifier.testTag("rename-area-name"))
+        text = { WhipDialogBody(Modifier.verticalScroll(rememberScrollState())) {
+            OutlinedTextField(name, { name = it.take(40) }, label = { Text("Area name") }, supportingText = { Text("${name.length}/40") }, singleLine = true, isError = conflict != null || error != null, enabled = !saving, modifier = Modifier.fillMaxWidth().testTag("rename-area-name"))
             conflict?.let {
                 Text(
                     if (it.archived) {
@@ -1016,8 +1031,12 @@ private fun MergeAreaDialog(
     PaneAwareAlertDialog(
         modifier = modifier,
         onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text("Merge ${source.name}") },
-        text = { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        inputBlocked = saving,
+        inputBlockedLabel = "Merging Areas",
+        paneTitle = "Merge ${source.name}",
+        title = null,
+        text = { WhipDialogBody(Modifier.verticalScroll(rememberScrollState())) {
+            WhipDialogHeading("Merge ${source.name}")
             Text("Move ${usageText(usage)} to another area. ${source.name} will then be removed. This cannot be undone.")
             if (targets.isEmpty()) Text("Create another active area before merging.") else AreaSelectionDropdown(targets, targetId, onSelect = { id, _ -> targetId = id })
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }

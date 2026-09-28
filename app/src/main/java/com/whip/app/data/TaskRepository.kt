@@ -531,7 +531,7 @@ class RoomTaskRepository(
         val now = clock.now().toEpochMilli()
         val domain = existing.toDomain().copy(steps = dao.getSteps(taskId).map(TaskStepEntity::toDomain))
         val duplicateDraft = domain.toDraft().copy(
-            title = "${domain.title} copy",
+            title = com.whip.app.domain.copiedItemName(domain.title, maximumLength = 200, codePointLimit = true),
             inbox = true,
             scheduleKind = ScheduleKind.Anytime,
             date = null,
@@ -539,6 +539,7 @@ class RoomTaskRepository(
             reminderEnabled = false,
             reminderOffsetsMinutes = emptyList(),
         )
+        duplicateDraft.requireValid()
         val newId = dao.insertTask(duplicateDraft.toEntity(createdAtMillis = now, manualPosition = dao.nextManualPosition()))
         syncSteps(newId, duplicateDraft, now)
         newId

@@ -1,0 +1,11 @@
+{
+  "command": [
+    "timeout",
+    "--kill-after=3s",
+    "55s",
+    "scripts/qa-targeted",
+    "--android",
+    "com.whip.app.GymPowerInputUiTest#archivedExerciseKeepsWeeklyVolumeAndHistoricalEnteredUnits"
+  ],
+  "ANDROID_SERIAL": "emulator-5554"
+}

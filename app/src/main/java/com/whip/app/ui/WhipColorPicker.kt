@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -72,9 +73,8 @@ internal fun WhipColorField(
             Text(
                 colorDisplayName(value),
                 modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
-                maxLines = 1,
             )
-            Text("Choose", style = MaterialTheme.typography.labelLarge)
+            Icon(Icons.Outlined.ArrowDropDown, contentDescription = null)
         }
     }
     if (pickerOpen) {
@@ -138,7 +138,10 @@ internal fun WhipColorPickerDialog(
     PaneAwareAlertDialog(
         modifier = modifier.testTag("color-picker-dialog"),
         onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text(title) },
+        inputBlocked = saving,
+        inputBlockedLabel = "Applying Color",
+        paneTitle = title,
+        title = null,
         text = {
             Column(
                 modifier = Modifier
@@ -147,6 +150,7 @@ internal fun WhipColorPickerDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                WhipDialogHeading(title)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,

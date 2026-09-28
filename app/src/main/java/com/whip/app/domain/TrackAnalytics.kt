@@ -96,8 +96,8 @@ fun TrackProjection.aggregate(
     val eligibleCount = if (usesNumericField) numeric.size else matching.size
     val value = when (aggregation) {
         TrackAggregation.CountEntries, TrackAggregation.CountMatchingEntries -> matching.size.toDouble()
-        TrackAggregation.Sum -> numeric.takeIf { it.isNotEmpty() }?.sum()
-        TrackAggregation.Average -> numeric.takeIf { it.isNotEmpty() }?.average()
+        TrackAggregation.Sum -> numeric.takeIf { it.isNotEmpty() }?.preciseSum()
+        TrackAggregation.Average -> numeric.takeIf { it.isNotEmpty() }?.preciseAverage()
         TrackAggregation.Latest -> field?.let { selected ->
             matching.sortedWith(compareByDescending<TrackEntryProjection> { it.entry.entryDate }.thenByDescending { it.entry.createdAtMillis })
                 .firstNotNullOfOrNull { it.numericValue(selected) }

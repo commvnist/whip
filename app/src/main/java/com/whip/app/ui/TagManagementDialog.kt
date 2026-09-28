@@ -21,6 +21,9 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -96,7 +99,6 @@ internal fun TagManagementDialog(
         val requestId = coordinator.begin() ?: return
         pendingContext = context
         if (!mutation(requestId)) {
-            pendingContext = null
             coordinator.finishFailure("Another Tag change is still finishing. Review Tags and try again.")
         }
     }
@@ -106,7 +108,7 @@ internal fun TagManagementDialog(
     BackHandler { if (!coordinator.saving) onDismiss() }
     WhipFullScreenSurface(title = "Tags") {
         Box(Modifier.fillMaxSize().testTag("tag-manager")) {
-            Column(Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize().then(if (coordinator.saving) Modifier.clearAndSetSemantics {} else Modifier)) {
                 WhipManagementHeader(
                     title = "Tags",
                     supportingText = "Flexible labels shared by Tasks, Habits, Goals, and Tracks.",
@@ -152,6 +154,7 @@ internal fun TagManagementDialog(
                 )
             }
             SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(16.dp))
+            PersistenceSavingOverlay(coordinator.saving, "Saving Tag Change")
         }
     }
 
@@ -216,9 +219,13 @@ internal fun TagManagementDialog(
             PaneAwareAlertDialog(
                 modifier = dialogModifier.testTag("archive-tag-dialog"),
                 onDismissRequest = { if (!saving("archive")) archiveId = null },
-                title = { Text("Archive #${tag.name}?") },
+                inputBlocked = saving("archive"),
+                inputBlockedLabel = "Archiving Tag",
+                paneTitle = "Archive #${tag.name}",
+                title = null,
                 text = {
-                    WhipDialogBody {
+                    WhipDialogBody(Modifier.verticalScroll(rememberScrollState())) {
+                        WhipDialogHeading("Archive #${tag.name}?")
                         Text(
                             if (usage.total == 0) {
                                 "It will move to Archived and remain available to restore."
@@ -426,9 +433,11 @@ private fun CreateTagDialog(
     PaneAwareAlertDialog(
         modifier = modifier.testTag("create-tag-dialog"),
         onDismissRequest = { if (!saving) onDismiss() },
+        inputBlocked = saving,
+        inputBlockedLabel = "Saving Tag",
         title = { Text("Create Tag") },
         text = {
-            WhipDialogBody {
+            WhipDialogBody(Modifier.verticalScroll(rememberScrollState())) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it.take(40); onErrorCleared() },
@@ -489,9 +498,13 @@ private fun RenameTagDialog(
     PaneAwareAlertDialog(
         modifier = modifier.testTag("rename-tag-dialog"),
         onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text("Rename #${tag.name}") },
+        inputBlocked = saving,
+        inputBlockedLabel = "Renaming Tag",
+        paneTitle = "Rename #${tag.name}",
+        title = null,
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            WhipDialogBody(Modifier.verticalScroll(rememberScrollState())) {
+                WhipDialogHeading("Rename #${tag.name}")
                 Text("Every current Task, Habit, Goal, and Track reference will use the new spelling.")
                 OutlinedTextField(
                     value = name,
@@ -546,9 +559,13 @@ private fun MergeTagDialog(
     PaneAwareAlertDialog(
         modifier = modifier.testTag("merge-tag-dialog"),
         onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text("Merge #${source.name}") },
+        inputBlocked = saving,
+        inputBlockedLabel = "Merging Tags",
+        paneTitle = "Merge #${source.name}",
+        title = null,
         text = {
             WhipChoiceList(Modifier.testTag("merge-tag-choice-list")) {
+                item { WhipDialogHeading("Merge #${source.name}") }
                 item {
                     Text(
                         "Replace #${source.name} with one active Tag on ${tagUsageText(usage)}. The source Tag is then removed; item history stays intact.",

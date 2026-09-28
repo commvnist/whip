@@ -217,7 +217,7 @@ class RoomHabitRepository(
     override suspend fun duplicate(id: Long): Long = database.withTransaction {
         val habit = dao.getHabit(id)?.toDomain() ?: error("Habit no longer exists")
         val items = dao.getChecklistItems(id).filterNot { it.archived }
-        create(habit.toDraft(items).copy(name = "${habit.name} copy"))
+        create(habit.toDraft(items).copy(name = com.whip.app.domain.copiedItemName(habit.name)))
     }
 
     override suspend fun setArchived(id: Long, archived: Boolean) = updateFlags(id) {

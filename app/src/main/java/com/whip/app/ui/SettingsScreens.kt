@@ -201,6 +201,8 @@ internal fun SettingsContent(
     var diagnosticRefresh by rememberSaveable { mutableIntStateOf(0) }
     var notificationTestMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var notificationTestSucceeded by rememberSaveable { mutableStateOf(false) }
+    var notificationRefreshMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var notificationRefreshWarning by rememberSaveable { mutableStateOf(false) }
     var restPresetsOpen by rememberSaveable { mutableStateOf(false) }
     var customUnitsExpanded by rememberSaveable { mutableStateOf(false) }
     var captureExamplesExpanded by rememberSaveable { mutableStateOf(false) }
@@ -255,6 +257,20 @@ internal fun SettingsContent(
     }
     val settings = state.settings
     val typedSettingMutationState by viewModel.typedSettingMutationState.collectAsStateWithLifecycle()
+    val notificationRefreshCoordinator = rememberPersistenceRequestCoordinator(
+        state = typedSettingMutationState,
+        consume = viewModel::consumeTypedSettingMutation,
+        key = "settings-reminder-refresh",
+        requestNamespace = "settings-reminder-refresh",
+        onPersisted = { receipt ->
+            diagnosticRefresh++
+            notificationRefreshWarning = receipt.warnings.isNotEmpty()
+            notificationRefreshMessage = receipt.warnings.joinToString(" ").takeIf(String::isNotBlank)
+                ?: "Task, Habit, and Goal reminder schedules refreshed. Android notification availability is shown above."
+            typedSettingWarning = null
+        },
+        orphanedMessage = "The previous reminder refresh was interrupted. Refresh Notification Status to retry.",
+    )
     val customUnitMutationState by viewModel.customUnitMutationState.collectAsStateWithLifecycle()
     val customUnitCoordinator = rememberPersistenceRequestCoordinator(
         state = customUnitMutationState,
@@ -1244,9 +1260,31 @@ internal fun SettingsContent(
         }
         item {
             WhipOutlinedButton(
-                onClick = { diagnosticRefresh++ },
+                onClick = {
+                    diagnosticRefresh++
+                    notificationRefreshMessage = null
+                    val requestId = notificationRefreshCoordinator.begin()
+                    if (requestId != null && !viewModel.refreshReminderSchedules(requestId)) {
+                        notificationRefreshCoordinator.finishFailure("Another Settings change is still finishing. Wait and try again.")
+                    }
+                },
+                enabled = !state.busy && !notificationRefreshCoordinator.saving && activeTypedSettingTag == null,
                 modifier = Modifier.fillMaxWidth().testTag("refresh-notification-status"),
-            ) { Text("Refresh Notification Status") }
+            ) { Text(if (notificationRefreshCoordinator.saving) "Refreshing Reminders…" else "Refresh Notification Status") }
+            val refreshError = notificationRefreshCoordinator.errorMessage
+            val refreshMessage = refreshError ?: notificationRefreshMessage
+            if (refreshMessage != null) {
+                WhipStatusCard(
+                    kind = when {
+                        refreshError != null -> WhipStatusKind.Error
+                        notificationRefreshWarning -> WhipStatusKind.Warning
+                        else -> WhipStatusKind.Success
+                    },
+                    title = if (refreshError != null || notificationRefreshWarning) "Reminder Refresh Incomplete" else "Reminder Schedules Refreshed",
+                    message = refreshMessage,
+                    modifier = Modifier.testTag("notification-refresh-result"),
+                )
+            }
         }
         item { SettingsHeading("Quiet Hours") }
         item {

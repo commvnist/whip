@@ -1,0 +1,13 @@
+{
+  "command": [
+    "timeout",
+    "--kill-after=3s",
+    "55s",
+    "scripts/qa-targeted",
+    "--android",
+    "com.whip.app.ui.ProductAuditSharedUiTest#emptyCustomDimensionCanCreateAndSelectItsFirstUnit",
+    "--android",
+    "com.whip.app.HomeHabitAudit2UiTest#habitUnitChangesSaveConvertedConfigurationAndRetainOriginalHistory"
+  ],
+  "ANDROID_SERIAL": "emulator-5554"
+}

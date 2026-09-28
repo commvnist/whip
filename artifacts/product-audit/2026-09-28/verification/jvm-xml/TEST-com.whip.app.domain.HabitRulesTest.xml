@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.domain.HabitRulesTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-09-28T20:41:07.500Z" hostname="beast" time="0.063">
+  <properties/>
+  <testcase name="flexibleCompletionRateIncludesTheFirstPartialWeekAndMonth" classname="com.whip.app.domain.HabitRulesTest" time="0.034"/>
+  <testcase name="exactDecimalTargetsAndTotalsRetainTheAuthoredAmounts" classname="com.whip.app.domain.HabitRulesTest" time="0.004"/>
+  <testcase name="currentStreakKeepsMoreThanOneYearAndOlderNeutralDays" classname="com.whip.app.domain.HabitRulesTest" time="0.024"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

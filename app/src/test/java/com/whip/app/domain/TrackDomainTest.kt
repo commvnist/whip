@@ -316,6 +316,29 @@ B,Unknown,nope,,Maybe,wrong
         assertEquals(2_000, projection.matchingEntries(listOf(TrackCondition(rating.uuid, TrackConditionOperator.Equals, numberValue = 5.0))).size)
     }
 
+    @Test fun decimalAggregatesRetainCancellationAndFiniteMeans() {
+        val base = sampleProjection()
+        val numeric = base.fields.first { it.name == "Rating" }
+        fun withValues(values: List<Double>) = base.copy(entries = values.mapIndexed { index, value ->
+            TrackEntryProjection(
+                TrackEntry(index + 1L, "decimal-$index", base.track.id, LocalDate.of(2026, 9, 28), index.toLong(), index.toLong()),
+                mapOf(numeric.id to TrackFieldValue(index + 1L, "decimal-value-$index", index + 1L, numeric.id,
+                    canonicalNumber = value, enteredNumber = value, enteredUnitId = "unitless", createdAtMillis = 1, updatedAtMillis = 1)),
+            )
+        })
+        val cancelled = withValues(listOf(1e16, 1.0, -1e16))
+        assertEquals(1.0, cancelled.aggregate(TrackAggregation.Sum, numeric.uuid).value!!, 0.0)
+        assertEquals(1.0 / 3.0, cancelled.aggregate(TrackAggregation.Average, numeric.uuid).value!!, 0.0)
+        assertEquals(Double.MAX_VALUE, withValues(listOf(Double.MAX_VALUE, Double.MAX_VALUE)).aggregate(TrackAggregation.Average, numeric.uuid).value!!, 0.0)
+        assertEquals(0.3, withValues(listOf(0.1, 0.2)).aggregate(TrackAggregation.Sum, numeric.uuid).value!!, 0.0)
+        // A finite stored reading can overflow after a custom display-unit conversion.
+        assertEquals(Double.POSITIVE_INFINITY, listOf(1.0, Double.POSITIVE_INFINITY).preciseSum(), 0.0)
+        assertEquals(Double.POSITIVE_INFINITY, listOf(1.0, Double.POSITIVE_INFINITY).preciseAverage(), 0.0)
+        assertTrue(listOf(Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY).preciseSum().isNaN())
+        assertTrue(emptyList<Double>().preciseAverage().isNaN())
+        assertEquals(Double.POSITIVE_INFINITY, withValues(listOf(1.0, Double.POSITIVE_INFINITY)).aggregate(TrackAggregation.Sum, numeric.uuid).value!!, 0.0)
+    }
+
     private fun sampleProjection(): TrackProjection {
         val title = field(1, "title", "Title", TrackFieldType.ShortText, primary = true)
         val genre = field(2, "genre", "Genre", TrackFieldType.SingleChoice)

@@ -41,8 +41,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -1231,26 +1229,15 @@ fun TaskEditorDialog(
     }
 
     if (showTimePicker) {
-        val pickerState = rememberTimePickerState(
-            initialHour = timeMinutes / 60,
-            initialMinute = timeMinutes % 60,
-            is24Hour = android.text.format.DateFormat.is24HourFormat(LocalContext.current),
-        )
-        PaneAwareAlertDialog(
+        ClockPickerDialog(
             modifier = nestedDialogModifier,
-            onDismissRequest = { showTimePicker = false },
-            title = { Text("Task Time") },
-            text = { TimePicker(state = pickerState) },
-            confirmButton = {
-                WhipTextButton(
-                    onClick = {
-                        timeMinutes = pickerState.hour * 60 + pickerState.minute
-                        showTimePicker = false
-                    },
-                ) { Text("Set") }
-            },
-            dismissButton = {
-                WhipTextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
+            title = "Task Time",
+            initialMinutes = timeMinutes,
+            onDismiss = { showTimePicker = false },
+            confirmLabel = "Set Time",
+            onSet = {
+                timeMinutes = it
+                showTimePicker = false
             },
         )
     }

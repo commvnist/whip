@@ -98,6 +98,20 @@ internal fun reminderDeliverySemanticsChanged(before: AppSettings, after: AppSet
         before.quietEndMinutes != after.quietEndMinutes ||
         before.timeZoneId != after.timeZoneId
 
+internal suspend fun refreshReminderDomains(
+    vararg domains: Pair<String, suspend () -> Unit>,
+): List<String> = buildList {
+    domains.forEach { (label, refresh) ->
+        try {
+            refresh()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            add("$label could not be refreshed. Use Refresh Notification Status to retry.")
+        }
+    }
+}
+
 data class SettingsMutationReceipt(
     val warnings: List<String> = emptyList(),
 )
@@ -345,6 +359,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun updateTypedSetting(
         requestId: String,
         transform: (AppSettings) -> AppSettings,
+    ): Boolean = mutateTypedSetting(requestId, false, transform)
+
+    fun refreshReminderSchedules(requestId: String): Boolean = mutateTypedSetting(requestId, true) { it }
+
+    private fun mutateTypedSetting(
+        requestId: String,
+        refreshOnly: Boolean,
+        transform: (AppSettings) -> AppSettings,
     ): Boolean {
         if (!_typedSettingMutationState.tryStartPersistenceRequest(requestId)) return false
         viewModelScope.launch(Dispatchers.IO) {
@@ -353,27 +375,19 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                     val change = app.withUserDataAccess {
                         app.reminderDeliveryCoordinator.withStateBoundary {
                             val before = repository.current()
-                            check(repository.updateAndConfirm(transform)) {
+                            check(refreshOnly || repository.updateAndConfirm(transform)) {
                                 "Local storage did not confirm the settings change."
                             }
                             before to repository.current()
                         }
                     } ?: error("Whip data is temporarily unavailable; try again.")
-                    val warnings = mutableListOf<String>()
-                    if (reminderDeliverySemanticsChanged(change.first, change.second)) {
-                        suspend fun sync(label: String, block: suspend () -> Unit) {
-                            try {
-                                block()
-                            } catch (cancelled: CancellationException) {
-                                throw cancelled
-                            } catch (_: Exception) {
-                                warnings += "$label could not be refreshed. The setting was saved; use Refresh Notification Status to retry."
-                            }
-                        }
-                        sync("Task reminders") { app.reminderScheduler.syncAll() }
-                        sync("Habit reminders") { app.habitReminderScheduler.syncAll() }
-                        sync("Goal reminders") { app.goalReminderScheduler.syncAll() }
-                    }
+                    val warnings = if (refreshOnly || reminderDeliverySemanticsChanged(change.first, change.second)) {
+                        refreshReminderDomains(
+                            "Task reminders" to suspend { app.reminderScheduler.syncAll() },
+                            "Habit reminders" to suspend { app.habitReminderScheduler.syncAll() },
+                            "Goal reminders" to suspend { app.goalReminderScheduler.syncAll() },
+                        ).map { if (refreshOnly) it else "The setting was saved. $it" }
+                    } else emptyList()
                     SettingsMutationReceipt(warnings)
                 }
                 WhipResult.Success(receipt)
@@ -384,7 +398,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 throw cancelled
             } catch (error: Exception) {
                 WhipResult.Failure(
-                    error.message ?: "Whip could not save this setting. Your draft is still here.",
+                    error.message ?: if (refreshOnly) {
+                        "Whip could not refresh reminder schedules. Try again."
+                    } else "Whip could not save this setting. Your draft is still here.",
                     error,
                 )
             }

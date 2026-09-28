@@ -154,6 +154,15 @@ class SettingsBehaviorUiTest {
             compose.onNodeWithTag("notification-test-result").assertIsDisplayed()
         }
         captureVisualCatalogSurface("ux-upgrades.settings.reminder-result")
+        compose.onNodeWithTag("settings-list").performScrollToNode(hasTestTag("refresh-notification-status"))
+        compose.onNodeWithTag("refresh-notification-status").performClick()
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithText("Reminder Schedules Refreshed").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("settings-list").performScrollToNode(hasTestTag("notification-refresh-result"))
+        compose.onNodeWithText("Task, Habit, and Goal reminder schedules refreshed. Android notification availability is shown above.")
+            .assertIsDisplayed()
+        captureVisualCatalogSurface("product-audit.settings.reminder-refresh")
     }
 
     @Test

@@ -269,6 +269,34 @@ class TaskUpcomingVisibilityTest {
         assertEquals(10_000, state.planning.size)
     }
 
+    @Test fun overdueDeadlinesReachEveryActiveScheduleButNotTerminalHistory() {
+        val today = LocalDate.of(2026, 8, 20)
+        val deadline = today.minusDays(1)
+        val recurring = task(1, ScheduleKind.Recurring).copy(deadline = deadline)
+        val completionRelative = recurring.copy(id = 2, recurrence = recurring.recurrence!!.copy(anchor = RecurrenceAnchor.Completion))
+        val tasks = listOf(
+            recurring, completionRelative,
+            task(3, ScheduleKind.Anytime).copy(date = null, deadline = deadline),
+            task(4, ScheduleKind.Once).copy(date = today.plusDays(1), deadline = deadline),
+            task(5, ScheduleKind.Once).copy(deadline = deadline, archived = true),
+            task(6, ScheduleKind.Once).copy(deadline = deadline, completedAtMillis = 1234),
+            task(7, ScheduleKind.Once).copy(deadline = today),
+        )
+        val occurrences = listOf(
+            TaskOccurrence(1, today.minusDays(1), today.plusDays(2), OccurrenceState.Open, null),
+            TaskOccurrence(1, today.minusDays(2), today.minusDays(2), OccurrenceState.Completed, 1234),
+        )
+        val state = buildUiState(tasks, occurrences, emptyList(), emptyList(), emptyList(), today, true)
+        val active = state.inbox + state.today + state.upcoming + state.planning
+        assertEquals(setOf(1L, 2L, 3L, 4L), active.filter { it.isDeadlineOverdue }.map { it.task.id }.toSet())
+        assertEquals(false, (state.completed + state.archived).any { it.isDeadlineOverdue })
+        assertEquals(false, active.first { it.task.id == 7L }.isDeadlineOverdue)
+        val overdue = com.whip.app.core.SavedTaskFilter(name = "Overdue", dateMode = "Overdue")
+        active.filter { it.task.id == 1L }.forEach {
+            assertEquals(true, it.matchesTaskDateFilter(overdue, today, java.time.ZoneOffset.UTC))
+        }
+    }
+
     private fun occurrence(task: WhipTask, date: String): ScheduledTask {
         val localDate = LocalDate.parse(date)
         return ScheduledTask(task, localDate, localDate)

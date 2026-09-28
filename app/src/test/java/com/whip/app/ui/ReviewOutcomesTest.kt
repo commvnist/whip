@@ -68,6 +68,30 @@ class ReviewOutcomesTest {
         assertTrue(outcomes(habits = state, sections = setOf(ReviewSection.Tasks)).isEmpty())
     }
 
+    @Test fun completedMilestonesContributeTheirWeightOnTheSelectedLocalDate() {
+        val goal = Goal(id = 1, uuid = "g", measurementId = "m", name = "Launch", description = "", area = "",
+            tags = emptyList(), icon = "◎", type = GoalType.WeightedMilestones, dimension = UnitDimension.Unitless,
+            unitId = "unitless", precision = 1, baseline = null, targetMin = null, targetMax = null,
+            direction = GoalDirection.Increase, startDate = today.minusDays(2), deadline = today,
+            aggregation = GoalAggregation.CompletionCount, paceType = GoalPaceType.None,
+            reminderMinutes = null, status = GoalStatus.Active, pinned = false, position = 0,
+            createdAtMillis = 1, updatedAtMillis = 1)
+        val completed = Instant.parse("2026-09-10T01:30:00Z").toEpochMilli()
+        val milestones = listOf(
+            GoalMilestone(1, "m1", 1, "First", 0, 1.0, true, completed, "", 1, 1),
+            GoalMilestone(2, "m2", 1, "Second", 1, 3.0, false, null, "", 1, 1),
+            GoalMilestone(3, "m3", 1, "Optional", 2, 0.0, true, completed, "", 1, 1),
+        )
+        val rows = reviewOutcomes(TaskUiState(), HabitUiState(),
+            GoalUiState(active = listOf(projectGoal(goal, emptyList(), milestones, today))), GymUiState(),
+            setOf(ReviewSection.Goals), today.minusDays(2), today, zone)
+        assertEquals(today.minusDays(1), rows.single().date)
+        assertEquals(0.25, rows.single().score, 0.0)
+        assertEquals(0.0, goalOutcomeScoreOnDate(goal, emptyList(), milestones, today, zone), 0.0)
+        assertEquals(0.0, goalOutcomeScoreOnDate(goal.copy(startDate = today), emptyList(), milestones, today.minusDays(1), zone), 0.0)
+        assertEquals(0.0, goalOutcomeScoreOnDate(goal, emptyList(), milestones.map { it.copy(weight = 0.0) }, today.minusDays(1), zone), 0.0)
+    }
+
     @Test fun positiveNormalizedProgressNeverReadsAsZero() {
         assertEquals("0.005", formatReviewNumber(0.005, Locale.US))
         assertEquals("<0.001", formatReviewNumber(0.0005, Locale.US))

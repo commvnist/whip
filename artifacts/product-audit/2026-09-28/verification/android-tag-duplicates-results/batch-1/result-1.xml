@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="1" errors="0" skipped="0" time="7.152" timestamp="2026-09-28T20:55:11" hostname="localhost">
+  <testsuite name="com.whip.app.ProductivityDuplicateRepositoryTest" tests="1" failures="0" errors="0" skipped="0" time="0.312" timestamp="2026-09-28T20:55:11" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="maximumNamesDuplicateIndependentStructuresWithoutCopyingHistory" classname="com.whip.app.ProductivityDuplicateRepositoryTest" time="0.312" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.TagManagementUiTest" tests="1" failures="1" errors="0" skipped="0" time="5.713" timestamp="2026-09-28T20:55:11" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="failedRenameKeepsTheDialogAndDraftOwnedByTheRequest" classname="com.whip.app.ui.TagManagementUiTest" time="5.713">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but found '2' nodes that satisfy: (Text + InputText + EditableText contains 'Tag no longer exists' (ignoreCase: false))
+Nodes found:
+1) Node #100 at (l=53.0, t=372.0, r=1027.0, b=505.0)px, Tag: 'tag-mutation-error'
+Error = 'Tag no longer exists'
+IsContainer = 'true'
+LiveRegion = 'Polite'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 8.0.dp), topEnd = CornerSize(size = 8.0.dp), bottomEnd = CornerSize(size = 8.0.dp), bottomStart = CornerSize(size = 8.0.dp))'
+StateDescription = 'Error'
+Text = '[Tag Change Not Saved, Tag no longer exists]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 5 siblings
+2) Node #105 at (l=63.0, t=1324.0, r=438.0, b=1387.0)px
+Text = '[Tag no longer exists]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 3 siblings
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+at com.whip.app.ui.TagManagementUiTest.failedRenameKeepsTheDialogAndDraftOwnedByTheRequest(TagManagementUiTest.kt:157)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

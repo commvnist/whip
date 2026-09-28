@@ -1,18 +1,29 @@
 package com.whip.app
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.room.Room
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.test.espresso.Espresso.closeSoftKeyboard
+import androidx.test.espresso.Espresso.pressBack
+import androidx.test.core.app.ApplicationProvider
+import com.whip.app.core.WhipClock
+import com.whip.app.core.WhipIdGenerator
+import com.whip.app.data.RoomHabitRepository
+import com.whip.app.data.RoomMeasurementRepository
+import com.whip.app.data.WhipDatabase
 import com.whip.app.domain.*
 import com.whip.app.ui.*
 import com.whip.app.ui.theme.WhipTheme
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -22,6 +33,98 @@ class HomeHabitAudit2UiTest {
     private val compose = createComposeRule()
     @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
     private val today = LocalDate.of(2026, 9, 28)
+
+    @Test fun habitUnitChangesSaveConvertedConfigurationAndRetainOriginalHistory() {
+        val database = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), WhipDatabase::class.java).build()
+        try {
+            val clock = object : WhipClock { override fun now() = Instant.parse("2026-09-28T12:00:00Z") }
+            var nextId = 0
+            val ids = WhipIdGenerator { "unit-audit-${++nextId}" }
+            val measurements = RoomMeasurementRepository(database, clock, ids)
+            val repository = RoomHabitRepository(database, measurements, clock, ids)
+            val unitId = runBlocking { measurements.createCustomUnit("Audit cup", "cup", UnitDimension.Volume, 250.0) }
+            val units = runBlocking { measurements.customUnits.first() }
+            val id = runBlocking {
+                repository.create(HabitDraft("Water", trackingMode = HabitTrackingMode.Decimal,
+                    dimension = UnitDimension.Volume, unitId = "litre", precision = 2,
+                    comparison = TargetComparison.WithinRange, targetMin = 2.0, targetMax = 3.0,
+                    startDate = today, quickIncrement = 0.5, quickActions = listOf(1.0, 2.0),
+                    endType = HabitEndType.AfterTotal, endValue = 10.0)).also { repository.log(it, 1.0) }
+            }
+            val originalLog = runBlocking { repository.logs.first().single() }
+            val existing = mutableStateOf(runBlocking { requireNotNull(repository.get(id)) })
+            val generation = mutableStateOf(0)
+            var saved: HabitDraft? = null
+            compose.setContent { WhipTheme(dynamicColor = false) { key(generation.value) {
+                HabitEditorDialog(existing.value, initialChecklist = emptyList(), today = today,
+                    onDismiss = {}, onSave = { saved = it }, customUnits = units)
+            } } }
+            fun chooseUnit(label: String) {
+                compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasContentDescription("Unit:", substring = true))
+                compose.onNodeWithContentDescription("Unit:", substring = true).performClick()
+                compose.onNodeWithText(label).performClick()
+            }
+            chooseUnit("Audit cup (cup)")
+            compose.onNodeWithText("Save").performClick()
+            runBlocking { repository.update(id, requireNotNull(saved)) }
+            val reopened = runBlocking { requireNotNull(repository.get(id)) }
+            assertEquals(unitId, reopened.unitId)
+            assertEquals(8.0, reopened.targetMin!!, 0.0)
+            assertEquals(12.0, reopened.targetMax!!, 0.0)
+            assertEquals(2.0, reopened.quickIncrement, 0.0)
+            assertEquals(listOf(4.0, 8.0), reopened.quickActions)
+            assertEquals(40.0, reopened.endValue!!, 0.0)
+            assertEquals(originalLog, runBlocking { repository.logs.first().single() })
+            compose.runOnIdle { existing.value = reopened; generation.value++; saved = null }
+            compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Minimum"))
+            compose.onNodeWithText("Minimum").performTextReplacement("-")
+            closeSoftKeyboard()
+            chooseUnit("litres (L)")
+            compose.onNodeWithTag("habit-unit-change-error").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Unit: Audit cup (cup)").assertIsDisplayed()
+            compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Minimum"))
+            compose.onNodeWithText("Minimum").assertTextContains("-").performTextReplacement("8")
+            closeSoftKeyboard()
+            chooseUnit("litres (L)")
+            compose.onNodeWithText("Save").performClick()
+            runBlocking { repository.update(id, requireNotNull(saved)) }
+            assertEquals(2.0, runBlocking { repository.get(id) }!!.targetMin!!, 0.0)
+            assertEquals(originalLog, runBlocking { repository.logs.first().single() })
+            captureVisualCatalogSurface("product-audit.habits.converted-unit")
+        } finally { database.close() }
+    }
+
+    @Test @AndroidFontScale fun secondaryHabitDraftsSurviveDismissalAndRecreation() {
+        val restoration = StateRestorationTester(compose)
+        val dialog = mutableStateOf(0)
+        var dismissals = 0
+        restoration.setContent { WhipTheme(dynamicColor = false) { key(dialog.value) {
+            val dismiss = { dismissals++; Unit }
+            when (dialog.value) {
+                0 -> HabitValueDialog(progress(habit().copy(trackingMode = HabitTrackingMode.LogOnly)), dismiss, { _, _ -> })
+                1 -> HabitHistoryLogDialog(progress(habit()), log(1, 1.0, HabitLogStatus.Success), today.minusDays(1), dismiss, { _, _, _, _ -> })
+                else -> HabitPauseDialog(today, onDismiss = dismiss, onSave = { _, _, _ -> })
+            }
+        } } }
+        listOf("habit-value-note", "habit-history-note", "habit-pause-note").forEachIndexed { index, tag ->
+            compose.runOnIdle { dialog.value = index }
+            compose.onNodeWithTag(tag).performScrollTo().performTextReplacement("Retain draft $index")
+            closeSoftKeyboard()
+            restoration.emulateSavedInstanceStateRestore()
+            compose.onNodeWithTag(tag).performScrollTo().assertTextContains("Retain draft $index")
+            compose.onNodeWithText("Cancel").performClick()
+            compose.onNodeWithText("Discard Unsaved Changes?").assertIsDisplayed()
+            compose.onNodeWithText("Keep Editing").performClick()
+            compose.onNodeWithTag(tag).performScrollTo().assertTextContains("Retain draft $index")
+            closeSoftKeyboard()
+            pressBack()
+            compose.onNodeWithText("Discard Unsaved Changes?").assertIsDisplayed()
+            compose.assertDialogFontScale()
+            if (index == 2) captureVisualCatalogSurface("product-audit.habits.discard-draft.large")
+            compose.onNodeWithText("Discard Changes").performClick()
+            compose.runOnIdle { assertEquals(index + 1, dismissals) }
+        }
+    }
 
     @Test fun historicalNoteEditingPreservesFailedAndModeChangedFacts() {
         val current = mutableStateOf(log(1, 0.0, HabitLogStatus.Failed))

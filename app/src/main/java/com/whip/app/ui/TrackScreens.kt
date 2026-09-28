@@ -141,6 +141,8 @@ import com.whip.app.domain.TrackValueDraft
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.plainNumericValue
+import com.whip.app.domain.preciseSum
+import com.whip.app.domain.preciseAverage
 import com.whip.app.domain.matchingEntries
 import com.whip.app.domain.toWhipDoubleOrNull
 import com.whip.app.domain.formatTrackScaleValue
@@ -1296,9 +1298,9 @@ private fun TrackWorkspaceInsightsPage(
                     items(numericSummaries, key = { "numeric-${it.projection.track.id}-${it.field.id}" }) { summary ->
                         WhipSummaryCard("${summary.projection.track.icon} ${summary.projection.track.name} · ${summary.field.name}") {
                             if (summary.numberFormat.showTotal) {
-                                metric("Total", summary.numberFormat.format(summary.values.sum()))
+                                metric("Total", summary.numberFormat.format(summary.values.preciseSum()))
                             }
-                            metric("Average", summary.numberFormat.format(summary.values.average()))
+                            metric("Average", summary.numberFormat.format(summary.values.preciseAverage()))
                             fact("Entries", summary.values.size.toString())
                         }
                     }
@@ -2362,8 +2364,8 @@ private fun TrackInsightsPage(
                     } ?: "—"
                     buildList {
                         add("Recorded" to nums.size.toString())
-                        if (numberFormat.showTotal) add("Sum" to numberFormat.format(nums.takeIf { it.isNotEmpty() }?.sum()))
-                        add("Average" to numberFormat.format(nums.takeIf { it.isNotEmpty() }?.average()))
+                        if (numberFormat.showTotal) add("Sum" to numberFormat.format(nums.takeIf { it.isNotEmpty() }?.preciseSum()))
+                        add("Average" to numberFormat.format(nums.takeIf { it.isNotEmpty() }?.preciseAverage()))
                         add("Minimum" to numberFormat.format(nums.minOrNull()))
                         add("Maximum" to numberFormat.format(nums.maxOrNull()))
                         add("Latest" to numberFormat.format(dated.lastOrNull()?.second))
@@ -2378,7 +2380,7 @@ private fun TrackInsightsPage(
                     val change = dated.takeIf { it.size >= 2 }?.let { it.last().second - it.first().second }
                     listOf(
                         "Recorded" to nums.size.toString(),
-                        "Average" to numberFormat.format(nums.takeIf { it.isNotEmpty() }?.average()),
+                        "Average" to numberFormat.format(nums.takeIf { it.isNotEmpty() }?.preciseAverage()),
                         "Minimum" to numberFormat.format(nums.minOrNull()),
                         "Maximum" to numberFormat.format(nums.maxOrNull()),
                         "Latest" to numberFormat.format(dated.lastOrNull()?.second),

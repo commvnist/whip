@@ -1474,6 +1474,9 @@ internal fun buildUiState(
     val planningThrough = today.plusYears(1)
 
     fun ScheduledTask.withStepProgress(): ScheduledTask {
+        val deadlineOverdue = !task.archived && completedAtMillis == null &&
+            occurrenceState !in setOf(OccurrenceState.Completed, OccurrenceState.Skipped) &&
+            task.deadline?.isBefore(today) == true
         val states = statesByTask[task.id]
             .orEmpty()
             .filter { it.occurrenceKey == occurrenceKey }
@@ -1522,6 +1525,7 @@ internal fun buildUiState(
             task.steps.filterNot(TaskStep::archived)
         }
         return copy(
+            isDeadlineOverdue = deadlineOverdue,
             subtasks = visibleSteps.map { step ->
                 val state = states[step.id]
                 ScheduledSubtask(
@@ -1581,7 +1585,6 @@ internal fun buildUiState(
                     originalDate = date,
                     scheduledDate = date,
                     isPastScheduledDate = date.isBefore(today),
-                    isDeadlineOverdue = task.deadline?.isBefore(today) == true,
                 ).withStepProgress()
                 planningItems += item
                 if (date.isAfter(today)) upcomingItems += item else todayItems += item

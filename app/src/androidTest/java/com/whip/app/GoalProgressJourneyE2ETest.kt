@@ -26,6 +26,33 @@ class GoalProgressJourneyE2ETest {
         return compose.onNode(matcher and hasAnyAncestor(hasTestTag("goal-detail-surface")))
     }
 
+    @Test fun backfilledGoalHistoryKeepsTheLaterObservationCurrentAfterRecreation() {
+        val id = runBlocking {
+            prepare()
+            val today = app.clock.today()
+            val id = app.goalRepository.create(GoalDraft("Observation order", type = GoalType.ReachValue,
+                startDate = today.minusDays(2), targetMin = 100.0, precision = 1))
+            app.goalRepository.recordMeasurement(id, 75.0, today, timestamp = app.clock.now().minusSeconds(60))
+            app.goalRepository.recordMeasurement(id, 80.0, today.minusDays(1), timestamp = app.clock.now())
+            id
+        }
+        val originalEntries = runBlocking { app.goalRepository.measurementEntries.first() }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            compose.onNodeWithContentDescription("Goals tab").performClick()
+            compose.onNodeWithTag("goal-card-$id").performScrollTo().performClick()
+            inspectorNode(hasText("Current 75.0 → target 100.0")).assertIsDisplayed()
+            inspectorNode(hasText("Trend Data Table")).performClick()
+            inspectorNode(hasText("value 75.0, progress 75%", substring = true)).assertIsDisplayed()
+            scenario.recreate()
+            inspectorNode(hasText("value 75.0, progress 75%", substring = true)).assertIsDisplayed()
+            captureVisualCatalogSurface("product-audit.goals.backfilled-current")
+            compose.onNodeWithTag("goal-detail-section-History").performClick()
+            inspectorNode(hasText("80")).assertIsDisplayed()
+            inspectorNode(hasText("75")).assertIsDisplayed()
+        }
+        assertEquals(originalEntries, runBlocking { app.goalRepository.measurementEntries.first() })
+    }
+
     @Test fun windowedInsightsMatchCurrentProgressAndRetainExcludedHistory() {
         val id = runBlocking {
             prepare()

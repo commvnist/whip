@@ -57,7 +57,7 @@ internal fun reviewOutcomes(
         val dates = generateSequence(start) { it.plusDays(1) }.takeWhile { it <= through }.toList()
         (goals.active + goals.completed + goals.archived).forEach { projection ->
             dates.forEach { date ->
-                val score = goalOutcomeScoreOnDate(projection.goal, projection.entries, projection.milestones, date)
+                val score = goalOutcomeScoreOnDate(projection.goal, projection.entries, projection.milestones, date, zone)
                 if (score > 0.0) add(ReviewOutcome(
                     ReviewSection.Goals, projection.goal.id, projection.goal.id.toString(), projection.goal.name,
                     date, score, projection.goal.icon, projection.goal.archived,

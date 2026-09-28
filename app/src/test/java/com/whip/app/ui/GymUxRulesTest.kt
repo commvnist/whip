@@ -2,12 +2,16 @@ package com.whip.app.ui
 
 import com.whip.app.core.OperationStatus
 import com.whip.app.core.WhipResult
+import com.whip.app.core.TrackedGymRecord
+import com.whip.app.core.isSupportedFor
 import com.whip.app.domain.BodyweightLoadPolicy
 import com.whip.app.domain.EstimatedOneRepMaxFormula
 import com.whip.app.domain.Exercise
 import com.whip.app.domain.GymGraphRange
 import com.whip.app.domain.ExerciseTrackingType
 import com.whip.app.domain.LoadInterpretation
+import com.whip.app.domain.GymMachine
+import com.whip.app.domain.MachineLoadType
 import com.whip.app.domain.PersonalRecord
 import com.whip.app.domain.PersonalRecordType
 import com.whip.app.domain.RoutineOptionalWorkKind
@@ -31,9 +35,61 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class GymUxRulesTest {
+    @Test
+    fun trackedMachineRecordsRemainEligibleForArchivedAndRemovedProfiles() {
+        val exercise = testExercise(1, "Row", "Machine", "Back")
+        val selection = TrackedGymRecord(exercise.uuid, PersonalRecordType.MaxMachineSetting, machineProfileUuid = "level-profile")
+        val machine = GymMachine(9, "level-profile", 1, "Cable", "", "", MachineLoadType.Level,
+            "", "level", listOf(1.0, 2.0), LoadInterpretation.OrdinalSetting, null, false, 1, 1)
+        assertTrue(selection.isSupportedFor(exercise, listOf(machine), emptyList()))
+        assertTrue(selection.isSupportedFor(exercise, listOf(machine.copy(archived = true)), emptyList()))
+        val record = PersonalRecord(uuid = "level-record", exerciseId = exercise.id, type = selection.type,
+            value = 2.0, secondaryValue = null, unitId = "level", sourceSetId = 90, sourceSessionId = 1,
+            achievedAtMillis = 2, current = true, imported = false, createdAtMillis = 1, updatedAtMillis = 2,
+            machineProfileUuidSnapshot = machine.uuid)
+        assertTrue(selection.isSupportedFor(exercise, emptyList(), listOf(record)))
+        assertFalse(selection.copy(machineProfileUuid = "other").isSupportedFor(exercise, listOf(machine), listOf(record)))
+        assertFalse(selection.isSupportedFor(exercise, emptyList(), emptyList()))
+        assertFalse(selection.copy(type = PersonalRecordType.MaxDistance).isSupportedFor(exercise, listOf(machine), listOf(record)))
+    }
+
+    @Test
+    fun historicalEnteredLoadsConvertBeforeTheirQualifier() {
+        val original = performanceSet(2).copy(canonicalWeightKg = 40.0, enteredWeight = 20.0, repetitions = 5)
+        val placement = WorkoutExercise(2, "placement", 1, 1, 0, "", null, 1, 1,
+            loadInterpretationSnapshot = LoadInterpretation.PerHand)
+        listOf(LoadInterpretation.PerHand to "per hand", LoadInterpretation.PerSide to "per side",
+            LoadInterpretation.AddedLoad to "added", LoadInterpretation.AssistedSubtraction to "assistance").forEach { (meaning, qualifier) ->
+            val label = original.shortLabel("pound", "kilometre", 1, placement.copy(loadInterpretationSnapshot = meaning), "pound")
+            assertTrue(label, label.contains("44.1 lb $qualifier"))
+            assertFalse(label, label.contains("20 lb"))
+        }
+        assertTrue(original.copy(enteredWeight = 44.0924524369755, enteredWeightUnitId = "pound")
+            .shortLabel("kilogram", "kilometre", 1, placement, "kilogram").contains("20 kg per hand (40 total)"))
+        assertTrue(original.shortLabel("pound", "kilometre", 1, placement.copy(loadInterpretationSnapshot = LoadInterpretation.Total), "pound")
+            .contains("88.2 lb"))
+        assertTrue(original.copy(machineLoadValue = 3.0).shortLabel("pound", "kilometre", 1,
+            placement.copy(machineLoadTypeSnapshot = MachineLoadType.Level, machineLevelLabelSnapshot = "level"), "pound").contains("level 3"))
+        assertEquals(20.0, original.enteredWeight!!, 0.0)
+        assertEquals("kilogram", original.enteredWeightUnitId)
+    }
+
+    @Test
+    fun sharedWorkoutRetainsArchivedExerciseIdentity() {
+        val exercise = testExercise(1, "Archived dumbbell row", "Dumbbell", "Back").copy(archived = true)
+        val placement = WorkoutExercise(2, "placement", 1, 1, 0, "", null, 1, 1)
+        val session = WorkoutSession(1, "session", "Training", "", Instant.EPOCH, Instant.EPOCH.plusSeconds(60),
+            LocalDate.of(2026, 9, 28), "UTC", WorkoutSessionState.Finished, false, null, null, false, 1, 2)
+        val text = workoutShareText(session, GymUiState(archivedExercises = listOf(exercise),
+            allWorkoutExercises = listOf(placement), allSets = listOf(performanceSet(2))))
+        assertTrue(text, text.contains(exercise.name))
+        assertTrue(text, text.contains("100 kg"))
+    }
+
     @Test
     fun workoutUndoVisibilityIsScopedToActiveSessionAndDataGeneration() {
         val undo = WorkoutLayoutUndo(

@@ -17,7 +17,7 @@ internal fun UnsavedChangesDialog(
         paneTitle = "Discard Unsaved Changes",
         title = { Text("Discard Unsaved Changes?") },
         text = { Text("Your edits to this $subject have not been saved.") },
-        confirmButton = { WhipTextButton(onClick = onDiscard) { Text("Discard Changes") } },
+        confirmButton = { WhipDestructiveTextButton(onClick = onDiscard) { Text("Discard Changes") } },
         dismissButton = { WhipTextButton(onClick = onKeepEditing) { Text("Keep Editing") } },
     )
 }

@@ -1,0 +1,11 @@
+{
+  "command": [
+    "timeout",
+    "--kill-after=3s",
+    "55s",
+    "./gradlew",
+    ":app:assembleDebug",
+    ":app:assembleDebugAndroidTest"
+  ],
+  "ANDROID_SERIAL": null
+}

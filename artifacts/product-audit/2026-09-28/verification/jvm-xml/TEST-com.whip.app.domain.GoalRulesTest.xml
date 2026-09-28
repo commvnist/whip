@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.domain.GoalRulesTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-09-28T20:41:07.363Z" hostname="beast" time="0.125">
+  <properties/>
+  <testcase name="backfilledObservationsDoNotReplaceLaterDatedLatestProgressOrHistory" classname="com.whip.app.domain.GoalRulesTest" time="0.121"/>
+  <testcase name="openTrendReviewExcludesHistoryOnlyAndNonRecordedEvidence" classname="com.whip.app.domain.GoalRulesTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

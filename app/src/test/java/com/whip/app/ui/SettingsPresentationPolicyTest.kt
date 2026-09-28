@@ -3,6 +3,8 @@ package com.whip.app.ui
 import java.time.Instant
 import java.time.ZoneId
 import java.util.Locale
+import kotlinx.coroutines.runBlocking
+import java.util.concurrent.CancellationException
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -11,6 +13,30 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SettingsPresentationPolicyTest {
+    @Test
+    fun reminderRefreshAttemptsEveryDomainAndKeepsPartialFailureRetryable() = runBlocking {
+        val attempted = mutableListOf<String>()
+        val warnings = refreshReminderDomains(
+            "Task reminders" to suspend { attempted += "Tasks"; error("scheduler unavailable") },
+            "Habit reminders" to suspend { attempted += "Habits" },
+            "Goal reminders" to suspend { attempted += "Goals" },
+        )
+        assertEquals(listOf("Tasks", "Habits", "Goals"), attempted)
+        assertEquals(listOf("Task reminders could not be refreshed. Use Refresh Notification Status to retry."), warnings)
+        assertTrue(refreshReminderDomains("Task reminders" to suspend { }).isEmpty())
+
+        attempted.clear()
+        try {
+            refreshReminderDomains(
+                "Task reminders" to suspend { throw CancellationException("cancelled") },
+                "Habit reminders" to suspend { attempted += "Habits" },
+            )
+            throw AssertionError("Cancellation must propagate")
+        } catch (_: CancellationException) {
+            assertTrue(attempted.isEmpty())
+        }
+    }
+
     @Test
     fun dynamicColorIsOnlyOfferedWhereAndroidCanApplyIt() {
         assertFalse(supportsAndroidDynamicColor(30))
