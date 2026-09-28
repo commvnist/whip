@@ -3,6 +3,9 @@ package com.whip.app
 import android.view.accessibility.AccessibilityWindowInfo
 import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -16,14 +19,24 @@ internal fun SemanticsNodeInteractionsProvider.assertEditorHeaderVisibleWithKeyb
     title: String,
     exitLabel: String,
     titleTag: String? = null,
+    titleAncestorTag: String? = null,
 ) {
     val instrumentation = InstrumentationRegistry.getInstrumentation()
     val device = UiDevice.getInstance(instrumentation)
     val density = instrumentation.targetContext.resources.displayMetrics.density
-    val titleLayout = (if (titleTag == null) onNodeWithText(title) else onNodeWithTag(titleTag)).getUnclippedBoundsInRoot()
-    val titleBounds = device.findObject(By.text(title))?.visibleBounds
+    val titleLayout = when {
+        titleTag != null -> onNodeWithTag(titleTag)
+        titleAncestorTag != null -> onNode(hasText(title) and hasAnyAncestor(hasTestTag(titleAncestorTag)))
+        else -> onNodeWithText(title)
+    }.getUnclippedBoundsInRoot()
+    val exitNode = device.findObject(By.desc(exitLabel))
+    val titleBounds = if (titleAncestorTag == null) device.findObject(By.text(title))?.visibleBounds else {
+        // Start from the unique exit so an identically named action in the obscured Activity
+        // cannot supply the native title bounds for this editor window.
+        generateSequence(exitNode) { it.parent }.lastOrNull()?.findObject(By.text(title))?.visibleBounds
+    }
     val exitLayout = onNodeWithContentDescription(exitLabel, useUnmergedTree = true).getUnclippedBoundsInRoot()
-    val exitBounds = device.findObject(By.desc(exitLabel))?.visibleBounds
+    val exitBounds = exitNode?.visibleBounds
     assertTrue("Expected the actual software keyboard", instrumentation.uiAutomation.windows.any {
         it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
     })

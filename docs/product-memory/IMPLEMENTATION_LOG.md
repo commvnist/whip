@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260927-016 — Shared choices retain complete values and native selection state
+
+- Changes: `SelectionField`, `UnitSelectionField` and the narrow segmented-choice menu preserve full selected labels, expose selected-option semantics and dismiss unavailable menus. Optional editor guidance and Calendar navigation availability support the domain overhaul without a new component system.
+- Evidence/status: Verified under VER-20260927-025. `SharedChoiceAccessibilityUiTest` covers actual 200% wrapping, selected semantics and disabling open menus; the existing Track entered-unit assertion now checks native selection. No domain or persistence format changed.
+- Related: FB-20260927-011, FND-20260927-018, DEC-20260927-008; [shared review](../quality/UX_OVERHAUL_SHARED_2026-09-27.md).
+
 ### IMP-20260927-015 — Include higher-rep sets in ordinary Gym e1RM
 
 - Behavior: One shared 36-rep default replaces the scattered ten-rep defaults in calculations, settings, graph projection, PR reconstruction and missing backup settings. A one-time local preference upgrade changes the old ten-rep value to 36 and preserves later authored choices. Both initial and ticking workout summaries receive the configured cutoff.

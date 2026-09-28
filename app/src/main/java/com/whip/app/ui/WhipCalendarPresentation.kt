@@ -75,6 +75,8 @@ internal fun WhipCalendarMonthHeader(
     monthModifier: Modifier = Modifier,
     onMonthClick: (() -> Unit)? = null,
     monthActionLabel: String? = null,
+    previousEnabled: Boolean = true,
+    nextEnabled: Boolean = true,
     contextualAction: (@Composable () -> Unit)? = null,
 ) {
     val locale = LocalConfiguration.current.locales[0]
@@ -87,7 +89,7 @@ internal fun WhipCalendarMonthHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
     ) {
-        IconButton(onClick = onPreviousMonth, modifier = Modifier.size(48.dp)) {
+        IconButton(onClick = onPreviousMonth, enabled = previousEnabled, modifier = Modifier.size(48.dp)) {
             Icon(
                 Icons.AutoMirrored.Outlined.ArrowBack,
                 contentDescription = "Previous Month",
@@ -114,7 +116,7 @@ internal fun WhipCalendarMonthHeader(
             )
         }
         contextualAction?.invoke()
-        IconButton(onClick = onNextMonth, modifier = Modifier.size(48.dp)) {
+        IconButton(onClick = onNextMonth, enabled = nextEnabled, modifier = Modifier.size(48.dp)) {
             Icon(
                 Icons.AutoMirrored.Outlined.ArrowForward,
                 contentDescription = "Next Month",

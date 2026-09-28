@@ -1741,7 +1741,7 @@ class InteractionControlUiTest {
             .assertIsDisplayed()
             .performClick()
         compose.onAllNodesWithText("pounds (lb)").assertCountEquals(2)
-        compose.onNodeWithContentDescription("Selected").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Entered Unit for Load option: pounds (lb)").assertIsSelected()
         compose.runOnIdle { assertEquals("pounds", value.enteredUnitId) }
     }
 

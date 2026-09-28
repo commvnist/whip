@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 @Composable
 internal fun ProductivityIdentitySection(
     title: String,
-    supportingText: String,
+    supportingText: String? = null,
     modifier: Modifier = Modifier,
     identityFields: @Composable ColumnScope.() -> Unit,
     emojiPicker: @Composable ColumnScope.() -> Unit,
@@ -36,7 +36,7 @@ internal fun ProductivityIdentitySection(
  */
 @Composable
 internal fun ProductivityOrganizationSection(
-    supportingText: String,
+    supportingText: String? = null,
     modifier: Modifier = Modifier,
     areaPicker: @Composable ColumnScope.() -> Unit,
     extras: @Composable ColumnScope.() -> Unit = {},

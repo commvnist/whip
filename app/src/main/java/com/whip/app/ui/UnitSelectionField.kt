@@ -15,6 +15,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -25,7 +26,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.UnitDimension
@@ -81,6 +81,7 @@ internal fun UnitSelectionField(
     val available = units.filter { (allowAnyDimension || it.dimension == dimension) && (!it.archived || it.id == selectedUnitId) }
     val selected = available.firstOrNull { it.id == selectedUnitId } ?: available.firstOrNull()
     var expanded by rememberSaveable(label) { mutableStateOf(false) }
+    LaunchedEffect(enabled) { if (!enabled) expanded = false }
     var creating by rememberSaveable(label) { mutableStateOf(false) }
     var requestedUnitId by rememberSaveable(label) { mutableStateOf(UUID.randomUUID().toString()) }
     var pendingDimension by rememberSaveable(label) { mutableStateOf(dimension) }
@@ -110,18 +111,16 @@ internal fun UnitSelectionField(
                     .heightIn(min = 48.dp)
                     .semantics {
                         contentDescription = "$label: ${selected?.let(::unitDefinitionDisplayLabel) ?: "No compatible units"}"
-                        stateDescription = if (expanded) "Menu open" else "Menu closed"
+                        stateDescription = if (expanded && enabled) "Menu open" else "Menu closed"
                     },
             ) {
                 Text(
                     selected?.let { if (it.id == "unitless") "No Unit" else unitDefinitionDisplayLabel(it) } ?: "No compatible units",
                     modifier = Modifier.weight(1f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
                 Icon(Icons.Outlined.ArrowDropDown, contentDescription = null)
             }
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenu(expanded = expanded && enabled, onDismissRequest = { expanded = false }) {
                 available.forEach { unit ->
                     val isSelected = unit.id == selected?.id
                     DropdownMenuItem(

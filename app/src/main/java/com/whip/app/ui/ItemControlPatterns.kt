@@ -1345,8 +1345,9 @@ internal fun <T> SegmentedChoiceBar(
                     choices.forEach { choice ->
                         DropdownMenuItem(
                             text = { Text(label(choice).uiTitleCase()) },
-                            leadingIcon = if (choice == selected) {{ Icon(Icons.Outlined.Check, contentDescription = "Selected") }} else null,
-                            modifier = testTagPrefix?.let { Modifier.testTag("$it-${label(choice)}") } ?: Modifier,
+                            leadingIcon = if (choice == selected) {{ Icon(Icons.Outlined.Check, contentDescription = null) }} else null,
+                            modifier = (testTagPrefix?.let { Modifier.testTag("$it-${label(choice)}") } ?: Modifier)
+                                .semantics { this.selected = choice == selected },
                             onClick = {
                                 if (resetItemDisclosureOnChange && choice != selected) itemDisclosureState?.collapseAll()
                                 menuExpanded = false
@@ -1464,9 +1465,10 @@ internal fun <T> SelectionField(
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    selectedValueMaxLines: Int = 1,
+    selectedValueMaxLines: Int = Int.MAX_VALUE,
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(enabled) { if (!enabled) expanded = false }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, style = MaterialTheme.typography.labelMedium)
         Box(Modifier.fillMaxWidth()) {
@@ -1478,7 +1480,7 @@ internal fun <T> SelectionField(
                     .heightIn(min = 48.dp)
                     .semantics {
                         contentDescription = "$label: ${valueText(selected)}"
-                        stateDescription = if (expanded) "Menu open" else "Menu closed"
+                        stateDescription = if (expanded && enabled) "Menu open" else "Menu closed"
                     },
             ) {
                 Text(
@@ -1489,14 +1491,15 @@ internal fun <T> SelectionField(
                 )
                 Icon(Icons.Outlined.ArrowDropDown, contentDescription = null)
             }
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenu(expanded = expanded && enabled, onDismissRequest = { expanded = false }) {
                 values.forEach { value ->
                     val isSelected = value == selected
                     DropdownMenuItem(
                         text = { Text(valueText(value)) },
-                        leadingIcon = if (isSelected) {{ Icon(Icons.Outlined.Check, contentDescription = "Selected") }} else null,
+                        leadingIcon = if (isSelected) {{ Icon(Icons.Outlined.Check, contentDescription = null) }} else null,
                         modifier = Modifier.semantics {
                             contentDescription = "$label option: ${valueText(value)}"
+                            this.selected = isSelected
                         },
                         onClick = {
                             onSelect(value)
