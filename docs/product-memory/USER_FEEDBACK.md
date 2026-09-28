@@ -1,5 +1,12 @@
 # User feedback and acceptance criteria
 
+### FB-20260928-001 — Install the completed overhaul on the owner phone
+
+- Date/source: 2026-09-28, explicit owner request, “Release to my phone”.
+- Acceptance criteria: Build the current verified source as a signed private update, install in place on the explicitly selected physical phone, preserve data/signing identity, and verify installed version/hash and launch.
+- Scope: Includes FB-20260927-009/010/011; use the existing private release path and prior affected JVM/emulator acceptance. No Play publication.
+- Status: In progress. Preparing 0.3.80/code 86; only the disposable emulator is connected and the previous phone endpoint is unreachable. Requested current USB/wireless connection while preparing the artifact.
+
 ### FB-20260927-011 — Review and implement UX upgrades across the six major app areas
 
 - Date/source: 2026-09-27, direct owner request and explicit goal.

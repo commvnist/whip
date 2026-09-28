@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260928-001 — Package the completed overhaul as private update 0.3.80
+
+- Related: FB-20260928-001; verified behavior from IMP-20260927-014 through 019 and VER-20260927-023/024/025.
+- Changes: Advance `app/build.gradle.kts` to 0.3.80/code 86. Preserve package/signing identity, Room schema 46, data epoch 6 and backup format 26.
+- Status: Implemented. The bounded `scripts/check` passed its version-aware affected JVM/static checks in 14 seconds; prior behavior readiness/native acceptance remains VER-20260927-025. Signed artifact preparation and physical-phone installation evidence follow separately; no additional behavior changes or Play candidate claimed.
+
 ### IMP-20260927-016 — Shared choices retain complete values and native selection state
 
 - Changes: `SelectionField`, `UnitSelectionField` and the narrow segmented-choice menu preserve full selected labels, expose selected-option semantics and dismiss unavailable menus. Optional editor guidance and Calendar navigation availability support the domain overhaul without a new component system.
