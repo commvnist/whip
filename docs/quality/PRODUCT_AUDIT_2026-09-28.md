@@ -41,6 +41,8 @@ Status: **In progress**. Owner: FB-20260928-005. Baseline: clean pushed `d737209
 
 Shared investigation also covers welcome/setup, first-use Home recovery, responsive shell/Area scope, global-search query/partial-state/routing, inspector hierarchy, date/calendar presentation, controls/status/errors, item builders, emoji/color, theme, back/IME handling and deletion boundaries. Their detailed dispositions and any additional supported findings follow the integrated review.
 
-Productivity findings accepted for domain implementation: compatible Habit unit conversion; recurring Task overdue context; bounded duplicate names across Task/Habit/Goal/Track; unsaved-draft protection for Habit logging/history/pause. The agent report owns exact evidence and all reviewed workflow dispositions. Gym/Settings findings are being finalized before that domain's implementation.
+Productivity findings accepted for domain implementation: compatible Habit unit conversion; recurring Task overdue context; bounded duplicate names across Task/Habit/Goal/Track; unsaved-draft protection for Habit logging/history/pause; effective-date Goal Latest ordering; truthful Review window/milestone outcomes; inclusion of the first partial flexible Habit period. The agent report owns exact evidence and all reviewed workflow dispositions.
+
+All seven [Gym/Settings groups](PRODUCT_AUDIT_2026-09-28_GYM_SETTINGS.md) are accepted: contextual numbered-machine record eligibility; retained tracked-record drafts; archived identities in historical summaries/filtering/sharing; correct historical entered-load conversion; a real reminder-scheduling retry; access to older Training Max decisions; explicit saved status/type in Gym CSV. Implement through the existing domain, formatting, request and export owners, with additive CSV fields and unchanged portable-backup format.
 
 Historical audits are reference material; this task has the owner's new bounded verification contract.
