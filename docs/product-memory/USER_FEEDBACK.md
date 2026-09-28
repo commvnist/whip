@@ -1,5 +1,12 @@
 # User feedback and acceptance criteria
 
+### FB-20260928-002 — Second exhaustive major-component UX/UI/design/quality investigation
+
+- Date/source: 2026-09-28, explicit owner request and goal after private 0.3.80 installation.
+- User need: Another thorough investigation of Home/Tasks, Habits, Goals, Track, Gym and Settings, using three Astra agents at high reasoning; plan and implement supported improvements.
+- Acceptance criteria: Audit complete workflows and surrounding behavior rather than stop at one issue per area; challenge prior keeps/gaps; distinguish observed defects, grounded improvements and untested assumptions; record coverage and an evidence-backed plan before broad edits; implement all accepted suggestions; review integration and verify affected behavior/layout with exact recorded outcomes.
+- Scope/status: In progress. Baseline clean `7c77c075`, following completed FB-20260927-011 and release VER-20260928-001. Three existing Astra/high domain agents are reassigned; parent owns shared workflows, plan integration and verification. This new scoped audit does not silently resume the separate paused historical whole-product audit. No new phone installation is implied.
+
 ### FB-20260928-001 — Install the completed overhaul on the owner phone
 
 - Date/source: 2026-09-28, explicit owner request, “Release to my phone”.

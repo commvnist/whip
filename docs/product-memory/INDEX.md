@@ -11,6 +11,8 @@ Current snapshot: **2026-09-28**. This page is the entry point, not a replay of 
 
 ## Current work and boundaries
 
+- **Active second audit:** FB-20260928-002 requests a fresh thorough UX/UI/design/quality investigation and implementation across the same six areas, with three Astra/high agents. The [second-pass plan](../quality/UX_AUDIT_2_2026-09-28.md) records workflow coverage, ownership, emerging findings and verification requirements. Baseline is `7c77c075`; previous accepted work remains historical evidence, not a substitute for the new investigation.
+
 - The expanded [major-component UX overhaul](../quality/MAJOR_COMPONENT_UX_UPGRADES_2026-09-27.md) is **Implemented and Verified**, and released privately in 0.3.80, under FB-20260927-011 / VER-20260927-025 / VER-20260928-001. Three Astra/high agents reviewed roughly 100 workflow rows plus shared interactions and delivered all 19 workstreams. Final readiness passes 409 JVM tests; all 171 selected Android methods and four constrained 200% layouts are accepted. Native execution also uncovered and repaired true note-only Habit persistence, including edit/backup compatibility. [Originals, gallery and exact receipts](../../artifacts/ux-overhaul/2026-09-27/README.md) preserve failed attempts and accepted outcomes. Subjective appearance awaits normal owner use.
 
 - Ordinary Gym e1RM now defaults to 36 reps with a one-time upgrade of the old ten-rep setting. Workout summaries now honor the same adjustable cutoff as graphs and records. FB-20260927-010 / IMP-20260927-015 passed 392 routed JVM tests, affected readiness and three exact API 34 tests under VER-20260927-024; installed on the owner phone in 0.3.80 under VER-20260928-001.
