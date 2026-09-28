@@ -582,6 +582,10 @@ fun CompletedTaskDialog(
     onResetOccurrence: (TaskOccurrence) -> Unit,
 ) {
     var section by rememberSaveable(item.stableKey) { mutableStateOf(TaskDetailSection.Overview) }
+    val completionTime = item.completedAtMillis?.let {
+        java.time.Instant.ofEpochMilli(it).atZone(LocalWhipZone.current)
+            .format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT))
+    }
     val weekdayFormatter = rememberWhipWeekdayFormatter()
     EntityInspector(
         entityType = "Task",
@@ -615,6 +619,7 @@ fun CompletedTaskDialog(
                             title = "Outcome",
                             modifier = Modifier.testTag("completed-task-outcome-card"),
                         ) {
+                            completionTime?.let { EntityInspectorFact("Completed", it) }
                             Text(
                                 if (item.task.scheduleKind == ScheduleKind.Recurring) {
                                     "This occurrence is complete and remains available in the series history."
@@ -645,7 +650,7 @@ fun CompletedTaskDialog(
                             )
                         } else {
                             EntityInspectorInformationGroup("Activity") {
-                                EntityInspectorFact("Recorded activity", "Completed")
+                                EntityInspectorFact("Completed", completionTime ?: "Completion time unavailable")
                             }
                         }
                     }
@@ -677,6 +682,7 @@ private fun SeriesHistory(
     onResetOccurrence: (TaskOccurrence) -> Unit,
 ) {
     var visibleCount by rememberSaveable { mutableIntStateOf(SERIES_HISTORY_PAGE_SIZE) }
+    val zoneId = LocalWhipZone.current
     Text(
         "Series History",
         style = MaterialTheme.typography.titleSmall,
@@ -704,12 +710,19 @@ private fun SeriesHistory(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     when (occurrence.state) {
-                        OccurrenceState.Completed -> "Completed ${occurrence.scheduledDate.format(shortDateFormatter)}"
+                        OccurrenceState.Completed -> "Completed occurrence · ${occurrence.scheduledDate.format(shortDateFormatter)}"
                         OccurrenceState.Skipped -> "Skipped ${occurrence.originalDate.format(shortDateFormatter)}"
                         OccurrenceState.Open -> "Moved to ${occurrence.scheduledDate.format(shortDateFormatter)}"
                     },
                     style = MaterialTheme.typography.bodyMedium,
                 )
+                occurrence.completedAtMillis?.takeIf { occurrence.state == OccurrenceState.Completed }?.let {
+                    Text(
+                        "Completed on " + java.time.Instant.ofEpochMilli(it).atZone(zoneId)
+                            .format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
                 if (occurrence.scheduledDate != occurrence.originalDate) {
                     Text(
                         "Originally ${occurrence.originalDate.format(shortDateFormatter)}",

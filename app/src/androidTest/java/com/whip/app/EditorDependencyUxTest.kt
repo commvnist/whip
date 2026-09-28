@@ -299,7 +299,7 @@ class EditorDependencyUxTest {
         compose.onNodeWithText("Repeats").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Planning").performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("Subtasks").assertCountEquals(0)
-        compose.onNodeWithText("Planning Details").performScrollTo().performClick()
+        compose.onNodeWithText("Estimates, Subtasks, Notes & Tags").performScrollTo().performClick()
         compose.onNodeWithText("Subtasks").performScrollTo().assertIsDisplayed()
     }
 

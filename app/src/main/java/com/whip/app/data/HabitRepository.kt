@@ -310,7 +310,11 @@ class RoomHabitRepository(
             HabitLogStatus.Failed -> MeasurementEntryStatus.Failed
             else -> MeasurementEntryStatus.Recorded
         }
-        val measurementEntryId = measurementRepository.record(
+        // A value-optional LogOnly entry is an authored Habit fact, not a zero
+        // measurement. Quantitative entries keep the measurement contract.
+        val noteOnly = habit.trackingMode == HabitTrackingMode.LogOnly &&
+            status == HabitLogStatus.Recorded && effectiveValue == null
+        val measurementEntryId = if (noteOnly) null else measurementRepository.record(
             measurementId = habit.measurementId,
             value = effectiveValue,
             unitId = habit.unitId.takeIf { effectiveValue != null },
@@ -322,7 +326,7 @@ class RoomHabitRepository(
             sourceId = logUuid,
             note = note,
         )
-        val canonical = database.measurementDao().getEntry(measurementEntryId)?.canonicalValue
+        val canonical = measurementEntryId?.let { database.measurementDao().getEntry(it)?.canonicalValue }
         dao.insertLog(
             HabitLogEntity(
                 uuid = logUuid,
@@ -406,7 +410,12 @@ class RoomHabitRepository(
         val zone = ZoneId.of(existing.zoneId)
         val instant = Instant.ofEpochMilli(existing.timestampMillis)
         val effectiveUnitId = enteredUnitId ?: existing.enteredUnitId ?: habit.unitId
-        val measurementEntryId = measurementRepository.record(
+        val noteOnly = habit.trackingMode == HabitTrackingMode.LogOnly &&
+            status == HabitLogStatus.Recorded && effectiveValue == null
+        val measurementEntryId = if (noteOnly) {
+            existing.measurementEntryId?.let { measurementRepository.deleteEntry(it) }
+            null
+        } else measurementRepository.record(
             measurementId = habit.measurementId,
             value = effectiveValue,
             unitId = effectiveUnitId.takeIf { effectiveValue != null },
@@ -424,7 +433,7 @@ class RoomHabitRepository(
         dao.updateLog(
             existing.copy(
                 value = effectiveValue,
-                canonicalValue = database.measurementDao().getEntry(measurementEntryId)?.canonicalValue,
+                canonicalValue = measurementEntryId?.let { database.measurementDao().getEntry(it)?.canonicalValue },
                 enteredUnitId = effectiveUnitId.takeIf { effectiveValue != null },
                 status = status.name,
                 localEpochDay = date.toEpochDay(),

@@ -1,5 +1,7 @@
 package com.whip.app
 
+import androidx.compose.ui.test.assertContentDescriptionContains
+
 import android.content.Intent
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -136,7 +138,9 @@ class HabitSkipJourneyE2ETest {
             compose.onNodeWithContentDescription("Close Habit details").performClick()
 
             selectDestination("habit-destination-Insights")
-            compose.onNodeWithText("Last 30 Days: 0 Completed · 1 Skipped · 0 Missed/Below Target").assertIsDisplayed()
+            compose.onNodeWithTag("habit-insights-list").performScrollToNode(hasTestTag("habit-activity-day-${app.clock.today().toEpochDay()}"))
+            compose.onNodeWithTag("habit-activity-day-${app.clock.today().toEpochDay()}")
+                .assertContentDescriptionContains("skipped", substring = true)
             selectDestination("habit-destination-Today")
             compose.onNodeWithTag("habit-done-disclosure").performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithTag("habit-list-Today").performScrollToNode(hasTestTag("habit-card-$habitId"))

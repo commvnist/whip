@@ -304,12 +304,7 @@ fun TaskEditorDialog(
     var showTimePicker by rememberSaveable(editorKey) { mutableStateOf(false) }
     var showAdvanced by rememberSaveable(editorKey) {
         mutableStateOf(
-            powerMode || initial.notes.isNotBlank() || initial.steps.isNotEmpty() ||
-                initialRule?.end != null && initialRule.end != RecurrenceEnd.Never ||
-                initial.priority != TaskPriority.None || initial.tags.isNotEmpty() ||
-                initial.deadline != null ||
-                initialRule?.anchor == RecurrenceAnchor.Completion ||
-                initial.missedOccurrencePolicy != MissedOccurrencePolicy.KeepLatest ||
+            powerMode || initial.notes.isNotBlank() || initial.steps.isNotEmpty() || initial.tags.isNotEmpty() ||
                 initial.durationMinutes != null || initial.effort != TaskEffort.Unspecified,
         )
     }
@@ -567,7 +562,6 @@ fun TaskEditorDialog(
                     }
                     ProductivityIdentitySection(
                         title = "Basics",
-                        supportingText = "Name this Task and choose the emoji used across Whip.",
                         identityFields = {
                     OutlinedTextField(
                         value = title,
@@ -696,7 +690,7 @@ fun TaskEditorDialog(
                     if (request.task == null) {
                         WhipTextButton(onClick = { recipesOpen = true }) { Text("Use a Template") }
                     }
-                    EditorSectionHeader("Schedule", "Choose when this Task belongs; related repeat, date, time, and reminder controls stay together.")
+                    EditorSectionHeader("Schedule")
                     FieldLabel("When")
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -952,7 +946,6 @@ fun TaskEditorDialog(
                     }
 
                     ProductivityOrganizationSection(
-                        supportingText = "Choose the Area that owns this Task.",
                         areaPicker = {
                     AreaPicker(
                         areas = areas,
@@ -976,7 +969,7 @@ fun TaskEditorDialog(
                         },
                     )
 
-                    EditorSectionHeader("Planning", "Set urgency now and reveal estimates or subtasks only when useful.")
+                    EditorSectionHeader("Planning")
                     FieldLabel("Priority")
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -991,7 +984,7 @@ fun TaskEditorDialog(
                         }
                     }
                     DisclosureButton(
-                        label = "Planning Details",
+                        label = "Estimates, Subtasks, Notes & Tags",
                         expanded = showAdvanced,
                         onClick = { showAdvanced = !showAdvanced },
                         modifier = Modifier.fillMaxWidth().testTag("task-editor-more-details"),
@@ -1027,7 +1020,7 @@ fun TaskEditorDialog(
                     }
 
                     if (showAdvanced) {
-                    EditorSectionHeader("Subtasks", "Break the Task into steps and choose how progress appears.")
+                    EditorSectionHeader("Subtasks")
                     WhipReorderLayout(itemSpacing = 14.dp) {
                     stepDrafts.forEachIndexed { index, step ->
                         key(step.uiKey.ifBlank { "task-step-${step.id ?: index}" }) {
@@ -1159,7 +1152,7 @@ fun TaskEditorDialog(
                     }
 
                     if (showAdvanced) {
-                        EditorSectionHeader("Notes & Tags", "Keep reference material and reusable labels with the Task.")
+                        EditorSectionHeader("Notes & Tags")
                         OutlinedTextField(
                             value = notes,
                             onValueChange = { notes = it },
@@ -1329,8 +1322,8 @@ fun TaskEditorDialog(
                 autoCompleteFromSteps = draft.autoCompleteFromSteps
                 repeatStepPolicy = draft.repeatStepPolicy
                 missedOccurrencePolicy = draft.missedOccurrencePolicy
-                showAdvanced = draft.notes.isNotBlank() || draft.steps.isNotEmpty() ||
-                    draft.durationMinutes != null || draft.priority != TaskPriority.None
+                showAdvanced = powerMode || draft.notes.isNotBlank() || draft.steps.isNotEmpty() || draft.tags.isNotEmpty() ||
+                    draft.durationMinutes != null || draft.effort != TaskEffort.Unspecified
                 recipesOpen = false
             },
         )

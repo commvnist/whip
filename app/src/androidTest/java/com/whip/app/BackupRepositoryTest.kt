@@ -252,6 +252,30 @@ class BackupRepositoryTest {
         assertTrue(settings.current().goalCelebrationEnabled)
     }
 
+    @Test fun noteOnlyHabitHistoryRoundTripsWithoutQuantitativeMeasurements() = runBlocking {
+        val habitId = habits.create(HabitDraft(
+            name = "Journal", trackingMode = HabitTrackingMode.LogOnly,
+            startDate = FixedClock.today().minusDays(7),
+        ))
+        habits.log(habitId, null, date = FixedClock.today().minusDays(2), note = "A saved note without a number")
+        val original = habits.logs.first().single()
+        val backup = backups.exportBackup()
+        val tables = JSONObject(backup).getJSONObject("tables")
+        val row = tables.getJSONArray("habit_logs").getJSONObject(0)
+        listOf("value", "canonicalValue", "enteredUnitId", "measurementEntryId").forEach { field ->
+            assertTrue("Note-only history must retain a null $field", row.isNull(field))
+        }
+        assertEquals(0, tables.getJSONArray("measurement_entries").length())
+        assertTrue(backups.exportHabitsCsv().contains("A saved note without a number"))
+
+        backups.deleteAllData()
+        assertTrue(habits.logs.first().isEmpty())
+        backups.restoreBackup(backup)
+        assertEquals(original, habits.logs.first().single())
+        assertTrue(database.measurementDao().observeEntries().first().isEmpty())
+        assertTrue(backups.exportHabitsCsv().contains("A saved note without a number"))
+    }
+
     @Test fun backupPreviewAndTransactionalRestoreRoundTrip() = runBlocking {
         val id = habits.create(HabitDraft(name = "Hydrate, safely", unitId = "glass", startDate = FixedClock.today()))
         habits.log(id, 2.0, note = "morning \"large\" glass")

@@ -445,8 +445,7 @@ class ActivityHistoryUiTest {
 
         compose.onAllNodesWithText("No activity yet", substring = true).assertCountEquals(0)
         compose.onNodeWithText("30-day completion: No scored periods").assertIsDisplayed()
-        compose.onNodeWithText("Last 30 Days: 0 Completed · 0 Skipped · 0 Missed/Below Target")
-            .assertIsDisplayed()
+        compose.onNodeWithText("Recorded entries").assertIsDisplayed()
         compose.onNodeWithTag("habit-activity-day-${today.toEpochDay()}")
             .assertContentDescriptionContains("paused", substring = true)
     }

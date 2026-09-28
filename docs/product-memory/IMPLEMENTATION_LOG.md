@@ -6,6 +6,13 @@
 - Evidence/status: Verified under VER-20260927-025. `SharedChoiceAccessibilityUiTest` covers actual 200% wrapping, selected semantics and disabling open menus; the existing Track entered-unit assertion now checks native selection. No domain or persistence format changed.
 - Related: FB-20260927-011, FND-20260927-018, DEC-20260927-008; [shared review](../quality/UX_OVERHAUL_SHARED_2026-09-27.md).
 
+### IMP-20260927-017 — Home, Tasks and Habits recovery, authoring and meaningful evidence
+
+- Changes: Recover filtered Home tasks and scoped/off-schedule Habits; bound Task Calendar to loaded dates and explain empty dates; lead Task filtering with recipes and live counts; simplify Task/Habit editor guidance; show actual Task completion time; present Habit rules, periods, recorded states and streak units accurately; replace placeholder Habit Insights with saved activity, dated charts, readable calendars and direct History.
+- Follow-through: Reproduced short-screen Task controls, dense Calendar and Timer/IME constraints are repaired. The real Insights journey uncovered FND-20260927-019: note-only Log Only entries now persist with nullable values and no quantitative Measurement row. Numeric-to-note editing removes the old linked entry transactionally; note-to-numeric editing creates the ordinary linked entry with stable Habit provenance. Existing nullable storage and backup format are retained; numeric Measurement validation remains strict.
+- Evidence/status: Verified under VER-20260927-025, including all constrained layouts and note-only persistence/backup. Preserve scheduling, domain success calculations, data, timer rules and saved drafts. Exact workstream dispositions and native selectors are in the [Home/Habits review](../quality/UX_OVERHAUL_HOME_HABITS_2026-09-27.md).
+- Related: FB-20260927-011, FND-20260927-012/013/019, DEC-20260927-008.
+
 ### IMP-20260927-015 — Include higher-rep sets in ordinary Gym e1RM
 
 - Behavior: One shared 36-rep default replaces the scattered ten-rep defaults in calculations, settings, graph projection, PR reconstruction and missing backup settings. A one-time local preference upgrade changes the old ten-rep value to 36 and preserves later authored choices. Both initial and ticking workout summaries receive the configured cutoff.

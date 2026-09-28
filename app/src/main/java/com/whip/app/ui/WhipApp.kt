@@ -4993,7 +4993,7 @@ private fun HomeContent(
         gymState,
     )
     val hasHomeContent =
-        (HomeSection.Tasks in visibleHomeSections && homeTasks.isNotEmpty()) ||
+        (HomeSection.Tasks in visibleHomeSections && state.today.isNotEmpty()) ||
             (HomeSection.Habits in visibleHomeSections && habitState.today.isNotEmpty()) ||
             (HomeSection.Goals in visibleHomeSections && goalState.active.isNotEmpty()) ||
             (HomeSection.Tracks in visibleHomeSections && trackState.pinned.isNotEmpty()) ||
@@ -5116,13 +5116,16 @@ private fun HomeContent(
                             }
                         }
                         if (homeTasks.isEmpty()) item {
-                            Text(
-                                if (homeTaskFilter == null) {
-                                    areaScopeLabel?.let { "No tasks are scheduled or carried over in $it today." }
-                                        ?: "No tasks are scheduled or carried over today."
-                                } else {
-                                    "No Today tasks match ${homeTaskFilter.name}."
-                                },
+                            if (homeTaskFilter != null && state.today.isNotEmpty()) {
+                                WhipEmptyState(
+                                    title = "No Matching Tasks",
+                                    supportingText = "No Today tasks match ${homeTaskFilter.name}. Your other Today tasks are still saved.",
+                                    primaryActionLabel = "Show All Tasks",
+                                    onPrimaryAction = { onSelectHomeTaskFilter(null) },
+                                )
+                            } else Text(
+                                areaScopeLabel?.let { "No tasks are scheduled or carried over in $it today." }
+                                    ?: "No tasks are scheduled or carried over today.",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
@@ -5161,7 +5164,9 @@ private fun HomeContent(
                         if (habitState.today.isEmpty()) item {
                             HomeStatusCard(
                                 areaScopeLabel?.let { "No Habits Due in $it" } ?: "No habits due",
-                                "Create a habit on the Habits screen.",
+                                if (habitState.all.isNotEmpty()) {
+                                    "Your habits are saved. Review their schedules on the Habits screen."
+                                } else "Create a habit on the Habits screen.",
                                 onOpenHabits,
                                 preserveTitleCase = areaScopeLabel != null,
                             )
@@ -5172,6 +5177,7 @@ private fun HomeContent(
                         items(homePinnedHabits, key = { "home-habit-${it.habit.id}" }) { habit ->
                             HabitProgressCard(
                                 item = habit,
+                                customUnits = habitState.customUnits,
                                 onOpen = { onOpenHabit(habit) },
                                 onEdit = { onEditHabit(habit) },
                                 onQuick = { onQuickHabit(habit) },
@@ -5191,6 +5197,7 @@ private fun HomeContent(
                         items(homeOtherHabits, key = { "home-habit-${it.habit.id}" }) { habit ->
                             HabitProgressCard(
                                 item = habit,
+                                customUnits = habitState.customUnits,
                                 onOpen = { onOpenHabit(habit) },
                                 onEdit = { onEditHabit(habit) },
                                 onQuick = { onQuickHabit(habit) },
@@ -5215,6 +5222,7 @@ private fun HomeContent(
                             if (homeFinishedExpanded) items(homeHabitSections.finished, key = { "home-habit-${it.habit.id}" }) { habit ->
                                 HabitProgressCard(
                                     item = habit,
+                                    customUnits = habitState.customUnits,
                                     onOpen = { onOpenHabit(habit) },
                                     onEdit = { onEditHabit(habit) },
                                     onQuick = { onQuickHabit(habit) },
@@ -5783,8 +5791,8 @@ private fun TaskAreaContent(
     var quickMoveEpochDay by rememberSaveable { mutableStateOf<Long?>(null) }
     var bulkEditTargetSnapshot by remember { mutableStateOf<List<ScheduledTask>>(emptyList()) }
     var bulkDateTargetSnapshot by remember { mutableStateOf<List<ScheduledTask>>(emptyList()) }
-    var calendarMonth by rememberSaveable(state.currentDate) { mutableStateOf(YearMonth.from(state.currentDate)) }
-    var selectedDate by rememberSaveable(state.currentDate) { mutableStateOf(state.currentDate) }
+    var calendarMonth by rememberSaveable(state.currentDate) { mutableStateOf(YearMonth.from(state.currentDate.plusDays(1))) }
+    var selectedDate by rememberSaveable(state.currentDate) { mutableStateOf(state.currentDate.plusDays(1)) }
     var dayCapacityText by rememberSaveable { mutableStateOf("240") }
     var showDayPlanner by rememberSaveable { mutableStateOf(false) }
     var dayPlanCandidateKeys by rememberSaveable { mutableStateOf<Set<String>?>(null) }
@@ -5956,15 +5964,21 @@ private fun TaskAreaContent(
         sortDescending = sortDirection == SortDirection.Descending,
         groupMode = groupMode,
     )
-    // `upcoming` is the authoritative 30-day, preference-aware collection. The
-    // year-long `planning` collection exists for search and future planning, but
-    // using it here made Agenda and Calendar silently ignore the user's recurring
-    // occurrence preference and contradicted the "next 30 days" heading.
+    // `upcoming` preserves the recurring-occurrence preference and excludes today.
+    // Recurrences project 30 days ahead; one-off dated Tasks can extend farther.
+    // Do not substitute the broader `planning` collection for this workspace.
     val sourceTasks = state.tasksFor(destination)
     val filtered = sourceTasks
         .filter { it.matches(currentFilter, state.currentDate, appSettings.zoneId()) }
         .sortedForWorkspace(sortMode, sortDirection)
     val visibleTasks = filtered.forPlanningView(planningView, selectedDate, appSettings.zoneId())
+    val planningWindow = state.currentDate.plusDays(1)..state.currentDate.plusDays(30)
+    LaunchedEffect(planningView, state.currentDate) {
+        if (planningView == TaskPlanningView.Calendar) {
+            selectedDate = selectedDate.coerceIn(planningWindow.start, planningWindow.endInclusive)
+            calendarMonth = YearMonth.from(selectedDate)
+        }
+    }
     val selectedItems = visibleTasks.filter { it.stableKey in selectedKeys }
     val existingTodayMinutes = state.today
         .distinctBy(ScheduledTask::stableKey)
@@ -5974,7 +5988,7 @@ private fun TaskAreaContent(
     val habitPlanningDates = when (planningView) {
         TaskPlanningView.List -> emptyList()
         TaskPlanningView.Agenda -> (0L..30L).map(state.currentDate::plusDays)
-        TaskPlanningView.Calendar -> (1..calendarMonth.lengthOfMonth()).map(calendarMonth::atDay)
+        TaskPlanningView.Calendar -> (1..calendarMonth.lengthOfMonth()).map(calendarMonth::atDay).filter { it in planningWindow }
     }
     val plannedHabitsByDate = if (appSettings.showHabitsInTaskPlanning) {
         habitPlanningDates.associateWith { date -> habitState.plannedOn(date) }.filterValues { it.isNotEmpty() }
@@ -6376,31 +6390,6 @@ private fun TaskAreaContent(
                         resetItemDisclosureOnChange = true,
                     )
                 }
-                if (!reordering) WhipActiveFilterRow(
-                    filters = activeFilters,
-                    onClearAll = {
-                        priorities = emptySet()
-                        selectedTags = emptySet()
-                        pinnedOnly = false
-                        dateMode = "Any"
-                        deadlineOnly = false
-                        efforts = emptySet()
-                        maximumDuration = ""
-                        textQuery = ""
-                    },
-                )
-                if (sortMode != "Smart" || groupMode != "None") {
-                    Text(
-                        listOfNotNull(
-                            sortMode.takeIf { it != "Smart" }?.let { mode ->
-                                "Sorted by ${if (mode == "Manual") "Custom Order" else mode}" + sortDirection.label.takeIf { mode != "Manual" }?.let { " · $it" }.orEmpty()
-                            },
-                            groupMode.takeIf { it != "None" }?.let { "Grouped by $it" },
-                        ).joinToString(" · "),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
                 if (
                     reordering && sortMode == "Manual" &&
                     (textQuery.isNotBlank() || activeFilterCount > 0 || areaScope != AreaScope.All)
@@ -6411,13 +6400,6 @@ private fun TaskAreaContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                if (planningView != TaskPlanningView.List) {
-                    WhipFilterChip(
-                        selected = appSettings.showHabitsInTaskPlanning,
-                        onClick = { onSetHabitPlanningOverlay(!appSettings.showHabitsInTaskPlanning) },
-                        label = { Text("Include Habits") },
-                    )
-                }
             }
         }
         WhipReorderLazyColumn(
@@ -6426,6 +6408,40 @@ private fun TaskAreaContent(
             contentPadding = whipPagePadding(top = WhipSpacing.sibling),
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
+        if (!selectionMode && !reordering && activeFilters.isNotEmpty()) item {
+            WhipActiveFilterRow(
+                filters = activeFilters,
+                onClearAll = {
+                    priorities = emptySet()
+                    selectedTags = emptySet()
+                    pinnedOnly = false
+                    dateMode = "Any"
+                    deadlineOnly = false
+                    efforts = emptySet()
+                    maximumDuration = ""
+                    textQuery = ""
+                },
+            )
+        }
+        if (!selectionMode && (sortMode != "Smart" || groupMode != "None")) item {
+            Text(
+                listOfNotNull(
+                    sortMode.takeIf { it != "Smart" }?.let { mode ->
+                        "Sorted by ${if (mode == "Manual") "Custom Order" else mode}" + sortDirection.label.takeIf { mode != "Manual" }?.let { " · $it" }.orEmpty()
+                    },
+                    groupMode.takeIf { it != "None" }?.let { "Grouped by $it" },
+                ).joinToString(" · "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (!selectionMode && !reordering && planningView != TaskPlanningView.List) item {
+            WhipFilterChip(
+                selected = appSettings.showHabitsInTaskPlanning,
+                onClick = { onSetHabitPlanningOverlay(!appSettings.showHabitsInTaskPlanning) },
+                label = { Text("Include Habits") },
+            )
+        }
         appSettings.focusTimerDeadlineMillis?.takeIf { it > focusClockMillis && !selectionMode && !reordering }?.let { deadline ->
             item {
                 val taskName = allTasks.firstOrNull { it.task.id == appSettings.focusTimerTaskId }?.task?.title ?: "Focus session"
@@ -6630,9 +6646,17 @@ private fun TaskAreaContent(
                     month = calendarMonth,
                     selectedDate = selectedDate,
                     tasks = filtered,
-                    onPrevious = { calendarMonth = calendarMonth.minusMonths(1) },
-                    onNext = { calendarMonth = calendarMonth.plusMonths(1) },
+                    onPrevious = {
+                        calendarMonth = calendarMonth.minusMonths(1)
+                        selectedDate = maxOf(calendarMonth.atDay(1), planningWindow.start)
+                    },
+                    onNext = {
+                        calendarMonth = calendarMonth.plusMonths(1)
+                        selectedDate = maxOf(calendarMonth.atDay(1), planningWindow.start)
+                    },
                     onSelect = { selectedDate = it },
+                    planningWindow = planningWindow,
+                    onStart = { selectedDate = planningWindow.start; calendarMonth = YearMonth.from(planningWindow.start) },
                     firstDayOfWeek = appSettings.firstDayOfWeek,
                     zoneId = appSettings.zoneId(),
                     habitCounts = plannedHabitsByDate.mapValues { it.value.size },
@@ -6650,7 +6674,7 @@ private fun TaskAreaContent(
                             ) {
                                 Column(Modifier.padding(12.dp)) {
                                     Text(habit.habit.name, fontWeight = FontWeight.SemiBold)
-                                    Text("Habit projection · kept separate from tasks", style = MaterialTheme.typography.bodySmall)
+                                    Text("Scheduled habit · open to review", style = MaterialTheme.typography.bodySmall)
                                 }
                             }
                         }
@@ -6668,7 +6692,10 @@ private fun TaskAreaContent(
                         AreaScope.Unassigned -> availableAreas.firstOrNull { !it.archived }?.name ?: "Main"
                         is AreaScope.One -> availableAreas.firstOrNull { area -> area.id == it.areaId }?.name
                     }
-                }, constrained = sourceTasks.isNotEmpty())
+                }, constrained = sourceTasks.forPlanningView(planningView, selectedDate, appSettings.zoneId()).isNotEmpty(),
+                    selectedDate = selectedDate.takeIf { planningView == TaskPlanningView.Calendar },
+                    onShowUpcoming = { planningView = TaskPlanningView.List }.takeIf { planningView == TaskPlanningView.Calendar },
+                )
                 if (areaScope != AreaScope.All) WhipTextButton(onClick = { onSelectAreaScope(AreaScope.All) }) { Text("Show All Areas") }
             }
         }
@@ -6800,6 +6827,27 @@ private fun TaskAreaContent(
                         clearLabel = "Clear current-list search",
                         modifier = Modifier.fillMaxWidth().testTag("task-filter-query"),
                     )
+                    Text(
+                        "${filtered.size} of ${sourceTasks.size} tasks match · ${destination.label}",
+                        modifier = Modifier.testTag("task-filter-result-count"),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text("Changes apply as you choose them.", style = MaterialTheme.typography.bodySmall)
+                    if (appSettings.savedTaskFilters.isNotEmpty()) {
+                        Text("Saved Filters", fontWeight = FontWeight.Bold)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            appSettings.savedTaskFilters.forEach { filter ->
+                                WhipFilterChip(
+                                    selected = filter.copy(name = "Current") == currentFilter,
+                                    onClick = { applyFilter(filter) },
+                                    label = { Text(filter.name) },
+                                )
+                            }
+                        }
+                        appSettings.savedTaskFilters.firstOrNull { it.copy(name = "Current") == currentFilter }?.let { selected ->
+                            WhipTextButton(onClick = { onDeleteFilter(selected.name) }) { Text("Delete “${selected.name}”") }
+                        }
+                    }
                     val sortOptions = when (destination) {
                         TaskDestination.Completed -> listOf("Smart", "Completion Date", "Priority", "Title")
                         TaskDestination.Archived -> listOf("Smart", "Archived Date", "Priority", "Title")
@@ -6905,7 +6953,19 @@ private fun TaskAreaContent(
                             WhipFilterChip(selected = pinnedOnly, onClick = { pinnedOnly = !pinnedOnly }, label = { Text("Pinned Only") })
                         }
                     }
-                    Text("Effort & Duration", fontWeight = FontWeight.Bold)
+                    var advancedFiltersExpanded by rememberSaveable {
+                        mutableStateOf(efforts.isNotEmpty() || maximumDuration.isNotBlank())
+                    }
+                    DisclosureRow(
+                        title = "Effort & Duration",
+                        supportingText = listOfNotNull(
+                            efforts.takeIf { it.isNotEmpty() }?.joinToString { it.label },
+                            maximumDuration.takeIf { it.isNotBlank() }?.let { "Up to $it min" },
+                        ).joinToString(" · ").ifBlank { "Optional planning filters" },
+                        expanded = advancedFiltersExpanded,
+                        onClick = { advancedFiltersExpanded = !advancedFiltersExpanded },
+                    )
+                    if (advancedFiltersExpanded) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         TaskEffort.entries.forEach { value ->
                             WhipFilterChip(value in efforts, { efforts = if (value in efforts) efforts - value else efforts + value }, { Text(value.label) })
@@ -6918,20 +6978,6 @@ private fun TaskAreaContent(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    if (appSettings.savedTaskFilters.isNotEmpty()) {
-                        Text("Saved Filters", fontWeight = FontWeight.Bold)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            appSettings.savedTaskFilters.forEach { filter ->
-                                WhipFilterChip(
-                                    selected = filter.copy(name = "Current") == currentFilter,
-                                    onClick = { applyFilter(filter) },
-                                    label = { Text(filter.name) },
-                                )
-                            }
-                        }
-                        appSettings.savedTaskFilters.firstOrNull { it.copy(name = "Current") == currentFilter }?.let { selected ->
-                            WhipTextButton(onClick = { onDeleteFilter(selected.name) }) { Text("Delete “${selected.name}”") }
-                        }
                     }
                     WhipTextButton(onClick = {
                         showFilters = false
@@ -7643,6 +7689,8 @@ private fun TaskMonthPlanner(
     firstDayOfWeek: java.time.DayOfWeek,
     zoneId: java.time.ZoneId,
     habitCounts: Map<LocalDate, Int> = emptyMap(),
+    planningWindow: ClosedRange<LocalDate>,
+    onStart: () -> Unit,
 ) {
     val dates = (1..month.lengthOfMonth()).map(month::atDay)
     val orderedDays = orderedWhipWeekdays(firstDayOfWeek)
@@ -7655,23 +7703,30 @@ private fun TaskMonthPlanner(
                 month = month,
                 onPreviousMonth = onPrevious,
                 onNextMonth = onNext,
+                previousEnabled = month > YearMonth.from(planningWindow.start),
+                nextEnabled = month < YearMonth.from(planningWindow.endInclusive),
             )
+            Text("Calendar shows the next 30 days, through ${planningWindow.endInclusive.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}. Later dated tasks remain in Upcoming List.", style = MaterialTheme.typography.bodySmall)
+            WhipTextButton(onClick = onStart) { Text("Tomorrow") }
             WhipCalendarWeekdayHeader(firstDayOfWeek = firstDayOfWeek)
             cells.chunked(7).forEach { week ->
                 Row(Modifier.fillMaxWidth()) {
                     (week + List(7 - week.size) { null }).forEach { date ->
                         if (date == null) Spacer(Modifier.weight(1f).height(48.dp))
                         else {
-                            val taskCount = counts[date] ?: 0
-                            val habitCount = habitCounts[date] ?: 0
+                            val taskCount = if (date in planningWindow) counts[date] ?: 0 else 0
+                            val habitCount = if (date in planningWindow) habitCounts[date] ?: 0 else 0
                             WhipTextButton(
+                                enabled = date in planningWindow,
                                 onClick = { onSelect(date) },
-                                modifier = Modifier.weight(1f).height(48.dp).semantics {
+                                contentPadding = PaddingValues(vertical = 4.dp),
+                                modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
                                     selected = date == selectedDate
                                     stateDescription = if (date == selectedDate) "Selected" else "Not selected"
                                     contentDescription = buildString {
                                         append(date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)))
-                                        append(", ${taskCount.itemCount("task")}")
+                                        if (date !in planningWindow) append(", outside the planning window")
+                                        else append(", ${taskCount.itemCount("task")}")
                                         if (habitCount > 0) append(", ${habitCount.itemCount("habit")}")
                                     }
                                 },
@@ -7679,17 +7734,31 @@ private fun TaskMonthPlanner(
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     date.dayOfMonth.toString(),
-                                    color = if (date == selectedDate) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = if (date == selectedDate) FontWeight.Bold else FontWeight.Normal,
-                                )
-                                if (taskCount + habitCount > 0) Text(
-                                    buildString {
-                                        if (taskCount > 0) append("$taskCount T")
-                                        if (taskCount > 0 && habitCount > 0) append(" · ")
-                                        if (habitCount > 0) append("$habitCount H")
+                                    modifier = Modifier.fillMaxWidth().testTag("task-calendar-day-${date.toEpochDay()}"),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    color = when {
+                                        date !in planningWindow -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                        date == selectedDate -> MaterialTheme.colorScheme.primary
+                                        else -> MaterialTheme.colorScheme.onSurface
                                     },
+                                    fontWeight = if (date == selectedDate) FontWeight.Bold else FontWeight.Normal,
+                                    maxLines = 1,
+                                )
+                                if (taskCount > 0) Text(
+                                    "${taskCount}T",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.tertiary,
+                                    maxLines = 1,
+                                )
+                                if (habitCount > 0) Text(
+                                    "${habitCount}H",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                    maxLines = 1,
                                 )
                             }
                         }
@@ -7697,6 +7766,7 @@ private fun TaskMonthPlanner(
                     }
                 }
             }
+            Text("T Tasks · H Habits", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("Selected: ${selectedDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}", style = MaterialTheme.typography.bodySmall)
         }
     }
@@ -7765,7 +7835,7 @@ private fun taskDestinationSupportingText(destination: TaskDestination, count: I
     val description = when (destination) {
         TaskDestination.Inbox -> "Ready to organize"
         TaskDestination.Today -> "Your tasks for today"
-        TaskDestination.Upcoming -> "The next 30 days"
+        TaskDestination.Upcoming -> "Future tasks"
         TaskDestination.Completed -> "Completed tasks"
         TaskDestination.Archived -> "Saved tasks, ready to restore"
     }
@@ -7789,23 +7859,30 @@ private fun EmptyTasks(
     destination: TaskDestination,
     areaLabel: String? = null,
     constrained: Boolean = false,
+    selectedDate: LocalDate? = null,
+    onShowUpcoming: (() -> Unit)? = null,
 ) {
-    val supportingText = if (constrained) {
+    val supportingText = if (selectedDate != null) {
+        if (constrained) "No tasks match your filters on this date. Your other upcoming tasks remain saved."
+        else "No tasks are scheduled or due on this date${areaLabel?.let { " in $it" }.orEmpty()}."
+    } else if (constrained) {
         "No tasks match the current view or filters. Change the view or remove a filter to see more."
     } else when (destination) {
             TaskDestination.Inbox -> areaLabel?.let { "No Inbox tasks in $it." } ?: "No tasks in Inbox. Quick captures can wait here until you triage them."
             TaskDestination.Today -> areaLabel?.let { "Nothing scheduled or carried over in $it." } ?: "Nothing scheduled or carried over today."
-            TaskDestination.Upcoming -> areaLabel?.let { "No tasks in $it over the next 30 days." } ?: "No tasks in the next 30 days."
+            TaskDestination.Upcoming -> areaLabel?.let { "No upcoming tasks in $it." } ?: "No upcoming tasks."
             TaskDestination.Completed -> areaLabel?.let { "No completed tasks in $it." } ?: "Completed tasks will appear here."
             TaskDestination.Archived -> areaLabel?.let { "No archived tasks in $it." } ?: "Archived tasks will appear here and can be restored."
         }
     WhipEmptyState(
-        title = if (constrained) "No Matching Tasks" else when (destination) {
+        title = if (selectedDate != null) "No Tasks on ${selectedDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}" else if (constrained) "No Matching Tasks" else when (destination) {
             TaskDestination.Today -> "Today Is Clear"
             TaskDestination.Inbox -> "Inbox Is Clear"
             else -> "No ${destination.label} Tasks"
         },
         supportingText = supportingText,
+        primaryActionLabel = "View Upcoming List".takeIf { onShowUpcoming != null },
+        onPrimaryAction = onShowUpcoming,
     )
 }
 

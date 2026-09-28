@@ -24,10 +24,12 @@ import com.whip.app.domain.HabitTimerStartOutcome
 import com.whip.app.domain.HabitTimerStartRequest
 import com.whip.app.domain.HabitTimerStopOutcome
 import com.whip.app.domain.MeasurementSourceType
+import com.whip.app.domain.MeasurementEntryStatus
 import com.whip.app.domain.MeasurementValueKind
 import com.whip.app.domain.UnitDimension
 import com.whip.app.domain.valueInUnit
 import com.whip.app.domain.valueForPeriod
+import com.whip.app.domain.outcomeForPeriod
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -75,6 +77,85 @@ class HabitRepositoryTest {
         val id = repository.create(HabitDraft(name = "Glasses", trackingMode = HabitTrackingMode.Count, targetMin = 8.0, startDate = FixedClock.today()))
         repeat(6) { repository.log(id, 1.0) }
         assertEquals(6.0, repository.logs.first().sumOf { it.value ?: 0.0 }, 0.0)
+    }
+
+    @Test fun noteOnlyLogsTransitionToNumbersAndBackWithoutInventingMeasurements() = runBlocking {
+        val today = FixedClock.today()
+        val habitId = repository.create(HabitDraft(
+            name = "Journal", trackingMode = HabitTrackingMode.LogOnly,
+            comparison = TargetComparison.None, startDate = today.minusDays(7),
+        ))
+        val logId = repository.log(habitId, null, note = "  A real note  ")
+        val original = repository.logs.first().single()
+        assertEquals("A real note", original.note)
+        assertEquals(HabitLogStatus.Recorded, original.status)
+        assertEquals(null, original.value)
+        assertEquals(null, original.canonicalValue)
+        assertEquals(null, original.enteredUnitId)
+        assertEquals(null, original.measurementEntryId)
+        assertTrue(database.measurementDao().observeEntries().first().isEmpty())
+        assertEquals(null, requireNotNull(repository.get(habitId)).outcomeForPeriod(listOf(original), today))
+
+        // Recreating the repository must recover the authored note directly from Room.
+        val reopened = RoomHabitRepository(database, measurements, FixedClock, SequentialIds(), timerClock)
+        assertEquals(original, reopened.logs.first().single())
+        reopened.updateLog(logId, 2.5, HabitLogStatus.Recorded, today.minusDays(1), "Now includes a number")
+        val numeric = reopened.logs.first().single()
+        val entry = database.measurementDao().observeEntries().first().single()
+        assertEquals(original.uuid, numeric.uuid)
+        assertEquals(original.timestamp, numeric.timestamp)
+        assertEquals(original.createdAtMillis, numeric.createdAtMillis)
+        assertEquals(2.5, numeric.value ?: -1.0, 0.0)
+        assertEquals(2.5, numeric.canonicalValue ?: -1.0, 0.0)
+        assertEquals(entry.id, numeric.measurementEntryId)
+        assertEquals(MeasurementSourceType.Habit.name, entry.sourceType)
+        assertEquals(original.uuid, entry.sourceId)
+
+        reopened.updateLog(logId, null, HabitLogStatus.Recorded, today.minusDays(2), "Only the note again")
+        val noteAgain = reopened.logs.first().single()
+        assertEquals(logId, noteAgain.id)
+        assertEquals(original.uuid, noteAgain.uuid)
+        assertEquals(original.timestamp, noteAgain.timestamp)
+        assertEquals(original.createdAtMillis, noteAgain.createdAtMillis)
+        assertEquals(today.minusDays(2), noteAgain.localDate)
+        assertEquals("Only the note again", noteAgain.note)
+        assertEquals(null, noteAgain.value)
+        assertEquals(null, noteAgain.canonicalValue)
+        assertEquals(null, noteAgain.enteredUnitId)
+        assertEquals(null, noteAgain.measurementEntryId)
+        assertEquals(null, database.measurementDao().getEntry(entry.id))
+        assertTrue(database.measurementDao().observeEntries().first().isEmpty())
+        reopened.undoLog(logId, expectedHabitId = habitId)
+        assertTrue(reopened.logs.first().isEmpty())
+        assertTrue(database.measurementDao().observeEntries().first().isEmpty())
+    }
+
+    @Test fun optionalHabitNotesDoNotRelaxQuantitativeMeasurementValidation() = runBlocking {
+        val today = FixedClock.today()
+        val habitId = repository.create(HabitDraft(name = "Count", trackingMode = HabitTrackingMode.Count, startDate = today))
+        val habit = requireNotNull(repository.get(habitId))
+        assertTrue(runCatching { repository.log(habitId, null, note = "Missing number") }.exceptionOrNull() is IllegalArgumentException)
+        assertTrue(runCatching {
+            measurements.record(habit.measurementId, null, null, status = MeasurementEntryStatus.Recorded)
+        }.exceptionOrNull() is IllegalArgumentException)
+        assertTrue(repository.logs.first().isEmpty())
+        assertTrue(database.measurementDao().observeEntries().first().isEmpty())
+
+        val logId = repository.log(habitId, 3.0)
+        val original = repository.logs.first().single()
+        val originalEntry = database.measurementDao().observeEntries().first().single()
+        assertTrue(runCatching {
+            repository.updateLog(logId, null, HabitLogStatus.Recorded, today, "Invalid edit")
+        }.exceptionOrNull() is IllegalArgumentException)
+        assertEquals(original, repository.logs.first().single())
+        assertEquals(originalEntry, database.measurementDao().observeEntries().first().single())
+
+        val logOnlyId = repository.create(HabitDraft(name = "Notes", trackingMode = HabitTrackingMode.LogOnly, startDate = today))
+        assertTrue(runCatching { repository.log(logOnlyId, null, HabitLogStatus.Success) }.exceptionOrNull() is IllegalArgumentException)
+        repository.log(logOnlyId, null, HabitLogStatus.Failed)
+        val failed = repository.logs.first().single { it.habitId == logOnlyId }
+        assertEquals(HabitLogStatus.Failed, failed.status)
+        assertEquals(MeasurementEntryStatus.Failed.name, database.measurementDao().getEntry(requireNotNull(failed.measurementEntryId))?.status)
     }
 
     @Test fun repositoryPersistsOnlyTheControlsEnabledByTheHabitConfiguration() = runBlocking {

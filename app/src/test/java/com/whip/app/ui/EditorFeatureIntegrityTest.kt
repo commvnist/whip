@@ -60,16 +60,16 @@ class EditorFeatureIntegrityTest {
         val privacy = File(docsRoot, "privacy.md").readText()
         val combined = listOf(settings, firstRun, gym, reminder, strings, userGuide, privacy).joinToString("\n")
 
-        listOf("Appearance & Home", "Planning & Units", "Organization", "Reminders", "Data & Privacy", "About Whip")
+        listOf("Appearance & Home", "Planning & Units", "Gym", "Organization", "Reminders", "Data & Privacy", "About Whip")
             .forEach { label -> assertTrue("Missing current Settings category: $label", settings.contains(label)) }
         assertTrue(firstRun.contains("Settings → Reminders"))
         assertTrue(firstRun.contains("Settings → Appearance & Home"))
         assertTrue(reminder.contains("Settings → Reminders"))
         assertTrue(userGuide.contains("Settings → Appearance & Home → Home Overview"))
-        assertTrue(userGuide.contains("Settings → Planning & Units → Gym Defaults"))
+        assertTrue(userGuide.contains("Settings → Gym → Progress Calculations"))
         assertTrue(userGuide.contains("Data & Privacy → Backup & Export"))
         assertTrue(privacy.contains("Settings → Data & Privacy → Reset Whip and Delete All Data"))
-        listOf("Home Overview", "Gym Defaults", "Backup & Export")
+        listOf("Home Overview", "Workout and Rest", "Progress Calculations", "Backup & Export")
             .forEach { heading -> assertTrue("Missing Settings heading: $heading", settings.contains(heading)) }
         assertFalse(combined.contains("Reminders & Integrations"))
         assertFalse(combined.contains("About & Diagnostics"))

@@ -852,7 +852,8 @@ class ProductivityCardDesignUiTest {
         }
 
         captureVisualCatalogSurface("habits.timer-review")
-        compose.onNodeWithText("Review Meditation Timer").assertIsDisplayed()
+        compose.onNodeWithText("Review Timer").assertIsDisplayed()
+        compose.onNodeWithText("Meditation").assertExists()
         compose.onNodeWithTag("habit-timer-review-minutes")
             .performTextReplacement("2.5")
         compose.onNodeWithTag("habit-timer-review-minutes").assertTextContains("2.5")
@@ -860,7 +861,7 @@ class ProductivityCardDesignUiTest {
         compose.runOnIdle { assertEquals(150.0, stoppedSeconds ?: -1.0, 0.0) }
         compose.onNodeWithTag("habit-timer-review-continue").performClick()
         compose.runOnIdle { assertEquals(150.0, continuedSeconds ?: -1.0, 0.0) }
-        compose.onNodeWithText("Discard Timer").performClick()
+        compose.onNodeWithText("Discard Timer").performScrollTo().performClick()
         compose.runOnIdle { assertTrue(discarded) }
     }
 

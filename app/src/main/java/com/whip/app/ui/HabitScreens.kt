@@ -52,6 +52,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -62,6 +63,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntSize
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -121,6 +123,8 @@ import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 import kotlinx.coroutines.delay
 import com.whip.app.ui.theme.whipColors
+
+private val habitShortDateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
 
 enum class HabitDestination(val label: String) {
     Today("Today"),
@@ -182,6 +186,11 @@ fun HabitAreaContent(
     var creating by rememberSaveable { mutableStateOf(false) }
     var editingHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var actionsHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var historyHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
+    fun closeHabitActions() {
+        actionsHabitId = null
+        historyHabitId = null
+    }
     var numericLogHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var pauseRequestHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var editingPauseId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -343,14 +352,35 @@ fun HabitAreaContent(
             testTagValue = HabitDestination::name,
             barTestTag = "habit-workspace-navigation",
         )
+        val emptyArea = areaScopeLabel != null && state.all.isEmpty() && editorState.all.isNotEmpty()
         when (destination) {
             HabitDestination.Today -> HabitList(
                 title = "Today",
                 subtitle = "Check-ins, values, and timers.",
                 progress = state.today,
-                empty = if (state.all.isEmpty()) {
-                    "Choose a simple template or use + to create a Habit from scratch."
-                } else areaScopeLabel?.let { "No habits are due today in $it." } ?: "No habits are due today.",
+                customUnits = state.customUnits,
+                empty = when {
+                    emptyArea -> "Your habits are saved in other Areas. Show all Areas to find them."
+                    state.all.isEmpty() -> "Choose a simple template or use + to create a Habit from scratch."
+                    else -> "No check-ins are expected today${areaScopeLabel?.let { " in $it" }.orEmpty()}. Your habits and their schedules are still saved."
+                },
+                emptyTitle = when {
+                    emptyArea -> "No Habits in $areaScopeLabel"
+                    state.all.isNotEmpty() -> "No Habits Due Today"
+                    else -> "No Habits Here"
+                },
+                emptyActionLabel = when {
+                    emptyArea -> "Show All Areas"
+                    state.all.isNotEmpty() -> "View All Habits"
+                    else -> "Browse Templates"
+                },
+                onEmptyAction = {
+                    when {
+                        emptyArea -> onShowAllAreasForReorder()
+                        state.all.isNotEmpty() -> destination = HabitDestination.All
+                        else -> templatesOpen = true
+                    }
+                },
                 onTemplates = { templatesOpen = true },
                 onOpen = { actionsHabitId = it.habit.id },
                 onEdit = { editingHabitId = it.habit.id },
@@ -377,9 +407,15 @@ fun HabitAreaContent(
                 title = "All Habits",
                 subtitle = "All your active habits.",
                 progress = state.all,
-                empty = if (state.all.isEmpty()) {
-                    "Choose a simple template or use + to create a Habit from scratch."
-                } else areaScopeLabel?.let { "No habits in $it." } ?: "Your habit list is empty.",
+                customUnits = state.customUnits,
+                empty = if (emptyArea) {
+                    "Your habits are saved in other Areas. Show all Areas to find them."
+                } else "Choose a simple template or use + to create a Habit from scratch.",
+                emptyTitle = if (emptyArea) "No Habits in $areaScopeLabel" else "No Habits Here",
+                emptyActionLabel = if (emptyArea) "Show All Areas" else "Browse Templates",
+                onEmptyAction = {
+                    if (emptyArea) onShowAllAreasForReorder() else templatesOpen = true
+                },
                 onTemplates = { templatesOpen = true },
                 onOpen = { actionsHabitId = it.habit.id },
                 onEdit = { editingHabitId = it.habit.id },
@@ -399,7 +435,10 @@ fun HabitAreaContent(
                 onReorderModeChange = onReorderModeChange,
                 reorderDismissRequest = reorderDismissRequest,
             )
-            HabitDestination.Insights -> HabitInsights(state, lowPressureMode)
+            HabitDestination.Insights -> HabitInsights(state, lowPressureMode, onOpenHistory = {
+                historyHabitId = it
+                actionsHabitId = it
+            })
             HabitDestination.Archived -> ArchivedHabitList(
                 habits = state.archived,
                 focusedHabitId = focusedArchivedHabitId,
@@ -450,29 +489,31 @@ fun HabitAreaContent(
         val mutationCoordinator = authoredMutationCoordinator ?: return@let
         HabitActionsDialog(
             item,
+            openHistory = historyHabitId == item.habit.id,
+            customUnits = state.customUnits,
             modifier = modifier,
             onDismiss = {
                 mutationCoordinator.clear()
-                actionsHabitId = null
+                closeHabitActions()
             },
-            onEdit = { editingHabitId = item.habit.id; actionsHabitId = null },
-            onDuplicate = { viewModel.duplicate(item.habit.id); actionsHabitId = null },
-            onPin = { viewModel.setPinned(item.habit.id, !item.habit.pinned); actionsHabitId = null },
-            onPause = { viewModel.setPaused(item.habit.id, !item.habit.paused); actionsHabitId = null },
+            onEdit = { editingHabitId = item.habit.id; closeHabitActions() },
+            onDuplicate = { viewModel.duplicate(item.habit.id); closeHabitActions() },
+            onPin = { viewModel.setPinned(item.habit.id, !item.habit.pinned); closeHabitActions() },
+            onPause = { viewModel.setPaused(item.habit.id, !item.habit.paused); closeHabitActions() },
             onSchedulePause = {
                 pauseRequestHabitId = item.habit.id
                 editingPauseId = null
-                actionsHabitId = null
+                closeHabitActions()
             },
             onQuick = {
                 if (item.habit.trackingMode in setOf(HabitTrackingMode.Rating, HabitTrackingMode.LogOnly)) {
                     numericLogHabitId = item.habit.id
-                    actionsHabitId = null
+                    closeHabitActions()
                 } else {
                     quickHabitAction(item, viewModel) { numericLogHabitId = item.habit.id }
                 }
             },
-            onSkip = { skipConfirmationHabitId = item.habit.id; actionsHabitId = null },
+            onSkip = { skipConfirmationHabitId = item.habit.id; closeHabitActions() },
             onUndoSkip = {
                 val requestId = mutationCoordinator.begin()
                 if (requestId != null && !viewModel.undoSkip(item.habit.id, item.date, requestId)) {
@@ -491,23 +532,23 @@ fun HabitAreaContent(
             onAddHistoricalLog = {
                 historicalLogForToday = false
                 historicalLogHabitId = item.habit.id
-                actionsHabitId = null
+                closeHabitActions()
             },
             onEnterDurationManually = {
                 historicalLogForToday = true
                 historicalLogHabitId = item.habit.id
-                actionsHabitId = null
+                closeHabitActions()
             },
-            onEditLog = { log -> editingLogHabitId = item.habit.id; editingLogId = log.id; actionsHabitId = null },
+            onEditLog = { log -> editingLogHabitId = item.habit.id; editingLogId = log.id; closeHabitActions() },
             onEditPause = { pause ->
                 pauseRequestHabitId = item.habit.id
                 editingPauseId = pause.id
-                actionsHabitId = null
+                closeHabitActions()
             },
-            onArchive = { viewModel.setArchived(item.habit.id, !item.habit.archived); actionsHabitId = null },
+            onArchive = { viewModel.setArchived(item.habit.id, !item.habit.archived); closeHabitActions() },
             onDelete = {
                 viewModel.preparePermanentDeletion(item.habit.id, item.habit.uuid, item.habit.name)
-                actionsHabitId = null
+                closeHabitActions()
             },
             lowPressureMode = lowPressureMode,
             mutationSaving = mutationCoordinator.saving,
@@ -820,36 +861,59 @@ internal fun HabitPermanentDeleteDialog(
     )
 }
 
-internal fun HabitDayProgress.compactCollectionStatus(): String {
+internal fun HabitDayProgress.compactCollectionStatus(lowPressureMode: Boolean = false, customUnits: List<UnitDefinition> = emptyList()): String {
     val streakUnit = when (habit.scheduleType) {
         HabitScheduleType.FlexibleTimesPerWeek -> "week"
         HabitScheduleType.FlexibleTimesPerMonth -> "month"
         else -> "day"
     }
     val streakLabel = "$streak $streakUnit streak"
+    fun withStreak(label: String) = if (lowPressureMode) label else "$label · $streakLabel"
     return when {
-        dayState == HabitDayState.Skipped -> "Skipped · streak protected"
+        dayState == HabitDayState.Skipped -> if (lowPressureMode) "Skipped · no check-in expected" else "Skipped · streak protected"
         habit.paused || dayState == HabitDayState.Paused -> "Paused · no check-in expected"
         dayState == HabitDayState.NotScheduled -> "Not scheduled today"
         habit.sourceMeasurementId != null -> "Linked measurement"
         habit.trackingMode == HabitTrackingMode.Checklist -> {
             val completedItems = checklistItems.count { it.second }
-            "$completedItems/${checklistItems.size} items · $streakLabel"
+            withStreak("$completedItems/${checklistItems.size} items")
         }
         habit.trackingMode == HabitTrackingMode.CheckOff ->
-            "${if (isDoneForToday()) "Done" else "Pending"} · $streakLabel"
+            withStreak(if (isDoneForToday()) "Done" else "Pending")
         habit.trackingMode == HabitTrackingMode.Duration && habit.timerStartedAtMillis != null -> "Timer running"
-        habit.trackingMode == HabitTrackingMode.Rating && value != 0.0 ->
-            "Rating ${formatHabitValue(value, habit.precision)} · $streakLabel"
+        habit.trackingMode == HabitTrackingMode.Rating && status != null ->
+            "Rating ${formatHabitValue(value, habit.precision)}"
         habit.trackingMode == HabitTrackingMode.LogOnly ->
-            "${if (isDoneForToday()) "Logged" else "Not logged"} · $streakLabel"
-        habit.comparison != TargetComparison.None -> {
-            val target = habit.targetMax ?: habit.targetMin ?: 1.0
-            "${formatHabitValue(value, habit.precision)}/${formatHabitValue(target, habit.precision)} ${habit.unitId.unitLabel()}".trim()
-        }
-        value != 0.0 -> "${formatHabitValue(value, habit.precision)} ${habit.unitId.unitLabel()}".trim()
-        else -> "${habit.trackingMode.uiLabel()} · $streakLabel"
+            if (status != null) "Entry recorded today" else "No entry today"
+        habit.comparison != TargetComparison.None -> targetProgressLabel(customUnits)
+        value != 0.0 -> "${formatHabitValue(value, habit.precision)} ${habit.unitSymbol(customUnits)}".trim()
+        else -> if (habit.comparison == TargetComparison.None) habit.trackingMode.uiLabel() else withStreak(habit.trackingMode.uiLabel())
     }
+}
+
+internal fun Habit.streakUnitLabel(count: Int): String {
+    val unit = when (scheduleType) {
+        HabitScheduleType.FlexibleTimesPerWeek -> "week"
+        HabitScheduleType.FlexibleTimesPerMonth -> "month"
+        else -> "day"
+    }
+    return "$count $unit${if (count == 1) "" else "s"}"
+}
+
+internal fun Habit.unitSymbol(customUnits: List<UnitDefinition> = emptyList()): String =
+    if (unitId in setOf("count", "unitless")) "" else
+        (BuiltInUnits.get(unitId) ?: customUnits.firstOrNull { it.id == unitId })?.symbol ?: unitId.unitLabel()
+
+internal fun HabitDayProgress.targetProgressLabel(customUnits: List<UnitDefinition> = emptyList()): String {
+    fun amount(number: Double?) = number?.let { formatHabitValue(it, habit.precision) } ?: "—"
+    val target = when (habit.comparison) {
+        TargetComparison.AtLeast -> "at least ${amount(habit.targetMin)}"
+        TargetComparison.AtMost -> "at most ${amount(habit.targetMax)}"
+        TargetComparison.Exactly -> "exactly ${amount(habit.targetMin)}"
+        TargetComparison.WithinRange -> "${amount(habit.targetMin)}–${amount(habit.targetMax)}"
+        TargetComparison.None -> return "${amount(value)} ${habit.unitSymbol(customUnits)}".trim()
+    }
+    return "${amount(value)} ${habit.unitSymbol(customUnits)} · $target ${habit.unitSymbol(customUnits)} · ${habit.periodTotalDescription()}".replace("  ", " ")
 }
 
 @Composable
@@ -920,14 +984,18 @@ internal fun HabitTimerReviewDialog(
     }
     val minutes = minutesText.toWhipDoubleOrNull()?.takeIf { it.isFinite() && it >= 0.0 }
     val seconds = minutes?.times(60.0)?.takeIf(Double::isFinite)
+    var reviewViewport by remember { mutableStateOf(IntSize.Zero) }
+    val minutesVisibility = rememberFocusedInputVisibility(reviewViewport)
     PaneAwareAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Review ${prompt.habitName} Timer") },
+        title = { Text("Review Timer") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact)) {
-                Text(
-                    "Whip cannot prove the exact elapsed time after a reboot, clock reset, or restored backup. Review the estimate before it becomes history.",
-                )
+            Column(
+                modifier = Modifier.fillMaxWidth().onSizeChanged { reviewViewport = it }
+                    .verticalScroll(rememberScrollState()).testTag("habit-timer-review-body"),
+                verticalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
+            ) {
+                Text(prompt.habitName, fontWeight = FontWeight.SemiBold)
                 Text(
                     "Estimated elapsed: ${formatElapsedDuration(prompt.estimatedCanonicalSeconds)}",
                     fontWeight = FontWeight.SemiBold,
@@ -942,8 +1010,9 @@ internal fun HabitTimerReviewDialog(
                     isError = minutesText.isNotBlank() && seconds == null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth().testTag("habit-timer-review-minutes"),
+                    modifier = Modifier.fillMaxWidth().then(minutesVisibility).testTag("habit-timer-review-minutes"),
                 )
+                Text("After a reboot, clock reset, or restored backup, elapsed time is an estimate. Review it before logging.")
                 WhipDestructiveTextButton(
                     onClick = onDiscard,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
@@ -982,6 +1051,7 @@ fun HabitProgressCard(
     onChecklist: (Long, Long, LocalDate, Boolean) -> Unit,
     lowPressureMode: Boolean = false,
     reorderMode: Boolean = false,
+    customUnits: List<UnitDefinition> = emptyList(),
 ) {
     val habit = item.habit
     val timerElapsedSeconds by rememberHabitTimerElapsedSeconds(habit)
@@ -1003,7 +1073,7 @@ fun HabitProgressCard(
     val compactStatus = if (habit.timerStartedAtMillis != null) {
         if (habit.timerNeedsReview) "Review timer · ${formatElapsedDuration(timerElapsedSeconds)} estimated"
         else "${formatElapsedDuration(timerElapsedSeconds)} elapsed"
-    } else item.compactCollectionStatus()
+    } else item.compactCollectionStatus(lowPressureMode, customUnits)
     val primaryAction: (@Composable () -> Unit)? = when {
         reorderMode -> null
         unavailableForCheckIn -> null
@@ -1074,6 +1144,8 @@ fun HabitProgressCard(
                         if (habit.timerNeedsReview) {
                             "Timer needs review · ${formatElapsedDuration(timerElapsedSeconds)} estimated"
                         } else "Timer running · ${formatElapsedDuration(timerElapsedSeconds)} elapsed"
+                    } else if (habit.comparison == TargetComparison.None) {
+                        compactStatus
                     } else if (lowPressureMode) {
                         "${habit.trackingMode.uiLabel()} · ${(item.completionRate * 100).toInt()}% / $rateWindow"
                     } else {
@@ -1099,7 +1171,7 @@ fun HabitProgressCard(
                         if (stacked) {
                             Column {
                                 Text(
-                                    "Skipped Today · Streak Protected",
+                                    if (lowPressureMode) "Skipped Today · No Check-In Expected" else "Skipped Today · Streak Protected",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.whipColors.warning,
                                 )
@@ -1111,7 +1183,7 @@ fun HabitProgressCard(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
-                                Text("Skipped Today · Streak Protected", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.whipColors.warning)
+                                Text(if (lowPressureMode) "Skipped Today · No Check-In Expected" else "Skipped Today · Streak Protected", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.whipColors.warning)
                                 WhipTextButton(onClick = onUndoSkip) { Text("Undo Skip") }
                             }
                         }
@@ -1221,11 +1293,12 @@ fun HabitProgressCard(
                     habit.trackingMode !in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist) &&
                     habit.comparison != TargetComparison.None
                 ) {
-                    val target = habit.targetMax ?: habit.targetMin ?: 1.0
-                    val fraction = if (target == 0.0) 0f else (item.value / target).toFloat().coerceIn(0f, 1f)
-                    LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+                    if (habit.comparison == TargetComparison.AtLeast && (habit.targetMin ?: 0.0) > 0.0) {
+                        val fraction = (item.value / requireNotNull(habit.targetMin)).toFloat().coerceIn(0f, 1f)
+                        LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+                    }
                     Text(
-                        "${formatHabitValue(item.value, habit.precision)} / ${formatHabitValue(target, habit.precision)} ${habit.unitId.unitLabel()}",
+                        item.targetProgressLabel(customUnits),
                         style = MaterialTheme.typography.labelMedium,
                     )
                 } else if (
@@ -1306,7 +1379,11 @@ private fun HabitList(
     title: String,
     subtitle: String,
     progress: List<HabitDayProgress>,
+    customUnits: List<UnitDefinition>,
     empty: String,
+    emptyTitle: String,
+    emptyActionLabel: String,
+    onEmptyAction: () -> Unit,
     onTemplates: () -> Unit,
     onOpen: (HabitDayProgress) -> Unit,
     onEdit: (HabitDayProgress) -> Unit,
@@ -1411,10 +1488,10 @@ private fun HabitList(
         }
         if (progress.isEmpty()) item {
             WhipEmptyState(
-                title = "No Habits Here",
+                title = emptyTitle,
                 supportingText = empty,
-                primaryActionLabel = "Browse Templates",
-                onPrimaryAction = onTemplates,
+                primaryActionLabel = emptyActionLabel,
+                onPrimaryAction = onEmptyAction,
             )
         }
         if (separateCompleted && sections.actionNeeded.isEmpty() && sections.finished.isNotEmpty()) item {
@@ -1438,6 +1515,7 @@ private fun HabitList(
                 val card: @Composable () -> Unit = {
                     HabitProgressCard(
                     item = item,
+                    customUnits = customUnits,
                     onOpen = { onOpen(item) },
                     onEdit = { onEdit(item) },
                     onQuick = { onQuick(item) },
@@ -1498,6 +1576,7 @@ private fun HabitList(
             if (finishedExpanded) items(sections.finished, key = { it.habit.id }) { item ->
                 HabitProgressCard(
                     item = item,
+                    customUnits = customUnits,
                     onOpen = { onOpen(item) },
                     onEdit = { onEdit(item) },
                     onQuick = { onQuick(item) },
@@ -1516,127 +1595,94 @@ private fun HabitList(
 }
 
 @Composable
-internal fun HabitInsights(state: HabitUiState, lowPressureMode: Boolean) {
+internal fun HabitInsights(
+    state: HabitUiState,
+    lowPressureMode: Boolean,
+    onOpenHistory: ((Long) -> Unit)? = null,
+) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().testTag("habit-insights-list"),
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
-        item {
-            WhipPageHeader(
-                title = "Habit Insights",
-                supportingText = "Consistency, streaks, and activity.",
-            )
-        }
+        item { WhipPageHeader(title = "Habit Insights", supportingText = "Patterns in your recorded activity.") }
         if (state.all.isEmpty()) item {
-            WhipEmptyState(
-                title = "No Habit Insights Yet",
-                supportingText = "Create and check in to a habit to build insight over time.",
-            )
+            WhipEmptyState("No Habit Insights Yet", "Create and check in to a habit to build insight over time.")
         }
         items(state.all, key = { it.habit.id }) { item ->
+            val habit = item.habit
+            val logs = state.logs.filter { it.habitId == habit.id && !it.localDate.isAfter(state.currentDate) }
+            val skips = state.skips.filter { it.habitId == habit.id }
+            val pauses = state.pauses.filter { it.habitId == habit.id }
+            val recordedDates = logs.mapTo(mutableSetOf(), HabitLog::localDate)
+            val flexible = habit.scheduleType in setOf(HabitScheduleType.FlexibleTimesPerWeek, HabitScheduleType.FlexibleTimesPerMonth)
+            val showOutcomes = habit.comparison != TargetComparison.None && !flexible && !lowPressureMode
             WhipItemCard {
-                    WhipProductivityItemContent(
-                        itemType = "habit",
-                        itemName = item.habit.name,
-                        emoji = item.habit.icon,
-                        identityModifier = Modifier.testTag("habit-insight-icon-${item.habit.id}"),
-                    ) {
-                        area(item.habit.areaId, item.habit.area)
-                        details {
-                            text(
-                                text = item.habit.trackingMode.uiLabel(),
-                            )
+                WhipProductivityItemContent(
+                    itemType = "habit", itemName = habit.name, emoji = habit.icon,
+                    identityModifier = Modifier.testTag("habit-insight-icon-${habit.id}"),
+                ) {
+                    area(habit.areaId, habit.area)
+                    details { text(habit.trackingMode.uiLabel()) }
+                }
+                if (habitHistoryEvents(logs, skips, pauses, state.currentDate).isEmpty()) {
+                    Text("No activity yet. Your recorded entries and pauses will appear here.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    val values = logs.mapNotNull { it.valueInUnit(habit.unitId, state.customUnits) }
+                    WhipGroupedInformationCard {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            HabitTodayMetric("entries-${habit.id}", logs.size.toString(), "Recorded entries")
+                            if (!lowPressureMode && habit.comparison != TargetComparison.None) {
+                                HabitTodayMetric("streak-${habit.id}", habit.streakUnitLabel(item.streak), "Current streak")
+                            }
+                            if (habit.trackingMode == HabitTrackingMode.Rating && values.isNotEmpty()) {
+                                HabitTodayMetric("average-${habit.id}", formatHabitValue(values.average(), habit.precision), "Average rating")
+                            } else if (habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal, HabitTrackingMode.Duration) && values.isNotEmpty()) {
+                                HabitTodayMetric("total-${habit.id}", "${formatHabitValue(values.sum(), habit.precision)} ${habit.unitSymbol(state.customUnits)}".trim(), "All-time logged")
+                            }
+                        }
+                        if (habit.comparison != TargetComparison.None && !lowPressureMode) {
+                            val outcomes = habit.successfulPeriodOutcomeDates(logs, state.currentDate.minusDays(29), state.currentDate, pauses, state.customUnits, skips)
+                            val scoredStates = (29L downTo 0L).map { state.currentDate.minusDays(it) }
+                                .map { habit.dayStateOn(it, state.currentDate, logs, pauses, skips, state.customUnits) }
+                            Text(when {
+                                flexible -> "${outcomes.size} ${if (habit.scheduleType == HabitScheduleType.FlexibleTimesPerWeek) "weekly" else "monthly"} targets completed in the last 30 days"
+                                scoredStates.none { it in setOf(HabitDayState.Completed, HabitDayState.Missed, HabitDayState.BelowTarget) } -> "30-day completion: No scored periods"
+                                else -> "30-day completion: ${(item.completionRate * 100).toInt()}%"
+                            }, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
-                    val habitLogs = state.logs.filter { it.habitId == item.habit.id }
-                    val habitSkips = state.skips.filter { it.habitId == item.habit.id }
-                    val habitPauses = state.pauses.filter { it.habitId == item.habit.id }
-                    if (habitHistoryEvents(habitLogs, habitSkips, habitPauses, state.currentDate).isEmpty()) {
-                        Text(
-                            "No activity yet. Check in, log a value, skip, or pause this Habit to build its history.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    } else {
-                        if (!lowPressureMode) Text("Current streak: ${item.streak}")
-                        val scheduledStates = (29L downTo 0L).map { state.currentDate.minusDays(it) }
-                            .filter(item.habit::isScheduledOn)
-                            .map { day -> item.habit.dayStateOn(day, state.currentDate, habitLogs, habitPauses, habitSkips, state.customUnits) }
-                        val completedDays = scheduledStates.count { it == HabitDayState.Completed }
-                        val skippedDays = scheduledStates.count { it == HabitDayState.Skipped }
-                        val missedDays = scheduledStates.count { it in setOf(HabitDayState.Missed, HabitDayState.BelowTarget) }
-                        Text(
-                            if (completedDays + missedDays == 0) {
-                                "30-day completion: No scored periods"
-                            } else {
-                                "30-day completion: ${(item.completionRate * 100).toInt()}%"
-                            },
-                        )
-                        val successfulDates = item.habit.successfulPeriodOutcomeDates(
-                            habitLogs,
-                            item.habit.startDate,
-                            state.currentDate,
-                            habitPauses,
-                            state.customUnits,
-                            habitSkips,
-                        ).size
-                        val values = habitLogs.asSequence()
-                            .filter { it.status in setOf(HabitLogStatus.Recorded, HabitLogStatus.Success) }
-                            .mapNotNull { it.valueInUnit(item.habit.unitId, state.customUnits) }
-                            .toList()
-                        Text(when (item.habit.trackingMode) {
-                            HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist -> "Completed $successfulDates Time${if (successfulDates == 1) "" else "s"}"
-                            HabitTrackingMode.Rating -> "Average Rating: ${formatHabitValue(values.average().takeUnless(Double::isNaN) ?: 0.0, item.habit.precision)}"
-                            HabitTrackingMode.LogOnly -> "Entries Logged: ${habitLogs.count { it.status != HabitLogStatus.Failed }}"
-                            else -> "All-Time Logged: ${formatHabitValue(values.sum(), item.habit.precision)} ${item.habit.unitId.unitLabel()}"
-                        })
-                        Text("Last 30 Days: $completedDays Completed · $skippedDays Skipped · $missedDays Missed/Below Target")
-                        val weeklyRates = (7L downTo 0L).map { weeksAgo ->
-                            val start = state.currentDate.minusWeeks(weeksAgo)
-                                .with(TemporalAdjusters.previousOrSame(item.habit.weekStart))
-                            val end = minOf(start.plusDays(6), state.currentDate)
-                            val scheduled = generateSequence(start) { it.plusDays(1) }
-                                .takeWhile { !it.isAfter(end) }
-                                .filter(item.habit::isScheduledOn)
-                                .toList()
-                            val outcomes = scheduled.mapNotNull { day ->
-                                when (item.habit.dayStateOn(day, end, habitLogs, habitPauses, habitSkips, state.customUnits)) {
+                    val weekStarts = (7L downTo 0L).map { state.currentDate.minusWeeks(it).with(TemporalAdjusters.previousOrSame(habit.weekStart)) }
+                    val rates = weekStarts.map { start ->
+                        val end = minOf(start.plusDays(6), state.currentDate)
+                        val days = generateSequence(start) { it.plusDays(1) }.takeWhile { !it.isAfter(end) }.filter { !it.isBefore(habit.startDate) }.toList()
+                        if (showOutcomes) {
+                            val outcomes = days.mapNotNull { day ->
+                                when (habit.dayStateOn(day, end, logs, pauses, skips, state.customUnits)) {
                                     HabitDayState.Completed -> true
                                     HabitDayState.Missed, HabitDayState.BelowTarget -> false
                                     else -> null
                                 }
                             }
-                            if (outcomes.isEmpty()) null else outcomes.count { it }.toDouble() / outcomes.size
-                        }
-                        Text("Eight-Week Consistency", style = MaterialTheme.typography.labelMedium)
-                        HabitRateChart(item.habit.name, weeklyRates)
-                        val recent = weeklyRates.lastOrNull()
-                        val previous = weeklyRates.dropLast(1).lastOrNull()
-                        Text(
-                            when {
-                                recent == null -> "No completed target periods this week yet."
-                                previous == null -> "This week: ${(recent * 100).toInt()}%"
-                                else -> "This week: ${(recent * 100).toInt()}% · ${if (recent >= previous) "up" else "down"} ${kotlin.math.abs((recent - previous) * 100).toInt()} points"
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                        val days = (27L downTo 0L).map { state.currentDate.minusDays(it) }
-                        Text("Recent Activity", style = MaterialTheme.typography.labelMedium)
-                        HabitActivityGrid(
-                            days = days,
-                            stateForDay = { day ->
-                                item.habit.dayStateOn(
-                                    day,
-                                    state.currentDate,
-                                    habitLogs,
-                                    habitPauses,
-                                    habitSkips,
-                                    state.customUnits,
-                                )
-                            },
-                        )
+                            outcomes.takeIf { it.isNotEmpty() }?.let { it.count { done -> done }.toDouble() / it.size }
+                        } else days.takeIf { it.isNotEmpty() }?.let { it.count(recordedDates::contains).toDouble() / it.size }
                     }
+                    WhipGroupHeading(if (showOutcomes) "Eight-Week Consistency" else "Days with Entries", compact = true)
+                    HabitRateChart(habit.name, rates, weekStarts,
+                        metricLabel = if (showOutcomes) "scheduled completion" else "recorded activity")
+                    Text(if (showOutcomes) "Completed scheduled days; pauses and skips are excluded. Gaps have no scored days."
+                        else "Share of days with a recorded entry each week; this is activity, not target success.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    WhipGroupHeading("Recent Activity", compact = true)
+                    HabitActivityGrid(
+                        days = (27L downTo 0L).map { state.currentDate.minusDays(it) },
+                        firstDayOfWeek = habit.weekStart,
+                        recordedDates = recordedDates.takeUnless { showOutcomes },
+                        stateForDay = { day -> habit.dayStateOn(day, state.currentDate, logs, pauses, skips, state.customUnits) },
+                    )
+                }
+                onOpenHistory?.let { open ->
+                    WhipTextButton(onClick = { open(habit.id) }, modifier = Modifier.testTag("habit-insights-history-${habit.id}")) { Text("View History") }
+                }
             }
         }
     }
@@ -1645,17 +1691,36 @@ internal fun HabitInsights(state: HabitUiState, lowPressureMode: Boolean) {
 @Composable
 internal fun HabitActivityGrid(
     days: List<LocalDate>,
+    firstDayOfWeek: DayOfWeek = DayOfWeek.MONDAY,
+    recordedDates: Set<LocalDate>? = null,
     stateForDay: (LocalDate) -> HabitDayState,
 ) {
+    val leading = days.firstOrNull()?.let { orderedWhipWeekdays(firstDayOfWeek).indexOf(it.dayOfWeek) } ?: 0
+    val cells: List<LocalDate?> = List(leading) { null } + days
     Column(
         modifier = Modifier.fillMaxWidth().testTag("habit-activity-grid"),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        days.chunked(7).forEach { week ->
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                week.forEach { day ->
+        if (days.isNotEmpty()) Text(
+            "${days.first().format(habitShortDateFormatter)} – ${days.last().format(habitShortDateFormatter)}",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        WhipCalendarWeekdayHeader(firstDayOfWeek = firstDayOfWeek)
+        cells.chunked(7).forEach { week ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                (week + List(7 - week.size) { null }).forEach dayCell@ { day ->
+                    if (day == null) {
+                        Spacer(Modifier.weight(1f))
+                        return@dayCell
+                    }
                     val state = stateForDay(day)
-                    val stateLabel = when (state) {
+                    val stateLabel = if (recordedDates != null) {
+                        if (day in recordedDates) "entry recorded" else when (state) {
+                            HabitDayState.Paused -> "paused"
+                            HabitDayState.Skipped -> "skipped"
+                            else -> "no entry"
+                        }
+                    } else when (state) {
                         HabitDayState.Completed -> "completed"
                         HabitDayState.Skipped -> "skipped"
                         HabitDayState.Missed -> "missed"
@@ -1664,7 +1729,10 @@ internal fun HabitActivityGrid(
                         HabitDayState.Paused -> "paused"
                         HabitDayState.NotScheduled -> "not scheduled"
                     }
-                    val (containerColor, contentColor) = when (state) {
+                    val (containerColor, contentColor) = if (recordedDates != null) {
+                        if (day in recordedDates) MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+                        else MaterialTheme.colorScheme.surfaceContainerHighest to MaterialTheme.colorScheme.onSurfaceVariant
+                    } else when (state) {
                         HabitDayState.Completed -> MaterialTheme.whipColors.success to MaterialTheme.whipColors.onSuccess
                         HabitDayState.Skipped -> MaterialTheme.whipColors.warning to MaterialTheme.whipColors.onWarning
                         HabitDayState.Missed, HabitDayState.BelowTarget ->
@@ -1678,7 +1746,7 @@ internal fun HabitActivityGrid(
                     }
                     Surface(
                         modifier = Modifier
-                            .size(28.dp)
+                            .weight(1f).heightIn(min = 48.dp)
                             .testTag("habit-activity-day-${day.toEpochDay()}")
                             .clearAndSetSemantics {
                                 contentDescription = "${day.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}: $stateLabel"
@@ -1687,9 +1755,12 @@ internal fun HabitActivityGrid(
                         color = containerColor,
                         contentColor = contentColor,
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
+                        Column(Modifier.padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(day.dayOfMonth.toString(), style = MaterialTheme.typography.labelSmall)
                             Text(
-                                when (state) {
+                                if (recordedDates != null) {
+                                    if (day in recordedDates) "●" else "·"
+                                } else when (state) {
                                     HabitDayState.Completed -> "✓"
                                     HabitDayState.Skipped -> "○"
                                     HabitDayState.Missed, HabitDayState.BelowTarget -> "×"
@@ -1705,7 +1776,8 @@ internal fun HabitActivityGrid(
             }
         }
         Text(
-            "Green completed · amber skipped · red missed or below target · neutral states are pending, paused, or not scheduled",
+            if (recordedDates != null) "● Entry recorded · No entry; pauses and skips remain in History"
+            else "✓ Completed · ○ Skipped · × Missed or below target · Ⅱ Paused · · Pending or not scheduled",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -1713,30 +1785,46 @@ internal fun HabitActivityGrid(
 }
 
 @Composable
-private fun HabitRateChart(name: String, rates: List<Double?>) {
+internal fun HabitRateChart(name: String, rates: List<Double?>, weekStarts: List<LocalDate> = emptyList(), metricLabel: String = "consistency") {
     val values = rates.map { it?.coerceIn(0.0, 1.0) }
     val lineColor = MaterialTheme.colorScheme.primary
     val description = values.mapIndexed { index, value ->
-        "week ${index + 1}: ${value?.let { "${(it * 100).toInt()} percent" } ?: "no data"}"
+        "${weekStarts.getOrNull(index)?.format(habitShortDateFormatter) ?: "week ${index + 1}"}: ${value?.let { "${(it * 100).toInt()} percent" } ?: "no data"}"
     }.joinToString("; ")
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Text("100%", style = MaterialTheme.typography.labelSmall)
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
             .height(112.dp)
-            .semantics { contentDescription = "$name eight-week consistency chart; $description" },
+            .testTag("habit-rate-chart")
+            .semantics { contentDescription = "$name eight-week $metricLabel chart; $description" },
     ) {
-        if (values.size < 2) return@Canvas
-        val step = size.width / (values.size - 1)
+        if (values.isEmpty()) return@Canvas
+        val radius = 4.dp.toPx()
+        val step = (size.width - radius * 2) / (values.size - 1).coerceAtLeast(1)
+        fun point(index: Int, value: Double) = androidx.compose.ui.geometry.Offset(
+            radius + index * step, radius + (1f - value.toFloat()) * (size.height - radius * 2),
+        )
         values.zipWithNext().forEachIndexed { index, (start, end) ->
             if (start != null && end != null) {
                 drawLine(
                     color = lineColor,
-                    start = androidx.compose.ui.geometry.Offset(index * step, size.height - start.toFloat() * size.height),
-                    end = androidx.compose.ui.geometry.Offset((index + 1) * step, size.height - end.toFloat() * size.height),
+                    start = point(index, start),
+                    end = point(index + 1, end),
                     strokeWidth = 4.dp.toPx(),
                 )
             }
         }
+        values.forEachIndexed { index, value ->
+            if (value != null) drawCircle(lineColor, radius, point(index, value))
+        }
+    }
+    Text("0%", style = MaterialTheme.typography.labelSmall)
+    if (weekStarts.isNotEmpty()) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(weekStarts.first().format(habitShortDateFormatter), style = MaterialTheme.typography.labelSmall)
+        Text(weekStarts.last().format(habitShortDateFormatter), style = MaterialTheme.typography.labelSmall)
+    }
     }
 }
 
@@ -2094,11 +2182,14 @@ internal fun HabitEditorDialog(
     var showAdditionalDetails by rememberSaveable(editorKey) {
         mutableStateOf(
             defaults.powerMode || initial.notes.isNotBlank() || initial.tags.isNotEmpty() ||
+                initial.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Duration, HabitTrackingMode.Decimal, HabitTrackingMode.LogOnly) &&
+                    initial.precision != (if (initial.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Duration)) 0 else defaults.numberPrecision) ||
                 initial.trackingMode.supportsQuickAddAmounts() && initial.quickActions.isNotEmpty(),
         )
     }
     LaunchedEffect(validationRequested, validationMessages) {
         if (validationRequested && validationMessages.isNotEmpty()) validationRequester.bringIntoView()
+        if (validationRequested && validationMessages.any { it.contains("Decimal places", ignoreCase = true) }) showAdditionalDetails = true
     }
     LaunchedEffect(validationRequested, advancedScheduleProblems) {
         if (validationRequested && advancedScheduleProblems.isNotEmpty()) showScheduleOptions = true
@@ -2148,7 +2239,6 @@ internal fun HabitEditorDialog(
                 item {
                     ProductivityIdentitySection(
                         title = "Basics",
-                        supportingText = "Name this Habit and choose the emoji used across Whip.",
                         identityFields = {
                     OutlinedTextField(
                         name,
@@ -2173,10 +2263,8 @@ internal fun HabitEditorDialog(
                         },
                     )
                 }
-                item { EditorSectionHeader("Tracking", "Choose the daily action first; its target and amount options stay directly below it.") }
+                item { EditorSectionHeader("Tracking") }
                 item {
-                    Text("How do you want to track it?", fontWeight = FontWeight.Bold)
-                    Text("Choose the action you want available each day. Whip fills in sensible defaults.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -2337,7 +2425,6 @@ internal fun HabitEditorDialog(
                                 dialogModifier = modifier,
                             )
                         }
-                        item { NumberTextField(precision, { precision = it }, "Decimal places (0–6)") }
                     }
                     item {
                         EnumDropdown("Target rule", TargetComparison.entries, comparison, TargetComparison::displayLabel) { selected ->
@@ -2377,7 +2464,7 @@ internal fun HabitEditorDialog(
                         if (targetPeriod == TargetPeriod.RollingDays) item { NumberTextField(rollingDays, { rollingDays = it }, "Rolling-day window") }
                     }
                 }
-                item { EditorSectionHeader("Schedule", "Choose when this Habit is expected, then configure only the settings that schedule enables.") }
+                item { EditorSectionHeader("Schedule") }
                 item {
                     EnumDropdown("Schedule", HabitScheduleType.entries, schedule, { it.scheduleLabel() }) { schedule = it }
                     DependentSettingsNotice(
@@ -2485,7 +2572,6 @@ internal fun HabitEditorDialog(
                 }
                 item {
                     ProductivityOrganizationSection(
-                        supportingText = "Choose the Area that owns this Habit.",
                         areaPicker = {
                     AreaPicker(
                         areas = areas,
@@ -2510,11 +2596,10 @@ internal fun HabitEditorDialog(
                 }
                 if (showAdditionalDetails) {
                     item {
-                        EditorSectionHeader(
-                            "Details",
-                            if (quickAddsEnabled) "Add reusable tags, quick actions, and notes only when they help."
-                            else "Add reusable tags and notes only when they help.",
-                        )
+                        EditorSectionHeader("Details")
+                    }
+                    if (sourceMeasurementId == null && mode !in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist, HabitTrackingMode.Rating)) item {
+                        NumberTextField(precision, { precision = it }, "Decimal places (0–6)")
                     }
                     item { OutlinedTextField(tags, { tags = it }, label = { Text("Tags, comma-separated") }, modifier = Modifier.fillMaxWidth()) }
                     if (quickAddsEnabled) item {
@@ -2790,12 +2875,14 @@ internal fun HabitActionsDialog(
     lowPressureMode: Boolean = false,
     mutationSaving: Boolean = false,
     mutationError: String? = null,
+    openHistory: Boolean = false,
+    customUnits: List<UnitDefinition> = emptyList(),
 ) {
     val activeZoneId = LocalWhipZone.current
     var visibleLogs by rememberSaveable(item.habit.id) { mutableIntStateOf(8) }
     val timerElapsedSeconds by rememberHabitTimerElapsedSeconds(item.habit)
-    var section by rememberSaveable(item.habit.id) {
-        mutableStateOf(if (item.habit.archived) HabitDetailSection.History else HabitDetailSection.Today)
+    var section by rememberSaveable(item.habit.id, openHistory) {
+        mutableStateOf(if (item.habit.archived || openHistory) HabitDetailSection.History else HabitDetailSection.Today)
     }
     val skipAvailable = item.dayState == HabitDayState.Pending &&
         item.habit.sourceMeasurementId == null &&
@@ -2863,6 +2950,7 @@ internal fun HabitActionsDialog(
                                     timerElapsedSeconds = timerElapsedSeconds,
                                     activeZoneId = activeZoneId,
                                     lowPressureMode = lowPressureMode,
+                                    customUnits = customUnits,
                                 ),
                                 modifier = Modifier.testTag("habit-today-state"),
                                 style = MaterialTheme.typography.titleMedium,
@@ -2886,23 +2974,23 @@ internal fun HabitActionsDialog(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            if (!lowPressureMode || item.flexibleScheduleProgress != null) {
+                            if ((!lowPressureMode && item.habit.comparison != TargetComparison.None) || item.flexibleScheduleProgress != null) {
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                                 FlowRow(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(20.dp),
                                     verticalArrangement = Arrangement.spacedBy(12.dp),
                                 ) {
-                                    if (!lowPressureMode) {
+                                    if (!lowPressureMode && item.habit.comparison != TargetComparison.None) {
                                         HabitTodayMetric(
                                             id = "streak",
-                                            value = "${item.streak} ${if (item.streak == 1) "day" else "days"}",
+                                            value = item.habit.streakUnitLabel(item.streak),
                                             label = "Current streak",
                                         )
                                         HabitTodayMetric(
                                             id = "completion",
                                             value = "${(item.completionRate * 100).toInt()}%",
-                                            label = "Completion rate",
+                                            label = "Completion · last 30 days",
                                         )
                                     }
                                     item.flexibleScheduleProgress?.let { progress ->
@@ -3108,10 +3196,11 @@ private fun HabitTodayMetric(
     }
 }
 
-private fun HabitDayProgress.inspectorTodaySummary(
+internal fun HabitDayProgress.inspectorTodaySummary(
     timerElapsedSeconds: Double,
     activeZoneId: ZoneId,
     lowPressureMode: Boolean,
+    customUnits: List<UnitDefinition> = emptyList(),
 ): String = when {
     habit.timerStartedAtMillis != null -> if (habit.timerNeedsReview) {
         "Timer needs review · ${formatElapsedDuration(timerElapsedSeconds)} estimated."
@@ -3136,9 +3225,11 @@ private fun HabitDayProgress.inspectorTodaySummary(
         if (checklistItems.isEmpty()) "Ready for today's checklist."
         else "$completedItems of ${checklistItems.size} items complete."
     }
-    habit.trackingMode == HabitTrackingMode.Rating && value == 0.0 -> "Not rated yet today."
-    habit.trackingMode == HabitTrackingMode.LogOnly && value == 0.0 -> "No entries yet today."
-    else -> "${formatHabitValue(value, habit.precision)} logged today."
+    habit.trackingMode == HabitTrackingMode.Rating -> if (status == null) "Not rated yet today."
+        else "Rating: ${formatHabitValue(value, habit.precision)}."
+    habit.trackingMode == HabitTrackingMode.LogOnly -> if (status == null) "No entries yet today." else "Entry recorded today."
+    habit.comparison != TargetComparison.None -> targetProgressLabel(customUnits)
+    else -> "${formatHabitValue(value, habit.precision)} ${habit.unitSymbol(customUnits)} · ${habit.periodTotalDescription()}".trim()
 }
 
 internal sealed interface HabitHistoryEvent {
@@ -3194,6 +3285,7 @@ internal fun HabitDayProgress.inspectorStatus(lowPressureMode: Boolean): String 
     habit.archived -> "Archived"
     habit.paused || dayState == HabitDayState.Paused -> "Paused"
     dayState == HabitDayState.Skipped -> "Skipped today"
+    habit.comparison == TargetComparison.None && status != null -> "Recorded today"
     dayState == HabitDayState.Completed -> "Complete today"
     dayState == HabitDayState.BelowTarget -> if (lowPressureMode) "Checked in today" else "In progress today"
     dayState == HabitDayState.Missed -> if (lowPressureMode) "Ready for a fresh check-in" else "Missed"
@@ -3254,7 +3346,7 @@ private fun Habit.periodTotalTitle(): String = when (targetPeriod) {
     TargetPeriod.RollingDays -> "Current ${rollingDays?.coerceAtLeast(1) ?: 1}-Day Total"
 }
 
-private fun Habit.periodTotalDescription(): String = when (targetPeriod) {
+internal fun Habit.periodTotalDescription(): String = when (targetPeriod) {
     TargetPeriod.Occurrence, TargetPeriod.Day -> "today's total"
     TargetPeriod.Week -> "this week's total"
     TargetPeriod.Month -> "this month's total"
