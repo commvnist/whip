@@ -1,0 +1,9 @@
+# Whip 0.3.80 private update — 2026-09-28
+
+- Source: clean pushed `14f8e4e61f9ccb53e5c7315a71464fdb9ba2b9a6` on `origin/main`. Includes the completed six-area overhaul, Goal unit conversion and higher-repetition Gym calculations. Prior affected acceptance: VER-20260927-023/024/025, including 409 JVM tests and 171 selected Android methods for the overhaul.
+- [Signed APK](../../../../build/releases/Whip-0.3.80-code86-private.apk): package `commvne.com.whip.app`, 0.3.80/code 86, SHA-256 `ad2a074e18fc6897ef4a9c9fa46564e30c96d6177c2ee3efdcc22fa29b8e36ab`.
+- [Signed AAB](../../../../build/releases/Whip-0.3.80-code86-private.aab): SHA-256 `cb7ba54af1c44b0ecf691a106b03ac3cc35b2173390cf9b1d5928ad836e97d04`.
+- Bounded version-aware `scripts/check` passed; signed `assembleRelease bundleRelease` completed in 2m1s. APK/AAB ZIP integrity passed. APK v2 signature verifies with the established single certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`. AAB JAR verification reports `jar verified`, with self-signed trust/timestamp warnings and JarInputStream manifest-order warnings retained in [the full output](aab-signature.log). The APK is the intended phone artifact; this is not Play qualification.
+- Installation status: **Blocked pending phone connection.** Only the disposable emulator is connected; the previous phone wireless endpoint is unreachable. No install or phone launch was attempted. The last verified phone release remains 0.3.79/code 85.
+- Resume: connect the owner phone, explicitly select and guard its physical serial, snapshot installed version/first-install identity, verify the retained APK hash, install that exact APK in place with `scripts/device release-install`, then verify installed hash/version, preserved identity and cold foreground launch. Do not rebuild or reset data merely to resume.
+- Room schema 46, data epoch 6 and backup format 26 are unchanged.

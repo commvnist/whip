@@ -5,6 +5,7 @@
 - Related: FB-20260928-001; verified behavior from IMP-20260927-014 through 019 and VER-20260927-023/024/025.
 - Changes: Advance `app/build.gradle.kts` to 0.3.80/code 86. Preserve package/signing identity, Room schema 46, data epoch 6 and backup format 26.
 - Status: Implemented. The bounded `scripts/check` passed its version-aware affected JVM/static checks in 14 seconds; prior behavior readiness/native acceptance remains VER-20260927-025. Signed artifact preparation and physical-phone installation evidence follow separately; no additional behavior changes or Play candidate claimed.
+- Commit/artifacts: Clean pushed `14f8e4e6` on `origin/main` produced the signed APK/AAB in VER-20260928-001. Physical installation is blocked on the absent phone connection.
 
 ### IMP-20260927-016 — Shared choices retain complete values and native selection state
 
