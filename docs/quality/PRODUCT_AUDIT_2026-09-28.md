@@ -30,4 +30,17 @@ Status: **In progress**. Owner: FB-20260928-005. Baseline: clean pushed `d737209
 | Is the app extensible and uncoupled? | UI versus domain ownership, immutable record identity, query/mutation boundaries and independent feature composition; avoid speculative abstractions. |
 | Are there bugs? | Trace concrete invalid input, stale/partial state, identity/date/unit errors and recovery/lifecycle behavior to their root owner. |
 
-Accepted findings, implementation dispositions and exact verification will be added here before broad production changes. Historical audits are reference material; this task has the owner's new bounded verification contract.
+## Accepted shared implementation groups
+
+| ID | Source finding and user consequence | Remedy and small acceptance check |
+| --- | --- | --- |
+| S1 | `UnitSelectionField` disables an empty compatible-unit collection; Custom has no built-in units, so new Habit/Track Custom measurement creation reaches a dead end. Its fallback label can also name a unit the draft has not selected. | Keep creation reachable from an empty collection, show unresolved selection truthfully, preserve selected archived units. Exact native empty-unit creation/selection case. |
+| S2 | Area/Tag submission rejection clears request context before the active child reads its error. Color/move/merge dialogs remain interactive during saves. Inline `CreateAreaDialog` restores a saved busy flag although its callback belongs to the lost composition. | Retain failed request ownership, apply the existing saving overlay, restore interrupted inline drafts to an actionable retry, ignore callbacks to disposed dialogs. Exact color-busy and Area restoration cases plus existing taxonomy failure neighbor. |
+| S3 | Area/Tag create/rename/merge bodies use non-scrolling columns, inconsistent spacing, long titles and dynamic errors; content can outgrow the available body while fixed actions remain below it. | Use the existing shared body and explicit scroll ownership; retain full errors, identity and safe-before-destructive action order. Inspect selected short/large-text form rendering and retry reachability. |
+| S4 | Task Time, optional clock settings and reminder-time creation duplicate native clock dialogs. All lack keyboard-mode choice; their native clock bodies are not scrollable. | Consolidate through the existing `ClockPickerDialog`, with consistent Set/Cancel/Clear and duplicate guidance, a keyboard/clock switch and scrollable body. Preserve 12/24-hour settings and authored minutes; exact switch/draft/duplicate tests and rendered inspection. |
+
+Shared investigation also covers welcome/setup, first-use Home recovery, responsive shell/Area scope, global-search query/partial-state/routing, inspector hierarchy, date/calendar presentation, controls/status/errors, item builders, emoji/color, theme, back/IME handling and deletion boundaries. Their detailed dispositions and any additional supported findings follow the integrated review.
+
+Productivity findings accepted for domain implementation: compatible Habit unit conversion; recurring Task overdue context; bounded duplicate names across Task/Habit/Goal/Track; unsaved-draft protection for Habit logging/history/pause. The agent report owns exact evidence and all reviewed workflow dispositions. Gym/Settings findings are being finalized before that domain's implementation.
+
+Historical audits are reference material; this task has the owner's new bounded verification contract.

@@ -1,5 +1,12 @@
 # Durable findings
 
+### FND-20260928-009 — Shared authoring has unreachable creation and broken save recovery
+
+- Observed/source: `UnitSelectionField` disables itself for an empty compatible-unit collection, including the explicitly offered Custom dimension; fallback display can silently name an unselected unit. `CreateAreaDialog` restores a local busy flag whose callback cannot survive recreation. Area/Tag rejection paths clear the context used to show the error in their open child. Color/move/merge bodies remain editable while saving, and taxonomy/time dialogs duplicate non-scrolling form composition.
+- Consequence/remedy: Custom measurement setup can stall, inline Area creation can remain permanently busy after recreation, save errors can hide behind dialogs, and pending saves can discard further edits. [Plan S1–S4](../quality/PRODUCT_AUDIT_2026-09-28.md) reuses existing unit, body, saving and clock owners; preserves retained drafts and actual selected values; adds consistent keyboard-mode clock authoring.
+- Evidence boundary: Current source/caller/repository trace from baseline `d737209a`; native regression/rendering checks follow implementation. No claim that every layout has been reproduced yet.
+- Related/status: FB-20260928-005. Confirmed; implementation in progress.
+
 ### FND-20260928-008 — Focus metadata crowds out Home on short enlarged-text screens
 
 - Observed: Accepted normal 45/45 precedes a 1080×1600/density 420/actual 200% replay with only 131.81dp Home list versus 160dp required. FocusHomeJourneyE2ETest blocked-channel/long-title method fails in build/instrumentation-results-AEqUX8; the other three methods pass. Original failure is retained.

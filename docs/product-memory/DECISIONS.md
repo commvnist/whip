@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260928-003 — Repair complete workflows through existing shared owners
+
+- Decision: Execute [the fresh product audit plan](../quality/PRODUCT_AUDIT_2026-09-28.md), accepting concrete workflow and design findings before production edits. Retain the established navigation/card/theme grammar and explicit domain semantics; consolidate truly equivalent pickers and form behavior rather than introduce another framework or generic domain abstraction.
+- Verification constraint: The owner's explicit no-full-batches instruction overrides the normal final affected-readiness recommendation. Use exact focused methods/classes under 55 seconds, record incomplete attempts, and keep the final claim limited to executed checks and inspected source/rendering.
+- Compatibility: Preserve historical facts, saved data formats and private release identity. No release/phone installation is included. Existing source-backed architecture remains the baseline; no speculative module split.
+- Related/status: FB-20260928-005, FND-20260928-009. In progress.
+
 ### DEC-20260928-002 — Upgrade Focus through shared confirmed state and native timing
 
 - Decision: Implement the complete [Focus plan](../quality/FOCUS_TIMER_UX_2026-09-28.md). Reuse exact alarm/WorkManager delivery, Compose inspector/dialog primitives, request-owned mutation results and the Android chronometer. Serialize confirmed start/stop with delivery; validate immutable action identity. Show a shared pinned Home/Tasks timer, confirmed feedback, completion acknowledgement, truthful alert availability and explicit replacement consent.
