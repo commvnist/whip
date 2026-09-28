@@ -1,0 +1,8 @@
+class	method	result	seconds	evidence
+com.whip.app.FocusHomeJourneyE2ETest	androidFocusChannelRecoveryRefreshesTheCardAndRepublishesTheCountdown	PASS	16.894	accepted-layout-followthrough/batch-1/result-1.xml
+com.whip.app.FocusHomeJourneyE2ETest	blockedChannelAndLongTitleKeepHomeControlsAndListUsableAtShortHeight	PASS	12.694	accepted-layout-followthrough/batch-1/result-1.xml
+com.whip.app.FocusHomeJourneyE2ETest	lowHomeTaskStartPinsCountdownAndOpenStopSurviveRecreationAndAreaChange	PASS	10.917	accepted-layout-followthrough/batch-1/result-1.xml
+com.whip.app.FocusHomeJourneyE2ETest	matchingNativeCompletionAcknowledgesForegroundOnceAndLeavesTaskOpen	PASS	8.443	accepted-layout-followthrough/batch-1/result-1.xml
+com.whip.app.FocusTimerCardUiTest	busyStopDisablesDuplicateActionsAndFailureKeepsRecovery	PASS	1.827	accepted-layout-followthrough/batch-1/result-1.xml
+com.whip.app.FocusTimerCardUiTest	compactCardKeepsOpenStopAndAlertRecoveryReachableWithoutTickAnnouncements	PASS	2.346	accepted-layout-followthrough/batch-1/result-1.xml
+com.whip.app.FocusTimerCardUiTest	dueSessionShowsCompletionWithoutNegativeTimeOrCompletingTheTask	PASS	1.082	accepted-layout-followthrough/batch-1/result-1.xml

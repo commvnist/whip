@@ -79,6 +79,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
@@ -4452,9 +4453,9 @@ internal fun RestTimerCard(
                     if (remaining == null) {
                         WhipTextButton(
                             onClick = { showDurationEditor = true },
-                            modifier = Modifier.semantics { contentDescription = "Adjust rest time for this workout" },
+                            modifier = Modifier.semantics { contentDescription = "Custom Time for this workout" },
                         ) {
-                            Text("Adjust")
+                            Text("Custom Time")
                         }
                         WhipTextButton(
                             onClick = { onStart(session.id, duration.seconds) },
@@ -4668,12 +4669,14 @@ internal fun RestDurationDialog(
                     SteppedNumberField(
                         value = secondsText,
                         onValueChange = { secondsText = it },
-                        label = "Seconds",
+                        label = "Duration (seconds)",
                         increment = 15.0,
                         integer = true,
                         actionSubject = "workout rest time",
-                        isError = secondsText.isNotBlank() && !valid,
-                        supportingText = "Enter 15–3,600 seconds".takeIf { secondsText.isNotBlank() && !valid },
+                        modifier = Modifier.testTag("rest-custom-seconds")
+                            .semantics { if (!valid) error("Enter 15–3,600 seconds") },
+                        isError = !valid,
+                        supportingText = "Enter 15–3,600 seconds",
                     )
                 }
             }

@@ -1,0 +1,5 @@
+class	method	result	seconds	evidence
+com.whip.app.FocusHomeJourneyE2ETest	blockedChannelAndLongTitleKeepHomeControlsAndListUsableAtShortHeight	PASS	13.592	accepted-short-large/batch-1/result-1.xml
+com.whip.app.FocusTimeSelectionUiTest	enlargedPresetsAndCustomControlRemainReachableWith48DpTargets	PASS	7.552	accepted-short-large/batch-1/result-1.xml
+com.whip.app.FocusTimeSelectionUiTest	reminderCustomTimePreservesInvalidInputAndAddsExactOffsetAtLargeText	PASS	8.128	accepted-short-large/batch-1/result-1.xml
+com.whip.app.FocusTimerCardUiTest	compactCardKeepsOpenStopAndAlertRecoveryReachableWithoutTickAnnouncements	PASS	2.415	accepted-short-large/batch-1/result-1.xml

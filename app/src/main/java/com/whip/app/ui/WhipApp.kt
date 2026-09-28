@@ -1052,6 +1052,18 @@ fun WhipScreen(
     val taskNavigationIndex = remember(unscopedTaskState) { TaskNavigationIndex(unscopedTaskState) }
     val allScheduledTasks = taskNavigationIndex.items
     val scheduledTaskByKey = taskNavigationIndex.byKey
+    val focusUi = rememberFocusTimerUi(
+        settingsViewModel, settingsState.settings, allScheduledTasks, unscopedTaskState.loading,
+        onStarted = { actionItemKey = null; onRequestNotificationPermission() },
+        onOpenTask = { item ->
+            if (item in unscopedTaskState.completed) completedItemKey = item.stableKey else actionItemKey = item.stableKey
+        },
+        onFeedback = { source, message, duration ->
+            presentTransientFeedback(source = source, priority = 2) {
+                snackbarHostState.showSnackbar(message, withDismissAction = true, duration = duration)
+            }
+        },
+    )
     val actionItem = actionItemKey?.let(scheduledTaskByKey::get)
     val completedItem = completedItemKey?.let(scheduledTaskByKey::get)
     CompletedTaskRouteEffect(
@@ -2028,6 +2040,7 @@ fun WhipScreen(
                     hasUnscopedUserData = homeHasAnyUserData(unscopedTaskState, unscopedHabitState, unscopedGoalState, unscopedTrackState, gymState),
                     unscopedDataSettled = homeEmptyStateEligible(HomeSection.entries, unscopedTaskState, unscopedHabitState, unscopedGoalState, unscopedTrackState, gymState),
                     appSettings = settingsState.settings,
+                    activeFocusContent = focusUi.content,
                     innerPadding = innerPadding,
                     onQuickHabit = { item ->
                         habitViewModel?.let { vm ->
@@ -2225,7 +2238,7 @@ fun WhipScreen(
                     onPlanMyDay = onPlanMyDay,
                     onPlanMyDayRequest = onPlanMyDayRequest,
                     dayPlanTodayTasks = unscopedTaskState.today,
-                    onStopFocus = { settingsViewModel?.stopFocusTimer() },
+                    activeFocusContent = focusUi.content,
                     onQuickCapture = onQuickAddTaskWithResult,
                     onQuickCaptureRequest = onQuickAddTaskRequest,
                     onAddDetails = { capture ->
@@ -2560,7 +2573,7 @@ fun WhipScreen(
     actionItem?.let { item ->
         TaskActionsDialog(
             item = item,
-            onDismiss = { actionItemKey = null },
+            onDismiss = { if (!focusUi.busy) actionItemKey = null },
             onComplete = {
                 requestCompletion(item)
                 actionItemKey = null
@@ -2600,11 +2613,11 @@ fun WhipScreen(
                 onDuplicateTask(item.task.id)
                 actionItemKey = null
             },
-            onStartFocus = { minutes ->
-                settingsViewModel?.startFocusTimer(item.task.id, minutes)
-                onRequestNotificationPermission()
-                actionItemKey = null
-            },
+            onStartFocus = { minutes -> focusUi.start(item.task.id, minutes) },
+            focusBusy = focusUi.busy,
+            focusError = focusUi.startErrorFor(item.task.id),
+            activeFocusTaskTitle = focusUi.activeTaskTitle,
+            activeFocusDeadlineMillis = focusUi.activeDeadlineMillis,
             onToggleSubtask = { stepId, checked ->
                 onSetStepCompleted(item, stepId, checked)
             },
@@ -4924,6 +4937,7 @@ private fun HomeContent(
     hasUnscopedUserData: Boolean,
     unscopedDataSettled: Boolean,
     appSettings: AppSettings,
+    activeFocusContent: (@Composable () -> Unit)?,
     innerPadding: PaddingValues,
     onQuickHabit: (com.whip.app.domain.HabitDayProgress) -> Unit,
     onHabitValue: (com.whip.app.domain.HabitDayProgress, Double) -> Unit,
@@ -5054,10 +5068,14 @@ private fun HomeContent(
         trackCount = savedTrackCount,
         gymItemCount = savedGymItemCount,
     )
+    Column(Modifier.fillMaxSize().padding(innerPadding)) {
+    activeFocusContent?.let { content ->
+        Box(Modifier.fillMaxWidth().padding(whipPagePadding(bottom = 0.dp))) { content() }
+    }
     LazyColumn(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(innerPadding)
+            .weight(1f)
+            .fillMaxWidth()
             .testTag("home-list"),
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
@@ -5412,6 +5430,7 @@ private fun HomeContent(
             }
         }
     }
+    }
 }
 
 @Composable
@@ -5749,7 +5768,7 @@ private fun TaskAreaContent(
     onPlanMyDay: (List<ScheduledTask>, Int) -> Unit,
     onPlanMyDayRequest: ((List<ScheduledTask>, Int, String) -> Boolean)?,
     dayPlanTodayTasks: List<ScheduledTask>,
-    onStopFocus: () -> Unit,
+    activeFocusContent: (@Composable () -> Unit)?,
     onQuickCapture: (String, LocalDate?, String?, (Boolean) -> Unit) -> Unit,
     onQuickCaptureRequest: ((String, LocalDate?, String?, String) -> Boolean)?,
     onAddDetails: (String) -> Unit,
@@ -5789,7 +5808,6 @@ private fun TaskAreaContent(
     var historySection by rememberSaveable {
         mutableStateOf(destination.toWorkspaceRoute().historySection)
     }
-    var focusClockMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var textQuery by rememberSaveable { mutableStateOf("") }
     var sortMode by rememberSaveable {
         mutableStateOf(
@@ -5957,13 +5975,6 @@ private fun TaskAreaContent(
     }
     LaunchedEffect(areaScope) {
         if (areaScope != AreaScope.All && groupMode == "Area") groupMode = "None"
-    }
-    LaunchedEffect(appSettings.focusTimerDeadlineMillis) {
-        while ((appSettings.focusTimerDeadlineMillis ?: 0L) > System.currentTimeMillis()) {
-            focusClockMillis = System.currentTimeMillis()
-            kotlinx.coroutines.delay(1_000L)
-        }
-        focusClockMillis = System.currentTimeMillis()
     }
     val allTasks = state.inbox + state.today + state.upcoming + state.planning + state.completed + state.archived
     LaunchedEffect(bulkEditOpen, bulkEditTargetKeys, allTasks) {
@@ -6493,15 +6504,9 @@ private fun TaskAreaContent(
                 label = { Text("Include Habits") },
             )
         }
-        appSettings.focusTimerDeadlineMillis?.takeIf { it > focusClockMillis && !selectionMode && !reordering }?.let { deadline ->
+        activeFocusContent?.takeUnless { selectionMode || reordering }?.let { content ->
             item {
-                val taskName = allTasks.firstOrNull { it.task.id == appSettings.focusTimerTaskId }?.task?.title ?: "Focus session"
-                WhipNoticeCard(
-                    title = taskName,
-                    message = "${formatFocusDuration(((deadline - focusClockMillis).coerceAtLeast(0L) / 1_000L))} remaining · until ${java.time.Instant.ofEpochMilli(deadline).atZone(appSettings.zoneId()).toLocalTime().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))}",
-                    actionLabel = "Stop",
-                    onAction = onStopFocus,
-                )
+                content()
             }
         }
         if (!selectionMode && !reordering && destination in setOf(TaskDestination.Today, TaskDestination.Inbox)) {
@@ -7631,14 +7636,6 @@ internal fun HabitUiState.plannedOn(date: LocalDate): List<HabitDayProgress> {
     }
 }
 
-private fun formatFocusDuration(seconds: Long): String {
-    val hours = seconds / 3_600
-    val minutes = (seconds % 3_600) / 60
-    val remainingSeconds = seconds % 60
-    return if (hours > 0) "%d:%02d:%02d".format(hours, minutes, remainingSeconds)
-    else "%d:%02d".format(minutes, remainingSeconds)
-}
-
 @Composable
 private fun TaskPlanningRow(
     item: ScheduledTask,
@@ -7889,6 +7886,9 @@ private fun HomeStatusCard(
     supportingText = detail,
     onClick = onClick,
     preserveTitleCase = preserveTitleCase,
+    modifier = Modifier.semantics {
+        contentDescription = "${if (preserveTitleCase) title else title.uiTitleCase()}, $detail"
+    },
 )
 
 

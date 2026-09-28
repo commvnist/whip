@@ -947,7 +947,7 @@ class GymPowerInputUiTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Adjust rest time for this workout").performClick()
+        compose.onNodeWithContentDescription("Custom Time for this workout").performClick()
         compose.onNodeWithText("Rest Time for This Workout").assertIsDisplayed()
         captureVisualCatalogSurface("gym.rest-duration")
     }
@@ -1486,7 +1486,8 @@ class GymPowerInputUiTest {
         compose.onNode(
             SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Rest timer ready, 2:00 selected, App default"),
         ).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Adjust rest time for this workout").performClick()
+        compose.onNodeWithText("Custom Time").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Custom Time for this workout").assertIsDisplayed().performClick()
         compose.onNodeWithText("Rest Time for This Workout").assertIsDisplayed()
         listOf("1:00", "1:30", "2:00", "2:30", "3:00", "5:00").forEach { preset ->
             compose.onAllNodes(hasText(preset)).fetchSemanticsNodes().also { nodes ->
@@ -1514,7 +1515,7 @@ class GymPowerInputUiTest {
         compose.onNodeWithText("Start").performClick()
         compose.runOnIdle { assertEquals(135, startedWith) }
         compose.onNodeWithText("Workout override").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Adjust rest time for this workout").performClick()
+        compose.onNodeWithContentDescription("Custom Time for this workout").performClick()
         compose.onNodeWithText("Follow Set rest").performClick()
         compose.onNodeWithText("Rest · 2:00").assertIsDisplayed()
         compose.onNodeWithText("App default").assertIsDisplayed()

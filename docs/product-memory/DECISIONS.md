@@ -2,10 +2,11 @@
 
 ### DEC-20260928-002 — Upgrade Focus through shared confirmed state and native timing
 
-- Decision: Implement the full [Focus plan](../quality/FOCUS_TIMER_UX_2026-09-28.md). Reuse exact alarm/WorkManager delivery, Compose inspector/dialog primitives, request-owned mutation results and native notification chronometer; add no periodic ticker service or dependency. Serialize confirmed Focus starts/stops with delivery and validate immutable action identities. Make an active timer visible on Home and Tasks, with truthful completion/notification availability context and explicit replacement consent.
-- Custom-time meaning: Use “Custom Time” for arbitrary duration/offset entry affordances. Fields name their actual unit and range; Focus minutes, Gym seconds, reminder minutes-before, measured Habit elapsed time and time-of-day selection retain their distinct semantics. Native clock pickers and measured elapsed editors are not interchangeable with duration selectors.
-- Compatibility: No new Room schema, data epoch, portable-backup format or Focus history/statistics model. Reuse the durable Task/deadline pair, preserve data and existing completion alerts. Android denial/force-stop/OEM deferral and explicit ongoing-notification dismissal remain external boundaries.
-- Related/status: FB-20260928-004, FND-20260928-005/006. In progress; verification will record actual runtime outcomes.
+- Decision: Implement the complete [Focus plan](../quality/FOCUS_TIMER_UX_2026-09-28.md). Reuse exact alarm/WorkManager delivery, Compose inspector/dialog primitives, request-owned mutation results and the Android chronometer. Serialize confirmed start/stop with delivery; validate immutable action identity. Show a shared pinned Home/Tasks timer, confirmed feedback, completion acknowledgement, truthful alert availability and explicit replacement consent.
+- Custom-time meaning: Equivalent duration/offset affordances visibly and contextually speak “Custom Time”. Fields retain actual units/ranges: Focus minutes, Gym seconds and reminder minutes before. Measured Habit elapsed editors and native time-of-day pickers keep their distinct meaning.
+- Layout/accessibility: Under limited height, pair the ellipsized Task identity/full accessible name with the complete finish label. Retain actual text scaling, clock/status, 48dp actions and at least 160dp of Home list. Name clipped Home cards/headings directly from their displayed meaning. Do not weaken native capture/name policy or add redundant clipping for Compose semantics pruning.
+- Compatibility: No new service/dependency, Room schema, data epoch, backup format, Focus pause/history/statistics model or automatic Task completion. Android denial/force-stop/OEM deferral and explicit notification dismissal remain platform/user boundaries.
+- Related/status: FB-20260928-004, FND-20260928-005/006/007/008, IMP-20260928-006. Implemented and Verified under VER-20260928-004, with exact normal/constrained/native platform receipts.
 
 ### DEC-20260928-001 — Second audit focuses on end-to-end meaning and recovery
 

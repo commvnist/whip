@@ -61,6 +61,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -73,6 +74,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -109,7 +111,6 @@ import com.whip.app.domain.DEFAULT_TASK_EMOJI
 import com.whip.app.domain.toDraft
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.LocalTime
 import java.time.ZoneId
 import java.time.Month
 import java.time.YearMonth
@@ -1233,7 +1234,7 @@ fun TaskEditorDialog(
         val pickerState = rememberTimePickerState(
             initialHour = timeMinutes / 60,
             initialMinute = timeMinutes % 60,
-            is24Hour = false,
+            is24Hour = android.text.format.DateFormat.is24HourFormat(LocalContext.current),
         )
         PaneAwareAlertDialog(
             modifier = nestedDialogModifier,
@@ -1406,7 +1407,7 @@ internal fun RecurrenceAnchorSelector(
 }
 
 @Composable
-private fun TaskTimeSettings(
+internal fun TaskTimeSettings(
     hasTime: Boolean,
     timeMinutes: Int,
     reminderEnabled: Boolean,
@@ -1421,8 +1422,7 @@ private fun TaskTimeSettings(
     WhipToggleRow(
         title = "Time",
         supportingText = if (hasTime) {
-            LocalTime.of(timeMinutes / 60, timeMinutes % 60)
-                .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
+            formatClockMinutes(LocalContext.current, timeMinutes)
         } else {
             "No time"
         },
@@ -1440,6 +1440,7 @@ private fun TaskTimeSettings(
         modifier = Modifier.testTag("task-reminder-toggle"),
     )
     if (!reminderEnabled) return
+    var customReminderOpen by rememberSaveable { mutableStateOf(customReminderText.isNotBlank()) }
     FieldLabel("Reminder Times")
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1456,19 +1457,36 @@ private fun TaskTimeSettings(
                 label = { Text(label) },
             )
         }
+        WhipOutlinedButton(
+            onClick = { customReminderOpen = !customReminderOpen },
+            modifier = Modifier.heightIn(min = 48.dp).testTag("task-reminder-custom-time"),
+        ) { Text("Custom Time") }
     }
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    if (customReminderOpen) Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        val customMinutes = customReminderText.toIntOrNull()
+        val customValid = customMinutes != null && customMinutes in 0..43_200
+        val duplicate = customMinutes != null && customMinutes in reminderOffsets
         OutlinedTextField(
             value = customReminderText,
-            onValueChange = { onCustomReminderTextChange(it.filter(Char::isDigit).take(5)) },
-            modifier = Modifier.weight(1f),
-            label = { Text("Custom Minutes Before") },
+            onValueChange = onCustomReminderTextChange,
+            modifier = Modifier.fillMaxWidth().testTag("task-reminder-custom-minutes")
+                .semantics {
+                    if (customReminderText.isNotBlank() && !customValid) error("Enter 0–43,200 minutes")
+                },
+            label = { Text("Minutes before") },
+            supportingText = { Text(if (duplicate) "This reminder already exists. Enter 0–43,200 minutes." else "Enter 0–43,200 minutes") },
+            isError = customReminderText.isNotBlank() && !customValid,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             singleLine = true,
         )
         WhipTextButton(
-            enabled = (customReminderText.toIntOrNull() ?: -1) in 0..43_200,
+            modifier = Modifier.align(Alignment.End).heightIn(min = 48.dp).testTag("task-reminder-custom-add"),
+            enabled = customValid && !duplicate,
             onClick = {
-                onReminderOffsetsChange(reminderOffsets + requireNotNull(customReminderText.toIntOrNull()))
+                onReminderOffsetsChange(reminderOffsets + requireNotNull(customMinutes))
                 onCustomReminderTextChange("")
             },
         ) { Text("Add") }

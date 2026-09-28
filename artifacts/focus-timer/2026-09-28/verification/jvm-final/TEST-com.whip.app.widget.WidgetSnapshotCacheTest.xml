@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.widget.WidgetSnapshotCacheTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-09-28T09:56:22.793Z" hostname="beast" time="0.002">
+  <properties/>
+  <testcase name="directionalPaddingMirrorsStartAndEndInRtl" classname="com.whip.app.widget.WidgetSnapshotCacheTest" time="0.0"/>
+  <testcase name="preEpochSnapshotIsRejected" classname="com.whip.app.widget.WidgetSnapshotCacheTest" time="0.001"/>
+  <testcase name="codecRejectsUnknownOrCorruptSnapshots" classname="com.whip.app.widget.WidgetSnapshotCacheTest" time="0.0"/>
+  <testcase name="codecRoundTripsUnicodeAndSeparators" classname="com.whip.app.widget.WidgetSnapshotCacheTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

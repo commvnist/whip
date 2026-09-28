@@ -17,6 +17,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.window.layout.FoldingFeature
@@ -203,7 +206,14 @@ class MainActivity : ComponentActivity() {
         }
         val notificationPermission = rememberLauncherForActivityResult(
             ActivityResultContracts.RequestPermission(),
-        ) { }
+        ) { settingsViewModel.refreshFocusTimerNotification() }
+        DisposableEffect(settingsViewModel) {
+            val observer = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) settingsViewModel.refreshFocusTimerNotification()
+            }
+            lifecycle.addObserver(observer)
+            onDispose { lifecycle.removeObserver(observer) }
+        }
         val darkTheme = when (settingsState.settings.themeMode) {
             AppThemeMode.System -> isSystemInDarkTheme()
             AppThemeMode.Light -> false
@@ -312,7 +322,8 @@ class MainActivity : ComponentActivity() {
             )
         } else null
         val action = requestedAction.takeUnless {
-            it == WhipLaunchActions.ACTION_CAPTURE_SHARED_TASK && sharedCapture == null
+            (it == WhipLaunchActions.ACTION_CAPTURE_SHARED_TASK && sharedCapture == null) ||
+                !isCurrentFocusNotificationOpen(this)
         }
         val id = if (action in setOf(
                 WhipLaunchActions.ACTION_OPEN_TASK,
@@ -338,6 +349,18 @@ class MainActivity : ComponentActivity() {
             areaScopeStorageKey = areaScopeStorageKey,
             deliveryId = ++deliveryCounter,
         )
+    }
+
+    private fun isCurrentFocusNotificationOpen(source: android.content.Intent?): Boolean {
+        val key = com.whip.app.reminders.FocusTimerNotifications.openGenerationKey
+        if (source?.hasExtra(key) != true) return true
+        val app = application as WhipApplication
+        if (!app.isCurrentUserDataGeneration(source.getLongExtra(key, Long.MIN_VALUE))) return false
+        val deadlineKey = com.whip.app.reminders.FocusTimerNotifications.openDeadlineKey
+        if (!source.hasExtra(deadlineKey)) return true
+        val current = app.settingsRepository.current()
+        return current.focusTimerTaskId == source.getLongExtra(WhipLaunchActions.EXTRA_ENTITY_ID, -1L) &&
+            current.focusTimerDeadlineMillis == source.getLongExtra(deadlineKey, -1L)
     }
 
     private fun LaunchRequest.saveTo(outState: Bundle) {

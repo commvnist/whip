@@ -1,0 +1,37 @@
+{
+  "date": "2026-09-28",
+  "baseline": "e799ab02",
+  "ready_command": "timeout --kill-after=3s 300s scripts/check --ready --base e799ab02",
+  "jvm": {
+    "distinct_classes": 46,
+    "executed_methods": 412,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "android": {
+    "accepted_executions": 56,
+    "distinct_methods": 45,
+    "repeated_executions": 11,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "reused": 0
+  },
+  "inventory": {
+    "jvm": 693,
+    "android": 1219,
+    "new_jvm": 4,
+    "new_android": 28
+  },
+  "apks": {
+    "debug": {
+      "sha256": "261e45cf10d467e8311015ced50173a50ca52bb43671808e7df5d3f7c73773a7",
+      "path": "app/build/outputs/apk/debug/app-debug.apk"
+    },
+    "androidTest": {
+      "sha256": "bcb9fc66bea7d2c1ce3a5823ae718f0828bdbece977d3bb6c196bdf2f6322297",
+      "path": "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
+    }
+  }
+}

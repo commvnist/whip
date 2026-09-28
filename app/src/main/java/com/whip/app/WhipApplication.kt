@@ -689,12 +689,16 @@ class WhipApplication : Application(), Configuration.Provider {
     private fun clearFocusTimerForDeletedTasks(taskIds: Set<Long>) {
         val current = settingsRepository.current()
         if (current.focusTimerTaskId !in taskIds) return
+        var cleared = false
         check(
             settingsRepository.updateAndConfirm {
-                it.copy(focusTimerDeadlineMillis = null, focusTimerTaskId = null)
+                if (it.focusTimerTaskId in taskIds) {
+                    cleared = true
+                    it.copy(focusTimerDeadlineMillis = null, focusTimerTaskId = null)
+                } else it
             },
         ) { "Could not durably clear the deleted Task's focus timer" }
-        focusTimerScheduler.cancel()
+        if (cleared) focusTimerScheduler.cancel()
     }
 
     internal suspend fun reconcilePendingReminderDeletions() {

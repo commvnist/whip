@@ -1,0 +1,10 @@
+Target: disposable emulator-5554 / whip_api34 / API 34
+Normal display: 1080x2400, density 420, baseline font scale 1.0
+Annotated enlarged-text methods: real Android font scale 2.0, checked by AndroidFontScaleRule
+Accepted normal raw receipt: build/instrumentation-results-uTzuJE
+Accepted normal execution: 45 methods, 2 batches, 0 failures/skips/reused batches
+Debug APK SHA-256: 6e5f7e339bd5d31381032a31cf898eca75c1f9b244440bd62e4ced4165edc887
+Android test APK SHA-256: 62ae3ee49a142b4df5a95585d03f2c034f2c317c0233a5c5c74d7de3bf374843
+Production/tests/APKs remained frozen during that campaign.
+This receipt precedes the short-screen metadata repair under FND-20260928-008.
+Physical owner phone was not selected for instrumentation or installation.

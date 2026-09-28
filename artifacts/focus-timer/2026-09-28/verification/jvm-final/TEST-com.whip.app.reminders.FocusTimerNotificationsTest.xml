@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.reminders.FocusTimerNotificationsTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-09-28T09:56:21.135Z" hostname="beast" time="0.001">
+  <properties/>
+  <testcase name="future timer replacement requires its exact confirmed identity" classname="com.whip.app.reminders.FocusTimerNotificationsTest" time="0.001"/>
+  <testcase name="matching timer notifies only at or after its deadline" classname="com.whip.app.reminders.FocusTimerNotificationsTest" time="0.0"/>
+  <testcase name="a long expired focus timer is not resurrected after upgrade or restore" classname="com.whip.app.reminders.FocusTimerNotificationsTest" time="0.0"/>
+  <testcase name="replaced stopped and stale timers never notify" classname="com.whip.app.reminders.FocusTimerNotificationsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

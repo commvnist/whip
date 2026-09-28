@@ -1,0 +1,3 @@
+com.whip.app.GymPowerInputUiTest
+com.whip.app.WhipNavigationTest
+com.whip.app.WorkoutRestJourneyE2ETest

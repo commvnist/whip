@@ -1,0 +1,520 @@
+Route A app/src/androidTest/java/com/whip/app/FocusHomeJourneyE2ETest.kt -> android:com.whip.app.FocusHomeJourneyE2ETest (exact Android test class)
+Route A app/src/androidTest/java/com/whip/app/FocusTimeSelectionUiTest.kt -> android:com.whip.app.FocusTimeSelectionUiTest (exact Android test class)
+Route A app/src/androidTest/java/com/whip/app/FocusTimerCardUiTest.kt -> android:com.whip.app.FocusTimerCardUiTest (exact Android test class)
+Route A app/src/androidTest/java/com/whip/app/FocusTimerMutationIntegrationTest.kt -> android:com.whip.app.FocusTimerMutationIntegrationTest (exact Android test class)
+Route A app/src/main/java/com/whip/app/ui/FocusTimerUi.kt -> profile:tasks (feature-owned production path)
+Route A app/src/test/java/com/whip/app/ui/FocusTimerUiPolicyTest.kt -> jvm:com.whip.app.ui.FocusTimerUiPolicyTest (exact JVM test class)
+Route A artifacts/focus-timer/2026-09-28/README.md -> profile:docs (documentation-only path)
+Route A artifacts/focus-timer/2026-09-28/android-layout-followthrough.log -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/android-normal-acceptance.log -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/android-normal-accepted.log -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/android-normal-final.log -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/android-normal-repaired.log -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/android-normal.log -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/android-short-diagnostic.log -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/android-short-large-accepted.log -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/android-short-large.log -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/android-short-metadata.log -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/focused-jvm-repaired.log -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/focused-jvm.log -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/jacoco-diagnostic.log -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/jacoco-refactor.log -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/jvm/TEST-com.whip.app.reminders.FocusTimerNotificationsTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/jvm/TEST-com.whip.app.ui.FocusTimerUiPolicyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-acceptance.log -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-current.log -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-final.log -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.core.AppSettingsTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.core.HabitTimerClockTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.core.SettingsCauseEffectContractTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.data.PortableBackupPolicyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.data.RoutineProgrammingTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.domain.CrossDomainInsightsTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.domain.FiveThreeOneProgressionTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.domain.GoalRulesTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.domain.GymAnalyticsTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.domain.GymCalculationsTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.domain.HabitRulesTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.domain.HabitTimerDomainTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.domain.RecurrenceEngineTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.domain.TaskProgressTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.domain.TaskQuickCaptureParserTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.domain.TrackCsvBatchIdentityTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.domain.TrackDomainTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.reminders.FocusTimerNotificationsTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.AreaScopeFilterRelationshipsTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.ElapsedGoalPresentationTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.FiveThreeOneCycleReviewTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.FocusTimerUiPolicyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.GoalMutationCommitTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.GoalProgressPresentationTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.GymQuickSetFlowTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.GymUxRulesTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.HabitMutationCommitTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.HabitTimerPresentationTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.InteractionConsistencyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.ReviewAvailabilityTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.ReviewCopyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.ReviewEvidenceTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.ReviewOutcomesTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.RoutineBuilderStateTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.SettingsPresentationPolicyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.TaskMutationCommitTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.TaskWorkspacePolicyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.TrackCsvReliabilityPolicyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.TrackEditorStateTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.TrackInsightNumberFormatTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.TrackInsightWindowTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.UiDesignArchitectureTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.UnifiedSearchRulesTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.WhipNavigationPolicyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.ui.theme.WhipVisualLanguageTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-jvm/TEST-com.whip.app.widget.WidgetSnapshotCacheTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness-repaired.log -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/readiness.log -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-layout-followthrough/aggregate.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-layout-followthrough/batch-1.started -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-layout-followthrough/batch-1/executed-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-layout-followthrough/batch-1/expected-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-layout-followthrough/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-layout-followthrough/batch-rows/batch-1.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-normal/aggregate.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-normal/batch-1.started -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-normal/batch-1/executed-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-normal/batch-1/expected-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-normal/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-normal/batch-2.started -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-normal/batch-2/executed-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-normal/batch-2/expected-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-normal/batch-2/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-normal/batch-rows/batch-1.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-normal/batch-rows/batch-2.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-short-large/aggregate.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-short-large/batch-1.started -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-short-large/batch-1/executed-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-short-large/batch-1/expected-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-short-large/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-short-large/batch-rows/batch-1.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/accepted-short-large/text-layout.log -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/android-normal-method-results.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/aggregate.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/batch-1.started -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/batch-1/executed-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/batch-1/expected-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus-countdown-drawer.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus-countdown-drawer.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.custom-error.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.custom-error.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.custom-restored.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.custom-restored.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.custom.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.custom.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.custom.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.custom.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.gym-rest-error.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.gym-rest-error.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.gym-rest.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.gym-rest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.presets.large-top.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.presets.large-top.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.presets.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.presets.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.presets.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.presets.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.reminder-duplicate.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.reminder-duplicate.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.reminder.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.reminder.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.replacement.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.duration.replacement.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.home.channel-blocked.short-large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.home.channel-blocked.short-large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.home.channel-off.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.home.channel-off.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.home.channel-repaired.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.home.channel-repaired.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.home.native-complete.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.home.native-complete.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.home.pinned.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.home.pinned.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.home.started.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-final-fixture/visuals/focus.home.started.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/aggregate.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/batch-1.started -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/batch-1/executed-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/batch-1/expected-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus-countdown-drawer.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus-countdown-drawer.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.custom-error.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.custom-error.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.custom-restored.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.custom-restored.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.custom.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.custom.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.custom.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.custom.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.gym-rest-error.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.gym-rest-error.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.gym-rest.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.gym-rest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.presets.large-top.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.presets.large-top.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.presets.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.presets.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.presets.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.presets.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.reminder-duplicate.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.reminder-duplicate.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.reminder.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.reminder.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.replacement.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.duration.replacement.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.home.channel-off.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.home.channel-off.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.home.channel-repaired.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.home.channel-repaired.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.home.native-complete.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.home.pinned.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.home.pinned.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.home.started.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-followthrough/visuals/focus.home.started.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-normal/aggregate.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-normal/batch-1.started -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-normal/batch-1/executed-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-normal/batch-1/expected-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-normal/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-normal/visuals/focus.home.channel-off.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-normal/visuals/focus.home.channel-off.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-normal/visuals/focus.home.channel-repaired.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-normal/visuals/focus.home.channel-repaired.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-normal/visuals/focus.home.native-complete.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-large/aggregate.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-large/batch-1.started -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-large/batch-1/executed-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-large/batch-1/expected-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-large/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-large/visuals/focus.duration.custom.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-large/visuals/focus.duration.custom.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-large/visuals/focus.duration.presets.large-top.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-large/visuals/focus.duration.presets.large-top.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-large/visuals/focus.duration.presets.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-large/visuals/focus.duration.presets.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-large/visuals/focus.duration.reminder-duplicate.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-large/visuals/focus.duration.reminder-duplicate.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-large/visuals/focus.duration.reminder.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-large/visuals/focus.duration.reminder.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-metadata/aggregate.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-metadata/batch-1.started -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-metadata/batch-1/executed-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-metadata/batch-1/expected-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-metadata/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-metadata/visuals/focus.duration.custom.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-metadata/visuals/focus.duration.custom.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-metadata/visuals/focus.duration.presets.large-top.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-metadata/visuals/focus.duration.presets.large-top.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-metadata/visuals/focus.duration.presets.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-metadata/visuals/focus.duration.presets.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-metadata/visuals/focus.duration.reminder-duplicate.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-metadata/visuals/focus.duration.reminder-duplicate.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-metadata/visuals/focus.duration.reminder.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/failed-short-metadata/visuals/focus.duration.reminder.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.core.AppSettingsTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.core.HabitTimerClockTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.core.SettingsCauseEffectContractTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.data.PortableBackupPolicyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.data.RoutineProgrammingTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.domain.CrossDomainInsightsTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.domain.FiveThreeOneProgressionTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.domain.GoalRulesTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.domain.GymAnalyticsTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.domain.GymCalculationsTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.domain.HabitRulesTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.domain.HabitTimerDomainTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.domain.RecurrenceEngineTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.domain.TaskProgressTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.domain.TaskQuickCaptureParserTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.domain.TrackCsvBatchIdentityTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.domain.TrackDomainTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.reminders.FocusTimerNotificationsTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.AreaScopeFilterRelationshipsTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.ElapsedGoalPresentationTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.FiveThreeOneCycleReviewTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.FocusTimerUiPolicyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.GoalMutationCommitTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.GoalProgressPresentationTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.GymQuickSetFlowTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.GymUxRulesTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.HabitMutationCommitTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.HabitTimerPresentationTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.InteractionConsistencyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.ReviewAvailabilityTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.ReviewCopyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.ReviewEvidenceTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.ReviewOutcomesTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.RoutineBuilderStateTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.SettingsPresentationPolicyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.TaskMutationCommitTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.TaskWorkspacePolicyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.TrackCsvReliabilityPolicyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.TrackEditorStateTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.TrackInsightNumberFormatTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.TrackInsightWindowTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.UiDesignArchitectureTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.UnifiedSearchRulesTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.WhipNavigationPolicyTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.ui.theme.WhipVisualLanguageTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-final/TEST-com.whip.app.widget.WidgetSnapshotCacheTest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/jvm-method-results.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/normal-environment.txt -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/short-text-diagnostic/aggregate.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/short-text-diagnostic/batch-1.started -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/short-text-diagnostic/batch-1/executed-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/short-text-diagnostic/batch-1/expected-classes.txt -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/short-text-diagnostic/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/short-text-diagnostic/text-layout.log -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/short-text-diagnostic/visuals/focus.home.channel-blocked.short-large.before-layout-assertions.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/verification/short-text-diagnostic/visuals/focus.home.channel-blocked.short-large.before-layout-assertions.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-layout-followthrough/focus.home.channel-blocked.short-large.before-layout-assertions.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-layout-followthrough/focus.home.channel-blocked.short-large.before-layout-assertions.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-layout-followthrough/focus.home.channel-blocked.short-large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-layout-followthrough/focus.home.channel-blocked.short-large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-layout-followthrough/focus.home.channel-off.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-layout-followthrough/focus.home.channel-off.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-layout-followthrough/focus.home.channel-repaired.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-layout-followthrough/focus.home.channel-repaired.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-layout-followthrough/focus.home.native-complete.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-layout-followthrough/focus.home.native-complete.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-layout-followthrough/focus.home.pinned.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-layout-followthrough/focus.home.pinned.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-layout-followthrough/focus.home.started.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-layout-followthrough/focus.home.started.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus-countdown-drawer.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus-countdown-drawer.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.custom-error.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.custom-error.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.custom-restored.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.custom-restored.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.custom.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.custom.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.custom.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.custom.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.gym-rest-error.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.gym-rest-error.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.gym-rest.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.gym-rest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.presets.large-top.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.presets.large-top.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.presets.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.presets.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.presets.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.presets.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.reminder-duplicate.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.reminder-duplicate.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.reminder.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.reminder.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.replacement.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.duration.replacement.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.home.channel-blocked.short-large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.home.channel-blocked.short-large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.home.channel-off.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.home.channel-off.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.home.channel-repaired.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.home.channel-repaired.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.home.native-complete.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.home.native-complete.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.home.pinned.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.home.pinned.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.home.started.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/focus.home.started.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/gym.rest-duration.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/gym.rest-duration.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/gym.rest-journey.automatic.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/gym.rest-journey.automatic.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/gym.rest-journey.history.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/gym.rest-journey.history.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/gym.rest-journey.no-rest.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/gym.rest-journey.no-rest.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/gym.rest-journey.override.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/gym.rest-journey.override.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/gym.rest-journey.ready.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-normal/gym.rest-journey.ready.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-short-large/focus.duration.custom.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-short-large/focus.duration.custom.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-short-large/focus.duration.presets.large-top.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-short-large/focus.duration.presets.large-top.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-short-large/focus.duration.presets.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-short-large/focus.duration.presets.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-short-large/focus.duration.reminder-duplicate.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-short-large/focus.duration.reminder-duplicate.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-short-large/focus.duration.reminder.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-short-large/focus.duration.reminder.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-short-large/focus.home.channel-blocked.short-large.before-layout-assertions.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-short-large/focus.home.channel-blocked.short-large.before-layout-assertions.xml -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-short-large/focus.home.channel-blocked.short-large.png -> candidate:required (unclassified repository path)
+Route A artifacts/focus-timer/2026-09-28/visuals-short-large/focus.home.channel-blocked.short-large.xml -> candidate:required (unclassified repository path)
+Route A docs/quality/FOCUS_TIMER_UX_2026-09-28.md -> profile:docs (quality documentation path)
+Route M app/src/androidTest/java/com/whip/app/GymPowerInputUiTest.kt -> android:com.whip.app.GymPowerInputUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/TimerAlarmIntegrationTest.kt -> android:com.whip.app.TimerAlarmIntegrationTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/WorkoutRestJourneyE2ETest.kt -> android:com.whip.app.WorkoutRestJourneyE2ETest (exact Android test class)
+Route M app/src/main/AndroidManifest.xml -> profile:shell (application resource or manifest path)
+Route M app/src/main/java/com/whip/app/MainActivity.kt -> profile:all (shared UI/core production path)
+Route M app/src/main/java/com/whip/app/WhipApplication.kt -> profile:all (shared UI/core production path)
+Route M app/src/main/java/com/whip/app/reminders/FocusTimerNotifications.kt -> profile:tasks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/GymScreens.kt -> profile:gym (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/SettingsViewModel.kt -> profile:settings (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/TaskComponents.kt -> profile:tasks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/TaskEditorDialog.kt -> profile:tasks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/WhipApp.kt -> profile:all (shared UI/core production path)
+Route M app/src/test/java/com/whip/app/reminders/FocusTimerNotificationsTest.kt -> jvm:com.whip.app.reminders.FocusTimerNotificationsTest (exact JVM test class)
+Route M docs/product-memory/DECISIONS.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/FINDINGS.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/IMPLEMENTATION_LOG.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/INDEX.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/USER_FEEDBACK.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/VERIFICATION.md -> profile:docs (documentation-only path)
+Route M docs/testing.md -> profile:docs (documentation-only path)
+Profile: all
+Profile: docs
+Profile: gym
+Profile: settings
+Profile: shell
+Profile: tasks
+JVM selector: com.whip.app.reminders.FocusTimerNotificationsTest
+JVM selector: com.whip.app.ui.FocusTimerUiPolicyTest
+Android selector: com.whip.app.FocusHomeJourneyE2ETest
+Android selector: com.whip.app.FocusTimeSelectionUiTest
+Android selector: com.whip.app.FocusTimerCardUiTest
+Android selector: com.whip.app.FocusTimerMutationIntegrationTest
+Android selector: com.whip.app.GymPowerInputUiTest
+Android selector: com.whip.app.TimerAlarmIntegrationTest
+Android selector: com.whip.app.WorkoutRestJourneyE2ETest
+All JVM tests: false
+All Android tests: false
+Static checks: true
+Frozen candidate required: true
+Reusing configuration cache.
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:generateDebugJacocoPropertiesFile UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:kspDebugKotlin UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:kspDebugUnitTestKotlin SKIPPED
+> Task :app:compileDebugUnitTestKotlin UP-TO-DATE
+> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:copyRoomSchemas NO-SOURCE
+> Task :app:bundleDebugClassesToRuntimeJar
+> Task :app:testDebugUnitTest
+
+BUILD SUCCESSFUL in 4s
+29 actionable tasks: 2 executed, 27 up-to-date
+Configuration cache entry reused.
+Targeted JVM checks passed; Android-test compilation was intentionally deferred.
+Play Store assets verified: 512x512 icon, 1024x500 feature graphic, and 5 phone screenshots
+Reusing configuration cache.
+> Task :app:preBuild UP-TO-DATE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:generateDebugJacocoPropertiesFile UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:generateDebugGlobalSynthetics UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:preDebugAndroidTestBuild SKIPPED
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:generateDebugAndroidTestResValues UP-TO-DATE
+> Task :app:processDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:generateDebugAndroidTestResources UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:mergeDebugNativeLibs UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:packageDebugAndroidTestResources UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:stripDebugDebugSymbols UP-TO-DATE
+> Task :app:parseDebugAndroidTestLocalResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:generateDebugAndroidTestRFile UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:mergeDebugAndroidTestManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugAndroidTestManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:generateDebugAndroidTestBuildConfig UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:kspDebugKotlin UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:jacocoDebug UP-TO-DATE
+> Task :app:kspDebugAndroidTestKotlin SKIPPED
+> Task :app:copyRoomSchemas NO-SOURCE
+> Task :app:dexBuilderDebug UP-TO-DATE
+> Task :app:mergeProjectDexDebug UP-TO-DATE
+> Task :app:mergeDebugJavaResource UP-TO-DATE
+> Task :app:packageDebug UP-TO-DATE
+> Task :app:assembleDebug UP-TO-DATE
+> Task :app:createDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:compileDebugAndroidTestKotlin UP-TO-DATE
+> Task :app:generateDebugUnitTestLintModel
+> Task :app:generateDebugLintReportModel
+> Task :app:generateDebugAndroidTestLintModel
+> Task :app:lintAnalyzeDebugUnitTest
+> Task :app:lintAnalyzeDebugAndroidTest
+> Task :app:lintAnalyzeDebug
+
+> Task :app:lintReportDebug
+Wrote HTML report to file:///root/repos/whip/app/build/reports/lint-results-debug.html
+Wrote SARIF report to file:///root/repos/whip/app/build/reports/lint-results-debug.sarif
+
+> Task :app:lintDebug
+
+BUILD SUCCESSFUL in 2m 54s
+62 actionable tasks: 8 executed, 54 up-to-date
+Configuration cache entry reused.
+Affected-change readiness gate passed. Frozen-candidate evidence was not created.
+Play Store note: qualify these inputs with a fresh scripts/candidate run only when preparing a store release.

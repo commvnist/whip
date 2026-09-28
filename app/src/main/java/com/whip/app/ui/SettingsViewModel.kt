@@ -29,6 +29,7 @@ import com.whip.app.domain.WhipTag
 import com.whip.app.domain.CustomIdentityEmoji
 import com.whip.app.domain.CustomUnitBoundary
 import com.whip.app.domain.normalizeCustomIdentityEmojis
+import com.whip.app.reminders.FocusTimerStartReceipt
 import com.whip.app.widget.WhipWidgetProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -101,6 +102,11 @@ data class SettingsMutationReceipt(
     val warnings: List<String> = emptyList(),
 )
 
+data class FocusTimerMutationReceipt(
+    val started: FocusTimerStartReceipt? = null,
+    val stopped: Boolean = false,
+)
+
 data class CustomUnitMutationReceipt(val unitId: String)
 
 enum class AreaMutationKind {
@@ -139,6 +145,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _typedSettingMutationState =
         MutableStateFlow<PersistenceRequestState<SettingsMutationReceipt>>(PersistenceRequestState.Idle)
     internal val typedSettingMutationState = _typedSettingMutationState.asStateFlow()
+    private val _focusTimerMutationState =
+        MutableStateFlow<PersistenceRequestState<FocusTimerMutationReceipt>>(PersistenceRequestState.Idle)
+    internal val focusTimerMutationState = _focusTimerMutationState.asStateFlow()
+    internal val focusTimerCompletions = app.focusTimerScheduler.completions
     private val _customUnitMutationState =
         MutableStateFlow<PersistenceRequestState<CustomUnitMutationReceipt>>(PersistenceRequestState.Idle)
     internal val customUnitMutationState = _customUnitMutationState.asStateFlow()
@@ -455,16 +465,65 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun selectHomeTaskFilter(name: String?) = update { it.copy(homeTaskFilterName = name) }
 
-    fun startFocusTimer(taskId: Long, minutes: Int = 25) {
-        require(taskId > 0L) { "Focus timer requires a valid Task" }
-        val deadline = System.currentTimeMillis() + minutes.coerceIn(1, 240) * 60_000L
-        update { it.copy(focusTimerDeadlineMillis = deadline, focusTimerTaskId = taskId) }
-        viewModelScope.launch { app.focusTimerScheduler.schedule(taskId, deadline) }
+    fun startFocusTimer(
+        requestId: String,
+        taskId: Long,
+        minutes: Int = 30,
+        expectedActiveTaskId: Long? = null,
+        expectedActiveDeadlineMillis: Long? = null,
+    ): Boolean = mutateFocusTimer(requestId) {
+        FocusTimerMutationReceipt(
+            started = app.focusTimerScheduler.start(
+                taskId, minutes, expectedActiveTaskId, expectedActiveDeadlineMillis,
+            ),
+        )
     }
 
-    fun stopFocusTimer() {
-        update { it.copy(focusTimerDeadlineMillis = null, focusTimerTaskId = null) }
-        app.focusTimerScheduler.cancel()
+    fun stopFocusTimer(requestId: String, taskId: Long, deadlineMillis: Long): Boolean =
+        mutateFocusTimer(requestId) {
+            FocusTimerMutationReceipt(stopped = app.focusTimerScheduler.stopIfCurrent(taskId, deadlineMillis))
+        }
+
+    fun consumeFocusTimerMutation(requestId: String) {
+        if ((_focusTimerMutationState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
+            _focusTimerMutationState.value = PersistenceRequestState.Idle
+        }
+    }
+
+    private fun mutateFocusTimer(
+        requestId: String,
+        mutation: suspend () -> FocusTimerMutationReceipt,
+    ): Boolean {
+        if (!_focusTimerMutationState.tryStartPersistenceRequest(requestId)) return false
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = try {
+                WhipResult.Success(mutation())
+            } catch (cancelled: CancellationException) {
+                if ((_focusTimerMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                    _focusTimerMutationState.value = PersistenceRequestState.Idle
+                }
+                throw cancelled
+            } catch (error: Exception) {
+                WhipResult.Failure(error.message ?: "Whip could not update the Focus timer. Try again.", error)
+            }
+            if ((_focusTimerMutationState.value as? PersistenceRequestState.Running)?.requestId == requestId) {
+                _focusTimerMutationState.value = PersistenceRequestState.Finished(requestId, result)
+            }
+        }
+        return true
+    }
+
+    fun refreshFocusTimerNotification() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                app.focusTimerScheduler.refreshNotification()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // The persisted timer and its completion delivery remain authoritative.
+                // Home/Tasks show effective Android availability and offer recovery.
+            }
+        }
     }
 
     fun createArea(

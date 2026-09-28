@@ -1,0 +1,19 @@
+{
+  "result": "PASS",
+  "target": "emulator-5554",
+  "api": 34,
+  "density": 420,
+  "installed_debug_apk_sha256": "261e45cf10d467e8311015ced50173a50ca52bb43671808e7df5d3f7c73773a7",
+  "first_timer_pair_preserved_through_runtime_revocation_and_reopening": true,
+  "fresh_start_denied_by_android_prompt_has_no_native_record": true,
+  "android_settings_grant_and_return_preserves_exact_second_pair": true,
+  "native_countdown_metadata_matches_deadline": true,
+  "cold_stop_without_activity_launch_clears_pair_and_notification": true,
+  "task_remains_incomplete": true,
+  "short_200_percent_home_list_height_dp": 163.8095238095238,
+  "cleanup_font_scale": "1.0",
+  "cleanup_display": "Physical size: 1080x2400",
+  "note": "Android retained an existing notification record on pm revoke. Fresh denied start was tested separately; no absence claim is inferred from revocation alone. Initial am kill sampled before process exit; settled/pre-Stop PID absence is the cold proof.",
+  "cold_native_open_launches_exact_task_inspector_without_changing_pair": true,
+  "final_cleanup_pair_and_native_record_empty": true
+}

@@ -1,5 +1,14 @@
 # Implementation history
 
+### IMP-20260928-006 — Overhaul Focus duration, active feedback and phone timing
+
+- Behavior: Direct 15/30/45/60 shortcuts and validated saveable Custom Time, replacement confirmation and busy/failure recovery. Matching Gym rest/reminder affordances preserve unit-bearing fields and explicit ranges. Android clock selection/labels and Focus finish time respect the chosen 12/24-hour format. The shared card stays above Home's list and also appears on Tasks; unscoped identity, Open/Stop, alert state and system recovery remain visible. Confirmed receipts drive start/stop feedback; once-only non-replaying committed completion leaves Task completion explicit.
+- Native integrity: Existing channel/ID carries a silent ongoing countdown with immutable Open/Stop, then becomes the completion alert. Serialized confirmed mutation, expected-pair replacement consent, post-await generation/state checks, Task ownership transaction and compare-inside-deletion cleanup prevent stale work/action/cancel races. Permission result/resume refreshes presentation without replacing scheduled work. Cold Stop and actual permission Settings return are exercised externally.
+- Follow-through: Extract the Focus owner to preserve JaCoCo instrumentation; name clipped Home status cards/interactive headings; use Custom Time in Gym's contextual spoken label. Compact metadata/permission copy repairs the reproduced 131.81dp short Home list to 163.81dp at actual 200%, preserving 48dp controls and full clock/finish text. Strict fixtures check actual line bounds rather than a mismatched paragraph-container overflow flag.
+- Files: FocusTimerNotifications, MainActivity, WhipApplication, SettingsViewModel, WhipApp, FocusTimerUi, TaskComponents, TaskEditorDialog, GymScreens, manifest and focused JVM/native fixtures.
+- Compatibility: Room 46, epoch 6, backup 26, release 0.3.81/code 87, package/signing and dependencies unchanged. No owner-phone install or new Play candidate.
+- Related/status: FB-20260928-004, FND-20260928-005/006/007/008, DEC-20260928-002. Implemented and Verified under VER-20260928-004. Fresh 412-method readiness, 45 distinct native methods across 56 accepted executions and external permission/cold-process proof close the accepted scope.
+
 ### IMP-20260928-005 — Package the second component audit as private update 0.3.81
 
 - Related: FB-20260928-003; IMP-20260928-002/003/004 and VER-20260928-002.

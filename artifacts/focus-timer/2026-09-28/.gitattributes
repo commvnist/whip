@@ -1,0 +1,5 @@
+# Preserve native Android/JUnit CRLF and tabular receipts byte-for-byte.
+*.xml -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+*.tsv -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+# Preserve the compiler's original trailing space in the focused JVM receipt.
+focused-jvm-repaired.log -text whitespace=-blank-at-eol

@@ -6,6 +6,15 @@ import org.junit.Test
 
 class FocusTimerNotificationsTest {
     @Test
+    fun `future timer replacement requires its exact confirmed identity`() {
+        assertFalse(focusTimerReplacementAllowed(7, 20_000, null, null, 10_000))
+        assertFalse(focusTimerReplacementAllowed(7, 20_000, 7, 19_000, 10_000))
+        assertFalse(focusTimerReplacementAllowed(7, 20_000, 8, 20_000, 10_000))
+        assertTrue(focusTimerReplacementAllowed(7, 20_000, 7, 20_000, 10_000))
+        assertTrue(focusTimerReplacementAllowed(7, 20_000, null, null, 20_000))
+        assertTrue(focusTimerReplacementAllowed(null, null, null, null, 10_000))
+    }
+    @Test
     fun `matching timer notifies only at or after its deadline`() {
         assertFalse(focusTimerShouldNotify(7, 10_000, 7, 10_000, 8_999))
         assertTrue(focusTimerShouldNotify(7, 10_000, 7, 10_000, 9_000))

@@ -1,0 +1,107 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="41" failures="0" errors="0" skipped="0" time="140.698" timestamp="2026-09-28T09:32:42" hostname="localhost">
+  <testsuite name="com.whip.app.FocusTimeSelectionUiTest" tests="10" failures="0" errors="0" skipped="0" time="51.013" timestamp="2026-09-28T09:32:42" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="taskClockLabelFollowsAndroid12And24HourPreference" classname="com.whip.app.FocusTimeSelectionUiTest" time="1.652" />
+    <testcase name="customRejectsInvalidInputAndStartsExact37MinutesWithoutClosingDraft" classname="com.whip.app.FocusTimeSelectionUiTest" time="7.359" />
+    <testcase name="gymCustomRestKeepsSecondsAndRejectsInvalidDuration" classname="com.whip.app.FocusTimeSelectionUiTest" time="5.512" />
+    <testcase name="enlargedPresetsAndCustomControlRemainReachableWith48DpTargets" classname="com.whip.app.FocusTimeSelectionUiTest" time="7.495" />
+    <testcase name="reminderCustomTimePreservesInvalidInputAndAddsExactOffsetAtLargeText" classname="com.whip.app.FocusTimeSelectionUiTest" time="7.871" />
+    <testcase name="presetReplacementRequiresConsentBeforeStarting" classname="com.whip.app.FocusTimeSelectionUiTest" time="3.319" />
+    <testcase name="replacementNamesCurrentTimerAndKeepRestoresCustomDraft" classname="com.whip.app.FocusTimeSelectionUiTest" time="7.013" />
+    <testcase name="pendingStartBlocksControlsAndFailurePreservesDraftForRetry" classname="com.whip.app.FocusTimeSelectionUiTest" time="3.968" />
+    <testcase name="presetsStartExactly15_30_45_60Minutes" classname="com.whip.app.FocusTimeSelectionUiTest" time="3.671" />
+    <testcase name="cancelStartsNothingAndCustomDraftSurvivesRecreation" classname="com.whip.app.FocusTimeSelectionUiTest" time="3.153" />
+  </testsuite>
+  <testsuite name="com.whip.app.FocusTimerCardUiTest" tests="3" failures="0" errors="0" skipped="0" time="4.603" timestamp="2026-09-28T09:32:42" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="busyStopDisablesDuplicateActionsAndFailureKeepsRecovery" classname="com.whip.app.FocusTimerCardUiTest" time="1.107" />
+    <testcase name="compactCardKeepsOpenStopAndAlertRecoveryReachableWithoutTickAnnouncements" classname="com.whip.app.FocusTimerCardUiTest" time="2.214" />
+    <testcase name="dueSessionShowsCompletionWithoutNegativeTimeOrCompletingTheTask" classname="com.whip.app.FocusTimerCardUiTest" time="1.282" />
+  </testsuite>
+  <testsuite name="com.whip.app.FocusHomeJourneyE2ETest" tests="4" failures="0" errors="0" skipped="0" time="45.091" timestamp="2026-09-28T09:32:42" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="androidFocusChannelRecoveryRefreshesTheCardAndRepublishesTheCountdown" classname="com.whip.app.FocusHomeJourneyE2ETest" time="15.903" />
+    <testcase name="matchingNativeCompletionAcknowledgesForegroundOnceAndLeavesTaskOpen" classname="com.whip.app.FocusHomeJourneyE2ETest" time="8.417" />
+    <testcase name="blockedChannelAndLongTitleKeepHomeControlsAndListUsableAtShortHeight" classname="com.whip.app.FocusHomeJourneyE2ETest" time="11.509" />
+    <testcase name="lowHomeTaskStartPinsCountdownAndOpenStopSurviveRecreationAndAreaChange" classname="com.whip.app.FocusHomeJourneyE2ETest" time="9.262" />
+  </testsuite>
+  <testsuite name="com.whip.app.FocusTimerMutationIntegrationTest" tests="3" failures="0" errors="0" skipped="0" time="1.011" timestamp="2026-09-28T09:32:42" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="failedCustomDurationRetainsTheExistingTimerAndAllowsAnExplicitCorrection" classname="com.whip.app.FocusTimerMutationIntegrationTest" time="0.38" />
+    <testcase name="staleStopAcknowledgesNoChangeAndCurrentStopClearsTheDurablePair" classname="com.whip.app.FocusTimerMutationIntegrationTest" time="0.354" />
+    <testcase name="confirmedStartUsesThirtyMinutesAndOnlyItsOwnerCanConsumeTheResult" classname="com.whip.app.FocusTimerMutationIntegrationTest" time="0.277" />
+  </testsuite>
+  <testsuite name="com.whip.app.TimerAlarmIntegrationTest" tests="16" failures="0" errors="0" skipped="0" time="30.459" timestamp="2026-09-28T09:32:42" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="blockedFocusChannelKeepsTheConfirmedTimerAndRefreshesAfterAndroidAllowsIt" classname="com.whip.app.TimerAlarmIntegrationTest" time="6.693" />
+    <testcase name="focusTimerWakesAndPostsWithoutOpeningAnActivity" classname="com.whip.app.TimerAlarmIntegrationTest" time="5.354" />
+    <testcase name="confirmedFocusStartPublishesNativeCountdownAndStopActionClearsIt" classname="com.whip.app.TimerAlarmIntegrationTest" time="0.126" />
+    <testcase name="focusCountdownTicksInAndroidDrawerAndVisibleStopClearsIt" classname="com.whip.app.TimerAlarmIntegrationTest" time="5.428" />
+    <testcase name="exactAccessGrantRebuildsBothPersistedTimerAlarms" classname="com.whip.app.TimerAlarmIntegrationTest" time="0.731" />
+    <testcase name="staleFocusWakeupCannotReplaceANewerTimer" classname="com.whip.app.TimerAlarmIntegrationTest" time="0.428" />
+    <testcase name="focusReplacementRequiresConsentAndOldStopCannotStopReplacement" classname="com.whip.app.TimerAlarmIntegrationTest" time="0.506" />
+    <testcase name="staleRestWakeupCannotReplaceANewerTimer" classname="com.whip.app.TimerAlarmIntegrationTest" time="0.202" />
+    <testcase name="lateOldFocusScheduleCannotReplaceTheCurrentTimerWork" classname="com.whip.app.TimerAlarmIntegrationTest" time="0.152" />
+    <testcase name="longExpiredFocusTimerIsClearedWithoutResurrectingAnAlert" classname="com.whip.app.TimerAlarmIntegrationTest" time="0.101" />
+    <testcase name="focusStartRejectsInvalidDurationMissingAndArchivedTask" classname="com.whip.app.TimerAlarmIntegrationTest" time="0.101" />
+    <testcase name="focusCompletionEventRequiresMatchingDurableClearEvenWhenAndroidBlocksTheFocusChannel" classname="com.whip.app.TimerAlarmIntegrationTest" time="4.278" />
+    <testcase name="cancellationQueuedForClearedTimerCannotCancelNewerPairOrWork" classname="com.whip.app.TimerAlarmIntegrationTest" time="0.454" />
+    <testcase name="lateOldRestScheduleCannotReplaceTheCurrentTimerWork" classname="com.whip.app.TimerAlarmIntegrationTest" time="0.253" />
+    <testcase name="focusNotificationRefreshRestoresPresentationWithoutReplacingWork" classname="com.whip.app.TimerAlarmIntegrationTest" time="0.353" />
+    <testcase name="restTimerWakesAndPostsWithoutOpeningAnActivity" classname="com.whip.app.TimerAlarmIntegrationTest" time="5.299" />
+  </testsuite>
+  <testsuite name="com.whip.app.AppSettingsPersistenceTest" tests="2" failures="0" errors="0" skipped="0" time="0.127" timestamp="2026-09-28T09:32:42" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="concurrentRepositoryInstancesDoNotLoseUnrelatedSettingsUpdates" classname="com.whip.app.AppSettingsPersistenceTest" time="0.127" />
+    <testcase name="dueFocusTimerRemainsReadableUntilTheWorkerClearsIt" classname="com.whip.app.AppSettingsPersistenceTest" time="0.0" />
+  </testsuite>
+  <testsuite name="com.whip.app.NotificationActionIntegrityTest" tests="1" failures="0" errors="0" skipped="0" time="0.152" timestamp="2026-09-28T09:32:42" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="permanentTaskDeletionDurablyClearsItsFocusTimer" classname="com.whip.app.NotificationActionIntegrityTest" time="0.152" />
+  </testsuite>
+  <testsuite name="com.whip.app.RecoveryBoundaryIntegrationTest" tests="1" failures="0" errors="0" skipped="0" time="0.855" timestamp="2026-09-28T09:32:42" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="blockedRecoveryPreventsWorkerNotificationAndWidgetDataAccess" classname="com.whip.app.RecoveryBoundaryIntegrationTest" time="0.855" />
+  </testsuite>
+  <testsuite name="com.whip.app.GymPowerInputUiTest" tests="1" failures="0" errors="0" skipped="0" time="5.424" timestamp="2026-09-28T09:32:42" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="readyRestTimerMakesWorkoutScopedDurationDiscoverableAndUsesIt" classname="com.whip.app.GymPowerInputUiTest" time="5.424" />
+  </testsuite>
+</testsuites>

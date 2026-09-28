@@ -1,0 +1,3 @@
+com.whip.app.FocusHomeJourneyE2ETest
+com.whip.app.FocusTimeSelectionUiTest
+com.whip.app.FocusTimerCardUiTest

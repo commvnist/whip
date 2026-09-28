@@ -2,12 +2,11 @@
 
 ### FB-20260928-004 — Make Focus duration, Home feedback and phone timing coherent
 
-- Date/source: 2026-09-28, explicit owner goal, with clarification that the lack of Home indication is a defect that must be fixed. Owner authorizes the current Sol/max parent and three Sol/medium agents.
-- User need: Focus shortcuts of 15, 30, 45 and 60 minutes, a custom-time option with consistent wording and interaction across the app, a phone notification displaying the running timer, and immediate visible Home acknowledgement/progress after starting.
-- Acceptance criteria: Plan before production edits; implement every requested behavior and related confirmed input/lifecycle issues. Preserve Task ownership, exact deadline and reliable completion scheduling; validate custom input instead of clamping it; keep Home timer visible without requiring Tasks navigation; provide truthful saved-start/failure feedback, Open and Stop controls; prevent stale notification actions or queued cancellation from affecting a replacement timer. Align custom duration entry affordances while preserving minutes, seconds, reminder offsets and clock-time semantics. Verify real Android notification/countdown, Home journey, saved-state/recreation, denial, cancellation and affected regression scope.
-- Related: FND-20260921-005, FND-20260903-009; [focused plan](../quality/FOCUS_TIMER_UX_2026-09-28.md). No new private release or Play publication is requested in this task.
-- Status: In progress. Clean baseline `e799ab02`; existing private owner-phone build is 0.3.81/code 87.
-- Owner scope clarification: Treat this as a Focus timer overhaul and upgrade pass. Review the complete selection/start/running/replacement/stop/completion/permission/recreation journey; fix supported defects through shared owners rather than limiting the work to three isolated changes.
+- Date/source: 2026-09-28, explicit owner goal. The lack of Home indication is a defect to fix. Owner authorizes the Sol/max parent and three Sol/medium agents and clarifies that this is a Focus timer overhaul.
+- User need: 15/30/45/60-minute shortcuts, consistent Custom Time selection, native running countdown notification and immediate Home acknowledgement/progress.
+- Acceptance: Plan before production edits and implement the full selection/start/running/replacement/stop/completion/permission/recreation journey. Preserve exact Task/deadline ownership and scheduling; validate rather than clamp; pin feedback on Home; recover drafts/failures; prevent stale native actions/cancellation from affecting replacements. Align equivalent Custom Time affordances while preserving explicit minutes, seconds, offsets and clock-time meanings.
+- Scope/status: Implemented and Verified under IMP-20260928-006 / VER-20260928-004. All five workstreams and 40 reviewed workflow dispositions are closed in the [plan](../quality/FOCUS_TIMER_UX_2026-09-28.md), including confirmed layout/accessibility defects. Fresh affected readiness passes 412 JVM methods; incremental native acceptance covers 45 distinct methods across 56 executions, all 32 new methods, actual 200% layouts and external real-permission/cold-process checks.
+- Baseline/boundary: Clean e799ab02; plan committed as 78923c7c before implementation. Related FND-20260921-005 and FND-20260903-009. The owner phone remains on private 0.3.81/code 87; no new phone install or Play publication is part of this task.
 
 ### FB-20260928-003 — Release the second audit improvements to the owner phone
 

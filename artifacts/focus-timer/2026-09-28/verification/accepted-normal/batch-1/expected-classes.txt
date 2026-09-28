@@ -1,0 +1,9 @@
+com.whip.app.AppSettingsPersistenceTest
+com.whip.app.FocusHomeJourneyE2ETest
+com.whip.app.FocusTimeSelectionUiTest
+com.whip.app.FocusTimerCardUiTest
+com.whip.app.FocusTimerMutationIntegrationTest
+com.whip.app.GymPowerInputUiTest
+com.whip.app.NotificationActionIntegrityTest
+com.whip.app.RecoveryBoundaryIntegrationTest
+com.whip.app.TimerAlarmIntegrationTest
