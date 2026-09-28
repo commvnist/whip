@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.GymProgressScopeTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-09-28T04:00:25.709Z" hostname="beast" time="0.318">
+  <properties/>
+  <testcase name="ordinaryFreeWeightHistoryDoesNotDisableExerciseComparisons" classname="com.whip.app.ui.GymProgressScopeTest" time="0.317"/>
+  <testcase name="bestGraphValueFollowsResistanceDirectionAndPaceMeaning" classname="com.whip.app.ui.GymProgressScopeTest" time="0.0"/>
+  <testcase name="anyMachineProfileSnapshotEnablesEquipmentScoping" classname="com.whip.app.ui.GymProgressScopeTest" time="0.0"/>
+  <testcase name="deletedMachineSnapshotStillEnablesEquipmentScoping" classname="com.whip.app.ui.GymProgressScopeTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

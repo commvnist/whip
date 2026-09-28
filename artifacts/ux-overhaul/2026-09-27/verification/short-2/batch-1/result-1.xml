@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="4" failures="2" errors="0" skipped="0" time="31.087" timestamp="2026-09-28T03:00:24" hostname="localhost">
+  <testsuite name="com.whip.app.GymPowerInputUiTest" tests="1" failures="1" errors="0" skipped="0" time="3.333" timestamp="2026-09-28T03:00:24" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="compactActiveLaneLeavesRoomForSetEntryAtNativeLargeText" classname="com.whip.app.GymPowerInputUiTest" time="3.333">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'Chest supported alternating single arm cable row with controlled pause' (ignoreCase: false))
+Semantics of the node:
+Node #67 at (l=53.0, t=1163.0, r=787.0, b=1537.0)px, Tag: 'workout-next-set-details'
+Text = '[Next · Chest supported alternating single arm cable row with controlled pause · Set 1]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 9 siblings
+Selector used: (TestTag = 'workout-next-set-details')
+
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+at com.whip.app.GymPowerInputUiTest.compactActiveLaneLeavesRoomForSetEntryAtNativeLargeText(GymPowerInputUiTest.kt:159)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.HomeHabitRecoveryUiTest" tests="2" failures="1" errors="0" skipped="0" time="20.83" timestamp="2026-09-28T03:00:24" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="denseTaskCalendarKeepsDateAndCountsLegibleAtLargeText" classname="com.whip.app.HomeHabitRecoveryUiTest" time="14.619">
+      <failure>androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 10000 ms
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:901)
+at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:500)
+at com.whip.app.HomeHabitRecoveryUiTest.openTaskCalendar(HomeHabitRecoveryUiTest.kt:47)
+at com.whip.app.HomeHabitRecoveryUiTest.denseTaskCalendarKeepsDateAndCountsLegibleAtLargeText(HomeHabitRecoveryUiTest.kt:184)
+</failure>
+    </testcase>
+    <testcase name="manyTaskFiltersKeepTheResultsViewportReachableAtLargeText" classname="com.whip.app.HomeHabitRecoveryUiTest" time="6.211" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.HabitUxPresentationUiTest" tests="1" failures="0" errors="0" skipped="0" time="5.713" timestamp="2026-09-28T03:00:24" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="timerReviewKeepsEditableEstimateAndActionsReachableWithKeyboard" classname="com.whip.app.ui.HabitUxPresentationUiTest" time="5.713" />
+  </testsuite>
+</testsuites>

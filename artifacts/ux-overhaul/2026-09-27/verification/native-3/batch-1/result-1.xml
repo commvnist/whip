@@ -1,0 +1,233 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="58" failures="7" errors="0" skipped="0" time="450.995" timestamp="2026-09-28T03:31:32" hostname="localhost">
+  <testsuite name="com.whip.app.GymLibraryJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="12.328" timestamp="2026-09-28T03:31:32" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="emptyHistoryCalendarReturnsToCurrentCollection" classname="com.whip.app.GymLibraryJourneyE2ETest" time="12.328" />
+  </testsuite>
+  <testsuite name="com.whip.app.HomeHabitRecoveryUiTest" tests="9" failures="3" errors="0" skipped="0" time="38.195" timestamp="2026-09-28T03:31:32" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="offScheduleHabitsOpenSavedCollectionAtLargeText" classname="com.whip.app.HomeHabitRecoveryUiTest" time="4.726" />
+    <testcase name="habitInsightsShowRealActivityAndOpenThatHabitsHistory" classname="com.whip.app.HomeHabitRecoveryUiTest" time="0.281">
+      <failure>java.lang.IllegalArgumentException: A value is required
+at com.whip.app.data.RoomMeasurementRepository$record$2.invokeSuspend(MeasurementRepository.kt:489)
+at com.whip.app.data.RoomMeasurementRepository$record$2.invoke(Unknown Source:14)
+at com.whip.app.data.RoomMeasurementRepository$record$2.invoke(Unknown Source:9)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransaction$2.invokeSuspend(RoomDatabase.android.kt:2044)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransaction$2.invoke(Unknown Source:12)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransaction$2.invoke(Unknown Source:7)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransactionContext$transactionBlock$1.invokeSuspend(RoomDatabase.android.kt:2058)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransactionContext$transactionBlock$1.invoke(Unknown Source:12)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransactionContext$transactionBlock$1.invoke(Unknown Source:10)
+at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturn(Undispatched.kt:42)
+at kotlinx.coroutines.BuildersKt__Builders_commonKt.withContext(Builders.common.kt:164)
+at kotlinx.coroutines.BuildersKt.withContext(Unknown Source:1)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt.withTransactionContext(RoomDatabase.android.kt:2063)
+at androidx.room.RoomDatabaseKt.withTransactionContext(Unknown Source:1)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt.withTransaction(RoomDatabase.android.kt:2041)
+at androidx.room.RoomDatabaseKt.withTransaction(Unknown Source:1)
+at com.whip.app.data.RoomMeasurementRepository.record(MeasurementRepository.kt:481)
+at com.whip.app.data.MeasurementRepository.record$default(MeasurementRepository.kt:101)
+at com.whip.app.data.RoomHabitRepository$log$2.invokeSuspend(HabitRepository.kt:313)
+at com.whip.app.data.RoomHabitRepository$log$2.invoke(Unknown Source:14)
+at com.whip.app.data.RoomHabitRepository$log$2.invoke(Unknown Source:9)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransaction$2.invokeSuspend(RoomDatabase.android.kt:2044)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransaction$2.invoke(Unknown Source:12)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransaction$2.invoke(Unknown Source:7)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransactionContext$transactionBlock$1.invokeSuspend(RoomDatabase.android.kt:2058)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransactionContext$transactionBlock$1.invoke(Unknown Source:12)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$withTransactionContext$transactionBlock$1.invoke(Unknown Source:10)
+at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturn(Undispatched.kt:42)
+at kotlinx.coroutines.BuildersKt__Builders_commonKt.withContext(Builders.common.kt:164)
+at kotlinx.coroutines.BuildersKt.withContext(Unknown Source:1)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$startTransactionCoroutine$2$1$1.invokeSuspend(RoomDatabase.android.kt:2087)
+at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source:1)
+at androidx.room.RoomDatabaseKt__RoomDatabase_androidKt$startTransactionCoroutine$2$1.run(RoomDatabase.android.kt:2084)
+at androidx.room.TransactionExecutor.execute$lambda$1$lambda$0(TransactionExecutor.android.kt:38)
+at androidx.room.TransactionExecutor$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
+at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)
+at java.lang.Thread.run(Thread.java:1012)
+</failure>
+    </testcase>
+    <testcase name="firstHabitStillOffersTemplates" classname="com.whip.app.HomeHabitRecoveryUiTest" time="2.945" />
+    <testcase name="emptyAreaCanRecoverExistingHabitsWithoutCreatingDuplicates" classname="com.whip.app.HomeHabitRecoveryUiTest" time="2.645">
+      <failure>java.lang.IllegalStateException: Check failed.
+at com.whip.app.HomeHabitRecoveryUiTest.emptyAreaCanRecoverExistingHabitsWithoutCreatingDuplicates(HomeHabitRecoveryUiTest.kt:106)
+</failure>
+    </testcase>
+    <testcase name="denseTaskCalendarKeepsDateAndCountsLegibleAtLargeText" classname="com.whip.app.HomeHabitRecoveryUiTest" time="6.521" />
+    <testcase name="calendarExplainsClearDayAndBoundsLoadedPlanningWindow" classname="com.whip.app.HomeHabitRecoveryUiTest" time="8.42" />
+    <testcase name="filteredHomeKeepsRecoveryReachableAndRestoresSavedTasksAtLargeText" classname="com.whip.app.HomeHabitRecoveryUiTest" time="4.277" />
+    <testcase name="manyTaskFiltersKeepTheResultsViewportReachableAtLargeText" classname="com.whip.app.HomeHabitRecoveryUiTest" time="5.485" />
+    <testcase name="taskFiltersShowLiveMatchCountAndSavedRecipesBeforeAdvancedCriteria" classname="com.whip.app.HomeHabitRecoveryUiTest" time="2.895">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains '1 of 1' (ignoreCase: false))
+Semantics of the node:
+Node #4678 at (l=96.0, t=654.0, r=521.0, b=697.0)px, Tag: 'task-filter-result-count'
+Text = '[1 of 1 tasks match · Today]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 24 siblings
+Selector used: (TestTag = 'task-filter-result-count')
+
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+at com.whip.app.HomeHabitRecoveryUiTest.taskFiltersShowLiveMatchCountAndSavedRecipesBeforeAdvancedCriteria(HomeHabitRecoveryUiTest.kt:236)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.ProductivityCardDesignUiTest" tests="1" failures="0" errors="0" skipped="0" time="4.103" timestamp="2026-09-28T03:31:32" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="timerReviewDialogSupportsCorrectionContinueStopAndDiscardAtNarrowWidth" classname="com.whip.app.ProductivityCardDesignUiTest" time="4.103" />
+  </testsuite>
+  <testsuite name="com.whip.app.RoutineAuthoringJourneyE2ETest" tests="2" failures="1" errors="0" skipped="0" time="53.595" timestamp="2026-09-28T03:31:32" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="authoredPrescriptionSurvivesRecoveryExecutionAndLaterRoutineEdits" classname="com.whip.app.RoutineAuthoringJourneyE2ETest" time="24.287">
+      <failure>java.lang.AssertionError: No node found that matches ContentDescription = 'Delete set 1' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #5620 at (l=0.0, t=303.0, r=1080.0, b=2337.0)px, Tag: 'routine-placement-editor'
+CollectionInfo = 'CollectionInfo(rowCount=14, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape&#64;4a4c161'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=4118.0, maxValue=4118.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 12 children, 1 sibling
+Selector used: (TestTag = 'routine-placement-editor')
+
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+at com.whip.app.RoutineAuthoringJourneyE2ETest.placement(RoutineAuthoringJourneyE2ETest.kt:261)
+at com.whip.app.RoutineAuthoringJourneyE2ETest.authoredPrescriptionSurvivesRecoveryExecutionAndLaterRoutineEdits(RoutineAuthoringJourneyE2ETest.kt:174)
+</failure>
+    </testcase>
+    <testcase name="twoDayRoutinePreservesContextAndStartsTheChosenDay" classname="com.whip.app.RoutineAuthoringJourneyE2ETest" time="29.308" />
+  </testsuite>
+  <testsuite name="com.whip.app.RoutineBuilderUiTest" tests="24" failures="1" errors="0" skipped="0" time="87.528" timestamp="2026-09-28T03:31:32" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="failedRoutineSaveKeepsTheCompleteDraftOpenForRetry" classname="com.whip.app.RoutineBuilderUiTest" time="1.941" />
+    <testcase name="multiSetEditorKeepsHiddenDraftsAndOpensTheChosenPrescription" classname="com.whip.app.RoutineBuilderUiTest" time="7.995" />
+    <testcase name="splitPresetsUseConsistentTitleCapitalization" classname="com.whip.app.RoutineBuilderUiTest" time="1.083" />
+    <testcase name="programTrainingMaxBasisEditsMustBeAppliedBeforeSaveEvenWhenTheyRoundToSameValue" classname="com.whip.app.RoutineBuilderUiTest" time="0.883">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'routine-open-program-structure')
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.RoutineBuilderUiTest.programTrainingMaxBasisEditsMustBeAppliedBeforeSaveEvenWhenTheyRoundToSameValue(RoutineBuilderUiTest.kt:515)
+</failure>
+    </testcase>
+    <testcase name="machineCanBeQuickCreatedForAPlacementWithoutLeavingBuilder" classname="com.whip.app.RoutineBuilderUiTest" time="7.099" />
+    <testcase name="staticRoutineExposesTrainingMaxBeforeAnySetUsesIt" classname="com.whip.app.RoutineBuilderUiTest" time="2.493" />
+    <testcase name="twoHundredExerciseLibraryIsSearchableAndOnlySelectionsEnterOutline" classname="com.whip.app.RoutineBuilderUiTest" time="7.189" />
+    <testcase name="captureRepSchemeCatalog" classname="com.whip.app.RoutineBuilderUiTest" time="5.35" />
+    <testcase name="ordinaryRoutineCanEnterAnExplicitTrainingMaxForPercentageSets" classname="com.whip.app.RoutineBuilderUiTest" time="2.366" />
+    <testcase name="exerciseListUsesTheRoutinePaneInsteadOfAOneRowNestedViewport" classname="com.whip.app.RoutineBuilderUiTest" time="1.289" />
+    <testcase name="routineEditRoundTripsSetUnitsBodyweightAndDayProgression" classname="com.whip.app.RoutineBuilderUiTest" time="1.385" />
+    <testcase name="advancedMachineCreationReturnsFromSeededExerciseCreationWithBothDraftsPreserved" classname="com.whip.app.RoutineBuilderUiTest" time="5.979" />
+    <testcase name="singleDayRoutineHidesActionsThatCannotApply" classname="com.whip.app.RoutineBuilderUiTest" time="1.032" />
+    <testcase name="addingExerciseToExistingRoutineSavesWithoutLeavingTheEditedDay" classname="com.whip.app.RoutineBuilderUiTest" time="2.315" />
+    <testcase name="sharedExercisePickerAlwaysOffersSearchAndSeededCreation" classname="com.whip.app.RoutineBuilderUiTest" time="3.033" />
+    <testcase name="repSchemeLibraryStartsBlankAndPlusCreatesAReusableScheme" classname="com.whip.app.RoutineBuilderUiTest" time="7.101" />
+    <testcase name="exerciseCanBeCreatedWithoutDroppingRoutineDraft" classname="com.whip.app.RoutineBuilderUiTest" time="3.276" />
+    <testcase name="savedRepSchemeCanBeAppliedEditedAndDeleted" classname="com.whip.app.RoutineBuilderUiTest" time="4.561" />
+    <testcase name="ordinaryRoutineCanAddIndependentPhasesWithoutFiveThreeOneSetup" classname="com.whip.app.RoutineBuilderUiTest" time="5.23" />
+    <testcase name="structuredMainExerciseUsesProgramStructureAndHidesGenericRewriteControls" classname="com.whip.app.RoutineBuilderUiTest" time="2.94" />
+    <testcase name="sharedExercisePickerOnlyUsesSubstituteLanguageWhenContextProvidesIt" classname="com.whip.app.RoutineBuilderUiTest" time="0.963" />
+    <testcase name="phasedRoutineCanConfigurePrimaryTrainingMaxAndBoundary" classname="com.whip.app.RoutineBuilderUiTest" time="7.472" />
+    <testcase name="emptyWorkoutPickerUsesTheSharedEmptyStateAndKeepsBackReachable" classname="com.whip.app.RoutineBuilderUiTest" time="2.589" />
+    <testcase name="assistanceIntentNamesItsSourceAndPersistsOnTheRoutinePlacement" classname="com.whip.app.RoutineBuilderUiTest" time="1.964" />
+  </testsuite>
+  <testsuite name="com.whip.app.SettingItemBuilderJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="10.212" timestamp="2026-09-28T03:31:32" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="choicesSaveImmediatelyWhileTypedDraftsWaitForConfirmedSave" classname="com.whip.app.SettingItemBuilderJourneyE2ETest" time="10.212" />
+  </testsuite>
+  <testsuite name="com.whip.app.SettingsBehaviorUiTest" tests="16" failures="0" errors="0" skipped="0" time="79.691" timestamp="2026-09-28T03:31:32" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="validGymDefaultDraftSurvivesRecreationWithoutPersistingUntilDone" classname="com.whip.app.SettingsBehaviorUiTest" time="5.045" />
+    <testcase name="organizationSettingsAddsRenamesAndRemovesNamedCustomEmojis" classname="com.whip.app.SettingsBehaviorUiTest" time="14.152" />
+    <testcase name="openingAreaBehaviorAndChosenAreaCanBeConfiguredFromAppearance" classname="com.whip.app.SettingsBehaviorUiTest" time="3.398" />
+    <testcase name="conditionalParentControlsCannotRemoveAnOpenTypedEditor" classname="com.whip.app.SettingsBehaviorUiTest" time="4.274" />
+    <testcase name="gymRestPresetsSaveWithoutStartingWorkoutAndCategoriesResetScroll" classname="com.whip.app.SettingsBehaviorUiTest" time="8.718" />
+    <testcase name="rapidDoubleTapOnResetSubmitsOnlyOneDestructiveOperationAndReturnsHome" classname="com.whip.app.SettingsBehaviorUiTest" time="5.362" />
+    <testcase name="hidingGoalsKeepsItDiscoverableInTheEmptyHomeGuide" classname="com.whip.app.SettingsBehaviorUiTest" time="2.747" />
+    <testcase name="celebrationToggleIsTheOnlyCelebrationSetting" classname="com.whip.app.SettingsBehaviorUiTest" time="2.237" />
+    <testcase name="hardwareBackRequiresExplicitDiscardAndCannotNavigateBehindATypedEditor" classname="com.whip.app.SettingsBehaviorUiTest" time="6.374" />
+    <testcase name="finalVisibleHomeSectionExplainsWhyItCannotBeDisabled" classname="com.whip.app.SettingsBehaviorUiTest" time="2.999" />
+    <testcase name="plainJsonBackupUsesAndroidsDocumentProviderAndReturnsSafelyOnCancel" classname="com.whip.app.SettingsBehaviorUiTest" time="5.739" />
+    <testcase name="portableBackupExplainsItsExactSharedFolderDeletionBoundary" classname="com.whip.app.SettingsBehaviorUiTest" time="1.82" />
+    <testcase name="malformedClockCannotChangeTheCutoffButCompleteClockCommits" classname="com.whip.app.SettingsBehaviorUiTest" time="4.935" />
+    <testcase name="notificationTestExplainsAvailabilityOrAnnouncesResult" classname="com.whip.app.SettingsBehaviorUiTest" time="3.619" />
+    <testcase name="everySettingsCategoryIsReachableAndOwnsItsExpectedControls" classname="com.whip.app.SettingsBehaviorUiTest" time="5.707" />
+    <testcase name="settingsHaveNoDensityChoicesAndTasksUseSummaryDisclosure" classname="com.whip.app.SettingsBehaviorUiTest" time="2.565" />
+  </testsuite>
+  <testsuite name="com.whip.app.TaskEditorJourneyE2ETest" tests="2" failures="0" errors="0" skipped="0" time="36.121" timestamp="2026-09-28T03:31:32" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="existingTaskCanBeReadEditedRecreatedSavedAndReopenedAtLargeText" classname="com.whip.app.TaskEditorJourneyE2ETest" time="18.852" />
+    <testcase name="existingTaskCanBeReadEditedRecreatedSavedAndReopened" classname="com.whip.app.TaskEditorJourneyE2ETest" time="17.269" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackAuthoringJourneyE2ETest" tests="2" failures="2" errors="0" skipped="0" time="127.447" timestamp="2026-09-28T03:31:32" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="mixedTrackCanBeAuthoredRecoveredAndUsedAtLargeText" classname="com.whip.app.TrackAuthoringJourneyE2ETest" time="61.799">
+      <failure>java.lang.AssertionError: Failed to perform checkIsDisplayed check: Expected at most 1 node but found 2 nodes that satisfy (ContentDescription contains 'Entry Date,' (ignoreCase: false))
+at androidx.compose.ui.test.AndroidAssertions_androidKt.checkIsDisplayed(AndroidAssertions.android.kt:35)
+at androidx.compose.ui.test.AssertionsKt.isDisplayed(Assertions.kt:380)
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:33)
+at com.whip.app.TrackAuthoringJourneyE2ETest.verifyAuthoring(TrackAuthoringJourneyE2ETest.kt:155)
+at com.whip.app.TrackAuthoringJourneyE2ETest.mixedTrackCanBeAuthoredRecoveredAndUsedAtLargeText(TrackAuthoringJourneyE2ETest.kt:50)
+</failure>
+    </testcase>
+    <testcase name="mixedTrackCanBeAuthoredRecoveredAndUsed" classname="com.whip.app.TrackAuthoringJourneyE2ETest" time="65.648">
+      <failure>java.lang.AssertionError: Failed to perform checkIsDisplayed check: Expected at most 1 node but found 2 nodes that satisfy (ContentDescription contains 'Entry Date,' (ignoreCase: false))
+at androidx.compose.ui.test.AndroidAssertions_androidKt.checkIsDisplayed(AndroidAssertions.android.kt:35)
+at androidx.compose.ui.test.AssertionsKt.isDisplayed(Assertions.kt:380)
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:33)
+at com.whip.app.TrackAuthoringJourneyE2ETest.verifyAuthoring(TrackAuthoringJourneyE2ETest.kt:155)
+at com.whip.app.TrackAuthoringJourneyE2ETest.mixedTrackCanBeAuthoredRecoveredAndUsed(TrackAuthoringJourneyE2ETest.kt:47)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

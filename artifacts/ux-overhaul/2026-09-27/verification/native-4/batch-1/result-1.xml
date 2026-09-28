@@ -1,0 +1,92 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="47" failures="0" errors="0" skipped="0" time="282.259" timestamp="2026-09-28T03:41:32" hostname="localhost">
+  <testsuite name="com.whip.app.BackupRepositoryTest" tests="2" failures="0" errors="0" skipped="0" time="0.618" timestamp="2026-09-28T03:41:32" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="noteOnlyHabitHistoryRoundTripsWithoutQuantitativeMeasurements" classname="com.whip.app.BackupRepositoryTest" time="0.189" />
+    <testcase name="fullBackupRoundTripsEveryFirstClassDomainAndCrossDomainRelationship" classname="com.whip.app.BackupRepositoryTest" time="0.429" />
+  </testsuite>
+  <testsuite name="com.whip.app.HabitRepositoryTest" tests="38" failures="0" errors="0" skipped="0" time="1.928" timestamp="2026-09-28T03:41:32" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="customVolumeUnitUsesItsCanonicalConversionFactor" classname="com.whip.app.HabitRepositoryTest" time="0.052" />
+    <testcase name="rebootRequiresReviewBeforeLoggingAndCanContinueFromConfirmedDuration" classname="com.whip.app.HabitRepositoryTest" time="0.076" />
+    <testcase name="archiveRetainsHistoryAndUndoRemovesBothRepresentations" classname="com.whip.app.HabitRepositoryTest" time="0.077" />
+    <testcase name="userDefinedEightCountHabitStoresSixIndependentIncrements" classname="com.whip.app.HabitRepositoryTest" time="0.101" />
+    <testcase name="customMassUnitUsesKilogramsAsItsCanonicalBase" classname="com.whip.app.HabitRepositoryTest" time="0.051" />
+    <testcase name="checklistPersistenceDiscardsIrrelevantNumericQuickAdds" classname="com.whip.app.HabitRepositoryTest" time="0.026" />
+    <testcase name="fiveMinuteTimerWritesMinutesAndCanonicalSecondsExactlyOnce" classname="com.whip.app.HabitRepositoryTest" time="0.077" />
+    <testcase name="archivedChecklistHistoryDoesNotCompleteTheRemainingActiveChecklist" classname="com.whip.app.HabitRepositoryTest" time="0.052" />
+    <testcase name="reorderNormalizesOmittedArchivedHabitsWithoutDuplicatePositions" classname="com.whip.app.HabitRepositoryTest" time="0.051" />
+    <testcase name="checkOffCanBeToggledWithoutLeavingAZeroLog" classname="com.whip.app.HabitRepositoryTest" time="0.052" />
+    <testcase name="runningTimerBlocksArchivePauseAndIncompatibleEdit" classname="com.whip.app.HabitRepositoryTest" time="0.026" />
+    <testcase name="androidTimerClockProvidesMonotonicBootOwnedReadings" classname="com.whip.app.HabitRepositoryTest" time="0.001" />
+    <testcase name="aRealCheckInClearsSkipAndFailedCheckOffDoesNotInventValueOne" classname="com.whip.app.HabitRepositoryTest" time="0.078" />
+    <testcase name="skipUndoRequiresAnExistingExactRecord" classname="com.whip.app.HabitRepositoryTest" time="0.027" />
+    <testcase name="historyDeletionRejectsTheWrongHabitOwnerWithoutRemovingAnything" classname="com.whip.app.HabitRepositoryTest" time="0.076" />
+    <testcase name="scheduledPausesCanBeCreatedEditedMadeOpenEndedAndDeleted" classname="com.whip.app.HabitRepositoryTest" time="0.026" />
+    <testcase name="settingCustomUnitTotalUsesStoredConversionsAndNoOpsWhenUnchanged" classname="com.whip.app.HabitRepositoryTest" time="0.052" />
+    <testcase name="scheduledPauseMutationsRejectInvalidOrMissingTargets" classname="com.whip.app.HabitRepositoryTest" time="0.026" />
+    <testcase name="notificationIncrementSourceIsIdempotentAcrossRetry" classname="com.whip.app.HabitRepositoryTest" time="0.052" />
+    <testcase name="checklistInsertReorderAndRemovalPreserveItemCompletionIdentity" classname="com.whip.app.HabitRepositoryTest" time="0.051" />
+    <testcase name="customUnitVersionArchivesOldMeaningWithoutReinterpretingHistory" classname="com.whip.app.HabitRepositoryTest" time="0.052" />
+    <testcase name="skipIsASeparateOccurrenceThatNeverCreatesAMeasurement" classname="com.whip.app.HabitRepositoryTest" time="0.051" />
+    <testcase name="settingDisplayedDecimalTotalDoesNotCreateMicroscopicCorrectionLog" classname="com.whip.app.HabitRepositoryTest" time="0.051" />
+    <testcase name="checklistOnlyAutoCompletesAfterTheFinalItem" classname="com.whip.app.HabitRepositoryTest" time="0.051" />
+    <testcase name="invalidSourcesAndUnavailableHabitsRejectNewProgress" classname="com.whip.app.HabitRepositoryTest" time="0.052" />
+    <testcase name="noteOnlyLogsTransitionToNumbersAndBackWithoutInventingMeasurements" classname="com.whip.app.HabitRepositoryTest" time="0.101" />
+    <testcase name="repositoryPersistsOnlyTheControlsEnabledByTheHabitConfiguration" classname="com.whip.app.HabitRepositoryTest" time="0.026" />
+    <testcase name="settingAPeriodValueUsesTheAuthoritativeStoredTotalInsteadOfAStaleProjection" classname="com.whip.app.HabitRepositoryTest" time="0.051" />
+    <testcase name="competingStartRequestIsConsumedAndCannotStartLater" classname="com.whip.app.HabitRepositoryTest" time="0.051" />
+    <testcase name="editingHabitLogKeepsBackingMeasurementOwnedByHabitWrapper" classname="com.whip.app.HabitRepositoryTest" time="0.052" />
+    <testcase name="timerUsesSnapshottedCustomDurationUnitAndRejectsStaleStop" classname="com.whip.app.HabitRepositoryTest" time="0.052" />
+    <testcase name="changingHabitDisplayUnitDoesNotRelabelOrResaveHistoricalEntry" classname="com.whip.app.HabitRepositoryTest" time="0.051" />
+    <testcase name="optionalHabitNotesDoNotRelaxQuantitativeMeasurementValidation" classname="com.whip.app.HabitRepositoryTest" time="0.077" />
+    <testcase name="settingHighMagnitudeTotalNeverTreatsARealChangeAsFloatingNoise" classname="com.whip.app.HabitRepositoryTest" time="0.026" />
+    <testcase name="historyAndPauseUpdatesRejectTheWrongHabitOwnerWithoutMutation" classname="com.whip.app.HabitRepositoryTest" time="0.026" />
+    <testcase name="checklistCanKeepItemsIndependentAndUseManualParentCompletion" classname="com.whip.app.HabitRepositoryTest" time="0.076" />
+    <testcase name="logCanBeBackdatedAndEditedWithoutChangingItsIdentity" classname="com.whip.app.HabitRepositoryTest" time="0.026" />
+    <testcase name="invalidEndConditionsAreRejectedAndIrrelevantFieldsAreCleared" classname="com.whip.app.HabitRepositoryTest" time="0.026" />
+  </testsuite>
+  <testsuite name="com.whip.app.HomeHabitRecoveryUiTest" tests="3" failures="0" errors="0" skipped="0" time="20.731" timestamp="2026-09-28T03:41:32" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="habitInsightsShowRealActivityAndOpenThatHabitsHistory" classname="com.whip.app.HomeHabitRecoveryUiTest" time="11.517" />
+    <testcase name="emptyAreaCanRecoverExistingHabitsWithoutCreatingDuplicates" classname="com.whip.app.HomeHabitRecoveryUiTest" time="2.517" />
+    <testcase name="taskFiltersShowLiveMatchCountAndSavedRecipesBeforeAdvancedCriteria" classname="com.whip.app.HomeHabitRecoveryUiTest" time="6.697" />
+  </testsuite>
+  <testsuite name="com.whip.app.RoutineAuthoringJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="43.427" timestamp="2026-09-28T03:41:32" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="authoredPrescriptionSurvivesRecoveryExecutionAndLaterRoutineEdits" classname="com.whip.app.RoutineAuthoringJourneyE2ETest" time="43.427" />
+  </testsuite>
+  <testsuite name="com.whip.app.RoutineBuilderUiTest" tests="1" failures="0" errors="0" skipped="0" time="6.488" timestamp="2026-09-28T03:41:32" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="programTrainingMaxBasisEditsMustBeAppliedBeforeSaveEvenWhenTheyRoundToSameValue" classname="com.whip.app.RoutineBuilderUiTest" time="6.488" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackAuthoringJourneyE2ETest" tests="2" failures="0" errors="0" skipped="0" time="207.512" timestamp="2026-09-28T03:41:32" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="mixedTrackCanBeAuthoredRecoveredAndUsedAtLargeText" classname="com.whip.app.TrackAuthoringJourneyE2ETest" time="105.164" />
+    <testcase name="mixedTrackCanBeAuthoredRecoveredAndUsed" classname="com.whip.app.TrackAuthoringJourneyE2ETest" time="102.348" />
+  </testsuite>
+</testsuites>

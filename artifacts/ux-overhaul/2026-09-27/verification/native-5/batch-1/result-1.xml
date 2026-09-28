@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="21" failures="1" errors="0" skipped="0" time="168.965" timestamp="2026-09-28T03:52:15" hostname="localhost">
+  <testsuite name="com.whip.app.TrackFieldEditingJourneyE2ETest" tests="4" failures="0" errors="0" skipped="0" time="92.77" timestamp="2026-09-28T03:52:15" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="scaleAndUnitChangesPreserveExistingValues" classname="com.whip.app.TrackFieldEditingJourneyE2ETest" time="36.915" />
+    <testcase name="scaleAndUnitChangesPreserveExistingValuesAtLargeText" classname="com.whip.app.TrackFieldEditingJourneyE2ETest" time="27.412" />
+    <testcase name="choiceLabelsAreValidatedBeforeLeavingTheFieldAtLargeText" classname="com.whip.app.TrackFieldEditingJourneyE2ETest" time="15.806" />
+    <testcase name="choiceLabelsAreValidatedBeforeLeavingTheField" classname="com.whip.app.TrackFieldEditingJourneyE2ETest" time="12.637" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackWorkspaceUiTest" tests="1" failures="0" errors="0" skipped="0" time="7.694" timestamp="2026-09-28T03:52:15" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="activityFiltersAndCrossTrackInsightsUseVisibleTrackData" classname="com.whip.app.TrackWorkspaceUiTest" time="7.694" />
+  </testsuite>
+  <testsuite name="com.whip.app.WhipComposeSemanticsTest" tests="1" failures="1" errors="0" skipped="0" time="6.5" timestamp="2026-09-28T03:52:15" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="gymConfigurationControlsUseProgressiveDisclosure" classname="com.whip.app.WhipComposeSemanticsTest" time="6.5">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'gym-chart-point-open-workout')
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.WhipComposeSemanticsTest.gymConfigurationControlsUseProgressiveDisclosure(WhipComposeSemanticsTest.kt:587)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.WorkoutGroupedSetNavigationE2ETest" tests="1" failures="0" errors="0" skipped="0" time="7.52" timestamp="2026-09-28T03:52:15" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="nextSetInLongSupersetIsVisibleAfterJumpAndRecreation" classname="com.whip.app.WorkoutGroupedSetNavigationE2ETest" time="7.52" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.EditorDependencyUxTest" tests="1" failures="0" errors="0" skipped="0" time="4.081" timestamp="2026-09-28T03:52:15" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="repeatSettingsStayBetweenScheduleChoiceAndPlanningFields" classname="com.whip.app.ui.EditorDependencyUxTest" time="4.081" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.GoalSecondaryMutationUiTest" tests="10" failures="0" errors="0" skipped="0" time="36.6" timestamp="2026-09-28T03:52:15" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="terminalMilestoneSummaryUsesTheFrozenClosureRatherThanTheEditedDefinition" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="0.629" />
+    <testcase name="progressDatePolicyRejectsFutureAndConfirmsOutsideGoalWindow" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="1.692" />
+    <testcase name="archivedInspectorPreservesLifecycleHistoryAndHidesMisleadingPin" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="1.262" />
+    <testcase name="progressFailureKeepsDraftAndSavingBlocksBackAndDuplicateSubmit" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="5.286" />
+    <testcase name="permanentDeleteShowsCompleteImpactAndRequiresRereviewAfterStaleFailure" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="1.537" />
+    <testcase name="leavingAnActionSurfaceClearsItsFailedRequestBeforeOpeningAnotherDialog" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="1.337" />
+    <testcase name="captureGoalComponentCatalog" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="8.901" />
+    <testcase name="deadlineRemovalAndCalculationSettingsSurviveRestoration" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="7.582" />
+    <testcase name="milestoneWeightKeepsPartialDecimalAndValidatesBlankDraft" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="7.29" />
+    <testcase name="milestoneIsEditableOnlyForAnUnarchivedActiveGoal" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="1.084" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.HabitUxPresentationUiTest" tests="3" failures="0" errors="0" skipped="0" time="12.007" timestamp="2026-09-28T03:52:15" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="completedTaskShowsActualCompletionInWhipTimeZone" classname="com.whip.app.ui.HabitUxPresentationUiTest" time="2.523" />
+    <testcase name="timerReviewKeepsEditableEstimateAndActionsReachableWithKeyboard" classname="com.whip.app.ui.HabitUxPresentationUiTest" time="6.09" />
+    <testcase name="isolatedWeeklyObservationsRenderVisiblePointsAcrossGaps" classname="com.whip.app.ui.HabitUxPresentationUiTest" time="3.394" />
+  </testsuite>
+</testsuites>

@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="5" failures="1" errors="0" skipped="0" time="27.034" timestamp="2026-09-28T03:53:43" hostname="localhost">
+  <testsuite name="com.whip.app.WhipComposeSemanticsTest" tests="1" failures="1" errors="0" skipped="0" time="10.223" timestamp="2026-09-28T03:53:43" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="gymConfigurationControlsUseProgressiveDisclosure" classname="com.whip.app.WhipComposeSemanticsTest" time="10.223">
+      <failure>java.lang.AssertionError: Assert failed: The component with (TestTag = 'gym-chart-point')[0] is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.WhipComposeSemanticsTest.gymConfigurationControlsUseProgressiveDisclosure(WhipComposeSemanticsTest.kt:586)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.ui.SettingsResponsiveUiTest" tests="2" failures="0" errors="0" skipped="0" time="7.48" timestamp="2026-09-28T03:53:43" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="wideSettingsCannotSwitchCategoriesBehindATypedEditor" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="5.593" />
+    <testcase name="wideSectionSidebarScrollsAtLargeTextAndKeepsSelectionAndFocusSemantics" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="1.887" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.SharedChoiceAccessibilityUiTest" tests="2" failures="0" errors="0" skipped="0" time="7.797" timestamp="2026-09-28T03:53:43" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="choiceMenuExposesSelectionAndClosesWhenUnavailable" classname="com.whip.app.ui.SharedChoiceAccessibilityUiTest" time="2.543" />
+    <testcase name="longValuesWrapAndNarrowViewChoicesExposeSelection" classname="com.whip.app.ui.SharedChoiceAccessibilityUiTest" time="5.254" />
+  </testsuite>
+</testsuites>

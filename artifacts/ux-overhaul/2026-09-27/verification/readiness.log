@@ -1,0 +1,387 @@
+Route A app/src/androidTest/java/com/whip/app/HomeHabitRecoveryUiTest.kt -> android:com.whip.app.HomeHabitRecoveryUiTest (exact Android test class)
+Route A app/src/androidTest/java/com/whip/app/ui/HabitUxPresentationUiTest.kt -> android:com.whip.app.ui.HabitUxPresentationUiTest (exact Android test class)
+Route A app/src/androidTest/java/com/whip/app/ui/SharedChoiceAccessibilityUiTest.kt -> android:com.whip.app.ui.SharedChoiceAccessibilityUiTest (exact Android test class)
+Route A app/src/test/java/com/whip/app/ui/HabitPresentationTest.kt -> jvm:com.whip.app.ui.HabitPresentationTest (exact JVM test class)
+Route A artifacts/ux-overhaul/2026-09-27/README.md -> profile:docs (documentation-only path)
+Route A artifacts/ux-overhaul/2026-09-27/after-short/ux-upgrades.gym.active-lane.native200.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after-short/ux-upgrades.gym.active-lane.native200.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after-short/ux-upgrades.habits-timer-review.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after-short/ux-upgrades.habits-timer-review.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after-short/ux-upgrades.tasks-calendar-dense.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after-short/ux-upgrades.tasks-calendar-dense.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after-short/ux-upgrades.tasks-many-filters.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after-short/ux-upgrades.tasks-many-filters.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/goals.editor.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/goals.editor.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/habits.editor.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/habits.editor.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/habits.insights.populated.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/habits.insights.populated.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/settings.gym.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/settings.gym.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/tasks.editor.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/tasks.editor.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/tracks.authoring.entry-date.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/tracks.authoring.entry-date.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/tracks.authoring.entry-start.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/tracks.authoring.entry-start.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/tracks.authoring.entry-start.ordinary.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/tracks.authoring.entry-start.ordinary.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.goals.calculation-settings.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.goals.calculation-settings.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.goals.dated-trend.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.goals.dated-trend.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.goals.earlier-trend-days.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.goals.earlier-trend-days.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.goals.milestone-closed.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.goals.milestone-closed.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.goals.milestone-insights.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.goals.milestone-insights.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.goals.milestone-weight.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.goals.milestone-weight.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.gym.active-lane.native200.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.gym.active-lane.native200.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.gym.chart-point-visible.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.gym.chart-point-visible.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.gym.exercise-search-empty.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.gym.exercise-search-empty.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.gym.history-calendar-empty.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.gym.history-calendar-empty.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.gym.progress-context.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.gym.progress-context.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.gym.progress-deleted-reverse-machine.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.gym.progress-deleted-reverse-machine.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.gym.progress-invalid-reps.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.gym.progress-invalid-reps.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.gym.routine-selected-set.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.gym.routine-selected-set.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.habits-isolated-chart.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.habits-isolated-chart.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.habits-no-due.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.habits-no-due.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.habits-real-insights.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.habits-real-insights.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.habits-timer-review.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.habits-timer-review.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.home-filter-recovery.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.home-filter-recovery.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.settings.appearance-initial.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.settings.appearance-initial.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.settings.gym.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.settings.gym.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.settings.reminder-result.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.settings.reminder-result.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.shared.choices-large.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.shared.choices-large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tasks-calendar-clear.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tasks-calendar-clear.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tasks-calendar-dense.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tasks-calendar-dense.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tasks-completed-date.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tasks-completed-date.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tasks-filter-feedback.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tasks-filter-feedback.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tasks-many-filters.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tasks-many-filters.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.activity-recovery.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.activity-recovery.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.archived-empty.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.archived-empty.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.definition-summary.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.definition-summary.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.definition-summary.ordinary.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.definition-summary.ordinary.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.edited-date-condition.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.edited-date-condition.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.edited-number-condition.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.edited-number-condition.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.edited-number-condition.ordinary.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.edited-number-condition.ordinary.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.entry-date-first.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.entry-date-first.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.entry-date-first.ordinary.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.entry-date-first.ordinary.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.entry-recovery.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.entry-recovery.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.entry-recovery.ordinary.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.entry-recovery.ordinary.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.optional-date-cleared.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.optional-date-cleared.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.optional-date-cleared.ordinary.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/after/ux-upgrades.tracks.optional-date-cleared.ordinary.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/before/ux-upgrades.gym.active-lane.native200.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/before/ux-upgrades.gym.active-lane.native200.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/before/ux-upgrades.habits-timer-review.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/before/ux-upgrades.tasks-many-filters.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/before/ux-upgrades.tasks-many-filters.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/capture-provenance.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/diagnostic/ux-upgrades.gym.chart-point-child-scroll.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/diagnostic/ux-upgrades.gym.chart-point-child-scroll.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/diagnostic/ux-upgrades.gym.chart-point-parent-scroll.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/diagnostic/ux-upgrades.gym.chart-point-parent-scroll.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/diagnostic/ux-upgrades.tasks-calendar-dense.large.png -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/diagnostic/ux-upgrades.tasks-calendar-dense.large.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/gallery.html -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/android-attempts.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/android-latest-method-results.tsv -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/native-1/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/native-1/batch-2/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/native-2/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/native-3/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/native-4/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/native-4/batch-2/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/native-5/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/native-6/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/short-1/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/short-2/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/short-3/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/short-4/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/short-5/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/short-6/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/short-7/batch-1/result-1.xml -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/ux-overhaul-native-remaining-2.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/ux-overhaul-native-remaining-3.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/ux-overhaul-native-remaining-4.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/ux-overhaul-native-remaining-5.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/ux-overhaul-native-remaining-6.txt -> candidate:required (unclassified repository path)
+Route A artifacts/ux-overhaul/2026-09-27/verification/ux-overhaul-native-selectors.txt -> candidate:required (unclassified repository path)
+Route A docs/quality/MAJOR_COMPONENT_UX_UPGRADES_2026-09-27.md -> profile:docs (quality documentation path)
+Route A docs/quality/UX_OVERHAUL_GOALS_TRACK_2026-09-27.md -> profile:docs (quality documentation path)
+Route A docs/quality/UX_OVERHAUL_GYM_SETTINGS_2026-09-27.md -> profile:docs (quality documentation path)
+Route A docs/quality/UX_OVERHAUL_HOME_HABITS_2026-09-27.md -> profile:docs (quality documentation path)
+Route A docs/quality/UX_OVERHAUL_SHARED_2026-09-27.md -> profile:docs (quality documentation path)
+Route M app/src/androidTest/java/com/whip/app/ActivityHistoryUiTest.kt -> android:com.whip.app.ActivityHistoryUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/AdaptiveWhipScreenTest.kt -> android:com.whip.app.AdaptiveWhipScreenTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/BackupRepositoryTest.kt -> android:com.whip.app.BackupRepositoryTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/CoreFeatureJourneyE2ETest.kt -> android:com.whip.app.CoreFeatureJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/CustomUnitJourneyE2ETest.kt -> android:com.whip.app.CustomUnitJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/DataPrivacyJourneyE2ETest.kt -> android:com.whip.app.DataPrivacyJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/EditorDependencyUxTest.kt -> android:com.whip.app.ui.EditorDependencyUxTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/EditorWindowAssertions.kt -> android:all (shared or unresolved Android test source)
+Route M app/src/androidTest/java/com/whip/app/FirstClassWorkflowE2ETest.kt -> android:com.whip.app.FirstClassWorkflowE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/GoalProgressJourneyE2ETest.kt -> android:com.whip.app.GoalProgressJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/GymLibraryJourneyE2ETest.kt -> android:com.whip.app.GymLibraryJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/GymPowerInputUiTest.kt -> android:com.whip.app.GymPowerInputUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/HabitRepositoryTest.kt -> android:com.whip.app.HabitRepositoryTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/HabitSkipJourneyE2ETest.kt -> android:com.whip.app.HabitSkipJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/ProductivityCardDesignUiTest.kt -> android:com.whip.app.ProductivityCardDesignUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/RoutineAuthoringJourneyE2ETest.kt -> android:com.whip.app.RoutineAuthoringJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/RoutineBuilderUiTest.kt -> android:com.whip.app.RoutineBuilderUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/SettingItemBuilderJourneyE2ETest.kt -> android:com.whip.app.SettingItemBuilderJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/SettingsBehaviorUiTest.kt -> android:com.whip.app.SettingsBehaviorUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/TrackAuthoringJourneyE2ETest.kt -> android:com.whip.app.TrackAuthoringJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/TrackFieldEditingJourneyE2ETest.kt -> android:com.whip.app.TrackFieldEditingJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/TrackHistoryControlsJourneyE2ETest.kt -> android:com.whip.app.TrackHistoryControlsJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/TrackHistoryJourneyE2ETest.kt -> android:com.whip.app.TrackHistoryJourneyE2ETest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/TrackWorkspaceUiTest.kt -> android:com.whip.app.TrackWorkspaceUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/VisualCatalogPagesTest.kt -> android:com.whip.app.VisualCatalogPagesTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/WhipComposeSemanticsTest.kt -> android:com.whip.app.WhipComposeSemanticsTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/WhipNavigationTest.kt -> android:com.whip.app.WhipNavigationTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/ui/GoalSecondaryMutationUiTest.kt -> android:com.whip.app.ui.GoalSecondaryMutationUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/ui/InteractionControlUiTest.kt -> android:com.whip.app.ui.InteractionControlUiTest (exact Android test class)
+Route M app/src/androidTest/java/com/whip/app/ui/SettingsResponsiveUiTest.kt -> android:com.whip.app.ui.SettingsResponsiveUiTest (exact Android test class)
+Route M app/src/main/java/com/whip/app/data/HabitRepository.kt -> profile:habits (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/GoalScreens.kt -> profile:goals (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/GymScreens.kt -> profile:gym (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/HabitScreens.kt -> profile:habits (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/ItemControlPatterns.kt -> candidate:required (unknown production path)
+Route M app/src/main/java/com/whip/app/ui/ProductivityEditorSections.kt -> candidate:required (unknown production path)
+Route M app/src/main/java/com/whip/app/ui/RoutineBuilder.kt -> profile:gym (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/SettingsScreens.kt -> profile:settings (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/TaskComponents.kt -> profile:tasks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/TaskEditorDialog.kt -> profile:tasks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/TrackScreens.kt -> profile:tracks (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/UnitSelectionField.kt -> profile:settings (feature-owned production path)
+Route M app/src/main/java/com/whip/app/ui/WhipApp.kt -> profile:all (shared UI/core production path)
+Route M app/src/main/java/com/whip/app/ui/WhipCalendarPresentation.kt -> profile:shell (feature-owned production path)
+Route M app/src/test/java/com/whip/app/ui/EditorFeatureIntegrityTest.kt -> jvm:com.whip.app.ui.EditorFeatureIntegrityTest (exact JVM test class)
+Route M app/src/test/java/com/whip/app/ui/GymProgressScopeTest.kt -> jvm:com.whip.app.ui.GymProgressScopeTest (exact JVM test class)
+Route M app/src/test/java/com/whip/app/ui/RoutineBuilderStateTest.kt -> jvm:com.whip.app.ui.RoutineBuilderStateTest (exact JVM test class)
+Route M app/src/test/java/com/whip/app/ui/SurfaceRoleArchitectureTest.kt -> jvm:com.whip.app.ui.SurfaceRoleArchitectureTest (exact JVM test class)
+Route M app/src/test/java/com/whip/app/ui/UiDesignArchitectureTest.kt -> jvm:com.whip.app.ui.UiDesignArchitectureTest (exact JVM test class)
+Route M docs/product-memory/DECISIONS.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/FINDINGS.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/IMPLEMENTATION_LOG.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/INDEX.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/USER_FEEDBACK.md -> profile:docs (documentation-only path)
+Route M docs/product-memory/VERIFICATION.md -> profile:docs (documentation-only path)
+Route M docs/quality/README.md -> profile:docs (quality documentation path)
+Route M docs/quality/ui-source-snapshot.tsv -> candidate:required (machine-checked quality harness path)
+Route M docs/quality/ui-surface-catalog.tsv -> candidate:required (machine-checked quality harness path)
+Route M docs/testing.md -> profile:docs (documentation-only path)
+Route M docs/user-guide.md -> profile:docs (documentation-only path)
+Profile: all
+Profile: docs
+Profile: goals
+Profile: gym
+Profile: habits
+Profile: settings
+Profile: shell
+Profile: tasks
+Profile: tracks
+JVM selector: com.whip.app.ui.EditorFeatureIntegrityTest
+JVM selector: com.whip.app.ui.GymProgressScopeTest
+JVM selector: com.whip.app.ui.HabitPresentationTest
+JVM selector: com.whip.app.ui.RoutineBuilderStateTest
+JVM selector: com.whip.app.ui.SurfaceRoleArchitectureTest
+JVM selector: com.whip.app.ui.UiDesignArchitectureTest
+Android selector: com.whip.app.ActivityHistoryUiTest
+Android selector: com.whip.app.AdaptiveWhipScreenTest
+Android selector: com.whip.app.BackupRepositoryTest
+Android selector: com.whip.app.CoreFeatureJourneyE2ETest
+Android selector: com.whip.app.CustomUnitJourneyE2ETest
+Android selector: com.whip.app.DataPrivacyJourneyE2ETest
+Android selector: com.whip.app.FirstClassWorkflowE2ETest
+Android selector: com.whip.app.GoalProgressJourneyE2ETest
+Android selector: com.whip.app.GymLibraryJourneyE2ETest
+Android selector: com.whip.app.GymPowerInputUiTest
+Android selector: com.whip.app.HabitRepositoryTest
+Android selector: com.whip.app.HabitSkipJourneyE2ETest
+Android selector: com.whip.app.HomeHabitRecoveryUiTest
+Android selector: com.whip.app.ProductivityCardDesignUiTest
+Android selector: com.whip.app.RoutineAuthoringJourneyE2ETest
+Android selector: com.whip.app.RoutineBuilderUiTest
+Android selector: com.whip.app.SettingItemBuilderJourneyE2ETest
+Android selector: com.whip.app.SettingsBehaviorUiTest
+Android selector: com.whip.app.TrackAuthoringJourneyE2ETest
+Android selector: com.whip.app.TrackFieldEditingJourneyE2ETest
+Android selector: com.whip.app.TrackHistoryControlsJourneyE2ETest
+Android selector: com.whip.app.TrackHistoryJourneyE2ETest
+Android selector: com.whip.app.TrackWorkspaceUiTest
+Android selector: com.whip.app.VisualCatalogPagesTest
+Android selector: com.whip.app.WhipComposeSemanticsTest
+Android selector: com.whip.app.WhipNavigationTest
+Android selector: com.whip.app.ui.EditorDependencyUxTest
+Android selector: com.whip.app.ui.GoalSecondaryMutationUiTest
+Android selector: com.whip.app.ui.HabitUxPresentationUiTest
+Android selector: com.whip.app.ui.InteractionControlUiTest
+Android selector: com.whip.app.ui.SettingsResponsiveUiTest
+Android selector: com.whip.app.ui.SharedChoiceAccessibilityUiTest
+All JVM tests: false
+All Android tests: true
+Static checks: true
+Frozen candidate required: true
+Reusing configuration cache.
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:generateDebugJacocoPropertiesFile UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:kspDebugKotlin
+> Task :app:compileDebugKotlin
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:bundleDebugClassesToRuntimeJar
+> Task :app:bundleDebugClassesToCompileJar
+> Task :app:kspDebugUnitTestKotlin SKIPPED
+> Task :app:compileDebugUnitTestKotlin UP-TO-DATE
+> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:copyRoomSchemas NO-SOURCE
+> Task :app:testDebugUnitTest
+
+BUILD SUCCESSFUL in 12s
+29 actionable tasks: 5 executed, 24 up-to-date
+Configuration cache entry reused.
+Targeted JVM checks passed; Android-test compilation was intentionally deferred.
+Play Store assets verified: 512x512 icon, 1024x500 feature graphic, and 5 phone screenshots
+Reusing configuration cache.
+> Task :app:preBuild UP-TO-DATE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:preDebugAndroidTestBuild SKIPPED
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:generateDebugAndroidTestResValues UP-TO-DATE
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:processDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:generateDebugGlobalSynthetics UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:generateDebugAndroidTestResources UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:generateDebugJacocoPropertiesFile UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:packageDebugAndroidTestResources UP-TO-DATE
+> Task :app:parseDebugAndroidTestLocalResources UP-TO-DATE
+> Task :app:generateDebugAndroidTestRFile UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:mergeDebugNativeLibs UP-TO-DATE
+> Task :app:stripDebugDebugSymbols UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:mergeDebugAndroidTestManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugAndroidTestManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:generateDebugAndroidTestBuildConfig UP-TO-DATE
+> Task :app:kspDebugKotlin UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:kspDebugAndroidTestKotlin SKIPPED
+> Task :app:copyRoomSchemas NO-SOURCE
+> Task :app:mergeDebugJavaResource UP-TO-DATE
+> Task :app:generateDebugUnitTestLintModel
+> Task :app:generateDebugLintReportModel
+> Task :app:generateDebugAndroidTestLintModel
+> Task :app:compileDebugAndroidTestKotlin
+> Task :app:jacocoDebug
+> Task :app:dexBuilderDebug
+> Task :app:mergeProjectDexDebug
+> Task :app:packageDebug
+> Task :app:assembleDebug
+> Task :app:createDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:lintAnalyzeDebugUnitTest
+> Task :app:lintAnalyzeDebug
+> Task :app:lintAnalyzeDebugAndroidTest
+
+> Task :app:lintReportDebug
+Wrote HTML report to file:///root/repos/whip/app/build/reports/lint-results-debug.html
+Wrote SARIF report to file:///root/repos/whip/app/build/reports/lint-results-debug.sarif
+
+> Task :app:lintDebug
+
+BUILD SUCCESSFUL in 2m 31s
+62 actionable tasks: 13 executed, 49 up-to-date
+Configuration cache entry reused.
+Affected-change readiness gate passed. Frozen-candidate evidence was not created.
+Play Store note: qualify these inputs with a fresh scripts/candidate run only when preparing a store release.

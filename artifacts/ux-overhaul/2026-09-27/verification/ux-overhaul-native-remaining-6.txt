@@ -1,0 +1,4 @@
+com.whip.app.ui.SharedChoiceAccessibilityUiTest
+com.whip.app.WhipComposeSemanticsTest#gymConfigurationControlsUseProgressiveDisclosure
+com.whip.app.ui.SettingsResponsiveUiTest#wideSettingsCannotSwitchCategoriesBehindATypedEditor
+com.whip.app.ui.SettingsResponsiveUiTest#wideSectionSidebarScrollsAtLargeTextAndKeepsSelectionAndFocusSemantics

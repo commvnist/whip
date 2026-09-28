@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="1" errors="0" skipped="0" time="11.303" timestamp="2026-09-28T03:15:33" hostname="localhost">
+  <testsuite name="com.whip.app.HomeHabitRecoveryUiTest" tests="1" failures="1" errors="0" skipped="0" time="10.092" timestamp="2026-09-28T03:15:33" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="denseTaskCalendarKeepsDateAndCountsLegibleAtLargeText" classname="com.whip.app.HomeHabitRecoveryUiTest" time="10.092">
+      <failure>java.lang.IllegalStateException: Calendar dates/counts must occupy one complete line at actual 200% text: [TextLayoutResult(layoutInput=TextLayoutInput(text=28, style=TextStyle(color=Color(0.03529412, 0.03529412, 0.03529412, 1.0, sRGB IEC61966-2.1), brush=null, alpha=1.0, fontSize=13.0.sp, fontWeight=FontWeight(weight=700), fontStyle=null, fontSynthesis=null, fontFamily=null, fontFeatureSettings=null, letterSpacing=Unspecified, baselineShift=null, textGeometricTransform=null, localeList=null, background=Color(0.0, 0.0, 0.0, 0.0, None), textDecoration=null, shadow=null, drawStyle=null, textAlign=Unspecified, textDirection=Unspecified, lineHeight=18.0.sp, textIndent=null, platformStyle=PlatformTextStyle(spanStyle=null, paragraphSyle=PlatformParagraphStyle(includeFontPadding=false, emojiSupportMatch=EmojiSupportMatch.Default)), lineHeightStyle=LineHeightStyle(alignment=LineHeightStyle.Alignment.Center, trim=LineHeightStyle.Trim.None,mode=LineHeightStyle.Mode.Fixed), lineBreak=LineBreak(strategy=Strategy.Unspecified, strictness=Strictness.Unspecified, wordBreak=WordBreak.Unspecified), hyphens=Hyphens.Unspecified, textMotion=null), placeholders=[], maxLines=1, softWrap=false, overflow=Clip, density=androidx.compose.ui.node.LayoutModifierNodeCoordinator&#64;9d8d5c5, layoutDirection=Ltr, fontFamilyResolver=androidx.compose.ui.text.font.FontFamilyResolverImpl&#64;7909f9c, constraints=Constraints(minWidth = 0, maxWidth = 130, minHeight = 0, maxHeight = Infinity)), multiParagraph=androidx.compose.ui.text.MultiParagraph&#64;dd33b1a, size=74 x 91, firstBaseline=68.0, lastBaseline=68.0, placeholderRects=[])]
+at com.whip.app.HomeHabitRecoveryUiTest.denseTaskCalendarKeepsDateAndCountsLegibleAtLargeText$lambda$0$assertOneCompleteLine(HomeHabitRecoveryUiTest.kt:198)
+at com.whip.app.HomeHabitRecoveryUiTest.denseTaskCalendarKeepsDateAndCountsLegibleAtLargeText(HomeHabitRecoveryUiTest.kt:203)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

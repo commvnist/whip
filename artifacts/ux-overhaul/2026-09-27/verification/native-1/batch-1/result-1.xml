@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="0" errors="0" skipped="0" time="6.061" timestamp="2026-09-28T03:07:21" hostname="localhost">
+  <testsuite name="com.whip.app.ui.InteractionControlUiTest" tests="2" failures="0" errors="0" skipped="0" time="5.017" timestamp="2026-09-28T03:07:21" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="trackNumberUnitSelectorKeepsTheUsersActiveNonDefaultUnitSelected" classname="com.whip.app.ui.InteractionControlUiTest" time="2.527" />
+    <testcase name="sharedControlsExposeConsistentStateRolesAndTouchTargets" classname="com.whip.app.ui.InteractionControlUiTest" time="2.49" />
+  </testsuite>
+</testsuites>

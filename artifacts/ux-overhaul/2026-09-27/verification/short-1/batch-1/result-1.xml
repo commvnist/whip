@@ -1,0 +1,62 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="4" failures="4" errors="0" skipped="0" time="21.663" timestamp="2026-09-28T02:50:14" hostname="localhost">
+  <testsuite name="com.whip.app.GymPowerInputUiTest" tests="1" failures="1" errors="0" skipped="0" time="5.741" timestamp="2026-09-28T02:50:14" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="compactActiveLaneLeavesRoomForSetEntryAtNativeLargeText" classname="com.whip.app.GymPowerInputUiTest" time="5.741">
+      <failure>java.lang.AssertionError: Sticky execution lane must leave at least 144dp for Set entry: viewport=Rect.fromLTRB(0.0, 151.0, 840.0, 1449.0) rest=Rect.fromLTRB(53.0, 870.0, 787.0, 1383.0)
+at org.junit.Assert.fail(Assert.java:89)
+at org.junit.Assert.assertTrue(Assert.java:42)
+at com.whip.app.GymPowerInputUiTest.compactActiveLaneLeavesRoomForSetEntryAtNativeLargeText(GymPowerInputUiTest.kt:154)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.HomeHabitRecoveryUiTest" tests="2" failures="2" errors="0" skipped="0" time="9.456" timestamp="2026-09-28T02:50:14" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="denseTaskCalendarKeepsDateAndCountsLegibleAtLargeText" classname="com.whip.app.HomeHabitRecoveryUiTest" time="3.899">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Calendar' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.HomeHabitRecoveryUiTest.denseTaskCalendarKeepsDateAndCountsLegibleAtLargeText(HomeHabitRecoveryUiTest.kt:164)
+</failure>
+    </testcase>
+    <testcase name="manyTaskFiltersKeepTheResultsViewportReachableAtLargeText" classname="com.whip.app.HomeHabitRecoveryUiTest" time="5.557">
+      <failure>java.lang.AssertionError: Actual height is 28.952362.dp, expected at least 96.0.dp (tolerance: 0.5.dp)
+at androidx.compose.ui.test.BoundsAssertionsKt.assertIsAtLeast-cWfXhoU(BoundsAssertions.kt:342)
+at androidx.compose.ui.test.BoundsAssertionsKt.assertIsAtLeast-cWfXhoU$default(BoundsAssertions.kt:339)
+at androidx.compose.ui.test.BoundsAssertionsKt.assertHeightIsAtLeast_3ABfNKs$lambda$0(BoundsAssertions.kt:98)
+at androidx.compose.ui.test.BoundsAssertionsKt$$ExternalSyntheticLambda2.invoke(D8$$SyntheticClass:0)
+at androidx.compose.ui.test.BoundsAssertionsKt.withUnclippedBoundsInRoot(BoundsAssertions.kt:266)
+at androidx.compose.ui.test.BoundsAssertionsKt.assertHeightIsAtLeast-3ABfNKs(BoundsAssertions.kt:98)
+at com.whip.app.HomeHabitRecoveryUiTest.manyTaskFiltersKeepTheResultsViewportReachableAtLargeText(HomeHabitRecoveryUiTest.kt:218)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.ui.HabitUxPresentationUiTest" tests="1" failures="1" errors="0" skipped="0" time="5.104" timestamp="2026-09-28T02:50:14" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="timerReviewKeepsEditableEstimateAndActionsReachableWithKeyboard" classname="com.whip.app.ui.HabitUxPresentationUiTest" time="5.104">
+      <failure>java.lang.IllegalStateException: Visual catalog hierarchy for ux-upgrades.habits-timer-review.large contains an unlabeled interactive node:                 &lt;node NAF="true" index="2" text="" resource-id="" class="android.view.View" package="commvne.com.whip.app.debug" content-desc="" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" visible-to-user="true" bounds="[63,524][1017,650]" drawing-order="2" hint="" display-id="0" /&gt;
+at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface(VisualCatalogCapture.kt:95)
+at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface$default(VisualCatalogCapture.kt:26)
+at com.whip.app.ui.HabitUxPresentationUiTest.timerReviewKeepsEditableEstimateAndActionsReachableWithKeyboard(HabitUxPresentationUiTest.kt:83)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

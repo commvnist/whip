@@ -5,6 +5,7 @@
 - Changes: `SelectionField`, `UnitSelectionField` and the narrow segmented-choice menu preserve full selected labels, expose selected-option semantics and dismiss unavailable menus. Optional editor guidance and Calendar navigation availability support the domain overhaul without a new component system.
 - Evidence/status: Verified under VER-20260927-025. `SharedChoiceAccessibilityUiTest` covers actual 200% wrapping, selected semantics and disabling open menus; the existing Track entered-unit assertion now checks native selection. No domain or persistence format changed.
 - Related: FB-20260927-011, FND-20260927-018, DEC-20260927-008; [shared review](../quality/UX_OVERHAUL_SHARED_2026-09-27.md).
+- Commit/push: `6cfb33dd` on `origin/main`; accepted as part of the integrated VER-20260927-025 scope.
 
 ### IMP-20260927-017 — Home, Tasks and Habits recovery, authoring and meaningful evidence
 
@@ -12,18 +13,21 @@
 - Follow-through: Reproduced short-screen Task controls, dense Calendar and Timer/IME constraints are repaired. The real Insights journey uncovered FND-20260927-019: note-only Log Only entries now persist with nullable values and no quantitative Measurement row. Numeric-to-note editing removes the old linked entry transactionally; note-to-numeric editing creates the ordinary linked entry with stable Habit provenance. Existing nullable storage and backup format are retained; numeric Measurement validation remains strict.
 - Evidence/status: Verified under VER-20260927-025, including all constrained layouts and note-only persistence/backup. Preserve scheduling, domain success calculations, data, timer rules and saved drafts. Exact workstream dispositions and native selectors are in the [Home/Habits review](../quality/UX_OVERHAUL_HOME_HABITS_2026-09-27.md).
 - Related: FB-20260927-011, FND-20260927-012/013/019, DEC-20260927-008.
+- Commit/push: `312fdc29` on `origin/main`; accepted as part of the integrated VER-20260927-025 scope.
 
 ### IMP-20260927-018 — Goals and Track authoring, lifecycle context and usable history
 
 - Changes: Goal browse summaries include selected-unit readings and lifecycle context; editors offer coherent measurement settings, clearable deadlines and stable raw milestone weights. Evidence leads with progress, type-appropriate milestone facts, dated charts and independently paged trend rows. Track adds scope-aware recovery, visible/editable conditions, concise field definitions, an earlier Entry Date and clearable optional dates.
 - Evidence/status: Verified under VER-20260927-025. Terminal Goal snapshots, over-target progress, historical field types and canonical-unit storage remain protected. The [Goals/Track review](../quality/UX_OVERHAUL_GOALS_TRACK_2026-09-27.md) maps exact selectors and captures to each group.
 - Related: FB-20260927-011, FND-20260927-014/015, DEC-20260927-008.
+- Commit/push: `47341219` on `origin/main`; accepted as part of the integrated VER-20260927-025 scope.
 
 ### IMP-20260927-019 — Gym workflow hierarchy and Settings organization
 
 - Changes: Gym Progress places context before results, exposes required rep inputs, corrects reverse-resistance best values and distinguishes invalid inputs from missing data. History/library recovery and Routine summaries improve navigation; Routine authoring focuses one Set prescription at a time. A dedicated Gym Settings category groups rest, inputs and calculations, offers direct global preset editing, and improves reminder feedback, exports and calculator results.
 - Evidence/status: Verified under VER-20260927-025, including Routine recovery, constrained active lane, chart drill-down and busy CSV controls. Notification-settings return remains source-reviewed only. Existing authored routines, training position, legacy compatibility, completed workout snapshots and persistence formats remain protected. See the [Gym/Settings review](../quality/UX_OVERHAUL_GYM_SETTINGS_2026-09-27.md).
 - Related: FB-20260927-011, FND-20260927-016/017, DEC-20260927-008.
+- Commit/push: `6ce53154` on `origin/main`; accepted as part of the integrated VER-20260927-025 scope.
 
 ### IMP-20260927-015 — Include higher-rep sets in ordinary Gym e1RM
 

@@ -1,0 +1,71 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="10" failures="1" errors="0" skipped="0" time="61.945" timestamp="2026-09-28T03:22:57" hostname="localhost">
+  <testsuite name="com.whip.app.AdaptiveWhipScreenTest" tests="1" failures="0" errors="0" skipped="0" time="9.092" timestamp="2026-09-28T03:22:57" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="compactGoalEditorRemainsReachableAtTwoHundredPercentText" classname="com.whip.app.AdaptiveWhipScreenTest" time="9.092" />
+  </testsuite>
+  <testsuite name="com.whip.app.GoalProgressJourneyE2ETest" tests="3" failures="0" errors="0" skipped="0" time="24.417" timestamp="2026-09-28T03:22:57" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="datedTrendShowsItsMeasureAndEarlierDaysRemainReachable" classname="com.whip.app.GoalProgressJourneyE2ETest" time="10.681" />
+    <testcase name="milestoneInsightsDescribeWeightedProgressAndRetainClosedOutcome" classname="com.whip.app.GoalProgressJourneyE2ETest" time="9.607" />
+    <testcase name="poundGoalTrendValuesTargetsAndRatesKeepTheirSelectedUnit" classname="com.whip.app.GoalProgressJourneyE2ETest" time="4.129" />
+  </testsuite>
+  <testsuite name="com.whip.app.GymLibraryJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="1.944" timestamp="2026-09-28T03:22:57" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="emptyHistoryCalendarReturnsToCurrentCollection" classname="com.whip.app.GymLibraryJourneyE2ETest" time="1.944">
+      <failure>java.lang.AssertionError: No node found that matches Text + InputText + EditableText contains 'History options' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #2527 at (l=0.0, t=451.0, r=1080.0, b=2169.0)px
+CollectionInfo = 'CollectionInfo(rowCount=4, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape&#64;3914609'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 5 children, 3 siblings
+Selector used: (ScrollToIndex is defined)
+
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+at com.whip.app.GymLibraryJourneyE2ETest.emptyHistoryCalendarReturnsToCurrentCollection$lambda$0$history(GymLibraryJourneyE2ETest.kt:30)
+at com.whip.app.GymLibraryJourneyE2ETest.emptyHistoryCalendarReturnsToCurrentCollection(GymLibraryJourneyE2ETest.kt:33)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.GymPhasedRoutineJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="6.156" timestamp="2026-09-28T03:22:57" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="routineStartsFromLibraryAndShowsItsActualPhaseInWorkout" classname="com.whip.app.GymPhasedRoutineJourneyE2ETest" time="6.156" />
+  </testsuite>
+  <testsuite name="com.whip.app.GymPowerInputUiTest" tests="3" failures="0" errors="0" skipped="0" time="13.001" timestamp="2026-09-28T03:22:57" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="repSpecificProgressRequiresVisibleValidRepetitions" classname="com.whip.app.GymPowerInputUiTest" time="7.412" />
+    <testcase name="restTimerStacksActionsAtLargeTextAndNamesEveryAction" classname="com.whip.app.GymPowerInputUiTest" time="1.36" />
+    <testcase name="readyRestTimerMakesWorkoutScopedDurationDiscoverableAndUsesIt" classname="com.whip.app.GymPowerInputUiTest" time="4.229" />
+  </testsuite>
+  <testsuite name="com.whip.app.HabitSkipJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="5.829" timestamp="2026-09-28T03:22:57" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="skipIsOneVisibleNeutralStateWithHistoryInsightsAndUndo" classname="com.whip.app.HabitSkipJourneyE2ETest" time="5.829" />
+  </testsuite>
+</testsuites>

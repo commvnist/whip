@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260927-008 — Improve context and recovery through existing presentation owners
+
+- Decision: After the owner rejected the initial nine-item scope as too narrow, implement all accepted workstreams in the expanded [major-component plan](../quality/MAJOR_COMPONENT_UX_UPGRADES_2026-09-27.md) and its four detailed matrices. This includes authoring, analytics, browse summaries, routine workflows, Settings organization and shared choices in addition to initial recovery fixes. Use existing shared components; the established design grammar is a foundation, not proof that workflows cannot improve.
+- Constraints: Preserve authored data, Area/archive scopes, sort preferences, explicit completion, over-target percentages and selected units. Keep the established card/set grammar. No new UI framework, dependency or persistence migration.
+- Verification: One final affected readiness batch and selected native emulator journeys, including enlarged-text reachability and recent Goal regression neighbors. This new scoped request does not claim completion of the historical paused audit or a phone release.
+- Related/status: FB-20260927-011, FND-20260927-012/013/014/015/016/017/018/019, VER-20260927-025. Implemented and verified within the accepted scope.
+
 ### DEC-20260927-007 — Expand ordinary Gym e1RM eligibility to 36 reps
 
 - Decision: Use the existing supported 1–36 range as the default for ordinary Gym estimates. Upgrade the saved ten-rep value once with a private preference marker; preserve other cutoffs and every later explicit choice, including ten. Explicit backup settings remain authoritative; an absent cutoff uses 36.

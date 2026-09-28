@@ -1,5 +1,55 @@
 # Durable findings
 
+### FND-20260927-019 — Note-only Habit entries are offered but cannot be saved
+
+- Observed: `HabitValueDialog` and `HabitHistoryLogDialog` allow Log Only check-ins without a number, but `RoomHabitRepository.log` sends the null amount to `MeasurementRepository.record` with Recorded status, which requires a value. The real repository-backed Insights fixture failed with `A value is required` at `MeasurementRepository.kt:489` during the expanded UX validation.
+- Expected/remedy: Preserve a real recorded Habit entry with its note and date without inventing a numeric zero. The existing Habit log fields and quantitative-entry link are nullable. Creation and transactional edit transitions now preserve note-only records without a quantitative Measurement entry; numeric Measurement validation stays strict. Recreation, numeric/note transitions and backup compatibility pass using the existing format.
+- Related/status: FB-20260927-011, accepted HT-05/06 under DEC-20260927-008, IMP-20260927-017. Verified under VER-20260927-025: real UI save, 38 repository tests and two backup round-trips pass. This was found by executing the overhaul's new native journey, not by relaxing its test data.
+
+### FND-20260927-013 — Task planning and Habit summaries hide meaningful context
+
+- Observed: Task Calendar can browse beyond the guaranteed next-30-day recurrence projection and labels clear dates as filter failures; Upcoming List also includes later dated one-off Tasks, so the initial blanket claim that all Upcoming data ends at 30 days was incorrect. Filters bury saved recipes and lack live result scope. Task history does not distinguish actual completion time from scheduled date. Habit presentation conflates target rules/periods/units, zero with no record, and flexible streaks with days; some copy ignores low-pressure mode. Sparse Habit charts omit isolated observations and provide no visible date/scale context.
+- Evidence/remedy: [Home/Tasks/Habits matrix](../quality/UX_OVERHAUL_HOME_HABITS_2026-09-27.md), HT-03 through HT-08. Redesign planning context, summaries, editor hierarchy and Insights using existing domain facts. HT-10's API 34 measurement at 1080×1600 and native 200% text reported only 28.95 dp of Task results; the initial captured frame still showed the dismissing filter dialog. The repaired fixture waits for dismissal; the accepted result restores usable list space. Timer Review with a real IME hid the estimate behind clipped guidance and failed the native unnamed-interaction guard. Bounded fixed content and scroll/focus behavior were repaired. Dense Calendar initially stopped on an adaptive-menu fixture, then a digit-wrapped original exposed a real cell-layout defect despite a weak passing assertion. Full-width single-line date/count labels now pass strict overflow checks at actual 200%. All four short cases and originals are accepted in the retained overhaul evidence.
+- Related/status: FB-20260927-011, DEC-20260927-008. Verified within the accepted scope under VER-20260927-025.
+
+### FND-20260927-014 — Goal authoring and evidence omit essential decisions
+
+- Observed: Numeric Goal cards omit current/target and lifecycle context; deadline lacks a clear action; milestone weight parses intermediate typing prematurely. Aggregation/window are buried in optional details. Goal chart equally spaces irregular dates without labelled measure; daily trend table has no independent paging beyond 25 rows.
+- Evidence/remedy: [Goals/Track matrix](../quality/UX_OVERHAUL_GOALS_TRACK_2026-09-27.md), G3–G6 plus initial G1/G2. Make authoring reversible, summaries type-aware and dated evidence interpretable while retaining canonical conversion, >100% and frozen closure history.
+- Related/status: FB-20260927-011, DEC-20260927-008. Verified within the accepted scope under VER-20260927-025.
+
+### FND-20260927-015 — Track forms and filters add unnecessary recovery work
+
+- Observed: Conditions require delete/recreate to edit; closed Activity filters conceal their context and unavailable local IDs can mislabel scope. Definition rows omit number unit/precision and Add Field follows the full list. Entry Date follows all authored fields; optional Date cannot return to unanswered.
+- Evidence/remedy: [Goals/Track matrix](../quality/UX_OVERHAUL_GOALS_TRACK_2026-09-27.md), T3–T6 plus initial T1/T2. Add in-place condition editing, visible scope, reviewable definitions, early entry date and explicit optional-date clearing; preserve user field order, units, archived read-only and mutation ownership.
+- Related/status: FB-20260927-011, DEC-20260927-008. Verified within the accepted scope under VER-20260927-025.
+
+### FND-20260927-016 — Gym evidence and Routine authoring need clearer hierarchy
+
+- Observed: Progress shows anonymous results before exercise/metric context, hides required rep target in Graph Options, and selects the wrong displayed best for reversed machine levels. Large empty tracked-record content delays chart controls. Routine browsing expands every day/detail; prescription editing renders every full set form at once. History metadata competes with title/actions.
+- Evidence/remedy: [Gym/Settings matrix](../quality/UX_OVERHAUL_GYM_SETTINGS_2026-09-27.md), GS-A/B/C. Reorganize evidence around its chosen scope, use correct resistance direction, provide concise routine summaries and one expanded set editor. GS-F reproduced at native 200% text on 1080×1600: a six-line NEXT identity, running rest controls and denied-alert warning left only 66 px (about 25 dp) below the fixed lane, blocking Set entry. The exact test and original PNG/XML are in `build/instrumentation-results-drgufh` and `build/ux-overhaul-short-layout-before`. Compact persistent execution controls while keeping full identity and alert explanation in reachable content. Legacy 5/3/1 authoring remains retired; existing compatibility controls are preserved.
+- Related/status: FB-20260927-011, DEC-20260927-008. Verified within the accepted scope under VER-20260927-025.
+
+### FND-20260927-017 — Settings organization and feedback obscure common actions
+
+- Observed: Gym defaults are buried in Planning & Units, global rest presets require starting a workout to edit, peer Areas/Tags are separated by Custom Emojis, and section transitions lack clear spacing. Reminder test result is distant plain text; CSV actions lack neighboring busy-state gating. The 1RM calculator joins percentage results into one long run.
+- Evidence/remedy: [Gym/Settings matrix](../quality/UX_OVERHAUL_GYM_SETTINGS_2026-09-27.md), GS-D/E. Add a coherent Gym category, direct preset management, clearer groups and local announced feedback. Wide category navigation and busy CSV controls pass native checks; Android-settings return refresh is implemented with LifecycleResumeEffect and source-reviewed only.
+- Related/status: FB-20260927-011, DEC-20260927-008. Verified within the accepted scope under VER-20260927-025; OS permission-return behavior remains source-reviewed only.
+
+### FND-20260927-018 — Shared form choices truncate values and fragment selected state
+
+- Observed: `SelectionField` and `UnitSelectionField` force chosen values to one line by default. Form and narrow segmented menus label the check icon Selected instead of exposing selected state on the option; open menus do not close when the field becomes disabled.
+- Evidence/remedy: [Shared matrix](../quality/UX_OVERHAUL_SHARED_2026-09-27.md), X1. Wrap complete chosen values, place selected semantics on menu rows and dismiss unavailable menus through the existing owners. Shared editor help parameters become optional so callers can remove repeated generic prose.
+- Related/status: FB-20260927-011, DEC-20260927-008. Verified within the accepted scope under VER-20260927-025.
+
+### FND-20260927-012 — Context and recovery gaps across major destinations
+
+- Severity/category: P2 UX correctness and recovery; P3 hierarchy/labeling.
+- Observed: Home filtered Tasks can disappear behind a false all-clear; Habits conflates off-schedule/scoped absence with first use; milestone Goals receive impossible observation guidance; Gym date absence can claim no history and filter-empty states lack direct recovery. Goal summary order, Track's recency label and Appearance ordering also obscure the underlying information.
+- Evidence/root causes: Current HomeContent/HabitAreaContent predicates, GoalInsightsContent/GoalActionsDialog's generic non-elapsed branch, WorkoutHistoryContent's pre-calendar emptiness predicate, library empty-state actions, Settings Appearance item order. Per-area findings and checks are in the [accepted plan](../quality/MAJOR_COMPONENT_UX_UPGRADES_2026-09-27.md).
+- Expected/remedy: Distinguish actual absence from scoped or filtered absence, offer the existing recovery action locally, and match summaries to their actual data model. Preserve existing shared design and persistence.
+- Related/status: FB-20260927-011, DEC-20260927-008. Verified within the accepted scope under VER-20260927-025.
+
 ### FND-20260927-011 — Workout e1RM defaults exclude high-rep sets and summaries ignore the setting
 
 - Observed: `estimatedOneRepMax`, `WorkoutSet.estimatedOneRepMaxKg`, graph defaults, AppSettings and repository fallbacks default to ten reps. The standalone calculator explicitly accepts 36. `calculateWorkoutSummary` does not receive the configured cutoff, so it always uses ten even when graphs and records allow more.

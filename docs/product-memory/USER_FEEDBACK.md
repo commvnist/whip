@@ -1,5 +1,16 @@
 # User feedback and acceptance criteria
 
+### FB-20260927-011 — Review and implement UX upgrades across the six major app areas
+
+- Date/source: 2026-09-27, direct owner request and explicit goal.
+- User need: Review Home/Tasks, Habits, Goals, Track, Gym and Settings for UX, UI and design upgrades, plan the work, then implement all selected improvements without stopping at recommendations.
+- Acceptance criteria: Use multiple Astra agents at high reasoning in parallel; inspect current source and prior decisions; record an evidence-backed plan before implementation; preserve data and established design patterns; implement every accepted plan item; run one final affected readiness batch and selected emulator journeys, recording exact outcomes and limitations.
+- Affected workflows: The six named product areas and their shared interaction patterns.
+- Boundaries: This is a new scoped product-improvement request; historical paused audit inventories are reference material. No release or physical-phone operation is requested.
+- Status: Verified within the accepted implementation scope; VER-20260927-025 records 409 JVM tests, 171 selected Android methods, four constrained layouts and retained originals. All 19 expanded workstreams are implemented; subjective design acceptance awaits normal owner use.
+
+- Owner clarification: The first nine-item plan was too narrow. The request is a thorough review and overhaul plan across each component's major screens and workflows; one or two small issues per area do not satisfy it. Expand the evidence and plan before further broad implementation; retain justified initial fixes as a subset.
+
 ### FB-20260927-010 — Allow Gym estimated 1RM calculations above ten reps
 
 - Date/source: 2026-09-27, direct owner request.
