@@ -60,6 +60,41 @@ class SettingsBehaviorUiTest {
     }
 
     @Test
+    fun gymRestPresetsSaveWithoutStartingWorkoutAndCategoriesResetScroll() {
+        openSettingsSection("Gym")
+        captureVisualCatalogSurface("ux-upgrades.settings.gym")
+        compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Rest Presets"))
+        compose.onNodeWithText("Rest Presets").performClick()
+        compose.onNodeWithTag("rest-preset-seconds").performTextReplacement("345")
+        compose.onNodeWithText("Add Preset").performClick()
+        compose.onNodeWithText("Save Presets").performClick()
+        compose.waitUntil(10_000) { 345 in app.settingsRepository.current().restTimerPresetSeconds }
+        compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Progress Calculations"))
+        compose.onNodeWithContentDescription("Back to Settings").performClick()
+        selectSettingsCategory("Appearance & Home")
+        compose.onNodeWithText("Theme and Colors").assertIsDisplayed()
+        captureVisualCatalogSurface("ux-upgrades.settings.appearance-initial")
+        compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Hardware Keyboard"))
+        compose.onNodeWithText("Hardware Keyboard").assertIsDisplayed()
+    }
+
+    @Test
+    fun notificationTestExplainsAvailabilityOrAnnouncesResult() {
+        openSettingsSection("Reminders")
+        compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Send Test Notification"))
+        val button = compose.onNodeWithTag("send-test-notification")
+        if (button.fetchSemanticsNode().config.contains(androidx.compose.ui.semantics.SemanticsProperties.Disabled)) {
+            button.assertIsNotEnabled()
+            compose.onNodeWithText("Send test notification unavailable.", substring = true).assertExists()
+        } else {
+            button.performClick()
+            compose.onNodeWithTag("settings-list").performScrollToNode(hasTestTag("notification-test-result"))
+            compose.onNodeWithTag("notification-test-result").assertIsDisplayed()
+        }
+        captureVisualCatalogSurface("ux-upgrades.settings.reminder-result")
+    }
+
+    @Test
     fun settingsHaveNoDensityChoicesAndTasksUseSummaryDisclosure() {
         val taskId = runBlocking {
             app.taskRepository.create(
@@ -82,14 +117,15 @@ class SettingsBehaviorUiTest {
 
         openAppearanceSettings()
         compose.onAllNodesWithText("Use compact item rows").assertCountEquals(0)
+        compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Show advanced controls by default"))
         compose.onNodeWithText("Show advanced controls by default").assertIsDisplayed()
 
         compose.onNodeWithContentDescription("Back to Settings").performClick()
-        selectSettingsCategory("Planning & Units")
+        selectSettingsCategory("Gym")
         compose.onAllNodesWithText("Use compact workout " + "set rows").assertCountEquals(0)
         compose.onNodeWithTag("settings-list")
-            .performScrollToNode(androidx.compose.ui.test.hasText("Gym Defaults"))
-        compose.onNodeWithText("Gym Defaults").assertIsDisplayed()
+            .performScrollToNode(androidx.compose.ui.test.hasText("Workout and Rest"))
+        compose.onNodeWithText("Workout and Rest").assertIsDisplayed()
     }
 
     @Test
@@ -270,10 +306,11 @@ class SettingsBehaviorUiTest {
         val expectedControl = linkedMapOf(
             "Appearance & Home" to "Show advanced controls by default",
             "Planning & Units" to "First day of week",
+            "Gym" to "Rest Presets",
             "Organization" to "Manage Areas",
             "Reminders" to "Reminder Delivery",
             "Data & Privacy" to "Portable Backup Folder",
-            "About Whip" to "Your data stays on this device unless you explicitly export or sync it.",
+            "About Whip" to "Your data stays on this device unless you export it or save backups to a folder you choose.",
         )
 
         compose.onNodeWithTag("workspace-settings-action").performClick()
@@ -301,7 +338,7 @@ class SettingsBehaviorUiTest {
 
     @Test
     fun validGymDefaultDraftSurvivesRecreationWithoutPersistingUntilDone() {
-        openSettingsSection("Planning & Units")
+        openSettingsSection("Gym")
         compose.onNodeWithTag("settings-list")
             .performScrollToNode(hasTestTag("settings-field-default-rest-time-seconds"))
         val initial = app.settingsRepository.current().defaultRestSeconds
@@ -357,7 +394,7 @@ class SettingsBehaviorUiTest {
 
     @Test
     fun hardwareBackRequiresExplicitDiscardAndCannotNavigateBehindATypedEditor() {
-        openSettingsSection("Planning & Units")
+        openSettingsSection("Gym")
         compose.onNodeWithTag("settings-list")
             .performScrollToNode(hasTestTag("settings-field-default-rest-time-seconds"))
         val initial = app.settingsRepository.current().defaultRestSeconds

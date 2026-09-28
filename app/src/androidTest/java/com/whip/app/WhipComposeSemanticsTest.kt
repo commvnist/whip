@@ -9,6 +9,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -21,6 +22,8 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -83,7 +86,7 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithContentDescription("Cancel Habit editing").performClick()
             compose.onNodeWithContentDescription("Tasks tab").performClick()
             compose.onNodeWithTag("task-destination-Upcoming").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
-            compose.onNodeWithText("The next 30 days", substring = true).assertIsDisplayed()
+            compose.onNodeWithText("Future tasks", substring = true).assertIsDisplayed()
             compose.onNodeWithText("Agenda").assertIsDisplayed().performClick()
             compose.onNodeWithText("Calendar").assertIsDisplayed().performClick()
             compose.onNodeWithTag("task-calendar").performScrollTo()
@@ -97,8 +100,8 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithText("Home Overview").assertIsDisplayed()
             returnToSettingsIndexIfCompact()
             openSettingsSection("Planning & Units")
-            compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Create reusable units", substring = true))
-            compose.onNodeWithText("Create reusable units", substring = true).assertIsDisplayed()
+            compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Custom Units"))
+            compose.onNodeWithText("Custom Units").assertIsDisplayed()
             returnToSettingsIndexIfCompact()
             openSettingsSection("Organization")
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Manage Areas"))
@@ -550,9 +553,7 @@ class WhipComposeSemanticsTest {
 
             compose.onNodeWithTag("gym-destination-Progress")
                 .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
-            compose.waitUntil(10_000) {
-                compose.onAllNodesWithTag("gym-e1rm-formula").fetchSemanticsNodes().isNotEmpty()
-            }
+            compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasTestTag("gym-e1rm-formula"))
             compose.onNodeWithTag("gym-e1rm-formula").performScrollTo().assertIsDisplayed()
             compose.onNodeWithText("Formula: Epley", substring = true).assertIsDisplayed()
             compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasText("Graph Options"))
@@ -567,7 +568,7 @@ class WhipComposeSemanticsTest {
             compose.onAllNodesWithText("Graph Presets").assertCountEquals(0)
             compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasText("Tracked Records"))
             compose.onNodeWithTag("gym-tracked-records").assertIsDisplayed()
-            compose.onNodeWithText("No Tracked Records Yet").assertIsDisplayed()
+            compose.onNodeWithText("No tracked records yet. Choose benchmarks to keep in view.").assertIsDisplayed()
             compose.onNodeWithTag("gym-manage-tracked-records").performClick()
             compose.onNodeWithText("Choose Exercise").performClick()
             compose.onAllNodesWithText("Graph controls test")[1].performClick()
@@ -584,8 +585,18 @@ class WhipComposeSemanticsTest {
             compose.onAllNodesWithText("10-Rep Best").assertCountEquals(0)
             compose.onAllNodesWithText("20-Rep Best").assertCountEquals(0)
             compose.onAllNodesWithText("EstimatedOneRepMax").assertCountEquals(0)
-            compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasText("Chart Points"))
-            compose.onAllNodesWithTag("gym-chart-point")[0].performClick()
+            compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasTestTag("gym-chart-point"))
+            val chartPoint = compose.onAllNodesWithTag("gym-chart-point")[0]
+            // The chip's nearest scroll owner is horizontal; reveal it vertically first.
+            repeat(3) {
+                if (!chartPoint.isDisplayed()) {
+                    compose.onNodeWithTag("gym-progress-list").performTouchInput { swipeUp() }
+                    compose.waitForIdle()
+                }
+            }
+            captureVisualCatalogSurface("ux-upgrades.gym.chart-point-visible")
+            chartPoint.assertIsDisplayed().performClick()
+            compose.onNodeWithText("Built from 1 source.").assertIsDisplayed()
             compose.onNodeWithTag("gym-chart-point-open-workout").performClick()
             compose.onNodeWithText("Workout History").assertIsDisplayed()
             compose.onNodeWithText("Showing the selected workout.").assertIsDisplayed()

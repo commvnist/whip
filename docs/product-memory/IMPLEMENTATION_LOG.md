@@ -19,6 +19,12 @@
 - Evidence/status: Verified under VER-20260927-025. Terminal Goal snapshots, over-target progress, historical field types and canonical-unit storage remain protected. The [Goals/Track review](../quality/UX_OVERHAUL_GOALS_TRACK_2026-09-27.md) maps exact selectors and captures to each group.
 - Related: FB-20260927-011, FND-20260927-014/015, DEC-20260927-008.
 
+### IMP-20260927-019 — Gym workflow hierarchy and Settings organization
+
+- Changes: Gym Progress places context before results, exposes required rep inputs, corrects reverse-resistance best values and distinguishes invalid inputs from missing data. History/library recovery and Routine summaries improve navigation; Routine authoring focuses one Set prescription at a time. A dedicated Gym Settings category groups rest, inputs and calculations, offers direct global preset editing, and improves reminder feedback, exports and calculator results.
+- Evidence/status: Verified under VER-20260927-025, including Routine recovery, constrained active lane, chart drill-down and busy CSV controls. Notification-settings return remains source-reviewed only. Existing authored routines, training position, legacy compatibility, completed workout snapshots and persistence formats remain protected. See the [Gym/Settings review](../quality/UX_OVERHAUL_GYM_SETTINGS_2026-09-27.md).
+- Related: FB-20260927-011, FND-20260927-016/017, DEC-20260927-008.
+
 ### IMP-20260927-015 — Include higher-rep sets in ordinary Gym e1RM
 
 - Behavior: One shared 36-rep default replaces the scattered ten-rep defaults in calculations, settings, graph projection, PR reconstruction and missing backup settings. A one-time local preference upgrade changes the old ten-rep value to 36 and preserves later authored choices. Both initial and ticking workout summaries receive the configured cutoff.

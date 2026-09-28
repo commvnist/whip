@@ -24,6 +24,7 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -121,6 +122,107 @@ import java.time.Instant
 class GymPowerInputUiTest {
     private val compose = createComposeRule()
     @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
+
+    @AndroidFontScale
+    @Test
+    fun compactActiveLaneLeavesRoomForSetEntryAtNativeLargeText() {
+        org.junit.Assume.assumeTrue(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU)
+        val exercise = testExercise().copy(name = "Chest supported alternating single arm cable row with controlled pause")
+        val session = testHistorySession().copy(endedAt = null, state = WorkoutSessionState.Active)
+        val placement = testWorkoutExercise(exercise).copy(sessionId = session.id)
+        val set = testWorkoutSet(1, placement.id)
+        val item = WorkoutExerciseUi(placement, exercise, listOf(set), emptyList(), 0, null, null)
+        val app: WhipApplication = androidx.test.core.app.ApplicationProvider.getApplicationContext()
+        val viewModel = com.whip.app.ui.GymViewModel(app)
+        val permission = android.Manifest.permission.POST_NOTIFICATIONS
+        val originallyGranted = app.checkSelfPermission(permission) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val automation = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
+        try {
+        automation.revokeRuntimePermission(app.packageName, permission)
+        check(app.checkSelfPermission(permission) == android.content.pm.PackageManager.PERMISSION_DENIED)
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                androidx.compose.foundation.layout.Box(Modifier.width(320.dp).height(640.dp)) {
+                    com.whip.app.ui.GymAreaContent(
+                        state = GymUiState(loading = false, exercises = listOf(exercise), activeSession = session,
+                            activeWorkoutExercises = listOf(item), activeWorkoutPerformanceExercises = listOf(item),
+                            allWorkoutExercises = listOf(placement), allSets = listOf(set), allSessions = listOf(session),
+                            restSecondsRemaining = 45, appSettings = com.whip.app.core.AppSettings(notificationPermissionRequested = true)),
+                        innerPadding = androidx.compose.foundation.layout.PaddingValues(), viewModel = viewModel,
+                    )
+                }
+            }
+        }
+        compose.onNodeWithTag("active-workout-list").performScrollToNode(hasTestTag("workout-rest-alert-explanation"))
+        compose.onNodeWithText("Background alert off · the in-app timer still works").assertIsDisplayed()
+        compose.onNodeWithTag("active-workout-list").performScrollToNode(hasTestTag("workout-next-set-details"))
+        compose.onNodeWithTag("workout-next-set-details").assertTextContains(exercise.name, substring = true)
+        compose.onNodeWithTag("next-set-focus").performClick()
+        captureVisualCatalogSurface("ux-upgrades.gym.active-lane.native200")
+        compose.onNodeWithText("Background alerts off").assertIsDisplayed()
+        val viewport = compose.onNodeWithTag("active-workout-list").fetchSemanticsNode().boundsInRoot
+        val rest = compose.onNodeWithTag("rest-timer-card").fetchSemanticsNode().boundsInRoot
+        assertTrue("Sticky execution lane must leave at least 144dp for Set entry: viewport=$viewport rest=$rest",
+            viewport.bottom - rest.bottom >= 144f * compose.density.density)
+        compose.onNodeWithTag("active-set-composer").assertIsDisplayed()
+        compose.onNodeWithTag("active-workout-list").performScrollToNode(hasTestTag("quick-set-save-next-${set.id}"))
+        compose.onNodeWithTag("quick-set-save-next-${set.id}").assertIsDisplayed()
+        } finally {
+            if (originallyGranted) automation.grantRuntimePermission(app.packageName, permission)
+        }
+    }
+
+    @Test
+    fun repSpecificProgressRequiresVisibleValidRepetitions() {
+        val exercise = testExercise().copy(defaultGraphMetric = GymGraphMetric.MaxWeightForReps.name)
+        val session = testHistorySession()
+        val placement = testWorkoutExercise(exercise).copy(sessionId = session.id)
+        val set = testWorkoutSet(1, placement.id).copy(completed = true, repetitions = 5)
+        var progressState by mutableStateOf(GymUiState(
+            loading = false, exercises = listOf(exercise), history = listOf(session),
+            allWorkoutExercises = listOf(placement), allSets = listOf(set), nowMillis = session.startedAt.toEpochMilli(),
+        ))
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                androidx.compose.runtime.key(progressState.exercises.single().id) {
+                    GymProgressContent(
+                        state = progressState,
+                        onOpenExercises = {}, onOpenWorkout = {}, onOpenWorkoutHistory = {}, onManageTrackedRecords = {},
+                    )
+                }
+            }
+        }
+        compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasTestTag("gym-progress-rep-target"))
+        compose.onNodeWithTag("gym-progress-rep-target").performTextReplacement("0")
+        compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasText("Check Trend Inputs"))
+        compose.onNodeWithText("Check Trend Inputs").assertIsDisplayed()
+        captureVisualCatalogSurface("ux-upgrades.gym.progress-invalid-reps")
+        compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasTestTag("gym-progress-rep-target"))
+        compose.onNodeWithTag("gym-progress-rep-target").performTextReplacement("5")
+        compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasTestTag("gym-chart-summary"))
+        compose.onNodeWithTag("gym-chart-summary").assertTextContains("1 recorded point", substring = true)
+        captureVisualCatalogSurface("ux-upgrades.gym.progress-context")
+
+        // No live profile remains: both graph aggregation and displayed Best must use the saved direction.
+        val reverseExercise = exercise.copy(id = 901, name = "Historical reverse machine", defaultGraphMetric = GymGraphMetric.MaxMachineSetting.name)
+        val laterSession = session.copy(id = 51, uuid = "later-history", localDate = session.localDate.plusDays(1),
+            startedAt = session.startedAt.plusSeconds(86_400), endedAt = session.endedAt?.plusSeconds(86_400))
+        val reversePlacement = placement.copy(exerciseId = reverseExercise.id,
+            machineProfileUuidSnapshot = "deleted-reverse-machine", machineNameSnapshot = "Deleted reverse machine",
+            machineLoadTypeSnapshot = com.whip.app.domain.MachineLoadType.Level, machineLevelLabelSnapshot = "level",
+            machineLevelDirectionSnapshot = MachineLevelDirection.HigherNumberLessResistance)
+        val laterPlacement = reversePlacement.copy(id = 902, uuid = "later-placement", sessionId = laterSession.id)
+        compose.runOnIdle {
+            progressState = progressState.copy(exercises = listOf(reverseExercise), history = listOf(session, laterSession),
+                allWorkoutExercises = listOf(reversePlacement, laterPlacement),
+                allSets = listOf(set.copy(machineLoadValue = 8.0),
+                    set.copy(id = 903, uuid = "later-set", workoutExerciseId = laterPlacement.id, machineLoadValue = 3.0)),
+                appSettings = progressState.appSettings.copy(numberPrecision = 0))
+        }
+        compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasText("3 level · best", substring = true))
+        compose.onNodeWithText("3 level · best", substring = true).assertIsDisplayed()
+        captureVisualCatalogSurface("ux-upgrades.gym.progress-deleted-reverse-machine")
+    }
 
     @Test
     fun captureWorkoutComponentCatalog() {

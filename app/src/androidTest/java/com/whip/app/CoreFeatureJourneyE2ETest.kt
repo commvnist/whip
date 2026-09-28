@@ -107,9 +107,7 @@ class CoreFeatureJourneyE2ETest {
             compose.waitUntil(timeoutMillis = 5_000) {
                 compose.onAllNodesWithTag("gym-progress-title").fetchSemanticsNodes().isNotEmpty()
             }
-            compose.waitUntil(timeoutMillis = 5_000) {
-                compose.onAllNodesWithTag("gym-chart-summary").fetchSemanticsNodes().isNotEmpty()
-            }
+            compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasTestTag("gym-chart-summary"))
             compose.onNodeWithTag("gym-chart-summary")
                 .assertIsDisplayed()
                 .assertContentDescriptionContains(

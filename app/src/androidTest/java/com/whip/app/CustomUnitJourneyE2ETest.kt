@@ -37,6 +37,8 @@ class CustomUnitJourneyE2ETest {
             compose.onNodeWithContentDescription("Open Settings").performClick()
             compose.openSettingsCategory("Planning & Units")
             reveal(hasText("Custom Units"))
+            compose.onNodeWithText("Custom Units").performClick()
+            reveal(hasText("Custom Units"))
             captureVisualCatalogSurface("settings.units.collection")
             reveal(hasText("Create Custom Unit"))
             compose.onNodeWithText("Create Custom Unit").performClick()

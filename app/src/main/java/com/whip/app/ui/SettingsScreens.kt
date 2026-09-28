@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
@@ -119,6 +120,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.whip.app.core.AppSettings
 import com.whip.app.core.PersistenceRequestState
 import java.time.DayOfWeek
@@ -132,7 +134,8 @@ import java.util.UUID
 
 internal enum class SettingsSection(val label: String, val supportingText: String) {
     Appearance("Appearance & Home", "Theme, presentation, home sections, and keyboard shortcuts"),
-    Planning("Planning & Units", "Dates, units, numbers, effort, recurring tasks, and review defaults"),
+    Planning("Planning & Units", "Dates, units, numbers, tasks, habits, and review defaults"),
+    Gym("Gym", "Rest timers, workout inputs, and progress calculations"),
     Organization("Organization", "Areas, tags, and naming systems"),
     Reminders("Reminders", "Notification access, delivery status, testing, and quiet hours"),
     DataPrivacy("Data & Privacy", "Local data, backups, restore, export, and deletion"),
@@ -197,6 +200,10 @@ internal fun SettingsContent(
     var customEmojiEditorOriginal by rememberSaveable { mutableStateOf<String?>(null) }
     var diagnosticRefresh by rememberSaveable { mutableIntStateOf(0) }
     var notificationTestMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var notificationTestSucceeded by rememberSaveable { mutableStateOf(false) }
+    var restPresetsOpen by rememberSaveable { mutableStateOf(false) }
+    var customUnitsExpanded by rememberSaveable { mutableStateOf(false) }
+    var captureExamplesExpanded by rememberSaveable { mutableStateOf(false) }
     var deliveryDetailsExpanded by rememberSaveable { mutableStateOf(false) }
     var notificationTroubleshootingExpanded by rememberSaveable { mutableStateOf(false) }
     var showEncryptedExport by rememberSaveable { mutableStateOf(false) }
@@ -206,6 +213,11 @@ internal fun SettingsContent(
     var localSection by rememberSaveable { mutableStateOf(SettingsSection.Appearance) }
     var activeTypedSettingTag by rememberSaveable { mutableStateOf<String?>(null) }
     val section = selectedSection ?: localSection
+    val settingsListState = rememberSaveable(section, saver = LazyListState.Saver) { LazyListState() }
+    LifecycleResumeEffect(Unit) {
+        diagnosticRefresh++
+        onPauseOrDispose { }
+    }
     val externalSectionNavigation = selectedSection != null
     fun selectSection(next: SettingsSection) {
         if (activeTypedSettingTag != null) return
@@ -251,6 +263,17 @@ internal fun SettingsContent(
         },
         orphanedMessage =
             "The previous custom-unit change was interrupted. Review the unit's current name, version, and archive state before trying again. Do not repeat Archive or Restore blindly.",
+    )
+    val restPresetsCoordinator = rememberPersistenceRequestCoordinator(
+        state = typedSettingMutationState,
+        consume = viewModel::consumeTypedSettingMutation,
+        key = "settings-rest-presets",
+        requestNamespace = "settings-rest-presets",
+        onPersisted = { receipt ->
+            restPresetsOpen = false
+            typedSettingWarning = receipt.warnings.joinToString(" ").takeIf(String::isNotBlank)
+        },
+        orphanedMessage = "The previous preset save was interrupted. Review your shortcuts and retry.",
     )
     val quietHoursCoordinator = rememberPersistenceRequestCoordinator(
         state = typedSettingMutationState,
@@ -413,6 +436,7 @@ internal fun SettingsContent(
         }
         WhipReorderLazyColumn(
             modifier = Modifier.weight(1f).fillMaxHeight().testTag("settings-list"),
+            state = settingsListState,
             contentPadding = PaddingValues(20.dp, 0.dp, 20.dp, 96.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
@@ -451,26 +475,7 @@ internal fun SettingsContent(
         } }
 
         if (section == SettingsSection.Appearance) {
-        item {
-            SettingsToggle(
-                "Show advanced controls by default",
-                settings.powerMode,
-                supportingText = "Opens optional planning and configuration groups automatically. It does not add or remove capabilities.",
-            ) { selected -> viewModel.update { it.copy(powerMode = selected) } }
-        }
-        item {
-            SettingsToggle(
-                "Low-pressure Habit presentation",
-                settings.lowPressureMode,
-                supportingText = "De-emphasizes streaks and success/failure language in Habit views without changing history.",
-            ) { selected -> viewModel.update { it.copy(lowPressureMode = selected) } }
-        }
-        item {
-            WhipGroupedInformationCard {
-                Text("Hardware Keyboard", fontWeight = FontWeight.Bold)
-                Text("Ctrl+H Home · Ctrl+K Search · Ctrl+N contextual add · Ctrl+1–5 switch Tasks, Habits, Goals, Tracks, Gym", style = MaterialTheme.typography.bodySmall)
-            }
-        }
+        item { SettingsHeading("Theme and Colors") }
         item { SettingsDropdown("Theme", AppThemeMode.entries, settings.themeMode, AppThemeMode::label) { selected -> viewModel.update { it.copy(themeMode = selected) } } }
         item {
             val dynamicColorAvailable = supportsAndroidDynamicColor(Build.VERSION.SDK_INT)
@@ -484,6 +489,21 @@ internal fun SettingsContent(
                     "Requires Android 12 or newer. Whip uses its selected Theme on this device."
                 },
             ) { selected -> viewModel.update { it.copy(dynamicColor = selected) } }
+        }
+        item { SettingsHeading("Presentation") }
+        item {
+            SettingsToggle(
+                "Show advanced controls by default",
+                settings.powerMode,
+                supportingText = "Opens optional planning and configuration groups automatically. It does not add or remove capabilities.",
+            ) { selected -> viewModel.update { it.copy(powerMode = selected) } }
+        }
+        item {
+            SettingsToggle(
+                "Low-pressure Habit presentation",
+                settings.lowPressureMode,
+                supportingText = "De-emphasizes streaks and success/failure language in Habit views without changing history.",
+            ) { selected -> viewModel.update { it.copy(lowPressureMode = selected) } }
         }
         item {
             SettingsToggle(
@@ -629,6 +649,12 @@ internal fun SettingsContent(
                 }
             }
         }
+        item {
+            WhipGroupedInformationCard {
+                WhipGroupHeading("Hardware Keyboard")
+                Text("Ctrl+H Home · Ctrl+K Search · Ctrl+N contextual add · Ctrl+1–5 switch Tasks, Habits, Goals, Tracks, Gym", style = MaterialTheme.typography.bodySmall)
+            }
+        }
 
         }
 
@@ -692,21 +718,16 @@ internal fun SettingsContent(
         item { UnitSetting("Distance", listOf("kilometre", "mile", "distance_m"), settings.distanceUnitId) { value -> viewModel.update { it.copy(distanceUnitId = value) } } }
         item { UnitSetting("Volume", listOf("litre", "millilitre", "cup", "fluid_ounce"), settings.volumeUnitId) { value -> viewModel.update { it.copy(volumeUnitId = value) } } }
         item {
-            UnitSetting("Gym summaries and new exercises", listOf("kilogram", "pound"), settings.gymWeightUnitId) { value ->
-                viewModel.update { it.copy(gymWeightUnitId = value) }
-            }
-            Text(
-                "This changes aggregate gym displays and the default for new exercises. Existing exercises and machine profiles keep their own equipment unit.",
-                style = MaterialTheme.typography.bodySmall,
-            )
+            DisclosureRow("Custom Units", supportingText = "${state.customUnits.count { !it.archived }} active · ${state.customUnits.count { it.archived }} archived",
+                expanded = customUnitsExpanded, onClick = { customUnitsExpanded = !customUnitsExpanded })
         }
+        if (customUnitsExpanded) {
         item {
-            WhipGroupHeading("Custom Units")
             Text(
-                "Create reusable units for Habit entries, Goal progress, and number fields in Tracks. Units can also be created beside the Unit control while editing a supported item.",
+                "Create reusable units for Habit entries, Goal progress, and number fields in Tracks. You can also create a unit beside an item's Unit control.",
                 style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (state.customUnits.isEmpty()) Text("No custom conversion units yet.", style = MaterialTheme.typography.bodySmall)
         }
         items(state.customUnits, key = { "custom-unit-${it.id}" }) { unit ->
             WhipRecordItem(
@@ -757,6 +778,7 @@ internal fun SettingsContent(
                 modifier = Modifier.fillMaxWidth(),
             ) { Text("Create Custom Unit") }
         }
+        }
         item { SettingsHeading("Review Defaults") }
         item { SettingsDropdown("Default review period", ReviewPeriod.entries, settings.reviewPeriod, ReviewPeriod::label) { value -> viewModel.update { it.copy(reviewPeriod = value) } } }
 
@@ -800,7 +822,9 @@ internal fun SettingsContent(
                 style = MaterialTheme.typography.bodySmall,
             )
             if (settings.naturalLanguageTaskCapture) {
-                WhipGroupedInformationCard(
+                DisclosureRow("Smart Capture Examples", "Try: Send report tomorrow at 9am #work",
+                    expanded = captureExamplesExpanded, onClick = { captureExamplesExpanded = !captureExamplesExpanded })
+                if (captureExamplesExpanded) WhipGroupedInformationCard(
                     modifier = Modifier.padding(top = 8.dp).testTag("smart-task-capture-examples"),
                 ) {
                         Text("Try Smart Capture", fontWeight = FontWeight.Bold)
@@ -824,18 +848,18 @@ internal fun SettingsContent(
         }
         }
 
-        if (section == SettingsSection.Planning) {
-        item { SettingsHeading("Gym Defaults") }
-        item { SettingsDropdown("Estimated 1RM formula", listOf("Epley", "Brzycki"), settings.oneRepMaxFormula, { it }) { value -> viewModel.update { it.copy(oneRepMaxFormula = value) } } }
+        if (section == SettingsSection.Gym) {
+        item { SettingsHeading("Workout and Rest") }
         item {
-            NumberSetting(
-                label = "Estimated 1RM rep cutoff",
-                current = settings.oneRepMaxRepCutoff,
-                mutation = appSettingMutation { current, value -> current.copy(oneRepMaxRepCutoff = value) },
-                validRange = 1..36,
-                supportingText = "Sets above this repetition count are excluded from estimated 1RM records.",
+            UnitSetting("Gym summaries and new exercises", listOf("kilogram", "pound"), settings.gymWeightUnitId) { value ->
+                viewModel.update { it.copy(gymWeightUnitId = value) }
+            }
+            Text(
+                "This changes aggregate gym displays and the default for new exercises. Existing exercises and machine profiles keep their own equipment unit.",
+                style = MaterialTheme.typography.bodySmall,
             )
         }
+
         item {
             NumberSetting(
                 label = "Default rest time (seconds)",
@@ -846,15 +870,11 @@ internal fun SettingsContent(
             )
         }
         item {
-            Text(
-                "Rest presets · ${settings.restTimerPresetSeconds.joinToString(" · ") { seconds -> "%d:%02d".format(seconds / 60, seconds % 60) }}",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Text(
-                "To edit these shortcuts, open an active workout and choose Rest → Adjust → Manage Presets.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            WhipSettingItem("Rest Presets") {
+                edit(value = settings.restTimerPresetSeconds.joinToString(" · ") { seconds -> "%d:%02d".format(seconds / 60, seconds % 60) },
+                    onOpen = { restPresetsCoordinator.clear(); restPresetsOpen = true })
+            }
+            Text("App-wide shortcuts. A workout's temporary rest time does not change these presets.", style = MaterialTheme.typography.bodySmall)
         }
         item { SettingsToggle("Rest timer sound", settings.timerSound) { value -> viewModel.update { it.copy(timerSound = value) } }; SettingsToggle("Rest timer vibration", settings.timerVibration) { value -> viewModel.update { it.copy(timerVibration = value) } }; SettingsToggle("Keep workout screen awake by default", settings.keepScreenAwake) { value -> viewModel.update { it.copy(keepScreenAwake = value) } } }
         item {
@@ -869,6 +889,9 @@ internal fun SettingsContent(
                 }
                 viewModel.update { it.copy(restTimerAutoStart = value) }
             }
+        }
+        item { SettingsHeading("Workout Inputs") }
+        item {
             val effortField = when {
                 settings.showGymRpe -> "RPE"
                 settings.showGymRir -> "RIR"
@@ -879,8 +902,20 @@ internal fun SettingsContent(
             }
             Text("Individual exercises can override this default. RPE and RIR are alternative scales, so only one is shown at a time.", style = MaterialTheme.typography.bodySmall)
             SettingsToggle("Show tempo fields", settings.showGymTempo) { value -> viewModel.update { it.copy(showGymTempo = value) } }
-            SettingsToggle("Include warm-ups in volume and PRs", settings.includeWarmupsInGymStats) { value -> viewModel.update { it.copy(includeWarmupsInGymStats = value) } }
+
         }
+        item { SettingsHeading("Progress Calculations") }
+        item { SettingsDropdown("Estimated 1RM formula", listOf("Epley", "Brzycki"), settings.oneRepMaxFormula, { it }) { value -> viewModel.update { it.copy(oneRepMaxFormula = value) } } }
+        item {
+            NumberSetting(
+                label = "Estimated 1RM rep cutoff",
+                current = settings.oneRepMaxRepCutoff,
+                mutation = appSettingMutation { current, value -> current.copy(oneRepMaxRepCutoff = value) },
+                validRange = 1..36,
+                supportingText = "Sets above this repetition count are excluded from estimated 1RM records.",
+            )
+        }
+        item { SettingsToggle("Include warm-ups in volume and PRs", settings.includeWarmupsInGymStats) { value -> viewModel.update { it.copy(includeWarmupsInGymStats = value) } } }
         item {
             Text("Hard-Set Classifications", modifier = Modifier.semantics { heading() }, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -927,6 +962,20 @@ internal fun SettingsContent(
                     Text("Create named areas to group related tasks, habits, goals, and tracks across search and review.")
                     Text("${state.areas.count { !it.archived }} active · ${state.areas.count { it.archived }} archived · ${state.areaUsage.values.sumOf(AreaUsageCounts::total) + state.unassignedAreaUsage.total} items", style = MaterialTheme.typography.bodySmall)
                     WhipButton(onClick = onEditAreas, modifier = Modifier.fillMaxWidth()) { Text("Manage Areas") }
+            }
+        }
+        item {
+            WhipGroupedInformationCard(Modifier.testTag("settings-tags-summary")) {
+                    WhipGroupHeading("Tags")
+                    Text("Use flexible labels across Tasks, Habits, Goals, and Tracks while each item keeps one primary Area.")
+                    Text(
+                        "${state.tags.count { !it.archived }} active · ${state.tags.count { it.archived }} archived · ${state.tagUsage.values.sumOf(TagUsageCounts::total)} current references",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    WhipButton(
+                        onClick = onEditTags,
+                        modifier = Modifier.fillMaxWidth().testTag("manage-tags-action"),
+                    ) { Text("Manage Tags") }
             }
         }
         item {
@@ -1007,20 +1056,7 @@ internal fun SettingsContent(
                     ) { Text("Add Custom Emoji") }
             }
         }
-        item {
-            WhipGroupedInformationCard(Modifier.testTag("settings-tags-summary")) {
-                    WhipGroupHeading("Tags")
-                    Text("Use flexible labels across Tasks, Habits, Goals, and Tracks while each item keeps one primary Area.")
-                    Text(
-                        "${state.tags.count { !it.archived }} active · ${state.tags.count { it.archived }} archived · ${state.tagUsage.values.sumOf(TagUsageCounts::total)} current references",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    WhipButton(
-                        onClick = onEditTags,
-                        modifier = Modifier.fillMaxWidth().testTag("manage-tags-action"),
-                    ) { Text("Manage Tags") }
-            }
-        }
+
         }
 
         if (section == SettingsSection.Reminders) {
@@ -1111,10 +1147,7 @@ internal fun SettingsContent(
                     DisclosureButton("Delivery Details", deliveryDetailsExpanded, { deliveryDetailsExpanded = !deliveryDetailsExpanded }, Modifier.fillMaxWidth())
                     if (deliveryDetailsExpanded) {
                         channelStates.forEach { (label, state) ->
-                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Text(label, modifier = Modifier.weight(1f))
-                                Text(state.label, color = if (state == NotificationDeliveryState.Deliverable) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
+                            EntityInspectorFact(label = label, value = state.label)
                         }
                     }
 
@@ -1154,7 +1187,6 @@ internal fun SettingsContent(
                             modifier = Modifier.fillMaxWidth(),
                         ) { Text("Battery Optimization Settings") }
                     }
-                    notificationTestMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
             }
         }
         item {
@@ -1174,7 +1206,8 @@ internal fun SettingsContent(
             WhipButton(
                 enabled = testNotificationAvailability.enabled,
                 onClick = {
-                    notificationTestMessage = if (ReminderNotifications.showTest(context)) {
+                    notificationTestSucceeded = ReminderNotifications.showTest(context)
+                    notificationTestMessage = if (notificationTestSucceeded) {
                         "Test sent. Check the notification shade."
                     } else {
                         "Android blocked the test notification."
@@ -1183,6 +1216,11 @@ internal fun SettingsContent(
                 },
                 modifier = Modifier.fillMaxWidth().testTag("send-test-notification"),
             ) { Text("Send Test Notification") }
+            notificationTestMessage?.let { message ->
+                WhipStatusCard(kind = if (notificationTestSucceeded) WhipStatusKind.Success else WhipStatusKind.Error,
+                    title = if (notificationTestSucceeded) "Test Notification Sent" else "Test Notification Blocked",
+                    message = message, modifier = Modifier.testTag("notification-test-result"))
+            }
             if (taskNotificationChannel == null && testNotificationAvailability.enabled) {
                 Text("Sending a test creates the Task reminders channel if it does not exist yet.", style = MaterialTheme.typography.bodySmall)
             }
@@ -1194,6 +1232,7 @@ internal fun SettingsContent(
                 modifier = Modifier.fillMaxWidth().testTag("refresh-notification-status"),
             ) { Text("Refresh Notification Status") }
         }
+        item { SettingsHeading("Quiet Hours") }
         item {
             val enabled = settings.quietStartMinutes != null && settings.quietEndMinutes != null
             val editingQuietHours = activeTypedSettingTag in setOf(
@@ -1225,6 +1264,10 @@ internal fun SettingsContent(
                     modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
                 )
             }
+            if (enabled) Text(
+                "${formatSettingsClock(requireNotNull(settings.quietStartMinutes))}–${formatSettingsClock(requireNotNull(settings.quietEndMinutes))}" +
+                    if (requireNotNull(settings.quietEndMinutes) < requireNotNull(settings.quietStartMinutes)) " · overnight" else "",
+                style = MaterialTheme.typography.bodySmall)
             if (enabled || editingQuietHours) {
                 ClockSetting(
                     label = "Quiet hours start",
@@ -1379,20 +1422,13 @@ internal fun SettingsContent(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                maxItemsInEachRow = 3,
-            ) {
-                listOf(ExportKind.TasksCsv to "Tasks", ExportKind.HabitsCsv to "Habits", ExportKind.GoalsCsv to "Goals", ExportKind.GymCsv to "Gym", ExportKind.TracksCsv to "Tracks").forEach { (kind, label) ->
-                    WhipTextButton(
-                        onClick = {
-                            viewModel.prepareDocumentExport(kind)
-                            createDocument.launch("whip-${label.lowercase()}-${LocalDate.now(settings.zoneId())}.csv")
-                        },
-                        modifier = Modifier.width(96.dp),
-                    ) { Text(label) }
+            WhipActionList {
+                listOf(ExportKind.TasksCsv to "Tasks", ExportKind.HabitsCsv to "Habits", ExportKind.GoalsCsv to "Goals", ExportKind.GymCsv to "Gym", ExportKind.TracksCsv to "Tracks").forEachIndexed { index, (kind, label) ->
+                    if (index > 0) WhipActionDivider()
+                    WhipActionRow(title = "Export $label CSV", enabled = !state.busy, onClick = {
+                        viewModel.prepareDocumentExport(kind)
+                        createDocument.launch("whip-${label.lowercase()}-${LocalDate.now(settings.zoneId())}.csv")
+                    })
                 }
             }
         }
@@ -1433,7 +1469,7 @@ internal fun SettingsContent(
                         modifier = Modifier.testTag("about-build-identity"),
                     )
                     Text(context.packageName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Your data stays on this device unless you explicitly export or sync it.")
+                    Text("Your data stays on this device unless you export it or save backups to a folder you choose.")
             }
         }
         }
@@ -1565,6 +1601,24 @@ internal fun SettingsContent(
                         )
                     },
                 )
+            },
+        )
+    }
+    if (restPresetsOpen) {
+        RestDurationDialog(
+            initialSeconds = settings.defaultRestSeconds,
+            isWorkoutOverride = false,
+            presetSeconds = settings.restTimerPresetSeconds,
+            presetsOnly = true,
+            saving = restPresetsCoordinator.saving,
+            error = restPresetsCoordinator.errorMessage,
+            onDismiss = { restPresetsOpen = false; restPresetsCoordinator.clear() },
+            onConfirm = {},
+            onPresetSecondsChange = { presets ->
+                val requestId = restPresetsCoordinator.begin()
+                if (requestId != null && !viewModel.updateTypedSetting(requestId) { it.copy(restTimerPresetSeconds = presets) }) {
+                    restPresetsCoordinator.finishFailure("Another Settings change is still finishing. Retry saving these presets.")
+                }
             },
         )
     }
@@ -1913,7 +1967,7 @@ internal fun CustomIdentityEmojiDialog(
 
 @Composable
 private fun SettingsHeading(text: String) {
-    EditorSectionHeader(text)
+    Column(Modifier.padding(top = WhipSpacing.standard)) { EditorSectionHeader(text) }
 }
 
 /** Action pairs stay thumb-friendly without squeezing labels at compact widths or large text. */

@@ -34,6 +34,7 @@ class SettingItemBuilderJourneyE2ETest {
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             compose.onNodeWithContentDescription("Open Settings").performClick()
             compose.openSettingsCategory("Appearance & Home")
+            compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Show advanced controls by default"))
             compose.onNodeWithText("Show advanced controls by default").performClick()
             compose.waitUntil(10_000) { app.settingsRepository.current().powerMode }
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Opening area"))

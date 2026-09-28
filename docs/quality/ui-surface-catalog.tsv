@@ -456,6 +456,7 @@ menu:routine-classification	gym.classification.menu	gym	menu	open	com.whip.app.R
 route:settings-index	settings.index	settings	page	category list	com.whip.app.VisualCatalogPagesTest#captureSettingsPageCatalog	capture	Settings section index on compact windows.
 route:settings-appearance	settings.appearance	settings	page	configured	com.whip.app.VisualCatalogPagesTest#captureSettingsPageCatalog	capture	Appearance settings.
 route:settings-planning	settings.planning	settings	page	configured	com.whip.app.VisualCatalogPagesTest#captureSettingsPageCatalog	capture	Planning settings.
+route:settings-gym	settings.gym	settings	page	configured	com.whip.app.VisualCatalogPagesTest#captureSettingsPageCatalog	capture	Gym rest, input, and progress settings.
 route:settings-organization	settings.organization	settings	page	configured	com.whip.app.VisualCatalogPagesTest#captureSettingsPageCatalog	capture	Organization settings.
 route:settings-reminders	settings.reminders	settings	page	configured	com.whip.app.VisualCatalogPagesTest#captureSettingsPageCatalog	capture	Reminder settings.
 route:settings-data	settings.data-privacy	settings	page	configured	com.whip.app.VisualCatalogPagesTest#captureSettingsPageCatalog	capture	Data and privacy settings.

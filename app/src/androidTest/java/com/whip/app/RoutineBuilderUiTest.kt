@@ -28,6 +28,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -84,6 +85,55 @@ import org.junit.runner.RunWith
 class RoutineBuilderUiTest {
     private val compose = createComposeRule()
     @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
+
+    @Test
+    fun multiSetEditorKeepsHiddenDraftsAndOpensTheChosenPrescription() {
+        var saved: RoutineDraft? = null
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                RoutineBuilderScreen(
+                    routineId = 72,
+                    gymState = GymUiState(exercises = listOf(exercise(1, "Bench Press")), loading = false),
+                    initial = RoutineDraft("Eight set plan", days = listOf(RoutineDayDraft("Upper", listOf(
+                        RoutineExerciseDraft(1, plannedSets = List(8) { WorkoutSetDraft(weight = 40.0 + it, reps = 5, repsMax = if (it == 7) 4 else null, note = "Cue $it") }),
+                    )))),
+                    onDismiss = {}, onSave = { draft, complete -> saved = draft; complete(true) },
+                    onCreateExercise = { _, _ -> }, onCreateMachine = { _, _ -> },
+                )
+            }
+        }
+        compose.onNodeWithContentDescription("Edit routine exercise Bench Press").performScrollTo().performClick()
+        val list = compose.onNodeWithTag("routine-placement-editor")
+        list.performScrollToNode(hasTestTag("routine-reps-max-10"))
+        compose.onNodeWithTag("routine-reps-max-10").assertTextContains("4")
+        compose.onNodeWithTag("routine-reps-max-10").performTextReplacement("9")
+        closeSoftKeyboard()
+        list.performScrollToNode(hasTestTag("routine-set-disclosure-3"))
+        compose.onNodeWithTag("routine-set-disclosure-3").performClick()
+        list.performScrollToNode(hasTestTag("routine-reps-min-3"))
+        compose.onNodeWithTag("routine-reps-min-3").performTextReplacement("7")
+        closeSoftKeyboard()
+        list.performScrollToNode(hasTestTag("routine-set-disclosure-10"))
+        compose.onNodeWithTag("routine-set-disclosure-10").performClick()
+        list.performScrollToNode(hasTestTag("routine-reps-min-10"))
+        compose.onNodeWithTag("routine-reps-min-10").assertTextContains("5")
+        compose.onAllNodesWithTag("routine-reps-min-3").assertCountEquals(0)
+        compose.onNodeWithTag("routine-reps-min-10").performTextReplacement("9")
+        closeSoftKeyboard()
+        captureVisualCatalogSurface("ux-upgrades.gym.routine-selected-set")
+        list.performScrollToNode(hasTestTag("routine-set-disclosure-3"))
+        compose.onNodeWithTag("routine-set-disclosure-3").performClick()
+        list.performScrollToNode(hasTestTag("routine-reps-min-3"))
+        compose.onNodeWithTag("routine-reps-min-3").assertTextContains("7")
+        compose.onNodeWithText("Save", substring = false).performClick()
+        compose.runOnIdle {
+            val sets = requireNotNull(saved).days.single().exercises.single().plannedSets
+            assertEquals(8, sets.size)
+            assertEquals(7, sets.first().reps)
+            assertEquals(9, sets.last().reps)
+            assertEquals(List(8) { "Cue $it" }, sets.map { it.note })
+        }
+    }
 
     @Test
     fun sharedExercisePickerAlwaysOffersSearchAndSeededCreation() {
@@ -161,13 +211,22 @@ class RoutineBuilderUiTest {
 
         compose.onAllNodesWithText("Set Up 5/3/1").assertCountEquals(0)
         captureVisualCatalogSurface("gym.routine-builder.outline")
-        compose.onNodeWithTag("routine-add-phases").performScrollTo().performClick()
+        compose.onNodeWithTag("routine-selected-exercises").performScrollToNode(hasTestTag("routine-add-phases"))
+        compose.onNodeWithTag("routine-add-phases").performClick()
+        compose.onNodeWithTag("routine-selected-exercises").performScrollToNode(hasTestTag("routine-open-program-structure"))
         compose.onNodeWithTag("routine-program-structure").assertExists()
         compose.onNodeWithTag("routine-open-program-structure").performClick()
         compose.onNodeWithTag("routine-program-phase-select-1").assertExists()
         compose.onAllNodesWithText("Apply 7th Week preset").assertCountEquals(0)
         captureVisualCatalogSurface("gym.routine-builder.phases")
         compose.onNodeWithContentDescription("Back to routine outline").performClick()
+        compose.onNodeWithTag("routine-selected-exercises").performScrollToNode(hasText("Bench Press"))
+        compose.onNodeWithText("Bench Press", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasTestTag("routine-program-phase-1"))
+        compose.onNodeWithTag("routine-program-phase-1").performClick()
+        compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasText("1 set × 5 reps", substring = true))
+        compose.onNodeWithText("1 set × 5 reps", substring = true).assertIsDisplayed()
+        compose.onAllNodesWithText("active sets/phase", substring = true).assertCountEquals(0)
         compose.onNodeWithTag("routine-builder-save").performClick()
         compose.runOnIdle {
             val draft = requireNotNull(saved)
@@ -199,13 +258,16 @@ class RoutineBuilderUiTest {
                 )
             }
         }
-        compose.onNodeWithTag("routine-add-phases").performScrollTo().performClick()
+        compose.onNodeWithTag("routine-selected-exercises").performScrollToNode(hasTestTag("routine-add-phases"))
+        compose.onNodeWithTag("routine-add-phases").performClick()
+        compose.onNodeWithTag("routine-selected-exercises").performScrollToNode(hasTestTag("routine-open-program-structure"))
         compose.onNodeWithTag("routine-open-program-structure").performClick()
         compose.onNodeWithTag("routine-program-phase-select-1").performClick()
         compose.onNodeWithTag("routine-program-structure-page")
             .performScrollToNode(hasTestTag("routine-program-phase-tm-boundary-1"))
         compose.onNodeWithTag("routine-program-phase-tm-boundary-1").performClick()
         compose.onNodeWithContentDescription("Back to routine outline").performClick()
+        compose.onNodeWithTag("routine-selected-exercises").performScrollToNode(hasText("Bench Press"))
         compose.onNodeWithText("Bench Press", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("routine-primary-lift-progression").performClick()
         compose.onNodeWithTag("routine-training-max-disclosure").performClick()
@@ -450,6 +512,8 @@ class RoutineBuilderUiTest {
             }
         }
 
+        compose.onNodeWithTag("routine-selected-exercises")
+            .performScrollToNode(hasTestTag("routine-open-program-structure"))
         compose.onNodeWithTag("routine-open-program-structure").performClick()
         compose.onNodeWithTag("routine-program-training-maxes-disclosure").performClick()
         compose.onNodeWithTag("routine-program-structure-page")
@@ -469,6 +533,8 @@ class RoutineBuilderUiTest {
         compose.onNodeWithTag("routine-builder-save").assertIsNotEnabled().performClick()
         compose.runOnIdle { assertNull(savedDraft) }
 
+        compose.onNodeWithTag("routine-selected-exercises")
+            .performScrollToNode(hasTestTag("routine-open-program-structure"))
         compose.onNodeWithTag("routine-open-program-structure").performClick()
         compose.onNodeWithTag("routine-program-structure-page")
             .performScrollToNode(hasTestTag("routine-program-tm-basis-1"))

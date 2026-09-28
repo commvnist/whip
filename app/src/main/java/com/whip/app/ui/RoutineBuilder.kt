@@ -865,13 +865,8 @@ private fun RoutineProgramStructurePage(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Text("Review this routine's phases", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text(
-                if (isLegacyFiveThreeOne) {
-                    "Move backward or forward through phases here. Changes update this draft immediately; use the routine Save action when you are finished. Your current cycle and day position are preserved when labels, roles, or boundaries change."
-                } else {
-                    "Move backward or forward through phases here. Changes update this draft immediately; use the routine Save action when you are finished. Your current cycle and day position are preserved when labels or boundaries change."
-                },
+                "Edit phase prescriptions and progression here, then Save the routine. Previewing a phase preserves your current training position.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -1541,12 +1536,14 @@ private fun RoutineProgramStructurePage(
             )
         }
         item {
+            EditorSectionHeader("Manage Phases")
             Text(
                 "Structure changes preserve the current cycle/day position where possible. After removing or reordering phases, review Set Program Position from the routine menu.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ResponsiveSettingsActions(
+                first = { actionModifier ->
                 WhipOutlinedButton(
                     enabled = builder.programPhaseCount < 52,
                     onClick = {
@@ -1554,32 +1551,35 @@ private fun RoutineProgramStructurePage(
                         onBuilderChange { it.addProgramPhase(selectedPhase) }
                         selectedPhase = newPhase
                     },
-                    modifier = Modifier.weight(1f).testTag("routine-program-add-phase"),
+                    modifier = actionModifier.testTag("routine-program-add-phase"),
                 ) { Text("Copy as New Phase") }
-                WhipTextButton(
+                },
+                second = { actionModifier -> WhipTextButton(
                     enabled = builder.programPhaseCount > 1,
                     onClick = { pendingRemovePhase = selectedPhase },
-                    modifier = Modifier.weight(1f).testTag("routine-program-remove-phase"),
-                ) { Text("Remove Phase") }
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    modifier = actionModifier.testTag("routine-program-remove-phase"),
+                ) { Text("Remove Phase") } },
+            )
+            ResponsiveSettingsActions(
+                first = { actionModifier ->
                 WhipTextButton(
                     enabled = selectedPhase > 0,
                     onClick = {
                         onBuilderChange { it.moveProgramPhase(selectedPhase, selectedPhase - 1) }
                         selectedPhase--
                     },
-                    modifier = Modifier.weight(1f).testTag("routine-program-move-phase-earlier"),
+                    modifier = actionModifier.testTag("routine-program-move-phase-earlier"),
                 ) { Text("Move Earlier") }
-                WhipTextButton(
+                },
+                second = { actionModifier -> WhipTextButton(
                     enabled = selectedPhase < builder.programPhaseCount - 1,
                     onClick = {
                         onBuilderChange { it.moveProgramPhase(selectedPhase, selectedPhase + 1) }
                         selectedPhase++
                     },
-                    modifier = Modifier.weight(1f).testTag("routine-program-move-phase-later"),
-                ) { Text("Move Later") }
-            }
+                    modifier = actionModifier.testTag("routine-program-move-phase-later"),
+                ) { Text("Move Later") } },
+            )
         }
     }
     pendingRemovePhase?.let { phaseIndex ->
@@ -1687,30 +1687,6 @@ private fun RoutineOutlinePane(
             modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp).testTag("routine-editor-name"),
             singleLine = true,
         )
-        if (isPhasedRoutine && builder.programPhaseCount > 0) {
-            OutlinedCard(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-                    .testTag("routine-program-structure"),
-            ) {
-                Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Phased routine", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(
-                        "${builder.programPhaseCount} phases · ${builder.normalizedProgramPhaseLabels().joinToString(" → ")}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        "Review earlier and later phases, then change one phase without digging through every exercise.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    WhipOutlinedButton(
-                        onClick = onEditProgramStructure,
-                        modifier = Modifier.fillMaxWidth().testTag("routine-open-program-structure"),
-                    ) { Text("Review & Edit Phases") }
-                }
-            }
-        }
         if (builder.days.all { it.placements.isEmpty() }) {
             Text("Start with a Split", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(vertical = 4.dp))
             Text(
@@ -1827,12 +1803,15 @@ private fun RoutineOutlinePane(
                     }
                 }
             }
-            if (!isPhasedRoutine && builder.days.any { it.placements.isNotEmpty() }) item {
-                NavigationRow(
-                    title = "Add phases to this routine",
-                    supportingText = "Make editable versions of your planned sets for different weeks or blocks.",
-                    onClick = onCreatePhasedRoutine,
-                    modifier = Modifier.testTag("routine-add-phases"),
+            item {
+                WhipOutlinedButton(onClick = onAddFromWorkout, modifier = Modifier.fillMaxWidth()) {
+                    Text("Add from a Previous Workout")
+                }
+                Text(
+                    "Copies the performed exercises and set details into this day as editable prescriptions; it does not alter the original workout.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
                 )
             }
             if (selectedDay.placements.isEmpty()) {
@@ -2020,6 +1999,41 @@ private fun RoutineOutlinePane(
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
+            item { EditorSectionHeader("Routine Setup") }
+            item {
+        if (isPhasedRoutine && builder.programPhaseCount > 0) {
+            OutlinedCard(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                    .testTag("routine-program-structure"),
+            ) {
+                Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Phased routine", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        "${builder.programPhaseCount} phases · ${builder.normalizedProgramPhaseLabels().joinToString(" → ")}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        "Review earlier and later phases, then change one phase without digging through every exercise.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    WhipOutlinedButton(
+                        onClick = onEditProgramStructure,
+                        modifier = Modifier.fillMaxWidth().testTag("routine-open-program-structure"),
+                    ) { Text("Review & Edit Phases") }
+                }
+            }
+        }
+            }
+            if (!isPhasedRoutine && builder.days.any { it.placements.isNotEmpty() }) item {
+                NavigationRow(
+                    title = "Add phases to this routine",
+                    supportingText = "Make editable versions of your planned sets for different weeks or blocks.",
+                    onClick = onCreatePhasedRoutine,
+                    modifier = Modifier.testTag("routine-add-phases"),
+                )
+            }
             item {
                 DisclosureRow(
                     title = "Routine Notes",
@@ -2039,17 +2053,7 @@ private fun RoutineOutlinePane(
                     )
                 }
             }
-            item {
-                WhipOutlinedButton(onClick = onAddFromWorkout, modifier = Modifier.fillMaxWidth()) {
-                    Text("Add from a Previous Workout")
-                }
-                Text(
-                    "Copies the performed exercises and set details into this day as editable prescriptions; it does not alter the original workout.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
+
         }
     }
 
@@ -2109,13 +2113,8 @@ private fun RoutinePlacementCard(
             else MaterialTheme.colorScheme.surfaceContainer,
         ),
     ) {
-        Row(
-            Modifier.padding(
-                horizontal = WhipCardGeometry.horizontalInset,
-                vertical = WhipCardGeometry.verticalInset,
-            ),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Column(Modifier.padding(horizontal = WhipCardGeometry.horizontalInset, vertical = WhipCardGeometry.verticalInset)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             WhipReorderHandle(
                 label = exercise?.name ?: placement.exerciseNameSnapshot,
                 canMovePrevious = canMovePrevious,
@@ -2141,15 +2140,7 @@ private fun RoutinePlacementCard(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
-                Text(
-                    listOfNotNull(
-                        machine?.displayName ?: placement.machineNameSnapshot.takeIf(String::isNotBlank) ?: "No Machine / Free Weights",
-                        placement.sets.takeIf(List<*>::isNotEmpty)?.let { routineSetSummary(placement.sets) },
-                    ).joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+
             }
             ItemEditButton(
                 itemType = "routine exercise",
@@ -2171,6 +2162,16 @@ private fun RoutinePlacementCard(
                     )
                 }
             }
+        }
+                Text(
+                    listOfNotNull(
+                        machine?.displayName ?: placement.machineNameSnapshot.takeIf(String::isNotBlank) ?: "No Machine / Free Weights",
+                        placement.sets.takeIf(List<*>::isNotEmpty)?.let { routineSetSummary(placement.sets) },
+                    ).joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
         }
     }
 }
@@ -2223,6 +2224,16 @@ private fun RoutinePlacementEditor(
     var pendingDeleteSchemeId by rememberSaveable(placement.key) { mutableStateOf<String?>(null) }
     var alternativeQuery by rememberSaveable(placement.key) { mutableStateOf("") }
     var visibleProgramPhase by rememberSaveable(placement.key) { mutableStateOf(0) }
+    var expandedSetKey by rememberSaveable(placement.key) {
+        mutableStateOf(placement.sets.firstOrNull { routineSetValidationError(it, machine?.loadType) != null }?.key ?: placement.sets.firstOrNull()?.key)
+    }
+    LaunchedEffect(placement.sets.map { it.key }, visibleProgramPhase) {
+        val available = placement.sets.filter { it.routinePhaseIndex == null || it.routinePhaseIndex == visibleProgramPhase }
+        if (available.none { it.key == expandedSetKey }) {
+            expandedSetKey = available.firstOrNull { routineSetValidationError(it, machine?.loadType) != null }?.key
+                ?: available.firstOrNull()?.key
+        }
+    }
     LaunchedEffect(programPhaseCount) {
         visibleProgramPhase = visibleProgramPhase.coerceIn(0, (programPhaseCount - 1).coerceAtLeast(0))
     }
@@ -2585,7 +2596,24 @@ private fun RoutinePlacementEditor(
         }
         items(visibleSets.size, key = { visibleSets[it].key }) { setIndex ->
             val set = visibleSets[setIndex]
-            RoutineSetEditorCard(
+            val setError = routineSetValidationError(set, machine?.loadType)
+            DisclosureRow(
+                title = "Set ${setIndex + 1}",
+                supportingText = setError ?: buildList {
+                    add(set.classification.workoutSetClassificationLabel())
+                    add(routineSetSummary(listOf(set.copy(routinePhaseIndex = null))))
+                    if (set.loadPrescriptionType != RoutineLoadPrescriptionType.Absolute.name) {
+                        add("${set.loadPercentage}% " + if (set.loadPrescriptionType == RoutineLoadPrescriptionType.PercentTrainingMax.name) "TM" else "1RM")
+                    } else if (set.load.isNotBlank()) add("${set.load} ${machine?.levelLabel?.takeIf { machine.loadType == MachineLoadType.Level } ?: unitSymbol(set.weightUnitId.ifBlank { programUnitId })}")
+                    if (set.restSeconds.isNotBlank()) add("${set.restSeconds}s rest")
+                    if (set.note.isNotBlank()) add("Note saved")
+                }.joinToString(" · "),
+                expanded = expandedSetKey == set.key,
+                onClick = { expandedSetKey = if (expandedSetKey == set.key) null else set.key },
+                modifier = Modifier.testTag("routine-set-disclosure-${set.key}"),
+            )
+            if (setError != null) Text(setError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            if (expandedSetKey == set.key) RoutineSetEditorCard(
                 set = set,
                 exercise = exercise,
                 machine = machine,
@@ -2600,13 +2628,18 @@ private fun RoutinePlacementEditor(
                     if (target != null) onUpdate { current -> current.copy(sets = swapRoutineBuilderSets(current.sets, set.key, target.key)) }
                 },
                 onUpdate = { transform -> onUpdate { current -> current.copy(sets = current.sets.map { if (it.key == set.key) transform(it) else it }) } },
-                onDuplicate = { onUpdate { current -> current.copy(sets = current.sets + set.copy(key = nextLocalSetKey(current.sets))) } },
+                onDuplicate = {
+                    val newKey = nextLocalSetKey(placement.sets)
+                    expandedSetKey = newKey
+                    onUpdate { current -> current.copy(sets = current.sets + set.copy(key = newKey)) }
+                },
                 onDelete = { onUpdate { current -> current.copy(sets = current.sets.filterNot { it.key == set.key }) } },
             )
         }
         item {
             WhipOutlinedButton(
                 onClick = {
+                    expandedSetKey = nextLocalSetKey(placement.sets)
                     onUpdate { current ->
                         current.copy(
                             sets = current.sets + RoutineBuilderSetState(
@@ -3734,6 +3767,25 @@ private fun RoutineBuilderState.toRoutineDraft(gymState: GymUiState): RoutineDra
     )
 }
 
+internal fun routineSetValidationError(set: RoutineBuilderSetState, machineLoadType: MachineLoadType? = null): String? {
+    if (machineLoadType == MachineLoadType.Level &&
+        set.load.toWhipDoubleOrNull()?.let { !it.isFinite() || it < 0.0 } != false
+    ) return "Enter a valid machine setting"
+    val values = listOf(set.load, set.distance, set.rpe, set.rir).filter(String::isNotBlank)
+    return when {
+                    values.any { it.toWhipDoubleOrNull() == null } -> "A set contains an invalid number"
+                    set.repetitionsMin.isNotBlank() && set.repetitionsMin.toIntOrNull() == null -> "A set contains invalid repetitions"
+                    set.repetitionsMax.isNotBlank() && set.repetitionsMax.toIntOrNull() == null -> "A set contains an invalid repetition maximum"
+                    set.repetitionsMin.toIntOrNull() != null && set.repetitionsMax.toIntOrNull() != null && requireNotNull(set.repetitionsMax.toIntOrNull()) < requireNotNull(set.repetitionsMin.toIntOrNull()) -> "Maximum repetitions must be at least the minimum"
+                    set.rpe.toWhipDoubleOrNull()?.let { it !in 1.0..10.0 } == true -> "RPE must be from 1 to 10"
+                    set.rir.toWhipDoubleOrNull()?.let { it !in 0.0..10.0 } == true -> "RIR must be from 0 to 10"
+                    set.restSeconds.toIntOrNull()?.let { it !in 0..86_400 } == true -> "Rest must be from 0 to 86,400 seconds"
+                    runCatching { RoutineLoadPrescriptionType.valueOf(set.loadPrescriptionType) }.getOrNull() != RoutineLoadPrescriptionType.Absolute &&
+                        set.loadPercentage.toWhipDoubleOrNull()?.let { it !in 1.0..200.0 } != false -> "Percentage prescriptions must be from 1 to 200"
+                    else -> null
+                }
+}
+
 private fun routineBuilderValidationErrors(state: RoutineBuilderState, gymState: GymUiState): Map<Long, String> {
     val errors = mutableMapOf<Long, String>()
     val exercises = (gymState.exercises + gymState.archivedExercises).associateBy(Exercise::id)
@@ -3791,19 +3843,7 @@ private fun routineBuilderValidationErrors(state: RoutineBuilderState, gymState:
             !isProgrammed && placement.progressionPercentages.split(',').map(String::trim).filter(String::isNotBlank)
                 .any { it.toWhipDoubleOrNull()?.let { value -> value !in 1.0..200.0 } != false } -> "Every cycle multiplier must be from 1 to 200%"
             else -> placement.sets.firstNotNullOfOrNull { set ->
-                val values = listOf(set.load, set.distance, set.rpe, set.rir).filter(String::isNotBlank)
-                when {
-                    values.any { it.toWhipDoubleOrNull() == null } -> "A set contains an invalid number"
-                    set.repetitionsMin.isNotBlank() && set.repetitionsMin.toIntOrNull() == null -> "A set contains invalid repetitions"
-                    set.repetitionsMax.isNotBlank() && set.repetitionsMax.toIntOrNull() == null -> "A set contains an invalid repetition maximum"
-                    set.repetitionsMin.toIntOrNull() != null && set.repetitionsMax.toIntOrNull() != null && requireNotNull(set.repetitionsMax.toIntOrNull()) < requireNotNull(set.repetitionsMin.toIntOrNull()) -> "Maximum repetitions must be at least the minimum"
-                    set.rpe.toWhipDoubleOrNull()?.let { it !in 1.0..10.0 } == true -> "RPE must be from 1 to 10"
-                    set.rir.toWhipDoubleOrNull()?.let { it !in 0.0..10.0 } == true -> "RIR must be from 0 to 10"
-                    set.restSeconds.toIntOrNull()?.let { it !in 0..86_400 } == true -> "Rest must be from 0 to 86,400 seconds"
-                    runCatching { RoutineLoadPrescriptionType.valueOf(set.loadPrescriptionType) }.getOrNull() != RoutineLoadPrescriptionType.Absolute &&
-                        set.loadPercentage.toWhipDoubleOrNull()?.let { it !in 1.0..200.0 } != false -> "Percentage prescriptions must be from 1 to 200"
-                    else -> null
-                }
+                routineSetValidationError(set)
             }
         }
         if (error != null) errors[placement.key] = error

@@ -101,6 +101,7 @@ class RoutineAuthoringJourneyE2ETest {
                 app.routineRepository.sets.first().map { it.position to it.draft }
             })
             val updatedLowerDay = runBlocking { app.routineRepository.days.first() }.single { it.name == "Lower" }
+            compose.onNodeWithTag("routine-details-${routine.id}").performScrollTo().performClick()
             compose.onNodeWithText("Start Lower · 1 exercise").performScrollTo().performClick()
             compose.waitUntil(10_000) {
                 runBlocking { app.gymRepository.sessions.first() }.any { it.state == WorkoutSessionState.Active }
@@ -169,6 +170,7 @@ class RoutineAuthoringJourneyE2ETest {
             prescriptionCapture("tools")
             placement(hasTestTag("routine-generate-warmups")).performClick()
             placement(hasContentDescription("Delete set 4")).assertIsDisplayed()
+            placement(hasText("Set 1") and hasClickAction()).performClick()
             repeat(3) {
                 placement(hasContentDescription("Delete set 1")).performClick()
             }

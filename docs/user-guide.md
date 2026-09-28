@@ -239,11 +239,11 @@ The workout execution lane shows the current rest duration. Choose **Adjust**
 to use a preset, enter seconds directly, or step by 15 seconds, then choose
 **Use for This Workout**. This overrides automatic and manually started rest
 timers for the current workout without changing the default in **Settings →
-Planning & Units → Gym Defaults**. While
+Gym → Workout and Rest**. While
 a timer is running, **−15** and **+15** adjust that timer immediately. The
 initial presets are 1:00, 1:30, 2:00, 2:30, 3:00, and 5:00. Choose **Manage
 Presets** in the same dialog to add or remove persistent shortcuts, or restore
-that default set.
+that default set. You can also edit these shortcuts directly in **Settings → Gym → Rest Presets**.
 
 Gym keeps Workout, History, and Progress in the primary destination row. Open
 **Library** for Routines, Exercises, Machines, Categories, and Tools. In an
@@ -304,7 +304,7 @@ Common choices include days and weeks; metric and imperial mass and length;
 Celsius, Fahrenheit, and Kelvin; km/h, mph, and m/s; min/km and min/mi; and
 per-minute rates. Create a custom unit directly from a
 compatible Habit or Goal unit chooser, or manage all custom units under
-**Settings → Planning & Units → Unit Defaults**. A custom unit has a symbol,
+**Settings → Planning & Units → Unit Defaults → Custom Units**. A custom unit has a symbol,
 dimension, and canonical conversion factor. For example, a volume unit named
 `glass` can use factor `250`, meaning one glass is stored as 250 millilitres.
 Custom units also cover mass and every other listed dimension: a mass unit
@@ -340,7 +340,7 @@ Task reminders can select several offsets, including custom minutes before the
 task time.
 
 Explicitly adding a reminder, enabling automatic rest-timer alerts in
-**Settings → Planning & Units → Gym Defaults**,
+**Settings → Gym → Progress Calculations**,
 or manually starting a rest timer requests notification permission in context.
 Saving an item or completing a set does not open a permission prompt.
 Notifications deep-link to the exact record and support applicable

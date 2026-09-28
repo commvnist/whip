@@ -581,12 +581,14 @@ class SettingsResponsiveUiTest {
     fun wideSettingsCannotSwitchCategoriesBehindATypedEditor() {
         val app: WhipApplication = ApplicationProvider.getApplicationContext()
         val viewModel = SettingsViewModel(app)
+        var busy by mutableStateOf(false)
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides Density(1f, fontScale = 1f)) {
                 WhipTheme(dynamicColor = false) {
                     Box(Modifier.size(width = 900.dp, height = 800.dp)) {
                         SettingsContent(
                             state = SettingsUiState(
+                                busy = busy,
                                 settings = AppSettings(
                                     setupCompleted = true,
                                     timeZoneId = "America/Toronto",
@@ -600,7 +602,7 @@ class SettingsResponsiveUiTest {
             }
         }
 
-        compose.onNodeWithTag("settings-section-Planning & Units").performClick()
+        compose.onNodeWithTag("settings-section-Gym").performClick()
         compose.onNodeWithTag("settings-list")
             .performScrollToNode(hasTestTag("settings-field-default-rest-time-seconds"))
         compose.onNodeWithTag("settings-field-default-rest-time-seconds").performClick()
@@ -625,6 +627,22 @@ class SettingsResponsiveUiTest {
         compose.onNodeWithText("Theme", useUnmergedTree = true).assertIsDisplayed()
         compose.onAllNodesWithText("Use compact item rows").assertCountEquals(0)
         compose.onAllNodesWithText("Use compact workout " + "set rows").assertCountEquals(0)
+
+        compose.onNodeWithTag("settings-wide-section-list")
+            .performScrollToNode(hasTestTag("settings-section-Data & Privacy"))
+        compose.onNodeWithTag("settings-section-Data & Privacy").performClick()
+        compose.runOnIdle { busy = true }
+        listOf("Tasks", "Habits", "Goals", "Gym", "Tracks").forEach { label ->
+            compose.onNodeWithTag("settings-list")
+                .performScrollToNode(androidx.compose.ui.test.hasText("Export $label CSV"))
+            compose.onNodeWithText("Export $label CSV").assertIsNotEnabled()
+        }
+        compose.runOnIdle { busy = false }
+        listOf("Tasks", "Habits", "Goals", "Gym", "Tracks").forEach { label ->
+            compose.onNodeWithTag("settings-list")
+                .performScrollToNode(androidx.compose.ui.test.hasText("Export $label CSV"))
+            compose.onNodeWithText("Export $label CSV").assertIsEnabled()
+        }
     }
 
     @Test

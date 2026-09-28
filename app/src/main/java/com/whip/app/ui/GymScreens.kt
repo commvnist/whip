@@ -2836,6 +2836,9 @@ private fun WorkoutContent(
     val workoutListState = rememberLazyListState()
     val workoutScrollScope = rememberCoroutineScope()
     var executionLaneHeightPx by remember { mutableIntStateOf(0) }
+    val compactExecutionLane = LocalDensity.current.fontScale >= 1.5f
+    val showScrollableRestAlert = compactExecutionLane && state.restSecondsRemaining != null &&
+        state.appSettings.notificationPermissionRequested && !restTimerNotificationsAvailable()
     val workoutBlockScrollOffset = if (arrangingWorkout) 0 else -executionLaneHeightPx
     // Header and workout actions always precede blocks; the execution lane is hidden while arranging.
     val firstWorkoutBlockIndex = if (arrangingWorkout) 2 else 3
@@ -2926,7 +2929,7 @@ private fun WorkoutContent(
             }
             state.summary?.let { summary ->
                 Text(
-                    "${quantityLabel(summary.exerciseCount, "exercise")} · ${quantityLabel(summary.completedSetCount, "set")} · " +
+                    "${quantityLabel(summary.exerciseCount, "exercise")} · ${quantityLabel(summary.completedSetCount, "completed set")} · " +
                         "${quantityLabel(summary.repetitions, "rep")} · ${formatNumber(massFromKilograms(summary.volumeKg, state.appSettings.gymWeightUnitId), state.appSettings.numberPrecision)} " +
                         "${unitSymbol(state.appSettings.gymWeightUnitId)} volume · " +
                         formatDuration(summary.elapsedSeconds),
@@ -2934,6 +2937,12 @@ private fun WorkoutContent(
                     style = MaterialTheme.typography.labelLarge,
                 )
             }
+            if (showScrollableRestAlert) Text(
+                "Background alert off · the in-app timer still works",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("workout-rest-alert-explanation"),
+            )
         }
         if (!arrangingWorkout) stickyHeader {
             WhipCollectionCard(
@@ -3032,17 +3041,22 @@ private fun WorkoutContent(
                                     }
                                 }
                                 .padding(horizontal = 12.dp, vertical = 8.dp)
-                                .testTag("next-set-focus"),
+                                .testTag("next-set-focus")
+                                .semantics {
+                                    if (compactExecutionLane) contentDescription =
+                                        "Next · ${exerciseItem.exercise.name} · Set ${set.position + 1}"
+                                },
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(
-                                    "NEXT · ${exerciseItem.exercise.name} · Set ${set.position + 1}",
+                                    if (compactExecutionLane) "NEXT · Set ${set.position + 1}" else
+                                        "NEXT · ${exerciseItem.exercise.name} · Set ${set.position + 1}",
                                     color = MaterialTheme.colorScheme.tertiary,
                                     fontWeight = FontWeight.Bold,
                                 )
-                                set.prescriptionLabel(
+                                if (!compactExecutionLane) set.prescriptionLabel(
                                     state.appSettings.gymWeightUnitId,
                                     state.appSettings.numberPrecision,
                                     exerciseItem.workoutExercise,
@@ -3068,6 +3082,7 @@ private fun WorkoutContent(
                         onStart = onStartTimer,
                         onAdjust = onAdjustTimer,
                         onStop = onStopTimer,
+                        compactNotificationNotice = compactExecutionLane,
                     )
                 }
             }
@@ -3091,6 +3106,19 @@ private fun WorkoutContent(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    if (compactExecutionLane && !arrangingWorkout) nextSet?.let { (exerciseItem, set) ->
+                        Text(
+                            "Next · ${exerciseItem.exercise.name} · Set ${set.position + 1}",
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.testTag("workout-next-set-details"),
+                        )
+                        set.prescriptionLabel(
+                            state.appSettings.gymWeightUnitId,
+                            state.appSettings.numberPrecision,
+                            exerciseItem.workoutExercise,
+                            includeSource = false,
+                        )?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                    }
                     if (arrangingWorkout) {
                         Surface(
                             modifier = Modifier.fillMaxWidth().testTag("workout-arrange-mode"),
@@ -4385,12 +4413,10 @@ internal fun RestTimerCard(
     onStart: (Long, Int) -> Unit,
     onAdjust: (Long, Int) -> Unit,
     onStop: (Long) -> Unit,
+    compactNotificationNotice: Boolean = false,
 ) {
     var showDurationEditor by rememberSaveable(session.id) { mutableStateOf(false) }
-    val context = LocalContext.current
-    val notificationAvailable = NotificationManagerCompat.from(context).areNotificationsEnabled() &&
-        (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
+    val notificationAvailable = restTimerNotificationsAvailable()
     val displayedDuration = formatDuration((remaining ?: duration.seconds).coerceAtLeast(0).toLong())
     val sourceLabel = when (duration.source) {
         WorkoutRestSource.WorkoutOverride -> "Workout override"
@@ -4482,7 +4508,8 @@ internal fun RestTimerCard(
             }
             if (remaining != null && notificationPermissionRequested && !notificationAvailable) {
                 Text(
-                    "Background alert off · the in-app timer still works",
+                    if (compactNotificationNotice) "Background alerts off" else
+                        "Background alert off · the in-app timer still works",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -4504,16 +4531,27 @@ internal fun RestTimerCard(
 }
 
 @Composable
-private fun RestDurationDialog(
+private fun restTimerNotificationsAvailable(): Boolean {
+    val context = LocalContext.current
+    return NotificationManagerCompat.from(context).areNotificationsEnabled() &&
+        (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
+}
+
+@Composable
+internal fun RestDurationDialog(
     initialSeconds: Int,
     isWorkoutOverride: Boolean,
     presetSeconds: List<Int>,
     onDismiss: () -> Unit,
     onPresetSecondsChange: (List<Int>) -> Unit,
     onConfirm: (Int?) -> Unit,
+    presetsOnly: Boolean = false,
+    saving: Boolean = false,
+    error: String? = null,
 ) {
     var secondsText by rememberSaveable(initialSeconds) { mutableStateOf(initialSeconds.coerceAtLeast(15).toString()) }
-    var editingPresets by rememberSaveable { mutableStateOf(false) }
+    var editingPresets by rememberSaveable { mutableStateOf(presetsOnly) }
     var presetDraft by rememberSaveable(presetSeconds) { mutableStateOf(normalizeRestTimerPresets(presetSeconds)) }
     var newPresetText by rememberSaveable { mutableStateOf("") }
     val seconds = secondsText.toIntOrNull()
@@ -4521,10 +4559,13 @@ private fun RestDurationDialog(
     val newPreset = newPresetText.toIntOrNull()
     val newPresetValid = newPreset != null && newPreset in 15..3_600 && newPreset !in presetDraft && presetDraft.size < 12
     PaneAwareAlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!saving) onDismiss() },
+        inputBlocked = saving,
+        inputBlockedLabel = "Saving rest presets",
         title = { Text(if (editingPresets) "Manage Rest Presets" else "Rest Time for This Workout") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                error?.let { PersistenceFailureNotice(it, testTag = "rest-presets-error") }
                 if (editingPresets) {
                     Text(
                         "Choose the shortcuts shown in the workout rest-time editor. Keep at least one preset; up to 12 are supported.",
@@ -4621,12 +4662,12 @@ private fun RestDurationDialog(
         },
         confirmButton = {
             if (editingPresets) {
-                WhipTextButton(onClick = {
+                WhipTextButton(enabled = !saving, onClick = {
                     val normalized = normalizeRestTimerPresets(presetDraft)
                     presetDraft = normalized
                     onPresetSecondsChange(normalized)
-                    editingPresets = false
-                }) { Text("Save Presets") }
+                    if (!presetsOnly) editingPresets = false
+                }) { Text(if (saving) "Saving…" else "Save Presets") }
             } else {
                 WhipTextButton(enabled = valid, onClick = { onConfirm(requireNotNull(seconds)) }) {
                     Text("Use for This Workout")
@@ -4634,14 +4675,14 @@ private fun RestDurationDialog(
             }
         },
         dismissButton = {
-            WhipTextButton(onClick = {
-                if (editingPresets) {
+            WhipTextButton(enabled = !saving, onClick = {
+                if (editingPresets && !presetsOnly) {
                     presetDraft = normalizeRestTimerPresets(presetSeconds)
                     editingPresets = false
                 } else {
                     onDismiss()
                 }
-            }) { Text(if (editingPresets) "Back" else "Cancel") }
+            }) { Text(if (editingPresets && !presetsOnly) "Back" else "Cancel") }
         },
     )
 }
@@ -4823,11 +4864,29 @@ private fun ExerciseLibraryContent(
         }
         if (visible.isEmpty()) {
             item {
+                val canClearFilters = source.isNotEmpty() && (query.isNotBlank() ||
+                    favoritesOnly || selectedCategoryId != null || selectedTrackingType != null || selectedEquipment != null)
                 WhipEmptyState(
                     title = if (source.isEmpty() && showArchived) "No Archived Exercises" else if (source.isEmpty()) "Exercise Library Is Empty" else "No Matching Exercises",
                     supportingText = if (source.isEmpty() && showArchived) "Archived exercises will appear here." else if (source.isEmpty()) "Create your first named exercise to use it in workouts and routines." else "Clear or change the search and filters.",
-                    primaryActionLabel = "Create Exercise".takeUnless { showArchived || source.isNotEmpty() },
-                    onPrimaryAction = onCreate.takeUnless { showArchived || source.isNotEmpty() },
+                    primaryActionLabel = when {
+                        canClearFilters -> "Clear Search and Filters"
+                        !showArchived && source.isEmpty() -> "Create Exercise"
+                        else -> null
+                    },
+                    onPrimaryAction = when {
+                        canClearFilters -> {
+                            {
+                                query = ""
+                                favoritesOnly = false
+                                selectedCategoryId = null
+                                selectedTrackingType = null
+                                selectedEquipment = null
+                            }
+                        }
+                        !showArchived && source.isEmpty() -> onCreate
+                        else -> null
+                    },
                 )
             }
         }
@@ -4894,9 +4953,10 @@ private fun MachineLibraryContent(
         if (visible.isEmpty()) item {
             WhipEmptyState(
                 title = if (showArchived) "No Archived Machines" else "No Machine Profiles",
-                supportingText = "Create the machine now. Exercises are optional and can be created or linked inside the machine editor.",
-                primaryActionLabel = "Create Machine",
-                onPrimaryAction = onCreate,
+                supportingText = if (showArchived) "Archived machine profiles will appear here." else
+                    "Create the machine now. Exercises are optional and can be created or linked inside the machine editor.",
+                primaryActionLabel = if (showArchived) "Show Active Machines" else "Create Machine",
+                onPrimaryAction = if (showArchived) ({ showArchived = false }) else onCreate,
             )
         }
         items(visible, key = GymMachine::id) { machine ->
@@ -6751,10 +6811,13 @@ private fun WorkoutHistoryContent(
                 }
             }
         }
-        if (visible.isEmpty() && standaloneTrainingMaxDecisions.isEmpty()) item {
+        if (visible.isEmpty() && (calendarView || standaloneTrainingMaxDecisions.isEmpty())) item {
+            val canShowAllHistory = focusedWorkoutId == null && sourceHistory.isNotEmpty()
             WhipEmptyState(
                 title = when {
                     filteredHistory.isEmpty() && sourceHistory.isNotEmpty() -> "No Matching Workouts"
+                    sourceHistory.isNotEmpty() && calendarView && selectedCalendarDate != null -> "No Workouts on This Date"
+                    sourceHistory.isNotEmpty() && calendarView -> "No Workouts This Month"
                     effectiveShowArchived -> "No Archived Workouts"
                     else -> "No Workout History"
                 },
@@ -6763,6 +6826,19 @@ private fun WorkoutHistoryContent(
                     effectiveShowArchived -> "Workouts you archive will appear here."
                     else -> "Finished workouts will appear here."
                 },
+                primaryActionLabel = "Show All History".takeIf { canShowAllHistory },
+                onPrimaryAction = if (canShowAllHistory) {
+                    {
+                        query = ""
+                        selectedExerciseId = null
+                        selectedCategoryId = null
+                        selectedRoutineId = null
+                        historyRange = WorkoutHistoryRange.All
+                        recordsOnly = false
+                        selectedCalendarDate = null
+                        calendarView = false
+                    }
+                } else null,
             )
         }
         items(visible, key = WorkoutSession::id) { session ->
@@ -6865,7 +6941,6 @@ internal fun WorkoutHistoryCard(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Box {
                     IconButton(
@@ -6921,6 +6996,8 @@ internal fun WorkoutHistoryCard(
                     Icon(if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, contentDescription = null)
                 }
             }
+
+            Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             if (!expanded && exerciseNames.isNotEmpty()) {
                 Text(
@@ -7012,8 +7089,6 @@ internal fun WorkoutHistoryCard(
                                         Text(
                                             sourceExercise.name,
                                             fontWeight = FontWeight.SemiBold,
-                                            maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis,
                                         )
                                         when (workoutExercise.outcome) {
                                             WorkoutExerciseOutcome.Active -> Unit
@@ -7368,15 +7443,10 @@ private fun TrackedRecordsSection(
             WhipTextButton(
                 onClick = onManage,
                 modifier = Modifier.testTag("gym-manage-tracked-records"),
-            ) { Text("Manage") }
+            ) { Text(if (configured.isEmpty()) "Choose Records" else "Manage") }
         }
         if (configured.isEmpty()) {
-            WhipEmptyState(
-                title = "No Tracked Records Yet",
-                supportingText = "Choose the exercises and benchmarks that matter to you. Whip will update them from eligible completed sets.",
-                primaryActionLabel = "Choose Records",
-                onPrimaryAction = onManage,
-            )
+            Text("No tracked records yet. Choose benchmarks to keep in view.", style = MaterialTheme.typography.bodySmall)
         } else {
             groups.forEach { (exerciseUuid, selections) ->
                 val exercise = activeExercisesByUuid.getValue(exerciseUuid)
@@ -7414,22 +7484,14 @@ private fun TrackedRecordsSection(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                             ) {
                                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                    Text(
+                                    EntityInspectorFact(
                                         selection.trackedRecordLabel(),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.SemiBold,
+                                        record?.displayText(weightUnitId, state.appSettings.distanceUnitId, state.appSettings.numberPrecision) ?: "No record yet",
                                     )
                                     trackedRecordContext(selection, record, sourceFormula, state)?.let { context ->
                                         Text(context, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
-                                Text(
-                                    record?.displayText(weightUnitId, state.appSettings.distanceUnitId, state.appSettings.numberPrecision)
-                                        ?: "No record yet",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (record == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                                )
                                 if (sourceSessionId != null) Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = null)
                             }
                         }
@@ -7865,6 +7927,8 @@ internal fun GymProgressContent(
     var customFrom by rememberSaveable { mutableStateOf("") }
     var customTo by rememberSaveable { mutableStateOf("") }
     var showAllChartData by rememberSaveable { mutableStateOf(false) }
+    var chartDataExpanded by rememberSaveable { mutableStateOf(false) }
+    var weeklyDetailsExpanded by rememberSaveable { mutableStateOf(false) }
     var graphOptionsExpanded by rememberSaveable { mutableStateOf(false) }
     var selectedChartPointDate by rememberSaveable { mutableStateOf<LocalDate?>(null) }
     var selectedChartSeriesName by rememberSaveable { mutableStateOf<String?>(null) }
@@ -7887,6 +7951,11 @@ internal fun GymProgressContent(
     val selectedMachineLoadType = selectedMachine?.loadType ?: selectedPlacement?.machineLoadTypeSnapshot
     val availableMeasurements = exercise?.trackingType?.supportedGraphMetrics(selectedMachineLoadType)
         ?: listOf(GymGraphMetric.EstimatedOneRepMax)
+    val needsRepTarget = measurement in setOf(GymGraphMetric.MaxWeightForReps, GymGraphMetric.ActualRepMaxHistory)
+    val repTargetValid = !needsRepTarget || (selectedRepetitions.toIntOrNull() ?: 0) > 0
+    val machineLevelDirection = selectedMachine?.levelDirection
+        ?: selectedPlacement?.machineLevelDirectionSnapshot
+        ?: MachineLevelDirection.HigherNumberMoreResistance
     LaunchedEffect(selectedExerciseId, selectedMachineScope, selectedMachineLoadType) {
         if (measurement !in availableMeasurements) measurement = availableMeasurements.first()
         if (machineScoped) comparisonIds = emptySet()
@@ -7908,7 +7977,7 @@ internal fun GymProgressContent(
     } else {
         exercise?.weightUnitId ?: state.appSettings.gymWeightUnitId
     }
-    val exercisePoints = exercise?.takeIf { validatedRange.error == null }?.let {
+    val exercisePoints = exercise?.takeIf { validatedRange.error == null && repTargetValid }?.let {
         buildExerciseGraph(
             exercise = it,
             sessions = state.history,
@@ -7926,12 +7995,10 @@ internal fun GymProgressContent(
             machineScopeUuid = selectedMachineScope,
             machineScopeUuids = compatibleMachineScopes,
             restrictToMachine = machineScoped,
-            machineLevelDirection = selectedMachine?.levelDirection
-                ?: selectedPlacement?.machineLevelDirectionSnapshot
-                ?: MachineLevelDirection.HigherNumberMoreResistance,
+            machineLevelDirection = machineLevelDirection,
         ).map { point -> point.copy(value = measurement.displayValue(point.value, displayWeightUnitId, state.appSettings.distanceUnitId)) }
     }.orEmpty()
-    val comparisons = if (machineScoped || validatedRange.error != null) emptyMap() else comparisonIds.mapNotNull { id -> state.exercises.firstOrNull { it.id == id } }.associateWith { compared ->
+    val comparisons = if (machineScoped || validatedRange.error != null || !repTargetValid) emptyMap() else comparisonIds.mapNotNull { id -> state.exercises.firstOrNull { it.id == id } }.associateWith { compared ->
         buildExerciseGraph(
             exercise = compared, sessions = state.history, workoutExercises = state.allWorkoutExercises,
             sets = state.allSets, measurement = measurement, aggregation = aggregation, from = effectiveFrom,
@@ -7965,25 +8032,76 @@ internal fun GymProgressContent(
                 supportingText = "Trends from completed workouts.",
                 modifier = Modifier.testTag("gym-progress-title"),
             )
-            if (exercisePoints.isNotEmpty()) {
-                val unit = displayUnit
-                val summary = chartDescription(
-                    exercise?.name.orEmpty(),
-                    measurement.label.uiTitleCase(),
-                    exercisePoints,
-                    unit,
-                )
-                val minimum = exercisePoints.minOf { it.value }
-                val maximum = exercisePoints.maxOf { it.value }
-                val change = exercisePoints.last().value - exercisePoints.first().value
-                Text(
-                    "${exercisePoints.size} point${if (exercisePoints.size == 1) "" else "s"} · range ${formatNumber(minimum, state.appSettings.numberPrecision)}–" +
-                        "${formatNumber(maximum, state.appSettings.numberPrecision)} $unit · " +
-                        "change ${if (change > 0) "+" else ""}${formatNumber(change, state.appSettings.numberPrecision)}",
+
+        }
+        item {
+            val weekStart = through.with(java.time.temporal.TemporalAdjusters.previousOrSame(state.appSettings.firstDayOfWeek))
+            val week = buildWeeklyGymSummary(weekStart, state.history, state.allWorkoutExercises, state.allSets, state.exercises, state.personalRecords)
+            WhipGroupedInformationCard {
+                WhipGroupHeading("This Week")
+                Text("${quantityLabel(week.workouts, "workout")} · ${quantityLabel(week.trainingDays, "training day")} · ${quantityLabel(week.completedSets, "completed set")}")
+            }
+        }
+        item {
+            DisclosureRow("Weekly Details", supportingText = "Volume, records and category totals",
+                expanded = weeklyDetailsExpanded, onClick = { weeklyDetailsExpanded = !weeklyDetailsExpanded })
+            if (weeklyDetailsExpanded) {
+            val weekStart = through.with(java.time.temporal.TemporalAdjusters.previousOrSame(state.appSettings.firstDayOfWeek))
+            val summary = buildWeeklyGymSummary(weekStart, state.history, state.allWorkoutExercises, state.allSets, state.exercises, state.personalRecords)
+            Text("Week of ${summary.weekStart}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("${summary.workouts} workouts · ${summary.trainingDays} days · ${formatDuration(summary.elapsedSeconds)}")
+            Text(
+                "${summary.completedSets} sets · ${summary.repetitions} reps · " +
+                    "${formatNumber(massFromKilograms(summary.volumeKg, state.appSettings.gymWeightUnitId), state.appSettings.numberPrecision)} " +
+                    "${unitSymbol(state.appSettings.gymWeightUnitId)}·rep",
+            )
+            val exerciseByUuid = state.exercises.associateBy(Exercise::uuid)
+            val trackedImprovements = state.appSettings.trackedGymRecords.count { selection ->
+                val trackedExercise = exerciseByUuid[selection.exerciseUuid] ?: return@count false
+                if (selection.type !in trackedExercise.supportedTrackedRecordTypes()) return@count false
+                val record = selection.resolveForExercise(trackedExercise.id, state.personalRecords) ?: return@count false
+                val achievedDate = java.time.Instant.ofEpochMilli(record.achievedAtMillis)
+                    .atZone(state.appSettings.zoneId()).toLocalDate()
+                achievedDate in summary.weekStart..summary.weekStart.plusDays(6)
+            }
+            Text("$trackedImprovements tracked record improvement${if (trackedImprovements == 1) "" else "s"}")
+            val categoryPositionById = state.categories.associate { it.id to it.position }
+            state.categories.forEach { category ->
+                val exerciseIds = state.categoryLinks.filter { it.categoryId == category.id }.mapTo(mutableSetOf()) { it.exerciseId }
+                val weekSessionIds = state.history.filter { it.localDate in weekStart..weekStart.plusDays(6) }.mapTo(mutableSetOf()) { it.id }
+                val weekWorkoutExerciseById = state.allWorkoutExercises
+                    .filter { it.sessionId in weekSessionIds && it.exerciseId in exerciseIds }
+                    .associateBy { it.id }
+                val categorySets = state.allSets.filter {
+                    it.workoutExerciseId in weekWorkoutExerciseById && it.completed && it.deletedAtMillis == null &&
+                        it.classification.name in state.appSettings.hardSetClassifications
+                }
+                fun allocationFor(set: WorkoutSet): Double {
+                    val exerciseId = weekWorkoutExerciseById[set.workoutExerciseId]?.exerciseId ?: return 0.0
+                    val linked = state.categoryLinks.filter { it.exerciseId == exerciseId }
+                        .map { it.categoryId }
+                        .sortedBy { categoryPositionById[it] ?: Int.MAX_VALUE }
+                    return when (state.appSettings.categoryAllocationMode) {
+                        "Full" -> 1.0
+                        "PrimaryOnly" -> if (linked.firstOrNull() == category.id) 1.0 else 0.0
+                        else -> if (category.id in linked) 1.0 / linked.size.coerceAtLeast(1) else 0.0
+                    }
+                }
+                val categoryVolume = categorySets.sumOf { set ->
+                    val workoutExercise = weekWorkoutExerciseById[set.workoutExerciseId]
+                    val categoryExercise = state.exercises.firstOrNull { it.id == workoutExercise?.exerciseId }
+                    if (categoryExercise == null || workoutExercise == null) 0.0 else {
+                        set.volumeKg(workoutExercise.applyPolicySnapshot(categoryExercise), includeWarmups = true) * allocationFor(set)
+                    }
+                }
+                val allocatedSetCount = categorySets.sumOf(::allocationFor)
+                if (allocatedSetCount > 0.0) Text(
+                    "${category.name}: ${formatNumber(allocatedSetCount, state.appSettings.numberPrecision)} allocated hard sets · " +
+                        "${formatNumber(massFromKilograms(categoryVolume, state.appSettings.gymWeightUnitId), state.appSettings.numberPrecision)} " +
+                        "${unitSymbol(state.appSettings.gymWeightUnitId)}·rep",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.testTag("gym-chart-summary").semantics { contentDescription = summary },
                 )
+            }
             }
         }
         item {
@@ -8052,6 +8170,14 @@ internal fun GymProgressContent(
         }
         item {
             GymEnumDropdown("Measurement", availableMeasurements, measurement.takeIf { it in availableMeasurements } ?: availableMeasurements.first(), { it.label }) { measurement = it }
+            if (needsRepTarget) {
+                NumberField(selectedRepetitions, { selectedRepetitions = it }, "Repetitions", integer = true,
+                    isError = !repTargetValid, supportingText = "Enter at least 1 repetition".takeUnless { repTargetValid },
+                    modifier = Modifier.testTag("gym-progress-rep-target"))
+            }
+            if (measurement == GymGraphMetric.MaxMachineSetting) {
+                Text(machineLevelDirection.label, style = MaterialTheme.typography.bodySmall)
+            }
             if (measurement == GymGraphMetric.EstimatedOneRepMax) {
                 val formulas = exercisePlacements.map(WorkoutExercise::oneRepMaxFormulaSnapshot).distinct()
                     .ifEmpty { listOfNotNull(exercise?.oneRepMaxFormula) }
@@ -8098,9 +8224,6 @@ internal fun GymProgressContent(
                 if (range == GymGraphRange.Custom && validatedRange.error != null) {
                     Text(requireNotNull(validatedRange.error), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
-                if (measurement in setOf(GymGraphMetric.MaxWeightForReps, GymGraphMetric.ActualRepMaxHistory)) {
-                    NumberField(selectedRepetitions, { selectedRepetitions = it }, "Repetitions", integer = true)
-                }
                 if (state.exercises.size > 1 && !machineScoped) {
                     ExerciseComparisonField(
                         exercises = state.exercises.filter { measurement in it.trackingType.supportedGraphMetrics() },
@@ -8120,10 +8243,40 @@ internal fun GymProgressContent(
             }
         }
         item {
+            if (exercisePoints.isNotEmpty()) {
+                WhipGroupHeading("${exercise?.name.orEmpty()} · ${measurement.label.uiTitleCase()}" +
+                    if (needsRepTarget) " · $selectedRepetitions reps" else "")
+                val unit = displayUnit
+                val summary = chartDescription(
+                    exercise?.name.orEmpty(),
+                    measurement.label.uiTitleCase(),
+                    exercisePoints,
+                    unit,
+                )
+                val minimum = exercisePoints.minOf { it.value }
+                val maximum = exercisePoints.maxOf { it.value }
+                val change = exercisePoints.last().value - exercisePoints.first().value
+                Text(
+                    if (exercisePoints.size == 1) "1 recorded point · ${formatNumber(exercisePoints.single().value, state.appSettings.numberPrecision)} $unit" else
+                    "${exercisePoints.size} points · range ${formatNumber(minimum, state.appSettings.numberPrecision)}–" +
+                        "${formatNumber(maximum, state.appSettings.numberPrecision)} $unit · " +
+                        "change ${if (change > 0) "+" else ""}${formatNumber(change, state.appSettings.numberPrecision)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("gym-chart-summary").semantics { contentDescription = summary },
+                )
+            }
             if (exercisePoints.isEmpty()) {
-                Text("No eligible data for this measurement and date range.")
+                WhipEmptyState(
+                    title = if (validatedRange.error != null || !repTargetValid) "Check Trend Inputs" else "No Eligible Data",
+                    supportingText = validatedRange.error ?: if (!repTargetValid) "Enter a positive whole number of repetitions." else
+                        "No completed sets match ${exercise?.name.orEmpty()}, ${measurement.label.lowercase()}" +
+                            (if (needsRepTarget) " at $selectedRepetitions reps" else "") + " in this range and equipment scope.",
+                    primaryActionLabel = "Show All Dates".takeIf { repTargetValid && range != GymGraphRange.All },
+                    onPrimaryAction = if (repTargetValid && range != GymGraphRange.All) ({ range = GymGraphRange.All }) else null,
+                )
             } else {
-                val best = if (measurement == GymGraphMetric.Pace) exercisePoints.minOf { it.value } else exercisePoints.maxOf { it.value }
+                val best = bestGymGraphValue(exercisePoints.map { it.value }, measurement, machineLevelDirection)
                 Text("${measurement.label.uiTitleCase()} · ${formatNumber(best, state.appSettings.numberPrecision)} $displayUnit · best")
                 SharedGymLineChart(
                     series = chartSeries.map { it.copy(points = downsampleEvenly(it.points, 200)) },
@@ -8137,7 +8290,9 @@ internal fun GymProgressContent(
                         selectedChartPointDate = point.date
                     },
                 )
-                Text("Data Points", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                DisclosureRow("Data Points", supportingText = "${quantityLabel(exercisePoints.size, "point")} · ${exercise?.name.orEmpty()}",
+                    expanded = chartDataExpanded, onClick = { chartDataExpanded = !chartDataExpanded })
+                if (chartDataExpanded) {
                 if (exercisePoints.size > 8) {
                     WhipTextButton(onClick = { showAllChartData = !showAllChartData }) {
                         Text(if (showAllChartData) "Show Latest 8" else "Show All ${exercisePoints.size}")
@@ -8155,75 +8310,16 @@ internal fun GymProgressContent(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(point.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)), style = MaterialTheme.typography.bodyMedium)
-                        Text(
+                        EntityInspectorFact(
+                            point.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
                             "${formatNumber(point.value, state.appSettings.numberPrecision)} $displayUnit",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
                         )
                     }
                 }
+                }
             }
         }
-        item {
-            val weekStart = through.with(java.time.temporal.TemporalAdjusters.previousOrSame(state.appSettings.firstDayOfWeek))
-            val summary = buildWeeklyGymSummary(weekStart, state.history, state.allWorkoutExercises, state.allSets, state.exercises, state.personalRecords)
-            HorizontalDivider()
-            Text("Week of ${summary.weekStart}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text("${summary.workouts} workouts · ${summary.trainingDays} days · ${formatDuration(summary.elapsedSeconds)}")
-            Text(
-                "${summary.completedSets} sets · ${summary.repetitions} reps · " +
-                    "${formatNumber(massFromKilograms(summary.volumeKg, state.appSettings.gymWeightUnitId), state.appSettings.numberPrecision)} " +
-                    "${unitSymbol(state.appSettings.gymWeightUnitId)}·rep",
-            )
-            val exerciseByUuid = state.exercises.associateBy(Exercise::uuid)
-            val trackedImprovements = state.appSettings.trackedGymRecords.count { selection ->
-                val trackedExercise = exerciseByUuid[selection.exerciseUuid] ?: return@count false
-                if (selection.type !in trackedExercise.supportedTrackedRecordTypes()) return@count false
-                val record = selection.resolveForExercise(trackedExercise.id, state.personalRecords) ?: return@count false
-                val achievedDate = java.time.Instant.ofEpochMilli(record.achievedAtMillis)
-                    .atZone(state.appSettings.zoneId()).toLocalDate()
-                achievedDate in summary.weekStart..summary.weekStart.plusDays(6)
-            }
-            Text("$trackedImprovements tracked record improvement${if (trackedImprovements == 1) "" else "s"}")
-            val categoryPositionById = state.categories.associate { it.id to it.position }
-            state.categories.forEach { category ->
-                val exerciseIds = state.categoryLinks.filter { it.categoryId == category.id }.mapTo(mutableSetOf()) { it.exerciseId }
-                val weekSessionIds = state.history.filter { it.localDate in weekStart..weekStart.plusDays(6) }.mapTo(mutableSetOf()) { it.id }
-                val weekWorkoutExerciseById = state.allWorkoutExercises
-                    .filter { it.sessionId in weekSessionIds && it.exerciseId in exerciseIds }
-                    .associateBy { it.id }
-                val categorySets = state.allSets.filter {
-                    it.workoutExerciseId in weekWorkoutExerciseById && it.completed && it.deletedAtMillis == null &&
-                        it.classification.name in state.appSettings.hardSetClassifications
-                }
-                fun allocationFor(set: WorkoutSet): Double {
-                    val exerciseId = weekWorkoutExerciseById[set.workoutExerciseId]?.exerciseId ?: return 0.0
-                    val linked = state.categoryLinks.filter { it.exerciseId == exerciseId }
-                        .map { it.categoryId }
-                        .sortedBy { categoryPositionById[it] ?: Int.MAX_VALUE }
-                    return when (state.appSettings.categoryAllocationMode) {
-                        "Full" -> 1.0
-                        "PrimaryOnly" -> if (linked.firstOrNull() == category.id) 1.0 else 0.0
-                        else -> if (category.id in linked) 1.0 / linked.size.coerceAtLeast(1) else 0.0
-                    }
-                }
-                val categoryVolume = categorySets.sumOf { set ->
-                    val workoutExercise = weekWorkoutExerciseById[set.workoutExerciseId]
-                    val categoryExercise = state.exercises.firstOrNull { it.id == workoutExercise?.exerciseId }
-                    if (categoryExercise == null || workoutExercise == null) 0.0 else {
-                        set.volumeKg(workoutExercise.applyPolicySnapshot(categoryExercise), includeWarmups = true) * allocationFor(set)
-                    }
-                }
-                val allocatedSetCount = categorySets.sumOf(::allocationFor)
-                if (allocatedSetCount > 0.0) Text(
-                    "${category.name}: ${formatNumber(allocatedSetCount, state.appSettings.numberPrecision)} allocated hard sets · " +
-                        "${formatNumber(massFromKilograms(categoryVolume, state.appSettings.gymWeightUnitId), state.appSettings.numberPrecision)} " +
-                        "${unitSymbol(state.appSettings.gymWeightUnitId)}·rep",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-        }
+
     }
     selectedChartPoint?.let { point ->
         PaneAwareAlertDialog(
@@ -8255,6 +8351,11 @@ internal fun GymProgressContent(
 }
 
 internal fun List<WorkoutExercise>.requiresMachineScope(): Boolean = any { it.equipmentScopeKey != null }
+
+internal fun bestGymGraphValue(values: List<Double>, metric: GymGraphMetric, direction: MachineLevelDirection): Double =
+    if (metric == GymGraphMetric.Pace ||
+        metric == GymGraphMetric.MaxMachineSetting && direction == MachineLevelDirection.HigherNumberLessResistance
+    ) values.min() else values.max()
 
 @Composable
 private fun GymToolsContent(
@@ -8400,7 +8501,11 @@ private fun GymToolsContent(
                 if (!knownOneRepMax && (reps.toIntOrNull() ?: 0) > state.appSettings.oneRepMaxRepCutoff) {
                     Text("High-repetition estimates are less reliable; your workout cutoff is ${state.appSettings.oneRepMaxRepCutoff} reps.", style = MaterialTheme.typography.bodySmall)
                 }
-                Text(estimate.percentages.joinToString(" · ") { "${it.first}% ${formatNumber(it.second, state.appSettings.numberPrecision)} $weightSymbol" }, style = MaterialTheme.typography.bodySmall)
+                WhipGroupedInformationCard {
+                    estimate.percentages.forEach { (percent, load) ->
+                        EntityInspectorFact("$percent%", "${formatNumber(load, state.appSettings.numberPrecision)} $weightSymbol")
+                    }
+                }
             }
         }
         }
@@ -8682,6 +8787,7 @@ private fun RoutineContent(
             val nextProgramDay = days.firstOrNull { it.position == routine.nextProgramDayPosition }
                 ?: days.getOrNull(routine.nextProgramDayPosition)
                 ?: days.firstOrNull()
+            var detailsExpanded by rememberSaveable(routine.id, "details") { mutableStateOf(focusedRoutineId == routine.id) }
             var phaseRoadmapExpanded by rememberSaveable(routine.id, "phase-roadmap-expanded") { mutableStateOf(false) }
             var roadmapPhaseIndex by rememberSaveable(routine.id, "phase-roadmap-index") {
                 mutableStateOf(routine.currentProgramPhaseIndex)
@@ -8768,7 +8874,7 @@ private fun RoutineContent(
                             }
                         }
                     }
-                    if (routine.notes.isNotBlank()) Text(routine.notes)
+                    if (detailsExpanded && routine.notes.isNotBlank()) Text(routine.notes)
                     if (ownsActiveWorkout) {
                         Text(
                             "Finish or discard the active workout before editing this routine or changing its program position.",
@@ -8777,7 +8883,51 @@ private fun RoutineContent(
                         )
                     }
                     Text("${days.size} day${if (days.size == 1) "" else "s"}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (programmed) {
+                    if (programmed) Text(routineProgramStatusLabel(routine, nextProgramDay?.name), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    if (!reordering && ownsActiveWorkout) {
+                        WhipButton(
+                            onClick = onOpenActiveWorkout,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("routine-active-workout-action"),
+                        ) {
+                            Text("Open Active Workout")
+                        }
+                    } else if (!reordering && programmed && nextProgramDay != null) {
+                        val nextDayExercises = state.routineExercises.filter { it.routineDayId == nextProgramDay.id }
+                        val nextNeedsEquipment = nextDayExercises.any {
+                            it.equipmentBindingState == RoutineEquipmentBindingState.NeedsEquipment
+                        }
+                        if (state.activeSession == null || nextNeedsEquipment) {
+                            WhipButton(
+                                onClick = {
+                                    when {
+                                        nextNeedsEquipment -> {
+                                            editingRoutineId = routine.id
+                                            onEditorStateChange(true)
+                                        }
+                                        else -> viewModel.startRoutine(routine.id, null)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth().testTag("routine-start-next-${routine.id}"),
+                            ) {
+                                Text(
+                                    when {
+                                        nextNeedsEquipment -> "Resolve Equipment for Next · ${nextProgramDay.name}"
+                                        else -> "Start Next · ${nextProgramDay.name}"
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    if (!reordering) DisclosureRow(
+                        title = if (!programmed && days.size > 1) "Choose Day and View Details" else "Routine Details",
+                        supportingText = if (detailsExpanded) "Hide day choices and program details" else "Day choices, notes, and training history",
+                        expanded = detailsExpanded,
+                        onClick = { detailsExpanded = !detailsExpanded },
+                        modifier = Modifier.testTag("routine-details-${routine.id}"),
+                    )
+                    if (programmed && detailsExpanded) {
                         Surface(
                             modifier = Modifier.fillMaxWidth().testTag("routine-program-status-${routine.id}"),
                             color = MaterialTheme.colorScheme.secondaryContainer,
@@ -8863,6 +9013,7 @@ private fun RoutineContent(
                             }
                         }
                     }
+                    if (detailsExpanded) {
                     val routineHistory = state.history.filter { it.sourceRoutineId == routine.id }
                     Text(
                         if (routineHistory.isEmpty()) "No performed sessions yet" else
@@ -8870,43 +9021,8 @@ private fun RoutineContent(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    if (!reordering && ownsActiveWorkout) {
-                        WhipButton(
-                            onClick = onOpenActiveWorkout,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("routine-active-workout-action"),
-                        ) {
-                            Text("Open Active Workout")
-                        }
-                    } else if (!reordering && programmed && nextProgramDay != null) {
-                        val nextDayExercises = state.routineExercises.filter { it.routineDayId == nextProgramDay.id }
-                        val nextNeedsEquipment = nextDayExercises.any {
-                            it.equipmentBindingState == RoutineEquipmentBindingState.NeedsEquipment
-                        }
-                        if (state.activeSession == null || nextNeedsEquipment) {
-                            WhipButton(
-                                onClick = {
-                                    when {
-                                        nextNeedsEquipment -> {
-                                            editingRoutineId = routine.id
-                                            onEditorStateChange(true)
-                                        }
-                                        else -> viewModel.startRoutine(routine.id, null)
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth().testTag("routine-start-next-${routine.id}"),
-                            ) {
-                                Text(
-                                    when {
-                                        nextNeedsEquipment -> "Resolve Equipment for Next · ${nextProgramDay.name}"
-                                        else -> "Start Next · ${nextProgramDay.name}"
-                                    },
-                                )
-                            }
-                        }
                     }
-                    if (!reordering) days.forEach { day ->
+                    if (!reordering && (detailsExpanded || !programmed && days.size == 1)) days.forEach { day ->
                         val dayExercises = state.routineExercises.filter { it.routineDayId == day.id }
                         val count = dayExercises.size
                         val needsEquipment = dayExercises.filter {

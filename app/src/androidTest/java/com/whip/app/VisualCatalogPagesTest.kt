@@ -190,7 +190,7 @@ class VisualCatalogPagesTest {
             waitForHome("Plan the week")
             compose.onNodeWithContentDescription("Open Settings").performClick()
             compose.waitForIdle()
-            compose.openSettingsCategory("Planning & Units")
+            compose.openSettingsCategory("Gym")
             compose.waitForIdle()
             compose.onNodeWithTag("settings-list").performScrollToNode(
                 androidx.compose.ui.test.hasText("Overlapping category allocation"),
@@ -426,6 +426,7 @@ class VisualCatalogPagesTest {
         val sections = listOf(
             "Appearance & Home" to "settings.appearance",
             "Planning & Units" to "settings.planning",
+            "Gym" to "settings.gym",
             "Organization" to "settings.organization",
             "Reminders" to "settings.reminders",
             "Data & Privacy" to "settings.data-privacy",

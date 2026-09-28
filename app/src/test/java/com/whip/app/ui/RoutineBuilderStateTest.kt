@@ -29,6 +29,16 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RoutineBuilderStateTest {
+    @Test
+    fun collapsedNumberedMachineSetReportsMissingAndInvalidSettings() {
+        val type = com.whip.app.domain.MachineLoadType.Level
+        listOf("", "bad", "-1").forEach { load ->
+            assertEquals("Enter a valid machine setting", routineSetValidationError(RoutineBuilderSetState(1, load = load), type))
+        }
+        assertEquals(null, routineSetValidationError(RoutineBuilderSetState(1, load = "0"), type))
+        assertEquals(null, routineSetValidationError(RoutineBuilderSetState(1, load = "")))
+    }
+
     @Test fun ordinaryRoutineStartsIndependentEditablePhasesWithoutChangingPrescriptions() {
         val original = RoutineBuilderState(
             nextKey = 10,

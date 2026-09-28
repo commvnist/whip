@@ -21,6 +21,46 @@ class GymLibraryJourneyE2ETest {
     private val app: WhipApplication get() = ApplicationProvider.getApplicationContext()
     @After fun clean() = runBlocking { app.backupRepository.deleteAllData() }
 
+    @Test fun emptyHistoryCalendarReturnsToCurrentCollection() {
+        runBlocking { prepare(); seed() }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            compose.onNodeWithContentDescription("Gym tab").performClick()
+            compose.onNodeWithTag("gym-destination-History").performClick()
+            fun history(matcher: SemanticsMatcher): SemanticsNodeInteraction {
+                compose.onNode(hasScrollToIndexAction()).performScrollToNode(matcher)
+                return compose.onNode(matcher)
+            }
+            history(hasText("History options", ignoreCase = true)).performClick()
+            history(hasText("Calendar view", ignoreCase = true)).performClick()
+            history(hasText("History options", ignoreCase = true)).performClick()
+            history(hasContentDescription("Previous Month")).performClick()
+            history(hasText("No Workouts This Month")).assertIsDisplayed()
+            scenario.recreate()
+            history(hasText("No Workouts This Month")).assertIsDisplayed()
+            captureVisualCatalogSurface("ux-upgrades.gym.history-calendar-empty")
+            history(hasText("Show All History")).performClick()
+            history(hasText("Library continuity")).assertIsDisplayed()
+            history(hasText("History options", ignoreCase = true)).performClick()
+            history(hasText("Calendar view", ignoreCase = true)).assertIsOff()
+            history(hasText("Show discarded or archived workouts", ignoreCase = true)).assertIsOff()
+        }
+    }
+
+    @Test fun emptySearchCanRecoverWithoutReopeningFilters() {
+        runBlocking { prepare(); seed() }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            open("Exercises")
+            compose.onNodeWithTag("exercise-library-search").performTextReplacement("No matching exercise anywhere")
+            closeSoftKeyboard()
+            scenario.recreate()
+            compose.onNodeWithText("Clear Search and Filters").performScrollTo().assertIsDisplayed()
+            captureVisualCatalogSurface("ux-upgrades.gym.exercise-search-empty")
+            compose.onNodeWithText("Clear Search and Filters").performClick()
+            compose.onNodeWithContentDescription("Edit exercise $firstExercise").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithContentDescription("Edit exercise Unlinked walk").performScrollTo().assertIsDisplayed()
+        }
+    }
+
     @Test fun equipmentSearchAndFilterIncludeEveryLinkedExercise() {
         runBlocking { prepare(); seed() }
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
