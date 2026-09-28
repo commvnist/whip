@@ -2700,6 +2700,7 @@ private fun buildGymUiState(data: GymData, routineData: RoutineBaseData, nowMill
             exercisesById = exercisesById,
             nowMillis = nowMillis,
             includeWarmups = appSettings.includeWarmupsInGymStats,
+            oneRepMaxRepCutoff = appSettings.oneRepMaxRepCutoff,
         )
     }
     val remaining = restTimerRemainingSeconds(
@@ -2752,6 +2753,7 @@ private fun GymUiState.withClockTick(now: Long): GymUiState {
             exercisesById = (exercises + archivedExercises).associateBy(Exercise::id),
             nowMillis = now,
             includeWarmups = appSettings.includeWarmupsInGymStats,
+            oneRepMaxRepCutoff = appSettings.oneRepMaxRepCutoff,
         )
     }
     val remaining = restTimerRemainingSeconds(

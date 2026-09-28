@@ -1,5 +1,6 @@
 package com.whip.app.data
 
+import com.whip.app.domain.DEFAULT_ONE_REP_MAX_REP_CUTOFF
 import androidx.room.withTransaction
 import com.whip.app.core.WhipClock
 import com.whip.app.core.WhipIdGenerator
@@ -787,7 +788,7 @@ class RoomRoutineRepository(
                 PersonalRecordType.EstimatedOneRepMax,
                 set.estimatedOneRepMaxKg(
                     policyExercise,
-                    settings?.oneRepMaxRepCutoff ?: 10,
+                    settings?.oneRepMaxRepCutoff ?: DEFAULT_ONE_REP_MAX_REP_CUTOFF,
                     includeWarmups,
                     settings?.adjustE1rmForEffort == true,
                 ),

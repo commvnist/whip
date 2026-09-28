@@ -226,6 +226,18 @@ class BackupRepositoryTest {
         }
     }
 
+    @Test fun e1rmBackupDefaultsToThirtySixAndPreservesExplicitCutoffs() = runBlocking {
+        for (cutoff in listOf(null, 10, 20, 36)) {
+            val backup = JSONObject(backups.exportBackup())
+            val savedSettings = backup.getJSONObject("settings")
+            if (cutoff == null) savedSettings.remove("oneRepMaxRepCutoff")
+            else savedSettings.put("oneRepMaxRepCutoff", cutoff)
+            refreshBackupChecksum(backup)
+            backups.restoreBackup(backup.toString())
+            assertEquals(cutoff ?: 36, settings.current().oneRepMaxRepCutoff)
+        }
+    }
+
     @Test fun olderBackupsWithoutCelebrationToggleRestoreEnabledAndIgnoreRetiredStyle() = runBlocking {
         val older = JSONObject(backups.exportBackup())
         older.getJSONObject("settings")

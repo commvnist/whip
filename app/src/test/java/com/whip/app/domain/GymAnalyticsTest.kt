@@ -127,8 +127,15 @@ class GymAnalyticsTest {
         assertEquals(17.5, singleStack.achievedWeight, 0.0)
     }
 
-    @Test fun e1rmStillHonorsNormalCutoff() {
-        assertNull(estimatedOneRepMax(50.0, 11, EstimatedOneRepMaxFormula.Epley))
+    @Test fun e1rmIncludesHighRepSetsUnlessAnExplicitCutoffExcludesThem() {
+        val day = LocalDate.of(2026, 8, 17)
+        val sessions = listOf(session(1, day))
+        val placements = listOf(workoutExercise(1, 1))
+        val sets = listOf(set(1, 1, 80.0, 15))
+        assertEquals(120.0, buildExerciseGraph(exercise(), sessions, placements, sets,
+            GymGraphMetric.EstimatedOneRepMax).single().value, 0.00001)
+        assertTrue(buildExerciseGraph(exercise(), sessions, placements, sets,
+            GymGraphMetric.EstimatedOneRepMax, oneRepMaxRepCutoff = 10).isEmpty())
     }
 
     @Test fun workoutWeekAndMonthAggregationPreserveSourceMath() {

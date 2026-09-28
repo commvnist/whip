@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260927-015 — Include higher-rep sets in ordinary Gym e1RM
+
+- Behavior: One shared 36-rep default replaces the scattered ten-rep defaults in calculations, settings, graph projection, PR reconstruction and missing backup settings. A one-time local preference upgrade changes the old ten-rep value to 36 and preserves later authored choices. Both initial and ticking workout summaries receive the configured cutoff.
+- Sources: `GymModels`, `GymAnalytics`, `AppSettings`, `BackupRepository`, `RoutineRepository`, `GymViewModel`; extended formula/summary/graph/default regressions plus three Android checks for preference upgrade, persisted record rebuilding and backup compatibility.
+- Compatibility: No Room schema, data epoch, backup format or release version change. Explicit backup cutoffs and custom local cutoffs remain authoritative. Brzycki's undefined >=37 boundary and conservative adaptive progression remain unchanged.
+- Related/status: FB-20260927-010, FND-20260927-011, DEC-20260927-007, VER-20260927-024. Verified: 392 routed JVM tests, affected readiness and three exact API 34 tests passed. Not yet installed on the owner phone.
+
 ### IMP-20260927-014 — Respect Goal units in trend values, targets and rates
 
 - Behavior changed: The Goal trend table and target bounds show converted quantities and unit symbols at Goal precision. Both inspector and Insights daily rates use the same formatter with difference conversion, excluding temperature offsets. Insights receives custom units from its existing state. Timeline counts and in-range percentages retain their aggregate units.

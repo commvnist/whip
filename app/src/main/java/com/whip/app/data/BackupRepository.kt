@@ -1,5 +1,6 @@
 package com.whip.app.data
 
+import com.whip.app.domain.DEFAULT_ONE_REP_MAX_REP_CUTOFF
 import android.content.ContentValues
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
@@ -1422,7 +1423,7 @@ private fun JSONObject.toAppSettings(): AppSettings = AppSettings(
     gymWeightUnitId = optString("gymWeightUnitId", "kilogram"),
     numberPrecision = optInt("numberPrecision", 1).coerceIn(0, 6),
     oneRepMaxFormula = optString("oneRepMaxFormula", "Epley"),
-    oneRepMaxRepCutoff = optInt("oneRepMaxRepCutoff", 10).coerceIn(1, 36),
+    oneRepMaxRepCutoff = optInt("oneRepMaxRepCutoff", DEFAULT_ONE_REP_MAX_REP_CUTOFF).coerceIn(1, 36),
     defaultRestSeconds = optInt("defaultRestSeconds", 120).coerceAtLeast(0),
     restTimerPresetSeconds = normalizeRestTimerPresets(
         optJSONArray("restTimerPresetSeconds")?.let { array ->

@@ -1,5 +1,12 @@
 # User feedback and acceptance criteria
 
+### FB-20260927-010 — Allow Gym estimated 1RM calculations above ten reps
+
+- Date/source: 2026-09-27, direct owner request.
+- User need: Include sets above ten repetitions in Gym estimated 1RM calculations.
+- Acceptance criteria: Consistent higher-repetition support across workout summaries, graphs and derived records, with valid formula boundaries and existing set eligibility preserved.
+- Decision/status: Verified. After offering a choice and proceeding with the stated default, raised the default and existing ten-rep preference to 36 once, preserved other authored cutoffs, and retained the adjustable setting. The standalone calculator already accepts 36. Related: FND-20260927-011, DEC-20260927-007, IMP-20260927-015, VER-20260927-024. Not yet installed on the owner phone.
+
 ### FB-20260927-009 — Goal trend table must respect pounds
 
 - Date/source: 2026-09-27, owner reports the Goal trend table shows the kg value although the Goal is configured in lb.

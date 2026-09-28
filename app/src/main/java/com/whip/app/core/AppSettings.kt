@@ -1,5 +1,6 @@
 package com.whip.app.core
 
+import com.whip.app.domain.DEFAULT_ONE_REP_MAX_REP_CUTOFF
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
@@ -78,7 +79,7 @@ data class AppSettings(
     val gymWeightUnitId: String = "kilogram",
     val numberPrecision: Int = 1,
     val oneRepMaxFormula: String = "Epley",
-    val oneRepMaxRepCutoff: Int = 10,
+    val oneRepMaxRepCutoff: Int = DEFAULT_ONE_REP_MAX_REP_CUTOFF,
     val defaultRestSeconds: Int = 120,
     val restTimerPresetSeconds: List<Int> = DEFAULT_REST_TIMER_PRESET_SECONDS,
     val timerSound: Boolean = true,
@@ -196,6 +197,15 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
     private val preferences = context.getSharedPreferences("whip-settings", Context.MODE_PRIVATE)
 
     init {
+        // Upgrade the old default once; later explicit choices, including ten, must persist.
+        if (!preferences.getBoolean("e1rmExpandedCutoff", false)) {
+            preferences.edit().also { editor ->
+                if (preferences.getInt("e1rmCutoff", 10) == 10) {
+                    editor.putInt("e1rmCutoff", DEFAULT_ONE_REP_MAX_REP_CUTOFF)
+                }
+                editor.putBoolean("e1rmExpandedCutoff", true)
+            }.apply()
+        }
         // Retired integration preferences must never survive into new settings/exports.
         val retiredKeys = listOf("healthEnabled", "healthTypes", "healthSyncDays", "healthLastSyncMillis", "healthLastSyncCount", "healthDeletionPending", "goalCelebrationStyle")
         if (retiredKeys.any(preferences::contains)) {
@@ -232,7 +242,7 @@ class SharedPreferencesSettingsRepository(context: Context) : SettingsRepository
         gymWeightUnitId = normalizeMassUnit(preferences.getString("gymWeightUnit", "kilogram")),
         numberPrecision = preferences.getInt("precision", 1).coerceIn(0, 6),
         oneRepMaxFormula = preferences.getString("e1rmFormula", "Epley") ?: "Epley",
-        oneRepMaxRepCutoff = preferences.getInt("e1rmCutoff", 10).coerceIn(1, 36),
+        oneRepMaxRepCutoff = preferences.getInt("e1rmCutoff", DEFAULT_ONE_REP_MAX_REP_CUTOFF).coerceIn(1, 36),
         defaultRestSeconds = preferences.getInt("defaultRest", 120).coerceIn(15, 3_600),
         restTimerPresetSeconds = normalizeRestTimerPresets(
             preferences.getString("restTimerPresets", null)

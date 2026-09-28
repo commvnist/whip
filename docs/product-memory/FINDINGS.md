@@ -1,5 +1,11 @@
 # Durable findings
 
+### FND-20260927-011 — Workout e1RM defaults exclude high-rep sets and summaries ignore the setting
+
+- Observed: `estimatedOneRepMax`, `WorkoutSet.estimatedOneRepMaxKg`, graph defaults, AppSettings and repository fallbacks default to ten reps. The standalone calculator explicitly accepts 36. `calculateWorkoutSummary` does not receive the configured cutoff, so it always uses ten even when graphs and records allow more.
+- Remedy: Share a 36-rep default, upgrade the existing ten-rep preference once, preserve other authored cutoffs, and thread the setting through both summary callers. Keep Brzycki's undefined >=37 boundary and set eligibility; preserve the separate conservative adaptive-progression rule in DEC-20260907-001.
+- Related/status: FB-20260927-010, IMP-20260927-015, VER-20260927-024. Verified through calculation/summary/graph regressions, preference persistence, PR rebuilding and backup restoration.
+
 ### FND-20260927-010 — Goal insights render canonical values without conversion
 
 - Severity/category: P2 numeric presentation.

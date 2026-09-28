@@ -134,7 +134,7 @@ fun buildExerciseGraph(
     to: LocalDate? = null,
     selectedRepetitions: Int? = null,
     includeWarmups: Boolean = false,
-    oneRepMaxRepCutoff: Int = 10,
+    oneRepMaxRepCutoff: Int = DEFAULT_ONE_REP_MAX_REP_CUTOFF,
     adjustOneRepMaxForEffort: Boolean = false,
     firstDayOfWeek: DayOfWeek = DayOfWeek.MONDAY,
     machineId: Long? = null,

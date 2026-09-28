@@ -1,5 +1,11 @@
 # Durable product and engineering decisions
 
+### DEC-20260927-007 — Expand ordinary Gym e1RM eligibility to 36 reps
+
+- Decision: Use the existing supported 1–36 range as the default for ordinary Gym estimates. Upgrade the saved ten-rep value once with a private preference marker; preserve other cutoffs and every later explicit choice, including ten. Explicit backup settings remain authoritative; an absent cutoff uses 36.
+- Scope: Pass the same setting through active workout summaries, graphs and PR reconstruction. Keep invalid-input and set-eligibility rules, formula definitions, and the separate conservative adaptive-progression evidence cap unchanged. Existing completed set rows and prescribed loads are not rewritten; derived PRs use the existing reconciliation path.
+- Related/status: FB-20260927-010, FND-20260927-011, IMP-20260927-015, VER-20260927-024. Verified.
+
 ### DEC-20260927-006 — Keep truthful numeric progress separate from bounded indicators
 
 - Context: FB-20260927-008 follows the one-style celebration and shared locale-aware percentage rule in DEC-20260927-005 / DEC-20260910-012.

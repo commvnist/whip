@@ -30,6 +30,17 @@ import org.junit.runner.RunWith
 class AppSettingsPersistenceTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
+    @Test fun expandedE1rmDefaultUpgradesTenOnceAndPreservesAuthoredCutoffs() {
+        val preferences = context.getSharedPreferences("whip-settings", Context.MODE_PRIVATE)
+        for (previous in listOf(null, 10, 8, 20)) {
+            preferences.edit().clear().also { editor -> previous?.let { editor.putInt("e1rmCutoff", it) } }.commit()
+            val repository = SharedPreferencesSettingsRepository(context)
+            assertEquals(if (previous == null || previous == 10) 36 else previous, repository.current().oneRepMaxRepCutoff)
+            assertTrue(repository.updateAndConfirm { it.copy(oneRepMaxRepCutoff = 10) })
+            assertEquals(10, SharedPreferencesSettingsRepository(context).current().oneRepMaxRepCutoff)
+        }
+    }
+
     @Test
     fun retiredIntegrationPreferencesAreRemovedWithoutChangingOrdinarySettings() {
         val preferences = context.getSharedPreferences("whip-settings", Context.MODE_PRIVATE)

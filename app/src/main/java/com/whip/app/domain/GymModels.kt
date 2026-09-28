@@ -1207,11 +1207,13 @@ data class GraphPreset(
     val updatedAtMillis: Long,
 )
 
+const val DEFAULT_ONE_REP_MAX_REP_CUTOFF = 36
+
 fun estimatedOneRepMax(
     weightKg: Double,
     repetitions: Int,
     formula: EstimatedOneRepMaxFormula,
-    repCutoff: Int = 10,
+    repCutoff: Int = DEFAULT_ONE_REP_MAX_REP_CUTOFF,
 ): Double? {
     if (!weightKg.isFinite() || weightKg < 0.0 || repetitions !in 1..repCutoff) return null
     // A performed single is an observed one-repetition maximum, not an estimate that should be
@@ -1325,7 +1327,7 @@ fun WorkoutSet.volumeKg(exercise: Exercise, includeWarmups: Boolean = false): Do
 
 fun WorkoutSet.estimatedOneRepMaxKg(
     exercise: Exercise,
-    repCutoff: Int = 10,
+    repCutoff: Int = DEFAULT_ONE_REP_MAX_REP_CUTOFF,
     includeWarmups: Boolean = false,
     adjustForEffort: Boolean = false,
 ): Double? {
@@ -1366,6 +1368,7 @@ fun calculateWorkoutSummary(
     exercisesById: Map<Long, Exercise>,
     nowMillis: Long,
     includeWarmups: Boolean = false,
+    oneRepMaxRepCutoff: Int = DEFAULT_ONE_REP_MAX_REP_CUTOFF,
 ): WorkoutSummary {
     val workoutExerciseById = workoutExercises.associateBy(WorkoutExercise::id)
     val activeSets = sets.filter { it.deletedAtMillis == null && it.completed }
@@ -1377,7 +1380,7 @@ fun calculateWorkoutSummary(
     val bestOneRepMax = activeSets.mapNotNull { set ->
         val workoutExercise = workoutExerciseById[set.workoutExerciseId]
         val exercise = workoutExercise?.let { placement -> exercisesById[placement.exerciseId]?.let(placement::applyPolicySnapshot) }
-        exercise?.let { set.estimatedOneRepMaxKg(it, includeWarmups = includeWarmups) }
+        exercise?.let { set.estimatedOneRepMaxKg(it, repCutoff = oneRepMaxRepCutoff, includeWarmups = includeWarmups) }
     }.maxOrNull()
     val endedOrNow = session.endedAt?.toEpochMilli() ?: nowMillis
     return WorkoutSummary(

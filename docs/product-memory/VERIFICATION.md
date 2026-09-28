@@ -1,5 +1,13 @@
 # Verification and release evidence
 
+### VER-20260927-024 — Higher-repetition Gym e1RM acceptance
+
+- Focused command: `timeout --kill-after=3s 55s scripts/qa-targeted --jvm com.whip.app.domain.GymCalculationsTest --jvm-only` passed 13/13 tests in 13 seconds, including 15-rep Epley/Brzycki, 36-rep Epley, explicit ten-rep exclusion, undefined Brzycki input and summary cutoff behavior.
+- Readiness: One `scripts/check --ready` passed 392 routed JVM tests with zero failures/errors/skips, Android-test compilation, lint, debug packaging and static/asset checks; its final Gradle batch took 2m32s. `git diff --check` passed.
+- Native command: `ANDROID_SERIAL=emulator-5554 scripts/qa-targeted --android com.whip.app.AppSettingsPersistenceTest#expandedE1rmDefaultUpgradesTenOnceAndPreservesAuthoredCutoffs --android com.whip.app.RoutineRepositoryTest#highRepSetsProduceEstimatedRecordsAndStillRespectAuthoredCutoffs --android com.whip.app.BackupRepositoryTest#e1rmBackupDefaultsToThirtySixAndPreservesExplicitCutoffs` passed 3/3, zero failures/skips/reuse on API 34. Evidence: `build/instrumentation-results-FD6xfY`.
+- Evidence: Preference tests cover absent/ten/eight/twenty cutoffs and a later deliberate ten across repository recreation. Persisted PR tests include a 15-rep set at default, exclusion after choosing ten, and restoration after choosing 36. Backup tests cover missing and explicit 10/20/36 settings. JVM graph tests retain explicit cutoff filtering.
+- Limits/status: Verified within the affected scope. No version bump, phone installation, Room migration, authored set/history rewrite or Play candidate. FB-20260927-010, FND-20260927-011, DEC-20260927-007, IMP-20260927-015.
+
 ### VER-20260927-023 — Goal trend unit conversion acceptance
 
 - Focused command: `timeout --kill-after=3s 55s scripts/qa-targeted --jvm com.whip.app.ui.GoalProgressPresentationTest --jvm-only` passed all four methods in 35 seconds. The new case covers lb values and negative rates, kg precision/German decimals, Fahrenheit readings versus differences, custom stones, count/percentage formatting and missing data.

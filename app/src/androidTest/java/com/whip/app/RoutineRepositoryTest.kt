@@ -75,6 +75,25 @@ class RoutineRepositoryTest {
 
     @After fun tearDown() = database.close()
 
+    @Test fun highRepSetsProduceEstimatedRecordsAndStillRespectAuthoredCutoffs() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("High-rep bench"))
+        val sessionId = gym.startWorkout()
+        val placementId = gym.addExerciseToWorkout(sessionId, exerciseId)
+        gym.addSet(placementId, WorkoutSetDraft(weight = 80.0, reps = 15, completed = true))
+        routines.rebuildPersonalRecords(exerciseId)
+        assertEquals(120.0, routines.personalRecords.first().single {
+            it.type == PersonalRecordType.EstimatedOneRepMax && it.current
+        }.value, 0.00001)
+        settings.update { it.copy(oneRepMaxRepCutoff = 10) }
+        routines.rebuildPersonalRecords(exerciseId)
+        assertFalse(routines.personalRecords.first().any { it.type == PersonalRecordType.EstimatedOneRepMax })
+        settings.update { it.copy(oneRepMaxRepCutoff = 36) }
+        routines.rebuildPersonalRecords(exerciseId)
+        assertEquals(120.0, routines.personalRecords.first().single {
+            it.type == PersonalRecordType.EstimatedOneRepMax && it.current
+        }.value, 0.00001)
+    }
+
     @Test
     fun legacyRoutineConversionWaitsForActiveWorkoutAndKeepsCompletedSnapshot() = runBlocking {
         val exerciseId = gym.createExercise(ExerciseDraft("Bench Press"))

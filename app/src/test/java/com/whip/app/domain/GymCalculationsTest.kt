@@ -34,7 +34,14 @@ class GymCalculationsTest {
             requireNotNull(estimatedOneRepMax(80.0, 8, EstimatedOneRepMaxFormula.Brzycki)),
             0.00001,
         )
-        assertNull(estimatedOneRepMax(80.0, 11, EstimatedOneRepMaxFormula.Epley))
+        assertEquals(120.0, estimatedOneRepMax(80.0, 15, EstimatedOneRepMaxFormula.Epley)!!, 0.00001)
+        assertEquals(130.909091, estimatedOneRepMax(80.0, 15, EstimatedOneRepMaxFormula.Brzycki)!!, 0.00001)
+        assertEquals(176.0, estimatedOneRepMax(80.0, 36, EstimatedOneRepMaxFormula.Epley)!!, 0.00001)
+        assertNull(estimatedOneRepMax(80.0, 37, EstimatedOneRepMaxFormula.Epley))
+        assertNull(estimatedOneRepMax(80.0, 37, EstimatedOneRepMaxFormula.Brzycki, repCutoff = 50))
+        assertNull(estimatedOneRepMax(80.0, 15, EstimatedOneRepMaxFormula.Epley, repCutoff = 10))
+        assertEquals(120.0, set(80.0, 15).estimatedOneRepMaxKg(exercise())!!, 0.00001)
+        assertNull(set(80.0, 15).estimatedOneRepMaxKg(exercise(), repCutoff = 10))
         assertEquals(100.0, estimatedOneRepMax(100.0, 1, EstimatedOneRepMaxFormula.Epley)!!, 0.0)
         assertEquals(100.0, estimatedOneRepMax(100.0, 1, EstimatedOneRepMaxFormula.Brzycki)!!, 0.0)
         assertNull(estimatedOneRepMax(Double.NaN, 1, EstimatedOneRepMaxFormula.Epley))
@@ -99,6 +106,11 @@ class GymCalculationsTest {
         assertEquals(24, summary.repetitions)
         assertEquals(1_920.0, summary.volumeKg, 0.0)
         assertEquals(3_600L, summary.elapsedSeconds)
+        val highRepSets = listOf(set(80.0, 15))
+        assertEquals(120.0, calculateWorkoutSummary(session, listOf(workoutExercise), highRepSets,
+            mapOf(1L to exercise), nowMillis = 0).highestEstimatedOneRepMaxKg!!, 0.00001)
+        assertNull(calculateWorkoutSummary(session, listOf(workoutExercise), highRepSets,
+            mapOf(1L to exercise), nowMillis = 0, oneRepMaxRepCutoff = 10).highestEstimatedOneRepMaxKg)
     }
 
     @Test
