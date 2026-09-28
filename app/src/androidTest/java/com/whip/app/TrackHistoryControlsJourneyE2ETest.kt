@@ -53,6 +53,18 @@ class TrackHistoryControlsJourneyE2ETest {
             scenario.recreate()
             history(hasText("Range 3")).assertIsDisplayed()
             compose.onAllNodesWithContentDescription("Edit Entry", substring = true).assertCountEquals(3)
+            history(hasContentDescription("Filter Entries", substring = true)).performClick()
+            compose.onNode(hasScrollToIndexAction() and hasAnyAncestor(isDialog()))
+                .performScrollToNode(hasTestTag("track-filter-edit-0"))
+            compose.onNodeWithTag("track-filter-edit-0").performClick()
+            compose.onNodeWithText("Edit Condition").assertIsDisplayed()
+            chooseConditionDate("track-condition-first-date", 3)
+            scenario.recreate()
+            compose.onNodeWithText("Save Condition").performClick()
+            compose.onNodeWithText("Apply Filters").performClick()
+            history(hasText("Range 3")).assertIsDisplayed()
+            compose.onAllNodesWithContentDescription("Edit Entry", substring = true).assertCountEquals(2)
+            capture("ux-upgrades.tracks.edited-date-condition")
             val insights = compose.onNodeWithTag("track-destination-Track Insights")
             if (!insights.isDisplayed()) insights.performScrollTo()
             insights.performClick()
@@ -121,6 +133,18 @@ class TrackHistoryControlsJourneyE2ETest {
             history(hasText("Match All")).assertIsDisplayed()
             history(hasText("Woodland route 18", substring = true)).assertIsDisplayed()
             capture("tracks.history-controls.match-all.$suffix")
+            history(hasContentDescription("Filter Entries", substring = true)).performClick()
+            compose.onNode(hasScrollToIndexAction() and hasAnyAncestor(isDialog()))
+                .performScrollToNode(hasTestTag("track-filter-edit-1"))
+            compose.onNodeWithTag("track-filter-edit-1").performClick()
+            compose.onNode(hasSetTextAction() and hasText("Minimum", substring = true)).performScrollTo().assertTextContains("10.5")
+            compose.onNode(hasSetTextAction() and hasText("Maximum", substring = true)).performScrollTo().assertTextContains("11")
+            compose.onNode(hasSetTextAction() and hasText("Minimum", substring = true)).performTextReplacement("10.7")
+            closeSoftKeyboard()
+            compose.onNodeWithText("Save Condition").performClick()
+            compose.onNodeWithText("Apply Filters").performClick()
+            history(hasText("Walk 108")).assertIsDisplayed()
+            capture("ux-upgrades.tracks.edited-number-condition.$suffix")
             scenario.recreate()
             history(hasText("Walk 108")).performClick()
             compose.onNodeWithContentDescription("Close Track Entry details").performClick()
@@ -224,7 +248,7 @@ class TrackHistoryControlsJourneyE2ETest {
         val id = app.trackRepository.create(TrackDraft("Walking history", fields = listOf(
             TrackFieldDraft("Name", TrackFieldType.ShortText, primary = true),
             TrackFieldDraft("Terrain", TrackFieldType.SingleChoice, options = (1..18).map { TrackChoiceOptionDraft("Woodland route $it") }),
-            TrackFieldDraft("Distance", TrackFieldType.Number, dimension = UnitDimension.Distance, unitId = "distance_m", precision = 1),
+            TrackFieldDraft("Distance", TrackFieldType.Number, dimension = UnitDimension.Distance, unitId = "kilometre", precision = 1),
             TrackFieldDraft("Notes", TrackFieldType.LongText),
         )))
         val form = projection(id)
@@ -234,7 +258,7 @@ class TrackHistoryControlsJourneyE2ETest {
                 values = mapOf(
                     form.primaryField.uuid to TrackValueDraft(textValue = "Walk ${index + 1}"),
                     form.fields.single { it.name == "Terrain" }.uuid to TrackValueDraft(choiceOptionUuid = form.options[index % 18].uuid),
-                    form.fields.single { it.name == "Distance" }.uuid to TrackValueDraft(enteredNumber = index / 10.0, enteredUnitId = "distance_m"),
+                    form.fields.single { it.name == "Distance" }.uuid to TrackValueDraft(enteredNumber = index / 10.0, enteredUnitId = "kilometre"),
                 ),
             ))
         }

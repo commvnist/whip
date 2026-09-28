@@ -117,7 +117,7 @@ class WhipNavigationTest {
             compose.onNodeWithContentDescription("Tasks tab").performClick()
             compose.onAllNodesWithText("0 tasks", substring = true).assertCountEquals(0)
             selectDestination("task-destination-Upcoming")
-            compose.onNodeWithText("The next 30 days", substring = true).assertIsDisplayed()
+            compose.onNodeWithText("Future tasks", substring = true).assertIsDisplayed()
             compose.onAllNodesWithText("0 tasks", substring = true).assertCountEquals(0)
 
             compose.onNodeWithContentDescription("Habits tab").performClick()
@@ -139,10 +139,10 @@ class WhipNavigationTest {
             compose.onNodeWithContentDescription("Tracks tab").performClick()
             compose.onNodeWithTag("track-workspace-destination-Activity").assertIsSelected()
             compose.onNodeWithTag("track-workspace-destination-Tracks").performClick().assertIsSelected()
-            compose.onNodeWithTag("track-list").performScrollToNode(hasText("Create First Track"))
+            compose.onNodeWithTag("track-list").performScrollToNode(hasText("Create Track"))
             compose.onAllNodesWithText("0 Tracks").assertCountEquals(0)
-            compose.onNodeWithText("Track What Matters").assertIsDisplayed()
-            compose.onNodeWithText("Create First Track").assertIsDisplayed()
+            compose.onNodeWithText("No Tracks in This View").assertIsDisplayed()
+            compose.onNodeWithText("Create Track").assertIsDisplayed()
         }
     }
 

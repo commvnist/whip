@@ -289,14 +289,14 @@ class AdaptiveWhipScreenTest {
         compose.onAllNodesWithTag("expanded-support-pane").assertCountEquals(0)
         compose.onAllNodesWithContentDescription("Expand content pane").assertCountEquals(0)
         compose.onNodeWithText("Loading Tracks").assertIsDisplayed()
-        compose.onAllNodesWithText("Track What Matters").assertCountEquals(0)
+        compose.onAllNodesWithText("No Tracks in This View").assertCountEquals(0)
         compose.runOnIdle { trackState.value = TrackUiState(loading = false, errorMessage = "Track refresh failed") }
         compose.onNodeWithText("Could Not Load Tracks").assertIsDisplayed()
         compose.onNodeWithText("Track refresh failed").assertIsDisplayed()
         compose.onNodeWithText("Try Again").performClick()
-        compose.onAllNodesWithText("Track What Matters").assertCountEquals(0)
+        compose.onAllNodesWithText("No Tracks in This View").assertCountEquals(0)
         compose.runOnIdle { trackState.value = TrackUiState(loading = false) }
-        compose.onNodeWithText("Track What Matters").assertIsDisplayed()
+        compose.onNodeWithText("No Tracks in This View").assertIsDisplayed()
         compose.onNodeWithContentDescription("Tasks tab").performClick()
         compose.onNodeWithTag("expanded-support-pane").assertIsDisplayed()
         compose.onNodeWithContentDescription("Expand content pane").assertIsDisplayed()
@@ -1020,7 +1020,7 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithContentDescription("Cancel Goal editing").performClick()
 
         compose.onNodeWithContentDescription("Tracks tab").performClick()
-        compose.onNodeWithText("Create First Track").performClick()
+        compose.onNodeWithText("Create Track").performClick()
         compose.onNodeWithTag("track-editor-surface").fetchSemanticsNode()
         check(
             compose.onNodeWithTag("app-background-shell").fetchSemanticsNode().config
@@ -1796,7 +1796,7 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithTag("goal-editor-fields").performScrollToNode(hasTestTag("goal-editor-target"))
         compose.onNodeWithTag("goal-editor-target").performClick()
         captureVisualCatalogSurface("goals.editor.ime-large")
-        compose.assertEditorHeaderVisibleWithKeyboard("Create Goal", "Cancel Goal editing")
+        compose.assertEditorHeaderVisibleWithKeyboard("Create Goal", "Cancel Goal editing", titleAncestorTag = "goal-editor-surface")
         compose.onNodeWithText("Save").assertIsDisplayed()
         compose.onNodeWithContentDescription("Cancel Goal editing").performClick()
     }

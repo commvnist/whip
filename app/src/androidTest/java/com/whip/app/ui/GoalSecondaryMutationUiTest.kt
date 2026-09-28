@@ -18,9 +18,20 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.CompositionLocalProvider
@@ -31,6 +42,8 @@ import com.whip.app.data.GoalDeletionImpact
 import com.whip.app.domain.ElapsedDisplayUnit
 import com.whip.app.domain.ElapsedDisplayFormat
 import com.whip.app.domain.Goal
+import com.whip.app.domain.GoalDraft
+import com.whip.app.domain.GoalAggregationPeriod
 import com.whip.app.domain.GoalAggregation
 import com.whip.app.domain.GoalClosureSnapshot
 import com.whip.app.domain.GoalDirection
@@ -61,6 +74,84 @@ import org.junit.runner.RunWith
 class GoalSecondaryMutationUiTest {
     private val compose = createComposeRule()
     @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
+
+    private fun editorControl(matcher: SemanticsMatcher): SemanticsNodeInteraction {
+        compose.onNodeWithTag("goal-editor-fields").performScrollToNode(matcher)
+        return compose.onNode(matcher)
+    }
+
+    @Test fun deadlineRemovalAndCalculationSettingsSurviveRestoration() {
+        var saved: GoalDraft? = null
+        val restoration = StateRestorationTester(compose)
+        val authored = goal(deadline = TODAY.plusDays(30)).copy(aggregationPeriod = GoalAggregationPeriod.RollingDays, rollingDays = 7)
+        restoration.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                GoalEditorDialog(projection(authored), today = TODAY, activeZoneId = ZoneId.of("UTC"),
+                    nowMillis = TODAY.atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli(), customUnits = emptyList(),
+                    onDismiss = {}, onSave = { saved = it })
+            }
+        }
+        compose.onNodeWithTag("goal-editor-fields").performScrollToNode(hasText("Time window"))
+        compose.onNodeWithText("Time window").assertIsDisplayed()
+        captureVisualCatalogSurface("ux-upgrades.goals.calculation-settings")
+        listOf("Decimal Places (0–6)" to ("8" to "1"), "Rolling Days" to ("0" to "7")).forEach { (label, values) ->
+            val field = hasText(label, substring = true) and hasSetTextAction()
+            compose.onNodeWithTag("goal-editor-fields").performScrollToNode(field)
+            compose.onNode(field).performTextReplacement(values.first)
+            editorControl(hasText("Progress Calculation")).performClick()
+            compose.onNodeWithText("Save").performClick()
+            compose.runOnIdle { assertNull(saved) }
+            compose.onNodeWithTag("goal-editor-fields").performScrollToNode(field)
+            compose.onNode(field).assertIsDisplayed().performTextReplacement(values.second)
+        }
+        editorControl(hasTestTag("goal-remove-deadline")).performClick()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithTag("goal-editor-fields").performScrollToNode(hasText("Add Deadline"))
+        compose.onNodeWithText("Add Deadline").assertIsDisplayed()
+        compose.onNodeWithText("Save").performClick()
+        compose.runOnIdle {
+            assertNull(requireNotNull(saved).deadline)
+            assertEquals(GoalAggregationPeriod.RollingDays, requireNotNull(saved).aggregationPeriod)
+            assertEquals(7, requireNotNull(saved).rollingDays)
+            assertEquals(GoalPaceType.None, requireNotNull(saved).paceType)
+        }
+    }
+
+    @Test fun milestoneWeightKeepsPartialDecimalAndValidatesBlankDraft() {
+        var saved: GoalDraft? = null
+        val restoration = StateRestorationTester(compose)
+        val initial = projection(goal(type = GoalType.WeightedMilestones)).let { projection ->
+            projection.copy(milestones = projection.milestones + projection.milestones.single().copy(
+                id = 92, uuid = "milestone-92", name = "Celebrate", position = 1, weight = 2.0,
+            ))
+        }
+        restoration.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                GoalEditorDialog(initial, today = TODAY,
+                    activeZoneId = ZoneId.of("UTC"), nowMillis = TODAY.atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli(),
+                    customUnits = emptyList(), onDismiss = {}, onSave = { saved = it })
+            }
+        }
+        editorControl(hasTestTag("goal-milestone-weight-0")).performTextReplacement("")
+        compose.onNodeWithText("Save").performClick()
+        compose.runOnIdle { assertNull(saved) }
+        editorControl(hasTestTag("goal-milestone-weight-0")).performTextReplacement("0.")
+        compose.onNodeWithTag("goal-milestone-weight-0").assertTextContains("0.")
+        val move = editorControl(hasContentDescription("Reorder Finish", substring = true))
+            .fetchSemanticsNode().config[SemanticsActions.CustomActions].single { it.label == "Move Finish down" }
+        compose.runOnIdle { assertTrue(move.action()) }
+        editorControl(hasTestTag("goal-milestone-weight-1")).assertTextContains("0.")
+        restoration.emulateSavedInstanceStateRestore()
+        editorControl(hasTestTag("goal-milestone-weight-1")).assertTextContains("0.")
+        compose.onNodeWithTag("goal-milestone-weight-1").performTextReplacement("0.5")
+        captureVisualCatalogSurface("ux-upgrades.goals.milestone-weight")
+        compose.onNodeWithText("Save").performClick()
+        compose.runOnIdle {
+            assertEquals(listOf("Celebrate", "Finish"), requireNotNull(saved).milestones.map { it.name })
+            assertEquals(2.0, requireNotNull(saved).milestones.first().weight, 0.0)
+            assertEquals(0.5, requireNotNull(saved).milestones.last().weight, 0.0)
+        }
+    }
 
     @Test
     fun captureGoalComponentCatalog() {

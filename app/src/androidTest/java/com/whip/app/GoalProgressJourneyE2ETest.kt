@@ -20,6 +20,41 @@ class GoalProgressJourneyE2ETest {
     private val app: WhipApplication get() = ApplicationProvider.getApplicationContext()
     @After fun clean() = runBlocking { app.backupRepository.deleteAllData() }
 
+    private fun inspectorNode(matcher: SemanticsMatcher): SemanticsNodeInteraction {
+        compose.onNode(hasScrollToIndexAction() and hasAnyAncestor(hasTestTag("goal-detail-surface")))
+            .performScrollToNode(matcher)
+        return compose.onNode(matcher and hasAnyAncestor(hasTestTag("goal-detail-surface")))
+    }
+
+    @Test fun datedTrendShowsItsMeasureAndEarlierDaysRemainReachable() {
+        val id = runBlocking {
+            prepare()
+            val id = app.goalRepository.create(GoalDraft("Read across the season", startDate = app.clock.today().minusDays(90),
+                type = GoalType.ReachValue, targetMin = 100.0, precision = 1))
+            repeat(31) { index -> app.goalRepository.recordMeasurement(id, index + 1.0, app.clock.today().minusDays(if (index == 30) 0L else (90 - index).toLong())) }
+            id
+        }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            compose.onNodeWithContentDescription("Goals tab").performClick()
+            compose.onNodeWithTag("goal-card-status-$id", useUnmergedTree = true).assertTextContains("Current 31.0 → target 100.0", substring = true)
+            runBlocking { app.goalRepository.setStatus(id, GoalStatus.Paused) }
+            compose.waitUntil(10_000) {
+                compose.onAllNodes(hasTestTag("goal-card-status-$id") and hasText("Paused", substring = true), useUnmergedTree = true)
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithTag("goal-card-status-$id", useUnmergedTree = true).assertTextContains("Paused", substring = true)
+            compose.onNodeWithTag("goal-card-$id").performClick()
+            inspectorNode(hasContentDescription("Spaced by date.", substring = true)).assertIsDisplayed()
+            captureVisualCatalogSurface("ux-upgrades.goals.dated-trend")
+            inspectorNode(hasText("Trend Data Table")).performClick()
+            inspectorNode(hasTestTag("goal-trend-show-earlier")).performClick()
+            inspectorNode(hasText("value 1.0, progress 1%", substring = true)).assertIsDisplayed()
+            scenario.recreate()
+            inspectorNode(hasText("value 1.0, progress 1%", substring = true)).assertIsDisplayed()
+            captureVisualCatalogSurface("ux-upgrades.goals.earlier-trend-days")
+        }
+    }
+
     @Test fun poundGoalTrendValuesTargetsAndRatesKeepTheirSelectedUnit() {
         val id = runBlocking {
             prepare()
@@ -35,7 +70,7 @@ class GoalProgressJourneyE2ETest {
             compose.onNodeWithContentDescription("Goals tab").performClick()
             compose.onNodeWithTag("goal-card-$id").performScrollTo().performClick()
             compose.onNodeWithText("150.0 lb").performScrollTo().assertIsDisplayed()
-            compose.onNodeWithText("Rate -2.0 lb per day", substring = true).performScrollTo().assertIsDisplayed()
+            inspectorNode(hasText("-2.0 lb per day")).assertIsDisplayed()
             compose.onNodeWithText("Trend Data Table").performScrollTo().performClick()
             fun assertTrendRow(value: String) {
                 val row = hasText("value $value lb", substring = true)
@@ -49,10 +84,54 @@ class GoalProgressJourneyE2ETest {
             assertTrendRow("172.0")
             compose.onNodeWithTag("entity-inspector-close").performClick()
             compose.onNodeWithTag("goal-destination-Insights").performClick()
-            compose.onNodeWithText("Rate -2.0 lb per day", substring = true).performScrollTo().assertIsDisplayed()
+            compose.onNodeWithTag("goal-insights-list").performScrollToNode(hasText("Daily Rate"))
+            compose.onNodeWithText("Daily Rate").assertIsDisplayed()
+            compose.onNodeWithTag("goal-insights-list").performScrollToNode(hasText("-2.0 lb per day"))
+            compose.onNodeWithText("-2.0 lb per day").assertIsDisplayed()
         }
         val saved = runBlocking { app.goalRepository.get(id) }!!
         assertEquals(68.0388555, saved.targetMin!!, 0.00000001)
+    }
+
+    @Test fun milestoneInsightsDescribeWeightedProgressAndRetainClosedOutcome() {
+        val id = runBlocking {
+            prepare()
+            val id = app.goalRepository.create(GoalDraft("Ship the project", type = GoalType.WeightedMilestones,
+                startDate = app.clock.today(), milestones = listOf(GoalMilestoneDraft("Build", 3.0), GoalMilestoneDraft("Release", 1.0))))
+            val milestone = app.goalRepository.milestones.first().single { it.goalId == id && it.name == "Build" }
+            app.goalRepository.toggleMilestone(milestone.id, true)
+            id
+        }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            compose.onNodeWithContentDescription("Goals tab").performClick()
+            compose.onNodeWithTag("goal-destination-Insights").performClick()
+            compose.onNodeWithText("1 of 2 milestones complete", useUnmergedTree = true).assertIsDisplayed()
+            compose.onNodeWithText("75% complete", useUnmergedTree = true).assertIsDisplayed()
+            compose.onAllNodesWithText("Log on at least two days for a trend line.", useUnmergedTree = true).assertCountEquals(0)
+            compose.onAllNodesWithText("Forecast confidence", substring = true, useUnmergedTree = true).assertCountEquals(0)
+            captureVisualCatalogSurface("ux-upgrades.goals.milestone-insights")
+            compose.onNodeWithTag("goal-insight-$id").performClick()
+            inspectorNode(hasText("Milestone Progress")).assertIsDisplayed()
+            inspectorNode(hasText("75% complete")).assertIsDisplayed()
+            compose.onAllNodesWithText("Trend Data Table").assertCountEquals(0)
+            compose.onNodeWithTag("entity-inspector-close").performClick()
+            runBlocking { app.goalRepository.setStatus(id, GoalStatus.Completed) }
+            scenario.recreate()
+            compose.onNodeWithTag("goal-destination-History").performClick()
+            compose.waitUntil(10_000) {
+                compose.onAllNodes(hasTestTag("goal-card-status-$id") and hasText("Completed", substring = true), useUnmergedTree = true)
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithTag("goal-card-$id").performClick()
+            inspectorNode(hasText("Later milestone changes do not change this outcome.", substring = true)).assertIsDisplayed()
+            scenario.recreate()
+            inspectorNode(hasTestTag("goal-inspector-outcome")).assertTextEquals("1 of 2 milestones complete")
+            inspectorNode(hasText("75% complete")).assertIsDisplayed()
+            inspectorNode(hasText("Later milestone changes do not change this outcome.", substring = true)).assertIsDisplayed()
+            captureVisualCatalogSurface("ux-upgrades.goals.milestone-closed")
+        }
+        val snapshot = runBlocking { app.goalRepository.closureSnapshots.first().single { it.goalId == id } }
+        assertEquals(0.75, snapshot.progress!!, 0.0)
     }
 
     @Test fun smallProgressStaysVisibleThroughHomeDetailsAndArchivedHistory() {
@@ -246,7 +325,7 @@ class GoalProgressJourneyE2ETest {
     }
 
     private fun assertCard(id: Long, expected: String) {
-        compose.onNodeWithTag("goal-card-status-$id", useUnmergedTree = true).assertTextEquals(expected)
+        compose.onNodeWithTag("goal-card-status-$id", useUnmergedTree = true).assertTextContains(expected, substring = true)
     }
 
     private suspend fun prepare() {

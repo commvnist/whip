@@ -60,7 +60,7 @@ class TrackAuthoringJourneyE2ETest {
         val scale = if (large) "large" else "ordinary"
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             compose.onNodeWithContentDescription("Tracks tab").performClick()
-            scroll("track-list", hasText("Create First Track")).performClick()
+            scroll("track-list", hasText("Create Track")).performClick()
             compose.waitUntil(10_000) { compose.onAllNodesWithTag("track-editor-name").fetchSemanticsNodes().isNotEmpty() }
             capture("tracks.authoring.track-start.$scale")
             assertReadableEditorColumn("track-editor-list")
@@ -127,6 +127,9 @@ class TrackAuthoringJourneyE2ETest {
             compose.onNodeWithText("Discard Changes").performClick()
             scroll("track-editor-list", hasContentDescription("Edit Field Distance")).assertIsDisplayed()
             capture("tracks.authoring.definition.$scale")
+            scroll("track-editor-list", hasText("3 decimal places", substring = true)).assertIsDisplayed()
+            scroll("track-editor-list", hasText("Add Field")).assertIsDisplayed()
+            capture("ux-upgrades.tracks.definition-summary.$scale")
             scroll("track-editor-list", hasText("Description")).performClick().performTextReplacement(trackDescription)
             closeSoftKeyboard()
             scroll("track-editor-list", hasText("Tags")).performClick().performTextReplacement(trackTags.joinToString(", "))
@@ -149,8 +152,13 @@ class TrackAuthoringJourneyE2ETest {
             scenario.recreate()
             compose.onNodeWithContentDescription("Add entry to $trackName").performClick()
             capture("tracks.authoring.entry-start.$scale")
+            compose.onNode(hasContentDescription("Entry Date,", substring = true) and
+                hasAnyAncestor(hasTestTag("track-entry-editor-surface"))).assertIsDisplayed()
+            capture("ux-upgrades.tracks.entry-date-first.$scale")
             assertReadableEditorColumn("track-entry-editor-list")
+            scroll("track-entry-editor-list", hasTestTag("track-entry-short-text-${definition.primaryField.uuid}"))
             assertWholeNativeField("track-entry-short-text-${definition.primaryField.uuid}", "Name *")
+            scroll("track-entry-editor-list", hasTestTag("track-entry-number-${distance.uuid}"))
             assertWholeNativeField("track-entry-number-${distance.uuid}", "Distance * (mi)")
             compose.onNodeWithText("Add", substring = false).performClick()
             scroll("track-entry-editor-list", hasTestTag("track-entry-save-problem")).assertIsDisplayed()
@@ -165,8 +173,8 @@ class TrackAuthoringJourneyE2ETest {
             closeSoftKeyboard()
             entryField("Distance", "number").performClick().performTextReplacement("1.25")
             closeSoftKeyboard()
-            scroll("track-entry-editor-list", hasContentDescription("Choose Terrain: Unanswered")).performClick()
-            compose.onNodeWithContentDescription("Choose Terrain option: Trail").performClick()
+            scroll("track-entry-editor-list", hasContentDescription("Terrain: Unanswered")).performClick()
+            compose.onNodeWithContentDescription("Terrain option: Trail").performClick()
             scroll("track-entry-editor-list", hasContentDescription("Increase Effort by 0.5"))
             repeat(6) { compose.onNodeWithContentDescription("Increase Effort by 0.5").performClick() }
             compose.onNodeWithTag("track-entry-scale-value").assertTextContains("3.5")
@@ -233,6 +241,16 @@ class TrackAuthoringJourneyE2ETest {
             scroll("track-entry-list", hasContentDescription("Edit Entry $entryName")).performClick()
             entryField("Distance", "number").assertTextContains("2.25")
             capture("tracks.authoring.entry-reopened.$scale")
+            scroll("track-entry-editor-list", hasContentDescription("Clear Visit date")).performClick()
+            capture("ux-upgrades.tracks.optional-date-cleared.$scale")
+            compose.onNodeWithText("Save", substring = false).performClick()
+            val clearedDate = awaitProjection { current ->
+                current.entries.singleOrNull()?.value(current.fields.single { it.name == "Visit date" }.id)?.dateValue == null
+            }
+            assertEquals(null, clearedDate.entries.single().value(clearedDate.fields.single { it.name == "Visit date" }.id)?.dateValue)
+            scenario.recreate()
+            scroll("track-entry-list", hasContentDescription("Edit Entry $entryName")).performClick()
+            scroll("track-entry-editor-list", hasContentDescription("Visit date, choose date")).assertTextContains("Choose Date")
             compose.onNodeWithContentDescription("Close Entry Editor").performClick()
             compose.onNodeWithTag("track-destination-Options").performClick()
             compose.onNodeWithText("Edit Track").performScrollTo().performClick()

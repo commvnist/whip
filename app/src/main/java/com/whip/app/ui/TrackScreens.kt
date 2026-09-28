@@ -1004,6 +1004,12 @@ private fun TrackActivityPage(
     val activeTracks = state.active
     val visibleAreaIds = activeTracks.map(TrackProjection::track).map { it.areaId }.toSet()
     val availableAreas = areas.filter { !it.archived && it.id in visibleAreaIds }
+    LaunchedEffect(activeTracks.map { it.track.id }, availableAreas.map { it.id }, state.loading, state.errorMessage) {
+        if (!state.loading && state.errorMessage == null) {
+            if (trackFilterId != null && activeTracks.none { it.track.id == trackFilterId }) trackFilterId = null
+            if (areaFilterId != null && availableAreas.none { it.id == areaFilterId }) areaFilterId = null
+        }
+    }
     val normalizedQuery = query.trim()
     val items = activeTracks.flatMap { projection ->
         projection.entries.map { TrackActivityItem(projection, it) }
@@ -1066,6 +1072,16 @@ private fun TrackActivityPage(
                     hint = "Entry, Track, Area, or Field value",
                 )
             }
+            if (!filtersVisible && activeFilterCount > 0) item {
+                WhipGroupedInformationCard(Modifier.testTag("track-activity-filter-summary")) {
+                    Text(listOfNotNull(
+                        dateRange.label.takeUnless { dateRange == TrackActivityDateRange.AnyDate },
+                        activeTracks.firstOrNull { it.track.id == trackFilterId }?.track?.name,
+                        availableAreas.firstOrNull { it.id == areaFilterId }?.name,
+                    ).joinToString(" · "), style = MaterialTheme.typography.bodyMedium)
+                    WhipTextButton(onClick = { filtersVisible = true }) { Text("Edit Filters") }
+                }
+            }
             if (filtersVisible) item {
                 WhipGroupedInformationCard(Modifier.testTag("track-activity-filters")) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -1119,6 +1135,13 @@ private fun TrackActivityPage(
                             "Clear a filter or try a different search."
                         } else {
                             "Entries appear here after you add them to a Track."
+                        },
+                        primaryActionLabel = "Clear Search & Filters".takeIf { activeFilterCount > 0 || query.isNotBlank() },
+                        onPrimaryAction = {
+                            query = ""
+                            trackFilterId = null
+                            areaFilterId = null
+                            dateRange = TrackActivityDateRange.AnyDate
                         },
                     )
                 }
@@ -1245,7 +1268,7 @@ private fun TrackWorkspaceInsightsPage(
                     )
                 }
                 if (recentTracks.isNotEmpty()) {
-                    item { WhipSectionHeading("Recently Active Tracks") }
+                    item { WhipSectionHeading("Latest Entries by Track") }
                     items(recentTracks.take(8), key = { "recent-track-${it.first.track.id}" }) { (projection, entry) ->
                         WhipRecordItem(
                             itemKey = projection.track.uuid,
@@ -1450,13 +1473,13 @@ private fun AllTracksPage(
             WhipEmptyState(
                 title = when {
                     showArchived -> "No Archived Tracks"
-                    else -> "Track What Matters"
+                    else -> "No Tracks in This View"
                 },
                 supportingText = when {
                     showArchived -> "Archived Tracks appear here and can be restored."
-                    else -> "Create a reusable log for anything you want to record or compare."
+                    else -> "Create a reusable log here, or change the Area above to find existing Tracks."
                 },
-                primaryActionLabel = "Create First Track".takeUnless { showArchived },
+                primaryActionLabel = "Create Track".takeUnless { showArchived },
                 onPrimaryAction = onCreate.takeUnless { showArchived },
             )
         } else {
@@ -1967,6 +1990,7 @@ private fun TrackEntriesPage(
                 projection, conditions, conditionMode, BuiltInUnits.all + customUnits,
                 onRemove = { index -> conditions = conditions.toMutableList().also { it.removeAt(index) } },
                 onClear = { conditions = emptyList() },
+                onEdit = { filterOpen = true },
             )
         }
         if (databasePagedView && pageLoading && pagedEntries.isEmpty()) item {
@@ -1988,9 +2012,25 @@ private fun TrackEntriesPage(
             )
         } }
         if (!pageLoading && pageError == null && shown.isEmpty()) item {
+            val filtered = query.isNotBlank() || conditions.isNotEmpty()
             WhipEmptyState(
-                title = if (projection.entries.isEmpty()) "No Entries Yet" else "No Matching Entries",
-                supportingText = if (projection.entries.isEmpty()) "Add the first ${projection.primaryField.name.lowercase()} when the fact is ready to record." else "Clear Search or Filters to see more Entries.",
+                title = if (filtered) "No Matching Entries" else "No Entries Yet",
+                supportingText = when {
+                    filtered -> "Clear Search or Filters to see more Entries."
+                    projection.track.archived -> "This archived Track has no recorded Entries. Restore it above to start recording."
+                    else -> "Add the first ${projection.primaryField.name.lowercase()} when the fact is ready to record."
+                },
+                primaryActionLabel = when {
+                    filtered -> "Clear Search & Filters"
+                    !projection.track.archived -> "Add Entry"
+                    else -> null
+                },
+                onPrimaryAction = {
+                    if (filtered) {
+                        query = ""
+                        conditions = emptyList()
+                    } else onAddEntry()
+                },
             )
         }
         items(shown, key = { "entry-${it.entry.id}" }) { entry ->
@@ -2237,6 +2277,7 @@ private fun TrackInsightsPage(
                 projection, conditions, conditionMode, BuiltInUnits.all + customUnits,
                 onRemove = { index -> conditions = conditions.toMutableList().also { it.removeAt(index) } },
                 onClear = { conditions = emptyList() },
+                onEdit = { filterOpen = true },
             )
         }
         if (scoped.entries.isEmpty()) {
@@ -3062,7 +3103,8 @@ internal fun TrackEditor(
                     OutlinedTextField(draft.name, { value -> stateHolder.updateDraft { it.copy(name = value.replace('\n', ' ').replace('\r', ' ').take(100)) } }, label = { Text("Track Name *") }, singleLine = true, isError = validationError != null && draft.name.isBlank(), modifier = Modifier.fillMaxWidth().testTag("track-editor-name"), supportingText = if (validationError != null && draft.name.isBlank()) {{ Text("Track name is required") }} else {{ Text("${draft.name.length}/100") }})
                 }
                 item { HorizontalDivider() }
-                item { EditorSectionHeader("Entry Fields", "Choose what to record in each Entry.") }
+                item { EditorSectionHeader("Entry Fields", quantityLabel(fields.size, "Field")) }
+                item { WhipOutlinedButton(onClick = { fieldEditorSession++; addingField = true }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Outlined.Add, null); Spacer(Modifier.width(8.dp)); Text("Add Field") } }
                 itemsIndexed(fields, key = { index, field -> field.uuid ?: field.id?.toString() ?: "new-field-$index-${field.name}" }) { index, field ->
                     val reorderInteraction = rememberWhipReorderInteractionState()
                     Card(
@@ -3087,7 +3129,7 @@ internal fun TrackEditor(
                                 )
                                 Column(Modifier.weight(1f)) {
                                     Text(field.name.ifBlank { "Untitled Field" }, fontWeight = FontWeight.SemiBold)
-                                    Text(listOfNotNull(field.configurationLabel(), "Identity".takeIf { field.primary }, "Required".takeIf { field.required && !field.primary }, "Label Shown".takeIf { field.showInList }).joinToString(" · "), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(listOfNotNull(field.configurationLabel(BuiltInUnits.all + customUnits), "Identity".takeIf { field.primary }, "Required".takeIf { field.required && !field.primary }, "Label Shown".takeIf { field.showInList }).joinToString(" · "), color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 IconButton(onClick = { fieldEditorSession++; editingFieldIndex = index }) { Icon(Icons.Outlined.Edit, "Edit Field ${field.name}") }
                             }
@@ -3095,12 +3137,10 @@ internal fun TrackEditor(
                         }
                     }
                 }
-                item { WhipOutlinedButton(onClick = { fieldEditorSession++; addingField = true }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Outlined.Add, null); Spacer(Modifier.width(8.dp)); Text("Add Field") } }
                 item { HorizontalDivider() }
                 item {
                     ProductivityIdentitySection(
                         title = "Details",
-                        supportingText = "Add an optional description and choose an icon.",
                         identityFields = {
                             OutlinedTextField(draft.description, { value -> stateHolder.updateDraft { it.copy(description = value.take(500)) } }, label = { Text("Description") }, minLines = 2, maxLines = 5, modifier = Modifier.fillMaxWidth())
                         },
@@ -3120,7 +3160,6 @@ internal fun TrackEditor(
                 item { HorizontalDivider() }
                 item {
                     ProductivityOrganizationSection(
-                        supportingText = "Every Track belongs to one Area. Tags help search without changing the Entry form.",
                         areaPicker = {
                     AreaPicker(
                         areas = areas,
@@ -3411,7 +3450,7 @@ private fun TrackFieldEditor(
                         modifier = Modifier.fillMaxWidth().then(nameVisibility).testTag("track-field-name"),
                     )
                 }
-                item {
+                if (!existingHasValues) item {
                     SelectionField(
                         "Field Type",
                         TrackFieldType.entries,
@@ -3426,10 +3465,13 @@ private fun TrackFieldEditor(
                         enabled = !existingHasValues,
                     )
                 }
-                if (existingHasValues) item { Text("A Field type can change only before it has saved values. Delete this Field and add another to change its type.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                if (existingHasValues) item {
+                    EntityInspectorFact("Saved Field", listOfNotNull(type.uiLabel(), dimension.uiLabel().takeIf { type == TrackFieldType.Number }).joinToString(" · "))
+                    Text("Saved values keep this Field's type fixed. Add a new Field for a different type.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 when (type) {
                     TrackFieldType.Number -> {
-                        item {
+                        if (!existingHasValues) item {
                             SelectionField(
                                 "Measurement Type",
                                 UnitDimension.entries,
@@ -3446,13 +3488,6 @@ private fun TrackFieldEditor(
                                     }
                                 },
                                 enabled = !existingHasValues,
-                            )
-                        }
-                        if (existingHasValues) item {
-                            Text(
-                                "Saved values fix this Field's measurement type. You can still change its default unit within ${dimension.uiLabel().lowercase()} without rewriting history.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         item {
@@ -3698,7 +3733,7 @@ internal fun TrackEntryEditor(
     LaunchedEffect(validationScrollFieldUuid) {
         val fieldUuid = validationScrollFieldUuid ?: return@LaunchedEffect
         val fieldIndex = projection.fields.indexOfFirst { it.uuid == fieldUuid }.coerceAtLeast(0)
-        val precedingItems = 2 +
+        val precedingItems = 3 +
             (if (!persistenceError.isNullOrBlank() && conflictKind == null) 1 else 0) +
             (if (conflictKind != null) 1 else 0) +
             (if (attempted && validationMessages.isNotEmpty()) 1 else 0)
@@ -3771,6 +3806,18 @@ internal fun TrackEntryEditor(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Entry Date", modifier = Modifier.clearAndSetSemantics {}, style = MaterialTheme.typography.labelLarge)
+                        WhipOutlinedButton(
+                            onClick = { datePickerOpen = true },
+                            modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Entry Date, ${entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}" },
+                        ) {
+                            Text(entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)), modifier = Modifier.weight(1f))
+                        }
+                        Text("The date this fact belongs to; creation time stays unchanged.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
                 items(projection.fields, key = TrackField::uuid) { field ->
                     val current = values[field.uuid] ?: TrackValueDraft(enteredUnitId = field.unitId)
                     val invalidNumber = field in invalidNumbers
@@ -3807,18 +3854,6 @@ internal fun TrackEntryEditor(
                                 Text("Review ${projection.primaryText(match)} · ${match.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
                             }
                         }
-                    }
-                }
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Entry Date", modifier = Modifier.clearAndSetSemantics {}, style = MaterialTheme.typography.labelLarge)
-                        WhipOutlinedButton(
-                            onClick = { datePickerOpen = true },
-                            modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Entry Date, ${entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}" },
-                        ) {
-                            Text(entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)), modifier = Modifier.weight(1f))
-                        }
-                        Text("The date this fact belongs to. Backdating does not change its creation time.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 onDelete?.let { action -> item {
@@ -3914,7 +3949,7 @@ internal fun TrackEntryField(
 ) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(5.dp)) {
         val accessibleFieldName = field.name + if (field.required) ", required" else ""
-        if (field.type !in setOf(TrackFieldType.ShortText, TrackFieldType.LongText, TrackFieldType.Number)) {
+        if (field.type !in setOf(TrackFieldType.ShortText, TrackFieldType.LongText, TrackFieldType.Number, TrackFieldType.SingleChoice)) {
             Text(
                 field.name + if (field.required) " *" else "",
                 modifier = Modifier.clearAndSetSemantics {},
@@ -4009,7 +4044,7 @@ internal fun TrackEntryField(
             }
             TrackFieldType.SingleChoice -> {
                 val selected = options.firstOrNull { it.uuid == value.choiceOptionUuid }
-                SelectionField("Choose ${field.name}", listOf<TrackChoiceOption?>(null) + options, selected, { it?.label ?: "Unanswered" }, { onValue(value.copy(choiceOptionUuid = it?.uuid)) })
+                SelectionField(field.name + if (field.required) " *" else "", listOf<TrackChoiceOption?>(null) + options, selected, { it?.label ?: "Unanswered" }, { onValue(value.copy(choiceOptionUuid = it?.uuid)) })
             }
             TrackFieldType.Scale -> {
                 val min = requireNotNull(field.scaleMin)
@@ -4084,6 +4119,10 @@ internal fun TrackEntryField(
                     modifier = Modifier.fillMaxWidth().semantics { contentDescription = "$accessibleFieldName, choose date" },
                 ) { Text(value.dateValue?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "Choose Date", modifier = Modifier.weight(1f)) }
                 if (open) WhipDatePickerDialog(value.dateValue ?: today, { open = false }, { onValue(value.copy(dateValue = it)); open = false })
+                if (!field.required && value.dateValue != null) WhipTextButton(
+                    onClick = { onValue(value.copy(dateValue = null)) },
+                    modifier = Modifier.testTag("track-entry-date-clear-${field.uuid}").semantics { contentDescription = "Clear ${field.name}" },
+                ) { Text("Clear Date") }
             }
             TrackFieldType.YesNo -> FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (!field.required) WhipFilterChip(value.booleanValue == null, { onValue(value.copy(booleanValue = null)) }, { Text("Unanswered") }, Modifier.semantics { contentDescription = "${field.name}, unanswered" })
@@ -4111,6 +4150,7 @@ private fun TrackAppliedConditions(
     units: List<UnitDefinition>,
     onRemove: (Int) -> Unit,
     onClear: () -> Unit,
+    onEdit: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
@@ -4121,13 +4161,15 @@ private fun TrackAppliedConditions(
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             conditions.forEachIndexed { index, condition ->
                 val summary = "${projection.conditionFieldName(condition)} ${condition.operator.uiLabel()} ${condition.summaryValue(projection, units)}".trim()
-                WhipFilterChip(
-                    selected = true,
-                    onClick = { onRemove(index) },
-                    label = { Text(summary, maxLines = 3, overflow = TextOverflow.Ellipsis) },
-                    modifier = Modifier.semantics { contentDescription = "Remove Filter: $summary" },
-                    trailingIcon = { Icon(Icons.Outlined.Close, contentDescription = null) },
-                )
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    WhipFilterChip(
+                        selected = true,
+                        onClick = onEdit,
+                        label = { Text(summary, maxLines = 3, overflow = TextOverflow.Ellipsis) },
+                        modifier = Modifier.weight(1f).semantics { contentDescription = "Edit Filter: $summary" },
+                    )
+                    IconButton(onClick = { onRemove(index) }) { Icon(Icons.Outlined.Close, "Remove Filter: $summary") }
+                }
             }
             WhipTextButton(onClick = onClear) { Text("Clear All") }
         }
@@ -4148,12 +4190,14 @@ internal fun TrackFilterDialog(
     var mode by rememberSaveable { mutableStateOf(initialMode) }
     var conditions by rememberSaveable(stateSaver = trackConditionListSaver) { mutableStateOf(initial) }
     var adding by rememberSaveable { mutableStateOf(false) }
+    var editingConditionIndex by rememberSaveable { mutableStateOf<Int?>(null) }
     var conditionSession by rememberSaveable(projection.track.id) { mutableIntStateOf(0) }
     val conditionStateHolder = key(projection.track.id) { rememberSaveableStateHolder() }
     val conditionStateKey = "condition-$conditionSession"
     fun closeCondition() {
         conditionStateHolder.removeState(conditionStateKey)
         adding = false
+        editingConditionIndex = null
     }
     PaneAwareAlertDialog(
         modifier = modifier,
@@ -4166,19 +4210,24 @@ internal fun TrackFilterDialog(
                 itemsIndexed(conditions) { index, condition ->
                     val fieldName = projection.conditionFieldName(condition)
                     Card(Modifier.fillMaxWidth()) { Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("$fieldName ${condition.operator.uiLabel()} ${condition.summaryValue(projection, units)}", Modifier.weight(1f))
-                        IconButton(onClick = { conditions = conditions.toMutableList().also { it.removeAt(index) } }) { Icon(Icons.Outlined.Close, "Remove Filter") }
+                        WhipTextButton(onClick = { conditionSession++; editingConditionIndex = index; adding = true }, modifier = Modifier.weight(1f).testTag("track-filter-edit-$index")) {
+                            Icon(Icons.Outlined.Edit, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("$fieldName ${condition.operator.uiLabel()} ${condition.summaryValue(projection, units)}")
+                        }
+                        IconButton(onClick = { conditions = conditions.toMutableList().also { it.removeAt(index) } }) { Icon(Icons.Outlined.Close, "Remove Filter: $fieldName") }
                     } }
                 }
-                item { WhipOutlinedButton(onClick = { conditionSession++; adding = true }, modifier = Modifier.fillMaxWidth()) { Text("Add Condition") } }
+                item { WhipOutlinedButton(onClick = { conditionSession++; editingConditionIndex = null; adding = true }, modifier = Modifier.fillMaxWidth()) { Text("Add Condition") } }
             }
         },
         confirmButton = { WhipTextButton(onClick = { onApply(mode, conditions) }) { Text("Apply Filters") } },
         dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
     if (adding) conditionStateHolder.SaveableStateProvider(conditionStateKey) {
-        TrackConditionEditor(projection, ::closeCondition, today = today, units = units, modifier = modifier) {
-            conditions = conditions + it
+        TrackConditionEditor(projection, ::closeCondition, today = today, units = units, modifier = modifier,
+            initial = editingConditionIndex?.let(conditions::getOrNull)) { updated ->
+            conditions = editingConditionIndex?.let { index -> conditions.toMutableList().also { it[index] = updated } } ?: (conditions + updated)
             closeCondition()
         }
     }
@@ -4191,25 +4240,28 @@ internal fun TrackConditionEditor(
     today: LocalDate = LocalWhipToday.current,
     units: List<UnitDefinition> = BuiltInUnits.all,
     modifier: Modifier = Modifier,
+    initial: TrackCondition? = null,
     onSave: (TrackCondition) -> Unit,
 ) {
     val subjects = remember(projection.track.id, projection.fields) {
         listOf(TrackConditionSubject(null)) + projection.fields.map(::TrackConditionSubject)
     }
-    var subjectUuid by rememberSaveable { mutableStateOf(subjects.first().uuid) }
+    var subjectUuid by rememberSaveable { mutableStateOf(initial?.fieldUuid ?: subjects.first().uuid) }
     val subject = subjects.firstOrNull { it.uuid == subjectUuid } ?: subjects.first()
     val field = subject.trackField
     val fieldType = subject.type
     val numberUnit = field?.takeIf { it.type == TrackFieldType.Number }?.let { numberField ->
         units.firstOrNull { it.id == numberField.unitId }
     }
-    var operator by rememberSaveable(subject.uuid) { mutableStateOf(fieldType.availableOperators().first()) }
-    var text by rememberSaveable(subject.uuid) { mutableStateOf("") }
-    var firstNumber by rememberSaveable(subject.uuid) { mutableStateOf("") }
-    var secondNumber by rememberSaveable(subject.uuid) { mutableStateOf("") }
-    var selectedChoices by rememberSaveable(subject.uuid, stateSaver = stringSetSaver) { mutableStateOf(emptySet<String>()) }
-    var firstDate by rememberSaveable(subject.uuid) { mutableStateOf(today) }
-    var secondDate by rememberSaveable(subject.uuid) { mutableStateOf(today) }
+    val initialForSubject = initial?.takeIf { it.fieldUuid == subject.uuid }
+    fun displayNumber(value: Double?) = value?.let { numberUnit?.fromCanonical(it) ?: it }?.let(::editableNumericValue).orEmpty()
+    var operator by rememberSaveable(subject.uuid) { mutableStateOf(initialForSubject?.operator ?: fieldType.availableOperators().first()) }
+    var text by rememberSaveable(subject.uuid) { mutableStateOf(initialForSubject?.textValue.orEmpty()) }
+    var firstNumber by rememberSaveable(subject.uuid) { mutableStateOf(displayNumber(initialForSubject?.numberValue)) }
+    var secondNumber by rememberSaveable(subject.uuid) { mutableStateOf(displayNumber(initialForSubject?.secondNumberValue)) }
+    var selectedChoices by rememberSaveable(subject.uuid, stateSaver = stringSetSaver) { mutableStateOf(initialForSubject?.choiceOptionUuids.orEmpty()) }
+    var firstDate by rememberSaveable(subject.uuid) { mutableStateOf(initialForSubject?.dateValue ?: today) }
+    var secondDate by rememberSaveable(subject.uuid) { mutableStateOf(initialForSubject?.secondDateValue ?: today) }
     var datePicker by rememberSaveable { mutableIntStateOf(0) }
     var conditionViewport by remember { mutableStateOf(IntSize.Zero) }
     val textVisibility = rememberFocusedInputVisibility(conditionViewport)
@@ -4226,7 +4278,7 @@ internal fun TrackConditionEditor(
     PaneAwareAlertDialog(
         modifier = modifier,
         onDismissRequest = onDismiss,
-        title = { Text("Add Condition") },
+        title = { Text(if (initial == null) "Add Condition" else "Edit Condition") },
         text = { Column(
             Modifier.fillMaxWidth().onSizeChanged { conditionViewport = it }
                 .verticalScroll(rememberScrollState()).testTag("track-condition-body"),
@@ -4238,8 +4290,12 @@ internal fun TrackConditionEditor(
                 TrackFieldType.ShortText, TrackFieldType.LongText -> OutlinedTextField(text, { text = it }, label = { Text("Text") }, modifier = Modifier.fillMaxWidth().then(textVisibility))
                 TrackFieldType.Number, TrackFieldType.Scale -> {
                     val unitSuffix = numberUnit?.let { " (${it.symbol.ifBlank { it.name }})" }.orEmpty()
-                    OutlinedTextField(firstNumber, { firstNumber = it }, label = { Text((if (operator == TrackConditionOperator.Between) "Minimum" else "Value") + unitSuffix) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true, modifier = Modifier.fillMaxWidth().then(firstNumberVisibility))
-                    if (operator == TrackConditionOperator.Between) OutlinedTextField(secondNumber, { secondNumber = it }, label = { Text("Maximum$unitSuffix") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true, modifier = Modifier.fillMaxWidth().then(secondNumberVisibility))
+                    OutlinedTextField(firstNumber, { firstNumber = it }, label = { Text((if (operator == TrackConditionOperator.Between) "Minimum" else "Value") + unitSuffix) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true, modifier = Modifier.fillMaxWidth().then(firstNumberVisibility),
+                        isError = firstNumber.isNotBlank() && firstNumber.toWhipDoubleOrNull() == null,
+                        supportingText = if (firstNumber.isNotBlank() && firstNumber.toWhipDoubleOrNull() == null) {{ Text("Enter a valid number") }} else null)
+                    if (operator == TrackConditionOperator.Between) OutlinedTextField(secondNumber, { secondNumber = it }, label = { Text("Maximum$unitSuffix") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true, modifier = Modifier.fillMaxWidth().then(secondNumberVisibility),
+                        isError = secondNumber.isNotBlank() && secondNumber.toWhipDoubleOrNull() == null,
+                        supportingText = if (secondNumber.isNotBlank() && secondNumber.toWhipDoubleOrNull() == null) {{ Text("Enter a valid number") }} else null)
                 }
                 TrackFieldType.SingleChoice -> FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     projection.optionsFor(requireNotNull(field).id).forEach { option -> WhipFilterChip(option.uuid in selectedChoices, { selectedChoices = if (option.uuid in selectedChoices) selectedChoices - option.uuid else selectedChoices + option.uuid }, { Text(option.label) }) }
@@ -4261,7 +4317,7 @@ internal fun TrackConditionEditor(
             val first = firstNumber.toWhipDoubleOrNull()?.let { if (fieldType == TrackFieldType.Number) numberUnit?.toCanonical(it) ?: it else it }
             val second = secondNumber.toWhipDoubleOrNull()?.let { if (fieldType == TrackFieldType.Number) numberUnit?.toCanonical(it) ?: it else it }
             onSave(TrackCondition(subject.uuid, operator, text.takeIf(String::isNotBlank), first, second, selectedChoices, firstDate.takeIf { fieldType == TrackFieldType.Date }, secondDate.takeIf { fieldType == TrackFieldType.Date && operator == TrackConditionOperator.Between }))
-        }) { Text("Add") } },
+        }) { Text(if (initial == null) "Add" else "Save Condition") } },
         dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
     )
     if (datePicker > 0) WhipDatePickerDialog(if (datePicker == 1) firstDate else secondDate, { datePicker = 0 }, { selected -> if (datePicker == 1) firstDate = selected else secondDate = selected; datePicker = 0 })
@@ -4414,7 +4470,8 @@ internal fun TrackFieldType.uiLabel(): String = when (this) {
     TrackFieldType.YesNo -> "Yes/No"
 }
 
-private fun TrackFieldDraft.configurationLabel(): String = when (type) {
+private fun TrackFieldDraft.configurationLabel(units: List<UnitDefinition>): String = when (type) {
+    TrackFieldType.Number -> listOfNotNull("Number", units.firstOrNull { it.id == unitId }?.let(::unitDefinitionDisplayLabel), quantityLabel(precision, "decimal place")).joinToString(" · ")
     TrackFieldType.Scale -> listOfNotNull(
         scaleMin?.let { minimum -> scaleMax?.let { maximum -> "Scale $minimum–$maximum" } } ?: "Scale",
         "${formatTrackScaleValue(scaleStep)} increment",

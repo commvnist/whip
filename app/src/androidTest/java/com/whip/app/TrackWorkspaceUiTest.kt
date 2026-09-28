@@ -13,6 +13,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -172,6 +173,7 @@ class TrackWorkspaceUiTest {
             score = 3.0,
             date = LocalDate.of(2015, 1, 5),
         )
+        val visibleTracks = mutableStateOf(listOf(movies, learning))
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 val trackViewModel: TrackViewModel = viewModel()
@@ -180,7 +182,7 @@ class TrackWorkspaceUiTest {
                     habitState = HabitUiState(loading = false),
                     goalState = GoalUiState(loading = false),
                     gymState = GymUiState(loading = false),
-                    trackState = TrackUiState(projections = listOf(movies, learning), currentDate = today, loading = false),
+                    trackState = TrackUiState(projections = visibleTracks.value, currentDate = today, loading = false),
                     trackViewModel = trackViewModel,
                     settingsState = SettingsUiState(
                         areas = listOf(
@@ -210,7 +212,7 @@ class TrackWorkspaceUiTest {
         compose.onAllNodesWithText("Old Opening").assertCountEquals(0)
         compose.onNodeWithContentDescription("Clear Search").performClick()
 
-        compose.onNodeWithContentDescription("Filter Track Activity").performClick()
+        compose.onNodeWithContentDescription("Filter Track Activity", substring = true).performClick()
         compose.onNodeWithText("7 Days").performClick()
         compose.onNodeWithText("Arrival").assertIsDisplayed()
         compose.onAllNodesWithText("Old Opening").assertCountEquals(0)
@@ -220,10 +222,27 @@ class TrackWorkspaceUiTest {
         compose.onNodeWithText("Old Opening").assertIsDisplayed()
         compose.onAllNodesWithText("Arrival").assertCountEquals(0)
 
+        compose.onNodeWithContentDescription("Filter Track Activity", substring = true).performClick()
+        compose.onNodeWithTag("track-activity-filter-summary").assertIsDisplayed()
+        compose.onNodeWithTag("track-activity-search").performTextReplacement("no matching entry")
+        compose.onNodeWithText("No Matching Activity").assertIsDisplayed()
+        captureVisualCatalogSurface("ux-upgrades.tracks.activity-recovery")
+        compose.onNodeWithText("Clear Search & Filters").performClick()
+        compose.onNodeWithText("Arrival").assertIsDisplayed()
+        compose.onNodeWithText("Old Opening").assertIsDisplayed()
+        compose.onAllNodesWithTag("track-activity-filter-summary").assertCountEquals(0)
+        compose.onNodeWithContentDescription("Filter Track Activity", substring = true).performClick()
+        compose.onNodeWithTag("track-activity-area-filter").performClick()
+        compose.onNodeWithText("Work").performClick()
+        compose.runOnIdle { visibleTracks.value = listOf(movies) }
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Arrival"))
+        compose.onNodeWithText("Arrival").assertIsDisplayed()
+        compose.runOnIdle { visibleTracks.value = listOf(movies, learning) }
+
         compose.onNodeWithTag("track-workspace-destination-Insights").performClick()
         compose.onNodeWithText("Entry Frequency").assertIsDisplayed()
-        compose.onNodeWithTag("track-workspace-insights-list").performScrollToNode(hasText("Recently Active Tracks"))
-        compose.onNodeWithText("Recently Active Tracks").assertIsDisplayed()
+        compose.onNodeWithTag("track-workspace-insights-list").performScrollToNode(hasText("Latest Entries by Track"))
+        compose.onNodeWithText("Latest Entries by Track").assertIsDisplayed()
         compose.onNodeWithTag("track-workspace-insights-list").performScrollToNode(hasText("Numeric Summaries"))
         compose.onNodeWithText("Numeric Summaries").assertIsDisplayed()
         compose.onNodeWithTag("track-workspace-insights-list").performScrollToNode(hasText("Total Entries"))

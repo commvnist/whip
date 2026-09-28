@@ -123,7 +123,8 @@ class TrackFieldEditingJourneyE2ETest {
             compose.waitUntil(10_000) { compose.onAllNodesWithTag("track-editor-name").fetchSemanticsNodes().isNotEmpty() }
             if (choices) {
                 editField("Terrain")
-                field(hasContentDescription("Field Type: Single Choice")).assertIsNotEnabled()
+                field(hasText("Single Choice")).assertIsDisplayed().assertHasNoClickAction()
+                compose.onAllNodesWithContentDescription("Field Type: Single Choice").assertCountEquals(0)
                 replace("Option 2", "  tRAIL  ")
                 capture("tracks.field-edit.choice-invalid.$suffix")
                 compose.onNodeWithText("Save Field").assertIsNotEnabled()
@@ -137,7 +138,8 @@ class TrackFieldEditingJourneyE2ETest {
                 compose.onNodeWithText("Save Field").assertIsEnabled().performClick()
             } else {
                 editField("Effort")
-                field(hasContentDescription("Field Type: Scale")).assertIsNotEnabled()
+                field(hasText("Scale")).assertIsDisplayed().assertHasNoClickAction()
+                compose.onAllNodesWithContentDescription("Field Type: Scale").assertCountEquals(0)
                 replace("Minimum", "bad")
                 field(hasText("Minimum")).assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Error))
                 field(hasText("Enter a whole-number Scale minimum")).assertIsDisplayed()
@@ -158,8 +160,9 @@ class TrackFieldEditingJourneyE2ETest {
                 replace("Increment", "0.5")
                 compose.onNodeWithText("Save Field").assertIsEnabled().performClick()
                 editField("Distance")
-                field(hasContentDescription("Field Type: Number")).assertIsNotEnabled()
-                field(hasContentDescription("Measurement Type: Distance")).assertIsNotEnabled()
+                field(hasText("Number · Distance")).assertIsDisplayed()
+                compose.onAllNodesWithContentDescription("Field Type: Number").assertCountEquals(0)
+                compose.onAllNodesWithContentDescription("Measurement Type: Distance").assertCountEquals(0)
                 field(hasContentDescription("Unit: miles (mi)")).performClick()
                 compose.onNodeWithText("kilometres (km)").performScrollTo().performClick()
                 field(hasContentDescription("Unit: kilometres (km)")).assertIsDisplayed()

@@ -11,10 +11,13 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -57,6 +60,36 @@ class TrackHistoryJourneyE2ETest {
     private val trackName = "Weekend walks and trail notes"
 
     @After fun clean() = runBlocking { app.backupRepository.deleteAllData() }
+
+    private fun entryNode(matcher: SemanticsMatcher): SemanticsNodeInteraction {
+        compose.onNodeWithTag("track-entry-list").performScrollToNode(matcher)
+        return compose.onNode(matcher)
+    }
+
+    @Test fun emptyArchivedTrackExplainsRestoreThenOffersFirstEntry() {
+        val id = runBlocking {
+            app.backupRepository.deleteAllData()
+            app.settingsRepository.update { AppSettings(setupCompleted = true, dynamicColor = false, themeMode = AppThemeMode.Light) }
+            val id = app.trackRepository.create(TrackDraft(name = "Empty archived notes", fields = listOf(
+                TrackFieldDraft("Note", TrackFieldType.ShortText, primary = true))))
+            app.trackRepository.setArchived(id, true)
+            id
+        }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use {
+            compose.onNodeWithContentDescription("Tracks tab").performClick()
+            compose.onNodeWithTag("track-workspace-destination-Archived").performClick()
+            compose.onNodeWithTag("track-list").performScrollToNode(hasTestTag("track-card-$id"))
+            compose.onNodeWithTag("track-card-$id").performClick()
+            compose.waitUntil(15_000) { compose.onAllNodesWithTag("track-entry-page-loading").fetchSemanticsNodes().isEmpty() }
+            entryNode(hasText("Restore it above", substring = true)).assertIsDisplayed()
+            compose.onAllNodesWithContentDescription("Add entry to Empty archived notes").assertCountEquals(0)
+            captureVisualCatalogSurface("ux-upgrades.tracks.archived-empty")
+            compose.onNodeWithText("Restore Track").performClick()
+            compose.waitUntil(15_000) { runBlocking { app.trackRepository.projection(id)?.track?.archived == false } }
+            entryNode(hasText("Add Entry")).performClick()
+            compose.onNodeWithTag("track-entry-editor-surface").assertIsDisplayed()
+        }
+    }
 
     @Test fun archivedHistoryCanBeSearchedRecreatedAndRestored() = verifyHistory(false)
 
@@ -132,6 +165,13 @@ class TrackHistoryJourneyE2ETest {
             compose.onNodeWithTag("track-entry-list").performScrollToNode(hasTestTag("track-entry-search"))
             compose.onNodeWithTag("track-entry-search").assertTextContains("River trail")
             capture("tracks.history.search-result.$suffix")
+            compose.onNodeWithTag("track-entry-search").performTextReplacement("No saved trail matches this")
+            compose.waitUntil(10_000) { compose.onAllNodesWithText("No Matching Entries").fetchSemanticsNodes().isNotEmpty() }
+            entryNode(hasText("No Matching Entries")).assertIsDisplayed()
+            captureVisualCatalogSurface("ux-upgrades.tracks.entry-recovery.$suffix")
+            entryNode(hasText("Clear Search & Filters")).performClick()
+            entryNode(hasText("Neighbourhood walk 1")).assertIsDisplayed()
+            entryNode(hasTestTag("track-entry-search")).performTextReplacement("River trail")
             scenario.recreate()
             compose.onNodeWithTag("track-entry-list").performScrollToNode(hasTestTag("track-entry-search"))
             compose.onNodeWithTag("track-entry-search").assertTextContains("River trail")

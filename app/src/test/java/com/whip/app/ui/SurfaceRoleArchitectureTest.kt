@@ -32,8 +32,8 @@ class SurfaceRoleArchitectureTest {
                 val neighborhood = tracks.substringBefore(marker).takeLast(700) + tracks.substringAfter(marker).take(700)
                 assertTrue("$marker must use the grouped information surface", neighborhood.contains("WhipGroupedInformationCard"))
             }
-        assertTrue(tracks.substringBefore("Recently Active Tracks").takeLast(1_400).contains("WhipSummarySeries("))
-        assertTrue(tracks.substringAfter("Recently Active Tracks").take(1_400).contains("WhipRecordItem("))
+        assertTrue(tracks.substringBefore("Latest Entries by Track").takeLast(1_400).contains("WhipSummarySeries("))
+        assertTrue(tracks.substringAfter("Latest Entries by Track").take(1_400).contains("WhipRecordItem("))
 
         assertTrue(settings.substringAfter("items(state.customUnits,").take(1_000).contains("WhipRecordItem"))
         assertTrue(settings.substringAfter("SettingsHeading(\"Custom Emojis\")").take(1_000).contains("WhipGroupedInformationCard"))

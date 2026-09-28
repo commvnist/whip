@@ -404,7 +404,10 @@ class UiDesignArchitectureTest {
         assertTrue(metric.contains("part.unitLabel()"))
         assertTrue(metric.contains("contentDescription = display.label()"))
         assertTrue(goals.split("ElapsedGoalMetric(").size >= 5)
-        assertTrue(goals.contains("elapsedStatus?.label() ?: compactStatus"))
+        assertTrue(goals.contains("projection.collectionStatus(customUnits, nowMillis, zoneId)"))
+        val status = goals.substringAfter("internal fun GoalProjection.collectionStatus(")
+            .substringBefore("fun GoalCard(")
+        assertTrue(status.contains("elapsedDisplayLabel(nowMillis, zoneId)"))
     }
 
     @Test

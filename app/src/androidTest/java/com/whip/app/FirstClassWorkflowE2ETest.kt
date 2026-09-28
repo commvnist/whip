@@ -62,8 +62,8 @@ class FirstClassWorkflowE2ETest {
         launch().use { scenario ->
             compose.waitForIdle()
             compose.onNodeWithContentDescription("Tracks tab").performClick()
-            compose.onNodeWithTag("track-list").performScrollToNode(hasText("Create First Track"))
-            compose.onNodeWithText("Create First Track").performClick()
+            compose.onNodeWithTag("track-list").performScrollToNode(hasText("Create Track"))
+            compose.onNodeWithText("Create Track").performClick()
             compose.waitUntil(10_000) {
                 compose.onAllNodesWithTag("track-editor-name").fetchSemanticsNodes().isNotEmpty()
             }
