@@ -1,5 +1,29 @@
 # Durable findings
 
+### FND-20260928-002 — Home/Task/Habit displayed meaning diverges from authored state
+
+- Confirmed source findings: Habit history edit coerces status/value, future edit bypasses creation guard, additive Log Only repeats current amount, custom-unit IDs leak, incompatible edit choices reach unsavable states. Tasks silently clamp duration, confuse deadline/schedule filters, lose two saved date modes and misrepresent scoped daily planning. Home scoped first use/counts and targetless summaries need correction.
+- Evidence/remedy: [Fresh matrix and accepted groups](../quality/UX_AUDIT_2_HOME_HABITS_2026-09-28.md). Preserve facts, validate drafts, align scope and date semantics, use exact request feedback. Unassigned metadata hypothesis withdrawn after caller trace; indefinite-pause history/layout candidates still require disposition. Prior FND-20260903-006 future-log protection covers creation but not editing.
+- Status: Confirmed; accepted implementation in progress under FB-20260928-002 / DEC-20260928-001.
+
+### FND-20260928-003 — Goal evidence and Track search/identity lose semantic context
+
+- Confirmed: Goal Insights ignore authored windows, range percentages receive physical units, Review compares unlike quantities, unit edits reinterpret raw targets, incompatible changes fail late, closure meaning can change, and Start Date is hidden. Track numeric identities expose IDs, stale async results appear under a new query, failures silently change search semantics, primary fields disappear from Insights and rows beyond eight lack a route.
+- Evidence/remedy: [Fresh Goals/Track matrix](../quality/UX_AUDIT_2_GOALS_TRACK_2026-09-28.md), G1–4/T1–4. Reuse domain projection semantics and typed presentation; preserve storage identities/history; bind asynchronous output to its request; expose supported inputs and complete evidence.
+- Status: Confirmed; implementation in progress under FB-20260928-002 / DEC-20260928-001.
+
+### FND-20260928-004 — Gym evidence identity and Settings feedback require stronger boundaries
+
+- Confirmed: Gym graph selection uses date/display name instead of exact identity, routine inputs offer inapplicable repetitions and omit timed/distance summaries, Rest availability misses blocked channels, masked backup fields do not request password keyboard or explain mismatch locally.
+- Evidence/remedy: [Fresh Gym/Settings matrix](../quality/UX_AUDIT_2_GYM_SETTINGS_2026-09-28.md), G2-A–G. Exact identities, existing capability helpers, effective channel policy and field-local backup guidance. Large machine lookup accepted as an improvement with measured evidence; populated calendar/deep feedback remain reproduction-gated.
+- Status: Confirmed findings accepted for implementation under FB-20260928-002 / DEC-20260928-001; untested candidates are distinguished in the matrix.
+
+### FND-20260928-001 — Shared constrained layouts and search completeness
+
+- Observed: Short200% inspector reserves too much height for identity; long load failures clip Retry and its accessible label. Search silently truncates per-entity history without partial-result disclosure; numeric search text exposes stored unit IDs.
+- Evidence: [Second shared matrix](../quality/UX_AUDIT_2_SHARED_2026-09-28.md); baseline `build/instrumentation-results-4tUKfI` has2/2 failing methods with inspected originals. Index construction confirms undisclosed100/500 history caps separately from2000-result cap.
+- Remedy/status: Confirmed. Bound inspector identity under constrained height, scroll load states, disclose all search caps and reuse resolved-unit presentation. FB-20260928-002; SH-1–4.
+
 ### FND-20260927-019 — Note-only Habit entries are offered but cannot be saved
 
 - Observed: `HabitValueDialog` and `HabitHistoryLogDialog` allow Log Only check-ins without a number, but `RoomHabitRepository.log` sends the null amount to `MeasurementRepository.record` with Recorded status, which requires a value. The real repository-backed Insights fixture failed with `A value is required` at `MeasurementRepository.kt:489` during the expanded UX validation.

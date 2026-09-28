@@ -1,5 +1,11 @@
 # Durable product and engineering decisions
 
+### DEC-20260928-001 — Second audit focuses on end-to-end meaning and recovery
+
+- Decision: Implement the accepted groups in the [second-pass plan](../quality/UX_AUDIT_2_2026-09-28.md), after reviewing three fresh Astra/high workflow matrices. Preserve authored history, exact identities, compatible units and persisted data; improve forms, feedback and evidence where real state contradicts presentation.
+- Clarifications: Next7Days means today through today+6; Plan My Day's daily capacity includes all Areas while candidates retain current scope. Targetless Habit recording is distinct from scored success. Restrict unsavable measurement changes and outcome-kind reinterpretation rather than invent missing historical metadata. Withdraw Unassigned saved-filter expansion after caller trace; fix demonstrated date-mode decoding instead.
+- Verification/status: In progress. Shared baseline exposes2 native failures. Existing history tests are input, not fresh acceptance; run final affected readiness and native/layout evidence after source stabilizes. Reproduction-gated layout/pause candidates require a measured outcome. FB-20260928-002, FND-20260928-001/002/003/004.
+
 ### DEC-20260927-008 — Improve context and recovery through existing presentation owners
 
 - Decision: After the owner rejected the initial nine-item scope as too narrow, implement all accepted workstreams in the expanded [major-component plan](../quality/MAJOR_COMPONENT_UX_UPGRADES_2026-09-27.md) and its four detailed matrices. This includes authoring, analytics, browse summaries, routine workflows, Settings organization and shared choices in addition to initial recovery fixes. Use existing shared components; the established design grammar is a foundation, not proof that workflows cannot improve.
