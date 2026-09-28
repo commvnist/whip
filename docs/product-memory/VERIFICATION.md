@@ -1,11 +1,12 @@
 # Verification and release evidence
 
-### VER-20260928-001 — Signed 0.3.80 update prepared; phone connection unavailable
+### VER-20260928-001 — Exact signed 0.3.80 update installed on the owner phone
 
 - Related: FB-20260928-001, IMP-20260928-001. Clean pushed source `14f8e4e61f9ccb53e5c7315a71464fdb9ba2b9a6`; version 0.3.80/code 86. [Receipt, retained artifact links and build/check/signature logs](../../artifacts/ux-overhaul/2026-09-28/phone-release-0.3.80/README.md).
 - Checks: `timeout --kill-after=3s 55s scripts/check` passed the version-aware affected JVM/static lane; signed `./gradlew assembleRelease bundleRelease` passed in 2m1s with release-vital lint and R8. No behavior changes after VER-20260927-025, and no repeated full native campaign or Play candidate.
 - Artifact verification: APK SHA-256 `ad2a074e18fc6897ef4a9c9fa46564e30c96d6177c2ee3efdcc22fa29b8e36ab`; AAB SHA-256 `cb7ba54af1c44b0ecf691a106b03ac3cc35b2173390cf9b1d5928ad836e97d04`. APK badging confirms package/version/code; established single v2 signer SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788` verifies. Both ZIP integrity checks pass. AAB reports `jar verified`, with self-signed trust/timestamp and JarInputStream manifest-order warnings retained verbatim in the receipt.
-- Device result/status: Blocked. `adb devices -l` reports only the disposable emulator, and reconnecting the previous phone endpoint fails with no route to host. Requested USB or current wireless connection; installation, installed-base comparison and phone smoke remain unperformed. Last actual installed release remains VER-20260927-022 (0.3.79/code 85). Data and schema are untouched.
+- Initial device blocker: Only the disposable emulator was connected and the previous phone endpoint failed with no route to host. Resolved when the owner supplied the current wireless endpoint; no rebuild was needed.
+- Device result/status: Released. Explicit physical-target guard identified Samsung `SM-F976W`; `scripts/device release-install` installed the exact APK in place over 0.3.79/code 85. Installed-base hash equals the verified local APK. Phone reports 0.3.80/code 86, `lastUpdateTime=2026-09-28 00:27:48` local, and unchanged `firstInstallTime=2026-08-26 17:59:24`. Guarded `scripts/device release-run` cold-launched MainActivity in 150 ms and verified foreground state. A later live-process check and bounded process-log sample (210 returned lines) found zero relevant fatal/ANR/AndroidRuntime/SQLiteException/RoomDatabase/activity-start matches. No phone instrumentation, reset, uninstall, downgrade or private-record inspection occurred; subjective appearance awaits owner use.
 
 ### VER-20260927-025 — Major-component UX overhaul validation
 
