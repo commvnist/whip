@@ -5,6 +5,19 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class GoalProgressPresentationTest {
+    @Test fun canonicalReadingsAndRatesUseSelectedUnitsAndPrecision() {
+        assertEquals("150.0 lb", formatGoalCanonicalValue(68.0388555, "pound", 1, locale = Locale.US))
+        assertEquals("-2.0 lb", formatGoalCanonicalValue(-0.90718474, "pound", 1, difference = true, locale = Locale.US))
+        assertEquals("68,039 kg", formatGoalCanonicalValue(68.0388555, "kilogram", 3, locale = Locale.GERMANY))
+        assertEquals("68.0 °F", formatGoalCanonicalValue(20.0, "fahrenheit", 1, locale = Locale.US))
+        assertEquals("1.8 °F", formatGoalCanonicalValue(1.0, "fahrenheit", 1, difference = true, locale = Locale.US))
+        val custom = com.whip.app.domain.UnitDefinition("stone", "stones", "st", com.whip.app.domain.UnitDimension.Mass, 6.35029318)
+        assertEquals("10.00 st", formatGoalCanonicalValue(63.5029318, "stone", 2, listOf(custom), locale = Locale.US))
+        assertEquals("2.0", formatGoalCanonicalValue(2.0, "count", 1, locale = Locale.US))
+        assertEquals("50.0 %", formatGoalCanonicalValue(50.0, "percent", 1, locale = Locale.US))
+        assertEquals("—", formatGoalCanonicalValue(null, "pound", 1))
+    }
+
     @Test fun aBeginningAndNearlyReachedTargetNeverReadAsTheirEndpoints() {
         val cases = listOf(
             0.0 to "0%", -0.0 to "0%", Double.MIN_VALUE to "<0.1%",

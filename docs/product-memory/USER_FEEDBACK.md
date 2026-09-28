@@ -1,5 +1,11 @@
 # User feedback and acceptance criteria
 
+### FB-20260927-009 — Goal trend table must respect pounds
+
+- Date/source: 2026-09-27, owner reports the Goal trend table shows the kg value although the Goal is configured in lb.
+- Acceptance criteria: Display trend values in the Goal's selected unit and precision with a unit label; correct the same missing conversion in adjacent target/rate summaries. Preserve canonical storage and progress calculations.
+- Related/status: FND-20260927-010, IMP-20260927-014, VER-20260927-023. Verified in source and on the API 34 emulator; not yet installed on the owner phone.
+
 ### FB-20260927-008 — Match the celebration exit and show over-target Goal progress
 
 - Date/source: 2026-09-27, direct owner follow-up to FB-20260927-007.

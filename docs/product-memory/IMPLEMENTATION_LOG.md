@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260927-014 — Respect Goal units in trend values, targets and rates
+
+- Behavior changed: The Goal trend table and target bounds show converted quantities and unit symbols at Goal precision. Both inspector and Insights daily rates use the same formatter with difference conversion, excluding temperature offsets. Insights receives custom units from its existing state. Timeline counts and in-range percentages retain their aggregate units.
+- Sources: `GoalProgressPresentation.kt`, `GoalScreens.kt`, one JVM formatter regression and `GoalProgressJourneyE2ETest#poundGoalTrendValuesTargetsAndRatesKeepTheirSelectedUnit` covering persisted pound measurements, target, both rate surfaces and Activity recreation.
+- Compatibility: Presentation only; no stored measurements, progress calculation, schema, backup format or private release version change.
+- Related/status: FB-20260927-009, FND-20260927-010, VER-20260927-023. Verified: affected readiness, 25 JVM tests and the exact API 34 pounds journey pass. Not installed on the owner phone.
+
 ### IMP-20260927-013 — Symmetric Goal celebration fade and truthful over-target progress
 
 - Behavior changed: Victory Shower's checkmark card fades and scales out over the last 0.8 seconds, matching its 0.8-second entrance on the existing four-second linear timeline. A tap still hides only the card. Reach, reduce, accumulate and average Goals keep finite progress above 100% while active, and a tiny overshoot reads `>100%` rather than `100%`. The collection, inspector, Insights and newly saved closure history use the same ratio and formatter. The visual bar and Review outcome score remain bounded, and completion remains explicit.

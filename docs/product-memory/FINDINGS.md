@@ -1,5 +1,12 @@
 # Durable findings
 
+### FND-20260927-010 — Goal insights render canonical values without conversion
+
+- Severity/category: P2 numeric presentation.
+- Observed/root cause: `GoalScreens.kt` formats `GoalHistoryPoint.canonicalValue`, insight target bounds and both daily-rate summaries directly. `buildGoalInsights` correctly returns canonical quantities, while these consumers omit the conversion used by ordinary Goal values.
+- Expected/remedy: Convert readings and targets to the selected Goal unit, convert rates as differences without an affine offset, and include unit symbols. Keep domain/storage values unchanged. This repeats the presentation-boundary issue previously corrected for Tracks in IMP-20260909-016.
+- Related/status: FB-20260927-009, IMP-20260927-014, VER-20260927-023. Verified with the shared formatter and real persisted pounds journey.
+
 ### FND-20260927-009 — Celebration exit is abrupt and numeric Goal progress is capped
 
 - Severity/category: P2 animation continuity and Goal progress truth.

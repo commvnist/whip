@@ -1,5 +1,14 @@
 # Verification and release evidence
 
+### VER-20260927-023 — Goal trend unit conversion acceptance
+
+- Focused command: `timeout --kill-after=3s 55s scripts/qa-targeted --jvm com.whip.app.ui.GoalProgressPresentationTest --jvm-only` passed all four methods in 35 seconds. The new case covers lb values and negative rates, kg precision/German decimals, Fahrenheit readings versus differences, custom stones, count/percentage formatting and missing data.
+- Readiness: One `scripts/check --ready` passed 25 affected JVM tests (zero failures/errors/skips), Android-test compilation, lint, debug packaging and source/asset checks; its final Gradle batch took 3m5s. `git diff --check` passed.
+- Native command: `ANDROID_SERIAL=emulator-5554 scripts/qa-targeted --android com.whip.app.GoalProgressJourneyE2ETest#poundGoalTrendValuesTargetsAndRatesKeepTheirSelectedUnit` passed 1/1, zero failures/skips/reuse on API 34 in `build/instrumentation-results-F5gmNm`. It verifies persisted 174/172 lb readings, 150 lb target, -2 lb/day in inspector and Insights, table continuity after Activity recreation, and the unchanged canonical target.
+- Diagnostic retained: The first native attempt (`build/instrumentation-results-DXr0D2`) passed target/rate assertions but could not find an uncomposed table row. The fixture now scrolls the existing inspector LazyColumn with `performScrollToNode`; only test navigation changed after readiness. The exact rerun recompiled and executed the final fixture successfully.
+- Scope/limits: Presentation-only source fix; no physical device deployment, version change, migration, historical rewrite or frozen Play candidate. Owner-phone validation awaits a future install.
+- Related/status: FB-20260927-009, FND-20260927-010, IMP-20260927-014. Verified.
+
 ### VER-20260927-022 — Exact 0.3.79 private APK on the owner phone
 
 - Source/artifact: Clean pushed `1b3d242b` on `origin/main` produced 0.3.79/code 85. Signed APK SHA-256 `de81316763dad5df8ccc58cc377a72fce619cf4ba0fe05351ddf702e27ab4cac`; signed AAB SHA-256 `8c281193a4d179e6722e77522ba75b82b9ed1e328d82fb1ef2bf8ca2a87846af`. Package, established single APK v2 certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`, AAB JAR signature and both ZIP archives verified. [Private release receipt and local handoff links](../../artifacts/goal-celebration/2026-09-27/phone-release-0.3.79/README.md).

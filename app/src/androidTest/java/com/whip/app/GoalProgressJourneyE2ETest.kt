@@ -20,6 +20,41 @@ class GoalProgressJourneyE2ETest {
     private val app: WhipApplication get() = ApplicationProvider.getApplicationContext()
     @After fun clean() = runBlocking { app.backupRepository.deleteAllData() }
 
+    @Test fun poundGoalTrendValuesTargetsAndRatesKeepTheirSelectedUnit() {
+        val id = runBlocking {
+            prepare()
+            val today = app.clock.today()
+            val id = app.goalRepository.create(GoalDraft("Weight in pounds", type = GoalType.ReduceValue,
+                dimension = UnitDimension.Mass, unitId = "pound", precision = 1,
+                baseline = 180.0, targetMin = 150.0, startDate = today.minusDays(1)))
+            app.goalRepository.recordMeasurement(id, 174.0, today.minusDays(1))
+            app.goalRepository.recordMeasurement(id, 172.0, today)
+            id
+        }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            compose.onNodeWithContentDescription("Goals tab").performClick()
+            compose.onNodeWithTag("goal-card-$id").performScrollTo().performClick()
+            compose.onNodeWithText("150.0 lb").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText("Rate -2.0 lb per day", substring = true).performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText("Trend Data Table").performScrollTo().performClick()
+            fun assertTrendRow(value: String) {
+                val row = hasText("value $value lb", substring = true)
+                compose.onNode(hasScrollToIndexAction() and hasAnyAncestor(hasTestTag("goal-detail-surface")))
+                    .performScrollToNode(row)
+                compose.onNode(row).assertIsDisplayed()
+            }
+            assertTrendRow("174.0")
+            assertTrendRow("172.0")
+            scenario.recreate()
+            assertTrendRow("172.0")
+            compose.onNodeWithTag("entity-inspector-close").performClick()
+            compose.onNodeWithTag("goal-destination-Insights").performClick()
+            compose.onNodeWithText("Rate -2.0 lb per day", substring = true).performScrollTo().assertIsDisplayed()
+        }
+        val saved = runBlocking { app.goalRepository.get(id) }!!
+        assertEquals(68.0388555, saved.targetMin!!, 0.00000001)
+    }
+
     @Test fun smallProgressStaysVisibleThroughHomeDetailsAndArchivedHistory() {
         val id = runBlocking { prepare(); goal("Read a little every day", 0.05) }
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->

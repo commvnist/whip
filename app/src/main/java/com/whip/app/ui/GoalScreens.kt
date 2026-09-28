@@ -410,6 +410,7 @@ fun GoalAreaContent(
         if (destination == GoalDestination.Insights) {
             GoalInsightsContent(
                 projections = state.active,
+                customUnits = state.customUnits,
                 innerPadding = WhipPageContentPadding,
                 nowMillis = state.nowMillis,
                 zoneId = state.activeZoneId,
@@ -1190,6 +1191,7 @@ internal fun elapsedGoalStartLabel(startedMillis: Long, zoneId: ZoneId): String 
 @Composable
 private fun GoalInsightsContent(
     projections: List<GoalProjection>,
+    customUnits: List<UnitDefinition>,
     innerPadding: PaddingValues,
     nowMillis: Long,
     zoneId: ZoneId,
@@ -1258,7 +1260,7 @@ private fun GoalInsightsContent(
                         listOfNotNull(
                             projection.progress?.let { "${formatGoalProgressPercent(it)} complete" },
                             projection.onPace?.let { if (it) "On pace" else "Behind pace" },
-                            insights.ratePerDay?.let { "Rate ${formatGoalValue(it, projection.goal.precision)} per day" },
+                            insights.ratePerDay?.let { "Rate ${formatGoalCanonicalValue(it, projection.goal.trendUnitId, projection.goal.precision, customUnits, difference = true)} per day" },
                             insights.forecastDate?.let { "Forecast $it" },
                         ).joinToString(" · ").ifBlank { "Progress becomes available after the first log." },
                     )
@@ -2482,7 +2484,7 @@ internal fun GoalActionsDialog(
                             Text("More observations are needed for a trend line.")
                         }
                         val pace = listOfNotNull(
-                            insights.ratePerDay?.let { "Rate ${formatGoalValue(it, projection.goal.precision)} per day" },
+                            insights.ratePerDay?.let { "Rate ${formatGoalCanonicalValue(it, projection.goal.trendUnitId, projection.goal.precision, customUnits, difference = true)} per day" },
                             insights.forecastDate?.let {
                                 "Forecast ${it.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} (${insights.confidence} confidence)"
                             },
@@ -2496,10 +2498,10 @@ internal fun GoalActionsDialog(
                             val targetMinimum = insights.targetMin
                             val targetMaximum = insights.targetMax ?: targetMinimum
                             val targetRange = if (targetMinimum == targetMaximum) {
-                                formatGoalValue(targetMinimum, projection.goal.precision)
+                                formatGoalCanonicalValue(targetMinimum, projection.goal.unitId, projection.goal.precision, customUnits)
                             } else {
-                                "${formatGoalValue(targetMinimum, projection.goal.precision)} to " +
-                                    formatGoalValue(targetMaximum, projection.goal.precision)
+                                "${formatGoalCanonicalValue(targetMinimum, projection.goal.unitId, projection.goal.precision, customUnits)} to " +
+                                    formatGoalCanonicalValue(targetMaximum, projection.goal.unitId, projection.goal.precision, customUnits)
                             }
                             EntityInspectorFact("Target", targetRange)
                         }
@@ -2518,7 +2520,7 @@ internal fun GoalActionsDialog(
                 if (showAccessibleTable) {
                     items(insights.points.takeLast(visibleMeasurements), key = { "insight-${it.date}" }) { point ->
                         Text(
-                            "${point.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}: value ${formatGoalValue(point.canonicalValue, projection.goal.precision)}, " +
+                            "${point.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}: value ${formatGoalCanonicalValue(point.canonicalValue, projection.goal.trendUnitId, projection.goal.precision, customUnits)}, " +
                                 "progress ${point.progress?.let { formatGoalProgressPercent(it) } ?: "not applicable"}, ${point.recordedEntries} update${if (point.recordedEntries == 1) "" else "s"}",
                             style = MaterialTheme.typography.bodySmall,
                         )
