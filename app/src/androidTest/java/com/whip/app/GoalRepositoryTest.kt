@@ -52,6 +52,33 @@ class GoalRepositoryTest {
     }
     @After fun tearDown() = database.close()
 
+    @Test fun closedOutcomeKindCannotBeReinterpretedByDefinitionEdit() = runBlocking {
+        val draft = GoalDraft("Room temperature", type = GoalType.MaintainRange,
+            dimension = UnitDimension.Temperature, unitId = "celsius", targetMin = 18.0, targetMax = 22.0,
+            startDate = FixedClock.today(), aggregation = GoalAggregation.TimeInRange)
+        val id = repository.create(draft)
+        repository.recordMeasurement(id, 20.0)
+        repository.recordMeasurement(id, 30.0)
+        repository.setStatus(id, GoalStatus.Completed)
+        val snapshot = repository.closureSnapshots.first().single()
+        assertEquals(50.0, snapshot.value!!, 0.0)
+        assertTrue(runCatching { repository.update(id, draft.copy(aggregation = GoalAggregation.Latest)) }.isFailure)
+        repository.setStatus(id, GoalStatus.Active)
+        assertTrue(runCatching { repository.update(id, draft.copy(type = GoalType.ReachValue, aggregation = GoalAggregation.Latest)) }.isFailure)
+        repository.update(id, draft.copy(name = "Updated room label", unitId = "fahrenheit", targetMin = 64.4, targetMax = 71.6))
+        assertEquals(snapshot, repository.closureSnapshots.first().single())
+        assertEquals(18.0, repository.get(id)!!.targetMin!!, 0.00000001)
+        assertEquals(setOf("celsius"), repository.measurementEntries.first().map { it.enteredUnitId }.toSet())
+        val physicalDraft = GoalDraft("Physical target", type = GoalType.ReachValue, targetMin = 1000.0, startDate = FixedClock.today())
+        val physicalId = repository.create(physicalDraft)
+        repository.recordMeasurement(physicalId, 500.0)
+        repository.setStatus(physicalId, GoalStatus.Completed)
+        val physicalSnapshot = repository.closureSnapshots.first().single { it.goalId == physicalId }
+        repository.update(physicalId, physicalDraft.copy(type = GoalType.MaintainRange, targetMin = 400.0, targetMax = 600.0))
+        assertEquals(physicalSnapshot, repository.closureSnapshots.first().single { it.goalId == physicalId })
+        assertEquals(.5, physicalSnapshot.progress!!, 0.0)
+    }
+
     @Test fun cumulativeGoalStoresBackdatedContributions() = runBlocking {
         val id = repository.create(GoalDraft(name = "Run 500 km", type = GoalType.AccumulateTotal, dimension = UnitDimension.Distance, unitId = "kilometre", targetMin = 500.0, startDate = FixedClock.today(), aggregation = GoalAggregation.Sum))
         repository.recordMeasurement(id, 5.0, date = FixedClock.today().minusDays(1))

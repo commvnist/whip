@@ -4,9 +4,64 @@ import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.Goal
 import com.whip.app.domain.GoalAggregation
 import com.whip.app.domain.GoalType
+import com.whip.app.domain.GoalProjection
+import com.whip.app.domain.editableNumericValue
+import com.whip.app.domain.toWhipDoubleOrNull
+import com.whip.app.domain.plainNumericValue
 import com.whip.app.domain.UnitDefinition
 import java.text.NumberFormat
 import java.util.Locale
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+
+/** A display-unit edit preserves physical targets; incomplete text is retained by the caller. */
+internal fun convertGoalDraftValues(raw: List<String>, from: UnitDefinition, to: UnitDefinition): List<String>? {
+    if (from.id == to.id) return raw
+    if (from.dimension != to.dimension) return null
+    return raw.map { text ->
+        if (text.isBlank()) "" else {
+            val value = text.toWhipDoubleOrNull() ?: return null
+            val converted = to.fromCanonical(from.toCanonical(value))
+            if (!converted.isFinite()) return null
+            plainNumericValue(converted)
+        }
+    }
+}
+
+internal fun GoalProjection.typedOutcomeReading(customUnits: List<UnitDefinition> = emptyList()): String? = when (goal.type) {
+    GoalType.MaintainRange -> {
+        val bounds = "${formatGoalCanonicalValue(goal.targetMin, goal.unitId, goal.precision, customUnits)}–${formatGoalCanonicalValue(goal.targetMax, goal.unitId, goal.precision, customUnits)}"
+        when {
+            terminalSnapshot != null -> when {
+                currentValue == null -> "No observed value stored at closure"
+                goal.aggregation == GoalAggregation.TimeInRange ->
+                    "${formatGoalCanonicalValue(currentValue, "percent", goal.precision)} of observations in range at closure"
+                else -> "Observed value at closure · " +
+                    formatGoalCanonicalValue(currentValue, goal.unitId, goal.precision, customUnits)
+            }
+            currentValue == null -> "No observations yet · target range $bounds"
+            goal.aggregation == GoalAggregation.TimeInRange ->
+                "${formatGoalCanonicalValue(currentValue, "percent", goal.precision)} of observations in range · $bounds"
+            else -> "${if (goal.targetMin != null && goal.targetMax != null && currentValue in goal.targetMin..goal.targetMax) "In range" else "Outside range"} · " +
+                "${formatGoalCanonicalValue(currentValue, goal.unitId, goal.precision, customUnits)} · target $bounds"
+        }
+    }
+    GoalType.Consistency -> {
+        val count = consistency?.successfulPeriods?.toDouble() ?: currentValue
+        count?.let { if (terminalSnapshot != null) "${editableNumericValue(it)} successful periods at closure"
+            else "${editableNumericValue(it)} of ${consistency?.requiredPeriods ?: goal.consistencyRequiredPeriods ?: 1} successful periods" }
+            ?: "No successful periods yet"
+    }
+    else -> null
+}
+
+internal fun GoalProjection.consistencyPeriodReading(): String? = consistency?.let {
+    val period = if (it.trackingWindowEnded) {
+        "Last tracked ${it.period.periodLabel}, ${it.trackedPeriodStart?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)).orEmpty()}"
+    } else "This ${it.period.periodLabel}"
+    "$period · ${editableNumericValue(it.currentPeriodValue)}/${editableNumericValue(it.targetPerPeriod)} successes" +
+        if (it.trackingWindowEnded) ". This tracking window has ended." else ""
+}
 
 // Timeline aggregates can represent counts or percentages instead of measurements.
 internal val Goal.trendUnitId: String

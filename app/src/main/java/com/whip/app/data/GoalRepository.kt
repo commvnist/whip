@@ -142,6 +142,13 @@ class RoomGoalRepository(
         require(existing.dimension == semanticDraft.dimension.name) {
             "A goal's measurement dimension cannot change; create a new goal instead"
         }
+        if (dao.getClosureSnapshots(existing.id).isNotEmpty()) {
+            val current = existing.toDomain()
+            require(com.whip.app.domain.goalOutcomeKind(current.type, current.aggregation) ==
+                com.whip.app.domain.goalOutcomeKind(semanticDraft.type, semanticDraft.aggregation)) {
+                "Closed outcomes keep their measurement meaning. Create a new Goal for a different outcome kind."
+            }
+        }
         val now = clock.now().toEpochMilli()
         dao.updateGoal(
             resolvedDraft.toEntity(

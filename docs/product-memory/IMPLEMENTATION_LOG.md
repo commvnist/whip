@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260928-002 — Preserve Goal evidence meaning and make Track history recoverable
+
+- Changes: All eight G1–4/T1–4 workstreams in the [second Goals/Track audit](../quality/UX_AUDIT_2_GOALS_TRACK_2026-09-28.md). Goal charts/current values follow authored windows; forecasts respect their scope; range/consistency outcomes and Review retain typed meaning. Editors expose Start Date, compatible saved dimensions/types and canonical-preserving unit changes; repository guards protect stored closure kinds. Track titles resolve authored fields/units, asynchronous history results belong to their query with explicit retry, and primary-field/latest-record Insights are complete and reachable. Archived actions describe actual availability.
+- Precision/compatibility: Shared `plainNumericValue` reuses existing exact Track serialization for raw drafts. Standard decimal totals and divide-before-conversion means keep rolling/current/consistency values aligned when large observations expire. Preserve stored entries, closure snapshots, Track duplicate/sort identity and first-timestamp ties. No schema/backup/dependency change; missing legacy snapshot metadata is not invented.
+- Evidence/status: Verified under VER-20260928-002, including the final 58-method Goal/Settings JVM batch, seven repeated Goal evidence journeys in the accepted 22-method follow-through, full Goal repository scope, Track query races and ordinary/200% mixed authoring. Domain adds 10 JVM and 10 Android methods. Exact accepted scope and failed diagnostic attempts remain in the linked audit/evidence; subjective appearance awaits owner use.
+- Related: FB-20260928-002, FND-20260928-003, DEC-20260928-001. Delivery: normal commit/push to `origin/main`; Git history records the implementation boundary.
+
 ### IMP-20260928-001 — Package the completed overhaul as private update 0.3.80
 
 - Related: FB-20260928-001; verified behavior from IMP-20260927-014 through 019 and VER-20260927-023/024/025.

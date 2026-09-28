@@ -140,7 +140,7 @@ import com.whip.app.domain.TrackProjection
 import com.whip.app.domain.TrackValueDraft
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.UnitDimension
-import com.whip.app.domain.editableNumericValue
+import com.whip.app.domain.plainNumericValue
 import com.whip.app.domain.matchingEntries
 import com.whip.app.domain.toWhipDoubleOrNull
 import com.whip.app.domain.formatTrackScaleValue
@@ -489,6 +489,7 @@ internal fun TrackAreaContent(
 
     @Composable fun trackList(masterPane: Boolean) {
         AllTracksPage(
+            customUnits = customUnits,
             state = state,
             innerPadding = PaddingValues(),
             showArchived = workspaceDestination == TrackWorkspaceDestination.Archived,
@@ -1018,7 +1019,7 @@ private fun TrackActivityPage(
         val searchable = buildList {
             add(projection.track.name)
             add(projection.track.area)
-            add(projection.primaryText(item.entry))
+            add(projection.entryDisplayTitle(item.entry, units))
             projection.fields.forEach { field -> add(projection.formattedValue(item.entry, field, units)) }
         }
         (trackFilterId == null || projection.track.id == trackFilterId) &&
@@ -1194,6 +1195,7 @@ private fun TrackWorkspaceInsightsPage(
     onOpenTrack: (Long) -> Unit,
     onRetryLoading: () -> Unit,
 ) {
+    var visibleLatestTracks by rememberSaveable { mutableIntStateOf(8) }
     val activeTracks = state.active
     val entryDates = activeTracks.flatMap { track -> track.entries.map { it.entry.entryDate } }
     val totalEntries = entryDates.size
@@ -1269,7 +1271,8 @@ private fun TrackWorkspaceInsightsPage(
                 }
                 if (recentTracks.isNotEmpty()) {
                     item { WhipSectionHeading("Latest Entries by Track") }
-                    items(recentTracks.take(8), key = { "recent-track-${it.first.track.id}" }) { (projection, entry) ->
+                    item { Text("Showing ${minOf(visibleLatestTracks, recentTracks.size)} of ${recentTracks.size} Tracks with Entries", style = MaterialTheme.typography.bodySmall) }
+                    items(recentTracks.take(visibleLatestTracks), key = { "recent-track-${it.first.track.id}" }) { (projection, entry) ->
                         WhipRecordItem(
                             itemKey = projection.track.uuid,
                             itemType = "Track",
@@ -1279,7 +1282,12 @@ private fun TrackWorkspaceInsightsPage(
                             onOpenLabel = "Open ${projection.track.name} Insights",
                         ) {
                             context(entry.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
-                            detail(projection.primaryText(entry))
+                            detail(projection.entryDisplayTitle(entry, units))
+                        }
+                    }
+                    if (visibleLatestTracks < recentTracks.size) item {
+                        WhipOutlinedButton(onClick = { visibleLatestTracks += 8 }, modifier = Modifier.fillMaxWidth().testTag("track-insights-more-latest")) {
+                            Text("Show More Tracks · ${recentTracks.size - visibleLatestTracks} Remaining")
                         }
                     }
                 }
@@ -1302,6 +1310,7 @@ private fun TrackWorkspaceInsightsPage(
 
 @Composable
 private fun AllTracksPage(
+    customUnits: List<UnitDefinition>,
     state: TrackUiState,
     innerPadding: PaddingValues,
     showArchived: Boolean,
@@ -1488,6 +1497,7 @@ private fun AllTracksPage(
                 itemsIndexed(pinned, key = { _, item -> "track-pinned-${item.track.id}" }) { index, item ->
                     TrackRow(
                         item, onOpen, onEdit, onAddEntry,
+                        customUnits = customUnits,
                         onMove = if (reordering) {{ delta -> moveWithin(pinned, index, delta) }} else null,
                         canMoveEarlier = index > 0,
                         canMoveLater = index < pinned.lastIndex,
@@ -1506,6 +1516,7 @@ private fun AllTracksPage(
             itemsIndexed(unpinned, key = { _, item -> "track-${item.track.id}" }) { index, item ->
                 TrackRow(
                     item, onOpen, onEdit, onAddEntry,
+                    customUnits = customUnits,
                     onMove = if (reordering) {{ delta -> moveWithin(unpinned, index, delta) }} else null,
                     canMoveEarlier = index > 0,
                     canMoveLater = index < unpinned.lastIndex,
@@ -1541,12 +1552,14 @@ internal fun TrackRow(
     onSelectionToggle: (() -> Unit)? = null,
     onEnterSelection: (() -> Unit)? = null,
     @Suppress("UNUSED_PARAMETER") compact: Boolean = false,
+    customUnits: List<UnitDefinition> = emptyList(),
 ) {
     val reorderInteraction = rememberWhipReorderInteractionState()
     val selectable = selectionMode && onSelectionToggle != null
     val latest = projection.entries.maxWithOrNull(compareBy<TrackEntryProjection> { it.entry.entryDate }.thenBy { it.entry.createdAtMillis })
     if (!selectable && !reordering) {
         TrackSummaryRow(
+            customUnits = customUnits,
             projection = projection,
             latest = latest,
             onOpen = onOpen,
@@ -1585,7 +1598,7 @@ internal fun TrackRow(
                 contentDescription = buildString {
                     append("${projection.track.name}, ${projection.entries.size} Entries")
                     latest?.let {
-                        append(", latest ${projection.primaryText(it)}, ${it.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
+                        append(", latest ${projection.entryDisplayTitle(it, BuiltInUnits.all + customUnits)}, ${it.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
                     }
                     append(
                         when {
@@ -1628,7 +1641,7 @@ internal fun TrackRow(
                     )
                     latest?.let {
                         ProductivityItemSupportingText(
-                            text = "Latest: ${projection.primaryText(it)} · ${it.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
+                            text = "Latest: ${projection.entryDisplayTitle(it, BuiltInUnits.all + customUnits)} · ${it.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
                             maxLines = 2,
                         )
                     }
@@ -1655,6 +1668,7 @@ internal fun TrackRow(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TrackSummaryRow(
+    customUnits: List<UnitDefinition>,
     projection: TrackProjection,
     latest: TrackEntryProjection?,
     onOpen: (Long) -> Unit,
@@ -1678,7 +1692,7 @@ private fun TrackSummaryRow(
                 contentDescription = buildString {
                     append("${projection.track.name}, ${projection.entries.size} Entries")
                     latest?.let {
-                        append(", latest ${projection.primaryText(it)}, ${it.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
+                        append(", latest ${projection.entryDisplayTitle(it, BuiltInUnits.all + customUnits)}, ${it.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
                     }
                     append(". Open Track")
                 }
@@ -1698,7 +1712,7 @@ private fun TrackSummaryRow(
             details {
                 latest?.let {
                     text(
-                        text = "Latest: ${projection.primaryText(it)} · ${it.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
+                        text = "Latest: ${projection.entryDisplayTitle(it, BuiltInUnits.all + customUnits)} · ${it.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
                         maxLines = 2,
                     )
                 }
@@ -1831,7 +1845,7 @@ private fun TrackDetailPage(
 }
 
 @Composable
-private fun TrackEntriesPage(
+internal fun TrackEntriesPage(
     projection: TrackProjection,
     today: LocalDate,
     customUnits: List<UnitDefinition>,
@@ -1856,7 +1870,8 @@ private fun TrackEntriesPage(
     var filterOpen by rememberSaveable(projection.track.id) { mutableStateOf(false) }
     var conditions by rememberSaveable(projection.track.id, stateSaver = trackConditionListSaver) { mutableStateOf<List<TrackCondition>>(emptyList()) }
     var conditionMode by rememberSaveable(projection.track.id) { mutableStateOf(TrackConditionMode.MatchAll) }
-    var searchMatches by remember(projection.track.id) { mutableStateOf<Set<Long>?>(null) }
+    var searchState by remember(projection.track.id) { mutableStateOf<TrackHistorySearchState?>(null) }
+    var searchRetry by remember(projection.track.id) { mutableIntStateOf(0) }
     var pagedEntries by remember(projection.track.id) { mutableStateOf<List<TrackEntryProjection>>(emptyList()) }
     var totalEntryCount by remember(projection.track.id) { mutableIntStateOf(projection.entries.size) }
     var pageLoading by remember(projection.track.id) { mutableStateOf(true) }
@@ -1903,22 +1918,29 @@ private fun TrackEntriesPage(
         }
     }
     LaunchedEffect(projection.track.id, pageContentVersion) { reloadPage() }
-    LaunchedEffect(query, pageContentVersion) {
+    val normalizedQuery = query.trim()
+    LaunchedEffect(normalizedQuery, pageContentVersion, searchRetry) {
         val generation = ++searchGeneration
-        if (query.isBlank()) {
-            searchMatches = null
+        if (normalizedQuery.isBlank()) {
+            searchState = null
         } else {
+            searchState = TrackHistorySearchState(normalizedQuery, pageContentVersion, loading = true)
             try {
                 kotlinx.coroutines.delay(120)
-                val matches = searchEntryIds(query)
-                if (searchGeneration == generation) searchMatches = matches
+                val matches = searchEntryIds(normalizedQuery)
+                if (searchGeneration == generation) searchState = TrackHistorySearchState(normalizedQuery, pageContentVersion, matches = matches)
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Throwable) {
-                if (searchGeneration == generation) searchMatches = null
+            } catch (error: Throwable) {
+                if (searchGeneration == generation) searchState = TrackHistorySearchState(
+                    normalizedQuery, pageContentVersion, error = error.message ?: "Search could not finish. Your query and filters are still here.",
+                )
             }
         }
     }
+    val currentSearch = searchState?.takeIf { it.query == normalizedQuery && it.version == pageContentVersion }
+    val searchPending = normalizedQuery.isNotBlank() && (currentSearch == null || currentSearch.loading)
+    val searchError = currentSearch?.error.takeIf { normalizedQuery.isNotBlank() }
     val sortField = projection.fields.firstOrNull { it.id == sortFieldId }
     LaunchedEffect(sortFieldId, sortField?.id) {
         if (sortFieldId != null && sortField == null) sortFieldId = null
@@ -1927,8 +1949,7 @@ private fun TrackEntriesPage(
         sortField == null && sortDirection == SortDirection.Descending
     val shown = if (databasePagedView) pagedEntries else {
         projection.matchingEntries(conditions, conditionMode)
-            .filter { entry -> query.isBlank() || searchMatches?.contains(entry.entry.id) == true ||
-                (searchMatches == null && projection.entrySearchText(entry).contains(query, true)) }
+            .filter { entry -> normalizedQuery.isBlank() || currentSearch?.matches?.contains(entry.entry.id) == true }
             .let { entries -> projection.sortedEntries(entries, sort, sortField, sortDirection) }
     }
     LazyColumn(
@@ -1944,7 +1965,7 @@ private fun TrackEntriesPage(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    "Archived · Read-only",
+                    "Archived · Entries are read-only",
                     modifier = Modifier.align(Alignment.CenterVertically),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -2001,7 +2022,7 @@ private fun TrackEntriesPage(
                 modifier = Modifier.testTag("track-entry-page-loading"),
             )
         }
-        pageError?.let { error -> item {
+        pageError?.takeIf { databasePagedView }?.let { error -> item {
             WhipStatusCard(
                 kind = WhipStatusKind.Error,
                 title = "Entries Unavailable",
@@ -2011,7 +2032,14 @@ private fun TrackEntriesPage(
                 modifier = Modifier.testTag("track-entry-page-error"),
             )
         } }
-        if (!pageLoading && pageError == null && shown.isEmpty()) item {
+        if (searchPending) item {
+            WhipStatusCard(kind = WhipStatusKind.Loading, title = "Searching Entries", message = "Finding matches for “$normalizedQuery”.", modifier = Modifier.testTag("track-entry-search-loading"))
+        }
+        searchError?.let { error -> item {
+            WhipStatusCard(kind = WhipStatusKind.Error, title = "Search Unavailable", message = error,
+                actionLabel = "Retry Search", onAction = { searchRetry++ }, modifier = Modifier.testTag("track-entry-search-error"))
+        } }
+        if ((!databasePagedView || (!pageLoading && pageError == null)) && !searchPending && searchError == null && shown.isEmpty()) item {
             val filtered = query.isNotBlank() || conditions.isNotEmpty()
             WhipEmptyState(
                 title = if (filtered) "No Matching Entries" else "No Entries Yet",
@@ -2153,6 +2181,14 @@ internal data class TrackEntryPageContentVersion(
     val entries: List<TrackEntryProjection>,
 )
 
+private data class TrackHistorySearchState(
+    val query: String,
+    val version: TrackEntryPageContentVersion,
+    val loading: Boolean = false,
+    val matches: Set<Long> = emptySet(),
+    val error: String? = null,
+)
+
 @Composable
 private fun TrackEntryRow(
     projection: TrackProjection,
@@ -2167,7 +2203,7 @@ private fun TrackEntryRow(
     WhipRecordItem(
         itemKey = entry.entry.id,
         itemType = "Entry",
-        title = projection.primaryText(entry),
+        title = projection.entryDisplayTitle(entry, BuiltInUnits.all + customUnits),
         identityEmoji = if (onOpenTrack != null) projection.track.icon else null,
         onOpen = onOpen,
     ) {
@@ -2202,7 +2238,7 @@ private fun TrackEntryDetailsDialog(
     val units = BuiltInUnits.all + customUnits
     EntityInspector(
         entityType = "Track Entry",
-        title = projection.primaryText(entry),
+        title = projection.entryDisplayTitle(entry, BuiltInUnits.all + customUnits),
         emoji = projection.track.icon,
         context = "${projection.track.name} · ${entry.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
         status = "Recorded",
@@ -2311,7 +2347,7 @@ private fun TrackInsightsPage(
                 fact("Weekly Rate (Last 30 Days)", "${(dates.trackInsightCount(today, 30) / 30.0 * 7.0).formatCompact()} Entries")
             }
         }
-        items(scoped.fields.filterNot(TrackField::primary), key = { "insight-field-${it.id}" }) { field ->
+        items(scoped.fields, key = { "insight-field-${it.id}" }) { field ->
             val values = scoped.entries.mapNotNull { it.value(field.id) }
             val lines = when (field.type) {
                 TrackFieldType.Number -> {
@@ -2833,6 +2869,7 @@ private fun TrackOptionsPage(
         item {
             WhipActionList {
                 WhipActionRow("Edit Track", onEdit, supportingText = "Change identity, Fields, Area, and tags.")
+                if (!projection.track.archived || projection.track.pinned) {
                 WhipActionDivider()
                 WhipActionRow(
                     if (projection.track.pinned) "Unpin from Whip Home" else "Pin to Whip Home",
@@ -2844,6 +2881,10 @@ private fun TrackOptionsPage(
                     },
                     navigates = false,
                 )
+                }
+                if (projection.track.archived) {
+                    Text("Restore this Track to add Entries or pin its Home shortcut. Its definition can still be edited.", style = MaterialTheme.typography.bodySmall)
+                }
                 WhipActionDivider()
                 WhipActionRow("Duplicate Structure", onDuplicate, supportingText = "Copies Fields and Choice options, but not Entries.", navigates = false)
                 WhipActionDivider()
@@ -3702,7 +3743,7 @@ internal fun TrackEntryEditor(
     val editorListState = rememberLazyListState()
     val initialRawNumbers = remember(initialDraft) {
         initialDraft.values.mapNotNull { (fieldUuid, value) ->
-            value.enteredNumber?.let { fieldUuid to editableNumericValue(it) }
+            value.enteredNumber?.let { fieldUuid to plainNumericValue(it) }
         }.toMap()
     }
     val dirty = draft != initialDraft || editorState.rawNumberValues.any { (fieldUuid, raw) ->
@@ -3715,7 +3756,7 @@ internal fun TrackEntryEditor(
         if (field.type != TrackFieldType.Number) return@filter false
         val current = values[field.uuid] ?: TrackValueDraft(enteredUnitId = field.unitId)
         val raw = editorState.rawNumberValues[field.uuid]
-            ?: current.enteredNumber?.let(::editableNumericValue).orEmpty()
+            ?: current.enteredNumber?.let(::plainNumericValue).orEmpty()
         raw.isNotBlank() && raw.toWhipDoubleOrNull() == null
     }
     val validationMessages = buildList {
@@ -3834,7 +3875,7 @@ internal fun TrackEntryEditor(
                             else -> null
                         },
                         numberText = editorState.rawNumberValues[field.uuid]
-                            ?: current.enteredNumber?.let(::editableNumericValue).orEmpty(),
+                            ?: current.enteredNumber?.let(::plainNumericValue).orEmpty(),
                         onNumberText = { raw ->
                             stateHolder.updateNumberValue(
                                 fieldUuid = field.uuid,
@@ -3851,7 +3892,7 @@ internal fun TrackEntryEditor(
                         Text("All Entry Identity Fields match. Duplicates are allowed; review a match or keep this separate Entry.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         duplicatePrimaryMatches.forEach { match ->
                             WhipTextButton(onClick = { possibleMatchId = match.entry.id }) {
-                                Text("Review ${projection.primaryText(match)} · ${match.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
+                                Text("Review ${projection.entryDisplayTitle(match, units)} · ${match.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
                             }
                         }
                     }
@@ -3880,7 +3921,7 @@ internal fun TrackEntryEditor(
     if (!saving) possibleMatchId?.let { matchId -> projection.entries.firstOrNull { it.entry.id == matchId }?.let { match ->
         PaneAwareAlertDialog(
             onDismissRequest = { possibleMatchId = null },
-            title = { Text(projection.primaryText(match)) },
+            title = { Text(projection.entryDisplayTitle(match, units)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("Existing Entry · ${match.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
@@ -3983,7 +4024,7 @@ internal fun TrackEntryField(
             TrackFieldType.Number -> {
                 val unit = units.firstOrNull { it.id == (value.enteredUnitId ?: field.unitId) }
                 var fallbackNumberText by rememberSaveable(field.uuid) {
-                    mutableStateOf(value.enteredNumber?.let(::editableNumericValue).orEmpty())
+                    mutableStateOf(value.enteredNumber?.let(::plainNumericValue).orEmpty())
                 }
                 val displayedNumberText = numberText ?: fallbackNumberText
                 OutlinedTextField(
@@ -4254,7 +4295,7 @@ internal fun TrackConditionEditor(
         units.firstOrNull { it.id == numberField.unitId }
     }
     val initialForSubject = initial?.takeIf { it.fieldUuid == subject.uuid }
-    fun displayNumber(value: Double?) = value?.let { numberUnit?.fromCanonical(it) ?: it }?.let(::editableNumericValue).orEmpty()
+    fun displayNumber(value: Double?) = value?.let { numberUnit?.fromCanonical(it) ?: it }?.let(::plainNumericValue).orEmpty()
     var operator by rememberSaveable(subject.uuid) { mutableStateOf(initialForSubject?.operator ?: fieldType.availableOperators().first()) }
     var text by rememberSaveable(subject.uuid) { mutableStateOf(initialForSubject?.textValue.orEmpty()) }
     var firstNumber by rememberSaveable(subject.uuid) { mutableStateOf(displayNumber(initialForSubject?.numberValue)) }
@@ -4361,12 +4402,6 @@ internal fun TrackProjection.conditionFieldName(condition: TrackCondition): Stri
     TRACK_ENTRY_DATE_CONDITION_UUID -> "Entry Date"
     else -> fields.firstOrNull { it.uuid == condition.fieldUuid }?.name ?: "Missing Field"
 }
-
-private fun TrackProjection.entrySearchText(entry: TrackEntryProjection): String = buildList {
-    add(primaryText(entry))
-    add(track.name)
-    fields.forEach { field -> add(formattedValue(entry, field)) }
-}.joinToString(" ")
 
 internal fun TrackProjection.sortedEntries(
     entries: List<TrackEntryProjection>,

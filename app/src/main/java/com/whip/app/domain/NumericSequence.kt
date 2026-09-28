@@ -5,6 +5,10 @@ import kotlin.math.round
 import java.text.DecimalFormatSymbols
 import java.util.Locale
 
+/** Exact finite numeric draft/identity text; unlike display formatting this must not round authored values. */
+internal fun plainNumericValue(value: Double): String =
+    java.math.BigDecimal.valueOf(value).stripTrailingZeros().toPlainString()
+
 data class NumericSequenceParseResult(
     val values: List<Double> = emptyList(),
     val isRange: Boolean = false,

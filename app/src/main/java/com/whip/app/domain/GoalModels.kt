@@ -1,6 +1,8 @@
 package com.whip.app.domain
 
 import java.io.Serializable
+import java.math.BigDecimal
+import java.math.MathContext
 import java.security.MessageDigest
 import java.time.Instant
 import java.time.LocalDate
@@ -13,6 +15,21 @@ import kotlin.math.abs
 enum class GoalType { ReachValue, ReduceValue, AccumulateTotal, MaintainRange, MeetAverage, Consistency, WeightedMilestones, OpenEndedTrend, ElapsedSince }
 enum class GoalAggregation { Latest, Sum, Average, Minimum, Maximum, CompletionCount, TimeInRange }
 enum class GoalAggregationPeriod { All, Day, Week, Month, RollingDays }
+enum class GoalOutcomeKind { Measurement, ObservationPercentage, SuccessfulPeriods, Milestones, Elapsed }
+
+fun goalOutcomeKind(type: GoalType, aggregation: GoalAggregation): GoalOutcomeKind = when {
+    type == GoalType.ElapsedSince -> GoalOutcomeKind.Elapsed
+    type == GoalType.WeightedMilestones -> GoalOutcomeKind.Milestones
+    type == GoalType.Consistency -> GoalOutcomeKind.SuccessfulPeriods
+    aggregation == GoalAggregation.TimeInRange -> GoalOutcomeKind.ObservationPercentage
+    else -> GoalOutcomeKind.Measurement
+}
+
+fun GoalType.supportsDimension(dimension: UnitDimension): Boolean = when (this) {
+    GoalType.Consistency -> dimension == UnitDimension.Count
+    GoalType.WeightedMilestones, GoalType.ElapsedSince -> dimension == UnitDimension.Unitless
+    else -> true
+}
 enum class GoalConsistencyPeriod(val periodLabel: String) {
     Day("day"),
     Week("week"),
@@ -559,6 +576,8 @@ data class GoalConsistencyProgress(
     val observedPeriods: Int,
     val currentPeriodValue: Double,
     val currentPeriodSuccessful: Boolean,
+    val trackedPeriodStart: LocalDate? = null,
+    val trackingWindowEnded: Boolean = false,
 ) : Serializable
 
 data class GoalHistoryPoint(
@@ -576,6 +595,9 @@ data class GoalInsightSummary(
     val dataQualityExplanation: String,
     val targetMin: Double?,
     val targetMax: Double?,
+    val excludedEntries: Int = 0,
+    val outsideWindowEntries: Int = 0,
+    val forecastExplanation: String? = null,
 )
 
 /** Builds an inspectable timeline without repeatedly rescanning the entire
@@ -585,43 +607,44 @@ fun buildGoalInsights(
     goal: Goal,
     entries: List<MeasurementEntry>,
     milestones: List<GoalMilestone> = emptyList(),
+    through: LocalDate = entries.maxOfOrNull(MeasurementEntry::localDate) ?: goal.startDate,
 ): GoalInsightSummary {
     val relevant = entries.filter { it.measurementId == goal.measurementId }.sortedBy(MeasurementEntry::timestamp)
-    val recordedByDate = relevant.filter { it.status == MeasurementEntryStatus.Recorded && it.canonicalValue?.isFinite() == true }
+    val end = minOf(through, goal.deadline ?: through)
+    val recordedByDate = relevant.filter {
+        it.status == MeasurementEntryStatus.Recorded && it.canonicalValue?.isFinite() == true &&
+            it.localDate in goal.startDate..end
+    }
         .groupBy(MeasurementEntry::localDate).toSortedMap()
-    var runningSum = 0.0
-    var runningCount = 0
-    var runningPositive = 0
-    var runningInRange = 0
-    var runningMin: Double? = null
-    var runningMax: Double? = null
-    var latest: MeasurementEntry? = null
-    val accumulated = mutableListOf<MeasurementEntry>()
+    val window = GoalInsightWindow(goal, relevant.withIndex().associate { it.value to it.index })
+    var previousPeriod: LocalDate? = null
+    var finishedSuccessfulPeriods = 0
+    var currentPeriodSuccessful = false
+    val firstPeriod = consistencyPeriodStart(goal.startDate, goal.consistencyPeriod)
+    val requiredPeriods = (goal.consistencyRequiredPeriods ?: inferredRequiredPeriods(goal)).coerceAtLeast(1)
     val points = recordedByDate.map { (date, dayEntries) ->
-        dayEntries.forEach { entry ->
-            val value = requireNotNull(entry.canonicalValue)
-            runningSum += value
-            runningCount++
-            if (value > 0.0) runningPositive++
-            if (goal.targetMin != null && goal.targetMax != null && value in goal.targetMin..goal.targetMax) runningInRange++
-            runningMin = runningMin?.let { minOf(it, value) } ?: value
-            runningMax = runningMax?.let { maxOf(it, value) } ?: value
-            if (latest == null || entry.timestamp > requireNotNull(latest).timestamp) latest = entry
-            accumulated += entry
-        }
         val current = if (goal.type == GoalType.Consistency) {
-            calculateConsistencyProgress(goal, accumulated, date).successfulPeriods.toDouble()
-        } else when (goal.aggregation) {
-            GoalAggregation.Latest -> latest?.canonicalValue
-            GoalAggregation.Sum -> runningSum
-            GoalAggregation.Average -> runningSum / runningCount.coerceAtLeast(1)
-            GoalAggregation.Minimum -> runningMin
-            GoalAggregation.Maximum -> runningMax
-            GoalAggregation.CompletionCount -> runningPositive.toDouble()
-            GoalAggregation.TimeInRange -> runningInRange.toDouble() / runningCount.coerceAtLeast(1) * 100.0
+            val period = consistencyPeriodStart(date, goal.consistencyPeriod)
+            val periodIndex = when (goal.consistencyPeriod) {
+                GoalConsistencyPeriod.Day -> ChronoUnit.DAYS.between(firstPeriod, period)
+                GoalConsistencyPeriod.Week -> ChronoUnit.WEEKS.between(firstPeriod, period)
+                GoalConsistencyPeriod.Month -> ChronoUnit.MONTHS.between(firstPeriod, period)
+            }
+            if (periodIndex < requiredPeriods) {
+                if (previousPeriod != null && previousPeriod != period && currentPeriodSuccessful) finishedSuccessfulPeriods++
+                window.removeBefore(period)
+                dayEntries.forEach(window::add)
+                currentPeriodSuccessful = (window.value() ?: 0.0) >= (goal.targetMin ?: 1.0)
+                previousPeriod = period
+            }
+            (finishedSuccessfulPeriods + if (currentPeriodSuccessful) 1 else 0).toDouble()
+        } else {
+            window.removeBefore(goal.windowStart(date))
+            dayEntries.forEach(window::add)
+            window.value()
         }
         val progress = if (goal.type == GoalType.Consistency) {
-            current?.div((goal.consistencyRequiredPeriods ?: 1).coerceAtLeast(1))?.coerceIn(0.0, 1.0)
+            current?.div(requiredPeriods)?.coerceIn(0.0, 1.0)
         } else calculateGoalProgress(goal, current, milestones)
         GoalHistoryPoint(date, current, progress, dayEntries.size)
     }
@@ -631,9 +654,14 @@ fun buildGoalInsights(
     val rate = if (elapsed > 0 && first?.canonicalValue != null && last?.canonicalValue != null) {
         (last.canonicalValue - first.canonicalValue) / elapsed
     } else null
-    val forecast = forecastGoalDate(goal, last, rate)
-    val sourceKinds = relevant.map(MeasurementEntry::sourceType).distinct()
+    val supportsForecast = goal.type in setOf(GoalType.ReachValue, GoalType.ReduceValue, GoalType.AccumulateTotal) &&
+        goal.aggregationPeriod == GoalAggregationPeriod.All
+    val forecast = if (supportsForecast) forecastGoalDate(goal, last, rate)?.takeUnless { it.isBefore(through) } else null
+    val sourceKinds = recordedByDate.values.flatten().map(MeasurementEntry::sourceType).distinct()
     val invalid = relevant.count { it.status != MeasurementEntryStatus.Recorded || it.canonicalValue?.isFinite() != true }
+    val outside = relevant.count {
+        it.status == MeasurementEntryStatus.Recorded && it.canonicalValue?.isFinite() == true && it.localDate !in goal.startDate..end
+    }
     val confidence = when {
         points.size >= 12 && elapsed >= 28 -> "higher"
         points.size >= 4 && elapsed >= 7 -> "limited"
@@ -644,10 +672,71 @@ fun buildGoalInsights(
         append("${points.size} observed days from $sourceTypeCount source type")
         if (sourceTypeCount != 1) append('s')
         append("; $invalid missing, skipped, failed, or invalid entries excluded")
-        if (confidence != "higher") append(". Forecast confidence is $confidence because history is short or sparse")
+        if (outside > 0) append("; $outside updates outside the Goal dates retained in History")
+        append(". Each point uses the Goal's calculation window on that date")
+        if (confidence != "higher") append(". Evidence is $confidence because history is short or sparse")
     }
-    return GoalInsightSummary(points, rate, forecast, confidence, quality, goal.targetMin, goal.targetMax)
+    val forecastExplanation = when {
+        goal.type !in setOf(GoalType.ReachValue, GoalType.ReduceValue, GoalType.AccumulateTotal) -> null
+        !supportsForecast -> "Forecast unavailable: this calculation window resets or rolls forward."
+        forecast == null -> "A forecast needs observations on different days moving toward an unreached target."
+        else -> null
+    }
+    return GoalInsightSummary(points, rate, forecast, confidence, quality, goal.targetMin, goal.targetMax, invalid, outside, forecastExplanation)
 }
+
+/** Each observation enters and leaves once; extrema/latest stay O(log n), avoiding a scan per plotted day. */
+private class GoalInsightWindow(private val goal: Goal, originalOrder: Map<MeasurementEntry, Int>) {
+    private val entries = java.util.ArrayDeque<MeasurementEntry>()
+    private val values = java.util.TreeMap<Double, Int>()
+    // aggregateGoalValue keeps the first input when timestamps tie.
+    private val timestamps = java.util.TreeSet(compareBy<MeasurementEntry> { it.timestamp }.thenByDescending { originalOrder[it] ?: 0 })
+    private var sum = BigDecimal.ZERO
+    private var positive = 0
+    private var inRange = 0
+
+    fun add(entry: MeasurementEntry) {
+        entries.addLast(entry)
+        timestamps.add(entry)
+        adjust(requireNotNull(entry.canonicalValue), 1)
+    }
+
+    fun removeBefore(start: LocalDate) {
+        while (entries.peekFirst()?.localDate?.isBefore(start) == true) {
+            val entry = entries.removeFirst()
+            timestamps.remove(entry)
+            adjust(requireNotNull(entry.canonicalValue), -1)
+        }
+        if (entries.isEmpty()) sum = BigDecimal.ZERO
+    }
+
+    private fun adjust(value: Double, delta: Int) {
+        val decimal = BigDecimal.valueOf(value)
+        sum = if (delta > 0) sum.add(decimal) else sum.subtract(decimal)
+        val count = (values[value] ?: 0) + delta
+        if (count == 0) values.remove(value) else values[value] = count
+        if (value > 0) positive += delta
+        if (goal.targetMin != null && goal.targetMax != null && value in goal.targetMin..goal.targetMax) inRange += delta
+    }
+
+    fun value(): Double? = if (entries.isEmpty()) null else when (goal.aggregation) {
+        GoalAggregation.Latest -> timestamps.last().canonicalValue
+        GoalAggregation.Sum -> sum.toDouble()
+        GoalAggregation.Average -> sum.decimalMean(entries.size)
+        GoalAggregation.Minimum -> values.firstKey()
+        GoalAggregation.Maximum -> values.lastKey()
+        GoalAggregation.CompletionCount -> positive.toDouble()
+        GoalAggregation.TimeInRange -> inRange.toDouble() / entries.size * 100.0
+    }
+}
+
+private fun List<Double>.decimalTotal(): BigDecimal = fold(BigDecimal.ZERO) { total, value ->
+    total.add(BigDecimal.valueOf(value))
+}
+
+// Divide before converting: an overflowing Double total can still have a finite mean.
+private fun BigDecimal.decimalMean(count: Int): Double =
+    divide(BigDecimal.valueOf(count.toLong()), MathContext.DECIMAL128).toDouble()
 
 private fun forecastGoalDate(goal: Goal, last: GoalHistoryPoint?, rate: Double?): LocalDate? {
     val value = last?.canonicalValue ?: return null
@@ -657,6 +746,9 @@ private fun forecastGoalDate(goal: Goal, last: GoalHistoryPoint?, rate: Double?)
         GoalType.ReachValue, GoalType.AccumulateTotal -> goal.targetMin
         else -> null
     } ?: return null
+    if (goal.type == GoalType.ReduceValue) {
+        if (value <= target || daily >= 0.0) return null
+    } else if (value >= target || daily <= 0.0) return null
     val days = (target - value) / daily
     if (!days.isFinite() || days <= 0.0 || days > 36_500.0) return null
     return last.date.plusDays(kotlin.math.ceil(days).toLong())
@@ -667,14 +759,15 @@ fun aggregateGoalValue(
     entries: List<MeasurementEntry>,
     through: LocalDate? = null,
 ): Double? {
-    val relevantEntries = entries.filterForGoalWindow(goal, through)
-    val values = relevantEntries.filter { it.status == MeasurementEntryStatus.Recorded }.mapNotNull(MeasurementEntry::canonicalValue)
+    val relevantEntries = entries.filterForGoalWindow(goal, through).filter {
+        it.status == MeasurementEntryStatus.Recorded && it.canonicalValue?.isFinite() == true
+    }
+    val values = relevantEntries.map { requireNotNull(it.canonicalValue) }
     if (values.isEmpty()) return null
     return when (goal.aggregation) {
-        GoalAggregation.Latest -> relevantEntries.filter { it.status == MeasurementEntryStatus.Recorded && it.canonicalValue != null }
-            .maxByOrNull(MeasurementEntry::timestamp)?.canonicalValue
-        GoalAggregation.Sum -> values.sum()
-        GoalAggregation.Average -> values.average()
+        GoalAggregation.Latest -> relevantEntries.maxByOrNull(MeasurementEntry::timestamp)?.canonicalValue
+        GoalAggregation.Sum -> values.decimalTotal().toDouble()
+        GoalAggregation.Average -> values.decimalTotal().decimalMean(values.size)
         GoalAggregation.Minimum -> values.min()
         GoalAggregation.Maximum -> values.max()
         GoalAggregation.CompletionCount -> values.count { it > 0.0 }.toDouble()
@@ -745,9 +838,7 @@ fun projectGoal(
     val expected = if (goal.paceType == GoalPaceType.None || total == null) null
     else (elapsed.toDouble() / total).coerceIn(0.0, 1.0)
     val paceDelta = if (progress != null && expected != null) progress - expected else null
-    val forecast = if (goal.type != GoalType.Consistency && progress != null && progress > 0.0 && elapsed > 0 && progress < 1.0) {
-        goal.startDate.plusDays((elapsed / progress).toLong())
-    } else null
+    val forecast = observedGoalForecast(goal, entries, today)
     return GoalProjection(
         goal = goal,
         currentValue = current,
@@ -777,10 +868,16 @@ fun goalOutcomeScoreOnDate(
     if (goal.type == GoalType.ElapsedSince) return 0.0
     if (goal.type == GoalType.OpenEndedTrend) return 1.0
     if (goal.type == GoalType.MaintainRange) {
-        val value = aggregateGoalValue(goal, relevant, date) ?: return 0.0
+        if (date.isBefore(goal.startDate) || goal.deadline?.let(date::isAfter) == true) return 0.0
         val min = goal.targetMin ?: return 0.0
         val max = goal.targetMax ?: min
-        return if (value in min..max) 1.0 else 0.0
+        val observed = relevant.filter { it.localDate == date && it.canonicalValue?.isFinite() == true }
+        if (observed.isEmpty()) return 0.0
+        return if (goal.aggregation == GoalAggregation.TimeInRange) {
+            observed.count { requireNotNull(it.canonicalValue) in min..max }.toDouble() / observed.size
+        } else {
+            if (requireNotNull(observed.maxByOrNull(MeasurementEntry::timestamp)?.canonicalValue) in min..max) 1.0 else 0.0
+        }
     }
     val current = projectGoal(goal, relevant, milestones, date).progress ?: return 0.0
     val previous = if (date.isAfter(goal.startDate)) {
@@ -807,7 +904,7 @@ fun calculateConsistencyProgress(
         .toList()
     val eligibleEntries = entries.filter {
         it.status == MeasurementEntryStatus.Recorded &&
-            it.canonicalValue != null &&
+            it.canonicalValue?.isFinite() == true &&
             !it.localDate.isBefore(goal.startDate) &&
             !it.localDate.isAfter(effectiveThrough)
     }
@@ -818,8 +915,8 @@ fun calculateConsistencyProgress(
         return when (goal.aggregation) {
             GoalAggregation.Latest -> eligibleEntries.filter { it.localDate in start..end }
                 .maxByOrNull(MeasurementEntry::timestamp)?.canonicalValue ?: 0.0
-            GoalAggregation.Sum -> values.sum()
-            GoalAggregation.Average -> values.average()
+            GoalAggregation.Sum -> values.decimalTotal().toDouble()
+            GoalAggregation.Average -> values.decimalTotal().decimalMean(values.size)
             GoalAggregation.Minimum -> values.min()
             GoalAggregation.Maximum -> values.max()
             GoalAggregation.CompletionCount -> values.count { it > 0.0 }.toDouble()
@@ -841,20 +938,43 @@ fun calculateConsistencyProgress(
         observedPeriods = starts.size,
         currentPeriodValue = currentValue,
         currentPeriodSuccessful = currentValue >= target,
+        trackedPeriodStart = activeStart,
+        trackingWindowEnded = consistencyPeriodStart(through, goal.consistencyPeriod).isAfter(activeStart) ||
+            goal.deadline?.let(through::isAfter) == true,
     )
 }
 
 private fun List<MeasurementEntry>.filterForGoalWindow(goal: Goal, through: LocalDate?): List<MeasurementEntry> {
     val requestedEnd = through ?: maxOfOrNull(MeasurementEntry::localDate) ?: return emptyList()
     val end = minOf(requestedEnd, goal.deadline ?: requestedEnd)
-    val windowStart = when (goal.aggregationPeriod) {
-        GoalAggregationPeriod.All -> goal.startDate
+    val windowStart = goal.windowStart(end)
+    return filter { it.localDate in windowStart..end }
+}
+
+private fun Goal.windowStart(end: LocalDate): LocalDate = when (aggregationPeriod) {
+        GoalAggregationPeriod.All -> startDate
         GoalAggregationPeriod.Day -> end
         GoalAggregationPeriod.Week -> end.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
         GoalAggregationPeriod.Month -> end.withDayOfMonth(1)
-        GoalAggregationPeriod.RollingDays -> end.minusDays((goal.rollingDays ?: 1).coerceAtLeast(1).toLong() - 1)
-    }.coerceAtLeast(goal.startDate)
-    return filter { it.localDate in windowStart..end }
+        GoalAggregationPeriod.RollingDays -> end.minusDays((rollingDays ?: 1).coerceAtLeast(1).toLong() - 1)
+    }.coerceAtLeast(startDate)
+
+private fun observedGoalForecast(goal: Goal, entries: List<MeasurementEntry>, through: LocalDate): LocalDate? {
+    if (goal.aggregationPeriod != GoalAggregationPeriod.All ||
+        goal.type !in setOf(GoalType.ReachValue, GoalType.ReduceValue, GoalType.AccumulateTotal)) return null
+    val end = minOf(through, goal.deadline ?: through)
+    val eligible = entries.filter {
+        it.measurementId == goal.measurementId && it.status == MeasurementEntryStatus.Recorded &&
+            it.canonicalValue?.isFinite() == true && it.localDate in goal.startDate..end
+    }
+    val first = eligible.minOfOrNull(MeasurementEntry::localDate) ?: return null
+    val last = eligible.maxOf(MeasurementEntry::localDate)
+    val days = ChronoUnit.DAYS.between(first, last)
+    if (days <= 0) return null
+    val firstValue = aggregateGoalValue(goal, eligible, first) ?: return null
+    val lastValue = aggregateGoalValue(goal, eligible, last) ?: return null
+    return forecastGoalDate(goal, GoalHistoryPoint(last, lastValue, null, 0), (lastValue - firstValue) / days)
+        ?.takeUnless { it.isBefore(through) }
 }
 
 private fun consistencyPeriodStart(date: LocalDate, period: GoalConsistencyPeriod): LocalDate = when (period) {

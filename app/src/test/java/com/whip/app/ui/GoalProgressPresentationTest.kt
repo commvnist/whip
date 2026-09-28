@@ -2,9 +2,32 @@ package com.whip.app.ui
 
 import java.util.Locale
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import com.whip.app.domain.BuiltInUnits
 import org.junit.Test
 
 class GoalProgressPresentationTest {
+    @Test fun changingGoalUnitsPreservesMassAndAffineTargetsWithoutConsumingIncompleteText() {
+        val kilogram = requireNotNull(BuiltInUnits.get("kilogram"))
+        val pound = requireNotNull(BuiltInUnits.get("pound"))
+        val original = listOf("80", "70", "")
+        val pounds = requireNotNull(convertGoalDraftValues(original, kilogram, pound))
+        assertEquals(80.0, pound.toCanonical(pounds[0].toDouble()), 0.000000001)
+        assertEquals(70.0, pound.toCanonical(pounds[1].toDouble()), 0.000000001)
+        assertEquals("", pounds[2])
+        listOf(0.00000000001, 9999999999999.5).forEach { value ->
+            val converted = requireNotNull(convertGoalDraftValues(listOf(value.toString()), kilogram, pound)).single().toDouble()
+            assertEquals(value, pound.toCanonical(converted), kotlin.math.abs(value) * 1e-15)
+        }
+        assertNull(convertGoalDraftValues(listOf("1e", "70", ""), kilogram, pound))
+        assertEquals(listOf("1e", "70.", ""), convertGoalDraftValues(listOf("1e", "70.", ""), kilogram, kilogram))
+        val fahrenheit = requireNotNull(BuiltInUnits.get("fahrenheit"))
+        val converted = requireNotNull(convertGoalDraftValues(listOf("0", "18", "22"), requireNotNull(BuiltInUnits.get("celsius")), fahrenheit))
+        assertEquals(32.0, converted[0].toDouble(), 0.000000001)
+        assertEquals(64.4, converted[1].toDouble(), 0.000000001)
+        assertEquals(71.6, converted[2].toDouble(), 0.000000001)
+    }
+
     @Test fun canonicalReadingsAndRatesUseSelectedUnitsAndPrecision() {
         assertEquals("150.0 lb", formatGoalCanonicalValue(68.0388555, "pound", 1, locale = Locale.US))
         assertEquals("-2.0 lb", formatGoalCanonicalValue(-0.90718474, "pound", 1, difference = true, locale = Locale.US))

@@ -116,8 +116,9 @@ class TrackAuthoringJourneyE2ETest {
             capture("tracks.authoring.field-scale.$scale")
             compose.onNodeWithText("Save Field").performClick()
 
-            for ((name, type) in listOf("Notes" to "Long Text", "Visit date" to "Date", "Rained" to "Yes/No")) {
+            for ((name, type) in listOf("Notes" to "Long Text", "Visit date" to "Date", "Confirmed date" to "Date", "Rained" to "Yes/No")) {
                 addField(name, type)
+                if (name in setOf("Confirmed date", "Rained")) field(hasText("Required")).performClick()
                 compose.onNodeWithText("Save Field").performClick()
             }
             scroll("track-editor-list", hasContentDescription("Edit Field Distance")).performClick()
@@ -136,10 +137,10 @@ class TrackAuthoringJourneyE2ETest {
             closeSoftKeyboard()
             compose.onNodeWithText("Save").performClick()
 
-            val definition = awaitProjection { it.fields.size == 7 }
+            val definition = awaitProjection { it.fields.size == 8 }
             assertEquals(trackDescription, definition.track.description)
             assertEquals(trackTags, definition.track.tags)
-            assertEquals(listOf("Name", "Distance", "Terrain", "Effort", "Notes", "Visit date", "Rained"), definition.fields.map { it.name })
+            assertEquals(listOf("Name", "Distance", "Terrain", "Effort", "Notes", "Visit date", "Confirmed date", "Rained"), definition.fields.map { it.name })
             assertEquals(TrackFieldType.entries.toSet(), definition.fields.map { it.type }.toSet())
             val distance = definition.fields.single { it.name == "Distance" }
             assertTrue(distance.required)
@@ -194,9 +195,16 @@ class TrackAuthoringJourneyE2ETest {
                     wheel.height() >= 144f * app.resources.displayMetrics.density - 1f)
             }
             compose.onNodeWithText("Set", substring = false).performClick()
+            scroll("track-entry-editor-list", hasContentDescription("Confirmed date, required, choose date")).performClick()
+            compose.onNodeWithText("Set", substring = false).performClick()
+            compose.onAllNodesWithTag("track-entry-date-clear-${definition.fields.single { it.name == "Confirmed date" }.uuid}").assertCountEquals(0)
             scroll("track-entry-editor-list", hasContentDescription("Rained, yes")).performClick()
+            compose.onAllNodesWithContentDescription("Rained, unanswered").assertCountEquals(0)
             capture("tracks.authoring.entry-types.$scale")
             scenario.recreate()
+            scroll("track-entry-editor-list", hasContentDescription("Confirmed date, required, choose date"))
+                .assertTextContains(app.clock.today().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
+            compose.onAllNodesWithTag("track-entry-date-clear-${definition.fields.single { it.name == "Confirmed date" }.uuid}").assertCountEquals(0)
             entryField("Distance", "number").assertTextContains("1.25")
             compose.onNodeWithText("Add", substring = false).performClick()
 
@@ -211,6 +219,7 @@ class TrackAuthoringJourneyE2ETest {
             assertEquals(3.5, value("Effort").scaleValue!!, 0.0)
             assertEquals("Wet leaves on the return path.\nBring waterproof shoes next time.", value("Notes").textValue)
             assertEquals(app.clock.today(), value("Visit date").dateValue)
+            assertEquals(app.clock.today(), value("Confirmed date").dateValue)
             assertEquals(true, value("Rained").booleanValue)
             scenario.recreate()
             scroll("track-entry-list", hasContentDescription("Edit Entry $entryName")).performClick()

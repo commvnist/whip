@@ -35,6 +35,21 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TrackEditorStateTest {
+    @Test fun numericEntryDraftRestorationPreservesSubMicroAndHighPrecisionValues() {
+        val values = listOf(0.000000012345678, 1.123456789123, 9999999999999.5)
+        val handle = SavedStateHandle()
+        val editor = TrackEntryEditorViewModel(handle)
+        editor.initialize("precise", TrackEntryDraft(LocalDate.of(2026, 9, 28),
+            values.mapIndexed { index, value -> "number-$index" to TrackValueDraft(enteredNumber = value, enteredUnitId = "count") }.toMap()))
+        values.forEachIndexed { index, value -> assertEquals(value, editor.state.value.rawNumberValues.getValue("number-$index").toDouble(), 0.0) }
+        editor.updateDraft { it.copy(entryDate = it.entryDate.minusDays(1)) }
+        val restored = TrackEntryEditorViewModel(handle).state.value
+        values.forEachIndexed { index, value ->
+            assertEquals(value, restored.rawNumberValues.getValue("number-$index").toDouble(), 0.0)
+            assertEquals(value, restored.draft!!.values.getValue("number-$index").enteredNumber!!, 0.0)
+        }
+    }
+
     @Test
     fun deletionReviewBoundsHiddenPayloadAndUnicodeExcerptsWithoutChangingAuthority() {
         val opening = testEditSnapshot()

@@ -58,6 +58,12 @@ import com.whip.app.domain.MeasurementEntryStatus
 import com.whip.app.domain.MeasurementSourceType
 import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.UnitDimension
+import com.whip.app.domain.BuiltInUnits
+import com.whip.app.domain.projectGoal
+import com.whip.app.domain.GoalConsistencyPeriod
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.test.espresso.Espresso.closeSoftKeyboard
 import com.whip.app.ui.theme.WhipTheme
 import java.time.Instant
 import java.time.LocalDate
@@ -78,6 +84,125 @@ class GoalSecondaryMutationUiTest {
     private fun editorControl(matcher: SemanticsMatcher): SemanticsNodeInteraction {
         compose.onNodeWithTag("goal-editor-fields").performScrollToNode(matcher)
         return compose.onNode(matcher)
+    }
+
+    @Test @AndroidFontScale fun unitChangesPreserveTargetsAndPartialDrafts() {
+        var saved: GoalDraft? = null
+        val restoration = StateRestorationTester(compose)
+        val authored = goal().copy(unitId = "kilogram", baseline = 80.123456789, targetMin = 70.0)
+        restoration.setContent { WhipTheme(dynamicColor = false) {
+            GoalEditorDialog(projection(authored), today = TODAY, activeZoneId = ZoneId.of("UTC"),
+                nowMillis = TODAY.atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli(), customUnits = emptyList(),
+                onDismiss = {}, onSave = { saved = it })
+        } }
+        editorControl(hasTestTag("goal-editor-target")).performTextReplacement("1e")
+        closeSoftKeyboard()
+        editorControl(hasContentDescription("Unit:", substring = true)).performClick()
+        compose.onNodeWithText("pounds (lb)").performScrollTo().performClick()
+        editorControl(hasTestTag("goal-unit-change-error")).assertIsDisplayed()
+        restoration.emulateSavedInstanceStateRestore()
+        editorControl(hasTestTag("goal-editor-target")).assertTextContains("1e").performTextReplacement("70")
+        closeSoftKeyboard()
+        editorControl(hasContentDescription("Unit:", substring = true)).performClick()
+        compose.onNodeWithText("pounds (lb)").performScrollTo().performClick()
+        editorControl(hasTestTag("goal-editor-target")).assertIsDisplayed()
+        captureVisualCatalogSurface("ux-audit-2.goals.unit-conversion.large")
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithText("Save").performClick()
+        compose.runOnIdle {
+            val draft = requireNotNull(saved)
+            assertEquals("pound", draft.unitId)
+            val unit = requireNotNull(BuiltInUnits.get(draft.unitId))
+            assertEquals(70.0, unit.toCanonical(requireNotNull(draft.targetMin)), 0.00000001)
+            assertEquals(80.123456789, unit.toCanonical(requireNotNull(draft.baseline)), 0.0000000001)
+        }
+    }
+
+    @Test fun startDateControlsBackdatedProgressAndSurvivesRestoration() {
+        var saved: GoalDraft? = null
+        val restoration = StateRestorationTester(compose)
+        val initial = GoalDraft("Backdated project", type = GoalType.ReachValue, targetMin = 10.0, startDate = TODAY.minusDays(10), deadline = TODAY.minusDays(1))
+        restoration.setContent { CompositionLocalProvider(LocalWhipToday provides TODAY) { WhipTheme(dynamicColor = false) {
+            GoalEditorDialog(null, initialDraft = initial, today = TODAY, activeZoneId = ZoneId.of("UTC"),
+                nowMillis = TODAY.atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli(), customUnits = emptyList(),
+                onDismiss = {}, onSave = { saved = it })
+        } } }
+        val format = java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)
+        editorControl(hasTestTag("goal-start-date")).assertTextContains(initial.startDate.format(format), substring = true).performClick()
+        if (compose.onAllNodesWithTag("date-picker-month-year").fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithTag("date-picker-month-year").performScrollTo().performClick()
+        }
+        compose.onNodeWithTag("date-picker-today").performScrollTo().performClick()
+        compose.onNodeWithText("Set").performClick()
+        compose.onNodeWithText("Save").performClick()
+        compose.runOnIdle { assertNull(saved) }
+        editorControl(hasText("Start date must be on or before the deadline.")).assertIsDisplayed()
+        editorControl(hasTestTag("goal-remove-deadline")).performClick()
+        restoration.emulateSavedInstanceStateRestore()
+        editorControl(hasTestTag("goal-start-date")).assertTextContains(TODAY.format(format), substring = true)
+        captureVisualCatalogSurface("ux-audit-2.goals.start-date")
+        compose.onNodeWithText("Save").performClick()
+        compose.runOnIdle { assertEquals(TODAY, requireNotNull(saved).startDate); assertNull(requireNotNull(saved).deadline) }
+    }
+
+    @Test @AndroidFontScale fun rangeAndConsistencyOutcomesKeepTheirMeasurementMeaning() {
+        val authored = goal(type = GoalType.MaintainRange).copy(dimension = UnitDimension.Temperature, unitId = "fahrenheit",
+            aggregation = GoalAggregation.TimeInRange, targetMin = 18.0, targetMax = 22.0, startDate = TODAY)
+        val entries = listOf(20.0, 30.0).mapIndexed { index, value -> MeasurementEntry("range-$index", authored.measurementId, value, value,
+            "celsius", MeasurementEntryStatus.Recorded, TODAY.atStartOfDay(ZoneId.of("UTC")).toInstant().plusSeconds(index.toLong()), TODAY,
+            "UTC", 0, MeasurementSourceType.Manual, null, "", 1, 1) }
+        var shown by mutableStateOf(projectGoal(authored, entries, emptyList(), TODAY))
+        compose.setContent { WhipTheme(dynamicColor = false) {
+            GoalActionsDialog(shown, zoneId = ZoneId.of("UTC"), nowMillis = TODAY.atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli(),
+                onDismiss = {}, onEditMeasurement = {}, onRecordProgress = {}, onResetElapsed = {}, onEdit = {}, onDuplicate = {},
+                onPin = {}, onPause = {}, onComplete = {}, onAbandon = {}, onReopen = {}, onArchive = {}, onDelete = {})
+        } }
+        fun detail(matcher: SemanticsMatcher): SemanticsNodeInteraction {
+            compose.onNode(hasScrollToIndexAction() and hasAnyAncestor(hasTestTag("goal-detail-surface"))).performScrollToNode(matcher)
+            return compose.onNode(matcher and hasAnyAncestor(hasTestTag("goal-detail-surface")))
+        }
+        detail(hasTestTag("goal-inspector-outcome")).assertTextContains("50.0 % of observations in range", substring = true)
+        captureVisualCatalogSurface("ux-audit-2.goals.range-outcome.large")
+        val snapshot = GoalClosureSnapshot(99, "closed", authored.id, 100, 50.0, .5, GoalStatus.Completed)
+        compose.runOnIdle { shown = shown.copy(goal = authored.copy(status = GoalStatus.Completed, targetMin = 100.0, targetMax = 110.0), terminalSnapshot = snapshot, closureSnapshots = listOf(snapshot)) }
+        detail(hasTestTag("goal-inspector-outcome")).assertTextContains("50.0 % of observations in range at closure")
+        compose.onNodeWithText("History").performClick()
+        detail(hasTestTag("goal-closure-history-99")).assertTextContains("recorded value 50.0 % of observations in range", substring = true)
+        // A physical Reach outcome may later be viewed through a Range definition; no old range was saved.
+        val physicalSnapshot = snapshot.copy(goalId = 19, value = 500.0, progress = .5)
+        compose.runOnIdle { shown = shown.copy(goal = authored.copy(id = 19, status = GoalStatus.Completed, aggregation = GoalAggregation.Latest, targetMin = 400.0, targetMax = 600.0),
+            currentValue = 500.0, progress = .5, terminalSnapshot = physicalSnapshot, closureSnapshots = listOf(physicalSnapshot)) }
+        detail(hasTestTag("goal-inspector-outcome")).assertTextContains("Observed value at closure", substring = true)
+        compose.onAllNodesWithText("Outside range at closure", substring = true).assertCountEquals(0)
+        val consistency = authored.copy(id = 18, type = GoalType.Consistency, dimension = UnitDimension.Count, unitId = "count",
+            aggregation = GoalAggregation.CompletionCount, targetMin = 1.0, targetMax = null, startDate = TODAY.minusDays(3),
+            consistencyPeriod = GoalConsistencyPeriod.Day, consistencyRequiredPeriods = 3)
+        val periodEntries = entries.mapIndexed { index, entry -> entry.copy(localDate = TODAY.minusDays(3 - index.toLong()), canonicalValue = 1.0) }
+        compose.runOnIdle { shown = projectGoal(consistency, periodEntries, emptyList(), TODAY) }
+        detail(hasTestTag("goal-inspector-outcome")).assertTextContains("2 of 3 successful periods")
+        detail(hasText("Last tracked day", substring = true)).assertIsDisplayed()
+        captureVisualCatalogSurface("ux-audit-2.goals.consistency-outcome.large")
+        compose.runOnIdle { assertTrue(requireNotNull(shown.consistency).trackingWindowEnded) }
+    }
+
+    @Test fun editingOnlyAProgressNotePreservesItsTinyEnteredValueThroughRestoration() {
+        val value = 0.000000012345678
+        val entry = MeasurementEntry("precise", "measurement-17", value, value, "pound", MeasurementEntryStatus.Recorded,
+            TODAY.atStartOfDay(ZoneId.of("UTC")).toInstant(), TODAY, "UTC", 0, MeasurementSourceType.Goal, null, "old note", 1, 1)
+        var recorded: Double? = null
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent { WhipTheme(dynamicColor = false) {
+            GoalMeasurementDialog(projection(goal()), TODAY, entry, onDismiss = {}, onRecord = { amount, _, note ->
+                recorded = amount
+                assertEquals("corrected note", note)
+            })
+        } }
+        compose.onNodeWithTag("goal-measurement-value").performScrollTo().assertTextContains("0.000000012345678")
+        compose.onNodeWithTag("goal-measurement-note").performScrollTo().performTextReplacement("corrected note")
+        closeSoftKeyboard()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithTag("goal-measurement-save").performClick()
+        compose.runOnIdle { assertEquals(value, requireNotNull(recorded), 0.0) }
     }
 
     @Test fun deadlineRemovalAndCalculationSettingsSurviveRestoration() {

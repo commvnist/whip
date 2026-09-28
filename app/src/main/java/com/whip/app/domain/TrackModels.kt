@@ -338,7 +338,7 @@ data class TrackProjection(
         val value = entry.value(field.id) ?: return ""
         return when (field.type) {
             TrackFieldType.ShortText, TrackFieldType.LongText -> value.textValue.orEmpty()
-            TrackFieldType.Number -> value.enteredNumber?.let(::plainTrackNumber)
+            TrackFieldType.Number -> value.enteredNumber?.let(::plainNumericValue)
                 ?.plus(value.enteredUnitId?.takeIf(String::isNotBlank)?.let { " $it" }.orEmpty()).orEmpty()
             TrackFieldType.SingleChoice -> options.firstOrNull { it.id == value.choiceOptionId }?.label.orEmpty()
             TrackFieldType.Scale -> value.scaleValue?.let(::formatTrackScaleValue).orEmpty()
@@ -426,10 +426,7 @@ class TrackDefinitionConflictException(
     message: String,
 ) : IllegalStateException(message)
 
-private fun plainTrackNumber(value: Double): String =
-    BigDecimal.valueOf(value).stripTrailingZeros().toPlainString()
-
-fun formatTrackScaleValue(value: Double): String = plainTrackNumber(value)
+fun formatTrackScaleValue(value: Double): String = plainNumericValue(value)
 
 /** Returns every selectable value for a bounded, evenly divisible discrete Scale. */
 fun trackScaleValues(minimum: Int, maximum: Int, increment: Double): List<Double> {

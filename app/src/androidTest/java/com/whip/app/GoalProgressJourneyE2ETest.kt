@@ -26,6 +26,36 @@ class GoalProgressJourneyE2ETest {
         return compose.onNode(matcher and hasAnyAncestor(hasTestTag("goal-detail-surface")))
     }
 
+    @Test fun windowedInsightsMatchCurrentProgressAndRetainExcludedHistory() {
+        val id = runBlocking {
+            prepare()
+            val today = app.clock.today()
+            val id = app.goalRepository.create(GoalDraft("Rolling distance", type = GoalType.MeetAverage,
+                dimension = UnitDimension.Distance, unitId = "kilometre", precision = 1, targetMin = 50.0,
+                startDate = today.minusDays(20), aggregationPeriod = GoalAggregationPeriod.RollingDays, rollingDays = 7))
+            listOf(21L to 999.0, 10L to 1000.0, 2L to 10.0, 0L to 30.0).forEach { (days, value) ->
+                app.goalRepository.recordMeasurement(id, value, today.minusDays(days))
+            }
+            id
+        }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            compose.onNodeWithContentDescription("Goals tab").performClick()
+            compose.onNodeWithTag("goal-card-$id").performScrollTo().performClick()
+            inspectorNode(hasText("Current 20.0 km → target 50.0 km")).assertIsDisplayed()
+            inspectorNode(hasText("Trend Data Table")).performClick()
+            inspectorNode(hasText("value 20.0 km, progress 40%", substring = true)).assertIsDisplayed()
+            inspectorNode(hasText("value 10.0 km, progress 20%", substring = true)).assertIsDisplayed()
+            inspectorNode(hasText("The trend shows observed days.", substring = true)).assertIsDisplayed()
+            captureVisualCatalogSurface("ux-audit-2.goals.windowed-trend")
+            scenario.recreate()
+            inspectorNode(hasText("value 20.0 km, progress 40%", substring = true)).assertIsDisplayed()
+            compose.onNodeWithTag("goal-detail-section-History").performClick()
+            inspectorNode(hasText("999 km")).assertIsDisplayed()
+            captureVisualCatalogSurface("ux-audit-2.goals.excluded-history")
+        }
+        assertEquals(4, runBlocking { app.goalRepository.measurementEntries.first().count { it.measurementId == app.goalRepository.get(id)!!.measurementId } })
+    }
+
     @Test fun datedTrendShowsItsMeasureAndEarlierDaysRemainReachable() {
         val id = runBlocking {
             prepare()

@@ -38,6 +38,9 @@ import com.whip.app.domain.TrackField
 import com.whip.app.domain.TrackFieldType
 import com.whip.app.domain.TrackFieldValue
 import com.whip.app.domain.TrackProjection
+import com.whip.app.domain.UnitDefinition
+import com.whip.app.domain.UnitDimension
+import com.whip.app.domain.TrackChoiceOption
 import com.whip.app.ui.GymUiState
 import com.whip.app.ui.GoalUiState
 import com.whip.app.ui.HabitUiState
@@ -60,6 +63,55 @@ import org.junit.runner.RunWith
 class TrackWorkspaceUiTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test fun numericIdentitiesAndEveryLatestTrackRemainReachableInInsights() {
+        val today = LocalDate.of(2026, 9, 28)
+        val unit = UnitDefinition("private-trail-unit", "trail lengths", "tl", UnitDimension.Distance, 2000.0, archived = true)
+        val first = trackProjection(1, "Measured routes", "🥾", "main", "Main", 11, "Route", 2.5, today)
+        val scoreField = first.fields.last().copy(name = "Distance identity", primary = true, required = true, dimension = UnitDimension.Distance, unitId = unit.id)
+        val terrain = scoreField.copy(id = 13, uuid = "terrain-identity", name = "Terrain identity", type = TrackFieldType.SingleChoice,
+            position = 2, dimension = null, unitId = null)
+        val identityTrack = first.copy(fields = listOf(first.fields.first().copy(primary = false), scoreField, terrain),
+            options = listOf(TrackChoiceOption(99, "trail-option", terrain.id, "Trail", 0, 1, 1)),
+            entries = first.entries.map { entry -> entry.copy(values = entry.values + mapOf(
+                scoreField.id to entry.values.getValue(scoreField.id).copy(enteredUnitId = unit.id, canonicalNumber = 5000.0),
+                terrain.id to TrackFieldValue(113, "terrain-value", entry.entry.id, terrain.id, choiceOptionId = 99, createdAtMillis = 1, updatedAtMillis = 1))) })
+        val tracks = listOf(identityTrack) + (2L..10L).map { id ->
+            trackProjection(id, "Observed Track $id", "📓", "main", "Main", id * 10 + 1, "Entry $id", id.toDouble(), today.minusDays(id))
+        }
+        compose.setContent { WhipTheme(dynamicColor = false) {
+            val trackViewModel: TrackViewModel = viewModel()
+            WhipScreen(state = TaskUiState(loading = false), habitState = HabitUiState(loading = false, customUnits = listOf(unit)),
+                goalState = GoalUiState(loading = false), gymState = GymUiState(loading = false),
+                trackState = TrackUiState(projections = tracks, currentDate = today, loading = false), trackViewModel = trackViewModel,
+                settingsState = SettingsUiState(areas = listOf(Area("main", "Main", null, 0, false, 1, 1)), customUnits = listOf(unit)),
+                adaptiveLayout = WhipAdaptiveLayout.Compact, onSaveTask = { _, _, _ -> }, onComplete = {}, onSkip = {},
+                onReschedule = { _, _ -> }, onArchive = {}, onReopen = {})
+        } }
+        compose.onNodeWithContentDescription("Tracks tab").performClick()
+        compose.onNodeWithTag("track-workspace-destination-Insights").performClick()
+        compose.onNodeWithTag("track-workspace-insights-list").performScrollToNode(hasText("2.5 tl · Trail"))
+        compose.onNodeWithText("2.5 tl · Trail").assertIsDisplayed()
+        compose.onNodeWithTag("track-workspace-insights-list").performScrollToNode(hasText("Showing 8 of 10 Tracks with Entries"))
+        compose.onNodeWithText("Showing 8 of 10 Tracks with Entries").assertIsDisplayed()
+        compose.onNodeWithTag("track-workspace-insights-list").performScrollToNode(androidx.compose.ui.test.hasTestTag("track-insights-more-latest"))
+        compose.onNodeWithTag("track-insights-more-latest").performClick()
+        compose.onNodeWithTag("track-workspace-insights-list").performScrollToNode(hasText("Observed Track 10"))
+        compose.onNodeWithText("Observed Track 10").assertIsDisplayed()
+        captureVisualCatalogSurface("ux-audit-2.tracks.complete-latest-list")
+        compose.onNodeWithTag("track-workspace-insights-list").performScrollToNode(hasText("Measured routes"))
+        compose.onNodeWithText("Measured routes").performClick()
+        compose.onNodeWithTag("track-destination-Track Insights").assertIsSelected()
+        compose.onNodeWithTag("track-insights-list").performScrollToNode(hasText("Distance identity"))
+        compose.onNodeWithText("Distance identity").assertIsDisplayed()
+        compose.onNodeWithTag("track-insights-list").performScrollToNode(hasText("2.5 tl"))
+        compose.onAllNodesWithText("2.5 tl").fetchSemanticsNodes().let { assertTrue(it.isNotEmpty()) }
+        captureVisualCatalogSurface("ux-audit-2.tracks.identity-field-insights")
+        compose.onNodeWithTag("track-insights-list").performScrollToNode(hasText("Terrain identity"))
+        compose.onNodeWithText("Terrain identity").assertIsDisplayed()
+        compose.onNodeWithTag("track-insights-list").performScrollToNode(hasText("Trail"))
+        compose.onNodeWithText("Trail").assertIsDisplayed()
+    }
 
     @Test
     fun tracksAndEntriesHaveOneExplicitSearchOwnerAndArchivedResultsReturnToArchive() {
@@ -130,7 +182,7 @@ class TrackWorkspaceUiTest {
         }
         compose.onNodeWithTag("track-workspace-destination-Archived").assertIsSelected()
         compose.onAllNodesWithTag("track-detail-navigation").assertCountEquals(1)
-        compose.onNodeWithText("Archived · Read-only").assertIsDisplayed()
+        compose.onNodeWithText("Archived · Entries are read-only").assertIsDisplayed()
         compose.onAllNodesWithContentDescription("Edit Entry Prior dosage").assertCountEquals(0)
         compose.onAllNodesWithContentDescription("More Actions for Prior dosage").assertCountEquals(0)
         compose.onNodeWithContentDescription("Close Track Entry details").performClick()

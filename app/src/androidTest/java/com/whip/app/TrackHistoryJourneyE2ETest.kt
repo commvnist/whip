@@ -84,6 +84,12 @@ class TrackHistoryJourneyE2ETest {
             entryNode(hasText("Restore it above", substring = true)).assertIsDisplayed()
             compose.onAllNodesWithContentDescription("Add entry to Empty archived notes").assertCountEquals(0)
             captureVisualCatalogSurface("ux-upgrades.tracks.archived-empty")
+            compose.onNodeWithTag("track-destination-Options").performClick()
+            compose.onNodeWithTag("track-options-list").performScrollToNode(hasText("Restore this Track to add Entries", substring = true))
+            compose.onNodeWithText("Restore this Track to add Entries", substring = true).assertIsDisplayed()
+            compose.onAllNodesWithText("Pin to Whip Home").assertCountEquals(0)
+            captureVisualCatalogSurface("ux-audit-2.tracks.archived-options")
+            compose.onNodeWithTag("track-destination-Entries").performClick()
             compose.onNodeWithText("Restore Track").performClick()
             compose.waitUntil(15_000) { runBlocking { app.trackRepository.projection(id)?.track?.archived == false } }
             entryNode(hasText("Add Entry")).performClick()

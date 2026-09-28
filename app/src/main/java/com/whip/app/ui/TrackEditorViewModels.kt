@@ -6,7 +6,7 @@ import com.whip.app.domain.TrackDefinitionBoundary
 import com.whip.app.domain.TrackDefinitionRemovalReview
 import com.whip.app.domain.TrackDraft
 import com.whip.app.domain.TrackEntryDraft
-import com.whip.app.domain.editableNumericValue
+import com.whip.app.domain.plainNumericValue
 import com.whip.app.domain.toWhipDoubleOrNull
 import java.io.Serializable
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -129,7 +129,7 @@ internal class TrackEntryEditorViewModel(
                 dataGeneration = dataGeneration,
                 draft = initialDraft,
                 rawNumberValues = initialDraft.values.mapNotNull { (fieldUuid, value) ->
-                    value.enteredNumber?.let { fieldUuid to editableNumericValue(it) }
+                    value.enteredNumber?.let { fieldUuid to plainNumericValue(it) }
                 }.toMap(),
             ),
         )

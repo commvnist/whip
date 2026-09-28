@@ -140,7 +140,7 @@ class GoalRulesTest {
                 deadline = today.plusDays(100),
                 paceType = GoalPaceType.Linear,
             ),
-            listOf(entry(25.0, today.plusDays(25))),
+            listOf(entry(0.0, today).copy(id = "start"), entry(25.0, today.plusDays(25))),
             emptyList(),
             today.plusDays(25),
         )
@@ -204,6 +204,134 @@ class GoalRulesTest {
         )
 
         assertEquals(20.0, aggregateGoalValue(rolling, entries)!!, 0.0)
+        assertEquals(20.0, buildGoalInsights(rolling, entries, through = today).points.last().canonicalValue!!, 0.0)
+        assertNull(projectGoal(rolling, entries, emptyList(), today.plusDays(8)).currentValue)
+        assertEquals(today, buildGoalInsights(rolling, entries, through = today.plusDays(8)).points.last().date)
+    }
+
+    @Test fun insightPointsRespectEveryWindowAndRetainOutsideHistorySeparately() {
+        val start = today.minusDays(40)
+        val entries = listOf(-1L to 999.0, 0L to 3.0, 2L to 10.0, 15L to 20.0, 32L to 7.0, 40L to 11.0, 41L to 888.0)
+            .mapIndexed { index, (day, value) -> entry(value, start.plusDays(day)).copy(id = "window-$index") }
+        GoalAggregationPeriod.entries.forEach { period ->
+            listOf(GoalAggregation.Latest, GoalAggregation.Sum, GoalAggregation.Average, GoalAggregation.Minimum, GoalAggregation.Maximum, GoalAggregation.TimeInRange).forEach { aggregation ->
+                val authored = goal(type = GoalType.OpenEndedTrend).copy(startDate = start, deadline = today,
+                    aggregation = aggregation, aggregationPeriod = period, rollingDays = 7, targetMin = 5.0, targetMax = 15.0)
+                val summary = buildGoalInsights(authored, entries, through = today)
+                assertEquals(5, summary.points.size)
+                assertEquals(2, summary.outsideWindowEntries)
+                summary.points.forEach { point ->
+                    assertEquals("$period / $aggregation on ${point.date}", aggregateGoalValue(authored, entries, point.date)!!, point.canonicalValue!!, 0.000000001)
+                }
+                assertEquals(7, entries.size)
+            }
+        }
+    }
+
+    @Test fun rollingDecimalAggregatesRetainSmallValuesAfterLargeObservationExpires() {
+        val entries = listOf(1e16, 1.0, 2.0).mapIndexed { index, value ->
+            entry(value, today.plusDays(index.toLong())).copy(id = "precision-$index")
+        }
+        listOf(GoalAggregation.Sum to 3.0, GoalAggregation.Average to 1.5).forEach { (aggregation, expected) ->
+            val authored = goal(type = GoalType.OpenEndedTrend).copy(
+                aggregation = aggregation, aggregationPeriod = GoalAggregationPeriod.RollingDays, rollingDays = 2,
+            )
+            val points = buildGoalInsights(authored, entries).points
+            points.forEach { point ->
+                assertEquals(aggregateGoalValue(authored, entries, point.date)!!, point.canonicalValue!!, 0.0)
+            }
+            assertEquals(expected, points.last().canonicalValue!!, 0.0)
+            assertEquals(expected, projectGoal(authored, entries, emptyList(), today.plusDays(2)).currentValue!!, 0.0)
+        }
+    }
+
+    @Test fun decimalMeansAvoidOverflowAndMatchCurrentAndConsistencyCalculations() {
+        val cases = listOf(
+            Triple(listOf(0.1, 0.2), 0.3, 0.15),
+            Triple(listOf(1e16, 1.0, -1e16), 1.0, 1.0 / 3.0),
+            Triple(listOf(Double.MAX_VALUE, Double.MAX_VALUE), Double.POSITIVE_INFINITY, Double.MAX_VALUE),
+        )
+        cases.forEach { (values, expectedSum, expectedMean) ->
+            val entries = values.mapIndexed { index, value -> entry(value, today).copy(id = "decimal-$index") } +
+                listOf(Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY).mapIndexed { index, value ->
+                    entry(value, today).copy(id = "invalid-$index")
+                }
+            listOf(GoalAggregation.Sum to expectedSum, GoalAggregation.Average to expectedMean).forEach { (aggregation, expected) ->
+                val authored = goal(type = GoalType.OpenEndedTrend).copy(aggregation = aggregation)
+                assertEquals(expected, aggregateGoalValue(authored, entries, today)!!, 0.0)
+                val insights = buildGoalInsights(authored, entries, through = today)
+                assertEquals(expected, insights.points.single().canonicalValue!!, 0.0)
+                assertEquals(3, insights.excludedEntries)
+                val consistency = authored.copy(type = GoalType.Consistency, targetMin = expectedMean,
+                    consistencyPeriod = GoalConsistencyPeriod.Day, consistencyRequiredPeriods = 1)
+                val progress = calculateConsistencyProgress(consistency, entries, today)
+                assertEquals(expected, progress.currentPeriodValue, 0.0)
+                assertEquals(1, progress.successfulPeriods)
+                assertEquals(1.0, buildGoalInsights(consistency, entries, through = today).points.single().canonicalValue!!, 0.0)
+            }
+        }
+    }
+
+    @Test fun latestInsightUsesTheSameFirstTieAsCurrentProgress() {
+        val instant = today.atStartOfDay(java.time.ZoneOffset.UTC).toInstant()
+        val entries = listOf(entry(4.0, today).copy(id = "z", timestamp = instant), entry(9.0, today).copy(id = "a", timestamp = instant))
+        listOf(entries, entries.reversed()).forEach { ordered ->
+            val authored = goal()
+            assertEquals(aggregateGoalValue(authored, ordered, today)!!,
+                buildGoalInsights(authored, ordered, through = today).points.single().canonicalValue!!, 0.0)
+        }
+    }
+
+    @Test fun forecastsNeedObservedMovementAndDoNotExtrapolateResettingWindows() {
+        val entries = listOf(entry(10.0, today).copy(id = "first"), entry(20.0, today.plusDays(10)).copy(id = "last"))
+        val authored = goal(target = 100.0)
+        assertNull(projectGoal(authored, entries.take(1), emptyList(), today).forecastDate)
+        assertEquals(buildGoalInsights(authored, entries).forecastDate, projectGoal(authored, entries, emptyList(), today.plusDays(10)).forecastDate)
+        listOf(
+            authored to listOf(130.0, 120.0),
+            goal(type = GoalType.ReduceValue, baseline = 100.0, target = 80.0) to listOf(70.0, 75.0),
+            authored to listOf(60.0, 50.0),
+            goal(type = GoalType.ReduceValue, baseline = 100.0, target = 80.0) to listOf(90.0, 95.0),
+        ).forEach { (definition, readings) ->
+            val observations = readings.mapIndexed { index, value -> entry(value, today.plusDays(index.toLong())).copy(id = "direction-$index") }
+            assertNull(buildGoalInsights(definition, observations).forecastDate)
+            assertNull(projectGoal(definition, observations, emptyList(), today.plusDays(1)).forecastDate)
+        }
+        GoalAggregationPeriod.entries.filterNot { it == GoalAggregationPeriod.All }.forEach { period ->
+            val windowed = authored.copy(aggregationPeriod = period, rollingDays = 7)
+            assertNull(projectGoal(windowed, entries, emptyList(), today.plusDays(10)).forecastDate)
+            val summary = buildGoalInsights(windowed, entries)
+            assertNull(summary.forecastDate)
+            assertTrue(summary.forecastExplanation!!.contains("resets or rolls"))
+        }
+    }
+
+    @Test fun inferredConsistencyPeriodsAndExpiredPeriodLabelsRemainTruthful() {
+        val authored = goal(type = GoalType.Consistency, target = 1.0).copy(
+            consistencyPeriod = GoalConsistencyPeriod.Day, consistencyRequiredPeriods = null, deadline = today.plusDays(2))
+        val entries = listOf(entry(1.0, today).copy(id = "one"), entry(1.0, today.plusDays(2)).copy(id = "two"))
+        assertEquals(2.0 / 3.0, buildGoalInsights(authored, entries).points.last().progress!!, 0.0)
+        val expired = authored.copy(consistencyRequiredPeriods = 1, deadline = null)
+        val progress = calculateConsistencyProgress(expired, entries, today.plusDays(5))
+        assertTrue(progress.trackingWindowEnded)
+        assertEquals(today, progress.trackedPeriodStart)
+        assertEquals(1, progress.successfulPeriods)
+        val deadlineEnded = authored.copy(consistencyPeriod = GoalConsistencyPeriod.Week, consistencyRequiredPeriods = 3,
+            startDate = LocalDate.of(2026, 9, 14), deadline = LocalDate.of(2026, 9, 21))
+        val afterDeadline = calculateConsistencyProgress(deadlineEnded, emptyList(), LocalDate.of(2026, 9, 28))
+        assertEquals(LocalDate.of(2026, 9, 21), afterDeadline.trackedPeriodStart)
+        assertTrue(afterDeadline.trackingWindowEnded)
+    }
+
+    @Test fun rangeReviewUsesDailyObservationsWithoutComparingPercentagesToMeasurements() {
+        val authored = goal(type = GoalType.MaintainRange).copy(targetMin = 18.0, targetMax = 22.0)
+        val entries = listOf(entry(20.0, today).copy(id = "inside"), entry(30.0, today).copy(id = "outside", timestamp = today.atStartOfDay(java.time.ZoneOffset.UTC).toInstant().plusSeconds(1)))
+        assertEquals(0.0, goalOutcomeScoreOnDate(authored, entries, emptyList(), today), 0.0)
+        assertEquals(1.0, goalOutcomeScoreOnDate(authored, entries.take(1), emptyList(), today), 0.0)
+        val ratio = authored.copy(aggregation = GoalAggregation.TimeInRange)
+        assertEquals(0.5, goalOutcomeScoreOnDate(ratio, entries, emptyList(), today), 0.0)
+        assertEquals(0.0, goalOutcomeScoreOnDate(ratio, emptyList(), emptyList(), today), 0.0)
+        assertEquals(0.0, goalOutcomeScoreOnDate(ratio.copy(startDate = today.plusDays(1)), entries, emptyList(), today), 0.0)
     }
 
     @Test fun consistencyCountsSuccessfulPeriodsRatherThanRawEvents() {
