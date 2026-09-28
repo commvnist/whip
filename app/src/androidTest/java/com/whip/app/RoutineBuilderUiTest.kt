@@ -87,6 +87,63 @@ class RoutineBuilderUiTest {
     @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     @Test
+    fun timedAndDistancePrescriptionsKeepApplicableFieldsAndCollapsedTargets() {
+        val exercises = listOf(
+            exercise(1, "Intervals").copy(trackingType = ExerciseTrackingType.DistanceDuration),
+            exercise(2, "Loaded hold").copy(trackingType = ExerciseTrackingType.WeightDuration),
+            exercise(3, "Timed repetitions").copy(trackingType = ExerciseTrackingType.RepsDuration),
+        )
+        var saved: RoutineDraft? = null
+        val restoration = androidx.compose.ui.test.junit4.StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                RoutineBuilderScreen(routineId = 73, gymState = GymUiState(exercises = exercises, loading = false),
+                    initial = RoutineDraft("Mixed measurements", days = listOf(RoutineDayDraft("Training", listOf(
+                        RoutineExerciseDraft(1, plannedSets = listOf(
+                            WorkoutSetDraft(distance = 0.4, distanceUnitId = "kilometre", durationSeconds = 90),
+                            WorkoutSetDraft(distance = 0.8, distanceUnitId = "kilometre", durationSeconds = 180))),
+                        RoutineExerciseDraft(2, plannedSets = listOf(WorkoutSetDraft(weight = 20.0, durationSeconds = 45))),
+                        RoutineExerciseDraft(3, plannedSets = listOf(WorkoutSetDraft(reps = 12, durationSeconds = 60))),
+                    )))), onDismiss = {}, onSave = { draft, complete -> saved = draft; complete(true) },
+                    onCreateExercise = { _, _ -> }, onCreateMachine = { _, _ -> })
+            }
+        }
+        compose.onNodeWithContentDescription("Edit routine exercise Intervals").performScrollTo().performClick()
+        val list = compose.onNodeWithTag("routine-placement-editor")
+        list.performScrollToNode(hasText("0.4 km", substring = true))
+        compose.onNodeWithText("0.4 km", substring = true).assertTextContains("90s duration", substring = true)
+        list.performScrollToNode(hasText("0.8 km", substring = true))
+        compose.onNodeWithText("0.8 km", substring = true).assertTextContains("180s duration", substring = true)
+        list.performScrollToNode(hasText("Duration seconds"))
+        compose.onAllNodesWithText("Reps min").assertCountEquals(0)
+        compose.onNodeWithText("Duration seconds").performTextReplacement("95")
+        closeSoftKeyboard()
+        restoration.emulateSavedInstanceStateRestore()
+        list.performScrollToNode(hasText("Duration seconds"))
+        compose.onNodeWithText("Duration seconds").assertTextContains("95")
+        captureVisualCatalogSurface("audit2.gym.routine-interval")
+        compose.onNodeWithContentDescription("Back to routine outline").performClick()
+        compose.onNodeWithTag("routine-selected-exercises").performScrollToNode(hasText("Loaded hold"))
+        compose.onNodeWithContentDescription("Edit routine exercise Loaded hold").performClick()
+        list.performScrollToNode(hasText("Duration seconds"))
+        compose.onAllNodesWithText("Reps min").assertCountEquals(0)
+        compose.onNodeWithText("Duration seconds").assertTextContains("45")
+        compose.onNodeWithContentDescription("Back to routine outline").performClick()
+        compose.onNodeWithTag("routine-selected-exercises").performScrollToNode(hasText("Timed repetitions"))
+        compose.onNodeWithContentDescription("Edit routine exercise Timed repetitions").performClick()
+        list.performScrollToNode(hasText("Reps min"))
+        compose.onNodeWithText("Reps min").assertTextContains("12")
+        compose.onNodeWithTag("routine-builder-save").performClick()
+        compose.runOnIdle {
+            val prescriptions = requireNotNull(saved).days.single().exercises
+            assertEquals(listOf(95L, 180L), prescriptions[0].plannedSets.map { it.durationSeconds })
+            assertEquals(listOf(0.4, 0.8), prescriptions[0].plannedSets.map { it.distance })
+            assertEquals(20.0, prescriptions[1].plannedSets.single().weight)
+            assertEquals(12, prescriptions[2].plannedSets.single().reps)
+        }
+    }
+
+    @Test
     fun multiSetEditorKeepsHiddenDraftsAndOpensTheChosenPrescription() {
         var saved: RoutineDraft? = null
         compose.setContent {
@@ -224,8 +281,8 @@ class RoutineBuilderUiTest {
         compose.onNodeWithText("Bench Press", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasTestTag("routine-program-phase-1"))
         compose.onNodeWithTag("routine-program-phase-1").performClick()
-        compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasText("1 set × 5 reps", substring = true))
-        compose.onNodeWithText("1 set × 5 reps", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasText("5 reps · 80 kg", substring = true))
+        compose.onNodeWithText("5 reps · 80 kg", substring = true).assertIsDisplayed()
         compose.onAllNodesWithText("active sets/phase", substring = true).assertCountEquals(0)
         compose.onNodeWithTag("routine-builder-save").performClick()
         compose.runOnIdle {

@@ -1,5 +1,9 @@
 package com.whip.app.ui
 
+import android.app.NotificationManager
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import com.whip.app.reminders.RestTimerNotifications
+
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -2838,7 +2842,7 @@ private fun WorkoutContent(
     var executionLaneHeightPx by remember { mutableIntStateOf(0) }
     val compactExecutionLane = LocalDensity.current.fontScale >= 1.5f
     val showScrollableRestAlert = compactExecutionLane && state.restSecondsRemaining != null &&
-        state.appSettings.notificationPermissionRequested && !restTimerNotificationsAvailable()
+        state.appSettings.notificationPermissionRequested && !restTimerNotificationsAvailable(state.appSettings.timerSound, state.appSettings.timerVibration)
     val workoutBlockScrollOffset = if (arrangingWorkout) 0 else -executionLaneHeightPx
     // Header and workout actions always precede blocks; the execution lane is hidden while arranging.
     val firstWorkoutBlockIndex = if (arrangingWorkout) 2 else 3
@@ -3077,6 +3081,8 @@ private fun WorkoutContent(
                         ),
                         presetSeconds = state.appSettings.restTimerPresetSeconds,
                         notificationPermissionRequested = state.appSettings.notificationPermissionRequested,
+                        timerSound = state.appSettings.timerSound,
+                        timerVibration = state.appSettings.timerVibration,
                         onSelectedSecondsChange = { workoutRestOverrideSeconds = it },
                         onPresetSecondsChange = onRestTimerPresetsChange,
                         onStart = onStartTimer,
@@ -4414,9 +4420,11 @@ internal fun RestTimerCard(
     onAdjust: (Long, Int) -> Unit,
     onStop: (Long) -> Unit,
     compactNotificationNotice: Boolean = false,
+    timerSound: Boolean = true,
+    timerVibration: Boolean = true,
 ) {
     var showDurationEditor by rememberSaveable(session.id) { mutableStateOf(false) }
-    val notificationAvailable = restTimerNotificationsAvailable()
+    val notificationAvailable = restTimerNotificationsAvailable(timerSound, timerVibration)
     val displayedDuration = formatDuration((remaining ?: duration.seconds).coerceAtLeast(0).toLong())
     val sourceLabel = when (duration.source) {
         WorkoutRestSource.WorkoutOverride -> "Workout override"
@@ -4531,11 +4539,21 @@ internal fun RestTimerCard(
 }
 
 @Composable
-private fun restTimerNotificationsAvailable(): Boolean {
+private fun restTimerNotificationsAvailable(sound: Boolean, vibration: Boolean): Boolean {
     val context = LocalContext.current
-    return NotificationManagerCompat.from(context).areNotificationsEnabled() &&
-        (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
+    var resumeRevision by remember { mutableIntStateOf(0) }
+    LifecycleResumeEffect(Unit) {
+        resumeRevision++
+        onPauseOrDispose { }
+    }
+    return remember(context, sound, vibration, resumeRevision) {
+        val channel = context.getSystemService(NotificationManager::class.java)
+            .getNotificationChannel(RestTimerNotifications.channelId(sound, vibration))
+        NotificationManagerCompat.from(context).areNotificationsEnabled() &&
+            (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) &&
+            channel?.importance != NotificationManager.IMPORTANCE_NONE
+    }
 }
 
 @Composable
@@ -4927,7 +4945,7 @@ private fun ExerciseLibraryContent(
 }
 
 @Composable
-private fun MachineLibraryContent(
+internal fun MachineLibraryContent(
     state: GymUiState,
     onCreate: () -> Unit,
     onEdit: (GymMachine) -> Unit,
@@ -4937,7 +4955,9 @@ private fun MachineLibraryContent(
 ) {
     var showArchived by rememberSaveable { mutableStateOf(false) }
     val exerciseById = (state.exercises + state.archivedExercises).associateBy(Exercise::id)
-    val visible = if (showArchived) state.archivedMachines else state.machines
+    var query by rememberSaveable { mutableStateOf("") }
+    val source = if (showArchived) state.archivedMachines else state.machines
+    val visible = source.filter { machine -> machineMatchesQuery(machine, query, exerciseById) }
     LazyColumn(
         modifier = Modifier.fillMaxSize().testTag("gym-machine-list"),
         contentPadding = WhipPageContentPadding,
@@ -4950,13 +4970,21 @@ private fun MachineLibraryContent(
             )
         }
         item { ToggleRow("Show archived", showArchived) { showArchived = it } }
+        item {
+            WhipSearchField("Search Machines", query, { query = it }, modifier = Modifier.testTag("machine-library-search"))
+            Text(
+                "${visible.size} of ${source.size} ${if (showArchived) "archived" else "active"} profiles",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         if (visible.isEmpty()) item {
             WhipEmptyState(
-                title = if (showArchived) "No Archived Machines" else "No Machine Profiles",
-                supportingText = if (showArchived) "Archived machine profiles will appear here." else
+                title = if (query.isNotBlank()) "No Matching Machines" else if (showArchived) "No Archived Machines" else "No Machine Profiles",
+                supportingText = if (query.isNotBlank()) "Search by name, location, configuration version or linked exercise." else if (showArchived) "Archived machine profiles will appear here." else
                     "Create the machine now. Exercises are optional and can be created or linked inside the machine editor.",
-                primaryActionLabel = if (showArchived) "Show Active Machines" else "Create Machine",
-                onPrimaryAction = if (showArchived) ({ showArchived = false }) else onCreate,
+                primaryActionLabel = if (query.isNotBlank()) "Clear Search" else if (showArchived) "Show Active Machines" else "Create Machine",
+                onPrimaryAction = if (query.isNotBlank()) ({ query = "" }) else if (showArchived) ({ showArchived = false }) else onCreate,
             )
         }
         items(visible, key = GymMachine::id) { machine ->
@@ -4993,6 +5021,13 @@ private fun MachineLibraryContent(
             }
         }
     }
+}
+
+internal fun machineMatchesQuery(machine: GymMachine, query: String, exercises: Map<Long, Exercise>): Boolean {
+    val terms = query.trim().split(Regex("\\s+")).filter(String::isNotBlank)
+    val searchable = listOf(machine.displayName, "v${machine.configurationVersion}") +
+        machine.exerciseIds.mapNotNull { exercises[it]?.name }
+    return terms.all { term -> searchable.any { it.contains(term, ignoreCase = true) } }
 }
 
 @Composable
@@ -7342,7 +7377,7 @@ internal fun WorkoutExerciseNotesDialog(
 }
 
 @Composable
-private fun WorkoutMonthCalendar(
+internal fun WorkoutMonthCalendar(
     month: YearMonth,
     sessions: List<WorkoutSession>,
     selectedDate: LocalDate?,
@@ -7381,6 +7416,7 @@ private fun WorkoutMonthCalendar(
                         val count = counts[date] ?: 0
                         WhipTextButton(
                             onClick = { onSelectDate(date.takeUnless { it == selectedDate }) },
+                            contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
                             modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
                                 selected = date == selectedDate
                                 stateDescription = if (date == selectedDate) "Selected" else "Not selected"
@@ -7390,10 +7426,20 @@ private fun WorkoutMonthCalendar(
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     dayNumber.toString(),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    maxLines = 1,
                                     color = if (date == selectedDate) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                                     fontWeight = if (date == selectedDate || count > 0) FontWeight.Bold else FontWeight.Normal,
                                 )
-                                if (count > 0) Text("$count", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                if (count > 0) Text(
+                                    "$count",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    maxLines = 1,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
                             }
                         }
                     }
@@ -7930,8 +7976,9 @@ internal fun GymProgressContent(
     var chartDataExpanded by rememberSaveable { mutableStateOf(false) }
     var weeklyDetailsExpanded by rememberSaveable { mutableStateOf(false) }
     var graphOptionsExpanded by rememberSaveable { mutableStateOf(false) }
-    var selectedChartPointDate by rememberSaveable { mutableStateOf<LocalDate?>(null) }
-    var selectedChartSeriesName by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedChartPointDate by rememberSaveable(selectedExerciseId, measurement, aggregation, selectedMachineScope) { mutableStateOf<LocalDate?>(null) }
+    var selectedChartSeriesId by rememberSaveable(selectedExerciseId, measurement, aggregation, selectedMachineScope) { mutableStateOf<Long?>(null) }
+    var selectedChartSessionId by rememberSaveable(selectedExerciseId, measurement, aggregation, selectedMachineScope) { mutableStateOf<Long?>(null) }
     val machineScoped = exercisePlacements.requiresMachineScope()
     val compatibleMachineScopes = if (includeCompatibleVersions && selectedMachine?.compatibleForComparison == true) {
         val family = selectedMachine.configurationGroupId
@@ -8016,11 +8063,13 @@ internal fun GymProgressContent(
     )
     val primarySeriesName = exercise?.name.orEmpty()
     val chartSeries = buildList {
-        if (exercisePoints.isNotEmpty()) add(GymChartSeries(primarySeriesName, exercisePoints))
-        comparisons.forEach { (compared, points) -> if (points.isNotEmpty()) add(GymChartSeries(compared.name, points)) }
+        if (exercisePoints.isNotEmpty()) add(GymChartSeries(selectedExerciseId, primarySeriesName, exercisePoints))
+        comparisons.forEach { (compared, points) -> if (points.isNotEmpty()) add(GymChartSeries(compared.id, compared.name, points)) }
     }
-    val selectedSeries = chartSeries.firstOrNull { it.name == (selectedChartSeriesName ?: primarySeriesName) }
-    val selectedChartPoint = selectedChartPointDate?.let { date -> selectedSeries?.points?.lastOrNull { it.date == date } }
+    val selectedSeries = chartSeries.firstOrNull { it.exerciseId == selectedChartSeriesId }
+    val selectedChartPoint = selectedChartPointDate?.let { date ->
+        selectedSeries?.points?.singleOrNull { it.date == date && it.sourceSessionId == selectedChartSessionId }
+    }
     LazyColumn(
         modifier = Modifier.fillMaxSize().testTag("gym-progress-list"),
         contentPadding = WhipPageContentPadding,
@@ -8285,8 +8334,9 @@ internal fun GymProgressContent(
                     description = chartSeries.joinToString(" ") { series ->
                         chartDescription(series.name, measurement.label, series.points, displayUnit)
                     },
-                    onPointSelected = { seriesName, point ->
-                        selectedChartSeriesName = seriesName
+                    onPointSelected = { seriesId, point ->
+                        selectedChartSeriesId = seriesId
+                        selectedChartSessionId = point.sourceSessionId
                         selectedChartPointDate = point.date
                     },
                 )
@@ -8304,7 +8354,8 @@ internal fun GymProgressContent(
                             .fillMaxWidth()
                             .heightIn(min = 48.dp)
                             .clickable(onClickLabel = "Open details for ${point.date}") {
-                            selectedChartSeriesName = primarySeriesName
+                            selectedChartSeriesId = selectedExerciseId
+                            selectedChartSessionId = point.sourceSessionId
                             selectedChartPointDate = point.date
                         },
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -9307,6 +9358,7 @@ internal fun routineDraftForEditing(state: GymUiState, routine: GymRoutine): Rou
 )
 
 private data class GymChartSeries(
+    val exerciseId: Long?,
     val name: String,
     val points: List<GymGraphPoint>,
 )
@@ -9317,7 +9369,7 @@ private fun SharedGymLineChart(
     unit: String,
     precision: Int,
     description: String,
-    onPointSelected: (String, GymGraphPoint) -> Unit,
+    onPointSelected: (Long?, GymGraphPoint) -> Unit,
 ) {
     val allPoints = series.flatMap(GymChartSeries::points)
     if (allPoints.isEmpty()) return
@@ -9365,7 +9417,7 @@ private fun SharedGymLineChart(
                                     val day = java.time.temporal.ChronoUnit.DAYS.between(firstDate, point.date)
                                     val x = leftInsetPx + usableWidth * (day.toFloat() / totalDays.toFloat())
                                     val y = topInsetPx + usableHeight * (1f - ((point.value - minimum) / valueRange).toFloat())
-                                    Triple(chartSeries.name, point, kotlin.math.hypot(tap.x - x, tap.y - y))
+                                    Triple(chartSeries.exerciseId, point, kotlin.math.hypot(tap.x - x, tap.y - y))
                                 }
                             }.minByOrNull { it.third }
                             nearest?.takeIf { it.third <= with(density) { 32.dp.toPx() } }?.let {
@@ -9406,11 +9458,11 @@ private fun SharedGymLineChart(
         }
         Text("Chart Points", style = MaterialTheme.typography.labelMedium)
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            series.flatMap { chartSeries -> chartSeries.points.takeLast(12).map { chartSeries.name to it } }.forEach { (name, point) ->
-                val pointLabel = "$name · ${point.date} · ${formatNumber(point.value, precision)} $unit"
+            series.flatMap { chartSeries -> chartSeries.points.takeLast(12).map { chartSeries to it } }.forEach { (chartSeries, point) ->
+                val pointLabel = "${chartSeries.name} · ${point.date} · ${formatNumber(point.value, precision)} $unit"
                 WhipFilterChip(
                     selected = false,
-                    onClick = { onPointSelected(name, point) },
+                    onClick = { onPointSelected(chartSeries.exerciseId, point) },
                     label = { Text(pointLabel) },
                     modifier = Modifier.testTag("gym-chart-point").semantics { contentDescription = pointLabel },
                 )
@@ -10435,14 +10487,14 @@ internal fun ExerciseActionsDialog(
                             exercise.notes.takeIf(String::isNotBlank)?.let { EntityInspectorFact("Notes", it) }
                         }
                         EntityInspectorGroup("Defaults") {
-                            if (exercise.trackingType.name.contains("Weight")) {
+                            if (exercise.trackingType.supportsLoadEntry()) {
                                 val unit = BuiltInUnits.get(exercise.weightUnitId)?.symbol.orEmpty()
                                 EntityInspectorFact(
                                     "Weight increment",
                                     "${exercise.weightIncrement} $unit".trim(),
                                 )
                             }
-                            if (exercise.trackingType.name.contains("Reps")) {
+                            if (exercise.trackingType.supportsRepetitionEntry()) {
                                 EntityInspectorFact("Repetition increment", exercise.repetitionIncrement.toString())
                             }
                             exercise.defaultRestSeconds?.let { seconds ->
@@ -10451,7 +10503,9 @@ internal fun ExerciseActionsDialog(
                                     if (seconds % 60 == 0) "${seconds / 60} min" else "${seconds / 60} min ${seconds % 60} sec",
                                 )
                             }
-                            EntityInspectorFact("Load meaning", exercise.loadInterpretation.label)
+                            if (exercise.trackingType.supportsLoadEntry()) {
+                                EntityInspectorFact("Load meaning", exercise.loadInterpretation.label)
+                            }
                         }
                     }
                     ExerciseDetailSection.More -> {

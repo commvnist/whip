@@ -109,6 +109,8 @@ import com.whip.app.domain.convertPracticalMassValue
 import com.whip.app.domain.editableNumericValue
 import com.whip.app.domain.massFromKilograms
 import com.whip.app.domain.supportsRoutinePercentagePrescription
+import com.whip.app.domain.supportsLoadEntry
+import com.whip.app.domain.supportsRepetitionEntry
 import com.whip.app.domain.unitSymbol
 import com.whip.app.domain.toWhipDoubleOrNull
 import com.whip.app.core.RepPrescriptionScheme
@@ -2599,15 +2601,7 @@ private fun RoutinePlacementEditor(
             val setError = routineSetValidationError(set, machine?.loadType)
             DisclosureRow(
                 title = "Set ${setIndex + 1}",
-                supportingText = setError ?: buildList {
-                    add(set.classification.workoutSetClassificationLabel())
-                    add(routineSetSummary(listOf(set.copy(routinePhaseIndex = null))))
-                    if (set.loadPrescriptionType != RoutineLoadPrescriptionType.Absolute.name) {
-                        add("${set.loadPercentage}% " + if (set.loadPrescriptionType == RoutineLoadPrescriptionType.PercentTrainingMax.name) "TM" else "1RM")
-                    } else if (set.load.isNotBlank()) add("${set.load} ${machine?.levelLabel?.takeIf { machine.loadType == MachineLoadType.Level } ?: unitSymbol(set.weightUnitId.ifBlank { programUnitId })}")
-                    if (set.restSeconds.isNotBlank()) add("${set.restSeconds}s rest")
-                    if (set.note.isNotBlank()) add("Note saved")
-                }.joinToString(" · "),
+                supportingText = setError ?: routineSetPrescriptionSummary(set, exercise?.trackingType, machine, programUnitId),
                 expanded = expandedSetKey == set.key,
                 onClick = { expandedSetKey = if (expandedSetKey == set.key) null else set.key },
                 modifier = Modifier.testTag("routine-set-disclosure-${set.key}"),
@@ -3159,13 +3153,7 @@ private fun RoutineSetEditorCard(
                     }
                 }
             }
-            val needsLoad = exercise?.trackingType in setOf(
-                ExerciseTrackingType.WeightReps,
-                ExerciseTrackingType.WeightOnly,
-                ExerciseTrackingType.WeightDuration,
-                ExerciseTrackingType.BodyweightReps,
-                ExerciseTrackingType.AssistedBodyweightReps,
-            )
+            val needsLoad = exercise?.trackingType?.supportsLoadEntry() == true
             if (needsLoad) {
                 val prescriptionType = runCatching { RoutineLoadPrescriptionType.valueOf(set.loadPrescriptionType) }
                     .getOrDefault(RoutineLoadPrescriptionType.Absolute)
@@ -3234,7 +3222,7 @@ private fun RoutineSetEditorCard(
                     }
                 }
             }
-            if (exercise?.trackingType !in setOf(ExerciseTrackingType.WeightOnly, ExerciseTrackingType.DistanceOnly, ExerciseTrackingType.DurationOnly)) {
+            if (exercise?.trackingType?.supportsRepetitionEntry() == true) {
                 ResponsiveFieldPair(
                     first = { field -> OutlinedTextField(set.repetitionsMin, { value -> onUpdate { it.copy(repetitionsMin = value.filter(Char::isDigit).take(4)) } }, label = { Text("Reps min") }, modifier = field.testTag("routine-reps-min-${set.key}"), singleLine = true) },
                     second = { field -> OutlinedTextField(set.repetitionsMax, { value -> onUpdate { it.copy(repetitionsMax = value.filter(Char::isDigit).take(4)) } }, label = { Text("Reps max") }, modifier = field.testTag("routine-reps-max-${set.key}"), singleLine = true) },
@@ -5299,6 +5287,43 @@ private fun RoutineBuilderDayState.clearSingletonGroup(group: String): RoutineBu
     if (placements.count { it.groupKey == group } != 1) return this
     return copy(placements = placements.map { if (it.groupKey == group) it.copy(groupKey = null) else it })
 }
+
+internal fun routineSetPrescriptionSummary(
+    set: RoutineBuilderSetState,
+    trackingType: ExerciseTrackingType?,
+    machine: GymMachine? = null,
+    fallbackWeightUnitId: String = "kilogram",
+): String = buildList {
+    add(set.classification.workoutSetClassificationLabel())
+    if (trackingType?.supportsRepetitionEntry() == true) {
+        val reps = when {
+            set.repetitionsMin.isBlank() -> set.repetitionsMax.takeIf(String::isNotBlank)?.let { "up to $it" }
+            set.repetitionsMax.isBlank() || set.repetitionsMax == set.repetitionsMin -> set.repetitionsMin
+            else -> "${set.repetitionsMin}–${set.repetitionsMax}"
+        }
+        reps?.let { add("$it reps") }
+    }
+    if (trackingType?.supportsLoadEntry() == true) {
+        if (set.loadPrescriptionType != RoutineLoadPrescriptionType.Absolute.name && set.loadPercentage.isNotBlank()) {
+            add("${set.loadPercentage}% " + if (set.loadPrescriptionType == RoutineLoadPrescriptionType.PercentTrainingMax.name) "TM" else "1RM")
+        } else if (set.load.isNotBlank()) {
+            val unit = machine?.levelLabel?.takeIf { machine.loadType == MachineLoadType.Level }
+                ?: unitSymbol(machine?.unitId ?: set.weightUnitId.ifBlank { fallbackWeightUnitId })
+            add("${set.load} $unit")
+        }
+    }
+    if (trackingType in setOf(ExerciseTrackingType.DistanceOnly, ExerciseTrackingType.DistanceDuration) && set.distance.isNotBlank()) {
+        add("${set.distance} ${unitSymbol(set.distanceUnitId)}")
+    }
+    if (trackingType in setOf(ExerciseTrackingType.DurationOnly, ExerciseTrackingType.DistanceDuration, ExerciseTrackingType.WeightDuration, ExerciseTrackingType.RepsDuration) && set.durationSeconds.isNotBlank()) {
+        add("${set.durationSeconds}s duration")
+    }
+    if (set.restSeconds.isNotBlank()) add("${set.restSeconds}s rest")
+    if (set.rpe.isNotBlank()) add("RPE ${set.rpe}")
+    if (set.rir.isNotBlank()) add("RIR ${set.rir}")
+    if (set.tempo.isNotBlank()) add("Tempo ${set.tempo}")
+    if (set.note.isNotBlank()) add("Note saved")
+}.joinToString(" · ")
 
 internal fun routineSetSummary(sets: List<RoutineBuilderSetState>): String {
     if (sets.isEmpty()) return "No prescribed sets"

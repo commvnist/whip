@@ -30,6 +30,28 @@ import org.junit.Test
 
 class RoutineBuilderStateTest {
     @Test
+    fun collapsedPrescriptionsExposeOnlyApplicableMeasurementsAcrossEveryTrackingType() {
+        val set = RoutineBuilderSetState(1, load = "40", repetitionsMin = "5", repetitionsMax = "8",
+            distance = "0.4", durationSeconds = "90", restSeconds = "60", rpe = "7", tempo = "3010")
+        ExerciseTrackingType.entries.forEach { type ->
+            val summary = routineSetPrescriptionSummary(set, type)
+            assertEquals(type.name, type in setOf(ExerciseTrackingType.WeightReps, ExerciseTrackingType.BodyweightReps,
+                ExerciseTrackingType.AssistedBodyweightReps, ExerciseTrackingType.WeightOnly, ExerciseTrackingType.WeightDuration), summary.contains("40 kg"))
+            assertEquals(type.name, type in setOf(ExerciseTrackingType.WeightReps, ExerciseTrackingType.BodyweightReps,
+                ExerciseTrackingType.AssistedBodyweightReps, ExerciseTrackingType.RepsOnly, ExerciseTrackingType.RepsDuration), summary.contains("5–8 reps"))
+            assertEquals(type.name, type in setOf(ExerciseTrackingType.DistanceDuration, ExerciseTrackingType.DistanceOnly), summary.contains("0.4 km"))
+            assertEquals(type.name, type in setOf(ExerciseTrackingType.DistanceDuration, ExerciseTrackingType.DurationOnly,
+                ExerciseTrackingType.WeightDuration, ExerciseTrackingType.RepsDuration), summary.contains("90s duration"))
+            assertTrue(summary.contains("60s rest"))
+            assertTrue(summary.contains("RPE 7"))
+            assertTrue(summary.contains("Tempo 3010"))
+        }
+        assertFalse(routineSetPrescriptionSummary(set, ExerciseTrackingType.DistanceDuration)
+            .equals(routineSetPrescriptionSummary(set.copy(distance = "0.8", durationSeconds = "180"), ExerciseTrackingType.DistanceDuration)))
+        assertEquals("40", set.load) // A presentation change never clears compatibility values.
+    }
+
+    @Test
     fun collapsedNumberedMachineSetReportsMissingAndInvalidSettings() {
         val type = com.whip.app.domain.MachineLoadType.Level
         listOf("", "bad", "-1").forEach { load ->

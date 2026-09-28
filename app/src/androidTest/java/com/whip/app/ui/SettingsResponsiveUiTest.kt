@@ -71,6 +71,68 @@ class SettingsResponsiveUiTest {
     private val compose = createComposeRule()
     @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
+    @AndroidFontScale
+    @Test
+    fun encryptedBackupInputsKeepSecretKeyboardAndExplainMismatchAtLargeText() {
+        val app: WhipApplication = ApplicationProvider.getApplicationContext()
+        val restoration = StateRestorationTester(compose)
+        val viewModel = SettingsViewModel(app)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                SettingsContent(state = SettingsUiState(settings = AppSettings(setupCompleted = true)),
+                    innerPadding = PaddingValues(), viewModel = viewModel, selectedSection = SettingsSection.DataPrivacy)
+            }
+        }
+        compose.onNodeWithTag("settings-list").performScrollToNode(androidx.compose.ui.test.hasText("Save Passphrase-Encrypted Backup"))
+        compose.onNodeWithText("Save Passphrase-Encrypted Backup").performClick()
+        val passphrase = compose.onNodeWithTag("backup-export-passphrase")
+        val confirmation = compose.onNodeWithTag("backup-export-confirmation")
+        passphrase.performScrollTo().performClick().performTextReplacement("short")
+        val device = androidx.test.uiautomator.UiDevice.getInstance(androidx.test.platform.app.InstrumentationRegistry.getInstrumentation())
+        compose.waitUntil(5_000) { device.executeShellCommand("dumpsys input_method").contains("mInputShown=true") }
+        assertTrue(passphrase.fetchSemanticsNode().config.contains(SemanticsProperties.Password))
+        compose.onNodeWithText("Choose Location").assertIsNotEnabled()
+        passphrase.performTextReplacement("synthetic-only-passphrase")
+        passphrase.performImeAction()
+        confirmation.assertIsFocused().performTextReplacement("different")
+        compose.onNodeWithText("Passphrases do not match.").performScrollTo().assertIsDisplayed()
+        confirmation.performImeAction()
+        compose.onNodeWithText("Choose Location").assertIsNotEnabled()
+        captureVisualCatalogSurface("audit2.settings.encrypted-input.native200-ime")
+        confirmation.performTextReplacement("synthetic-only-passphrase")
+        compose.onNodeWithText("Choose Location").assertIsEnabled()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithText("Choose Location").assertIsNotEnabled()
+        assertEquals("", compose.onNodeWithTag("backup-export-passphrase").fetchSemanticsNode().config[SemanticsProperties.EditableText].text)
+        assertEquals("", compose.onNodeWithTag("backup-export-confirmation").fetchSemanticsNode().config[SemanticsProperties.EditableText].text)
+        pressBack()
+    }
+
+    @Test
+    fun deepDataOperationMakesItsSettledResultVisible() {
+        val app: WhipApplication = ApplicationProvider.getApplicationContext()
+        val viewModel = SettingsViewModel(app)
+        var state by mutableStateOf(SettingsUiState(settings = AppSettings(setupCompleted = true)))
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                SettingsContent(state = state, innerPadding = PaddingValues(), viewModel = viewModel,
+                    selectedSection = SettingsSection.DataPrivacy)
+            }
+        }
+        compose.onNodeWithTag("settings-list").performScrollToNode(androidx.compose.ui.test.hasText("Export Tracks CSV"))
+        compose.onNodeWithText("Export Tracks CSV").assertIsDisplayed()
+        captureVisualCatalogSurface("audit2.settings.deep-operation.before")
+        compose.runOnIdle { state = state.copy(busy = true, operation = com.whip.app.core.OperationStatus.Running("Writing CSV")) }
+        compose.runOnIdle { state = state.copy(busy = false, operation = com.whip.app.core.OperationStatus.Failed("Synthetic provider refused the write")) }
+        compose.waitForIdle()
+        captureVisualCatalogSurface("audit2.settings.deep-operation.failure")
+        // Deliberately do not scroll to a result the user has not discovered.
+        compose.onNodeWithTag("settings-result-status").assertIsDisplayed()
+        compose.runOnIdle { state = state.copy(busy = true, operation = com.whip.app.core.OperationStatus.Running("Writing CSV")) }
+        compose.runOnIdle { state = state.copy(busy = false, operation = com.whip.app.core.OperationStatus.Succeeded("Synthetic export completed")) }
+        compose.onNodeWithTag("settings-result-status").assertIsDisplayed()
+    }
+
     @androidx.compose.runtime.Composable
     private fun <T> immediateMutation(onPersist: (T) -> Unit): TypedSettingMutation<T> {
         var state by remember {

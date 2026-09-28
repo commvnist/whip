@@ -75,7 +75,7 @@ class DataPrivacyJourneyE2ETest {
             scroll(hasText("Save Passphrase-Encrypted Backup")).performClick()
             compose.onNodeWithText("Passphrase", substring = false).performTextReplacement("test-only-passphrase")
             compose.onNodeWithText("Confirm passphrase").performTextReplacement("test-only-passphrase")
-            compose.onNodeWithText("Choose Location").performClick()
+            compose.onNodeWithText("Confirm passphrase").performImeAction()
             awaitDocuments()
             InstrumentationRegistry.getInstrumentation().runOnMainSync { originalActivity.recreate() }
             compose.waitUntil(10_000) { originalActivity.isDestroyed }

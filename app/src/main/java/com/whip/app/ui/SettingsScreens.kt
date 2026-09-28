@@ -214,6 +214,20 @@ internal fun SettingsContent(
     var activeTypedSettingTag by rememberSaveable { mutableStateOf<String?>(null) }
     val section = selectedSection ?: localSection
     val settingsListState = rememberSaveable(section, saver = LazyListState.Saver) { LazyListState() }
+    var observedOperation by remember { mutableStateOf(state.operation) }
+    LaunchedEffect(state.operation) {
+        val operationChanged = observedOperation != state.operation
+        observedOperation = state.operation
+        // The existing card owns general Data & Privacy feedback. Reveal new work/results,
+        // including fast operations whose Running state never reached a rendered frame.
+        // Opening a section or restoring an old message does not move its saved position.
+        if (operationChanged && section == SettingsSection.DataPrivacy &&
+            state.backupPreview == null && !state.encryptedRestorePending && !confirmDelete &&
+            !showEncryptedExport && activeTypedSettingTag == null && (state.busy || state.message != null)
+        ) {
+            settingsListState.scrollToItem(0)
+        }
+    }
     LifecycleResumeEffect(Unit) {
         diagnosticRefresh++
         onPauseOrDispose { }
@@ -315,6 +329,8 @@ internal fun SettingsContent(
             typedSettingWarning = warnings.joinToString(" ").takeIf(String::isNotBlank)
         },
     )
+    // Observe here so resume refreshes the platform snapshot, not only the lazy item.
+    val diagnosticRefreshKey = diagnosticRefresh
     val notificationPermissionGranted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
     val notificationPermissionRationale = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -1061,7 +1077,7 @@ internal fun SettingsContent(
 
         if (section == SettingsSection.Reminders) {
         item { SettingsHeading("Notifications") }
-        item(key = "notification-diagnostics-$diagnosticRefresh") {
+        item(key = "notification-diagnostics-$diagnosticRefreshKey") {
             WhipGroupedInformationCard(Modifier.testTag("notification-diagnostics")) {
                     WhipGroupHeading("Reminder Delivery")
                     Text(overallNotificationState.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
@@ -1491,6 +1507,17 @@ internal fun SettingsContent(
         )
     }
     if (showEncryptedExport) {
+        val confirmationFocus = remember { FocusRequester() }
+        val canExport = exportPassphrase.length >= 8 && exportPassphrase == exportPassphraseConfirmation
+        val launchEncryptedExport = {
+            if (showEncryptedExport && exportPassphrase.length >= 8 && exportPassphrase == exportPassphraseConfirmation) {
+                viewModel.prepareDocumentExport(ExportKind.EncryptedBackup, exportPassphrase)
+                exportPassphrase = ""
+                exportPassphraseConfirmation = ""
+                showEncryptedExport = false
+                createDocument.launch("whip-${LocalDate.now(settings.zoneId())}.whip.enc.json")
+            }
+        }
         PaneAwareAlertDialog(
             onDismissRequest = {
                 showEncryptedExport = false
@@ -1499,48 +1526,56 @@ internal fun SettingsContent(
             },
             title = { Text("Encrypt This Backup") },
             text = {
-                WhipDialogBody {
+                WhipDialogBody(Modifier.verticalScroll(rememberScrollState())) {
                     Text("Use at least 8 characters. Whip cannot recover this passphrase.")
                     OutlinedTextField(
                         value = exportPassphrase,
                         onValueChange = { exportPassphrase = it },
                         label = { Text("Passphrase") },
                         visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false, imeAction = ImeAction.Next),
+                        keyboardActions = KeyboardActions(onNext = { confirmationFocus.requestFocus() }),
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
+                        isError = exportPassphrase.isNotEmpty() && exportPassphrase.length < 8,
+                        supportingText = if (exportPassphrase.isNotEmpty() && exportPassphrase.length < 8) ({ Text("Use at least 8 characters.") }) else null,
+                        modifier = Modifier.fillMaxWidth().testTag("backup-export-passphrase"),
                     )
                     OutlinedTextField(
                         value = exportPassphraseConfirmation,
                         onValueChange = { exportPassphraseConfirmation = it },
                         label = { Text("Confirm passphrase") },
                         visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false, imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { launchEncryptedExport() }),
                         singleLine = true,
                         isError = exportPassphraseConfirmation.isNotEmpty() && exportPassphraseConfirmation != exportPassphrase,
-                        modifier = Modifier.fillMaxWidth(),
+                        supportingText = if (exportPassphraseConfirmation.isNotEmpty() && exportPassphraseConfirmation != exportPassphrase) ({ Text("Passphrases do not match.") }) else null,
+                        modifier = Modifier.fillMaxWidth().focusRequester(confirmationFocus).testTag("backup-export-confirmation"),
                     )
                 }
             },
             confirmButton = {
                 WhipTextButton(
-                    enabled = exportPassphrase.length >= 8 && exportPassphrase == exportPassphraseConfirmation,
-                    onClick = {
-                        viewModel.prepareDocumentExport(ExportKind.EncryptedBackup, exportPassphrase)
-                        exportPassphrase = ""
-                        exportPassphraseConfirmation = ""
-                        showEncryptedExport = false
-                        createDocument.launch("whip-${LocalDate.now(settings.zoneId())}.whip.enc.json")
-                    },
+                    enabled = canExport,
+                    onClick = launchEncryptedExport,
                 ) { Text("Choose Location") }
             },
             dismissButton = { WhipTextButton(onClick = { showEncryptedExport = false; exportPassphrase = ""; exportPassphraseConfirmation = "" }) { Text("Cancel") } },
         )
     }
     if (state.encryptedRestorePending) {
+        val unlockBackup = {
+            if (restorePassphrase.isNotEmpty() && !state.busy) {
+                viewModel.unlockEncryptedRestore(restorePassphrase)
+                restorePassphrase = ""
+            }
+        }
         PaneAwareAlertDialog(
             onDismissRequest = { if (!state.busy) { restorePassphrase = ""; viewModel.cancelEncryptedRestore() } },
             title = { Text("Unlock Encrypted Backup") },
             text = {
-                WhipDialogBody {
+                WhipDialogBody(Modifier.verticalScroll(rememberScrollState())) {
+                    Text("Enter the original passphrase used to encrypt this backup.")
                     (state.operation as? OperationStatus.Failed)?.let { failure ->
                         WhipStatusCard(
                             kind = WhipStatusKind.Error,
@@ -1555,18 +1590,17 @@ internal fun SettingsContent(
                         enabled = !state.busy,
                         label = { Text("Passphrase") },
                         visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false, imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { unlockBackup() }),
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().testTag("backup-unlock-passphrase"),
                     )
                 }
             },
             confirmButton = {
                 WhipTextButton(
                     enabled = restorePassphrase.isNotEmpty() && !state.busy,
-                    onClick = {
-                        viewModel.unlockEncryptedRestore(restorePassphrase)
-                        restorePassphrase = ""
-                    },
+                    onClick = unlockBackup,
                 ) { Text(if (state.busy) "Unlocking…" else "Unlock and Preview") }
             },
             dismissButton = { WhipTextButton(enabled = !state.busy, onClick = { restorePassphrase = ""; viewModel.cancelEncryptedRestore() }) { Text("Cancel") } },

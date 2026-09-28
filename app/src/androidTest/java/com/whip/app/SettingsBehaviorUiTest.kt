@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
@@ -57,6 +58,67 @@ class SettingsBehaviorUiTest {
             AppSettings(setupCompleted = true, hiddenHomeSections = emptySet())
         }
         compose.waitForIdle()
+    }
+
+    @Test
+    fun notificationDeliveryRefreshesAfterAndroidSettingsReturn() {
+        val permission = android.Manifest.permission.POST_NOTIFICATIONS
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        if (Build.VERSION.SDK_INT >= 33) {
+            automation.grantRuntimePermission(app.packageName, permission)
+        }
+        val manager = app.getSystemService(android.app.NotificationManager::class.java)
+        com.whip.app.reminders.ReminderNotifications.createChannel(app)
+        val channelId = com.whip.app.reminders.ReminderNotifications.CHANNEL_ID
+        val channelWasEnabled = manager.getNotificationChannel(channelId).importance != android.app.NotificationManager.IMPORTANCE_NONE
+        fun openChannelSettings() {
+            app.startActivity(android.content.Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, app.packageName)
+                .putExtra(android.provider.Settings.EXTRA_CHANNEL_ID, channelId)
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+        fun setChannelAndReturn(enabled: Boolean) {
+            assertTrue(device.wait(Until.hasObject(By.pkg("com.android.settings")), 5_000))
+            val switch = device.wait(Until.findObject(By.clazz("android.widget.Switch")), 5_000)
+                ?: error("Android channel settings did not expose its notification switch")
+            if (switch.isChecked != enabled) switch.click()
+            compose.waitUntil(5_000) {
+                (manager.getNotificationChannel(channelId).importance != android.app.NotificationManager.IMPORTANCE_NONE) == enabled
+            }
+            device.pressBack()
+            assertTrue(device.wait(Until.hasObject(By.pkg(app.packageName)), 5_000))
+            compose.waitForIdle()
+        }
+        try {
+            runBlocking { app.settingsRepository.update { it.copy(notificationPermissionRequested = true) } }
+            openSettingsSection("Reminders")
+            compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Troubleshooting"))
+            compose.onNodeWithText("Troubleshooting").performClick()
+            openChannelSettings()
+            setChannelAndReturn(true)
+            compose.onNodeWithTag("settings-list").performScrollToNode(hasTestTag("notification-diagnostics"))
+            compose.onAllNodesWithText("Repair Task reminders").assertCountEquals(0)
+
+            openChannelSettings()
+            setChannelAndReturn(false)
+            compose.onNodeWithTag("settings-list").performScrollToNode(hasTestTag("notification-diagnostics"))
+            captureVisualCatalogSurface("audit2.settings.channel-return-before-assertion")
+            compose.onNodeWithText("Off in Android", substring = false).performScrollTo().assertIsDisplayed()
+            compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Repair Task reminders"))
+            compose.onNodeWithText("Repair Task reminders").performScrollTo().assertIsDisplayed()
+            captureVisualCatalogSurface("audit2.settings.permission-return")
+            compose.onNodeWithText("Repair Task reminders").performClick()
+            setChannelAndReturn(true)
+            compose.onNodeWithTag("settings-list").performScrollToNode(hasTestTag("notification-diagnostics"))
+            compose.onAllNodesWithText("Repair Task reminders").assertCountEquals(0)
+            if (Build.VERSION.SDK_INT >= 33) {
+                assertEquals(android.content.pm.PackageManager.PERMISSION_GRANTED, app.checkSelfPermission(permission))
+            }
+        } finally {
+            openChannelSettings()
+            setChannelAndReturn(channelWasEnabled)
+        }
     }
 
     @Test

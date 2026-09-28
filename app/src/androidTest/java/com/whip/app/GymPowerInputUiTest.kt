@@ -23,6 +23,11 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.isDisplayed
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
@@ -122,6 +127,236 @@ import java.time.Instant
 class GymPowerInputUiTest {
     private val compose = createComposeRule()
     @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
+
+    @Test
+    fun restAlertExplainsBlockedCurrentChannel() {
+        val app: WhipApplication = androidx.test.core.app.ApplicationProvider.getApplicationContext()
+        val instrumentation = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+        val device = androidx.test.uiautomator.UiDevice.getInstance(instrumentation)
+        val manager = app.getSystemService(android.app.NotificationManager::class.java)
+        val permission = android.Manifest.permission.POST_NOTIFICATIONS
+        val runtimePermission = android.os.Build.VERSION.SDK_INT >= 33
+        val permissionWasGranted = !runtimePermission || app.checkSelfPermission(permission) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        com.whip.app.reminders.RestTimerNotifications.createChannel(app)
+        val channelId = com.whip.app.reminders.RestTimerNotifications.channelId(false, false)
+        val channelWasEnabled = manager.getNotificationChannel(channelId).importance != android.app.NotificationManager.IMPORTANCE_NONE
+        fun setChannelEnabled(enabled: Boolean) {
+            app.startActivity(android.content.Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, app.packageName)
+                .putExtra(android.provider.Settings.EXTRA_CHANNEL_ID, channelId)
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+            assertTrue(device.wait(androidx.test.uiautomator.Until.hasObject(androidx.test.uiautomator.By.pkg("com.android.settings")), 5_000))
+            val switch = device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.clazz("android.widget.Switch")), 5_000)
+                ?: error("Android channel settings did not expose its notification switch")
+            if (switch.isChecked != enabled) switch.click()
+            compose.waitUntil(5_000) { (manager.getNotificationChannel(channelId).importance != android.app.NotificationManager.IMPORTANCE_NONE) == enabled }
+            device.pressBack()
+            assertTrue(device.wait(androidx.test.uiautomator.Until.hasObject(androidx.test.uiautomator.By.pkg(app.packageName)), 5_000))
+            compose.waitForIdle()
+        }
+        var sound by mutableStateOf(false)
+        try {
+            if (runtimePermission && !permissionWasGranted) instrumentation.uiAutomation.grantRuntimePermission(app.packageName, permission)
+            compose.setContent {
+                WhipTheme(dynamicColor = false) {
+                    RestTimerCard(session = testHistorySession(), remaining = 45,
+                        duration = resolveWorkoutRestDuration(null, null, null, 120), presetSeconds = DEFAULT_REST_TIMER_PRESET_SECONDS,
+                        notificationPermissionRequested = true, timerSound = sound, timerVibration = false,
+                        onSelectedSecondsChange = {}, onPresetSecondsChange = {}, onStart = { _, _ -> }, onAdjust = { _, _ -> }, onStop = {})
+                }
+            }
+            setChannelEnabled(true)
+            compose.onAllNodesWithText("Background alert off", substring = true).assertCountEquals(0)
+            setChannelEnabled(false)
+            compose.onNodeWithText("Background alert off", substring = true).assertIsDisplayed()
+            compose.onNodeWithContentDescription("Stop rest timer").assertIsEnabled()
+            captureVisualCatalogSurface("audit2.gym.rest-blocked-channel")
+            val otherChannel = manager.getNotificationChannel(com.whip.app.reminders.RestTimerNotifications.channelId(true, false))
+            if (otherChannel.importance != android.app.NotificationManager.IMPORTANCE_NONE) {
+                compose.runOnIdle { sound = true }
+                compose.onAllNodesWithText("Background alert off", substring = true).assertCountEquals(0)
+                compose.runOnIdle { sound = false }
+                compose.onNodeWithText("Background alert off", substring = true).assertIsDisplayed()
+            }
+        } finally {
+            setChannelEnabled(channelWasEnabled)
+        }
+    }
+
+    @Test
+    fun largeMachineLibraryKeepsProfileLookupAndArchiveScopeClear() {
+        val first = testExercise().copy(name = "Seated row")
+        val second = first.copy(id = 900, uuid = "secondary", name = "Cable fly")
+        val profiles = List(30) { index -> com.whip.app.domain.GymMachine(
+            id = index.toLong() + 1, uuid = "machine-$index", exerciseId = first.id,
+            name = "Cable station ${index + 1}", location = if (index == 29) "North room" else "South room",
+            details = "", loadType = com.whip.app.domain.MachineLoadType.Mass, unitId = "kilogram", levelLabel = "level",
+            availableLoads = listOf(5.0, 10.0), loadInterpretation = LoadInterpretation.MachineDisplayedMass,
+            baseLoadKg = null, archived = false, createdAtMillis = 1, updatedAtMillis = 1,
+            configurationVersion = if (index == 29) 3 else 1,
+            exerciseIds = if (index == 29) setOf(first.id, second.id) else setOf(first.id),
+        ) }
+        val archived = profiles.last().copy(id = 31, uuid = "archived-machine", archived = true, configurationVersion = 2)
+        var edited: Long? = null
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                com.whip.app.ui.MachineLibraryContent(
+                    state = GymUiState(loading = false, exercises = listOf(first, second), machines = profiles, archivedMachines = listOf(archived)),
+                    onCreate = {}, onEdit = { edited = it.id }, onArchive = { _, _ -> }, onNewVersion = {}, onDelete = {},
+                )
+            }
+        }
+        captureVisualCatalogSurface("audit2.gym.machines.collection-30")
+        val list = compose.onNodeWithTag("gym-machine-list")
+        assertTrue("The distant profile starts outside the visible collection",
+            compose.onAllNodesWithText("Cable station 30 · North room").fetchSemanticsNodes().isEmpty() ||
+                !compose.onNodeWithText("Cable station 30 · North room").isDisplayed())
+        var lookupSwipes = 0
+        while ((compose.onAllNodesWithText("Cable station 30 · North room").fetchSemanticsNodes().isEmpty() ||
+                !compose.onNodeWithText("Cable station 30 · North room").isDisplayed()) && lookupSwipes < 30) {
+            list.performTouchInput { swipeUp() }
+            compose.waitForIdle()
+            lookupSwipes++
+        }
+        assertTrue("Thirty-profile lookup should measure actual navigation before querying", lookupSwipes > 0)
+        compose.onNodeWithText("Cable station 30 · North room").assertIsDisplayed()
+        captureVisualCatalogSurface("audit2.gym.machines.distant-target-after-$lookupSwipes-swipes")
+        list.performScrollToNode(hasTestTag("machine-library-search"))
+        compose.onNodeWithTag("machine-library-search").performTextReplacement("north v3 cable fly")
+        androidx.test.espresso.Espresso.closeSoftKeyboard()
+        compose.onNodeWithText("1 of 30 active profiles").assertIsDisplayed()
+        captureVisualCatalogSurface("audit2.gym.machines.lookup")
+        compose.onNodeWithContentDescription("Edit machine Cable station 30 · North room").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(30L, edited) }
+        list.performScrollToNode(hasText("Show archived", ignoreCase = true))
+        compose.onNodeWithText("Show archived", ignoreCase = true).performClick()
+        compose.onNodeWithText("No Matching Machines").assertIsDisplayed()
+        compose.onNodeWithTag("machine-library-search").performTextReplacement("north v2 cable fly")
+        androidx.test.espresso.Espresso.closeSoftKeyboard()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithTag("machine-library-search").assertTextContains("north v2 cable fly")
+        compose.onNodeWithText("1 of 1 archived profiles").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Edit machine Cable station 30 · North room").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(31L, edited) }
+        list.performScrollToNode(hasTestTag("machine-library-search"))
+        compose.onNodeWithTag("machine-library-search").performTextReplacement("missing")
+        androidx.test.espresso.Espresso.closeSoftKeyboard()
+        compose.onNodeWithText("Clear Search", substring = false).performScrollTo().performClick()
+        compose.onNodeWithText("1 of 1 archived profiles").assertIsDisplayed()
+    }
+
+    @Test
+    fun exerciseInspectorDefaultsFollowMeasurementCapabilities() {
+        var exercise by mutableStateOf(testExercise().copy(trackingType = ExerciseTrackingType.BodyweightReps))
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                ExerciseActionsDialog(exercise = exercise, trackedInProgress = false, onDismiss = {}, onEdit = {},
+                    onFavorite = {}, onDuplicate = {}, onConfigureTrackedRecords = {}, onArchive = {}, onDelete = {})
+            }
+        }
+        compose.onNodeWithText("Weight increment").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Repetition increment").performScrollTo().assertIsDisplayed()
+        compose.runOnIdle { exercise = exercise.copy(trackingType = ExerciseTrackingType.AssistedBodyweightReps) }
+        compose.onNodeWithText("Weight increment").performScrollTo().assertIsDisplayed()
+        compose.runOnIdle { exercise = exercise.copy(trackingType = ExerciseTrackingType.DurationOnly) }
+        compose.onAllNodesWithText("Weight increment").assertCountEquals(0)
+        compose.onAllNodesWithText("Repetition increment").assertCountEquals(0)
+        compose.onAllNodesWithText("Load meaning").assertCountEquals(0)
+    }
+
+    @Test
+    fun chartPointsRetainExactWorkoutAndSeriesIdentity() {
+        val exercise = testExercise().copy(name = "Same named exercise", defaultGraphMetric = GymGraphMetric.MaxWeight.name)
+        val comparison = exercise.copy(id = 900, uuid = "comparison")
+        val first = testHistorySession()
+        val second = first.copy(id = 51, uuid = "same-day-second", startedAt = first.startedAt.plusSeconds(3600))
+        val third = first.copy(id = 52, uuid = "comparison-session")
+        val placements = listOf(first, second, third).mapIndexed { index, session ->
+            testWorkoutExercise(if (index == 2) comparison else exercise).copy(id = 100L + index, uuid = "placement-$index", sessionId = session.id)
+        }
+        var opened: Long? = null
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                GymProgressContent(state = GymUiState(loading = false, exercises = listOf(exercise, comparison),
+                    history = listOf(first, second, third), allWorkoutExercises = placements,
+                    allSets = placements.mapIndexed { index, placement -> testWorkoutSet(200L + index, placement.id)
+                        .copy(completed = true, canonicalWeightKg = 40.0 + 10 * index, enteredWeight = 40.0 + 10 * index) }),
+                    onOpenExercises = {}, onOpenWorkout = {}, onOpenWorkoutHistory = { opened = it }, onManageTrackedRecords = {})
+            }
+        }
+        val list = compose.onNodeWithTag("gym-progress-list")
+        list.performScrollToNode(hasText("Graph Options"))
+        compose.onNodeWithText("Graph Options").performClick()
+        list.performScrollToNode(hasText("Add up to 3 Comparisons"))
+        compose.onNodeWithText("Add up to 3 Comparisons").performClick()
+        compose.onNode(hasText(exercise.name) and hasAnyAncestor(hasTestTag("gym-exercise-comparison-menu"))).performClick()
+        androidx.test.espresso.Espresso.pressBack()
+        list.performScrollToNode(hasText("Graph Options"))
+        compose.onNodeWithText("Graph Options").performClick()
+        listOf(first.id, second.id, third.id).forEachIndexed { index, sessionId ->
+            val value = 40 + index * 10
+            list.performScrollToNode(hasTestTag("gym-chart-point"))
+            val point = compose.onNode(hasTestTag("gym-chart-point") and hasText("$value", substring = true))
+            point.performScrollTo()
+            repeat(3) { if (!point.isDisplayed()) list.performTouchInput { swipeUp() } }
+            point.assertIsDisplayed().performTouchInput { click() }
+            if (index == 0) restoration.emulateSavedInstanceStateRestore()
+            compose.onNodeWithText("Built from 1 source.").assertIsDisplayed()
+            captureVisualCatalogSurface("audit2.gym.chart-source-$index")
+            compose.onNodeWithTag("gym-chart-point-open-workout").performClick()
+            compose.runOnIdle { assertEquals(sessionId, opened) }
+        }
+        list.performScrollToNode(hasText("Graph Options"))
+        compose.onNodeWithText("Graph Options").performClick()
+        list.performScrollToNode(hasText("Each Workout"))
+        compose.onNodeWithText("Each Workout", substring = false).performClick()
+        compose.onNodeWithText("Weekly", substring = false).performClick()
+        list.performScrollToNode(hasText("Graph Options"))
+        compose.onNodeWithText("Graph Options").performClick()
+        list.performScrollToNode(hasTestTag("gym-chart-point"))
+        val aggregate = compose.onNode(hasTestTag("gym-chart-point") and hasText("50", substring = true))
+        aggregate.performScrollTo()
+        repeat(3) { if (!aggregate.isDisplayed()) list.performTouchInput { swipeUp() } }
+        aggregate.assertIsDisplayed().performTouchInput { click() }
+        compose.onNodeWithText("Built from 2 sources.").assertIsDisplayed()
+        compose.onAllNodesWithTag("gym-chart-point-open-workout").assertCountEquals(0)
+    }
+
+    @AndroidFontScale
+    @Test
+    fun populatedHistoryCalendarKeepsDatesAndCountsReadableAtNativeLargeText() {
+        val date = LocalDate.of(2026, 9, 28)
+        var selected by mutableStateOf<LocalDate?>(null)
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                Surface(Modifier.width(320.dp)) {
+                    com.whip.app.ui.WorkoutMonthCalendar(
+                        month = java.time.YearMonth.from(date),
+                        sessions = List(12) { testHistorySession().copy(id = it.toLong(), localDate = date) },
+                        selectedDate = selected, onSelectDate = { selected = it },
+                        onPreviousMonth = {}, onNextMonth = {}, firstDayOfWeek = java.time.DayOfWeek.MONDAY,
+                    )
+                }
+            }
+        }
+        captureVisualCatalogSurface("audit2.gym.calendar.native200")
+        listOf("28", "12").forEach { label ->
+            val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+            compose.onAllNodesWithText(label, useUnmergedTree = true).fetchSemanticsNodes().forEach { node ->
+                val key = androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult
+                if (node.config.contains(key)) node.config[key].action?.invoke(layouts)
+            }
+            assertTrue("Expected measured calendar text for $label", layouts.isNotEmpty())
+            layouts.forEach { result ->
+                assertEquals("Calendar $label must stay on one line", 1, result.lineCount)
+                assertFalse("Calendar $label must not clip", result.hasVisualOverflow)
+            }
+        }
+        compose.onNodeWithContentDescription("Monday, September 28, 2026, 12 workouts").performClick()
+        compose.runOnIdle { assertEquals(date, selected) }
+    }
 
     @AndroidFontScale
     @Test

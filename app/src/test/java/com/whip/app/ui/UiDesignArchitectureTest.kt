@@ -468,7 +468,7 @@ class UiDesignArchitectureTest {
         assertTrue("Routine copy uses the product-standard spelling", !routineBuilder.contains("Favourites"))
         assertTrue(
             "Machine collection rows must use the shared record renderer",
-            gymScreens.substringAfter("private fun MachineLibraryContent(").substringBefore("\n@Composable")
+            gymScreens.substringAfter("fun MachineLibraryContent(").substringBefore("\n@Composable")
                 .contains("WhipRecordItem("),
         )
         assertTrue("Workout history display rows must use the canonical card", gymScreens.contains("WhipCollectionCard(modifier = modifier.fillMaxWidth().testTag(\"history-workout-card-"))
