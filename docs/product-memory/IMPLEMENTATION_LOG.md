@@ -5,6 +5,7 @@
 - Related: FB-20260928-003; IMP-20260928-002/003/004 and VER-20260928-002.
 - Changes: Advance the release to 0.3.81/code 87, including all 32 accepted second-audit workstreams. Preserve package/signing identity, Room schema 46, data epoch 6 and backup format 26.
 - Status: Implemented. `timeout --kill-after=3s 55s scripts/check` passed the version-aware JVM/static lane in 10 seconds; prior behavior readiness/native acceptance remains VER-20260928-002. Signed packaging/device acceptance follows. No behavior changes beyond the already verified audit and no Play candidate claimed.
+- Release: Clean pushed `c9b555a8` produced the signed artifacts. Released in place as 0.3.81/code 87 under VER-20260928-003; installed APK hash, unchanged first-install identity and foreground launch pass. A later process absence is explained by Android's user-requested task removal, not a crash.
 
 ### IMP-20260928-004 — Exact Gym evidence and dependable Settings feedback
 

@@ -1,5 +1,13 @@
 # Verification and release evidence
 
+### VER-20260928-003 — Signed 0.3.81 second-audit update installed on the owner phone
+
+- Related: FB-20260928-003, IMP-20260928-005. Clean pushed source `c9b555a85e5c7ec3c22b50bf2be1db67ba6d6d46`; [release receipt and logs](../../artifacts/ux-audit2/2026-09-28/phone-release-0.3.81/README.md). Includes all 32 accepted groups under VER-20260928-002; no new behavior changes during packaging.
+- Checks/build: `timeout --kill-after=3s 55s scripts/check` passed 405 JVM methods in 44 classes with zero failures/errors/skips plus static/assets checks in 10 seconds. Signed `./gradlew assembleRelease bundleRelease` passed in 1m16s with release-vital lint and R8. Prior 419 distinct JVM/175 selected Android behavior acceptance is retained; no repeated full native inventory or Play candidate.
+- Artifacts: APK SHA-256 `4dd192ec1aa115dbd7fd3a4853e6ec217ec0c51d8a729a56a0bf954e3aa0c2af`; AAB SHA-256 `9f5ac20ede3b001df738d852e95006e5faab0ac99aefa53c3e199a8e7717e2de`. Package/version/code and both ZIP archives verify. APK has the established single certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`. AAB reports `jar verified`, with trust/timestamp/manifest-order warnings retained verbatim.
+- Device/status: Released. Explicit physical-target guard selects Samsung `SM-F976W`; `scripts/device release-install` updates 0.3.80/code 86 in place to 0.3.81/code 87. Installed-base APK hash matches. `lastUpdateTime=2026-09-28 03:57:42`; original `firstInstallTime=2026-08-26 17:59:24` remains unchanged. `scripts/device release-run` cold-launches MainActivity in 119 ms and verifies foreground state.
+- Post-launch boundary: A later process lookup failed because the process was absent. Android exit history reports USER REQUESTED / REMOVE TASK at 03:57:52.581; bounded crash buffer has zero entries. No process-crash or ongoing-process assertion is inferred, and the app was not reopened after that user action. No data clear/reset, uninstall, downgrade, phone instrumentation, private-record inspection or Play publication. Schema 46/epoch 6/backup 26 and package/signing identity remain unchanged; subjective appearance awaits owner use.
+
 ### VER-20260928-002 — Second major-component audit implementation and acceptance
 
 - Scope: FB-20260928-002, DEC-20260928-001, FND-20260928-001/002/003/004, IMP-20260928-002/003/004. Three Astra/high agents and parent reviewed190 workflow rows and implemented all32 accepted workstreams. [Final plan/matrices](../quality/UX_AUDIT_2_2026-09-28.md); [originals, gallery, exact receipts and failed attempts](../../artifacts/ux-audit2/2026-09-28/README.md). Plan commits `4df59310` and `e05bc42d` precede production changes from baseline `7c77c075`.

@@ -1,0 +1,2 @@
+# Preserve original build/signature output, including tool-authored trailing spaces.
+*.log -text whitespace=-blank-at-eol

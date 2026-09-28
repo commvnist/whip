@@ -4,7 +4,7 @@
 
 - Date/source: 2026-09-28, explicit owner request: “Release to phone”.
 - Acceptance: Package the verified second audit as the next signed private update, install in place on the selected physical phone, preserve app data/signing identity, and verify exact installed version/hash and foreground launch.
-- Scope/status: In progress. Includes IMP-20260928-002/003/004 and acceptance VER-20260928-002 from clean pushed `a7a33d23`. Reuse the established release path; no phone instrumentation, reset, uninstall or Play publication.
+- Scope/status: Released under VER-20260928-003. Whip 0.3.81/code 87 includes IMP-20260928-002/003/004, accepted in VER-20260928-002, and is installed in place on the selected Samsung. Exact installed hash, preserved first-install identity and 119 ms cold foreground launch verify. No phone instrumentation, reset, uninstall or Play publication.
 
 ### FB-20260928-002 — Second exhaustive major-component UX/UI/design/quality investigation
 

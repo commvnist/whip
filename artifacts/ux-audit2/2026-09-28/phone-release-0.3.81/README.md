@@ -1,0 +1,13 @@
+# Whip 0.3.81 private phone update — 2026-09-28
+
+**Released and device verified.** Includes all 32 accepted improvements from the [second component audit](../../../../docs/quality/UX_AUDIT_2_2026-09-28.md). Clean pushed source `c9b555a85e5c7ec3c22b50bf2be1db67ba6d6d46` on `origin/main` produced the signed artifacts.
+
+- [Signed APK](../../../../build/releases/Whip-0.3.81-code87-private.apk): package `commvne.com.whip.app`, version 0.3.81/code 87, SHA-256 `4dd192ec1aa115dbd7fd3a4853e6ec217ec0c51d8a729a56a0bf954e3aa0c2af`.
+- [Signed AAB](../../../../build/releases/Whip-0.3.81-code87-private.aab): SHA-256 `9f5ac20ede3b001df738d852e95006e5faab0ac99aefa53c3e199a8e7717e2de`.
+- Version-aware `timeout --kill-after=3s 55s scripts/check` passed 405 JVM methods in 44 classes, zero failures/errors/skips, plus static/assets checks in 10 seconds. Prior affected behavior acceptance remains VER-20260928-002: 419 distinct JVM and 175 selected Android methods. No behavior changed during packaging.
+- Signed `./gradlew assembleRelease bundleRelease` passed in 1m16s with release-vital lint and R8. Both ZIP archives pass integrity checks. APK verifies with the established single certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`. AAB reports `jar verified`; ordinary self-signed trust/timestamp and manifest-order warnings are retained in [its signature output](aab-signature.log). This private update is not a Play candidate.
+- The explicit physical-target guard selected Samsung `SM-F976W`. `scripts/device release-install` installed in place over 0.3.80/code 86. Installed-base SHA-256 exactly matches the APK above. Phone reports `lastUpdateTime=2026-09-28 03:57:42` and unchanged `firstInstallTime=2026-08-26 17:59:24`.
+- Guarded `scripts/device release-run` cold-launched MainActivity in **119 ms** and verified foreground state. A subsequent process lookup found the process absent; Android exit history identifies **USER REQUESTED / REMOVE TASK** at 03:57:52.581. The bounded crash buffer contained no entries. The app was not reopened after that user action; no ongoing-process claim is made.
+- No app-data clear, uninstall, downgrade, instrumentation, private-record inspection or Play publication. Package/signing identity, Room schema 46, data epoch 6 and backup format 26 are preserved. Subjective appearance awaits normal owner use.
+
+Build/check/signature logs, sanitized install/launch output and device metadata are retained here. The transient wireless address is replaced by `<selected-owner-phone>`. VER-20260928-003 is the durable verification record.
