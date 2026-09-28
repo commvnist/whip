@@ -1,5 +1,11 @@
 # User feedback and acceptance criteria
 
+### FB-20260928-003 — Release the second audit improvements to the owner phone
+
+- Date/source: 2026-09-28, explicit owner request: “Release to phone”.
+- Acceptance: Package the verified second audit as the next signed private update, install in place on the selected physical phone, preserve app data/signing identity, and verify exact installed version/hash and foreground launch.
+- Scope/status: In progress. Includes IMP-20260928-002/003/004 and acceptance VER-20260928-002 from clean pushed `a7a33d23`. Reuse the established release path; no phone instrumentation, reset, uninstall or Play publication.
+
 ### FB-20260928-002 — Second exhaustive major-component UX/UI/design/quality investigation
 
 - Date/source: 2026-09-28, explicit owner request and goal after private 0.3.80 installation.

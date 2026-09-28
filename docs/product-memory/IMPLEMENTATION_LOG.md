@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260928-005 — Package the second component audit as private update 0.3.81
+
+- Related: FB-20260928-003; IMP-20260928-002/003/004 and VER-20260928-002.
+- Changes: Advance the release to 0.3.81/code 87, including all 32 accepted second-audit workstreams. Preserve package/signing identity, Room schema 46, data epoch 6 and backup format 26.
+- Status: Implemented. `timeout --kill-after=3s 55s scripts/check` passed the version-aware JVM/static lane in 10 seconds; prior behavior readiness/native acceptance remains VER-20260928-002. Signed packaging/device acceptance follows. No behavior changes beyond the already verified audit and no Play candidate claimed.
+
 ### IMP-20260928-004 — Exact Gym evidence and dependable Settings feedback
 
 - Changes: All seven groups in the [second Gym/Settings audit](../quality/UX_AUDIT_2_GYM_SETTINGS_2026-09-28.md). Graph drill-down follows exact Exercise/session identity. Routine prescriptions use exercise capabilities and readable complete collapsed targets. Machine search resolves name/location/version/linked exercises with explicit counts and archive scope. Rest availability includes the active Android channel. Large-text Gym calendar dates/counts stay on one line with48dp targets. Backup passphrases use password keyboards, Next/Done, mismatch feedback and scrollable bodies while remaining transient. New deep Data & Privacy operations reveal the existing result card.
