@@ -1,5 +1,11 @@
 # Durable findings
 
+### FND-20260928-015 — Child history editing destroys its parent browsing context
+
+- Report/source: FB-20260928-008 reports repeated Habit history deletion returning to the collection. Current Habit callbacks call closeHabitActions before opening log/pause editors. Goal measurement editing similarly clears actionsGoalId, and its success handler also dismisses the parent for all non-milestone receipts.
+- Remedy: Preserve parent composition, History selection, query and lazy-list position while a child editor/review is open; render parent before child for correct stacking, clear only the finished child on event receipts, and update live history. Keep whole-entity lifecycle/deletion transitions intentional. Native repeated edits/deletions must assert stored outcomes and retained context.
+- Related/status: EP6 in the current experience plan; accepted, implementation in progress. Track Entry overlays already retain collection context. Gym/Settings review finds child-only Set/editor/row-menu dismissal; complete session deletion intentionally leaves its invalid target and remains in History. These are source-reviewed keeps, not newly executed claims.
+
 ### FND-20260928-014 — Daily planning discovery and clock-driven work waste user attention
 
 - Current-source observation: Plan My Day is an Inbox-only disclosure; every candidate is eagerly composed inside a single list item, with Apply after all rows. Global Search keys its cross-feature index to whole GymUiState, so non-searchable clock changes trigger rebuilding; query tokenization/ranking repeats per row/comparison. Gym's own tick similarly recalculates non-time summary data.

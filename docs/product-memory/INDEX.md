@@ -12,6 +12,8 @@ Current snapshot: **2026-09-28**. This page is the entry point, not a replay of 
 
 ## Current work and boundaries
 
+- **History continuity feedback:** FB-20260928-008 adds EP6 to the active experience overhaul: deleting/correcting a single history item should retain its parent history view, query and useful position. Audit analogous child-record actions across all domains; preserve intentional navigation after whole-entity removal. Implementation and focused repeated-operation proof are in progress.
+
 - **Active complete-experience overhaul:** FB-20260928-007 adopts the owner's ambitious top-to-bottom audit/implementation prompt, with two additional Astra/high agents. Reassess current product workflows, design/language, clarity, speed, quality and reuse from clean `9014937f`; implement every recommended improvement in the [new plan](../quality/EXPERIENCE_OVERHAUL_2026-09-28.md). Minimal exact sub-minute QA only. The phone remains on 0.3.82; historical paused scopes are not resumed.
 
 - **Full-app audit completed and released:** FB-20260928-005 closes all S1–S4, P-01–09 and PGS-1–7 groups from baseline `d737209a`; the subsequent authorized phone release is FB-20260928-006 / VER-20260928-006. Shared forms/time/unit creation and recovery are consistent; productivity calculations and unit/history meaning are preserved; Gym evidence, older history, exports and reminder retries are repaired. The [plan](../quality/PRODUCT_AUDIT_2026-09-28.md) maps every accepted item to implementation and focused evidence. One cold compile timeout and corrected fixture failures remain documented. No accepted work remains; historical audits retain their own completed or paused status.

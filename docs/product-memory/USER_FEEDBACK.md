@@ -1,5 +1,11 @@
 # User feedback and acceptance criteria
 
+### FB-20260928-008 — Keep history open while correcting or clearing individual records
+
+- Date/source: 2026-09-28, owner reports that deleting each Habit history item closes the dialog and returns to Habits, making repeated cleanup unnecessarily tedious.
+- Acceptance: Fix the Habit journey and audit analogous single-record correction/removal flows across Habits, Goals, Tracks, Tasks and Gym. A committed child-record change should update the list while retaining the parent inspector, History section, query and useful scroll position. Dismiss only the completed child review/editor; keep failure/retry local and prevent repeated submission. Whole-entity deletion or lifecycle changes can still intentionally leave an unavailable context.
+- Scope/status: Accepted into the active complete-experience goal as EP6, in progress. Preserve exact source identities, historical semantics and the existing short focused QA constraint. Related FB-20260928-007.
+
 ### FB-20260928-007 — Substantially improve the whole Whip product experience
 
 - Date/source: 2026-09-28, owner adopts the authored top-to-bottom audit/implementation prompt as an active goal, changing the team allowance to exactly two additional GPT-6 Astra agents at high reasoning.
