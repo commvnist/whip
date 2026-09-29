@@ -1,0 +1,3 @@
+Command: signed ./gradlew assembleRelease bundleRelease
+Exit: 0
+Elapsed seconds: 161.164

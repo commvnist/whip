@@ -1,5 +1,13 @@
 # Verification and release evidence
 
+### VER-20260929-003 — Signed deep-review update 0.3.84 installed on the phone
+
+- Related/scope: FB-20260929-003, IMP-20260929-005, accepted audit behavior under VER-20260929-002. Clean pushed source `3ba7a50c`; [exact release receipt](../../artifacts/phone-releases/2026-09-29/0.3.84/README.md). All 493 accepted Kotlin source/test hashes match; only version metadata advances to 0.3.84/code 90.
+- Build/checks: Signed `./gradlew assembleRelease bundleRelease` passes in 161.164 seconds with release-vital lint and R8. Separate artifact/device checks bounded at 55 seconds verify metadata, non-debuggable release, ZIP integrity, established APK/AAB certificate and physical target. No repeated JVM/native/full/readiness/candidate campaign.
+- Artifacts: APK SHA-256 `83a07bb042e4bdabf0c48e49f13f96df0fe2f4ffd3e5234ed98f3413f211384b`; AAB SHA-256 `13bfd6600b858dceb115cf286ab3a7d8b8361bd7a0b2468f575374ed5f03dae3`. Established signing certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`. Ordinary AAB verification warnings retained.
+- Device/result: Released on Samsung SM-F976W. Guarded in-place install upgrades 0.3.83/code 89 in 2.634 seconds; installed-base hash matches signed APK. First install `2026-08-26 17:59:24` and app ID `10995` preserved; update `2026-09-29 07:27:56`. Guarded cold launch takes 139 ms and verifies foreground MainActivity. Read-only smoke finds live process, 139 sampled log lines, zero startup-error matches and no process crash-buffer payload.
+- Limits/status: Released; subjective appearance Awaiting user validation. No reset, uninstall, downgrade, phone instrumentation/private-record inspection, storage-contract change or Play publication. Room 46/epoch 6/backup 26 unchanged; transient address excluded. Historical paused work remains paused.
+
 ### VER-20260929-002 — Deep product review completed with selected acceptance
 
 - Scope: FB-20260929-002 / DEC-20260929-001, baseline `04bc58e2`. [Plan](../quality/DEEP_PRODUCT_REVIEW_2026-09-29.md), [raw evidence and snapshot accounting](../../artifacts/deep-product-review/2026-09-29/README.md). Parent plus the same two authorized agent slots; synthetic API 34 emulator only. No full/readiness/candidate batch or phone release.

@@ -4,7 +4,7 @@
 
 - Related: FB-20260929-003; IMP-20260929-002/003/004 / VER-20260929-002.
 - Changes: Version metadata advances to 0.3.84/code 90, including all 16 verified audit groups. Preserve package/signing identity, Room 46, epoch 6 and portable-backup format 26.
-- Status: Implemented; accepted source hashes and existing focused behavioral evidence are retained. Signed packaging, artifact integrity and guarded physical installation/launch provide release acceptance under VER-20260929-003; no repeated broad test campaign.
+- Status: Released under VER-20260929-003. Clean pushed `3ba7a50c` builds signed APK/AAB successfully; all 493 accepted source/test hashes remain unchanged. Guarded in-place installation verifies exact APK hash, original install/app identity and 139 ms cold foreground launch. [Release receipt](../../artifacts/phone-releases/2026-09-29/0.3.84/README.md); no repeated broad test campaign.
 
 ### IMP-20260929-004 — Make training execution and configuration retain intent
 

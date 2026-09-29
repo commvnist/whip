@@ -1,0 +1,13 @@
+Launching commvne.com.whip.app on <owner-phone>...
+Stopping: commvne.com.whip.app
+Starting: Intent { cmp=commvne.com.whip.app/com.whip.app.MainActivity }
+Status: ok
+LaunchState: COLD
+Activity: commvne.com.whip.app/com.whip.app.MainActivity
+TotalTime: 139
+WaitTime: 139
+Complete
+Foreground:     topResumedActivity=ActivityRecord{238176554 u0 commvne.com.whip.app/com.whip.app.MainActivity t16476}
+
+Exit: 0
+Elapsed seconds: 0.792

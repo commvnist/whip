@@ -4,7 +4,7 @@
 
 - Date/source: 2026-09-29, owner requests “Release to phone” after completion of all 16 accepted audit groups.
 - Acceptance: Package the verified source as the next signed private update, install in place on the selected physical phone, preserve app/data identity, and verify version, installed hash and foreground launch.
-- Scope/status: In progress from clean pushed `5b979781`; behavior acceptance remains VER-20260929-002. No repeated full/readiness/candidate campaign, phone instrumentation or Play publication.
+- Scope/status: Released as 0.3.84/code 90 under VER-20260929-003, built from clean pushed `3ba7a50c` and installed in place on Samsung SM-F976W. Exact installed hash, original install/app identity and 139 ms cold foreground launch verified. Behavior acceptance remains VER-20260929-002; no repeated full/readiness/candidate campaign, phone instrumentation or Play publication.
 
 ### FB-20260929-002 — Redo the app audit with substantially greater depth
 
