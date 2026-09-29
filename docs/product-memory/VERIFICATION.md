@@ -1,5 +1,13 @@
 # Verification and release evidence
 
+### VER-20260929-008 — Navigation implementation compiles; behavioral verification paused
+
+- Scope: FB-20260929-008 / IMP-20260929-010. Production integration compilation only, with the owner's test campaign still paused. No JVM/native/benchmark tests, full/readiness/candidate batch, phone/emulator actions or fresh rendered inspection. [Exact logs and production manifest](../../artifacts/workspace-navigation/2026-09-29/README.md).
+- Command: Each production compile used `timeout --kill-after=3s 55s ./gradlew :app:compileDebugKotlin --console=plain`. Initial compile fails in 10 seconds on two Track `Modifier.align` calls whose Box receiver was hidden by the new Column; remove those obsolete align modifiers. Repaired compile passes in 54 seconds; integration cleanup passes in 16 seconds; interaction guard refinement passes in 11 seconds; occurrence-routing/language source passes in 10 seconds; collection-scope retention passes in 9 seconds; final legacy saved-view normalization passes in 9 seconds. All completed normally; no timeout is described as a pass. Timings are Gradle-reported, not test durations.
+- Source review: Trace current collection membership, alias routing, archive return, filter application/cancellation, saved-state restoration, recurring action boundaries, creation defaults, one-search ownership and compact/wide root geometry. The shared header reserves action width and a font-scale-based height independent of labels/counts. This establishes implementation intent, not a measured rendered-transition result.
+- Prepared acceptance: Existing TaskWorkspacePolicyTest contracts plus two new methods; existing DeepSharedJourneyTest workspace method now checks shared context bounds, fixed Today date options, Apply/Cancel, saved-view creation and independent tab state. No new fixture is claimed compiled or executed. Broader stale native selectors and visual catalog/discovery hashes must be reconciled when verification resumes.
+- Status: Implemented, awaiting runtime and subjective visual validation. Private phone remains 0.3.85/code 91; domain storage unchanged. Documentation/patch integrity is checked separately from application acceptance.
+
 ### VER-20260929-007 — Source-grounded navigation plan; product verification remains paused
 
 - Scope: Planning only at 5490fe81, private 0.3.85/code 91. Read current projections, route/filter policies, global and feature headers, analytics/history partitions, saved navigation, Area scoping and existing affected test contracts.

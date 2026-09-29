@@ -43,7 +43,7 @@
     <string name="home_clear_existing_message">Nothing needs attention right now. Your saved work and plans are still here.</string>
     <string name="home_resume_title">Pick Up Where You Left Off</string>
     <string name="home_resume_message">Continue with saved work that is outside today’s Home view.</string>
-    <string name="home_resume_inbox">Open Inbox</string>
+    <string name="home_resume_inbox">Open Unscheduled Tasks</string>
     <string name="home_resume_upcoming">Review Upcoming</string>
     <string name="home_resume_habits">Open All Habits</string>
     <string name="home_resume_goals">Open Goals</string>
@@ -94,7 +94,7 @@
     <string name="support_tracks_description">Choose a Track to view its Entries, options, and Insights.</string>
     <string name="support_tracks_empty">No Tracks yet. Create a Track from the content pane.</string>
     <string name="support_gym_empty">No Workout is in progress.</string>
-    <string name="task_inbox">Inbox</string>
+    <string name="task_inbox">Unscheduled</string>
     <string name="state_done">Done</string>
     <string name="state_needs_attention">Needs attention</string>
     <string name="state_destructive_action">Destructive action</string>
@@ -342,7 +342,7 @@
     <string name="search_no">No</string>
     <string name="search_status_archived">Archived</string>
     <string name="search_status_completed">Completed</string>
-    <string name="search_status_inbox">Inbox</string>
+    <string name="search_status_inbox">Unscheduled</string>
     <string name="search_status_deadline_overdue">Deadline Overdue</string>
     <string name="search_status_past_scheduled_date">Past Scheduled Date</string>
     <string name="search_status_paused">Paused</string>

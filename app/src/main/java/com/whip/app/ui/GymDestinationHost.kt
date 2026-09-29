@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.testTag
 @Composable
 internal fun GymDestinationHost(
     destination: GymDestination,
+    summary: String = destination.label,
     innerPadding: PaddingValues,
     navigationVisible: Boolean,
     onSelect: (GymDestination) -> Unit,
@@ -59,6 +60,7 @@ internal fun GymDestinationHost(
                 Text("Library", style = MaterialTheme.typography.labelLarge)
             }
         }
+        if (navigationVisible && destination !in libraryGymDestinations) WhipWorkspaceHeader(summary)
         content()
     }
 }

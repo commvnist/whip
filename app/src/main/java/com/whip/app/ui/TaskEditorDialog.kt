@@ -137,7 +137,7 @@ data class TaskEditorRequest(
 )
 
 enum class TaskPlacement(val label: String) {
-    Inbox("Inbox"),
+    Inbox("Unscheduled"),
     Scheduled("Scheduled"),
 }
 
@@ -725,7 +725,7 @@ fun TaskEditorDialog(
                     DependentSettingsNotice(
                         message = when (scheduleKind) {
                             ScheduleKind.Anytime ->
-                                "Inbox keeps this Task unscheduled until you decide when it belongs."
+                                "Keep this Task unscheduled until you decide when it belongs."
                             ScheduleKind.Once -> "Scheduled Date places this Task on one day. Time, reminders, and an optional Deadline appear below."
                             ScheduleKind.Recurring -> "This Task repeats from its start date. Configure the pattern directly below."
                         },
@@ -1498,7 +1498,7 @@ internal fun TaskRecipeDialog(
     onChoose: (TaskDraft) -> Unit,
 ) {
     val recipes = listOf(
-        "Inbox Task" to TaskDraft(title = "New Task", inbox = true),
+        "Unscheduled Task" to TaskDraft(title = "New Task", inbox = true),
         "Task on a Date" to TaskDraft(
             title = "Dated Task", scheduleKind = ScheduleKind.Once, date = today,
             inbox = false, durationMinutes = 30,
@@ -1543,7 +1543,7 @@ internal fun TaskRecipeDialog(
                 item { WhipDialogHeading("Task Templates") }
                 items(recipes, key = { it.first }) { (label, draft) ->
                     val description = when (label) {
-                        "Inbox Task" -> "An unscheduled Inbox Task."
+                        "Unscheduled Task" -> "A Task without a scheduled date."
                         "Task on a Date" -> "A one-time Task scheduled today with a 30-minute estimate."
                         "Weekly Task" -> "A weekly series starting on today’s weekday."
                         else -> "A three-step Task with progress and a High Effort estimate."

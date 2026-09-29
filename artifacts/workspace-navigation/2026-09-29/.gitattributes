@@ -1,0 +1,2 @@
+# Preserve verbatim compiler diagnostics, including their trailing spaces.
+*.log -whitespace

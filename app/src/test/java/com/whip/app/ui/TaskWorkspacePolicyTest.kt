@@ -12,6 +12,39 @@ import org.junit.Test
 
 class TaskWorkspacePolicyTest {
     @Test
+    fun todaySavedViewsDiscardConflictingDatesButKeepLegitimateNarrowing() {
+        for (date in listOf("Today", "NoDate", "Next7Days", "PastScheduled")) {
+            val view = SavedTaskFilter("Work", destination = "Today", dateMode = date,
+                tags = setOf("work"), maximumDurationMinutes = 15).normalizedForWorkspace()
+            assertEquals("Any", view.dateMode)
+            assertEquals(setOf("work"), view.tags)
+            assertEquals(15, view.maximumDurationMinutes)
+        }
+        assertEquals("Overdue", SavedTaskFilter("Late", destination = "Today", dateMode = "Overdue").normalizedForWorkspace().dateMode)
+        for (destination in listOf("Inbox", "Upcoming", "Completed", "Archived")) {
+            assertEquals("Any", SavedTaskFilter("Old", destination = destination, dateMode = "NoDate").normalizedForWorkspace().dateMode)
+        }
+        assertEquals("Next7Days", SavedTaskFilter("Soon", destination = "Upcoming", dateMode = "Next7Days").normalizedForWorkspace().dateMode)
+    }
+
+    @Test
+    fun collectionIncludesUnprojectedSeriesAndCountsEachDefinitionOnce() {
+        val today = LocalDate.of(2026, 9, 29)
+        val base = com.whip.app.domain.WhipTask(1, "Undated", "", ScheduleKind.Anytime, null, null,
+            null, false, false, null, 0, 0)
+        val series = base.copy(id = 2, title = "Recurring", scheduleKind = ScheduleKind.Recurring,
+            recurrence = com.whip.app.domain.RecurrenceRule(RecurrenceUnit.Days, startDate = today.plusYears(1)))
+        val scheduled = base.copy(id = 3, scheduleKind = ScheduleKind.Once, date = today.plusYears(2))
+        val first = com.whip.app.domain.ScheduledTask(scheduled, scheduled.date, scheduled.date)
+        val state = TaskUiState(taskEntities = listOf(base, series, scheduled, base.copy(id = 4, archived = true)),
+            upcoming = listOf(first), planning = listOf(first), currentDate = today)
+        val collection = state.collectionTasks()
+        assertEquals(listOf(1L, 2L, 3L), collection.map { it.task.id })
+        assertEquals(false, collection.single { it.task.id == 2L }.matchesTaskDateFilter(SavedTaskFilter("Undated", dateMode = "NoDate"), today, java.time.ZoneOffset.UTC))
+        assertEquals(true, collection.single { it.task.id == 1L }.matchesTaskDateFilter(SavedTaskFilter("Undated", dateMode = "NoDate"), today, java.time.ZoneOffset.UTC))
+    }
+
+    @Test
     fun dayPlanningKeepsScopeAndTaskFiltersWithoutTodaysScheduledDateConstraint() {
         val filter = SavedTaskFilter(name = "Work", areaId = "work", dateMode = "Today",
             textQuery = "report", tags = setOf("urgent"), destination = "Today")
@@ -28,9 +61,8 @@ class TaskWorkspacePolicyTest {
     fun allTaskDestinationsRemainDirectInTheirStableOrder() {
         assertEquals(
             listOf(
+                TaskWorkspaceDestination.Tasks,
                 TaskWorkspaceDestination.Today,
-                TaskWorkspaceDestination.Inbox,
-                TaskWorkspaceDestination.Upcoming,
                 TaskWorkspaceDestination.History,
             ),
             primaryTaskWorkspaceDestinations,
@@ -41,13 +73,14 @@ class TaskWorkspacePolicyTest {
     fun taskCreationDefaultsMatchTheWorkspaceThatInvokedThem() {
         assertEquals(TaskPlacement.Inbox, TaskDestination.Inbox.creationPlacement())
         assertEquals(TaskPlacement.Scheduled, TaskDestination.Today.creationPlacement())
-        assertEquals(TaskPlacement.Scheduled, TaskDestination.Upcoming.creationPlacement())
+        assertEquals(TaskPlacement.Inbox, TaskDestination.Upcoming.creationPlacement())
+        assertEquals(TaskPlacement.Inbox, TaskDestination.All.creationPlacement())
     }
 
     @Test
-    fun onlyUpcomingOffersPlanningViews() {
+    fun onlyCollectionOffersPlanningViews() {
         TaskWorkspaceDestination.entries.forEach { destination ->
-            val expected = if (destination == TaskWorkspaceDestination.Upcoming) {
+            val expected = if (destination == TaskWorkspaceDestination.Tasks) {
                 TaskPlanningView.entries
             } else {
                 listOf(TaskPlanningView.List)
@@ -59,7 +92,7 @@ class TaskWorkspacePolicyTest {
     @Test
     fun historyPreservesCompletedAndArchivedSemantics() {
         TaskDestination.entries.forEach { destination ->
-            assertEquals(destination, destination.toWorkspaceRoute().dataDestination())
+            assertEquals(if (destination in setOf(TaskDestination.Inbox, TaskDestination.Upcoming)) TaskDestination.All else destination, destination.toWorkspaceRoute().dataDestination())
         }
         assertEquals(
             TaskWorkspaceRoute(TaskWorkspaceDestination.History, TaskHistorySection.Completed),
@@ -80,7 +113,7 @@ class TaskWorkspacePolicyTest {
                     destination = destination.name,
                     planningView = view.name,
                 ).normalizedForWorkspace()
-                val expectedView = destination.toWorkspaceRoute().destination.normalizePlanningView(view)
+                val expectedView = if (destination in setOf(TaskDestination.All, TaskDestination.Upcoming)) view else TaskPlanningView.List
                 assertEquals(destination.name, normalized.destination)
                 assertEquals(expectedView.name, normalized.planningView)
             }
@@ -120,13 +153,16 @@ class TaskWorkspacePolicyTest {
     }
 
     @Test
-    fun destinationlessFilterDoesNotNavigateButStillUsesList() {
+    fun destinationlessFilterMigratesToCollectionListAndPreservesItsCriteria() {
         val normalized = SavedTaskFilter(
             name = "No route",
             planningView = TaskPlanningView.Calendar.name,
+            dateMode = "NoDate",
         ).normalizedForWorkspace()
-        assertEquals("", normalized.destination)
+        assertEquals(TaskDestination.All.name, normalized.destination)
         assertEquals(TaskPlanningView.List.name, normalized.planningView)
+        assertEquals("NoDate", normalized.dateMode)
+        assertEquals(TaskDestination.Inbox.name, normalized.copy(destination = "", inboxOnly = true).normalizedForWorkspace().destination)
     }
 
     @Test

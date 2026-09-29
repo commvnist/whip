@@ -64,6 +64,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 enum class TaskDestination {
+    All,
     Inbox,
     Today,
     Upcoming,

@@ -496,6 +496,16 @@ internal fun TrackAreaContent(
     }
     BackHandler(enabled = selected != null && !editorOpen) { selectedTrackId = null }
 
+    var archiveReturn by rememberSaveable { mutableStateOf(TrackWorkspaceDestination.Tracks) }
+    fun openArchive() {
+        archiveReturn = workspaceDestination
+        selectedTrackId = null
+        workspaceDestination = TrackWorkspaceDestination.Archived
+    }
+    fun closeArchive() { selectedTrackId = null; workspaceDestination = archiveReturn }
+    BackHandler(enabled = workspaceDestination == TrackWorkspaceDestination.Archived && selected == null && !editorOpen) { closeArchive() }
+    var selectCollectionRequest by rememberSaveable { mutableIntStateOf(0) }
+    var reorderCollectionRequest by rememberSaveable { mutableIntStateOf(0) }
     val collectionPages = rememberSaveableStateHolder()
     @Composable fun trackList(masterPane: Boolean) {
         collectionPages.SaveableStateProvider("collection-${workspaceDestination.name}") { AllTracksPage(
@@ -503,6 +513,12 @@ internal fun TrackAreaContent(
             state = state,
             innerPadding = PaddingValues(),
             showArchived = workspaceDestination == TrackWorkspaceDestination.Archived,
+            onOpenArchived = ::openArchive,
+            onBackFromArchive = ::closeArchive,
+            selectRequest = selectCollectionRequest,
+            reorderRequest = reorderCollectionRequest,
+            onSelectRequestConsumed = { selectCollectionRequest = 0 },
+            onReorderRequestConsumed = { reorderCollectionRequest = 0 },
             onOpen = { selectedTrackId = it },
             onEdit = { onEditorRequest(TrackEditorIntent.Definition(it)) },
             onAddEntry = { selectedTrackId = it; onEditorRequest(TrackEditorIntent.Entry(it)) },
@@ -565,8 +581,8 @@ internal fun TrackAreaContent(
       val showWorkspaceNavigation = selected == null || (!focusedDetail && (maxWidth >= 760.dp || maxHeight >= 440.dp))
       Column(Modifier.fillMaxSize()) {
         if (showWorkspaceNavigation) DestinationTabBar(
-            selected = workspaceDestination,
-            destinations = TrackWorkspaceDestination.entries,
+            selected = workspaceDestination.takeUnless { it == TrackWorkspaceDestination.Archived } ?: archiveReturn,
+            destinations = listOf(TrackWorkspaceDestination.Tracks, TrackWorkspaceDestination.Activity, TrackWorkspaceDestination.Insights),
             onSelect = { selectedDestination ->
                 if (selectedDestination != workspaceDestination) selectedTrackId = null
                 workspaceDestination = selectedDestination
@@ -575,12 +591,27 @@ internal fun TrackAreaContent(
             testTagPrefix = "track-workspace-destination",
             barTestTag = "track-workspace-navigation",
         )
+        val workspacePages = rememberSaveableStateHolder()
+        workspacePages.SaveableStateProvider(workspaceDestination.name) {
         BoxWithConstraints(Modifier.fillMaxSize().weight(1f)) {
             when (workspaceDestination) {
                 TrackWorkspaceDestination.Tracks,
                 TrackWorkspaceDestination.Archived,
                 -> if (maxWidth >= 760.dp) {
-                    Row(Modifier.fillMaxSize()) {
+                    Column(Modifier.fillMaxSize()) {
+                        WhipWorkspaceHeader(
+                            summary = if (workspaceDestination == TrackWorkspaceDestination.Archived) "Archived Tracks" else "${state.active.size} tracks · Reusable logs",
+                            onBack = { closeArchive() }.takeIf { workspaceDestination == TrackWorkspaceDestination.Archived },
+                        ) {
+                            WhipWorkspaceMore("More Track Options") { close ->
+                                if (workspaceDestination != TrackWorkspaceDestination.Archived) {
+                                    WhipMenuItem("Archived Tracks", onClick = { close(); openArchive() })
+                                    WhipMenuItem(if (reorderEnabled) "Reorder Tracks" else "Show All Areas & Reorder", onClick = { close(); reorderCollectionRequest++ }, enabled = state.active.size > 1 || !reorderEnabled)
+                                }
+                                WhipMenuItem("Select Tracks", onClick = { close(); selectCollectionRequest++ })
+                            }
+                        }
+                    Row(Modifier.weight(1f).fillMaxWidth()) {
                         Box(Modifier.weight(0.38f).fillMaxHeight()) { trackList(masterPane = true) }
                         VerticalDivider(Modifier.fillMaxHeight())
                         Box(Modifier.weight(0.62f).fillMaxHeight()) {
@@ -592,12 +623,14 @@ internal fun TrackAreaContent(
                             }
                         }
                     }
+                    }
                 } else if (selected == null) {
                     trackList(masterPane = false)
                 } else {
                     trackDetail(selected)
                 }
                 TrackWorkspaceDestination.Activity -> TrackActivityPage(
+                    onOpenArchived = ::openArchive,
                     state = state,
                     areas = areas,
                     customUnits = customUnits,
@@ -622,10 +655,7 @@ internal fun TrackAreaContent(
                         destination = TrackDetailDestination.Entries
                         workspaceDestination = TrackWorkspaceDestination.Tracks
                     },
-                    onOpenArchived = {
-                        selectedTrackId = null
-                        workspaceDestination = TrackWorkspaceDestination.Archived
-                    },
+                    onOpenArchived = ::openArchive,
                     onOpenTrack = { id ->
                         workspaceDestination = TrackWorkspaceDestination.Tracks
                         selectedTrackId = id
@@ -634,6 +664,7 @@ internal fun TrackAreaContent(
                     onRetryLoading = viewModel::retryLoading,
                 )
             }
+        }
         }
       }
     }
@@ -995,6 +1026,7 @@ private data class TrackActivityItem(
 
 @Composable
 private fun TrackActivityPage(
+    onOpenArchived: () -> Unit,
     state: TrackUiState,
     areas: List<Area>,
     customUnits: List<UnitDefinition>,
@@ -1007,7 +1039,6 @@ private fun TrackActivityPage(
     var query by rememberSaveable { mutableStateOf("") }
     var filtersVisible by rememberSaveable { mutableStateOf(false) }
     var trackFilterId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var areaFilterId by rememberSaveable { mutableStateOf<String?>(null) }
     var dateRange by rememberSaveable { mutableStateOf(TrackActivityDateRange.AnyDate) }
     var viewedEntryId by rememberSaveable { mutableStateOf<Long?>(null) }
     val units = BuiltInUnits.all + customUnits
@@ -1017,7 +1048,6 @@ private fun TrackActivityPage(
     LaunchedEffect(activeTracks.map { it.track.id }, availableAreas.map { it.id }, state.loading, state.errorMessage) {
         if (!state.loading && state.errorMessage == null) {
             if (trackFilterId != null && activeTracks.none { it.track.id == trackFilterId }) trackFilterId = null
-            if (areaFilterId != null && availableAreas.none { it.id == areaFilterId }) areaFilterId = null
         }
     }
     val normalizedQuery = query.trim()
@@ -1032,7 +1062,6 @@ private fun TrackActivityPage(
             projection.fields.forEach { field -> add(projection.formattedValue(item.entry, field, units)) }
         }
         (trackFilterId == null || projection.track.id == trackFilterId) &&
-            (areaFilterId == null || projection.track.areaId == areaFilterId) &&
             dateRange.contains(item.entry.entry.entryDate, state.currentDate) &&
             (normalizedQuery.isBlank() || searchable.any { it.contains(normalizedQuery, ignoreCase = true) })
     }.sortedWith(
@@ -1041,23 +1070,13 @@ private fun TrackActivityPage(
     )
     val activeFilterCount = listOf(
         trackFilterId != null,
-        areaFilterId != null,
         dateRange != TrackActivityDateRange.AnyDate,
         query.isNotBlank(),
     ).count { it }
     Box(Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().align(Alignment.TopCenter),
-            contentPadding = WhipPageContentPadding,
-            verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
-        ) {
-            item {
-                WhipPageHeader(
-                    title = "Activity",
-                    supportingText = buildString {
-                        append("Entries across visible Tracks")
-                        if (items.isNotEmpty()) append(" · ${quantityLabel(items.size, "Entry")}")
-                    },
+        Column(Modifier.fillMaxSize()) {
+        WhipWorkspaceHeader(
+                    summary = "${items.size} entries · Across visible Tracks",
                 ) {
                     WhipPageIconAction(
                         icon = Icons.Outlined.FilterAlt,
@@ -1066,69 +1085,27 @@ private fun TrackActivityPage(
                         badgeCount = activeFilterCount,
                         active = filtersVisible || activeFilterCount > 0,
                     )
+                    WhipWorkspaceMore("More Track Actions") { close ->
+                        WhipMenuItem("Archived Tracks", onClick = { close(); onOpenArchived() })
+                    }
                 }
-            }
-            if (!filtersVisible && activeFilterCount > 0) item {
+    LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = WhipPageContentPadding,
+            verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
+        ) {
+
+            if (activeFilterCount > 0) item {
                 WhipGroupedInformationCard(Modifier.testTag("track-activity-filter-summary")) {
                     Text(listOfNotNull(
                         query.takeIf(String::isNotBlank)?.let { "Text: $it" },
                         dateRange.label.takeUnless { dateRange == TrackActivityDateRange.AnyDate },
                         activeTracks.firstOrNull { it.track.id == trackFilterId }?.track?.name,
-                        availableAreas.firstOrNull { it.id == areaFilterId }?.name,
                     ).joinToString(" · "), style = MaterialTheme.typography.bodyMedium)
                     WhipTextButton(onClick = { filtersVisible = true }) { Text("Edit Filters") }
                 }
             }
-            if (filtersVisible) item {
-                WhipGroupedInformationCard(Modifier.testTag("track-activity-filters")) {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text("Filters", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            if (activeFilterCount > 0) WhipTextButton(onClick = {
-                                query = ""
-                                trackFilterId = null
-                                areaFilterId = null
-                                dateRange = TrackActivityDateRange.AnyDate
-                            }) { Text("Clear") }
-                        }
-                        WhipSearchField(
-                            label = "Filter Activity Text",
-                            query = query,
-                            onQueryChange = { query = it },
-                            modifier = Modifier.fillMaxWidth().testTag("track-activity-search"),
-                            hint = "Entry, Track, Area, or Field value",
-                        )
-                        Text("Date", style = MaterialTheme.typography.labelLarge)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            TrackActivityDateRange.entries.forEach { range ->
-                                WhipFilterChip(
-                                    selected = dateRange == range,
-                                    onClick = { dateRange = range },
-                                    label = { Text(range.label) },
-                                )
-                            }
-                        }
-                        SelectionField(
-                            label = "Track",
-                            values = listOf<Long?>(null) + activeTracks.map { it.track.id },
-                            selected = trackFilterId,
-                            valueText = { id ->
-                                activeTracks.firstOrNull { it.track.id == id }?.track
-                                    ?.let { "${it.icon} ${it.name}" }
-                                    ?: "All Tracks"
-                            },
-                            onSelect = { trackFilterId = it },
-                            modifier = Modifier.fillMaxWidth().testTag("track-activity-track-filter"),
-                        )
-                        SelectionField(
-                            label = "Area",
-                            values = listOf<String?>(null) + availableAreas.map { it.id },
-                            selected = areaFilterId,
-                            valueText = { id -> availableAreas.firstOrNull { it.id == id }?.name ?: "All Areas" },
-                            onSelect = { areaFilterId = it },
-                            modifier = Modifier.fillMaxWidth().testTag("track-activity-area-filter"),
-                        )
-                }
-            }
+
             when {
                 state.loading || state.errorMessage != null -> item {
                     DomainLoadContent("Track Activity", PaddingValues(), state.errorMessage, onRetryLoading)
@@ -1145,7 +1122,6 @@ private fun TrackActivityPage(
                         onPrimaryAction = {
                             query = ""
                             trackFilterId = null
-                            areaFilterId = null
                             dateRange = TrackActivityDateRange.AnyDate
                         },
                     )
@@ -1164,6 +1140,63 @@ private fun TrackActivityPage(
                 }
             }
         }
+    }
+    }
+    if (filtersVisible) {
+        var draftQuery by rememberSaveable { mutableStateOf(query) }
+        var draftTrackId by rememberSaveable { mutableStateOf(trackFilterId) }
+        var draftRange by rememberSaveable { mutableStateOf(dateRange) }
+        PaneAwareAlertDialog(
+            modifier = dialogModifier,
+            onDismissRequest = { filtersVisible = false },
+            title = { Text("Filter Track Activity") },
+            text = { Column(Modifier.verticalScroll(rememberScrollState())) {
+
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Filters", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            WhipTextButton(onClick = {
+                                draftQuery = ""
+                                draftTrackId = null
+                                draftRange = TrackActivityDateRange.AnyDate
+                            }) { Text("Reset Filters") }
+                        }
+                        WhipSearchField(
+                            label = "Filter Activity Text",
+                            query = draftQuery,
+                            onQueryChange = { draftQuery = it },
+                            modifier = Modifier.fillMaxWidth().testTag("track-activity-search"),
+                            hint = "Entry, Track, Area, or Field value",
+                        )
+                        Text("Date", style = MaterialTheme.typography.labelLarge)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            TrackActivityDateRange.entries.forEach { range ->
+                                WhipFilterChip(
+                                    selected = draftRange == range,
+                                    onClick = { draftRange = range },
+                                    label = { Text(range.label) },
+                                )
+                            }
+                        }
+                        SelectionField(
+                            label = "Track",
+                            values = listOf<Long?>(null) + activeTracks.map { it.track.id },
+                            selected = draftTrackId,
+                            valueText = { id ->
+                                activeTracks.firstOrNull { it.track.id == id }?.track
+                                    ?.let { "${it.icon} ${it.name}" }
+                                    ?: "All Tracks"
+                            },
+                            onSelect = { draftTrackId = it },
+                            modifier = Modifier.fillMaxWidth().testTag("track-activity-track-filter"),
+                        )
+
+
+            } },
+            confirmButton = { WhipButton(onClick = {
+                query = draftQuery; trackFilterId = draftTrackId; dateRange = draftRange; filtersVisible = false
+            }) { Text("Apply") } },
+            dismissButton = { WhipTextButton(onClick = { filtersVisible = false }) { Text("Cancel") } },
+        )
     }
     viewedEntryId?.let { entryId ->
         activeTracks.firstNotNullOfOrNull { projection ->
@@ -1222,12 +1255,18 @@ private fun TrackWorkspaceInsightsPage(
         }
     }
     Box(Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().align(Alignment.TopCenter).testTag("track-workspace-insights-list"),
+        Column(Modifier.fillMaxSize()) {
+        WhipWorkspaceHeader("${totalEntries} entries · Patterns across Tracks") {
+                WhipWorkspaceMore("More Track Actions") { close ->
+                    WhipMenuItem("Archived Tracks", onClick = { close(); onOpenArchived() })
+                }
+            }
+    LazyColumn(
+            modifier = Modifier.fillMaxSize().testTag("track-workspace-insights-list"),
             contentPadding = WhipPageContentPadding,
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
-            item { WhipPageHeader("Insights", "Patterns across visible Tracks.") }
+
             if (state.loading || state.errorMessage != null) item {
                 DomainLoadContent("Track Insights", PaddingValues(), state.errorMessage, onRetryLoading)
             }
@@ -1310,6 +1349,7 @@ private fun TrackWorkspaceInsightsPage(
             }
         }
     }
+    }
 }
 
 @Composable
@@ -1318,6 +1358,12 @@ private fun AllTracksPage(
     state: TrackUiState,
     innerPadding: PaddingValues,
     showArchived: Boolean,
+    onOpenArchived: () -> Unit,
+    onBackFromArchive: () -> Unit,
+    selectRequest: Int = 0,
+    reorderRequest: Int = 0,
+    onSelectRequestConsumed: () -> Unit = {},
+    onReorderRequestConsumed: () -> Unit = {},
     onOpen: (Long) -> Unit,
     onEdit: (Long) -> Unit,
     onAddEntry: (Long) -> Unit,
@@ -1350,6 +1396,11 @@ private fun AllTracksPage(
         orphanedMessage =
             "The previous Track change was interrupted. Your selection is still here; verify the Tracks, then retry.",
     )
+    LaunchedEffect(selectRequest) { if (selectRequest > 0) { selecting = true; reordering = false; onSelectRequestConsumed() } }
+    LaunchedEffect(reorderRequest) { if (reorderRequest > 0 && !showArchived) {
+        if (!reorderEnabled) onShowAllAreasForReorder()
+        reordering = true; selecting = false; onReorderRequestConsumed()
+    } }
     val source = if (showArchived) state.archived else state.active
     val listState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
@@ -1385,23 +1436,18 @@ private fun AllTracksPage(
         else state.active.filter { it.track.pinned } + moved
         onReorder(all.map { it.track.id })
     }
-    WhipReorderLazyColumn(
-        Modifier.fillMaxSize().padding(innerPadding).testTag("track-list"),
-        state = listState,
-        contentPadding = WhipPageContentPadding,
-        verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
-    ) {
-        item {
-            WhipPageHeader(
-                title = if (showArchived) "Archived Tracks" else "Tracks",
-                supportingText = "Reusable logs for what you track.",
+    Column(Modifier.fillMaxSize()) {
+        if (!masterPane) WhipWorkspaceHeader(
+                summary = if (showArchived) "Archived Tracks" else "${source.size} tracks · Reusable logs",
+                onBack = onBackFromArchive.takeIf { showArchived },
             ) {
                 if (!reordering) {
                     val hasAdditionalActions =
                         (!showArchived && (state.active.size > 1 || !reorderEnabled)) || source.isNotEmpty()
-                    if (hasAdditionalActions) Box {
+                    Box {
                         WhipPageIconAction(Icons.Outlined.MoreVert, "More Track Options", { moreOpen = true })
                         DropdownMenu(moreOpen, { moreOpen = false }) {
+                        if (!showArchived) WhipMenuItem("Archived Tracks", onClick = { moreOpen = false; onOpenArchived() })
                         if (!showArchived && (state.active.size > 1 || !reorderEnabled)) WhipMenuItem(
                             label = when {
                                 !reorderEnabled -> "Show All Areas & Reorder"
@@ -1429,7 +1475,13 @@ private fun AllTracksPage(
                     }
                 }
             }
-        }
+    WhipReorderLazyColumn(
+        Modifier.fillMaxSize().padding(innerPadding).testTag("track-list"),
+        state = listState,
+        contentPadding = WhipPageContentPadding,
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
+    ) {
+
         if (reordering) item {
             WhipReorderModeBar(
                 itemLabel = "Tracks",
@@ -1540,6 +1592,7 @@ private fun AllTracksPage(
                 )
             }
         }
+    }
     }
 }
 

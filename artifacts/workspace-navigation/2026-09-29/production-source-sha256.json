@@ -1,0 +1,15 @@
+{
+  "app/src/main/java/com/whip/app/core/PowerUserSettings.kt": "8c74332ad1a625d48a4f9f88871fc0d01b25b1699f4d8a72d4814fc0913228e9",
+  "app/src/main/java/com/whip/app/ui/GoalScreens.kt": "4b52f09d5cfff4fd557a0ca8d2354e022f27d91e7b0beac18f6fae2e0a4b2413",
+  "app/src/main/java/com/whip/app/ui/GymDestinationHost.kt": "5c0fba8869cfaa3baa48b9b73b58e24affa923d40753104e1c98058b3c4e8a3e",
+  "app/src/main/java/com/whip/app/ui/GymScreens.kt": "d5dd0b7e8768c3ff1f62a3d649192b9389edfe68f848db6d5d2b3711bf02a2eb",
+  "app/src/main/java/com/whip/app/ui/HabitScreens.kt": "8e0cf93c0ad22b9aa9b8e00b4e121225f67d67a961c430d542fc010233a2885e",
+  "app/src/main/java/com/whip/app/ui/TaskEditorDialog.kt": "0a200de09e1ae93181a7a222607d7c8a5667bfc2d6940816d2ff233799bb3e0d",
+  "app/src/main/java/com/whip/app/ui/TaskNavigationIndex.kt": "d501b8eab51c452e1e3d3602c43f31c1e08479cbf2e9e3fc6493e415fef4a62d",
+  "app/src/main/java/com/whip/app/ui/TaskViewModel.kt": "8f1c1fd3bb4a4970b2ed3d371d2d786e8891a27ce47441ced1b1fb327235cdac",
+  "app/src/main/java/com/whip/app/ui/TaskWorkspacePolicy.kt": "bcbe8f3585548dbcb5d783d70062eb035256cb733db30bd4b64dafe71387f03e",
+  "app/src/main/java/com/whip/app/ui/TrackScreens.kt": "2b6ee9448bcbb8d2bb5568293d807dbad543371bb44cdd66cdfd1c048693fa03",
+  "app/src/main/java/com/whip/app/ui/WhipApp.kt": "7b728fdb6a2046865227e531b9a2ff4937f5660bc70b5f6479bd989683bf6d1c",
+  "app/src/main/java/com/whip/app/ui/WhipWorkspaceHeader.kt": "4fba12d8a180ac13a32bb83891df166762e28536d9ac5290341e9cc70af6a50a",
+  "app/src/main/res/values/strings.xml": "5b2efa93da3910b23e3eed2421785bead1cd90871c0b75fd099dc290e2278d52"
+}

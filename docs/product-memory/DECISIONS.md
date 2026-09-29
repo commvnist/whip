@@ -2,11 +2,11 @@
 
 ### DEC-20260929-003 — Give workspace tabs distinct jobs and filters a bounded scope
 
-- Proposed decision: Tasks / Today / History; Habits / Today / Insights; Goals / History / Insights; Tracks / Activity / Insights. Gym retains four jobs as Workout / Library / History / Insights. Collection-first order preserves daily first-entry defaults. Archive becomes a consistent secondary page through More.
+- Decision, accepted for implementation under FB-20260929-008: Tasks / Today / History; Habits / Today / Insights; Goals / History / Insights; Tracks / Activity / Insights. Gym retains four jobs as Workout / Library / History / Insights. Collection-first order preserves daily first-entry defaults. Archive becomes a consistent secondary page through More.
 - Rationale: A full collection supports unrestricted schedule criteria; Today is fixed execution scope; History represents outcomes; Insights represents analysis. Goals and Tracks do not gain artificial Today destinations. Saved Views explicitly navigate, while ordinary filter Apply stays in the current destination.
 - Shared layout: Existing global Area/Add/Search/Settings ownership, one tab row and one compact context/actions row. Remove repeated selected-tab headings, unify pinned root chrome, preserve large-text adaptation and domain-specific content. DEC-20260929-002's single-search owner remains authoritative.
 - Alternatives/compatibility: Reject four/two tabs everywhere, renaming Inbox without changing membership, and merging archives with completion. Keep exact recurring-occurrence actions, timer recovery, child-history continuity and legacy route/settings decoding. [Full plan and acceptance](../quality/WORKSPACE_NAVIGATION_PLAN_2026-09-29.md).
-- Related/status: FB-20260929-007, FND-20260929-013. Proposed only; no implementation, test resumption or release authorized by this planning request.
+- Related/status: FB-20260929-007/008, FND-20260929-013, IMP-20260929-010. Implemented; production compilation passes in VER-20260929-008. Tests and fresh rendered acceptance remain paused. The original planning-only boundary was superseded by the explicit implementation request; no new release is authorized.
 
 ### DEC-20260929-002 — Workspace search owns collection lookup
 

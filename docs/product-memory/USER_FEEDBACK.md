@@ -1,5 +1,12 @@
 # User feedback and acceptance criteria
 
+### FB-20260929-008 — Implement the workspace plan with stable visual transitions
+
+- Date/source: 2026-09-29, owner authorizes implementation of the complete navigation plan, emphasizing that elements must not shift between pages and consistent views are key to the app's feel.
+- Acceptance: Implement DEC-20260929-003 and its route/filter/header/compatibility contracts; use shared stable root geometry, preserve current workflows and prevent duplicate controls. Preserve large-text access and explicit selection/editor modes.
+- Constraints: Prior test-verification pause remains active; no new phone release requested. Implementation and source review proceed, with runtime/rendered acceptance explicitly outstanding until resumed.
+- Related/status: FB-20260929-007, FND-20260929-013, [accepted plan](../quality/WORKSPACE_NAVIGATION_PLAN_2026-09-29.md). Implemented under IMP-20260929-010. Production compilation passes under VER-20260929-008; behavioral and rendered verification remain paused. No phone release.
+
 ### FB-20260929-007 — Redesign workspace tabs and header responsibilities
 
 - Date/source: 2026-09-29, owner requests analysis and a plan for Tasks, Habits, Goals and Tracks, considering Gym where relevant. Task date filters inside Today are confusing; suggested collection-first tabs such as Tasks / Today, with fewer destinations where useful.

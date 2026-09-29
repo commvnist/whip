@@ -228,7 +228,7 @@ import com.whip.app.domain.equipmentScopeKey
 enum class GymDestination(val label: String) {
     Workout("Workout"),
     History("History"),
-    Progress("Progress"),
+    Progress("Insights"),
     Library("Library"),
     Routines("Routines"),
     Exercises("Exercises"),
@@ -256,9 +256,9 @@ enum class GymAddRequest {
 
 internal val primaryGymDestinations = listOf(
     GymDestination.Workout,
+    GymDestination.Library,
     GymDestination.History,
     GymDestination.Progress,
-    GymDestination.Library,
 )
 
 internal val libraryGymDestinations = GymDestination.entries.filterNot(primaryGymDestinations::contains)
@@ -630,6 +630,7 @@ fun GymAreaContent(
                 testTagPrefix = "gym-destination",
                 barTestTag = "gym-workspace-navigation",
             )
+            WhipWorkspaceHeader("Loading gym data")
             DomainLoadContent("gym data", PaddingValues(), state.errorMessage, viewModel::retryLoading)
         }
         return
@@ -1277,6 +1278,13 @@ fun GymAreaContent(
 
     GymDestinationHost(
         destination = destination,
+        summary = when (destination) {
+            GymDestination.Workout -> if (state.activeSession == null) "Ready to train" else "Workout in progress"
+            GymDestination.Library -> "Routines, exercises & equipment"
+            GymDestination.History -> "${state.history.size} workouts · History"
+            GymDestination.Progress -> "Trends from completed workouts"
+            else -> destination.label
+        },
         innerPadding = innerPadding,
         navigationVisible = !routineEditorOpen && !browseReordering,
         onSelect = selectDestination@{
@@ -2268,12 +2276,7 @@ private fun GymLibraryLanding(onOpen: (GymDestination) -> Unit) {
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
-        item {
-            WhipPageHeader(
-                title = "Library",
-                supportingText = "Exercises, routines, and equipment.",
-            )
-        }
+
         items(libraryGymDestinations, key = GymDestination::name) { destination ->
             NavigationRow(
                 title = destination.label,
@@ -2743,10 +2746,7 @@ internal fun WorkoutStartContent(
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
-        item {
-            WhipPageHeader(title = "Workout", supportingText = if (firstUse) "Log your sets as you train." else
-                "Choose today's training, or build a workout as you go.")
-        }
+
         if (firstUse) item {
             WhipEmptyState(title = "No Workout in Progress",
                 supportingText = "Create reusable exercises, or add them as you train in an empty workout.",
@@ -6847,14 +6847,7 @@ internal fun WorkoutHistoryContent(
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
-        item {
-            WhipPageHeader(
-                title = "Workout History",
-                supportingText = if (focusedWorkoutId == null) {
-                    "Your completed workouts."
-                } else "Showing the selected workout.",
-            )
-        }
+
         if (copySaving || copyError != null) item {
             Surface(
                 color = if (copyError == null) {
@@ -8269,14 +8262,7 @@ internal fun GymProgressContent(
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
-        item {
-            WhipPageHeader(
-                title = "Progress",
-                supportingText = "Trends from completed workouts.",
-                modifier = Modifier.testTag("gym-progress-title"),
-            )
 
-        }
         item {
             val week = weeklySummary
             WhipGroupedInformationCard {

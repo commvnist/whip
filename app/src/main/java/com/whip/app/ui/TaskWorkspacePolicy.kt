@@ -31,23 +31,21 @@ internal fun ScheduledTask.matchesTaskDateFilter(filter: SavedTaskFilter, today:
         "PastScheduled" -> scheduledDate?.isBefore(today) == true
         "Next7Days" -> date?.let { it in today..today.plusDays(6) } == true
         "Last7Days" -> date?.let { it in today.minusDays(6)..today } == true
-        "NoDate" -> scheduledDate == null
+        "NoDate" -> task.scheduleKind == ScheduleKind.Anytime
         else -> true
     }
 }
 
 /** Primary destinations shown in the Tasks workspace. */
 internal enum class TaskWorkspaceDestination(val label: String) {
-    Inbox("Inbox"),
+    Tasks("Tasks"),
     Today("Today"),
-    Upcoming("Upcoming"),
     History("History"),
 }
 
 internal val primaryTaskWorkspaceDestinations = listOf(
+    TaskWorkspaceDestination.Tasks,
     TaskWorkspaceDestination.Today,
-    TaskWorkspaceDestination.Inbox,
-    TaskWorkspaceDestination.Upcoming,
     TaskWorkspaceDestination.History,
 )
 
@@ -71,7 +69,7 @@ internal data class TaskWorkspaceRoute(
 )
 
 internal fun TaskWorkspaceDestination.allowedPlanningViews(): List<TaskPlanningView> =
-    if (this == TaskWorkspaceDestination.Upcoming) {
+    if (this == TaskWorkspaceDestination.Tasks) {
         TaskPlanningView.entries
     } else {
         listOf(TaskPlanningView.List)
@@ -81,9 +79,8 @@ internal fun TaskWorkspaceDestination.normalizePlanningView(view: TaskPlanningVi
     view.takeIf { it in allowedPlanningViews() } ?: TaskPlanningView.List
 
 internal fun TaskDestination.toWorkspaceRoute(): TaskWorkspaceRoute = when (this) {
-    TaskDestination.Inbox -> TaskWorkspaceRoute(TaskWorkspaceDestination.Inbox)
+    TaskDestination.All, TaskDestination.Inbox, TaskDestination.Upcoming -> TaskWorkspaceRoute(TaskWorkspaceDestination.Tasks)
     TaskDestination.Today -> TaskWorkspaceRoute(TaskWorkspaceDestination.Today)
-    TaskDestination.Upcoming -> TaskWorkspaceRoute(TaskWorkspaceDestination.Upcoming)
     TaskDestination.Completed -> TaskWorkspaceRoute(
         TaskWorkspaceDestination.History,
         TaskHistorySection.Completed,
@@ -95,9 +92,8 @@ internal fun TaskDestination.toWorkspaceRoute(): TaskWorkspaceRoute = when (this
 }
 
 internal fun TaskWorkspaceRoute.dataDestination(): TaskDestination = when (destination) {
-    TaskWorkspaceDestination.Inbox -> TaskDestination.Inbox
+    TaskWorkspaceDestination.Tasks -> TaskDestination.All
     TaskWorkspaceDestination.Today -> TaskDestination.Today
-    TaskWorkspaceDestination.Upcoming -> TaskDestination.Upcoming
     TaskWorkspaceDestination.History -> when (historySection) {
         TaskHistorySection.Completed -> TaskDestination.Completed
         TaskHistorySection.Archived -> TaskDestination.Archived
@@ -106,7 +102,22 @@ internal fun TaskWorkspaceRoute.dataDestination(): TaskDestination = when (desti
 
 /** Keeps every saved filter inside the views supported by its destination. */
 internal fun SavedTaskFilter.normalizedForWorkspace(): SavedTaskFilter {
-    return normalizedNavigation()
+    val normalized = (if (destination.isBlank()) copy(
+        destination = if (inboxOnly) TaskDestination.Inbox.name else TaskDestination.All.name,
+        planningView = TaskPlanningView.List.name,
+    ) else this).normalizedNavigation()
+    return normalized.copy(dateMode = TaskDestination.valueOf(normalized.destination).normalizeDateMode(normalized.dateMode))
+}
+
+internal fun TaskDestination.normalizeDateMode(mode: String): String {
+    val supported = when (this) {
+        TaskDestination.Today, TaskDestination.Inbox -> setOf("Any", "Overdue")
+        TaskDestination.Upcoming -> setOf("Any", "Next7Days", "Overdue")
+        TaskDestination.Completed -> setOf("Any", "Today", "Last7Days")
+        TaskDestination.Archived -> setOf("Any")
+        TaskDestination.All -> setOf("Any", "Today", "PastScheduled", "Next7Days", "NoDate", "Overdue")
+    }
+    return mode.takeIf { it in supported } ?: "Any"
 }
 
 /** User-selected task sorting. Missing dates remain last in either direction. */
@@ -190,4 +201,14 @@ internal fun buildQuickAddTaskDraft(
             TaskStepDraft(title = title, position = index)
         },
     )
+}
+
+/** A collection is authored Tasks, not the finite window of generated occurrences. */
+internal fun TaskUiState.collectionTasks(): List<ScheduledTask> {
+    val nextByTask = (today + upcoming + planning + inbox)
+        .distinctBy(ScheduledTask::stableKey).groupBy { it.task.id }
+    return taskEntities.filter { !it.archived && it.completedAtMillis == null }.map { task ->
+        nextByTask[task.id]?.minWithOrNull(compareBy<ScheduledTask> { it.scheduledDate ?: LocalDate.MAX })
+            ?: ScheduledTask(task, task.date, task.date, isDeadlineOverdue = task.deadline?.isBefore(currentDate) == true)
+    }
 }

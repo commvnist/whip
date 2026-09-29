@@ -1,6 +1,13 @@
-# Workspace tabs and headers — proposed redesign
+# Workspace tabs and headers — redesign implementation
 
-Status: **Proposed**. Requested output is a plan, not implementation. Source reviewed at `5490fe81`, private 0.3.85/code 91. No tests, builds, phone interaction or new rendered inspection were run. Related: FB-20260929-007, FND-20260929-013, DEC-20260929-003. The existing test pause remains in force.
+Status: **Implemented; behavioral and fresh visual verification paused.** The original plan-only request was followed by explicit implementation authorization under FB-20260929-008, emphasizing stable visual transitions. Source baseline `d2817658`; private phone remains 0.3.85/code 91. Production integration compilation passes under VER-20260929-008; no test execution, phone action or fresh rendered inspection. Related: FB-20260929-007/008, FND-20260929-013, DEC-20260929-003, IMP-20260929-010.
+
+## Implementation disposition
+
+- Steps 1–5: implemented in existing route, settings, projection and screen owners. Shared `WhipWorkspaceHeader` pins a context row with content-independent height and stable trailing action slots; tabs remain in the existing shared owner. Compact Task scope/layout menus sit in scrolling content so they do not add fixed rows above only one workspace. Wide Track collection chrome spans both panes.
+- Task collection uses authored entities and preserves unprojected series. Collection recurring rows open definition editing; dated layouts keep occurrence actions. Today filters cannot change date scope. Apply/Cancel, per-route saved filters/scroll and explicit Saved Views are implemented; legacy route names remain decoding aliases, with consistent Unscheduled display language.
+- Habits use distinct management rows while preserving active timer recovery; Goals retain lifecycle partitions; Tracks retain per-log detail and workspace Activity, with one global Area scope. Archive child routes restore originating views. Gym keeps its four jobs and uses Insights terminology.
+- Step 6: existing focused policy/native fixtures are prepared, but execution and fresh visual inspection remain paused. Source-derived geometry is not rendered certification. Broader old navigation selectors and visual-catalog hashes require reconciliation on resumption. [Exact build/source evidence](../../artifacts/workspace-navigation/2026-09-29/README.md).
 
 ## Recommendation
 
@@ -16,7 +23,7 @@ Use three destinations for each productivity workspace. Give the collection the 
 
 Collection-first ordering need not force daily users to open a management screen. Preserve explicit Home/widget/search targets and the last tab within the session; otherwise retain the existing execution-oriented defaults. Keep tab order fixed, independent of counts or previous selection. Do not add blank or invented tabs to make every workspace have the same number.
 
-## What the app currently does
+## Baseline analysis before implementation
 
 | Workspace | Current responsibilities and confirmed friction |
 | --- | --- |
@@ -110,7 +117,7 @@ Archives open as proper child pages with a Back action, clear Archived title, re
 | 5. Align Gym and routing | Shared root header, four retained jobs, Insights label, search/Home/widget/Back/creation updates and accessible names. | Live workout/editor retention, library reachability, exact receipt routing and no duplicated search/create/filter ownership. |
 | 6. Inspect focused rendered journeys | Updated navigation/source/catalog contracts plus small, selected behavioral and visual checks. | Fresh comparison of identical seeded states; no label/count-dependent header jumps; full controls visible at actual large text; no private-phone instrumentation. |
 
-All steps are proposed scope, with no production changes in this planning task. On implementation, batch related edits and use exact affected JVM/native methods under the established 55-second routine bound. Respect the owner's current pause until verification is explicitly resumed; do not claim rendered acceptance from source review. The navigation acceptance above does not complete the separately paused full-suite campaign.
+Steps 1–5 are implemented; Step 6 remains pending while verification is paused. When resumed, use exact affected JVM/native methods under the established 55-second routine bound and inspect fresh rendered transitions before claiming visual acceptance. The navigation acceptance above does not complete the separately paused full-suite campaign.
 
 ## Alternatives rejected
 

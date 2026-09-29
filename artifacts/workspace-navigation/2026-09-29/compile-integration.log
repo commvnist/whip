@@ -1,0 +1,21 @@
+Reusing configuration cache.
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:kspDebugKotlin
+> Task :app:copyRoomSchemas NO-SOURCE
+
+> Task :app:compileDebugKotlin
+w: file:///root/repos/whip/app/src/main/java/com/whip/app/ui/GoalScreens.kt:1591:54 Unnecessary safe call on a non-null receiver of type 'GoalProjection'.
+
+[Incubating] Problems report is available at: file:///root/repos/whip/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 16s
+9 actionable tasks: 2 executed, 7 up-to-date
+Configuration cache entry reused.

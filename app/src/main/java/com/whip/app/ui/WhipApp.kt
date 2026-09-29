@@ -1597,7 +1597,6 @@ fun WhipScreen(
             AppDestination.Tasks -> openTaskEditor(
                 scheduleDate = when (taskDestination) {
                     TaskDestination.Today -> state.currentDate
-                    TaskDestination.Upcoming -> state.currentDate.plusDays(1)
                     else -> null
                 },
                 placement = taskDestination.creationPlacement(),
@@ -2275,8 +2274,7 @@ fun WhipScreen(
                             capture = capture,
                             scheduleDate = when (taskDestination) {
                                 TaskDestination.Today -> state.currentDate
-                                TaskDestination.Upcoming -> state.currentDate.plusDays(1)
-                                else -> null
+                                            else -> null
                             },
                             placement = taskDestination.creationPlacement(),
                         )
@@ -2526,9 +2524,11 @@ fun WhipScreen(
                                 found in unscopedTaskState.completed -> TaskDestination.Completed
                                 found in unscopedTaskState.inbox -> TaskDestination.Inbox
                                 found in unscopedTaskState.today -> TaskDestination.Today
-                                else -> TaskDestination.Upcoming
+                                found in unscopedTaskState.upcoming -> TaskDestination.Upcoming
+                                else -> TaskDestination.All
                             }
-                            if (found in unscopedTaskState.completed) completedItemKey = found.stableKey else {
+                            if (found.task.scheduleKind == ScheduleKind.Recurring && found.originalDate == null && !found.task.archived) openTaskEditor(found)
+                            else if (found in unscopedTaskState.completed) completedItemKey = found.stableKey else {
                                 actionItemKey = found.stableKey
                             }
                         }
@@ -4973,6 +4973,7 @@ private fun HomeContent(
     onRetryGymLoading: () -> Unit = {},
 ) {
     val homeTaskFilter = appSettings.savedTaskFilters.firstOrNull { it.name == appSettings.homeTaskFilterName }
+        ?.copy(destination = TaskDestination.Today.name, inboxOnly = false)?.normalizedForWorkspace()
     val homeTasks = state.today.filter { homeTaskFilter == null || it.matches(homeTaskFilter, state.currentDate, appSettings.zoneId()) }
     val homeTaskPreview = pinnedHomeSummary(homeTasks, limit = 3) { it.task.pinned }
     val homePinnedTasks = homeTaskPreview.filter { it.task.pinned }
@@ -5811,12 +5812,13 @@ private fun TaskAreaContent(
                 selected = initialWorkspaceRoute.destination,
                 destinations = allTaskWorkspaceDestinations,
                 onSelect = { selected ->
-                    onDestinationChange(TaskWorkspaceRoute(selected, initialWorkspaceRoute.historySection).dataDestination())
+                    onDestinationChange(TaskWorkspaceRoute(selected).dataDestination())
                 },
                 label = TaskWorkspaceDestination::label,
                 testTagPrefix = "task-destination",
                 barTestTag = "task-workspace-navigation",
             )
+            WhipWorkspaceHeader("Loading tasks")
             DomainLoadContent("tasks", PaddingValues(), state.errorMessage, onRetryLoading)
         }
         return
@@ -5829,10 +5831,12 @@ private fun TaskAreaContent(
     var textQuery by rememberSaveable { mutableStateOf("") }
     val taskListState = rememberLazyListState()
     var previousTaskQuery by rememberSaveable { mutableStateOf(textQuery) }
+    var previousQueryDestination by rememberSaveable { mutableStateOf(destination) }
     val taskFilterScroll = rememberScrollState()
-    LaunchedEffect(textQuery) {
-        if (previousTaskQuery != textQuery) taskListState.scrollToItem(0)
+    LaunchedEffect(textQuery, destination) {
+        if (previousQueryDestination == destination && previousTaskQuery != textQuery) taskListState.scrollToItem(0)
         previousTaskQuery = textQuery
+        previousQueryDestination = destination
     }
     var sortMode by rememberSaveable {
         mutableStateOf(
@@ -5897,6 +5901,13 @@ private fun TaskAreaContent(
             onDayPlannerRequestConsumed()
         }
     }
+    var previousDestination by rememberSaveable { mutableStateOf(destination) }
+    var lastCollectionDestination by rememberSaveable { mutableStateOf(destination.takeIf { it in setOf(TaskDestination.All, TaskDestination.Inbox, TaskDestination.Upcoming) } ?: TaskDestination.All) }
+    var savedRouteViews by rememberSaveable { mutableStateOf(mapOf<String, SavedTaskFilter>()) }
+    var savedRouteScroll by rememberSaveable { mutableStateOf(mapOf<String, List<Int>>()) }
+    var savedViewsOpen by rememberSaveable { mutableStateOf(false) }
+    var legacyViewNotice by rememberSaveable { mutableStateOf<String?>(null) }
+    var archiveReturn by rememberSaveable { mutableStateOf(TaskDestination.Today) }
     var taskToolsExpanded by rememberSaveable { mutableStateOf(false) }
     var quickCapture by rememberSaveable { mutableStateOf("") }
     var quickCaptureViewport by remember { mutableStateOf(IntSize.Zero) }
@@ -5942,61 +5953,7 @@ private fun TaskAreaContent(
         onSelectionModeChange(selectionMode)
         onReorderModeChange(reordering || enterReorderWhenReady)
     }
-    var previousDestination by rememberSaveable { mutableStateOf(destination) }
-    LaunchedEffect(destination) {
-        destination.toWorkspaceRoute().takeIf { it.destination == TaskWorkspaceDestination.History }
-            ?.let { historySection = it.historySection }
-        planningView = workspaceDestination.normalizePlanningView(planningView)
-        if (previousDestination != destination) {
-            selectionMode = false
-            reordering = false
-            enterReorderWhenReady = false
-            selectionActionsOpen = false
-            selectedKeys = emptySet()
-            pendingBulkCompleteKeys = null
-            archivePreviewKeys = null
-            archiveTargetRevisions = emptySet()
-            bulkEditOpen = false
-            bulkDatePickerOpen = false
-            bulkEditTargetKeys = null
-            bulkDateTargetKeys = null
-            bulkEditTargetRevisions = emptySet()
-            bulkDateTargetRevisions = emptySet()
-            quickMoveTargetKeys = null
-            quickMoveTargetRevisions = emptySet()
-            quickMoveEpochDay = null
-            bulkEditTargetSnapshot = emptyList()
-            bulkDateTargetSnapshot = emptyList()
-        }
-        previousDestination = destination
-        dateMode = when (destination) {
-            TaskDestination.Completed -> dateMode.takeIf { it in setOf("Any", "Today", "Last7Days") } ?: "Any"
-            TaskDestination.Archived -> "Any"
-            else -> dateMode.takeIf { it in setOf("Any", "Today", "Overdue", "PastScheduled", "Next7Days", "NoDate") } ?: "Any"
-        }
-        val supportedSortModes = when (destination) {
-            TaskDestination.Completed -> setOf("Smart", "Completion Date", "Priority", "Title")
-            TaskDestination.Archived -> setOf("Smart", "Archived Date", "Priority", "Title")
-            else -> setOf("Smart", "Manual", "Scheduled Date", "Deadline", "Priority", "Title")
-        }
-        sortMode = if (destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)) {
-            appSettings.activeTaskSortMode.takeIf { it in supportedSortModes } ?: "Smart"
-        } else {
-            sortMode.takeIf { it in supportedSortModes } ?: "Smart"
-        }
-        val supportedGroupModes = when (destination) {
-            TaskDestination.Completed -> setOf("None", "Completion Date", "Area", "Priority")
-            TaskDestination.Archived -> setOf("None", "Archived Date", "Area", "Priority")
-            else -> setOf("None", "Scheduled Date", "Area", "Priority")
-        }
-        if (groupMode !in supportedGroupModes) groupMode = "None"
-    }
-    LaunchedEffect(planningViewRequest, workspaceDestination) {
-        planningViewRequest?.let {
-            planningView = workspaceDestination.normalizePlanningView(it)
-            onPlanningViewRequestConsumed()
-        }
-    }
+
     BackHandler(enabled = reordering || enterReorderWhenReady) {
         reordering = false
         enterReorderWhenReady = false
@@ -6010,7 +5967,8 @@ private fun TaskAreaContent(
     LaunchedEffect(areaScope) {
         if (areaScope != AreaScope.All && groupMode == "Area") groupMode = "None"
     }
-    val allTasks = state.inbox + state.today + state.upcoming + state.planning + state.completed + state.archived
+    val collectionTasks = remember(state) { state.collectionTasks() }
+    val allTasks = state.inbox + state.today + state.upcoming + state.planning + state.completed + state.archived + collectionTasks
     LaunchedEffect(bulkEditOpen, bulkEditTargetKeys, allTasks) {
         if (bulkEditOpen && bulkEditTargetSnapshot.isEmpty()) {
             val keys = bulkEditTargetKeys.orEmpty()
@@ -6061,13 +6019,15 @@ private fun TaskAreaContent(
     // `upcoming` preserves the recurring-occurrence preference and excludes today.
     // Recurrences project 30 days ahead; one-off dated Tasks can extend farther.
     // Do not substitute the broader `planning` collection for this workspace.
-    val sourceTasks = state.tasksFor(destination)
+    val sourceTasks = if (destination == TaskDestination.All) {
+        if (planningView == TaskPlanningView.List) collectionTasks else state.planning.filter { it.scheduledDate != null }
+    } else state.tasksFor(destination)
     val filtered = sourceTasks
         .filter { it.matches(currentFilter, state.currentDate, appSettings.zoneId()) }
         .sortedForWorkspace(sortMode, sortDirection)
     val visibleTasks = filtered.forPlanningView(planningView, selectedDate, appSettings.zoneId())
-    val planningWindow = state.currentDate.plusDays(1)..state.currentDate.plusDays(30)
-    LaunchedEffect(planningView, state.currentDate) {
+    val planningWindow = (if (destination == TaskDestination.All) state.currentDate else state.currentDate.plusDays(1))..state.currentDate.plusDays(30)
+    LaunchedEffect(planningView, state.currentDate, destination) {
         if (planningView == TaskPlanningView.Calendar) {
             selectedDate = selectedDate.coerceIn(planningWindow.start, planningWindow.endInclusive)
             calendarMonth = YearMonth.from(selectedDate)
@@ -6078,6 +6038,7 @@ private fun TaskAreaContent(
         it.matches(dayPlanFilter, state.currentDate, appSettings.zoneId())
     }.sortedForWorkspace(sortMode, sortDirection)
     val selectedItems = visibleTasks.filter { it.stableKey in selectedKeys }
+    val selectedCollectionSeries = destination == TaskDestination.All && selectedItems.any { it.task.scheduleKind == ScheduleKind.Recurring }
     val existingTodayMinutes = dayPlanTodayTasks
         .distinctBy(ScheduledTask::stableKey)
         .sumOf(ScheduledTask::estimatedDurationMinutes)
@@ -6119,7 +6080,7 @@ private fun TaskAreaContent(
         )
     }
     val activeFilterCount = activeFilters.size
-    val reorderDestinationEligible = destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)
+    val reorderDestinationEligible = destination == TaskDestination.All
     val reorderHasConstraints =
         textQuery.isNotBlank() || activeFilterCount > 0 || areaScope != AreaScope.All ||
             groupMode != "None" || planningView != TaskPlanningView.List
@@ -6135,7 +6096,7 @@ private fun TaskAreaContent(
         }
     }
 
-    fun applyFilter(filter: SavedTaskFilter, restoreArea: Boolean = true) {
+    fun restoreFilterValues(filter: SavedTaskFilter, restoreArea: Boolean = false) {
         val normalized = filter.normalizedForWorkspace()
         priorities = normalized.priorities
         if (restoreArea) onSelectAreaScope(normalized.restoredAreaScope())
@@ -6148,14 +6109,98 @@ private fun TaskAreaContent(
         maximumDuration = normalized.maximumDurationMinutes?.toString().orEmpty()
         textQuery = normalized.textQuery
         sortMode = normalized.sortMode
-        if (destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)) {
-            onActiveTaskSortModeChange(normalized.sortMode)
-        }
         sortDirection = if (normalized.sortDescending) SortDirection.Descending else SortDirection.Ascending
         groupMode = normalized.groupMode
-        runCatching { TaskDestination.valueOf(normalized.destination) }.getOrNull()?.let(onDestinationChange)
         planningView = runCatching { TaskPlanningView.valueOf(normalized.planningView) }
             .getOrDefault(TaskPlanningView.List)
+    }
+    fun navigateTask(target: TaskDestination, view: SavedTaskFilter? = null) {
+        if (target == destination && view == null) return
+        savedRouteViews = savedRouteViews + (destination.name to currentFilter)
+        savedRouteScroll = savedRouteScroll + (destination.name to listOf(taskListState.firstVisibleItemIndex, taskListState.firstVisibleItemScrollOffset))
+        restoreFilterValues(view ?: savedRouteViews[target.name] ?: SavedTaskFilter(name = "Current", destination = target.name))
+        selectionMode = false; reordering = false; enterReorderWhenReady = false
+        selectionActionsOpen = false; selectedKeys = emptySet()
+        pendingBulkCompleteKeys = null; archivePreviewKeys = null; archiveTargetRevisions = emptySet()
+        bulkEditOpen = false; bulkDatePickerOpen = false
+        bulkEditTargetKeys = null; bulkDateTargetKeys = null
+        bulkEditTargetRevisions = emptySet(); bulkDateTargetRevisions = emptySet()
+        quickMoveTargetKeys = null; quickMoveTargetRevisions = emptySet(); quickMoveEpochDay = null
+        bulkEditTargetSnapshot = emptyList(); bulkDateTargetSnapshot = emptyList()
+        val position = savedRouteScroll[target.name].orEmpty()
+        taskListState.requestScrollToItem(position.getOrElse(0) { 0 }, position.getOrElse(1) { 0 })
+        previousDestination = target
+        if (target in setOf(TaskDestination.All, TaskDestination.Inbox, TaskDestination.Upcoming)) lastCollectionDestination = target
+        onDestinationChange(target)
+    }
+    BackHandler(enabled = destination == TaskDestination.Archived) { navigateTask(archiveReturn) }
+    fun applyFilter(filter: SavedTaskFilter, restoreArea: Boolean = true) {
+        val normalized = filter.normalizedForWorkspace()
+        legacyViewNotice = if (normalized.dateMode != filter.dateMode) "Removed a date filter that isn't available in this view." else null
+        val target = runCatching { TaskDestination.valueOf(normalized.destination) }.getOrDefault(destination)
+        if (restoreArea) onSelectAreaScope(normalized.restoredAreaScope())
+        if (target == TaskDestination.Archived && destination != target) archiveReturn = destination
+        if (target == destination) restoreFilterValues(normalized)
+        else navigateTask(target, normalized)
+    }
+    LaunchedEffect(destination) {
+        if (previousDestination != destination) {
+            savedRouteViews = savedRouteViews + (previousDestination.name to currentFilter.copy(destination = previousDestination.name, inboxOnly = previousDestination == TaskDestination.Inbox))
+            savedRouteScroll = savedRouteScroll + (previousDestination.name to listOf(taskListState.firstVisibleItemIndex, taskListState.firstVisibleItemScrollOffset))
+            val restored = savedRouteViews[destination.name] ?: SavedTaskFilter(name = "Current", destination = destination.name)
+            restoreFilterValues(restored)
+            val position = savedRouteScroll[destination.name].orEmpty()
+            taskListState.scrollToItem(position.getOrElse(0) { 0 }, position.getOrElse(1) { 0 })
+        }
+        destination.toWorkspaceRoute().takeIf { it.destination == TaskWorkspaceDestination.History }
+            ?.let { historySection = it.historySection }
+        planningView = workspaceDestination.normalizePlanningView(planningView)
+        if (previousDestination != destination) {
+            selectionMode = false
+            reordering = false
+            enterReorderWhenReady = false
+            selectionActionsOpen = false
+            selectedKeys = emptySet()
+            pendingBulkCompleteKeys = null
+            archivePreviewKeys = null
+            archiveTargetRevisions = emptySet()
+            bulkEditOpen = false
+            bulkDatePickerOpen = false
+            bulkEditTargetKeys = null
+            bulkDateTargetKeys = null
+            bulkEditTargetRevisions = emptySet()
+            bulkDateTargetRevisions = emptySet()
+            quickMoveTargetKeys = null
+            quickMoveTargetRevisions = emptySet()
+            quickMoveEpochDay = null
+            bulkEditTargetSnapshot = emptyList()
+            bulkDateTargetSnapshot = emptyList()
+        }
+        dateMode = destination.normalizeDateMode(dateMode)
+        val supportedSortModes = when (destination) {
+            TaskDestination.Completed -> setOf("Smart", "Completion Date", "Priority", "Title")
+            TaskDestination.Archived -> setOf("Smart", "Archived Date", "Priority", "Title")
+            else -> setOf("Smart", "Manual", "Scheduled Date", "Deadline", "Priority", "Title")
+        }
+        sortMode = if (destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)) {
+            sortMode.takeIf { it in supportedSortModes } ?: "Smart"
+        } else {
+            sortMode.takeIf { it in supportedSortModes } ?: "Smart"
+        }
+        val supportedGroupModes = when (destination) {
+            TaskDestination.Completed -> setOf("None", "Completion Date", "Area", "Priority")
+            TaskDestination.Archived -> setOf("None", "Archived Date", "Area", "Priority")
+            else -> setOf("None", "Scheduled Date", "Area", "Priority")
+        }
+        if (groupMode !in supportedGroupModes) groupMode = "None"
+        previousDestination = destination
+        if (destination in setOf(TaskDestination.All, TaskDestination.Inbox, TaskDestination.Upcoming)) lastCollectionDestination = destination
+    }
+    LaunchedEffect(planningViewRequest, workspaceDestination) {
+        planningViewRequest?.let {
+            planningView = workspaceDestination.normalizePlanningView(it)
+            onPlanningViewRequestConsumed()
+        }
     }
     LaunchedEffect(homeFilterRequested) {
         if (homeFilterRequested) {
@@ -6255,33 +6300,31 @@ private fun TaskAreaContent(
             .then(if (quickMoveCoordinator.saving) Modifier.clearAndSetSemantics { } else Modifier),
     ) {
         DestinationTabBar(
-            selected = workspaceDestination,
+            selected = if (destination == TaskDestination.Archived) archiveReturn.toWorkspaceRoute().destination else workspaceDestination,
             destinations = allTaskWorkspaceDestinations,
             onSelect = { selected ->
-                textQuery = ""
-                val nextRoute = TaskWorkspaceRoute(selected, historySection)
-                onDestinationChange(nextRoute.dataDestination())
+                val nextRoute = TaskWorkspaceRoute(selected)
+                navigateTask(if (selected == TaskWorkspaceDestination.Tasks) lastCollectionDestination else nextRoute.dataDestination())
             },
             label = TaskWorkspaceDestination::label,
             testTagPrefix = "task-destination",
             barTestTag = "task-workspace-navigation",
         )
         Column(
-            modifier = Modifier.padding(
-                whipPagePadding(top = if (selectionMode) 0.dp else WhipSpacing.compact, bottom = 0.dp),
-            ),
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
-            if (!selectionMode && !quickCaptureHasKeyboard) WhipPageHeader(
-                    title = workspaceDestination.label,
-                    supportingText = taskDestinationSupportingText(destination, visibleTasks.size),
+            if (!selectionMode) WhipWorkspaceHeader(
+                    summary = if (reordering) "Reordering Tasks" else if (destination == TaskDestination.Archived) "Archived Tasks" else taskDestinationSupportingText(destination, visibleTasks.size),
+                    onBack = { navigateTask(archiveReturn) }.takeIf { destination == TaskDestination.Archived },
                 ) {
+                if (reordering) WhipTextButton(onClick = { reordering = false }) { Text("Done") }
                 if (!reordering) WhipPageIconAction(
                         icon = Icons.Outlined.FilterList,
                         label = if (activeFilterCount == 0) "Filter & Sort Tasks" else "Filter & Sort Tasks · $activeFilterCount active",
                         onClick = { showFilters = true },
+                        badgeCount = activeFilterCount, active = activeFilterCount > 0,
                     )
-                if (!reordering && (canReorderTaskList || canSelectTaskList)) Box {
+                if (!reordering) Box {
                     WhipPageIconAction(
                         icon = Icons.Outlined.MoreVert,
                         label = "More task list actions",
@@ -6291,6 +6334,11 @@ private fun TaskAreaContent(
                         expanded = taskToolsExpanded,
                         onDismissRequest = { taskToolsExpanded = false },
                     ) {
+                        if (destination != TaskDestination.Archived) WhipMenuItem("Archived Tasks", onClick = {
+                            taskToolsExpanded = false; archiveReturn = destination; navigateTask(TaskDestination.Archived)
+                        })
+                        WhipMenuItem("Saved Views", onClick = { taskToolsExpanded = false; savedViewsOpen = true })
+                        WhipMenuItem("Save This View", onClick = { taskToolsExpanded = false; saveFilterOpen = true })
                         if (canReorderTaskList) WhipMenuItem(
                             label = when {
                                 areaScope != AreaScope.All -> "Show All Areas & Reorder"
@@ -6303,19 +6351,7 @@ private fun TaskAreaContent(
                     }
                 }
                 }
-            if (workspaceDestination == TaskWorkspaceDestination.History) {
-                SegmentedChoiceBar(
-                    selected = historySection,
-                    choices = TaskHistorySection.entries,
-                    onSelect = { selected ->
-                        historySection = selected
-                        onDestinationChange(TaskWorkspaceRoute(TaskWorkspaceDestination.History, selected).dataDestination())
-                    },
-                    label = TaskHistorySection::label,
-                    modifier = Modifier.fillMaxWidth().testTag("task-history-sections"),
-                    resetItemDisclosureOnChange = true,
-                )
-            }
+
             if (selectionMode) {
                 WhipSelectionActionPanel(
                     selectionSummary = "${selectedItems.size} selected",
@@ -6378,7 +6414,7 @@ private fun TaskAreaContent(
                                     modifier = actionModifier.testTag("task-selection-restore"),
                                 ) { Text("Restore", maxLines = 1) }
                                 else -> WhipButton(
-                                    enabled = selectedItems.isNotEmpty(),
+                                    enabled = selectedItems.isNotEmpty() && !selectedCollectionSeries,
                                     onClick = {
                                         val completionItems = selectedItems.distinctBy(ScheduledTask::stableKey)
                                         if (completionItems.any { item -> item.subtasks.any { !it.completed } }) {
@@ -6417,7 +6453,7 @@ private fun TaskAreaContent(
                                     WhipMenuItem(label = "Unpin from Whip Home", onClick = {
                                         onBulkPin(selectedItems, false); finishSelection()
                                     })
-                                    WhipMenuItem(label = "Move to Tomorrow", onClick = {
+                                    WhipMenuItem(label = "Move to Tomorrow", enabled = !selectedCollectionSeries, onClick = {
                                         val targets = selectedItems.distinctBy(ScheduledTask::stableKey)
                                         quickMoveTargetKeys = targets.mapTo(linkedSetOf(), ScheduledTask::stableKey)
                                         quickMoveTargetRevisions = targets.mapTo(linkedSetOf(), ScheduledTask::taskMutationRevision)
@@ -6428,7 +6464,7 @@ private fun TaskAreaContent(
                                             quickMoveCoordinator.finishFailure("Another Task change is already finishing.")
                                         }
                                     })
-                                    WhipMenuItem(label = "Move to Next Week", onClick = {
+                                    WhipMenuItem(label = "Move to Next Week", enabled = !selectedCollectionSeries, onClick = {
                                         val targets = selectedItems.distinctBy(ScheduledTask::stableKey)
                                         quickMoveTargetKeys = targets.mapTo(linkedSetOf(), ScheduledTask::stableKey)
                                         quickMoveTargetRevisions = targets.mapTo(linkedSetOf(), ScheduledTask::taskMutationRevision)
@@ -6439,7 +6475,7 @@ private fun TaskAreaContent(
                                             quickMoveCoordinator.finishFailure("Another Task change is already finishing.")
                                         }
                                     })
-                                    WhipMenuItem(label = "Choose Date", onClick = {
+                                    WhipMenuItem(label = "Choose Date", enabled = !selectedCollectionSeries, onClick = {
                                         bulkDateTargetSnapshot = selectedItems.distinctBy(ScheduledTask::stableKey)
                                         bulkDateTargetKeys = bulkDateTargetSnapshot
                                             .mapTo(linkedSetOf(), ScheduledTask::stableKey)
@@ -6476,24 +6512,7 @@ private fun TaskAreaContent(
                         }
                 }
             } else {
-                if (reordering) {
-                    WhipReorderModeBar(
-                        itemLabel = "Tasks",
-                        onDone = { reordering = false },
-                        boundaryNote = "Pinned and other Tasks reorder separately.",
-                    )
-                }
-                val planningViews = workspaceDestination.allowedPlanningViews()
-                if (!reordering && planningViews.size > 1) {
-                    SegmentedChoiceBar(
-                        selected = planningView,
-                        choices = planningViews,
-                        onSelect = { planningView = workspaceDestination.normalizePlanningView(it) },
-                        label = TaskPlanningView::label,
-                        modifier = Modifier.fillMaxWidth(),
-                        resetItemDisclosureOnChange = true,
-                    )
-                }
+
                 if (
                     reordering && sortMode == "Manual" &&
                     (textQuery.isNotBlank() || activeFilterCount > 0 || areaScope != AreaScope.All)
@@ -6510,9 +6529,48 @@ private fun TaskAreaContent(
             state = taskListState,
             modifier = Modifier.weight(1f).testTag("task-workspace-list")
                 .onSizeChanged { quickCaptureViewport = it },
-            contentPadding = whipPagePadding(top = WhipSpacing.sibling),
+            contentPadding = WhipPageContentPadding,
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
+        if (!selectionMode && !reordering && workspaceDestination == TaskWorkspaceDestination.Tasks) item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                var scopeMenu by remember { mutableStateOf(false) }
+                var layoutMenu by remember { mutableStateOf(false) }
+                Box {
+                    WhipTextButton(onClick = { scopeMenu = true }) { Text(when (destination) {
+                        TaskDestination.Inbox -> "Unscheduled ▾"
+                        TaskDestination.Upcoming -> "Upcoming ▾"
+                        else -> if (dateMode == "Any") "All Tasks ▾" else "Custom scope ▾"
+                    }) }
+                    DropdownMenu(scopeMenu, { scopeMenu = false }) {
+                        listOf(TaskDestination.All to "All Tasks", TaskDestination.Inbox to "Unscheduled", TaskDestination.Upcoming to "Upcoming").forEach { (route, label) ->
+                            WhipMenuItem(label, onClick = {
+                                scopeMenu = false
+                                navigateTask(route, currentFilter.copy(destination = route.name, dateMode = "Any",
+                                    inboxOnly = route == TaskDestination.Inbox,
+                                    planningView = if (route == TaskDestination.Inbox) TaskPlanningView.List.name else planningView.name))
+                            })
+                        }
+                    }
+                }
+                Box {
+                    WhipTextButton(onClick = { layoutMenu = true }) { Text("${planningView.label} ▾") }
+                    DropdownMenu(layoutMenu, { layoutMenu = false }) {
+                        TaskPlanningView.entries.forEach { view -> WhipMenuItem(view.label, onClick = {
+                            layoutMenu = false
+                            if (destination == TaskDestination.Inbox && view != TaskPlanningView.List) {
+                                applyFilter(currentFilter.copy(destination = TaskDestination.Upcoming.name, dateMode = "Any", planningView = view.name, inboxOnly = false), restoreArea = false)
+                            } else planningView = view
+                        }) }
+                    }
+                }
+            }
+        }
+        if (legacyViewNotice != null) item { Text(legacyViewNotice.orEmpty(), style = MaterialTheme.typography.bodySmall) }
+        if (planningView != TaskPlanningView.List) item {
+            Text(if (planningView == TaskPlanningView.Calendar) "Dated occurrences · ${planningWindow.start} – ${planningWindow.endInclusive}" else "Scheduled occurrences · Recurring projection: next 30 days", style = MaterialTheme.typography.bodySmall)
+            WhipTextButton(onClick = { navigateTask(TaskDestination.Inbox) }) { Text("Open Unscheduled Tasks") }
+        }
         if (!selectionMode && !reordering && activeFilters.isNotEmpty()) item {
             WhipActiveFilterRow(
                 filters = activeFilters,
@@ -6552,7 +6610,7 @@ private fun TaskAreaContent(
                 content()
             }
         }
-        if (!selectionMode && !reordering && textQuery.isBlank() && destination in setOf(TaskDestination.Today, TaskDestination.Inbox)) {
+        if (!selectionMode && !reordering && textQuery.isBlank() && destination in setOf(TaskDestination.Today, TaskDestination.Inbox, TaskDestination.All)) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     WhipInlineTextField(
@@ -6623,7 +6681,7 @@ private fun TaskAreaContent(
             }
         }
         if (!selectionMode && !reordering && state.inbox.isNotEmpty() &&
-            destination in setOf(TaskDestination.Inbox, TaskDestination.Today)) {
+            destination in setOf(TaskDestination.Inbox, TaskDestination.Today, TaskDestination.All)) {
             item {
                 WhipOutlinedButton(onClick = { showDayPlanner = true }, modifier = Modifier.fillMaxWidth()) {
                     Text("Plan My Day")
@@ -6689,6 +6747,7 @@ private fun TaskAreaContent(
                 if (areaScope != AreaScope.All) WhipTextButton(onClick = { onSelectAreaScope(AreaScope.All) }) { Text("Show All Areas") }
             }
         }
+        val rowDestination = if (destination == TaskDestination.All && planningView != TaskPlanningView.List) TaskDestination.Upcoming else destination
         if (planningView == TaskPlanningView.Agenda) {
             val tasksByDate = visibleTasks.groupBy { it.planningDate(appSettings.zoneId()) }
             (tasksByDate.keys + plannedHabitsByDate.keys)
@@ -6705,7 +6764,7 @@ private fun TaskAreaContent(
                 items(tasks, key = ScheduledTask::stableKey) { item ->
                     TaskPlanningRow(
                         item = item,
-                        destination = destination,
+                        destination = rowDestination,
                         selectionMode = selectionMode,
                         selectedKeys = selectedKeys,
                         onSelectionChange = { selectedKeys = it },
@@ -6730,8 +6789,12 @@ private fun TaskAreaContent(
                     }
                 }
             }
-        } else if (planningView == TaskPlanningView.List && groupMode != "None") {
-            val groupedTasks = visibleTasks.groupBy { it.groupingLabel(groupMode, appSettings.zoneId()) }
+        } else if (planningView == TaskPlanningView.List && (groupMode != "None" || destination == TaskDestination.Today)) {
+            val groupedTasks = visibleTasks.groupBy {
+                if (groupMode == "None" && destination == TaskDestination.Today) {
+                    if (it.isPastScheduledDate) "Carried over" else "Today"
+                } else it.groupingLabel(groupMode, appSettings.zoneId())
+            }
             val sortedGroups = when (groupMode) {
                 "Scheduled Date", "Completion Date" -> groupedTasks.entries.sortedBy { (_, tasks) ->
                     tasks.mapNotNull { it.groupingDate(groupMode, appSettings.zoneId()) }.minOrNull() ?: LocalDate.MAX
@@ -6742,14 +6805,14 @@ private fun TaskAreaContent(
                 "Priority" -> groupedTasks.entries.sortedByDescending { (_, tasks) ->
                     tasks.maxOfOrNull { it.task.priority.ordinal } ?: Int.MIN_VALUE
                 }
-                else -> groupedTasks.entries.sortedBy { it.key }
+                else -> groupedTasks.entries.sortedBy { if (destination == TaskDestination.Today && groupMode == "None") if (it.key == "Today") "0" else "1" else it.key }
             }
             sortedGroups.forEach { (label, tasks) ->
                 item(key = "task-group-$groupMode-$label") { WhipGroupHeading(label) }
                 items(tasks, key = ScheduledTask::stableKey) { item ->
                     TaskPlanningListRow(
                         item = item,
-                        destination = destination,
+                        destination = rowDestination,
                         selectionMode = selectionMode,
                         selectedKeys = selectedKeys,
                         onSelectionChange = { selectedKeys = it },
@@ -6776,7 +6839,7 @@ private fun TaskAreaContent(
                 }
                 TaskPlanningListRow(
                     item = item,
-                destination = destination,
+                destination = rowDestination,
                 selectionMode = selectionMode,
                 selectedKeys = selectedKeys,
                 onSelectionChange = { selectedKeys = it },
@@ -6828,6 +6891,24 @@ private fun TaskAreaContent(
     }
 
     if (showFilters && !saveFilterOpen) {
+        val initialFilter = currentFilter
+        var sortMode by rememberSaveable { mutableStateOf(initialFilter.sortMode) }
+        var sortDirection by rememberSaveable { mutableStateOf(if (initialFilter.sortDescending) SortDirection.Descending else SortDirection.Ascending) }
+        var groupMode by rememberSaveable { mutableStateOf(initialFilter.groupMode) }
+        var priorities by rememberSaveable { mutableStateOf(initialFilter.priorities) }
+        var pinnedOnly by rememberSaveable { mutableStateOf(initialFilter.pinnedOnly) }
+        var selectedTags by rememberSaveable { mutableStateOf(initialFilter.tags) }
+        var requireAllTags by rememberSaveable { mutableStateOf(initialFilter.requireAllTags) }
+        var dateMode by rememberSaveable { mutableStateOf(initialFilter.dateMode) }
+        var deadlineOnly by rememberSaveable { mutableStateOf(initialFilter.deadlineOnly) }
+        var efforts by rememberSaveable { mutableStateOf(initialFilter.efforts) }
+        var maximumDuration by rememberSaveable { mutableStateOf(initialFilter.maximumDurationMinutes?.toString().orEmpty()) }
+        var textQuery by rememberSaveable { mutableStateOf(initialFilter.textQuery) }
+        val draftFilter = initialFilter.copy(sortMode = sortMode, sortDescending = sortDirection == SortDirection.Descending,
+            groupMode = groupMode, priorities = priorities, pinnedOnly = pinnedOnly, tags = selectedTags,
+            requireAllTags = requireAllTags, dateMode = dateMode, deadlineOnly = deadlineOnly,
+            efforts = efforts, maximumDurationMinutes = maximumDuration.toIntOrNull(), textQuery = textQuery)
+        val draftCount = sourceTasks.count { it.matches(draftFilter, state.currentDate, appSettings.zoneId()) }
         PaneAwareAlertDialog(
             modifier = dialogModifier,
             onDismissRequest = { showFilters = false },
@@ -6846,26 +6927,12 @@ private fun TaskAreaContent(
                         modifier = Modifier.fillMaxWidth().testTag("task-filter-query"),
                     )
                     Text(
-                        "${filtered.size} of ${sourceTasks.size} tasks match · ${destination.label}",
+                        "${draftCount} of ${sourceTasks.size} tasks match · ${destination.label}",
                         modifier = Modifier.testTag("task-filter-result-count"),
                         style = MaterialTheme.typography.bodyMedium,
                     )
-                    Text("Changes apply as you choose them.", style = MaterialTheme.typography.bodySmall)
-                    if (appSettings.savedTaskFilters.isNotEmpty()) {
-                        Text("Saved Filters", fontWeight = FontWeight.Bold)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            appSettings.savedTaskFilters.forEach { filter ->
-                                WhipFilterChip(
-                                    selected = filter.copy(name = "Current") == currentFilter,
-                                    onClick = { applyFilter(filter) },
-                                    label = { Text(filter.name) },
-                                )
-                            }
-                        }
-                        appSettings.savedTaskFilters.firstOrNull { it.copy(name = "Current") == currentFilter }?.let { selected ->
-                            WhipTextButton(onClick = { onDeleteFilter(selected.name) }) { Text("Delete “${selected.name}”") }
-                        }
-                    }
+                    Text("Changes apply only when you tap Apply.", style = MaterialTheme.typography.bodySmall)
+
                     val sortOptions = when (destination) {
                         TaskDestination.Completed -> listOf("Smart", "Completion Date", "Priority", "Title")
                         TaskDestination.Archived -> listOf("Smart", "Archived Date", "Priority", "Title")
@@ -6878,15 +6945,6 @@ private fun TaskAreaContent(
                         valueText = { if (it == "Manual") "Custom Order" else it },
                         onSelect = { selected ->
                             sortMode = selected
-                            if (destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)) {
-                                onActiveTaskSortModeChange(selected)
-                            }
-                            if (selected == "Manual" && !reorderHasConstraints && reorderDestinationEligible) {
-                                showFilters = false
-                                enterReorderWhenReady = true
-                            } else {
-                                reordering = false
-                            }
                         },
                     )
                     if (sortMode !in setOf("Smart", "Manual")) {
@@ -6946,11 +7004,15 @@ private fun TaskAreaContent(
                     }
                     if (destination != TaskDestination.Archived) {
                         Text(
-                            if (destination == TaskDestination.Completed) "Completion Date" else "Scheduled Date & Deadline",
+                            if (destination == TaskDestination.Completed) "Completion Date" else if (destination == TaskDestination.Today) "Deadline & Pinning" else "Scheduled Date & Deadline",
                             fontWeight = FontWeight.Bold,
                         )
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            val options = if (destination == TaskDestination.Completed) {
+                            val options = if (destination in setOf(TaskDestination.Today, TaskDestination.Inbox)) {
+                                emptyList()
+                            } else if (destination == TaskDestination.Upcoming) {
+                                listOf("Any" to "Any Future Date", "Next7Days" to "Next 7 Days")
+                            } else if (destination == TaskDestination.Completed) {
                                 listOf("Any" to "Any Date", "Today" to "Completed Today", "Last7Days" to "Last 7 Days")
                             } else {
                                 listOf(
@@ -6997,32 +7059,48 @@ private fun TaskAreaContent(
                         modifier = Modifier.fillMaxWidth(),
                     )
                     }
-                    WhipTextButton(onClick = {
-                        saveFilterOpen = true
-                    }) { Text("Save These Filters") }
+
                 }
             },
-            confirmButton = { WhipButton(onClick = { showFilters = false }) { Text("Done") } },
+            confirmButton = { WhipButton(onClick = { restoreFilterValues(draftFilter); showFilters = false }) { Text("Apply") } },
             dismissButton = {
-                WhipTextButton(onClick = {
-                    sortMode = "Smart"; sortDirection = SortDirection.Ascending; groupMode = "None"
-                    if (destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)) {
-                        onActiveTaskSortModeChange("Smart")
-                    }
-                    priorities = emptySet(); pinnedOnly = false
-                    selectedTags = emptySet(); requireAllTags = true; dateMode = "Any"; deadlineOnly = false
-                    efforts = emptySet(); maximumDuration = ""; textQuery = ""
-                }) { Text("Reset") }
+                Row {
+                    WhipTextButton(onClick = {
+                        priorities = emptySet(); pinnedOnly = false; selectedTags = emptySet()
+                        requireAllTags = true; dateMode = "Any"; deadlineOnly = false
+                        efforts = emptySet(); maximumDuration = ""; textQuery = ""
+                    }) { Text("Reset Filters") }
+                    WhipTextButton(onClick = { showFilters = false }) { Text("Cancel") }
+                }
             },
         )
     }
+
+    if (savedViewsOpen) PaneAwareAlertDialog(
+        modifier = dialogModifier,
+        onDismissRequest = { savedViewsOpen = false },
+        title = { Text("Saved Views") },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                if (appSettings.savedTaskFilters.isEmpty()) Text("Use More → Save This View to keep a destination, filters and layout.")
+                appSettings.savedTaskFilters.forEach { view ->
+                    val normalized = view.normalizedForWorkspace()
+                    val route = TaskDestination.valueOf(normalized.destination)
+                    NavigationRow(title = view.name, supportingText = "${route.label} · ${normalized.planningView} · ${view.areaId?.let { id -> areas.firstOrNull { it.id == id }?.name } ?: "All Areas"}",
+                        onClick = { savedViewsOpen = false; applyFilter(view) })
+                    WhipTextButton(onClick = { onDeleteFilter(view.name) }) { Text("Delete “${view.name}”") }
+                }
+            }
+        },
+        confirmButton = { WhipTextButton(onClick = { savedViewsOpen = false }) { Text("Close") } },
+    )
 
     if (saveFilterOpen) {
         PaneAwareAlertDialog(
             modifier = dialogModifier,
             onDismissRequest = { saveFilterOpen = false },
-            title = { Text("Save Task Filter") },
-            text = { OutlinedTextField(filterName, { filterName = it }, label = { Text("Filter Name") }, singleLine = true) },
+            title = { Text("Save Task View") },
+            text = { OutlinedTextField(filterName, { filterName = it }, label = { Text("View Name") }, singleLine = true) },
             confirmButton = {
                 WhipTextButton(
                     enabled = filterName.isNotBlank(),
@@ -7594,12 +7672,13 @@ private fun TaskPlanningRow(
 ) {
     val completed = destination == TaskDestination.Completed ||
         (destination == TaskDestination.Archived && item.completedAtMillis != null)
-    val completionAvailable = destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)
+    val collectionSeries = destination == TaskDestination.All && item.task.scheduleKind == ScheduleKind.Recurring
+    val completionAvailable = !collectionSeries && destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)
     TaskRow(
         item = item,
         completed = completed,
         onComplete = if (completionAvailable) ({ onCompleteTask(item) }) else null,
-        onOpenActions = if (destination == TaskDestination.Completed) ({ onOpenCompleted(item) }) else ({ onOpenTask(item) }),
+        onOpenActions = if (collectionSeries) ({ onEditTask(item) }) else if (destination == TaskDestination.Completed) ({ onOpenCompleted(item) }) else ({ onOpenTask(item) }),
         onEdit = { onEditTask(item) },
         selectionMode = selectionMode,
         selected = item.stableKey in selectedKeys,
@@ -7610,7 +7689,7 @@ private fun TaskPlanningRow(
             )
         },
         reorderMode = reorderMode,
-        showCompletionControl = destination != TaskDestination.Archived,
+        showCompletionControl = !collectionSeries && destination != TaskDestination.Archived,
     )
 }
 
@@ -7837,8 +7916,9 @@ private fun HomeStatusCard(
 
 private fun taskDestinationSupportingText(destination: TaskDestination, count: Int): String {
     val description = when (destination) {
-        TaskDestination.Inbox -> "Ready to organize"
-        TaskDestination.Today -> "Your tasks for today"
+        TaskDestination.All -> "All unfinished tasks"
+        TaskDestination.Inbox -> "Unscheduled tasks"
+        TaskDestination.Today -> "Today & carried over"
         TaskDestination.Upcoming -> "Future tasks"
         TaskDestination.Completed -> "Completed tasks"
         TaskDestination.Archived -> "Saved tasks, ready to restore"
@@ -7872,7 +7952,8 @@ private fun EmptyTasks(
     } else if (constrained) {
         "No tasks match the current view or filters. Change the view or remove a filter to see more."
     } else when (destination) {
-            TaskDestination.Inbox -> areaLabel?.let { "No Inbox tasks in $it." } ?: "No tasks in Inbox. Quick captures can wait here until you triage them."
+            TaskDestination.All -> "No unfinished tasks in this view."
+            TaskDestination.Inbox -> areaLabel?.let { "No unscheduled tasks in $it." } ?: "No unscheduled tasks. New captures can wait here until you choose a date."
             TaskDestination.Today -> areaLabel?.let { "Nothing scheduled or carried over in $it." } ?: "Nothing scheduled or carried over today."
             TaskDestination.Upcoming -> areaLabel?.let { "No upcoming tasks in $it." } ?: "No upcoming tasks."
             TaskDestination.Completed -> areaLabel?.let { "No completed tasks in $it." } ?: "Completed tasks will appear here."
@@ -7881,7 +7962,7 @@ private fun EmptyTasks(
     WhipEmptyState(
         title = if (selectedDate != null) "No Tasks on ${selectedDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}" else if (constrained) "No Matching Tasks" else when (destination) {
             TaskDestination.Today -> "Today Is Clear"
-            TaskDestination.Inbox -> "Inbox Is Clear"
+            TaskDestination.Inbox -> "No Unscheduled Tasks"
             else -> "No ${destination.label} Tasks"
         },
         supportingText = supportingText,
@@ -7891,6 +7972,7 @@ private fun EmptyTasks(
 }
 
 internal fun TaskUiState.tasksFor(destination: TaskDestination): List<ScheduledTask> = when (destination) {
+    TaskDestination.All -> collectionTasks()
     TaskDestination.Inbox -> inbox
     TaskDestination.Today -> today
     TaskDestination.Upcoming -> upcoming
@@ -7908,7 +7990,8 @@ internal fun List<ScheduledTask>.forPlanningView(
 
 private val TaskDestination.label: String
     get() = when (this) {
-        TaskDestination.Inbox -> "Inbox"
+        TaskDestination.All -> "Tasks"
+        TaskDestination.Inbox -> "Unscheduled"
         TaskDestination.Today -> "Today"
         TaskDestination.Upcoming -> "Upcoming"
         TaskDestination.Completed -> "Completed"
@@ -7916,8 +7999,8 @@ private val TaskDestination.label: String
     }
 
 internal fun TaskDestination.creationPlacement(): TaskPlacement = when (this) {
-    TaskDestination.Inbox -> TaskPlacement.Inbox
-    TaskDestination.Today, TaskDestination.Upcoming -> TaskPlacement.Scheduled
+    TaskDestination.All, TaskDestination.Inbox, TaskDestination.Upcoming -> TaskPlacement.Inbox
+    TaskDestination.Today -> TaskPlacement.Scheduled
     TaskDestination.Completed, TaskDestination.Archived -> TaskPlacement.Inbox
 }
 

@@ -32,11 +32,11 @@ data class SavedTaskFilter(
     /** None, Date, Area, Priority. */
     val groupMode: String = "None",
     val areaId: String? = null,
-)
+) : java.io.Serializable
 
 /** Keeps saved navigation values within the routes supported by the current workspace. */
 internal fun SavedTaskFilter.normalizedNavigation(): SavedTaskFilter {
-    val knownDestinations = setOf("Inbox", "Today", "Upcoming", "Completed", "Archived")
+    val knownDestinations = setOf("All", "Inbox", "Today", "Upcoming", "Completed", "Archived")
     val safeDestination = when {
         destination.isBlank() -> ""
         destination == "Anytime" -> "Inbox"
@@ -46,7 +46,7 @@ internal fun SavedTaskFilter.normalizedNavigation(): SavedTaskFilter {
     val requestedView = planningView.takeIf { it in setOf("List", "Agenda", "Calendar") } ?: "List"
     return copy(
         destination = safeDestination,
-        planningView = requestedView.takeIf { safeDestination == "Upcoming" } ?: "List",
+        planningView = requestedView.takeIf { safeDestination in setOf("All", "Upcoming") } ?: "List",
     )
 }
 

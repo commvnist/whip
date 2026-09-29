@@ -7,7 +7,7 @@
 - Related layout finding: Tasks fixes its heading and planning/history selectors outside the list; Habit/Goal/Track pages often place headings within scrolling content. Repeated titles/subtitles and different fixed-row counts leave inconsistent root geometry despite shared primitives. Archived is a primary destination in three domains but a History section in Tasks.
 - Evidence: `TaskWorkspacePolicy`, `TaskUiState.tasksFor`, `TaskViewModel` projections, `WhipApp` filter state/applyFilter/header, `PowerUserSettings.normalizedNavigation`, Habit/Goal/Track/Gym workspace routes and status partitions. No fresh runtime reproduction or screenshot inspection in this task.
 - Proposed remedy: [Workspace navigation plan](../quality/WORKSPACE_NAVIGATION_PLAN_2026-09-29.md): complete Task collection, fixed Today scope, three purposeful productivity tabs, consistent archive child routes/header ownership and explicit Saved Views.
-- Related/status: FB-20260929-007 / DEC-20260929-003. Confirmed; remediation Proposed, not implemented. Earlier search removal remains delivered.
+- Related/status: FB-20260929-007/008 / DEC-20260929-003 / IMP-20260929-010. Implemented with a genuine collection, fixed Today criteria, transactional filters, explicit Saved Views and shared root header geometry. Production compilation passes; runtime/rendered acceptance remains paused under VER-20260929-008. Earlier search removal remains delivered.
 
 ### FND-20260929-012 — Area native assertions contradict scrolling and saving ownership
 

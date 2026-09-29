@@ -132,7 +132,7 @@ private val habitShortDateFormatter = DateTimeFormatter.ofLocalizedDate(FormatSt
 
 enum class HabitDestination(val label: String) {
     Today("Today"),
-    All("All Habits"),
+    All("Habits"),
     Archived("Archived"),
     Insights("Insights"),
 }
@@ -172,17 +172,23 @@ fun HabitAreaContent(
     val localDestinationState = rememberSaveable { mutableStateOf(HabitDestination.Today) }
     val activeDestinationState = destinationState ?: localDestinationState
     var destination by activeDestinationState
+    var workspaceReordering by rememberSaveable { mutableStateOf(false) }
+    var localReorderDismiss by rememberSaveable { mutableStateOf(0) }
+    var archiveReturn by rememberSaveable { mutableStateOf(HabitDestination.All) }
+    val pages = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
+    BackHandler(enabled = showWorkspace && destination == HabitDestination.Archived) { destination = archiveReturn }
     if (state.loading || state.errorMessage != null) {
         if (showWorkspace) Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             DestinationTabBar(
-                selected = destination,
-                destinations = HabitDestination.entries,
+                selected = destination.takeUnless { it == HabitDestination.Archived } ?: archiveReturn,
+                destinations = listOf(HabitDestination.All, HabitDestination.Today, HabitDestination.Insights),
                 onSelect = { destination = it },
                 label = HabitDestination::label,
                 testTagPrefix = "habit-destination",
                 testTagValue = HabitDestination::name,
                 barTestTag = "habit-workspace-navigation",
             )
+            WhipWorkspaceHeader("Loading habits")
             DomainLoadContent("habits", PaddingValues(), state.errorMessage, viewModel::retryLoading)
         }
         return
@@ -349,19 +355,38 @@ fun HabitAreaContent(
     }
     if (showWorkspace) Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
         DestinationTabBar(
-            selected = destination,
-            destinations = HabitDestination.entries,
+            selected = destination.takeUnless { it == HabitDestination.Archived } ?: archiveReturn,
+            destinations = listOf(HabitDestination.All, HabitDestination.Today, HabitDestination.Insights),
             onSelect = { destination = it; focusedArchivedHabitId = null },
             label = HabitDestination::label,
             testTagPrefix = "habit-destination",
             testTagValue = HabitDestination::name,
             barTestTag = "habit-workspace-navigation",
         )
+        WhipWorkspaceHeader(
+            summary = if (workspaceReordering) "Reordering Habits" else when (destination) {
+                HabitDestination.Today -> "${state.today.count { !it.isDoneForToday() }} remaining · Today"
+                HabitDestination.All -> "${state.all.size} habits · Schedules & settings"
+                HabitDestination.Insights -> "Patterns across ${state.all.size} habits"
+                HabitDestination.Archived -> "Archived Habits"
+            },
+            onBack = { destination = archiveReturn }.takeIf { destination == HabitDestination.Archived },
+        ) {
+            if (workspaceReordering) WhipTextButton(onClick = { localReorderDismiss++ }) { Text("Done") }
+            else WhipWorkspaceMore("More Habit Actions") { close ->
+                WhipMenuItem("Browse Templates", onClick = { close(); templatesOpen = true })
+                if (destination != HabitDestination.Archived) WhipMenuItem("Archived Habits", onClick = {
+                    close(); archiveReturn = destination; destination = HabitDestination.Archived
+                })
+                if (destination == HabitDestination.All && (state.all.size > 1 || areaScopeLabel != null)) WhipMenuItem(if (areaScopeLabel == null) "Reorder Habits" else "Show All Areas & Reorder", onClick = {
+                    close(); if (areaScopeLabel != null) onShowAllAreasForReorder(); reorderAllRequested = true
+                })
+            }
+        }
         val emptyArea = areaScopeLabel != null && state.all.isEmpty() && editorState.all.isNotEmpty()
-        when (destination) {
+        pages.SaveableStateProvider(destination.name) { when (destination) {
             HabitDestination.Today -> HabitList(
                 title = "Today",
-                subtitle = "Check-ins, values, and timers.",
                 progress = state.today,
                 customUnits = state.customUnits,
                 empty = when {
@@ -386,7 +411,6 @@ fun HabitAreaContent(
                         else -> templatesOpen = true
                     }
                 },
-                onTemplates = { templatesOpen = true },
                 onOpen = { actionsHabitId = it.habit.id },
                 onEdit = { editingHabitId = it.habit.id },
                 onQuick = { item -> quickHabitAction(item, viewModel) { numericLogAddsAmount = false; numericLogHabitId = item.habit.id } },
@@ -399,19 +423,14 @@ fun HabitAreaContent(
                 onUndoSkip = { item -> viewModel.undoSkip(item.habit.id, item.date) },
                 onChecklist = viewModel::toggleChecklist,
                 onReorder = null,
-                onShowAllForReorder = {
-                    if (areaScopeLabel != null) onShowAllAreasForReorder()
-                    destination = HabitDestination.All
-                    reorderAllRequested = true
-                },
+
                 lowPressureMode = lowPressureMode,
                 separateCompleted = true,
-                onReorderModeChange = onReorderModeChange,
-                reorderDismissRequest = reorderDismissRequest,
+                onReorderModeChange = { workspaceReordering = it; onReorderModeChange(it) },
+                reorderDismissRequest = reorderDismissRequest + localReorderDismiss,
             )
             HabitDestination.All -> HabitList(
-                title = "All Habits",
-                subtitle = "All your active habits.",
+                title = "Habits",
                 progress = state.all,
                 customUnits = state.customUnits,
                 empty = if (emptyArea) {
@@ -422,7 +441,6 @@ fun HabitAreaContent(
                 onEmptyAction = {
                     if (emptyArea) onShowAllAreasForReorder() else templatesOpen = true
                 },
-                onTemplates = { templatesOpen = true },
                 onOpen = { actionsHabitId = it.habit.id },
                 onEdit = { editingHabitId = it.habit.id },
                 onQuick = { item -> quickHabitAction(item, viewModel) { numericLogAddsAmount = false; numericLogHabitId = item.habit.id } },
@@ -439,8 +457,8 @@ fun HabitAreaContent(
                 reorderRequested = reorderAllRequested,
                 onReorderRequestConsumed = { reorderAllRequested = false },
                 lowPressureMode = lowPressureMode,
-                onReorderModeChange = onReorderModeChange,
-                reorderDismissRequest = reorderDismissRequest,
+                onReorderModeChange = { workspaceReordering = it; onReorderModeChange(it) },
+                reorderDismissRequest = reorderDismissRequest + localReorderDismiss,
             )
             HabitDestination.Insights -> HabitInsights(state, lowPressureMode, onOpenHistory = {
                 historyHabitId = it
@@ -453,6 +471,7 @@ fun HabitAreaContent(
                 onEdit = { editingHabitId = it.id },
             )
         }
+    }
     }
     if (creating || editing != null) {
         HabitEditorDialog(
@@ -1081,8 +1100,21 @@ fun HabitProgressCard(
     reorderMode: Boolean = false,
     customUnits: List<UnitDefinition> = emptyList(),
     onAddAmount: (() -> Unit)? = null,
+    management: Boolean = false,
 ) {
     val habit = item.habit
+    if (management && habit.timerSessionId == null) {
+        WhipItemCard(Modifier.clickable(enabled = !reorderMode, onClickLabel = "Open habit details for ${habit.name}", onClick = onOpen)
+            .testTag("habit-card-${habit.id}")) {
+            WhipProductivityItemContent(itemType = "habit", itemName = habit.name, emoji = habit.icon) {
+                area(habit.areaId, habit.area)
+                edit(onEdit.takeUnless { reorderMode })
+                details { text("${habit.trackingMode.uiLabel()} · ${habit.scheduleType.scheduleLabel()}") }
+                summary { text(if (habit.paused) "Paused" else "Open details to manage schedule and history") }
+            }
+        }
+        return
+    }
     val timerElapsedSeconds by rememberHabitTimerElapsedSeconds(habit)
     val skipped = item.dayState == HabitDayState.Skipped
     val unavailableForCheckIn = habit.timerStartedAtMillis == null &&
@@ -1426,14 +1458,12 @@ internal fun FinishedHabitsDisclosure(
 @Composable
 private fun HabitList(
     title: String,
-    subtitle: String,
     progress: List<HabitDayProgress>,
     customUnits: List<UnitDefinition>,
     empty: String,
     emptyTitle: String,
     emptyActionLabel: String,
     onEmptyAction: () -> Unit,
-    onTemplates: () -> Unit,
     onOpen: (HabitDayProgress) -> Unit,
     onEdit: (HabitDayProgress) -> Unit,
     onQuick: (HabitDayProgress) -> Unit,
@@ -1447,7 +1477,6 @@ private fun HabitList(
     onChecklist: (Long, Long, LocalDate, Boolean) -> Unit,
     onReorder: ((List<Long>) -> Unit)?,
     onShowAllAreasForReorder: (() -> Unit)? = null,
-    onShowAllForReorder: (() -> Unit)? = null,
     reorderRequested: Boolean = false,
     onReorderRequestConsumed: () -> Unit = {},
     lowPressureMode: Boolean,
@@ -1456,7 +1485,6 @@ private fun HabitList(
     reorderDismissRequest: Int = 0,
 ) {
     var manageOrder by rememberSaveable { mutableStateOf(false) }
-    var toolsExpanded by rememberSaveable { mutableStateOf(false) }
     val sections = if (separateCompleted) progress.dailyHabitSections() else DailyHabitSections(progress, emptyList())
     val finishedIds = sections.finished.mapTo(linkedSetOf()) { it.habit.id }
     val dateKey = progress.firstOrNull()?.date?.toEpochDay() ?: Long.MIN_VALUE
@@ -1490,46 +1518,8 @@ private fun HabitList(
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
-        item {
-            WhipPageHeader(title = title, supportingText = subtitle) {
-                if (!manageOrder && progress.isNotEmpty()) {
-                    Box {
-                        WhipPageIconAction(
-                            icon = Icons.Outlined.MoreVert,
-                            label = "More Habit Actions",
-                            onClick = { toolsExpanded = true },
-                        )
-                        DropdownMenu(expanded = toolsExpanded, onDismissRequest = { toolsExpanded = false }) {
-                            WhipMenuItem(
-                                label = "Browse Templates",
-                                onClick = { toolsExpanded = false; onTemplates() },
-                            )
-                            onShowAllForReorder?.let { showAll ->
-                                WhipMenuItem(
-                                    label = "Reorder All Habits",
-                                    onClick = { toolsExpanded = false; showAll() },
-                                )
-                            }
-                            if ((onReorder != null && progress.size > 1) || onShowAllAreasForReorder != null) WhipMenuItem(
-                                label = if (onShowAllAreasForReorder == null) "Reorder Habits" else "Show All Areas & Reorder",
-                                onClick = {
-                                    toolsExpanded = false
-                                    onShowAllAreasForReorder?.invoke()
-                                    manageOrder = true
-                                },
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        if (manageOrder) item {
-            WhipReorderModeBar(
-                itemLabel = "Habits",
-                onDone = { manageOrder = false },
-                boundaryNote = "Pinned and other Habits reorder separately.",
-            )
-        }
+
+
         if (progress.isEmpty()) item {
             WhipEmptyState(
                 title = emptyTitle,
@@ -1573,6 +1563,7 @@ private fun HabitList(
                     onChecklist = onChecklist,
                     lowPressureMode = lowPressureMode,
                     reorderMode = manageOrder,
+                    management = !separateCompleted,
                     )
                 }
                 if (manageOrder && onReorder != null) {
@@ -1652,7 +1643,7 @@ internal fun HabitInsights(
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
-        if (!focused) item { WhipPageHeader(title = "Habit Insights", supportingText = "Patterns in your recorded activity.") }
+
         if (state.all.isEmpty()) item {
             WhipEmptyState("No Habit Insights Yet", "Create and check in to a habit to build insight over time.")
         }
@@ -1905,12 +1896,7 @@ private fun ArchivedHabitList(
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
-        item {
-            WhipPageHeader(
-                title = "Archived Habits",
-                supportingText = "Saved habits, ready to restore.",
-            )
-        }
+
         if (visible.isEmpty()) item {
             WhipEmptyState(
                 title = "No Archived Habits",

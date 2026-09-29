@@ -140,7 +140,7 @@ import java.util.Locale
 enum class GoalDestination { Active, Completed, Archived, Insights }
 
 private fun GoalDestination.displayLabel(): String = when (this) {
-    GoalDestination.Active -> "Active"
+    GoalDestination.Active -> "Goals"
     GoalDestination.Completed -> "History"
     GoalDestination.Archived -> "Archived"
     GoalDestination.Insights -> "Insights"
@@ -197,17 +197,21 @@ fun GoalAreaContent(
     val localDestinationState = rememberSaveable { mutableStateOf(GoalDestination.Active) }
     val activeDestinationState = destinationState ?: localDestinationState
     var destination by activeDestinationState
+    var archiveReturn by rememberSaveable { mutableStateOf(GoalDestination.Active) }
+    val pages = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
+    BackHandler(enabled = showWorkspace && destination == GoalDestination.Archived) { destination = archiveReturn }
     if (state.loading || state.errorMessage != null) {
         if (showWorkspace) Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             DestinationTabBar(
-                selected = destination,
-                destinations = GoalDestination.entries,
+                selected = destination.takeUnless { it == GoalDestination.Archived } ?: archiveReturn,
+                destinations = listOf(GoalDestination.Active, GoalDestination.Completed, GoalDestination.Insights),
                 onSelect = { destination = it },
                 label = GoalDestination::displayLabel,
                 compactLabel = GoalDestination::displayLabel,
                 testTagPrefix = "goal-destination",
                 barTestTag = "goal-workspace-navigation",
             )
+            WhipWorkspaceHeader("Loading goals")
             DomainLoadContent("goals", PaddingValues(), state.errorMessage, viewModel::retryLoading)
         }
         return
@@ -220,7 +224,6 @@ fun GoalAreaContent(
     var editingMeasurementId by rememberSaveable { mutableStateOf<String?>(null) }
     var resettingElapsedGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
     var manageOrder by rememberSaveable { mutableStateOf(false) }
-    var toolsExpanded by rememberSaveable { mutableStateOf(false) }
     var deleteCandidateGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
     var templatesOpen by rememberSaveable { mutableStateOf(false) }
     var templateDraft by rememberSaveable { mutableStateOf<GoalDraft?>(null) }
@@ -401,7 +404,7 @@ fun GoalAreaContent(
         GoalDestination.Completed -> state.completed
         GoalDestination.Archived -> state.archived
     }
-    val collectionListState = rememberLazyListState()
+
     BackHandler(enabled = showWorkspace && manageOrder) { manageOrder = false }
     LaunchedEffect(manageOrder) { onReorderModeChange(manageOrder) }
     LaunchedEffect(reorderDismissRequest) {
@@ -409,8 +412,8 @@ fun GoalAreaContent(
     }
     if (showWorkspace) Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
         DestinationTabBar(
-            selected = destination,
-            destinations = GoalDestination.entries,
+            selected = destination.takeUnless { it == GoalDestination.Archived } ?: archiveReturn,
+            destinations = listOf(GoalDestination.Active, GoalDestination.Completed, GoalDestination.Insights),
             onSelect = {
                 manageOrder = false
                 destination = it
@@ -420,6 +423,27 @@ fun GoalAreaContent(
             testTagPrefix = "goal-destination",
             barTestTag = "goal-workspace-navigation",
         )
+        WhipWorkspaceHeader(
+            summary = if (manageOrder) "Reordering Goals" else when (destination) {
+                GoalDestination.Active -> "${list.size} goals · Active & paused"
+                GoalDestination.Completed -> "${list.size} outcomes · Completed & abandoned"
+                GoalDestination.Insights -> "Trends across ${list.size} ongoing goals"
+                GoalDestination.Archived -> "Archived Goals"
+            },
+            onBack = { destination = archiveReturn }.takeIf { destination == GoalDestination.Archived },
+        ) {
+            if (manageOrder) WhipTextButton(onClick = { manageOrder = false }) { Text("Done") }
+            else WhipWorkspaceMore("More Goal Actions") { close ->
+                WhipMenuItem("Browse Templates", onClick = { close(); templatesOpen = true })
+                if (destination != GoalDestination.Archived) WhipMenuItem("Archived Goals", onClick = {
+                    close(); archiveReturn = destination; destination = GoalDestination.Archived
+                })
+                if (destination == GoalDestination.Active && (list.size > 1 || areaScopeLabel != null)) WhipMenuItem(if (areaScopeLabel == null) "Reorder Goals" else "Show All Areas & Reorder", onClick = {
+                    close(); if (areaScopeLabel != null) onShowAllAreasForReorder(); manageOrder = true
+                })
+            }
+        }
+        pages.SaveableStateProvider(destination.name) {
         if (destination == GoalDestination.Insights) {
             GoalInsightsContent(
                 projections = list,
@@ -431,49 +455,12 @@ fun GoalAreaContent(
             )
         } else WhipReorderLazyColumn(
             modifier = Modifier.fillMaxSize(),
-            state = collectionListState,
+            state = rememberLazyListState(),
             contentPadding = WhipPageContentPadding,
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
-            item {
-                WhipPageHeader(
-                    title = destination.pageTitle(),
-                    supportingText = destination.supportingText(),
-                ) {
-                    if (!manageOrder && destination == GoalDestination.Active && list.isNotEmpty()) {
-                        val hasReorderAction = list.size > 1 || areaScopeLabel != null
-                        Box {
-                            WhipPageIconAction(
-                                icon = Icons.Outlined.MoreVert,
-                                label = "More Goal Actions",
-                                onClick = { toolsExpanded = true },
-                            )
-                            DropdownMenu(expanded = toolsExpanded, onDismissRequest = { toolsExpanded = false }) {
-                                WhipMenuItem(
-                                    modifier = Modifier.testTag("goal-browse-templates-menu-action"),
-                                    label = "Browse Templates",
-                                    onClick = { toolsExpanded = false; templatesOpen = true },
-                                )
-                                if (hasReorderAction) WhipMenuItem(
-                                    label = if (areaScopeLabel == null) "Reorder Goals" else "Show All Areas & Reorder",
-                                    onClick = {
-                                        toolsExpanded = false
-                                        if (areaScopeLabel != null) onShowAllAreasForReorder()
-                                        manageOrder = true
-                                    },
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-            if (manageOrder) item {
-                WhipReorderModeBar(
-                    itemLabel = "Goals",
-                    onDone = { manageOrder = false },
-                    boundaryNote = "Pinned and other Goals reorder separately.",
-                )
-            }
+
+
             if (list.isEmpty()) item {
                 val firstUse = state.active.isEmpty() && state.completed.isEmpty() && state.archived.isEmpty()
                 WhipEmptyState(
@@ -563,6 +550,7 @@ fun GoalAreaContent(
                 }
             }
         }
+    }
     }
     if (creating || editing != null) {
         GoalEditorDialog(
@@ -1256,16 +1244,11 @@ private fun GoalInsightsContent(
         contentPadding = innerPadding,
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
-        item {
-            WhipPageHeader(
-                title = "Goal Insights",
-                supportingText = "Trends, pace, and data quality.",
-            )
-        }
+
         if (projections.isEmpty()) item {
             WhipEmptyState(
                 title = "No Goal Insights Yet",
-                supportingText = "Insights summarize active Goals in this Area. Open Active to create a Goal or change the Area above.",
+                supportingText = "Insights summarize active Goals in this Area. Open Goals to create a Goal or change the Area above.",
             )
         }
         items(projections, key = { "goal-insight-${it.goal.id}" }) { projection ->

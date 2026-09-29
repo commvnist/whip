@@ -1,5 +1,14 @@
 # Implementation history
 
+### IMP-20260929-010 — Implement purposeful tabs and stable workspace headers
+
+- Related: FB-20260929-008, FND-20260929-013, DEC-20260929-003. [Implementation mapping](../quality/WORKSPACE_NAVIGATION_PLAN_2026-09-29.md), [compilation receipts](../../artifacts/workspace-navigation/2026-09-29/README.md).
+- Navigation/layout: Three productivity tabs; Gym Workout/Library/History/Insights. `WhipWorkspaceHeader` owns content-independent root height, shared padding and reserved action positions. Repeated scrolling root headings are removed. Track's wide collection header spans both panes. Archive is a More child route with Back; per-destination state holders retain collection/Activity/Insights context.
+- Tasks: `taskEntities` supplies the complete collection with one row per definition, including unprojected recurring series. Unscheduled/Upcoming are collection scopes; List/Agenda/Calendar use compact menus in scrolling content. Today has fixed date scope and Today/carried-over groups. Atomic tab navigation restores filter/layout/scroll state; saved-view decoding retains legacy destinations. Draft filters use Apply/Cancel; More owns Saved Views and Save This View. Collection recurring rows open definition editing, while dated layouts retain occurrence actions; bulk occurrence-only actions are guarded. Creation outside Today is undated by default; Home/search/editor wording uses Unscheduled.
+- Other domains: Habit management cards emphasize configuration and retained history, with live timer recovery preserved. Goal active/paused and completed/abandoned membership is unchanged. Track Activity removes duplicate Area scope and applies draft filters in a dialog. Existing inspectors, persistence coordinators and domain content remain in their feature owners.
+- Compatibility/coverage: No schema/epoch/backup-format/version change or phone install. SavedTaskFilter gains Serializable for per-route UI state and accepts the All route in its existing codec. Legacy destinationless views open Tasks/List (or Unscheduled for inbox-only views); unsupported dates normalize to Any with a notice while valid narrowing remains. Existing policy/native contracts are updated; two focused policy regressions cover date normalization and collection completeness. These fixtures are not compiled or executed after the pause.
+- Status: Implemented. Final production compilation passes in VER-20260929-008. Fresh visual/native/JVM/full-lint acceptance, broader legacy-selector adaptation and catalog reconciliation remain pending with verification paused.
+
 ### IMP-20260929-009 — Document the workspace navigation redesign proposal
 
 - Delivered artifact: [Workspace navigation plan](../quality/WORKSPACE_NAVIGATION_PLAN_2026-09-29.md), current-source responsibility inventory, proposed tab/filter/header contracts, legacy routing and six implementation steps with acceptance criteria.
