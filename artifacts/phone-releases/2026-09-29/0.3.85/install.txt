@@ -1,0 +1,9 @@
+Installing signed release on <owner-phone>...
+Artifact: commvne.com.whip.app · SHA-256 479250aa999970b509ede52a91711c2423ce9a9c483f87d4f9c5e37a355514bb
+Performing Streamed Install
+Success
+Installed package: commvne.com.whip.app
+    versionCode=91 minSdk=26 targetSdk=37
+    versionName=0.3.85
+    lastUpdateTime=2026-09-29 08:34:47
+Installed base APK SHA-256: 479250aa999970b509ede52a91711c2423ce9a9c483f87d4f9c5e37a355514bb

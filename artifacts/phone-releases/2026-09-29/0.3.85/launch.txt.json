@@ -1,0 +1,5 @@
+{
+  "command": "scripts/device release-run",
+  "exit": 0,
+  "seconds": 0.743
+}

@@ -1,0 +1,4 @@
+Source checkpoint: cb7af27068b38b4a781908849f0c2636b6f3e433
+Build baseline: fd0925e2 with the subsequently committed working-tree changes.
+All 257 production source/build hashes match the source checkpoint.
+Production packaging accepted; behavioral/test-fixture verification remains paused.

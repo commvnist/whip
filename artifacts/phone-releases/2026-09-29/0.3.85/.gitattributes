@@ -1,0 +1,3 @@
+# Preserve original signing-tool output, including its whitespace.
+aab-certificate.txt -text -whitespace
+aab-signature.txt -text -whitespace

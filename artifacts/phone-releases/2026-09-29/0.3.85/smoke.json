@@ -1,0 +1,7 @@
+{
+  "live_process": true,
+  "sampled_log_lines": 502,
+  "startup_error_matches": 0,
+  "crash_payload_lines": 0,
+  "preserved_first_install_and_app_id": true
+}
