@@ -1,5 +1,12 @@
 # User feedback and acceptance criteria
 
+### FB-20260929-015 — Push the verified overhaul and release it to the owner phone
+
+- Date/source: 2026-09-29, owner explicitly requests “Release to phone and push to repo” after the completed overhaul's main-branch push was rejected by automatic approval review.
+- Acceptance: Push the reviewed overhaul and release metadata normally to `origin/main`; package the same accepted application/test source as signed 0.3.89/code 95; update the explicitly selected Samsung phone in place; verify artifact/signing/version, installed bytes, preserved installation identity and cold foreground startup. Preserve authored data and the established signing identity.
+- Constraints: Use the established fast private-phone lane (DEC-20260906-003), reusing VER-20260929-015's affected acceptance. No full/candidate rerun, phone instrumentation, reset, uninstall, downgrade or Play publication.
+- Related/status: FB-20260929-013/014, IMP-20260929-017/018; In progress. Product overhaul commit `9a9020b9` is now pushed and equal to `origin/main`; phone starts at 0.3.88/code 94.
+
 ### FB-20260929-014 — Fresh three-Astra full-app audit and implemented overhaul
 
 - Continuation on 2026-09-29: the owner explicitly requests three GPT-6.1 Sol/xHigh agents to finish this same goal. Preserve implemented work, grounded current evidence and pending acceptance; the model change does not restart the audit or authorize a phone release.

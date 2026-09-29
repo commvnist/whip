@@ -18,6 +18,8 @@ Current snapshot: **2026-09-29**. This page is the entry point, not a replay of 
 
 ## Current work and boundaries
 
+- **Private overhaul release in progress:** FB-20260929-015 explicitly authorizes normal repository push and phone deployment. Product commit `9a9020b9` is pushed to `origin/main`; IMP-20260929-019 prepares signed 0.3.89/code 95 using the existing focused acceptance and fast private-phone lane. Installed baseline is 0.3.88/code 94; installation/startup verification is pending.
+
 - **Fresh overhaul closed:** All 24 accepted remedies from `ba1f7cc5` are implemented and verified under IMP-20260929-018 / VER-20260929-015. [Plan and pillars](../quality/FRESH_APP_OVERHAUL_2026-09-29.md). Previous audit conclusions were not acceptance evidence. Owner appearance feedback and any requested phone release are separate follow-ups, not unfinished remedies.
 
 - **Task-card icon feedback fixed:** FB-20260929-013 / FND-20260929-026 identifies empty historical definitions created by first-occurrence edits and then exposed by the collection fallback. IMP-20260929-017 prevents empty splits and omits existing empty remnants while preserving custom icons, real scheduled work and all authored evidence. VER-20260929-014 passes 56 affected JVM methods, readiness build/lint and three selected native methods. No layout/schema change or full suite; the phone remains on 0.3.88 pending a separate release.

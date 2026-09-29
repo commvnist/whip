@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260929-019 — Release the verified fresh overhaul as 0.3.89
+
+- Related: FB-20260929-015, IMP-20260929-017/018, DEC-20260906-003; product verification VER-20260929-014/015.
+- The owner's explicit main-push authorization resolves the earlier automatic-review rejection; reviewed product commit `9a9020b9` is pushed to `origin/main`. Release metadata advances to 0.3.89/code 95 without changing the accepted application/test/resource source or persisted contracts.
+- Status: In progress; signed packaging, guarded in-place phone installation and exact startup verification remain to be recorded.
+
 ### IMP-20260929-018 — Implement the fresh full-app experience and design overhaul
 
 - Related: FB-20260929-014, FND-20260929-027/028/029/030/031/032, DEC-20260929-004; verification VER-20260929-015. [Final plan and 24-remedy matrix](../quality/FRESH_APP_OVERHAUL_2026-09-29.md), [original images and receipts](../../artifacts/fresh-app-overhaul/2026-09-29/README.md).
