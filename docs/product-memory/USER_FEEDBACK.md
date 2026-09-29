@@ -5,7 +5,7 @@
 - Date/source: 2026-09-29, owner explicitly requests “Release to phone and push to repo” after the completed overhaul's main-branch push was rejected by automatic approval review.
 - Acceptance: Push the reviewed overhaul and release metadata normally to `origin/main`; package the same accepted application/test source as signed 0.3.89/code 95; update the explicitly selected Samsung phone in place; verify artifact/signing/version, installed bytes, preserved installation identity and cold foreground startup. Preserve authored data and the established signing identity.
 - Constraints: Use the established fast private-phone lane (DEC-20260906-003), reusing VER-20260929-015's affected acceptance. No full/candidate rerun, phone instrumentation, reset, uninstall, downgrade or Play publication.
-- Related/status: FB-20260929-013/014, IMP-20260929-017/018; In progress. Product overhaul commit `9a9020b9` is now pushed and equal to `origin/main`; phone starts at 0.3.88/code 94.
+- Related/status: FB-20260929-013/014, IMP-20260929-017/018; Released under IMP-20260929-019 / VER-20260929-016. Product `9a9020b9` and release source `86c166cb` are pushed to `origin/main`; signed 0.3.89/code 95 is installed in place with exact byte/signing/identity and 127 ms cold-launch verification. [Release receipt](../../artifacts/phone-releases/2026-09-29/0.3.89/README.md).
 
 ### FB-20260929-014 — Fresh three-Astra full-app audit and implemented overhaul
 
@@ -14,13 +14,13 @@
 - Date/source: 2026-09-29, owner requests three Astra/high agents, a thorough full-app design/UX/bug audit and complete implementation, then explicitly directs fresh opinions without distraction from previous audits.
 - Acceptance: Inspect current mainline flows and freshly rendered screens across all workspaces, shared navigation/dialogs/forms and recovery paths; establish strict design/experience pillars; document coverage and grounded findings; publish a concrete plan and implement every accepted remedy. Deliver substantial coherent visual/experience improvements with shared owners and proportionate behavioral/visual verification. Previous audit outcomes are not evidence of present quality.
 - Constraints: Preserve authored data/history, single top-right collection search, collection-first Tasks/Habits entry and stable cross-page geometry. Use focused bounded checks and one final affected readiness batch; no full/candidate test campaign or automatic phone release. Three Astra/high independent reviewers plus coordinating parent, followed by the explicitly requested three Sol/xHigh continuation agents.
-- Status: Implemented and Verified from `ba1f7cc5` under IMP-20260929-018 / VER-20260929-015: all 24 accepted remedies, 450 affected JVM and 39 distinct selected native methods, fresh original inspection and complete failure accounting. [Final plan](../quality/FRESH_APP_OVERHAUL_2026-09-29.md), [evidence/gallery](../../artifacts/fresh-app-overhaul/2026-09-29/README.md). Phone release and owner appearance validation remain separate.
+- Status: Implemented and Verified from `ba1f7cc5` under IMP-20260929-018 / VER-20260929-015: all 24 accepted remedies, 450 affected JVM and 39 distinct selected native methods, fresh original inspection and complete failure accounting. [Final plan](../quality/FRESH_APP_OVERHAUL_2026-09-29.md), [evidence/gallery](../../artifacts/fresh-app-overhaul/2026-09-29/README.md). Subsequently released as 0.3.89 under FB-20260929-015 / VER-20260929-016; owner appearance validation remains separate.
 
 ### FB-20260929-013 — Consistent task-card identity after recurring edits
 
 - Date/source: 2026-09-29, owner screenshot and clarification identify default checkmark versus custom task-card emoji, not toolbar/navigation glyphs.
 - Acceptance: Repair recurring-edit identity and empty duplicate collection rows; preserve custom icons, real earlier scheduled work, authored history and open overrides. Keep shared layout unchanged and verify with focused regressions.
-- Status: Verified under IMP-20260929-017 / VER-20260929-014; phone release and owner validation remain separate. FND-20260929-026. Private screenshot contents are not copied into repository evidence.
+- Status: Verified under IMP-20260929-017 / VER-20260929-014 and subsequently Released in 0.3.89 under VER-20260929-016; owner appearance validation remains separate. FND-20260929-026. Private screenshot contents are not copied into repository evidence.
 
 ### FB-20260929-012 — Release the Tasks UX correction to the phone
 

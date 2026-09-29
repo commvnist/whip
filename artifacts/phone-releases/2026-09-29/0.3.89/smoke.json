@@ -1,0 +1,8 @@
+{
+  "processRunning": true,
+  "coldLaunchMilliseconds": 127,
+  "foregroundVerifiedByReleaseScript": true,
+  "sampledLogLines": 252,
+  "startupErrorMatches": 0,
+  "crashPayloadLines": 0
+}

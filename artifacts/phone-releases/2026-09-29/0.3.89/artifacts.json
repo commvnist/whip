@@ -1,0 +1,10 @@
+{
+  "build/releases/Whip-0.3.89-code95-private.apk": {
+    "sha256": "9879ba968aabd099066c889e17294f8a304f3a4b5c166f7b8bc82cc44894f8ca",
+    "bytes": 4326450
+  },
+  "build/releases/Whip-0.3.89-code95-private.aab": {
+    "sha256": "98c6300e881e21a0c754e25a870cf1e431abf9658aad976d504d8d5ebb3a6c0a",
+    "bytes": 11673494
+  }
+}

@@ -41,4 +41,4 @@ The repeated persisted Habit cleanup and stale Goal deletion/correction journey 
 
 No domain schema, data epoch, portable-backup format or dependency was changed. Selected backup import is explicitly limited to 32 MiB including encrypted envelopes; export and private recovery remain uncapped. Bounding input does not promise that every smaller JSON object graph is memory-safe.
 
-This is completed development acceptance, not a phone release or Play qualification. The owner phone remains **0.3.88/code 94**. Source and durable evidence are committed and pushed together after final acceptance.
+At development acceptance the owner phone remained **0.3.88/code 94**; this record is not Play qualification. Source and durable evidence are committed and pushed together. The subsequent explicitly authorized [0.3.89/code 95 phone release](../../phone-releases/2026-09-29/0.3.89/README.md) is Verified under VER-20260929-016.

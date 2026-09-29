@@ -1,0 +1,10 @@
+{
+  "sourceCommit": "86c166cb204b8b639842d736df4f90c5df1ecc0e",
+  "productCommit": "9a9020b9",
+  "versionName": "0.3.89",
+  "versionCode": 95,
+  "gradleReportedSeconds": 101,
+  "acceptedSourceFilesUnchanged": 547,
+  "noTestsRerunByCleanFastRoute": true,
+  "validationSeconds": 4.919
+}

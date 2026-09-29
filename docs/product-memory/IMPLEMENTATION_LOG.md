@@ -4,7 +4,7 @@
 
 - Related: FB-20260929-015, IMP-20260929-017/018, DEC-20260906-003; product verification VER-20260929-014/015.
 - The owner's explicit main-push authorization resolves the earlier automatic-review rejection; reviewed product commit `9a9020b9` is pushed to `origin/main`. Release metadata advances to 0.3.89/code 95 without changing the accepted application/test/resource source or persisted contracts.
-- Status: In progress; signed packaging, guarded in-place phone installation and exact startup verification remain to be recorded.
+- Status: Released under VER-20260929-016 from pushed release source `86c166cb`. Signed packaging passes in 101 seconds; independent artifacts/signatures, installed APK bytes, appId/first-install preservation and 127 ms cold foreground startup pass. [Release receipt](../../artifacts/phone-releases/2026-09-29/0.3.89/README.md). All 547 accepted app/test/resource hashes remain unchanged; no full suite or phone instrumentation.
 
 ### IMP-20260929-018 — Implement the fresh full-app experience and design overhaul
 

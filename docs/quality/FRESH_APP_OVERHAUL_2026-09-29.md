@@ -94,6 +94,6 @@ Final affected readiness passes 450 JVM methods in 49 suites with zero failures/
 
 ## Practical limits
 
-Acceptance covers the implemented remedies and selected boundary states; it does not claim that the complete app test inventory or every possible device/state combination ran. Original images use deterministic synthetic records. Subjective appearance still benefits from owner use on their phone. The phone remains at 0.3.88/code 94; this goal creates no install or Play publication.
+Acceptance covers the implemented remedies and selected boundary states; it does not claim that the complete app test inventory or every possible device/state combination ran. Original images use deterministic synthetic records. Subjective appearance still benefits from owner use on their phone. At audit acceptance the phone was at 0.3.88/code 94; subsequent explicit FB-20260929-015 authorization releases this source privately as 0.3.89/code 95 under VER-20260929-016. No Play publication occurred.
 
 Selected backup import has an explicit 32 MiB limit, including encrypted envelopes. Export and private recovery are uncapped. This bounds the provider stream before parsing, rather than promising that every smaller JSON object graph is safe under all memory conditions. No schema, data epoch or portable-backup format changes were introduced.

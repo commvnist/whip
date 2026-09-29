@@ -1,5 +1,13 @@
 # Verification and release evidence
 
+### VER-20260929-016 — Verified fresh overhaul installed as 0.3.89
+
+- Related: FB-20260929-015, IMP-20260929-019, VER-20260929-014/015. [Exact sanitized release receipt](../../artifacts/phone-releases/2026-09-29/0.3.89/README.md). Status: Released; subjective appearance awaits owner use.
+- Product `9a9020b9` and release source `86c166cb204b8b639842d736df4f90c5df1ecc0e` are pushed to `origin/main`; the owner's explicit request authorizes the main-branch push previously rejected by automatic approval review. `WHIP_DEVICE=<selected physical phone> scripts/device release-deploy` passes the physical guard, clean fast route, signed APK/AAB build in 1m41s, in-place install and cold foreground launch. Clean routing reruns no tests; unchanged accepted source reuses the 450 affected JVM / 39 selected native overhaul results and Task identity acceptance.
+- Independent bounded checks validate package 0.3.89/code 95, non-debuggable APK, both signatures/ZIPs and established signing certificate. APK SHA-256 `9879ba968aabd099066c889e17294f8a304f3a4b5c166f7b8bc82cc44894f8ca`; AAB `98c6300e881e21a0c754e25a870cf1e431abf9658aad976d504d8d5ebb3a6c0a`. Installed bytes independently match the signed APK. Standard AAB certificate/timestamp warnings remain in the receipt.
+- Samsung SM-F976W advances from 0.3.88/code 94 with appId 10995 and original first-install time unchanged. MainActivity cold launch takes 127 ms and is foreground; the process remains running. Process-only smoke samples 252 lines, zero startup-error matches and zero crash-payload lines. No private runtime content is committed.
+- All 547 accepted application/test/resource hashes remain unchanged; only release metadata advances. Schema 46, epoch 6, backup format 26 remain unchanged. No full suite/candidate, reset, uninstall, phone instrumentation or Play publication.
+
 ### VER-20260929-015 — Fresh full-app overhaul with focused final acceptance
 
 - Related: FB-20260929-014, IMP-20260929-018, FND-20260929-027 through -032, DEC-20260929-004. [Durable acceptance receipt/gallery](../../artifacts/fresh-app-overhaul/2026-09-29/README.md), [final plan](../quality/FRESH_APP_OVERHAUL_2026-09-29.md). Status: Verified within the implemented 24-remedy scope; source dispositions and full inventory are distinct from execution.
