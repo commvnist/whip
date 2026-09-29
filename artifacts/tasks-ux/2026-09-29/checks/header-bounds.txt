@@ -1,0 +1,2 @@
+{'tasks.large': {'workspace-context-row': '[53,451][1027,724]', 'workspace-top-app-bar': '[0,0][1080,300]', 'workspace-search-action': '[795,147][932,284]', 'workspace-settings-action': '[932,147][1069,284]'}, 'goals.large': {'workspace-context-row': '[53,451][1027,724]', 'workspace-top-app-bar': '[0,0][1080,300]', 'workspace-search-action': '[795,147][932,284]', 'workspace-settings-action': '[932,147][1069,284]'}}
+Exact shared header/context/search/settings bounds match at 200% font.

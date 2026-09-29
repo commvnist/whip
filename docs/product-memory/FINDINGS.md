@@ -1,5 +1,12 @@
 # Durable findings
 
+### FND-20260929-025 — Tasks repeats navigation language in its primary action and content hierarchy
+
+- Status: Verified under IMP-20260929-015 / VER-20260929-012. Related: FB-20260929-011, DEC-20260929-003.
+- Evidence: Current `WhipApp.kt` interpolates the destination into “Task for Tasks”; the released collection capture repeats Tasks in its tab, summary, selector and entry field, then places a full-width Plan My Day button above the records. Task cards/inspectors/planner still say Inbox although the scope selector and editor say Unscheduled.
+- Remediation: Use “Add a task” and an add glyph, compact truthful count/scope summaries, relocate day planning into the existing actions menu, and reconcile visible Unscheduled copy. Keep the shared header/tab geometry and existing route/persistence owners.
+- Fresh rendering also exposes the same interpolation defect in the empty collection: “No Tasks Tasks.” Give the collection an explicit “No Unfinished Tasks” heading rather than generating it from a navigation label.
+
 ### FND-20260929-024 — Large-text inspector titles are truncated on taller screens
 
 - Status: Verified. Related: FB-20260929-009, `SharedResilienceAuditUiTest#shortInspectorKeepsContentSectionsAndActionsReachable`.

@@ -517,7 +517,7 @@ fun TaskActionsDialog(
                 if (section == TaskDetailSection.More) {
                     EntityInspectorGroup("Actions") {
                         if (!item.task.archived) {
-                            EntityInspectorAction("duplicate", "Duplicate to Inbox", onDuplicate)
+                            EntityInspectorAction("duplicate", "Duplicate as Unscheduled", onDuplicate)
                         }
                     }
                     EntityInspectorGroup("Availability") {
@@ -611,7 +611,7 @@ fun TaskActionsDialog(
             title = { Text("Convert Subtask to a Task?") },
             text = {
                 Text(
-                    "“${step?.title.orEmpty()}” will become a new Inbox task and will be removed from “${item.task.title}”. You can undo this from the confirmation.",
+                    "“${step?.title.orEmpty()}” will become a new unscheduled task and will be removed from “${item.task.title}”. You can undo this from the confirmation.",
                 )
             },
             confirmButton = {
@@ -621,7 +621,7 @@ fun TaskActionsDialog(
                         pendingMoveStepId = null
                         onPromoteSubtask(stepId)
                     },
-                ) { Text("Convert to Inbox Task") }
+                ) { Text("Convert to Task") }
             },
             dismissButton = {
                 WhipTextButton(onClick = { pendingMoveStepId = null }) { Text("Cancel") }
@@ -842,7 +842,7 @@ internal fun ScheduledTask.inspectorStatus(completed: Boolean): String = when {
     completed -> "Completed"
     isDeadlineOverdue -> "Deadline overdue"
     isPastScheduledDate -> "Past scheduled date"
-    task.scheduleKind == ScheduleKind.Anytime -> "Ready in Inbox"
+    task.scheduleKind == ScheduleKind.Anytime -> "Unscheduled"
     task.scheduleKind == ScheduleKind.Recurring -> "Active series"
     else -> "Scheduled"
 }
@@ -859,7 +859,7 @@ internal fun ScheduledTask.inspectorStatusTone(completed: Boolean): WhipStatusTo
 
 private fun ScheduledTask.inspectorContext(): String = task.area.ifBlank {
     when (task.scheduleKind) {
-        ScheduleKind.Anytime -> "Inbox"
+        ScheduleKind.Anytime -> "Unscheduled"
         ScheduleKind.Once -> scheduledDate?.format(shortDateFormatter) ?: "Scheduled task"
         ScheduleKind.Recurring -> "Recurring task"
     }
@@ -968,7 +968,7 @@ private fun ScheduledTask.detailSegments(
     if (task.scheduleKind == ScheduleKind.Recurring) {
         parts += "Repeats · ${task.repeatLabel(weekdayFormatter)}"
     }
-    if (task.scheduleKind == ScheduleKind.Anytime) parts += "Inbox"
+    if (task.scheduleKind == ScheduleKind.Anytime) parts += "Unscheduled"
     return parts
 }
 
@@ -1005,7 +1005,7 @@ private fun WhipTask.repeatLabel(weekdayFormatter: WhipWeekdayFormatter): String
 private fun WhipTask.scheduleExplanation(weekdayFormatter: WhipWeekdayFormatter): String {
     if (scheduleKind == ScheduleKind.Anytime) {
         if (archived || completedAtMillis != null) return "No scheduled date."
-        return "This task is in Inbox without a scheduled date. Choose one when you are ready to schedule it."
+        return "This task is unscheduled. Choose a date when you are ready to plan it."
     }
     if (scheduleKind == ScheduleKind.Once) {
         return date?.let { "Scheduled for ${it.format(shortDateFormatter)}." }

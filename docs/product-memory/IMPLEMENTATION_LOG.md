@@ -1,5 +1,14 @@
 # Implementation history
 
+### IMP-20260929-015 — Clarify Task capture and declutter the collection
+
+- Related: FB-20260929-011, FND-20260929-025, DEC-20260929-003; verification VER-20260929-012.
+- `WhipApp.kt` uses “Add a task” with the existing Add icon, concise count/scope summaries, and Plan My Day in the existing overflow menu instead of a full-width row above task records. Planner availability, draft ownership and Home entry remain intact.
+- `TaskComponents.kt`, `TaskDayPlanDialog.kt` and `TaskViewModel.kt` consistently describe unscheduled work in cards, inspectors, planning, conversion and duplication feedback. Stored Inbox route/enum values remain compatible.
+- Reuses the shared inline field, menu, tabs, header and record cards. No new component, dependency, schema, settings or release version. Existing Android fixtures follow the new labels/menu and verify planner restoration from both collection and Today.
+- The empty collection also gains an explicit “No Unfinished Tasks” heading, fixing the related “No Tasks Tasks” interpolation defect found in fresh rendering. The isolated native keyboard fixture initializes its own interactive-window inspection instead of depending on a preceding test.
+- Status: Implemented and Verified within VER-20260929-012's explicit scope: affected readiness passes, focused planner/creation/empty-state evidence and normal/200% originals are reviewed. The longer native keyboard journey remains incomplete at its time cap; subjective appearance awaits owner validation. No new phone release.
+
 ### IMP-20260929-014 — Release verified repairs and collection-first defaults as 0.3.87
 
 - FB-20260929-009/010; IMP-20260929-012/013; VER-20260929-010/011. Verified product commit `21f01933` is pushed to `origin/main`; version metadata advances to 0.3.87/code 93.

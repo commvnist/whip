@@ -135,7 +135,7 @@ class TaskDeletionUiTest {
         }
 
         compose.onNodeWithText("Activity").performClick()
-        compose.onNodeWithText("This task is in Inbox without a scheduled date.", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("This task is unscheduled.", substring = true).assertIsDisplayed()
         compose.onNodeWithText("Choose a Date").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(1, reschedules.get()) }
     }

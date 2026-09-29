@@ -504,7 +504,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     fun promoteStep(item: ScheduledTask, stepId: Long) {
         runOperation(
             "Moving subtask…",
-            "Subtask moved to a new Inbox task",
+            "Subtask moved to a new unscheduled task",
             successFeedbackPresentation = OperationFeedbackPresentation.Snackbar,
         ) {
             val promotedTaskId = repository.promoteStep(item, stepId)
@@ -786,7 +786,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun duplicate(taskId: Long) {
-        runOperation("Duplicating task…", "Copy added to Inbox") {
+        runOperation("Duplicating task…", "Unscheduled copy added") {
             val duplicateId = repository.duplicate(taskId)
             refreshReminders(listOf(duplicateId))
         }
@@ -1437,7 +1437,7 @@ internal fun validateDayPlanCapacity(
     require(capacityMinutes in 1..1440) { "Daily capacity must be between 1 and 1440 minutes." }
     require(selected.all { candidate ->
         tasks.any { it.id == candidate.task.id && it.scheduleKind == ScheduleKind.Anytime && !it.archived && it.completedAtMillis == null }
-    }) { "One of these Tasks is no longer in Inbox. Review the plan before applying it." }
+    }) { "One of these tasks is no longer unscheduled. Review the plan before applying it." }
     // Subtask rows/snapshots decorate projection results; they never determine occurrence membership.
     val currentToday = buildUiState(tasks, occurrences, emptyList(), emptyList(), emptyList(), today,
         showAllUpcomingRecurringOccurrences = false, zoneId = zoneId).today

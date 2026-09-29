@@ -1,5 +1,6 @@
 package com.whip.app
 
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Intent
 import android.graphics.Rect
 import android.os.Build
@@ -57,6 +58,10 @@ class InlineTaskCaptureE2ETest {
     fun inlineTaskDraftSurvivesRecreationAndSavesWithTheNativeKeyboardAtLargeText() = verifyCapture(true)
 
     private fun verifyCapture(large: Boolean) {
+        // Standalone execution cannot rely on an earlier UiAutomator test enabling window retrieval.
+        instrumentation.uiAutomation.serviceInfo = instrumentation.uiAutomation.serviceInfo.apply {
+            flags = flags or AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+        }
         runBlocking {
             app.backupRepository.deleteAllData()
             app.settingsRepository.update {
@@ -140,8 +145,8 @@ class InlineTaskCaptureE2ETest {
         val density = app.resources.displayMetrics.density
         assertTrue("Complete native Task capture above keyboard: $native versus $ime and $layout",
             native != null && native.bottom <= ime.top && native.height() >= (layout.bottom - layout.top).value * density - 1f)
-        val labelLayout = compose.onNodeWithText("Task for Today", useUnmergedTree = true).getUnclippedBoundsInRoot()
-        val label = device.findObject(By.text("Task for Today"))?.visibleBounds
+        val labelLayout = compose.onNodeWithText("Add a task", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val label = device.findObject(By.text("Add a task"))?.visibleBounds
         assertTrue("Complete Task capture label: $label versus $labelLayout",
             label != null && label.height() >= (labelLayout.bottom - labelLayout.top).value * density - 1f)
     }

@@ -116,7 +116,7 @@ class WhipNavigationTest {
             compose.onNodeWithContentDescription("Close Search").performClick()
             compose.onNodeWithContentDescription("Tasks tab").performClick()
             compose.onNodeWithTag("task-destination-Tasks").assertIsSelected()
-            compose.onNodeWithTag("workspace-context-summary").assertTextContains("All unfinished tasks")
+            compose.onNodeWithTag("workspace-context-summary").assertTextContains("0 unfinished tasks")
 
             compose.onNodeWithContentDescription("Habits tab").performClick()
             compose.onNodeWithTag("habit-destination-All").assertIsSelected()

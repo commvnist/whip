@@ -155,12 +155,12 @@ class ProductivityDefaultsUiTest {
 
         compose.onNodeWithContentDescription("Tasks tab").performClick()
         compose.onNodeWithTag("task-destination-Today").performClick()
-        compose.onNodeWithText("Task for Today").assertIsDisplayed()
+        compose.onNodeWithText("Add a task").assertIsDisplayed()
         compose.onNodeWithTag("task-quick-capture").performTextInput("Captured from Today")
         compose.onNodeWithContentDescription("Add task now").performClick()
 
         compose.selectTaskCollectionScope("Unscheduled")
-        compose.onNodeWithText("Task for Unscheduled").assertIsDisplayed()
+        compose.onNodeWithText("Add a task").assertIsDisplayed()
         compose.onNodeWithTag("task-quick-capture").performTextInput("Captured from Inbox")
         compose.onNodeWithContentDescription("Add task now").performClick()
 
@@ -202,12 +202,14 @@ class ProductivityDefaultsUiTest {
         }
 
         compose.onNodeWithContentDescription("Tasks tab").performClick()
+        compose.onNodeWithText("Add a task").assertIsDisplayed()
+        compose.onNodeWithText("No Unfinished Tasks").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("task-destination-Today").performClick()
-        compose.onNodeWithText("Task for Today").assertIsDisplayed()
+        compose.onNodeWithText("Add a task").assertIsDisplayed()
         compose.onNodeWithText("Today Is Clear").performScrollTo().assertIsDisplayed()
 
         compose.selectTaskCollectionScope("Unscheduled")
-        compose.onNodeWithText("Task for Unscheduled").assertIsDisplayed()
+        compose.onNodeWithText("Add a task").assertIsDisplayed()
         compose.onNodeWithText("No Unscheduled Tasks").performScrollTo().assertIsDisplayed()
     }
 

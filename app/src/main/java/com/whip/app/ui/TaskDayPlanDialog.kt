@@ -81,7 +81,7 @@ internal fun TaskDayPlanDialog(
                 item { WhipDialogHeading("Plan My Day") }
                 item {
                     Text(
-                        "Choose Inbox tasks for today. Candidates follow your Area and Task filters, except Today's date filter. Capacity includes Today tasks across all Areas. Unknown durations count as 30 minutes.",
+                        "Choose unscheduled tasks to do today. This list uses your current Area and Task filters, except Today’s fixed date scope. Capacity includes today’s tasks across all Areas. Tasks without a duration count as 30 minutes.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -119,7 +119,7 @@ internal fun TaskDayPlanDialog(
                     ) { Text(if (selectedKeys == null) "Preview Plan" else "Rebuild Preview") }
                 }
                 if (candidates.isEmpty()) item {
-                    Text("No Inbox tasks match this Area and these filters. Close the planner to adjust them or add a Task.")
+                    Text("No unscheduled tasks match your Area and filters. Close the planner to adjust them or add a task.")
                 }
                 if (validCapacity && capacity <= existingMinutes) item {
                     Text("Today's existing plan fills this capacity. Increase it to add tasks, or review Tasks Today.")

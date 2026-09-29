@@ -132,8 +132,15 @@ class TaskDayPlannerUiTest {
         compose.onNodeWithTag("task-day-plan-apply").assertIsEnabled()
         compose.onNodeWithTag("task-day-plan-capacity").performScrollTo().assertTextContains("180")
         compose.onNodeWithText("Close").performClick()
+        compose.onNodeWithTag("task-destination-Tasks").performClick()
+        compose.onNodeWithText("Add a task").assertIsDisplayed()
+        compose.onNodeWithText("Plan My Day").assertDoesNotExist()
+        compose.onNodeWithContentDescription("More task list actions").performClick()
+        compose.onNodeWithText("Plan My Day").performClick()
+        compose.onNodeWithTag("task-day-plan-apply").assertIsEnabled()
+        compose.onNodeWithText("Close").performClick()
         compose.onNodeWithTag("task-destination-Today").performClick()
-        compose.onNodeWithTag("task-workspace-list").performScrollToNode(hasText("Plan My Day"))
+        compose.onNodeWithContentDescription("More task list actions").performClick()
         compose.onNodeWithText("Plan My Day").performClick()
         compose.onNodeWithTag("task-day-plan-apply").assertIsDisplayed().assertIsEnabled()
         captureVisualCatalogSurface("experience.task-day-plan.restored")
@@ -153,7 +160,7 @@ class TaskDayPlannerUiTest {
     private fun openPlanner() {
         compose.onNodeWithContentDescription("Tasks tab").performClick()
         compose.selectTaskCollectionScope("Unscheduled")
-        compose.onNodeWithTag("task-workspace-list").performScrollToNode(hasText("Plan My Day"))
+        compose.onNodeWithContentDescription("More task list actions").performClick()
         compose.onNodeWithText("Plan My Day").performClick()
     }
     private fun task(id: Long, title: String, minutes: Int?, scheduled: Boolean = false): ScheduledTask {

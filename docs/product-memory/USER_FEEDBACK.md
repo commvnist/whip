@@ -1,5 +1,11 @@
 # User feedback and acceptance criteria
 
+### FB-20260929-011 — Make the Tasks page clear and visually purposeful
+
+- Date/source: 2026-09-29, owner rejects “Task for Tasks” and requests Tasks UX/design improvements.
+- Acceptance: Replace the generated quick-entry label with natural action wording; reduce repeated scope text and oversized secondary controls; use consistent Unscheduled terminology throughout connected Task flows. Preserve collection-first tabs, shared root header geometry, one toolbar search, quick capture and day planning. Inspect fresh rendering and run bounded affected checks.
+- Related/status: FB-20260929-005/008/010, DEC-20260929-003, FND-20260929-025; Implemented and Verified under IMP-20260929-015 / VER-20260929-012. Subjective appearance awaits owner validation. This scoped correction does not restart the completed full-suite campaign or request another release.
+
 ### FB-20260929-010 — Start Tasks and Habits on their first collection tab
 
 - Date/source: 2026-09-29, owner requests Tasks and Habits as the initial selections instead of Today during the release/test/release campaign.

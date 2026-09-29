@@ -129,7 +129,6 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.NavigateNext
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Autorenew
@@ -6346,6 +6345,12 @@ private fun TaskAreaContent(
                         expanded = taskToolsExpanded,
                         onDismissRequest = { taskToolsExpanded = false },
                     ) {
+                        if (state.inbox.isNotEmpty() && destination in setOf(TaskDestination.Inbox, TaskDestination.Today, TaskDestination.All)) {
+                            WhipMenuItem("Plan My Day", onClick = {
+                                taskToolsExpanded = false
+                                showDayPlanner = true
+                            })
+                        }
                         if (destination != TaskDestination.Archived) WhipMenuItem("Archived Tasks", onClick = {
                             taskToolsExpanded = false; archiveReturn = destination; navigateTask(TaskDestination.Archived)
                         })
@@ -6629,7 +6634,7 @@ private fun TaskAreaContent(
                         value = quickCapture,
                         onValueChange = { quickCapture = it },
                         enabled = !quickCaptureSubmitting,
-                        label = "Task for ${destination.label}",
+                        label = "Add a task",
                         placeholder = {
                             Text(
                                 if (appSettings.naturalLanguageTaskCapture) {
@@ -6649,7 +6654,7 @@ private fun TaskAreaContent(
                                 enabled = quickCapture.isNotBlank() && !quickCaptureSubmitting,
                                 onClick = ::submitQuickCapture,
                             ) {
-                                Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = "Add task now")
+                                Icon(Icons.Default.Add, contentDescription = "Add task now")
                             }
                         },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -6689,14 +6694,6 @@ private fun TaskAreaContent(
                             onClick = { onAddDetails(quickCapture) },
                         ) { Text("Add Details") }
                     }
-                }
-            }
-        }
-        if (!selectionMode && !reordering && state.inbox.isNotEmpty() &&
-            destination in setOf(TaskDestination.Inbox, TaskDestination.Today, TaskDestination.All)) {
-            item {
-                WhipOutlinedButton(onClick = { showDayPlanner = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Plan My Day")
                 }
             }
         }
@@ -7927,15 +7924,15 @@ private fun HomeStatusCard(
 
 
 private fun taskDestinationSupportingText(destination: TaskDestination, count: Int): String {
-    val description = when (destination) {
-        TaskDestination.All -> "All unfinished tasks"
-        TaskDestination.Inbox -> "Unscheduled tasks"
-        TaskDestination.Today -> "Today & carried over"
-        TaskDestination.Upcoming -> "Future tasks"
-        TaskDestination.Completed -> "Completed tasks"
-        TaskDestination.Archived -> "Saved tasks, ready to restore"
+    val noun = when (destination) {
+        TaskDestination.All -> "unfinished task"
+        TaskDestination.Inbox -> "unscheduled task"
+        TaskDestination.Today -> return "Today & carried over · ${count.itemCount("task")}"
+        TaskDestination.Upcoming -> "upcoming task"
+        TaskDestination.Completed -> "completed task"
+        TaskDestination.Archived -> "archived task"
     }
-    return if (count > 0) "$description · ${count.itemCount("task")}" else description
+    return count.itemCount(noun)
 }
 
 private fun Int.itemCount(noun: String): String = "$this $noun${if (this == 1) "" else "s"}"
@@ -7973,6 +7970,7 @@ private fun EmptyTasks(
         }
     WhipEmptyState(
         title = if (selectedDate != null) "No Tasks on ${selectedDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}" else if (constrained) "No Matching Tasks" else when (destination) {
+            TaskDestination.All -> "No Unfinished Tasks"
             TaskDestination.Today -> "Today Is Clear"
             TaskDestination.Inbox -> "No Unscheduled Tasks"
             else -> "No ${destination.label} Tasks"
