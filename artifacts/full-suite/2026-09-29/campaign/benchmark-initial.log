@@ -1,0 +1,277 @@
+Starting a Gradle Daemon, 1 busy and 1 stopped Daemons could not be reused, use --status for details
+> Task :benchmark:preBuild UP-TO-DATE
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preBenchmarkBuild UP-TO-DATE
+> Task :benchmark:preBenchmarkBuild UP-TO-DATE
+> Task :benchmark:generateBenchmarkResources UP-TO-DATE
+> Task :benchmark:packageBenchmarkResources UP-TO-DATE
+> Task :benchmark:processBenchmarkNavigationResources UP-TO-DATE
+> Task :app:mergeBenchmarkArtProfile UP-TO-DATE
+> Task :benchmark:parseBenchmarkLocalResources UP-TO-DATE
+> Task :app:desugarBenchmarkFileDependencies UP-TO-DATE
+> Task :benchmark:generateBenchmarkRFile UP-TO-DATE
+> Task :app:generateBenchmarkBuildConfig
+> Task :app:generateBenchmarkResValues UP-TO-DATE
+> Task :app:generateBenchmarkResources
+> Task :benchmark:compileBenchmarkKotlin UP-TO-DATE
+> Task :benchmark:javaPreCompileBenchmark UP-TO-DATE
+> Task :benchmark:compileBenchmarkJavaWithJavac NO-SOURCE
+> Task :benchmark:generateBenchmarkAssets UP-TO-DATE
+> Task :benchmark:mergeBenchmarkAssets UP-TO-DATE
+> Task :benchmark:compressBenchmarkAssets UP-TO-DATE
+> Task :benchmark:checkBenchmarkDuplicateClasses UP-TO-DATE
+> Task :benchmark:extractProguardFiles UP-TO-DATE
+> Task :benchmark:processBenchmarkJavaRes UP-TO-DATE
+> Task :benchmark:mergeBenchmarkJavaResource UP-TO-DATE
+> Task :benchmark:mergeBenchmarkManifest UP-TO-DATE
+> Task :benchmark:processBenchmarkManifest UP-TO-DATE
+> Task :benchmark:checkBenchmarkAarMetadata UP-TO-DATE
+> Task :benchmark:mapBenchmarkSourceSetPaths UP-TO-DATE
+> Task :benchmark:compileBenchmarkNavigationResources UP-TO-DATE
+> Task :app:packageBenchmarkResources
+> Task :app:processBenchmarkNavigationResources
+> Task :benchmark:mergeBenchmarkResources UP-TO-DATE
+> Task :app:javaPreCompileBenchmark UP-TO-DATE
+> Task :benchmark:processBenchmarkResources UP-TO-DATE
+> Task :app:checkBenchmarkAarMetadata UP-TO-DATE
+> Task :app:mapBenchmarkSourceSetPaths
+> Task :app:compileBenchmarkNavigationResources UP-TO-DATE
+> Task :benchmark:minifyBenchmarkWithR8 UP-TO-DATE
+> Task :benchmark:mergeBenchmarkJniLibFolders UP-TO-DATE
+> Task :app:parseBenchmarkLocalResources
+> Task :benchmark:mergeBenchmarkNativeLibs UP-TO-DATE
+> Task :benchmark:stripBenchmarkDebugSymbols UP-TO-DATE
+> Task :benchmark:validateSigningBenchmark UP-TO-DATE
+> Task :benchmark:writeBenchmarkSigningConfigVersions UP-TO-DATE
+> Task :benchmark:packageBenchmark UP-TO-DATE
+> Task :benchmark:createBenchmarkApkListingFileRedirect UP-TO-DATE
+> Task :app:generateBenchmarkRFile UP-TO-DATE
+> Task :app:mergeBenchmarkResources
+> Task :app:createBenchmarkCompatibleScreenManifests
+> Task :app:extractDeepLinksBenchmark UP-TO-DATE
+> Task :app:processBenchmarkMainManifest
+> Task :app:processBenchmarkManifest
+> Task :app:checkBenchmarkDuplicateClasses UP-TO-DATE
+> Task :app:mergeBenchmarkStartupProfile UP-TO-DATE
+> Task :app:mergeExtDexBenchmark UP-TO-DATE
+> Task :app:generateBenchmarkAssets UP-TO-DATE
+> Task :app:mergeBenchmarkAssets UP-TO-DATE
+> Task :app:compressBenchmarkAssets UP-TO-DATE
+> Task :app:extractBenchmarkVersionControlInfo
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:collectBenchmarkDependencies UP-TO-DATE
+> Task :app:sdkBenchmarkDependencyData UP-TO-DATE
+> Task :app:mergeBenchmarkJniLibFolders UP-TO-DATE
+> Task :app:mergeBenchmarkNativeLibs UP-TO-DATE
+> Task :app:stripBenchmarkDebugSymbols UP-TO-DATE
+> Task :app:validateSigningBenchmark UP-TO-DATE
+> Task :app:writeBenchmarkAppMetadata UP-TO-DATE
+> Task :app:writeBenchmarkSigningConfigVersions UP-TO-DATE
+> Task :app:processBenchmarkManifestForPackage
+> Task :app:processBenchmarkResources
+> Task :app:optimizeBenchmarkResources
+> Task :app:kspBenchmarkKotlin
+> Task :app:compileBenchmarkKotlin
+w: file:///root/repos/whip/app/src/main/java/com/whip/app/ui/GoalScreens.kt:1591:54 Unnecessary safe call on a non-null receiver of type 'GoalProjection'.
+w: file:///root/repos/whip/app/src/main/java/com/whip/app/ui/GoalScreens.kt:1591:54 Unnecessary safe call on a non-null receiver of type 'GoalProjection'.
+
+> Task :app:compileBenchmarkJavaWithJavac
+> Task :app:dexBuilderBenchmark
+> Task :app:mergeBenchmarkGlobalSynthetics UP-TO-DATE
+> Task :app:copyRoomSchemas NO-SOURCE
+> Task :app:generateBenchmarkLintVitalReportModel
+> Task :app:processBenchmarkJavaRes
+> Task :app:mergeBenchmarkJavaResource
+> Task :app:mergeDexBenchmark
+> Task :app:compileBenchmarkArtProfile
+> Task :app:lintVitalAnalyzeBenchmark
+> Task :app:lintVitalReportBenchmark
+> Task :app:lintVitalBenchmark
+> Task :app:packageBenchmark
+> Task :app:createBenchmarkApkListingFileRedirect
+Starting 9 tests on whip_release_api34(AVD) - 14
+whip_release_api34(AVD) - 14 Tests 0/9 completed. (0 skipped) (0 failed)
+> Task :benchmark:connectedBenchmarkAndroidTest
+
+whip_release_api34(AVD) - 14 Tests 1/9 completed. (0 skipped) (0 failed)
+
+com.whip.benchmark.DenseDataBenchmark > goalAndGymGraphsWithOneHundredThousandPoints[whip_release_api34(AVD) - 14] [31mFAILED [0m
+	java.lang.IllegalStateException: Benchmark UI did not show 100k point goal
+	at i.d(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:7)
+whip_release_api34(AVD) - 14 Tests 2/9 completed. (0 skipped) (1 failed)
+
+com.whip.benchmark.DenseDataBenchmark > activeWorkoutInlineInputLatency[whip_release_api34(AVD) - 14] [31mFAILED [0m
+	java.lang.IllegalStateException: Benchmark input did not complete its only pending Set
+	at b1.d(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:3)
+whip_release_api34(AVD) - 14 Tests 3/9 completed. (0 skipped) (2 failed)
+
+com.whip.benchmark.DenseDataBenchmark > homeWithTenThousandTasksAndHabitLogs[whip_release_api34(AVD) - 14] [31mFAILED [0m
+	java.lang.IllegalStateException: Benchmark fixture failed to seed: home (no seed result)
+	at com.whip.benchmark.DenseDataBenchmark.seed(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:128)
+whip_release_api34(AVD) - 14 Tests 4/9 completed. (0 skipped) (3 failed)
+whip_release_api34(AVD) - 14 Tests 5/9 completed. (0 skipped) (3 failed)
+
+com.whip.benchmark.StartupBenchmark > coldStartupWithoutCompilation[whip_release_api34(AVD) - 14] [31mFAILED [0m
+	java.lang.IllegalStateException: Observed no expect/actual slices in trace, please report bug and attach perfetto trace.
+	at b1.d(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:3)
+whip_release_api34(AVD) - 14 Tests 6/9 completed. (0 skipped) (4 failed)
+whip_release_api34(AVD) - 14 Tests 7/9 completed. (0 skipped) (4 failed)
+whip_release_api34(AVD) - 14 Tests 8/9 completed. (0 skipped) (4 failed)
+whip_release_api34(AVD) - 14 Tests 9/9 completed. (0 skipped) (4 failed)
+Tests on whip_release_api34(AVD) - 14 failed: There was 4 failure(s).
+Finished 9 tests on whip_release_api34(AVD) - 14
+Execute com.whip.benchmark.DenseDataBenchmark.goalAndGymGraphsWithOneHundredThousandPoints: FAILED
+java.lang.IllegalStateException: java.lang.IllegalStateException: Benchmark UI did not show 100k point goal
+at i.d(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:7)
+at com.whip.benchmark.BenchmarkUiKt.requireObject(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:29)
+at com.whip.benchmark.DenseDataBenchmark.goalAndGymGraphsWithOneHundredThousandPoints$lambda$1(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:53)
+at com.whip.benchmark.DenseDataBenchmark.e(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:1)
+at n.invoke(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:165)
+at androidx.benchmark.macro.MacrobenchmarkPhaseKt.runPhase$lambda$18$lambda$12(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:63)
+at androidx.benchmark.macro.MacrobenchmarkPhaseKt.b(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:1)
+at u0.invoke(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:11)
+at androidx.benchmark.perfetto.PerfettoCaptureWrapper.record(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:67)
+at androidx.benchmark.perfetto.PerfettoCaptureWrapper.record$default(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:17)
+at androidx.benchmark.macro.MacrobenchmarkPhaseKt.runPhase(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:246)
+at androidx.benchmark.macro.MacrobenchmarkKt.macrobenchmark$lambda$6(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:89)
+at androidx.benchmark.macro.MacrobenchmarkKt.d(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:1)
+at r0.invoke(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:49)
+at androidx.benchmark.macro.TraceProcessorExtensionsKt.runServer(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:15)
+at androidx.benchmark.macro.TraceProcessorExtensionsKt.runServer$default(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:9)
+at androidx.benchmark.macro.MacrobenchmarkKt.macrobenchmark(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:22)
+at androidx.benchmark.macro.MacrobenchmarkKt.macrobenchmarkWithStartupMode(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:131)
+at androidx.benchmark.macro.junit4.MacrobenchmarkRule.measureRepeated(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:95)
+at androidx.benchmark.macro.junit4.MacrobenchmarkRule.measureRepeated$default(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:45)
+at com.whip.benchmark.DenseDataBenchmark.goalAndGymGraphsWithOneHundredThousandPoints(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:48)
+
+java.lang.IllegalStateException: Benchmark UI did not show 100k point goal
+at i.d(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:7)
+at com.whip.benchmark.BenchmarkUiKt.requireObject(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:29)
+at com.whip.benchmark.DenseDataBenchmark.goalAndGymGraphsWithOneHundredThousandPoints$lambda$1(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:53)
+at com.whip.benchmark.DenseDataBenchmark.e(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:1)
+at n.invoke(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:165)
+at androidx.benchmark.macro.MacrobenchmarkPhaseKt.runPhase$lambda$18$lambda$12(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:63)
+at androidx.benchmark.macro.MacrobenchmarkPhaseKt.b(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:1)
+at u0.invoke(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:11)
+at androidx.benchmark.perfetto.PerfettoCaptureWrapper.record(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:67)
+at androidx.benchmark.perfetto.PerfettoCaptureWrapper.record$default(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:17)
+at androidx.benchmark.macro.MacrobenchmarkPhaseKt.runPhase(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:246)
+at androidx.benchmark.macro.MacrobenchmarkKt.macrobenchmark$lambda$6(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:89)
+at androidx.benchmark.macro.MacrobenchmarkKt.d(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:1)
+at r0.invoke(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:49)
+at androidx.benchmark.macro.TraceProcessorExtensionsKt.runServer(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:15)
+at androidx.benchmark.macro.TraceProcessorExtensionsKt.runServer$default(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:9)
+at androidx.benchmark.macro.MacrobenchmarkKt.macrobenchmark(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:22)
+at androidx.benchmark.macro.MacrobenchmarkKt.macrobenchmarkWithStartupMode(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:131)
+at androidx.benchmark.macro.junit4.MacrobenchmarkRule.measureRepeated(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:95)
+at androidx.benchmark.macro.junit4.MacrobenchmarkRule.measureRepeated$default(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:45)
+at com.whip.benchmark.DenseDataBenchmark.goalAndGymGraphsWithOneHundredThousandPoints(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:48)
+Execute com.whip.benchmark.DenseDataBenchmark.activeWorkoutInlineInputLatency: FAILED
+java.lang.IllegalStateException: java.lang.IllegalStateException: Benchmark input did not complete its only pending Set
+at b1.d(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:3)
+at com.whip.benchmark.DenseDataBenchmark.activeWorkoutInlineInputLatency$lambda$1(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:262)
+at com.whip.benchmark.DenseDataBenchmark.d(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:1)
+at n.invoke(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:179)
+at androidx.benchmark.macro.MacrobenchmarkPhaseKt.runPhase$lambda$18$lambda$12(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:63)
+at androidx.benchmark.macro.MacrobenchmarkPhaseKt.b(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:1)
+at u0.invoke(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:11)
+at androidx.benchmark.perfetto.PerfettoCaptureWrapper.record(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:67)
+at androidx.benchmark.perfetto.PerfettoCaptureWrapper.record$default(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:17)
+at androidx.benchmark.macro.MacrobenchmarkPhaseKt.runPhase(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:246)
+at androidx.benchmark.macro.MacrobenchmarkKt.macrobenchmark$lambda$6(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:89)
+at androidx.benchmark.macro.MacrobenchmarkKt.d(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:1)
+at r0.invoke(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:49)
+at androidx.benchmark.macro.TraceProcessorExtensionsKt.runServer(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:15)
+at androidx.benchmark.macro.TraceProcessorExtensionsKt.runServer$default(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:9)
+at androidx.benchmark.macro.MacrobenchmarkKt.macrobenchmark(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:22)
+at androidx.benchmark.macro.MacrobenchmarkKt.macrobenchmarkWithStartupMode(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:131)
+at androidx.benchmark.macro.junit4.MacrobenchmarkRule.measureRepeated(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:95)
+at androidx.benchmark.macro.junit4.MacrobenchmarkRule.measureRepeated$default(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:45)
+at com.whip.benchmark.DenseDataBenchmark.activeWorkoutInlineInputLatency(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:42)
+
+java.lang.IllegalStateException: Benchmark input did not complete its only pending Set
+at b1.d(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:3)
+at com.whip.benchmark.DenseDataBenchmark.activeWorkoutInlineInputLatency$lambda$1(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:262)
+at com.whip.benchmark.DenseDataBenchmark.d(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:1)
+at n.invoke(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:179)
+at androidx.benchmark.macro.MacrobenchmarkPhaseKt.runPhase$lambda$18$lambda$12(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:63)
+at androidx.benchmark.macro.MacrobenchmarkPhaseKt.b(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:1)
+at u0.invoke(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:11)
+at androidx.benchmark.perfetto.PerfettoCaptureWrapper.record(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:67)
+at androidx.benchmark.perfetto.PerfettoCaptureWrapper.record$default(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:17)
+at androidx.benchmark.macro.MacrobenchmarkPhaseKt.runPhase(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:246)
+at androidx.benchmark.macro.MacrobenchmarkKt.macrobenchmark$lambda$6(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:89)
+at androidx.benchmark.macro.MacrobenchmarkKt.d(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:1)
+at r0.invoke(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:49)
+at androidx.benchmark.macro.TraceProcessorExtensionsKt.runServer(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:15)
+at androidx.benchmark.macro.TraceProcessorExtensionsKt.runServer$default(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:9)
+at androidx.benchmark.macro.MacrobenchmarkKt.macrobenchmark(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:22)
+at androidx.benchmark.macro.MacrobenchmarkKt.macrobenchmarkWithStartupMode(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:131)
+at androidx.benchmark.macro.junit4.MacrobenchmarkRule.measureRepeated(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:95)
+at androidx.benchmark.macro.junit4.MacrobenchmarkRule.measureRepeated$default(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:45)
+at com.whip.benchmark.DenseDataBenchmark.activeWorkoutInlineInputLatency(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:42)
+Execute com.whip.benchmark.DenseDataBenchmark.homeWithTenThousandTasksAndHabitLogs: FAILED
+java.lang.IllegalStateException: java.lang.IllegalStateException: Benchmark fixture failed to seed: home (no seed result)
+at com.whip.benchmark.DenseDataBenchmark.seed(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:128)
+at com.whip.benchmark.DenseDataBenchmark.homeWithTenThousandTasksAndHabitLogs(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:3)
+
+java.lang.IllegalStateException: Benchmark fixture failed to seed: home (no seed result)
+at com.whip.benchmark.DenseDataBenchmark.seed(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:128)
+at com.whip.benchmark.DenseDataBenchmark.homeWithTenThousandTasksAndHabitLogs(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:3)
+Execute com.whip.benchmark.StartupBenchmark.coldStartupWithoutCompilation: FAILED
+java.lang.IllegalStateException: java.lang.IllegalStateException: Observed no expect/actual slices in trace, please report bug and attach perfetto trace.
+at b1.d(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:3)
+at androidx.benchmark.macro.perfetto.FrameTimingQuery.getFrameData$benchmark_macro_release(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:533)
+at androidx.benchmark.macro.FrameTimingMetric.getMeasurements$benchmark_macro_release(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:17)
+at androidx.benchmark.macro.MacrobenchmarkPhaseKt.runPhase$lambda$18$lambda$17(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:51)
+at androidx.benchmark.macro.MacrobenchmarkPhaseKt.a(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:1)
+at v0.invoke(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:18)
+at androidx.benchmark.traceprocessor.TraceProcessor.loadTrace(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:19)
+at androidx.benchmark.macro.MacrobenchmarkPhaseKt.runPhase(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:314)
+at androidx.benchmark.macro.MacrobenchmarkKt.macrobenchmark$lambda$6(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:89)
+at androidx.benchmark.macro.MacrobenchmarkKt.d(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:1)
+at r0.invoke(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:49)
+at androidx.benchmark.macro.TraceProcessorExtensionsKt.runServer(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:15)
+at androidx.benchmark.macro.TraceProcessorExtensionsKt.runServer$default(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:9)
+at androidx.benchmark.macro.MacrobenchmarkKt.macrobenchmark(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:22)
+at androidx.benchmark.macro.MacrobenchmarkKt.macrobenchmarkWithStartupMode(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:131)
+at androidx.benchmark.macro.junit4.MacrobenchmarkRule.measureRepeated(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:95)
+at com.whip.benchmark.StartupBenchmark.coldStartupWithoutCompilation(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:50)
+
+java.lang.IllegalStateException: Observed no expect/actual slices in trace, please report bug and attach perfetto trace.
+at b1.d(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:3)
+at androidx.benchmark.macro.perfetto.FrameTimingQuery.getFrameData$benchmark_macro_release(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:533)
+at androidx.benchmark.macro.FrameTimingMetric.getMeasurements$benchmark_macro_release(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:17)
+at androidx.benchmark.macro.MacrobenchmarkPhaseKt.runPhase$lambda$18$lambda$17(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:51)
+at androidx.benchmark.macro.MacrobenchmarkPhaseKt.a(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:1)
+at v0.invoke(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:18)
+at androidx.benchmark.traceprocessor.TraceProcessor.loadTrace(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:19)
+at androidx.benchmark.macro.MacrobenchmarkPhaseKt.runPhase(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:314)
+at androidx.benchmark.macro.MacrobenchmarkKt.macrobenchmark$lambda$6(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:89)
+at androidx.benchmark.macro.MacrobenchmarkKt.d(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:1)
+at r0.invoke(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:49)
+at androidx.benchmark.macro.TraceProcessorExtensionsKt.runServer(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:15)
+at androidx.benchmark.macro.TraceProcessorExtensionsKt.runServer$default(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:9)
+at androidx.benchmark.macro.MacrobenchmarkKt.macrobenchmark(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:22)
+at androidx.benchmark.macro.MacrobenchmarkKt.macrobenchmarkWithStartupMode(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:131)
+at androidx.benchmark.macro.junit4.MacrobenchmarkRule.measureRepeated(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:95)
+at com.whip.benchmark.StartupBenchmark.coldStartupWithoutCompilation(r8-map-id-3d68a8784b52cd5ea200304b2019595819d7278a8e7caa55596621c9e4859c8e:50)
+
+> Task :benchmark:connectedBenchmarkAndroidTest FAILED
+
+[Incubating] Problems report is available at: file:///root/repos/whip/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':benchmark:connectedBenchmarkAndroidTest' (registered by plugin 'com.android.internal.test').
+> There were failing tests. See the report at: file:///root/repos/whip/benchmark/build/reports/androidTests/connected/benchmark/index.html
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 21m 11s
+80 actionable tasks: 29 executed, 51 up-to-date

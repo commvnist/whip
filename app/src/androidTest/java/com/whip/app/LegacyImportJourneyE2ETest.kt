@@ -46,11 +46,12 @@ class LegacyImportJourneyE2ETest {
             compose.onNodeWithText("Backup & Export").assertIsDisplayed()
             compose.onNodeWithContentDescription("Close Settings").performClick()
             compose.onNodeWithContentDescription("Habits tab").performClick()
+            compose.onNodeWithTag("habit-destination-Today").performClick()
             compose.onNodeWithTag("habit-card-$id").assertIsDisplayed()
             compose.onNodeWithText("+1").assertIsEnabled().performClick()
             compose.waitUntil(10000) { runBlocking { app.habitRepository.logs.first().size == 2 } }
-            compose.waitUntil(10000) { compose.onAllNodesWithText("1/10000").fetchSemanticsNodes().isNotEmpty() }
-            compose.onNodeWithText("1/10000").assertIsDisplayed()
+            compose.waitUntil(10000) { compose.onAllNodesWithText("1 · at least 10000", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText("1 · at least 10000", substring = true).assertIsDisplayed()
             captureVisualCatalogSurface("habits.legacy-import.manual")
             compose.onNodeWithContentDescription("Open habit details for Daily movement").performSemanticsAction(SemanticsActions.OnClick)
             compose.onNodeWithTag("habit-detail-section-History").performClick()

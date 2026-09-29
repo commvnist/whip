@@ -1,0 +1,8 @@
+{
+  "command": [
+    "python3",
+    "/tmp/whip-native-recovered.py"
+  ],
+  "exit": 1,
+  "seconds": 1116.294
+}

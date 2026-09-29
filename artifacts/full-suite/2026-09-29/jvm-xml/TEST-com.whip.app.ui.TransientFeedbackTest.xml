@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.TransientFeedbackTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-09-29T17:05:40.531Z" hostname="beast" time="0.082">
+  <properties/>
+  <testcase name="routineSuccessDefaultsToVisibleStateInsteadOfSnackbar" classname="com.whip.app.ui.TransientFeedbackTest" time="0.003"/>
+  <testcase name="inlineSuccessIsConsumedWithoutShowingSnackbarWhileFailuresStillShow" classname="com.whip.app.ui.TransientFeedbackTest" time="0.002"/>
+  <testcase name="terminalMessageIsConsumedBeforeCancelableDisplayAndNonterminalStatesDoNothing" classname="com.whip.app.ui.TransientFeedbackTest" time="0.003"/>
+  <testcase name="onlyRecoverableFeedbackSurvivesTopLevelDestinationChanges" classname="com.whip.app.ui.TransientFeedbackTest" time="0.0"/>
+  <testcase name="destinationChangePreservesRecoveryAndDropsQueuedTransientFeedback" classname="com.whip.app.ui.TransientFeedbackTest" time="0.056"/>
+  <testcase name="differentRecoveryWaitsBehindTheActiveRecoveryAndStartsAfterInvalidation" classname="com.whip.app.ui.TransientFeedbackTest" time="0.01"/>
+  <testcase name="successfulActionsOnlyUseTransientFeedbackForWarningsOrRecovery" classname="com.whip.app.ui.TransientFeedbackTest" time="0.0"/>
+  <testcase name="sameSourceRecoveryAtomicallyReplacesTheOlderRecovery" classname="com.whip.app.ui.TransientFeedbackTest" time="0.002"/>
+  <testcase name="highPriorityFeedbackBlocksLowerPriorityButRecoveryCanReplaceIt" classname="com.whip.app.ui.TransientFeedbackTest" time="0.003"/>
+  <testcase name="sourceInvalidationRemovesItsQueuedFeedbackWithoutDisturbingAnotherRecovery" classname="com.whip.app.ui.TransientFeedbackTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

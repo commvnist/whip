@@ -1,0 +1,10 @@
+{
+  "command": [
+    "./gradlew",
+    ":app:assembleDebug",
+    ":app:assembleDebugAndroidTest",
+    "--console=plain"
+  ],
+  "exit": 0,
+  "seconds": 94.563
+}

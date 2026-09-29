@@ -220,7 +220,7 @@ class SharedConsistencyUiTest {
         compose.assertDialogFontScale(3.2f)
         captureVisualCatalogSurface("tasks.templates.extreme")
 
-        val initialChoice = compose.onNodeWithContentDescription("Inbox Task", substring = true)
+        val initialChoice = compose.onNodeWithContentDescription("Unscheduled Task", substring = true)
             .assertIsDisplayed().getUnclippedBoundsInRoot()
         val viewport = compose.onNodeWithTag("task-template-list").getUnclippedBoundsInRoot()
         assertTrue("The first template must be fully visible before scrolling", initialChoice.bottom <= viewport.bottom)

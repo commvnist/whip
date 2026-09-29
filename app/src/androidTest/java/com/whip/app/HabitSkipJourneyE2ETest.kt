@@ -6,6 +6,9 @@ import android.content.Intent
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
@@ -105,6 +108,7 @@ class HabitSkipJourneyE2ETest {
         val intent = Intent(app, MainActivity::class.java).putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
         launchMainActivity(intent).use {
             compose.onNodeWithContentDescription("Habits tab").performClick()
+            selectDestination("habit-destination-Today")
             compose.onNodeWithTag("habit-card-$habitId").assertIsDisplayed()
             compose.onNodeWithContentDescription("Open habit details for Read Today")
                 .performSemanticsAction(SemanticsActions.OnClick)
@@ -113,7 +117,9 @@ class HabitSkipJourneyE2ETest {
             compose.onAllNodesWithText("Mark Today Missing").assertCountEquals(0)
             compose.onNodeWithText("Skip Today").performClick()
             compose.onNodeWithText("Skip Today?").assertIsDisplayed()
-            compose.onNodeWithText("Skip Today").performClick()
+            compose.onNode(
+                hasText("Skip Today") and hasAnyAncestor(isDialog() and hasAnyDescendant(hasText("Skip Today?"))),
+            ).performClick()
 
             val skipSaved = runBlocking {
                 withTimeoutOrNull(5_000) { app.habitRepository.skips.first { rows -> rows.any { it.habitId == habitId } } }
@@ -123,6 +129,7 @@ class HabitSkipJourneyE2ETest {
                 check(app.habitRepository.logs.first().none { it.habitId == habitId })
                 check(app.measurementRepository.entries.first().none { it.sourceId?.contains("$habitId") == true })
             }
+            compose.onNodeWithContentDescription("Close Habit details").performClick()
             compose.onNodeWithText("Finished for Today (1)").assertIsDisplayed()
             compose.onAllNodesWithTag("habit-card-$habitId").assertCountEquals(0)
             compose.onNodeWithTag("habit-done-disclosure").performSemanticsAction(SemanticsActions.OnClick)
@@ -142,9 +149,11 @@ class HabitSkipJourneyE2ETest {
             compose.onNodeWithTag("habit-activity-day-${app.clock.today().toEpochDay()}")
                 .assertContentDescriptionContains("skipped", substring = true)
             selectDestination("habit-destination-Today")
-            compose.onNodeWithTag("habit-done-disclosure").performSemanticsAction(SemanticsActions.OnClick)
+            // The finished section remains open; reveal the card actions after inspection.
+            assertEquals("Expanded", compose.onNodeWithTag("habit-done-disclosure")
+                .fetchSemanticsNode().config[SemanticsProperties.StateDescription])
             compose.onNodeWithTag("habit-list-Today").performScrollToNode(hasTestTag("habit-card-$habitId"))
-            compose.onNodeWithTag("habit-expand-$habitId").performClick()
+            compose.onNodeWithContentDescription("Expand habit Read Today").performClick()
             compose.onNodeWithTag("habit-list-Today").performScrollToNode(hasText("Undo Skip"))
             compose.onNodeWithText("Undo Skip").performSemanticsAction(SemanticsActions.OnClick)
 
@@ -166,6 +175,7 @@ class HabitSkipJourneyE2ETest {
         val intent = Intent(app, MainActivity::class.java).putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
         launchMainActivity(intent).use {
             compose.onNodeWithContentDescription("Habits tab").performClick()
+            selectDestination("habit-destination-Today")
             compose.onNodeWithTag("habit-card-$pendingHabitId").assertIsDisplayed()
             compose.onNodeWithTag("habit-list-Today").performScrollToNode(hasTestTag("habit-done-disclosure"))
             compose.onNodeWithTag("habit-done-disclosure").assertIsDisplayed()
@@ -246,6 +256,7 @@ class HabitSkipJourneyE2ETest {
 
         launchMainActivity(intent).use {
             compose.onNodeWithContentDescription("Habits tab").performClick()
+            selectDestination("habit-destination-Today")
             assertEquals(
                 "Collapsed",
                 compose.onNodeWithTag("habit-done-disclosure").fetchSemanticsNode()

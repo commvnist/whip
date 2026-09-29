@@ -1,0 +1,302 @@
+[
+  {
+    "path": "app/src/androidTest/java/com/whip/app/AdaptiveWhipScreenTest.kt",
+    "before": "68905c008ddf3cb637aefd2481796ee10b2030fb687caba86de680640fe33997",
+    "after": "98d6704aa63cb05ec9ed1f7141a8b669b5c7af5fbe35627d4c62832605acf6d9",
+    "source": "/tmp/whip-followup-fixes/AdaptiveWhipScreenTest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/DeepProductivityJourneyTest.kt",
+    "before": "d0a6bb8c480d2dfa1edc7cf467874700fd769ff77004647509d80b3b3994c77b",
+    "after": "c2908574cf5dc17c08a7c7c163f8d21fb9217f060d2e8571f9b739e6f31df785",
+    "source": "/tmp/whip-history-probe/app/src/androidTest/java/com/whip/app/DeepProductivityJourneyTest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/EntityInspectorUiTest.kt",
+    "before": "ab8946361758f56d9eba67a371d70fdbe3847d61ac4d5c7b7703c1063c46df7f",
+    "after": "25c613091f8af1f458acae8931f731c9cb0eb56460c4c6e58fd2e4321e07e6b7",
+    "source": "/tmp/whip-history-probe/app/src/androidTest/java/com/whip/app/EntityInspectorUiTest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/ExecutionItemBuilderJourneyE2ETest.kt",
+    "before": "23a4c3b7cf6243b36e11a905ac482ace3822553e53ca0e972e48b8ee7553f6b5",
+    "after": "2d7bb721b62121d3418867c8cbd65735440acce5d8608bf3b2fe23e22b123fc1",
+    "source": "/tmp/whip-history-probe/app/src/androidTest/java/com/whip/app/ExecutionItemBuilderJourneyE2ETest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/GlobalSearchRoutingTest.kt",
+    "before": "6951e7ba92b4d40227461f5b8fa95aed6bd9fabc7a4b9b3cfa6fa103844c4c7c",
+    "after": "779ad5a285542fa119305603068cd3bc581adda26c3362c7607866d6dbbb5046",
+    "source": "/tmp/whip-history-probe/app/src/androidTest/java/com/whip/app/GlobalSearchRoutingTest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/GoalProgressJourneyE2ETest.kt",
+    "before": "02f3d1c009b89f885d6658682930da8bedda6d53a2a840d8b85c96e2bb9f3186",
+    "after": "5088388b4fd0c60c9d17a5c01098527c6018d20f713fed880ca5dfaa0a4effd5",
+    "source": "/tmp/whip-history-probe/app/src/androidTest/java/com/whip/app/GoalProgressJourneyE2ETest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/GymLibraryJourneyE2ETest.kt",
+    "before": "fad1479395b24d9bc7e6221a8200a24e832375759a2dd91cee74a149d1ca5f95",
+    "after": "35812d76db3b4a00c090d6301d99a8f363355790d0bfda4af6cd3e33b21d522d",
+    "source": "/tmp/whip-history-probe/app/src/androidTest/java/com/whip/app/GymLibraryJourneyE2ETest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/GymPowerInputUiTest.kt",
+    "before": "1a19e6355581390ecdd4062e57e1f24e39073434ae6692e485c4134674a7b6c5",
+    "after": "93b2d70b13dac5a113226466760a8aeebc371e6add7870f7a879ed8a18ca66df",
+    "source": "/tmp/whip-history-probe/app/src/androidTest/java/com/whip/app/GymPowerInputUiTest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/HabitSkipJourneyE2ETest.kt",
+    "before": "6a24051d731ce54bcc8e55413b3d911f040d95e29d8e5b6f4558f17545834728",
+    "after": "e3c3a53285b2d90aaa17e325c49dc7ceac2b63d0d5757cbadd73148007d375fa",
+    "source": "/tmp/whip-followup-fixes/HabitSkipJourneyE2ETest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/HomeHabitRecoveryUiTest.kt",
+    "before": "d55ae0ccbe1174c88c48ca42be7a3256dfd1f4d2b4e126daddabde1f93397913",
+    "after": "624a3955da0d284a308c7f1c739c641f62f4fe2882b0342fa4c4ded0ecebbc7d",
+    "source": "/tmp/whip-history-probe/app/src/androidTest/java/com/whip/app/HomeHabitRecoveryUiTest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/InlineTaskCaptureE2ETest.kt",
+    "before": "1a6a8f363c226add79655b47130fa051c23573419c61e1312bd8839c854ab763",
+    "after": "1b5c3145d01d9258e33770e4e7ab7fa1c9cde3776d7e0d0b9f8a1803bc447d9e",
+    "source": "/tmp/whip-history-probe/app/src/androidTest/java/com/whip/app/InlineTaskCaptureE2ETest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/LargeHistorySnapshotTest.kt",
+    "before": "b84ea09e41ddedce72202e23be88313700f79ed1968d1f6bff545b3be943d718",
+    "after": "27cb84d079687f29455a3945d6af283efb7877941d0eaab9d9e2ace91a06254d",
+    "source": "/tmp/whip-history-probe/app/src/androidTest/java/com/whip/app/LargeHistorySnapshotTest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/LegacyImportJourneyE2ETest.kt",
+    "before": "6f8e1b9c15e6d40c56448f2e73d480dfcde1bd7b51e1b40a7077f596ca4ee48b",
+    "after": "2e225f905247ed453c58180da30caed5bce082d81b2d87d559bc1ba9ccea606d",
+    "source": "/tmp/whip-followup-fixes/LegacyImportJourneyE2ETest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/PlatformEntrySurfaceE2ETest.kt",
+    "before": "ad857e7ad9535b88454542edcb8ac5489d12adb3251bc22eb031e322ee2e1bf0",
+    "after": "b7f0ca385f009e03507208c9a4454e6aeabb71ddb09de9cab284ce65c9011977",
+    "source": "/tmp/whip-history-probe/app/src/androidTest/java/com/whip/app/PlatformEntrySurfaceE2ETest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/ProductivityCardDesignUiTest.kt",
+    "before": "96e54cf4259414410f205ab894e6204d608a3122c835748c986b51e6b6ff070a",
+    "after": "75bafb12450361d351354bc6b220da3d4efb343dec1f57102487fd0a30308707",
+    "source": "/tmp/whip-followup-fixes/ProductivityCardDesignUiTest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/ProductivityCreationJourneyE2ETest.kt",
+    "before": "378170e1b48c9a98396954686ad6ce55f19fef190d4727b59218781fd9538a0e",
+    "after": "11edd3e773ef8f0a0b27cdeb963d23b8b3915d5fba21eb2607f965c77a56b102",
+    "source": "/tmp/whip-followup-fixes/ProductivityCreationJourneyE2ETest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/ProductivityDefaultsUiTest.kt",
+    "before": "a2d0ff584e032c2e866a22f9d341339844e6d34a034fc79794e6c75b5b21992b",
+    "after": "d76ddcb9c0ad98512fdc48177c264a70260ae03382e7b4c83cc2517733fb3783",
+    "source": "/tmp/whip-history-probe/app/src/androidTest/java/com/whip/app/ProductivityDefaultsUiTest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/ProductivityItemBuilderJourneyE2ETest.kt",
+    "before": "ad2b64c034de173ec78fb52685c6886f559755d3dd252121e5371c168d8317f7",
+    "after": "ea885ee566707805596c8faca99250f7f39726acb255ab29340c433c8e12499f",
+    "source": "/tmp/whip-history-probe/app/src/androidTest/java/com/whip/app/ProductivityItemBuilderJourneyE2ETest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/ReviewOutcomeJourneyE2ETest.kt",
+    "before": "6e948d0858366c45bfead738da30c889e154e95c55eec321ef80085e2cc9bbe7",
+    "after": "ce11e88584a175bc84936006669fbbb9489e279907ac3e424037d273531a5b3c",
+    "source": "/tmp/whip-followup-fixes/ReviewOutcomeJourneyE2ETest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/RoutineBuilderUiTest.kt",
+    "before": "13580c013bfc77f7072e3deadd194953edb589efc3b7b4b0663a50a3e99deea5",
+    "after": "88d338d98f532f1cd2128fec865541fe3d635001a317fc6c0bb9e023644aff36",
+    "source": "/tmp/whip-history-probe/app/src/androidTest/java/com/whip/app/RoutineBuilderUiTest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/SettingsBehaviorUiTest.kt",
+    "before": "e3c0f580b6103b3068f2e950bb49a20fab6678fa725e60821f6ee1cb47b16cee",
+    "after": "b5bde5c0ad2c35d5dd6df66c1c5e7a784854952a13cceb20d3f509d15c360c76",
+    "source": "/tmp/whip-followup-fixes/SettingsBehaviorUiTest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/TaskBulkSelectionUiTest.kt",
+    "before": "5d174c01457b51886dce8e391b83ab5d8fae95ab68cfec205200442a67875257",
+    "after": "ea7dd25aa4fd867e2d7c32ba0fd885e9935005a53f486a0eebc3c014e8e482bd",
+    "source": "/tmp/whip-history-probe/app/src/androidTest/java/com/whip/app/TaskBulkSelectionUiTest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/TaskDayPlannerUiTest.kt",
+    "before": "65bcddce78f0d1d1808bc845c95c15127a6b0f217e4e95c01ac35b375812adf8",
+    "after": "08e0d6f612ba540063efaa7f46ba75d537c08714fd9e33da05e995f81eb7a701",
+    "source": "/tmp/whip-history-probe/app/src/androidTest/java/com/whip/app/TaskDayPlannerUiTest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/TaskReorderJourneyE2ETest.kt",
+    "before": "6fa2d6ced1e2561107b1130180ab9c625098b0dd1222e301486acd53fdac6929",
+    "after": "869b4d562cedc260afc741b0050ba2d2a74af3c5ed103040b46730e6ed939edc",
+    "source": "/tmp/whip-followup-fixes/TaskReorderJourneyE2ETest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/TrackCollectionJourneyE2ETest.kt",
+    "before": "cc38c40f0310afd7117b5b03749ee49e61f0803536e1acf22fd8894200b374b2",
+    "after": "390417a6b8903f421b2eb6a0acbb3b4155547bcc8baf0e9b565916d5ed9c3080",
+    "source": "/tmp/whip-followup-fixes/TrackCollectionJourneyE2ETest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/TrackHistoryControlsJourneyE2ETest.kt",
+    "before": "32a8467ae6303eb6ee3e5c07a865c9957becb8452d489ce9bf79dab35ed8d03a",
+    "after": "16a62af950302c1417332e6bd22ff0fd3f0b8321bc64ae49bed03f8a723ac9fc",
+    "source": "/tmp/whip-followup-fixes/TrackHistoryControlsJourneyE2ETest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/TrackHistoryJourneyE2ETest.kt",
+    "before": "da70994738125c9440d7099be0ddd042143e47441adf1af330a21a9146681349",
+    "after": "1f786ef11b56adf1d4549cc87f87e356ea2855260311131c125df0c95f39c5fc",
+    "source": "/tmp/whip-followup-fixes/TrackHistoryJourneyE2ETest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/TrackInsightRecoveryJourneyE2ETest.kt",
+    "before": "5deebca85ef38f907f487eec050bb30d6ba6fe069d5f55fe5021033d417065b7",
+    "after": "f08fc7a7e0e5e80cb3240fdc6ac0b574b8d2483317fb2129b60e31647595a65b",
+    "source": "/tmp/whip-followup-fixes/TrackInsightRecoveryJourneyE2ETest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/TrackInsightsJourneyE2ETest.kt",
+    "before": "2897ce43913053bcb3beca1d290aa94451d2d01294593b3c1bf3a35793f2f216",
+    "after": "9ede6787574ef621fb7639f440101d3d3450870640c92fa399a633ced2cbbb4d",
+    "source": "/tmp/whip-followup-fixes/TrackInsightsJourneyE2ETest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/TrackWorkspaceUiTest.kt",
+    "before": "e8ddf9e48822d4d12eaf843ae8697f344a70793a71ec96870cc6eadc77d9ceca",
+    "after": "f22404bebc30e364296feed8cf3ec092615f103a53b6f0aa6ded86a0d4de3278",
+    "source": "/tmp/whip-followup-fixes/TrackWorkspaceUiTest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/VisualCatalogCapture.kt",
+    "before": "f888dfea97309a4fefa8f4ac710e8035033bf1476a746c7615e41f0bb5fab8a6",
+    "after": "c3fc17e54f23f58a958deb0fa6798286413ca9059fccb0f1987222850ffe88b8",
+    "source": "/tmp/whip-followup-fixes/VisualCatalogCapture.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/VisualCatalogPagesTest.kt",
+    "before": "2b928642766a8442d4bd0955bfb5ef5b01ff51d00ed12886717a772ebe8c960d",
+    "after": "6e183345e95d9f788f168c3a910aba76657332d5831ca9de6c09894d7895432b",
+    "source": "/tmp/whip-followup-fixes/VisualCatalogPagesTest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/WhipComposeSemanticsTest.kt",
+    "before": "03a9e230a3aaa4e6db632641956b402479c090ba0a7cee449567cc6fbee89fa5",
+    "after": "85ce697f5fd65e83aaf172c211a31bdb5171967a4437f48c9198c5bb0aa67960",
+    "source": "/tmp/whip-followup-fixes/WhipComposeSemanticsTest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/WhipNavigationTest.kt",
+    "before": "6674585a223ca13ac941a8adfec5f4aa58fead98bd5bd66f47a31b0b9e0d1531",
+    "after": "78e794065a88c71a9e1e4258e7311061d3d50e09fe76680ca25ca9a16d20c6fe",
+    "source": "/tmp/whip-followup-fixes/WhipNavigationTest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/WorkoutRestJourneyE2ETest.kt",
+    "before": "509cf10a3b37d26521f2f38629c4e6b02ff86c0cdf277b76846e1feb86a768a6",
+    "after": "fd1f21b9d304e1de8e44eb51f3181695184a2d6a6c9ee2862eb62368d6a6e2bc",
+    "source": "/tmp/whip-followup-fixes/WorkoutRestJourneyE2ETest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/WorkspaceLayoutTestSupport.kt",
+    "before": "f6cf3b95a89fbc79f97d84b63fe539edf4d8f3e549f3db445ec14880504b5371",
+    "after": "37a9487f17ba48a4d1e197eae05f9d5ed6fb0ec5dd69b6ea5d43b11150592d02",
+    "source": "/tmp/whip-history-probe/app/src/androidTest/java/com/whip/app/WorkspaceLayoutTestSupport.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/ui/SharedConsistencyUiTest.kt",
+    "before": "a8e240da1d59ac2067640d573a759c31a110b00fc0d4b35608d5bb0d9bc66738",
+    "after": "a876236feebbaad3edc3b9a065942e7c850e05f905ff21e3b5297f684750b446",
+    "source": "/tmp/whip-followup-fixes/SharedConsistencyUiTest.kt"
+  },
+  {
+    "path": "app/src/androidTest/java/com/whip/app/ui/VisualCatalogTaskComponentsTest.kt",
+    "before": "ce1a7d94de9293eff3a31467c3f51e22004f609fb8aa37a422fddd934ee91b72",
+    "after": "4083310a7e05db51052a1a77ff43c48e372842fba5a315852bc48d884f316e50",
+    "source": "/tmp/whip-followup-fixes/VisualCatalogTaskComponentsTest.kt"
+  },
+  {
+    "path": "app/src/main/java/com/whip/app/data/GymDao.kt",
+    "before": "ebd778ef03add03cdf28b2b84604bfe06e0901e8c43517fa7836a95cb5a94ae4",
+    "after": "786e10c1f3e264837d67161673180bf091fc1e362a5c1cd47eeec47a085e2865",
+    "source": "/tmp/whip-history-probe/app/src/main/java/com/whip/app/data/GymDao.kt"
+  },
+  {
+    "path": "app/src/main/java/com/whip/app/data/GymRepository.kt",
+    "before": "0bf063709bf0813ac8f6812f607213af60606f14b26eed4f4d6a1fbb861dbbb3",
+    "after": "51a3b38ecf0011b72fff650096b58d0aaa5f500bba64c14cd01572a2e9f2e6d4",
+    "source": "/tmp/whip-history-probe/app/src/main/java/com/whip/app/data/GymRepository.kt"
+  },
+  {
+    "path": "app/src/main/java/com/whip/app/data/HistoryPages.kt",
+    "before": null,
+    "after": "8875b7b63fa17ed62fc1a2bae86ac4064d23d85ac2a83504f2ccd351a69e9681",
+    "source": "/tmp/whip-history-probe/app/src/main/java/com/whip/app/data/HistoryPages.kt"
+  },
+  {
+    "path": "app/src/main/java/com/whip/app/data/MeasurementDao.kt",
+    "before": "de236ee70c5803703a7180ea9c485d4248a5792ac98551fd178319542603cf07",
+    "after": "94ccecbc66cd3848d1a0f84449be4b3c038967bf25b6c2e1ad31fddea96ef99e",
+    "source": "/tmp/whip-history-probe/app/src/main/java/com/whip/app/data/MeasurementDao.kt"
+  },
+  {
+    "path": "app/src/main/java/com/whip/app/data/MeasurementRepository.kt",
+    "before": "dfa0d5b7ca6a1f2a6aaa864a42c606c027592898c08e8ef01821b62f2616910f",
+    "after": "af531d46470bfe86316253ab4bbdbf4cd9a8866f5539930d9d0786e1e4b9ffd5",
+    "source": "/tmp/whip-history-probe/app/src/main/java/com/whip/app/data/MeasurementRepository.kt"
+  },
+  {
+    "path": "app/src/main/java/com/whip/app/data/RoutineDao.kt",
+    "before": "6d56f5a2790aa3cb21774acb526b72c2ba4e84281f6ddd1cc9bbbbea33d31a30",
+    "after": "8f291a348fef48bcd85888caffe398b5241cf215e38c7cce003ea0265d89bf3e",
+    "source": "/tmp/whip-history-probe/app/src/main/java/com/whip/app/data/RoutineDao.kt"
+  },
+  {
+    "path": "app/src/main/java/com/whip/app/data/RoutineRepository.kt",
+    "before": "57aa30f84f6c9ad1463c3e0a86d153bd2f58e619d2bf3a91556173cbdc6dd1db",
+    "after": "55b59c54b80d08f230dd5f5f947c0168ba9bda048efcc638412f2ab1a2122a72",
+    "source": "/tmp/whip-history-probe/app/src/main/java/com/whip/app/data/RoutineRepository.kt"
+  },
+  {
+    "path": "app/src/main/java/com/whip/app/ui/EntityInspector.kt",
+    "before": "80c2478ae60c6ce69e5ffa9bbb6ae8d67927d35cda06cb0328a7cba545629c91",
+    "after": "f83a57cdc98f6e8b2be271e2e1f6ec2ee1636b3602592dbc9ee30d72232e0da1",
+    "source": "/tmp/whip-followup-fixes/EntityInspector.kt"
+  },
+  {
+    "path": "app/src/main/java/com/whip/app/ui/GoalScreens.kt",
+    "before": "4b52f09d5cfff4fd557a0ca8d2354e022f27d91e7b0beac18f6fae2e0a4b2413",
+    "after": "c2d4430af100c825b08c08e7937e07dcd370351bbc41095bce71f630e4795a1d",
+    "source": "/tmp/whip-followup-fixes/GoalScreens.kt"
+  },
+  {
+    "path": "app/src/main/java/com/whip/app/ui/GymScreens.kt",
+    "before": "d5dd0b7e8768c3ff1f62a3d649192b9389edfe68f848db6d5d2b3711bf02a2eb",
+    "after": "68b66c980233a6338b933f0832113ce538c0999528ec25452a2f6b13adb38a7f",
+    "source": "/tmp/whip-history-probe/app/src/main/java/com/whip/app/ui/GymScreens.kt"
+  },
+  {
+    "path": "app/src/main/java/com/whip/app/ui/HabitScreens.kt",
+    "before": "c34691d7aed64439bc17f70bb017e497a9b717944809939eda38ba677fff6e46",
+    "after": "68bb0a2e229f8678294140ee086fdebe0ccfbe4a81b7e0f667ce5508f3e73bd1",
+    "source": "/tmp/whip-followup-fixes/HabitScreens.kt"
+  },
+  {
+    "path": "app/src/main/java/com/whip/app/ui/WhipApp.kt",
+    "before": "af2218c5cd2e17ac40cbc1e3f4e17f7d0281398c0cc7f6bb082489c5a71d1595",
+    "after": "3088c83b35712469cbb3691956f81843d466ef7419d0979c0398f163dae438ee",
+    "source": "/tmp/whip-followup-fixes/WhipApp.kt"
+  }
+]

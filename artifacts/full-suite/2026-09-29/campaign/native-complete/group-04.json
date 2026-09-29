@@ -1,0 +1,18 @@
+{
+  "group": 4,
+  "selectors": [
+    "com.whip.app.FocusTimerCardUiTest",
+    "com.whip.app.FocusTimerMutationIntegrationTest",
+    "com.whip.app.GlobalSearchRoutingTest",
+    "com.whip.app.GoalProgressJourneyE2ETest",
+    "com.whip.app.GoalRepositoryTest",
+    "com.whip.app.GymLegacyRetirementJourneyE2ETest",
+    "com.whip.app.GymLibraryJourneyE2ETest",
+    "com.whip.app.GymPhasedRoutineJourneyE2ETest",
+    "com.whip.app.GymPowerInputUiTest",
+    "com.whip.app.GymRepositoryTest"
+  ],
+  "exit": 1,
+  "seconds": 1479.644,
+  "source_unchanged": true
+}

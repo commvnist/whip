@@ -1,0 +1,16 @@
+{
+  "group": 1,
+  "selectors": [
+    "com.whip.app.WhipWidgetAreaScopeTest#taskWidgetSubtaskActionChecksTheExactChild",
+    "com.whip.app.WhipWidgetAreaScopeTest#widgetDeletionRemovesItsLastSuccessfulDisplaySnapshot",
+    "com.whip.app.WhipWidgetAreaScopeTest#widgetLayoutUsesOnlyRemoteViewsSafeClasses",
+    "com.whip.app.WhipWidgetAreaScopeTest#widgetRefreshFailureExplainsWhetherSavedRowsAreBeingShown",
+    "com.whip.app.WidgetCacheConfigurationTest#savingWidgetConfigurationInvalidatesDisplayDataFromThePreviousScope",
+    "com.whip.app.WidgetExtremeTextTest#expandableHabitMovesDisclosureBelowInsteadOfCrushingTextAtExtremeScale",
+    "com.whip.app.WidgetExtremeTextTest#minimumHabitWidgetRetainsPrimaryLabelAndTrailingActionAtExtremeTextScale",
+    "com.whip.app.WidgetExtremeTextTest#minimumTaskWidgetRetainsOnePrimaryRowAndTrailingActionAtExtremeTextScale"
+  ],
+  "exit": 0,
+  "seconds": 18.581,
+  "source_unchanged": true
+}

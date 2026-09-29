@@ -942,10 +942,10 @@ fun WhipScreen(
     val appDestinationState = rememberSaveable { mutableStateOf(AppDestination.Home) }
     var appDestination by appDestinationState
     var settingsCallerDestination by rememberSaveable { mutableStateOf(AppDestination.Home) }
-    val taskDestinationState = rememberSaveable { mutableStateOf(TaskDestination.Today) }
+    val taskDestinationState = rememberSaveable { mutableStateOf(TaskDestination.All) }
     var taskDestination by taskDestinationState
     val habitDestinationState: MutableState<HabitDestination> = rememberSaveable {
-        mutableStateOf(HabitDestination.Today)
+        mutableStateOf(HabitDestination.All)
     }
     val goalDestinationState: MutableState<GoalDestination> = rememberSaveable {
         mutableStateOf(GoalDestination.Active)
@@ -1245,7 +1245,10 @@ fun WhipScreen(
                     appDestination = AppDestination.Tasks
                     taskDestination = TaskDestination.Today
                 }
-                LaunchDeliveryCommand.OpenHabitTracking -> appDestination = AppDestination.Habits
+                LaunchDeliveryCommand.OpenHabitTracking -> {
+                    habitDestinationState.value = HabitDestination.Today
+                    appDestination = AppDestination.Habits
+                }
                 is LaunchDeliveryCommand.AddTask -> {
                     appDestination = AppDestination.Tasks
                     if (taskEditorOpen) {
@@ -1520,7 +1523,8 @@ fun WhipScreen(
     fun returnToHomeAfterDataReset() {
         settingsCallerDestination = AppDestination.Home
         appDestination = AppDestination.Home
-        taskDestination = TaskDestination.Today
+        taskDestination = TaskDestination.All
+        habitDestinationState.value = HabitDestination.All
         taskPlanningViewRequest = null
         taskDayPlannerRequested = false
         closeTaskEditor()
@@ -2174,6 +2178,7 @@ fun WhipScreen(
                     onRetryGymLoading = domainRetryActions.gym,
                 )
                 if (habitViewModel != null) HabitAreaContent(
+                        onBackToSource = (reviewSession::open).takeIf { reviewSession.canReturn },
                     state = habitState,
                     editorState = unscopedHabitState,
                     innerPadding = PaddingValues(),
@@ -2198,6 +2203,7 @@ fun WhipScreen(
                     mutationRequestNamespace = "home-habit-area",
                 )
                 if (goalViewModel != null) GoalAreaContent(
+                    onBackToSource = (reviewSession::open).takeIf { reviewSession.canReturn },
                     state = goalState,
                     editorState = unscopedGoalState,
                     innerPadding = PaddingValues(),
@@ -2233,6 +2239,7 @@ fun WhipScreen(
                     destination = taskDestination,
                     innerPadding = innerPadding,
                     onDestinationChange = { taskDestination = it },
+                    onBackToSource = (reviewSession::open).takeIf { reviewSession.canReturn },
                     onCompleteTask = ::requestCompletion,
                     onOpenTask = { actionItemKey = it.stableKey },
                     onEditTask = ::openTaskEditor,
@@ -2302,6 +2309,7 @@ fun WhipScreen(
             AppDestination.Habits -> {
                 if (habitViewModel != null) {
                     HabitAreaContent(
+                        onBackToSource = (reviewSession::open).takeIf { reviewSession.canReturn },
                         state = habitState,
                         editorState = unscopedHabitState,
                         innerPadding = innerPadding,
@@ -2365,6 +2373,7 @@ fun WhipScreen(
             }
             AppDestination.Goals -> {
                 if (goalViewModel != null) GoalAreaContent(
+                    onBackToSource = (reviewSession::open).takeIf { reviewSession.canReturn },
                     state = goalState,
                     editorState = unscopedGoalState,
                     innerPadding = innerPadding,
@@ -5749,6 +5758,7 @@ private fun HomeComponentCard(
 @Composable
 private fun TaskAreaContent(
     state: TaskUiState,
+    onBackToSource: (() -> Unit)?,
     destination: TaskDestination,
     innerPadding: PaddingValues,
     onDestinationChange: (TaskDestination) -> Unit,
@@ -6133,7 +6143,9 @@ private fun TaskAreaContent(
         if (target in setOf(TaskDestination.All, TaskDestination.Inbox, TaskDestination.Upcoming)) lastCollectionDestination = target
         onDestinationChange(target)
     }
-    BackHandler(enabled = destination == TaskDestination.Archived) { navigateTask(archiveReturn) }
+    BackHandler(enabled = destination == TaskDestination.Archived) {
+        if (onBackToSource != null) onBackToSource() else navigateTask(archiveReturn)
+    }
     fun applyFilter(filter: SavedTaskFilter, restoreArea: Boolean = true) {
         val normalized = filter.normalizedForWorkspace()
         legacyViewNotice = if (normalized.dateMode != filter.dateMode) "Removed a date filter that isn't available in this view." else null
@@ -6315,7 +6327,7 @@ private fun TaskAreaContent(
         ) {
             if (!selectionMode) WhipWorkspaceHeader(
                     summary = if (reordering) "Reordering Tasks" else if (destination == TaskDestination.Archived) "Archived Tasks" else taskDestinationSupportingText(destination, visibleTasks.size),
-                    onBack = { navigateTask(archiveReturn) }.takeIf { destination == TaskDestination.Archived },
+                    onBack = { if (onBackToSource != null) onBackToSource() else navigateTask(archiveReturn) }.takeIf { destination == TaskDestination.Archived },
                 ) {
                 if (reordering) WhipTextButton(onClick = { reordering = false }) { Text("Done") }
                 if (!reordering) WhipPageIconAction(
@@ -7086,7 +7098,7 @@ private fun TaskAreaContent(
                 appSettings.savedTaskFilters.forEach { view ->
                     val normalized = view.normalizedForWorkspace()
                     val route = TaskDestination.valueOf(normalized.destination)
-                    NavigationRow(title = view.name, supportingText = "${route.label} · ${normalized.planningView} · ${view.areaId?.let { id -> areas.firstOrNull { it.id == id }?.name } ?: "All Areas"}",
+                    NavigationRow(title = view.name, preserveTitleCase = true, supportingText = "${route.label} · ${normalized.planningView} · ${view.areaId?.let { id -> areas.firstOrNull { it.id == id }?.name } ?: "All Areas"}",
                         onClick = { savedViewsOpen = false; applyFilter(view) })
                     WhipTextButton(onClick = { onDeleteFilter(view.name) }) { Text("Delete “${view.name}”") }
                 }

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.core.AppRuntimeTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-09-29T17:05:29.488Z" hostname="beast" time="0.304">
+  <properties/>
+  <testcase name="saveFollowUpsBecomeWarningsButNeverSwallowCancellation" classname="com.whip.app.core.AppRuntimeTest" time="0.206"/>
+  <testcase name="exactLocalTimeExposesBothFallOverlapInstants" classname="com.whip.app.core.AppRuntimeTest" time="0.028"/>
+  <testcase name="generatedIdsAndRuntimeStatesRetainTheirPayloads" classname="com.whip.app.core.AppRuntimeTest" time="0.005"/>
+  <testcase name="clocksExposeStableDatesAndAWorkingSystemImplementation" classname="com.whip.app.core.AppRuntimeTest" time="0.012"/>
+  <testcase name="exactLocalTimeRejectsSpringGapAndReportsTheNextValidMoment" classname="com.whip.app.core.AppRuntimeTest" time="0.001"/>
+  <testcase name="unchangedWallTimePreservesItsCanonicalInstantAcrossZoneChanges" classname="com.whip.app.core.AppRuntimeTest" time="0.0"/>
+  <testcase name="committedEntitySavesCanNeverBecomeRetryableOrdinaryFailures" classname="com.whip.app.core.AppRuntimeTest" time="0.031"/>
+  <testcase name="authoredSaveAdmissionIsAtomicAndKeepsTheFirstRequestOwner" classname="com.whip.app.core.AppRuntimeTest" time="0.017"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

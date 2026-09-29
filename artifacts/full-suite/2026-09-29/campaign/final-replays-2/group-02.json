@@ -1,0 +1,16 @@
+{
+  "group": 2,
+  "selectors": [
+    "com.whip.app.ReviewOutcomeJourneyE2ETest#archivedTaskOutcomesOpenTheirOriginalTask",
+    "com.whip.app.ReviewOutcomeJourneyE2ETest#finishedWorkoutOutcomesOpenTheirOriginalSession",
+    "com.whip.app.ReviewOutcomeJourneyE2ETest#mixedTaskHistoryKeepsAreaScopeAndDistinctOccurrences",
+    "com.whip.app.RoutineBuilderUiTest#advancedMachineCreationReturnsFromSeededExerciseCreationWithBothDraftsPreserved",
+    "com.whip.app.SettingsBehaviorUiTest#malformedClockCannotChangeTheCutoffButCompleteClockCommits",
+    "com.whip.app.SettingsBehaviorUiTest#plainJsonBackupUsesAndroidsDocumentProviderAndReturnsSafelyOnCancel",
+    "com.whip.app.TaskReorderJourneyE2ETest#dragPreviewsPersistsCancelsAndSurvivesRecreation",
+    "com.whip.app.TrackCollectionJourneyE2ETest#archivedAndActiveSelectionsStaySeparate"
+  ],
+  "exit": 1,
+  "seconds": 228.887,
+  "source_unchanged": true
+}

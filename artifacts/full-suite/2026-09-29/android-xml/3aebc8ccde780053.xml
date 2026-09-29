@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="8" failures="0" errors="0" skipped="0" time="410.971" timestamp="2026-09-29T16:54:55" hostname="localhost">
+  <testsuite name="com.whip.app.WhipComposeSemanticsTest" tests="3" failures="0" errors="0" skipped="0" time="205.195" timestamp="2026-09-29T16:54:55" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="taskHabitAndGoalEditorsStartInBasicModeAndRevealAdvancedFields" classname="com.whip.app.WhipComposeSemanticsTest" time="68.61" />
+    <testcase name="taskToolbarKeepsTemporaryControlsAttachedAndFocused" classname="com.whip.app.WhipComposeSemanticsTest" time="34.716" />
+    <testcase name="homeCardOpenAndPrimaryCallbacksWorkOnFirstInteractionAfterLaunch" classname="com.whip.app.WhipComposeSemanticsTest" time="101.869" />
+  </testsuite>
+  <testsuite name="com.whip.app.WhipNavigationTest" tests="2" failures="0" errors="0" skipped="0" time="89.665" timestamp="2026-09-29T16:54:55" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="switchingPrimaryAreasPreservesEachAreasLastHeading" classname="com.whip.app.WhipNavigationTest" time="19.834" />
+    <testcase name="everyFirstClassDestinationIsReachableThroughVisibleNavigation" classname="com.whip.app.WhipNavigationTest" time="69.831" />
+  </testsuite>
+  <testsuite name="com.whip.app.WorkoutRestJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="99.364" timestamp="2026-09-29T16:54:55" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="restFollowsTheNextSetAndOverridesCanReturnToPrescriptions" classname="com.whip.app.WorkoutRestJourneyE2ETest" time="99.364" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.SharedConsistencyUiTest" tests="1" failures="0" errors="0" skipped="0" time="7.083" timestamp="2026-09-29T16:54:55" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="taskTemplatesKeepTheFinalRecipeReachableAtExtremeTextAndShortHeight" classname="com.whip.app.ui.SharedConsistencyUiTest" time="7.083" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.SharedResilienceAuditUiTest" tests="1" failures="0" errors="0" skipped="0" time="7.958" timestamp="2026-09-29T16:54:55" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="shortInspectorKeepsContentSectionsAndActionsReachable" classname="com.whip.app.ui.SharedResilienceAuditUiTest" time="7.958" />
+  </testsuite>
+</testsuites>

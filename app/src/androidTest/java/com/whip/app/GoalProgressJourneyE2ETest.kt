@@ -241,7 +241,7 @@ class GoalProgressJourneyE2ETest {
             compose.onNodeWithTag("goal-detail-section-Options").performClick()
             compose.onNodeWithText("Archive Goal").performScrollTo().performClick()
             compose.waitUntil(10_000) { compose.onAllNodesWithTag("entity-inspector-close").fetchSemanticsNodes().isEmpty() }
-            compose.onNodeWithTag("goal-destination-Archived").performClick()
+            compose.openWorkspaceArchive("Goals")
             compose.onNodeWithTag("goal-card-$id").performScrollTo().performClick()
             compose.onNodeWithTag("goal-inspector-outcome").assertTextEquals("0.5% complete")
             scenario.recreate()
@@ -281,7 +281,7 @@ class GoalProgressJourneyE2ETest {
             compose.onNodeWithTag("goal-card-${ids[5]}").performScrollTo().performClick()
             compose.onNodeWithTag("goal-inspector-outcome").assertTextEquals("120% complete")
             compose.onNodeWithText("Trend Data Table").performScrollTo().performClick()
-            compose.onNodeWithText("progress 120%", substring = true).performScrollTo().assertIsDisplayed()
+            inspectorNode(hasText("progress 120%", substring = true)).assertIsDisplayed()
             assertEquals(GoalStatus.Active, runBlocking { app.goalRepository.get(ids[5])?.status })
 
             compose.onNodeWithTag("entity-inspector-close").performClick()
@@ -337,7 +337,7 @@ class GoalProgressJourneyE2ETest {
             compose.onNodeWithTag("goal-inspector-outcome").assertTextEquals("40% complete")
             compose.onNodeWithTag("entity-inspector-close").performClick()
 
-            compose.onNodeWithTag("goal-destination-Active").performClick()
+            compose.onNodeWithTag("goal-destination-Goals").performClick()
             compose.onNodeWithTag("goal-card-${ids[1]}").performScrollTo().performClick()
             compose.onNodeWithTag("goal-detail-section-Options").performClick()
             val secondComplete = compose.onNodeWithText("Complete Goal").performScrollTo()
@@ -372,7 +372,7 @@ class GoalProgressJourneyE2ETest {
 
             app.settingsRepository.update { current -> current.copy(goalCelebrationEnabled = false) }
             compose.waitForIdle()
-            compose.onNodeWithTag("goal-destination-Active").performClick()
+            compose.onNodeWithTag("goal-destination-Goals").performClick()
             compose.onNodeWithTag("goal-card-${ids[2]}").performScrollTo().performClick()
             compose.onNodeWithTag("goal-detail-section-Options").performClick()
             compose.onNodeWithText("Complete Goal").performScrollTo().performClick()

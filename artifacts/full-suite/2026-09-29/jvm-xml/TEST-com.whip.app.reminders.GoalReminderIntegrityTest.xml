@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.reminders.GoalReminderIntegrityTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-09-29T17:05:33.676Z" hostname="beast" time="0.05">
+  <properties/>
+  <testcase name="reconciliationKeepsPriorLogicalDaysCrossMidnightQuietShift" classname="com.whip.app.reminders.GoalReminderIntegrityTest" time="0.024"/>
+  <testcase name="snoozeKeepsCurrentSemanticsButUsesItsOwnAuthorizedTrigger" classname="com.whip.app.reminders.GoalReminderIntegrityTest" time="0.007"/>
+  <testcase name="reconciliationAfterRawTimeKeepsTodaysQuietShiftedReminder" classname="com.whip.app.reminders.GoalReminderIntegrityTest" time="0.001"/>
+  <testcase name="quietHourShiftCannotLeakBeyondTheGoalDeadline" classname="com.whip.app.reminders.GoalReminderIntegrityTest" time="0.0"/>
+  <testcase name="scheduledClaimMustStillMatchEveryDeliverySemantic" classname="com.whip.app.reminders.GoalReminderIntegrityTest" time="0.001"/>
+  <testcase name="goalPromptMatchesTheKindOfProgress" classname="com.whip.app.reminders.GoalReminderIntegrityTest" time="0.001"/>
+  <testcase name="quietHoursShiftTheDeliveryButPreserveTheLogicalDate" classname="com.whip.app.reminders.GoalReminderIntegrityTest" time="0.0"/>
+  <testcase name="archivedGoalsNeverScheduleEvenWhenLifecycleRemainsActive" classname="com.whip.app.reminders.GoalReminderIntegrityTest" time="0.0"/>
+  <testcase name="presentationEditsUseLiveContentWithoutInvalidatingAValidClaim" classname="com.whip.app.reminders.GoalReminderIntegrityTest" time="0.0"/>
+  <testcase name="connectedAndMalformedWorkClaimsFailClosed" classname="com.whip.app.reminders.GoalReminderIntegrityTest" time="0.014"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,10 @@
+{
+  "group": 1,
+  "selectors": [
+    "com.whip.app.HabitSkipJourneyE2ETest#skipIsOneVisibleNeutralStateWithHistoryInsightsAndUndo",
+    "com.whip.app.ProductivityCreationJourneyE2ETest#taskHabitAndGoalCanBeCreatedAndUsedThroughTheRealUi"
+  ],
+  "exit": 0,
+  "seconds": 155.057,
+  "source_unchanged": true
+}

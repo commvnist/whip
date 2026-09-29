@@ -94,6 +94,7 @@ class VisualCatalogTaskComponentsTest {
         }
 
         compose.onNodeWithContentDescription("Tasks tab").performClick()
+        compose.onNodeWithTag("task-destination-Today").performClick()
         compose.onNodeWithContentDescription("Area scope: All Areas").performClick()
         capture("tasks.area-scope.menu")
         UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).pressBack()

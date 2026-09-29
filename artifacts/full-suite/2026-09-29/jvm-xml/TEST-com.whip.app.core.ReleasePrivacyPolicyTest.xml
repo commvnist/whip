@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.core.ReleasePrivacyPolicyTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-09-29T17:05:30.734Z" hostname="beast" time="0.131">
+  <properties/>
+  <testcase name="applicationDisablesPlatformBackupAndCleartextTraffic" classname="com.whip.app.core.ReleasePrivacyPolicyTest" time="0.068"/>
+  <testcase name="manifestRequestsOnlyNotificationBootAndExactAlarmPermissions" classname="com.whip.app.core.ReleasePrivacyPolicyTest" time="0.027"/>
+  <testcase name="exportedComponentsAreLimitedAndSensitiveReceiversRemainPrivate" classname="com.whip.app.core.ReleasePrivacyPolicyTest" time="0.011"/>
+  <testcase name="workManagerStartupInitializerIsRemovedUntilRecoveryGateIsReady" classname="com.whip.app.core.ReleasePrivacyPolicyTest" time="0.012"/>
+  <testcase name="backupAndDeviceTransferRulesExcludeEveryPrivateStorageDomain" classname="com.whip.app.core.ReleasePrivacyPolicyTest" time="0.01"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

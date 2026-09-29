@@ -1,0 +1,32 @@
+[
+  {
+    "fixture": "test-android-target-guard",
+    "exit": 1,
+    "seconds": 34.304
+  },
+  {
+    "fixture": "test-candidate-evidence",
+    "exit": 0,
+    "seconds": 1.755
+  },
+  {
+    "fixture": "test-change-router",
+    "exit": 0,
+    "seconds": 0.902
+  },
+  {
+    "fixture": "test-check-fast",
+    "exit": 0,
+    "seconds": 0.432
+  },
+  {
+    "fixture": "test-check-full",
+    "exit": 0,
+    "seconds": 0.128
+  },
+  {
+    "fixture": "test-ui-catalog",
+    "exit": 0,
+    "seconds": 0.274
+  }
+]

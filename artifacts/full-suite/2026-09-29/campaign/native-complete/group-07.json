@@ -1,0 +1,18 @@
+{
+  "group": 7,
+  "selectors": [
+    "com.whip.app.ProductivityDuplicateRepositoryTest",
+    "com.whip.app.ProductivityExperienceJourneyTest",
+    "com.whip.app.ProductivityItemBuilderJourneyE2ETest",
+    "com.whip.app.ProductivityTemplateSafetyTest",
+    "com.whip.app.RecordItemBuilderJourneyE2ETest",
+    "com.whip.app.RecoveryBoundaryIntegrationTest",
+    "com.whip.app.ReminderAlarmIntegrationTest",
+    "com.whip.app.ReminderTimeChangeReceiverIntegrityTest",
+    "com.whip.app.ReminderWorkerDeliveryIntegrityTest",
+    "com.whip.app.RepPrescriptionSettingsTest"
+  ],
+  "exit": 1,
+  "seconds": 500.447,
+  "source_unchanged": true
+}

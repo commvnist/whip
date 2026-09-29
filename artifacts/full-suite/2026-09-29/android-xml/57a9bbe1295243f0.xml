@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="8" failures="0" errors="0" skipped="0" time="3.813" timestamp="2026-09-29T16:22:40" hostname="localhost">
+  <testsuite name="com.whip.app.WhipWidgetAreaScopeTest" tests="8" failures="0" errors="0" skipped="0" time="2.389" timestamp="2026-09-29T16:22:40" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="taskCollectionReturnsEveryAgendaTaskAndExpandsSubtaskRows" classname="com.whip.app.WhipWidgetAreaScopeTest" time="0.569" />
+    <testcase name="staleHabitWidgetActionsDoNotMutateHabitsOutsideCurrentConfiguration" classname="com.whip.app.WhipWidgetAreaScopeTest" time="0.881" />
+    <testcase name="habitWidgetChecklistActionChecksTheChildAndAutoCompletesTheHabit" classname="com.whip.app.WhipWidgetAreaScopeTest" time="0.303" />
+    <testcase name="taskAgendaCompletionActionCompletesTheExactOccurrence" classname="com.whip.app.WhipWidgetAreaScopeTest" time="0.153" />
+    <testcase name="habitWidgetPersistsSelectionAndExpansionIndependentlyPerWidget" classname="com.whip.app.WhipWidgetAreaScopeTest" time="0.001" />
+    <testcase name="habitCollectionReturnsEverySelectedHabitAndExpandsChecklistRows" classname="com.whip.app.WhipWidgetAreaScopeTest" time="0.328" />
+    <testcase name="replaceGenerationCannotAliasWidgetReferencesOrDisplaySnapshotsWithReusedIds" classname="com.whip.app.WhipWidgetAreaScopeTest" time="0.001" />
+    <testcase name="taskWidgetParentCompletionExpandsInsteadOfBypassingUnfinishedSubtasks" classname="com.whip.app.WhipWidgetAreaScopeTest" time="0.153" />
+  </testsuite>
+</testsuites>

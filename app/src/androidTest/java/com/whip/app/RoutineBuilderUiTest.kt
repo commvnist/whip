@@ -1079,6 +1079,7 @@ class RoutineBuilderUiTest {
             hasText("Save") and hasAnyAncestor(hasTestTag("exercise-editor-surface")),
         ).performClick()
 
+        compose.onNodeWithTag("machine-editor-list").performScrollToNode(hasTestTag("machine-editor-name"))
         compose.onNodeWithTag("machine-editor-name").assertTextContains("Shared cable")
         compose.onNode(
             hasText("Save") and hasAnyAncestor(hasTestTag("machine-editor-surface")),

@@ -3,6 +3,7 @@ package com.whip.app.data
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
@@ -66,13 +67,17 @@ interface RoutineDao {
     @Query("SELECT COALESCE(MAX(position), -1) + 1 FROM gym_routines")
     suspend fun nextRoutinePosition(): Int
 
+    @Transaction
     @Query(
-        "SELECT ws.* FROM workout_sets ws " +
+        "SELECT ws.id FROM workout_sets ws " +
             "INNER JOIN workout_exercises we ON we.id = ws.workoutExerciseId " +
             "WHERE we.exerciseId = :exerciseId AND ws.completed = 1 " +
             "AND ws.deletedAtMillis IS NULL ORDER BY ws.completedAtMillis, ws.id",
     )
-    suspend fun getCompletedSetsForExercise(exerciseId: Long): List<WorkoutSetEntity>
+    suspend fun getCompletedSetIdsForExercise(exerciseId: Long): List<Long>
+
+    @Query("SELECT * FROM workout_sets WHERE id IN (:ids) ORDER BY completedAtMillis, id")
+    suspend fun getCompletedSetsByIds(ids: List<Long>): List<WorkoutSetEntity>
 
     @Insert suspend fun insertRoutine(entity: GymRoutineEntity): Long
     @Insert suspend fun insertDay(entity: RoutineDayEntity): Long

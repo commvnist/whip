@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.InspectorStatusToneTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-09-29T17:05:37.843Z" hostname="beast" time="0.02">
+  <properties/>
+  <testcase name="taskStatusToneUsesDomainSeverity" classname="com.whip.app.ui.InspectorStatusToneTest" time="0.018"/>
+  <testcase name="habitStatusToneUsesDayStateRatherThanDisplayCopy" classname="com.whip.app.ui.InspectorStatusToneTest" time="0.001"/>
+  <testcase name="goalStatusToneMapsEveryPersistedStatusExplicitly" classname="com.whip.app.ui.InspectorStatusToneTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

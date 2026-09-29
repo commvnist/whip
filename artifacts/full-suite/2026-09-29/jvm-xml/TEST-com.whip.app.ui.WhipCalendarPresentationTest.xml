@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.WhipCalendarPresentationTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-09-29T17:05:41.594Z" hostname="beast" time="0.058">
+  <properties/>
+  <testcase name="weekdayOrderChangesPresentationWithoutChangingStoredIdentity" classname="com.whip.app.ui.WhipCalendarPresentationTest" time="0.004"/>
+  <testcase name="compactLabelsRemainCollisionSafeAcrossRepresentativeScripts" classname="com.whip.app.ui.WhipCalendarPresentationTest" time="0.05"/>
+  <testcase name="compactEnglishLabelsStayShortAndDistinguishEveryWeekday" classname="com.whip.app.ui.WhipCalendarPresentationTest" time="0.001"/>
+  <testcase name="formatterUsesRequestedLocaleForFullAndShortLabels" classname="com.whip.app.ui.WhipCalendarPresentationTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

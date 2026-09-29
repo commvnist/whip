@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.DestructiveSubmissionTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-09-29T17:05:35.678Z" hostname="beast" time="0.086">
+  <properties/>
+  <testcase name="busyStateRejectsSubmissionWithoutMutatingTheLatch" classname="com.whip.app.ui.DestructiveSubmissionTest" time="0.082"/>
+  <testcase name="twoImmediateAttemptsInvokeTheDestructiveActionExactlyOnce" classname="com.whip.app.ui.DestructiveSubmissionTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.ProductivityEditorSectionsArchitectureTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-09-29T17:05:38.537Z" hostname="beast" time="0.017">
+  <properties/>
+  <testcase name="productivityEditorsShareOneIdentityAndOrganizationSectionContract" classname="com.whip.app.ui.ProductivityEditorSectionsArchitectureTest" time="0.003"/>
+  <testcase name="editorSpecificSemanticsAndSingleUnitHierarchyRemainExplicit" classname="com.whip.app.ui.ProductivityEditorSectionsArchitectureTest" time="0.012"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

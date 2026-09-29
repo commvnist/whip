@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.content.Intent
 import android.os.Build
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assert
@@ -119,7 +120,9 @@ class ProductivityCreationJourneyE2ETest {
                         HomeSection.Tasks !in settings.collapsedHomeSections
                 }
             }
+            compose.onNodeWithContentDescription("Close Task details").performClick()
             compose.onNodeWithContentDescription("Habits tab").performClick()
+            compose.onNodeWithTag("habit-destination-Today").performClick()
             compose.onNodeWithContentDescription("Add habit").performClick()
             compose.onNodeWithTag("habit-editor-name").performTextReplacement("Journey water")
             compose.onNodeWithText("Count").performClick()
@@ -214,10 +217,10 @@ class ProductivityCreationJourneyE2ETest {
                 compose.onAllNodesWithTag("goal-editor-surface").fetchSemanticsNodes().isEmpty()
             }
             check(runBlocking { app.goalRepository.goals.first().single { it.id == goalId }.icon } == "💪")
-            selectDestination("goal-destination-Archived")
+            compose.openWorkspaceArchive("Goals")
             compose.onNodeWithText("Archived Goals").assertIsDisplayed()
             selectDestination("goal-destination-Insights")
-            compose.onNodeWithText("Goal Insights").assertIsDisplayed()
+            compose.onNodeWithTag("goal-destination-Insights").assertIsSelected()
             compose.onNodeWithTag("goal-insight-$goalId").assertIsDisplayed()
         }
     }
@@ -234,6 +237,9 @@ class ProductivityCreationJourneyE2ETest {
                 .performScrollToNode(hasTestTag("settings-smart-task-capture"))
             compose.onNodeWithTag("settings-smart-task-capture").performClick()
             compose.waitUntil(5_000) { app.settingsRepository.current().naturalLanguageTaskCapture }
+            compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Smart Capture Examples"))
+            compose.onNodeWithText("Smart Capture Examples").performClick()
+            compose.onNodeWithTag("settings-list").performScrollToNode(hasTestTag("smart-task-capture-examples"))
             compose.onNodeWithTag("smart-task-capture-examples").assertIsDisplayed()
             compose.onNodeWithText("Send report tomorrow at 9am #work").assertIsDisplayed()
             compose.onNodeWithText("Review notes every Mon & Thu for 30m").performScrollTo().assertIsDisplayed()
@@ -241,6 +247,7 @@ class ProductivityCreationJourneyE2ETest {
             compose.onNodeWithContentDescription("Close Settings").performClick()
 
             compose.onNodeWithContentDescription("Tasks tab").performClick()
+            compose.onNodeWithTag("task-destination-Today").performClick()
             val today = app.clock.today()
             val deadline = today.plusDays(7)
             compose.onNodeWithTag("task-quick-capture").performTextReplacement(

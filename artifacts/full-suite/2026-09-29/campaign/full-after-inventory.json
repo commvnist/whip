@@ -1,0 +1,8 @@
+{
+  "command": [
+    "scripts/check",
+    "--full"
+  ],
+  "exit": 143,
+  "seconds": 433.95
+}

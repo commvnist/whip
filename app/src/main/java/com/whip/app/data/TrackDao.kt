@@ -3,6 +3,7 @@ package com.whip.app.data
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import androidx.room.Upsert
 import androidx.room.OnConflictStrategy
@@ -19,9 +20,11 @@ interface TrackDao {
     @Query("SELECT * FROM track_choice_options ORDER BY fieldId, position")
     fun observeOptions(): Flow<List<TrackChoiceOptionEntity>>
 
+    @Transaction
     @Query("SELECT * FROM track_entries ORDER BY entryEpochDay DESC, createdAtMillis DESC, id DESC")
     fun observeEntries(): Flow<List<TrackEntryEntity>>
 
+    @Transaction
     @Query("SELECT * FROM track_values ORDER BY entryId, fieldId")
     fun observeValues(): Flow<List<TrackValueEntity>>
 
@@ -37,9 +40,11 @@ interface TrackDao {
     @Query("SELECT * FROM track_choice_options ORDER BY fieldId, position")
     suspend fun getAllOptions(): List<TrackChoiceOptionEntity>
 
+    @Transaction
     @Query("SELECT * FROM track_entries ORDER BY entryEpochDay DESC, createdAtMillis DESC, id DESC")
     suspend fun getAllEntries(): List<TrackEntryEntity>
 
+    @Transaction
     @Query("SELECT * FROM track_values ORDER BY entryId, fieldId")
     suspend fun getAllValues(): List<TrackValueEntity>
 
@@ -70,30 +75,37 @@ interface TrackDao {
     @Query("SELECT * FROM track_entries WHERE uuid = :uuid")
     suspend fun getEntryByUuid(uuid: String): TrackEntryEntity?
 
+    @Transaction
     @Query("SELECT * FROM track_entries WHERE uuid IN (:uuids)")
     suspend fun getEntriesByUuids(uuids: List<String>): List<TrackEntryEntity>
 
+    @Transaction
     @Query("SELECT * FROM track_entries WHERE trackId = :trackId ORDER BY entryEpochDay DESC, createdAtMillis DESC, id DESC")
     suspend fun getEntries(trackId: Long): List<TrackEntryEntity>
 
     @Query("SELECT COUNT(*) FROM track_entries WHERE trackId = :trackId")
     suspend fun countEntries(trackId: Long): Int
 
+    @Transaction
     @Query("SELECT * FROM track_entries WHERE trackId = :trackId ORDER BY entryEpochDay DESC, createdAtMillis DESC, id DESC LIMIT :limit OFFSET :offset")
     suspend fun getEntryPage(trackId: Long, offset: Int, limit: Int): List<TrackEntryEntity>
 
+    @Transaction
     @Query("SELECT * FROM track_values WHERE entryId = :entryId")
     suspend fun getValues(entryId: Long): List<TrackValueEntity>
 
     @Query("SELECT * FROM track_values WHERE uuid = :uuid")
     suspend fun getValueByUuid(uuid: String): TrackValueEntity?
 
+    @Transaction
     @Query("SELECT * FROM track_values WHERE entryId IN (:entryIds)")
     suspend fun getValuesForEntries(entryIds: List<Long>): List<TrackValueEntity>
 
+    @Transaction
     @Query("SELECT * FROM track_values WHERE fieldId = :fieldId ORDER BY id")
     suspend fun getValuesForField(fieldId: Long): List<TrackValueEntity>
 
+    @Transaction
     @Query("SELECT * FROM track_values WHERE choiceOptionId IN (:optionIds) ORDER BY id")
     suspend fun getValuesForOptions(optionIds: List<Long>): List<TrackValueEntity>
 

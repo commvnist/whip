@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.ProductivityExperienceTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-09-29T17:05:38.561Z" hostname="beast" time="0.013">
+  <properties/>
+  <testcase name="trackStartersAndPreviewKeepAuthoredDefinitionsSeparateFromSampleFacts" classname="com.whip.app.ui.ProductivityExperienceTest" time="0.01"/>
+  <testcase name="completionOpportunityRequiresAnAchievedActiveFiniteOutcome" classname="com.whip.app.ui.ProductivityExperienceTest" time="0.0"/>
+  <testcase name="goalHistorySearchUsesOriginalObservationFacts" classname="com.whip.app.ui.ProductivityExperienceTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

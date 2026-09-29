@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="8" failures="1" errors="0" skipped="0" time="202.894" timestamp="2026-09-29T15:48:17" hostname="localhost">
+  <testsuite name="com.whip.app.GoalProgressJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="56.937" timestamp="2026-09-29T15:48:17" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="tinyAndNearlyCompleteGoalsRemainDistinctFromTheirEndpoints" classname="com.whip.app.GoalProgressJourneyE2ETest" time="56.937" />
+  </testsuite>
+  <testsuite name="com.whip.app.GymLibraryJourneyE2ETest" tests="2" failures="0" errors="0" skipped="0" time="78.03" timestamp="2026-09-29T15:48:17" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="equipmentSearchAndFilterIncludeEveryLinkedExercise" classname="com.whip.app.GymLibraryJourneyE2ETest" time="45.296" />
+    <testcase name="overviewFinishReviewsRemainingWorkAndOpensExactHistory" classname="com.whip.app.GymLibraryJourneyE2ETest" time="32.734" />
+  </testsuite>
+  <testsuite name="com.whip.app.GymPowerInputUiTest" tests="1" failures="0" errors="0" skipped="0" time="5.649" timestamp="2026-09-29T15:48:17" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="passiveWorkoutSetCardSeparatesIdentityValuesStatusAndTargetAtLargeText" classname="com.whip.app.GymPowerInputUiTest" time="5.649" />
+  </testsuite>
+  <testsuite name="com.whip.app.HabitSkipJourneyE2ETest" tests="3" failures="1" errors="0" skipped="0" time="45.536" timestamp="2026-09-29T15:48:17" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="completedHabitMovesBelowRemainingHabitsAndStaysAvailableForUndo" classname="com.whip.app.HabitSkipJourneyE2ETest" time="20.335" />
+    <testcase name="completingExpandedChecklistKeepsDoneCollapsedAndCollapsesTheMovedHabit" classname="com.whip.app.HabitSkipJourneyE2ETest" time="11.527" />
+    <testcase name="skipIsOneVisibleNeutralStateWithHistoryInsightsAndUndo" classname="com.whip.app.HabitSkipJourneyE2ETest" time="13.674">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but found '2' nodes that satisfy: (Text + InputText + EditableText contains 'Skip Today' (ignoreCase: false))
+Nodes found:
+1) Node #3900 at (l=86.0, t=868.0, r=995.0, b=1067.0)px, Tag: 'entity-inspector-action-skip-today'
+Focused = 'false'
+Text = '[Skip Today, No check-in will be expected; your streak stays protected.]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+2) Node #3921 at (l=754.0, t=1350.0, r=985.0, b=1476.0)px
+Focused = 'false'
+Role = 'Button'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 6.0.dp), topEnd = CornerSize(size = 6.0.dp), bottomEnd = CornerSize(size = 6.0.dp), bottomStart = CornerSize(size = 6.0.dp))'
+Text = '[Skip Today]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 3 siblings
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.HabitSkipJourneyE2ETest.skipIsOneVisibleNeutralStateWithHistoryInsightsAndUndo(HabitSkipJourneyE2ETest.kt:117)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.HomeHabitRecoveryUiTest" tests="1" failures="0" errors="0" skipped="0" time="14.712" timestamp="2026-09-29T15:48:17" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="offScheduleHabitsOpenSavedCollectionAtLargeText" classname="com.whip.app.HomeHabitRecoveryUiTest" time="14.712" />
+  </testsuite>
+</testsuites>

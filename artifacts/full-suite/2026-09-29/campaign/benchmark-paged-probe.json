@@ -1,0 +1,14 @@
+{
+  "command": [
+    "/tmp/whip-history-probe/gradlew",
+    "-p",
+    "/tmp/whip-history-probe",
+    ":benchmark:connectedBenchmarkAndroidTest",
+    "--no-configuration-cache",
+    "--no-build-cache",
+    "--console=plain",
+    "-Pandroid.testInstrumentationRunnerArguments.class=com.whip.benchmark.DenseDataBenchmark#goalAndGymGraphsWithOneHundredThousandPoints,com.whip.benchmark.DenseDataBenchmark#activeWorkoutInlineInputLatency"
+  ],
+  "exit": 1,
+  "seconds": 286.822
+}

@@ -1,0 +1,141 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="63" failures="1" errors="0" skipped="0" time="593.385" timestamp="2026-09-29T16:17:25" hostname="localhost">
+  <testsuite name="com.whip.app.ui.HabitDeletionUiTest" tests="4" failures="0" errors="0" skipped="0" time="24.429" timestamp="2026-09-29T16:17:25" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="definitePreCommitFailureRetainsTheReviewForRetryOrRefresh" classname="com.whip.app.ui.HabitDeletionUiTest" time="9.909" />
+    <testcase name="captureHabitDeletionCatalog" classname="com.whip.app.ui.HabitDeletionUiTest" time="6.743" />
+    <testcase name="preparingReviewKeepsTheDialogOpenAndDisablesPermanentDelete" classname="com.whip.app.ui.HabitDeletionUiTest" time="3.621" />
+    <testcase name="staleReviewDisablesDeleteAndOffersExactRefresh" classname="com.whip.app.ui.HabitDeletionUiTest" time="4.156" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.HabitDeletionViewModelIntegrationTest" tests="2" failures="0" errors="0" skipped="0" time="1.317" timestamp="2026-09-29T16:17:25" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="reviewedCandidateRestoresAndAStaleCommitMustRefreshBeforeCompletion" classname="com.whip.app.ui.HabitDeletionViewModelIntegrationTest" time="1.064" />
+    <testcase name="missingOrReusedCandidateIdentityNeverBecomesConfirmable" classname="com.whip.app.ui.HabitDeletionViewModelIntegrationTest" time="0.253" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.HabitUxPresentationUiTest" tests="3" failures="0" errors="0" skipped="0" time="29.368" timestamp="2026-09-29T16:17:25" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="completedTaskShowsActualCompletionInWhipTimeZone" classname="com.whip.app.ui.HabitUxPresentationUiTest" time="7.03" />
+    <testcase name="timerReviewKeepsEditableEstimateAndActionsReachableWithKeyboard" classname="com.whip.app.ui.HabitUxPresentationUiTest" time="15.863" />
+    <testcase name="isolatedWeeklyObservationsRenderVisiblePointsAcrossGaps" classname="com.whip.app.ui.HabitUxPresentationUiTest" time="6.475" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.HomeDestinationLinksTest" tests="4" failures="0" errors="0" skipped="0" time="26.862" timestamp="2026-09-29T16:17:25" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="fiveDestinationsUseConsistentOrderedIntroductionCards" classname="com.whip.app.ui.HomeDestinationLinksTest" time="5.349" />
+    <testcase name="todaySummaryKeepsNeutralOutcomesAndActionsReadableAtLargeTextAndRtl" classname="com.whip.app.ui.HomeDestinationLinksTest" time="8.024" />
+    <testcase name="selectedSectionsLeadInTheirSavedOrderWhileEveryToolRemainsReachable" classname="com.whip.app.ui.HomeDestinationLinksTest" time="8.688" />
+    <testcase name="conditionalTodayRecordsAndVisibleDestinationsHideEmptyShortcuts" classname="com.whip.app.ui.HomeDestinationLinksTest" time="4.801" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.ProductAuditSharedUiTest" tests="5" failures="0" errors="0" skipped="0" time="88.734" timestamp="2026-09-29T16:17:25" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="savingColorBlocksFurtherEditingAndKeepsDraftOnFailure" classname="com.whip.app.ui.ProductAuditSharedUiTest" time="9.908" />
+    <testcase name="interruptedInlineAreaCreationRetainsDraftAndRejectsDisposedCallback" classname="com.whip.app.ui.ProductAuditSharedUiTest" time="15.857" />
+    <testcase name="areaCreationLongFailureCanScrollWhileActionsStayReachable" classname="com.whip.app.ui.ProductAuditSharedUiTest" time="16.896" />
+    <testcase name="clockModesKeepAuthoredTimeAndDuplicateGuidanceAfterRecreation" classname="com.whip.app.ui.ProductAuditSharedUiTest" time="25.364" />
+    <testcase name="emptyCustomDimensionCanCreateAndSelectItsFirstUnit" classname="com.whip.app.ui.ProductAuditSharedUiTest" time="20.709" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.SafetyChoiceUiTest" tests="12" failures="0" errors="0" skipped="0" time="99.689" timestamp="2026-09-29T16:17:25" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="workoutGroupSaveFailureKeepsParentAndDraftOpenForRetry" classname="com.whip.app.ui.SafetyChoiceUiTest" time="10.284" />
+    <testcase name="choiceRowsOwnTheOnlyRoleAndStateSemanticsNodes" classname="com.whip.app.ui.SafetyChoiceUiTest" time="2.913" />
+    <testcase name="captureWorkoutEditorAndGroupCatalog" classname="com.whip.app.ui.SafetyChoiceUiTest" time="10.266" />
+    <testcase name="backupRestoreChoicesStayFullWidthAndReachableAtCompactLargeText" classname="com.whip.app.ui.SafetyChoiceUiTest" time="13.145" />
+    <testcase name="replaceEverythingRequiresFinalConfirmationAndBusyBlocksDuplicates" classname="com.whip.app.ui.SafetyChoiceUiTest" time="11.393" />
+    <testcase name="cancellingFinalReplacementReturnsToPreview" classname="com.whip.app.ui.SafetyChoiceUiTest" time="6.684" />
+    <testcase name="workoutSaveFailureKeepsParentAndDraftOpenForRetry" classname="com.whip.app.ui.SafetyChoiceUiTest" time="8.588" />
+    <testcase name="workoutSaveSubmissionBlocksDuplicateActionsAndDismissal" classname="com.whip.app.ui.SafetyChoiceUiTest" time="6.141" />
+    <testcase name="workoutCompletionActionsAreDisabledWhileAnotherWorkoutMutationOwnsPersistence" classname="com.whip.app.ui.SafetyChoiceUiTest" time="2.927" />
+    <testcase name="workoutEditorPristineCancelClosesButDirtyCancelRequiresDiscard" classname="com.whip.app.ui.SafetyChoiceUiTest" time="12.61" />
+    <testcase name="replacementFailureStaysInItsConfirmationAndAllowsRetry" classname="com.whip.app.ui.SafetyChoiceUiTest" time="6.599" />
+    <testcase name="workoutGroupDirtyCancelRequiresDiscard" classname="com.whip.app.ui.SafetyChoiceUiTest" time="8.139" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.SettingItemBuilderUiTest" tests="2" failures="0" errors="0" skipped="0" time="10.866" timestamp="2026-09-29T16:17:25" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="settingChoiceKeepsCompleteValuesAndAnIdentityOwnedCurrentMenu" classname="com.whip.app.ui.SettingItemBuilderUiTest" time="7.632" />
+    <testcase name="settingInformationUsesFullWidthAndEachRoleDispatchesOnce" classname="com.whip.app.ui.SettingItemBuilderUiTest" time="3.234" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.SettingsResponsiveUiTest" tests="23" failures="0" errors="0" skipped="0" time="260.872" timestamp="2026-09-29T16:17:25" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="timeZoneModeChangeIsNotHiddenWhenTheEffectiveValueStaysTheSame" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="4.162" />
+    <testcase name="wideSettingsCannotSwitchCategoriesBehindATypedEditor" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="16.292" />
+    <testcase name="editorWaitsForItsRequestReceiptAndRetainsAFailedDraftForRetry" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="9.246" />
+    <testcase name="wideSectionSidebarScrollsAtLargeTextAndKeepsSelectionAndFocusSemantics" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="4.434" />
+    <testcase name="rapidRepeatedSaveOwnsExactlyOnePersistenceRequest" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="6.998" />
+    <testcase name="boundedLargeTextEditorAnnouncesErrorsAndGuardsHardwareDismissal" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="16.369" />
+    <testcase name="externalSameFieldChangeKeepsTheDraftButRequiresAnInformedResave" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="8.006" />
+    <testcase name="encryptedBackupInputsKeepSecretKeyboardAndExplainMismatchAtLargeText" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="23.28" />
+    <testcase name="customUnitDialogKeepsDraftAndShowsAnInlineDurabilityFailure" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="20.248" />
+    <testcase name="deepDataOperationMakesItsSettledResultVisible" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="9.599" />
+    <testcase name="destructiveCopyAndActionsRemainReachableInAShortLargeTextWindow" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="9.839" />
+    <testcase name="numberSettingKeepsARecreatedDraftOutOfPersistenceUntilDone" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="14.012" />
+    <testcase name="settingsSearchRestoresQueryAndLandsOnExactControlsAndDisclosures" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="35.665" />
+    <testcase name="backupOverviewKeepsRecoveryVisibleAndAdministrationRestorable" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="21.598" />
+    <testcase name="coupledQuietHoursDisableIsNotHiddenByTheDefaultDisplayValue" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="6.351" />
+    <testcase name="customUnitFactorAndActionsRemainReachableAtTwoHundredPercentText" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="10.302" />
+    <testcase name="unchangedAndNormalizationEquivalentDoneCloseWithoutDispatchingAWrite" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="8.956" />
+    <testcase name="destructiveFailureIsAssertiveInsideTheRetainedDialogAndCanBeRetried" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="3.626" />
+    <testcase name="sharedNavigationRowsRemainReachableAndClickableInRtl" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="2.467" />
+    <testcase name="timeZoneSettingDoesNotPersistAValidPrefixOrDraftBeforeDone" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="6.407" />
+    <testcase name="lateProcessMemoryPublicationAfterFailureStillRequiresAndAllowsDurableRetry" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="10.152" />
+    <testcase name="customUnitValidationExplainsInvalidFieldsWithoutHidingTheAction" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="10.327" />
+    <testcase name="settingsActionPairsStackAtCompactLargeTextWithoutShrinkingTargets" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="2.536" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.SharedChoiceAccessibilityUiTest" tests="2" failures="0" errors="0" skipped="0" time="16.065" timestamp="2026-09-29T16:17:25" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="choiceMenuExposesSelectionAndClosesWhenUnavailable" classname="com.whip.app.ui.SharedChoiceAccessibilityUiTest" time="7.614" />
+    <testcase name="longValuesWrapAndNarrowViewChoicesExposeSelection" classname="com.whip.app.ui.SharedChoiceAccessibilityUiTest" time="8.451" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.SharedConsistencyUiTest" tests="6" failures="1" errors="0" skipped="0" time="31.45" timestamp="2026-09-29T16:17:25" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="areaMenuPlacesSelectionOnTheRowAndKeepsTheCheckDecorative" classname="com.whip.app.ui.SharedConsistencyUiTest" time="5.37" />
+    <testcase name="groupHeadingIsAnnouncedAsAHeading" classname="com.whip.app.ui.SharedConsistencyUiTest" time="2.56" />
+    <testcase name="templateChoiceReturnsToAnEditableScheduledTask" classname="com.whip.app.ui.SharedConsistencyUiTest" time="11.29" />
+    <testcase name="settingsRowAndClickableSectionHeadingHaveOneCompleteSemanticsNode" classname="com.whip.app.ui.SharedConsistencyUiTest" time="2.635" />
+    <testcase name="statusAndEmptyStateExposeSeverityAnnouncementAndHierarchy" classname="com.whip.app.ui.SharedConsistencyUiTest" time="2.803" />
+    <testcase name="taskTemplatesKeepTheFinalRecipeReachableAtExtremeTextAndShortHeight" classname="com.whip.app.ui.SharedConsistencyUiTest" time="6.792">
+      <failure>java.lang.AssertionError: Assert failed: The component with ContentDescription contains 'Inbox Task' (ignoreCase: false) is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.ui.SharedConsistencyUiTest.taskTemplatesKeepTheFinalRecipeReachableAtExtremeTextAndShortHeight(SharedConsistencyUiTest.kt:224)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

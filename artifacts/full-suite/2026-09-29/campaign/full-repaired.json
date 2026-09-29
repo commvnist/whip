@@ -1,0 +1,11 @@
+{
+  "command": [
+    "timeout",
+    "--kill-after=5s",
+    "900s",
+    "scripts/check",
+    "--full"
+  ],
+  "exit": 0,
+  "seconds": 312.753
+}

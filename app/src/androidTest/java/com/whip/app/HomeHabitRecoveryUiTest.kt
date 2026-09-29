@@ -42,14 +42,7 @@ class HomeHabitRecoveryUiTest {
         InstrumentationRegistry.getInstrumentation().uiAutomation.waitForIdle(750L, 5_000L)
     }
     private fun openTaskCalendar() {
-        val adaptive = compose.onAllNodesWithContentDescription("Choose view. Selected List").fetchSemanticsNodes().isNotEmpty()
-        if (adaptive) {
-            compose.onNodeWithContentDescription("Choose view. Selected List").performClick()
-        }
-        compose.onNodeWithText("Calendar").performClick()
-        if (adaptive) {
-            compose.onNodeWithContentDescription("Choose view. Selected Calendar").assertExists()
-        } else compose.onNodeWithText("Calendar").assertIsSelected()
+        compose.selectTaskPlanningLayout("Calendar")
         // Include Habits precedes the Calendar in the lazy list. At short height
         // the Calendar need not be composed until the user scrolls to it.
         compose.onNodeWithTag("task-workspace-list").performScrollToNode(hasTestTag("task-calendar"))
@@ -84,6 +77,7 @@ class HomeHabitRecoveryUiTest {
         runBlocking { app.habitRepository.create(HabitDraft(name = "Tomorrow practice", startDate = app.clock.today().plusDays(1))) }
         launch().use {
             openHabits()
+            compose.onNodeWithTag("habit-destination-Today").performClick()
             awaitText("No Habits Due Today")
             compose.onNodeWithText("View All Habits").performScrollTo().assertIsDisplayed()
             captureVisualCatalogSurface("ux-upgrades.habits-no-due.large")
@@ -142,6 +136,7 @@ class HomeHabitRecoveryUiTest {
         }
         launch().use {
             openHabits()
+            compose.onNodeWithTag("habit-destination-Today").performClick()
             awaitText("Optional amount")
             compose.onNode(hasText("Log") and hasAnyAncestor(hasTestTag("habit-card-$habitId"))).performScrollTo().performClick()
             check(compose.onNodeWithTag("habit-value-input").fetchSemanticsNode().config[SemanticsProperties.EditableText].text.isEmpty())
@@ -172,12 +167,12 @@ class HomeHabitRecoveryUiTest {
             app.taskRepository.create(TaskDraft("Future plan", scheduleKind = ScheduleKind.Once, date = plannedDate, inbox = false))
             app.taskRepository.create(TaskDraft("Other matching date", scheduleKind = ScheduleKind.Once, date = plannedDate.plusDays(1), priority = TaskPriority.High, inbox = false))
             app.taskRepository.create(TaskDraft("Later dated plan", scheduleKind = ScheduleKind.Once, date = app.clock.today().plusDays(45), inbox = false))
-            app.settingsRepository.update { it.copy(savedTaskFilters = listOf(SavedTaskFilter("High priority plans", priorities = setOf(TaskPriority.High)))) }
+            app.settingsRepository.update { it.copy(savedTaskFilters = listOf(SavedTaskFilter("High priority plans", priorities = setOf(TaskPriority.High), destination = "Upcoming"))) }
         }
         launch().use {
             compose.waitUntil(10_000) { compose.onAllNodesWithContentDescription("Tasks tab").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithContentDescription("Tasks tab").performClick()
-            compose.onNodeWithTag("task-destination-Upcoming").performClick()
+            compose.selectTaskCollectionScope("Upcoming")
             openTaskCalendar()
             compose.onNodeWithContentDescription("Previous Month").performScrollTo().assertIsNotEnabled()
             compose.onNodeWithText("Tomorrow").performScrollTo().assertIsDisplayed()
@@ -191,9 +186,7 @@ class HomeHabitRecoveryUiTest {
             compose.onNodeWithText("Future plan").performScrollTo().assertIsDisplayed()
             compose.onNodeWithTag("task-workspace-list").performScrollToNode(hasText("Later dated plan"))
             compose.onNodeWithText("Later dated plan").assertIsDisplayed()
-            compose.onNodeWithContentDescription("Filter & Sort Tasks").performClick()
-            compose.onNodeWithText("High priority plans").performScrollTo().performClick()
-            awaitFilterDismissed()
+            compose.openSavedTaskView("High priority plans")
             openTaskCalendar()
             if (plannedDate.month != app.clock.today().plusDays(1).month) compose.onNodeWithContentDescription("Next Month").performScrollTo().performClick()
             compose.onNode(hasContentDescription(plannedDate.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.FULL)), substring = true))
@@ -214,6 +207,7 @@ class HomeHabitRecoveryUiTest {
         }
         launch().use {
             openHabits()
+            compose.onNodeWithTag("habit-destination-Today").performClick()
             awaitText("Reading record")
             compose.onNode(hasText("Log") and hasAnyAncestor(hasTestTag("habit-card-$habitId"))).performScrollTo().performClick()
             compose.onNodeWithText("Add an Entry").assertIsDisplayed()
@@ -247,7 +241,7 @@ class HomeHabitRecoveryUiTest {
         launch().use {
             compose.waitUntil(10_000) { compose.onAllNodesWithContentDescription("Tasks tab").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithContentDescription("Tasks tab").performClick()
-            compose.onNodeWithTag("task-destination-Upcoming").performClick()
+            compose.selectTaskCollectionScope("Upcoming")
             openTaskCalendar()
             val denseDate = hasContentDescription("12 tasks, 3 habits", substring = true)
             compose.onNode(denseDate).performScrollTo().assertIsDisplayed().performClick()
@@ -284,7 +278,7 @@ class HomeHabitRecoveryUiTest {
         }
     }
 
-    @Test fun taskFiltersShowLiveMatchCountAndSavedRecipesBeforeAdvancedCriteria() {
+    @Test fun taskFiltersShowLiveMatchCountForSavedViewsAndResetDrafts() {
         runBlocking {
             app.taskRepository.create(TaskDraft("Visible filter task", scheduleKind = ScheduleKind.Once, date = app.clock.today(), inbox = false))
             app.settingsRepository.update { it.copy(savedTaskFilters = listOf(SavedTaskFilter("Pinned work", pinnedOnly = true))) }
@@ -294,12 +288,13 @@ class HomeHabitRecoveryUiTest {
             compose.onNodeWithContentDescription("Tasks tab").performClick()
             compose.onNodeWithContentDescription("Filter & Sort Tasks").performClick()
             compose.onNodeWithTag("task-filter-result-count").assertTextContains("1 of 1", substring = true)
-            compose.onNodeWithText("Pinned work").performScrollTo().performClick()
+            compose.onNodeWithText("Cancel").performClick()
             awaitFilterDismissed()
+            compose.openSavedTaskView("Pinned work")
             compose.onNode(hasContentDescription("Filter & Sort Tasks", substring = true)).performClick()
             compose.onNodeWithTag("task-filter-result-count").performScrollTo().assertTextContains("0 of 1", substring = true)
             captureVisualCatalogSurface("ux-upgrades.tasks-filter-feedback")
-            compose.onNodeWithText("Reset").performClick()
+            compose.onNodeWithText("Reset Filters").performClick()
             compose.onNodeWithTag("task-filter-result-count").performScrollTo().assertTextContains("1 of 1", substring = true)
         }
     }
@@ -317,9 +312,7 @@ class HomeHabitRecoveryUiTest {
         launch().use {
             compose.waitUntil(10_000) { compose.onAllNodesWithContentDescription("Tasks tab").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithContentDescription("Tasks tab").performClick()
-            compose.onNodeWithContentDescription("Filter & Sort Tasks").performClick()
-            compose.onNodeWithText("Detailed recipe").performScrollTo().performClick()
-            awaitFilterDismissed()
+            compose.openSavedTaskView("Detailed recipe")
             captureVisualCatalogSurface("ux-upgrades.tasks-many-filters.large")
             val metrics = InstrumentationRegistry.getInstrumentation().targetContext.resources.displayMetrics
             val viewport = compose.onNodeWithTag("task-workspace-list").getUnclippedBoundsInRoot()

@@ -1,0 +1,18 @@
+{
+  "group": 14,
+  "selectors": [
+    "com.whip.app.ui.HabitDeletionUiTest",
+    "com.whip.app.ui.HabitDeletionViewModelIntegrationTest",
+    "com.whip.app.ui.HabitUxPresentationUiTest",
+    "com.whip.app.ui.HomeDestinationLinksTest",
+    "com.whip.app.ui.ProductAuditSharedUiTest",
+    "com.whip.app.ui.SafetyChoiceUiTest",
+    "com.whip.app.ui.SettingItemBuilderUiTest",
+    "com.whip.app.ui.SettingsResponsiveUiTest",
+    "com.whip.app.ui.SharedChoiceAccessibilityUiTest",
+    "com.whip.app.ui.SharedConsistencyUiTest"
+  ],
+  "exit": 1,
+  "seconds": 0.047,
+  "source_unchanged": true
+}

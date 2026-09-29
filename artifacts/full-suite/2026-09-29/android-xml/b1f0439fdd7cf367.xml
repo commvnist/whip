@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="8" failures="0" errors="0" skipped="0" time="202.934" timestamp="2026-09-29T16:00:50" hostname="localhost">
+  <testsuite name="com.whip.app.ProductivityItemBuilderJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="40.934" timestamp="2026-09-29T16:00:50" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="expandedTimerHasOneStatusAndKeepsItsActionsAfterRecreation" classname="com.whip.app.ProductivityItemBuilderJourneyE2ETest" time="40.934" />
+  </testsuite>
+  <testsuite name="com.whip.app.TaskBulkSelectionUiTest" tests="7" failures="0" errors="0" skipped="0" time="159.795" timestamp="2026-09-29T16:00:50" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="bulkArchiveImpactRemainsScrollableAtTwoHundredPercentText" classname="com.whip.app.TaskBulkSelectionUiTest" time="27.153" />
+    <testcase name="fixedDateBulkMoveFailureKeepsSelectionAndShowsRetryContext" classname="com.whip.app.TaskBulkSelectionUiTest" time="18.74" />
+    <testcase name="activeSelectionKeepsPrimaryActionsVisibleAndSecondaryActionsInOverflow" classname="com.whip.app.TaskBulkSelectionUiTest" time="38.649" />
+    <testcase name="archivedRecurringTaskEditsTheSeriesDefinitionInsteadOfAnOpenOccurrence" classname="com.whip.app.TaskBulkSelectionUiTest" time="19.347" />
+    <testcase name="bulkDeleteReissuesItsExactPreviewAfterStateRestoration" classname="com.whip.app.TaskBulkSelectionUiTest" time="20.743" />
+    <testcase name="bulkAreaChangeCannotApplyUntilAnAreaIsExplicitlyChosen" classname="com.whip.app.TaskBulkSelectionUiTest" time="13.922" />
+    <testcase name="bulkDateFailureRetainsTheFrozenSelectionAndOnlyMatchingSuccessCloses" classname="com.whip.app.TaskBulkSelectionUiTest" time="21.241" />
+  </testsuite>
+</testsuites>

@@ -1,0 +1,16 @@
+{
+  "group": 5,
+  "selectors": [
+    "com.whip.app.WhipComposeSemanticsTest#homeCardOpenAndPrimaryCallbacksWorkOnFirstInteractionAfterLaunch",
+    "com.whip.app.WhipComposeSemanticsTest#taskHabitAndGoalEditorsStartInBasicModeAndRevealAdvancedFields",
+    "com.whip.app.WhipComposeSemanticsTest#taskToolbarKeepsTemporaryControlsAttachedAndFocused",
+    "com.whip.app.WhipNavigationTest#everyFirstClassDestinationIsReachableThroughVisibleNavigation",
+    "com.whip.app.WhipNavigationTest#switchingPrimaryAreasPreservesEachAreasLastHeading",
+    "com.whip.app.WorkoutRestJourneyE2ETest#restFollowsTheNextSetAndOverridesCanReturnToPrescriptions",
+    "com.whip.app.ui.SharedConsistencyUiTest#taskTemplatesKeepTheFinalRecipeReachableAtExtremeTextAndShortHeight",
+    "com.whip.app.ui.SharedResilienceAuditUiTest#shortInspectorKeepsContentSectionsAndActionsReachable"
+  ],
+  "exit": 0,
+  "seconds": 434.588,
+  "source_unchanged": true
+}

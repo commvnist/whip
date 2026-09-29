@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.domain.NumericSequenceTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-09-29T17:05:33.160Z" hostname="beast" time="0.006">
+  <properties/>
+  <testcase name="irregularMachineValuesRemainAFirstClassCustomList" classname="com.whip.app.domain.NumericSequenceTest" time="0.001"/>
+  <testcase name="customEquipmentConversionAvoidsLongFloatingPointTails" classname="com.whip.app.domain.NumericSequenceTest" time="0.0"/>
+  <testcase name="convertingMeasurementDefaultsUsesNativePoundEquipmentValues" classname="com.whip.app.domain.NumericSequenceTest" time="0.0"/>
+  <testcase name="poundsUseRealWorldBarPlateAndIncrementDefaults" classname="com.whip.app.domain.NumericSequenceTest" time="0.0"/>
+  <testcase name="rangeRejectsAnIncrementThatCannotReachItsMaximum" classname="com.whip.app.domain.NumericSequenceTest" time="0.001"/>
+  <testcase name="standardMachineRangesCoverMassAndOrdinalStacks" classname="com.whip.app.domain.NumericSequenceTest" time="0.001"/>
+  <testcase name="evenlySpacedStoredValuesRoundTripToCompactRangeNotation" classname="com.whip.app.domain.NumericSequenceTest" time="0.001"/>
+  <testcase name="numberedStackRangeExpandsWithAnExplicitIncrement" classname="com.whip.app.domain.NumericSequenceTest" time="0.0"/>
+  <testcase name="massStackRangeSupportsLargeAndFractionalProgressions" classname="com.whip.app.domain.NumericSequenceTest" time="0.001"/>
+  <testcase name="stepperFollowsExactMachineValuesAndClampsAtTheEnds" classname="com.whip.app.domain.NumericSequenceTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

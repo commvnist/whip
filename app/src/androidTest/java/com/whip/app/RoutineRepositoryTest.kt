@@ -959,6 +959,29 @@ class RoutineRepositoryTest {
     }
 
     @Test
+    fun recordRebuildKeepsImprovementsAndWorkoutVolumeAcrossHistoryPages() = runBlocking {
+        val exerciseId = gym.createExercise(ExerciseDraft("Paged bench"))
+        val sessionId = gym.startWorkout()
+        val placementId = gym.addExerciseToWorkout(sessionId, exerciseId)
+        val first = gym.addSet(placementId, WorkoutSetDraft(weight = 50.0, reps = 5, completed = true))
+        val template = requireNotNull(database.gymDao().getWorkoutSet(first))
+        database.withTransaction {
+            repeat(500) { index ->
+                database.gymDao().insertWorkoutSet(template.copy(
+                    id = 0, uuid = "paged-set-$index", position = index + 1,
+                    canonicalWeightKg = if (index == 499) 75.0 else 50.0,
+                    enteredWeight = if (index == 499) 75.0 else 50.0,
+                ))
+            }
+        }
+        routines.rebuildPersonalRecords(exerciseId)
+        val records = routines.personalRecords.first()
+        assertEquals(listOf(50.0, 75.0), records.filter { it.type == PersonalRecordType.MaxWeight }.map { it.value }.sorted())
+        assertEquals(75.0, records.single { it.type == PersonalRecordType.MaxWeight && it.current }.value, 0.0)
+        assertEquals(125_375.0, records.single { it.type == PersonalRecordType.ExerciseWorkoutVolume && it.current }.value, 0.0)
+    }
+
+    @Test
     fun recordRebuildTracksAuditableImprovementsAndHistoricalEdits() = runBlocking {
         val exerciseId = gym.createExercise(ExerciseDraft("Bench"))
         val sessionId = gym.startWorkout()

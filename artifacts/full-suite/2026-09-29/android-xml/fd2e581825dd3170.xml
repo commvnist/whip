@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="0" errors="0" skipped="0" time="137.794" timestamp="2026-09-29T17:07:21" hostname="localhost">
+  <testsuite name="com.whip.app.HabitSkipJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="32.67" timestamp="2026-09-29T17:07:21" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="skipIsOneVisibleNeutralStateWithHistoryInsightsAndUndo" classname="com.whip.app.HabitSkipJourneyE2ETest" time="32.67" />
+  </testsuite>
+  <testsuite name="com.whip.app.ProductivityCreationJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="102.611" timestamp="2026-09-29T17:07:21" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="taskHabitAndGoalCanBeCreatedAndUsedThroughTheRealUi" classname="com.whip.app.ProductivityCreationJourneyE2ETest" time="102.611" />
+  </testsuite>
+</testsuites>

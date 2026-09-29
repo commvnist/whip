@@ -322,17 +322,23 @@ component:overflow-menu	shared.overflow.menu	shared	menu	open	com.whip.app.ui.Vi
 guard:unsaved	shared.unsaved-changes	shared	dialog	dirty editor	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Unsaved changes guard.
 guard:launch-queue	shared.launch-queue-overflow	shared	dialog	queue full	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Queued editor launch guard.
 guard:permanent-delete	shared.permanent-delete	shared	dialog	destructive confirmation	com.whip.app.ui.VisualCatalogSharedComponentsTest#captureSharedComponentCatalog	capture	Canonical permanent delete shell.
+route:tasks-collection	tasks.collection	tasks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Complete authored Task collection, initially selected.
+menu:tasks-collection-scope	tasks.collection.scope	tasks	menu	open	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	All Tasks, Unscheduled and Upcoming collection scopes.
+menu:tasks-collection-layout	tasks.collection.layout	tasks	menu	open	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	List, Agenda and Calendar representations.
+dialog:tasks-saved-view-name	tasks.saved-view.name	tasks	dialog	open	com.whip.app.DeepSharedJourneyTest#workspaceSearchAndSavedFilterChildRetainConsistentChrome	capture	Named view draft reached through More, separately from filters.
+dialog:tasks-saved-views	tasks.saved-views	tasks	dialog	populated	com.whip.app.DeepSharedJourneyTest#workspaceSearchAndSavedFilterChildRetainConsistentChrome	capture	Explicit saved-view navigation with route, layout and Area context.
+dialog:tracks-activity-filters	tracks.activity.filters	tracks	dialog	open	com.whip.app.TrackWorkspaceUiTest#activityFiltersAndCrossTrackInsightsUseVisibleTrackData	capture	Transactional text, date and Track criteria; global Area remains in the toolbar.
 route:tasks-today	tasks.today.populated	tasks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Today task list.
 state:tasks-card-expanded	tasks.today.expanded	tasks	page	expanded card	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Expanded Task information and action alignment.
-dialog:task-filter	tasks.filter	tasks	dialog	open	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Current-list Task query with sort, group, filters, and saved-filter controls.
+dialog:task-filter	tasks.filter	tasks	dialog	open	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Draft Task criteria with Apply, Cancel and Reset Filters; date scope remains fixed in Today.
 state:tasks-today-filtered	tasks.today.filtered	tasks	page	query active	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Today narrowed by a visible current-list query filter.
 route:tasks-today-empty	tasks.today.empty	tasks	page	empty	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Today task empty state.
-route:tasks-inbox	tasks.inbox.populated	tasks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Inbox task list.
+route:tasks-inbox	tasks.inbox.populated	tasks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Unscheduled collection scope; historical capture ID retained.
 route:tasks-upcoming-list	tasks.upcoming.list	tasks	page	list	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Upcoming list planning view.
 route:tasks-upcoming-agenda	tasks.upcoming.agenda	tasks	page	agenda	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Upcoming agenda planning view.
 route:tasks-upcoming-calendar	tasks.upcoming.calendar	tasks	page	calendar	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Upcoming calendar planning view.
 route:tasks-history-completed	tasks.history.completed	tasks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Completed task history.
-route:tasks-history-archived	tasks.history.archived	tasks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Archived task history.
+route:tasks-history-archived	tasks.history.archived	tasks	page	populated	com.whip.app.VisualCatalogPagesTest#captureTaskPageCatalog	capture	Archived Tasks child reached through More; historical capture ID retained.
 state:tasks-selection	tasks.bulk-selection	tasks	page	one selected Task	com.whip.app.TaskBulkSelectionUiTest#activeSelectionKeepsPrimaryActionsVisibleAndSecondaryActionsInOverflow	capture	Bulk selection state and action bar.
 editor:task-create	tasks.editor.create	tasks	dialog	new task	com.whip.app.ui.VisualCatalogTaskComponentsTest#captureTaskComponentCatalog	capture	Task creation form.
 editor:task-edit	tasks.editor.edit	tasks	dialog	existing task	com.whip.app.ui.VisualCatalogTaskComponentsTest#captureTaskComponentCatalog	capture	Task editing form.

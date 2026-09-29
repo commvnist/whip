@@ -1,0 +1,107 @@
+[
+  {
+    "group": 1,
+    "selectors": [
+      "com.whip.app.GymPowerInputUiTest#groupedWorkoutExercisesMoveAsABlockAndReorderWithinTheirGroup",
+      "com.whip.app.HabitSkipJourneyE2ETest#skipIsOneVisibleNeutralStateWithHistoryInsightsAndUndo",
+      "com.whip.app.LegacyImportJourneyE2ETest#restoredHabitContinuesManuallyAndSettingsFocusOnLocalData",
+      "com.whip.app.ProductivityCardDesignUiTest#habitAndGoalSummaryRowsKeepDetailsAndInlineActions",
+      "com.whip.app.ProductivityCreationJourneyE2ETest#smartTaskCaptureExplainsHighlightsPersistsAndReversesThroughTheRealUi",
+      "com.whip.app.ProductivityCreationJourneyE2ETest#taskHabitAndGoalCanBeCreatedAndUsedThroughTheRealUi",
+      "com.whip.app.ReviewOutcomeJourneyE2ETest#archivedGoalProgressOpensItsOriginalGoal",
+      "com.whip.app.ReviewOutcomeJourneyE2ETest#archivedHabitOutcomesOpenTheirOriginalHabit"
+    ],
+    "exit": 1,
+    "seconds": 335.951,
+    "source_unchanged": true
+  },
+  {
+    "group": 0,
+    "selectors": [
+      "com.whip.app.TrackAuthoringJourneyE2ETest#mixedTrackCanBeAuthoredRecoveredAndUsed",
+      "com.whip.app.AdaptiveWhipScreenTest#taskDetailsStayInsideTheContentPaneOnAFlatBookFold",
+      "com.whip.app.EntityInspectorUiTest#compactLargeTextInspectorKeepsOverviewAndOptionsDirect",
+      "com.whip.app.EntityInspectorUiTest#fixedInspectorFrameKeepsLongCenterContentScrollable",
+      "com.whip.app.EntityInspectorUiTest#inspectorKeepsEverySectionDirectAndStable",
+      "com.whip.app.EntityInspectorUiTest#taskInspectorKeepsIdentityNavigationAndPrimaryActionStable",
+      "com.whip.app.EntityInspectorUiTest#taskSubtasksKeepCompletionTrailingSpacedAndResponsive",
+      "com.whip.app.GymPowerInputUiTest#activeWorkoutUsesOneFocusedComposerWithExerciseAndSetReordering"
+    ],
+    "exit": 0,
+    "seconds": 455.287,
+    "source_unchanged": true
+  },
+  {
+    "group": 2,
+    "selectors": [
+      "com.whip.app.ReviewOutcomeJourneyE2ETest#archivedTaskOutcomesOpenTheirOriginalTask",
+      "com.whip.app.ReviewOutcomeJourneyE2ETest#finishedWorkoutOutcomesOpenTheirOriginalSession",
+      "com.whip.app.ReviewOutcomeJourneyE2ETest#mixedTaskHistoryKeepsAreaScopeAndDistinctOccurrences",
+      "com.whip.app.RoutineBuilderUiTest#advancedMachineCreationReturnsFromSeededExerciseCreationWithBothDraftsPreserved",
+      "com.whip.app.SettingsBehaviorUiTest#malformedClockCannotChangeTheCutoffButCompleteClockCommits",
+      "com.whip.app.SettingsBehaviorUiTest#plainJsonBackupUsesAndroidsDocumentProviderAndReturnsSafelyOnCancel",
+      "com.whip.app.TaskReorderJourneyE2ETest#dragPreviewsPersistsCancelsAndSurvivesRecreation",
+      "com.whip.app.TrackCollectionJourneyE2ETest#archivedAndActiveSelectionsStaySeparate"
+    ],
+    "exit": 1,
+    "seconds": 228.887,
+    "source_unchanged": true
+  },
+  {
+    "group": 4,
+    "selectors": [
+      "com.whip.app.TrackInsightsJourneyE2ETest#mixedDistanceUnitsUseTheFieldUnitAndPrecisionAcrossInsights",
+      "com.whip.app.TrackInsightsJourneyE2ETest#temperatureAndFineScaleInsightsPreserveReadingsWithoutTotals",
+      "com.whip.app.TrackWorkspaceUiTest#tracksAndEntriesHaveOneExplicitSearchOwnerAndArchivedResultsReturnToArchive",
+      "com.whip.app.TrackWorkspaceUiTest#tracksWorkspaceRemainsNavigableInRtlAtTwoHundredPercentText",
+      "com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog",
+      "com.whip.app.WhipComposeSemanticsTest#directTaskHabitAndGoalActionsUseVisibleStateInsteadOfSnackbars",
+      "com.whip.app.WhipComposeSemanticsTest#globalAddAndHabitEditorAreReachableThroughComposeSemantics",
+      "com.whip.app.WhipComposeSemanticsTest#gymConfigurationControlsUseProgressiveDisclosure"
+    ],
+    "exit": 1,
+    "seconds": 359.956,
+    "source_unchanged": true
+  },
+  {
+    "group": 3,
+    "selectors": [
+      "com.whip.app.TrackCollectionJourneyE2ETest#archivedAndActiveSelectionsStaySeparateAtLargeText",
+      "com.whip.app.TrackCollectionJourneyE2ETest#areaChangesKeepOnlyVisibleSelection",
+      "com.whip.app.TrackCollectionJourneyE2ETest#areaChangesKeepOnlyVisibleSelectionAtLargeText",
+      "com.whip.app.TrackHistoryControlsJourneyE2ETest#dateBetweenConditionIncludesBothBoundariesAndSurvivesRecreation",
+      "com.whip.app.TrackHistoryControlsJourneyE2ETest#pagedHistoryCanCombineAndRecoverFilters",
+      "com.whip.app.TrackHistoryControlsJourneyE2ETest#pagedHistoryCanCombineAndRecoverFiltersAtLargeText",
+      "com.whip.app.TrackInsightRecoveryJourneyE2ETest#archivedEntrylessTrackOffersReadOnlyRecovery",
+      "com.whip.app.TrackInsightRecoveryJourneyE2ETest#unmatchedInsightFiltersCanRecoverExactHistory"
+    ],
+    "exit": 1,
+    "seconds": 763.79,
+    "source_unchanged": true
+  },
+  {
+    "group": 6,
+    "selectors": [
+      "com.whip.app.ui.VisualCatalogTaskComponentsTest#captureTaskWorkspaceControlCatalog"
+    ],
+    "exit": 0,
+    "seconds": 74.631,
+    "source_unchanged": true
+  },
+  {
+    "group": 5,
+    "selectors": [
+      "com.whip.app.WhipComposeSemanticsTest#homeCardOpenAndPrimaryCallbacksWorkOnFirstInteractionAfterLaunch",
+      "com.whip.app.WhipComposeSemanticsTest#taskHabitAndGoalEditorsStartInBasicModeAndRevealAdvancedFields",
+      "com.whip.app.WhipComposeSemanticsTest#taskToolbarKeepsTemporaryControlsAttachedAndFocused",
+      "com.whip.app.WhipNavigationTest#everyFirstClassDestinationIsReachableThroughVisibleNavigation",
+      "com.whip.app.WhipNavigationTest#switchingPrimaryAreasPreservesEachAreasLastHeading",
+      "com.whip.app.WorkoutRestJourneyE2ETest#restFollowsTheNextSetAndOverridesCanReturnToPrescriptions",
+      "com.whip.app.ui.SharedConsistencyUiTest#taskTemplatesKeepTheFinalRecipeReachableAtExtremeTextAndShortHeight",
+      "com.whip.app.ui.SharedResilienceAuditUiTest#shortInspectorKeepsContentSectionsAndActionsReachable"
+    ],
+    "exit": 0,
+    "seconds": 434.588,
+    "source_unchanged": true
+  }
+]

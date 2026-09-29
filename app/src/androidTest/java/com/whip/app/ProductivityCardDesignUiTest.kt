@@ -527,24 +527,25 @@ class ProductivityCardDesignUiTest {
         }
 
         assertTrue(height("goal-primary-action-7") >= 48.dp)
-        compose.onNodeWithText("2/8", substring = true).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("50% complete").performScrollTo().assertIsDisplayed()
-        compose.onAllNodesWithText("Current: 25", substring = true).assertCountEquals(0)
+        compose.onNodeWithTag("habit-card-status-6", useUnmergedTree = true).performScrollTo().assertTextContains("2 · at least 8", substring = true)
+        compose.onNodeWithTag("goal-card-status-7", useUnmergedTree = true).performScrollTo()
+            .assertTextContains("50% complete", substring = true)
+            .assertTextContains("Current 25 → target 50", substring = true)
         compose.onAllNodesWithText("Finish the annual reading list.").assertCountEquals(0)
 
         compose.onNodeWithText("+1").performScrollTo().performClick()
         compose.onNodeWithText("Log").performScrollTo().performClick()
         compose.onNodeWithTag("habit-expand-6", useUnmergedTree = true).performScrollTo().performClick()
-        compose.onNodeWithText("2 / 8", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("2 · at least 8", substring = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("−1").performScrollTo().performClick()
         compose.onNodeWithText("Set Total").performScrollTo().performClick()
         compose.onNodeWithText("Undo Last Entry").performScrollTo().performClick()
 
         compose.onNodeWithTag("goal-expand-7", useUnmergedTree = true).performScrollTo().performClick()
-        compose.onNodeWithText("2 / 8", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("2 · at least 8", substring = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription("Collapse habit Drink water").assertIsDisplayed()
         compose.onNodeWithContentDescription("Collapse goal Read 50 books").assertIsDisplayed()
-        compose.onNodeWithText("Current: 25", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Current 25 → target 50").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Finish the annual reading list.").performScrollTo().assertIsDisplayed()
         compose.runOnIdle {
             assertEquals(1.0, quickValue)

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.domain.AreaScopeTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-09-29T17:05:31.733Z" hostname="beast" time="0.016">
+  <properties/>
+  <testcase name="scopesMatchAllAssignedAndUnassignedRecords" classname="com.whip.app.domain.AreaScopeTest" time="0.002"/>
+  <testcase name="persistedScopeRoundTripsAndRejectsInvalidValues" classname="com.whip.app.domain.AreaScopeTest" time="0.0"/>
+  <testcase name="switchingScopeAcrossTenThousandAssignmentsStaysLinearAndComplete" classname="com.whip.app.domain.AreaScopeTest" time="0.009"/>
+  <testcase name="savedEntitiesRouteToTheirExactAssignedOrMainScope" classname="com.whip.app.domain.AreaScopeTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

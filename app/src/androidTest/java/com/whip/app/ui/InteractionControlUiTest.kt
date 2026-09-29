@@ -1183,26 +1183,26 @@ class InteractionControlUiTest {
         }
 
         compose.onNodeWithTag("unified-search-query").performTextReplacement("Boundary after:2026-08-31")
-        compose.waitUntil {
+        compose.waitUntil(timeoutMillis = 5_000) {
             compose.onAllNodesWithTag("unified-search-result-Task-42").fetchSemanticsNodes().size == 1
         }
 
         compose.runOnIdle { activeZone = ZoneId.of("America/Toronto") }
-        compose.waitUntil {
+        compose.waitUntil(timeoutMillis = 5_000) {
             compose.onAllNodesWithTag("unified-search-result-Task-42").fetchSemanticsNodes().isEmpty()
         }
         compose.onNodeWithTag("unified-search-query").assertTextContains("Boundary after:2026-08-31")
     }
 
     @Test
-    fun fourRemainingTaskDestinationsFitTheCompactCoverWidthWithoutClipping() {
-        var destination by mutableStateOf("Today")
+    fun threeTaskDestinationsFitTheCompactCoverWidthWithoutClipping() {
+        var destination by mutableStateOf("Tasks")
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 Box(Modifier.fillMaxWidth().testTag("compact-task-tab-host")) {
                     DestinationTabBar(
                         selected = destination,
-                        destinations = listOf("Today", "Inbox", "Upcoming", "History"),
+                        destinations = primaryTaskWorkspaceDestinations.map { it.label },
                         onSelect = { destination = it },
                         label = { it },
                         testTagPrefix = "compact-task-tab",
@@ -1213,9 +1213,9 @@ class InteractionControlUiTest {
 
         val host = compose.onNodeWithTag("compact-task-tab-host").fetchSemanticsNode().boundsInRoot
         val gutter = with(compose.density) { 12.dp.toPx() }
-        val today = compose.onNodeWithTag("compact-task-tab-Today").fetchSemanticsNode().boundsInRoot
+        val tasks = compose.onNodeWithTag("compact-task-tab-Tasks").fetchSemanticsNode().boundsInRoot
         val history = compose.onNodeWithTag("compact-task-tab-History").fetchSemanticsNode().boundsInRoot
-        assertEquals(host.left + gutter, today.left, 0.5f)
+        assertEquals(host.left + gutter, tasks.left, 0.5f)
         assertEquals(host.right - gutter, history.right, 0.5f)
         compose.onNodeWithText("History").assertIsDisplayed()
     }

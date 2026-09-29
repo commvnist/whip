@@ -1,0 +1,148 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="60" failures="2" errors="0" skipped="0" time="968.54" timestamp="2026-09-29T14:57:44" hostname="localhost">
+  <testsuite name="com.whip.app.ui.EditorDependencyUxTest" tests="17" failures="0" errors="0" skipped="0" time="152.518" timestamp="2026-09-29T14:57:44" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="shortenedSharedDraftWarningIsReachableFromTheFocusedTitleAtLargeText" classname="com.whip.app.ui.EditorDependencyUxTest" time="20.14" />
+    <testcase name="duplicateWeekdayReminderTimeDisablesAdd" classname="com.whip.app.ui.EditorDependencyUxTest" time="6.62" />
+    <testcase name="smartCaptureHighlightsPreviewsAndAppliesEverySupportedDetailBeforeSave" classname="com.whip.app.ui.EditorDependencyUxTest" time="13.045" />
+    <testcase name="datePickerShieldsPendingPersistenceAndKeepsAnInlineFailureRetryable" classname="com.whip.app.ui.EditorDependencyUxTest" time="4.439" />
+    <testcase name="taskEditorChoosesAndSavesSharedIdentityEmoji" classname="com.whip.app.ui.EditorDependencyUxTest" time="12.77" />
+    <testcase name="datePickerJumpUsesYearMonthDayWheelsAndClampsInvalidDays" classname="com.whip.app.ui.EditorDependencyUxTest" time="12.079" />
+    <testcase name="repeatSettingsStayBetweenScheduleChoiceAndPlanningFields" classname="com.whip.app.ui.EditorDependencyUxTest" time="12.044" />
+    <testcase name="duplicateGeneralReminderTimeDisablesAdd" classname="com.whip.app.ui.EditorDependencyUxTest" time="3.246" />
+    <testcase name="dependentSettingsNoticeExplainsItsRelationshipToAccessibilityServices" classname="com.whip.app.ui.EditorDependencyUxTest" time="1.648" />
+    <testcase name="datePickerHonorsWhipWeekStartAndExposesFullDateSemantics" classname="com.whip.app.ui.EditorDependencyUxTest" time="3.505" />
+    <testcase name="untouchedTaskTitleStaysNeutralUntilSaveExplainsTheRequirement" classname="com.whip.app.ui.EditorDependencyUxTest" time="10.135" />
+    <testcase name="inboxPlacementIsVisibleAndCannotSaveHiddenReminderData" classname="com.whip.app.ui.EditorDependencyUxTest" time="10.313" />
+    <testcase name="taskSchedulingSwitchesExposeTheirSettingNames" classname="com.whip.app.ui.EditorDependencyUxTest" time="10.607" />
+    <testcase name="movingScheduledTaskToInboxPreviewsAndClearsConsequences" classname="com.whip.app.ui.EditorDependencyUxTest" time="10.939" />
+    <testcase name="largeTextDatePickerUsesReachableWheelsAndFullHeightActions" classname="com.whip.app.ui.EditorDependencyUxTest" time="8.129" />
+    <testcase name="datePickerSupportsSundayFirstAndReturnsTheExplicitSelection" classname="com.whip.app.ui.EditorDependencyUxTest" time="5.87" />
+    <testcase name="optionalReminderStartsUnsetAndUnavailableCadenceExplainsHowToEnableIt" classname="com.whip.app.ui.EditorDependencyUxTest" time="6.989" />
+  </testsuite>
+  <testsuite name="com.whip.app.EditorStateRecreationTest" tests="13" failures="0" errors="0" skipped="0" time="322.094" timestamp="2026-09-29T14:57:44" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="machineEditorRetainsItsDraftAcrossRecreationAndClosesOnlyAfterSave" classname="com.whip.app.EditorStateRecreationTest" time="25.654" />
+    <testcase name="dirtyHabitEditorSurvivesActivityRecreation" classname="com.whip.app.EditorStateRecreationTest" time="15.554" />
+    <testcase name="dirtyTrackEditorIsRootOwnedAndSurvivesActivityRecreation" classname="com.whip.app.EditorStateRecreationTest" time="18.036" />
+    <testcase name="dirtyGoalEditorSurvivesActivityRecreation" classname="com.whip.app.EditorStateRecreationTest" time="19.528" />
+    <testcase name="dirtyRoutineEditorSurvivesActivityRecreation" classname="com.whip.app.EditorStateRecreationTest" time="20.683" />
+    <testcase name="dirtyTaskEditorSurvivesActivityRecreation" classname="com.whip.app.EditorStateRecreationTest" time="17.951" />
+    <testcase name="dirtyTaskEditorRequiresExplicitDiscardOnSystemBack" classname="com.whip.app.EditorStateRecreationTest" time="16.868" />
+    <testcase name="taskEditorFooterAcceptsAPhysicalTapWhileTheImeIsOpen" classname="com.whip.app.EditorStateRecreationTest" time="20.987" />
+    <testcase name="dirtyInlineSetSurvivesActivityRecreation" classname="com.whip.app.EditorStateRecreationTest" time="13.579" />
+    <testcase name="categoryEditorRetainsItsDraftAcrossRecreationAndClosesOnlyAfterSave" classname="com.whip.app.EditorStateRecreationTest" time="25.34" />
+    <testcase name="exerciseEditorRetainsItsDraftAcrossRecreationAndClosesOnlyAfterSave" classname="com.whip.app.EditorStateRecreationTest" time="25.12" />
+    <testcase name="primaryEntityEditorsRequireExplicitDiscardOnBack" classname="com.whip.app.EditorStateRecreationTest" time="77.54" />
+    <testcase name="dirtyExerciseEditorRequiresExplicitDiscardOnSystemBack" classname="com.whip.app.EditorStateRecreationTest" time="25.254" />
+  </testsuite>
+  <testsuite name="com.whip.app.EncryptedBackupCodecTest" tests="2" failures="0" errors="0" skipped="0" time="7.755" timestamp="2026-09-29T14:57:44" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="authenticatedBackupRoundTripsWithoutPersistingPassphrase" classname="com.whip.app.EncryptedBackupCodecTest" time="3.215" />
+    <testcase name="wrongPassphraseAndTamperingAreRejected" classname="com.whip.app.EncryptedBackupCodecTest" time="4.54" />
+  </testsuite>
+  <testsuite name="com.whip.app.EntityInspectorUiTest" tests="5" failures="1" errors="0" skipped="0" time="34.3" timestamp="2026-09-29T14:57:44" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="taskInspectorKeepsIdentityNavigationAndPrimaryActionStable" classname="com.whip.app.EntityInspectorUiTest" time="4.782">
+      <failure>java.lang.AssertionError: Assert failed: The component with TestTag = 'task-inspector-subtasks-card' is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.EntityInspectorUiTest.taskInspectorKeepsIdentityNavigationAndPrimaryActionStable(EntityInspectorUiTest.kt:120)
+</failure>
+    </testcase>
+    <testcase name="compactLargeTextInspectorKeepsOverviewAndOptionsDirect" classname="com.whip.app.EntityInspectorUiTest" time="7.769" />
+    <testcase name="inspectorKeepsEverySectionDirectAndStable" classname="com.whip.app.EntityInspectorUiTest" time="6.375" />
+    <testcase name="fixedInspectorFrameKeepsLongCenterContentScrollable" classname="com.whip.app.EntityInspectorUiTest" time="6.039" />
+    <testcase name="taskSubtasksKeepCompletionTrailingSpacedAndResponsive" classname="com.whip.app.EntityInspectorUiTest" time="9.335" />
+  </testsuite>
+  <testsuite name="com.whip.app.ExecutionItemBuilderJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="40.794" timestamp="2026-09-29T14:57:44" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="skippedSetKeepsItsMeaningThenRestoresLogsAndReopensInHistory" classname="com.whip.app.ExecutionItemBuilderJourneyE2ETest" time="40.794">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'history-set-card-14')
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+at com.whip.app.ExecutionItemBuilderJourneyE2ETest.skippedSetKeepsItsMeaningThenRestoresLogsAndReopensInHistory(ExecutionItemBuilderJourneyE2ETest.kt:92)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.FirstClassWorkflowE2ETest" tests="3" failures="0" errors="0" skipped="0" time="111.012" timestamp="2026-09-29T14:57:44" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="workoutCanBeCreatedLoggedFinishedAndFoundInHistoryThroughTheRealUi" classname="com.whip.app.FirstClassWorkflowE2ETest" time="50.617" />
+    <testcase name="trackCanBeDefinedPopulatedAndReopenedThroughTheRealUi" classname="com.whip.app.FirstClassWorkflowE2ETest" time="24.575" />
+    <testcase name="editingAnEarlierSetDoesNotInvalidateTheActiveSetComposer" classname="com.whip.app.FirstClassWorkflowE2ETest" time="35.82" />
+  </testsuite>
+  <testsuite name="com.whip.app.FirstRunJourneyTest" tests="2" failures="0" errors="0" skipped="0" time="38.543" timestamp="2026-09-29T14:57:44" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="recommendedSetupPersistsTheTwoCoreHomeSectionsWithoutAskingForPermissions" classname="com.whip.app.FirstRunJourneyTest" time="8.812" />
+    <testcase name="customizationRetainsItsDraftThroughRecreationAndStartsWithTheChosenHome" classname="com.whip.app.FirstRunJourneyTest" time="29.731" />
+  </testsuite>
+  <testsuite name="com.whip.app.FiveThreeOneCycleReviewUiTest" tests="3" failures="0" errors="0" skipped="0" time="28.578" timestamp="2026-09-29T14:57:44" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="changedEvidenceResetsAChoiceInsteadOfApplyingAnUnreviewedSuggestion" classname="com.whip.app.FiveThreeOneCycleReviewUiTest" time="5.845" />
+    <testcase name="defaultsToStandardAndValidatesSuggestionAndCustomDecision" classname="com.whip.app.FiveThreeOneCycleReviewUiTest" time="14.994" />
+    <testcase name="applyActionRemainsReachableAtTwoHundredPercentText" classname="com.whip.app.FiveThreeOneCycleReviewUiTest" time="7.739" />
+  </testsuite>
+  <testsuite name="com.whip.app.FocusHomeJourneyE2ETest" tests="4" failures="0" errors="0" skipped="0" time="115.888" timestamp="2026-09-29T14:57:44" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="androidFocusChannelRecoveryRefreshesTheCardAndRepublishesTheCountdown" classname="com.whip.app.FocusHomeJourneyE2ETest" time="36.291" />
+    <testcase name="matchingNativeCompletionAcknowledgesForegroundOnceAndLeavesTaskOpen" classname="com.whip.app.FocusHomeJourneyE2ETest" time="15.448" />
+    <testcase name="blockedChannelAndLongTitleKeepHomeControlsAndListUsableAtShortHeight" classname="com.whip.app.FocusHomeJourneyE2ETest" time="25.354" />
+    <testcase name="lowHomeTaskStartPinsCountdownAndOpenStopSurviveRecreationAndAreaChange" classname="com.whip.app.FocusHomeJourneyE2ETest" time="38.795" />
+  </testsuite>
+  <testsuite name="com.whip.app.FocusTimeSelectionUiTest" tests="10" failures="0" errors="0" skipped="0" time="114.06" timestamp="2026-09-29T14:57:44" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="taskClockLabelFollowsAndroid12And24HourPreference" classname="com.whip.app.FocusTimeSelectionUiTest" time="2.858" />
+    <testcase name="customRejectsInvalidInputAndStartsExact37MinutesWithoutClosingDraft" classname="com.whip.app.FocusTimeSelectionUiTest" time="13.793" />
+    <testcase name="gymCustomRestKeepsSecondsAndRejectsInvalidDuration" classname="com.whip.app.FocusTimeSelectionUiTest" time="10.011" />
+    <testcase name="enlargedPresetsAndCustomControlRemainReachableWith48DpTargets" classname="com.whip.app.FocusTimeSelectionUiTest" time="13.462" />
+    <testcase name="reminderCustomTimePreservesInvalidInputAndAddsExactOffsetAtLargeText" classname="com.whip.app.FocusTimeSelectionUiTest" time="18.655" />
+    <testcase name="presetReplacementRequiresConsentBeforeStarting" classname="com.whip.app.FocusTimeSelectionUiTest" time="10.772" />
+    <testcase name="replacementNamesCurrentTimerAndKeepRestoresCustomDraft" classname="com.whip.app.FocusTimeSelectionUiTest" time="15.095" />
+    <testcase name="pendingStartBlocksControlsAndFailurePreservesDraftForRetry" classname="com.whip.app.FocusTimeSelectionUiTest" time="11.03" />
+    <testcase name="presetsStartExactly15_30_45_60Minutes" classname="com.whip.app.FocusTimeSelectionUiTest" time="8.149" />
+    <testcase name="cancelStartsNothingAndCustomDraftSurvivesRecreation" classname="com.whip.app.FocusTimeSelectionUiTest" time="10.235" />
+  </testsuite>
+</testsuites>

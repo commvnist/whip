@@ -1,0 +1,119 @@
+[
+  {
+    "group": 0,
+    "selectors": [
+      "com.whip.app.LargeHistorySnapshotTest",
+      "com.whip.app.RoutineRepositoryTest",
+      "com.whip.app.GymRepositoryTest",
+      "com.whip.app.GoalRepositoryTest",
+      "com.whip.app.HabitRepositoryTest",
+      "com.whip.app.MeasurementTaxonomyRepositoryTest"
+    ],
+    "exit": 0,
+    "seconds": 227.184,
+    "source_unchanged": true
+  },
+  {
+    "group": 1,
+    "selectors": [
+      "com.whip.app.WhipNavigationTest#primaryAreasAndAccessibleTopActionsAreReachable",
+      "com.whip.app.WhipNavigationTest#everyFirstClassDestinationIsReachableThroughVisibleNavigation",
+      "com.whip.app.AdaptiveWhipScreenTest#taskDetailsStayInsideTheContentPaneOnAFlatBookFold",
+      "com.whip.app.DeepProductivityJourneyTest#habitAndGoalSearchUsesTheWorkspaceActionAndKeepsCollectionsClear",
+      "com.whip.app.DeepSharedJourneyTest#workspaceSearchAndSavedFilterChildRetainConsistentChrome",
+      "com.whip.app.EntityInspectorUiTest#taskInspectorKeepsIdentityNavigationAndPrimaryActionStable",
+      "com.whip.app.ExecutionItemBuilderJourneyE2ETest#skippedSetKeepsItsMeaningThenRestoresLogsAndReopensInHistory",
+      "com.whip.app.GlobalSearchRoutingTest#everyNonTaskSearchDomainLandsOnTheExactActiveOrArchivedRecord"
+    ],
+    "exit": 1,
+    "seconds": 492.104,
+    "source_unchanged": true
+  },
+  {
+    "group": 2,
+    "selectors": [
+      "com.whip.app.GoalProgressJourneyE2ETest#tinyAndNearlyCompleteGoalsRemainDistinctFromTheirEndpoints",
+      "com.whip.app.GymLibraryJourneyE2ETest#equipmentSearchAndFilterIncludeEveryLinkedExercise",
+      "com.whip.app.GymLibraryJourneyE2ETest#overviewFinishReviewsRemainingWorkAndOpensExactHistory",
+      "com.whip.app.GymPowerInputUiTest#passiveWorkoutSetCardSeparatesIdentityValuesStatusAndTargetAtLargeText",
+      "com.whip.app.HabitSkipJourneyE2ETest#completedHabitMovesBelowRemainingHabitsAndStaysAvailableForUndo",
+      "com.whip.app.HabitSkipJourneyE2ETest#completingExpandedChecklistKeepsDoneCollapsedAndCollapsesTheMovedHabit",
+      "com.whip.app.HabitSkipJourneyE2ETest#skipIsOneVisibleNeutralStateWithHistoryInsightsAndUndo",
+      "com.whip.app.HomeHabitRecoveryUiTest#offScheduleHabitsOpenSavedCollectionAtLargeText"
+    ],
+    "exit": 1,
+    "seconds": 223.435,
+    "source_unchanged": true
+  },
+  {
+    "group": 3,
+    "selectors": [
+      "com.whip.app.HomeHabitRecoveryUiTest#habitInsightsShowRealActivityAndOpenThatHabitsHistory",
+      "com.whip.app.HomeHabitRecoveryUiTest#denseTaskCalendarKeepsDateAndCountsLegibleAtLargeText",
+      "com.whip.app.HomeHabitRecoveryUiTest#calendarExplainsClearDayAndBoundsLoadedPlanningWindow",
+      "com.whip.app.HomeHabitRecoveryUiTest#manyTaskFiltersKeepTheResultsViewportReachableAtLargeText",
+      "com.whip.app.HomeHabitRecoveryUiTest#addingNoteAfterNumericLogDoesNotRepeatItsAmount",
+      "com.whip.app.HomeHabitRecoveryUiTest#taskFiltersShowLiveMatchCountForSavedViewsAndResetDrafts",
+      "com.whip.app.InlineTaskCaptureE2ETest#inlineTaskDraftSurvivesRecreationAndSavesWithTheNativeKeyboardAtLargeText",
+      "com.whip.app.InlineTaskCaptureE2ETest#inlineTaskDraftSurvivesRecreationAndSavesWithTheNativeKeyboard"
+    ],
+    "exit": 0,
+    "seconds": 294.794,
+    "source_unchanged": true
+  },
+  {
+    "group": 4,
+    "selectors": [
+      "com.whip.app.LegacyImportJourneyE2ETest#restoredHabitContinuesManuallyAndSettingsFocusOnLocalData",
+      "com.whip.app.PlatformEntrySurfaceE2ETest#widgetTaskActionSelectsAndPersistsItsAreaAcrossRecreation",
+      "com.whip.app.PlatformEntrySurfaceE2ETest#widgetDoesNotShowATemporaryBannerForTheOnlyVisibleArea",
+      "com.whip.app.ProductivityCardDesignUiTest#habitAndGoalSummaryRowsKeepDetailsAndInlineActions",
+      "com.whip.app.ProductivityCreationJourneyE2ETest#smartTaskCaptureExplainsHighlightsPersistsAndReversesThroughTheRealUi",
+      "com.whip.app.ProductivityCreationJourneyE2ETest#taskHabitAndGoalCanBeCreatedAndUsedThroughTheRealUi",
+      "com.whip.app.ProductivityDefaultsUiTest#todayAndInboxQuickCaptureUseMatchingDestinationCopyAndDefaults",
+      "com.whip.app.ProductivityDefaultsUiTest#emptyTaskWorkspacesKeepClearStateVisibleBelowQuickCapture"
+    ],
+    "exit": 1,
+    "seconds": 233.113,
+    "source_unchanged": true
+  },
+  {
+    "group": 5,
+    "selectors": [
+      "com.whip.app.ProductivityItemBuilderJourneyE2ETest#expandedTimerHasOneStatusAndKeepsItsActionsAfterRecreation",
+      "com.whip.app.TaskBulkSelectionUiTest#bulkArchiveImpactRemainsScrollableAtTwoHundredPercentText",
+      "com.whip.app.TaskBulkSelectionUiTest#fixedDateBulkMoveFailureKeepsSelectionAndShowsRetryContext",
+      "com.whip.app.TaskBulkSelectionUiTest#activeSelectionKeepsPrimaryActionsVisibleAndSecondaryActionsInOverflow",
+      "com.whip.app.TaskBulkSelectionUiTest#archivedRecurringTaskEditsTheSeriesDefinitionInsteadOfAnOpenOccurrence",
+      "com.whip.app.TaskBulkSelectionUiTest#bulkDeleteReissuesItsExactPreviewAfterStateRestoration",
+      "com.whip.app.TaskBulkSelectionUiTest#bulkAreaChangeCannotApplyUntilAnAreaIsExplicitlyChosen",
+      "com.whip.app.TaskBulkSelectionUiTest#bulkDateFailureRetainsTheFrozenSelectionAndOnlyMatchingSuccessCloses"
+    ],
+    "exit": 0,
+    "seconds": 225.447,
+    "source_unchanged": true
+  },
+  {
+    "group": 6,
+    "selectors": [
+      "com.whip.app.TaskBulkSelectionUiTest#bulkEditDraftAndSelectionSurviveSavedStateRestoration",
+      "com.whip.app.TaskBulkSelectionUiTest#historySelectionOffersRelevantActionsForCompletedAndArchivedTasks",
+      "com.whip.app.TaskBulkSelectionUiTest#bulkArchiveFailureRetainsFrozenSelectionAndMatchingSuccessAloneCloses",
+      "com.whip.app.TaskBulkSelectionUiTest#bulkCompletionReviewsUnfinishedSubtasksBeforeCommitAndCancelKeepsSelection",
+      "com.whip.app.TaskDayPlannerUiTest#shortLargeTextSelectionKeepsResultsAndCompletionReachable",
+      "com.whip.app.TaskEditorJourneyE2ETest#existingTaskCanBeReadEditedRecreatedSavedAndReopened",
+      "com.whip.app.TaskReorderJourneyE2ETest#dragPreviewsPersistsCancelsAndSurvivesRecreation",
+      "com.whip.app.TrackAuthoringJourneyE2ETest#mixedTrackCanBeAuthoredRecoveredAndUsedAtLargeText"
+    ],
+    "exit": 1,
+    "seconds": 566.841,
+    "source_unchanged": true
+  },
+  {
+    "group": 7,
+    "exit": 143,
+    "interrupted": true,
+    "source_unchanged": true,
+    "reason": "Command session reported exit 143; host driver and device instrumentation no longer running. No final group result or acceptance."
+  }
+]

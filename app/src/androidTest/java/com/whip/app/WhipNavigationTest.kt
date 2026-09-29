@@ -115,21 +115,18 @@ class WhipNavigationTest {
             compose.onNodeWithTag("unified-search-query").assertIsDisplayed()
             compose.onNodeWithContentDescription("Close Search").performClick()
             compose.onNodeWithContentDescription("Tasks tab").performClick()
-            compose.onAllNodesWithText("0 tasks", substring = true).assertCountEquals(0)
-            selectDestination("task-destination-Upcoming")
-            compose.onNodeWithText("Future tasks", substring = true).assertIsDisplayed()
-            compose.onAllNodesWithText("0 tasks", substring = true).assertCountEquals(0)
+            compose.onNodeWithTag("task-destination-Tasks").assertIsSelected()
+            compose.onNodeWithTag("workspace-context-summary").assertTextContains("All unfinished tasks")
 
             compose.onNodeWithContentDescription("Habits tab").performClick()
-            compose.onNodeWithText(
-                "Check-ins, values, and timers.",
-            ).assertIsDisplayed()
+            compose.onNodeWithTag("habit-destination-All").assertIsSelected()
+            compose.onNodeWithTag("workspace-context-summary").assertTextContains("Schedules & settings", substring = true)
 
             compose.onNodeWithContentDescription("Gym tab").performClick()
             compose.onNodeWithTag("gym-destination-Workout").assertIsDisplayed()
 
             compose.onNodeWithContentDescription("Goals tab").performClick()
-            compose.onNodeWithText("Progress toward your goals.").assertIsDisplayed()
+            compose.onNodeWithTag("goal-destination-Goals").assertIsSelected()
 
             compose.onNodeWithContentDescription("Tracks tab").performClick()
             compose.onNodeWithTag("track-workspace-destination-Tracks").assertIsSelected()
@@ -157,24 +154,29 @@ class WhipNavigationTest {
             ApplicationProvider.getApplicationContext(),
             MainActivity::class.java,
         ).putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
-        launchMainActivity(intent).use {
+        launchMainActivity(intent).use { scenario ->
             compose.waitUntil(TIMEOUT_MS) {
                 compose.onAllNodesWithText("Build Your Day").fetchSemanticsNodes().isNotEmpty()
             }
 
             compose.onNodeWithContentDescription("Tasks tab").performClick()
-            compose.onNodeWithTag("task-destination-Today").assertIsSelected()
-            compose.onNodeWithTag("task-destination-Inbox").performClick().assertIsSelected()
-
-            compose.onNodeWithContentDescription("Habits tab").performClick()
-            compose.onNodeWithTag("habit-destination-Today").assertIsSelected()
-            compose.onNodeWithTag("habit-destination-All").performClick().assertIsSelected()
-
-            compose.onNodeWithContentDescription("Tasks tab").performClick()
-            compose.onNodeWithTag("task-destination-Inbox").assertIsSelected()
+            compose.onNodeWithTag("task-destination-Tasks").assertIsSelected()
+            compose.onNodeWithTag("task-destination-Today").performClick().assertIsSelected()
 
             compose.onNodeWithContentDescription("Habits tab").performClick()
             compose.onNodeWithTag("habit-destination-All").assertIsSelected()
+            compose.onNodeWithTag("habit-destination-Today").performClick().assertIsSelected()
+
+            compose.onNodeWithContentDescription("Tasks tab").performClick()
+            compose.onNodeWithTag("task-destination-Today").assertIsSelected()
+
+            compose.onNodeWithContentDescription("Habits tab").performClick()
+            compose.onNodeWithTag("habit-destination-Today").assertIsSelected()
+
+            scenario.recreate()
+            compose.onNodeWithTag("habit-destination-Today").assertIsSelected()
+            compose.onNodeWithContentDescription("Tasks tab").performClick()
+            compose.onNodeWithTag("task-destination-Today").assertIsSelected()
         }
     }
 
@@ -224,29 +226,34 @@ class WhipNavigationTest {
             compose.onNodeWithContentDescription("Close Review & Trends").performClick()
 
             compose.onNodeWithContentDescription("Tasks tab").performClick()
-            listOf("Today", "Inbox", "Upcoming", "History").forEach { destination ->
+            listOf("Tasks", "Today", "History").forEach { destination ->
                 selectDestination("task-destination-$destination")
             }
-            compose.onNodeWithTag("page-supporting-text").assertIsDisplayed().assertTextContains("Completed tasks", substring = true)
+            compose.onNodeWithTag("workspace-context-summary").assertIsDisplayed().assertTextContains("Completed tasks", substring = true)
             compose.onAllNodesWithText("Task History").assertCountEquals(0)
             compose.onAllNodesWithContentDescription("Back to Today").assertCountEquals(0)
 
             compose.onNodeWithContentDescription("Habits tab").performClick()
-            listOf("Today", "All", "Insights", "Archived").forEach { destination ->
+            listOf("All", "Today", "Insights").forEach { destination ->
                 selectDestination("habit-destination-$destination")
             }
-            compose.onNodeWithText("Archived Habits").assertIsDisplayed()
+            compose.onNodeWithContentDescription("More Habit Actions").performClick()
+            compose.onNodeWithText("Archived Habits").performClick()
+            compose.onNodeWithTag("workspace-context-summary").assertTextContains("Archived Habits")
 
             compose.onNodeWithContentDescription("Goals tab").performClick()
-            listOf("Active", "History", "Insights", "Archived").forEach { destination ->
+            listOf("Goals", "History", "Insights").forEach { destination ->
                 selectDestination("goal-destination-$destination")
             }
-            compose.onNodeWithText("Archived Goals").assertIsDisplayed()
+            compose.onNodeWithContentDescription("More Goal Actions").performClick()
+            compose.onNodeWithText("Archived Goals").performClick()
+            compose.onNodeWithTag("workspace-context-summary").assertTextContains("Archived Goals")
 
             compose.onNodeWithContentDescription("Gym tab").performClick()
-            listOf("Workout", "History", "Progress", "Library").forEach { destination ->
+            listOf("Workout", "Library", "History", "Insights").forEach { destination ->
                 selectDestination("gym-destination-$destination")
             }
+            selectDestination("gym-destination-Library")
             listOf("Routines", "Exercises", "Machines", "Categories", "Tools").forEach { destination ->
                 compose.onNodeWithTag("gym-library-list").performScrollToNode(hasText(destination))
                 compose.onNodeWithTag("gym-library-$destination").performClick()
@@ -254,10 +261,10 @@ class WhipNavigationTest {
             }
 
             compose.onNodeWithContentDescription("Tracks tab").performClick()
-            listOf("Tracks", "Activity", "Archived", "Insights").forEach { destination ->
+            listOf("Tracks", "Activity", "Insights").forEach { destination ->
                 selectDestination("track-workspace-destination-$destination")
             }
-            compose.onNodeWithText("Patterns across visible Tracks.").assertIsDisplayed()
+            compose.onNodeWithTag("workspace-context-summary").assertTextContains("Patterns across Tracks", substring = true)
             compose.onNodeWithTag("track-workspace-destination-Tracks").performClick()
             compose.onNodeWithContentDescription("Navigation Track, 0 Entries. Open Track").performClick()
             compose.onNodeWithTag("track-workspace-navigation").assertIsDisplayed()

@@ -88,7 +88,7 @@ class RecordItemBuilderJourneyE2ETest {
             entry(title)
             runBlocking { app.trackRepository.setArchived(before.track.id, true) }
             compose.onNodeWithContentDescription("Back to Tracks").performClick()
-            compose.onNodeWithTag("track-workspace-destination-Archived").performClick()
+            compose.openWorkspaceArchive("Tracks")
             compose.onNodeWithTag("track-card-${before.track.id}").performClick()
             entry(title)
             compose.onAllNodesWithContentDescription("Edit Entry $title").assertCountEquals(0)

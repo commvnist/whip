@@ -1,0 +1,12 @@
+{
+  "command": [
+    "./gradlew",
+    ":benchmark:connectedBenchmarkAndroidTest",
+    "--no-configuration-cache",
+    "--no-build-cache",
+    "--console=plain",
+    "-Pandroid.testInstrumentationRunnerArguments.class=com.whip.benchmark.DenseDataBenchmark#goalAndGymGraphsWithOneHundredThousandPoints,com.whip.benchmark.DenseDataBenchmark#activeWorkoutInlineInputLatency"
+  ],
+  "exit": 1,
+  "seconds": 232.171
+}

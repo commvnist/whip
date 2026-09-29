@@ -1,0 +1,43 @@
+[
+  {
+    "group": 0,
+    "selectors": [
+      "com.whip.app.WhipWidgetAreaScopeTest#habitCollectionReturnsEverySelectedHabitAndExpandsChecklistRows",
+      "com.whip.app.WhipWidgetAreaScopeTest#habitWidgetChecklistActionChecksTheChildAndAutoCompletesTheHabit",
+      "com.whip.app.WhipWidgetAreaScopeTest#habitWidgetPersistsSelectionAndExpansionIndependentlyPerWidget",
+      "com.whip.app.WhipWidgetAreaScopeTest#replaceGenerationCannotAliasWidgetReferencesOrDisplaySnapshotsWithReusedIds",
+      "com.whip.app.WhipWidgetAreaScopeTest#staleHabitWidgetActionsDoNotMutateHabitsOutsideCurrentConfiguration",
+      "com.whip.app.WhipWidgetAreaScopeTest#taskAgendaCompletionActionCompletesTheExactOccurrence",
+      "com.whip.app.WhipWidgetAreaScopeTest#taskCollectionReturnsEveryAgendaTaskAndExpandsSubtaskRows",
+      "com.whip.app.WhipWidgetAreaScopeTest#taskWidgetParentCompletionExpandsInsteadOfBypassingUnfinishedSubtasks"
+    ],
+    "exit": 0,
+    "seconds": 21.86,
+    "source_unchanged": true
+  },
+  {
+    "group": 1,
+    "selectors": [
+      "com.whip.app.WhipWidgetAreaScopeTest#taskWidgetSubtaskActionChecksTheExactChild",
+      "com.whip.app.WhipWidgetAreaScopeTest#widgetDeletionRemovesItsLastSuccessfulDisplaySnapshot",
+      "com.whip.app.WhipWidgetAreaScopeTest#widgetLayoutUsesOnlyRemoteViewsSafeClasses",
+      "com.whip.app.WhipWidgetAreaScopeTest#widgetRefreshFailureExplainsWhetherSavedRowsAreBeingShown",
+      "com.whip.app.WidgetCacheConfigurationTest#savingWidgetConfigurationInvalidatesDisplayDataFromThePreviousScope",
+      "com.whip.app.WidgetExtremeTextTest#expandableHabitMovesDisclosureBelowInsteadOfCrushingTextAtExtremeScale",
+      "com.whip.app.WidgetExtremeTextTest#minimumHabitWidgetRetainsPrimaryLabelAndTrailingActionAtExtremeTextScale",
+      "com.whip.app.WidgetExtremeTextTest#minimumTaskWidgetRetainsOnePrimaryRowAndTrailingActionAtExtremeTextScale"
+    ],
+    "exit": 0,
+    "seconds": 18.581,
+    "source_unchanged": true
+  },
+  {
+    "group": 2,
+    "selectors": [
+      "com.whip.app.WidgetExtremeTextTest#widgetResourcesProvideDistinctHighContrastDayAndNightPalettes"
+    ],
+    "exit": 0,
+    "seconds": 17.084,
+    "source_unchanged": true
+  }
+]

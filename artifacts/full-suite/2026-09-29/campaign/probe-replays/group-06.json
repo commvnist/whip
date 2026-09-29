@@ -1,0 +1,16 @@
+{
+  "group": 6,
+  "selectors": [
+    "com.whip.app.TaskBulkSelectionUiTest#bulkEditDraftAndSelectionSurviveSavedStateRestoration",
+    "com.whip.app.TaskBulkSelectionUiTest#historySelectionOffersRelevantActionsForCompletedAndArchivedTasks",
+    "com.whip.app.TaskBulkSelectionUiTest#bulkArchiveFailureRetainsFrozenSelectionAndMatchingSuccessAloneCloses",
+    "com.whip.app.TaskBulkSelectionUiTest#bulkCompletionReviewsUnfinishedSubtasksBeforeCommitAndCancelKeepsSelection",
+    "com.whip.app.TaskDayPlannerUiTest#shortLargeTextSelectionKeepsResultsAndCompletionReachable",
+    "com.whip.app.TaskEditorJourneyE2ETest#existingTaskCanBeReadEditedRecreatedSavedAndReopened",
+    "com.whip.app.TaskReorderJourneyE2ETest#dragPreviewsPersistsCancelsAndSurvivesRecreation",
+    "com.whip.app.TrackAuthoringJourneyE2ETest#mixedTrackCanBeAuthoredRecoveredAndUsedAtLargeText"
+  ],
+  "exit": 1,
+  "seconds": 566.841,
+  "source_unchanged": true
+}

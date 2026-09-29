@@ -1,0 +1,18 @@
+{
+  "group": 12,
+  "selectors": [
+    "com.whip.app.TrackWorkspaceUiTest",
+    "com.whip.app.VisualAcceptanceMatrixTest",
+    "com.whip.app.VisualCatalogPagesTest",
+    "com.whip.app.VisualCatalogSharedShellTest",
+    "com.whip.app.WhipAccessibilityChecksTest",
+    "com.whip.app.WhipAppTest",
+    "com.whip.app.WhipComposeSemanticsTest",
+    "com.whip.app.WhipWidgetAreaScopeTest",
+    "com.whip.app.WidgetCacheConfigurationTest",
+    "com.whip.app.WidgetExtremeTextTest"
+  ],
+  "exit": 1,
+  "seconds": 1014.609,
+  "source_unchanged": true
+}

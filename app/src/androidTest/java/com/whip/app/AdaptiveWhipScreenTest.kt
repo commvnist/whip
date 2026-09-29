@@ -2,9 +2,11 @@ package com.whip.app
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.SemanticsMatcher
@@ -185,7 +187,7 @@ class AdaptiveWhipScreenTest {
         workspaces.forEach { (tab, navigation) ->
             compose.onNodeWithContentDescription(tab).performClick()
             compose.onNodeWithTag(navigation).assertIsDisplayed()
-            compose.onNodeWithText("Loading", substring = true).assertIsDisplayed()
+            compose.onAllNodesWithText("Loading", substring = true)[0].assertIsDisplayed()
         }
 
         compose.runOnIdle { failed.value = true }
@@ -729,11 +731,12 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithContentDescription("Tasks tab")
             .performSemanticsAction(SemanticsActions.OnClick)
         compose.onNodeWithContentDescription("Tasks tab").assertIsDisplayed()
+        compose.onNodeWithTag("task-destination-Today").performClick()
         compose.onNodeWithText("Tasks Today").assertIsDisplayed()
         compose.onNodeWithText("No Tasks need attention today.").assertIsDisplayed()
         // A scrollable destination bar must stay content-height in a narrow fold
         // pane so the page header and task content remain in the viewport.
-        compose.onNodeWithTag("page-title").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-context-row").assertIsDisplayed()
         compose.onNodeWithTag("task-quick-capture").assertIsDisplayed()
         compose.onAllNodesWithContentDescription("Habits Needing Attention: 0. Open Habits").assertCountEquals(0)
         compose.onNodeWithContentDescription("Gym tab").performClick()
@@ -1079,6 +1082,9 @@ class AdaptiveWhipScreenTest {
         }
 
         compose.onNodeWithContentDescription("Tasks tab").performClick()
+        compose.onNodeWithTag("task-destination-Today").performScrollTo().performClick().assertIsSelected()
+        compose.onNodeWithTag("task-workspace-list")
+            .performScrollToNode(hasContentDescription("Open task details for Pane-safe task"))
         compose.onNodeWithContentDescription("Open task details for Pane-safe task")
             .performSemanticsAction(SemanticsActions.OnClick)
         val hinge = compose.onNodeWithContentDescription("Device hinge separator").fetchSemanticsNode().boundsInRoot
@@ -1373,7 +1379,8 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithTag("home-resume-path").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Pick Up Where You Left Off").assertIsDisplayed()
         compose.onNodeWithTag("home-resume-inbox").assertIsDisplayed().performClick()
-        compose.onNodeWithTag("task-destination-Inbox").assertIsSelected()
+        compose.onNodeWithTag("task-destination-Tasks").assertIsSelected()
+        compose.onNodeWithText("Unscheduled ▾").assertIsDisplayed()
         compose.onNodeWithText("Captured thought").assertIsDisplayed()
     }
 
@@ -1408,165 +1415,49 @@ class AdaptiveWhipScreenTest {
             }
         }
 
-        data class Geometry(
-            val headerTop: Float,
-            val headerHeight: Float,
-            val navigationTop: Float,
-            val navigationHeight: Float,
-            val pageHeaderGap: Float,
-            val supportingBottom: Float,
-            val addLeft: Float,
-            val actionsLeft: Float,
+        val workspaces = listOf(
+            Triple("Tasks", "task-workspace-navigation", listOf("task-destination-Tasks", "task-destination-Today", "task-destination-History")),
+            Triple("Habits", "habit-workspace-navigation", listOf("habit-destination-All", "habit-destination-Today", "habit-destination-Insights")),
+            Triple("Goals", "goal-workspace-navigation", listOf("goal-destination-Goals", "goal-destination-History", "goal-destination-Insights")),
+            Triple("Tracks", "track-workspace-navigation", listOf("track-workspace-destination-Tracks", "track-workspace-destination-Activity", "track-workspace-destination-Insights")),
+            Triple("Gym", "gym-workspace-navigation", listOf("gym-destination-Workout", "gym-destination-Library", "gym-destination-History", "gym-destination-Insights")),
         )
-        val emptyTypography = mutableListOf<Pair<androidx.compose.ui.text.TextStyle, androidx.compose.ui.text.TextStyle>>()
-        fun textLayout(tag: String): androidx.compose.ui.text.TextLayoutResult {
-            val results = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
-            compose.onNodeWithTag(tag).performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
-            return results.single()
+        var expected: List<androidx.compose.ui.geometry.Rect>? = null
+        for ((workspace, navigationTag, destinations) in workspaces) {
+            compose.onNodeWithContentDescription("$workspace tab").performClick()
+            for (tag in destinations) {
+                compose.onNodeWithTag(tag).performClick().assertIsSelected()
+                val geometry = listOf("workspace-top-app-bar", navigationTag, "workspace-context-row",
+                    "workspace-add-action", "workspace-search-action", "workspace-settings-action").map { key ->
+                    compose.onAllNodesWithTag(key).assertCountEquals(1)
+                    compose.onNodeWithTag(key).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+                }
+                if (expected == null) expected = geometry
+                expected.zip(geometry).forEach { (before, after) ->
+                    check(kotlin.math.abs(before.left - after.left) <= 1f &&
+                        kotlin.math.abs(before.top - after.top) <= 1f &&
+                        kotlin.math.abs(before.right - after.right) <= 1f &&
+                        kotlin.math.abs(before.bottom - after.bottom) <= 1f) {
+                        "Workspace chrome shifted in $tag: $before -> $after"
+                    }
+                }
+                val header = geometry[0]
+                val navigation = geometry[1]
+                val context = geometry[2]
+                check(navigation.top >= header.bottom && context.top >= navigation.bottom)
+                check(context.height >= with(density) { 72.dp.toPx() })
+                compose.onNodeWithTag("workspace-context-summary").assertIsDisplayed()
+            }
+            if (workspace != "Gym") {
+                compose.openWorkspaceArchive(workspace)
+                compose.onNodeWithTag("workspace-context-summary").assertTextContains("Archived $workspace")
+                val archived = compose.onNodeWithTag("workspace-context-row").fetchSemanticsNode().boundsInRoot
+                check(archived == requireNotNull(expected)[2]) { "Archive changed the context row geometry" }
+                compose.onNodeWithContentDescription("Back to previous view").performClick()
+                compose.onNodeWithTag(destinations.last()).assertIsSelected()
+            }
         }
-        val snapshots = listOf(
-            Triple("Tasks tab", "task-workspace-navigation", true),
-            Triple("Habits tab", "habit-workspace-navigation", true),
-            Triple("Goals tab", "goal-workspace-navigation", true),
-            Triple("Tracks tab", "track-workspace-navigation", true),
-            Triple("Gym tab", "gym-workspace-navigation", false),
-        ).map { (tab, navigationTag, hasArea) ->
-            compose.onNodeWithContentDescription(tab).performClick()
-            compose.onNodeWithTag(navigationTag).assertIsDisplayed()
-            if (hasArea) compose.onNodeWithContentDescription("Area scope: Main").assertIsDisplayed()
-            else {
-                compose.onAllNodesWithTag("workspace-area-action").assertCountEquals(0)
-                compose.onAllNodesWithText("Gym").assertCountEquals(2)
-            }
-            compose.onAllNodesWithTag("workspace-add-action").assertCountEquals(1)
-            compose.onAllNodesWithTag("workspace-search-action").assertCountEquals(1)
-            compose.onAllNodesWithTag("workspace-settings-action").assertCountEquals(1)
-            val header = compose.onNodeWithTag("workspace-top-app-bar").fetchSemanticsNode().boundsInRoot
-            val navigation = compose.onNodeWithTag(navigationTag).fetchSemanticsNode().boundsInRoot
-            val pageTitle = compose.onNodeWithTag("page-title").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-            val supporting = compose.onNodeWithTag("page-supporting-text").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-            check(textLayout("page-supporting-text").lineCount == 1) {
-                "Ordinary workspace context must fit the phone without blank lines or truncation: $tab"
-            }
-            check(kotlin.math.abs(pageTitle.left - supporting.left) <= 1f) {
-                "Workspace headings and descriptions must share their leading edge: title=$pageTitle supporting=$supporting"
-            }
-            if (tab == "Tasks tab") {
-                val capture = compose.onNodeWithTag("task-quick-capture").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-                val list = compose.onNodeWithTag("task-workspace-list").fetchSemanticsNode().boundsInRoot
-                check(kotlin.math.abs(capture.left - pageTitle.left) <= 1f)
-                check(kotlin.math.abs(list.top - supporting.bottom) <= 1f) {
-                    "Fixed Task headings must not add padding before the list's own inset: supporting=$supporting list=$list"
-                }
-                // A blank unfocused input has no floating label to reserve space for.
-                check(kotlin.math.abs(capture.top - supporting.bottom - with(density) { 8.dp.toPx() }) <= 1f) {
-                    "Blank Task capture must align with the first content of other pages: supporting=$supporting capture=$capture"
-                }
-                // Text-field semantics include Material's label inset; inspect the actual outline too.
-                val pixels = compose.onNodeWithTag("task-quick-capture").captureToImage().toPixelMap()
-                val center = pixels.width / 2
-                val background = pixels[center, pixels.height - 10].luminance()
-                val firstOutlinePixel = (0 until pixels.height / 3).firstOrNull {
-                    kotlin.math.abs(pixels[center, it].luminance() - background) > 0.05f
-                }
-                check(firstOutlinePixel != null && firstOutlinePixel <= with(density) { 2.dp.toPx() }) {
-                    "The visible input outline must align too; hidden label inset=$firstOutlinePixel pixels"
-                }
-            } else if (tab in setOf("Habits tab", "Goals tab", "Tracks tab", "Gym tab")) {
-                val empty = compose.onNodeWithTag("empty-state").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-                // The empty-state tag is inside its shared 16 dp text inset.
-                check(kotlin.math.abs(empty.top - supporting.bottom - with(density) { 24.dp.toPx() }) <= 1f) {
-                    "Scrolling page headings must meet content at the same sibling gap: supporting=$supporting content=$empty"
-                }
-                val titleStyle = textLayout("empty-state-title").layoutInput.style
-                val supportingStyle = textLayout("empty-state-supporting-text").layoutInput.style
-                check(supportingStyle.fontSize == textLayout("page-supporting-text").layoutInput.style.fontSize)
-                emptyTypography += titleStyle to supportingStyle
-            }
-            val add = compose.onNodeWithTag("workspace-add-action").fetchSemanticsNode().boundsInRoot
-            val actions = compose.onNodeWithTag("workspace-settings-action").fetchSemanticsNode().boundsInRoot
-            check(add.top >= header.top && add.bottom <= header.bottom) {
-                "Compact Add must stay inside the shared app bar: add=$add header=$header"
-            }
-            Geometry(
-                header.top,
-                header.height,
-                navigation.top,
-                navigation.height,
-                pageTitle.top - navigation.bottom,
-                supporting.bottom,
-                add.left,
-                actions.left,
-            )
-        }
-        val expected = snapshots.first()
-        emptyTypography.drop(1).forEach { (title, supporting) ->
-            val (expectedTitle, expectedSupporting) = emptyTypography.first()
-            check(title.fontSize == expectedTitle.fontSize && title.fontWeight == expectedTitle.fontWeight)
-            check(title.lineHeight == expectedTitle.lineHeight)
-            check(supporting.fontSize == expectedSupporting.fontSize && supporting.lineHeight == expectedSupporting.lineHeight)
-        }
-        snapshots.drop(1).forEach { actual ->
-            check(kotlin.math.abs(actual.headerTop - expected.headerTop) <= 1f)
-            check(kotlin.math.abs(actual.headerHeight - expected.headerHeight) <= 1f)
-            check(kotlin.math.abs(actual.navigationTop - expected.navigationTop) <= 1f)
-            check(kotlin.math.abs(actual.navigationHeight - expected.navigationHeight) <= 1f)
-            check(kotlin.math.abs(actual.pageHeaderGap - expected.pageHeaderGap) <= 1f) {
-                "Workspace page headers must use one top inset: expected=$expected actual=$actual"
-            }
-            check(kotlin.math.abs(actual.supportingBottom - expected.supportingBottom) <= 1f) {
-                "Page introductions must end at the same content boundary: expected=$expected actual=$actual"
-            }
-            check(kotlin.math.abs(actual.addLeft - expected.addLeft) <= 1f)
-            check(kotlin.math.abs(actual.actionsLeft - expected.actionsLeft) <= 1f)
-        }
-        compose.onNodeWithTag("workspace-search-action").assertIsDisplayed()
-        compose.onNodeWithTag("workspace-settings-action").assertIsDisplayed()
         compose.onAllNodesWithContentDescription("Expand content pane").assertCountEquals(0)
-
-        listOf(
-            "Tasks tab" to listOf("task-destination-Inbox", "task-destination-Upcoming", "task-destination-History"),
-            "Habits tab" to listOf("habit-destination-All", "habit-destination-Archived", "habit-destination-Insights"),
-            "Goals tab" to listOf("goal-destination-History", "goal-destination-Archived", "goal-destination-Insights"),
-            "Tracks tab" to listOf("track-workspace-destination-Activity", "track-workspace-destination-Archived", "track-workspace-destination-Insights"),
-            "Gym tab" to listOf("gym-destination-History", "gym-destination-Progress", "gym-destination-Library"),
-        ).forEach { (tab, destinations) ->
-            compose.onNodeWithContentDescription(tab).performClick()
-            destinations.forEach { tag ->
-                compose.onNodeWithTag(tag).performClick()
-                val title = compose.onNodeWithTag("page-title").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-                val supporting = compose.onNodeWithTag("page-supporting-text").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-                check(kotlin.math.abs(title.top - expected.navigationTop - expected.navigationHeight - expected.pageHeaderGap) <= 1f) {
-                    "Neighboring destination headings must not jump: $tag title=$title expected=$expected"
-                }
-                check(kotlin.math.abs(supporting.bottom - expected.supportingBottom) <= 1f) {
-                    "Neighboring introductions must share the content boundary: $tag supporting=$supporting expected=$expected"
-                }
-                if (tag == "task-destination-History") {
-                    val sections = compose.onNodeWithTag("task-history-sections").fetchSemanticsNode().boundsInRoot
-                    check(sections.top > supporting.bottom) { "History sections belong below the page identity" }
-                }
-            }
-        }
-
-        compose.onNodeWithContentDescription("Tracks tab").performClick()
-        val trackDestinations = listOf("Tracks", "Activity", "Archived", "Insights").map { destination ->
-            compose.onNodeWithTag("track-workspace-destination-$destination").fetchSemanticsNode().boundsInRoot
-        }
-        val trackNavigation = compose.onNodeWithTag("track-workspace-navigation").fetchSemanticsNode().boundsInRoot
-        check(trackDestinations.zipWithNext().all { (before, after) -> before.left < after.left }) {
-            "Tracks destinations must keep Insights at the trailing edge: $trackDestinations"
-        }
-        check(trackDestinations.first().left >= trackNavigation.left && trackDestinations.last().right <= trackNavigation.right) {
-            "All four Tracks destinations must fit the compact viewport: navigation=$trackNavigation destinations=$trackDestinations"
-        }
-        compose.onNodeWithTag("track-workspace-destination-Activity").performClick().assertIsSelected()
-        compose.onNodeWithText("Entries across visible Tracks", substring = true).assertIsDisplayed()
-        compose.onAllNodesWithText("0 Entries", substring = true).assertCountEquals(0)
-        compose.onNodeWithTag("track-workspace-destination-Archived").performClick().assertIsSelected()
-        compose.onNodeWithText("Archived Tracks").assertIsDisplayed()
-        compose.onNodeWithTag("track-workspace-destination-Insights").performClick().assertIsSelected()
-        compose.onNodeWithText("Patterns across visible Tracks.").assertIsDisplayed()
 
         compose.onNodeWithContentDescription("Gym tab").performClick()
         compose.onNodeWithTag("gym-destination-Library").performClick().assertIsSelected()

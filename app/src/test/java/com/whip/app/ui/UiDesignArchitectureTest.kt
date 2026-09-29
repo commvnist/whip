@@ -87,7 +87,7 @@ class UiDesignArchitectureTest {
             "Task selection must not expose permanent deletion as a peer button",
             taskSelectionActions.contains("WhipOutlinedButton(\n                                enabled = selectedItems.isNotEmpty(),\n                                onClick = {\n                                    val ids"),
         )
-        val taskPageActions = app.substringAfter("supportingText = taskDestinationSupportingText")
+        val taskPageActions = app.substringAfter("if (!selectionMode) WhipWorkspaceHeader(")
             .substringBefore("if (selectionMode) {")
         assertTrue(
             "Task page actions must use the same icon-action anchor as Habits, Goals, and Tracks",

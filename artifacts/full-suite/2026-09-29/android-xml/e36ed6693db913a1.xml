@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="8" failures="2" errors="0" skipped="0" time="337.481" timestamp="2026-09-29T16:47:39" hostname="localhost">
+  <testsuite name="com.whip.app.TrackInsightsJourneyE2ETest" tests="2" failures="1" errors="0" skipped="0" time="76.161" timestamp="2026-09-29T16:47:39" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="temperatureAndFineScaleInsightsPreserveReadingsWithoutTotals" classname="com.whip.app.TrackInsightsJourneyE2ETest" time="50.006">
+      <failure>java.lang.AssertionError: Complete numeric reading 50.0 °F: null versus DpRect(left=36.190475.dp, top=309.7143.dp, right=375.2381.dp, bottom=333.33334.dp)
+at org.junit.Assert.fail(Assert.java:89)
+at org.junit.Assert.assertTrue(Assert.java:42)
+at com.whip.app.TrackInsightsJourneyE2ETest.assertNumberFullyVisible(TrackInsightsJourneyE2ETest.kt:190)
+at com.whip.app.TrackInsightsJourneyE2ETest.temperatureAndFineScaleInsightsPreserveReadingsWithoutTotals(TrackInsightsJourneyE2ETest.kt:164)
+</failure>
+    </testcase>
+    <testcase name="mixedDistanceUnitsUseTheFieldUnitAndPrecisionAcrossInsights" classname="com.whip.app.TrackInsightsJourneyE2ETest" time="26.155" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackWorkspaceUiTest" tests="2" failures="0" errors="0" skipped="0" time="30.87" timestamp="2026-09-29T16:47:39" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="tracksAndEntriesHaveOneExplicitSearchOwnerAndArchivedResultsReturnToArchive" classname="com.whip.app.TrackWorkspaceUiTest" time="24.51" />
+    <testcase name="tracksWorkspaceRemainsNavigableInRtlAtTwoHundredPercentText" classname="com.whip.app.TrackWorkspaceUiTest" time="6.36" />
+  </testsuite>
+  <testsuite name="com.whip.app.VisualCatalogPagesTest" tests="1" failures="0" errors="0" skipped="0" time="92.197" timestamp="2026-09-29T16:47:39" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="captureTrackPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="92.197" />
+  </testsuite>
+  <testsuite name="com.whip.app.WhipComposeSemanticsTest" tests="3" failures="1" errors="0" skipped="0" time="135.394" timestamp="2026-09-29T16:47:39" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="globalAddAndHabitEditorAreReachableThroughComposeSemantics" classname="com.whip.app.WhipComposeSemanticsTest" time="53.067" />
+    <testcase name="gymConfigurationControlsUseProgressiveDisclosure" classname="com.whip.app.WhipComposeSemanticsTest" time="41.82">
+      <failure>java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains 'Showing the selected workout.' (ignoreCase: false) is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.WhipComposeSemanticsTest.gymConfigurationControlsUseProgressiveDisclosure(WhipComposeSemanticsTest.kt:606)
+</failure>
+    </testcase>
+    <testcase name="directTaskHabitAndGoalActionsUseVisibleStateInsteadOfSnackbars" classname="com.whip.app.WhipComposeSemanticsTest" time="40.507" />
+  </testsuite>
+</testsuites>

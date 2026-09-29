@@ -129,7 +129,7 @@ class ReviewOutcomeJourneyE2ETest {
             compose.onAllNodesWithTag("review-outcome-list").assertCountEquals(0)
             compose.waitUntil(10_000) { compose.onAllNodesWithText(title).fetchSemanticsNodes().isNotEmpty() }
             if (section == ReviewSection.Gym) {
-                compose.onNodeWithText("Showing the selected workout.").assertIsDisplayed()
+                compose.onNodeWithTag("gym-destination-History").assertIsSelected()
                 compose.onNodeWithTag("history-set-performed-$setId").performScrollTo().assertTextContains("40 kg × 5 reps")
             } else {
                 compose.onNodeWithTag("entity-inspector-title").assertTextEquals(title)
@@ -146,6 +146,14 @@ class ReviewOutcomeJourneyE2ETest {
             scenario.recreate()
             compose.onNode(returnedOutcome).performScrollTo().assertIsDisplayed()
             captureVisualCatalogSurface("deep.review.returned-${section.name.lowercase()}")
+            if (section != ReviewSection.Gym) {
+                compose.onNode(returnedOutcome).performClick()
+                compose.onNodeWithTag("entity-inspector-title").assertTextEquals(title)
+                compose.onNodeWithTag("entity-inspector-close").performClick()
+                androidx.test.espresso.Espresso.pressBack()
+                compose.onNodeWithTag("review-outcome-list").assertIsDisplayed()
+                compose.onNode(returnedOutcome).performScrollTo().assertIsDisplayed()
+            }
         }
     }
 }

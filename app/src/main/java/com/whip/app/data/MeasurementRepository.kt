@@ -130,7 +130,14 @@ class RoomMeasurementRepository(
 
     override val customUnits = dao.observeCustomUnits().map { list -> list.map { it.toDomain() } }
     override val measurements = dao.observeMeasurements().map { list -> list.map { it.toDomain() } }
-    override val entries = dao.observeEntries().map { list -> list.map { it.toDomain() } }
+    override val entries = database.invalidationTracker.createFlow("measurement_entries").map {
+        database.withTransaction {
+            readHistoryPages<MeasurementEntry> { last ->
+                (if (last == null) dao.getFirstEntryPage() else dao.getEntryPageAfter(last.id))
+                    .map(MeasurementEntryEntity::toDomain)
+            }.sortedByDescending(MeasurementEntry::timestamp)
+        }
+    }
     override val areas = areaRepository.areas
     override val tags = dao.observeTags().map { list -> list.map { it.toDomain() } }
 

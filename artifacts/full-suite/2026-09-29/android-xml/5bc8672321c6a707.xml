@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="8" failures="3" errors="0" skipped="0" time="301.906" timestamp="2026-09-29T16:37:50" hostname="localhost">
+  <testsuite name="com.whip.app.GymPowerInputUiTest" tests="1" failures="0" errors="0" skipped="0" time="4.785" timestamp="2026-09-29T16:37:50" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="groupedWorkoutExercisesMoveAsABlockAndReorderWithinTheirGroup" classname="com.whip.app.GymPowerInputUiTest" time="4.785" />
+  </testsuite>
+  <testsuite name="com.whip.app.HabitSkipJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="43.522" timestamp="2026-09-29T16:37:50" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="skipIsOneVisibleNeutralStateWithHistoryInsightsAndUndo" classname="com.whip.app.HabitSkipJourneyE2ETest" time="43.522">
+      <failure>java.lang.AssertionError: No node found that matches TestTag = 'habit-card-1' in scrollable container
+Semantics of the node:
+Node #697 at (l=0.0, t=640.0, r=1080.0, b=2169.0)px, Tag: 'habit-list-Today'
+CollectionInfo = 'CollectionInfo(rowCount=2, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape&#64;1574018'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 2 children, 4 siblings
+Selector used: (TestTag = 'habit-list-Today')
+
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+at com.whip.app.HabitSkipJourneyE2ETest.skipIsOneVisibleNeutralStateWithHistoryInsightsAndUndo(HabitSkipJourneyE2ETest.kt:153)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.LegacyImportJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="47.201" timestamp="2026-09-29T16:37:50" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="restoredHabitContinuesManuallyAndSettingsFocusOnLocalData" classname="com.whip.app.LegacyImportJourneyE2ETest" time="47.201" />
+  </testsuite>
+  <testsuite name="com.whip.app.ProductivityCardDesignUiTest" tests="1" failures="1" errors="0" skipped="0" time="2.189" timestamp="2026-09-29T16:37:50" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="habitAndGoalSummaryRowsKeepDetailsAndInlineActions" classname="com.whip.app.ProductivityCardDesignUiTest" time="2.189">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'habit-card-status-6')
+However, the unmerged tree contains '1' node that matches. Are you missing `useUnmergedNode = true` in your finder?
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+at com.whip.app.ProductivityCardDesignUiTest.habitAndGoalSummaryRowsKeepDetailsAndInlineActions(ProductivityCardDesignUiTest.kt:530)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.ProductivityCreationJourneyE2ETest" tests="2" failures="1" errors="0" skipped="0" time="127.496" timestamp="2026-09-29T16:37:50" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="smartTaskCaptureExplainsHighlightsPersistsAndReversesThroughTheRealUi" classname="com.whip.app.ProductivityCreationJourneyE2ETest" time="71.829" />
+    <testcase name="taskHabitAndGoalCanBeCreatedAndUsedThroughTheRealUi" classname="com.whip.app.ProductivityCreationJourneyE2ETest" time="55.667">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (ContentDescription = 'Close Habit details' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.ProductivityCreationJourneyE2ETest.taskHabitAndGoalCanBeCreatedAndUsedThroughTheRealUi(ProductivityCreationJourneyE2ETest.kt:172)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.ReviewOutcomeJourneyE2ETest" tests="2" failures="0" errors="0" skipped="0" time="74.162" timestamp="2026-09-29T16:37:50" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedGoalProgressOpensItsOriginalGoal" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="38.538" />
+    <testcase name="archivedHabitOutcomesOpenTheirOriginalHabit" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="35.624" />
+  </testsuite>
+</testsuites>

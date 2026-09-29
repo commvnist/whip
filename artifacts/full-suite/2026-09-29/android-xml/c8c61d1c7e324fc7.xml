@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="8" failures="1" errors="0" skipped="0" time="210.115" timestamp="2026-09-29T16:41:39" hostname="localhost">
+  <testsuite name="com.whip.app.ReviewOutcomeJourneyE2ETest" tests="3" failures="0" errors="0" skipped="0" time="109.07" timestamp="2026-09-29T16:41:39" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedTaskOutcomesOpenTheirOriginalTask" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="38.115" />
+    <testcase name="mixedTaskHistoryKeepsAreaScopeAndDistinctOccurrences" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="40.635" />
+    <testcase name="finishedWorkoutOutcomesOpenTheirOriginalSession" classname="com.whip.app.ReviewOutcomeJourneyE2ETest" time="30.32" />
+  </testsuite>
+  <testsuite name="com.whip.app.RoutineBuilderUiTest" tests="1" failures="0" errors="0" skipped="0" time="20.984" timestamp="2026-09-29T16:41:39" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="advancedMachineCreationReturnsFromSeededExerciseCreationWithBothDraftsPreserved" classname="com.whip.app.RoutineBuilderUiTest" time="20.984" />
+  </testsuite>
+  <testsuite name="com.whip.app.SettingsBehaviorUiTest" tests="2" failures="0" errors="0" skipped="0" time="30.324" timestamp="2026-09-29T16:41:39" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="plainJsonBackupUsesAndroidsDocumentProviderAndReturnsSafelyOnCancel" classname="com.whip.app.SettingsBehaviorUiTest" time="13.287" />
+    <testcase name="malformedClockCannotChangeTheCutoffButCompleteClockCommits" classname="com.whip.app.SettingsBehaviorUiTest" time="17.037" />
+  </testsuite>
+  <testsuite name="com.whip.app.TaskReorderJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="18.429" timestamp="2026-09-29T16:41:39" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="dragPreviewsPersistsCancelsAndSurvivesRecreation" classname="com.whip.app.TaskReorderJourneyE2ETest" time="18.429" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackCollectionJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="29.078" timestamp="2026-09-29T16:41:39" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedAndActiveSelectionsStaySeparate" classname="com.whip.app.TrackCollectionJourneyE2ETest" time="29.078">
+      <failure>java.lang.AssertionError: No node found that matches Text + InputText + EditableText contains '1 Track selected' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #5618 at (l=0.0, t=640.0, r=1080.0, b=2169.0)px, Tag: 'track-list'
+CollectionInfo = 'CollectionInfo(rowCount=0, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape&#64;e51908d'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 2 children, 4 siblings
+Selector used: (TestTag = 'track-list')
+
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+at com.whip.app.TrackCollectionJourneyE2ETest.scroll(TrackCollectionJourneyE2ETest.kt:170)
+at com.whip.app.TrackCollectionJourneyE2ETest.summary(TrackCollectionJourneyE2ETest.kt:168)
+at com.whip.app.TrackCollectionJourneyE2ETest.archivedSelection(TrackCollectionJourneyE2ETest.kt:107)
+at com.whip.app.TrackCollectionJourneyE2ETest.archivedAndActiveSelectionsStaySeparate(TrackCollectionJourneyE2ETest.kt:33)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

@@ -691,15 +691,13 @@ class RoomRoutineRepository(
 
     override suspend fun rebuildPersonalRecords(exerciseId: Long) = database.withTransaction {
         val exercise = gymDao.getExercise(exerciseId)?.toDomainForRecords() ?: return@withTransaction
-        val sets = dao.getCompletedSetsForExercise(exerciseId)
         dao.deleteRecords(exerciseId)
         val best = mutableMapOf<String, Double>()
         val records = mutableListOf<PersonalRecordEntity>()
-        val sourceSessionBySetId = mutableMapOf<Long, Long?>()
-        val sourceMachineBySetId = mutableMapOf<Long, Long?>()
-        val sourceMachineScopeBySetId = mutableMapOf<Long, String?>()
-        val policyExerciseBySetId = mutableMapOf<Long, Exercise>()
-        val volumeEligibleSetIds = mutableSetOf<Long>()
+        val placements = mutableMapOf<Long, WorkoutExerciseEntity?>()
+        val sessions = mutableMapOf<Long, WorkoutSessionEntity?>()
+        val policies = mutableMapOf<Long, Exercise>()
+        val workoutVolumes = linkedMapOf<Triple<Long, Long?, String?>, Pair<Double, WorkoutSetEntity>>()
         val settings = settingsRepository?.current()
         val includeWarmups = settings?.includeWarmupsInGymStats == true
 
@@ -739,105 +737,107 @@ class RoomRoutineRepository(
             )
         }
 
-        sets.forEach { entity ->
-            val set = entity.toDomainForRecords()
-            val sourceWorkoutExercise = gymDao.getWorkoutExercise(entity.workoutExerciseId) ?: return@forEach
-            val sourceSession = gymDao.getSession(sourceWorkoutExercise.sessionId) ?: return@forEach
-            if (sourceSession.archived || sourceSession.state == WorkoutSessionState.Discarded.name) return@forEach
-            val sourceSessionId = sourceWorkoutExercise.sessionId
-            val machineId = sourceWorkoutExercise.machineId
-            val machineScope = sourceWorkoutExercise.machineProfileUuidSnapshot
-            val policyExercise = sourceWorkoutExercise.applyPolicySnapshot(exercise)
-            val assistedAllowed = settings?.includeAssistedInPersonalRecords == true ||
-                policyExercise.trackingType != com.whip.app.domain.ExerciseTrackingType.AssistedBodyweightReps
-            if (!policyExercise.includeInPersonalRecords ||
-                (!includeWarmups && set.classification == WorkoutSetClassification.WarmUp) ||
-                !assistedAllowed
-            ) return@forEach
-            sourceSessionBySetId[entity.id] = sourceSessionId
-            sourceMachineBySetId[entity.id] = machineId
-            sourceMachineScopeBySetId[entity.id] = machineScope
-            policyExerciseBySetId[entity.id] = policyExercise
-            consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.MaxWeight, set.effectiveLoadKg(policyExercise), "kilogram")
-            consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.MaxRepetitions, set.repetitions?.toDouble(), "count")
-            consider(
-                entity,
-                sourceSessionId,
-                machineId,
-                machineScope,
-                PersonalRecordType.MaxRepetitionsForWeight,
-                set.repetitions?.toDouble(),
-                "count",
-                set.effectiveLoadKg(policyExercise),
-            )
-            consider(
-                entity,
-                sourceSessionId,
-                machineId,
-                machineScope,
-                PersonalRecordType.BestWeightForRepCount,
-                set.effectiveLoadKg(policyExercise),
-                "kilogram",
-                set.repetitions?.toDouble(),
-            )
-            consider(
-                entity,
-                sourceSessionId,
-                machineId,
-                machineScope,
-                PersonalRecordType.EstimatedOneRepMax,
-                set.estimatedOneRepMaxKg(
-                    policyExercise,
-                    settings?.oneRepMaxRepCutoff ?: DEFAULT_ONE_REP_MAX_REP_CUTOFF,
-                    includeWarmups,
-                    settings?.adjustE1rmForEffort == true,
-                ),
-                "kilogram",
-            )
-            val setVolume = set.volumeKg(policyExercise, includeWarmups).takeIf { it > 0.0 }
-            consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.SetVolume, setVolume, "kilogram")
-            if (setVolume != null) volumeEligibleSetIds += entity.id
-            consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.MaxDistance, set.canonicalDistanceMetres, "distance_m")
-            consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.MaxDuration, set.durationSeconds?.toDouble(), "second")
-            consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.MaxSpeed, set.speedMetresPerSecond(), "distance_m/second")
-            consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.MinPace, set.paceSecondsPerKilometre(), "second/kilometre", lowerIsBetter = true)
-            if (sourceWorkoutExercise.machineLoadTypeSnapshot == MachineLoadType.Level.name) {
-                val lowerSettingIsStronger = sourceWorkoutExercise.machineLevelDirectionSnapshot ==
-                    MachineLevelDirection.HigherNumberLessResistance.name
+        // Keep history bounded and resolve each placement/session once, not once per Set.
+        for (ids in dao.getCompletedSetIdsForExercise(exerciseId).chunked(500)) {
+            val page = dao.getCompletedSetsByIds(ids)
+            page.forEach { entity ->
+                val set = entity.toDomainForRecords()
+                val sourceWorkoutExercise = placements.getOrPut(entity.workoutExerciseId) {
+                    gymDao.getWorkoutExercise(entity.workoutExerciseId)
+                } ?: return@forEach
+                val sourceSession = sessions.getOrPut(sourceWorkoutExercise.sessionId) {
+                    gymDao.getSession(sourceWorkoutExercise.sessionId)
+                } ?: return@forEach
+                if (sourceSession.archived || sourceSession.state == WorkoutSessionState.Discarded.name) return@forEach
+                val sourceSessionId = sourceWorkoutExercise.sessionId
+                val machineId = sourceWorkoutExercise.machineId
+                val machineScope = sourceWorkoutExercise.machineProfileUuidSnapshot
+                val policyExercise = policies.getOrPut(sourceWorkoutExercise.id) { sourceWorkoutExercise.applyPolicySnapshot(exercise) }
+                val assistedAllowed = settings?.includeAssistedInPersonalRecords == true ||
+                    policyExercise.trackingType != com.whip.app.domain.ExerciseTrackingType.AssistedBodyweightReps
+                if (!policyExercise.includeInPersonalRecords ||
+                    (!includeWarmups && set.classification == WorkoutSetClassification.WarmUp) ||
+                    !assistedAllowed
+                ) return@forEach
+                consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.MaxWeight, set.effectiveLoadKg(policyExercise), "kilogram")
+                consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.MaxRepetitions, set.repetitions?.toDouble(), "count")
                 consider(
                     entity,
                     sourceSessionId,
                     machineId,
                     machineScope,
-                    PersonalRecordType.MaxMachineSetting,
-                    set.machineLoadValue,
-                    sourceWorkoutExercise.machineLevelLabelSnapshot.ifBlank { "level" },
-                    lowerIsBetter = lowerSettingIsStronger,
+                    PersonalRecordType.MaxRepetitionsForWeight,
+                    set.repetitions?.toDouble(),
+                    "count",
+                    set.effectiveLoadKg(policyExercise),
                 )
-            }
-        }
-        sets.filter { it.id in volumeEligibleSetIds }
-            .groupBy { Triple(sourceSessionBySetId[it.id], sourceMachineBySetId[it.id], sourceMachineScopeBySetId[it.id]) }
-            .forEach { (scope, sessionSets) ->
-                val (sessionId, machineId, machineScope) = scope
-                if (sessionId == null || sessionSets.isEmpty()) return@forEach
-                val volume = sessionSets.sumOf { entity ->
-                    entity.toDomainForRecords().volumeKg(
-                        policyExerciseBySetId[entity.id] ?: exercise,
-                        includeWarmups,
-                    )
-                }
-                val representative = sessionSets.maxBy { it.completedAtMillis ?: it.updatedAtMillis }
                 consider(
-                    representative,
-                    sessionId,
+                    entity,
+                    sourceSessionId,
                     machineId,
                     machineScope,
-                    PersonalRecordType.ExerciseWorkoutVolume,
-                    volume.takeIf { it > 0.0 },
+                    PersonalRecordType.BestWeightForRepCount,
+                    set.effectiveLoadKg(policyExercise),
+                    "kilogram",
+                    set.repetitions?.toDouble(),
+                )
+                consider(
+                    entity,
+                    sourceSessionId,
+                    machineId,
+                    machineScope,
+                    PersonalRecordType.EstimatedOneRepMax,
+                    set.estimatedOneRepMaxKg(
+                        policyExercise,
+                        settings?.oneRepMaxRepCutoff ?: DEFAULT_ONE_REP_MAX_REP_CUTOFF,
+                        includeWarmups,
+                        settings?.adjustE1rmForEffort == true,
+                    ),
                     "kilogram",
                 )
+                val setVolume = set.volumeKg(policyExercise, includeWarmups).takeIf { it > 0.0 }
+                consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.SetVolume, setVolume, "kilogram")
+                if (setVolume != null) {
+                    val scope = Triple(sourceSessionId, machineId, machineScope)
+                    val previous = workoutVolumes[scope]
+                    val representative = previous?.second?.takeIf {
+                        (it.completedAtMillis ?: it.updatedAtMillis) >= (entity.completedAtMillis ?: entity.updatedAtMillis)
+                    } ?: entity
+                    workoutVolumes[scope] = ((previous?.first ?: 0.0) + setVolume) to representative
+                }
+                consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.MaxDistance, set.canonicalDistanceMetres, "distance_m")
+                consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.MaxDuration, set.durationSeconds?.toDouble(), "second")
+                consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.MaxSpeed, set.speedMetresPerSecond(), "distance_m/second")
+                consider(entity, sourceSessionId, machineId, machineScope, PersonalRecordType.MinPace, set.paceSecondsPerKilometre(), "second/kilometre", lowerIsBetter = true)
+                if (sourceWorkoutExercise.machineLoadTypeSnapshot == MachineLoadType.Level.name) {
+                    val lowerSettingIsStronger = sourceWorkoutExercise.machineLevelDirectionSnapshot ==
+                        MachineLevelDirection.HigherNumberLessResistance.name
+                    consider(
+                        entity,
+                        sourceSessionId,
+                        machineId,
+                        machineScope,
+                        PersonalRecordType.MaxMachineSetting,
+                        set.machineLoadValue,
+                        sourceWorkoutExercise.machineLevelLabelSnapshot.ifBlank { "level" },
+                        lowerIsBetter = lowerSettingIsStronger,
+                    )
+                }
             }
+        }
+        workoutVolumes.forEach { (scope, total) ->
+            val (sessionId, machineId, machineScope) = scope
+            val (volume, representative) = total
+            consider(
+                representative,
+                sessionId,
+                machineId,
+                machineScope,
+                PersonalRecordType.ExerciseWorkoutVolume,
+                volume.takeIf { it > 0.0 },
+                "kilogram",
+            )
+        }
         val latestByKey = records.groupBy { "${it.machineProfileUuidSnapshot ?: "none"}:${it.type}:${it.secondaryValue ?: ""}" }
             .mapValues { (_, values) -> values.last().uuid }
         records.forEach { record ->

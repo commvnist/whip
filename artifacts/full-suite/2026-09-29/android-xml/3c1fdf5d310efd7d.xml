@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="6" failures="0" errors="0" skipped="0" time="389.224" timestamp="2026-09-29T17:03:16" hostname="localhost">
+  <testsuite name="com.whip.app.TrackHistoryJourneyE2ETest" tests="3" failures="0" errors="0" skipped="0" time="271.598" timestamp="2026-09-29T17:03:16" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedHistoryCanBeSearchedRecreatedAndRestoredAtLargeText" classname="com.whip.app.TrackHistoryJourneyE2ETest" time="141.685" />
+    <testcase name="emptyArchivedTrackExplainsRestoreThenOffersFirstEntry" classname="com.whip.app.TrackHistoryJourneyE2ETest" time="36.605" />
+    <testcase name="archivedHistoryCanBeSearchedRecreatedAndRestored" classname="com.whip.app.TrackHistoryJourneyE2ETest" time="93.308" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackInsightsJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="64.87" timestamp="2026-09-29T17:03:16" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="temperatureAndFineScaleInsightsPreserveReadingsWithoutTotals" classname="com.whip.app.TrackInsightsJourneyE2ETest" time="64.87" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackWorkspaceUiTest" tests="2" failures="0" errors="0" skipped="0" time="48.85" timestamp="2026-09-29T17:03:16" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="tracksAndEntriesHaveOneExplicitSearchOwnerAndArchivedResultsReturnToArchive" classname="com.whip.app.TrackWorkspaceUiTest" time="38.005" />
+    <testcase name="tracksWorkspaceRemainsNavigableInRtlAtTwoHundredPercentText" classname="com.whip.app.TrackWorkspaceUiTest" time="10.845" />
+  </testsuite>
+</testsuites>

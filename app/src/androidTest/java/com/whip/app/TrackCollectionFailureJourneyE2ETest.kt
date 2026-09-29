@@ -100,7 +100,7 @@ class TrackCollectionFailureJourneyE2ETest {
             assertFalse(projection(third).track.archived)
 
             scenario.recreate()
-            compose.onNodeWithTag("track-workspace-destination-Archived").performClick()
+            compose.openWorkspaceArchive("Tracks")
             row(first).assertIsDisplayed()
             row(second).assertIsDisplayed()
             assertTrue(projection(first).track.archived)

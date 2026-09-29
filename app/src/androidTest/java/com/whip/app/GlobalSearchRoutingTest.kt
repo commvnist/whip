@@ -262,7 +262,7 @@ class GlobalSearchRoutingTest {
             compose.onNodeWithContentDescription("Close Exercise details").performClick()
 
             searchFor("Searchable discarded workout")
-            compose.onNodeWithText("Workout History").assertIsDisplayed()
+            compose.onNodeWithTag("gym-destination-History").assertIsSelected()
             compose.waitUntil(10_000) {
                 compose.onAllNodesWithText("Restore to History").fetchSemanticsNodes().isNotEmpty()
             }
@@ -275,7 +275,7 @@ class GlobalSearchRoutingTest {
             compose.onNodeWithText("Searchable archived routine").assertIsDisplayed()
 
             searchFor("Searchable archived track")
-            compose.onNodeWithTag("track-workspace-destination-Archived").assertIsSelected()
+            compose.onNodeWithTag("track-workspace-destination-Tracks").assertIsSelected()
             compose.onAllNodesWithText("Searchable archived track")[0].assertIsDisplayed()
         }
         }

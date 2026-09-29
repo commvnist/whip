@@ -66,6 +66,8 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
+import androidx.compose.runtime.movableContentOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -507,7 +509,7 @@ internal fun TrackAreaContent(
     var selectCollectionRequest by rememberSaveable { mutableIntStateOf(0) }
     var reorderCollectionRequest by rememberSaveable { mutableIntStateOf(0) }
     val collectionPages = rememberSaveableStateHolder()
-    @Composable fun trackList(masterPane: Boolean) {
+    val listContent: @Composable (Boolean) -> Unit = { masterPane ->
         collectionPages.SaveableStateProvider("collection-${workspaceDestination.name}") { AllTracksPage(
             customUnits = customUnits,
             state = state,
@@ -536,7 +538,9 @@ internal fun TrackAreaContent(
             onRetryLoading = viewModel::retryLoading,
         ) }
     }
-    @Composable fun trackDetail(projection: TrackProjection) {
+    val currentListContent by rememberUpdatedState(listContent)
+    val trackList = remember { movableContentOf<Boolean> { currentListContent(it) } }
+    val detailContent: @Composable (TrackProjection) -> Unit = { projection ->
         TrackDetailPage(
             projection = projection,
             focusedDetail = focusedDetail,
@@ -575,6 +579,11 @@ internal fun TrackAreaContent(
             },
         )
     }
+    // Keep saved-state keys stable when the detail moves between responsive panes.
+    val currentDetailContent by rememberUpdatedState(detailContent)
+    val trackDetail = remember {
+        movableContentOf<TrackProjection> { currentDetailContent(it) }
+    }
     BoxWithConstraints(Modifier.fillMaxSize().padding(innerPadding)) {
       // On short single-pane detail, Back provides the collection route without
       // spending the history viewport on a second fixed destination bar.
@@ -612,7 +621,7 @@ internal fun TrackAreaContent(
                             }
                         }
                     Row(Modifier.weight(1f).fillMaxWidth()) {
-                        Box(Modifier.weight(0.38f).fillMaxHeight()) { trackList(masterPane = true) }
+                        Box(Modifier.weight(0.38f).fillMaxHeight()) { trackList(true) }
                         VerticalDivider(Modifier.fillMaxHeight())
                         Box(Modifier.weight(0.62f).fillMaxHeight()) {
                             selected?.let { trackDetail(it) } ?: Box(
@@ -625,7 +634,7 @@ internal fun TrackAreaContent(
                     }
                     }
                 } else if (selected == null) {
-                    trackList(masterPane = false)
+                    trackList(false)
                 } else {
                     trackDetail(selected)
                 }

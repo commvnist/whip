@@ -1,0 +1,10 @@
+{
+  "group": 0,
+  "selectors": [
+    "com.whip.app.TrackCollectionJourneyE2ETest#archivedAndActiveSelectionsStaySeparate",
+    "com.whip.app.TrackCollectionJourneyE2ETest#archivedAndActiveSelectionsStaySeparateAtLargeText"
+  ],
+  "exit": 0,
+  "seconds": 179.36,
+  "source_unchanged": true
+}

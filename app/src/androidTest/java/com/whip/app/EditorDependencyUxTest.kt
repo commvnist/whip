@@ -289,7 +289,7 @@ class EditorDependencyUxTest {
         compose.waitUntil(10_000) {
             automation.windows.none { it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD }
         }
-        compose.onNodeWithText("Inbox keeps this Task unscheduled", substring = true)
+        compose.onNodeWithText("Keep this Task unscheduled", substring = true)
             .performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("task-repeat-toggle").performScrollTo().performClick()
         compose.onNodeWithText("Schedule and Repeat").performClick()
@@ -353,7 +353,7 @@ class EditorDependencyUxTest {
         }
 
         compose.onNodeWithTag("task-editor-title").performTextInput("Unscheduled Errand")
-        compose.onNodeWithText("Inbox keeps this Task unscheduled", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Keep this Task unscheduled", substring = true).performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("Anytime").assertCountEquals(0)
         compose.onAllNodesWithTag("task-time-toggle").assertCountEquals(0)
         compose.onNodeWithText("Save").performClick()
@@ -407,10 +407,10 @@ class EditorDependencyUxTest {
 
         compose.onNodeWithTag("task-editor-title").performTextInput("Move Me")
         compose.onNodeWithTag("task-time-toggle").performScrollTo().performClick()
-        compose.onNodeWithText("Inbox").performScrollTo().performClick()
+        compose.onNodeWithText("Unscheduled").performScrollTo().performClick()
         compose.onNodeWithText("Remove Scheduling Details?").assertIsDisplayed()
         compose.onNodeWithText("The Scheduled Date will be removed.", substring = true).assertIsDisplayed()
-        compose.onNodeWithText("Move to Inbox").performClick()
+        compose.onNodeWithText("Move to Unscheduled").performClick()
         compose.onNodeWithText("Save").performClick()
 
         compose.runOnIdle {

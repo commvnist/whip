@@ -1,0 +1,9 @@
+{
+  "group": 99,
+  "selectors": [
+    "com.whip.app.DataEpochResetIntegrationTest"
+  ],
+  "exit": 0,
+  "seconds": 20.955,
+  "source_unchanged": true
+}

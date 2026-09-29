@@ -1,0 +1,18 @@
+{
+  "group": 10,
+  "selectors": [
+    "com.whip.app.TrackCollectionJourneyE2ETest",
+    "com.whip.app.TrackCsvImportIntegrityTest",
+    "com.whip.app.TrackCsvJourneyE2ETest",
+    "com.whip.app.TrackDefinitionIntegrityTest",
+    "com.whip.app.TrackDefinitionMutationUiTest",
+    "com.whip.app.TrackDefinitionReviewJourneyE2ETest",
+    "com.whip.app.TrackDeletionUiTest",
+    "com.whip.app.TrackDraftRecoveryUiTest",
+    "com.whip.app.TrackDraftSavedStateJourneyTest",
+    "com.whip.app.TrackEntryIntegrityTest"
+  ],
+  "exit": 1,
+  "seconds": 1334.368,
+  "source_unchanged": true
+}

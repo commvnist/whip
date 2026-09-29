@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.NotificationDeliveryTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-09-29T17:05:38.530Z" hostname="beast" time="0.005">
+  <properties/>
+  <testcase name="restTimerSoundAndVibrationSettingsSelectFourDistinctChannels" classname="com.whip.app.ui.NotificationDeliveryTest" time="0.002"/>
+  <testcase name="outcomeStatesDistinguishWhipConfigurationFromAndroidBlocking" classname="com.whip.app.ui.NotificationDeliveryTest" time="0.001"/>
+  <testcase name="overallStateNeverClaimsDeliverableWhenAnyRequiredLayerBlocksDelivery" classname="com.whip.app.ui.NotificationDeliveryTest" time="0.0"/>
+  <testcase name="permissionAlwaysTakesPrecedenceOverImplementationDetails" classname="com.whip.app.ui.NotificationDeliveryTest" time="0.0"/>
+  <testcase name="notificationTestCanCreateAMissingChannelButCannotBypassAndroidBlocking" classname="com.whip.app.ui.NotificationDeliveryTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

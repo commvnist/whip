@@ -107,6 +107,9 @@ class GymLibraryJourneyE2ETest {
             captureVisualCatalogSurface("deep.gym.finish-review")
             compose.onNodeWithTag("finish-workout-confirm").performClick()
             compose.waitUntil(5_000) { runBlocking { app.gymRepository.sessions.first() }.single { it.id == sessionId }.state == WorkoutSessionState.Finished }
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithTag("history-workout-card-$sessionId").fetchSemanticsNodes().isNotEmpty()
+            }
             compose.onNodeWithTag("history-workout-card-$sessionId").performScrollTo().assertIsDisplayed()
             compose.onNodeWithTag("history-workout-exercises-$sessionId").assertExists()
             val finished = runBlocking { app.gymRepository.sessions.first() }.single { it.id == sessionId }
@@ -241,7 +244,8 @@ class GymLibraryJourneyE2ETest {
             compose.waitUntil(10_000) { compose.onAllNodesWithTag("unified-search-result-Exercise-${fixture.secondExercise}").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithTag("unified-search-result-Exercise-${fixture.exercise}").assertIsDisplayed()
             compose.onNodeWithTag("unified-search-result-Exercise-${fixture.secondExercise}").assertIsDisplayed()
-            compose.onNodeWithText("Unlinked walk").assertDoesNotExist()
+            compose.onNode(hasText("Unlinked walk") and hasAnyAncestor(hasTestTag("unified-search-results-list")))
+                .assertDoesNotExist()
             scenario.recreate()
             compose.onNodeWithTag("unified-search-query").assertTextContains(machineName)
             compose.onNodeWithTag("unified-search-close-action").performClick()

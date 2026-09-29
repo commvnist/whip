@@ -1,0 +1,21 @@
+PASS matching-evidence
+PASS rejects-source-drift
+PASS rejects-artifact-drift
+PASS rejects-evidence-tamper
+PASS matching-two-emulator-v2-evidence
+PASS rejects-unsigned-release-apk
+PASS rejects-unsigned-release-bundle
+PASS rejects-more-than-two-candidate-emulators
+PASS rejects-missing-required-file
+PASS rejects-missing-retained-manifest
+PASS rejects-missing-retained-release-metadata
+PASS rejects-rewritten-location-permission-manifest
+PASS rejects-rewritten-wrong-release-application-id
+PASS rejects-rewritten-missing-release-application-id
+PASS rejects-rewritten-wrong-release-version
+PASS rejects-rewritten-missing-release-version
+PASS rejects-missing-manifest-field
+PASS rejects-nonfresh-manifest
+PASS rejects-rewritten-checksum-for-nonfresh-aggregate
+PASS rejects-unsafe-latest
+All candidate-evidence rejection fixtures passed.

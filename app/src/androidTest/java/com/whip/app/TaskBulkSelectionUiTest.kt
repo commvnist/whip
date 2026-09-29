@@ -157,7 +157,7 @@ class TaskBulkSelectionUiTest {
         }
         compose.onNodeWithText("Done").performClick()
 
-        compose.onNodeWithText("Archived").performClick()
+        compose.openWorkspaceArchive("Tasks")
         openCurrentDestinationSelection(archived.task.title)
         listOf("restore", "edit", "more").forEach { action ->
             compose.onNodeWithTag("task-selection-$action").assertIsDisplayed().assertIsEnabled()
@@ -270,7 +270,7 @@ class TaskBulkSelectionUiTest {
 
         compose.onNodeWithContentDescription("Tasks tab").performClick()
         compose.onNodeWithTag("task-destination-History").performClick()
-        compose.onNodeWithText("Archived").performClick()
+        compose.openWorkspaceArchive("Tasks")
         compose.onNodeWithText(archived.task.title).performClick()
         compose.onNodeWithContentDescription("Edit Series").performClick()
         compose.onNodeWithText("Save").performClick()
@@ -637,6 +637,7 @@ class TaskBulkSelectionUiTest {
         }
 
         compose.onNodeWithContentDescription("Tasks tab").performClick()
+        compose.onNodeWithTag("task-destination-Today").performClick()
         compose.onNodeWithContentDescription("More task list actions").performClick()
         compose.onNodeWithText("Select Tasks").performClick()
         compose.onNodeWithText("Select All").performClick()
@@ -757,6 +758,7 @@ class TaskBulkSelectionUiTest {
 
     private fun openSelectionFor(title: String) {
         compose.onNodeWithContentDescription("Tasks tab").performClick()
+        compose.onNodeWithTag("task-destination-Today").performClick()
         openCurrentDestinationSelection(title)
     }
 

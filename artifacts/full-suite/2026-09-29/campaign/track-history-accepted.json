@@ -1,0 +1,11 @@
+{
+  "command": [
+    "/tmp/whip-history-probe/scripts/android-test-engine",
+    "--mode",
+    "targeted",
+    "--class",
+    "com.whip.app.TrackHistoryJourneyE2ETest"
+  ],
+  "exit": 1,
+  "seconds": 234.335
+}

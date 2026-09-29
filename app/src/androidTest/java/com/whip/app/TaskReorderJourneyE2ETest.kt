@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -65,18 +66,18 @@ class TaskReorderJourneyE2ETest {
             }
             compose.onNodeWithContentDescription("Tasks tab").performClick()
             compose.waitUntil(5_000) {
-                compose.onAllNodesWithTag("task-destination-Inbox").fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithTag("task-destination-Tasks").fetchSemanticsNodes().isNotEmpty()
             }
-            compose.onNodeWithTag("task-destination-Inbox").performClick()
+            compose.selectTaskCollectionScope("All Tasks")
             compose.waitUntil(5_000) {
                 compose.onAllNodesWithContentDescription("More task list actions").fetchSemanticsNodes().isNotEmpty()
             }
             compose.onNodeWithContentDescription("More task list actions").performClick()
             compose.onNodeWithText("Reorder Tasks").performClick()
             compose.waitUntil(5_000) {
-                compose.onAllNodesWithTag("reorder-mode-tasks").fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithText("Reordering Tasks").fetchSemanticsNodes().isNotEmpty()
             }
-            compose.onNodeWithTag("reorder-mode-tasks").assertIsDisplayed()
+            compose.onNodeWithText("Reordering Tasks").assertIsDisplayed()
             compose.onAllNodesWithTag("task-quick-capture").assertCountEquals(0)
             compose.onAllNodesWithContentDescription("More task list actions").assertCountEquals(0)
             compose.onAllNodesWithContentDescription("Complete task First reorder task").assertCountEquals(0)

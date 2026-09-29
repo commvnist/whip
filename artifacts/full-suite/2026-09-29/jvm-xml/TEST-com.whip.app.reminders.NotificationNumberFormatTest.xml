@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.reminders.NotificationNumberFormatTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-09-29T17:05:33.735Z" hostname="beast" time="0.031">
+  <properties/>
+  <testcase name="quickIncrementLabelsUseLocaleSeparatorsWithoutRawDoubleNoise" classname="com.whip.app.reminders.NotificationNumberFormatTest" time="0.031"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

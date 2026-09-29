@@ -1,0 +1,18 @@
+{
+  "group": 2,
+  "selectors": [
+    "com.whip.app.BrandIdentityTest",
+    "com.whip.app.CoreFeatureJourneyE2ETest",
+    "com.whip.app.CustomUnitIntegrityTest",
+    "com.whip.app.CustomUnitJourneyE2ETest",
+    "com.whip.app.DataEpochBoundaryTest",
+    "com.whip.app.DataPrivacyJourneyE2ETest",
+    "com.whip.app.DeepProductivityJourneyTest",
+    "com.whip.app.DeepSharedJourneyTest",
+    "com.whip.app.DialogThemeContrastTest",
+    "com.whip.app.DomainDeletionCoordinatorTest"
+  ],
+  "exit": 1,
+  "seconds": 1077.816,
+  "source_unchanged": true
+}

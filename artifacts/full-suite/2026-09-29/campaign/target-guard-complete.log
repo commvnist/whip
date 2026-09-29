@@ -1,0 +1,64 @@
+PASS missing-serial
+PASS blank-serial
+PASS invalid-serial
+PASS multiple-serials
+PASS offline-target
+PASS unauthorized-target
+PASS physical-instrumentation
+PASS failed-qemu-instrumentation
+PASS connected-emulator
+PASS legacy-connected-emulator
+PASS legacy-emulator-release
+PASS absent-emulator-properties
+PASS negative-legacy-emulator-property
+PASS failed-legacy-identity-read
+PASS catalog-legacy-emulator
+PASS catalog-unverified-target
+PASS matching-two-emulator-set
+PASS duplicate-emulator-set
+PASS third-emulator-in-secondary-slot
+PASS physical-secondary-emulator
+PASS mismatched-secondary-emulator
+PASS explicit compatible two-emulator set guard
+PASS missing-release-target
+PASS emulator-release-target
+PASS failed-qemu-release-target
+PASS connected-physical-release-target
+PASS check-requires-explicit-serial
+PASS coverage-requires-explicit-serial
+PASS qa-targeted-requires-explicit-serial
+PASS release-command-requires-explicit-device
+PASS explicitly-targeted installs
+PASS release commands select guarded physical targets
+PASS personal-phone release uses fast affected checks
+PASS module-local connected-task guards
+PASS compile-task-unguarded
+PASS :app:connectedDebugAndroidTest-accepts-explicit-emulator
+PASS :benchmark:connectedBenchmarkAndroidTest-accepts-explicit-emulator
+PASS gradle-task-requires-explicit-serial
+PASS gradle-task-rejects-malformed-serial
+PASS gradle-task-rejects-physical-target
+PASS gradle-task-rejects-managed-target
+PASS shared Android batch topology contract
+PASS coverage-fresh-eleven-process-accounting
+PASS fresh 11-process coverage accounting and report union
+PASS ordinary font baseline and original scale restoration
+PASS targeted-two-emulator-parallel-accounting
+PASS targeted two-emulator distribution and exact aggregate
+PASS parallel-two-emulator-surfaces-batch-diagnostics
+PASS parallel worker failure diagnostics
+PASS reusable-engine-populates-exact-cache
+PASS reusable-engine-accepts-matching-cache
+PASS reusable-engine-invalidates-only-affected-test-batch
+PASS reusable-engine-invalidates-all-batches-for-production
+PASS reusable-engine-rejects-corrupt-cache
+PASS exact cache reuse and invalidation accounting
+PASS coverage-rejects-class-mismatch
+PASS coverage-rejects-zero-tests
+PASS coverage-rejects-failures
+PASS coverage-rejects-skips
+PASS coverage-rejects-multiple-ec
+PASS coverage-rejects-empty-ec
+PASS coverage-rejects-stale-results
+PASS stale/partial/failed coverage rejection
+All Android target guard regressions passed.

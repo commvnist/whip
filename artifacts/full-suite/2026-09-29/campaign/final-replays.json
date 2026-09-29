@@ -1,0 +1,8 @@
+{
+  "command": [
+    "python3",
+    "/tmp/whip-final-replays.py"
+  ],
+  "exit": -15,
+  "seconds": 117.542
+}

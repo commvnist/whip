@@ -116,8 +116,8 @@ class EntityInspectorUiTest {
             "task-detail-section-Overview",
             "entity-inspector-primary-complete",
             "task-inspector-context-card",
-            "task-inspector-subtasks-card",
         ).forEach { tag -> compose.onNodeWithTag(tag).assertIsDisplayed() }
+        compose.onNodeWithTag("task-inspector-subtasks-card").assertDoesNotExist()
 
         compose.onNodeWithContentDescription("Close Task details").assertHasClickAction()
         compose.onNodeWithContentDescription("Edit Task").assertHasClickAction()

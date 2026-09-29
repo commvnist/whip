@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.reminders.ReminderWorkerRulesTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-09-29T17:05:34.221Z" hostname="beast" time="0.022">
+  <properties/>
+  <testcase name="quietHourShiftKeepsTheOriginalHabitScheduleDate" classname="com.whip.app.reminders.ReminderWorkerRulesTest" time="0.001"/>
+  <testcase name="habitReconciliationKeepsPriorLogicalDaysCrossMidnightQuietShift" classname="com.whip.app.reminders.ReminderWorkerRulesTest" time="0.006"/>
+  <testcase name="exactAlarmTransportRetainsABoundedWorkManagerFallback" classname="com.whip.app.reminders.ReminderWorkerRulesTest" time="0.001"/>
+  <testcase name="taskClaimRequiresExactIdentityOccurrenceTriggerFingerprintAndPhysicalDate" classname="com.whip.app.reminders.ReminderWorkerRulesTest" time="0.002"/>
+  <testcase name="snoozeKeepsExactDefinitionButUsesItsOwnExpectedTrigger" classname="com.whip.app.reminders.ReminderWorkerRulesTest" time="0.0"/>
+  <testcase name="backToBackHabitRemindersAreQueuedAsIndependentOccurrences" classname="com.whip.app.reminders.ReminderWorkerRulesTest" time="0.0"/>
+  <testcase name="habitReconciliationKeepsTodaysQuietShiftedReminder" classname="com.whip.app.reminders.ReminderWorkerRulesTest" time="0.0"/>
+  <testcase name="deliveredHabitOccurrenceAnchorsSuccessorsToItsClaimInsteadOfLateWallClock" classname="com.whip.app.reminders.ReminderWorkerRulesTest" time="0.002"/>
+  <testcase name="exactTimerFallbackKeepsAnImminentDeadlineAndARecoveryGrace" classname="com.whip.app.reminders.ReminderWorkerRulesTest" time="0.0"/>
+  <testcase name="restTimerDeliveryPostsBeforePersistenceAndReplaysTheSameNotificationAfterFailure" classname="com.whip.app.reminders.ReminderWorkerRulesTest" time="0.007"/>
+  <testcase name="shiftedGoalReminderCannotCrossItsDeadline" classname="com.whip.app.reminders.ReminderWorkerRulesTest" time="0.0"/>
+  <testcase name="restTimerRequiresAnActiveSessionAndTheCurrentDueDeadline" classname="com.whip.app.reminders.ReminderWorkerRulesTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

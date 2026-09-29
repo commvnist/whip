@@ -4,54 +4,66 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TaskDao {
+    @Transaction
     @Query("SELECT * FROM tasks WHERE archived = 0 ORDER BY createdAtMillis ASC")
     fun observeActiveTasks(): Flow<List<TaskEntity>>
 
+    @Transaction
     @Query("SELECT * FROM tasks ORDER BY createdAtMillis ASC")
     fun observeAllTasks(): Flow<List<TaskEntity>>
 
+    @Transaction
     @Query("SELECT * FROM task_occurrences")
     fun observeOccurrences(): Flow<List<TaskOccurrenceEntity>>
 
     @Query("SELECT * FROM task_steps ORDER BY taskId, position, id")
     fun observeSteps(): Flow<List<TaskStepEntity>>
 
+    @Transaction
     @Query("SELECT * FROM task_step_states")
     fun observeStepStates(): Flow<List<TaskStepStateEntity>>
 
+    @Transaction
     @Query("SELECT * FROM task_step_snapshots ORDER BY taskId, occurrenceKey, position")
     fun observeStepSnapshots(): Flow<List<TaskStepSnapshotEntity>>
 
+    @Transaction
     @Query("SELECT * FROM tasks")
     suspend fun getAllTasks(): List<TaskEntity>
 
     @Query("SELECT COALESCE(MAX(manualPosition), -1) + 1 FROM tasks")
     suspend fun nextManualPosition(): Int
 
+    @Transaction
     @Query("SELECT * FROM task_occurrences")
     suspend fun getAllOccurrences(): List<TaskOccurrenceEntity>
 
     @Query("SELECT * FROM task_steps")
     suspend fun getAllSteps(): List<TaskStepEntity>
 
+    @Transaction
     @Query("SELECT * FROM task_step_states")
     suspend fun getAllStepStates(): List<TaskStepStateEntity>
 
+    @Transaction
     @Query("SELECT * FROM task_step_snapshots")
     suspend fun getAllStepSnapshots(): List<TaskStepSnapshotEntity>
 
+    @Transaction
     @Query("SELECT * FROM task_step_snapshots WHERE taskId = :taskId ORDER BY occurrenceKey, position")
     suspend fun getStepSnapshotsForTask(taskId: Long): List<TaskStepSnapshotEntity>
 
     @Query("SELECT * FROM tasks WHERE id = :taskId")
     suspend fun getTask(taskId: Long): TaskEntity?
 
+    @Transaction
     @Query("SELECT * FROM tasks WHERE archived = 0")
     suspend fun getActiveTasks(): List<TaskEntity>
 
@@ -61,6 +73,7 @@ interface TaskDao {
     )
     suspend fun getReminderTaskIds(): List<Long>
 
+    @Transaction
     @Query("SELECT * FROM task_occurrences WHERE taskId = :taskId")
     suspend fun getOccurrences(taskId: Long): List<TaskOccurrenceEntity>
 

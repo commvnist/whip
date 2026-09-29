@@ -1,0 +1,14 @@
+{
+  "group": 0,
+  "selectors": [
+    "com.whip.app.TrackHistoryJourneyE2ETest#archivedHistoryCanBeSearchedRecreatedAndRestoredAtLargeText",
+    "com.whip.app.TrackHistoryJourneyE2ETest#archivedHistoryCanBeSearchedRecreatedAndRestored",
+    "com.whip.app.TrackHistoryJourneyE2ETest#emptyArchivedTrackExplainsRestoreThenOffersFirstEntry",
+    "com.whip.app.TrackInsightsJourneyE2ETest#temperatureAndFineScaleInsightsPreserveReadingsWithoutTotals",
+    "com.whip.app.TrackWorkspaceUiTest#tracksAndEntriesHaveOneExplicitSearchOwnerAndArchivedResultsReturnToArchive",
+    "com.whip.app.TrackWorkspaceUiTest#tracksWorkspaceRemainsNavigableInRtlAtTwoHundredPercentText"
+  ],
+  "exit": 0,
+  "seconds": 427.708,
+  "source_unchanged": true
+}

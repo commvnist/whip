@@ -1,0 +1,11 @@
+{
+  "command": [
+    "timeout",
+    "--kill-after=3s",
+    "55s",
+    "scripts/ui-catalog",
+    "lint"
+  ],
+  "exit": 0,
+  "seconds": 1.36
+}

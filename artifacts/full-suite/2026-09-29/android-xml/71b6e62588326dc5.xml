@@ -1,0 +1,161 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="78" failures="1" errors="0" skipped="0" time="705.36" timestamp="2026-09-29T16:18:19" hostname="localhost">
+  <testsuite name="com.whip.app.WorkoutGroupedSetNavigationE2ETest" tests="1" failures="0" errors="0" skipped="0" time="67.498" timestamp="2026-09-29T16:18:19" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="nextSetInLongSupersetIsVisibleAfterJumpAndRecreation" classname="com.whip.app.WorkoutGroupedSetNavigationE2ETest" time="67.498" />
+  </testsuite>
+  <testsuite name="com.whip.app.WorkoutRestJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="145.846" timestamp="2026-09-29T16:18:19" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="restFollowsTheNextSetAndOverridesCanReturnToPrescriptions" classname="com.whip.app.WorkoutRestJourneyE2ETest" time="145.846">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'history-set-card-12')
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+at com.whip.app.WorkoutRestJourneyE2ETest.restFollowsTheNextSetAndOverridesCanReturnToPrescriptions(WorkoutRestJourneyE2ETest.kt:142)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.ZPlatformNotificationSurfaceE2ETest" tests="1" failures="0" errors="0" skipped="0" time="20.213" timestamp="2026-09-29T16:18:19" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="settingsTestNotificationIsPostedAndVisibleInAndroidsNotificationShade" classname="com.whip.app.ZPlatformNotificationSurfaceE2ETest" time="20.213" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.AreaMutationViewModelTest" tests="3" failures="0" errors="0" skipped="0" time="2.031" timestamp="2026-09-29T16:18:19" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="rejectedAreaMutationReturnsToItsExactOwnerWithoutChangingTheArea" classname="com.whip.app.ui.AreaMutationViewModelTest" time="0.916" />
+    <testcase name="deleteKeepingItemsUsesRepositoryTruthWithoutACollectedUiProjection" classname="com.whip.app.ui.AreaMutationViewModelTest" time="0.659" />
+    <testcase name="successfulMergeReturnsOneReceiptAndMovesTheSavedAreaScope" classname="com.whip.app.ui.AreaMutationViewModelTest" time="0.456" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.ElapsedGoalTimeUiTest" tests="4" failures="0" errors="0" skipped="0" time="33.053" timestamp="2026-09-29T16:18:19" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="editorPersistsAnyElapsedUnitCombinationAndShowsALivePreview" classname="com.whip.app.ui.ElapsedGoalTimeUiTest" time="14.293" />
+    <testcase name="resetWithoutEditingPreservesTheExactInstantAndActionsRemainUsableAtLargeText" classname="com.whip.app.ui.ElapsedGoalTimeUiTest" time="10.045" />
+    <testcase name="collapsedElapsedGoalCardKeepsEveryConfiguredUnitVisibleAtNormalText" classname="com.whip.app.ui.ElapsedGoalTimeUiTest" time="6.257" />
+    <testcase name="collapsedElapsedGoalCardKeepsEveryConfiguredUnitVisibleAtLargeText" classname="com.whip.app.ui.ElapsedGoalTimeUiTest" time="2.458" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.EntitySaveCoordinatorUiTest" tests="20" failures="0" errors="0" skipped="0" time="172.722" timestamp="2026-09-29T16:18:19" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="verifiedSaveToAnArchivedAreaFallsBackToAllAreas" classname="com.whip.app.ui.EntitySaveCoordinatorUiTest" time="20.194" />
+    <testcase name="configuredHabitAutomaticallyRevealsItsReminderAndScheduleSettings" classname="com.whip.app.ui.EntitySaveCoordinatorUiTest" time="12.334" />
+    <testcase name="atMostHabitShowsAndSavesItsMaximumWhileIgnoringInactiveScheduleValues" classname="com.whip.app.ui.EntitySaveCoordinatorUiTest" time="7.806" />
+    <testcase name="checklistModeRemovesNumericQuickButtonsAndSavesCanonicalValues" classname="com.whip.app.ui.EntitySaveCoordinatorUiTest" time="13.068" />
+    <testcase name="matchingSuccessSettlesTheRestoredEditorExactlyOnce" classname="com.whip.app.ui.EntitySaveCoordinatorUiTest" time="3.213" />
+    <testcase name="habitScheduleDisclosureSurvivesStateRestoration" classname="com.whip.app.ui.EntitySaveCoordinatorUiTest" time="9.544" />
+    <testcase name="abandonedTerminalResultsAreReclaimedAcrossNamespacedSurfacesInBothDirections" classname="com.whip.app.ui.EntitySaveCoordinatorUiTest" time="4.589" />
+    <testcase name="restoredRequestWithoutALiveViewModelCannotRemainStuckSaving" classname="com.whip.app.ui.EntitySaveCoordinatorUiTest" time="4.653" />
+    <testcase name="habitSavingBlocksEditingAndDeepFailureReturnsToTheRetainedDraft" classname="com.whip.app.ui.EntitySaveCoordinatorUiTest" time="10.596" />
+    <testcase name="failureStaysInsideTheEditorAsALiveRetryableMessage" classname="com.whip.app.ui.EntitySaveCoordinatorUiTest" time="3.135" />
+    <testcase name="secondBeginCannotReplaceTheOwnedRequest" classname="com.whip.app.ui.EntitySaveCoordinatorUiTest" time="1.672" />
+    <testcase name="terminalResultFromAnEditorThatLeftCompositionIsReclaimed" classname="com.whip.app.ui.EntitySaveCoordinatorUiTest" time="3.294" />
+    <testcase name="rejectedSaveAndNewRetainsIntentThenAcceptedSuccessStartsAFreshDraft" classname="com.whip.app.ui.EntitySaveCoordinatorUiTest" time="16.945" />
+    <testcase name="invalidHiddenEndConditionReopensScheduleOptionsOnSave" classname="com.whip.app.ui.EntitySaveCoordinatorUiTest" time="14.432" />
+    <testcase name="taskFailureKeepsDraftAndScopeWhileSuccessReconcilesExactlyOnce" classname="com.whip.app.ui.EntitySaveCoordinatorUiTest" time="17.853" />
+    <testcase name="goalSavingBlocksEditingAndDeepFailureReturnsToTheRetainedDraft" classname="com.whip.app.ui.EntitySaveCoordinatorUiTest" time="12.711" />
+    <testcase name="userDataGenerationChangeDropsStaleIdentityStateAndRestoresOnlyTheNewGeneration" classname="com.whip.app.ui.EntitySaveCoordinatorUiTest" time="3.089" />
+    <testcase name="nonOwningNamespaceCannotStealTerminalDeliveryFromComposedOwner" classname="com.whip.app.ui.EntitySaveCoordinatorUiTest" time="2.703" />
+    <testcase name="unknownTrackCreateOutcomeWarnsAgainstRetryUntilTheListIsVerified" classname="com.whip.app.ui.EntitySaveCoordinatorUiTest" time="3.977" />
+    <testcase name="basicHabitCreationSummarizesRemindersAndDisclosesAdvancedScheduleOptions" classname="com.whip.app.ui.EntitySaveCoordinatorUiTest" time="6.914" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.EntitySaveViewModelIntegrationTest" tests="14" failures="0" errors="0" skipped="0" time="8.645" timestamp="2026-09-29T16:18:19" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="restoredExistingTaskEditWithoutExactSnapshotFailsClosedWithoutCreatingDuplicate" classname="com.whip.app.ui.EntitySaveViewModelIntegrationTest" time="1.449" />
+    <testcase name="habitRepositoryFailureProducesOwnedRetryableFailureAndNoEntity" classname="com.whip.app.ui.EntitySaveViewModelIntegrationTest" time="0.608" />
+    <testcase name="missingHabitHistoryTargetReturnsAnOwnedFailureWithoutGlobalErrorNoise" classname="com.whip.app.ui.EntitySaveViewModelIntegrationTest" time="0.227" />
+    <testcase name="staleTaskScheduleReturnsOwnedFailureAndPreservesCurrentDefinition" classname="com.whip.app.ui.EntitySaveViewModelIntegrationTest" time="0.229" />
+    <testcase name="authoritativeTaskCommitSurvivesTagFollowUpFailureWithoutDuplicateRetryState" classname="com.whip.app.ui.EntitySaveViewModelIntegrationTest" time="0.635" />
+    <testcase name="successfulGoalSaveUsesVisibleStateInsteadOfAnActionSnackbar" classname="com.whip.app.ui.EntitySaveViewModelIntegrationTest" time="0.695" />
+    <testcase name="habitHistoryRequestAdmitsExactlyOneMutationAndReturnsItsTypedReceipt" classname="com.whip.app.ui.EntitySaveViewModelIntegrationTest" time="0.864" />
+    <testcase name="historicalSkipUndoAdmitsOneTapAndReportsARepeatedMissingTargetAsOwnedFailure" classname="com.whip.app.ui.EntitySaveViewModelIntegrationTest" time="0.737" />
+    <testcase name="goalRepositoryFailureProducesOwnedRetryableFailureAndNoEntity" classname="com.whip.app.ui.EntitySaveViewModelIntegrationTest" time="0.437" />
+    <testcase name="taskScheduleRequestAdmitsExactlyOneMutationAndReturnsItsExactReceipt" classname="com.whip.app.ui.EntitySaveViewModelIntegrationTest" time="0.721" />
+    <testcase name="restoredExistingTaskEditWithExactBoundaryUpdatesOnceWithoutCreatingDuplicate" classname="com.whip.app.ui.EntitySaveViewModelIntegrationTest" time="0.737" />
+    <testcase name="permanentDeleteRejectsAnUnreviewedRevisionAndKeepsTheTask" classname="com.whip.app.ui.EntitySaveViewModelIntegrationTest" time="0.572" />
+    <testcase name="restoredEditorBoundaryRejectsExternalMutationWithoutOverwriteOrDuplicate" classname="com.whip.app.ui.EntitySaveViewModelIntegrationTest" time="0.456" />
+    <testcase name="repositoryFailureProducesOwnedRetryableFailureAndNoEntity" classname="com.whip.app.ui.EntitySaveViewModelIntegrationTest" time="0.278" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.FirstRunSetupPersistenceUiTest" tests="5" failures="0" errors="0" skipped="0" time="61.095" timestamp="2026-09-29T16:18:19" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="restoredDraftWithLostRequestExplainsInterruptionAndCanFinish" classname="com.whip.app.ui.FirstRunSetupPersistenceUiTest" time="9.496" />
+    <testcase name="recommendedSetupCanRetryAdmissionAndStorageFailuresWithoutRequestingPermission" classname="com.whip.app.ui.FirstRunSetupPersistenceUiTest" time="7.674" />
+    <testcase name="completedSetupLeavesAnotherSettingsEditorsResultOwnedByThatEditor" classname="com.whip.app.ui.FirstRunSetupPersistenceUiTest" time="2.743" />
+    <testcase name="failedCommitRetainsCustomizedDraftThroughRecreationAndOnlyConfirmedRetryRequestsPermission" classname="com.whip.app.ui.FirstRunSetupPersistenceUiTest" time="21.596" />
+    <testcase name="customizationAndSaveFailureStayReachableAtLargeTextInRtl" classname="com.whip.app.ui.FirstRunSetupPersistenceUiTest" time="19.586" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.GoalSecondaryMutationUiTest" tests="14" failures="0" errors="0" skipped="0" time="180.014" timestamp="2026-09-29T16:18:19" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="terminalMilestoneSummaryUsesTheFrozenClosureRatherThanTheEditedDefinition" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="3.898" />
+    <testcase name="rangeAndConsistencyOutcomesKeepTheirMeasurementMeaning" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="14.365" />
+    <testcase name="editingOnlyAProgressNotePreservesItsTinyEnteredValueThroughRestoration" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="10.608" />
+    <testcase name="startDateControlsBackdatedProgressAndSurvivesRestoration" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="17.387" />
+    <testcase name="progressDatePolicyRejectsFutureAndConfirmsOutsideGoalWindow" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="6.247" />
+    <testcase name="archivedInspectorPreservesLifecycleHistoryAndHidesMisleadingPin" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="6.494" />
+    <testcase name="progressFailureKeepsDraftAndSavingBlocksBackAndDuplicateSubmit" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="15.435" />
+    <testcase name="unitChangesPreserveTargetsAndPartialDrafts" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="25.75" />
+    <testcase name="permanentDeleteShowsCompleteImpactAndRequiresRereviewAfterStaleFailure" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="6.363" />
+    <testcase name="leavingAnActionSurfaceClearsItsFailedRequestBeforeOpeningAnotherDialog" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="2.023" />
+    <testcase name="captureGoalComponentCatalog" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="21.751" />
+    <testcase name="deadlineRemovalAndCalculationSettingsSurviveRestoration" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="23.409" />
+    <testcase name="milestoneWeightKeepsPartialDecimalAndValidatesBlankDraft" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="21.258" />
+    <testcase name="milestoneIsEditableOnlyForAnUnarchivedActiveGoal" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="5.026" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.GymDeletionViewModelIntegrationTest" tests="15" failures="0" errors="0" skipped="0" time="9.427" timestamp="2026-09-29T16:18:19" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="restoredRequestWithAbsentMachineSettlesAsAchievedExactlyOnce" classname="com.whip.app.ui.GymDeletionViewModelIntegrationTest" time="1.92" />
+    <testcase name="activityRotationKeepsTheSameRunningOwnerAndDoesNotRedeliverAfterConsumption" classname="com.whip.app.ui.GymDeletionViewModelIntegrationTest" time="0.203" />
+    <testcase name="historyCopyAuthorshipSurvivesWorkspaceDisposalAndProcessRestorationExactly" classname="com.whip.app.ui.GymDeletionViewModelIntegrationTest" time="0.232" />
+    <testcase name="restoredRequestWithAbsentRoutineReconcilesWithoutRecreatingOrDeletingHistory" classname="com.whip.app.ui.GymDeletionViewModelIntegrationTest" time="0.682" />
+    <testcase name="rapidDoubleConfirmAdmitsOnlyOneDeletionAndTerminalResultHasOneOwner" classname="com.whip.app.ui.GymDeletionViewModelIntegrationTest" time="0.697" />
+    <testcase name="restoredRequestWithPresentExerciseIsAdoptedThenReportedInterruptedWithoutDeleting" classname="com.whip.app.ui.GymDeletionViewModelIntegrationTest" time="0.254" />
+    <testcase name="userDataGenerationChangeClearsTheOldOwnerAndPreventsStaleSuccess" classname="com.whip.app.ui.GymDeletionViewModelIntegrationTest" time="0.965" />
+    <testcase name="unverifiedPresentTargetSurvivesProcessReplacementAndFreshVerificationInterruptsSafely" classname="com.whip.app.ui.GymDeletionViewModelIntegrationTest" time="0.404" />
+    <testcase name="restoredRequestWithAbsentExerciseReconcilesToAchievedExactlyOnce" classname="com.whip.app.ui.GymDeletionViewModelIntegrationTest" time="0.762" />
+    <testcase name="machinePreviewRejectsAReusedIdentityWithoutOfferingDeletion" classname="com.whip.app.ui.GymDeletionViewModelIntegrationTest" time="0.429" />
+    <testcase name="restoredRequestWithAbsentWorkoutReconcilesWithoutTouchingExerciseDefinitions" classname="com.whip.app.ui.GymDeletionViewModelIntegrationTest" time="1.493" />
+    <testcase name="unverifiedOutcomeCanBeReplacedTwiceAndOnlyLatestRequestCanSettle" classname="com.whip.app.ui.GymDeletionViewModelIntegrationTest" time="0.303" />
+    <testcase name="unverifiedAbsentTargetSurvivesProcessReplacementAndFreshVerificationReconciles" classname="com.whip.app.ui.GymDeletionViewModelIntegrationTest" time="0.327" />
+    <testcase name="reviewedMachineDeletionAdmitsOneOwnerAndPreservesTheExerciseDefinition" classname="com.whip.app.ui.GymDeletionViewModelIntegrationTest" time="0.328" />
+    <testcase name="reviewedWorkoutDeletionPublishesAnExactlyOwnedSuccess" classname="com.whip.app.ui.GymDeletionViewModelIntegrationTest" time="0.428" />
+  </testsuite>
+</testsuites>

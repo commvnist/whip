@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="8" failures="0" errors="0" skipped="0" time="269.758" timestamp="2026-09-29T15:53:11" hostname="localhost">
+  <testsuite name="com.whip.app.HomeHabitRecoveryUiTest" tests="6" failures="0" errors="0" skipped="0" time="183.004" timestamp="2026-09-29T15:53:11" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="taskFiltersShowLiveMatchCountForSavedViewsAndResetDrafts" classname="com.whip.app.HomeHabitRecoveryUiTest" time="39.699" />
+    <testcase name="habitInsightsShowRealActivityAndOpenThatHabitsHistory" classname="com.whip.app.HomeHabitRecoveryUiTest" time="32.079" />
+    <testcase name="denseTaskCalendarKeepsDateAndCountsLegibleAtLargeText" classname="com.whip.app.HomeHabitRecoveryUiTest" time="29.29" />
+    <testcase name="calendarExplainsClearDayAndBoundsLoadedPlanningWindow" classname="com.whip.app.HomeHabitRecoveryUiTest" time="39.277" />
+    <testcase name="manyTaskFiltersKeepTheResultsViewportReachableAtLargeText" classname="com.whip.app.HomeHabitRecoveryUiTest" time="18.183" />
+    <testcase name="addingNoteAfterNumericLogDoesNotRepeatItsAmount" classname="com.whip.app.HomeHabitRecoveryUiTest" time="24.476" />
+  </testsuite>
+  <testsuite name="com.whip.app.InlineTaskCaptureE2ETest" tests="2" failures="0" errors="0" skipped="0" time="84.482" timestamp="2026-09-29T15:53:11" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="inlineTaskDraftSurvivesRecreationAndSavesWithTheNativeKeyboardAtLargeText" classname="com.whip.app.InlineTaskCaptureE2ETest" time="42.578" />
+    <testcase name="inlineTaskDraftSurvivesRecreationAndSavesWithTheNativeKeyboard" classname="com.whip.app.InlineTaskCaptureE2ETest" time="41.904" />
+  </testsuite>
+</testsuites>

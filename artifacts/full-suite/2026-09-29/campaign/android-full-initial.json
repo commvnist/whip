@@ -1,0 +1,11 @@
+{
+  "command": [
+    "scripts/android-test-engine",
+    "--mode",
+    "coverage",
+    "--evidence-dir",
+    "build/full-suite-20260929-resumed/android-initial"
+  ],
+  "exit": 1,
+  "seconds": 247.497
+}

@@ -1,0 +1,52 @@
+[
+  {
+    "group": 14,
+    "selectors": [
+      "com.whip.app.ui.HabitDeletionUiTest",
+      "com.whip.app.ui.HabitDeletionViewModelIntegrationTest",
+      "com.whip.app.ui.HabitUxPresentationUiTest",
+      "com.whip.app.ui.HomeDestinationLinksTest",
+      "com.whip.app.ui.ProductAuditSharedUiTest",
+      "com.whip.app.ui.SafetyChoiceUiTest",
+      "com.whip.app.ui.SettingItemBuilderUiTest",
+      "com.whip.app.ui.SettingsResponsiveUiTest",
+      "com.whip.app.ui.SharedChoiceAccessibilityUiTest",
+      "com.whip.app.ui.SharedConsistencyUiTest"
+    ],
+    "exit": 1,
+    "seconds": 636.624,
+    "source_unchanged": true
+  },
+  {
+    "group": 15,
+    "selectors": [
+      "com.whip.app.ui.SharedResilienceAuditUiTest",
+      "com.whip.app.ui.StatusToneThemeUiTest",
+      "com.whip.app.ui.TagManagementUiTest",
+      "com.whip.app.ui.TagMutationViewModelTest",
+      "com.whip.app.ui.TrackCsvImportRecoveryViewModelTest",
+      "com.whip.app.ui.TrackCsvImportUiTest",
+      "com.whip.app.ui.TrackEditorCheckpointTest",
+      "com.whip.app.ui.TrackEntryDeleteRecoveryUiTest",
+      "com.whip.app.ui.TrackHistorySearchUiTest",
+      "com.whip.app.ui.UnifiedSearchAdaptiveUiTest"
+    ],
+    "exit": 1,
+    "seconds": 322.703,
+    "source_unchanged": true
+  },
+  {
+    "group": 16,
+    "selectors": [
+      "com.whip.app.ui.VisualCatalogHabitComponentsTest",
+      "com.whip.app.ui.VisualCatalogSharedComponentsTest",
+      "com.whip.app.ui.VisualCatalogTaskComponentsTest",
+      "com.whip.app.ui.WhipRecordItemTest",
+      "com.whip.app.ui.WhipSummaryBuilderTest",
+      "com.whip.app.ui.WorkoutDeletionUiTest"
+    ],
+    "exit": 1,
+    "seconds": 156.855,
+    "source_unchanged": true
+  }
+]

@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="8" failures="1" errors="0" skipped="0" time="735.753" timestamp="2026-09-29T16:52:34" hostname="localhost">
+  <testsuite name="com.whip.app.TrackCollectionJourneyE2ETest" tests="3" failures="1" errors="0" skipped="0" time="168.475" timestamp="2026-09-29T16:52:34" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="areaChangesKeepOnlyVisibleSelection" classname="com.whip.app.TrackCollectionJourneyE2ETest" time="70.74" />
+    <testcase name="areaChangesKeepOnlyVisibleSelectionAtLargeText" classname="com.whip.app.TrackCollectionJourneyE2ETest" time="62.905" />
+    <testcase name="archivedAndActiveSelectionsStaySeparateAtLargeText" classname="com.whip.app.TrackCollectionJourneyE2ETest" time="34.83">
+      <failure>java.lang.AssertionError: No node found that matches Text + InputText + EditableText contains '1 Track selected' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #2492 at (l=0.0, t=724.0, r=1080.0, b=1959.0)px, Tag: 'track-list'
+CollectionInfo = 'CollectionInfo(rowCount=0, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape&#64;aac4a9d'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 2 children, 4 siblings
+Selector used: (TestTag = 'track-list')
+
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+at com.whip.app.TrackCollectionJourneyE2ETest.scroll(TrackCollectionJourneyE2ETest.kt:170)
+at com.whip.app.TrackCollectionJourneyE2ETest.summary(TrackCollectionJourneyE2ETest.kt:168)
+at com.whip.app.TrackCollectionJourneyE2ETest.archivedSelection(TrackCollectionJourneyE2ETest.kt:107)
+at com.whip.app.TrackCollectionJourneyE2ETest.archivedAndActiveSelectionsStaySeparateAtLargeText(TrackCollectionJourneyE2ETest.kt:35)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.TrackHistoryControlsJourneyE2ETest" tests="3" failures="0" errors="0" skipped="0" time="495.117" timestamp="2026-09-29T16:52:34" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="dateBetweenConditionIncludesBothBoundariesAndSurvivesRecreation" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="84.206" />
+    <testcase name="pagedHistoryCanCombineAndRecoverFiltersAtLargeText" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="213.787" />
+    <testcase name="pagedHistoryCanCombineAndRecoverFilters" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="197.124" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackInsightRecoveryJourneyE2ETest" tests="2" failures="0" errors="0" skipped="0" time="68.784" timestamp="2026-09-29T16:52:34" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedEntrylessTrackOffersReadOnlyRecovery" classname="com.whip.app.TrackInsightRecoveryJourneyE2ETest" time="24.57" />
+    <testcase name="unmatchedInsightFiltersCanRecoverExactHistory" classname="com.whip.app.TrackInsightRecoveryJourneyE2ETest" time="44.214" />
+  </testsuite>
+</testsuites>

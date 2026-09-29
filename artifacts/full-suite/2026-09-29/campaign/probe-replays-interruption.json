@@ -1,0 +1,7 @@
+{
+  "group": 7,
+  "exit": 143,
+  "interrupted": true,
+  "source_unchanged": true,
+  "reason": "Command session reported exit 143; host driver and device instrumentation no longer running. No final group result or acceptance."
+}

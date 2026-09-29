@@ -1,0 +1,14 @@
+{
+  "group": 16,
+  "selectors": [
+    "com.whip.app.ui.VisualCatalogHabitComponentsTest",
+    "com.whip.app.ui.VisualCatalogSharedComponentsTest",
+    "com.whip.app.ui.VisualCatalogTaskComponentsTest",
+    "com.whip.app.ui.WhipRecordItemTest",
+    "com.whip.app.ui.WhipSummaryBuilderTest",
+    "com.whip.app.ui.WorkoutDeletionUiTest"
+  ],
+  "exit": 20,
+  "seconds": 0.562,
+  "source_unchanged": true
+}

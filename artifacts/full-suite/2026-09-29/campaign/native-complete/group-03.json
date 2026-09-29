@@ -1,0 +1,18 @@
+{
+  "group": 3,
+  "selectors": [
+    "com.whip.app.ui.EditorDependencyUxTest",
+    "com.whip.app.EditorStateRecreationTest",
+    "com.whip.app.EncryptedBackupCodecTest",
+    "com.whip.app.EntityInspectorUiTest",
+    "com.whip.app.ExecutionItemBuilderJourneyE2ETest",
+    "com.whip.app.FirstClassWorkflowE2ETest",
+    "com.whip.app.FirstRunJourneyTest",
+    "com.whip.app.FiveThreeOneCycleReviewUiTest",
+    "com.whip.app.FocusHomeJourneyE2ETest",
+    "com.whip.app.FocusTimeSelectionUiTest"
+  ],
+  "exit": 1,
+  "seconds": 986.573,
+  "source_unchanged": true
+}

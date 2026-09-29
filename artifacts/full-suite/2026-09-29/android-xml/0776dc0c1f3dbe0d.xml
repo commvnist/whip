@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="8" failures="2" errors="0" skipped="0" time="466.876" timestamp="2026-09-29T15:44:33" hostname="localhost">
+  <testsuite name="com.whip.app.WhipNavigationTest" tests="2" failures="1" errors="0" skipped="0" time="118.495" timestamp="2026-09-29T15:44:33" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="primaryAreasAndAccessibleTopActionsAreReachable" classname="com.whip.app.WhipNavigationTest" time="38.612" />
+    <testcase name="everyFirstClassDestinationIsReachableThroughVisibleNavigation" classname="com.whip.app.WhipNavigationTest" time="79.883">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'Patterns across Tracks' (ignoreCase: false))
+Semantics of the node:
+Node #1970 at (l=53.0, t=524.0, r=754.0, b=567.0)px, Tag: 'workspace-context-summary'
+Text = '[0 entries · Patterns across Tracks]'
+[Heading]
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 1 sibling
+Selector used: (TestTag = 'workspace-context-summary')
+
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+at com.whip.app.WhipNavigationTest.everyFirstClassDestinationIsReachableThroughVisibleNavigation(WhipNavigationTest.kt:262)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.AdaptiveWhipScreenTest" tests="1" failures="1" errors="0" skipped="0" time="8.971" timestamp="2026-09-29T15:44:33" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="taskDetailsStayInsideTheContentPaneOnAFlatBookFold" classname="com.whip.app.AdaptiveWhipScreenTest" time="8.971">
+      <failure>java.lang.AssertionError: No node found that matches ContentDescription = 'Open task details for Pane-safe task' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #2206 at (l=723.0, t=640.0, r=1080.0, b=2242.0)px, Tag: 'task-workspace-list'
+CollectionInfo = 'CollectionInfo(rowCount=3, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape&#64;4f88b7f'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 4 children, 3 siblings
+Selector used: (TestTag = 'task-workspace-list')
+
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+at com.whip.app.AdaptiveWhipScreenTest.taskDetailsStayInsideTheContentPaneOnAFlatBookFold(AdaptiveWhipScreenTest.kt:1087)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.DeepProductivityJourneyTest" tests="1" failures="0" errors="0" skipped="0" time="81.522" timestamp="2026-09-29T15:44:33" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="habitAndGoalSearchUsesTheWorkspaceActionAndKeepsCollectionsClear" classname="com.whip.app.DeepProductivityJourneyTest" time="81.522" />
+  </testsuite>
+  <testsuite name="com.whip.app.DeepSharedJourneyTest" tests="1" failures="0" errors="0" skipped="0" time="116.451" timestamp="2026-09-29T15:44:33" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="workspaceSearchAndSavedFilterChildRetainConsistentChrome" classname="com.whip.app.DeepSharedJourneyTest" time="116.451" />
+  </testsuite>
+  <testsuite name="com.whip.app.EntityInspectorUiTest" tests="1" failures="0" errors="0" skipped="0" time="6.037" timestamp="2026-09-29T15:44:33" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="taskInspectorKeepsIdentityNavigationAndPrimaryActionStable" classname="com.whip.app.EntityInspectorUiTest" time="6.037" />
+  </testsuite>
+  <testsuite name="com.whip.app.ExecutionItemBuilderJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="50.105" timestamp="2026-09-29T15:44:33" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="skippedSetKeepsItsMeaningThenRestoresLogsAndReopensInHistory" classname="com.whip.app.ExecutionItemBuilderJourneyE2ETest" time="50.105" />
+  </testsuite>
+  <testsuite name="com.whip.app.GlobalSearchRoutingTest" tests="1" failures="0" errors="0" skipped="0" time="82.991" timestamp="2026-09-29T15:44:33" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="everyNonTaskSearchDomainLandsOnTheExactActiveOrArchivedRecord" classname="com.whip.app.GlobalSearchRoutingTest" time="82.991" />
+  </testsuite>
+</testsuites>

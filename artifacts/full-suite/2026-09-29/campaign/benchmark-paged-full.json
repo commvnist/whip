@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/tmp/whip-history-probe/gradlew",
+    "-p",
+    "/tmp/whip-history-probe",
+    ":benchmark:connectedBenchmarkAndroidTest",
+    "--no-configuration-cache",
+    "--no-build-cache",
+    "--console=plain"
+  ],
+  "exit": 1,
+  "seconds": 1162.233
+}

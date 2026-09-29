@@ -1,0 +1,16 @@
+{
+  "group": 3,
+  "selectors": [
+    "com.whip.app.TrackCollectionJourneyE2ETest#archivedAndActiveSelectionsStaySeparateAtLargeText",
+    "com.whip.app.TrackCollectionJourneyE2ETest#areaChangesKeepOnlyVisibleSelection",
+    "com.whip.app.TrackCollectionJourneyE2ETest#areaChangesKeepOnlyVisibleSelectionAtLargeText",
+    "com.whip.app.TrackHistoryControlsJourneyE2ETest#dateBetweenConditionIncludesBothBoundariesAndSurvivesRecreation",
+    "com.whip.app.TrackHistoryControlsJourneyE2ETest#pagedHistoryCanCombineAndRecoverFilters",
+    "com.whip.app.TrackHistoryControlsJourneyE2ETest#pagedHistoryCanCombineAndRecoverFiltersAtLargeText",
+    "com.whip.app.TrackInsightRecoveryJourneyE2ETest#archivedEntrylessTrackOffersReadOnlyRecovery",
+    "com.whip.app.TrackInsightRecoveryJourneyE2ETest#unmatchedInsightFiltersCanRecoverExactHistory"
+  ],
+  "exit": 1,
+  "seconds": 763.79,
+  "source_unchanged": true
+}

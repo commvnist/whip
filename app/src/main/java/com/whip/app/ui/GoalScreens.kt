@@ -162,6 +162,7 @@ private fun GoalDestination.supportingText(): String = when (this) {
 
 @Composable
 fun GoalAreaContent(
+    onBackToSource: (() -> Unit)? = null,
     state: GoalUiState,
     editorState: GoalUiState = state,
     innerPadding: PaddingValues,
@@ -199,7 +200,7 @@ fun GoalAreaContent(
     var destination by activeDestinationState
     var archiveReturn by rememberSaveable { mutableStateOf(GoalDestination.Active) }
     val pages = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
-    BackHandler(enabled = showWorkspace && destination == GoalDestination.Archived) { destination = archiveReturn }
+    BackHandler(enabled = showWorkspace && destination == GoalDestination.Archived) { if (onBackToSource != null) onBackToSource() else destination = archiveReturn }
     if (state.loading || state.errorMessage != null) {
         if (showWorkspace) Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             DestinationTabBar(
@@ -430,7 +431,7 @@ fun GoalAreaContent(
                 GoalDestination.Insights -> "Trends across ${list.size} ongoing goals"
                 GoalDestination.Archived -> "Archived Goals"
             },
-            onBack = { destination = archiveReturn }.takeIf { destination == GoalDestination.Archived },
+            onBack = { if (onBackToSource != null) onBackToSource() else destination = archiveReturn }.takeIf { destination == GoalDestination.Archived },
         ) {
             if (manageOrder) WhipTextButton(onClick = { manageOrder = false }) { Text("Done") }
             else WhipWorkspaceMore("More Goal Actions") { close ->

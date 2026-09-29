@@ -1,0 +1,18 @@
+{
+  "group": 1,
+  "selectors": [
+    "com.whip.app.LargeHistorySnapshotTest",
+    "com.whip.app.RoutineRepositoryTest",
+    "com.whip.app.WhipNavigationTest",
+    "com.whip.app.ActivityHistoryUiTest",
+    "com.whip.app.ActivityThemeContrastTest",
+    "com.whip.app.AdaptiveWhipScreenTest",
+    "com.whip.app.AppSettingsPersistenceTest",
+    "com.whip.app.ui.AreaFeatureUiTest",
+    "com.whip.app.AreaOrganizationJourneyE2ETest",
+    "com.whip.app.BackupRepositoryTest"
+  ],
+  "exit": 1,
+  "seconds": 1163.047,
+  "source_unchanged": true
+}

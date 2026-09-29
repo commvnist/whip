@@ -1,0 +1,18 @@
+{
+  "group": 11,
+  "selectors": [
+    "com.whip.app.TrackEntryMutationUiTest",
+    "com.whip.app.TrackFieldEditingJourneyE2ETest",
+    "com.whip.app.TrackHistoryControlsJourneyE2ETest",
+    "com.whip.app.TrackHistoryJourneyE2ETest",
+    "com.whip.app.TrackImportedTextJourneyE2ETest",
+    "com.whip.app.TrackInsightRecoveryJourneyE2ETest",
+    "com.whip.app.TrackInsightWindowJourneyE2ETest",
+    "com.whip.app.TrackInsightsJourneyE2ETest",
+    "com.whip.app.TrackProjectionConsistencyTest",
+    "com.whip.app.TrackRepositoryTest"
+  ],
+  "exit": 1,
+  "seconds": 1844.159,
+  "source_unchanged": true
+}

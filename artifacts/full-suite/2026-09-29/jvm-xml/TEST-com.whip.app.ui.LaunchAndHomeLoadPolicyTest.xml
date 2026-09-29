@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.LaunchAndHomeLoadPolicyTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-09-29T17:05:38.490Z" hostname="beast" time="0.029">
+  <properties/>
+  <testcase name="calendarGateRejectsMixedDomainProjectionsUntilEveryDomainCatchesUp" classname="com.whip.app.ui.LaunchAndHomeLoadPolicyTest" time="0.0"/>
+  <testcase name="recurringTaskOccurrenceOutsideTheProjectionFallsBackToTheExistingTask" classname="com.whip.app.ui.LaunchAndHomeLoadPolicyTest" time="0.013"/>
+  <testcase name="launchResolutionWaitsOnlyForTheApplicableDomainIncludingTracks" classname="com.whip.app.ui.LaunchAndHomeLoadPolicyTest" time="0.0"/>
+  <testcase name="homeEmptyStatesRequireEveryVisibleDomainToSettleSuccessfully" classname="com.whip.app.ui.LaunchAndHomeLoadPolicyTest" time="0.004"/>
+  <testcase name="existingTrackDeepLinkOpensTheTrack" classname="com.whip.app.ui.LaunchAndHomeLoadPolicyTest" time="0.001"/>
+  <testcase name="failedApplicableDomainRemainsRetryableInsteadOfLookingDeleted" classname="com.whip.app.ui.LaunchAndHomeLoadPolicyTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,308 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="92" failures="13" errors="0" skipped="0" time="429.925" timestamp="2026-09-29T15:05:12" hostname="localhost">
+  <testsuite name="com.whip.app.HabitDeletionCoordinatorTest" tests="5" failures="0" errors="0" skipped="0" time="1.67" timestamp="2026-09-29T15:05:12" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="missingAndMismatchedTargetsFailClosed" classname="com.whip.app.HabitDeletionCoordinatorTest" time="0.27" />
+    <testcase name="changedTimerHistoryRejectsTheStaleReviewWithoutDeletingAnything" classname="com.whip.app.HabitDeletionCoordinatorTest" time="0.254" />
+    <testcase name="cancellationAfterCommitCarriesTheSummaryAndCannotInviteReplay" classname="com.whip.app.HabitDeletionCoordinatorTest" time="0.279" />
+    <testcase name="postCommitReminderFailureReturnsACommittedWarningAndReconciliation" classname="com.whip.app.HabitDeletionCoordinatorTest" time="0.333" />
+    <testcase name="previewAndSummaryCoverTheCompleteCascadedHabitGraph" classname="com.whip.app.HabitDeletionCoordinatorTest" time="0.534" />
+  </testsuite>
+  <testsuite name="com.whip.app.HabitRepositoryTest" tests="40" failures="0" errors="0" skipped="0" time="7.482" timestamp="2026-09-29T15:05:12" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="customVolumeUnitUsesItsCanonicalConversionFactor" classname="com.whip.app.HabitRepositoryTest" time="0.203" />
+    <testcase name="rebootRequiresReviewBeforeLoggingAndCanContinueFromConfirmedDuration" classname="com.whip.app.HabitRepositoryTest" time="0.328" />
+    <testcase name="archiveRetainsHistoryAndUndoRemovesBothRepresentations" classname="com.whip.app.HabitRepositoryTest" time="0.283" />
+    <testcase name="userDefinedEightCountHabitStoresSixIndependentIncrements" classname="com.whip.app.HabitRepositoryTest" time="0.28" />
+    <testcase name="customMassUnitUsesKilogramsAsItsCanonicalBase" classname="com.whip.app.HabitRepositoryTest" time="0.128" />
+    <testcase name="checklistPersistenceDiscardsIrrelevantNumericQuickAdds" classname="com.whip.app.HabitRepositoryTest" time="0.102" />
+    <testcase name="fiveMinuteTimerWritesMinutesAndCanonicalSecondsExactlyOnce" classname="com.whip.app.HabitRepositoryTest" time="0.177" />
+    <testcase name="archivedChecklistHistoryDoesNotCompleteTheRemainingActiveChecklist" classname="com.whip.app.HabitRepositoryTest" time="0.203" />
+    <testcase name="reorderNormalizesOmittedArchivedHabitsWithoutDuplicatePositions" classname="com.whip.app.HabitRepositoryTest" time="0.153" />
+    <testcase name="checkOffCanBeToggledWithoutLeavingAZeroLog" classname="com.whip.app.HabitRepositoryTest" time="0.127" />
+    <testcase name="runningTimerBlocksArchivePauseAndIncompatibleEdit" classname="com.whip.app.HabitRepositoryTest" time="0.153" />
+    <testcase name="androidTimerClockProvidesMonotonicBootOwnedReadings" classname="com.whip.app.HabitRepositoryTest" time="0.0" />
+    <testcase name="aRealCheckInClearsSkipAndFailedCheckOffDoesNotInventValueOne" classname="com.whip.app.HabitRepositoryTest" time="0.178" />
+    <testcase name="skipUndoRequiresAnExistingExactRecord" classname="com.whip.app.HabitRepositoryTest" time="0.102" />
+    <testcase name="historyDeletionRejectsTheWrongHabitOwnerWithoutRemovingAnything" classname="com.whip.app.HabitRepositoryTest" time="0.202" />
+    <testcase name="scheduledPausesCanBeCreatedEditedMadeOpenEndedAndDeleted" classname="com.whip.app.HabitRepositoryTest" time="0.177" />
+    <testcase name="futureHistoryEditsRejectBeforeChangingQuantitativeOrNoteOnlyFacts" classname="com.whip.app.HabitRepositoryTest" time="0.228" />
+    <testcase name="settingCustomUnitTotalUsesStoredConversionsAndNoOpsWhenUnchanged" classname="com.whip.app.HabitRepositoryTest" time="0.254" />
+    <testcase name="scheduledPauseMutationsRejectInvalidOrMissingTargets" classname="com.whip.app.HabitRepositoryTest" time="0.102" />
+    <testcase name="notificationIncrementSourceIsIdempotentAcrossRetry" classname="com.whip.app.HabitRepositoryTest" time="0.152" />
+    <testcase name="checklistInsertReorderAndRemovalPreserveItemCompletionIdentity" classname="com.whip.app.HabitRepositoryTest" time="0.178" />
+    <testcase name="customUnitVersionArchivesOldMeaningWithoutReinterpretingHistory" classname="com.whip.app.HabitRepositoryTest" time="0.177" />
+    <testcase name="skipIsASeparateOccurrenceThatNeverCreatesAMeasurement" classname="com.whip.app.HabitRepositoryTest" time="0.203" />
+    <testcase name="settingDisplayedDecimalTotalDoesNotCreateMicroscopicCorrectionLog" classname="com.whip.app.HabitRepositoryTest" time="0.102" />
+    <testcase name="checklistOnlyAutoCompletesAfterTheFinalItem" classname="com.whip.app.HabitRepositoryTest" time="0.203" />
+    <testcase name="historicalNullAndFailedFactsSurviveCompatibleCurrentModeChanges" classname="com.whip.app.HabitRepositoryTest" time="0.328" />
+    <testcase name="invalidSourcesAndUnavailableHabitsRejectNewProgress" classname="com.whip.app.HabitRepositoryTest" time="0.252" />
+    <testcase name="noteOnlyLogsTransitionToNumbersAndBackWithoutInventingMeasurements" classname="com.whip.app.HabitRepositoryTest" time="0.402" />
+    <testcase name="repositoryPersistsOnlyTheControlsEnabledByTheHabitConfiguration" classname="com.whip.app.HabitRepositoryTest" time="0.128" />
+    <testcase name="settingAPeriodValueUsesTheAuthoritativeStoredTotalInsteadOfAStaleProjection" classname="com.whip.app.HabitRepositoryTest" time="0.252" />
+    <testcase name="competingStartRequestIsConsumedAndCannotStartLater" classname="com.whip.app.HabitRepositoryTest" time="0.102" />
+    <testcase name="editingHabitLogKeepsBackingMeasurementOwnedByHabitWrapper" classname="com.whip.app.HabitRepositoryTest" time="0.177" />
+    <testcase name="timerUsesSnapshottedCustomDurationUnitAndRejectsStaleStop" classname="com.whip.app.HabitRepositoryTest" time="0.177" />
+    <testcase name="changingHabitDisplayUnitDoesNotRelabelOrResaveHistoricalEntry" classname="com.whip.app.HabitRepositoryTest" time="0.203" />
+    <testcase name="optionalHabitNotesDoNotRelaxQuantitativeMeasurementValidation" classname="com.whip.app.HabitRepositoryTest" time="0.278" />
+    <testcase name="settingHighMagnitudeTotalNeverTreatsARealChangeAsFloatingNoise" classname="com.whip.app.HabitRepositoryTest" time="0.153" />
+    <testcase name="historyAndPauseUpdatesRejectTheWrongHabitOwnerWithoutMutation" classname="com.whip.app.HabitRepositoryTest" time="0.227" />
+    <testcase name="checklistCanKeepItemsIndependentAndUseManualParentCompletion" classname="com.whip.app.HabitRepositoryTest" time="0.205" />
+    <testcase name="logCanBeBackdatedAndEditedWithoutChangingItsIdentity" classname="com.whip.app.HabitRepositoryTest" time="0.102" />
+    <testcase name="invalidEndConditionsAreRejectedAndIrrelevantFieldsAreCleared" classname="com.whip.app.HabitRepositoryTest" time="0.101" />
+  </testsuite>
+  <testsuite name="com.whip.app.HabitSkipJourneyE2ETest" tests="4" failures="3" errors="0" skipped="0" time="51.519" timestamp="2026-09-29T15:05:12" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="homeProgressKeepsSkippedHabitsNeutralAcrossRecreationAndUndo" classname="com.whip.app.HabitSkipJourneyE2ETest" time="22.579" />
+    <testcase name="completedHabitMovesBelowRemainingHabitsAndStaysAvailableForUndo" classname="com.whip.app.HabitSkipJourneyE2ETest" time="9.634">
+      <failure>java.lang.AssertionError: Failed: performScrollToNode(TestTag = 'habit-done-disclosure')
+Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'habit-list-Today')
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.scrollToMatchingDescendantOrReturnScrollable(Actions.kt:278)
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:237)
+at com.whip.app.HabitSkipJourneyE2ETest.completedHabitMovesBelowRemainingHabitsAndStaysAvailableForUndo(HabitSkipJourneyE2ETest.kt:170)
+</failure>
+    </testcase>
+    <testcase name="completingExpandedChecklistKeepsDoneCollapsedAndCollapsesTheMovedHabit" classname="com.whip.app.HabitSkipJourneyE2ETest" time="10.22">
+      <failure>java.lang.AssertionError: Failed: assertExists.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'habit-done-disclosure')
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode$default(SemanticsNodeInteraction.kt:83)
+at com.whip.app.HabitSkipJourneyE2ETest.completingExpandedChecklistKeepsDoneCollapsedAndCollapsesTheMovedHabit(HabitSkipJourneyE2ETest.kt:251)
+</failure>
+    </testcase>
+    <testcase name="skipIsOneVisibleNeutralStateWithHistoryInsightsAndUndo" classname="com.whip.app.HabitSkipJourneyE2ETest" time="9.086">
+      <failure>java.lang.AssertionError: Failed to perform OnClick action.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (ContentDescription = 'Open habit details for Read Today' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performSemanticsAction(Actions.kt:635)
+at androidx.compose.ui.test.ActionsKt.performSemanticsAction(Actions.kt:671)
+at com.whip.app.HabitSkipJourneyE2ETest.skipIsOneVisibleNeutralStateWithHistoryInsightsAndUndo(HabitSkipJourneyE2ETest.kt:110)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.HomeHabitAudit2UiTest" tests="9" failures="0" errors="0" skipped="0" time="146.298" timestamp="2026-09-29T15:05:12" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="homeSummaryDistinguishesTargetlessRecordsAtLargeText" classname="com.whip.app.HomeHabitAudit2UiTest" time="6.426" />
+    <testcase name="futureHistoryDateRetainsDraftAndOffersReachableCorrection" classname="com.whip.app.HomeHabitAudit2UiTest" time="15.746" />
+    <testcase name="habitUnitChangesSaveConvertedConfigurationAndRetainOriginalHistory" classname="com.whip.app.HomeHabitAudit2UiTest" time="26.263" />
+    <testcase name="historicalNoteEditingPreservesFailedAndModeChangedFacts" classname="com.whip.app.HomeHabitAudit2UiTest" time="14.91" />
+    <testcase name="currentPauseKeepsCompletedMissedAndDatedNeutralHistoryVisible" classname="com.whip.app.HomeHabitAudit2UiTest" time="6.41" />
+    <testcase name="existingHabitOnlyOffersCompatibleMeasurementChanges" classname="com.whip.app.HomeHabitAudit2UiTest" time="9.448" />
+    <testcase name="invalidTaskDurationIsRetainedInsteadOfSilentlyReinterpreted" classname="com.whip.app.HomeHabitAudit2UiTest" time="23.125" />
+    <testcase name="customUnitHistoryKeepsTheAuthoredUnitWhileCurrentEntryUsesCurrentUnit" classname="com.whip.app.HomeHabitAudit2UiTest" time="6.606" />
+    <testcase name="secondaryHabitDraftsSurviveDismissalAndRecreation" classname="com.whip.app.HomeHabitAudit2UiTest" time="37.364" />
+  </testsuite>
+  <testsuite name="com.whip.app.HomeHabitRecoveryUiTest" tests="11" failures="7" errors="0" skipped="0" time="134.254" timestamp="2026-09-29T15:05:12" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="offScheduleHabitsOpenSavedCollectionAtLargeText" classname="com.whip.app.HomeHabitRecoveryUiTest" time="19.097">
+      <failure>androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 10000 ms
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:901)
+at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:500)
+at com.whip.app.HomeHabitRecoveryUiTest.awaitText(HomeHabitRecoveryUiTest.kt:38)
+at com.whip.app.HomeHabitRecoveryUiTest.offScheduleHabitsOpenSavedCollectionAtLargeText(HomeHabitRecoveryUiTest.kt:87)
+</failure>
+    </testcase>
+    <testcase name="habitInsightsShowRealActivityAndOpenThatHabitsHistory" classname="com.whip.app.HomeHabitRecoveryUiTest" time="9.914">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: ((Text + InputText + EditableText contains 'Log' (ignoreCase: false)) &amp;&amp; (hasAnyAncestorThat(TestTag = 'habit-card-9')))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+at com.whip.app.HomeHabitRecoveryUiTest.habitInsightsShowRealActivityAndOpenThatHabitsHistory(HomeHabitRecoveryUiTest.kt:218)
+</failure>
+    </testcase>
+    <testcase name="firstHabitStillOffersTemplates" classname="com.whip.app.HomeHabitRecoveryUiTest" time="11.172" />
+    <testcase name="emptyAreaCanRecoverExistingHabitsWithoutCreatingDuplicates" classname="com.whip.app.HomeHabitRecoveryUiTest" time="10.282" />
+    <testcase name="denseTaskCalendarKeepsDateAndCountsLegibleAtLargeText" classname="com.whip.app.HomeHabitRecoveryUiTest" time="12.026">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Calendar' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.HomeHabitRecoveryUiTest.openTaskCalendar(HomeHabitRecoveryUiTest.kt:49)
+at com.whip.app.HomeHabitRecoveryUiTest.denseTaskCalendarKeepsDateAndCountsLegibleAtLargeText(HomeHabitRecoveryUiTest.kt:251)
+</failure>
+    </testcase>
+    <testcase name="calendarExplainsClearDayAndBoundsLoadedPlanningWindow" classname="com.whip.app.HomeHabitRecoveryUiTest" time="12.971">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Calendar' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.HomeHabitRecoveryUiTest.openTaskCalendar(HomeHabitRecoveryUiTest.kt:49)
+at com.whip.app.HomeHabitRecoveryUiTest.calendarExplainsClearDayAndBoundsLoadedPlanningWindow(HomeHabitRecoveryUiTest.kt:181)
+</failure>
+    </testcase>
+    <testcase name="emptyHomeAreaRecoversExistingDataWithoutFirstUseGuidance" classname="com.whip.app.HomeHabitRecoveryUiTest" time="11.513" />
+    <testcase name="filteredHomeKeepsRecoveryReachableAndRestoresSavedTasksAtLargeText" classname="com.whip.app.HomeHabitRecoveryUiTest" time="13.036" />
+    <testcase name="manyTaskFiltersKeepTheResultsViewportReachableAtLargeText" classname="com.whip.app.HomeHabitRecoveryUiTest" time="12.786">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Detailed recipe' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+at com.whip.app.HomeHabitRecoveryUiTest.manyTaskFiltersKeepTheResultsViewportReachableAtLargeText(HomeHabitRecoveryUiTest.kt:321)
+</failure>
+    </testcase>
+    <testcase name="addingNoteAfterNumericLogDoesNotRepeatItsAmount" classname="com.whip.app.HomeHabitRecoveryUiTest" time="8.598">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: ((Text + InputText + EditableText contains 'Log' (ignoreCase: false)) &amp;&amp; (hasAnyAncestorThat(TestTag = 'habit-card-14')))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+at com.whip.app.HomeHabitRecoveryUiTest.addingNoteAfterNumericLogDoesNotRepeatItsAmount(HomeHabitRecoveryUiTest.kt:146)
+</failure>
+    </testcase>
+    <testcase name="taskFiltersShowLiveMatchCountAndSavedRecipesBeforeAdvancedCriteria" classname="com.whip.app.HomeHabitRecoveryUiTest" time="12.859">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Pinned work' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+at com.whip.app.HomeHabitRecoveryUiTest.taskFiltersShowLiveMatchCountAndSavedRecipesBeforeAdvancedCriteria(HomeHabitRecoveryUiTest.kt:297)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.ImeNavigationRailE2ETest" tests="1" failures="0" errors="0" skipped="0" time="26.728" timestamp="2026-09-29T15:05:12" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="openingTheImeDoesNotMovePersistentNavigationOnAWideLayout" classname="com.whip.app.ImeNavigationRailE2ETest" time="26.728" />
+  </testsuite>
+  <testsuite name="com.whip.app.InlineTaskCaptureE2ETest" tests="2" failures="2" errors="0" skipped="0" time="32.228" timestamp="2026-09-29T15:05:12" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="inlineTaskDraftSurvivesRecreationAndSavesWithTheNativeKeyboardAtLargeText" classname="com.whip.app.InlineTaskCaptureE2ETest" time="18.919">
+      <failure>java.lang.AssertionError: Failed to retrieve bounds of the node.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Task for Today' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.BoundsAssertionsKt.withUnclippedBoundsInRoot(BoundsAssertions.kt:259)
+at androidx.compose.ui.test.BoundsAssertionsKt.getUnclippedBoundsInRoot(BoundsAssertions.kt:150)
+at com.whip.app.InlineTaskCaptureE2ETest.assertWholeQueryVisible(InlineTaskCaptureE2ETest.kt:142)
+at com.whip.app.InlineTaskCaptureE2ETest.verifyCapture(InlineTaskCaptureE2ETest.kt:71)
+at com.whip.app.InlineTaskCaptureE2ETest.inlineTaskDraftSurvivesRecreationAndSavesWithTheNativeKeyboardAtLargeText(InlineTaskCaptureE2ETest.kt:57)
+</failure>
+    </testcase>
+    <testcase name="inlineTaskDraftSurvivesRecreationAndSavesWithTheNativeKeyboard" classname="com.whip.app.InlineTaskCaptureE2ETest" time="13.309">
+      <failure>java.lang.AssertionError: Failed to retrieve bounds of the node.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Task for Today' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.BoundsAssertionsKt.withUnclippedBoundsInRoot(BoundsAssertions.kt:259)
+at androidx.compose.ui.test.BoundsAssertionsKt.getUnclippedBoundsInRoot(BoundsAssertions.kt:150)
+at com.whip.app.InlineTaskCaptureE2ETest.assertWholeQueryVisible(InlineTaskCaptureE2ETest.kt:142)
+at com.whip.app.InlineTaskCaptureE2ETest.verifyCapture(InlineTaskCaptureE2ETest.kt:71)
+at com.whip.app.InlineTaskCaptureE2ETest.inlineTaskDraftSurvivesRecreationAndSavesWithTheNativeKeyboard(InlineTaskCaptureE2ETest.kt:54)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.LegacyHealthHistoryTest" tests="5" failures="0" errors="0" skipped="0" time="2.639" timestamp="2026-09-29T15:05:12" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="retirementPreservesCompleteProjectedAndManualHistoryAndAllowsNewCheckIns" classname="com.whip.app.LegacyHealthHistoryTest" time="0.833" />
+    <testcase name="installedAppHasNoHealthPermissionsActivitiesOrSdk" classname="com.whip.app.LegacyHealthHistoryTest" time="0.079" />
+    <testcase name="interruptedRetirementRollsBackAllHabitsAndLogsThenRetriesExactlyOnce" classname="com.whip.app.LegacyHealthHistoryTest" time="0.505" />
+    <testcase name="anEmptyRetiredSourceBecomesManualWithoutInventingHistory" classname="com.whip.app.LegacyHealthHistoryTest" time="0.228" />
+    <testcase name="oldBackupsRestoreAndMergeHistoryWithoutRestoringTheSourceLink" classname="com.whip.app.LegacyHealthHistoryTest" time="0.994" />
+  </testsuite>
+  <testsuite name="com.whip.app.LegacyImportJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="19.08" timestamp="2026-09-29T15:05:12" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="restoredHabitContinuesManuallyAndSettingsFocusOnLocalData" classname="com.whip.app.LegacyImportJourneyE2ETest" time="19.08">
+      <failure>java.lang.AssertionError: Failed to assert the following: (is enabled)
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains '+1' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:291)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertIsEnabled(Assertions.kt:60)
+at com.whip.app.LegacyImportJourneyE2ETest.restoredHabitContinuesManuallyAndSettingsFocusOnLocalData(LegacyImportJourneyE2ETest.kt:50)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.MeasurementTaxonomyRepositoryTest" tests="14" failures="0" errors="0" skipped="0" time="5.182" timestamp="2026-09-29T15:05:12" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="taxonomyRenamesAdvanceRevisionsAndRebuildTrackSearch" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="1.364" />
+    <testcase name="archiveRestoreAndMoveAffectTaxonomyWithoutChangingRecords" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.68" />
+    <testcase name="explicitCreateOrRestoreRestoresTheSameTagIdentity" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.28" />
+    <testcase name="measurementRecordsUseTheRepositoryClockZoneUnlessAnExplicitProvenanceZoneIsSupplied" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.278" />
+    <testcase name="creatingAnArchivedAreaNameRestoresTheSameIdentityAndPreservesItsColor" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.307" />
+    <testcase name="tagRenameConflictRequiresAnExplicitMergeAndPreservesBothTags" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.182" />
+    <testcase name="permanentAreaDeleteMovesEveryAssignedItemToAnotherArea" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.359" />
+    <testcase name="renameConflictNamesAnArchivedDestinationThatMustBeRestored" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.203" />
+    <testcase name="blankAssignmentsDefaultToMainAndCanMoveBetweenAreas" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.693" />
+    <testcase name="areaAndTagMergeUpdateEveryDomainWithTargetSpellingAndNoDuplicates" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.505" />
+    <testcase name="ensuringAnArchivedTagReusesItsIdentityWithoutSilentlyRestoringIt" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.076" />
+    <testcase name="tagNamesRejectTheCommaReservedByCurrentPersistence" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.076" />
+    <testcase name="tagMergeRejectsAnArchivedDestinationUntilItIsRestored" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.102" />
+    <testcase name="lastActiveAreaCannotBeArchivedOrDeleted" classname="com.whip.app.MeasurementTaxonomyRepositoryTest" time="0.077" />
+  </testsuite>
+</testsuites>

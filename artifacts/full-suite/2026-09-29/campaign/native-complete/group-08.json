@@ -1,0 +1,18 @@
+{
+  "group": 8,
+  "selectors": [
+    "com.whip.app.RestoreRecoveryManagerTest",
+    "com.whip.app.ReviewAvailabilityUiTest",
+    "com.whip.app.ReviewJourneyE2ETest",
+    "com.whip.app.ReviewOutcomeJourneyE2ETest",
+    "com.whip.app.RoutineAuthoringJourneyE2ETest",
+    "com.whip.app.RoutineBuilderUiTest",
+    "com.whip.app.SafPortableBackupDocumentStoreTest",
+    "com.whip.app.SettingItemBuilderJourneyE2ETest",
+    "com.whip.app.SettingsBehaviorUiTest",
+    "com.whip.app.StartupRecoveryScreenTest"
+  ],
+  "exit": 1,
+  "seconds": 1136.565,
+  "source_unchanged": true
+}

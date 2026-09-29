@@ -92,9 +92,16 @@ internal fun captureVisualCatalogSurface(
         check(" keeps stopping\"" !in hierarchy && " isn't responding\"" !in hierarchy) {
             "Visual catalog hierarchy for $surfaceId contains an Android crash or ANR sheet"
         }
-        check("NAF=\"true\"" !in hierarchy) {
-            "Visual catalog hierarchy for $surfaceId contains an unlabeled interactive node: " +
-                hierarchy.lineSequence().filter { "NAF=\"true\"" in it }.joinToString().take(1200)
+        val parser = android.util.Xml.newPullParser().apply { setInput(hierarchy.reader()) }
+        while (parser.eventType != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
+            if (parser.eventType == org.xmlpull.v1.XmlPullParser.START_TAG && parser.name == "node") {
+                val belongsToWhip = parser.getAttributeValue(null, "package") == instrumentation.targetContext.packageName
+                check(!belongsToWhip || parser.getAttributeValue(null, "NAF") != "true") {
+                    "Visual catalog hierarchy for $surfaceId contains an unlabeled Whip interactive node: " +
+                        "${parser.getAttributeValue(null, "class")} ${parser.getAttributeValue(null, "bounds")}"
+                }
+            }
+            parser.next()
         }
         hierarchyFile.inputStream().use { input ->
             insertCatalogAsset(surfaceId, "xml", "application/xml").use(input::copyTo)

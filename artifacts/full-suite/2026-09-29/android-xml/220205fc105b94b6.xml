@@ -1,0 +1,102 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="8" failures="4" errors="0" skipped="0" time="414.748" timestamp="2026-09-29T17:03:27" hostname="localhost">
+  <testsuite name="com.whip.app.TrackCollectionJourneyE2ETest" tests="4" failures="2" errors="0" skipped="0" time="220.735" timestamp="2026-09-29T17:03:27" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedAndActiveSelectionsStaySeparate" classname="com.whip.app.TrackCollectionJourneyE2ETest" time="45.445">
+      <failure>java.lang.AssertionError: No node found that matches Text + InputText + EditableText contains '1 Track selected' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #716 at (l=0.0, t=640.0, r=1080.0, b=2169.0)px, Tag: 'track-list'
+CollectionInfo = 'CollectionInfo(rowCount=0, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape&#64;ef0ad39'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 2 children, 4 siblings
+Selector used: (TestTag = 'track-list')
+
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+at com.whip.app.TrackCollectionJourneyE2ETest.scroll(TrackCollectionJourneyE2ETest.kt:170)
+at com.whip.app.TrackCollectionJourneyE2ETest.summary(TrackCollectionJourneyE2ETest.kt:168)
+at com.whip.app.TrackCollectionJourneyE2ETest.archivedSelection(TrackCollectionJourneyE2ETest.kt:107)
+at com.whip.app.TrackCollectionJourneyE2ETest.archivedAndActiveSelectionsStaySeparate(TrackCollectionJourneyE2ETest.kt:33)
+</failure>
+    </testcase>
+    <testcase name="areaChangesKeepOnlyVisibleSelection" classname="com.whip.app.TrackCollectionJourneyE2ETest" time="67.345" />
+    <testcase name="areaChangesKeepOnlyVisibleSelectionAtLargeText" classname="com.whip.app.TrackCollectionJourneyE2ETest" time="72.205" />
+    <testcase name="archivedAndActiveSelectionsStaySeparateAtLargeText" classname="com.whip.app.TrackCollectionJourneyE2ETest" time="35.74">
+      <failure>java.lang.AssertionError: No node found that matches Text + InputText + EditableText contains '1 Track selected' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #3255 at (l=0.0, t=724.0, r=1080.0, b=1959.0)px, Tag: 'track-list'
+CollectionInfo = 'CollectionInfo(rowCount=0, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape&#64;ef0ad39'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 2 children, 4 siblings
+Selector used: (TestTag = 'track-list')
+
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+at com.whip.app.TrackCollectionJourneyE2ETest.scroll(TrackCollectionJourneyE2ETest.kt:170)
+at com.whip.app.TrackCollectionJourneyE2ETest.summary(TrackCollectionJourneyE2ETest.kt:168)
+at com.whip.app.TrackCollectionJourneyE2ETest.archivedSelection(TrackCollectionJourneyE2ETest.kt:107)
+at com.whip.app.TrackCollectionJourneyE2ETest.archivedAndActiveSelectionsStaySeparateAtLargeText(TrackCollectionJourneyE2ETest.kt:35)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.HabitSkipJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="22.025" timestamp="2026-09-29T17:03:27" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="skipIsOneVisibleNeutralStateWithHistoryInsightsAndUndo" classname="com.whip.app.HabitSkipJourneyE2ETest" time="22.025">
+      <failure>java.lang.AssertionError: No node found that matches Text + InputText + EditableText contains 'Undo Skip' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #3980 at (l=0.0, t=640.0, r=1080.0, b=2169.0)px, Tag: 'habit-list-Today'
+CollectionInfo = 'CollectionInfo(rowCount=3, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape&#64;ef0ad39'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 3 children, 4 siblings
+Selector used: (TestTag = 'habit-list-Today')
+
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+at com.whip.app.HabitSkipJourneyE2ETest.skipIsOneVisibleNeutralStateWithHistoryInsightsAndUndo(HabitSkipJourneyE2ETest.kt:156)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.ProductivityCardDesignUiTest" tests="1" failures="0" errors="0" skipped="0" time="7.302" timestamp="2026-09-29T17:03:27" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="habitAndGoalSummaryRowsKeepDetailsAndInlineActions" classname="com.whip.app.ProductivityCardDesignUiTest" time="7.302" />
+  </testsuite>
+  <testsuite name="com.whip.app.ProductivityCreationJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="117.073" timestamp="2026-09-29T17:03:27" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="taskHabitAndGoalCanBeCreatedAndUsedThroughTheRealUi" classname="com.whip.app.ProductivityCreationJourneyE2ETest" time="117.073">
+      <failure>java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains 'Goal Insights' (ignoreCase: false) is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.ProductivityCreationJourneyE2ETest.taskHabitAndGoalCanBeCreatedAndUsedThroughTheRealUi(ProductivityCreationJourneyE2ETest.kt:222)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.WhipComposeSemanticsTest" tests="1" failures="0" errors="0" skipped="0" time="46.017" timestamp="2026-09-29T17:03:27" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="gymConfigurationControlsUseProgressiveDisclosure" classname="com.whip.app.WhipComposeSemanticsTest" time="46.017" />
+  </testsuite>
+</testsuites>

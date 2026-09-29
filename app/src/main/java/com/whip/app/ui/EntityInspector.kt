@@ -146,9 +146,9 @@ internal fun EntityInspector(
                         onDismiss = onDismiss,
                         onEdit = onEdit,
                         editLabel = editLabel,
-                        // Preserve evidence space on short enlarged-text windows.
+                        // Preserve full identity and evidence space with enlarged text.
                         // Only identity scrolls; Edit/Close and the action dock stay fixed.
-                        maxIdentityHeight = if (inspectorHeight < 560.dp && LocalDensity.current.fontScale >= 1.5f) {
+                        maxIdentityHeight = if (LocalDensity.current.fontScale >= 1.5f) {
                             (inspectorHeight * 0.4f - 75.dp).coerceAtLeast(48.dp)
                         } else null,
                     )

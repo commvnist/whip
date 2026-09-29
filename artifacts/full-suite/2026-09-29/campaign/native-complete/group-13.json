@@ -1,0 +1,18 @@
+{
+  "group": 13,
+  "selectors": [
+    "com.whip.app.WorkoutGroupedSetNavigationE2ETest",
+    "com.whip.app.WorkoutRestJourneyE2ETest",
+    "com.whip.app.ZPlatformNotificationSurfaceE2ETest",
+    "com.whip.app.ui.AreaMutationViewModelTest",
+    "com.whip.app.ui.ElapsedGoalTimeUiTest",
+    "com.whip.app.ui.EntitySaveCoordinatorUiTest",
+    "com.whip.app.ui.EntitySaveViewModelIntegrationTest",
+    "com.whip.app.ui.FirstRunSetupPersistenceUiTest",
+    "com.whip.app.ui.GoalSecondaryMutationUiTest",
+    "com.whip.app.ui.GymDeletionViewModelIntegrationTest"
+  ],
+  "exit": 1,
+  "seconds": 0.047,
+  "source_unchanged": true
+}

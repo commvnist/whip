@@ -138,7 +138,7 @@ class WorkoutRestJourneyE2ETest {
             compose.waitUntil(10_000) { session().state == WorkoutSessionState.Finished }
             assertNull(session().restTimerDeadlineMillis)
             compose.onNodeWithTag("gym-destination-History").performClick()
-            compose.onNodeWithTag("history-workout-toggle-${session().id}").performScrollTo().performClick()
+            // Finishing opens the exact workout with its history already expanded.
             compose.onNodeWithTag("history-set-card-${ids[0]}").performScrollTo()
             compose.onNodeWithTag("history-set-performed-${ids[0]}").assertTextContains("40 kg × 7 reps")
             capture("history")

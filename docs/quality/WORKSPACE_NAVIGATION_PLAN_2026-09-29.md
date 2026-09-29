@@ -1,13 +1,13 @@
 # Workspace tabs and headers — redesign implementation
 
-Status: **Implemented; behavioral and fresh visual verification paused.** The original plan-only request was followed by explicit implementation authorization under FB-20260929-008, emphasizing stable visual transitions. Source baseline `d2817658`; private phone remains 0.3.85/code 91. Production integration compilation passes under VER-20260929-008; no test execution, phone action or fresh rendered inspection. Related: FB-20260929-007/008, FND-20260929-013, DEC-20260929-003, IMP-20260929-010.
+Status: **Implemented and verified; second phone release pending.** The original plan-only request was followed by explicit implementation authorization under FB-20260929-008, emphasizing stable visual transitions. Source baseline `d2817658`; the initial private phone release is 0.3.86/code 92 under VER-20260929-009. FB-20260929-009 resumes complete testing and a second release; FB-20260929-010 selects Tasks/Habits initially instead of Today. The complete test inventory and repair replays are accepted under VER-20260929-010. Related: FB-20260929-007/008, FND-20260929-013, DEC-20260929-003, IMP-20260929-010.
 
 ## Implementation disposition
 
 - Steps 1–5: implemented in existing route, settings, projection and screen owners. Shared `WhipWorkspaceHeader` pins a context row with content-independent height and stable trailing action slots; tabs remain in the existing shared owner. Compact Task scope/layout menus sit in scrolling content so they do not add fixed rows above only one workspace. Wide Track collection chrome spans both panes.
 - Task collection uses authored entities and preserves unprojected series. Collection recurring rows open definition editing; dated layouts keep occurrence actions. Today filters cannot change date scope. Apply/Cancel, per-route saved filters/scroll and explicit Saved Views are implemented; legacy route names remain decoding aliases, with consistent Unscheduled display language.
 - Habits use distinct management rows while preserving active timer recovery; Goals retain lifecycle partitions; Tracks retain per-log detail and workspace Activity, with one global Area scope. Archive child routes restore originating views. Gym keeps its four jobs and uses Insights terminology.
-- Step 6: existing focused policy/native fixtures are prepared, but execution and fresh visual inspection remain paused. Source-derived geometry is not rendered certification. Broader old navigation selectors and visual-catalog hashes require reconciliation on resumption. [Exact build/source evidence](../../artifacts/workspace-navigation/2026-09-29/README.md).
+- Step 6: complete testing is resumed. Current native fixtures assert the collection defaults, visible scope/archive routes and identical toolbar/tab/context bounds across primary destinations. Catalog discovery is reconciled to 530 required captures. All 1,268 native methods have passing campaign results, including rendered geometry and restoration assertions; 724 JVM methods, lint, coverage, builds and nine benchmark/profile scenarios also pass. Selected fresh originals are reviewed; this does not claim manual review of every catalog state. [Initial build/source evidence](../../artifacts/workspace-navigation/2026-09-29/README.md); current campaign is VER-20260929-010.
 
 ## Recommendation
 
@@ -15,13 +15,13 @@ Use three destinations for each productivity workspace. Give the collection the 
 
 | Workspace | Proposed tabs, in order | Default on first entry |
 | --- | --- | --- |
-| Tasks | **Tasks · Today · History** | Today |
-| Habits | **Habits · Today · Insights** | Today |
+| Tasks | **Tasks · Today · History** | Tasks |
+| Habits | **Habits · Today · Insights** | Habits |
 | Goals | **Goals · History · Insights** | Goals |
 | Tracks | **Tracks · Activity · Insights** | Tracks |
 | Gym | **Workout · Library · History · Insights** | Workout |
 
-Collection-first ordering need not force daily users to open a management screen. Preserve explicit Home/widget/search targets and the last tab within the session; otherwise retain the existing execution-oriented defaults. Keep tab order fixed, independent of counts or previous selection. Do not add blank or invented tabs to make every workspace have the same number.
+Fresh entry selects the first collection tab, per FB-20260929-010. Preserve explicit Home/widget/search targets and the last tab within the session. Keep tab order fixed, independent of counts or previous selection. Do not add blank or invented tabs to make every workspace have the same number.
 
 ## Baseline analysis before implementation
 

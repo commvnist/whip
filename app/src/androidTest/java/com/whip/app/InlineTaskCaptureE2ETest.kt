@@ -66,6 +66,7 @@ class InlineTaskCaptureE2ETest {
         val title = "Keyboard capture after interruption"
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             compose.onNodeWithContentDescription("Tasks tab").performClick()
+            compose.onNodeWithTag("task-destination-Today").performClick()
             focusQuery()
             compose.onNodeWithTag("task-quick-capture").performTextReplacement(title)
             assertWholeQueryVisible(if (large) 2f else 1f)

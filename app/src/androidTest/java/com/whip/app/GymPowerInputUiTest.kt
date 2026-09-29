@@ -2038,6 +2038,7 @@ class GymPowerInputUiTest {
             }
         }
 
+        compose.onNodeWithContentDescription("1 Completed Set").performClick()
         val card = compose.onNodeWithTag("workout-set-card-${completed.id}").assertIsDisplayed()
         val identity = compose.onNodeWithText("Main · Set 1", useUnmergedTree = true)
             .assertIsDisplayed().fetchSemanticsNode().boundsInRoot

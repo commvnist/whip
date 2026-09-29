@@ -3,6 +3,7 @@ package com.whip.app.data
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
@@ -15,15 +16,19 @@ interface HabitDao {
     @Query("SELECT * FROM habit_checklist_items ORDER BY habitId, position, id")
     fun observeChecklistItems(): Flow<List<HabitChecklistItemEntity>>
 
+    @Transaction
     @Query("SELECT * FROM habit_logs ORDER BY timestampMillis DESC, id DESC")
     fun observeLogs(): Flow<List<HabitLogEntity>>
 
+    @Transaction
     @Query("SELECT * FROM habit_checklist_states ORDER BY localEpochDay DESC")
     fun observeChecklistStates(): Flow<List<HabitChecklistStateEntity>>
 
+    @Transaction
     @Query("SELECT * FROM habit_pauses ORDER BY startEpochDay DESC")
     fun observePauses(): Flow<List<HabitPauseEntity>>
 
+    @Transaction
     @Query("SELECT * FROM habit_skips ORDER BY localEpochDay DESC, skippedAtMillis DESC")
     fun observeSkips(): Flow<List<HabitSkipEntity>>
 
@@ -56,21 +61,26 @@ interface HabitDao {
     )
     suspend fun getReminderHabitIdsForUnit(unitId: String): List<Long>
 
+    @Transaction
     @Query("SELECT * FROM habit_pauses WHERE habitId = :habitId")
     suspend fun getPauses(habitId: Long): List<HabitPauseEntity>
 
     @Query("SELECT * FROM habit_pauses WHERE id = :id")
     suspend fun getPause(id: Long): HabitPauseEntity?
 
+    @Transaction
     @Query("SELECT * FROM habit_logs")
     suspend fun getAllLogs(): List<HabitLogEntity>
 
+    @Transaction
     @Query("SELECT * FROM habit_logs WHERE habitId = :habitId")
     suspend fun getLogsForHabit(habitId: Long): List<HabitLogEntity>
 
+    @Transaction
     @Query("SELECT * FROM habit_skips")
     suspend fun getAllSkips(): List<HabitSkipEntity>
 
+    @Transaction
     @Query("SELECT * FROM habit_skips WHERE habitId = :habitId")
     suspend fun getSkips(habitId: Long): List<HabitSkipEntity>
 
@@ -92,12 +102,14 @@ interface HabitDao {
     @Query("SELECT * FROM habit_logs WHERE id = :id")
     suspend fun getLog(id: Long): HabitLogEntity?
 
+    @Transaction
     @Query("SELECT * FROM habit_logs WHERE habitId = :habitId AND localEpochDay = :epochDay ORDER BY timestampMillis, id")
     suspend fun getLogsForDate(habitId: Long, epochDay: Long): List<HabitLogEntity>
 
     @Query("SELECT * FROM habit_logs WHERE sourceType = :sourceType AND sourceId = :sourceId LIMIT 1")
     suspend fun getLogBySource(sourceType: String, sourceId: String): HabitLogEntity?
 
+    @Transaction
     @Query("SELECT * FROM habit_logs WHERE sourceId LIKE :sourcePrefix")
     suspend fun getLogsBySourcePrefix(sourcePrefix: String): List<HabitLogEntity>
 

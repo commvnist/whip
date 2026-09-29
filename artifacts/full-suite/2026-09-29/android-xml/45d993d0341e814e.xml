@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="3" failures="1" errors="0" skipped="0" time="209.65" timestamp="2026-09-29T16:49:05" hostname="localhost">
+  <testsuite name="com.whip.app.TrackHistoryJourneyE2ETest" tests="3" failures="1" errors="0" skipped="0" time="208.157" timestamp="2026-09-29T16:49:05" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedHistoryCanBeSearchedRecreatedAndRestoredAtLargeText" classname="com.whip.app.TrackHistoryJourneyE2ETest" time="97.732">
+      <failure>androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 10000 ms
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:901)
+at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:500)
+at com.whip.app.TrackHistoryJourneyE2ETest.verifyHistory(TrackHistoryJourneyE2ETest.kt:179)
+at com.whip.app.TrackHistoryJourneyE2ETest.archivedHistoryCanBeSearchedRecreatedAndRestoredAtLargeText(TrackHistoryJourneyE2ETest.kt:103)
+</failure>
+    </testcase>
+    <testcase name="emptyArchivedTrackExplainsRestoreThenOffersFirstEntry" classname="com.whip.app.TrackHistoryJourneyE2ETest" time="33.239" />
+    <testcase name="archivedHistoryCanBeSearchedRecreatedAndRestored" classname="com.whip.app.TrackHistoryJourneyE2ETest" time="77.186" />
+  </testsuite>
+</testsuites>

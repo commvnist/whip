@@ -49,14 +49,17 @@ class DenseDataBenchmark {
             iterations = 3,
             setupBlock = { pressHome(); startWhipActivityAndWait() },
         ) {
-            device.requireObject(By.desc("Goals tab"), "Goals navigation item").click()
+            device.clickPrimaryDestination("Goals")
             device.waitForIdle()
-            device.requireObject(By.text("100k point goal"), "100k point goal", 60_000).click()
+            device.clickObject(By.text("100k point goal"), "100k point goal", 60_000)
             device.waitForIdle()
-            device.pressBack()
-            device.requireObject(By.desc("Gym tab"), "Gym navigation item").click()
+            device.clickObject(By.desc("Close Goal details"), "close Goal details")
+            check(device.wait(Until.gone(By.desc("Close Goal details")), 10_000)) {
+                "Benchmark Goal details did not close\n${device.hierarchyForFailure()}"
+            }
+            device.clickPrimaryDestination("Gym")
             device.waitForIdle()
-            device.requireObject(By.text("Progress"), "Gym Progress destination").click()
+            device.clickObject(By.text("Insights"), "Gym Insights destination")
             device.waitForIdle()
         }
     }
@@ -76,13 +79,13 @@ class DenseDataBenchmark {
                 seed("graphs")
                 pressHome()
                 startWhipActivityAndWait()
-                device.requireObject(By.desc("Gym tab"), "Gym navigation item").click()
+                device.clickPrimaryDestination("Gym")
                 device.waitForIdle()
-                device.requireObject(
+                device.clickObject(
                     By.res(Pattern.compile(".*next-set-focus")),
                     "next set shortcut",
                     60_000,
-                ).click()
+                )
                 device.waitForIdle()
             },
         ) {
@@ -102,12 +105,21 @@ class DenseDataBenchmark {
                 )
                 device.waitForIdle(1_000)
             }
-            device.clickObject(
+            // Scroll/IME transitions can leave UiAutomator with stale parent bounds.
+            // Refresh the native tree before deriving the physical tap coordinate.
+            val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+            automation.waitForIdle(250L, 5_000L)
+            if (android.os.Build.VERSION.SDK_INT >= 34) automation.clearCache()
+            checkNotNull(automation.rootInActiveWindow).refresh()
+            val completeSet = device.requireObject(
                 By.res(Pattern.compile(".*quick-set-save-next-.*")),
                 "complete set action",
             )
-            check(device.wait(Until.gone(By.res(Pattern.compile(".*next-set-focus"))), 10_000)) {
-                "Benchmark input did not complete its only pending Set"
+            check(completeSet.isEnabled) { "Complete Set is disabled before benchmark input" }
+            android.util.Log.i("WhipBenchmark", "Complete Set bounds: ${completeSet.visibleBounds}")
+            completeSet.click()
+            check(device.wait(Until.hasObject(By.desc("1 Completed Set")), 10_000)) {
+                "Benchmark input did not complete its only pending Set\n${device.hierarchyForFailure()}"
             }
         }
     }

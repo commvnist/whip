@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="8" failures="0" errors="0" skipped="0" time="431.049" timestamp="2026-09-29T16:39:49" hostname="localhost">
+  <testsuite name="com.whip.app.TrackAuthoringJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="362.843" timestamp="2026-09-29T16:39:49" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="mixedTrackCanBeAuthoredRecoveredAndUsed" classname="com.whip.app.TrackAuthoringJourneyE2ETest" time="362.843" />
+  </testsuite>
+  <testsuite name="com.whip.app.AdaptiveWhipScreenTest" tests="1" failures="0" errors="0" skipped="0" time="11.947" timestamp="2026-09-29T16:39:49" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="taskDetailsStayInsideTheContentPaneOnAFlatBookFold" classname="com.whip.app.AdaptiveWhipScreenTest" time="11.947" />
+  </testsuite>
+  <testsuite name="com.whip.app.EntityInspectorUiTest" tests="5" failures="0" errors="0" skipped="0" time="47.003" timestamp="2026-09-29T16:39:49" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="taskInspectorKeepsIdentityNavigationAndPrimaryActionStable" classname="com.whip.app.EntityInspectorUiTest" time="6.791" />
+    <testcase name="compactLargeTextInspectorKeepsOverviewAndOptionsDirect" classname="com.whip.app.EntityInspectorUiTest" time="9.711" />
+    <testcase name="inspectorKeepsEverySectionDirectAndStable" classname="com.whip.app.EntityInspectorUiTest" time="7.404" />
+    <testcase name="fixedInspectorFrameKeepsLongCenterContentScrollable" classname="com.whip.app.EntityInspectorUiTest" time="8.212" />
+    <testcase name="taskSubtasksKeepCompletionTrailingSpacedAndResponsive" classname="com.whip.app.EntityInspectorUiTest" time="14.885" />
+  </testsuite>
+  <testsuite name="com.whip.app.GymPowerInputUiTest" tests="1" failures="0" errors="0" skipped="0" time="5.469" timestamp="2026-09-29T16:39:49" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="activeWorkoutUsesOneFocusedComposerWithExerciseAndSetReordering" classname="com.whip.app.GymPowerInputUiTest" time="5.469" />
+  </testsuite>
+</testsuites>

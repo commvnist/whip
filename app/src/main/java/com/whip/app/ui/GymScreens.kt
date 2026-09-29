@@ -2900,9 +2900,11 @@ private fun WorkoutContent(
         arrangementSubmittedAtGeneration = null
         arrangementError = null
     }
-    val currentStructureBoundary = remember(session.id, session.uuid, state.allWorkoutExercises, state.allWorkoutGroups, state.allSets) {
-        state.captureWorkoutStructureBoundary()
-    }
+    val currentStructureBoundary = if (arrangingWorkout) {
+        remember(session.id, session.uuid, state.allWorkoutExercises, state.allWorkoutGroups, state.allSets) {
+            state.captureWorkoutStructureBoundary()
+        }
+    } else null
     val arrangementIsStale = arrangingWorkout && currentStructureBoundary?.fingerprint != arrangementFingerprint
     val arrangementSetOrders = decodeArrangementSetOrders()
     val arrangementHasChanges = arrangingWorkout && (

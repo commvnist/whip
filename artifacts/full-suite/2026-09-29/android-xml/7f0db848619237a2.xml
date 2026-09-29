@@ -1,0 +1,70 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="13" failures="1" errors="0" skipped="0" time="141.2" timestamp="2026-09-29T16:25:26" hostname="localhost">
+  <testsuite name="com.whip.app.ui.VisualCatalogHabitComponentsTest" tests="1" failures="0" errors="0" skipped="0" time="13.284" timestamp="2026-09-29T16:25:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="captureHabitComponentCatalog" classname="com.whip.app.ui.VisualCatalogHabitComponentsTest" time="13.284" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.VisualCatalogSharedComponentsTest" tests="1" failures="0" errors="0" skipped="0" time="47.402" timestamp="2026-09-29T16:25:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="captureSharedComponentCatalog" classname="com.whip.app.ui.VisualCatalogSharedComponentsTest" time="47.402" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.VisualCatalogTaskComponentsTest" tests="2" failures="1" errors="0" skipped="0" time="48.03" timestamp="2026-09-29T16:25:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="captureTaskWorkspaceControlCatalog" classname="com.whip.app.ui.VisualCatalogTaskComponentsTest" time="13.615">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (ContentDescription = 'Open task details for Prepare quarterly review' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.ui.VisualCatalogTaskComponentsTest.captureTaskWorkspaceControlCatalog(VisualCatalogTaskComponentsTest.kt:107)
+</failure>
+    </testcase>
+    <testcase name="captureTaskComponentCatalog" classname="com.whip.app.ui.VisualCatalogTaskComponentsTest" time="34.415" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.WhipRecordItemTest" tests="4" failures="0" errors="0" skipped="0" time="13.634" timestamp="2026-09-29T16:25:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="actionsStayWithTheirRecordAndUseCurrentCallbacks" classname="com.whip.app.ui.WhipRecordItemTest" time="4.314" />
+    <testcase name="narrowRecordsKeepInformationBelowTheWholeHeader" classname="com.whip.app.ui.WhipRecordItemTest" time="1.79" />
+    <testcase name="completeCatalogContentAndDirectActionsSurviveReorderMode" classname="com.whip.app.ui.WhipRecordItemTest" time="3.423" />
+    <testcase name="commandAvailabilityClosesAnUnavailableMenuAndRecoversWithoutDispatch" classname="com.whip.app.ui.WhipRecordItemTest" time="4.107" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.WhipSummaryBuilderTest" tests="2" failures="0" errors="0" skipped="0" time="4.005" timestamp="2026-09-29T16:25:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="shortSeriesNamesZeroAndNonzeroEvidenceWithoutClickActions" classname="com.whip.app.ui.WhipSummaryBuilderTest" time="1.914" />
+    <testcase name="metricsReflowWithoutLosingExactReadingsOrTheirLabels" classname="com.whip.app.ui.WhipSummaryBuilderTest" time="2.091" />
+  </testsuite>
+  <testsuite name="com.whip.app.ui.WorkoutDeletionUiTest" tests="3" failures="0" errors="0" skipped="0" time="13.348" timestamp="2026-09-29T16:25:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="activeWorkoutIsBlockedAndActionsRemainReachableAtLargeText" classname="com.whip.app.ui.WorkoutDeletionUiTest" time="5.522" />
+    <testcase name="exactReviewDistinguishesRemovedRecalculatedAndPreservedHistory" classname="com.whip.app.ui.WorkoutDeletionUiTest" time="5.167" />
+    <testcase name="staleReviewDisablesDeletionAndOffersAnExplicitRereview" classname="com.whip.app.ui.WorkoutDeletionUiTest" time="2.659" />
+  </testsuite>
+</testsuites>

@@ -314,13 +314,13 @@ Every product area has fast domain coverage and at least one persisted or UI
 path. New behavior must add its regression to the narrowest applicable suite
 and update this matrix if it introduces a new feature area.
 
-Current source inventory: 1990 product tests—724 fast JVM tests and 1266 Android
+Current baseline: 1992 product tests—724 fast JVM tests and 1268 Android
 instrumentation tests—plus 9 Macrobenchmark/Baseline Profile scenarios, lint,
 debug/release/benchmark builds, and the disposable API 34 emulator suite. API
 26 and API 37 compatibility runs cover the minimum and target/latest platform;
-the gate must not claim configurations that were not run. The two navigation
-policy additions and updated native journey are prepared but unexecuted while
-the owner's September 29 verification pause remains active (VER-20260929-008).
+the gate must not claim configurations that were not run. The September 29
+verification pause is lifted under FB-20260929-009; current campaign outcomes
+are recorded separately from this source inventory in the verification ledger.
 
 `scripts/coverage` generates AGP/JaCoCo's deterministic report and enforces the
 audited domain/core floors. `scripts/coverage --emulator` additionally runs the

@@ -88,15 +88,13 @@ class TrackInsightsJourneyE2ETest {
             compose.onNodeWithTag("track-workspace-destination-Tracks").performClick()
             compose.onNodeWithTag("track-card-$trackId").performClick()
             compose.onNodeWithTag("track-destination-Track Insights").performClick()
-            compose.onNodeWithTag("track-insights-list").performScrollToIndex(2)
-            compose.onNodeWithTag("track-insights-list").performTouchInput { swipeUp() }
+            compose.onNodeWithTag("track-insights-list").performScrollToNode(hasText("0.811 mi"))
             capture("tracks.detail.insights.mixed-units")
             assertNumberFullyVisible("1.621 mi")
             assertNumberFullyVisible("0.811 mi")
 
             scenario.recreate()
-            compose.onNodeWithTag("track-insights-list").performScrollToIndex(2)
-            compose.onNodeWithTag("track-insights-list").performTouchInput { swipeUp() }
+            compose.onNodeWithTag("track-insights-list").performScrollToNode(hasText("0.811 mi"))
             assertNumberFullyVisible("1.621 mi")
             assertNumberFullyVisible("0.811 mi")
         }
@@ -154,21 +152,19 @@ class TrackInsightsJourneyE2ETest {
             compose.onNodeWithTag("track-workspace-destination-Tracks").performClick()
             compose.onNodeWithTag("track-card-$trackId").performClick()
             compose.onNodeWithTag("track-destination-Track Insights").performClick()
-            // Header and All Entries precede the two numeric cards in this fixture.
-            compose.onNodeWithTag("track-insights-list").performScrollToIndex(2)
+            // Locate evidence by meaning so header changes do not alter the target.
+            compose.onNodeWithTag("track-insights-list").performScrollToNode(hasText("32.0 °F"))
             compose.onNodeWithText("50.0 °F").assertIsDisplayed()
             compose.onNodeWithText("32.0 °F").assertIsDisplayed()
             compose.onNodeWithText("↑ 36.0 °F").assertIsDisplayed()
             compose.onAllNodesWithText("Sum").assertCountEquals(0)
-            compose.onNodeWithTag("track-insights-list").performScrollToIndex(3)
-            compose.onNodeWithTag("track-insights-list").performTouchInput { swipeUp() }
+            compose.onNodeWithTag("track-insights-list").performScrollToNode(hasText("0.188"))
             capture("tracks.detail.insights.temperature-and-scale")
             listOf("50.0 °F", "32.0 °F", "↑ 36.0 °F", "0.188", "0.125", "↑ 0.125")
                 .forEach(::assertNumberFullyVisible)
 
             scenario.recreate()
-            compose.onNodeWithTag("track-insights-list").performScrollToIndex(2)
-            compose.onNodeWithTag("track-insights-list").performTouchInput { swipeUp() }
+            compose.onNodeWithTag("track-insights-list").performScrollToNode(hasText("50.0 °F"))
             assertNumberFullyVisible("50.0 °F")
             compose.onAllNodesWithText("Sum").assertCountEquals(0)
         }
@@ -181,9 +177,15 @@ class TrackInsightsJourneyE2ETest {
     }
 
     private fun assertNumberFullyVisible(value: String) {
+        val listTag = if (compose.onAllNodesWithTag("track-insights-list").fetchSemanticsNodes().isNotEmpty()) {
+            "track-insights-list"
+        } else "track-workspace-insights-list"
+        compose.onNodeWithTag(listTag).performScrollToNode(hasText(value))
+        compose.waitForIdle()
         compose.onNodeWithText(value, useUnmergedTree = true).assertIsDisplayed()
         val layout = compose.onNodeWithText(value, useUnmergedTree = true).getUnclippedBoundsInRoot()
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        refreshAccessibilityHierarchy("Track insight $value")
         val nativeBounds = device.findObject(By.text(value))?.visibleBounds
         val density = app.resources.displayMetrics.density
         assertTrue("Complete numeric reading $value: $nativeBounds versus $layout",

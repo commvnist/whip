@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.core.E2ECoverageContractTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-09-29T17:05:30.322Z" hostname="beast" time="0.312">
+  <properties/>
+  <testcase name="everyFirstClassCapabilityHasTraceableCauseEffectEvidence" classname="com.whip.app.core.E2ECoverageContractTest" time="0.239"/>
+  <testcase name="refinedCauseEffectMatrixNamesExecutableTestsAndHonestEvidenceTiers" classname="com.whip.app.core.E2ECoverageContractTest" time="0.07"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -266,7 +266,7 @@ class PlatformEntrySurfaceE2ETest {
             assertEquals("Reviewed shared Task", runBlocking { app.taskRepository.tasks.first().single().title })
             scenario.recreate()
             compose.onNodeWithContentDescription("Tasks tab").performClick()
-            compose.onNodeWithTag("task-destination-Inbox").performClick()
+            compose.selectTaskCollectionScope("Unscheduled")
             compose.waitUntil(10_000) { compose.onAllNodesWithTag("task-quick-capture").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithTag("task-workspace-list")
                 .performScrollToNode(hasContentDescription("Open task details for Reviewed shared Task"))
@@ -346,6 +346,7 @@ class PlatformEntrySurfaceE2ETest {
 
         ActivityScenario.launch<MainActivity>(intent).use { scenario ->
             waitForTaskEditor()
+            androidx.test.espresso.Espresso.closeSoftKeyboard()
             compose.onNodeWithContentDescription("Area selection: Work").performScrollTo().assertIsDisplayed()
             assertEquals(selectedScope, app.settingsRepository.current().activeAreaScope)
             compose.onNodeWithTag("task-editor-title").performTextReplacement("Widget draft")
@@ -353,6 +354,7 @@ class PlatformEntrySurfaceE2ETest {
             scenario.recreate()
             waitForTaskEditor()
             compose.onNodeWithTag("task-editor-title").assertTextContains("Widget draft")
+            androidx.test.espresso.Espresso.closeSoftKeyboard()
             compose.onNodeWithContentDescription("Area selection: Work").performScrollTo().assertIsDisplayed()
             compose.onAllNodesWithText("Review New Task Request?").assertCountEquals(0)
             assertEquals(selectedScope, app.settingsRepository.current().activeAreaScope)

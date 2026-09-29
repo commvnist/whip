@@ -1,0 +1,16 @@
+{
+  "group": 4,
+  "selectors": [
+    "com.whip.app.LegacyImportJourneyE2ETest#restoredHabitContinuesManuallyAndSettingsFocusOnLocalData",
+    "com.whip.app.PlatformEntrySurfaceE2ETest#widgetTaskActionSelectsAndPersistsItsAreaAcrossRecreation",
+    "com.whip.app.PlatformEntrySurfaceE2ETest#widgetDoesNotShowATemporaryBannerForTheOnlyVisibleArea",
+    "com.whip.app.ProductivityCardDesignUiTest#habitAndGoalSummaryRowsKeepDetailsAndInlineActions",
+    "com.whip.app.ProductivityCreationJourneyE2ETest#smartTaskCaptureExplainsHighlightsPersistsAndReversesThroughTheRealUi",
+    "com.whip.app.ProductivityCreationJourneyE2ETest#taskHabitAndGoalCanBeCreatedAndUsedThroughTheRealUi",
+    "com.whip.app.ProductivityDefaultsUiTest#todayAndInboxQuickCaptureUseMatchingDestinationCopyAndDefaults",
+    "com.whip.app.ProductivityDefaultsUiTest#emptyTaskWorkspacesKeepClearStateVisibleBelowQuickCapture"
+  ],
+  "exit": 1,
+  "seconds": 233.113,
+  "source_unchanged": true
+}

@@ -105,7 +105,7 @@ class TrackInsightRecoveryJourneyE2ETest {
             compose.onNodeWithContentDescription("Filter Insights").performClick()
             compose.onNodeWithText("Add Condition").performScrollTo().performClick()
             compose.onNodeWithContentDescription("Field: Entry Date").performScrollTo().performClick()
-            compose.onNodeWithText("Name").performClick()
+            compose.onNodeWithContentDescription("Field option: Name").performScrollTo().performClick()
             compose.onNode(hasSetTextAction()).performScrollTo().performTextReplacement("Unrecorded observation")
             closeSoftKeyboard()
             compose.onNodeWithText("Add", substring = false).performClick()
@@ -128,7 +128,7 @@ class TrackInsightRecoveryJourneyE2ETest {
         val before = seed("Earlier empty observations", archived = true)
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             openTracks()
-            workspace("Archived")
+            compose.openWorkspaceArchive("Tracks")
             compose.onNodeWithTag("track-card-${before.track.id}").performClick()
             detail("Track Insights")
             compose.onNodeWithText("No Entries Yet").assertIsDisplayed()

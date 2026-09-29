@@ -1,0 +1,11 @@
+{
+  "command": [
+    "./gradlew",
+    ":benchmark:connectedBenchmarkAndroidTest",
+    "--no-configuration-cache",
+    "--no-build-cache",
+    "--console=plain"
+  ],
+  "exit": 1,
+  "seconds": 1271.656
+}

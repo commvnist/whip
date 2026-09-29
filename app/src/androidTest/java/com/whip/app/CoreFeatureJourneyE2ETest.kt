@@ -102,10 +102,10 @@ class CoreFeatureJourneyE2ETest {
             compose.onNodeWithTag("active-workout-list").performScrollToNode(hasText("E2E exercise"))
             compose.onAllNodesWithText("E2E exercise")[0].assertIsDisplayed()
 
-            compose.onNodeWithTag("gym-destination-Progress").performClick()
+            compose.onNodeWithTag("gym-destination-Insights").performClick()
             compose.onAllNodesWithContentDescription("More Gym destinations").assertCountEquals(0)
             compose.waitUntil(timeoutMillis = 5_000) {
-                compose.onAllNodesWithTag("gym-progress-title").fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithTag("gym-progress-list").fetchSemanticsNodes().isNotEmpty()
             }
             compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasTestTag("gym-chart-summary"))
             compose.onNodeWithTag("gym-chart-summary")

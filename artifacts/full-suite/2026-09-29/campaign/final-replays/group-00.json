@@ -1,0 +1,16 @@
+{
+  "group": 0,
+  "selectors": [
+    "com.whip.app.TrackAuthoringJourneyE2ETest#mixedTrackCanBeAuthoredRecoveredAndUsed",
+    "com.whip.app.AdaptiveWhipScreenTest#taskDetailsStayInsideTheContentPaneOnAFlatBookFold",
+    "com.whip.app.EntityInspectorUiTest#compactLargeTextInspectorKeepsOverviewAndOptionsDirect",
+    "com.whip.app.EntityInspectorUiTest#fixedInspectorFrameKeepsLongCenterContentScrollable",
+    "com.whip.app.EntityInspectorUiTest#inspectorKeepsEverySectionDirectAndStable",
+    "com.whip.app.EntityInspectorUiTest#taskInspectorKeepsIdentityNavigationAndPrimaryActionStable",
+    "com.whip.app.EntityInspectorUiTest#taskSubtasksKeepCompletionTrailingSpacedAndResponsive",
+    "com.whip.app.GymPowerInputUiTest#activeWorkoutUsesOneFocusedComposerWithExerciseAndSetReordering"
+  ],
+  "exit": 1,
+  "seconds": 25.051,
+  "source_unchanged": true
+}

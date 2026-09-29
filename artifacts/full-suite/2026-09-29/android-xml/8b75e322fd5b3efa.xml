@@ -1,0 +1,231 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="92" failures="7" errors="0" skipped="0" time="715.796" timestamp="2026-09-29T15:17:26" hostname="localhost">
+  <testsuite name="com.whip.app.NotificationActionIntegrityTest" tests="14" failures="0" errors="0" skipped="0" time="21.804" timestamp="2026-09-29T15:17:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="habitClaimKeepsPartialSourceProgressCurrentButRejectsLiveClosureAndDefinitionChanges" classname="com.whip.app.NotificationActionIntegrityTest" time="0.983" />
+    <testcase name="habitClaimRejectsReminderMutationAndConnectedPayloadsFailClosed" classname="com.whip.app.NotificationActionIntegrityTest" time="1.529" />
+    <testcase name="permanentTaskDeletionDurablyClearsItsFocusTimer" classname="com.whip.app.NotificationActionIntegrityTest" time="0.732" />
+    <testcase name="sourceMeasurementResyncOnlyTouchesLinkedReminderEnabledHabits" classname="com.whip.app.NotificationActionIntegrityTest" time="4.616" />
+    <testcase name="validTaskAndHabitReceiverActionsStillCompleteIncrementAndUndo" classname="com.whip.app.NotificationActionIntegrityTest" time="3.128" />
+    <testcase name="habitActionValidationRejectsStaleLifecycleScheduleModeStateAndPayload" classname="com.whip.app.NotificationActionIntegrityTest" time="1.747" />
+    <testcase name="goalSnoozeRequiresTheCompleteCurrentClaimAndConnectedActionsFailClosed" classname="com.whip.app.NotificationActionIntegrityTest" time="1.456" />
+    <testcase name="taskActionValidationRejectsMissingArchivedWrongClosedAndNewlyBlockedTargets" classname="com.whip.app.NotificationActionIntegrityTest" time="0.662" />
+    <testcase name="applicationObserverReconcilesSourceHabitAfterPartialAndCompletingMeasurements" classname="com.whip.app.NotificationActionIntegrityTest" time="3.305" />
+    <testcase name="carryUnfinishedReminderCompletionIgnoresStepsHiddenByPriorHistory" classname="com.whip.app.NotificationActionIntegrityTest" time="0.614" />
+    <testcase name="completedSubtasksDoNotMakeAnOtherwiseCurrentTaskActionStale" classname="com.whip.app.NotificationActionIntegrityTest" time="0.303" />
+    <testcase name="staleReceiverActionsCancelWithoutCreatingTaskOrHabitHistory" classname="com.whip.app.NotificationActionIntegrityTest" time="1.288" />
+    <testcase name="habitSnoozeActionQueuesSnoozedWorkWithoutWritingHistory" classname="com.whip.app.NotificationActionIntegrityTest" time="0.434" />
+    <testcase name="taskReceiverFingerprintRejectsScheduleMutationButAllowsPresentationEdit" classname="com.whip.app.NotificationActionIntegrityTest" time="1.007" />
+  </testsuite>
+  <testsuite name="com.whip.app.NotificationActionLedgerTest" tests="4" failures="0" errors="0" skipped="0" time="0.282" timestamp="2026-09-29T15:17:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="separateReceiverLedgerInstancesClaimConcurrentlyOnlyOnce" classname="com.whip.app.NotificationActionLedgerTest" time="0.153" />
+    <testcase name="abandonedInFlightReceiptBecomesRetryableAfterTimeout" classname="com.whip.app.NotificationActionLedgerTest" time="0.026" />
+    <testcase name="failedMutationCanReleaseReceiptAndRetry" classname="com.whip.app.NotificationActionLedgerTest" time="0.052" />
+    <testcase name="retryCanClaimTheSameNotificationActionOnlyOnce" classname="com.whip.app.NotificationActionLedgerTest" time="0.051" />
+  </testsuite>
+  <testsuite name="com.whip.app.NotificationDeepLinkE2ETest" tests="2" failures="0" errors="0" skipped="0" time="37.704" timestamp="2026-09-29T15:17:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="consumedSecondDeliveryDoesNotReplayAfterActivityRecreation" classname="com.whip.app.NotificationDeepLinkE2ETest" time="23.163" />
+    <testcase name="identicalNewIntentRoutesAgainWithoutRecompositionReplay" classname="com.whip.app.NotificationDeepLinkE2ETest" time="14.541" />
+  </testsuite>
+  <testsuite name="com.whip.app.OrganizationJourneyE2ETest" tests="2" failures="0" errors="0" skipped="0" time="107.01" timestamp="2026-09-29T15:17:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="tagChangesKeepEveryDomainAndSavedHistoryThroughRecreation" classname="com.whip.app.OrganizationJourneyE2ETest" time="73.027" />
+    <testcase name="areaIdentityAndRenameDraftSurviveTheRealManagerJourney" classname="com.whip.app.OrganizationJourneyE2ETest" time="33.983" />
+  </testsuite>
+  <testsuite name="com.whip.app.PersistentStorageE2ETest" tests="1" failures="0" errors="0" skipped="0" time="0.762" timestamp="2026-09-29T15:17:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="coreRecordsRemainAfterDatabaseIsClosedAndReopened" classname="com.whip.app.PersistentStorageE2ETest" time="0.762" />
+  </testsuite>
+  <testsuite name="com.whip.app.PlatformEntrySurfaceE2ETest" tests="19" failures="2" errors="0" skipped="0" time="351.581" timestamp="2026-09-29T15:17:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="styledSharedTextUsesTheStandardCharSequenceContract" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="9.939" />
+    <testcase name="fourthShareCannotOverwriteTheUnadmittedThirdShare" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="21.344" />
+    <testcase name="widgetReconfigurationKeepsItsExistingAreaUnlessTheUserChangesIt" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="5.208" />
+    <testcase name="unsupportedSharedPayloadDoesNotOpenAnEditor" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="7.103" />
+    <testcase name="incomingShareCannotSilentlyReplaceAnOpenTaskDraft" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="29.345" />
+    <testcase name="repeatedSharedTextIntentReplacesTheDraftWithoutReplayingTheOldDelivery" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="18.879" />
+    <testcase name="sharedPlainTextOpensAPrefilledTaskAndCancelDoesNotPersistIt" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="16.843" />
+    <testcase name="oversizedSharedTextIsBoundedBeforeRecreationAndExplainsTheShortenedDraft" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="104.333" />
+    <testcase name="saveAndNewClearsTheShortenedShareWarningFromTheNewDraft" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="16.023" />
+    <testcase name="widgetTaskActionSelectsAndPersistsItsAreaAcrossRecreation" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="10.541">
+      <failure>java.lang.AssertionError: Assert failed: The component with ContentDescription = 'Area selection: Work' (ignoreCase: false) is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.PlatformEntrySurfaceE2ETest$widgetTaskActionSelectsAndPersistsItsAreaAcrossRecreation$1.invokeSuspend(PlatformEntrySurfaceE2ETest.kt:349)
+at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source:1)
+at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:47)
+at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source:1)
+at com.whip.app.PlatformEntrySurfaceE2ETest.widgetTaskActionSelectsAndPersistsItsAreaAcrossRecreation(PlatformEntrySurfaceE2ETest.kt:339)
+</failure>
+    </testcase>
+    <testcase name="widgetSwitchRespectsChosenOrLastUsedAreaOnTheNextSession" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="21.714" />
+    <testcase name="queuedWidgetAddTaskPreservesRequestedAreaAfterCurrentDraftSave" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="14.215" />
+    <testcase name="editedSharedDraftSurvivesRecreationWithoutLaunchReplay" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="10.569" />
+    <testcase name="shareQueueOverflowAcknowledgementSurvivesRecreation" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="22.334" />
+    <testcase name="widgetDoesNotShowATemporaryBannerForTheOnlyVisibleArea" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="13.389">
+      <failure>androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 10000 ms
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:901)
+at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:500)
+at com.whip.app.PlatformEntrySurfaceE2ETest$widgetDoesNotShowATemporaryBannerForTheOnlyVisibleArea$1.invokeSuspend(PlatformEntrySurfaceE2ETest.kt:371)
+at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source:1)
+at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:47)
+at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source:1)
+at com.whip.app.PlatformEntrySurfaceE2ETest.widgetDoesNotShowATemporaryBannerForTheOnlyVisibleArea(PlatformEntrySurfaceE2ETest.kt:363)
+</failure>
+    </testcase>
+    <testcase name="widgetQuickActionResumesAfterFirstRunSetup" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="11.726" />
+    <testcase name="blankSharedPayloadDoesNotOpenAnEditor" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="7.015" />
+    <testcase name="widgetConfigurationPersistsUnassignedAsADistinctAreaScope" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="4.904" />
+    <testcase name="widgetConfigurationPersistsTheChosenAreaAndReturnsSuccess" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="6.157" />
+  </testsuite>
+  <testsuite name="com.whip.app.PortableBackupManagerTest" tests="24" failures="0" errors="0" skipped="0" time="1.346" timestamp="2026-09-29T15:17:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="providerAndStorageFailuresNeverAdvanceSuccessOrExposeAPartialBackup" classname="com.whip.app.PortableBackupManagerTest" time="0.255" />
+    <testcase name="scheduledBackupDoesNotRotateGoodHistoryWhenDatabaseIsEmpty" classname="com.whip.app.PortableBackupManagerTest" time="0.052" />
+    <testcase name="corruptProviderWriteIsDeletedAndNeverReportedAsSuccessful" classname="com.whip.app.PortableBackupManagerTest" time="0.052" />
+    <testcase name="failedNewReceiptCannotPruneThePreviouslyVerifiedFile" classname="com.whip.app.PortableBackupManagerTest" time="0.052" />
+    <testcase name="failedAutomaticToggleCommitKeepsThePreviousDurableSetting" classname="com.whip.app.PortableBackupManagerTest" time="0.082" />
+    <testcase name="successfulWritePrunesOldBackupsButLeavesUnrelatedFiles" classname="com.whip.app.PortableBackupManagerTest" time="0.077" />
+    <testcase name="grantLossDuringFolderSelectionUsesTheSameSafeRecoveryMessage" classname="com.whip.app.PortableBackupManagerTest" time="0.052" />
+    <testcase name="failedFolderCommitKeepsThePreviousSelectionAndReleasesOnlyTheNewGrant" classname="com.whip.app.PortableBackupManagerTest" time="0.051" />
+    <testcase name="abandonedStagingFilesAreCleanedBeforeTheNextBackup" classname="com.whip.app.PortableBackupManagerTest" time="0.051" />
+    <testcase name="corruptNewestFileDoesNotDisplaceAnOlderVerifiedBackup" classname="com.whip.app.PortableBackupManagerTest" time="0.052" />
+    <testcase name="forgettingFolderStillClearsLocalConfigurationAfterProviderRevokesAccess" classname="com.whip.app.PortableBackupManagerTest" time="0.026" />
+    <testcase name="changingFolderStillSucceedsWhenTheOldGrantIsAlreadyGone" classname="com.whip.app.PortableBackupManagerTest" time="0.001" />
+    <testcase name="failedReceiptCommitCannotReportAVerifiedBackupAsSaved" classname="com.whip.app.PortableBackupManagerTest" time="0.052" />
+    <testcase name="verifiedBackupKeepsSuccessReceiptAndReportsRefusedPartialCleanup" classname="com.whip.app.PortableBackupManagerTest" time="0.026" />
+    <testcase name="stagingFileIsVerifiedThenRenamedAndNeverReportedAsIncomplete" classname="com.whip.app.PortableBackupManagerTest" time="0.052" />
+    <testcase name="duplicateProviderDisplayNameStillProtectsTheNewlyCommittedUri" classname="com.whip.app.PortableBackupManagerTest" time="0.026" />
+    <testcase name="selectedFolderSettingsAndVerifiedBackupSurviveManagerRecreation" classname="com.whip.app.PortableBackupManagerTest" time="0.052" />
+    <testcase name="automaticRetentionNeverPrunesAManuallySavedPlainBackup" classname="com.whip.app.PortableBackupManagerTest" time="0.026" />
+    <testcase name="revokedProviderWarningNeverExposesPlatformProcessDetails" classname="com.whip.app.PortableBackupManagerTest" time="0.052" />
+    <testcase name="failedRetentionWarningCommitStillKeepsTheNewVerifiedReceipt" classname="com.whip.app.PortableBackupManagerTest" time="0.051" />
+    <testcase name="startupRecoveryReportsRevokedProviderAndReselectionClearsTheWarning" classname="com.whip.app.PortableBackupManagerTest" time="0.026" />
+    <testcase name="startupRecoveryReportsAnOwnedPartialThatProviderRefusesToDelete" classname="com.whip.app.PortableBackupManagerTest" time="0.026" />
+    <testcase name="automaticBackupUsesOneRestartPersistentPeriodicJobAndCancelsWhenDisabled" classname="com.whip.app.PortableBackupManagerTest" time="0.127" />
+    <testcase name="crashCleanupDoesNotDeleteAnUnrelatedFileWithTheIncompletePrefix" classname="com.whip.app.PortableBackupManagerTest" time="0.027" />
+  </testsuite>
+  <testsuite name="com.whip.app.ProductivityCardDesignUiTest" tests="15" failures="1" errors="0" skipped="0" time="66.415" timestamp="2026-09-29T15:17:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="pastScheduledBadgeDoesNotCollapseTheTaskTitleInANarrowPane" classname="com.whip.app.ProductivityCardDesignUiTest" time="3.013" />
+    <testcase name="checklistHabitSummaryKeepsParentAndEachSubItemInteractive" classname="com.whip.app.ProductivityCardDesignUiTest" time="5.751" />
+    <testcase name="scheduledDateAndRecurrenceUseFullWidthSummaryAndExpandWithoutDuplication" classname="com.whip.app.ProductivityCardDesignUiTest" time="3.947" />
+    <testcase name="summaryRowsExpandIndependentlyAndWorkspaceTabChangesCollapseThem" classname="com.whip.app.ProductivityCardDesignUiTest" time="6.074" />
+    <testcase name="timerReviewDialogSupportsCorrectionContinueStopAndDiscardAtNarrowWidth" classname="com.whip.app.ProductivityCardDesignUiTest" time="8.893" />
+    <testcase name="habitTimerRemainsReadableOwnedAndReachableAtNarrowLargeText" classname="com.whip.app.ProductivityCardDesignUiTest" time="3.456" />
+    <testcase name="goalSummaryKeepsElapsedTimerResetAndMilestoneControls" classname="com.whip.app.ProductivityCardDesignUiTest" time="5.511" />
+    <testcase name="summaryCardsKeepLongTextReadableAtTwoHundredPercentFontScale" classname="com.whip.app.ProductivityCardDesignUiTest" time="3.965" />
+    <testcase name="habitSummaryStateMatrixKeepsTimerSkipAndSyncedInformation" classname="com.whip.app.ProductivityCardDesignUiTest" time="4.527" />
+    <testcase name="tasksHabitsAndGoalsShareIdentityActionAndEditColumns" classname="com.whip.app.ProductivityCardDesignUiTest" time="5.469" />
+    <testcase name="habitActivityGridExposesOneSpokenDateAndStatePerDay" classname="com.whip.app.ProductivityCardDesignUiTest" time="3.688" />
+    <testcase name="taskSummaryRowsReflowNotesAndSubtaskProgressWithoutLosingActions" classname="com.whip.app.ProductivityCardDesignUiTest" time="3.263" />
+    <testcase name="summaryExpansionSurvivesSavedStateRestoration" classname="com.whip.app.ProductivityCardDesignUiTest" time="2.833" />
+    <testcase name="pausedAndOffScheduleHabitSummariesRemoveAccidentalQuickActions" classname="com.whip.app.ProductivityCardDesignUiTest" time="3.543" />
+    <testcase name="habitAndGoalSummaryRowsKeepDetailsAndInlineActions" classname="com.whip.app.ProductivityCardDesignUiTest" time="2.482">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains '2/8' (ignoreCase: false) as substring)
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+at com.whip.app.ProductivityCardDesignUiTest.habitAndGoalSummaryRowsKeepDetailsAndInlineActions(ProductivityCardDesignUiTest.kt:530)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.ProductivityCreationJourneyE2ETest" tests="2" failures="2" errors="0" skipped="0" time="40.516" timestamp="2026-09-29T15:17:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="smartTaskCaptureExplainsHighlightsPersistsAndReversesThroughTheRealUi" classname="com.whip.app.ProductivityCreationJourneyE2ETest" time="10.429">
+      <failure>java.lang.AssertionError: Assert failed: The component with TestTag = 'smart-task-capture-examples' is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.ProductivityCreationJourneyE2ETest.smartTaskCaptureExplainsHighlightsPersistsAndReversesThroughTheRealUi(ProductivityCreationJourneyE2ETest.kt:237)
+</failure>
+    </testcase>
+    <testcase name="taskHabitAndGoalCanBeCreatedAndUsedThroughTheRealUi" classname="com.whip.app.ProductivityCreationJourneyE2ETest" time="30.087">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains '+1' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.ProductivityCreationJourneyE2ETest.taskHabitAndGoalCanBeCreatedAndUsedThroughTheRealUi(ProductivityCreationJourneyE2ETest.kt:139)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.ProductivityDefaultsUiTest" tests="9" failures="2" errors="0" skipped="0" time="84.184" timestamp="2026-09-29T15:17:26" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="onboardingKeepsItsActionsReachableAtLargeText" classname="com.whip.app.ProductivityDefaultsUiTest" time="6.453" />
+    <testcase name="goalEditorMarksRequiredTargetAndExplainsRejectedSave" classname="com.whip.app.ProductivityDefaultsUiTest" time="12.707" />
+    <testcase name="todayAndInboxQuickCaptureUseMatchingDestinationCopyAndDefaults" classname="com.whip.app.ProductivityDefaultsUiTest" time="6.029">
+      <failure>java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains 'Task for Today' (ignoreCase: false) is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.ProductivityDefaultsUiTest.todayAndInboxQuickCaptureUseMatchingDestinationCopyAndDefaults(ProductivityDefaultsUiTest.kt:157)
+</failure>
+    </testcase>
+    <testcase name="emptyTaskWorkspacesKeepClearStateVisibleBelowQuickCapture" classname="com.whip.app.ProductivityDefaultsUiTest" time="4.64">
+      <failure>java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains 'Task for Today' (ignoreCase: false) is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.ProductivityDefaultsUiTest.emptyTaskWorkspacesKeepClearStateVisibleBelowQuickCapture(ProductivityDefaultsUiTest.kt:204)
+</failure>
+    </testcase>
+    <testcase name="untouchedDoneHabitUsesDiscreteOccurrenceDefaultsWithoutRequestingNotifications" classname="com.whip.app.ProductivityDefaultsUiTest" time="13.436" />
+    <testcase name="taskCreatedFromHomeDefaultsToTodayInsteadOfInbox" classname="com.whip.app.ProductivityDefaultsUiTest" time="13.823" />
+    <testcase name="controlNFromSettingsLeavesSettingsInPlaceAndDoesNotOpenGlobalAdd" classname="com.whip.app.ProductivityDefaultsUiTest" time="5.669" />
+    <testcase name="savingGoalWithoutAReminderDoesNotRequestNotificationPermission" classname="com.whip.app.ProductivityDefaultsUiTest" time="13.506" />
+    <testcase name="onboardingStartsWithValueAndKeepsPreferencesOptional" classname="com.whip.app.ProductivityDefaultsUiTest" time="7.921" />
+  </testsuite>
+</testsuites>

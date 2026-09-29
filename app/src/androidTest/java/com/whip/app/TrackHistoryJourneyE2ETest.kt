@@ -77,7 +77,7 @@ class TrackHistoryJourneyE2ETest {
         }
         launchMainActivity(Intent(app, MainActivity::class.java)).use {
             compose.onNodeWithContentDescription("Tracks tab").performClick()
-            compose.onNodeWithTag("track-workspace-destination-Archived").performClick()
+            compose.openWorkspaceArchive("Tracks")
             compose.onNodeWithTag("track-list").performScrollToNode(hasTestTag("track-card-$id"))
             compose.onNodeWithTag("track-card-$id").performClick()
             compose.waitUntil(15_000) { compose.onAllNodesWithTag("track-entry-page-loading").fetchSemanticsNodes().isEmpty() }
@@ -128,12 +128,13 @@ class TrackHistoryJourneyE2ETest {
         val suffix = if (large) "large" else "ordinary"
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             compose.onNodeWithContentDescription("Tracks tab").performClick()
-            compose.onNodeWithTag("track-workspace-destination-Archived").performClick()
+            compose.openWorkspaceArchive("Tracks")
             compose.waitUntil(15_000) { compose.onAllNodesWithTag("track-list").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithTag("track-list").performScrollToNode(hasTestTag("track-card-$trackId"))
             compose.onNodeWithTag("track-card-$trackId").performClick()
             compose.waitUntil(15_000) { compose.onAllNodesWithTag("track-entry-list").fetchSemanticsNodes().isNotEmpty() }
             compose.waitUntil(15_000) { compose.onAllNodesWithTag("track-entry-page-loading").fetchSemanticsNodes().isEmpty() }
+            compose.onNodeWithTag("track-entry-list").performScrollToNode(hasText("Neighbourhood walk 1"))
             capture("tracks.history.archived.$suffix")
             assertNativeTextFullyVisible("Neighbourhood walk 1")
             assertNativeTextFullyVisible(app.clock.today().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
@@ -146,7 +147,10 @@ class TrackHistoryJourneyE2ETest {
             compose.onNodeWithTag("track-entry-list").performScrollToNode(
                 hasContentDescription("Search Entries in $trackName"))
             compose.onNodeWithContentDescription("Search Entries in $trackName").performClick()
-            compose.onNodeWithTag("track-entry-search").performScrollTo().performClick()
+            compose.onNodeWithTag("track-entry-list").performScrollToNode(hasTestTag("track-entry-search"))
+            compose.waitForIdle()
+            refreshAccessibilityHierarchy("Track search input")
+            checkNotNull(device.findObject(By.res("track-entry-search"))).click()
             compose.waitUntil(10_000) {
                 InstrumentationRegistry.getInstrumentation().uiAutomation.windows.any {
                     it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
@@ -172,15 +176,18 @@ class TrackHistoryJourneyE2ETest {
             compose.onNodeWithTag("track-entry-search").assertTextContains("River trail")
             capture("tracks.history.search-result.$suffix")
             compose.onNodeWithTag("track-entry-search").performTextReplacement("No saved trail matches this")
-            compose.waitUntil(10_000) { compose.onAllNodesWithText("No Matching Entries").fetchSemanticsNodes().isNotEmpty() }
+            awaitEntryText("No Matching Entries")
             entryNode(hasText("No Matching Entries")).assertIsDisplayed()
             captureVisualCatalogSurface("ux-upgrades.tracks.entry-recovery.$suffix")
             entryNode(hasText("Clear Search & Filters")).performClick()
             entryNode(hasText("Neighbourhood walk 1")).assertIsDisplayed()
             entryNode(hasTestTag("track-entry-search")).performTextReplacement("River trail")
+            compose.onNodeWithTag("track-entry-search").assertTextContains("River trail")
+            compose.waitForIdle()
             scenario.recreate()
             compose.onNodeWithTag("track-entry-list").performScrollToNode(hasTestTag("track-entry-search"))
             compose.onNodeWithTag("track-entry-search").assertTextContains("River trail")
+            awaitEntryText("River trail after the rain")
             compose.onNodeWithTag("track-entry-list").performScrollToNode(hasText("River trail after the rain"))
             compose.onNodeWithText("River trail after the rain").performClick()
             if (large) compose.assertDialogFontScale()
@@ -188,7 +195,7 @@ class TrackHistoryJourneyE2ETest {
             capture("tracks.history.inspector.$suffix")
             compose.onNodeWithContentDescription("Close Track Entry details").performClick()
             compose.onNodeWithContentDescription("Back to Tracks").performClick()
-            compose.onNodeWithTag("track-workspace-destination-Archived").assertIsSelected()
+            compose.onNodeWithTag("track-workspace-destination-Tracks").assertIsSelected()
             compose.waitUntil(10_000) {
                 InstrumentationRegistry.getInstrumentation().uiAutomation.windows.none {
                     it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
@@ -230,6 +237,14 @@ class TrackHistoryJourneyE2ETest {
             assertEquals(before.fields, after.fields)
             assertEquals(before.options, after.options)
             assertEquals(before.entries, after.entries)
+        }
+    }
+
+    private fun awaitEntryText(text: String) {
+        compose.waitUntil(10_000) {
+            runCatching {
+                compose.onNodeWithTag("track-entry-list").performScrollToNode(hasText(text))
+            }.isSuccess
         }
     }
 

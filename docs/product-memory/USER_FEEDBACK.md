@@ -1,5 +1,11 @@
 # User feedback and acceptance criteria
 
+### FB-20260929-010 — Start Tasks and Habits on their first collection tab
+
+- Date/source: 2026-09-29, owner requests Tasks and Habits as the initial selections instead of Today during the release/test/release campaign.
+- Acceptance: Fresh workspace entry selects Tasks and Habits. Existing per-session/restored selection and explicit Today deep links retain their meaning. Include the change in the second phone release under FB-20260929-009 and verify initial selection plus return behavior.
+- Related/status: DEC-20260929-003 collection-first order; supersedes its initial Today default for these workspaces. Verified under VER-20260929-010; second release pending.
+
 ### FB-20260929-009 — Release, complete the full suite, repair and release again
 
 - Date/source: 2026-09-29, owner requests an initial phone release of the navigation redesign, followed by the complete test suite and repairs, then a second phone release.

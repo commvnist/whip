@@ -1,0 +1,18 @@
+{
+  "group": 9,
+  "selectors": [
+    "com.whip.app.TaskBulkSelectionUiTest",
+    "com.whip.app.TaskDayPlannerUiTest",
+    "com.whip.app.TaskDeletionUiTest",
+    "com.whip.app.TaskEditorJourneyE2ETest",
+    "com.whip.app.TaskReorderJourneyE2ETest",
+    "com.whip.app.TaskRepositoryTest",
+    "com.whip.app.TimerAlarmIntegrationTest",
+    "com.whip.app.TrackAuthoringJourneyE2ETest",
+    "com.whip.app.TrackCalendarContextTest",
+    "com.whip.app.TrackCollectionFailureJourneyE2ETest"
+  ],
+  "exit": 1,
+  "seconds": 518.331,
+  "source_unchanged": true
+}

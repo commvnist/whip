@@ -1,0 +1,8 @@
+{
+  "command": [
+    "python3",
+    "/tmp/whip-native-complete.py"
+  ],
+  "exit": 1,
+  "seconds": 6405.282
+}

@@ -7,8 +7,8 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -181,12 +181,15 @@ class TrackWorkspaceUiTest {
         compose.waitUntil(10_000) {
             compose.onAllNodesWithContentDescription("Close Track Entry details").fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithTag("track-workspace-destination-Archived").assertIsSelected()
+        compose.onNodeWithTag("track-workspace-destination-Tracks").assertIsSelected()
         compose.onAllNodesWithTag("track-detail-navigation").assertCountEquals(1)
-        compose.onNodeWithText("Archived · Entries are read-only").assertIsDisplayed()
+        compose.onNodeWithTag("entity-inspector-title").assertTextContains("Prior dosage")
+        compose.onAllNodesWithContentDescription("Edit Entry").assertCountEquals(0)
         compose.onAllNodesWithContentDescription("Edit Entry Prior dosage").assertCountEquals(0)
         compose.onAllNodesWithContentDescription("More Actions for Prior dosage").assertCountEquals(0)
         compose.onNodeWithContentDescription("Close Track Entry details").performClick()
+        compose.onNodeWithContentDescription("Back to Tracks").performClick()
+        compose.onNodeWithTag("workspace-context-summary").assertTextContains("Archived Tracks")
 
         compose.onNodeWithContentDescription("Search Tracks & Entries").performClick()
         compose.onNodeWithTag("unified-search-query").performTextReplacement("Medication Archive")
@@ -195,9 +198,9 @@ class TrackWorkspaceUiTest {
         }
         compose.onNodeWithTag("unified-search-result-Track-2").performClick()
         compose.waitUntil(10_000) {
-            compose.onAllNodesWithTag("track-workspace-destination-Archived").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithTag("track-detail-navigation").fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithTag("track-workspace-destination-Archived").assertIsSelected()
+        compose.onNodeWithTag("track-workspace-destination-Tracks").assertIsSelected()
         compose.onAllNodesWithText("Medication Archive")[0].assertIsDisplayed()
     }
 
@@ -261,27 +264,38 @@ class TrackWorkspaceUiTest {
 
         compose.onNodeWithContentDescription("Search Track Activity").assertDoesNotExist()
         compose.onNodeWithContentDescription("Filter Track Activity", substring = true).performClick()
+        compose.onNodeWithTag("track-activity-area-filter").assertDoesNotExist()
+        captureVisualCatalogSurface("tracks.activity.filters")
         compose.onNodeWithTag("track-activity-search").performTextInput("Arrival")
         androidx.test.espresso.Espresso.closeSoftKeyboard()
-        compose.onAllNodesWithText("Arrival").assertCountEquals(2)
-        compose.onAllNodesWithText("Old Opening").assertCountEquals(0)
-        compose.onNodeWithContentDescription("Clear Search").performClick()
-
-        compose.onNodeWithText("7 Days").performClick()
+        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithText("Old Opening").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Filter Track Activity", substring = true).performClick()
+        compose.onNodeWithTag("track-activity-search").performTextReplacement("Arrival")
+        androidx.test.espresso.Espresso.closeSoftKeyboard()
+        compose.onNodeWithText("Apply").performClick()
         compose.onNodeWithText("Arrival").assertIsDisplayed()
         compose.onAllNodesWithText("Old Opening").assertCountEquals(0)
-        compose.onNodeWithText("Any Date").performClick()
-        compose.onNodeWithTag("track-activity-area-filter").performClick()
-        compose.onNodeWithText("Work").performClick()
-        compose.onNodeWithText("Old Opening").assertIsDisplayed()
-        compose.onAllNodesWithText("Arrival").assertCountEquals(0)
 
         compose.onNodeWithContentDescription("Filter Track Activity", substring = true).performClick()
+        compose.onNodeWithText("Reset Filters").performClick()
+        compose.onNodeWithText("7 Days").performScrollTo().performClick()
+        compose.onNodeWithText("Apply").performClick()
+        compose.onNodeWithText("Arrival").assertIsDisplayed()
+        compose.onAllNodesWithText("Old Opening").assertCountEquals(0)
+        compose.onNodeWithContentDescription("Filter Track Activity", substring = true).performClick()
+        compose.onNodeWithText("Any Date").performScrollTo().performClick()
+        compose.onNodeWithTag("track-activity-track-filter").performScrollTo().performClick()
+        compose.onNodeWithText("♟️ Chess Openings").performClick()
+        compose.onNodeWithText("Apply").performClick()
+        compose.onNodeWithText("Old Opening").assertIsDisplayed()
+        compose.onAllNodesWithText("Arrival").assertCountEquals(0)
         compose.onNodeWithTag("track-activity-filter-summary").assertIsDisplayed()
+
         compose.onNodeWithContentDescription("Filter Track Activity", substring = true).performClick()
         compose.onNodeWithTag("track-activity-search").performTextReplacement("no matching entry")
         androidx.test.espresso.Espresso.closeSoftKeyboard()
-        compose.onNodeWithContentDescription("Filter Track Activity", substring = true).performClick()
+        compose.onNodeWithText("Apply").performClick()
         compose.onNodeWithText("No Matching Activity").assertIsDisplayed()
         captureVisualCatalogSurface("ux-upgrades.tracks.activity-recovery")
         compose.onNodeWithText("Clear Search & Filters").performClick()
@@ -289,8 +303,9 @@ class TrackWorkspaceUiTest {
         compose.onNodeWithText("Old Opening").assertIsDisplayed()
         compose.onAllNodesWithTag("track-activity-filter-summary").assertCountEquals(0)
         compose.onNodeWithContentDescription("Filter Track Activity", substring = true).performClick()
-        compose.onNodeWithTag("track-activity-area-filter").performClick()
-        compose.onNodeWithText("Work").performClick()
+        compose.onNodeWithTag("track-activity-track-filter").performScrollTo().performClick()
+        compose.onNodeWithText("♟️ Chess Openings").performClick()
+        compose.onNodeWithText("Apply").performClick()
         compose.runOnIdle { visibleTracks.value = listOf(movies) }
         compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Arrival"))
         compose.onNodeWithText("Arrival").assertIsDisplayed()
@@ -336,9 +351,9 @@ class TrackWorkspaceUiTest {
         compose.onNodeWithContentDescription("Tracks tab").performClick()
         compose.onNodeWithTag("track-workspace-navigation").assertIsDisplayed()
         compose.onNodeWithTag("track-workspace-destination-Activity").performClick()
-        compose.onNodeWithContentDescription("Search Track Activity").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Filter Track Activity").assertIsDisplayed()
         compose.onNodeWithTag("track-workspace-destination-Insights").performClick()
-        compose.onNodeWithText("Patterns across visible Tracks.").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-context-summary").assertTextContains("Patterns across Tracks", substring = true)
     }
 
     @Test

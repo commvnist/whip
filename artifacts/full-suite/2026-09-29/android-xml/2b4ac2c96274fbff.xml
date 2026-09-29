@@ -1,0 +1,117 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="32" failures="1" errors="0" skipped="0" time="473.425" timestamp="2026-09-29T15:15:43" hostname="localhost">
+  <testsuite name="com.whip.app.ProductivityDuplicateRepositoryTest" tests="1" failures="0" errors="0" skipped="0" time="2.811" timestamp="2026-09-29T15:15:43" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="maximumNamesDuplicateIndependentStructuresWithoutCopyingHistory" classname="com.whip.app.ProductivityDuplicateRepositoryTest" time="2.811" />
+  </testsuite>
+  <testsuite name="com.whip.app.ProductivityExperienceJourneyTest" tests="6" failures="0" errors="0" skipped="0" time="340.476" timestamp="2026-09-29T15:15:43" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="habitChecklistWorksInsideTodayAndRetainsParentCompletion" classname="com.whip.app.ProductivityExperienceJourneyTest" time="40.598" />
+    <testcase name="goalMilestonesWorkInsideDetailsAndCompleteOnlyOnRequest" classname="com.whip.app.ProductivityExperienceJourneyTest" time="34.581" />
+    <testcase name="repeatedHistoryCleanupKeepsQueriesAndRecoversFromStaleGoalDeletion" classname="com.whip.app.ProductivityExperienceJourneyTest" time="87.49" />
+    <testcase name="trackStarterPreviewUsesRealFieldsWithoutSavingSampleValues" classname="com.whip.app.ProductivityExperienceJourneyTest" time="35.438" />
+    <testcase name="historySearchFindsOlderOriginalFactsAndRestoresItsQuery" classname="com.whip.app.ProductivityExperienceJourneyTest" time="64.075" />
+    <testcase name="trackHistoryChangesKeepLoadedOlderWindowAndSearchAcrossRecreation" classname="com.whip.app.ProductivityExperienceJourneyTest" time="78.294" />
+  </testsuite>
+  <testsuite name="com.whip.app.ProductivityItemBuilderJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="6.104" timestamp="2026-09-29T15:15:43" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="expandedTimerHasOneStatusAndKeepsItsActionsAfterRecreation" classname="com.whip.app.ProductivityItemBuilderJourneyE2ETest" time="6.104">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (ContentDescription = 'Start timer for Breathe and settle before the day' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.ProductivityItemBuilderJourneyE2ETest.expandedTimerHasOneStatusAndKeepsItsActionsAfterRecreation(ProductivityItemBuilderJourneyE2ETest.kt:43)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.ProductivityTemplateSafetyTest" tests="1" failures="0" errors="0" skipped="0" time="23.132" timestamp="2026-09-29T15:15:43" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="taskRecipeOnlyPrefillsAndNeverPersistsBeforeSave" classname="com.whip.app.ProductivityTemplateSafetyTest" time="23.132" />
+  </testsuite>
+  <testsuite name="com.whip.app.RecordItemBuilderJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="60.208" timestamp="2026-09-29T15:15:43" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="recordsKeepTheirReadingOrderAndExactActions" classname="com.whip.app.RecordItemBuilderJourneyE2ETest" time="60.208" />
+  </testsuite>
+  <testsuite name="com.whip.app.RecoveryBoundaryIntegrationTest" tests="8" failures="0" errors="0" skipped="0" time="16.063" timestamp="2026-09-29T15:15:43" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="secondaryActivityShowsRecoveryGateInsteadOfReadingWhipSettings" classname="com.whip.app.RecoveryBoundaryIntegrationTest" time="3.958" />
+    <testcase name="failedLiveRestoreRebuildsCurrentReminderStateAndReturnsReady" classname="com.whip.app.RecoveryBoundaryIntegrationTest" time="3.982" />
+    <testcase name="replaceRestoreInvalidatesActivityViewModelUndoActionsFromTheOldGeneration" classname="com.whip.app.RecoveryBoundaryIntegrationTest" time="2.606" />
+    <testcase name="failedRealReplacementRollsBackRecordsAndSettingsWithoutLeavingARecoveryMarker" classname="com.whip.app.RecoveryBoundaryIntegrationTest" time="1.705" />
+    <testcase name="resetAllDrainsAnAdmittedGymMutationThenDeletesItAndInvalidatesOldOwnership" classname="com.whip.app.RecoveryBoundaryIntegrationTest" time="0.933" />
+    <testcase name="failedResetRestoresSettingsAndRecordsBeforeReturningReady" classname="com.whip.app.RecoveryBoundaryIntegrationTest" time="1.188" />
+    <testcase name="widgetConfigurationSaveCannotCrossAClosedRecoveryBoundary" classname="com.whip.app.RecoveryBoundaryIntegrationTest" time="0.28" />
+    <testcase name="blockedRecoveryPreventsWorkerNotificationAndWidgetDataAccess" classname="com.whip.app.RecoveryBoundaryIntegrationTest" time="1.411" />
+  </testsuite>
+  <testsuite name="com.whip.app.ReminderAlarmIntegrationTest" tests="2" failures="0" errors="0" skipped="0" time="0.77" timestamp="2026-09-29T15:15:43" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="scheduledTransportWakesValidatedWorkWithoutAnActivityLaunch" classname="com.whip.app.ReminderAlarmIntegrationTest" time="0.178" />
+    <testcase name="exactAlarmRegistersAndPromotesTheSameValidatedWork" classname="com.whip.app.ReminderAlarmIntegrationTest" time="0.592" />
+  </testsuite>
+  <testsuite name="com.whip.app.ReminderTimeChangeReceiverIntegrityTest" tests="2" failures="0" errors="0" skipped="0" time="0.459" timestamp="2026-09-29T15:15:43" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="manifestReceiverRoutesFixedAndFollowDeviceTimeZonesWithoutChangingUserData" classname="com.whip.app.ReminderTimeChangeReceiverIntegrityTest" time="0.278" />
+    <testcase name="receiverRoutingFailsClosedWhileRestoreRecoveryIsBlocked" classname="com.whip.app.ReminderTimeChangeReceiverIntegrityTest" time="0.181" />
+  </testsuite>
+  <testsuite name="com.whip.app.ReminderWorkerDeliveryIntegrityTest" tests="9" failures="0" errors="0" skipped="0" time="20.12" timestamp="2026-09-29T15:15:43" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="permanentDeletionDismissesVisibleTaskHabitAndGoalRemindersAtTheCommitBoundary" classname="com.whip.app.ReminderWorkerDeliveryIntegrityTest" time="1.541" />
+    <testcase name="productionMutationsCommitBeforeTaskHabitAndGoalWorkersCanPost" classname="com.whip.app.ReminderWorkerDeliveryIntegrityTest" time="3.103" />
+    <testcase name="habitWorkerAcceptsPartialHistoryButRejectsCompletionEditedDefinitionsAndConnectedWork" classname="com.whip.app.ReminderWorkerDeliveryIntegrityTest" time="10.065" />
+    <testcase name="goalWorkerRejectsAnEditedDefinitionAndConnectedWork" classname="com.whip.app.ReminderWorkerDeliveryIntegrityTest" time="0.907" />
+    <testcase name="rejectedTaskDeletionKeepsTheValidNotificationAndClearsItsCleanupJournal" classname="com.whip.app.ReminderWorkerDeliveryIntegrityTest" time="0.383" />
+    <testcase name="malformedPersistedTaskOccurrenceFailsThatReminderClosed" classname="com.whip.app.ReminderWorkerDeliveryIntegrityTest" time="0.402" />
+    <testcase name="interruptedCommittedDeletionIsCleanedFromItsDurableJournal" classname="com.whip.app.ReminderWorkerDeliveryIntegrityTest" time="0.227" />
+    <testcase name="earlyHabitWorkerRequeuesTheExactDueReminderWithoutPosting" classname="com.whip.app.ReminderWorkerDeliveryIntegrityTest" time="2.884" />
+    <testcase name="taskWorkerPostsOnlyTheExactCurrentClaim" classname="com.whip.app.ReminderWorkerDeliveryIntegrityTest" time="0.608" />
+  </testsuite>
+  <testsuite name="com.whip.app.RepPrescriptionSettingsTest" tests="1" failures="0" errors="0" skipped="0" time="0.128" timestamp="2026-09-29T15:15:43" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="schemesSurviveRepositoryRecreationAndStableIdEditsAndDeletes" classname="com.whip.app.RepPrescriptionSettingsTest" time="0.128" />
+  </testsuite>
+</testsuites>

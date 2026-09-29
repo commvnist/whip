@@ -2,6 +2,7 @@ package com.whip.app.data
 
 import androidx.room.Dao
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
@@ -14,8 +15,16 @@ interface MeasurementDao {
     @Query("SELECT * FROM measurement_definitions ORDER BY createdAtMillis")
     fun observeMeasurements(): Flow<List<MeasurementDefinitionEntity>>
 
+    // Keep multi-window history reads on one snapshot while imports/deletions run.
+    @Transaction
     @Query("SELECT * FROM measurement_entries ORDER BY timestampMillis DESC")
     fun observeEntries(): Flow<List<MeasurementEntryEntity>>
+
+    @Query("SELECT * FROM measurement_entries ORDER BY id LIMIT 500")
+    suspend fun getFirstEntryPage(): List<MeasurementEntryEntity>
+
+    @Query("SELECT * FROM measurement_entries WHERE id > :afterId ORDER BY id LIMIT 500")
+    suspend fun getEntryPageAfter(afterId: String): List<MeasurementEntryEntity>
 
     @Query("SELECT * FROM areas ORDER BY position, name")
     fun observeAreas(): Flow<List<AreaEntity>>
@@ -53,12 +62,15 @@ interface MeasurementDao {
     @Query("SELECT * FROM tags WHERE id = :id")
     suspend fun getTag(id: String): TagEntity?
 
+    @Transaction
     @Query("SELECT * FROM measurement_entries")
     suspend fun getAllEntries(): List<MeasurementEntryEntity>
 
+    @Transaction
     @Query("SELECT * FROM measurement_entries WHERE measurementId = :measurementId")
     suspend fun getEntriesForMeasurement(measurementId: String): List<MeasurementEntryEntity>
 
+    @Transaction
     @Query("SELECT * FROM measurement_entries WHERE sourceType = :sourceType AND sourceId LIKE :sourcePrefix || '%'")
     suspend fun getEntriesBySourcePrefix(sourceType: String, sourcePrefix: String): List<MeasurementEntryEntity>
 

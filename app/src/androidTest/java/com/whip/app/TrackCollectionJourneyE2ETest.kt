@@ -92,6 +92,7 @@ class TrackCollectionJourneyE2ETest {
             selectMode()
             row(archived).performClick()
             destination("Tracks")
+            selectMode()
             summary(0)
             capture("tracks.collection.archive-scope.$suffix")
             scroll(hasText("Archive")).assertIsNotEnabled()
@@ -104,6 +105,8 @@ class TrackCollectionJourneyE2ETest {
             assertEquals(archived, projection(archived.track.id))
             destination("Archived")
             selectMode()
+            summary(0)
+            row(archived).assertIsOff()
             row(trail).performClick()
             scroll(hasText("Restore")).assertIsEnabled()
             capture("tracks.collection.restore.$suffix")
@@ -148,7 +151,7 @@ class TrackCollectionJourneyE2ETest {
         assertEquals(before.track.areaId, after.track.areaId)
     }
     private fun selectMode() {
-        scroll(hasContentDescription("More Track Options")).performClick()
+        compose.onNodeWithContentDescription("More Track Options").performClick()
         compose.onNodeWithText("Select Tracks").performClick()
     }
     private fun changeArea(name: String) {
@@ -156,7 +159,10 @@ class TrackCollectionJourneyE2ETest {
         val label = if (name == "All Areas") hasText(name) else hasText("$name ·", substring = true)
         compose.onNode(label and hasAnyAncestor(isPopup())).performClick()
     }
-    private fun destination(name: String) = compose.onNodeWithTag("track-workspace-destination-$name").performClick()
+    private fun destination(name: String) {
+        if (name == "Archived") compose.openWorkspaceArchive("Tracks")
+        else compose.onNodeWithTag("track-workspace-destination-$name").performClick()
+    }
     private fun row(item: TrackProjection) = scroll(hasTestTag("track-card-${item.track.id}"))
     private fun summary(count: Int) = scroll(hasText("$count ${if (count == 1) "Track" else "Tracks"} selected")).assertIsDisplayed()
     private fun scroll(matcher: SemanticsMatcher): SemanticsNodeInteraction {

@@ -26,7 +26,7 @@ class SurfaceRoleArchitectureTest {
         assertTrue(review.substringAfter("productivityAreaLabel?.let").contains("WhipGroupedInformationCard"))
         assertTrue(review.substringBefore("30-Day Correlations").takeLast(500).contains("WhipGroupedInformationCard"))
 
-        listOf("track-activity-filters", "Possible Existing Entry", "track_csv_validation_preview")
+        listOf("track-activity-filter-summary", "Possible Existing Entry", "track_csv_validation_preview")
             .forEach { marker ->
                 val neighborhood = tracks.substringBefore(marker).takeLast(700) + tracks.substringAfter(marker).take(700)
                 assertTrue("$marker must use the grouped information surface", neighborhood.contains("WhipGroupedInformationCard"))

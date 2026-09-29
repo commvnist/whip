@@ -85,11 +85,10 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithText("Name *").assertIsDisplayed()
             compose.onNodeWithContentDescription("Cancel Habit editing").performClick()
             compose.onNodeWithContentDescription("Tasks tab").performClick()
-            compose.onNodeWithTag("task-destination-Upcoming").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+            compose.selectTaskCollectionScope("Upcoming")
             compose.onNodeWithText("Future tasks", substring = true).assertIsDisplayed()
-            compose.onNodeWithText("Agenda").assertIsDisplayed().performClick()
-            compose.onNodeWithText("Calendar").assertIsDisplayed().performClick()
-            compose.onNodeWithTag("task-calendar").performScrollTo()
+            compose.selectTaskPlanningLayout("Calendar")
+            compose.onNodeWithTag("task-workspace-list").performScrollToNode(hasTestTag("task-calendar"))
             compose.onNodeWithContentDescription("Previous Month")
                 .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
             compose.waitForIdle()
@@ -426,6 +425,7 @@ class WhipComposeSemanticsTest {
             compose.onAllNodesWithText("Task completed").assertCountEquals(0)
 
             compose.onNodeWithContentDescription("Habits tab").performClick()
+            compose.onNodeWithTag("habit-destination-Today").performClick()
             compose.onNodeWithContentDescription("Check off habit Quiet completion habit").performClick()
             runBlocking {
                 withTimeout(5_000) {
@@ -502,7 +502,7 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithContentDescription("Filter & Sort Tasks").performClick()
             compose.onNodeWithText("Sort, Group & Filter Tasks").assertIsDisplayed()
             compose.onNodeWithTag("task-filter-query").assertIsDisplayed().performTextInput("Toolbar")
-            compose.onNodeWithText("Done").performClick()
+            compose.onNodeWithText("Apply").performClick()
             compose.onNodeWithText("Query: Toolbar").assertIsDisplayed()
             compose.onNodeWithTag("task-icon-$taskId", useUnmergedTree = true)
                 .performScrollTo()
@@ -510,9 +510,13 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithTag("workspace-search-action").performClick()
             compose.onNodeWithTag("unified-search-query").assertIsDisplayed()
             compose.onNodeWithContentDescription("Close Search").performClick()
-            compose.onNodeWithText("Select").performClick()
+            compose.onNodeWithContentDescription("More task list actions").performClick()
+            compose.onNodeWithText("Select Tasks").performClick()
             compose.onNodeWithText("0 selected").assertIsDisplayed()
-            compose.onNodeWithTag("task-destination-Inbox").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+            compose.onNodeWithText("Done").performClick()
+            compose.selectTaskCollectionScope("Unscheduled")
+            compose.onNodeWithText("Query: Toolbar").assertIsDisplayed()
+            compose.onNodeWithText("Clear All").performClick()
             compose.onNodeWithTag("task-quick-capture").assertIsDisplayed()
         }
     }
@@ -551,7 +555,7 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithTag("history-exercise-filter").assertIsDisplayed()
             compose.onAllNodesWithText("Search Exercise Filters").assertCountEquals(0)
 
-            compose.onNodeWithTag("gym-destination-Progress")
+            compose.onNodeWithTag("gym-destination-Insights")
                 .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
             compose.onNodeWithTag("gym-progress-list").performScrollToNode(hasTestTag("gym-e1rm-formula"))
             compose.onNodeWithTag("gym-e1rm-formula").performScrollTo().assertIsDisplayed()
@@ -598,8 +602,8 @@ class WhipComposeSemanticsTest {
             chartPoint.assertIsDisplayed().performClick()
             compose.onNodeWithText("Built from 1 source.").assertIsDisplayed()
             compose.onNodeWithTag("gym-chart-point-open-workout").performClick()
-            compose.onNodeWithText("Workout History").assertIsDisplayed()
-            compose.onNodeWithText("Showing the selected workout.").assertIsDisplayed()
+            compose.onNodeWithTag("gym-destination-History").assertIsSelected()
+            compose.onNodeWithText("Graph controls history").assertIsDisplayed()
         }
     }
 
@@ -668,7 +672,8 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithContentDescription("Add task, habit, goal, track, or workout").performClick()
             compose.onNodeWithText("New Habit").performClick()
             compose.onAllNodesWithText("Notes").assertCountEquals(0)
-            compose.onNodeWithText("How do you want to track it?").assertIsDisplayed()
+            compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Tracking"))
+            compose.onNodeWithText("Tracking").assertIsDisplayed()
             compose.onAllNodesWithText("Intent").assertCountEquals(0)
             compose.onAllNodesWithText("Target rule").assertCountEquals(0)
             compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("Additional Details"))

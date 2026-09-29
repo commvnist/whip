@@ -1,0 +1,18 @@
+{
+  "group": 6,
+  "selectors": [
+    "com.whip.app.NotificationActionIntegrityTest",
+    "com.whip.app.NotificationActionLedgerTest",
+    "com.whip.app.NotificationDeepLinkE2ETest",
+    "com.whip.app.OrganizationJourneyE2ETest",
+    "com.whip.app.PersistentStorageE2ETest",
+    "com.whip.app.PlatformEntrySurfaceE2ETest",
+    "com.whip.app.PortableBackupManagerTest",
+    "com.whip.app.ProductivityCardDesignUiTest",
+    "com.whip.app.ProductivityCreationJourneyE2ETest",
+    "com.whip.app.ProductivityDefaultsUiTest"
+  ],
+  "exit": 1,
+  "seconds": 733.997,
+  "source_unchanged": true
+}

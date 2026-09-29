@@ -1,0 +1,10 @@
+{
+  "command": [
+    "timeout",
+    "--kill-after=3s",
+    "180s",
+    "scripts/test-android-target-guard"
+  ],
+  "exit": 0,
+  "seconds": 59.98
+}

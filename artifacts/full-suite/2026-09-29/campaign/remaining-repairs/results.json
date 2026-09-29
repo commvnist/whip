@@ -1,0 +1,32 @@
+[
+  {
+    "group": 0,
+    "selectors": [
+      "com.whip.app.TrackHistoryJourneyE2ETest#archivedHistoryCanBeSearchedRecreatedAndRestoredAtLargeText",
+      "com.whip.app.TrackHistoryJourneyE2ETest#archivedHistoryCanBeSearchedRecreatedAndRestored",
+      "com.whip.app.TrackHistoryJourneyE2ETest#emptyArchivedTrackExplainsRestoreThenOffersFirstEntry",
+      "com.whip.app.TrackInsightsJourneyE2ETest#temperatureAndFineScaleInsightsPreserveReadingsWithoutTotals",
+      "com.whip.app.TrackWorkspaceUiTest#tracksAndEntriesHaveOneExplicitSearchOwnerAndArchivedResultsReturnToArchive",
+      "com.whip.app.TrackWorkspaceUiTest#tracksWorkspaceRemainsNavigableInRtlAtTwoHundredPercentText"
+    ],
+    "exit": 0,
+    "seconds": 427.708,
+    "source_unchanged": true
+  },
+  {
+    "group": 1,
+    "selectors": [
+      "com.whip.app.TrackCollectionJourneyE2ETest#archivedAndActiveSelectionsStaySeparate",
+      "com.whip.app.TrackCollectionJourneyE2ETest#archivedAndActiveSelectionsStaySeparateAtLargeText",
+      "com.whip.app.TrackCollectionJourneyE2ETest#areaChangesKeepOnlyVisibleSelection",
+      "com.whip.app.TrackCollectionJourneyE2ETest#areaChangesKeepOnlyVisibleSelectionAtLargeText",
+      "com.whip.app.HabitSkipJourneyE2ETest#skipIsOneVisibleNeutralStateWithHistoryInsightsAndUndo",
+      "com.whip.app.ProductivityCardDesignUiTest#habitAndGoalSummaryRowsKeepDetailsAndInlineActions",
+      "com.whip.app.ProductivityCreationJourneyE2ETest#taskHabitAndGoalCanBeCreatedAndUsedThroughTheRealUi",
+      "com.whip.app.WhipComposeSemanticsTest#gymConfigurationControlsUseProgressiveDisclosure"
+    ],
+    "exit": 1,
+    "seconds": 437.895,
+    "source_unchanged": true
+  }
+]

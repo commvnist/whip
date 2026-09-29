@@ -1,0 +1,16 @@
+{
+  "group": 2,
+  "selectors": [
+    "com.whip.app.GoalProgressJourneyE2ETest#tinyAndNearlyCompleteGoalsRemainDistinctFromTheirEndpoints",
+    "com.whip.app.GymLibraryJourneyE2ETest#equipmentSearchAndFilterIncludeEveryLinkedExercise",
+    "com.whip.app.GymLibraryJourneyE2ETest#overviewFinishReviewsRemainingWorkAndOpensExactHistory",
+    "com.whip.app.GymPowerInputUiTest#passiveWorkoutSetCardSeparatesIdentityValuesStatusAndTargetAtLargeText",
+    "com.whip.app.HabitSkipJourneyE2ETest#completedHabitMovesBelowRemainingHabitsAndStaysAvailableForUndo",
+    "com.whip.app.HabitSkipJourneyE2ETest#completingExpandedChecklistKeepsDoneCollapsedAndCollapsesTheMovedHabit",
+    "com.whip.app.HabitSkipJourneyE2ETest#skipIsOneVisibleNeutralStateWithHistoryInsightsAndUndo",
+    "com.whip.app.HomeHabitRecoveryUiTest#offScheduleHabitsOpenSavedCollectionAtLargeText"
+  ],
+  "exit": 1,
+  "seconds": 223.435,
+  "source_unchanged": true
+}

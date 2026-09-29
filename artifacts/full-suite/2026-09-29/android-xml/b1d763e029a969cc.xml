@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="2" errors="0" skipped="0" time="126.758" timestamp="2026-09-29T17:03:21" hostname="localhost">
+  <testsuite name="com.whip.app.TrackCollectionJourneyE2ETest" tests="2" failures="2" errors="0" skipped="0" time="124.812" timestamp="2026-09-29T17:03:21" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedAndActiveSelectionsStaySeparate" classname="com.whip.app.TrackCollectionJourneyE2ETest" time="63.291">
+      <failure>java.lang.AssertionError: No node found that matches Text + InputText + EditableText contains '1 Track selected' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #913 at (l=0.0, t=640.0, r=1080.0, b=2106.0)px, Tag: 'track-list'
+CollectionInfo = 'CollectionInfo(rowCount=2, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape&#64;b5a9765'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 2 children, 4 siblings
+Selector used: (TestTag = 'track-list')
+
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+at com.whip.app.TrackCollectionJourneyE2ETest.scroll(TrackCollectionJourneyE2ETest.kt:169)
+at com.whip.app.TrackCollectionJourneyE2ETest.summary(TrackCollectionJourneyE2ETest.kt:167)
+at com.whip.app.TrackCollectionJourneyE2ETest.archivedSelection(TrackCollectionJourneyE2ETest.kt:115)
+at com.whip.app.TrackCollectionJourneyE2ETest.archivedAndActiveSelectionsStaySeparate(TrackCollectionJourneyE2ETest.kt:33)
+</failure>
+    </testcase>
+    <testcase name="archivedAndActiveSelectionsStaySeparateAtLargeText" classname="com.whip.app.TrackCollectionJourneyE2ETest" time="61.521">
+      <failure>java.lang.AssertionError: No node found that matches Text + InputText + EditableText contains '1 Track selected' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #1802 at (l=0.0, t=724.0, r=1080.0, b=1896.0)px, Tag: 'track-list'
+CollectionInfo = 'CollectionInfo(rowCount=2, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape&#64;b5a9765'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 2 children, 4 siblings
+Selector used: (TestTag = 'track-list')
+
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+at com.whip.app.TrackCollectionJourneyE2ETest.scroll(TrackCollectionJourneyE2ETest.kt:169)
+at com.whip.app.TrackCollectionJourneyE2ETest.summary(TrackCollectionJourneyE2ETest.kt:167)
+at com.whip.app.TrackCollectionJourneyE2ETest.archivedSelection(TrackCollectionJourneyE2ETest.kt:115)
+at com.whip.app.TrackCollectionJourneyE2ETest.archivedAndActiveSelectionsStaySeparateAtLargeText(TrackCollectionJourneyE2ETest.kt:35)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

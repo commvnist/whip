@@ -39,6 +39,7 @@ class ProductivityItemBuilderJourneyE2ETest {
         }
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             compose.onNodeWithContentDescription("Habits tab").performClick()
+            compose.onNodeWithTag("habit-destination-Today").performClick()
             compose.onNodeWithTag("habit-card-$id").performScrollTo()
             compose.onNodeWithContentDescription("Start timer for $name").performClick()
             compose.waitUntil(10_000) { runBlocking { app.habitRepository.get(id)?.timerStartedAtMillis != null } }

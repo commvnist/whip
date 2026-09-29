@@ -1,0 +1,16 @@
+{
+  "group": 5,
+  "selectors": [
+    "com.whip.app.ProductivityItemBuilderJourneyE2ETest#expandedTimerHasOneStatusAndKeepsItsActionsAfterRecreation",
+    "com.whip.app.TaskBulkSelectionUiTest#bulkArchiveImpactRemainsScrollableAtTwoHundredPercentText",
+    "com.whip.app.TaskBulkSelectionUiTest#fixedDateBulkMoveFailureKeepsSelectionAndShowsRetryContext",
+    "com.whip.app.TaskBulkSelectionUiTest#activeSelectionKeepsPrimaryActionsVisibleAndSecondaryActionsInOverflow",
+    "com.whip.app.TaskBulkSelectionUiTest#archivedRecurringTaskEditsTheSeriesDefinitionInsteadOfAnOpenOccurrence",
+    "com.whip.app.TaskBulkSelectionUiTest#bulkDeleteReissuesItsExactPreviewAfterStateRestoration",
+    "com.whip.app.TaskBulkSelectionUiTest#bulkAreaChangeCannotApplyUntilAnAreaIsExplicitlyChosen",
+    "com.whip.app.TaskBulkSelectionUiTest#bulkDateFailureRetainsTheFrozenSelectionAndOnlyMatchingSuccessCloses"
+  ],
+  "exit": 0,
+  "seconds": 225.447,
+  "source_unchanged": true
+}

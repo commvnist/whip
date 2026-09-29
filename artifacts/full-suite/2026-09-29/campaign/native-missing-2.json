@@ -1,0 +1,8 @@
+{
+  "command": [
+    "python3",
+    "/tmp/whip-native-missing-2.py"
+  ],
+  "exit": 0,
+  "seconds": 57.71
+}

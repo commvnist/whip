@@ -1,0 +1,14 @@
+{
+  "group": 0,
+  "selectors": [
+    "com.whip.app.LargeHistorySnapshotTest",
+    "com.whip.app.RoutineRepositoryTest",
+    "com.whip.app.GymRepositoryTest",
+    "com.whip.app.GoalRepositoryTest",
+    "com.whip.app.HabitRepositoryTest",
+    "com.whip.app.MeasurementTaxonomyRepositoryTest"
+  ],
+  "exit": 0,
+  "seconds": 227.184,
+  "source_unchanged": true
+}

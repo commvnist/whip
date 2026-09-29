@@ -1,0 +1,3 @@
+PASS check-full-without-android-serial
+PASS exact-saf-fixture-exemption
+All complete-local-gate fixtures passed.

@@ -418,7 +418,7 @@ class DataPrivacyJourneyE2ETest {
             assertEquals(75, app.settingsRepository.current().defaultRestSeconds)
             compose.onNodeWithContentDescription("Close Settings").performClick()
             compose.onNodeWithContentDescription("Tasks tab").performClick()
-            compose.onNodeWithText("Inbox", substring = false).performClick()
+            compose.selectTaskCollectionScope("Unscheduled")
             compose.onNodeWithText("Keep my current task").assertIsDisplayed()
             compose.onNodeWithText("From the saved backup").assertIsDisplayed()
         }
@@ -431,8 +431,7 @@ class DataPrivacyJourneyE2ETest {
     }
     private fun awaitDocuments() = assertTrue(
         "Native document picker should open",
-        device.wait(Until.hasObject(By.pkg("com.google.android.documentsui")), 3_000) ||
-            device.wait(Until.hasObject(By.pkg("com.android.documentsui")), 3_000),
+        device.wait(Until.hasObject(By.pkg(java.util.regex.Pattern.compile("com\\.(google\\.android|android)\\.documentsui"))), 10_000),
     )
     private fun capture(state: String) {
         compose.waitForIdle()

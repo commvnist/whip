@@ -88,7 +88,8 @@ class ExecutionItemBuilderJourneyE2ETest {
                 runBlocking { app.gymRepository.sessions.first().single { it.id == session }.state == WorkoutSessionState.Finished }
             }
             compose.onNodeWithTag("gym-destination-History").performClick()
-            compose.onNodeWithTag("history-workout-toggle-$session").performScrollTo().performClick()
+            compose.onNodeWithContentDescription("Hide details for workout Set continuity")
+                .performScrollTo().assertIsDisplayed()
             compose.onNodeWithTag("history-set-card-$skipped").performScrollTo()
             compose.onNodeWithTag("history-set-performed-$skipped").assertTextContains("45 kg × 6 reps")
             compose.onNodeWithTag("history-set-status-$skipped").assertTextContains("Working · Performed")

@@ -1,0 +1,36 @@
+PASS missing-serial
+PASS blank-serial
+PASS invalid-serial
+PASS multiple-serials
+PASS offline-target
+PASS unauthorized-target
+PASS physical-instrumentation
+PASS failed-qemu-instrumentation
+PASS connected-emulator
+PASS legacy-connected-emulator
+PASS legacy-emulator-release
+PASS absent-emulator-properties
+PASS negative-legacy-emulator-property
+PASS failed-legacy-identity-read
+PASS catalog-legacy-emulator
+PASS catalog-unverified-target
+PASS matching-two-emulator-set
+PASS duplicate-emulator-set
+PASS third-emulator-in-secondary-slot
+PASS physical-secondary-emulator
+PASS mismatched-secondary-emulator
+PASS explicit compatible two-emulator set guard
+PASS missing-release-target
+PASS emulator-release-target
+PASS failed-qemu-release-target
+PASS connected-physical-release-target
+PASS check-requires-explicit-serial
+PASS coverage-requires-explicit-serial
+PASS qa-targeted-requires-explicit-serial
+PASS release-command-requires-explicit-device
+PASS explicitly-targeted installs
+PASS release commands select guarded physical targets
+PASS personal-phone release uses fast affected checks
+PASS module-local connected-task guards
+PASS compile-task-unguarded
+PASS :app:connectedDebugAndroidTest-accepts-explicit-emulator

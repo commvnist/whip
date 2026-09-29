@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.DeepProductivityTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-09-29T17:05:35.643Z" hostname="beast" time="0.033">
+  <properties/>
+  <testcase name="completionOutcomeRetainsOriginalFactsUntilDeliberatelyChanged" classname="com.whip.app.ui.DeepProductivityTest" time="0.0"/>
+  <testcase name="collectionSearchIncludesAuthoredNamesTagsAndStatus" classname="com.whip.app.ui.DeepProductivityTest" time="0.021"/>
+  <testcase name="trackReviewScopeUsesInclusiveEntryDatesAndKeepsOriginalSeriesFacts" classname="com.whip.app.ui.DeepProductivityTest" time="0.012"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

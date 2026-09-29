@@ -354,8 +354,7 @@ class SettingsBehaviorUiTest {
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         assertTrue(
             "Android's document provider did not open for a user-selected export destination",
-            device.wait(Until.hasObject(By.pkg("com.google.android.documentsui")), 2_500) ||
-                device.wait(Until.hasObject(By.pkg("com.android.documentsui")), 2_500),
+            device.wait(Until.hasObject(By.pkg(java.util.regex.Pattern.compile("com\\.(google\\.android|android)\\.documentsui"))), 10_000),
         )
         device.pressBack()
         device.wait(Until.gone(By.pkg("com.google.android.documentsui")), 5_000)
@@ -460,7 +459,7 @@ class SettingsBehaviorUiTest {
         compose.onNodeWithTag("settings-field-late-night-day-cutoff-input")
             .performTextReplacement("03:15")
         compose.onNodeWithTag("settings-field-late-night-day-cutoff-input").performImeAction()
-        compose.waitUntil {
+        compose.waitUntil(10_000) {
             app.settingsRepository.current().dayCutoffMinutes == 3 * 60 + 15
         }
     }

@@ -1,0 +1,13 @@
+{
+  "command": [
+    "timeout",
+    "--kill-after=3s",
+    "55s",
+    "./gradlew",
+    ":app:compileDebugKotlin",
+    ":app:compileDebugAndroidTestKotlin",
+    "--console=plain"
+  ],
+  "exit": 124,
+  "seconds": 55.328
+}

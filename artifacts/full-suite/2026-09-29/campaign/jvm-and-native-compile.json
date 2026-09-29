@@ -1,0 +1,11 @@
+{
+  "command": [
+    "./gradlew",
+    ":app:testDebugUnitTest",
+    "--rerun",
+    ":app:compileDebugAndroidTestKotlin",
+    "--console=plain"
+  ],
+  "exit": 1,
+  "seconds": 21.434
+}

@@ -1,0 +1,12 @@
+{
+  "command": [
+    "timeout",
+    "--kill-after=3s",
+    "55s",
+    "scripts/qa-targeted",
+    "--android",
+    "com.whip.app.ui.InteractionControlUiTest#searchReindexesCompletedTaskDatesWhenTheActiveWhipZoneChangesWithoutClearingTheQuery"
+  ],
+  "exit": 0,
+  "seconds": 36.568
+}

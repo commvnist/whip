@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.core.SharedTaskCapturePolicyTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-09-29T17:05:31.459Z" hostname="beast" time="0.057">
+  <properties/>
+  <testcase name="unicodeAndUtf8BudgetsNeverSplitAnEmoji" classname="com.whip.app.core.SharedTaskCapturePolicyTest" time="0.052"/>
+  <testcase name="blankShareHasNoDraft" classname="com.whip.app.core.SharedTaskCapturePolicyTest" time="0.002"/>
+  <testcase name="leadingWhitespaceBeyondTheInputBudgetCannotHideMeaningfulText" classname="com.whip.app.core.SharedTaskCapturePolicyTest" time="0.0"/>
+  <testcase name="titleAndSubtaskBudgetsAreExplicitAndDeterministic" classname="com.whip.app.core.SharedTaskCapturePolicyTest" time="0.001"/>
+  <testcase name="ordinaryShareKeepsTitleAndSubtasksWithoutWarning" classname="com.whip.app.core.SharedTaskCapturePolicyTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

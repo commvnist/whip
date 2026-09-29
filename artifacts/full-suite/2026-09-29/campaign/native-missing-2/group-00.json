@@ -1,0 +1,16 @@
+{
+  "group": 0,
+  "selectors": [
+    "com.whip.app.WhipWidgetAreaScopeTest#habitCollectionReturnsEverySelectedHabitAndExpandsChecklistRows",
+    "com.whip.app.WhipWidgetAreaScopeTest#habitWidgetChecklistActionChecksTheChildAndAutoCompletesTheHabit",
+    "com.whip.app.WhipWidgetAreaScopeTest#habitWidgetPersistsSelectionAndExpansionIndependentlyPerWidget",
+    "com.whip.app.WhipWidgetAreaScopeTest#replaceGenerationCannotAliasWidgetReferencesOrDisplaySnapshotsWithReusedIds",
+    "com.whip.app.WhipWidgetAreaScopeTest#staleHabitWidgetActionsDoNotMutateHabitsOutsideCurrentConfiguration",
+    "com.whip.app.WhipWidgetAreaScopeTest#taskAgendaCompletionActionCompletesTheExactOccurrence",
+    "com.whip.app.WhipWidgetAreaScopeTest#taskCollectionReturnsEveryAgendaTaskAndExpandsSubtaskRows",
+    "com.whip.app.WhipWidgetAreaScopeTest#taskWidgetParentCompletionExpandsInsteadOfBypassingUnfinishedSubtasks"
+  ],
+  "exit": 0,
+  "seconds": 21.86,
+  "source_unchanged": true
+}

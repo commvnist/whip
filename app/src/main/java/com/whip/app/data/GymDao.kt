@@ -3,6 +3,7 @@ package com.whip.app.data
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
@@ -24,15 +25,25 @@ interface GymDao {
     @Query("SELECT * FROM exercise_category_joins")
     fun observeCategoryJoins(): Flow<List<ExerciseCategoryJoinEntity>>
 
+    @Transaction
     @Query("SELECT * FROM workout_sessions ORDER BY startedAtMillis DESC")
     fun observeSessions(): Flow<List<WorkoutSessionEntity>>
 
+    @Transaction
     @Query("SELECT * FROM workout_exercises ORDER BY sessionId, position, id")
     fun observeWorkoutExercises(): Flow<List<WorkoutExerciseEntity>>
 
+    @Transaction
     @Query("SELECT * FROM workout_sets ORDER BY workoutExerciseId, position, id")
     fun observeWorkoutSets(): Flow<List<WorkoutSetEntity>>
 
+    @Query("SELECT * FROM workout_sets ORDER BY id LIMIT 500")
+    suspend fun getFirstSetPage(): List<WorkoutSetEntity>
+
+    @Query("SELECT * FROM workout_sets WHERE id > :afterId ORDER BY id LIMIT 500")
+    suspend fun getSetPageAfter(afterId: Long): List<WorkoutSetEntity>
+
+    @Transaction
     @Query("SELECT * FROM workout_groups ORDER BY sessionId, position, id")
     fun observeWorkoutGroups(): Flow<List<WorkoutGroupEntity>>
 
@@ -45,15 +56,19 @@ interface GymDao {
     @Query("SELECT * FROM gym_machines")
     suspend fun getAllMachines(): List<GymMachineEntity>
 
+    @Transaction
     @Query("SELECT * FROM workout_sessions")
     suspend fun getAllSessions(): List<WorkoutSessionEntity>
 
+    @Transaction
     @Query("SELECT * FROM workout_exercises")
     suspend fun getAllWorkoutExercises(): List<WorkoutExerciseEntity>
 
+    @Transaction
     @Query("SELECT * FROM workout_sets")
     suspend fun getAllWorkoutSets(): List<WorkoutSetEntity>
 
+    @Transaction
     @Query("SELECT * FROM workout_groups")
     suspend fun getAllWorkoutGroups(): List<WorkoutGroupEntity>
 
@@ -105,6 +120,7 @@ interface GymDao {
     @Query("SELECT * FROM workout_sets WHERE uuid = :uuid LIMIT 1")
     suspend fun getWorkoutSetByUuid(uuid: String): WorkoutSetEntity?
 
+    @Transaction
     @Query(
         "SELECT * FROM workout_sets WHERE workoutExerciseId = :workoutExerciseId " +
             "ORDER BY position, id",

@@ -1,0 +1,9 @@
+PASS catalog device artifacts use the guarded owner
+PASS native and themed dialog window discovery
+PASS valid pending catalog
+PASS pending selectors fail closed
+PASS source discovery drift fails closed
+PASS invalid catalog rows fail closed
+PASS dependency-free review report
+PASS pixel-identical catalog evidence fails closed
+All UI catalog fixtures passed.

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.domain.TrackDomainTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-09-29T17:05:33.492Z" hostname="beast" time="0.16">
+  <properties/>
+  <testcase name="choiceDuplicateFeedbackMatchesCanonicalValidationAndKeepsIdentities" classname="com.whip.app.domain.TrackDomainTest" time="0.012"/>
+  <testcase name="everyTypedConditionOperatorHandlesBoundariesMissingValuesAndReverseRanges" classname="com.whip.app.domain.TrackDomainTest" time="0.021"/>
+  <testcase name="csvRoundTripMappingPreservesCompatibleEnteredNumberUnits" classname="com.whip.app.domain.TrackDomainTest" time="0.001"/>
+  <testcase name="compositeIdentityUsesAllSelectedFieldsInStableOrder" classname="com.whip.app.domain.TrackDomainTest" time="0.001"/>
+  <testcase name="schemaSupportsCompositeTypedEntryIdentityWithoutAFieldLimit" classname="com.whip.app.domain.TrackDomainTest" time="0.002"/>
+  <testcase name="definitionMutationContractsRemainProcessSaveableAndReportExactImpact" classname="com.whip.app.domain.TrackDomainTest" time="0.038"/>
+  <testcase name="typedConditionsRespectAndOrBlankAndEntryDateSemantics" classname="com.whip.app.domain.TrackDomainTest" time="0.001"/>
+  <testcase name="decimalAggregatesRetainCancellationAndFiniteMeans" classname="com.whip.app.domain.TrackDomainTest" time="0.002"/>
+  <testcase name="csvParserAndImportPreviewHandleQuotesChoicesTypesAndInvalidRows" classname="com.whip.app.domain.TrackDomainTest" time="0.002"/>
+  <testcase name="everyAggregationHandlesMissingValuesWithoutInventingZero" classname="com.whip.app.domain.TrackDomainTest" time="0.011"/>
+  <testcase name="tenThousandEntriesRemainDeterministic" classname="com.whip.app.domain.TrackDomainTest" time="0.064"/>
+  <testcase name="scaleSupportsUserDefinedFractionalIncrementsWithoutRoundingEntries" classname="com.whip.app.domain.TrackDomainTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.startup.StartupRecoveryGateTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-09-29T17:05:34.271Z" hostname="beast" time="0.113">
+  <properties/>
+  <testcase name="failedLiveRestoreWithoutMarkerRebuildsRuntimeAndReturnsReady" classname="com.whip.app.startup.StartupRecoveryGateTest" time="0.019"/>
+  <testcase name="failedRecoveryBlocksEveryNormalStartupAction" classname="com.whip.app.startup.StartupRecoveryGateTest" time="0.004"/>
+  <testcase name="liveRestoreStopsNewAccessBeforeWaitingForInflightAccessToDrain" classname="com.whip.app.startup.StartupRecoveryGateTest" time="0.01"/>
+  <testcase name="synchronousSchedulerLeaseIsDrainedAndLateSchedulerLeaseIsRejected" classname="com.whip.app.startup.StartupRecoveryGateTest" time="0.027"/>
+  <testcase name="cancellingRestoreWhileAccessDrainsStillReachesAStableTerminalState" classname="com.whip.app.startup.StartupRecoveryGateTest" time="0.018"/>
+  <testcase name="retryStartsNormalRuntimeOnlyAfterRecoverySucceeds" classname="com.whip.app.startup.StartupRecoveryGateTest" time="0.003"/>
+  <testcase name="failedNormalRuntimeInitializationAlsoKeepsUiBlockedAndCanRetry" classname="com.whip.app.startup.StartupRecoveryGateTest" time="0.008"/>
+  <testcase name="exclusiveMaintenanceDrainsAdmittedMutationsRejectsLateAccessAndRebuildsBeforeReady" classname="com.whip.app.startup.StartupRecoveryGateTest" time="0.011"/>
+  <testcase name="failedLiveRestoreWithMarkerTransitionsReadyToBlockedAndRetryRecovers" classname="com.whip.app.startup.StartupRecoveryGateTest" time="0.01"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -118,7 +118,7 @@ class WhipVisualLanguageTest {
     }
 
     @Test
-    fun workspaceDefinitionsRetainAllPeerDestinationsAsDirectNavigation() {
+    fun workspaceDefinitionsKeepPrimaryJobsDirectAndArchivesInMore() {
         val sourceRoot = sequenceOf(File("src/main/java"), File("app/src/main/java"))
             .firstOrNull(File::isDirectory)
             ?: error("Unable to locate app source root")
@@ -129,9 +129,11 @@ class WhipVisualLanguageTest {
         val inspector = File(sourceRoot, "com/whip/app/ui/EntityInspector.kt").readText()
 
         assertTrue(habit.contains("enum class HabitDestination"))
-        assertTrue(habit.contains("destinations = HabitDestination.entries"))
+        assertTrue(habit.contains("destinations = listOf(HabitDestination.All, HabitDestination.Today, HabitDestination.Insights)"))
+        assertTrue(habit.contains("WhipMenuItem(\"Archived Habits\""))
         assertTrue(goal.contains("enum class GoalDestination { Active, Completed, Archived, Insights }"))
-        assertTrue(goal.contains("destinations = GoalDestination.entries"))
+        assertTrue(goal.contains("destinations = listOf(GoalDestination.Active, GoalDestination.Completed, GoalDestination.Insights)"))
+        assertTrue(goal.contains("WhipMenuItem(\"Archived Goals\""))
         assertTrue(track.contains("Entries(\"Entries\"),\n    Options(\"Options\"),\n    Insights(\"Track Insights\")"))
         assertTrue(track.contains("Insights(\"Insights\"),\n}"))
         assertTrue(track.contains("destinations = TrackDetailDestination.entries"))

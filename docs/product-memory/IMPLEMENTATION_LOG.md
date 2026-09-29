@@ -1,5 +1,22 @@
 # Implementation history
 
+### IMP-20260929-012 — Make large histories consistent and bounded in memory
+
+- Related: FB-20260929-009; FND-20260929-015/016/017/020; VER-20260929-010.
+- Database history reads use transaction snapshots across cursor windows. Measurement and workout-set projection reads map 500-row keyset pages before retaining domain values, preserving their original sort order. Personal-record rebuilds fetch ordered completed IDs and bounded detail pages, reuse placement/session policies, and accumulate workout volumes without retaining every wide Set row.
+- Ordinary workout rendering no longer compares or retains a full-history arrangement cache; the cache and conflict checks remain active during arrangement. No history is truncated. Schema 46, epoch 6 and backup format 26 are unchanged.
+- Verification: 177 repository/history repair methods pass, including concurrent large-history and 501-Set record regressions. Both arrangement journeys pass. All nine benchmark/profile scenarios have passing evidence after the accessibility-coordinate fixture repair; the final full local gate passes. [Campaign evidence](../../artifacts/full-suite/2026-09-29/README.md).
+- Status: Verified; second phone release pending.
+
+### IMP-20260929-013 — Start on collection tabs and preserve workspace context
+
+- Related: FB-20260929-008/009/010; FND-20260929-014/018/019/021/022/023/024; VER-20260929-010.
+- Fresh and reset Tasks/Habits select their first collection tab. Chosen/restored tabs remain intact; explicit Habit tracking widgets still open Today. Saved Views retain authored title casing. Archive Back honors the retained Review route.
+- Stable movable Track content preserves detail search and current collection selection through recreation and responsive pane changes. Enlarged-text inspectors use the shared bounded identity scroller so full titles remain accessible while actions and sections retain their positions.
+- Reconcile native/JVM/benchmark fixtures with current navigation, visible lazy-list targets, retained dialogs and package-scoped accessibility ownership. Preserve exact persistence, large-text, keyboard, recovery and unrelated-record assertions; remove temporary diagnostic code.
+- Verification: All 1,268 Android methods have passing latest results across the complete inventory plus repair replays, with zero missing/skipped methods. This is cumulative campaign acceptance, not a claim that every method was rerun together after the final edit. All 724 JVM methods, lint, coverage and builds pass in the final local gate. [Campaign evidence](../../artifacts/full-suite/2026-09-29/README.md).
+- Status: Verified; second phone release pending.
+
 ### IMP-20260929-011 — First requested phone release before full-suite resumption
 
 - FB-20260929-009 first stage packages IMP-20260929-010 as signed private 0.3.86/code 92, retaining all navigation production code from `eb8dcda8`.

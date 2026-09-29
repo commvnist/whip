@@ -1,0 +1,18 @@
+{
+  "group": 5,
+  "selectors": [
+    "com.whip.app.HabitDeletionCoordinatorTest",
+    "com.whip.app.HabitRepositoryTest",
+    "com.whip.app.HabitSkipJourneyE2ETest",
+    "com.whip.app.HomeHabitAudit2UiTest",
+    "com.whip.app.HomeHabitRecoveryUiTest",
+    "com.whip.app.ImeNavigationRailE2ETest",
+    "com.whip.app.InlineTaskCaptureE2ETest",
+    "com.whip.app.LegacyHealthHistoryTest",
+    "com.whip.app.LegacyImportJourneyE2ETest",
+    "com.whip.app.MeasurementTaxonomyRepositoryTest"
+  ],
+  "exit": 1,
+  "seconds": 448.056,
+  "source_unchanged": true
+}

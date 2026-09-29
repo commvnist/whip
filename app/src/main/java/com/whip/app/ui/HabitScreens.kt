@@ -139,6 +139,7 @@ enum class HabitDestination(val label: String) {
 
 @Composable
 fun HabitAreaContent(
+    onBackToSource: (() -> Unit)? = null,
     state: HabitUiState,
     editorState: HabitUiState = state,
     innerPadding: PaddingValues,
@@ -169,14 +170,14 @@ fun HabitAreaContent(
     reorderDismissRequest: Int = 0,
     mutationRequestNamespace: String = "habit-workspace",
 ) {
-    val localDestinationState = rememberSaveable { mutableStateOf(HabitDestination.Today) }
+    val localDestinationState = rememberSaveable { mutableStateOf(HabitDestination.All) }
     val activeDestinationState = destinationState ?: localDestinationState
     var destination by activeDestinationState
     var workspaceReordering by rememberSaveable { mutableStateOf(false) }
     var localReorderDismiss by rememberSaveable { mutableStateOf(0) }
     var archiveReturn by rememberSaveable { mutableStateOf(HabitDestination.All) }
     val pages = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
-    BackHandler(enabled = showWorkspace && destination == HabitDestination.Archived) { destination = archiveReturn }
+    BackHandler(enabled = showWorkspace && destination == HabitDestination.Archived) { if (onBackToSource != null) onBackToSource() else destination = archiveReturn }
     if (state.loading || state.errorMessage != null) {
         if (showWorkspace) Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             DestinationTabBar(
@@ -370,7 +371,7 @@ fun HabitAreaContent(
                 HabitDestination.Insights -> "Patterns across ${state.all.size} habits"
                 HabitDestination.Archived -> "Archived Habits"
             },
-            onBack = { destination = archiveReturn }.takeIf { destination == HabitDestination.Archived },
+            onBack = { if (onBackToSource != null) onBackToSource() else destination = archiveReturn }.takeIf { destination == HabitDestination.Archived },
         ) {
             if (workspaceReordering) WhipTextButton(onClick = { localReorderDismiss++ }) { Text("Done") }
             else WhipWorkspaceMore("More Habit Actions") { close ->

@@ -103,7 +103,7 @@ class InteractionConsistencyTest {
     @Test
     fun gymNavigationHasFourPrimaryDestinationsAndAnExhaustiveLibrary() {
         assertEquals(
-            listOf(GymDestination.Workout, GymDestination.History, GymDestination.Progress, GymDestination.Library),
+            listOf(GymDestination.Workout, GymDestination.Library, GymDestination.History, GymDestination.Progress),
             primaryGymDestinations,
         )
         assertEquals(

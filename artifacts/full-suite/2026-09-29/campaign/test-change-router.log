@@ -1,0 +1,21 @@
+PASS docs-only
+PASS quality-docs
+PASS quality-contracts
+PASS jvm-test-only
+PASS android-test-only
+PASS android-declared-package
+PASS editor-declared-package
+PASS domain
+PASS shared-ui-core
+PASS build-config
+PASS deletion
+PASS rename
+PASS harness-integrity
+PASS ui-catalog-harness
+PASS unknown-production
+PASS change gate consumes deterministic routes
+PASS jvm-declared-package
+PASS missing-android-source
+PASS unsupported-jvm-source
+PASS renamed-test
+All change-router fixtures passed.

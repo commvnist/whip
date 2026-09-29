@@ -1,0 +1,367 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="98" failures="16" errors="0" skipped="0" time="500.807" timestamp="2026-09-29T15:26:05" hostname="localhost">
+  <testsuite name="com.whip.app.TaskBulkSelectionUiTest" tests="15" failures="11" errors="0" skipped="0" time="160.843" timestamp="2026-09-29T15:26:05" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="bulkArchiveImpactRemainsScrollableAtTwoHundredPercentText" classname="com.whip.app.TaskBulkSelectionUiTest" time="15.146">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Select Tasks' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.TaskBulkSelectionUiTest.bulkArchiveImpactRemainsScrollableAtTwoHundredPercentText(TaskBulkSelectionUiTest.kt:641)
+</failure>
+    </testcase>
+    <testcase name="successfulReopenClosesCompletedInspectorWhenStableKeyBecomesOpen" classname="com.whip.app.TaskBulkSelectionUiTest" time="15.86" />
+    <testcase name="quickCaptureReconnectsAfterRecreationAndClearsTheTrimmedCommittedDraftOnce" classname="com.whip.app.TaskBulkSelectionUiTest" time="12.545" />
+    <testcase name="fixedDateBulkMoveFailureKeepsSelectionAndShowsRetryContext" classname="com.whip.app.TaskBulkSelectionUiTest" time="8.054">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Select Tasks' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.TaskBulkSelectionUiTest.openCurrentDestinationSelection(TaskBulkSelectionUiTest.kt:765)
+at com.whip.app.TaskBulkSelectionUiTest.openSelectionFor(TaskBulkSelectionUiTest.kt:760)
+at com.whip.app.TaskBulkSelectionUiTest.fixedDateBulkMoveFailureKeepsSelectionAndShowsRetryContext(TaskBulkSelectionUiTest.kt:593)
+</failure>
+    </testcase>
+    <testcase name="activeSelectionKeepsPrimaryActionsVisibleAndSecondaryActionsInOverflow" classname="com.whip.app.TaskBulkSelectionUiTest" time="8.569">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Select Tasks' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.TaskBulkSelectionUiTest.openCurrentDestinationSelection(TaskBulkSelectionUiTest.kt:765)
+at com.whip.app.TaskBulkSelectionUiTest.openSelectionFor(TaskBulkSelectionUiTest.kt:760)
+at com.whip.app.TaskBulkSelectionUiTest.activeSelectionKeepsPrimaryActionsVisibleAndSecondaryActionsInOverflow(TaskBulkSelectionUiTest.kt:93)
+</failure>
+    </testcase>
+    <testcase name="archivedRecurringTaskEditsTheSeriesDefinitionInsteadOfAnOpenOccurrence" classname="com.whip.app.TaskBulkSelectionUiTest" time="8.719">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Archived' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.TaskBulkSelectionUiTest.archivedRecurringTaskEditsTheSeriesDefinitionInsteadOfAnOpenOccurrence(TaskBulkSelectionUiTest.kt:273)
+</failure>
+    </testcase>
+    <testcase name="bulkDeleteReissuesItsExactPreviewAfterStateRestoration" classname="com.whip.app.TaskBulkSelectionUiTest" time="7.69">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Select Tasks' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.TaskBulkSelectionUiTest.openCurrentDestinationSelection(TaskBulkSelectionUiTest.kt:765)
+at com.whip.app.TaskBulkSelectionUiTest.openSelectionFor(TaskBulkSelectionUiTest.kt:760)
+at com.whip.app.TaskBulkSelectionUiTest.bulkDeleteReissuesItsExactPreviewAfterStateRestoration(TaskBulkSelectionUiTest.kt:551)
+</failure>
+    </testcase>
+    <testcase name="bulkAreaChangeCannotApplyUntilAnAreaIsExplicitlyChosen" classname="com.whip.app.TaskBulkSelectionUiTest" time="8.926">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Select Tasks' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.TaskBulkSelectionUiTest.openCurrentDestinationSelection(TaskBulkSelectionUiTest.kt:765)
+at com.whip.app.TaskBulkSelectionUiTest.openSelectionFor(TaskBulkSelectionUiTest.kt:760)
+at com.whip.app.TaskBulkSelectionUiTest.bulkAreaChangeCannotApplyUntilAnAreaIsExplicitlyChosen(TaskBulkSelectionUiTest.kt:369)
+</failure>
+    </testcase>
+    <testcase name="restoredExistingTaskEditorPreservesItsExactIdentityAndRevisionBoundary" classname="com.whip.app.TaskBulkSelectionUiTest" time="21.999" />
+    <testcase name="bulkDateFailureRetainsTheFrozenSelectionAndOnlyMatchingSuccessCloses" classname="com.whip.app.TaskBulkSelectionUiTest" time="9.721">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Select Tasks' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.TaskBulkSelectionUiTest.openCurrentDestinationSelection(TaskBulkSelectionUiTest.kt:765)
+at com.whip.app.TaskBulkSelectionUiTest.openSelectionFor(TaskBulkSelectionUiTest.kt:760)
+at com.whip.app.TaskBulkSelectionUiTest.bulkDateFailureRetainsTheFrozenSelectionAndOnlyMatchingSuccessCloses(TaskBulkSelectionUiTest.kt:313)
+</failure>
+    </testcase>
+    <testcase name="bulkEditDraftAndSelectionSurviveSavedStateRestoration" classname="com.whip.app.TaskBulkSelectionUiTest" time="7.069">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Select Tasks' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.TaskBulkSelectionUiTest.openCurrentDestinationSelection(TaskBulkSelectionUiTest.kt:765)
+at com.whip.app.TaskBulkSelectionUiTest.openSelectionFor(TaskBulkSelectionUiTest.kt:760)
+at com.whip.app.TaskBulkSelectionUiTest.bulkEditDraftAndSelectionSurviveSavedStateRestoration(TaskBulkSelectionUiTest.kt:507)
+</failure>
+    </testcase>
+    <testcase name="completedRecurringHistoryOffersSeriesEditInsteadOfDuplicateFutureBoundary" classname="com.whip.app.TaskBulkSelectionUiTest" time="9.113" />
+    <testcase name="historySelectionOffersRelevantActionsForCompletedAndArchivedTasks" classname="com.whip.app.TaskBulkSelectionUiTest" time="11.988">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Archived' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.TaskBulkSelectionUiTest.historySelectionOffersRelevantActionsForCompletedAndArchivedTasks(TaskBulkSelectionUiTest.kt:160)
+</failure>
+    </testcase>
+    <testcase name="bulkArchiveFailureRetainsFrozenSelectionAndMatchingSuccessAloneCloses" classname="com.whip.app.TaskBulkSelectionUiTest" time="7.063">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Select Tasks' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.TaskBulkSelectionUiTest.openCurrentDestinationSelection(TaskBulkSelectionUiTest.kt:765)
+at com.whip.app.TaskBulkSelectionUiTest.openSelectionFor(TaskBulkSelectionUiTest.kt:760)
+at com.whip.app.TaskBulkSelectionUiTest.bulkArchiveFailureRetainsFrozenSelectionAndMatchingSuccessAloneCloses(TaskBulkSelectionUiTest.kt:686)
+</failure>
+    </testcase>
+    <testcase name="bulkCompletionReviewsUnfinishedSubtasksBeforeCommitAndCancelKeepsSelection" classname="com.whip.app.TaskBulkSelectionUiTest" time="8.381">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Select Tasks' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.TaskBulkSelectionUiTest.openCurrentDestinationSelection(TaskBulkSelectionUiTest.kt:765)
+at com.whip.app.TaskBulkSelectionUiTest.openSelectionFor(TaskBulkSelectionUiTest.kt:760)
+at com.whip.app.TaskBulkSelectionUiTest.bulkCompletionReviewsUnfinishedSubtasksBeforeCommitAndCancelKeepsSelection(TaskBulkSelectionUiTest.kt:745)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.TaskDayPlannerUiTest" tests="4" failures="1" errors="0" skipped="0" time="80.462" timestamp="2026-09-29T15:26:05" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="manyCandidatesAndExhaustedCapacityRemainReachableWithKeyboard" classname="com.whip.app.TaskDayPlannerUiTest" time="31.069" />
+    <testcase name="allAreaCapacityAndFailedApplyKeepTheRequestOwnedPreview" classname="com.whip.app.TaskDayPlannerUiTest" time="21.207" />
+    <testcase name="homeAndTodayOpenTheSameRestorablePlanDraft" classname="com.whip.app.TaskDayPlannerUiTest" time="19.44" />
+    <testcase name="shortLargeTextSelectionKeepsResultsAndCompletionReachable" classname="com.whip.app.TaskDayPlannerUiTest" time="8.746">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Select Tasks' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.TaskDayPlannerUiTest.shortLargeTextSelectionKeepsResultsAndCompletionReachable(TaskDayPlannerUiTest.kt:104)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.TaskDeletionUiTest" tests="8" failures="0" errors="0" skipped="0" time="42.403" timestamp="2026-09-29T15:26:05" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="permanentDeleteConfirmMutesItsLabelWhenBusy" classname="com.whip.app.TaskDeletionUiTest" time="4.792" />
+    <testcase name="completedRecurringTaskOffersOccurrenceLevelRecovery" classname="com.whip.app.TaskDeletionUiTest" time="3.345" />
+    <testcase name="genericPermanentDeleteDialogDoesNothingWhenCancelled" classname="com.whip.app.TaskDeletionUiTest" time="3.252" />
+    <testcase name="editRemainsVisibleInEveryTaskDetailsSectionIncludingArchivedTasks" classname="com.whip.app.TaskDeletionUiTest" time="6.38" />
+    <testcase name="seriesHistoryShowsMovedAndSkippedOccurrencesAndAllowsUndoSkip" classname="com.whip.app.TaskDeletionUiTest" time="5.209" />
+    <testcase name="permanentDeleteRequiresExplicitSecondConfirmation" classname="com.whip.app.TaskDeletionUiTest" time="11.219" />
+    <testcase name="inboxTaskScheduleSectionCanAssignItsFirstDateWithoutCrashing" classname="com.whip.app.TaskDeletionUiTest" time="4.986" />
+    <testcase name="taskCardSeparatesDetailsFromDirectEditing" classname="com.whip.app.TaskDeletionUiTest" time="3.22" />
+  </testsuite>
+  <testsuite name="com.whip.app.TaskEditorJourneyE2ETest" tests="2" failures="1" errors="0" skipped="0" time="75.614" timestamp="2026-09-29T15:26:05" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="existingTaskCanBeReadEditedRecreatedSavedAndReopenedAtLargeText" classname="com.whip.app.TaskEditorJourneyE2ETest" time="52.929" />
+    <testcase name="existingTaskCanBeReadEditedRecreatedSavedAndReopened" classname="com.whip.app.TaskEditorJourneyE2ETest" time="22.685">
+      <failure>java.lang.IllegalStateException: Visual catalog hierarchy for tasks.editor.existing-input.ordinary contains an unlabeled interactive node:                                 &lt;node NAF="true" index="1" text="" resource-id="" class="android.widget.FrameLayout" package="com.google.android.inputmethod.latin" content-desc="" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" visible-to-user="true" bounds="[387,1517][693,1633]" drawing-order="2" hint="" display-id="0"&gt;
+at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface(VisualCatalogCapture.kt:95)
+at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface$default(VisualCatalogCapture.kt:26)
+at com.whip.app.TaskEditorJourneyE2ETest.capture(TaskEditorJourneyE2ETest.kt:162)
+at com.whip.app.TaskEditorJourneyE2ETest.verifyExistingTask(TaskEditorJourneyE2ETest.kt:88)
+at com.whip.app.TaskEditorJourneyE2ETest.existingTaskCanBeReadEditedRecreatedSavedAndReopened(TaskEditorJourneyE2ETest.kt:71)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.TaskReorderJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="11.716" timestamp="2026-09-29T15:26:05" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="dragPreviewsPersistsCancelsAndSurvivesRecreation" classname="com.whip.app.TaskReorderJourneyE2ETest" time="11.716">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Reorder Tasks' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.TaskReorderJourneyE2ETest.dragPreviewsPersistsCancelsAndSurvivesRecreation(TaskReorderJourneyE2ETest.kt:75)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.TaskRepositoryTest" tests="48" failures="0" errors="0" skipped="0" time="9.345" timestamp="2026-09-29T15:26:05" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="planMyDayUndoCannotEraseACompletionThatHappenedAfterPlanning" classname="com.whip.app.TaskRepositoryTest" time="0.308" />
+    <testcase name="editingCompletedRecurringHistoryUpdatesSeriesWithoutCreatingDuplicateBoundary" classname="com.whip.app.TaskRepositoryTest" time="0.278" />
+    <testcase name="editThisAndFutureCanMoveFutureWorkToInboxWithoutMutatingTheOldSeries" classname="com.whip.app.TaskRepositoryTest" time="0.227" />
+    <testcase name="dayPlanRollsBackEarlierWritesWhenALaterSelectedRevisionChanged" classname="com.whip.app.TaskRepositoryTest" time="0.181" />
+    <testcase name="explicitSkipRecordsTheRealClosureTime" classname="com.whip.app.TaskRepositoryTest" time="0.126" />
+    <testcase name="promoteStepCreatesInboxTaskAndArchivesDefinition" classname="com.whip.app.TaskRepositoryTest" time="0.153" />
+    <testcase name="moveUndoRejectsANewerScheduleInsteadOfOverwritingIt" classname="com.whip.app.TaskRepositoryTest" time="0.177" />
+    <testcase name="dayPlanRechecksAddedWorkloadAndRejectsMovedCandidatesAtomically" classname="com.whip.app.TaskRepositoryTest" time="0.328" />
+    <testcase name="sameMillisecondStepDefinitionChangeInvalidatesAStaleCompletion" classname="com.whip.app.TaskRepositoryTest" time="0.228" />
+    <testcase name="reminderQueryExcludesOrdinaryAndArchivedTasks" classname="com.whip.app.TaskRepositoryTest" time="0.152" />
+    <testcase name="bulkMetadataRollsBackEveryTaskWhenAnyTargetIsMissing" classname="com.whip.app.TaskRepositoryTest" time="0.052" />
+    <testcase name="repeatedNotificationCompletionDoesNotRewriteCompletionTime" classname="com.whip.app.TaskRepositoryTest" time="0.178" />
+    <testcase name="editThisAndFutureRejectsOccurrenceCompletedWhileEditorWasOpen" classname="com.whip.app.TaskRepositoryTest" time="0.253" />
+    <testcase name="editThisAndFutureCanEndRecurrenceWithoutRewritingRecordedHistory" classname="com.whip.app.TaskRepositoryTest" time="0.304" />
+    <testcase name="bulkMoveUndoRestoresAnAlreadyMovedRecurringOccurrence" classname="com.whip.app.TaskRepositoryTest" time="0.203" />
+    <testcase name="bulkReopenValidatesEverySnapshotBeforeChangingAnyTask" classname="com.whip.app.TaskRepositoryTest" time="0.328" />
+    <testcase name="manualOrderIsStableAndRejectsMissingTargetsAtomically" classname="com.whip.app.TaskRepositoryTest" time="0.252" />
+    <testcase name="currentWeeklyRuleRejectsAnInvalidVirtualTuesdayAcrossMutations" classname="com.whip.app.TaskRepositoryTest" time="0.101" />
+    <testcase name="bulkMoveUndoRestoresInboxOnceAndRecurringSchedulesAtomically" classname="com.whip.app.TaskRepositoryTest" time="0.177" />
+    <testcase name="sameMillisecondBulkMetadataCannotOverwriteNewerTaskContent" classname="com.whip.app.TaskRepositoryTest" time="0.101" />
+    <testcase name="manualCompletionSnapshotsNamesAndUnfinishedProgress" classname="com.whip.app.TaskRepositoryTest" time="0.333" />
+    <testcase name="archivedTaskCanBeRestoredWithItsSteps" classname="com.whip.app.TaskRepositoryTest" time="0.179" />
+    <testcase name="unchangedFiniteOccurrenceCountPreservesOriginalSeriesTotalAcrossSplit" classname="com.whip.app.TaskRepositoryTest" time="0.303" />
+    <testcase name="futureSplitKeepsLaterStateOnlyOccurrenceReachableWhenCadenceChanges" classname="com.whip.app.TaskRepositoryTest" time="0.303" />
+    <testcase name="planMyDayAndItsUndoRestoreEveryUndatedTaskToInbox" classname="com.whip.app.TaskRepositoryTest" time="0.277" />
+    <testcase name="currentOnlyPolicyDoesNotManufactureOccurrenceHistory" classname="com.whip.app.TaskRepositoryTest" time="0.128" />
+    <testcase name="bulkRescheduleIsAtomicAndKeepsRecurringScopeAtOccurrenceLevel" classname="com.whip.app.TaskRepositoryTest" time="0.306" />
+    <testcase name="stepStateIsPerOccurrenceAndAllStepsCanAutoCompleteParent" classname="com.whip.app.TaskRepositoryTest" time="0.102" />
+    <testcase name="staleRecurringRescheduleCannotOverwriteCompletedHistory" classname="com.whip.app.TaskRepositoryTest" time="0.127" />
+    <testcase name="skippedAndMovedOccurrencesCanReturnToTheSeriesSchedule" classname="com.whip.app.TaskRepositoryTest" time="0.101" />
+    <testcase name="repeatedHistoricalReopenCannotOverwriteAnAlreadyOpenOccurrence" classname="com.whip.app.TaskRepositoryTest" time="0.076" />
+    <testcase name="bulkMetadataRejectsAnEnabledButUnselectedArea" classname="com.whip.app.TaskRepositoryTest" time="0.077" />
+    <testcase name="notificationStyleCompletionSnapshotsOnlyCarryUnfinishedStepsVisibleThisOccurrence" classname="com.whip.app.TaskRepositoryTest" time="0.052" />
+    <testcase name="permanentDeleteCascadesSubtasksOccurrenceStateAndHistory" classname="com.whip.app.TaskRepositoryTest" time="0.152" />
+    <testcase name="bulkMetadataReplacesOnlySelectedFieldsAndKeepsPlacementSemantics" classname="com.whip.app.TaskRepositoryTest" time="0.101" />
+    <testcase name="powerTaskFieldsPersistAndUpdateTogether" classname="com.whip.app.TaskRepositoryTest" time="0.076" />
+    <testcase name="futureSplitMigratesRescheduledBoundaryAndItsSubtaskStateExactlyOnce" classname="com.whip.app.TaskRepositoryTest" time="0.229" />
+    <testcase name="staleOneShotProjectionCannotReplaceANewerRecurringDefinition" classname="com.whip.app.TaskRepositoryTest" time="0.206" />
+    <testcase name="editThisAndFutureSplitsSeriesWithoutRewritingRecordedHistory" classname="com.whip.app.TaskRepositoryTest" time="0.18" />
+    <testcase name="invalidTaskDraftsAreRejectedWithoutPartialRows" classname="com.whip.app.TaskRepositoryTest" time="0.228" />
+    <testcase name="carryUnfinishedUsesCumulativePerStepHistoryAcrossThreeOccurrences" classname="com.whip.app.TaskRepositoryTest" time="0.256" />
+    <testcase name="futureSplitPreservesCarryUnfinishedBaselineForRetainedSubtasks" classname="com.whip.app.TaskRepositoryTest" time="0.254" />
+    <testcase name="sameMillisecondBulkArchiveCannotHideAChangedTask" classname="com.whip.app.TaskRepositoryTest" time="0.177" />
+    <testcase name="completedRecurringOccurrenceCanBeReopenedWithoutLosingItsStepState" classname="com.whip.app.TaskRepositoryTest" time="0.177" />
+    <testcase name="staleSkipCannotReplaceCompletedOccurrenceHistory" classname="com.whip.app.TaskRepositoryTest" time="0.177" />
+    <testcase name="moveUndoRejectsACompletionThatHappenedAfterTheMove" classname="com.whip.app.TaskRepositoryTest" time="0.179" />
+    <testcase name="sameMillisecondStaleOneShotMoveCannotOverwriteTheAuthoritativeDate" classname="com.whip.app.TaskRepositoryTest" time="0.177" />
+    <testcase name="staleSubtaskToggleCannotRewriteAClosedOccurrence" classname="com.whip.app.TaskRepositoryTest" time="0.305" />
+  </testsuite>
+  <testsuite name="com.whip.app.TimerAlarmIntegrationTest" tests="16" failures="0" errors="0" skipped="0" time="54.924" timestamp="2026-09-29T15:26:05" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="blockedFocusChannelKeepsTheConfirmedTimerAndRefreshesAfterAndroidAllowsIt" classname="com.whip.app.TimerAlarmIntegrationTest" time="12.846" />
+    <testcase name="focusTimerWakesAndPostsWithoutOpeningAnActivity" classname="com.whip.app.TimerAlarmIntegrationTest" time="5.684" />
+    <testcase name="confirmedFocusStartPublishesNativeCountdownAndStopActionClearsIt" classname="com.whip.app.TimerAlarmIntegrationTest" time="0.304" />
+    <testcase name="focusCountdownTicksInAndroidDrawerAndVisibleStopClearsIt" classname="com.whip.app.TimerAlarmIntegrationTest" time="8.916" />
+    <testcase name="exactAccessGrantRebuildsBothPersistedTimerAlarms" classname="com.whip.app.TimerAlarmIntegrationTest" time="1.694" />
+    <testcase name="staleFocusWakeupCannotReplaceANewerTimer" classname="com.whip.app.TimerAlarmIntegrationTest" time="0.664" />
+    <testcase name="focusReplacementRequiresConsentAndOldStopCannotStopReplacement" classname="com.whip.app.TimerAlarmIntegrationTest" time="0.732" />
+    <testcase name="staleRestWakeupCannotReplaceANewerTimer" classname="com.whip.app.TimerAlarmIntegrationTest" time="1.534" />
+    <testcase name="lateOldFocusScheduleCannotReplaceTheCurrentTimerWork" classname="com.whip.app.TimerAlarmIntegrationTest" time="1.203" />
+    <testcase name="longExpiredFocusTimerIsClearedWithoutResurrectingAnAlert" classname="com.whip.app.TimerAlarmIntegrationTest" time="0.758" />
+    <testcase name="focusStartRejectsInvalidDurationMissingAndArchivedTask" classname="com.whip.app.TimerAlarmIntegrationTest" time="0.353" />
+    <testcase name="focusCompletionEventRequiresMatchingDurableClearEvenWhenAndroidBlocksTheFocusChannel" classname="com.whip.app.TimerAlarmIntegrationTest" time="10.383" />
+    <testcase name="cancellationQueuedForClearedTimerCannotCancelNewerPairOrWork" classname="com.whip.app.TimerAlarmIntegrationTest" time="1.079" />
+    <testcase name="lateOldRestScheduleCannotReplaceTheCurrentTimerWork" classname="com.whip.app.TimerAlarmIntegrationTest" time="1.107" />
+    <testcase name="focusNotificationRefreshRestoresPresentationWithoutReplacingWork" classname="com.whip.app.TimerAlarmIntegrationTest" time="1.717" />
+    <testcase name="restTimerWakesAndPostsWithoutOpeningAnActivity" classname="com.whip.app.TimerAlarmIntegrationTest" time="5.95" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackAuthoringJourneyE2ETest" tests="2" failures="2" errors="0" skipped="0" time="33.509" timestamp="2026-09-29T15:26:05" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="mixedTrackCanBeAuthoredRecoveredAndUsedAtLargeText" classname="com.whip.app.TrackAuthoringJourneyE2ETest" time="18.327">
+      <failure>java.lang.IllegalStateException: Visual catalog hierarchy for tracks.authoring.track-name.large contains an unlabeled interactive node:                                 &lt;node NAF="true" index="1" text="" resource-id="" class="android.widget.FrameLayout" package="com.google.android.inputmethod.latin" content-desc="" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" visible-to-user="true" bounds="[387,1517][693,1633]" drawing-order="2" hint="" display-id="0"&gt;
+at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface(VisualCatalogCapture.kt:95)
+at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface$default(VisualCatalogCapture.kt:26)
+at com.whip.app.TrackAuthoringJourneyE2ETest.capture(TrackAuthoringJourneyE2ETest.kt:346)
+at com.whip.app.TrackAuthoringJourneyE2ETest.verifyAuthoring(TrackAuthoringJourneyE2ETest.kt:69)
+at com.whip.app.TrackAuthoringJourneyE2ETest.mixedTrackCanBeAuthoredRecoveredAndUsedAtLargeText(TrackAuthoringJourneyE2ETest.kt:50)
+</failure>
+    </testcase>
+    <testcase name="mixedTrackCanBeAuthoredRecoveredAndUsed" classname="com.whip.app.TrackAuthoringJourneyE2ETest" time="15.182">
+      <failure>java.lang.IllegalStateException: Visual catalog hierarchy for tracks.authoring.track-name.ordinary contains an unlabeled interactive node:                                 &lt;node NAF="true" index="1" text="" resource-id="" class="android.widget.FrameLayout" package="com.google.android.inputmethod.latin" content-desc="" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" visible-to-user="true" bounds="[387,1517][693,1633]" drawing-order="2" hint="" display-id="0"&gt;
+at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface(VisualCatalogCapture.kt:95)
+at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface$default(VisualCatalogCapture.kt:26)
+at com.whip.app.TrackAuthoringJourneyE2ETest.capture(TrackAuthoringJourneyE2ETest.kt:346)
+at com.whip.app.TrackAuthoringJourneyE2ETest.verifyAuthoring(TrackAuthoringJourneyE2ETest.kt:69)
+at com.whip.app.TrackAuthoringJourneyE2ETest.mixedTrackCanBeAuthoredRecoveredAndUsed(TrackAuthoringJourneyE2ETest.kt:47)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.TrackCalendarContextTest" tests="1" failures="0" errors="0" skipped="0" time="0.183" timestamp="2026-09-29T15:26:05" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="trackRollsToANewLogicalDateWithoutARepositoryEmission" classname="com.whip.app.TrackCalendarContextTest" time="0.183" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackCollectionFailureJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="28.748" timestamp="2026-09-29T15:26:05" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="storageFailuresRestoreOrderAndKeepBulkSelectionForRetry" classname="com.whip.app.TrackCollectionFailureJourneyE2ETest" time="28.748" />
+  </testsuite>
+</testsuites>

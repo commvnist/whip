@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="0" errors="0" skipped="0" time="140.304" timestamp="2026-09-29T17:07:44" hostname="localhost">
+  <testsuite name="com.whip.app.TrackCollectionJourneyE2ETest" tests="2" failures="0" errors="0" skipped="0" time="137.089" timestamp="2026-09-29T17:07:44" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedAndActiveSelectionsStaySeparate" classname="com.whip.app.TrackCollectionJourneyE2ETest" time="84.765" />
+    <testcase name="archivedAndActiveSelectionsStaySeparateAtLargeText" classname="com.whip.app.TrackCollectionJourneyE2ETest" time="52.324" />
+  </testsuite>
+</testsuites>

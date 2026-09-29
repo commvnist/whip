@@ -1,0 +1,154 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="65" failures="2" errors="0" skipped="0" time="1044.599" timestamp="2026-09-29T14:41:17" hostname="localhost">
+  <testsuite name="com.whip.app.BrandIdentityTest" tests="2" failures="0" errors="0" skipped="0" time="0.021" timestamp="2026-09-29T14:41:17" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="debugBuildUsesThePlayPackageFamilyAndCapitalizedName" classname="com.whip.app.BrandIdentityTest" time="0.02" />
+    <testcase name="launcherAndInAppMarksShareCenteredSafeZoneGeometry" classname="com.whip.app.BrandIdentityTest" time="0.001" />
+  </testsuite>
+  <testsuite name="com.whip.app.CoreFeatureJourneyE2ETest" tests="2" failures="0" errors="0" skipped="0" time="61.058" timestamp="2026-09-29T14:41:17" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="dirtyTaskEditorSurvivesActivityRecreation" classname="com.whip.app.CoreFeatureJourneyE2ETest" time="36.485" />
+    <testcase name="seededFeaturesRenderThroughRealRepositoriesAndSurviveActivityRecreation" classname="com.whip.app.CoreFeatureJourneyE2ETest" time="24.573" />
+  </testsuite>
+  <testsuite name="com.whip.app.CustomUnitIntegrityTest" tests="7" failures="0" errors="0" skipped="0" time="1.119" timestamp="2026-09-29T14:41:17" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="versionRetryCannotForkAndHistoryKeepsItsOriginalUnit" classname="com.whip.app.CustomUnitIntegrityTest" time="0.382" />
+    <testcase name="measurementValueAndUnitMustAlwaysBeStoredAsAPair" classname="com.whip.app.CustomUnitIntegrityTest" time="0.227" />
+    <testcase name="anAlreadyArchivedSourceCannotForkConversionVersions" classname="com.whip.app.CustomUnitIntegrityTest" time="0.102" />
+    <testcase name="exactCreateIsReplaySafeAndRejectsIdentityCollision" classname="com.whip.app.CustomUnitIntegrityTest" time="0.103" />
+    <testcase name="staleRenameAndArchiveCannotOverwriteAConcurrentEdit" classname="com.whip.app.CustomUnitIntegrityTest" time="0.177" />
+    <testcase name="normalizedEnsureCannotOverwriteAnExistingConversionIdentity" classname="com.whip.app.CustomUnitIntegrityTest" time="0.027" />
+    <testcase name="authoredBoundsAndFinitePositiveConversionAreEnforced" classname="com.whip.app.CustomUnitIntegrityTest" time="0.101" />
+  </testsuite>
+  <testsuite name="com.whip.app.CustomUnitJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="97.046" timestamp="2026-09-29T14:41:17" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="createRenameVersionAndArchivePreserveRecordedMeaning" classname="com.whip.app.CustomUnitJourneyE2ETest" time="97.046" />
+  </testsuite>
+  <testsuite name="com.whip.app.DataEpochBoundaryTest" tests="2" failures="0" errors="0" skipped="0" time="0.08" timestamp="2026-09-29T14:41:17" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="trulyFreshInstallEstablishesCurrentMarkerWithoutReset" classname="com.whip.app.DataEpochBoundaryTest" time="0.001" />
+    <testcase name="markerStatePersistsAndInterruptedResetResumes" classname="com.whip.app.DataEpochBoundaryTest" time="0.079" />
+  </testsuite>
+  <testsuite name="com.whip.app.DataPrivacyJourneyE2ETest" tests="8" failures="0" errors="0" skipped="0" time="334.617" timestamp="2026-09-29T14:41:17" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="cancelledOrLostDocumentRequestCannotWriteAnExport" classname="com.whip.app.DataPrivacyJourneyE2ETest" time="7.622" />
+    <testcase name="wrongBackupPassphraseExplainsFailureInsideDialogAndRetries" classname="com.whip.app.DataPrivacyJourneyE2ETest" time="44.322" />
+    <testcase name="backupChoicesRemainClearInLightTheme" classname="com.whip.app.DataPrivacyJourneyE2ETest" time="55.251" />
+    <testcase name="backupChoicesPreserveRecordsAndSettingsAfterReopening" classname="com.whip.app.DataPrivacyJourneyE2ETest" time="50.391" />
+    <testcase name="encryptedExportSurvivesActivityRecreationWhileDocumentPickerIsOpen" classname="com.whip.app.DataPrivacyJourneyE2ETest" time="38.063" />
+    <testcase name="plainAndCsvExportsKeepTheirRequestedFormats" classname="com.whip.app.DataPrivacyJourneyE2ETest" time="52.623" />
+    <testcase name="unavailablePortableFolderAccessIsVisibleAndRecoverableThroughReselection" classname="com.whip.app.DataPrivacyJourneyE2ETest" time="51.488" />
+    <testcase name="invalidBackupIsReportedAsFailureAndCanBeReplaced" classname="com.whip.app.DataPrivacyJourneyE2ETest" time="34.857" />
+  </testsuite>
+  <testsuite name="com.whip.app.DeepProductivityJourneyTest" tests="7" failures="1" errors="0" skipped="0" time="315.575" timestamp="2026-09-29T14:41:17" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="habitFocusedInsightsAndChecklistFitLargeText" classname="com.whip.app.DeepProductivityJourneyTest" time="24.141" />
+    <testcase name="numericHabitActionsStayInDetailsAndPreserveFacts" classname="com.whip.app.DeepProductivityJourneyTest" time="41.313" />
+    <testcase name="habitAndGoalSearchUsesTheWorkspaceActionAndKeepsCollectionsClear" classname="com.whip.app.DeepProductivityJourneyTest" time="51.501">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (ContentDescription contains 'Reorder Project 0' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+at com.whip.app.DeepProductivityJourneyTest.habitAndGoalSearchUsesTheWorkspaceActionAndKeepsCollectionsClear(DeepProductivityJourneyTest.kt:192)
+</failure>
+    </testcase>
+    <testcase name="trackWorkspaceSearchAndSelectionShowConfiguredDetails" classname="com.whip.app.DeepProductivityJourneyTest" time="55.555" />
+    <testcase name="goalCompletionEventsKeepTheirOriginalMeaning" classname="com.whip.app.DeepProductivityJourneyTest" time="35.296" />
+    <testcase name="trackInsightRangeLeadsToTheSameCorrectableEvidence" classname="com.whip.app.DeepProductivityJourneyTest" time="54.359" />
+    <testcase name="milestoneEditorKeepsOptionalDetailsAndIdentity" classname="com.whip.app.DeepProductivityJourneyTest" time="53.41" />
+  </testsuite>
+  <testsuite name="com.whip.app.DeepSharedJourneyTest" tests="4" failures="1" errors="0" skipped="0" time="146.399" timestamp="2026-09-29T14:41:17" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="denseHomeBalancesDomainsAndCompletingRefillsPreview" classname="com.whip.app.DeepSharedJourneyTest" time="22.593" />
+    <testcase name="denseHomeContinuationRemainsReachableAtLargeText" classname="com.whip.app.DeepSharedJourneyTest" time="23.052" />
+    <testcase name="taskInspectorRetainsExecutionContextThroughDefinitionEdit" classname="com.whip.app.DeepSharedJourneyTest" time="37.883" />
+    <testcase name="workspaceSearchAndSavedFilterChildRetainConsistentChrome" classname="com.whip.app.DeepSharedJourneyTest" time="62.871">
+      <failure>androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 10000 ms
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:901)
+at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:500)
+at com.whip.app.DeepSharedJourneyTest.workspaceSearchAndSavedFilterChildRetainConsistentChrome(DeepSharedJourneyTest.kt:125)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.DialogThemeContrastTest" tests="2" failures="0" errors="0" skipped="0" time="80.189" timestamp="2026-09-29T14:41:17" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="lightDialogsOnDarkAndroidFollowThemeAcrossEveryWindowOwner" classname="com.whip.app.DialogThemeContrastTest" time="39.067" />
+    <testcase name="darkDialogsOnLightAndroidFollowThemeAcrossEveryWindowOwner" classname="com.whip.app.DialogThemeContrastTest" time="41.122" />
+  </testsuite>
+  <testsuite name="com.whip.app.DomainDeletionCoordinatorTest" tests="30" failures="0" errors="0" skipped="0" time="6.313" timestamp="2026-09-29T14:41:17" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="exerciseDeleteReportsExactImpactAndLeavesUnrelatedHistoryUntouched" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.708" />
+    <testcase name="workoutDeleteBlocksAnActiveSessionEvenWithAReviewedRevision" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.305" />
+    <testcase name="trackDeletionUsesExactReviewedDefinitionAndHistoryImpact" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.359" />
+    <testcase name="areaDeleteWithItemsRemovesEveryDomainAndItsDependentHistory" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.533" />
+    <testcase name="workoutDeleteReportsExactImpactAndPreservesTrainingMaxDecisionHistory" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.378" />
+    <testcase name="areaDeletionPreparationFailureRollsBackEveryOwnedEntity" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.178" />
+    <testcase name="reviewedTaskDisappearingBeforeDeleteIsAnOwnedFailure" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.177" />
+    <testcase name="machineDeleteIsBlockedWhileProfileIsInActiveWorkout" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.101" />
+    <testcase name="taskDeletionDoesNotConvertFatalPostCommitErrorsIntoOrdinaryWarnings" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.076" />
+    <testcase name="routineDeletePreservesWorkoutAndWorkoutDeleteRebuildsDerivedState" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.529" />
+    <testcase name="areaDeletionPostCommitFailuresReturnWarningsWithoutInvitingReplay" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.206" />
+    <testcase name="machineDeleteRemovesOnlyProfileAndPreservesHistoricalMeaning" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.985" />
+    <testcase name="exerciseDeletionRejectsAStaleDependencyPreview" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.076" />
+    <testcase name="goalDeletionCancellationAfterCommitCarriesCommittedSummary" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.076" />
+    <testcase name="machineDeleteRejectsAStaleImpactPreview" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.051" />
+    <testcase name="goalDeletionReportsOrdinaryPostCommitFailuresAsWarnings" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.102" />
+    <testcase name="workoutDeleteOwnsPostCommitReconciliationFailureAsAWarning" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.202" />
+    <testcase name="promotionUndoReportsPostCommitCleanupFailureAndKeepsItsCommittedResult" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.151" />
+    <testcase name="exerciseDeletionBlocksAnActiveWorkoutPlacement" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.127" />
+    <testcase name="workoutDeleteRejectsRecordedHistoryChangedAfterPreview" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.101" />
+    <testcase name="deletedNumberedMachineKeepsItsHistoricalStrengthDirection" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.228" />
+    <testcase name="goalDeletionPreCommitFailurePreservesGoalAndReconcilesReminderState" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.051" />
+    <testcase name="routineDeletionRejectsWorkoutHistoryAddedAfterPreview" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.026" />
+    <testcase name="taskDeletionReportsPostCommitCleanupFailureWithoutClaimingTheDeleteFailed" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.052" />
+    <testcase name="areaDeletionCancellationAfterCommitCarriesTheCommittedSummary" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.102" />
+    <testcase name="routineDeletionBlocksItsActiveWorkout" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.026" />
+    <testcase name="taskDeletionCancellationAfterCommitEscapesAndNeverRollsBackCommittedDelete" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.076" />
+    <testcase name="goalDeleteRemovesOwnedMeasurementAndPreservesIndependentHabits" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.127" />
+    <testcase name="reviewedGoalDisappearingBeforeDeleteFailsTruthfully" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.102" />
+    <testcase name="exerciseDeleteDetachesOnlyThatExerciseFromSharedMachine" classname="com.whip.app.DomainDeletionCoordinatorTest" time="0.102" />
+  </testsuite>
+</testsuites>

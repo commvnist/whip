@@ -1,0 +1,84 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="8" failures="4" errors="0" skipped="0" time="211.199" timestamp="2026-09-29T15:57:05" hostname="localhost">
+  <testsuite name="com.whip.app.LegacyImportJourneyE2ETest" tests="1" failures="1" errors="0" skipped="0" time="47.962" timestamp="2026-09-29T15:57:05" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="restoredHabitContinuesManuallyAndSettingsFocusOnLocalData" classname="com.whip.app.LegacyImportJourneyE2ETest" time="47.962">
+      <failure>androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 10000 ms
+at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:901)
+at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:500)
+at com.whip.app.LegacyImportJourneyE2ETest.restoredHabitContinuesManuallyAndSettingsFocusOnLocalData(LegacyImportJourneyE2ETest.kt:53)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.PlatformEntrySurfaceE2ETest" tests="2" failures="0" errors="0" skipped="0" time="31.31" timestamp="2026-09-29T15:57:05" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="widgetTaskActionSelectsAndPersistsItsAreaAcrossRecreation" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="24.49" />
+    <testcase name="widgetDoesNotShowATemporaryBannerForTheOnlyVisibleArea" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="6.82" />
+  </testsuite>
+  <testsuite name="com.whip.app.ProductivityCardDesignUiTest" tests="1" failures="1" errors="0" skipped="0" time="2.763" timestamp="2026-09-29T15:57:05" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="habitAndGoalSummaryRowsKeepDetailsAndInlineActions" classname="com.whip.app.ProductivityCardDesignUiTest" time="2.763">
+      <failure>java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains '50% complete' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+at com.whip.app.ProductivityCardDesignUiTest.habitAndGoalSummaryRowsKeepDetailsAndInlineActions(ProductivityCardDesignUiTest.kt:531)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.ProductivityCreationJourneyE2ETest" tests="2" failures="2" errors="0" skipped="0" time="77.332" timestamp="2026-09-29T15:57:05" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="smartTaskCaptureExplainsHighlightsPersistsAndReversesThroughTheRealUi" classname="com.whip.app.ProductivityCreationJourneyE2ETest" time="16.756">
+      <failure>java.lang.AssertionError: No node found that matches TestTag = 'smart-task-capture-examples' in scrollable container
+Semantics of the node:
+Node #2108 at (l=0.0, t=458.0, r=1080.0, b=2106.0)px, Tag: 'settings-list'
+CollectionInfo = 'CollectionInfo(rowCount=19, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape&#64;c26403b'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=6656.0, maxValue=6656.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 6 children, 4 siblings
+Selector used: (TestTag = 'settings-list')
+
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+at com.whip.app.ProductivityCreationJourneyE2ETest.smartTaskCaptureExplainsHighlightsPersistsAndReversesThroughTheRealUi(ProductivityCreationJourneyE2ETest.kt:238)
+</failure>
+    </testcase>
+    <testcase name="taskHabitAndGoalCanBeCreatedAndUsedThroughTheRealUi" classname="com.whip.app.ProductivityCreationJourneyE2ETest" time="60.576">
+      <failure>java.lang.AssertionError: Failed to perform checkIsDisplayed check: Expected at most 1 node but found 2 nodes that satisfy (TestTag = 'entity-inspector-content-options')
+at androidx.compose.ui.test.AndroidAssertions_androidKt.checkIsDisplayed(AndroidAssertions.android.kt:35)
+at androidx.compose.ui.test.AssertionsKt.isDisplayed(Assertions.kt:380)
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:33)
+at com.whip.app.ProductivityCreationJourneyE2ETest.taskHabitAndGoalCanBeCreatedAndUsedThroughTheRealUi(ProductivityCreationJourneyE2ETest.kt:164)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.ProductivityDefaultsUiTest" tests="2" failures="0" errors="0" skipped="0" time="50.147" timestamp="2026-09-29T15:57:05" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_release_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="todayAndInboxQuickCaptureUseMatchingDestinationCopyAndDefaults" classname="com.whip.app.ProductivityDefaultsUiTest" time="35.199" />
+    <testcase name="emptyTaskWorkspacesKeepClearStateVisibleBelowQuickCapture" classname="com.whip.app.ProductivityDefaultsUiTest" time="14.948" />
+  </testsuite>
+</testsuites>

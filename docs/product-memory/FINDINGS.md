@@ -1,5 +1,88 @@
 # Durable findings
 
+### FND-20260929-024 — Large-text inspector titles are truncated on taller screens
+
+- Status: Verified. Related: FB-20260929-009, `SharedResilienceAuditUiTest#shortInspectorKeepsContentSectionsAndActionsReachable`.
+- Evidence: Fresh 200% capture shows the Goal identity ending in an ellipsis. The shared inspector makes identity scrollable only below a 560 dp height threshold, retaining a two-line title limit on taller screens despite enlarged text. The fixture's short-screen name does not constrain the emulator height.
+- Repair planned: Apply the existing bounded, scrollable identity treatment whenever text is enlarged. Keep Edit/Close, section navigation, evidence space and the primary action fixed. Verify the original layout assertion and native action/section journey without relaxing the full-title requirement.
+- Final acceptance: Verified under VER-20260929-010 / IMP-20260929-012/013. Complete product inventory, affected repair replays and the final full local gate pass; diagnostic checkpoints above remain historical.
+
+### FND-20260929-023 — Track detail search disappears after recreation
+
+- Status: Verified. Related: FB-20260929-009, `TrackHistoryJourneyE2ETest`.
+- Evidence: The full ordinary archived-history journey and an isolated replay both lose the visible search field/query after Activity recreation. Diagnostic state logs show the same Track returning with `visible=false`, empty query and unchanged clear-request counter; no explicit clear command caused the reset.
+- Root cause: Diagnostic composition keys remain stable at the Track workspace but change at its local detail call across recreation. An extra saved-state holder alone does not fix that positional-identity change.
+- Repair under verification: Apply the existing adaptive-frame movable-content pattern to Track detail, with updated callbacks. The minimal reproduction now retains both its composition key and exact query after recreation. Retain the original normal/200% history journeys as acceptance checks; temporary logging and the diagnostic fixture are removed.
+- Collection diagnosis: An added assertion that an inactive archive's old bulk selection survives recreation was not part of the original collection-isolation contract; restore the fresh-selection flow with explicit zero-selection and unrelated-row-off assertions. That original flow then reproduces a real failure on the unmodified collection implementation: recreating the currently selected archive loses its active bulk selection. Verify the same stable-content repair against this current-view requirement, retaining visible-only mutation checks.
+- Acceptance: The stable collection boundary passes both original normal/200% current-archive recreation and isolated restoration journeys (`final-four`, `Fksg8H`). The complete six-method Track history/insights/workspace replay also passes (`remaining-repairs` group 00), including both detail-query recreation journeys. No diagnostic fixture/logging is shipped.
+- Final acceptance: Verified under VER-20260929-010 / IMP-20260929-012/013. Complete product inventory, affected repair replays and the final full local gate pass; diagnostic checkpoints above remain historical.
+
+### FND-20260929-021 — Visual capture attributes keyboard accessibility nodes to Whip
+
+- Status: Verified. Related: FND-20260929-014, FB-20260929-009.
+- Evidence: Full native group 09 fails three editor captures on an unnamed `com.google.android.inputmethod.latin` FrameLayout. The guard checks every package in the combined window hierarchy. The Whip fields and keyboard remain visible as intended.
+- Repair: Parse hierarchy nodes and reject unnamed interactive nodes belonging to the target package. Keep Whip-presence, crash/ANR and capture checks. Do not hide the keyboard or exempt Whip controls.
+- Final acceptance: Verified under VER-20260929-010 / IMP-20260929-012/013. Complete product inventory, affected repair replays and the final full local gate pass; diagnostic checkpoints above remain historical.
+
+### FND-20260929-022 — Archive Back intercepts return to Review
+
+- Status: Verified. Related: FB-20260929-008/009, `ReviewOutcomeJourneyE2ETest#mixedTaskHistoryKeepsAreaScopeAndDistinctOccurrences`.
+- Evidence: Returning from an archived recurring Task using system Back selects the prior Task tab instead of the retained Review. The newly introduced Task archive BackHandler takes precedence over the outer Review return handler.
+- Repair planned: Give the explicit Review return route precedence while visiting its source, retaining ordinary Archive Back behavior outside Review.
+- Final acceptance: Verified under VER-20260929-010 / IMP-20260929-012/013. Complete product inventory, affected repair replays and the final full local gate pass; diagnostic checkpoints above remain historical.
+
+### FND-20260929-020 — Ordinary workout rendering retains an unused full-history arrangement cache
+
+- Status: Verified. Related: FND-20260929-017 and the remaining dense active-workout benchmark failure.
+- Evidence: After the database commits the synthetic active Set, UI publication can still stall. The emulator main-thread sample is in `AbstractList.equals` from `WorkoutContent`'s `remember` over every historical Set. The same dump reports 190 MB used of a 192 MB heap, 18.503 s cumulative GC and 9.628 s waiting for GC. The cached boundary is only consumed while arranging the workout, yet its keys are compared and retained during ordinary editing.
+- Repair under isolated verification: Enter that cache only while `arrangingWorkout` is true. Starting arrangement still captures its boundary, and the existing stale-layout check remains active throughout arrangement. No histories are truncated and no conflict checks are removed. Evidence: resumed campaign `benchmark-paged-manual-threads.txt` and `benchmark-paged-manual-threads-2.txt`.
+- Final acceptance: Verified under VER-20260929-010 / IMP-20260929-012/013. Complete product inventory, affected repair replays and the final full local gate pass; diagnostic checkpoints above remain historical.
+
+### FND-20260929-019 — Habit tracking widget relies on the old initial tab
+
+- Status: Verified. Related: FB-20260929-010, `PlatformEntrySurfaceE2ETest#widgetDoesNotShowATemporaryBannerForTheOnlyVisibleArea`.
+- Observed/source: The explicit Habit tracking widget route only selects the Habits workspace. Changing the ordinary initial tab to the collection causes that daily tracking shortcut to open the collection too. The Home daily shortcut already assigns Today explicitly.
+- Repair: Set Today in the `OpenHabitTracking` command while keeping ordinary Tasks/Habits navigation collection-first. Retain the widget's Today and persistent Area assertions.
+- Final acceptance: Verified under VER-20260929-010 / IMP-20260929-012/013. Complete product inventory, affected repair replays and the final full local gate pass; diagnostic checkpoints above remain historical.
+
+### FND-20260929-018 — Saved Views alter user-authored capitalization
+
+- Status: Verified. Related: FB-20260929-008/009, current full-suite `DeepSharedJourneyTest#workspaceSearchAndSavedFilterChildRetainConsistentChrome`.
+- Observed/source: A saved name “Repair lookup” is rendered as “Repair Lookup”. The Saved Views child uses `NavigationRow` without its existing `preserveTitleCase` option, applying static-label casing to user data. This explains the exact-name assertion failure; it is not evidence that persistence lost the view.
+- Planned repair: Enable the existing case-preservation option for saved-view rows and retain the exact-name persistence/return regression. No new component or storage change is needed.
+- Final acceptance: Verified under VER-20260929-010 / IMP-20260929-012/013. Complete product inventory, affected repair replays and the final full local gate pass; diagnostic checkpoints above remain historical.
+
+### FND-20260929-017 — Wide history cursors block dense workspace loading
+
+- Status: Verified. Related: FND-20260929-015/016, FB-20260929-009.
+- Evidence: The repaired benchmark still shows “Loading Goals” after 60 seconds. Emulator thread dumps locate expensive CursorWindow refills in measurement and workout-Set observations; SQL plans repeat temporary sorting for unindexed historical ordering. An emulator-only index probe removes temporary sorts but does not resolve the long wide-row read. These are synthetic disposable-emulator records, not owner data.
+- Proposed remedy under isolated diagnosis: Read keyset pages inside the existing snapshot transaction, map each page before retaining it, and restore the repository's original ordering. For personal records, sort compact IDs once and fetch bounded row groups instead of sorting wide history once per offset page. Keep the entire history and the existing Room/backup format. An index-only schema change is not sufficient and has not been added to the app.
+- Evidence paths: resumed campaign `benchmark-interactions-repaired.log`, `benchmark-loading-threads.txt`, `benchmark-index-threads.txt`; isolated source probe `/tmp/whip-history-probe`. Production adoption and acceptance are pending.
+- Isolated probe result: bounded reads complete the three-iteration active-workout benchmark against 100,000 historical Sets. The Goal path now loads and opens its inspector; the failure hierarchy shows that inspector still open after the benchmark's Back action. A transition race is suspected, not established. Use the visible Close action and await dismissal, then rerun all nine benchmark/profile methods. Probe run executes two methods with one failure in 286.822 s; this is partial evidence, not full acceptance.
+- Final acceptance: Verified under VER-20260929-010 / IMP-20260929-012/013. Complete product inventory, affected repair replays and the final full local gate pass; diagnostic checkpoints above remain historical.
+
+### FND-20260929-016 — Dense Gym record reconciliation exhausts the Android heap
+
+- Status: Verified. Related: FB-20260929-009; full-suite benchmark and manual emulator reproduction.
+- Observed: Opening Gym with the existing 100,000-Set benchmark fixture crashes with `OutOfMemoryError` on a 192 MB heap during `RoomRoutineRepository.rebuildPersonalRecords`; retained crash output is in the resumed campaign's `benchmark-manual-crash.log`.
+- Root cause: The rebuild loads every completed Set, repeats placement/session database lookups for each Set, retains four per-Set metadata maps and another eligibility set, then groups the full history again for workout volume.
+- Remediation: Read completed Sets in bounded pages, cache metadata by placement/session, and accumulate workout volume by its actual session/machine scope. Preserve policy snapshots, record chronology, machine isolation and transaction atomicity; replay existing personal-record tests and the dense benchmark.
+- Final acceptance: Verified under VER-20260929-010 / IMP-20260929-012/013. Complete product inventory, affected repair replays and the final full local gate pass; diagnostic checkpoints above remain historical.
+
+### FND-20260929-015 — Large measurement reads can fail during concurrent history replacement
+
+- Severity/status: P1 stability; Confirmed runtime crash in the resumed dense-data benchmark. The app process throws `SQLiteBlobTooBigException` in `MeasurementDao_Impl.observeEntries`, requesting cursor position 79,546 after the result shrinks to 10,000 rows during the next fixture's history replacement.
+- Source/root-cause assessment: The unbounded measurement Flow query lacks a transaction across CursorWindow refills. Replacing/removing history can change the query between windows; the observed position/count mismatch points to an inconsistent read rather than a single oversized record. MeasurementRepository exposes this Flow to live consumers.
+- Expected repair/acceptance: Use Room's transactional snapshot for potentially multi-window measurement reads; audit analogous large-history DAO reads and verify concurrent replacement with native database coverage. Rerun dense-data benchmarks, retain original crash evidence, and distinguish unrelated benchmark navigation/input failures. In progress under FB-20260929-009.
+- Final acceptance: Verified under VER-20260929-010 / IMP-20260929-012/013. Complete product inventory, affected repair replays and the final full local gate pass; diagnostic checkpoints above remain historical.
+
+### FND-20260929-014 — Resumed full gate encounters navigation-era verification drift
+
+- Category/status: Verification maintenance; Verified under FB-20260929-009. Initial `scripts/check --full` exits before execution because documentation renamed the exact inventory marker required by the gate, despite correct 724/1266 counts.
+- Repair: Restore the documented baseline marker while retaining the distinction between source inventory and executed acceptance. Continue the current-source suite to identify any additional fixture or product failures; this initial failure is not a test pass.
+- First execution: 724 JVM methods complete with four obsolete architecture expectations (Gym order, Track filter-card marker, Task header marker and archive peer tabs). Android compilation fails on an invalid top-level `assertDoesNotExist` import; that member needs no import. The target-guard fixture reaches the same compilation failure; five other harness fixtures pass. Preserve all failures before repairs.
+- Final acceptance: Verified under VER-20260929-010 / IMP-20260929-012/013. Complete product inventory, affected repair replays and the final full local gate pass; diagnostic checkpoints above remain historical.
+
 ### FND-20260929-013 — Task scope and workspace hierarchy make navigation misleading
 
 - Severity/category: P1 owner-reported usability/design issue; Confirmed by current-source review at 5490fe81.

@@ -1,0 +1,163 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="31" failures="8" errors="0" skipped="0" time="990.571" timestamp="2026-09-29T16:05:14" hostname="localhost">
+  <testsuite name="com.whip.app.TrackWorkspaceUiTest" tests="8" failures="2" errors="0" skipped="0" time="119.759" timestamp="2026-09-29T16:05:14" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="trackSelectionUsesOneCheckboxSemanticOwner" classname="com.whip.app.TrackWorkspaceUiTest" time="4.965" />
+    <testcase name="tracksAndEntriesHaveOneExplicitSearchOwnerAndArchivedResultsReturnToArchive" classname="com.whip.app.TrackWorkspaceUiTest" time="22.062">
+      <failure>java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains 'Archived · Entries are read-only' (ignoreCase: false) is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.TrackWorkspaceUiTest.tracksAndEntriesHaveOneExplicitSearchOwnerAndArchivedResultsReturnToArchive(TrackWorkspaceUiTest.kt:186)
+</failure>
+    </testcase>
+    <testcase name="activityFiltersAndCrossTrackInsightsUseVisibleTrackData" classname="com.whip.app.TrackWorkspaceUiTest" time="52.218" />
+    <testcase name="adaptiveMasterPaneReorderKeepsItsDedicatedControls" classname="com.whip.app.TrackWorkspaceUiTest" time="3.184" />
+    <testcase name="numericIdentitiesAndEveryLatestTrackRemainReachableInInsights" classname="com.whip.app.TrackWorkspaceUiTest" time="20.0" />
+    <testcase name="tracksWorkspaceRemainsNavigableInRtlAtTwoHundredPercentText" classname="com.whip.app.TrackWorkspaceUiTest" time="9.657">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'Patterns across Tracks' (ignoreCase: false))
+Semantics of the node:
+Node #2489 at (l=326.0, t=499.0, r=1027.0, b=677.0)px, Tag: 'workspace-context-summary'
+Text = '[0 entries · Patterns across Tracks]'
+[Heading]
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 1 sibling
+Selector used: (TestTag = 'workspace-context-summary')
+
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+at com.whip.app.TrackWorkspaceUiTest.tracksWorkspaceRemainsNavigableInRtlAtTwoHundredPercentText(TrackWorkspaceUiTest.kt:353)
+</failure>
+    </testcase>
+    <testcase name="archivedTrackSummaryOmitsUnavailableAddAction" classname="com.whip.app.TrackWorkspaceUiTest" time="3.044" />
+    <testcase name="trackSummaryRowsKeepLatestAddAndEditActions" classname="com.whip.app.TrackWorkspaceUiTest" time="4.629" />
+  </testsuite>
+  <testsuite name="com.whip.app.VisualAcceptanceMatrixTest" tests="2" failures="0" errors="0" skipped="0" time="29.341" timestamp="2026-09-29T16:05:14" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="longChoiceAndNestedDialogStatesKeepTheirFinalItemsAndActionsReachable" classname="com.whip.app.VisualAcceptanceMatrixTest" time="11.432" />
+    <testcase name="primaryAdaptiveThemeFontAndRtlMatrixHasAnOpaqueConformingSurface" classname="com.whip.app.VisualAcceptanceMatrixTest" time="17.909" />
+  </testsuite>
+  <testsuite name="com.whip.app.VisualCatalogPagesTest" tests="8" failures="1" errors="0" skipped="0" time="473.867" timestamp="2026-09-29T16:05:14" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="captureSettingsPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="56.202" />
+    <testcase name="captureTaskPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="107.758" />
+    <testcase name="captureTrackPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="55.85">
+      <failure>java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains 'The Dispossessed' (ignoreCase: false) is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.VisualCatalogPagesTest.captureTrackPages(VisualCatalogPagesTest.kt:345)
+at com.whip.app.VisualCatalogPagesTest.captureTrackPageCatalog(VisualCatalogPagesTest.kt:160)
+</failure>
+    </testcase>
+    <testcase name="captureGoalPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="51.98" />
+    <testcase name="captureSharedPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="39.808" />
+    <testcase name="captureHabitPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="61.858" />
+    <testcase name="captureGymCategoryAllocationCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="16.523" />
+    <testcase name="captureGymPageCatalog" classname="com.whip.app.VisualCatalogPagesTest" time="83.888" />
+  </testsuite>
+  <testsuite name="com.whip.app.VisualCatalogSharedShellTest" tests="1" failures="0" errors="0" skipped="0" time="29.279" timestamp="2026-09-29T16:05:14" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="captureSharedShellCatalog" classname="com.whip.app.VisualCatalogSharedShellTest" time="29.279" />
+  </testsuite>
+  <testsuite name="com.whip.app.WhipAccessibilityChecksTest" tests="2" failures="0" errors="0" skipped="0" time="160.72" timestamp="2026-09-29T16:05:14" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="primaryAreasPassComposeAccessibilityTestFramework" classname="com.whip.app.WhipAccessibilityChecksTest" time="69.448" />
+    <testcase name="productivityEditorsAndDetailsPassAccessibilityChecks" classname="com.whip.app.WhipAccessibilityChecksTest" time="91.272" />
+  </testsuite>
+  <testsuite name="com.whip.app.WhipAppTest" tests="1" failures="0" errors="0" skipped="0" time="8.183" timestamp="2026-09-29T16:05:14" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="appLaunchesAndRendersComposeContent" classname="com.whip.app.WhipAppTest" time="8.183" />
+  </testsuite>
+  <testsuite name="com.whip.app.WhipComposeSemanticsTest" tests="9" failures="5" errors="0" skipped="0" time="158.753" timestamp="2026-09-29T16:05:14" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="machineLibraryExplainsEquipmentAndOptionalExerciseLinks" classname="com.whip.app.WhipComposeSemanticsTest" time="14.944" />
+    <testcase name="globalAddAndHabitEditorAreReachableThroughComposeSemantics" classname="com.whip.app.WhipComposeSemanticsTest" time="20.306">
+      <failure>java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains 'Agenda' (ignoreCase: false) is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.WhipComposeSemanticsTest.globalAddAndHabitEditorAreReachableThroughComposeSemantics(WhipComposeSemanticsTest.kt:90)
+</failure>
+    </testcase>
+    <testcase name="taskHabitAndGoalEditorsStartInBasicModeAndRevealAdvancedFields" classname="com.whip.app.WhipComposeSemanticsTest" time="25.113">
+      <failure>java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains 'How do you want to track it?' (ignoreCase: false) is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.WhipComposeSemanticsTest.taskHabitAndGoalEditorsStartInBasicModeAndRevealAdvancedFields(WhipComposeSemanticsTest.kt:671)
+</failure>
+    </testcase>
+    <testcase name="gymConfigurationControlsUseProgressiveDisclosure" classname="com.whip.app.WhipComposeSemanticsTest" time="36.01">
+      <failure>java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains 'Workout History' (ignoreCase: false) is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.WhipComposeSemanticsTest.gymConfigurationControlsUseProgressiveDisclosure(WhipComposeSemanticsTest.kt:601)
+</failure>
+    </testcase>
+    <testcase name="taskToolbarKeepsTemporaryControlsAttachedAndFocused" classname="com.whip.app.WhipComposeSemanticsTest" time="19.458">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Select' (ignoreCase: false))
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.WhipComposeSemanticsTest.taskToolbarKeepsTemporaryControlsAttachedAndFocused(WhipComposeSemanticsTest.kt:513)
+</failure>
+    </testcase>
+    <testcase name="foldSupportPaneKeepsGymContextSeparateFromPrimaryNavigation" classname="com.whip.app.WhipComposeSemanticsTest" time="10.02" />
+    <testcase name="elapsedGoalResetWorksFromHomeOnTheFirstTap" classname="com.whip.app.WhipComposeSemanticsTest" time="11.353" />
+    <testcase name="pinningContractIsVisibleAndExplainedOnWhipHome" classname="com.whip.app.WhipComposeSemanticsTest" time="15.817" />
+    <testcase name="homeCardOpenAndPrimaryCallbacksWorkOnFirstInteractionAfterLaunch" classname="com.whip.app.WhipComposeSemanticsTest" time="5.732">
+      <failure></failure>
+    </testcase>
+  </testsuite>
+  <system-err>Exception thrown during onAfterAll invocation of plugin AndroidTestApkInstallerPlugin: device 'emulator-5556' not found
+device 'emulator-5556' not found
+com.android.ddmlib.AdbCommandRejectedException: device 'emulator-5556' not found
+	at com.android.ddmlib.AdbHelper.setDevice(AdbHelper.java:967)
+	at com.android.ddmlib.AdbHelper.setDevice(AdbHelper.java:986)
+	at com.android.ddmlib.internal.DeviceImpl.lambda$executeRemoteCommand$18(DeviceImpl.java:785)
+	at com.android.ddmlib.internal.DeviceImpl.logRun1(DeviceImpl.java:1801)
+	at com.android.ddmlib.internal.DeviceImpl.executeRemoteCommand(DeviceImpl.java:755)
+	at com.android.ddmlib.internal.DeviceImpl.lambda$executeRemoteCommand$15(DeviceImpl.java:618)
+	at com.android.ddmlib.internal.DeviceImpl.logRun1(DeviceImpl.java:1801)
+	at com.android.ddmlib.internal.DeviceImpl.executeRemoteCommand(DeviceImpl.java:615)
+	at com.android.ddmlib.internal.DeviceImpl.lambda$executeShellCommand$14(DeviceImpl.java:573)
+	at com.android.ddmlib.internal.DeviceImpl.logRun1(DeviceImpl.java:1801)
+	at com.android.ddmlib.internal.DeviceImpl.executeShellCommand(DeviceImpl.java:570)
+	at com.android.tools.utp.plugins.deviceprovider.ddmlib.DdmlibAndroidDevice.executeShellCommand(DdmlibAndroidDevice.kt)
+	at com.android.tools.utp.plugins.deviceprovider.ddmlib.DdmlibAndroidDeviceController$executeAsync$deferred$1.invokeSuspend(DdmlibAndroidDeviceController.kt:165)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:108)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+
+Test run failed to complete. Expected 58 tests, received 30
+</system-err>
+</testsuites>

@@ -1,0 +1,237 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="41" failures="9" errors="0" skipped="0" time="1823.597" timestamp="2026-09-29T16:05:23" hostname="localhost">
+  <testsuite name="com.whip.app.TrackEntryMutationUiTest" tests="5" failures="0" errors="0" skipped="0" time="40.992" timestamp="2026-09-29T16:05:23" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="deletingEntryRequiresExactReviewAndFailureKeepsTheConfirmationOpen" classname="com.whip.app.TrackEntryMutationUiTest" time="12.349" />
+    <testcase name="captureTrackEntryDeleteCatalog" classname="com.whip.app.TrackEntryMutationUiTest" time="7.355" />
+    <testcase name="savingEntryShieldsInputAndFailureKeepsTheUsersDraft" classname="com.whip.app.TrackEntryMutationUiTest" time="9.932" />
+    <testcase name="captureTrackEntryEditCatalog" classname="com.whip.app.TrackEntryMutationUiTest" time="5.446" />
+    <testcase name="captureTrackEntryCreateCatalog" classname="com.whip.app.TrackEntryMutationUiTest" time="5.91" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackFieldEditingJourneyE2ETest" tests="6" failures="0" errors="0" skipped="0" time="716.356" timestamp="2026-09-29T16:05:23" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="incompatibleScaleHistoryCanBeCorrected" classname="com.whip.app.TrackFieldEditingJourneyE2ETest" time="194.482" />
+    <testcase name="incompatibleScaleHistoryCanBeCorrectedAtLargeText" classname="com.whip.app.TrackFieldEditingJourneyE2ETest" time="163.128" />
+    <testcase name="scaleAndUnitChangesPreserveExistingValues" classname="com.whip.app.TrackFieldEditingJourneyE2ETest" time="123.679" />
+    <testcase name="scaleAndUnitChangesPreserveExistingValuesAtLargeText" classname="com.whip.app.TrackFieldEditingJourneyE2ETest" time="107.494" />
+    <testcase name="choiceLabelsAreValidatedBeforeLeavingTheFieldAtLargeText" classname="com.whip.app.TrackFieldEditingJourneyE2ETest" time="61.232" />
+    <testcase name="choiceLabelsAreValidatedBeforeLeavingTheField" classname="com.whip.app.TrackFieldEditingJourneyE2ETest" time="66.341" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackHistoryControlsJourneyE2ETest" tests="5" failures="3" errors="0" skipped="0" time="596.91" timestamp="2026-09-29T16:05:23" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="removingSelectedSortFieldKeepsHistoryUsable" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="36.992" />
+    <testcase name="dateBetweenConditionIncludesBothBoundariesAndSurvivesRecreation" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="67.133">
+      <failure>java.lang.AssertionError: No node found that matches ContentDescription = 'Filter Insights' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #17360 at (l=0.0, t=765.0, r=1080.0, b=2169.0)px, Tag: 'track-insights-list'
+CollectionInfo = 'CollectionInfo(rowCount=6, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape&#64;284a4b'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=2176.0, maxValue=2176.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 3 children, 5 siblings
+Selector used: (TestTag = 'track-insights-list')
+
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.dateBetweenConditionIncludesBothBoundariesAndSurvivesRecreation(TrackHistoryControlsJourneyE2ETest.kt:71)
+</failure>
+    </testcase>
+    <testcase name="pagedHistoryCanCombineAndRecoverFiltersAtLargeText" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="245.015">
+      <failure>java.lang.AssertionError: No node found that matches Text + InputText + EditableText contains 'Walk 1' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #23032 at (l=0.0, t=852.0, r=1080.0, b=1959.0)px, Tag: 'track-entry-list'
+CollectionInfo = 'CollectionInfo(rowCount=4, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape&#64;284a4b'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=352.0, maxValue=352.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 14 children, 5 siblings
+Selector used: (TestTag = 'track-entry-list')
+
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.history(TrackHistoryControlsJourneyE2ETest.kt:240)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.filters(TrackHistoryControlsJourneyE2ETest.kt:180)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.pagedHistoryCanCombineAndRecoverFiltersAtLargeText(TrackHistoryControlsJourneyE2ETest.kt:34)
+</failure>
+    </testcase>
+    <testcase name="removingSelectedSortFieldKeepsHistoryUsableAtLargeText" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="40.284" />
+    <testcase name="pagedHistoryCanCombineAndRecoverFilters" classname="com.whip.app.TrackHistoryControlsJourneyE2ETest" time="207.486">
+      <failure>java.lang.AssertionError: No node found that matches Text + InputText + EditableText contains 'Walk 1' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #29456 at (l=0.0, t=765.0, r=1080.0, b=2169.0)px, Tag: 'track-entry-list'
+CollectionInfo = 'CollectionInfo(rowCount=4, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape&#64;284a4b'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 14 children, 5 siblings
+Selector used: (TestTag = 'track-entry-list')
+
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.history(TrackHistoryControlsJourneyE2ETest.kt:240)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.filters(TrackHistoryControlsJourneyE2ETest.kt:180)
+at com.whip.app.TrackHistoryControlsJourneyE2ETest.pagedHistoryCanCombineAndRecoverFilters(TrackHistoryControlsJourneyE2ETest.kt:32)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.TrackHistoryJourneyE2ETest" tests="3" failures="2" errors="0" skipped="0" time="141.208" timestamp="2026-09-29T16:05:23" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedHistoryCanBeSearchedRecreatedAndRestoredAtLargeText" classname="com.whip.app.TrackHistoryJourneyE2ETest" time="29.988">
+      <failure>java.lang.AssertionError: Complete history text Neighbourhood walk 1: null versus DpRect(left=32.38095.dp, top=763.4286.dp, right=379.0476.dp, bottom=796.1905.dp)
+at org.junit.Assert.fail(Assert.java:89)
+at org.junit.Assert.assertTrue(Assert.java:42)
+at com.whip.app.TrackHistoryJourneyE2ETest.assertNativeTextFullyVisible(TrackHistoryJourneyE2ETest.kt:266)
+at com.whip.app.TrackHistoryJourneyE2ETest.verifyHistory(TrackHistoryJourneyE2ETest.kt:138)
+at com.whip.app.TrackHistoryJourneyE2ETest.archivedHistoryCanBeSearchedRecreatedAndRestoredAtLargeText(TrackHistoryJourneyE2ETest.kt:103)
+</failure>
+    </testcase>
+    <testcase name="emptyArchivedTrackExplainsRestoreThenOffersFirstEntry" classname="com.whip.app.TrackHistoryJourneyE2ETest" time="31.861" />
+    <testcase name="archivedHistoryCanBeSearchedRecreatedAndRestored" classname="com.whip.app.TrackHistoryJourneyE2ETest" time="79.359">
+      <failure>java.lang.AssertionError: No node found that matches TestTag = 'track-entry-search' in scrollable container
+Semantics of the node:
+Node #31221 at (l=0.0, t=839.0, r=1080.0, b=2169.0)px, Tag: 'track-entry-list'
+CollectionInfo = 'CollectionInfo(rowCount=33, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape&#64;284a4b'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=14024.0, maxValue=14024.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 6 children, 5 siblings
+Selector used: (TestTag = 'track-entry-list')
+
+at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+at com.whip.app.TrackHistoryJourneyE2ETest.verifyHistory(TrackHistoryJourneyE2ETest.kt:182)
+at com.whip.app.TrackHistoryJourneyE2ETest.archivedHistoryCanBeSearchedRecreatedAndRestored(TrackHistoryJourneyE2ETest.kt:100)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.TrackImportedTextJourneyE2ETest" tests="2" failures="0" errors="0" skipped="0" time="102.0" timestamp="2026-09-29T16:05:23" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="importedShortTextSurvivesEditingRecreationAndSave" classname="com.whip.app.TrackImportedTextJourneyE2ETest" time="54.738" />
+    <testcase name="importedLongTextSurvivesEditingRecreationAndSave" classname="com.whip.app.TrackImportedTextJourneyE2ETest" time="47.262" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackInsightRecoveryJourneyE2ETest" tests="4" failures="2" errors="0" skipped="0" time="134.528" timestamp="2026-09-29T16:05:23" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedEntrylessTrackOffersReadOnlyRecovery" classname="com.whip.app.TrackInsightRecoveryJourneyE2ETest" time="9.207">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'track-workspace-destination-Archived')
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.TrackInsightRecoveryJourneyE2ETest.workspace(TrackInsightRecoveryJourneyE2ETest.kt:166)
+at com.whip.app.TrackInsightRecoveryJourneyE2ETest.archivedEntrylessTrackOffersReadOnlyRecovery(TrackInsightRecoveryJourneyE2ETest.kt:131)
+</failure>
+    </testcase>
+    <testcase name="unmatchedInsightFiltersCanRecoverExactHistory" classname="com.whip.app.TrackInsightRecoveryJourneyE2ETest" time="24.901">
+      <failure>java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but found '2' nodes that satisfy: (Text + InputText + EditableText contains 'Name' (ignoreCase: false))
+Nodes found:
+1) Node #34804 at (l=95.0, t=2153.0, r=206.0, b=2202.0)px
+Text = '[Name]'
+[Heading]
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 2 siblings
+2) Node #34901 at (l=0.0, t=147.0, r=315.0, b=273.0)px
+ContentDescription = '[Field option: Name]'
+Focused = 'false'
+Selected = 'false'
+Text = '[Name]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 2 siblings
+
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+at com.whip.app.TrackInsightRecoveryJourneyE2ETest.unmatchedInsightFiltersCanRecoverExactHistory(TrackInsightRecoveryJourneyE2ETest.kt:108)
+</failure>
+    </testcase>
+    <testcase name="areaWithoutActiveTracksRetainsArchivedAndOtherAreaEvidence" classname="com.whip.app.TrackInsightRecoveryJourneyE2ETest" time="51.685" />
+    <testcase name="entrylessTrackCanReturnToRecording" classname="com.whip.app.TrackInsightRecoveryJourneyE2ETest" time="48.735" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackInsightWindowJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="25.61" timestamp="2026-09-29T16:05:23" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="recentWindowsExcludeFutureEntriesWithoutChangingHistory" classname="com.whip.app.TrackInsightWindowJourneyE2ETest" time="25.61" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackInsightsJourneyE2ETest" tests="2" failures="2" errors="0" skipped="0" time="51.607" timestamp="2026-09-29T16:05:23" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="temperatureAndFineScaleInsightsPreserveReadingsWithoutTotals" classname="com.whip.app.TrackInsightsJourneyE2ETest" time="24.309">
+      <failure>java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains '32.0 °F' (ignoreCase: false) is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.TrackInsightsJourneyE2ETest.temperatureAndFineScaleInsightsPreserveReadingsWithoutTotals(TrackInsightsJourneyE2ETest.kt:160)
+</failure>
+    </testcase>
+    <testcase name="mixedDistanceUnitsUseTheFieldUnitAndPrecisionAcrossInsights" classname="com.whip.app.TrackInsightsJourneyE2ETest" time="27.298">
+      <failure>java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains '1.621 mi' (ignoreCase: false) is not displayed!
+at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+at com.whip.app.TrackInsightsJourneyE2ETest.assertNumberFullyVisible(TrackInsightsJourneyE2ETest.kt:184)
+at com.whip.app.TrackInsightsJourneyE2ETest.mixedDistanceUnitsUseTheFieldUnitAndPrecisionAcrossInsights(TrackInsightsJourneyE2ETest.kt:94)
+</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="com.whip.app.TrackProjectionConsistencyTest" tests="2" failures="0" errors="0" skipped="0" time="2.496" timestamp="2026-09-29T16:05:23" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="definitionEmissionsKeepTrackFieldsAndChoicesInTheSameRevision" classname="com.whip.app.TrackProjectionConsistencyTest" time="2.067" />
+    <testcase name="entryEmissionsAlwaysIncludeTheirCommittedRequiredValuesAndChoices" classname="com.whip.app.TrackProjectionConsistencyTest" time="0.429" />
+  </testsuite>
+  <testsuite name="com.whip.app.TrackRepositoryTest" tests="11" failures="0" errors="0" skipped="0" time="8.419" timestamp="2026-09-29T16:05:23" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="csvSizeGuardCountsAsciiTwoByteThreeByteAndSurrogateUtf8Exactly" classname="com.whip.app.TrackRepositoryTest" time="0.076" />
+    <testcase name="crudSearchCsvAndDestructiveChoiceConfirmationPreserveIdentity" classname="com.whip.app.TrackRepositoryTest" time="0.203" />
+    <testcase name="replacingAChoiceRetargetsEntriesWithoutChangingTheirIdentity" classname="com.whip.app.TrackRepositoryTest" time="0.078" />
+    <testcase name="csvExportEscapesAndFormatsEveryValueTypeAtItsExactUtf8Boundary" classname="com.whip.app.TrackRepositoryTest" time="0.127" />
+    <testcase name="identityOnlyEditSkipsSchemaInvalidation" classname="com.whip.app.TrackRepositoryTest" time="0.202" />
+    <testcase name="reorderNormalizesOmittedArchivedTracksWithoutDuplicatePositions" classname="com.whip.app.TrackRepositoryTest" time="0.127" />
+    <testcase name="projectionsNeverExposeATrackBeforeItsRequiredFields" classname="com.whip.app.TrackRepositoryTest" time="0.102" />
+    <testcase name="largeTrackHistoryIsReadThroughStableBoundedRepositoryPages" classname="com.whip.app.TrackRepositoryTest" time="6.543" />
+    <testcase name="duplicatePreservesCompleteTypedDefinitionWithFreshIdentitiesAndNoHistory" classname="com.whip.app.TrackRepositoryTest" time="0.355" />
+    <testcase name="compositeEntryIdentityAndInlineLabelRoundTripWithoutSilentClearing" classname="com.whip.app.TrackRepositoryTest" time="0.378" />
+    <testcase name="fractionalScaleRoundTripsThroughStorageCsvAnalyticsAndSchemaEdits" classname="com.whip.app.TrackRepositoryTest" time="0.228" />
+  </testsuite>
+</testsuites>

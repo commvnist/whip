@@ -27,8 +27,15 @@ internal fun UiDevice.requireObject(
     timeoutMillis: Long = 10_000,
 ): UiObject2 =
     checkNotNull(wait(Until.findObject(selector), timeoutMillis)) {
-        "Benchmark UI did not show $description"
+        "Benchmark UI did not show $description\n${hierarchyForFailure()}"
     }
+
+internal fun UiDevice.hierarchyForFailure(): String = runCatching {
+    java.io.ByteArrayOutputStream().use { output ->
+        dumpWindowHierarchy(output)
+        output.toString("UTF-8")
+    }
+}.getOrElse { "Hierarchy unavailable: ${it.message}" }
 
 internal fun UiDevice.clickObject(
     selector: BySelector,
@@ -48,7 +55,7 @@ internal fun UiDevice.clickObject(
             waitForIdle(1_000)
         }
     }
-    throw IllegalStateException("Benchmark UI did not provide a stable $description", lastStale)
+    throw IllegalStateException("Benchmark UI did not provide a stable $description\n${hierarchyForFailure()}", lastStale)
 }
 
 internal fun UiDevice.completeOnboardingIfNeeded() {

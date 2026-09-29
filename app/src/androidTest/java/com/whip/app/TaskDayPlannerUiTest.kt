@@ -98,6 +98,7 @@ class TaskDayPlannerUiTest {
                 onSaveTask = { _, _, _ -> }, onComplete = {}, onSkip = {}, onReschedule = { _, _ -> }, onArchive = {}, onReopen = {})
         } }
         compose.onNodeWithContentDescription("Tasks tab").performClick()
+        compose.onNodeWithTag("task-destination-Today").performClick()
         compose.onNodeWithTag("workspace-top-app-bar").assertIsDisplayed()
         if (compose.onAllNodesWithContentDescription("More task list actions").fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithContentDescription("More task list actions").performClick()
@@ -151,7 +152,7 @@ class TaskDayPlannerUiTest {
 
     private fun openPlanner() {
         compose.onNodeWithContentDescription("Tasks tab").performClick()
-        compose.onNodeWithTag("task-destination-Inbox").performClick().assertIsSelected()
+        compose.selectTaskCollectionScope("Unscheduled")
         compose.onNodeWithTag("task-workspace-list").performScrollToNode(hasText("Plan My Day"))
         compose.onNodeWithText("Plan My Day").performClick()
     }

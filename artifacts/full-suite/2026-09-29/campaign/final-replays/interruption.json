@@ -1,0 +1,10 @@
+{
+  "reason": "Stopped after KSP cache corruption and Kotlin compiler failure during concurrent changed-source assembly; no native results accepted.",
+  "terminatedPids": [
+    2194443,
+    2194446,
+    2196151,
+    2196778,
+    2197623
+  ]
+}

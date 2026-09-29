@@ -1,0 +1,10 @@
+[
+  [
+    "com.whip.app.TrackCollectionJourneyE2ETest#archivedAndActiveSelectionsStaySeparate",
+    "com.whip.app.TrackCollectionJourneyE2ETest#archivedAndActiveSelectionsStaySeparateAtLargeText"
+  ],
+  [
+    "com.whip.app.HabitSkipJourneyE2ETest#skipIsOneVisibleNeutralStateWithHistoryInsightsAndUndo",
+    "com.whip.app.ProductivityCreationJourneyE2ETest#taskHabitAndGoalCanBeCreatedAndUsedThroughTheRealUi"
+  ]
+]

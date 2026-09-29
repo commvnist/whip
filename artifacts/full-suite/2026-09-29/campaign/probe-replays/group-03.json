@@ -1,0 +1,16 @@
+{
+  "group": 3,
+  "selectors": [
+    "com.whip.app.HomeHabitRecoveryUiTest#habitInsightsShowRealActivityAndOpenThatHabitsHistory",
+    "com.whip.app.HomeHabitRecoveryUiTest#denseTaskCalendarKeepsDateAndCountsLegibleAtLargeText",
+    "com.whip.app.HomeHabitRecoveryUiTest#calendarExplainsClearDayAndBoundsLoadedPlanningWindow",
+    "com.whip.app.HomeHabitRecoveryUiTest#manyTaskFiltersKeepTheResultsViewportReachableAtLargeText",
+    "com.whip.app.HomeHabitRecoveryUiTest#addingNoteAfterNumericLogDoesNotRepeatItsAmount",
+    "com.whip.app.HomeHabitRecoveryUiTest#taskFiltersShowLiveMatchCountForSavedViewsAndResetDrafts",
+    "com.whip.app.InlineTaskCaptureE2ETest#inlineTaskDraftSurvivesRecreationAndSavesWithTheNativeKeyboardAtLargeText",
+    "com.whip.app.InlineTaskCaptureE2ETest#inlineTaskDraftSurvivesRecreationAndSavesWithTheNativeKeyboard"
+  ],
+  "exit": 0,
+  "seconds": 294.794,
+  "source_unchanged": true
+}

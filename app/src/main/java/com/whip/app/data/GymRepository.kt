@@ -289,7 +289,16 @@ class RoomGymRepository(
     override val categoryLinks = dao.observeCategoryJoins().map { list -> list.map { ExerciseCategoryLink(it.exerciseId, it.categoryId) } }
     override val sessions = dao.observeSessions().map { list -> list.map { it.toDomain() } }
     override val workoutExercises = dao.observeWorkoutExercises().map { list -> list.map { it.toDomain() } }
-    override val sets = dao.observeWorkoutSets().map { list -> list.map { it.toDomain() } }
+    override val sets = database.invalidationTracker.createFlow("workout_sets").map {
+        database.withTransaction { readWorkoutSets() }
+    }
+
+    private suspend fun readWorkoutSets(): List<WorkoutSet> =
+        readHistoryPages<WorkoutSet> { last ->
+            (if (last == null) dao.getFirstSetPage() else dao.getSetPageAfter(last.id))
+                .map(WorkoutSetEntity::toDomain)
+        }.sortedWith(compareBy<WorkoutSet>(WorkoutSet::workoutExerciseId).thenBy(WorkoutSet::position).thenBy(WorkoutSet::id))
+
     override val groups = dao.observeWorkoutGroups().map { list -> list.map { it.toDomain() } }
     override val workoutSnapshot = database.invalidationTracker.createFlow(
         "exercises",
@@ -317,13 +326,7 @@ class RoomGymRepository(
                             .thenBy(WorkoutExerciseEntity::id),
                     )
                     .map(WorkoutExerciseEntity::toDomain),
-                sets = dao.getAllWorkoutSets()
-                    .sortedWith(
-                        compareBy<WorkoutSetEntity>(WorkoutSetEntity::workoutExerciseId)
-                            .thenBy(WorkoutSetEntity::position)
-                            .thenBy(WorkoutSetEntity::id),
-                    )
-                    .map(WorkoutSetEntity::toDomain),
+                sets = readWorkoutSets(),
                 groups = dao.getAllWorkoutGroups()
                     .sortedWith(
                         compareBy<WorkoutGroupEntity>(WorkoutGroupEntity::sessionId)

@@ -1,0 +1,9 @@
+{
+  "group": 2,
+  "selectors": [
+    "com.whip.app.WidgetExtremeTextTest#widgetResourcesProvideDistinctHighContrastDayAndNightPalettes"
+  ],
+  "exit": 0,
+  "seconds": 17.084,
+  "source_unchanged": true
+}
