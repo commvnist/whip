@@ -1,5 +1,12 @@
 # User feedback and acceptance criteria
 
+### FB-20260929-001 — Release the completed experience overhaul to the phone
+
+- Date/source: 2026-09-29, owner explicitly requests “Releass to phone”.
+- Acceptance: Package the verified twelve-group experience overhaul, including retained Habit/Goal/Track history context, as the next signed private update; install in place on the selected physical phone and verify exact version/hash, preserved app identity and foreground launch.
+- Related: IMP-20260928-011 / VER-20260928-007. Preserve the existing minimal focused-check scope; no repeated full/readiness/candidate campaign or Play publication.
+- Status: In progress. Phone connected with 0.3.82/code 88; preparation starts from clean pushed `5cc5fa8f`. Do not clear app data or change storage contracts.
+
 ### FB-20260928-008 — Keep history open while correcting or clearing individual records
 
 - Date/source: 2026-09-28, owner reports that deleting each Habit history item closes the dialog and returns to Habits, making repeated cleanup unnecessarily tedious.

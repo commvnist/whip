@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260929-001 — Package the experience overhaul as private update 0.3.83
+
+- Related: FB-20260929-001; IMP-20260928-011 / VER-20260928-007.
+- Changes: Version metadata advances to 0.3.83/code 89. Include all twelve verified experience improvements and history-continuity fixes; preserve package/signing identity, Room 46, epoch 6 and portable-backup format 26.
+- Verification: Preserve accepted source/test hashes and existing focused behavioral evidence. Signed release compilation/minification, artifact signature/metadata/integrity and guarded physical installation/launch provide release acceptance; no repeated full test batch.
+- Status: In progress; installation and release receipt follow packaging from clean pushed source.
+
 ### IMP-20260928-011 — Complete the twelve-group experience overhaul and retain history context
 
 - Related/scope: FB-20260928-007/008, FND-20260928-012/013/014/015, DEC-20260928-004. Parent plus exactly two authorized Astra/high agents assessed 137 current-source workflow dispositions and implemented all twelve accepted groups in the [complete plan](../quality/EXPERIENCE_OVERHAUL_2026-09-28.md).

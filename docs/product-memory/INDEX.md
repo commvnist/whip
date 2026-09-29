@@ -1,6 +1,6 @@
 # Whip durable product memory
 
-Current snapshot: **2026-09-28**. This page is the entry point, not a replay of every dated checkpoint. Historical outcomes and exact test scopes remain in the canonical ledgers, linked audit records, release receipts and Git history.
+Current snapshot: **2026-09-29**. This page is the entry point, not a replay of every dated checkpoint. Historical outcomes and exact test scopes remain in the canonical ledgers, linked audit records, release receipts and Git history.
 
 ## Product and verification state
 
@@ -14,7 +14,8 @@ Current snapshot: **2026-09-28**. This page is the entry point, not a replay of 
 
 ## Current work and boundaries
 
-- **History continuity feedback:** FB-20260928-008 adds EP6 to the active experience overhaul: deleting/correcting a single history item should retain its parent history view, query and useful position. Audit analogous child-record actions across all domains; preserve intentional navigation after whole-entity removal. Implementation and focused repeated-operation proof are in progress.
+- **Phone release in progress:** FB-20260929-001 requests the verified experience overhaul on the phone. Preparing signed 0.3.83/code 89 without repeating the completed audit's full test scope.
+- **History continuity feedback resolved:** FB-20260928-008 / VER-20260928-007 implement and verify retained Habit/Goal parent history and Track older-page context through repeated edits/deletions/recreation. Analogous handlers have source-review dispositions; whole-entity removal retains intentional navigation.
 
 - **Complete-experience goal closed:** FB-20260928-007/008 implements every recommendation in the [twelve-group plan](../quality/EXPERIENCE_OVERHAUL_2026-09-28.md) from baseline `9014937f`, with minimal exact sub-minute QA. VER-20260928-007 distinguishes source review, executed checks, visual follow-through and CPU observations. The phone remains on 0.3.82; historical paused scopes are not resumed.
 
