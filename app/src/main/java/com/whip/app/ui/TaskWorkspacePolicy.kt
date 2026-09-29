@@ -2,6 +2,9 @@ package com.whip.app.ui
 
 import com.whip.app.core.SavedTaskFilter
 import com.whip.app.core.normalizedNavigation
+import com.whip.app.domain.RecurrenceAnchor
+import com.whip.app.domain.RecurrenceEnd
+import com.whip.app.domain.RecurrenceEngine
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.ScheduledTask
 import com.whip.app.domain.TaskDraft
@@ -207,7 +210,17 @@ internal fun buildQuickAddTaskDraft(
 internal fun TaskUiState.collectionTasks(): List<ScheduledTask> {
     val nextByTask = (today + upcoming + planning + inbox)
         .distinctBy(ScheduledTask::stableKey).groupBy { it.task.id }
-    return taskEntities.filter { !it.archived && it.completedAtMillis == null }.map { task ->
+    val recordedTaskIds = occurrences.map { it.taskId }.toSet() + taskIdsWithSubtaskEvidence
+    return taskEntities.filter { task ->
+        val rule = task.recurrence
+        // Older first-occurrence edits left empty historical definitions. Keep anything
+        // with real scheduled or authored work, including explicit out-of-cadence state.
+        val emptyRemnant = task.scheduleKind == ScheduleKind.Recurring &&
+            rule?.anchor == RecurrenceAnchor.Schedule && rule.end == RecurrenceEnd.OnDate &&
+            task.id !in recordedTaskIds && task.id !in nextByTask &&
+            RecurrenceEngine.previousOccurrence(rule, requireNotNull(rule.endDate)) == null
+        !task.archived && task.completedAtMillis == null && !emptyRemnant
+    }.map { task ->
         nextByTask[task.id]?.minWithOrNull(compareBy<ScheduledTask> { it.scheduledDate ?: LocalDate.MAX })
             ?: ScheduledTask(task, task.date, task.date, isDeadlineOverdue = task.deadline?.isBefore(currentDate) == true)
     }

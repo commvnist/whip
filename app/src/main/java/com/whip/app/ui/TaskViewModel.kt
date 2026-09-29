@@ -82,6 +82,8 @@ data class TaskUiState(
     val archived: List<ScheduledTask> = emptyList(),
     val planning: List<ScheduledTask> = emptyList(),
     val occurrences: List<TaskOccurrence> = emptyList(),
+    /** Includes state-only Subtask evidence, even outside the projected date window. */
+    val taskIdsWithSubtaskEvidence: Set<Long> = emptySet(),
     val currentDate: LocalDate = LocalDate.now(),
     val loading: Boolean = true,
     val errorMessage: String? = null,
@@ -273,7 +275,7 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
             runningMessage = if (taskId == null) "Creating task…" else "Saving task…",
             successMessage = when {
                 taskId == null -> "Task created"
-                fromOccurrence != null -> "Future series created · earlier history preserved"
+                fromOccurrence != null -> "Task updated from this occurrence · earlier history preserved"
                 else -> "Task saved"
             },
             requestId = requestId,
@@ -1756,6 +1758,7 @@ internal fun buildUiState(
     ).withRecurringOccurrenceVisibility(showAllUpcomingRecurringOccurrences)
 
     return TaskUiState(
+        taskIdsWithSubtaskEvidence = (stepStates.map { it.taskId } + stepSnapshots.map { it.taskId }).toSet(),
         taskEntities = tasksWithSteps,
         inbox = inboxItems.sortedBy { it.task.createdAtMillis },
         today = todayItems.sortedWith(

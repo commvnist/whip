@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260929-017 — Preserve task-card identity when editing the first recurrence
+
+- Related: FB-20260929-013, FND-20260929-026, DEC-20260831-016; verification VER-20260929-014.
+- `RoomTaskRepository.update` retains the existing definition/UUID/order/Subtask identities when the edit has no earlier scheduled or authored work. The DAO checks occurrence, state-only and snapshot evidence before deciding; completion-anchored splitting remains unchanged.
+- `collectionTasks` omits existing empty date-bounded schedule remnants without deleting records, while retaining real scheduled work, authored overrides/history/Subtask evidence and far-future definitions. `TaskUiState` carries evidence IDs beyond its projection window. Custom icons continue through the existing shared card renderer.
+- Save feedback describes an update from the occurrence instead of claiming that every edit creates a new series. No schema, backup, layout or release-version change. Synthetic regressions cover first selected weekdays, identity/custom-icon persistence, existing empty remnants and preserved evidence.
+- Status: Verified: 56 affected JVM methods, readiness build/lint and three selected native methods pass. No phone release requested in this feedback turn; owner appearance validation remains outstanding.
+
 ### IMP-20260929-016 — Release the Tasks clarity correction as 0.3.88
 
 - Related: FB-20260929-012, IMP-20260929-015, VER-20260929-013. Pushed product commit `90ab1bde` is packaged with version 0.3.88/code 94; application/test source hashes remain unchanged.

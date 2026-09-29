@@ -152,7 +152,10 @@ class RoomTaskRepository(
             )
             val shouldSplitFuture = fromOccurrence != null &&
                 existingTask.scheduleKind == ScheduleKind.Recurring &&
-                fromOccurrence.isAfter(requireNotNull(existingTask.recurrence).startDate)
+                fromOccurrence.isAfter(requireNotNull(existingTask.recurrence).startDate) &&
+                (existingTask.recurrence.anchor == RecurrenceAnchor.Completion ||
+                    RecurrenceEngine.previousOccurrence(existingTask.recurrence, fromOccurrence.minusDays(1)) != null ||
+                    dao.hasRecordedWorkBefore(taskId, fromOccurrence.toEpochDay()))
             if (shouldSplitFuture) {
                 val boundary = requireNotNull(fromOccurrence)
                 val oldRule = requireNotNull(existingTask.recurrence)

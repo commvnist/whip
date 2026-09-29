@@ -1,5 +1,11 @@
 # Durable findings
 
+### FND-20260929-026 — First-occurrence edits create empty older series with stale icons
+
+- Status: Verified under IMP-20260929-017 / VER-20260929-014; current-source reproduction matches the screenshot's date pattern. Related: FB-20260929-013, DEC-20260831-016.
+- Root cause: `RoomTaskRepository.update` splits after the configured start date even when the first selected weekday has not occurred. The old date-bounded definition has zero scheduled occurrences and retains its original icon. `collectionTasks` fabricates a fallback card for every unfinished definition, exposing that empty remnant beside the edited version. Card rendering correctly uses each stored icon.
+- Remediation: Split only when earlier scheduled or authored work needs preservation; keep completion-anchored semantics. Omit existing provably empty bounded schedule definitions from the collection only when no occurrence/subtask evidence exists. Preserve real earlier series, out-of-cadence overrides, remote-future definitions and user-selected icons; do not merge by title or rewrite history.
+
 ### FND-20260929-025 — Tasks repeats navigation language in its primary action and content hierarchy
 
 - Status: Verified under IMP-20260929-015 / VER-20260929-012. Related: FB-20260929-011, DEC-20260929-003.

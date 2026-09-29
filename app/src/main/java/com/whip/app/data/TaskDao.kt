@@ -77,6 +77,13 @@ interface TaskDao {
     @Query("SELECT * FROM task_occurrences WHERE taskId = :taskId")
     suspend fun getOccurrences(taskId: Long): List<TaskOccurrenceEntity>
 
+    @Query(
+        "SELECT EXISTS(SELECT 1 FROM task_occurrences WHERE taskId = :taskId AND originalEpochDay < :boundary) " +
+            "OR EXISTS(SELECT 1 FROM task_step_states WHERE taskId = :taskId AND occurrenceKey < :boundary) " +
+            "OR EXISTS(SELECT 1 FROM task_step_snapshots WHERE taskId = :taskId AND occurrenceKey < :boundary)",
+    )
+    suspend fun hasRecordedWorkBefore(taskId: Long, boundary: Long): Boolean
+
     @Query("SELECT * FROM task_steps WHERE taskId = :taskId ORDER BY position, id")
     suspend fun getSteps(taskId: Long): List<TaskStepEntity>
 

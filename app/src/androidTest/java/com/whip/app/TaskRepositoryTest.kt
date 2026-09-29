@@ -308,6 +308,55 @@ class TaskRepositoryTest {
     }
 
     @Test
+    fun editingFirstScheduledOccurrenceKeepsIdentityAndCustomIconWithoutEmptySplit() = runBlocking {
+        for (weekdays in listOf(setOf(DayOfWeek.MONDAY, DayOfWeek.THURSDAY), setOf(DayOfWeek.THURSDAY))) {
+            val rule = RecurrenceRule(RecurrenceUnit.Weeks, startDate = monday.minusDays(1), weekdays = weekdays)
+            val taskId = repository.create(TaskDraft(title = "Weekly task", scheduleKind = ScheduleKind.Recurring,
+                date = rule.startDate, recurrence = rule, steps = listOf(TaskStepDraft(title = "Read", position = 0))))
+            val before = requireNotNull(repository.getTask(taskId))
+            val firstDate = requireNotNull(RecurrenceEngine.nextOccurrence(rule, rule.startDate))
+            val savedId = repository.updateIfCurrent(item(before, firstDate).toEditBoundary(),
+                before.toDraft().copy(icon = "📚"), firstDate)
+            val after = requireNotNull(repository.getTask(savedId))
+            assertEquals(taskId, savedId)
+            assertEquals(before.uuid, after.uuid)
+            assertEquals(before.manualPosition, after.manualPosition)
+            assertEquals(before.steps.map { it.id }, after.steps.map { it.id })
+            assertEquals("📚", after.icon)
+            assertEquals(firstDate, after.recurrence?.startDate)
+            assertEquals(RecurrenceEnd.Never, after.recurrence?.end)
+        }
+        assertEquals(2, repository.tasks.first().size)
+    }
+
+    @Test
+    fun firstScheduledEditStillPreservesEarlierOutOfCadenceEvidence() = runBlocking {
+        val sunday = monday.minusDays(1)
+        for (evidence in listOf("occurrence", "state", "snapshot")) {
+            val taskId = repository.create(TaskDraft(title = "Weekly task", scheduleKind = ScheduleKind.Recurring,
+                date = sunday, recurrence = RecurrenceRule(RecurrenceUnit.Weeks, startDate = sunday,
+                    weekdays = setOf(DayOfWeek.THURSDAY)), steps = listOf(TaskStepDraft(title = "Read", position = 0))))
+            val before = requireNotNull(repository.getTask(taskId))
+            val stepId = before.steps.single().id
+            val dao = database.taskDao()
+            when (evidence) {
+                "occurrence" -> dao.upsertOccurrence(com.whip.app.data.TaskOccurrenceEntity(
+                    taskId = taskId, originalEpochDay = sunday.toEpochDay(), scheduledEpochDay = sunday.toEpochDay(),
+                    state = OccurrenceState.Open.name, completedAtMillis = null))
+                "state" -> dao.upsertStepState(com.whip.app.data.TaskStepStateEntity(
+                    stepId, taskId, sunday.toEpochDay(), true, 1, "Saved step"))
+                "snapshot" -> dao.upsertStepSnapshot(com.whip.app.data.TaskStepSnapshotEntity(
+                    taskId, sunday.toEpochDay(), stepId, "Snapshot", 0, "", false, null))
+            }
+            val savedId = repository.update(taskId, before.toDraft().copy(icon = "📚"), monday.plusDays(3))
+            assertTrue(evidence, savedId != taskId)
+            assertTrue(evidence, dao.hasRecordedWorkBefore(taskId, monday.toEpochDay()))
+            assertEquals(before.icon, requireNotNull(repository.getTask(taskId)).icon)
+            assertEquals("📚", requireNotNull(repository.getTask(savedId)).icon)
+        }
+    }
+
+    @Test
     fun editThisAndFutureSplitsSeriesWithoutRewritingRecordedHistory() = runBlocking {
         val oldTaskId = repository.create(recurringDraft(autoComplete = false))
         val oldTask = requireNotNull(repository.getTask(oldTaskId))

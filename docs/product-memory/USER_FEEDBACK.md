@@ -1,5 +1,11 @@
 # User feedback and acceptance criteria
 
+### FB-20260929-013 — Consistent task-card identity after recurring edits
+
+- Date/source: 2026-09-29, owner screenshot and clarification identify default checkmark versus custom task-card emoji, not toolbar/navigation glyphs.
+- Acceptance: Repair recurring-edit identity and empty duplicate collection rows; preserve custom icons, real earlier scheduled work, authored history and open overrides. Keep shared layout unchanged and verify with focused regressions.
+- Status: Verified under IMP-20260929-017 / VER-20260929-014; phone release and owner validation remain separate. FND-20260929-026. Private screenshot contents are not copied into repository evidence.
+
 ### FB-20260929-012 — Release the Tasks UX correction to the phone
 
 - Date/source: 2026-09-29, owner requests “release to phone” after IMP-20260929-015.

@@ -1,5 +1,15 @@
 # Verification and release evidence
 
+### VER-20260929-014 — Empty recurring splits and task-card identity
+
+- Related: FB-20260929-013, FND-20260929-026, IMP-20260929-017. Status: Verified; owner appearance validation and phone release remain separate.
+- `timeout --kill-after=3s 55s scripts/qa-targeted --jvm com.whip.app.ui.TaskWorkspacePolicyTest --jvm-only`: passes 19 methods, zero failures/errors/skips; Gradle 39 seconds. Includes existing empty split filtering, custom icon retention, real earlier work, completion anchors, authored occurrence/state/snapshot evidence and existing far-future coverage.
+- First `scripts/check --ready` reaches 56 passing affected JVM methods, then Android-test compilation rejects two new fixture constructors missing their required `position`. Corrected to position 0; the failed batch is stopped during remaining static work (exit 143), not accepted. Source review also corrects the save message so an in-place edit does not claim a new series was created.
+- Final-source `scripts/check --ready`: passes 56 affected JVM methods in five suites, zero failures/errors/skips (7-second Gradle run), Android compilation, debug assembly and lint (3m08s static/build stage). This final readiness stage is longer than routine bounded test execution. No full suite/candidate or phone operation.
+- `timeout --kill-after=3s 55s ./gradlew :app:assembleDebugAndroidTest` passes in 4 seconds. Explicit `ANDROID_SERIAL=emulator-5554 scripts/android-target-guard instrumentation` accepts the disposable emulator; debug and test APK installation succeeds.
+- Both native commands use `timeout --kill-after=3s 55s adb -s emulator-5554 shell am instrument -w -r -e class SELECTOR commvne.com.whip.app.debug.test/androidx.test.runner.AndroidJUnitRunner`. `com.whip.app.TaskRepositoryTest#editThisAndFutureSplitsSeriesWithoutRewritingRecordedHistory` passes (1 method, 0.131s). The comma-separated selectors `com.whip.app.TaskRepositoryTest#editingFirstScheduledOccurrenceKeepsIdentityAndCustomIconWithoutEmptySplit,com.whip.app.TaskRepositoryTest#firstScheduledEditStillPreservesEarlierOutOfCadenceEvidence` pass (2 methods, 0.277s). Runner reports OK and per-method success, not merely shell exit zero.
+- `git diff --check` passes. Test inventory is now 725 JVM + 1,270 Android = 1,995 source methods; this scoped run does not claim execution of that complete inventory. No user records or screenshot contents are stored in test fixtures or evidence.
+
 ### VER-20260929-013 — Tasks UX correction installed as 0.3.88
 
 - FB-20260929-012 / IMP-20260929-016. Signed `./gradlew assembleRelease bundleRelease --console=plain` passes in 105.934 s. Package/version/code, non-debuggable APK, established APK/AAB signing identity, ZIP integrity and unchanged application/test source pass. [Exact receipts](../../artifacts/phone-releases/2026-09-29/0.3.88/README.md).

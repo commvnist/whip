@@ -1,16 +1,54 @@
 package com.whip.app.ui
 
 import com.whip.app.core.SavedTaskFilter
+import com.whip.app.domain.OccurrenceState
+import com.whip.app.domain.RecurrenceAnchor
+import com.whip.app.domain.RecurrenceEnd
+import com.whip.app.domain.RecurrenceRule
 import com.whip.app.domain.RecurrenceUnit
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.TaskEffort
 import com.whip.app.domain.TaskPriority
+import com.whip.app.domain.TaskOccurrence
+import com.whip.app.domain.TaskStepState
+import com.whip.app.domain.TaskStepSnapshot
+import com.whip.app.domain.WhipTask
 import java.time.DayOfWeek
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class TaskWorkspacePolicyTest {
+    @Test
+    fun collectionOmitsEmptySplitRemnantsButPreservesScheduledAndAuthoredWork() {
+        val sunday = LocalDate.of(2026, 9, 27)
+        val rule = RecurrenceRule(RecurrenceUnit.Weeks, startDate = sunday,
+            weekdays = setOf(DayOfWeek.THURSDAY), end = RecurrenceEnd.OnDate, endDate = sunday.plusDays(3))
+        val empty = WhipTask(1, "Weekly task", "", ScheduleKind.Recurring, sunday, rule,
+            null, false, false, null, 0, 0)
+        val current = empty.copy(id = 2, icon = "📚", date = sunday.plusDays(4),
+            recurrence = rule.copy(startDate = sunday.plusDays(4), end = RecurrenceEnd.Never, endDate = null))
+        val realEarlierWork = empty.copy(id = 3, recurrence = rule.copy(weekdays = setOf(DayOfWeek.MONDAY)))
+        val completionAnchored = empty.copy(id = 4, recurrence = rule.copy(anchor = RecurrenceAnchor.Completion))
+        val tasks = listOf(empty, current, realEarlierWork, completionAnchored,
+            empty.copy(id = 5), empty.copy(id = 6), empty.copy(id = 7), empty.copy(id = 8))
+        val state = buildUiState(
+            tasks = tasks,
+            occurrences = listOf(
+                TaskOccurrence(5, sunday, sunday, OccurrenceState.Completed, 1),
+                TaskOccurrence(6, sunday, sunday.plusYears(2), OccurrenceState.Open, null),
+            ),
+            steps = emptyList(),
+            stepStates = listOf(TaskStepState(10, 7, sunday.toEpochDay(), true, 1, "Saved step")),
+            stepSnapshots = listOf(TaskStepSnapshot(11, 8, sunday.toEpochDay(), "Snapshot", 0, "", false, null)),
+            today = sunday.plusDays(2),
+            showAllUpcomingRecurringOccurrences = false,
+        )
+        val collection = state.collectionTasks()
+        assertEquals(listOf(2L, 3L, 4L, 5L, 6L, 7L, 8L), collection.map { it.task.id })
+        assertEquals("📚", collection.single { it.task.id == 2L }.task.icon)
+    }
+
     @Test
     fun todaySavedViewsDiscardConflictingDatesButKeepLegitimateNarrowing() {
         for (date in listOf("Today", "NoDate", "Next7Days", "PastScheduled")) {
