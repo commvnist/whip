@@ -1,5 +1,13 @@
 # User feedback and acceptance criteria
 
+### FB-20260928-007 — Substantially improve the whole Whip product experience
+
+- Date/source: 2026-09-28, owner adopts the authored top-to-bottom audit/implementation prompt as an active goal, changing the team allowance to exactly two additional GPT-6 Astra agents at high reasoning.
+- User need: A substantially easier, clearer, faster, more coherent and reliable app. Independently reassess every major area and complete journeys, including meaningful workflow/screen redesign where warranted; prior audits do not establish optimal design.
+- Acceptance: Publish evidence-backed prioritized before/after improvements, implement every recommendation fully across affected owners, inspect fresh changed-interface originals, and reconcile every accepted item to proportionate passing evidence. Assess discovery, interaction effort, hierarchy, language, visual consistency, reuse, accessibility, performance, persistence and recovery. Preserve data/history and legitimate domain semantics.
+- Scope/verification: Baseline clean pushed `9014937f`, installed private 0.3.82/code 88. Parent plus two Astra/high agents; no further delegation. Minimal exact JVM/native checks bounded by `timeout --kill-after=3s 55s`, no full/readiness/candidate batches. Physical release is separate from this audit. Maintain memory and commit/push coherent verified changes.
+- Status: In progress. [Current investigation and implementation plan](../quality/EXPERIENCE_OVERHAUL_2026-09-28.md). Historical completed and paused audit scopes remain unchanged.
+
 ### FB-20260928-006 — Release the completed product audit and Focus overhaul to the phone
 
 - Date/source: 2026-09-28, explicit owner request: “Release to phone”.
