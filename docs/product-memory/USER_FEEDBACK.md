@@ -4,14 +4,14 @@
 
 - Date/source: 2026-09-29, owner requests Tasks and Habits as the initial selections instead of Today during the release/test/release campaign.
 - Acceptance: Fresh workspace entry selects Tasks and Habits. Existing per-session/restored selection and explicit Today deep links retain their meaning. Include the change in the second phone release under FB-20260929-009 and verify initial selection plus return behavior.
-- Related/status: DEC-20260929-003 collection-first order; supersedes its initial Today default for these workspaces. Verified under VER-20260929-010; second release pending.
+- Related/status: DEC-20260929-003 collection-first order; supersedes its initial Today default for these workspaces. Released in 0.3.87/code 93 under VER-20260929-010/011.
 
 ### FB-20260929-009 — Release, complete the full suite, repair and release again
 
 - Date/source: 2026-09-29, owner requests an initial phone release of the navigation redesign, followed by the complete test suite and repairs, then a second phone release.
 - Acceptance: Install the current signed build in place first. Resume the paused full JVM/Android/benchmark and static/harness campaign, diagnose all failures, repair product defects and obsolete fixtures, and establish complete final-source evidence before the second signed update.
 - Constraints: Preserve phone data and signing identity; instrumentation uses up to three disposable emulators only. This explicitly resumes FB-20260929-004/005 verification and supersedes the paused scope of FB-20260929-008. No Play publication.
-- Related/status: FB-20260929-008, IMP-20260929-010, VER-20260929-008; In progress from clean pushed `eb8dcda8`.
+- Related/status: FB-20260929-008, IMP-20260929-010/012/013/014, VER-20260929-009/010/011; Released. Both requested phone releases and the intervening full-suite repair campaign are complete.
 
 ### FB-20260929-008 — Implement the workspace plan with stable visual transitions
 

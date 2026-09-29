@@ -1,0 +1,10 @@
+{
+  "command": [
+    "keytool",
+    "-printcert",
+    "-jarfile",
+    "/root/repos/whip/app/build/outputs/bundle/release/app-release.aab"
+  ],
+  "exit": 0,
+  "seconds": 0.299
+}

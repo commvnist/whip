@@ -1,6 +1,6 @@
 # Workspace tabs and headers — redesign implementation
 
-Status: **Implemented and verified; second phone release pending.** The original plan-only request was followed by explicit implementation authorization under FB-20260929-008, emphasizing stable visual transitions. Source baseline `d2817658`; the initial private phone release is 0.3.86/code 92 under VER-20260929-009. FB-20260929-009 resumes complete testing and a second release; FB-20260929-010 selects Tasks/Habits initially instead of Today. The complete test inventory and repair replays are accepted under VER-20260929-010. Related: FB-20260929-007/008, FND-20260929-013, DEC-20260929-003, IMP-20260929-010.
+Status: **Implemented, verified and released in 0.3.87/code 93.** The original plan-only request was followed by explicit implementation authorization under FB-20260929-008, emphasizing stable visual transitions. Source baseline `d2817658`; the initial private phone release is 0.3.86/code 92 under VER-20260929-009. FB-20260929-009 resumes complete testing and a second release; FB-20260929-010 selects Tasks/Habits initially instead of Today. The complete test inventory and repair replays are accepted under VER-20260929-010; the second phone installation is accepted under VER-20260929-011. Related: FB-20260929-007/008, FND-20260929-013, DEC-20260929-003, IMP-20260929-010.
 
 ## Implementation disposition
 

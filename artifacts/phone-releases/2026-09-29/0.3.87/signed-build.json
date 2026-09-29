@@ -1,0 +1,10 @@
+{
+  "command": [
+    "./gradlew",
+    "assembleRelease",
+    "bundleRelease",
+    "--console=plain"
+  ],
+  "exit": 0,
+  "seconds": 99.66
+}
