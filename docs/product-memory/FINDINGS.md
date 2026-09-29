@@ -1,5 +1,11 @@
 # Durable findings
 
+### FND-20260928-014 — Daily planning discovery and clock-driven work waste user attention
+
+- Current-source observation: Plan My Day is an Inbox-only disclosure; every candidate is eagerly composed inside a single list item, with Apply after all rows. Global Search keys its cross-feature index to whole GymUiState, so non-searchable clock changes trigger rebuilding; query tokenization/ranking repeats per row/comparison. Gym's own tick similarly recalculates non-time summary data.
+- Remedy: ES1/ES2/EGS4 in the [experience plan](../quality/EXPERIENCE_OVERHAUL_2026-09-28.md) provide direct, focused daily planning with lazy candidates/fixed actions and keep clock changes separate from data calculations/indexing. Measure representative work and preserve exact calculation/search/mutation semantics.
+- Related/status: FB-20260928-007, DEC-20260928-004. Confirmed from current owners; accepted before implementation. Source mechanisms are established; no unmeasured frame-rate or latency claim.
+
 ### FND-20260928-013 — Gym and backup entry screens obscure the next useful action
 
 - Current-source observation: Workout without an active session primarily states absence even for users with routines/history; Routine library offers no search; Data & Privacy puts detailed folder administration ahead of core backup/restore and exposes all CSV actions together.
