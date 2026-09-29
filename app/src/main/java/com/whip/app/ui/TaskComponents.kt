@@ -67,6 +67,8 @@ import com.whip.app.domain.WhipTask
 import com.whip.app.data.TaskDeletionImpact
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import java.time.LocalDate
+import java.time.ZoneId
 import com.whip.app.ui.theme.whipColors
 
 @Composable
@@ -119,6 +121,7 @@ fun TaskRow(
     val disclosure = rememberItemDisclosure("task:${item.stableKey}")
     val weekdayFormatter = rememberWhipWeekdayFormatter()
     val metadata = item.detailSegments(completed, weekdayFormatter)
+    val summaryText = item.collectionSummary(completed, LocalWhipToday.current, LocalWhipZone.current)
     WhipItemCard(
         modifier = Modifier
             .testTag("task-card-${item.task.id}")
@@ -202,10 +205,11 @@ fun TaskRow(
                 }
             }
             summary {
-                if (metadata.isNotEmpty()) {
+                if (summaryText.isNotBlank()) {
                     text(
-                        text = metadata.joinToString(" · "),
+                        text = summaryText,
                         modifier = Modifier.testTag("task-metadata-${item.task.id}"),
+                        maxLines = 2,
                     )
                 }
             }
@@ -380,6 +384,7 @@ fun TaskActionsDialog(
     if (!customFocusOpen && replacementMinutes == null) {
     EntityInspector(
         entityType = "Task",
+        stateKey = "task:${item.stableKey}",
         title = item.task.title,
         emoji = item.task.icon,
         context = item.inspectorContext(),
@@ -401,12 +406,14 @@ fun TaskActionsDialog(
         modifier = modifier,
         connectedSurfaceTag = "task-actions-surface",
         connectedSectionTagPrefix = "task-detail-section",
-        primaryAction = EntityInspectorPrimaryAction(
+        primaryAction = if (item.task.archived) EntityInspectorPrimaryAction(
+            id = "restore", label = "Restore Task", onClick = onArchive,
+        ) else EntityInspectorPrimaryAction(
             id = "complete",
             label = "Complete Task",
             onClick = onComplete,
             enabled = !item.task.archived,
-        ).takeUnless { item.task.archived },
+        ),
         content = {
             Column(
                 modifier = Modifier.verticalScroll(contentScroll),
@@ -668,6 +675,7 @@ fun CompletedTaskDialog(
     val weekdayFormatter = rememberWhipWeekdayFormatter()
     EntityInspector(
         entityType = "Task",
+        stateKey = "task:${item.stableKey}",
         title = item.task.title,
         emoji = item.task.icon,
         context = item.inspectorContext(),
@@ -782,17 +790,12 @@ private fun SeriesHistory(
         return
     }
     occurrences.take(visibleCount).forEach { occurrence ->
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    when (occurrence.state) {
-                        OccurrenceState.Completed -> "Completed occurrence · ${occurrence.scheduledDate.format(shortDateFormatter)}"
-                        OccurrenceState.Skipped -> "Skipped ${occurrence.originalDate.format(shortDateFormatter)}"
-                        OccurrenceState.Open -> "Moved to ${occurrence.scheduledDate.format(shortDateFormatter)}"
-                    },
+                    occurrence.historyLabel(),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 occurrence.completedAtMillis?.takeIf { occurrence.state == OccurrenceState.Completed }?.let {
@@ -814,12 +817,14 @@ private fun SeriesHistory(
                 when (occurrence.state) {
                     OccurrenceState.Completed -> WhipTextButton(
                         onClick = { onReopenOccurrence(occurrence) },
+                        modifier = Modifier.align(Alignment.End),
                     ) { Text("Reopen") }
                     OccurrenceState.Skipped -> WhipTextButton(
                         onClick = { onResetOccurrence(occurrence) },
+                        modifier = Modifier.align(Alignment.End),
                     ) { Text("Undo Skip") }
                     OccurrenceState.Open -> if (occurrence.scheduledDate != occurrence.originalDate) {
-                        WhipTextButton(onClick = { onResetOccurrence(occurrence) }) { Text("Reset Date") }
+                        WhipTextButton(onClick = { onResetOccurrence(occurrence) }, modifier = Modifier.align(Alignment.End)) { Text("Reset Date") }
                     }
                 }
             }
@@ -836,6 +841,38 @@ private fun SeriesHistory(
 }
 
 private const val SERIES_HISTORY_PAGE_SIZE = 20
+
+internal fun TaskOccurrence.historyLabel(): String = when (state) {
+    OccurrenceState.Completed -> "Completed occurrence · ${scheduledDate.format(shortDateFormatter)}"
+    OccurrenceState.Skipped -> "Skipped ${originalDate.format(shortDateFormatter)}"
+    OccurrenceState.Open -> if (scheduledDate == originalDate) "Open occurrence · ${scheduledDate.format(shortDateFormatter)}"
+        else "Moved to ${scheduledDate.format(shortDateFormatter)}"
+}
+
+internal fun ScheduledTask.collectionSummary(completed: Boolean, today: LocalDate, zoneId: ZoneId): String {
+    fun dateLabel(date: LocalDate): String = when (date) {
+        today -> "Today"
+        today.plusDays(1) -> "Tomorrow"
+        today.minusDays(1) -> "Yesterday"
+        else -> date.format(shortDateFormatter)
+    }
+    return buildList {
+        if (completed) add(completedAtMillis?.let {
+            "Completed · ${dateLabel(java.time.Instant.ofEpochMilli(it).atZone(zoneId).toLocalDate())}"
+        } ?: "Completed")
+        else {
+            task.deadline?.let { add("${if (isDeadlineOverdue) "Deadline overdue" else "Deadline"} · ${dateLabel(it)}") }
+            if (task.deadline == null || scheduledDate != task.deadline) add(
+                scheduledDate?.let { "${if (isPastScheduledDate) "Past date · " else ""}${dateLabel(it)}" }
+                    ?: if (task.scheduleKind == ScheduleKind.Recurring) "Repeating task" else "Unscheduled",
+            )
+            task.timeMinutes?.let { add(java.time.LocalTime.of(it / 60, it % 60).format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))) }
+            if (task.priority != TaskPriority.None) add("${task.priority.label} priority")
+        }
+        if (task.scheduleKind == ScheduleKind.Recurring && scheduledDate != null) add("Repeats")
+        if (task.showSubtaskProgress && totalSubtasks > 0) add("$completedSubtasks/$totalSubtasks subtasks")
+    }.joinToString(" · ")
+}
 
 internal fun ScheduledTask.inspectorStatus(completed: Boolean): String = when {
     task.archived -> "Archived"

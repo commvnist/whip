@@ -3,9 +3,9 @@ package com.whip.app.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,9 +25,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import com.whip.app.domain.HabitDayProgress
@@ -49,6 +48,8 @@ internal data class HomeHabitSummary(
     val attentionCount: Int get() = total - completed + targetlessCheckIns - recordedCheckIns + timersToReview
     val hasContent: Boolean get() = total > 0 || targetlessCheckIns > 0 || skipped > 0 || timersToReview > 0
 }
+
+internal enum class HomeSummaryAvailability { Ready, Loading, Unavailable }
 
 internal fun List<HabitDayProgress>.homeHabitSummary(): HomeHabitSummary {
     val expected = filter {
@@ -81,6 +82,10 @@ internal fun TodayHeader(
     showFullHeader: Boolean = true,
     onOpenReview: (() -> Unit)? = null,
     onPlanDay: (() -> Unit)? = null,
+    showTasks: Boolean = true,
+    showHabits: Boolean = true,
+    taskAvailability: HomeSummaryAvailability = HomeSummaryAvailability.Ready,
+    habitAvailability: HomeSummaryAvailability = HomeSummaryAvailability.Ready,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(vertical = WhipSpacing.compact),
@@ -94,44 +99,51 @@ internal fun TodayHeader(
             )
         }
         if (showFullHeader || onOpenReview != null || onPlanDay != null) {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
-            ) {
-                if (showFullHeader) {
-                    Text(
-                        "Home",
-                        modifier = Modifier.align(Alignment.CenterVertically).semantics { heading() },
-                        style = MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-                onPlanDay?.let { onPlan ->
-                    WhipTextButton(onClick = onPlan) { Text("Plan My Day") }
+            val actions: @Composable RowScope.() -> Unit = {
+                if (showTasks) {
+                    WhipTextButton(
+                        onClick = { onPlanDay?.invoke() },
+                        enabled = onPlanDay != null,
+                        modifier = Modifier.semantics {
+                            if (onPlanDay == null) stateDescription = when (taskAvailability) {
+                                HomeSummaryAvailability.Ready -> "No unscheduled tasks to plan"
+                                HomeSummaryAvailability.Loading -> "Tasks are loading"
+                                HomeSummaryAvailability.Unavailable -> "Tasks are unavailable; open Tasks to retry"
+                            }
+                        },
+                    ) { Text("Plan My Day") }
                 }
                 onOpenReview?.let { onReview ->
                     WhipTextButton(onClick = onReview) { Text("Review & Trends") }
                 }
             }
+            if (showFullHeader) WhipPageHeader(title = "Home", actions = actions)
+            else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, content = actions)
         }
-        if (taskTotal > 0 || habitSummary.hasContent) {
+        if (showTasks || showHabits) {
             val taskCard: @Composable (Modifier) -> Unit = { modifier ->
+                val value = when (taskAvailability) {
+                    HomeSummaryAvailability.Ready -> "$taskTotal remaining"
+                    HomeSummaryAvailability.Loading -> "Loading…"
+                    HomeSummaryAvailability.Unavailable -> "Unavailable"
+                }
                 HomeDailySummaryCard(
                     title = "Tasks today",
-                    value = "$taskTotal remaining",
-                    accessibilityLabel = "Tasks today: $taskTotal remaining. Open Tasks Today",
+                    value = value,
+                    accessibilityLabel = "Tasks today: $value. Open Tasks Today",
                     onClick = onOpenTasks,
                     modifier = modifier.testTag("home-tasks-today-record"),
                 )
             }
             val habitCard: @Composable (Modifier) -> Unit = { modifier ->
                 val value = when {
+                    habitAvailability == HomeSummaryAvailability.Loading -> "Loading…"
+                    habitAvailability == HomeSummaryAvailability.Unavailable -> "Unavailable"
                     habitSummary.total > 0 -> "${habitSummary.completed} of ${habitSummary.total} complete"
                     habitSummary.targetlessCheckIns > 0 -> "${habitSummary.recordedCheckIns} of ${habitSummary.targetlessCheckIns} check-ins recorded"
                     else -> "No check-ins due"
                 }
-                val context = listOfNotNull(
+                val context = if (habitAvailability != HomeSummaryAvailability.Ready) emptyList() else listOfNotNull(
                     "${habitSummary.recordedCheckIns} of ${habitSummary.targetlessCheckIns} check-ins without targets recorded"
                         .takeIf { habitSummary.total > 0 && habitSummary.targetlessCheckIns > 0 },
                     "${habitSummary.skipped} skipped".takeIf { habitSummary.skipped > 0 },
@@ -144,7 +156,7 @@ internal fun TodayHeader(
                     context = context.joinToString(" · ").takeIf { it.isNotEmpty() },
                     accessibilityLabel = (listOf("Habit progress: $value") + context + "Open Habits Today")
                         .joinToString(". "),
-                    progress = if (habitSummary.total > 0) {
+                    progress = if (habitAvailability == HomeSummaryAvailability.Ready && habitSummary.total > 0) {
                         habitSummary.completed.toFloat() / habitSummary.total
                     } else null,
                     onClick = onOpenHabits,
@@ -153,7 +165,7 @@ internal fun TodayHeader(
             }
             BoxWithConstraints(Modifier.fillMaxWidth()) {
                 val stack = maxWidth < 320.dp * LocalDensity.current.fontScale.coerceAtLeast(1f)
-                if (taskTotal > 0 && habitSummary.hasContent && !stack) {
+                if (showTasks && showHabits && !stack) {
                     Row(
                         modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
                         horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
@@ -163,8 +175,8 @@ internal fun TodayHeader(
                     }
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling)) {
-                        if (taskTotal > 0) taskCard(Modifier.fillMaxWidth())
-                        if (habitSummary.hasContent) habitCard(Modifier.fillMaxWidth())
+                        if (showTasks) taskCard(Modifier.fillMaxWidth())
+                        if (showHabits) habitCard(Modifier.fillMaxWidth())
                     }
                 }
             }

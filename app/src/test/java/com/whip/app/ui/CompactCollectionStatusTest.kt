@@ -87,6 +87,7 @@ class CompactCollectionStatusTest {
         assertEquals(listOf(2L, 3L), sections.finished.map { it.habit.id })
         assertEquals(false, skipped.isDoneForToday())
         assertEquals(true, skipped.isFinishedForToday())
+        assertEquals(1, listOf(pending, completed, skipped).count { !it.isFinishedForToday() })
     }
 
     @Test
@@ -108,6 +109,18 @@ class CompactCollectionStatusTest {
             "1/1 milestones",
             projection(milestoneGoal, progress = 0.0, milestones = listOf(milestone)).collectionStatus(nowMillis = nowMillis),
         )
+    }
+
+    @Test fun numericGoalSummaryKeepsUnitsAndAboveTargetEvidenceWithoutTrailingZeroNoise() {
+        val numeric = projection(goal().copy(precision = 1, targetMin = 24.0), 8.0 / 24.0).copy(currentValue = 8.0)
+        assertEquals("8 → 24", numeric.compactNumericReading())
+        val reached = numeric.copy(currentValue = 30.0, progress = 1.25)
+        assertEquals("30 → 24", reached.compactNumericReading())
+        assertEquals("125% complete", reached.collectionStatus())
+        assertEquals(true, reached.offersCompletion())
+        val custom = com.whip.app.domain.UnitDefinition("scoops", "Scoops", "scoop", UnitDimension.Count, 5.0, custom = true)
+        assertEquals("2 → 4 scoop", numeric.copy(goal = numeric.goal.copy(unitId = custom.id, targetMin = 20.0), currentValue = 10.0).compactNumericReading(listOf(custom)))
+        assertEquals("No current value · target 24", numeric.copy(currentValue = null).compactNumericReading())
     }
 
     private fun progress(

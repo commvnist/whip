@@ -1,5 +1,14 @@
 # User feedback and acceptance criteria
 
+### FB-20260929-014 — Fresh three-Astra full-app audit and implemented overhaul
+
+- Continuation on 2026-09-29: the owner explicitly requests three GPT-6.1 Sol/xHigh agents to finish this same goal. Preserve implemented work, grounded current evidence and pending acceptance; the model change does not restart the audit or authorize a phone release.
+
+- Date/source: 2026-09-29, owner requests three Astra/high agents, a thorough full-app design/UX/bug audit and complete implementation, then explicitly directs fresh opinions without distraction from previous audits.
+- Acceptance: Inspect current mainline flows and freshly rendered screens across all workspaces, shared navigation/dialogs/forms and recovery paths; establish strict design/experience pillars; document coverage and grounded findings; publish a concrete plan and implement every accepted remedy. Deliver substantial coherent visual/experience improvements with shared owners and proportionate behavioral/visual verification. Previous audit outcomes are not evidence of present quality.
+- Constraints: Preserve authored data/history, single top-right collection search, collection-first Tasks/Habits entry and stable cross-page geometry. Use focused bounded checks and one final affected readiness batch; no full/candidate test campaign or automatic phone release. Three Astra/high independent reviewers plus coordinating parent, followed by the explicitly requested three Sol/xHigh continuation agents.
+- Status: Implemented and Verified from `ba1f7cc5` under IMP-20260929-018 / VER-20260929-015: all 24 accepted remedies, 450 affected JVM and 39 distinct selected native methods, fresh original inspection and complete failure accounting. [Final plan](../quality/FRESH_APP_OVERHAUL_2026-09-29.md), [evidence/gallery](../../artifacts/fresh-app-overhaul/2026-09-29/README.md). Phone release and owner appearance validation remain separate.
+
 ### FB-20260929-013 — Consistent task-card identity after recurring edits
 
 - Date/source: 2026-09-29, owner screenshot and clarification identify default checkmark versus custom task-card emoji, not toolbar/navigation glyphs.

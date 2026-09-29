@@ -529,8 +529,8 @@ class ProductivityCardDesignUiTest {
         assertTrue(height("goal-primary-action-7") >= 48.dp)
         compose.onNodeWithTag("habit-card-status-6", useUnmergedTree = true).performScrollTo().assertTextContains("2 · at least 8", substring = true)
         compose.onNodeWithTag("goal-card-status-7", useUnmergedTree = true).performScrollTo()
-            .assertTextContains("50% complete", substring = true)
-            .assertTextContains("Current 25 → target 50", substring = true)
+            .assertTextContains("25 → 50", substring = true)
+        compose.onNodeWithTag("goal-card-progress-7", useUnmergedTree = true).assertExists()
         compose.onAllNodesWithText("Finish the annual reading list.").assertCountEquals(0)
 
         compose.onNodeWithText("+1").performScrollTo().performClick()
@@ -926,25 +926,16 @@ class ProductivityCardDesignUiTest {
             compose.onNodeWithTag("goal-card-8").fetchSemanticsNode().config[SemanticsProperties.StateDescription],
         )
         compose.onNodeWithContentDescription("Expand goal Days since smoking").assertExists()
-        val resetLabelHeight = compose.onNodeWithText("Reset", useUnmergedTree = true)
-            .getUnclippedBoundsInRoot().let { it.bottom - it.top }
-        assertTrue("Reset must remain on one line in the action lane: $resetLabelHeight", resetLabelHeight <= 24.dp)
-        assertTrue(height("goal-primary-action-8") >= 48.dp)
+        compose.onAllNodesWithText("Reset Timer").assertCountEquals(0)
+        compose.onAllNodesWithTag("goal-primary-action-8").assertCountEquals(0)
         val elapsedMetric = compose.onNodeWithTag("goal-card-status-8", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         val elapsedIdentity = compose.onNodeWithTag("goal-icon-8", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         val elapsedTitle = compose.onNodeWithText("Days since smoking", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
-        val resetAction = compose.onNodeWithTag("goal-primary-action-8", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         assertTrue(kotlin.math.abs(elapsedMetric.left - elapsedIdentity.left) <= 1f)
         assertTrue(elapsedMetric.left <= elapsedTitle.left)
-        assertTrue(elapsedMetric.top >= maxOf(elapsedTitle.bottom, resetAction.bottom) - 1f)
-        assertEquals(
-            "Elapsed and milestone Goals must share the collapsed card geometry",
-            height("goal-card-8").value,
-            height("goal-card-9").value,
-            0.5f,
-        )
-        compose.onNodeWithText("Reset").performClick()
+        assertTrue(elapsedMetric.top >= elapsedTitle.bottom - 1f)
         compose.onNodeWithTag("goal-expand-8", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("goal-card-reset-8", useUnmergedTree = true).performScrollTo().performClick()
         compose.onNodeWithContentDescription("2 days", useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithText("Counting since", substring = true).assertIsDisplayed()
         compose.onNodeWithTag("goal-expand-8", useUnmergedTree = true).performClick()
@@ -1035,11 +1026,9 @@ class ProductivityCardDesignUiTest {
         compose.onNodeWithText("Health").assertIsDisplayed()
         assertTrue(height("task-edit-action-10") >= 48.dp)
 
-        val largeResetLabelHeight = compose.onNodeWithText("Reset", useUnmergedTree = true)
-            .performScrollTo()
-            .getUnclippedBoundsInRoot().let { it.bottom - it.top }
-        assertTrue("Reset must remain on one line at 200% text: $largeResetLabelHeight", largeResetLabelHeight <= 44.dp)
-        assertTrue(height("goal-primary-action-11") >= 48.dp)
+        compose.onNodeWithTag("goal-expand-11", useUnmergedTree = true).performScrollTo().performClick()
+        compose.onNodeWithTag("goal-card-reset-11", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        assertTrue(height("goal-card-reset-11") >= 48.dp)
     }
 
     @Test
@@ -1147,7 +1136,7 @@ class ProductivityCardDesignUiTest {
         val identity = compose.onNodeWithTag("task-icon-18", useUnmergedTree = true)
             .getUnclippedBoundsInRoot()
         compose.onAllNodesWithText(
-            "Scheduled · Aug 27, 2026 · Repeats · Mon, Thu",
+            if (mode == "expanded") "Scheduled · Aug 27, 2026 · Repeats · Mon, Thu" else "Aug 27, 2026 · Repeats",
             useUnmergedTree = true,
         ).assertCountEquals(1)
         val layouts = mutableListOf<TextLayoutResult>()

@@ -29,6 +29,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -56,6 +57,26 @@ import org.junit.Test
 class AreaFeatureUiTest {
     private val compose = createComposeRule()
     @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
+
+    @Test
+    fun areaQueryStaysVisibleAndClearableWhenAreaCountShrinks() {
+        var areas by mutableStateOf((1..9).map { area("area-$it", "Area $it") })
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                AreaScopeMenu(scope = AreaScope.All, areas = areas, onSelect = {})
+            }
+        }
+        compose.onNodeWithContentDescription("Area scope: All Areas").performClick()
+        compose.onNodeWithText("Find area").performTextInput("Missing")
+        compose.onNodeWithText("No matching Areas").assertIsDisplayed()
+        compose.runOnIdle { areas = areas.take(8) }
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithText("Find area").assertTextContains("Missing")
+        compose.onNodeWithContentDescription("Clear Search").performClick()
+        compose.onNodeWithText("Area 1 · 0 items").assertIsDisplayed()
+        compose.onAllNodesWithText("No matching Areas").assertCountEquals(0)
+    }
 
     @Test
     fun captureAreaManagementCatalog() {

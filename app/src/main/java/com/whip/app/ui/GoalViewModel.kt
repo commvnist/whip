@@ -139,6 +139,13 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
 
     fun defaultSettings() = app.settingsRepository.current()
 
+    internal suspend fun currentGoalForInspector(goalId: Long, goalUuid: String): Goal =
+        checkNotNull(app.withUserDataAccess {
+            checkNotNull(repository.get(goalId)?.takeIf { it.uuid == goalUuid }) {
+                "This Goal is no longer available."
+            }
+        }) { "This Goal is no longer available, or data recovery is in progress." }
+
     init {
         viewModelScope.launch { runCatching { reminders.syncAll() } }
         viewModelScope.launch {

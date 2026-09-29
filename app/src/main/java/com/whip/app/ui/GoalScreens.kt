@@ -37,6 +37,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -63,6 +64,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.focus.FocusDirection
@@ -200,6 +202,7 @@ fun GoalAreaContent(
     var destination by activeDestinationState
     var archiveReturn by rememberSaveable { mutableStateOf(GoalDestination.Active) }
     val pages = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
+    val inspectorPages = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
     BackHandler(enabled = showWorkspace && destination == GoalDestination.Archived) { if (onBackToSource != null) onBackToSource() else destination = archiveReturn }
     if (state.loading || state.errorMessage != null) {
         if (showWorkspace) Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
@@ -244,8 +247,29 @@ fun GoalAreaContent(
     val recording = recordingSnapshot
     val liveActions = actionsGoalId?.let(editorProjectionById::get)
     var actionsSnapshot by rememberSaveable(actionsGoalId) { mutableStateOf(liveActions) }
+    var refreshActionsAfterChild by rememberSaveable(actionsGoalId) { mutableStateOf(false) }
+    var actionRefreshError by rememberSaveable(actionsGoalId) { mutableStateOf<String?>(null) }
     LaunchedEffect(actionsGoalId, liveActions) {
         if (actionsGoalId != null && actionsSnapshot == null) actionsSnapshot = liveActions
+    }
+    LaunchedEffect(actionsGoalId, refreshActionsAfterChild) {
+        if (!refreshActionsAfterChild) return@LaunchedEffect
+        val previous = actionsSnapshot
+        if (previous == null) {
+            refreshActionsAfterChild = false
+            return@LaunchedEffect
+        }
+        actionRefreshError = null
+        try {
+            val saved = viewModel.currentGoalForInspector(previous.goal.id, previous.goal.uuid)
+            actionsSnapshot = previous.copy(goal = saved)
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            actionRefreshError = "Saved, but the details could not refresh. Close and reopen this Goal. ${error.message.orEmpty()}"
+        } finally {
+            refreshActionsAfterChild = false
+        }
     }
     // Milestone writes leave the Goal definition unchanged. Refresh their live outcome
     // without accepting a replacement definition behind an open inspector.
@@ -301,6 +325,7 @@ fun GoalAreaContent(
         key = editingGoalId ?: if (creating) "creating-goal" else "no-goal-editor",
         onPersisted = { receipt ->
             onAreaChanged(receipt)
+            if (editingGoalId == actionsGoalId && actionsGoalId != null) refreshActionsAfterChild = true
             creating = false
             editingGoalId = null
             templateDraft = null
@@ -321,7 +346,8 @@ fun GoalAreaContent(
             key = mutationRequestNamespace,
             requestNamespace = mutationRequestNamespace,
             onPersisted = { receipt ->
-                if (receipt.kind !in setOf(GoalMutationKind.MilestoneChanged, GoalMutationKind.ProgressRecorded,
+                if (resettingElapsedGoalId == actionsGoalId && actionsGoalId != null) refreshActionsAfterChild = true
+                else if (receipt.kind !in setOf(GoalMutationKind.MilestoneChanged, GoalMutationKind.ProgressRecorded,
                         GoalMutationKind.ProgressUpdated, GoalMutationKind.ProgressDeleted)) actionsGoalId = null
                 recordingGoalId = null
                 editingMeasurementGoalId = null
@@ -607,7 +633,7 @@ fun GoalAreaContent(
             },
         )
     }
-    actions?.let { projection ->
+    actions?.takeIf { editingGoalId == null && resettingElapsedGoalId == null }?.let { projection ->
         val mutationCoordinator = authoredMutationCoordinator ?: return@let
         val boundary = projection.goal.mutationBoundary()
         fun beginMutation(action: (String) -> Boolean) {
@@ -616,6 +642,7 @@ fun GoalAreaContent(
                 mutationCoordinator.finishFailure("Another Goal change is already finishing.")
             }
         }
+        inspectorPages.SaveableStateProvider("goal-${projection.goal.id}") {
         GoalActionsDialog(
             projection,
             modifier = modifier,
@@ -624,6 +651,7 @@ fun GoalAreaContent(
             customUnits = editorState.customUnits,
             onDismiss = {
                 mutationCoordinator.clear()
+                inspectorPages.removeState("goal-${projection.goal.id}")
                 actionsGoalId = null
             },
             onEditMeasurement = { entry ->
@@ -640,13 +668,11 @@ fun GoalAreaContent(
             onResetElapsed = {
                 mutationCoordinator.leaveGoalActionSurface {
                     resettingElapsedGoalId = projection.goal.id
-                    actionsGoalId = null
                 }
             },
             onEdit = {
                 mutationCoordinator.leaveGoalActionSurface {
                     editingGoalId = projection.goal.id
-                    actionsGoalId = null
                 }
             },
             onToggleMilestone = { milestone, completed ->
@@ -674,9 +700,10 @@ fun GoalAreaContent(
                     actionsGoalId = null
                 }
             },
-            mutationSaving = mutationCoordinator.saving,
-            mutationError = mutationCoordinator.errorMessage,
+            mutationSaving = mutationCoordinator.saving || refreshActionsAfterChild,
+            mutationError = mutationCoordinator.errorMessage ?: actionRefreshError,
         )
+        }
     }
     resettingElapsed?.let { projection ->
         val mutationCoordinator = authoredMutationCoordinator ?: return@let
@@ -844,21 +871,37 @@ fun GoalCard(
 ) {
     val goal = projection.goal
     val disclosure = rememberItemDisclosure(itemKey = "goal:${goal.id}")
+    val numericSummary = projection.compactNumericReading(customUnits)
     val compactStatus = listOfNotNull(
         projection.goal.status.takeUnless { it == GoalStatus.Active || it == GoalStatus.Archived }?.inspectorLabel(),
-        projection.collectionStatus(customUnits, nowMillis, zoneId),
-        projection.numericReading(customUnits),
+        numericSummary ?: projection.collectionStatus(customUnits, nowMillis, zoneId),
+        "Target reached".takeIf { projection.offersCompletion() },
     ).joinToString(" · ")
     val elapsedStatus = projection.elapsedDisplayValue(nowMillis, zoneId)
+    val primaryLabel = when {
+        projection.offersCompletion() -> "Review"
+        goal.type == GoalType.WeightedMilestones -> "Items"
+        goal.aggregation == GoalAggregation.CompletionCount -> "+1"
+        else -> "Log"
+    }
+    val textMeasurer = rememberTextMeasurer()
+    val primaryTextStyle = LocalTextStyle.current.merge(MaterialTheme.typography.labelLarge)
+    val primaryWidth = with(LocalDensity.current) {
+        val labelWidth = textMeasurer.measure(primaryLabel, style = primaryTextStyle, maxLines = 1).size.width
+        // Material merges the inherited style; padding rounds each edge separately in pixels.
+        (labelWidth + 2 * 4.dp.roundToPx()).toDp().coerceIn(64.dp, 112.dp)
+    }
     val primaryAction: (@Composable () -> Unit)? = when {
         reorderMode -> null
+        projection.offersCompletion() -> {{ ItemPrimaryTextButton(primaryLabel, onOpen) }}
+        !goal.archived && goal.status == GoalStatus.Active && goal.type == GoalType.WeightedMilestones -> {{
+            ItemPrimaryTextButton(primaryLabel, { if (!disclosure.expanded) disclosure.toggle() },
+                Modifier.semantics { contentDescription = "Show milestones for ${goal.name}" })
+        }}
         !goal.archived && goal.status == GoalStatus.Active &&
             goal.type !in setOf(GoalType.WeightedMilestones, GoalType.ElapsedSince) -> {{
-            ItemPrimaryTextButton(if (goal.aggregation == GoalAggregation.CompletionCount) "+1" else "Log", onRecord,
+            ItemPrimaryTextButton(primaryLabel, onRecord,
                 Modifier.semantics { contentDescription = if (goal.aggregation == GoalAggregation.CompletionCount) "Record a completion for ${goal.name}" else "Log progress for ${goal.name}" })
-        }}
-        !goal.archived && goal.status == GoalStatus.Active && goal.type == GoalType.ElapsedSince -> {{
-            ItemPrimaryTextButton("Reset", onResetElapsed)
         }}
         else -> null
     }
@@ -907,8 +950,19 @@ fun GoalCard(
                         ),
                 )
             }
+            if (projection.progress != null && goal.type != GoalType.MaintainRange) summaryContent {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    LinearProgressIndicator(
+                        progress = { projection.progress.toFloat().coerceIn(0f, 1f) },
+                        modifier = Modifier.weight(1f).testTag("goal-card-progress-${goal.id}"),
+                        color = if (projection.progress >= 1.0) MaterialTheme.whipColors.success else MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    )
+                    Text(formatGoalProgressPercent(projection.progress), style = MaterialTheme.typography.labelMedium)
+                }
+            }
             disclosure(expanded = disclosure.expanded, tag = "goal-expand-${goal.id}", onToggle = disclosure.toggle.takeUnless { reorderMode })
-            primaryAction(width = if (goal.type == GoalType.ElapsedSince) 80.dp else 64.dp, content = primaryAction)
+            primaryAction(width = primaryWidth, content = primaryAction)
 
             expandedContent {
                 projection.progress?.let { progress ->
@@ -922,6 +976,7 @@ fun GoalCard(
                             progress = { progress.toFloat().coerceIn(0f, 1f) },
                             modifier = Modifier.weight(1f),
                             color = progressColor,
+                            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                         )
                         Text(
                             if (goal.type == GoalType.MaintainRange) {
@@ -956,6 +1011,9 @@ fun GoalCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                    if (!goal.archived && goal.status == GoalStatus.Active) WhipTextButton(
+                        onClick = onResetElapsed, modifier = Modifier.testTag("goal-card-reset-${goal.id}"),
+                    ) { Text("Reset Timer") }
                 } else projection.typedOutcomeReading(customUnits)?.let {
                     Text(it)
                     projection.consistencyPeriodReading()?.let { period -> Text(period, style = MaterialTheme.typography.bodySmall) }
@@ -1065,6 +1123,16 @@ private fun GoalProjection.numericReading(customUnits: List<UnitDefinition>): St
     val target = goal.targetMin ?: return null
     return "Current ${formatGoalCanonicalValue(current, goal.unitId, goal.precision, customUnits)} → " +
         "target ${formatGoalCanonicalValue(target, goal.unitId, goal.precision, customUnits)}"
+}
+
+internal fun GoalProjection.compactNumericReading(customUnits: List<UnitDefinition> = emptyList()): String? {
+    if (terminalSnapshot != null || goal.type !in setOf(GoalType.ReachValue, GoalType.ReduceValue, GoalType.AccumulateTotal, GoalType.MeetAverage)) return null
+    val target = goal.targetMin ?: return null
+    val format = java.text.NumberFormat.getNumberInstance().apply { maximumFractionDigits = goal.precision.coerceIn(0, 6) }
+    fun reading(value: Double) = format.format(goal.displayValue(value, customUnits))
+    val unit = goal.unitId.goalUnitLabel(customUnits).takeIf(String::isNotBlank)?.let { " $it" }.orEmpty()
+    return if (currentValue == null) "No current value · target ${reading(target)}$unit"
+        else "${reading(currentValue)} → ${reading(target)}$unit"
 }
 
 @Composable
@@ -2566,7 +2634,7 @@ internal fun GoalActionsDialog(
         when (projection.goal.status) {
             GoalStatus.Active -> when (projection.goal.type) {
                 GoalType.WeightedMilestones -> null
-                GoalType.ElapsedSince -> EntityInspectorPrimaryAction("reset-timer", "Reset Timer", onResetElapsed)
+                GoalType.ElapsedSince -> null
                 GoalType.OpenEndedTrend -> EntityInspectorPrimaryAction("add-update", if (projection.goal.aggregation == GoalAggregation.CompletionCount) "Record Completion" else "Log an Update", onRecordProgress)
                 else -> EntityInspectorPrimaryAction("log-progress", projection.goal.recordActionLabel(), onRecordProgress)
             }
@@ -2577,6 +2645,7 @@ internal fun GoalActionsDialog(
     }
     EntityInspector(
         entityType = "Goal",
+        stateKey = "goal:${projection.goal.id}",
         title = projection.goal.name,
         emoji = projection.goal.icon,
         context = projection.goal.area.ifBlank { projection.goal.type.displayLabel() },
@@ -2627,6 +2696,10 @@ internal fun GoalActionsDialog(
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
+                            }
+                            if (!projection.goal.archived && projection.goal.status == GoalStatus.Active) {
+                                EntityInspectorAction("reset-timer", "Reset Timer", onResetElapsed,
+                                    supportingText = "Change the counter's start time; the previous start remains in History.")
                             }
                         } else {
                             Text(

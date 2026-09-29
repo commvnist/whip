@@ -54,6 +54,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
@@ -177,6 +178,7 @@ fun HabitAreaContent(
     var localReorderDismiss by rememberSaveable { mutableStateOf(0) }
     var archiveReturn by rememberSaveable { mutableStateOf(HabitDestination.All) }
     val pages = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
+    val inspectorPages = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
     BackHandler(enabled = showWorkspace && destination == HabitDestination.Archived) { if (onBackToSource != null) onBackToSource() else destination = archiveReturn }
     if (state.loading || state.errorMessage != null) {
         if (showWorkspace) Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
@@ -199,6 +201,7 @@ fun HabitAreaContent(
     var actionsHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var historyHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     fun closeHabitActions() {
+        actionsHabitId?.let { inspectorPages.removeState("habit-$it") }
         actionsHabitId = null
         historyHabitId = null
     }
@@ -222,7 +225,7 @@ fun HabitAreaContent(
     val editorProgressById = (editorState.all + editorState.today + editorState.archivedProgress)
         .associateBy { it.habit.id }
     val editing = editingHabitId?.let(editorProgressById::get)
-    val actions = actionsHabitId?.let(progressById::get)
+    val actions = actionsHabitId?.let(editorProgressById::get)
     val numericLog = numericLogHabitId?.let(editorProgressById::get)
     val pauseRequest = pauseRequestHabitId?.let(editorProgressById::get)
     val historicalLogHabit = historicalLogHabitId?.let(editorProgressById::get)
@@ -366,7 +369,7 @@ fun HabitAreaContent(
         )
         WhipWorkspaceHeader(
             summary = if (workspaceReordering) "Reordering Habits" else when (destination) {
-                HabitDestination.Today -> "${state.today.count { !it.isDoneForToday() }} remaining · Today"
+                HabitDestination.Today -> "${state.today.count { !it.isFinishedForToday() }} remaining · Today"
                 HabitDestination.All -> "${state.all.size} habits · Schedules & settings"
                 HabitDestination.Insights -> "Patterns across ${state.all.size} habits"
                 HabitDestination.Archived -> "Archived Habits"
@@ -512,8 +515,9 @@ fun HabitAreaContent(
             },
         )
     }
-    actions?.let { item ->
+    actions?.takeIf { editingHabitId == null }?.let { item ->
         val mutationCoordinator = authoredMutationCoordinator ?: return@let
+        inspectorPages.SaveableStateProvider("habit-${item.habit.id}") {
         HabitActionsDialog(
             item,
             openHistory = historyHabitId == item.habit.id,
@@ -529,7 +533,7 @@ fun HabitAreaContent(
                 mutationCoordinator.clear()
                 closeHabitActions()
             },
-            onEdit = { editingHabitId = item.habit.id; closeHabitActions() },
+            onEdit = { editingHabitId = item.habit.id },
             onDuplicate = { viewModel.duplicate(item.habit.id); closeHabitActions() },
             onPin = { viewModel.setPinned(item.habit.id, !item.habit.pinned); closeHabitActions() },
             onPause = { viewModel.setPaused(item.habit.id, !item.habit.paused); closeHabitActions() },
@@ -595,6 +599,7 @@ fun HabitAreaContent(
             mutationSaving = mutationCoordinator.saving,
             mutationError = mutationCoordinator.errorMessage,
         )
+        }
     }
     skipConfirmationHabitId?.let { habitId ->
         val item = progressById[habitId]
@@ -1104,14 +1109,18 @@ fun HabitProgressCard(
     management: Boolean = false,
 ) {
     val habit = item.habit
+    val weekdayFormatter = rememberWhipWeekdayFormatter()
     if (management && habit.timerSessionId == null) {
         WhipItemCard(Modifier.clickable(enabled = !reorderMode, onClickLabel = "Open habit details for ${habit.name}", onClick = onOpen)
             .testTag("habit-card-${habit.id}")) {
-            WhipProductivityItemContent(itemType = "habit", itemName = habit.name, emoji = habit.icon) {
+            WhipProductivityItemContent(itemType = "habit", itemName = habit.name, emoji = habit.icon, compact = true) {
                 area(habit.areaId, habit.area)
                 edit(onEdit.takeUnless { reorderMode })
-                details { text("${habit.trackingMode.uiLabel()} · ${habit.scheduleType.scheduleLabel()}") }
-                summary { text(if (habit.paused) "Paused" else "Open details to manage schedule and history") }
+                summary {
+                    text(listOf(habit.area, habit.collectionScheduleLabel { weekdayFormatter.label(it, WhipWeekdayLabelWidth.Short) })
+                        .filter(String::isNotBlank).joinToString(" · "))
+                    text(item.managementAvailabilityLabel(customUnits))
+                }
             }
         }
         return
@@ -1314,6 +1323,29 @@ fun HabitProgressCard(
             }
         }
     }
+}
+
+internal fun Habit.collectionScheduleLabel(weekdayLabel: (DayOfWeek) -> String): String = when (scheduleType) {
+    HabitScheduleType.Daily -> "Every day"
+    HabitScheduleType.SelectedWeekdays -> weekdays.sortedBy { (it.value - weekStart.value + 7) % 7 }.joinToString(", ", transform = weekdayLabel)
+    HabitScheduleType.EveryNDays -> "Every $scheduleInterval days"
+    HabitScheduleType.FlexibleTimesPerWeek -> "$flexibleTimesPerWeek times per week"
+    HabitScheduleType.FlexibleTimesPerMonth -> "$flexibleTimesPerWeek times per month"
+}
+
+internal fun HabitDayProgress.managementAvailabilityLabel(customUnits: List<UnitDefinition> = emptyList()): String = when {
+    habit.paused || dayState == HabitDayState.Paused -> "Paused · no check-in expected"
+    habit.endType == HabitEndType.OnDate && habit.endDate?.isBefore(date) == true -> "Ended · ${habit.endDate.format(habitShortDateFormatter)}"
+    habit.sourceMeasurementId != null -> "Linked measurement · ${habit.trackingMode.uiLabel()}"
+    !scheduled -> "No check-in expected today · ${habit.trackingMode.uiLabel()}"
+    else -> compactCollectionStatus(lowPressureMode = true, customUnits = customUnits)
+}
+
+internal fun Habit.newEntryUnavailableReason(): String? = when {
+    archived -> "Restore this Habit before adding an entry. Existing history can still be corrected."
+    paused -> "Resume this Habit before adding an entry. Existing history can still be corrected."
+    sourceMeasurementId != null -> "Entries come from the linked measurement."
+    else -> null
 }
 
 @Composable
@@ -2776,6 +2808,7 @@ internal fun HabitValueDialog(
     }
     var note by rememberSaveable(item.habit.id, item.date) { mutableStateOf("") }
     var confirmDiscard by rememberSaveable(item.habit.id, item.date) { mutableStateOf(false) }
+    var validationRequested by rememberSaveable(item.habit.id, item.date) { mutableStateOf(false) }
     fun requestDismiss() {
         if (saving) return
         if (value != initialValue || note.isNotEmpty()) confirmDiscard = true else onDismiss()
@@ -2815,6 +2848,7 @@ internal fun HabitValueDialog(
                     else item.habit.historyAmountLabel(optional = logOnly, customUnits = customUnits),
                     modifier = Modifier.testTag("habit-value-input"),
                     enabled = !saving,
+                    validationError = "Enter a valid, finite number".takeIf { validationRequested && !validValue },
                 )
                 if (logOnly) Text(
                     "A note is enough; add a number only when it is useful.",
@@ -2844,8 +2878,8 @@ internal fun HabitValueDialog(
         },
         confirmButton = {
             WhipTextButton(
-                enabled = validValue && !saving,
-                onClick = { onLog(parsedValue, note) },
+                enabled = !saving,
+                onClick = { validationRequested = true; if (validValue) onLog(parsedValue, note) },
                 modifier = Modifier.testTag("habit-value-save"),
             ) { Text(if (saving) "Saving…" else if (additive) "Add Amount" else if (logOnly) "Add Entry" else "Save") }
         },
@@ -2882,6 +2916,7 @@ internal fun HabitHistoryLogDialog(
     var showDatePicker by rememberSaveable(editorKey) { mutableStateOf(false) }
     var confirmDelete by rememberSaveable(editorKey) { mutableStateOf(false) }
     var confirmDiscard by rememberSaveable(editorKey) { mutableStateOf(false) }
+    var validationRequested by rememberSaveable(editorKey) { mutableStateOf(false) }
     fun requestDismiss() {
         if (saving) return
         if (value != openingValue || date != openingDate || note != openingNote) confirmDiscard = true else onDismiss()
@@ -2936,6 +2971,7 @@ internal fun HabitHistoryLogDialog(
                         ),
                         modifier = Modifier.testTag("habit-history-value"),
                         enabled = !saving,
+                        validationError = "Enter a valid, finite number".takeIf { validationRequested && !amountIsValid },
                     )
                     if (!requiresAmount) Text(
                         "A note is enough; add a number only when it is useful.",
@@ -2954,8 +2990,10 @@ internal fun HabitHistoryLogDialog(
         },
         confirmButton = {
             WhipTextButton(
-                enabled = amountIsValid && dateIsValid && !saving,
+                enabled = dateIsValid && !saving,
                 onClick = {
+                    validationRequested = true
+                    if (!amountIsValid) return@WhipTextButton
                     val effectiveValue = if (showsAmount) parsedValue else if (log != null) log.value else 1.0
                     val effectiveStatus = log?.status ?: when (mode) {
                         HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist -> HabitLogStatus.Success
@@ -3060,6 +3098,7 @@ internal fun HabitActionsDialog(
             HabitScheduleType.FlexibleTimesPerWeek,
             HabitScheduleType.FlexibleTimesPerMonth,
         )
+    val newEntryUnavailable = item.habit.newEntryUnavailableReason()
     val primaryAction = when {
         item.habit.timerStartedAtMillis != null -> EntityInspectorPrimaryAction(
             "timer",
@@ -3080,6 +3119,7 @@ internal fun HabitActionsDialog(
     }
     EntityInspector(
         entityType = "Habit",
+        stateKey = "habit:${item.habit.id}",
         title = item.habit.name,
         emoji = item.habit.icon,
         context = item.habit.area.ifBlank {
@@ -3155,7 +3195,8 @@ internal fun HabitActionsDialog(
                                     id = "enter-duration-manually",
                                     label = "Enter Duration Manually",
                                     onClick = onEnterDurationManually,
-                                    supportingText = "Record a duration when you forgot to start the timer.",
+                                    enabled = newEntryUnavailable == null,
+                                    supportingText = newEntryUnavailable ?: "Record a duration when you forgot to start the timer.",
                                 )
                             }
                         }
@@ -3208,7 +3249,8 @@ internal fun HabitActionsDialog(
                                 EntityInspectorAction(
                                     id = "add-past-entry", label = item.habit.pastCheckInActionLabel(),
                                     onClick = onAddHistoricalLog,
-                                    supportingText = "Choose an earlier date and record what happened.",
+                                    enabled = newEntryUnavailable == null,
+                                    supportingText = newEntryUnavailable ?: "Choose an earlier date and record what happened.",
                                 )
                             } else Text("This history comes from a linked measurement.")
                             WhipSectionHeading("Habit History", compact = true)
@@ -3855,8 +3897,13 @@ private fun NumberTextField(
     label: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    validationError: String? = null,
 ) {
-    OutlinedTextField(value, onValueChange, label = { Text(label) }, enabled = enabled, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = modifier.fillMaxWidth())
+    OutlinedTextField(value, onValueChange, label = { Text(label) }, enabled = enabled,
+        isError = validationError != null,
+        supportingText = validationError?.let { message -> { Text(message) } },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = modifier.fillMaxWidth().semantics { validationError?.let { error(it) } })
 }
 
 private fun TargetPeriod.explanation(schedule: HabitScheduleType): String = when (this) {

@@ -178,10 +178,10 @@ class HomeDestinationLinksTest {
     }
 
     @Test
-    fun conditionalTodayRecordsAndVisibleDestinationsHideEmptyShortcuts() {
+    fun todaySummaryGeometrySurvivesFinalCompletionAndVisibleDestinationsStayScoped() {
         val taskTotal = mutableIntStateOf(2)
         val habitCompleted = mutableIntStateOf(0)
-        val habitTotal = mutableIntStateOf(0)
+        val habitTotal = mutableIntStateOf(2)
         val taskOpens = AtomicInteger()
         val habitOpens = AtomicInteger()
         compose.setContent {
@@ -208,7 +208,9 @@ class HomeDestinationLinksTest {
 
         compose.onNodeWithTag("home-tasks-today-record").assertIsDisplayed().performClick()
         check(taskOpens.get() == 1)
-        compose.onAllNodesWithTag("home-habit-progress-record").assertCountEquals(0)
+        compose.onNodeWithTag("home-habit-progress-record").assertIsDisplayed()
+        val initialTaskBounds = compose.onNodeWithTag("home-tasks-today-record").fetchSemanticsNode().boundsInRoot
+        val initialHabitBounds = compose.onNodeWithTag("home-habit-progress-record").fetchSemanticsNode().boundsInRoot
         compose.onNodeWithTag("home-destination-tasks").fetchSemanticsNode()
         compose.onNodeWithTag("home-destination-habits").fetchSemanticsNode()
         compose.onNodeWithTag("home-destination-tracks").fetchSemanticsNode()
@@ -220,13 +222,17 @@ class HomeDestinationLinksTest {
             habitCompleted.intValue = 1
             habitTotal.intValue = 2
         }
-        compose.onAllNodesWithTag("home-tasks-today-record").assertCountEquals(0)
+        compose.onNodeWithTag("home-tasks-today-record").assertIsDisplayed()
+        compose.onNodeWithText("0 remaining", useUnmergedTree = true).assertIsDisplayed()
+        check(initialTaskBounds == compose.onNodeWithTag("home-tasks-today-record").fetchSemanticsNode().boundsInRoot)
+        check(initialHabitBounds == compose.onNodeWithTag("home-habit-progress-record").fetchSemanticsNode().boundsInRoot)
         compose.onNodeWithTag("home-habit-progress-record").assertIsDisplayed().performClick()
         check(habitOpens.get() == 1)
 
-        compose.runOnIdle { habitTotal.intValue = 0 }
-        compose.onAllNodesWithTag("home-tasks-today-record").assertCountEquals(0)
-        compose.onAllNodesWithTag("home-habit-progress-record").assertCountEquals(0)
+        compose.runOnIdle { habitTotal.intValue = 0; habitCompleted.intValue = 0 }
+        compose.onNodeWithTag("home-tasks-today-record").assertIsDisplayed()
+        compose.onNodeWithTag("home-habit-progress-record").assertIsDisplayed()
+        compose.onNodeWithText("No check-ins due", useUnmergedTree = true).assertIsDisplayed()
     }
 
     private fun bounds(label: String): Rect =

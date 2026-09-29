@@ -52,10 +52,10 @@ class ExecutionItemBuilderJourneyE2ETest {
             compose.onNodeWithTag("quick-set-reps-$skipped").assertTextContains("6")
             closeSoftKeyboard()
             compose.onNodeWithTag("quick-set-save-next-$skipped").performScrollTo()
-            // Reproduce a normal scroll position with only the toolbar's bottom edge exposed.
+            // Reproduce a normal scroll position with only the load field's bottom edge exposed.
             val target = with(compose.density) { androidx.compose.ui.unit.Dp(4f).toPx() }
             for (attempt in 0 until 30) {
-                val action = compose.onNodeWithTag("add-exercise-to-active-workout").fetchSemanticsNode().boundsInRoot
+                val action = compose.onNodeWithTag("quick-set-load-$skipped").fetchSemanticsNode().boundsInRoot
                 val lane = compose.onNodeWithTag("workout-execution-lane").fetchSemanticsNode().boundsInRoot
                 val delta = action.bottom - lane.bottom - target
                 if (kotlin.math.abs(delta) <= 1f) break
@@ -64,9 +64,9 @@ class ExecutionItemBuilderJourneyE2ETest {
                 }
                 compose.waitForIdle()
             }
-            val exposed = compose.onNodeWithTag("add-exercise-to-active-workout").fetchSemanticsNode().boundsInRoot.bottom -
+            val exposed = compose.onNodeWithTag("quick-set-load-$skipped").fetchSemanticsNode().boundsInRoot.bottom -
                 compose.onNodeWithTag("workout-execution-lane").fetchSemanticsNode().boundsInRoot.bottom
-            assertTrue("Exercise toolbar must be partially exposed under the sticky lane: $exposed px", kotlin.math.abs(exposed - target) <= 1f)
+            assertTrue("Load field must be partially exposed under the sticky lane: $exposed px", kotlin.math.abs(exposed - target) <= 1f)
             captureVisualCatalogSurface("gym.execution-builder.restored")
             compose.onNodeWithTag("quick-set-save-next-$skipped").performClick()
             compose.waitUntil(10_000) { saved().getValue(skipped).completed }

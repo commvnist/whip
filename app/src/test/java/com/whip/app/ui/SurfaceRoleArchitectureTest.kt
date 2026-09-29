@@ -24,7 +24,8 @@ class SurfaceRoleArchitectureTest {
         assertTrue(Regex("WhipCollectionCard\\(\\s*onClick = \\{ onOpenPlanningHabit").findAll(app).count() == 2)
 
         assertTrue(review.substringAfter("productivityAreaLabel?.let").contains("WhipGroupedInformationCard"))
-        assertTrue(review.substringBefore("30-Day Correlations").takeLast(500).contains("WhipGroupedInformationCard"))
+        assertTrue(review.substringBefore("30-Day Correlations").takeLast(100).contains("DisclosureRow"))
+        assertTrue(review.substringAfter("if (correlationsExpanded)").take(100).contains("WhipGroupedInformationCard"))
 
         listOf("track-activity-filter-summary", "Possible Existing Entry", "track_csv_validation_preview")
             .forEach { marker ->

@@ -1,5 +1,8 @@
 package com.whip.app.ui
 
+import android.view.KeyEvent
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.UiDevice
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -11,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
@@ -23,6 +27,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performImeAction
@@ -52,6 +57,55 @@ import org.junit.runner.RunWith
 class UnifiedSearchAdaptiveUiTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun enterActivatesTheFocusedSearchControlRatherThanAlwaysTheFirstResult() {
+        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        var selected: Long? = null
+        var dismissed = false
+        val routines = listOf("Strength A", "Strength B").mapIndexed { index, name ->
+            com.whip.app.domain.GymRoutine(index + 1L, "routine-$index", name, "", index, false, false, 1, 1)
+        }
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                UnifiedSearchDialog(
+                    taskState = TaskUiState(loading = false), habitState = HabitUiState(loading = false),
+                    goalState = GoalUiState(loading = false), trackState = TrackUiState(loading = false),
+                    gymState = GymUiState(loading = false, routines = routines),
+                    onDismiss = { dismissed = true }, onSelect = { selected = it.id },
+                )
+            }
+        }
+        compose.onNodeWithTag("unified-search-query").performTextReplacement("Strength")
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithTag("unified-search-result-Routine-2").fetchSemanticsNodes().isNotEmpty()
+        }
+        // Enter Android's keyboard navigation mode before moving focus to a
+        // non-text control. A request in touch mode can leave the query focused.
+        assertTrue(device.pressKeyCode(KeyEvent.KEYCODE_TAB))
+        compose.waitForIdle()
+        val second = compose.onNodeWithTag("unified-search-result-Routine-2")
+        second.performSemanticsAction(SemanticsActions.RequestFocus) { it() }
+        second.assertIsFocused()
+        assertTrue(device.pressKeyCode(KeyEvent.KEYCODE_ENTER))
+        compose.runOnIdle { assertEquals(2L, selected) }
+        val filters = compose.onNodeWithTag("search-filter-disclosure")
+        filters.performSemanticsAction(SemanticsActions.RequestFocus) { it() }
+        filters.assertIsFocused()
+        assertTrue(device.pressKeyCode(KeyEvent.KEYCODE_ENTER))
+        compose.onNodeWithTag("unified-search-filter-controls").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(2L, selected) }
+        compose.onNodeWithTag("unified-search-query").performClick().assertIsFocused()
+        assertTrue(device.pressKeyCode(KeyEvent.KEYCODE_ENTER))
+        compose.runOnIdle { assertEquals(1L, selected) }
+        val close = compose.onNodeWithTag("unified-search-close-action")
+        assertTrue(device.pressKeyCode(KeyEvent.KEYCODE_TAB))
+        compose.waitForIdle()
+        close.performSemanticsAction(SemanticsActions.RequestFocus) { it() }
+        close.assertIsFocused()
+        assertTrue(device.pressKeyCode(KeyEvent.KEYCODE_ENTER))
+        compose.runOnIdle { assertTrue(dismissed) }
+    }
 
     @Test
     fun workoutClockAndChangedContentKeepSearchResultsCurrent() {

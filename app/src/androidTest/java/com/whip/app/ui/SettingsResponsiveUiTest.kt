@@ -73,6 +73,77 @@ class SettingsResponsiveUiTest {
     private val compose = createComposeRule()
     @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
+    @Test
+    fun categoryScrollPositionsSurviveSwitchingAndRecreation() {
+        val app: WhipApplication = ApplicationProvider.getApplicationContext()
+        val viewModel = SettingsViewModel(app)
+        var section by mutableStateOf(SettingsSection.DataPrivacy)
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                Box(Modifier.heightIn(max = 480.dp)) {
+                    SettingsContent(SettingsUiState(settings = AppSettings(setupCompleted = true)), PaddingValues(), viewModel,
+                        selectedSection = section, onSectionChange = { section = it })
+                }
+            }
+        }
+        compose.onNodeWithTag("settings-list").performScrollToNode(hasTestTag("csv-export-disclosure"))
+        val dataTop = compose.onNodeWithTag("csv-export-disclosure").fetchSemanticsNode().boundsInRoot.top
+        compose.runOnIdle { section = SettingsSection.Appearance }
+        compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Home Overview"))
+        val appearanceTop = compose.onNodeWithText("Home Overview").fetchSemanticsNode().boundsInRoot.top
+        compose.runOnIdle { section = SettingsSection.DataPrivacy }
+        compose.onNodeWithTag("csv-export-disclosure").assertIsDisplayed()
+        assertEquals(dataTop, compose.onNodeWithTag("csv-export-disclosure").fetchSemanticsNode().boundsInRoot.top, 1f)
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithTag("csv-export-disclosure").assertIsDisplayed()
+        compose.runOnIdle { section = SettingsSection.Appearance }
+        compose.onNodeWithText("Home Overview").assertIsDisplayed()
+        assertEquals(appearanceTop, compose.onNodeWithText("Home Overview").fetchSemanticsNode().boundsInRoot.top, 1f)
+    }
+
+    @AndroidFontScale
+    @Test
+    fun customEmojiDraftSurvivesDirtyDismissalFailureAndRecreation() {
+        var visible by mutableStateOf(true)
+        var shouldFail = true
+        var mutation by mutableStateOf<PersistenceRequestState<Unit>>(PersistenceRequestState.Idle)
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                if (visible) {
+                    val coordinator = rememberPersistenceRequestCoordinator(
+                        state = mutation, consume = { mutation = PersistenceRequestState.Idle },
+                        requestNamespace = "emoji-test", onPersisted = { visible = false },
+                    )
+                    CustomIdentityEmojiDialog(
+                        existingChoices = emptyList(), saving = coordinator.saving, error = coordinator.errorMessage,
+                        onDismiss = { visible = false },
+                        onSave = {
+                            coordinator.begin()?.let { requestId ->
+                                mutation = PersistenceRequestState.Finished(requestId,
+                                    if (shouldFail) WhipResult.Failure("Storage did not confirm this emoji") else WhipResult.Success(Unit))
+                            }
+                        },
+                    )
+                }
+            }
+        }
+        compose.onNodeWithTag("custom-emoji-editor-glyph").performScrollTo().performTextReplacement("🦦")
+        compose.onNodeWithTag("custom-emoji-editor-name").performScrollTo().performTextReplacement("River Walk")
+        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithText("Keep Editing").performClick()
+        compose.onNodeWithTag("custom-emoji-editor-save").performClick()
+        compose.onNodeWithTag("persistence-save-problem").performScrollTo().assertIsDisplayed()
+        captureVisualCatalogSurface("fresh.settings.emoji-failure.large")
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithTag("custom-emoji-editor-glyph").performScrollTo().assertTextContains("🦦")
+        compose.onNodeWithTag("custom-emoji-editor-name").performScrollTo().assertTextContains("River Walk")
+        compose.runOnIdle { shouldFail = false }
+        compose.onNodeWithTag("custom-emoji-editor-save").performClick()
+        compose.onAllNodesWithTag("custom-emoji-editor").assertCountEquals(0)
+    }
+
     @AndroidFontScale
     @Test
     fun settingsSearchRestoresQueryAndLandsOnExactControlsAndDisclosures() {

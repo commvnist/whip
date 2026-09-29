@@ -1,0 +1,8 @@
+INSTRUMENTATION_STATUS: class=com.whip.app.GymLibraryJourneyE2ETest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.GymLibraryJourneyE2ETest:
+INSTRUMENTATION_STATUS: test=historicalSetCorrectionPreservesBothSessionsAndRejectsAStaleEdit
+INSTRUMENTATION_STATUS_CODE: 1

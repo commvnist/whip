@@ -44,11 +44,11 @@ Home keeps these sections visibly separate while supporting quick logging. Use
 Home sections. Pinning means **Whip Home inside the app**, not the Android phone
 launcher. The exact result stays close to each domain's daily behavior:
 
-When the active Area has work due today, **Tasks Due Today** appears at the top
-of Home and opens **Tasks → Today**. It disappears when no due Tasks remain.
-**Habit Progress** follows it whenever Habits are scheduled today and likewise
-disappears when there are none; the two records are independent of hidden or
-collapsed Home sections.
+Home keeps **Tasks today** and **Habit progress** in stable positions for the
+daily sections you have enabled. Finishing the final Task leaves **0 remaining**
+visible; a day without scheduled Habits says **No check-ins due**. Loading and
+unavailable data have their own labels. These records open the matching **Today**
+page, and hiding a Home section also hides its daily summary.
 
 - a pinned Task stays first when it is due in Home's Tasks section;
 - a pinned Habit stays first when it is due in Home's Habits section;
@@ -111,17 +111,20 @@ not alter items that already use its glyph.
 The Tasks screen supports named filters,
 multi-select complete/archive/restore/pin actions, an agenda, and a navigable
 month calendar. A saved task filter can also constrain the Tasks section on
-Home. The calendar action in the top bar opens the Upcoming agenda, while
+Home. **Plan My Day** is available on Home and in the Tasks options menu.
 **Review & Trends** is available as a named action on Home. Review supports
 named combinations of Tasks, Habits, Goals, and Gym; Tracks remains neutral
 evidence rather than a productivity score. Summary counts on Home, the Fold
 pane, and Review open the owning area.
 
 The Whip mark opens Home, and Tasks, Habits, Goals, Tracks, and Gym are five
-direct peer modules. Each workspace keeps its highest-frequency pages visible;
-secondary pages use the labeled **Pages** menu instead of hidden horizontal
-scrolling. In Tasks, List/Agenda/Calendar is a separate persistent view control.
-Search is global and starts scoped to the current module; Filters and selection
+direct peer modules. Their tabs have distinct jobs: **Tasks / Today / History**,
+**Habits / Today / Insights**, **Goals / History / Insights**, and
+**Tracks / Activity / Insights**. Fresh Tasks and Habits navigation opens the
+first collection tab; explicit Today shortcuts still open today's work. Archive
+is available through the workspace options menu. In Tasks, List/Agenda/Calendar
+is a separate persistent view control. Today retains its fixed daily scope.
+Search uses the shared top-right magnifying glass and starts scoped to the current module; Filters and selection
 remain contextual controls with distinct roles;
 habit overlays only apply to Agenda and Calendar. Gym's Library is a child-page
 landing screen rather than a show-more control. On wide screens Settings uses a
@@ -130,14 +133,26 @@ cover content. App-level workspaces such as Settings, Review & Trends, and Areas
 keep their exit X at the right edge; hierarchical Area details keep Back on the
 left as a separate action.
 
+Goal cards show concise readings and visual progress. A reached Goal offers
+**Review**, milestone Goals offer **Items**, and elapsed Goals keep **Reset Timer**
+in their expanded details or inspector. Review leads with outcome totals and
+daily scales; correlations are a secondary disclosure. Visiting Track evidence
+and returning preserves Review's originating Area and period. Track trend data
+names each recorded Entry, so same-date observations can be inspected and edited
+individually without losing the Insights view.
+
 Item inspectors use that same Whip language: identity stays at the top, peer
 pages use the shared underline navigation, only the center content scrolls, and
 the primary action stays reachable at the bottom. A Habit inspector has
 **Today**, **History**, and **More**. More brings Goal connections, Whip Home
 pinning, pause scheduling, duplication, archiving, and permanent deletion into
 the same grouped action-row pattern used by Settings and Tracks.
+Definition editing returns to the same Habit or Goal inspector section.
+Repeated history corrections and deletions retain that History view and its
+query. Paused or archived Habits explain the prerequisite for new entries while
+keeping existing history available for correction.
 
-Quick captures can enter a real **Inbox** for later triage. **Plan My Day**
+Quick captures can enter **Unscheduled** for later triage. **Plan My Day**
 selects work within a user-entered time capacity using duration, urgency, and
 effort; missing estimates count as 30 minutes. Tasks can be duplicated back to
 Inbox, gently deferred, bulk-postponed, and filtered by Area, tags, dates,
@@ -153,7 +168,7 @@ The task editor labels planning intensity as **Effort**, with the parallel
 choices **Light**, **Medium**, and **High**.
 
 The Home add menu creates tasks for today so they remain visible after saving.
-Capture from the Inbox tab, the share target, or the widget when the task should
+Capture with the Unscheduled scope or the share target when the task should
 wait for later triage.
 
 Whip offers two Android home-screen widgets. **Task Agenda** shows overdue and
@@ -201,6 +216,13 @@ silently interpreted. The parser is deterministic and never sends title text
 off the device. Examples appear directly below the setting while it is enabled.
 
 ## Workout calculations
+
+An active workout puts logging first. **Workout options** holds **Edit Workout**,
+**Add Exercise**, **Arrange Workout**, and the detailed totals disclosure. The
+empty workout retains a direct Add action. In History, use the Set's **Edit**
+action to correct a finished workout without reopening it or changing another
+active session. Set Details preserves invalid raw input, explains numeric errors,
+and asks before discarding a changed draft.
 
 Eligible set volume is effective load in kilograms multiplied by repetitions.
 Warm-up and incomplete sets are excluded by default. Assisted-bodyweight load
@@ -381,6 +403,10 @@ already written there.
 To move to another device, install the same or a compatible Whip build, copy or
 sync a `.whip.json` to a location visible in that device's Files picker, then
 use **Preview and Restore Backup**. Keep plaintext backups private. Restore
+accepts files up to 32 MiB, including the envelope of an encrypted backup; larger
+or unreadable selections report an error without changing current data. This
+limit applies to selected-file imports, not backup creation or private recovery.
+Restore
 validates the envelope, authentication/checksum, database version, row counts,
 preferences, and duplicates before asking for confirmation. Whip then stores a
 private recovery snapshot while it replaces local data and preferences and

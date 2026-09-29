@@ -182,7 +182,8 @@ class FirstClassWorkflowE2ETest {
             }
             checkNotNull(setCompleted) { "Set completion did not reach the repository" }
 
-            compose.onNodeWithTag("add-exercise-to-active-workout").performScrollTo().performClick()
+            compose.onNodeWithContentDescription("Workout options").performScrollTo().performClick()
+            compose.onNodeWithText("Add Exercise", substring = false).performClick()
             compose.onNodeWithTag("workout-exercise-picker-scope").assertIsDisplayed()
             compose.onNodeWithTag("workout-exercise-picker-list").performScrollToNode(hasText("Band Pull-Apart"))
             compose.onNodeWithText("Band Pull-Apart").performClick()

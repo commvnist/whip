@@ -47,6 +47,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
@@ -72,6 +73,41 @@ class VisualCatalogPagesTest {
     @After
     fun clearProductData() = runBlocking {
         app.backupRepository.deleteAllData()
+    }
+
+    @Test
+    fun captureProductivityWorkspaceOverview() {
+        seedRepresentativeData()
+        launch().use {
+            waitForHome("Plan the week")
+            captureVisualCatalogSurface("shared.home.populated")
+            openPrimary("Tasks")
+            val geometry = workspaceGeometry()
+            captureVisualCatalogSurface("tasks.collection")
+            openPrimary("Habits")
+            assertEquals("Habits chrome must align with Tasks", geometry, workspaceGeometry())
+            captureVisualCatalogSurface("habits.all.populated")
+            openPrimary("Goals")
+            assertEquals("Goals chrome must align with Tasks", geometry, workspaceGeometry())
+            captureVisualCatalogSurface("goals.active.populated")
+        }
+    }
+
+    @Test
+    fun captureSupportingWorkspaceOverview() {
+        seedRepresentativeData()
+        launch().use {
+            waitForHome("Plan the week")
+            openPrimary("Tracks")
+            val geometry = workspaceGeometry()
+            captureVisualCatalogSurface("tracks.all.populated")
+            openPrimary("Gym")
+            assertEquals("Gym chrome must align with Tracks", geometry, workspaceGeometry())
+            captureVisualCatalogSurface("gym.workout.populated")
+            compose.onNodeWithContentDescription("Open Settings").performClick()
+            compose.waitForIdle()
+            captureVisualCatalogSurface("settings.overview")
+        }
     }
 
     @Test
@@ -639,6 +675,10 @@ class VisualCatalogPagesTest {
         compose.onNodeWithContentDescription("$label tab").performClick()
         compose.waitForIdle()
     }
+
+    private fun workspaceGeometry() = listOf(
+        "workspace-top-app-bar", "workspace-search-action", "workspace-context-row",
+    ).map { compose.onNodeWithTag(it).fetchSemanticsNode().boundsInRoot }
 
     private fun selectTag(tag: String) {
         compose.onNodeWithTag(tag).performClick()

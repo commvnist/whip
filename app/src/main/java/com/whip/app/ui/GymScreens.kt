@@ -102,6 +102,7 @@ import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.Remove
 import com.whip.app.R
@@ -754,8 +755,11 @@ fun GymAreaContent(
     val pendingMachineExercise = pendingMachineExerciseId?.let { id -> state.exercises.firstOrNull { it.id == id } }
     val exerciseNotesEditor = exerciseNotesEditorId?.let { id -> state.activeWorkoutExercises.firstOrNull { it.workoutExercise.id == id } }
     val editedSet = editedSetId?.let { id ->
-        val set = state.allSets.firstOrNull { it.id == id } ?: return@let null
-        state.activeWorkoutExercises.firstOrNull { it.workoutExercise.id == set.workoutExerciseId }?.let { set to it }
+        val set = state.allSets.firstOrNull { it.id == id && it.uuid == editedSetBoundary?.setUuid } ?: return@let null
+        val placement = state.allWorkoutExercises.firstOrNull { it.id == set.workoutExerciseId } ?: return@let null
+        val exercise = (state.exercises + state.archivedExercises).firstOrNull { it.id == placement.exerciseId } ?: return@let null
+        set to WorkoutExerciseUi(placement, exercise, listOf(set), emptyList(), 0, null,
+            (state.machines + state.archivedMachines).firstOrNull { it.id == placement.machineId })
     }
     LaunchedEffect(pendingQuickRefreshSetId, state.allSets) {
         val id = pendingQuickRefreshSetId ?: return@LaunchedEffect
@@ -1477,6 +1481,16 @@ fun GymAreaContent(
                 copyAuthorship = historyCopyAuthorship,
                 onCopyAuthorshipChange = viewModel::setHistoryCopyAuthorship,
                 onEditDetails = { historyWorkoutEditorId = it.id },
+                onEditSet = { set ->
+                    if (!workoutMutationBusy) {
+                        sessionMutationCoordinator.clear()
+                        state.captureSetEditBoundary(set.id)?.let { boundary ->
+                            editedSetBoundary = boundary
+                            editedSetId = set.id
+                            editedQuickSetDraft = null
+                        }
+                    }
+                },
                 onOpenActiveWorkout = { destination = GymDestination.Workout },
                 onDelete = {
                     workoutDeleteCandidateId = it.id
@@ -2638,6 +2652,7 @@ private fun GymHistoryRoute(
     copyAuthorship: HistoryCopyAuthorship?,
     onCopyAuthorshipChange: (HistoryCopyAuthorship?) -> Unit,
     onEditDetails: (WorkoutSession) -> Unit,
+    onEditSet: (WorkoutSet) -> Unit,
     onOpenActiveWorkout: () -> Unit,
     onDelete: (WorkoutSession) -> Unit,
     focusedWorkoutId: Long?,
@@ -2654,6 +2669,7 @@ private fun GymHistoryRoute(
         onCopy = viewModel::duplicateWorkout,
         onResume = viewModel::resumeWorkout,
         onEditDetails = onEditDetails,
+        onEditSet = onEditSet,
         onOpenActiveWorkout = onOpenActiveWorkout,
         onSaveAsRoutine = viewModel::saveWorkoutAsRoutine,
         copySaving = coordinator.saving,
@@ -2854,6 +2870,7 @@ private fun WorkoutContent(
     val skippedOptionalSetId = lastSkippedOptionalSetId
     var requestedExecutionSetId by rememberSaveable(session.id) { mutableStateOf<Long?>(null) }
     var workoutOverviewOpen by rememberSaveable(session.id) { mutableStateOf(false) }
+    var workoutTotalsExpanded by rememberSaveable(session.id) { mutableStateOf(false) }
     val quickDraftState = rememberSaveableStateHolder()
     var focusRequestSetId by rememberSaveable(session.id) { mutableStateOf<Long?>(null) }
     var focusRequestVersion by rememberSaveable(session.id) { mutableIntStateOf(0) }
@@ -2966,8 +2983,8 @@ private fun WorkoutContent(
     val showScrollableRestAlert = compactExecutionLane && state.restSecondsRemaining != null &&
         state.appSettings.notificationPermissionRequested && !restTimerNotificationsAvailable(state.appSettings.timerSound, state.appSettings.timerVibration)
     val workoutBlockScrollOffset = if (arrangingWorkout) 0 else -executionLaneHeightPx
-    // Header and workout actions always precede blocks; the execution lane is hidden while arranging.
-    val firstWorkoutBlockIndex = if (arrangingWorkout) 2 else 3
+    val showWorkoutContext = arrangingWorkout || pendingLayoutUndo != null || (compactExecutionLane && nextSet != null)
+    val firstWorkoutBlockIndex = 1 + (if (arrangingWorkout) 0 else 1) + (if (showWorkoutContext) 1 else 0)
     LaunchedEffect(requestedWorkoutExerciseId, workoutBlocks, arrangingWorkout, executionLaneHeightPx) {
         val requestedId = requestedWorkoutExerciseId ?: return@LaunchedEffect
         if (!arrangingWorkout && executionLaneHeightPx == 0) return@LaunchedEffect
@@ -3034,11 +3051,17 @@ private fun WorkoutContent(
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
         item {
-            WhipPageHeader(
-                title = session.name.ifBlank { "Workout" },
-                supportingText = session.localDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
-            ) {
-                WhipTextButton(onClick = onEditWorkout) { Text("Edit Workout") }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(session.name.ifBlank { "Workout" }, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(session.localDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (!arrangingWorkout) WhipWorkspaceMore("Workout options") { close ->
+                    WhipMenuItem("Edit Workout", enabled = !sessionMutationSaving, onClick = { close(); onEditWorkout() })
+                    WhipMenuItem("Add Exercise", enabled = !sessionMutationSaving, onClick = { close(); onAddExercise() })
+                    if (state.activeWorkoutExercises.isNotEmpty()) WhipMenuItem("Arrange Workout", enabled = !sessionMutationSaving, onClick = { close(); beginArrangement() })
+                    WhipMenuItem(if (workoutTotalsExpanded) "Hide Workout Totals" else "Show Workout Totals", onClick = { close(); workoutTotalsExpanded = !workoutTotalsExpanded })
+                }
             }
             if (session.sourceRoutineProgramKind != RoutineProgramKind.Static) {
                 val programLabel = when (session.sourceRoutineProgramKind) {
@@ -3075,12 +3098,15 @@ private fun WorkoutContent(
             }
             state.summary?.let { summary ->
                 Text(
-                    "${quantityLabel(summary.exerciseCount, "exercise")} · ${quantityLabel(summary.completedSetCount, "completed set")} · " +
-                        "${quantityLabel(summary.repetitions, "rep")} · ${formatNumber(massFromKilograms(summary.volumeKg, state.appSettings.gymWeightUnitId), state.appSettings.numberPrecision)} " +
-                        "${unitSymbol(state.appSettings.gymWeightUnitId)} volume · " +
-                        formatDuration(summary.elapsedSeconds),
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.labelLarge,
+                    "${summary.completedSetCount}/${displayWorkoutExercises.sumOf { item -> item.sets.count { it.deletedAtMillis == null } }} Sets complete · ${formatDuration(summary.elapsedSeconds)}",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                if (workoutTotalsExpanded) Text(
+                    "${quantityLabel(summary.exerciseCount, "exercise")} · ${quantityLabel(summary.repetitions, "rep")} · " +
+                        "${formatNumber(massFromKilograms(summary.volumeKg, state.appSettings.gymWeightUnitId), state.appSettings.numberPrecision)} ${unitSymbol(state.appSettings.gymWeightUnitId)}·rep volume",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.testTag("active-workout-totals"),
                 )
             }
             if (showScrollableRestAlert) Text(
@@ -3258,7 +3284,7 @@ private fun WorkoutContent(
                     )
                 }
             }
-        } else {
+        } else if (showWorkoutContext) {
             item {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -3370,38 +3396,6 @@ private fun WorkoutContent(
                                 ) { Text("Undo") }
                             }
                         }
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            WhipOutlinedButton(
-                                onClick = onAddExercise,
-                                enabled = !sessionMutationSaving,
-                                modifier = Modifier.weight(1f).testTag("add-exercise-to-active-workout")
-                                    .semantics { contentDescription = "Add Exercise" },
-                            ) {
-                                Icon(Icons.Filled.Add, contentDescription = null)
-                                Spacer(Modifier.width(8.dp))
-                                Text("Add Exercise")
-                            }
-                            WhipOutlinedButton(
-                                onClick = ::beginArrangement,
-                                enabled = !sessionMutationSaving,
-                                modifier = Modifier.weight(1f).testTag("workout-arrange-open")
-                                    .semantics { contentDescription = "Arrange" },
-                            ) {
-                                Icon(Icons.Outlined.DragHandle, contentDescription = null)
-                                Spacer(Modifier.width(8.dp))
-                                Text("Arrange")
-                            }
-                        }
-                        Text(
-                            if (session.sourceRoutineId != null) {
-                                "Workout only · Routine unchanged"
-                            } else {
-                                "Changes apply to this workout"
-                            },
-                            modifier = Modifier.fillMaxWidth().testTag("active-workout-exercise-scope"),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
                     }
                 }
             }
@@ -4573,7 +4567,14 @@ internal fun QuickSetEntry(
             modifier = Modifier.fillMaxWidth().testTag("quick-set-save-next-${set.id}"),
         ) { Text("Complete Set") }
         WhipTextButton(
-            onClick = { onMoreDetailsDraft?.invoke(draft.copy(completed = set.completed, planned = set.planned)) ?: onMoreDetails() },
+            onClick = {
+                val malformed = listOf(weight, machineSetting, distance, bodyweight, rpe, rir)
+                    .any { workoutSetRawNumberError(it) != null } ||
+                    workoutSetRawNumberError(reps, integer = true) != null ||
+                    workoutSetRawNumberError(duration, integer = true, longInteger = true) != null
+                if (malformed) validationRequested = true
+                else onMoreDetailsDraft?.invoke(draft.copy(completed = set.completed, planned = set.planned)) ?: onMoreDetails()
+            },
             enabled = !inputBlocked,
             modifier = Modifier.align(Alignment.End),
         ) { Text("Set Details") }
@@ -4616,7 +4617,7 @@ internal fun RestTimerCard(
                     "Rest timer running, $displayedDuration remaining"
                 }
             }
-            .padding(horizontal = WhipSpacing.compact, vertical = WhipSpacing.sibling),
+            .padding(horizontal = WhipSpacing.compact, vertical = WhipSpacing.micro),
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
     ) {
             BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -6744,6 +6745,7 @@ internal fun WorkoutHistoryContent(
     onDelete: (WorkoutSession) -> Unit,
     modifier: Modifier = Modifier,
     focusedWorkoutId: Long? = null,
+    onEditSet: ((WorkoutSet) -> Unit)? = null,
 ) {
     val dialogModifier = modifier
     var query by rememberSaveable { mutableStateOf("") }
@@ -7057,6 +7059,7 @@ internal fun WorkoutHistoryContent(
                 onRestore = { onRestore(session.id) },
                 onDelete = { onDelete(session) },
                 onReuseExercise = onCopyExercise,
+                onEditSet = onEditSet,
             )
         }
     }
@@ -7099,6 +7102,7 @@ internal fun WorkoutHistoryCard(
     onDelete: () -> Unit,
     onReuseExercise: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    onEditSet: ((WorkoutSet) -> Unit)? = null,
 ) {
     val title = session.name.ifBlank { "Workout" }
     val workoutExerciseIds = workoutExercises.mapTo(mutableSetOf(), WorkoutExercise::id)
@@ -7333,6 +7337,9 @@ internal fun WorkoutHistoryCard(
                                         preferredWeightUnitId = preferredWeightUnitId,
                                         preferredDistanceUnitId = preferredDistanceUnitId,
                                         numberPrecision = numberPrecision,
+                                        onEdit = onEditSet?.let { edit ->
+                                            { edit(set) }
+                                        }.takeIf { !archivedView && session.state == WorkoutSessionState.Finished && set.deletedAtMillis == null },
                                     )
                                 }
                             }
@@ -7404,6 +7411,7 @@ private fun HistoricalWorkoutSetRow(
     preferredWeightUnitId: String,
     preferredDistanceUnitId: String,
     numberPrecision: Int,
+    onEdit: (() -> Unit)? = null,
 ) {
     val performed = set.shortLabel(
         preferredWeightUnitId = preferredWeightUnitId,
@@ -7428,6 +7436,11 @@ private fun HistoricalWorkoutSetRow(
         target(prescription, Modifier.testTag("history-set-target-${set.id}"))
         detail(historyDetails, Modifier.testTag("history-set-details-${set.id}"))
         detail(set.note.takeIf(String::isNotBlank)?.let { "Note · $it" }, Modifier.testTag("history-set-note-${set.id}"))
+        if (onEdit != null) actions {
+            IconButton(onClick = onEdit, modifier = Modifier.testTag("history-set-edit-${set.id}")) {
+                Icon(Icons.Outlined.Edit, "Edit Set $setNumber of ${sourceExercise.name}")
+            }
+        }
     }
 }
 
@@ -10383,14 +10396,29 @@ internal fun WorkoutSetEditorDialog(
         workSection = set.workSectionSnapshot,
         optionalWorkKind = set.optionalWorkKindSnapshot,
     )
-    val baselineDraft = remember(editorKey) { pendingDraft }
-    val dirty = pendingDraft != baselineDraft
+    val rawErrors = buildMap {
+        fun check(label: String, value: String, integer: Boolean = false, longInteger: Boolean = false) {
+            workoutSetRawNumberError(value, integer, longInteger)?.let { put(label, it) }
+        }
+        if (needsWeight) check("Load", if (machineType == MachineLoadType.Level) machineSetting else weight)
+        if (needsReps) check("Repetitions", reps, true)
+        if (needsDistance) check("Distance", distance)
+        if (needsDuration) check("Duration", duration, integer = true, longInteger = true)
+        check("Bodyweight", bodyweight)
+        check("RPE", rpe)
+        check("RIR", rir)
+        check("Rest", rest, true)
+    }
+    val editorFingerprint = listOf(weight, machineSetting, reps, distance, duration, bodyweight,
+        note, rpe, rir, tempo, rest, completed.toString(), planned.toString(), classification.name, unilateral.toString())
+    val baselineFingerprint = rememberSaveable(editorKey) { editorFingerprint }
+    val dirty = editorFingerprint != baselineFingerprint
     var showDiscardConfirmation by rememberSaveable(editorKey) { mutableStateOf(false) }
     fun requestDismiss() {
         if (saving) return
         if (dirty) showDiscardConfirmation = true else onDismiss()
     }
-    val validationMessage = runCatching {
+    val validationMessage = rawErrors.entries.firstOrNull()?.let { "${it.key}: ${it.value}" } ?: runCatching {
         validateWorkoutSetDraft(pendingDraft, policyExercise.trackingType, machineType, loadInterpretation)
     }.exceptionOrNull()?.message
     val normalizedLoadKg = canonicalResistanceKg(
@@ -10429,6 +10457,8 @@ internal fun WorkoutSetEditorDialog(
                         increment = if (machineType == MachineLoadType.Mass) machineIncrement else exercise.weightIncrement,
                         allowedValues = machineValues.takeIf { machineType == MachineLoadType.Mass }.orEmpty(),
                         modifier = Modifier.testTag("workout-set-editor-load"),
+                        isError = rawErrors["Load"] != null,
+                        supportingText = rawErrors["Load"],
                     )
                     normalizedLoadKg?.let { totalKg ->
                         if (loadInterpretation in setOf(LoadInterpretation.PerHand, LoadInterpretation.PerSide)) {
@@ -10450,6 +10480,8 @@ internal fun WorkoutSetEditorDialog(
                         "Machine ${workoutExercise.machineLevelLabelSnapshot.ifBlank { "level" }}",
                         increment = machineIncrement,
                         allowedValues = machineValues,
+                        isError = rawErrors["Load"] != null,
+                        supportingText = rawErrors["Load"],
                     )
                 }
                 if (workoutExercise.loadInterpretationSnapshot in setOf(LoadInterpretation.PerHand, LoadInterpretation.PerSide) ||
@@ -10487,12 +10519,14 @@ internal fun WorkoutSetEditorDialog(
                         increment = exercise.repetitionIncrement.toDouble(),
                         integer = true,
                         modifier = Modifier.testTag("workout-set-editor-reps"),
+                        isError = rawErrors["Repetitions"] != null,
+                        supportingText = rawErrors["Repetitions"],
                     )
                 }
-                if (needsDistance) item { NumberField(distance, { distance = it }, "Distance ($distanceSymbol)") }
-                if (needsDuration) item { NumberField(duration, { duration = it }, "Duration (seconds)", integer = true) }
+                if (needsDistance) item { NumberField(distance, { distance = it }, "Distance ($distanceSymbol)", isError = rawErrors["Distance"] != null, supportingText = rawErrors["Distance"]) }
+                if (needsDuration) item { NumberField(duration, { duration = it }, "Duration (seconds)", integer = true, isError = rawErrors["Duration"] != null, supportingText = rawErrors["Duration"]) }
                 if (policyExercise.trackingType in setOf(ExerciseTrackingType.BodyweightReps, ExerciseTrackingType.AssistedBodyweightReps)) {
-                    item { NumberField(bodyweight, { bodyweight = it }, "Bodyweight ($weightSymbol)") }
+                    item { NumberField(bodyweight, { bodyweight = it }, "Bodyweight ($weightSymbol)", isError = rawErrors["Bodyweight"] != null, supportingText = rawErrors["Bodyweight"]) }
                 }
                 item {
                     GymEnumDropdown(
@@ -10504,10 +10538,10 @@ internal fun WorkoutSetEditorDialog(
                 }
                 item { ToggleRow("Planned set", planned) { planned = it } }
                 item { ToggleRow("Completed", completed) { completed = it } }
-                if (showRpe) item { NumberField(rpe, { rpe = it }, "RPE (0–10)") }
-                if (showRir) item { NumberField(rir, { rir = it }, "RIR") }
+                if (showRpe) item { NumberField(rpe, { rpe = it }, "RPE (1–10)", isError = rawErrors["RPE"] != null, supportingText = rawErrors["RPE"]) }
+                if (showRir) item { NumberField(rir, { rir = it }, "RIR (0–10)", isError = rawErrors["RIR"] != null, supportingText = rawErrors["RIR"]) }
                 if (showTempo) item { OutlinedTextField(tempo, { tempo = it }, label = { Text("Tempo") }, modifier = Modifier.fillMaxWidth()) }
-                item { NumberField(rest, { rest = it }, "Rest seconds", integer = true) }
+                item { NumberField(rest, { rest = it }, "Rest seconds", integer = true, isError = rawErrors["Rest"] != null, supportingText = rawErrors["Rest"]) }
                 item { OutlinedTextField(note, { note = it }, label = { Text("Set note") }, modifier = Modifier.fillMaxWidth()) }
                 validationMessage?.let { message ->
                     item { Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
@@ -10543,6 +10577,13 @@ internal fun WorkoutSetEditorDialog(
     if (showDiscardConfirmation) {
         UnsavedChangesDialog("set", { showDiscardConfirmation = false }, onDismiss, modifier)
     }
+}
+
+internal fun workoutSetRawNumberError(value: String, integer: Boolean = false, longInteger: Boolean = false): String? = when {
+    value.isBlank() -> null
+    integer && (if (longInteger) value.toLongOrNull() else value.toIntOrNull()) == null -> "Enter a whole number"
+    !integer && value.toWhipDoubleOrNull()?.isFinite() != true -> "Enter a valid number"
+    else -> null
 }
 
 @Composable
@@ -10706,6 +10747,7 @@ internal fun ExerciseActionsDialog(
     }
     EntityInspector(
         entityType = "Exercise",
+        stateKey = exercise.uuid,
         title = exercise.name,
         emoji = "🏋️",
         context = exercise.trackingType.label,

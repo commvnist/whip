@@ -1,0 +1,41 @@
+INSTRUMENTATION_STATUS: class=com.whip.app.GymPowerInputUiTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.GymPowerInputUiTest:
+INSTRUMENTATION_STATUS: test=setDetailsKeepsMalformedOptionalTextThroughRestoreAndDiscardReview
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.GymPowerInputUiTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Complete Save must remain above the keyboard: Rect(853, 311 - 996, 402) versus Rect(0, 1604 - 1080, 2274)
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at com.whip.app.GymPowerInputUiTest.setDetailsKeepsMalformedOptionalTextThroughRestoreAndDiscardReview(GymPowerInputUiTest.kt:181)
+
+INSTRUMENTATION_STATUS: stream=
+Error in setDetailsKeepsMalformedOptionalTextThroughRestoreAndDiscardReview(com.whip.app.GymPowerInputUiTest):
+java.lang.AssertionError: Complete Save must remain above the keyboard: Rect(853, 311 - 996, 402) versus Rect(0, 1604 - 1080, 2274)
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at com.whip.app.GymPowerInputUiTest.setDetailsKeepsMalformedOptionalTextThroughRestoreAndDiscardReview(GymPowerInputUiTest.kt:181)
+
+INSTRUMENTATION_STATUS: test=setDetailsKeepsMalformedOptionalTextThroughRestoreAndDiscardReview
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 12.545
+There was 1 failure:
+1) setDetailsKeepsMalformedOptionalTextThroughRestoreAndDiscardReview(com.whip.app.GymPowerInputUiTest)
+java.lang.AssertionError: Complete Save must remain above the keyboard: Rect(853, 311 - 996, 402) versus Rect(0, 1604 - 1080, 2274)
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at com.whip.app.GymPowerInputUiTest.setDetailsKeepsMalformedOptionalTextThroughRestoreAndDiscardReview(GymPowerInputUiTest.kt:181)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1

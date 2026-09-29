@@ -1,5 +1,7 @@
 package com.whip.app
 
+import com.whip.app.data.readBackupDocument
+
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -341,7 +343,7 @@ class BackupRepositoryTest {
                 createdAtMillis = 1234,
             ),
         )
-        val json = backups.exportBackup()
+        val json = backups.exportBackup().byteInputStream(Charsets.UTF_8).readBackupDocument()
         val preview = backups.previewBackup(json)
         assertEquals(3, preview.envelopeVersion)
         assertEquals(6, preview.dataModelEpoch)

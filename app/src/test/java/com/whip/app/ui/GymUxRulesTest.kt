@@ -39,6 +39,32 @@ import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class GymUxRulesTest {
+    @Test fun setRawInputRejectsMalformedOptionalNumbersAndIntegerOverflow() {
+        listOf(".", "-", "NaN", "Infinity").forEach { assertTrue(workoutSetRawNumberError(it) != null) }
+        assertTrue(workoutSetRawNumberError("2147483648", integer = true) != null)
+        assertTrue(workoutSetRawNumberError("9223372036854775808", integer = true, longInteger = true) != null)
+        assertNull(workoutSetRawNumberError("2147483648", integer = true, longInteger = true))
+        assertNull(workoutSetRawNumberError(""))
+        assertNull(workoutSetRawNumberError("0", integer = true))
+        assertNull(workoutSetRawNumberError("8.5"))
+    }
+
+    @Test fun historicalSetEditBoundaryOwnsItsFinishedSessionWhileActiveMutationsStayScoped() {
+        val finished = WorkoutSession(1, "finished", "Earlier", "", Instant.EPOCH, Instant.EPOCH.plusSeconds(60),
+            LocalDate.of(2026, 9, 20), "UTC", WorkoutSessionState.Finished, false, null, null, false, 1, 2)
+        val active = finished.copy(id = 2, uuid = "active", state = WorkoutSessionState.Active, endedAt = null)
+        val placement = WorkoutExercise(1, "earlier-placement", 1, 1, 0, "", null, 1, 1)
+        val set = performanceSet(placement.id)
+        val state = GymUiState(activeSession = active, allSessions = listOf(finished, active),
+            allWorkoutExercises = listOf(placement), allSets = listOf(set))
+        val boundary = state.captureSetEditBoundary(set.id)!!
+        assertEquals(finished.id, boundary.sessionId)
+        assertEquals(finished.uuid, boundary.sessionUuid)
+        assertEquals(set.updatedAtMillis, boundary.setUpdatedAtMillis)
+        assertNull(state.captureSetMutationBoundary(set.id))
+        assertNull(state.copy(allSessions = listOf(finished.copy(archived = true), active)).captureSetEditBoundary(set.id))
+    }
+
     @Test
     fun progressStartsFromPerformedHistoryAndSettingsSearchNamesExactControls() {
         val exercises = (1L..5L).map { testExercise(it, "Exercise $it", "", "") }

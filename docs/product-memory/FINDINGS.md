@@ -1,5 +1,45 @@
 # Durable findings
 
+### FND-20260929-032 — Enlarged Gym identity shifts shared workspace chrome
+
+- Related: FB-20260929-014. Status: Verified under IMP-20260929-018 / VER-20260929-015, including unrelaxed normal/actual-200% geometry and original-image inspection.
+- `VisualCatalogPagesTest#captureSupportingWorkspaceOverview` measures Tracks toolbar bottom at 300 px and Gym at 305 px, with corresponding 3–5 px search/context movement. Gym's two-line identity exceeds the shared identity row's 52 dp minimum at enlarged text; the toolbar measures each destination differently.
+- Accepted R3: reserve the same measured identity height for every root destination, retaining normal density and readable Gym identity. Exact normal/200% bounds must match without a tolerance increase, followed by fresh original inspection.
+
+### FND-20260929-031 — Primary editors can pan their heading underneath system bars
+
+- Related: FB-20260929-014. Status: Verified under IMP-20260929-018 / VER-20260929-015, including actual-200% title/system and complete Save/IME bounds plus shared dialog-theme acceptance.
+- `ProductivityEditorDialog` fits primary dialogs to system decor and omits explicit safe-drawing padding, unlike Task editing and its own alert mode. While focusing a lower field with the IME visible, the primary header moves into the status band; the capture shows clipped title and overlapping clock.
+- Accepted R2: give primary and alert variants the same explicit edge-to-edge system/IME inset owner. Preserve pane positioning and the existing header/body hierarchy. Add actual screen-bound assertions to the failing Set Details journey and inspect a corrected original; also check ordinary editor and dialog-theme behavior.
+
+### FND-20260929-029 — Fresh shell review finds unstable orientation, lost scope and trapped recovery
+
+- Related: FB-20260929-014. Status: Verified under IMP-20260929-018 / VER-20260929-015; focused shell, restore/input-bound, original-image and affected readiness evidence is linked in the workbook.
+- The [shell workbook](../quality/FRESH_AUDIT_SHELL_2026-09-29.md) grounds SHELL-01–09: Home summary reflow on final completion; Review loses originating Area and has weak/responsive chart hierarchy; search intercepts Enter from unrelated focused controls; Settings loses category scroll; fast restore failure can lock confirmation; Area lookup can retain an invisible filter; selected backup documents are read without an input bound; custom emoji editing lacks reliable draft/failure/short-screen handling.
+- All grounded remedies are accepted. The parent owns the restore document-read boundary; the shell reviewer owns feature state/visual fixes and narrowly assigned shell callbacks. No backup format or domain state-machine rewrite is justified by these findings.
+- Boundary implementation: selected documents are capped at 32 MiB including encrypted envelope, with explicit recoverable error; backup creation/private recovery are not capped. A new file selection invalidates the prior pending candidate before I/O so failure cannot leave a stale backup actionable. This bounds input allocation, not every possible JSON object-graph cost; very large backup import remains an explicit limitation.
+
+### FND-20260929-030 — Enlarged productivity cards truncate ordinary identity and action labels
+
+- Related: FB-20260929-014, FND-20260929-027. Status: Verified under IMP-20260929-018 / VER-20260929-015; full identity, measured action text, stable renamed inspector context and final originals pass.
+- Evidence: [Original Goal capture](../../artifacts/fresh-app-overhaul/2026-09-29/before/large-productivity/goals.active.populated.png) truncates a short ordinary savings Goal name while fixed disclosure/action slots retain their width. The shared productivity builder limits names to two lines independent of font scale; record cards already allow full names.
+- Repair: retain normal-density two-line cards but allow complete identity at enlarged text in the shared owner. New Goal Review/Items actions also need measured text widths because a fixed 64 dp slot with single-line clipping cannot fit those labels at 200%. Verify actual text layout beside active controls and inspect fresh normal/200% workspace captures.
+- Integration review also finds mutable inspector titles used as saved-section keys; rename could reset scroll. All production inspector callers now supply stable entity identity, with a native scrolled-section rename regression.
+
+### FND-20260929-027 — Fresh productivity review finds inconsistent status, action hierarchy and return context
+
+- Related: FB-20260929-014. Status: Verified under IMP-20260929-018 / VER-20260929-015; all P1–P8 remedies, repeated persisted cleanup, enlarged rendering and affected readiness are accepted within the recorded focused scope.
+- The independent [productivity workbook](../quality/FRESH_AUDIT_PRODUCTIVITY_2026-09-29.md) grounds P1–P8: missing management availability/schedule meaning, skipped Habit count mismatch, unbounded collapsed Task metadata, false moved-history labels and buried restore, silent Habit numeric errors, unavailable new-entry forms, discarded inspector context, and weak reached/milestone Goal next actions.
+- Fresh Goal cards also give elapsed Reset primary prominence and render numeric progress as dense prose; Habit management cards are taller than peer collections while hiding their most useful state. Accepted shared compact-summary/visual-evidence treatment keeps identity and existing persistent contracts.
+- All P1–P8 remedies plus the related card hierarchy refinements are accepted for implementation and focused verification; no historical audit verdict supplies acceptance.
+
+### FND-20260929-028 — Fresh Track/Gym review finds silent draft loss and indirect historical correction
+
+- Related: FB-20260929-014. Status: Verified under IMP-20260929-018 / VER-20260929-015; exact raw-draft, completed-session/stale-edit, repeated-date Entry, compact logging and enlarged keyboard acceptance pass.
+- Set Details parses nonnumeric optional fields to null, enabling Save and bypassing dirty protection; its RPE hint conflicts with domain range. Historical sets omit direct correction despite repository support, pushing users through Resume Original and changing session duration. Track recorded trend rows omit source identity/actions despite allowing multiple same-date entries.
+- Accepted: raw draft validation/error/dirty semantics; direct historical-set editing with exact boundaries and preserved completed-session identity; actionable named Track evidence with retained analysis context. Fresh Gym overview additionally requires a focused hierarchy review because secondary setup controls precede execution far down the viewport.
+- The [Track/Gym workbook](../quality/FRESH_AUDIT_TRACKS_GYM_2026-09-29.md) owns full flow inventory and remaining dispositions.
+
 ### FND-20260929-026 — First-occurrence edits create empty older series with stale icons
 
 - Status: Verified under IMP-20260929-017 / VER-20260929-014; current-source reproduction matches the screenshot's date pattern. Related: FB-20260929-013, DEC-20260831-016.

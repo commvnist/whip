@@ -32,6 +32,25 @@ class HabitPresentationTest {
         assertTrue(item.compactCollectionStatus().contains("streak"))
     }
 
+    @Test fun managementCardsDescribeTheConfiguredScheduleAndRealAvailability() {
+        val scheduled = habit(HabitTrackingMode.CheckOff).copy(scheduleType = HabitScheduleType.SelectedWeekdays,
+            weekdays = setOf(DayOfWeek.TUESDAY, DayOfWeek.FRIDAY))
+        assertEquals("TUESDAY, FRIDAY", scheduled.collectionScheduleLabel { it.name })
+        assertEquals("Every 3 days", scheduled.copy(scheduleType = HabitScheduleType.EveryNDays, scheduleInterval = 3).collectionScheduleLabel { it.name })
+        assertEquals("4 times per month", scheduled.copy(scheduleType = HabitScheduleType.FlexibleTimesPerMonth, flexibleTimesPerWeek = 4).collectionScheduleLabel { it.name })
+        assertEquals("Paused · no check-in expected", progress(scheduled).copy(dayState = HabitDayState.Paused).managementAvailabilityLabel())
+        assertEquals("Paused · no check-in expected", progress(scheduled.copy(paused = true)).managementAvailabilityLabel())
+        assertTrue(progress(scheduled).copy(scheduled = false).managementAvailabilityLabel().startsWith("No check-in expected today"))
+    }
+
+    @Test fun addingHistoryExplainsUnavailableStateWithoutBanningCorrections() {
+        val active = habit(HabitTrackingMode.Duration)
+        assertNull(active.newEntryUnavailableReason())
+        assertTrue(active.copy(paused = true).newEntryUnavailableReason()!!.contains("Resume"))
+        assertTrue(active.copy(archived = true).newEntryUnavailableReason()!!.contains("Existing history can still be corrected"))
+        assertTrue(active.copy(sourceMeasurementId = "linked").newEntryUnavailableReason()!!.contains("linked measurement"))
+    }
+
     @Test fun zeroRatingAndNoteOnlyEntriesRemainRecordedFacts() {
         for (mode in listOf(HabitTrackingMode.Rating, HabitTrackingMode.LogOnly)) {
             val item = progress(habit(mode).copy(comparison = TargetComparison.None), status = HabitLogStatus.Recorded)

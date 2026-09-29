@@ -1014,7 +1014,7 @@ fun WhipScreen(
     var openGymSearchDomain by openGymSearchDomainState
     val openGymSearchIdState = rememberSaveable { mutableStateOf<Long?>(null) }
     var openGymSearchId by openGymSearchIdState
-    val reviewSession = rememberReviewSession()
+    val reviewSession = rememberReviewSession(areaScope, onTemporarilySelectAreaScope)
     var areaManagerOpen by rememberSaveable { mutableStateOf(false) }
     var tagManagerOpen by rememberSaveable { mutableStateOf(false) }
     var areaMoveNotice by rememberSaveable { mutableStateOf<String?>(null) }
@@ -1825,6 +1825,18 @@ fun WhipScreen(
           appDestination == AppDestination.Tracks && trackViewModel != null &&
           selectedTrackState.value?.let(trackState::track) != null
       val inlineKeyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+      val headerTextMeasurer = rememberTextMeasurer()
+      val headerIdentityHeight = with(LocalDensity.current) {
+          (headerTextMeasurer.measure(
+              text = "Whip",
+              style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
+              maxLines = 1,
+          ).size.height + headerTextMeasurer.measure(
+              text = stringResource(AppDestination.Gym.labelRes),
+              style = MaterialTheme.typography.labelSmall,
+              maxLines = 1,
+          ).size.height).toDp().coerceAtLeast(52.dp)
+      }
       WhipWorkspaceLayout {
       Scaffold(
         // The active content owns keyboard space; persistent side navigation stays put.
@@ -1838,7 +1850,7 @@ fun WhipScreen(
                 title = {
                     Row(
                         modifier = Modifier
-                            .heightIn(min = 52.dp)
+                            .heightIn(min = headerIdentityHeight)
                             .testTag("workspace-header-identity"),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -3643,17 +3655,21 @@ internal fun AreaScopeMenu(
                     onClick = { onSelect(AreaScope.All); expanded = false },
                 )
             }
-            if (activeAreas.size > 8) {
+            if (activeAreas.size > 8 || query.isNotBlank()) {
                 Box(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = { query = it.take(40) },
-                        label = { Text("Find area") },
-                        singleLine = true,
+                    WhipSearchField(
+                        query = query,
+                        onQueryChange = { query = it.take(40) },
+                        label = "Find area",
+                        modifier = Modifier.width(240.dp),
                     )
                 }
             }
-            areas.filter { (!it.archived || it.id == selectedArea?.id) && (query.isBlank() || it.name.contains(query, true)) }.forEach { area ->
+            val matchingAreas = areas.filter { (!it.archived || it.id == selectedArea?.id) && (query.isBlank() || it.name.contains(query, true)) }
+            if (matchingAreas.isEmpty()) {
+                Text("No matching Areas", Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+            }
+            matchingAreas.forEach { area ->
                 DropdownMenuItem(
                     text = {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -5102,7 +5118,19 @@ private fun HomeContent(
                 onPlanDay = onPlanDay.takeIf { !state.loading && state.errorMessage == null && state.inbox.isNotEmpty() },
                 onOpenHabits = onOpenHabits,
                 showFullHeader = showFullHeader,
-                onOpenReview = onOpenReview.takeIf { hasReviewEvidence && (hasHomeContent || !emptyStateEligible) },
+                onOpenReview = onOpenReview,
+                showTasks = HomeSection.Tasks in visibleHomeSections,
+                showHabits = HomeSection.Habits in visibleHomeSections,
+                taskAvailability = when {
+                    state.loading -> HomeSummaryAvailability.Loading
+                    state.errorMessage != null -> HomeSummaryAvailability.Unavailable
+                    else -> HomeSummaryAvailability.Ready
+                },
+                habitAvailability = when {
+                    habitState.loading -> HomeSummaryAvailability.Loading
+                    habitState.errorMessage != null -> HomeSummaryAvailability.Unavailable
+                    else -> HomeSummaryAvailability.Ready
+                },
             )
         }
         if (!hasHomeContent && emptyStateEligible) {

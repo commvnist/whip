@@ -367,11 +367,17 @@ internal fun GymUiState.capturePlacementMutationBoundary(
 }
 
 internal fun GymUiState.captureSetMutationBoundary(setId: Long): WorkoutSetMutationBoundary? {
-    val session = activeSession ?: return null
+    return captureSetEditBoundary(setId)?.takeIf { it.sessionId == activeSession?.id }
+}
+
+/** Set correction owns its source session, even while a different workout is active. */
+internal fun GymUiState.captureSetEditBoundary(setId: Long): WorkoutSetMutationBoundary? {
     val set = allSets.firstOrNull { it.id == setId } ?: return null
-    val placement = allWorkoutExercises.firstOrNull {
-        it.id == set.workoutExerciseId && it.sessionId == session.id
-    } ?: return null
+    val placement = allWorkoutExercises.firstOrNull { it.id == set.workoutExerciseId } ?: return null
+    val session = allSessions.firstOrNull { it.id == placement.sessionId }
+        ?: activeSession?.takeIf { it.id == placement.sessionId }
+        ?: return null
+    if (session.archived || session.state == WorkoutSessionState.Discarded) return null
     return WorkoutSetMutationBoundary(
         sessionId = session.id,
         sessionUuid = session.uuid,

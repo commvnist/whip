@@ -1,6 +1,7 @@
 package com.whip.app
 
 import com.whip.app.data.EncryptedBackupCodec
+import com.whip.app.data.readBackupDocument
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -15,7 +16,8 @@ class EncryptedBackupCodecTest {
         assertTrue(EncryptedBackupCodec.isEncrypted(encrypted))
         assertTrue("correct horse" !in encrypted)
         assertTrue(plaintext !in encrypted)
-        assertEquals(plaintext, EncryptedBackupCodec.decrypt(encrypted, "correct horse".toCharArray()))
+        val imported = encrypted.byteInputStream(Charsets.UTF_8).readBackupDocument()
+        assertEquals(plaintext, EncryptedBackupCodec.decrypt(imported, "correct horse".toCharArray()))
     }
 
     @Test

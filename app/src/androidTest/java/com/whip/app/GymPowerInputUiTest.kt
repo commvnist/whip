@@ -128,12 +128,71 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import java.time.LocalDate
 import java.time.Instant
 
 @RunWith(AndroidJUnit4::class)
 class GymPowerInputUiTest {
+    @AndroidFontScale
+    @Test
+    fun setDetailsKeepsMalformedOptionalTextThroughRestoreAndDiscardReview() {
+        val exercise = testExercise()
+        val placement = testWorkoutExercise(exercise)
+        val set = testWorkoutSet(700, placement.id).copy(completed = true, restSeconds = null, rpe = null)
+        var saved: WorkoutSetDraft? = null
+        var dismissed = false
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                WorkoutSetEditorDialog(set = set, exercise = exercise, workoutExercise = placement, machine = null,
+                    preferredWeightUnitId = "kilogram", preferredDistanceUnitId = "kilometre",
+                    showRpe = true, showRir = false, showTempo = false, saving = false, errorMessage = null,
+                    onDismiss = { dismissed = true }, onSave = { saved = it })
+            }
+        }
+        val rest = compose.onNode(hasText("Rest seconds") and hasSetTextAction())
+        rest.performScrollTo().performTextReplacement("2147483648")
+        compose.onNodeWithText("Save", substring = false).assertIsNotEnabled()
+        restoration.emulateSavedInstanceStateRestore()
+        rest.performScrollTo().assertTextContains("2147483648")
+        compose.onNodeWithContentDescription("Cancel set editing").performClick()
+        compose.onNodeWithText("Keep Editing").performClick()
+        compose.runOnIdle { assertFalse(dismissed); assertNull(saved) }
+        rest.performScrollTo().performTextReplacement("0")
+        val rpe = compose.onNode(hasText("RPE (1–10)") and hasSetTextAction())
+        rpe.performScrollTo().performTextReplacement(".")
+        compose.onNodeWithText("Save", substring = false).assertIsNotEnabled()
+        compose.onNodeWithText("Enter a valid number").performScrollTo().assertIsDisplayed()
+        compose.assertEditorHeaderVisibleWithKeyboard("Edit Set · ${exercise.name}", "Cancel set editing")
+        val instrumentation = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+        val device = androidx.test.uiautomator.UiDevice.getInstance(instrumentation)
+        val titleBounds = checkNotNull(device.findObject(androidx.test.uiautomator.By.text("Edit Set · ${exercise.name}"))).visibleBounds
+        val statusBounds = checkNotNull(device.findObject(androidx.test.uiautomator.By.res("com.android.systemui", "status_bar"))).visibleBounds
+        assertTrue("Set title must stay below the native status bar: $titleBounds versus $statusBounds", titleBounds.top >= statusBounds.bottom)
+        val saveLabelBounds = checkNotNull(device.findObject(androidx.test.uiautomator.By.text("Save"))).visibleBounds
+        val titleLayout = compose.onNodeWithText("Edit Set · ${exercise.name}").getUnclippedBoundsInRoot()
+        val saveLayout = compose.onNodeWithText("Save", substring = false).getUnclippedBoundsInRoot()
+        val saveLabelLayout = compose.onNodeWithText("Save", substring = false, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val density = instrumentation.targetContext.resources.displayMetrics.density
+        // A disabled Compose Button may expose only its label to Android accessibility.
+        // The complete, visible title supplies the editor root's actual screen offset.
+        val rootScreenY = titleBounds.top - titleLayout.top.value * density
+        val saveBottom = rootScreenY + saveLayout.bottom.value * density
+        val imeBounds = android.graphics.Rect().also { bounds ->
+            checkNotNull(instrumentation.uiAutomation.windows.singleOrNull {
+                it.type == android.view.accessibility.AccessibilityWindowInfo.TYPE_INPUT_METHOD
+            }).getBoundsInScreen(bounds)
+        }
+        assertTrue("Complete Save must remain above the keyboard: bottom=$saveBottom versus $imeBounds",
+            saveBottom <= imeBounds.top && saveLabelBounds.height() >= (saveLabelLayout.bottom - saveLabelLayout.top).value * density - 1f)
+        captureVisualCatalogSurface("fresh.gym.set-invalid-optional")
+        rpe.performTextReplacement("8.5")
+        compose.onNodeWithText("Save", substring = false).performClick()
+        compose.runOnIdle { assertEquals(0, saved?.restSeconds); assertEquals(8.5, saved?.rpe ?: -1.0, 0.0) }
+    }
+
     private val compose = createComposeRule()
     @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 

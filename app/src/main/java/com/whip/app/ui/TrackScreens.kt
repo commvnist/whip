@@ -609,7 +609,7 @@ internal fun TrackAreaContent(
                 -> if (maxWidth >= 760.dp) {
                     Column(Modifier.fillMaxSize()) {
                         WhipWorkspaceHeader(
-                            summary = if (workspaceDestination == TrackWorkspaceDestination.Archived) "Archived Tracks" else "${state.active.size} tracks · Reusable logs",
+                            summary = if (workspaceDestination == TrackWorkspaceDestination.Archived) "Archived Tracks" else "${quantityLabel(state.active.size, "track")} · Reusable logs",
                             onBack = { closeArchive() }.takeIf { workspaceDestination == TrackWorkspaceDestination.Archived },
                         ) {
                             WhipWorkspaceMore("More Track Options") { close ->
@@ -1447,7 +1447,7 @@ private fun AllTracksPage(
     }
     Column(Modifier.fillMaxSize()) {
         if (!masterPane) WhipWorkspaceHeader(
-                summary = if (showArchived) "Archived Tracks" else "${source.size} tracks · Reusable logs",
+                summary = if (showArchived) "Archived Tracks" else "${quantityLabel(source.size, "track")} · Reusable logs",
                 onBack = onBackFromArchive.takeIf { showArchived },
             ) {
                 if (!reordering) {
@@ -1905,6 +1905,7 @@ private fun TrackDetailPage(
                 onOpenEntries = { clearEntrySearchRequest++; onDestinationChange(TrackDetailDestination.Entries) },
                 dialogModifier = dialogModifier,
                 reviewScopeState = reviewScopeState,
+                onEditEntry = onEditEntry,
             )
             TrackDetailDestination.Options -> TrackOptionsPage(
                 projection,
@@ -2378,6 +2379,7 @@ private fun TrackEntryDetailsDialog(
     val units = BuiltInUnits.all + customUnits
     EntityInspector(
         entityType = "Track Entry",
+        stateKey = entry.entry.uuid,
         title = projection.entryDisplayTitle(entry, BuiltInUnits.all + customUnits),
         emoji = projection.track.icon,
         context = "${projection.track.name} · ${entry.entry.entryDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
@@ -2423,8 +2425,10 @@ private fun TrackInsightsPage(
     onOpenEntries: () -> Unit,
     dialogModifier: Modifier = Modifier,
     reviewScopeState: MutableState<TrackReviewScope>,
+    onEditEntry: (Long) -> Unit,
 ) {
     // Keep offscreen field disclosures outside LazyColumn's prunable item state.
+    var viewedEntryUuid by rememberSaveable(projection.track.uuid) { mutableStateOf<String?>(null) }
     var expandedTrendFields by rememberSaveable(projection.track.id) { mutableStateOf<Set<String>>(emptySet()) }
     var trendPages by rememberSaveable(projection.track.id) { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var filterOpen by rememberSaveable(projection.track.id) { mutableStateOf(false) }
@@ -2570,9 +2574,29 @@ private fun TrackInsightsPage(
                     onShowData = { expanded -> expandedTrendFields = if (expanded) expandedTrendFields + field.uuid else expandedTrendFields - field.uuid },
                     page = trendPages[field.uuid] ?: 0,
                     onPage = { page -> trendPages = trendPages + (field.uuid to page) },
+                    entryTitle = { projection.entryDisplayTitle(it, BuiltInUnits.all + customUnits) },
+                    onOpenEntry = { viewedEntryUuid = it.entry.uuid },
                 )
             }
         }
+    }
+    viewedEntryUuid?.let { uuid ->
+        val entry = projection.entries.firstOrNull { it.entry.uuid == uuid }
+        if (entry != null) TrackEntryDetailsDialog(
+            modifier = dialogModifier,
+            projection = projection,
+            entry = entry,
+            customUnits = customUnits,
+            editable = !projection.track.archived,
+            onDismiss = { viewedEntryUuid = null },
+            onEdit = { onEditEntry(entry.entry.id) },
+        ) else PaneAwareAlertDialog(
+            modifier = dialogModifier,
+            onDismissRequest = { viewedEntryUuid = null },
+            title = { Text("Entry Unavailable") },
+            text = { Text("This Entry is no longer in the Track. Your Insights scope is still here.") },
+            confirmButton = { WhipTextButton(onClick = { viewedEntryUuid = null }) { Text("Done") } },
+        )
     }
     if (filterOpen) TrackFilterDialog(
         modifier = dialogModifier,

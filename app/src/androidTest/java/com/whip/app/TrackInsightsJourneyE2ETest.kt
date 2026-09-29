@@ -4,6 +4,8 @@ import android.content.Intent
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -12,6 +14,11 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertIsSelected
+import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
@@ -32,6 +39,7 @@ import com.whip.app.domain.UnitDimension
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -43,6 +51,53 @@ class TrackInsightsJourneyE2ETest {
 
     @After
     fun clean() = runBlocking { app.backupRepository.deleteAllData() }
+
+    @Test fun repeatedDateEvidenceOpensAndCorrectsItsExactEntryWithoutLosingInsights() {
+        val projection = runBlocking {
+            app.backupRepository.deleteAllData()
+            app.settingsRepository.update { AppSettings(setupCompleted = true, dynamicColor = false, themeMode = AppThemeMode.Light) }
+            val id = app.trackRepository.create(TrackDraft(name = "Daily observations", fields = listOf(
+                TrackFieldDraft("Name", TrackFieldType.ShortText, primary = true),
+                TrackFieldDraft("Amount", TrackFieldType.Number, dimension = UnitDimension.Volume, unitId = "litre"))))
+            val fields = requireNotNull(app.trackRepository.projection(id)).fields
+            listOf("Morning" to 1.0, "Evening" to 2.0).forEach { (name, value) ->
+                val preparation = requireNotNull(app.trackRepository.prepareEntryCreate(id))
+                app.trackRepository.addEntry(preparation.request, TrackEntryDraft(app.clock.today(), mapOf(
+                    fields[0].uuid to TrackValueDraft(textValue = name),
+                    fields[1].uuid to TrackValueDraft(enteredNumber = value, enteredUnitId = "litre"))))
+            }
+            requireNotNull(app.trackRepository.projection(id))
+        }
+        val target = projection.entries.single { projection.primaryText(it) == "Evening" }
+        val amount = projection.fields.single { it.name == "Amount" }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            compose.onNodeWithContentDescription("Tracks tab").performClick()
+            compose.onNodeWithTag("track-card-${projection.track.id}").performClick()
+            compose.onNodeWithTag("track-destination-Track Insights").performClick()
+            compose.onNodeWithTag("track-review-range-Month").performClick()
+            compose.onNodeWithTag("track-insights-list").performScrollToNode(androidx.compose.ui.test.hasTestTag("track-trend-data-${amount.uuid}"))
+            compose.onNodeWithTag("track-trend-data-${amount.uuid}").performClick()
+            val sourceTag = "track-trend-entry-${amount.uuid}-${target.entry.id}"
+            compose.onNodeWithTag("track-insights-list").performScrollToNode(androidx.compose.ui.test.hasTestTag(sourceTag))
+            compose.onNodeWithTag(sourceTag).performClick()
+            compose.onNodeWithTag("entity-inspector-title").assertTextContains("Evening").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Edit Entry").performClick()
+            compose.onNodeWithTag("track-entry-short-text-${projection.primaryField.uuid}").performTextReplacement("Evening corrected")
+            closeSoftKeyboard()
+            scenario.recreate()
+            compose.onNodeWithTag("track-entry-short-text-${projection.primaryField.uuid}").assertTextContains("Evening corrected")
+            compose.onNodeWithText("Save", substring = false).performClick()
+            compose.waitUntil(5_000) { runBlocking { app.trackRepository.projection(projection.track.id) }?.entries?.any { it.entry.id == target.entry.id && it.value(projection.primaryField.id)?.textValue == "Evening corrected" } == true }
+            compose.onNodeWithTag("entity-inspector-title").assertTextContains("Evening corrected").assertIsDisplayed()
+            captureVisualCatalogSurface("fresh.tracks.exact-evidence-corrected")
+            compose.onNodeWithContentDescription("Close Track Entry details").performClick()
+            compose.onNodeWithTag(sourceTag).assertIsDisplayed()
+            compose.onNodeWithTag("track-insights-list").performScrollToIndex(0)
+            compose.onNodeWithTag("track-review-range-Month").assertIsSelected()
+            val after = runBlocking { requireNotNull(app.trackRepository.projection(projection.track.id)) }
+            assertEquals("Morning", after.primaryText(after.entries.single { it.entry.id != target.entry.id }))
+        }
+    }
 
     @Test
     fun mixedDistanceUnitsUseTheFieldUnitAndPrecisionAcrossInsights() {

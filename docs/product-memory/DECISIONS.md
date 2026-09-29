@@ -1,5 +1,14 @@
 # Durable product and engineering decisions
 
+### DEC-20260929-004 — Fresh overhaul uses stable roles, progressive disclosure and retained context
+
+- Status: Implemented and Verified within the selected scope under IMP-20260929-018 / VER-20260929-015. Related: FB-20260929-014, FND-20260929-027/028/029/030/031/032.
+- Fresh source review and normal/200% originals determine scope; historical audit conclusions are not acceptance evidence. The [plan](../quality/FRESH_APP_OVERHAUL_2026-09-29.md) defines six shared design pillars and maps every accepted remedy to implementation and focused verification.
+- Keep the existing semantic palette, shared workspace geometry, global search entry and collection-first defaults. Improve information hierarchy with concise collection summaries, bounded visual Goal progress, accessible full identity, outcome-first Review and logging-first Gym. Use existing shared cards, inspectors, request receipts and repositories.
+- Child edits retain parent state under stable entity identity. Explicit post-save refresh updates an inspector once; unrelated external definition changes do not silently replace its authored snapshot.
+- Selected backup imports are bounded at 32 MiB including encrypted envelopes. This limits untrusted stream allocation before parsing; exports and private recovery remain uncapped. Valid larger files are rejected with an explicit message. This is not a claim that every smaller JSON object graph is heap-safe.
+- Verification uses exact bounded native methods on disposable emulators and one affected readiness batch. No full-suite campaign or automatic phone release belongs to this goal.
+
 ### DEC-20260929-003 — Give workspace tabs distinct jobs and filters a bounded scope
 
 - Decision, accepted for implementation under FB-20260929-008: Tasks / Today / History; Habits / Today / Insights; Goals / History / Insights; Tracks / Activity / Insights. Gym retains four jobs as Workout / Library / History / Insights. Archive becomes a consistent secondary page through More. The original daily first-entry defaults are Superseded by FB-20260929-010: fresh Tasks/Habits entry selects the first collection tab; explicit Today shortcuts and restored selections retain their meaning.

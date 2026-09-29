@@ -51,7 +51,9 @@ class ReviewJourneyE2ETest {
             scenario.recreate()
             compose.onNodeWithTag("review-track-evidence").performScrollTo()
             assertBothTracks()
-            if (compose.onAllNodesWithTag("review-options-toggle").fetchSemanticsNodes().isNotEmpty()) {
+            if (compose.onAllNodesWithTag("review-compact-dashboard").fetchSemanticsNodes().isNotEmpty()) {
+                compose.onNode(hasScrollAction() and hasAnyAncestor(hasTestTag("review-compact-dashboard")))
+                    .performScrollToNode(hasTestTag("review-options-toggle"))
                 compose.onNodeWithTag("review-options-toggle").performScrollTo().performClick()
             }
             compose.onNodeWithText("Monthly").performScrollTo().performClick()
@@ -68,6 +70,23 @@ class ReviewJourneyE2ETest {
             trackIds.forEach { id -> compose.onNodeWithTag("track-card-$id").performScrollTo().assertIsDisplayed() }
             assertEquals(AreaScope.One(work).storageKey, app.settingsRepository.current().activeAreaScope)
             captureVisualCatalogSurface("shared.review.all-tracks")
+            scenario.recreate()
+            compose.onNodeWithTag("return-to-review").performClick()
+            if (compose.onAllNodesWithTag("review-compact-dashboard").fetchSemanticsNodes().isNotEmpty()) {
+                compose.onNode(hasScrollAction() and hasAnyAncestor(hasTestTag("review-compact-dashboard")))
+                    .performScrollToNode(hasTestTag("review-options-toggle"))
+                compose.onNodeWithTag("review-options-toggle")
+                    .assertTextContains("Productivity: Work", substring = true)
+                compose.onNode(hasScrollAction() and hasAnyAncestor(hasTestTag("review-compact-dashboard")))
+                    .performScrollToNode(hasTestTag("review-signal-Tasks"))
+            } else {
+                compose.onNodeWithText("Productivity: Work", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+            }
+            assertEquals(AreaScope.One(work).storageKey, app.settingsRepository.current().activeAreaScope)
+            compose.onNodeWithTag("review-total-Tasks", useUnmergedTree = true).performScrollTo().assertTextContains("1")
+            compose.onNodeWithTag("review-track-evidence").performScrollTo()
+            assertBothTracks()
+            captureVisualCatalogSurface("fresh.review.area-return")
         }
     }
 

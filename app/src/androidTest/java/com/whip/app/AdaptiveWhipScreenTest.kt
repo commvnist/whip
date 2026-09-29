@@ -1860,7 +1860,7 @@ class AdaptiveWhipScreenTest {
         val cardMetric = compose.onNodeWithTag("goal-card-status-41", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         val cardIdentity = compose.onNodeWithTag("goal-icon-41", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         val cardTitle = compose.onNodeWithTag("goal-card-title-41", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
-        val cardAction = compose.onNodeWithTag("goal-primary-action-41", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val cardAction = compose.onNodeWithTag("goal-expand-41", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         check(kotlin.math.abs(cardMetric.left - cardIdentity.left) <= 1f) {
             "Elapsed status must begin on the identity edge: metric=$cardMetric identity=$cardIdentity"
         }

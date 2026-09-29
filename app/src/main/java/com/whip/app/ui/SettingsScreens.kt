@@ -225,7 +225,10 @@ internal fun SettingsContent(
     var localSection by rememberSaveable { mutableStateOf(SettingsSection.Appearance) }
     var activeTypedSettingTag by rememberSaveable { mutableStateOf<String?>(null) }
     val section = selectedSection ?: localSection
-    val settingsListState = rememberSaveable(section, saver = LazyListState.Saver) { LazyListState() }
+    val settingsListStates = SettingsSection.entries.associateWith {
+        rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
+    }
+    val settingsListState = settingsListStates.getValue(section)
     var observedOperation by remember { mutableStateOf(state.operation) }
     LaunchedEffect(state.operation) {
         val operationChanged = observedOperation != state.operation
@@ -288,6 +291,17 @@ internal fun SettingsContent(
     }
     val settings = state.settings
     val typedSettingMutationState by viewModel.typedSettingMutationState.collectAsStateWithLifecycle()
+    val customEmojiCoordinator = rememberPersistenceRequestCoordinator(
+        state = typedSettingMutationState,
+        consume = viewModel::consumeTypedSettingMutation,
+        requestNamespace = "settings-custom-emoji",
+        onPersisted = { receipt ->
+            customEmojiEditorOpen = false
+            customEmojiEditorOriginal = null
+            typedSettingWarning = receipt.warnings.joinToString(" ").takeIf(String::isNotBlank)
+        },
+        orphanedMessage = "Saving this emoji was interrupted. Your draft is still here; review it and retry.",
+    )
     val notificationRefreshCoordinator = rememberPersistenceRequestCoordinator(
         state = typedSettingMutationState,
         consume = viewModel::consumeTypedSettingMutation,
@@ -1471,7 +1485,7 @@ internal fun SettingsContent(
                 WhipActionDivider()
                 WhipActionRow(
                     title = "Preview and Restore Backup",
-                    supportingText = "Review a saved backup before choosing to merge or replace local data.",
+                    supportingText = "Review a saved backup before choosing to merge or replace local data. Maximum file size: 32 MiB, including encryption.",
                     enabled = !state.busy,
                     onClick = { openDocument.launch(arrayOf("application/json", "text/plain", "*/*")) },
                 )
@@ -1637,6 +1651,7 @@ internal fun SettingsContent(
     )
 
     state.backupPreview?.let { preview ->
+        val restoreMutationState by viewModel.restoreMutationState.collectAsStateWithLifecycle()
         BackupRestorePreviewDialogs(
             preview = preview,
             busy = state.busy,
@@ -1646,6 +1661,8 @@ internal fun SettingsContent(
             onCancel = viewModel::cancelRestore,
             onMerge = viewModel::confirmMerge,
             onReplace = viewModel::confirmRestore,
+            replacementState = restoreMutationState,
+            consumeReplacement = viewModel::consumeRestoreMutation,
         )
     }
     if (showEncryptedExport) {
@@ -1803,14 +1820,18 @@ internal fun SettingsContent(
         CustomIdentityEmojiDialog(
             initial = initial,
             existingChoices = settings.customIdentityEmojis,
+            saving = customEmojiCoordinator.saving,
+            error = customEmojiCoordinator.errorMessage,
             onDismiss = {
                 customEmojiEditorOpen = false
                 customEmojiEditorOriginal = null
+                customEmojiCoordinator.clear()
             },
             onSave = { choice ->
-                viewModel.upsertCustomIdentityEmoji(customEmojiEditorOriginal, choice)
-                customEmojiEditorOpen = false
-                customEmojiEditorOriginal = null
+                val requestId = customEmojiCoordinator.begin()
+                if (requestId != null && !viewModel.upsertCustomIdentityEmojiMutation(requestId, customEmojiEditorOriginal, choice)) {
+                    customEmojiCoordinator.finishFailure("Another setting is still saving. Your emoji draft is here; try again.")
+                }
             },
         )
     }
@@ -1923,23 +1944,22 @@ internal fun BackupRestorePreviewDialogs(
     locale: Locale = Locale.getDefault(),
     onCancel: () -> Unit,
     onMerge: () -> Unit,
-    onReplace: () -> Unit,
+    onReplace: (String) -> Boolean,
+    replacementState: PersistenceRequestState<Unit> = PersistenceRequestState.Idle,
+    consumeReplacement: (String) -> Unit = {},
 ) {
     val cancelLabel = stringResource(R.string.action_cancel)
     val destructiveActionDescription = stringResource(R.string.state_destructive_action)
     val replaceEverythingLabel = stringResource(R.string.action_replace_everything)
     var confirmReplacement by rememberSaveable(preview.exportedAt.toString()) { mutableStateOf(false) }
-    var replacementSubmitted by rememberSaveable(preview.exportedAt.toString()) { mutableStateOf(false) }
-    var replacementObservedBusy by rememberSaveable(preview.exportedAt.toString()) { mutableStateOf(false) }
-    androidx.compose.runtime.LaunchedEffect(busy, replacementSubmitted) {
-        when {
-            replacementSubmitted && busy -> replacementObservedBusy = true
-            replacementSubmitted && replacementObservedBusy && !busy -> {
-                replacementSubmitted = false
-                replacementObservedBusy = false
-            }
-        }
-    }
+    val replacement = rememberPersistenceRequestCoordinator(
+        state = replacementState,
+        consume = consumeReplacement,
+        key = preview.exportedAt.toString(),
+        requestNamespace = "backup-replace",
+        onPersisted = { confirmReplacement = false },
+        orphanedMessage = "The restore was interrupted. Check your current data before trying again.",
+    )
     if (!confirmReplacement) {
         PaneAwareAlertDialog(
             modifier = modifier,
@@ -2045,16 +2065,18 @@ internal fun BackupRestorePreviewDialogs(
             ),
             confirmLabel = replaceEverythingLabel,
             busyLabel = stringResource(R.string.settings_backup_replacing),
-            busy = busy || replacementSubmitted,
-            error = error,
+            busy = busy || replacement.saving,
+            error = replacement.errorMessage ?: error,
             confirmModifier = Modifier.testTag("confirm-replace-everything").semantics {
                 stateDescription = destructiveActionDescription
             },
             onDismiss = { confirmReplacement = false },
             onConfirm = {
-                if (!replacementSubmitted && !busy) {
-                    replacementSubmitted = true
-                    onReplace()
+                if (!busy) {
+                    val requestId = replacement.begin()
+                    if (requestId != null && !onReplace(requestId)) {
+                        replacement.finishFailure("Another operation is still finishing. Wait and try again.")
+                    }
                 }
             },
         )
@@ -2067,10 +2089,15 @@ internal fun CustomIdentityEmojiDialog(
     existingChoices: List<CustomIdentityEmoji>,
     onDismiss: () -> Unit,
     onSave: (CustomIdentityEmoji) -> Unit,
+    saving: Boolean = false,
+    error: String? = null,
 ) {
     val editorKey = initial?.emoji ?: "new-custom-emoji"
     var emoji by rememberSaveable(editorKey) { mutableStateOf(initial?.emoji.orEmpty()) }
     var name by rememberSaveable(editorKey) { mutableStateOf(initial?.name.orEmpty()) }
+    var confirmDiscard by rememberSaveable(editorKey) { mutableStateOf(false) }
+    val dirty = emoji != initial?.emoji.orEmpty() || name != initial?.name.orEmpty()
+    val dismiss = { if (!saving) { if (dirty) confirmDiscard = true else onDismiss() } }
     val normalizedEmoji = emoji.trim()
     val normalizedName = name.trim()
     val isBuiltIn = normalizedEmoji.isDefaultIdentityEmoji()
@@ -2085,10 +2112,13 @@ internal fun CustomIdentityEmojiDialog(
 
     PaneAwareAlertDialog(
         modifier = Modifier.testTag("custom-emoji-editor"),
-        onDismissRequest = onDismiss,
+        onDismissRequest = dismiss,
+        inputBlocked = saving,
+        inputBlockedLabel = "Saving custom emoji",
         title = { Text(if (initial == null) "Add Custom Emoji" else "Edit Custom Emoji") },
         text = {
-            WhipDialogBody {
+            WhipDialogBody(Modifier.verticalScroll(rememberScrollState())) {
+                error?.let { PersistenceFailureNotice(it) }
                 Text(
                     "Your custom choices are available in every Habit, Goal, and Track emoji picker. The common library stays read-only.",
                     style = MaterialTheme.typography.bodySmall,
@@ -2132,12 +2162,17 @@ internal fun CustomIdentityEmojiDialog(
         },
         confirmButton = {
             WhipTextButton(
-                enabled = canSave,
+                enabled = canSave && !saving,
                 onClick = { onSave(CustomIdentityEmoji(normalizedEmoji, normalizedName)) },
                 modifier = Modifier.testTag("custom-emoji-editor-save"),
-            ) { Text(if (initial == null) "Add" else "Save") }
+            ) { Text(if (saving) "Saving…" else if (initial == null) "Add" else "Save") }
         },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(onClick = dismiss, enabled = !saving) { Text("Cancel") } },
+    )
+    if (confirmDiscard) UnsavedChangesDialog(
+        subject = "custom emoji",
+        onKeepEditing = { confirmDiscard = false },
+        onDiscard = { confirmDiscard = false; onDismiss() },
     )
 }
 

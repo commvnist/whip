@@ -26,6 +26,9 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.NavigateNext
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -35,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -51,7 +55,7 @@ import com.whip.app.domain.pearsonCorrelation
 import java.time.LocalDate
 import java.time.ZoneId
 
-private data class ReviewSignal(val name: String, val values: List<Double>)
+private data class ReviewSignal(val name: String, val values: List<Double>, val dates: List<LocalDate>)
 
 private data class ReviewCorrelation(
     val left: String,
@@ -111,6 +115,7 @@ fun ReviewDialog(
 ) {
     var compactOptionsExpanded by rememberSaveable { mutableStateOf(false) }
     var detailedSection by rememberSaveable { mutableStateOf<ReviewSection?>(null) }
+    var correlationsExpanded by rememberSaveable { mutableStateOf(false) }
     val locale = LocalConfiguration.current.locales[0]
     val through = taskState.currentDate
     val start = reviewStartDate(period, through)
@@ -130,7 +135,7 @@ fun ReviewDialog(
             ReviewSection.Habits -> "Habit outcomes"
             ReviewSection.Goals -> "Goal progress"
             ReviewSection.Gym -> if (productivityAreaLabel == null) "Workouts" else "Workouts · All gym data"
-        }, outcomes.dailyReviewValues(section, dates))
+        }, outcomes.dailyReviewValues(section, dates), dates)
     } }
     val signals = allSignals.filter { it.first in availability.readySections }
     val correlationSignals = if (productivityAreaLabel == null) signals else signals.filterNot { it.first == ReviewSection.Gym }
@@ -185,6 +190,8 @@ fun ReviewDialog(
             onDrillDown = onDrillDown,
             onOpenDetails = { detailedSection = it },
             onOpenTracks = onOpenTracks,
+            correlationsExpanded = correlationsExpanded,
+            onCorrelationsExpandedChange = { correlationsExpanded = it },
         )
     }
 
@@ -202,7 +209,7 @@ fun ReviewDialog(
     BackHandler { if (detailedSection != null) detailedSection = null else onDismiss() }
     WhipFullScreenSurface(title = "Review & Trends", modifier = modifier) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
-            val useWideDashboard = maxWidth >= 720.dp && maxHeight >= 440.dp
+            val useWideDashboard = maxWidth >= 720.dp * LocalDensity.current.fontScale.coerceAtLeast(1f) && maxHeight >= 440.dp
             if (useWideDashboard) {
                 ReviewWideDashboard(
                     availableWidth = maxWidth,
@@ -454,6 +461,8 @@ private fun ReviewOverview(
     onDrillDown: (ReviewSection) -> Unit,
     onOpenDetails: (ReviewSection) -> Unit,
     onOpenTracks: () -> Unit,
+    correlationsExpanded: Boolean,
+    onCorrelationsExpandedChange: (Boolean) -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().testTag("review-overview"),
@@ -466,15 +475,15 @@ private fun ReviewOverview(
             } else rangeLabel,
         )
         ReviewAvailabilityNotice(availability, retryActions)
-        trackEvidence?.let { evidence ->
-            TrackEvidenceCard(evidence = evidence, rangeLabel = rangeLabel, onOpenTracks = onOpenTracks)
-        }
         if (!hasReviewData && availability.outcomesComplete) {
             WhipEmptyState(
                 title = "No Outcomes in This View",
                 supportingText = "Try another period or include more sections in Review Options. " +
                     "Complete a Task, reach a Habit target, record Goal progress, or finish a Workout to add an outcome.",
             )
+            trackEvidence?.let { evidence ->
+                TrackEvidenceCard(evidence = evidence, rangeLabel = rangeLabel, onOpenTracks = onOpenTracks)
+            }
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
@@ -490,12 +499,18 @@ private fun ReviewOverview(
             }
             return@Column
         }
-        if (includedSections.isEmpty()) return@Column
+        if (includedSections.isEmpty()) {
+            trackEvidence?.let { evidence ->
+                TrackEvidenceCard(evidence = evidence, rangeLabel = rangeLabel, onOpenTracks = onOpenTracks)
+            }
+            return@Column
+        }
         BoxWithConstraints(Modifier.fillMaxWidth().testTag("review-signal-grid")) {
             val visibleSignals = allSignals.filter { it.first in includedSections }
+            val readableWidth = maxWidth / LocalDensity.current.fontScale.coerceAtLeast(1f)
             val columns = when {
-                maxWidth >= 1_240.dp && visibleSignals.size >= 4 -> 4
-                maxWidth >= 620.dp && visibleSignals.size >= 2 -> 2
+                readableWidth >= 1_240.dp && visibleSignals.size >= 4 -> 4
+                readableWidth >= 620.dp && visibleSignals.size >= 2 -> 2
                 else -> 1
             }
             Column(
@@ -518,8 +533,17 @@ private fun ReviewOverview(
                 }
             }
         }
-        WhipGroupedInformationCard {
-            Text("30-Day Correlations", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        trackEvidence?.let { evidence ->
+            TrackEvidenceCard(evidence = evidence, rangeLabel = rangeLabel, onOpenTracks = onOpenTracks)
+        }
+        DisclosureRow(
+            title = "30-Day Correlations",
+            supportingText = if (correlations.isEmpty()) "Not enough observations yet" else "${correlations.size} comparisons · Association, not causation",
+            expanded = correlationsExpanded,
+            onClick = { onCorrelationsExpandedChange(!correlationsExpanded) },
+            modifier = Modifier.testTag("review-correlations-toggle"),
+        )
+        if (correlationsExpanded) WhipGroupedInformationCard {
             Text(
                 "Correlations show association, not causation. Each comparison needs at least seven observed days.",
                 style = MaterialTheme.typography.bodySmall,
@@ -598,10 +622,11 @@ private fun ReviewSignalCard(
             .clickable(onClickLabel = "Open ${signal.name} details") { onOpen(section) },
     ) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(signal.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Text(totalText, modifier = Modifier.testTag("review-total-${section.name}"), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(signal.name, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = "Open ${signal.name} details")
             }
+            Text(totalText, modifier = Modifier.testTag("review-total-${section.name}"), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
             if (signal.name == "Goal progress") {
                 Text(
                     "Normalized progress score; partial progress counts proportionally.",
@@ -613,6 +638,17 @@ private fun ReviewSignalCard(
                 values = signal.values,
                 modifier = Modifier.fillMaxWidth().height(56.dp).semantics { contentDescription = chartDescription },
             )
+            val firstDate = signal.dates.firstOrNull()
+            val lastDate = signal.dates.lastOrNull()
+            if (firstDate != null && lastDate != null) {
+                val dateFormat = java.time.format.DateTimeFormatter.ofPattern("MMM d", locale)
+                Text(
+                    "${firstDate.format(dateFormat)}–${lastDate.format(dateFormat)} · Daily scale: 0–${formatReviewNumber(signal.values.maxOrNull()?.takeIf { it > 0.0 } ?: 1.0, locale)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("review-scale-${section.name}"),
+                )
+            }
         }
     }
 }

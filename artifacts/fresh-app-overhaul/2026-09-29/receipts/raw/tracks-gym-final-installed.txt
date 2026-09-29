@@ -1,0 +1,4 @@
+Final readiness APK pair installed in place on guarded emulator-5558.
+commvne.com.whip.app.debug: SHA-256 592c97310cef5e37076d9e71a5069d9b887a21e4c41eb5eb86c27acd6fe6a7b2; installed bytes match artifact.
+commvne.com.whip.app.debug.test: SHA-256 39f1e4c5074f36d657032f68c4653e8da8f754040aea667021bfb9e66cbaf762; installed bytes match artifact.
+Android font_scale restored to 1.0 after actual 2.0 captures.

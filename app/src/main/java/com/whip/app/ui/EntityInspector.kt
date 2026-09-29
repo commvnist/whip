@@ -98,6 +98,7 @@ internal fun EntityInspector(
     primaryAction: EntityInspectorPrimaryAction? = null,
     inputBlocked: Boolean = false,
     inputBlockedLabel: String = "Saving",
+    stateKey: String? = null,
     content: @Composable () -> Unit,
 ) {
     val placement = LocalWhipDialogPlacement.current
@@ -167,7 +168,7 @@ internal fun EntityInspector(
                             .testTag("entity-inspector-content-$selectedSectionId")
                             .padding(horizontal = 20.dp, vertical = 16.dp),
                     ) {
-                        sectionStateHolder.SaveableStateProvider("$paneDescription::$selectedSectionId") {
+                        sectionStateHolder.SaveableStateProvider("${stateKey ?: paneDescription}::$selectedSectionId") {
                             content()
                         }
                     }

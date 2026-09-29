@@ -21,6 +21,78 @@ class GymLibraryJourneyE2ETest {
     private val app: WhipApplication get() = ApplicationProvider.getApplicationContext()
     @After fun clean() = runBlocking { app.backupRepository.deleteAllData() }
 
+    @Test fun workoutLoggingPrecedesAdministrationAndOptionsRetainActionsAndTotals() {
+        val setId = runBlocking {
+            prepare()
+            val exercise = app.gymRepository.createExercise(ExerciseDraft("Goblet Squat"))
+            val session = app.gymRepository.startWorkout("Full Body")
+            val placement = app.gymRepository.addExerciseToWorkout(session, exercise)
+            app.gymRepository.addSet(placement, WorkoutSetDraft(weight = 24.0, reps = 10))
+        }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use {
+            compose.onNodeWithContentDescription("Gym tab").performClick()
+            compose.onNodeWithTag("quick-set-load-$setId").assertIsDisplayed()
+            compose.onNodeWithTag("quick-set-reps-$setId").assertIsDisplayed()
+            compose.onNodeWithTag("add-exercise-to-active-workout").assertDoesNotExist()
+            compose.onNodeWithContentDescription("Workout options").performClick()
+            compose.onNodeWithText("Edit Workout", substring = false).assertIsDisplayed()
+            compose.onNodeWithText("Add Exercise", substring = false).assertIsDisplayed()
+            compose.onNodeWithText("Arrange Workout", substring = false).assertIsDisplayed()
+            compose.onNodeWithText("Show Workout Totals").performClick()
+            compose.onNodeWithTag("active-workout-totals").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Workout options").performClick()
+            compose.onNodeWithText("Hide Workout Totals").performClick()
+            compose.onNodeWithTag("active-workout-totals").assertDoesNotExist()
+            compose.onNodeWithText("Hide Workout Totals").assertDoesNotExist()
+            captureVisualCatalogSurface("fresh.gym.logging-hierarchy")
+            compose.onNodeWithTag("quick-set-save-next-$setId").performScrollTo().performClick()
+            compose.waitUntil(5_000) { runBlocking { app.gymRepository.sets.first() }.single { it.id == setId }.completed }
+        }
+    }
+
+    @Test fun historicalSetCorrectionPreservesBothSessionsAndRejectsAStaleEdit() {
+        val (finishedId, setId, activeId) = runBlocking {
+            prepare()
+            val exercise = app.gymRepository.createExercise(ExerciseDraft("History press"))
+            val finished = app.gymRepository.startWorkout("Earlier workout")
+            val placement = app.gymRepository.addExerciseToWorkout(finished, exercise)
+            val set = app.gymRepository.addSet(placement, WorkoutSetDraft(weight = 40.0, reps = 5, completed = true))
+            app.gymRepository.finishWorkout(finished)
+            Triple(finished, set, app.gymRepository.startWorkout("Current workout"))
+        }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            compose.onNodeWithContentDescription("Gym tab").performClick()
+            compose.onNodeWithTag("gym-destination-History").performClick()
+            compose.waitUntil(5_000) {
+                runBlocking { app.gymRepository.sessions.first() }.single { it.id == finishedId }.restTimerCleanupPending.not()
+            }
+            val before = runBlocking { app.gymRepository.sessions.first().associateBy { it.id } }
+            compose.onNodeWithTag("history-workout-toggle-$finishedId").performScrollTo().performClick()
+            compose.onNodeWithTag("history-set-edit-$setId").performScrollTo().performClick()
+            compose.onNodeWithTag("workout-set-editor-reps").performScrollTo().performTextReplacement("7")
+            closeSoftKeyboard()
+            scenario.recreate()
+            compose.onNodeWithTag("workout-set-editor-reps").performScrollTo().assertTextContains("7")
+            compose.onNodeWithText("Save", substring = false).performClick()
+            compose.waitUntil(5_000) { runBlocking { app.gymRepository.sets.first() }.single { it.id == setId }.repetitions == 7 }
+            compose.onNodeWithTag("history-set-edit-$setId").performScrollTo().assertIsDisplayed()
+            val after = runBlocking { app.gymRepository.sessions.first().associateBy { it.id } }
+            assertEquals(before.getValue(finishedId), after.getValue(finishedId))
+            assertEquals(before.getValue(activeId), after.getValue(activeId))
+            captureVisualCatalogSurface("fresh.gym.history-correction")
+            compose.onNodeWithTag("history-set-edit-$setId").performClick()
+            compose.onNodeWithTag("workout-set-editor-reps").performScrollTo().performTextReplacement("9")
+            runBlocking { app.gymRepository.updateSet(setId, WorkoutSetDraft(weight = 40.0, reps = 8, completed = true)) }
+            closeSoftKeyboard()
+            compose.onNodeWithText("Save", substring = false).performClick()
+            compose.onNode(hasScrollToIndexAction() and hasAnyAncestor(hasTestTag("workout-set-editor")))
+                .performScrollToNode(hasText("This Set changed.", substring = true))
+            compose.waitUntil(5_000) { compose.onAllNodesWithText("This Set changed.", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("workout-set-editor-reps").performScrollTo().assertTextContains("9")
+            assertEquals(8, runBlocking { app.gymRepository.sets.first() }.single { it.id == setId }.repetitions)
+        }
+    }
+
     @Test fun workoutOverviewPreservesChosenDraftAndOwnedDetailsCorrection() {
         val (sessionId, placements) = runBlocking { prepare(); seedDeepSession() }
         val target = runBlocking { app.gymRepository.sets.first() }.first { it.workoutExerciseId == placements[4] }

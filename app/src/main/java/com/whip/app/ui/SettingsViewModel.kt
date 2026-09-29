@@ -19,6 +19,7 @@ import com.whip.app.core.withoutAreaReferences
 import com.whip.app.data.BackupPreview
 import com.whip.app.data.CommittedAreaDeletionCancellation
 import com.whip.app.data.EncryptedBackupCodec
+import com.whip.app.data.readBackupDocument
 import com.whip.app.data.PortableBackupOutcome
 import com.whip.app.data.PortableBackupState
 import com.whip.app.domain.UnitDefinition
@@ -172,6 +173,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _tagMutationState =
         MutableStateFlow<PersistenceRequestState<TagMutationReceipt>>(PersistenceRequestState.Idle)
     internal val tagMutationState = _tagMutationState.asStateFlow()
+    private val _restoreMutationState =
+        MutableStateFlow<PersistenceRequestState<Unit>>(PersistenceRequestState.Idle)
+    internal val restoreMutationState = _restoreMutationState.asStateFlow()
     private var pendingRestoreJson: String? = null
     private var pendingEncryptedRestoreJson: String? = null
     // The document picker can recreate its caller. Keep this secret in configuration-retained
@@ -350,6 +354,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun consumeRestoreMutation(requestId: String) {
+        if ((_restoreMutationState.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
+            _restoreMutationState.value = PersistenceRequestState.Idle
+        }
+    }
+
     /**
      * Admits one authored typed-setting save, commits it durably off the main
      * thread, and publishes a request-scoped terminal result. Observation of a
@@ -416,16 +426,23 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun upsertCustomIdentityEmoji(originalEmoji: String? = null, choice: CustomIdentityEmoji) = update { current ->
+        current.withCustomIdentityEmoji(originalEmoji, choice)
+    }
+
+    fun upsertCustomIdentityEmojiMutation(requestId: String, originalEmoji: String?, choice: CustomIdentityEmoji): Boolean =
+        updateTypedSetting(requestId) { current -> current.withCustomIdentityEmoji(originalEmoji, choice) }
+
+    private fun AppSettings.withCustomIdentityEmoji(originalEmoji: String?, choice: CustomIdentityEmoji): AppSettings {
         val replaceEmoji = originalEmoji ?: choice.emoji
-        val existingIndex = current.customIdentityEmojis.indexOfFirst { it.emoji == replaceEmoji }
+        val existingIndex = customIdentityEmojis.indexOfFirst { it.emoji == replaceEmoji }
         val updatedChoices = if (existingIndex >= 0) {
-            current.customIdentityEmojis.mapIndexed { index, existing ->
+            customIdentityEmojis.mapIndexed { index, existing ->
                 if (index == existingIndex) choice else existing
             }
         } else {
-            current.customIdentityEmojis + choice
+            customIdentityEmojis + choice
         }
-        current.copy(
+        return copy(
             customIdentityEmojis = normalizeCustomIdentityEmojis(updatedChoices),
         )
     }
@@ -908,7 +925,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun previewRestore(uri: Uri) = runIo("Backup validated", workingMessage = "Checking the selected backup", showSuccess = false) {
-        val json = app.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+        pendingRestoreJson = null
+        pendingEncryptedRestoreJson = null
+        runtime.value = runtime.value.copy(preview = null, encryptedRestorePending = false)
+        val json = app.contentResolver.openInputStream(uri)?.readBackupDocument()
             ?: error("Could not read the selected file")
         if (EncryptedBackupCodec.isEncrypted(json)) {
             pendingEncryptedRestoreJson = json
@@ -939,10 +959,23 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         runtime.value = runtime.value.copy(preview = preview)
     }
 
-    fun confirmRestore() = runIo("Backup restored", workingMessage = "Restoring the selected backup", requiresDataAccess = false) {
-        app.restoreBackup(pendingRestoreJson ?: error("Choose a backup first"))
-        pendingRestoreJson = null
-        runtime.value = runtime.value.copy(preview = null)
+    fun confirmRestore(requestId: String): Boolean {
+        if (runtime.value.busy || !_restoreMutationState.tryStartPersistenceRequest(requestId)) return false
+        runIo(
+            "Backup restored",
+            workingMessage = "Restoring the selected backup",
+            requiresDataAccess = false,
+            onSuccess = { _restoreMutationState.value = PersistenceRequestState.Finished(requestId, WhipResult.Success(Unit)) },
+            onFailure = { error ->
+                _restoreMutationState.value = PersistenceRequestState.Finished(requestId,
+                    WhipResult.Failure(error.message ?: "Restore failed. Your selected backup is still here; try again.", error))
+            },
+        ) {
+            app.restoreBackup(pendingRestoreJson ?: error("Choose a backup first"))
+            pendingRestoreJson = null
+            runtime.value = runtime.value.copy(preview = null)
+        }
+        return true
     }
 
     fun confirmMerge() {

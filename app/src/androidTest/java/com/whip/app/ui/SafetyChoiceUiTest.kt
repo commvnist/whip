@@ -29,6 +29,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -45,6 +46,7 @@ import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.test.espresso.Espresso.pressBack
 import com.whip.app.captureVisualCatalogSurface
 import com.whip.app.core.WhipResult
+import com.whip.app.core.PersistenceRequestState
 import com.whip.app.data.BackupPreview
 import com.whip.app.domain.BodyweightLoadPolicy
 import com.whip.app.domain.EstimatedOneRepMaxFormula
@@ -123,6 +125,7 @@ class SafetyChoiceUiTest {
     fun replaceEverythingRequiresFinalConfirmationAndBusyBlocksDuplicates() {
         val replacements = AtomicInteger(0)
         var busy by mutableStateOf(false)
+        var replacementState by mutableStateOf<PersistenceRequestState<Unit>>(PersistenceRequestState.Idle)
         compose.setContent {
             WhipTheme(darkTheme = true, dynamicColor = false) {
                 Surface(
@@ -134,9 +137,12 @@ class SafetyChoiceUiTest {
                         busy = busy,
                         onCancel = {},
                         onMerge = {},
-                        onReplace = {
+                        replacementState = replacementState,
+                        onReplace = { requestId ->
                             replacements.incrementAndGet()
                             busy = true
+                            replacementState = PersistenceRequestState.Running(requestId)
+                            true
                         },
                     )
                 }
@@ -159,28 +165,37 @@ class SafetyChoiceUiTest {
     }
 
     @Test
-    fun replacementFailureStaysInItsConfirmationAndAllowsRetry() {
+    fun replacementTerminalFailureBeforeBusyFrameKeepsRetryAndCancelAcrossRecreation() {
         val replacements = AtomicInteger(0)
-        var busy by mutableStateOf(false)
-        var error by mutableStateOf<String?>(null)
-        compose.setContent {
+        var replacementState by mutableStateOf<PersistenceRequestState<Unit>>(PersistenceRequestState.Idle)
+        val message = "The selected backup could not be restored. Your original data was recovered."
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
             WhipTheme(darkTheme = true, dynamicColor = false) {
                 BackupRestorePreviewDialogs(
-                    preview = preview(), busy = busy, error = error,
+                    preview = preview(), busy = false,
                     onCancel = {}, onMerge = {},
-                    onReplace = { replacements.incrementAndGet(); error = null; busy = true },
+                    replacementState = replacementState,
+                    consumeReplacement = { replacementState = PersistenceRequestState.Idle },
+                    onReplace = { requestId ->
+                        replacements.incrementAndGet()
+                        replacementState = PersistenceRequestState.Finished(requestId, WhipResult.Failure(message))
+                        true
+                    },
                 )
             }
         }
         compose.onNodeWithTag("request-replace-everything").performClick()
-        compose.onNodeWithTag("confirm-replace-everything").performClick().assertIsNotEnabled()
-        compose.runOnIdle { error = "The selected backup could not be restored. Your original data was recovered."; busy = false }
-        compose.waitForIdle()
-        compose.onNodeWithText("The selected backup could not be restored. Your original data was recovered.").assertIsDisplayed()
+        compose.onNodeWithTag("confirm-replace-everything").performClick()
+        compose.onNodeWithText(message).assertIsDisplayed()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithText(message).assertIsDisplayed()
         captureVisualCatalogSurface("settings.restore.failure-retry")
         compose.onNodeWithTag("confirm-replace-everything").assertIsEnabled().performClick()
         assertEquals(2, replacements.get())
-        compose.onNodeWithTag("confirm-replace-everything").assertIsNotEnabled()
+        compose.onNodeWithTag("confirm-replace-everything").assertIsEnabled()
+        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithText("Import This Whip Backup?").assertExists()
     }
 
     @Test
@@ -193,7 +208,7 @@ class SafetyChoiceUiTest {
                     busy = false,
                     onCancel = {},
                     onMerge = {},
-                    onReplace = { replacements.incrementAndGet() },
+                    onReplace = { replacements.incrementAndGet(); true },
                 )
             }
         }
@@ -219,7 +234,7 @@ class SafetyChoiceUiTest {
                         busy = false,
                         onCancel = {},
                         onMerge = {},
-                        onReplace = {},
+                        onReplace = { true },
                     )
                 }
             }

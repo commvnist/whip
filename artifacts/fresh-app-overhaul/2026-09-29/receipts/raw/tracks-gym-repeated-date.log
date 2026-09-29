@@ -1,0 +1,44 @@
+INSTRUMENTATION_STATUS: class=com.whip.app.TrackInsightsJourneyE2ETest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.TrackInsightsJourneyE2ETest:
+INSTRUMENTATION_STATUS: test=repeatedDateEvidenceOpensAndCorrectsItsExactEntryWithoutLosingInsights
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.TrackInsightsJourneyE2ETest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Failed to perform checkIsDisplayed check: Expected at most 1 node but found 2 nodes that satisfy ((Text + InputText + EditableText contains 'Evening' (ignoreCase: false)) && (hasAnyAncestorThat(TestTag = 'track-entry-detail-surface')))
+	at androidx.compose.ui.test.AndroidAssertions_androidKt.checkIsDisplayed(AndroidAssertions.android.kt:35)
+	at androidx.compose.ui.test.AssertionsKt.isDisplayed(Assertions.kt:380)
+	at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:33)
+	at com.whip.app.TrackInsightsJourneyE2ETest.repeatedDateEvidenceOpensAndCorrectsItsExactEntryWithoutLosingInsights(TrackInsightsJourneyE2ETest.kt:83)
+
+INSTRUMENTATION_STATUS: stream=
+Error in repeatedDateEvidenceOpensAndCorrectsItsExactEntryWithoutLosingInsights(com.whip.app.TrackInsightsJourneyE2ETest):
+java.lang.AssertionError: Failed to perform checkIsDisplayed check: Expected at most 1 node but found 2 nodes that satisfy ((Text + InputText + EditableText contains 'Evening' (ignoreCase: false)) && (hasAnyAncestorThat(TestTag = 'track-entry-detail-surface')))
+	at androidx.compose.ui.test.AndroidAssertions_androidKt.checkIsDisplayed(AndroidAssertions.android.kt:35)
+	at androidx.compose.ui.test.AssertionsKt.isDisplayed(Assertions.kt:380)
+	at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:33)
+	at com.whip.app.TrackInsightsJourneyE2ETest.repeatedDateEvidenceOpensAndCorrectsItsExactEntryWithoutLosingInsights(TrackInsightsJourneyE2ETest.kt:83)
+
+INSTRUMENTATION_STATUS: test=repeatedDateEvidenceOpensAndCorrectsItsExactEntryWithoutLosingInsights
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 9.133
+There was 1 failure:
+1) repeatedDateEvidenceOpensAndCorrectsItsExactEntryWithoutLosingInsights(com.whip.app.TrackInsightsJourneyE2ETest)
+java.lang.AssertionError: Failed to perform checkIsDisplayed check: Expected at most 1 node but found 2 nodes that satisfy ((Text + InputText + EditableText contains 'Evening' (ignoreCase: false)) && (hasAnyAncestorThat(TestTag = 'track-entry-detail-surface')))
+	at androidx.compose.ui.test.AndroidAssertions_androidKt.checkIsDisplayed(AndroidAssertions.android.kt:35)
+	at androidx.compose.ui.test.AssertionsKt.isDisplayed(Assertions.kt:380)
+	at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:33)
+	at com.whip.app.TrackInsightsJourneyE2ETest.repeatedDateEvidenceOpensAndCorrectsItsExactEntryWithoutLosingInsights(TrackInsightsJourneyE2ETest.kt:83)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1

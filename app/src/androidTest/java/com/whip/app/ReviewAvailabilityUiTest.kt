@@ -1,6 +1,8 @@
 package com.whip.app
 
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -13,12 +15,39 @@ import com.whip.app.ui.theme.WhipTheme
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Rule
+import org.junit.rules.RuleChain
 import org.junit.Test
 
 /** Controlled source states through the production Home → Review host and retry boundary. */
 class ReviewAvailabilityUiTest {
-    @get:Rule val compose = createComposeRule()
+    private val compose = createComposeRule()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
     private val today = LocalDate.of(2026, 9, 10)
+
+    @AndroidFontScale
+    @Test fun outcomeCardsKeepLongLabelsTotalsAndDailyScaleReadableAtLargeText() {
+        compose.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                ReviewDialog(
+                    taskState = completedTasks(), habitState = HabitUiState(loading = false),
+                    goalState = GoalUiState(loading = false), gymState = GymUiState(loading = false),
+                    trackState = TrackUiState(loading = false), period = ReviewPeriod.Weekly,
+                    productivityAreaLabel = "Work", onPeriodChange = {}, onDismiss = {},
+                )
+            }
+        }
+        compose.onNodeWithTag("review-signal-Gym").performScrollTo().assertIsDisplayed()
+        val card = compose.onNodeWithTag("review-signal-Gym").fetchSemanticsNode().boundsInRoot
+        val title = compose.onNodeWithText("Workouts · All gym data", useUnmergedTree = true)
+        val titleBounds = title.fetchSemanticsNode().boundsInRoot
+        org.junit.Assert.assertTrue(titleBounds.left >= card.left && titleBounds.right <= card.right)
+        val layouts = mutableListOf<TextLayoutResult>()
+        title.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        org.junit.Assert.assertTrue(layouts.none { it.hasVisualOverflow })
+        compose.onNodeWithTag("review-total-Gym", useUnmergedTree = true).assertTextEquals("0")
+        compose.onNodeWithTag("review-scale-Gym", useUnmergedTree = true).assertIsDisplayed()
+        captureVisualCatalogSurface("fresh.review.scaled-outcomes.large")
+    }
 
     @Test fun partialReviewPreservesAvailableOutcomesAndRetriesOnlyUnavailableSources() {
         val habits = mutableStateOf(HabitUiState(loading = true))
@@ -134,6 +163,7 @@ class ReviewAvailabilityUiTest {
             }
         }
         val comparison = hasText("Tasks ↔ Workouts: 1.00 (n=30)")
+        compose.onNodeWithTag("review-correlations-toggle").performScrollTo().performClick()
         compose.onNode(comparison).performScrollTo().assertIsDisplayed()
         captureVisualCatalogSurface("shared.review.available-correlation")
         compose.runOnIdle { gymFailed.value = true }

@@ -1,0 +1,105 @@
+id	severity	message
+ApplySharedPref	Warning	Consider using `apply()` instead; `commit` writes its data to persistent storage immediately, whereas `apply` will handle it in the background
+UnusedAttribute	Warning	Attribute `previewLayout` is only used in API level 31 and higher (current min is 28)
+UnusedAttribute	Warning	Attribute `targetCellHeight` is only used in API level 31 and higher (current min is 28)
+UnusedAttribute	Warning	Attribute `targetCellWidth` is only used in API level 31 and higher (current min is 28)
+UnusedAttribute	Warning	Attribute `previewLayout` is only used in API level 31 and higher (current min is 28)
+UnusedAttribute	Warning	Attribute `targetCellHeight` is only used in API level 31 and higher (current min is 28)
+UnusedAttribute	Warning	Attribute `targetCellWidth` is only used in API level 31 and higher (current min is 28)
+VisibleForTests	Warning	This method should only be accessed from tests or within private scope
+VisibleForTests	Warning	This method should only be accessed from tests or within private scope
+VisibleForTests	Warning	This method should only be accessed from tests or within private scope
+VisibleForTests	Warning	This method should only be accessed from tests or within private scope
+VisibleForTests	Warning	This method should only be accessed from tests or within private scope
+ConfigurationScreenWidthHeight	Warning	Using Configuration.screenHeightDp instead of LocalWindowInfo.current.containerSize
+ConfigurationScreenWidthHeight	Warning	Using Configuration.screenHeightDp instead of LocalWindowInfo.current.containerSize
+ConfigurationScreenWidthHeight	Warning	Using Configuration.screenWidthDp instead of LocalWindowInfo.current.containerSize
+LocalContextResourcesRead	Warning	Reading Resources using LocalContext.current.resources is not configuration-aware and may return stale values if the Configuration changes
+ModifierFactoryExtensionFunction	Warning	Modifier factory functions should be extensions on Modifier
+ModifierFactoryExtensionFunction	Warning	Modifier factory functions should be extensions on Modifier
+ModifierParameter	Warning	Modifier parameter should be the first optional parameter
+ModifierParameter	Warning	Modifier parameter should be the first optional parameter
+ModifierParameter	Warning	Modifier parameter should be the first optional parameter
+ModifierParameter	Warning	Modifier parameter should be the first optional parameter
+ModifierParameter	Warning	Modifier parameter should be the first optional parameter
+ModifierParameter	Warning	Modifier parameter should be the first optional parameter
+ModifierParameter	Warning	Modifier parameter should be the first optional parameter
+ModifierParameter	Warning	Modifier parameter should be the first optional parameter
+ModifierParameter	Warning	Modifier parameter should be the first optional parameter
+ModifierParameter	Warning	Modifier parameter should be the first optional parameter
+ModifierParameter	Warning	Modifier parameter should be the first optional parameter
+ModifierParameter	Warning	Modifier parameter should be the first optional parameter
+ModifierParameter	Warning	Modifier parameter should be the first optional parameter
+ModifierParameter	Warning	Modifier parameter should be the first optional parameter
+ModifierParameter	Warning	Modifier parameter should be named modifier
+ModifierParameter	Warning	Modifier parameter should be named modifier
+ModifierParameter	Warning	Modifier parameter should be the first optional parameter
+ModifierParameter	Warning	Modifier parameter should be named modifier
+ModifierParameter	Warning	Modifier parameter should be named modifier
+ModifierParameter	Warning	Modifier parameter should be named modifier
+ModifierParameter	Warning	Modifier parameter should be the first optional parameter
+ModifierParameter	Warning	Modifier parameter should be named modifier
+ModifierParameter	Warning	Modifier parameter should be the first optional parameter
+ModifierParameter	Warning	Modifier parameter should be named modifier
+ModifierParameter	Warning	Modifier parameter should be the first optional parameter
+ModifierParameter	Warning	Modifier parameter should be the first optional parameter
+ModifierParameter	Warning	Modifier parameter should be the first optional parameter
+MutableCollectionMutableState	Warning	Creating a MutableState object with a mutable collection type
+MutableCollectionMutableState	Warning	Creating a MutableState object with a mutable collection type
+PluralsCandidate	Warning	Formatting %d followed by words ("mapped"): This should probably be a plural rather than a string
+PluralsCandidate	Warning	Formatting %d followed by words ("complete"): This should probably be a plural rather than a string
+PluralsCandidate	Warning	Formatting %d followed by words ("items"): This should probably be a plural rather than a string
+PluralsCandidate	Warning	Formatting %d followed by words ("More"): This should probably be a plural rather than a string
+PluralsCandidate	Warning	Formatting %d followed by words ("Entries"): This should probably be a plural rather than a string
+AutoboxingStateCreation	Hint	Prefer `mutableLongStateOf` instead of `mutableStateOf`
+AutoboxingStateCreation	Hint	Prefer `mutableIntStateOf` instead of `mutableStateOf`
+AutoboxingStateCreation	Hint	Prefer `mutableIntStateOf` instead of `mutableStateOf`
+AutoboxingStateCreation	Hint	Prefer `mutableIntStateOf` instead of `mutableStateOf`
+AutoboxingStateCreation	Hint	Prefer `mutableIntStateOf` instead of `mutableStateOf`
+AutoboxingStateCreation	Hint	Prefer `mutableIntStateOf` instead of `mutableStateOf`
+AutoboxingStateCreation	Hint	Prefer `mutableIntStateOf` instead of `mutableStateOf`
+AutoboxingStateCreation	Hint	Prefer `mutableIntStateOf` instead of `mutableStateOf`
+AutoboxingStateCreation	Hint	Prefer `mutableIntStateOf` instead of `mutableStateOf`
+AutoboxingStateCreation	Hint	Prefer `mutableLongStateOf` instead of `mutableStateOf`
+AutoboxingStateCreation	Hint	Prefer `mutableLongStateOf` instead of `mutableStateOf`
+AutoboxingStateCreation	Hint	Prefer `mutableIntStateOf` instead of `mutableStateOf`
+AutoboxingStateCreation	Hint	Prefer `mutableIntStateOf` instead of `mutableStateOf`
+AutoboxingStateCreation	Hint	Prefer `mutableIntStateOf` instead of `mutableStateOf`
+DisableBaselineAlignment	Warning	Set `android:baselineAligned="false"` on this element for better performance
+DisableBaselineAlignment	Warning	Set `android:baselineAligned="false"` on this element for better performance
+UnusedResources	Warning	The resource `R.string.settings_reset_confirm_message` appears to be unused
+UnusedResources	Warning	The resource `R.string.settings_resetting` appears to be unused
+UnusedResources	Warning	The resource `R.string.settings_backup_replace_pane_title` appears to be unused
+UnusedResources	Warning	The resource `R.string.settings_backup_replace_warning` appears to be unused
+UnusedResources	Warning	The resource `R.string.widget_retry_refresh` appears to be unused
+UnusedResources	Warning	The resource `R.string.widget_stop` appears to be unused
+UnusedResources	Warning	The resource `R.string.widget_stop_habit` appears to be unused
+UnusedResources	Warning	The resource `R.plurals.widget_more_tasks` appears to be unused
+UnusedResources	Warning	The resource `R.plurals.widget_more_habits` appears to be unused
+UnusedResources	Warning	The resource `R.plurals.widget_tasks_due` appears to be unused
+UnusedResources	Warning	The resource `R.plurals.widget_habits_due` appears to be unused
+UnusedResources	Warning	The resource `R.string.action_more` appears to be unused
+UnusedResources	Warning	The resource `R.color.widget_outline_variant` appears to be unused
+UnusedResources	Warning	The resource `R.color.widget_error` appears to be unused
+UnusedResources	Warning	The resource `R.drawable.widget_ic_checklist` appears to be unused
+TypographyDashes	Warning	Replace "-" with an "en dash" character (–, &#8211;) ?
+UseKtx	Warning	Use the KTX extension function `String.toUri` instead?
+UseKtx	Warning	Use the KTX extension function `String.toUri` instead?
+UseKtx	Warning	Use the KTX extension function `SharedPreferences.edit` instead?
+UseKtx	Warning	Use the KTX extension function `String.toUri` instead?
+UseKtx	Warning	Use the KTX extension function `SharedPreferences.edit` instead?
+UseKtx	Warning	Use the KTX extension function `String.toUri` instead?
+UseKtx	Warning	Use the KTX extension function `SharedPreferences.edit` instead?
+UseKtx	Warning	Use the KTX extension function `String.toUri` instead?
+UseKtx	Warning	Use the KTX extension function `String.toUri` instead?
+UseKtx	Warning	Use the KTX extension function `String.toUri` instead?
+UseKtx	Warning	Use the KTX extension function `SharedPreferences.edit` instead?
+UseKtx	Warning	Use the KTX extension function `String.toUri` instead?
+UseKtx	Warning	Use the KTX extension function `String.toUri` instead?
+UseKtx	Warning	Use the KTX extension function `String.toUri` instead?
+UseKtx	Warning	Use the KTX extension function `String.toUri` instead?
+UseKtx	Warning	Use the KTX extension function `String.toUri` instead?
+UseKtx	Warning	Use the KTX extension function `String.toUri` instead?
+UseKtx	Warning	Use the KTX extension function `String.toUri` instead?
+RtlSymmetry	Warning	When you define `paddingStart` you should probably also define `paddingEnd` for right-to-left symmetry
+RtlSymmetry	Warning	When you define `paddingStart` you should probably also define `paddingEnd` for right-to-left symmetry

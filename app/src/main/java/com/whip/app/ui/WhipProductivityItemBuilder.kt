@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -35,6 +36,7 @@ internal class WhipProductivityItemScope internal constructor() {
     internal var area: Pair<String, String>? = null
     internal var edit: (() -> Unit)? = null
     internal var summary = emptyList<WhipItemInformationLine>()
+    internal var summaryContent: (@Composable () -> Unit)? = null
     internal var details = emptyList<WhipItemInformationLine>()
     internal var notice: (@Composable () -> Unit)? = null
     internal var disclosure: WhipItemDisclosure? = null
@@ -44,6 +46,7 @@ internal class WhipProductivityItemScope internal constructor() {
     fun area(id: String?, name: String) { area = id?.let { it to name } }
     fun edit(onClick: (() -> Unit)?) { edit = onClick }
     fun summary(content: WhipItemInformationScope.() -> Unit) { summary = WhipItemInformationScope().apply(content).lines }
+    fun summaryContent(content: @Composable () -> Unit) { summaryContent = content }
     fun details(content: WhipItemInformationScope.() -> Unit) { details = WhipItemInformationScope().apply(content).lines }
     fun notice(content: @Composable () -> Unit) { notice = content }
     fun disclosure(expanded: Boolean, tag: String? = null, onToggle: (() -> Unit)?) {
@@ -71,6 +74,7 @@ internal fun WhipProductivityItemContent(
     primaryActionModifier: Modifier = Modifier,
     editModifier: Modifier = Modifier,
     titleCompleted: Boolean = false,
+    compact: Boolean = false,
     content: WhipProductivityItemScope.() -> Unit,
 ) {
     val item = WhipProductivityItemScope().apply(content)
@@ -83,7 +87,10 @@ internal fun WhipProductivityItemContent(
                 itemName, modifier = titleModifier.weight(1f),
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
                 color = completionTextColor(titleCompleted), textDecoration = completionTextDecoration(titleCompleted),
-                textAlign = TextAlign.Start, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Start,
+                // Enlarged text must not hide the identity behind the fixed action slots.
+                maxLines = if (LocalDensity.current.fontScale >= 1.5f) Int.MAX_VALUE else 2,
+                overflow = TextOverflow.Ellipsis,
             )
             if (disclosure != null) {
                 IconButton(
@@ -102,8 +109,9 @@ internal fun WhipProductivityItemContent(
                 Box(primaryActionModifier.width(action.width).heightIn(min = 48.dp), contentAlignment = Alignment.Center) { action.content() }
             }
         }
-        if (disclosure != null && !disclosure.expanded) {
+        if (compact || (disclosure != null && !disclosure.expanded)) {
             InformationLines(item.summary)
+            item.summaryContent?.invoke()
         } else {
             if (disclosure != null) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(WhipCardGeometry.contentGap)) {

@@ -69,6 +69,8 @@ internal fun TrackRecordedTrend(
     onShowData: (Boolean) -> Unit,
     page: Int,
     onPage: (Int) -> Unit,
+    entryTitle: (TrackEntryProjection) -> String,
+    onOpenEntry: (TrackEntryProjection) -> Unit,
 ) {
     val points = remember(field, entries) { trackReviewSeries(field, entries) }
     val format = remember(field, units) { TrackInsightNumberFormat(field, units) }
@@ -88,6 +90,7 @@ internal fun TrackRecordedTrend(
             val days = (last.toEpochDay() - first.toEpochDay()).coerceAtLeast(1)
             val description = "${points.size} observations. ${first.format(dateFormat)} to ${last.format(dateFormat)}. Range ${format.format(min)} to ${format.format(max)}."
             Text(description, style = MaterialTheme.typography.bodySmall)
+            Text("${format.format(min)} – ${format.format(max)}", style = MaterialTheme.typography.labelMedium)
             val color = MaterialTheme.colorScheme.primary
             Canvas(Modifier.fillMaxWidth().height(140.dp).semantics { contentDescription = description }) {
                 val inset = 4.dp.toPx()
@@ -111,7 +114,13 @@ internal fun TrackRecordedTrend(
                         val unit = units.firstOrNull { it.id == original?.enteredUnitId }
                         original?.enteredNumber?.let(::plainNumericValue).orEmpty() + " " + (unit?.symbol ?: original?.enteredUnitId).orEmpty()
                     } else original?.scaleValue?.let(::formatTrackScaleValue).orEmpty()
-                    Text("${point.entry.entry.entryDate.format(dateFormat)} · ${value.trim()}", style = MaterialTheme.typography.bodySmall)
+                    NavigationRow(
+                        title = entryTitle(point.entry),
+                        preserveTitleCase = true,
+                        supportingText = "${point.entry.entry.entryDate.format(dateFormat)} · ${value.trim()}",
+                        onClick = { onOpenEntry(point.entry) },
+                        modifier = Modifier.testTag("track-trend-entry-${field.uuid}-${point.entry.entry.id}"),
+                    )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     WhipTextButton(enabled = displayedPage > 0, onClick = { onPage(displayedPage - 1) }) { Text("Newer Values") }

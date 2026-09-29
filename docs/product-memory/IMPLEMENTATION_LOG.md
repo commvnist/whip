@@ -1,5 +1,15 @@
 # Implementation history
 
+### IMP-20260929-018 — Implement the fresh full-app experience and design overhaul
+
+- Related: FB-20260929-014, FND-20260929-027/028/029/030/031/032, DEC-20260929-004; verification VER-20260929-015. [Final plan and 24-remedy matrix](../quality/FRESH_APP_OVERHAUL_2026-09-29.md), [original images and receipts](../../artifacts/fresh-app-overhaul/2026-09-29/README.md).
+- Three Astra/high reviewers independently audit current productivity, Tracks/Gym and shell workflows; three GPT-6.1 Sol/xHigh agents finish integration/acceptance at the owner's request. The parent reviews shared/external entry and coordinates implementation. All 176 source dispositions and accepted keeps are grounded in current source or fresh originals; previous audit conclusions provide no acceptance.
+- Productivity uses concise shared summaries, truthful skipped/history states, inline numeric/prerequisite errors, complete enlarged identity, measured Goal actions and neutral bounded visual progress. Goal Review/Items become obvious; elapsed Reset is secondary. Child definition/reset/history workflows retain selected inspector context under stable UUID keys, with a scoped one-time Goal refresh after committed child editing.
+- Tracks opens named exact Entry evidence and retains analysis context. Gym preserves malformed raw drafts, protects dirty/error states, edits historical Sets directly under their owning finished-session boundary, rejects stale overwrite and preserves unrelated active work. The compact workout hierarchy puts logging first while keeping complete metrics/setup available. Track counts reuse the existing singular/plural formatter.
+- Home retains daily summary geometry through zero/loading/failure; Review leads with readable scaled outcomes and restores originating Area. Search respects actual keyboard focus. Settings restores category positions, retains visible Area queries and custom emoji drafts, and publishes terminal request-scoped restore receipts for retry/cancel. New selected-file I/O clears older candidates and bounds UTF-8 import to 32 MiB without changing export/recovery behavior.
+- Shared primary editors own explicit system/IME insets. The global toolbar reserves the actual measured two-line Gym identity height for every destination, with exact normal/200% geometry acceptance. Existing cards, inspectors, repositories and receipt coordinators remain the shared owners; no new dependency, generic state framework, schema, data epoch or backup-format change.
+- Status: Implemented and Verified within the selected acceptance scope. All 24 accepted remedies are delivered; no phone release or Play qualification belongs to this goal.
+
 ### IMP-20260929-017 — Preserve task-card identity when editing the first recurrence
 
 - Related: FB-20260929-013, FND-20260929-026, DEC-20260831-016; verification VER-20260929-014.

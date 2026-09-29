@@ -611,10 +611,6 @@ internal fun UnifiedSearchDialog(
                                 onDismiss()
                                 true
                             }
-                            event.type == KeyEventType.KeyDown && event.key == Key.Enter && results.isNotEmpty() -> {
-                                onSelect(results.first())
-                                true
-                            }
                             else -> false
                         }
                     },

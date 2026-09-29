@@ -1,0 +1,19 @@
+{
+  "native_logs": 64,
+  "method_attempts": 68,
+  "passed_attempts": 53,
+  "failed_attempts": 14,
+  "incomplete_attempts": 1,
+  "distinct_passed_methods": 39,
+  "distinct_after_baseline": 39,
+  "distinct_behavioral_methods": 37,
+  "distinct_visual_methods": 2,
+  "invocations": {
+    "passed": 49,
+    "failed": 14,
+    "incomplete": 1
+  },
+  "baseline_invocations": 4,
+  "non_native_logs_excluded": 15,
+  "raw_native_logs": 29
+}

@@ -1,0 +1,6 @@
+# Preserve native capture/protocol bytes, including their original CRLF endings.
+*.xml -text whitespace=cr-at-eol
+*.log -text whitespace=cr-at-eol
+*.txt -text whitespace=cr-at-eol
+# A final empty TSV field is meaningful; its delimiter is not stray whitespace.
+*.tsv -text whitespace=-blank-at-eol

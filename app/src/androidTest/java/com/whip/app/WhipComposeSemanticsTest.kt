@@ -171,7 +171,7 @@ class WhipComposeSemanticsTest {
     }
 
     @Test
-    fun elapsedGoalResetWorksFromHomeOnTheFirstTap() {
+    fun elapsedGoalResetWorksFromHomeExpandedDetails() {
         val app = ApplicationProvider.getApplicationContext<WhipApplication>()
         val originalStart = Instant.now().minusSeconds(12 * 60 * 60)
         val goalId = runBlocking {
@@ -189,10 +189,8 @@ class WhipComposeSemanticsTest {
             .putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
         launchMainActivity(intent).use {
             compose.onNodeWithTag("home-list").performScrollToNode(hasTestTag("goal-card-$goalId"))
-            compose.onNode(
-                hasText("Reset") and hasAnyAncestor(hasTestTag("goal-primary-action-$goalId")),
-                useUnmergedTree = true,
-            ).performClick()
+            compose.onNodeWithTag("goal-expand-$goalId", useUnmergedTree = true).performClick()
+            compose.onNodeWithTag("goal-card-reset-$goalId", useUnmergedTree = true).performScrollTo().performClick()
             compose.onNodeWithText("Reset Recovery Counter?").assertIsDisplayed()
             compose.onNodeWithText("Reset to Now").performClick()
 
