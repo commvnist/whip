@@ -73,6 +73,56 @@ class SettingsResponsiveUiTest {
 
     @AndroidFontScale
     @Test
+    fun backupOverviewKeepsRecoveryVisibleAndAdministrationRestorable() {
+        val app: WhipApplication = ApplicationProvider.getApplicationContext()
+        val viewModel = SettingsViewModel(app)
+        var state by mutableStateOf(SettingsUiState(settings = AppSettings(setupCompleted = true)))
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                SettingsContent(state, PaddingValues(), viewModel, selectedSection = SettingsSection.DataPrivacy)
+            }
+        }
+        val list = compose.onNodeWithTag("settings-list")
+        compose.onNodeWithText("No backup folder configured").assertIsDisplayed()
+        list.performScrollToNode(androidx.compose.ui.test.hasText("Save Passphrase-Encrypted Backup"))
+        compose.onNodeWithText("Save Passphrase-Encrypted Backup").performClick()
+        compose.onNodeWithTag("backup-export-passphrase").assertIsDisplayed()
+        pressBack()
+        compose.runOnIdle {
+            state = state.copy(portableBackup = com.whip.app.data.PortableBackupState(
+                folderUri = "content://synthetic/folder", folderLabel = "Synthetic test folder", automaticEnabled = true))
+        }
+        list.performScrollToNode(hasTestTag("backup-protection-summary"))
+        compose.onNodeWithText("Folder connected · No verified backup yet").assertIsDisplayed()
+        captureVisualCatalogSurface("experience.settings.backup-unverified.native200")
+        compose.runOnIdle { state = state.copy(portableBackup = state.portableBackup.copy(
+            lastBackupAtMillis = 1_790_640_000_000, lastBackupFileName = "synthetic-backup.whip.json", lastError = "Folder access expired")) }
+        list.performScrollToNode(androidx.compose.ui.test.hasText("Reconnect or Change Folder"))
+        compose.onNodeWithText("Reconnect or Change Folder").assertIsDisplayed()
+        captureVisualCatalogSurface("experience.settings.backup-warning.native200")
+        list.performScrollToNode(hasTestTag("backup-folder-disclosure"))
+        compose.onNodeWithTag("backup-folder-disclosure").performClick()
+        list.performScrollToNode(androidx.compose.ui.test.hasText("Automatic daily backup"))
+        compose.onNodeWithText("Automatic daily backup").assertIsDisplayed()
+        restoration.emulateSavedInstanceStateRestore()
+        list.performScrollToNode(androidx.compose.ui.test.hasText("Automatic daily backup"))
+        compose.onNodeWithText("Automatic daily backup").assertIsDisplayed()
+        list.performScrollToNode(hasTestTag("csv-export-disclosure"))
+        compose.onNodeWithTag("csv-export-disclosure").performClick()
+        list.performScrollToNode(androidx.compose.ui.test.hasText("Export Tracks CSV"))
+        compose.onNodeWithText("Export Tracks CSV").assertIsEnabled()
+        compose.runOnIdle { state = state.copy(busy = true) }
+        list.performScrollToNode(androidx.compose.ui.test.hasText("Export Tracks CSV"))
+        compose.onNodeWithText("Export Tracks CSV").assertIsNotEnabled()
+        compose.runOnIdle { state = state.copy(busy = false, portableBackup = state.portableBackup.copy(lastError = null)) }
+        list.performScrollToNode(hasTestTag("backup-protection-summary"))
+        compose.onNodeWithText("Automatic daily backup is on").assertIsDisplayed()
+        captureVisualCatalogSurface("experience.settings.backup-verified.native200")
+    }
+
+    @AndroidFontScale
+    @Test
     fun encryptedBackupInputsKeepSecretKeyboardAndExplainMismatchAtLargeText() {
         val app: WhipApplication = ApplicationProvider.getApplicationContext()
         val restoration = StateRestorationTester(compose)
@@ -119,6 +169,8 @@ class SettingsResponsiveUiTest {
                     selectedSection = SettingsSection.DataPrivacy)
             }
         }
+        compose.onNodeWithTag("settings-list").performScrollToNode(hasTestTag("csv-export-disclosure"))
+        compose.onNodeWithTag("csv-export-disclosure").performClick()
         compose.onNodeWithTag("settings-list").performScrollToNode(androidx.compose.ui.test.hasText("Export Tracks CSV"))
         compose.onNodeWithText("Export Tracks CSV").assertIsDisplayed()
         captureVisualCatalogSurface("audit2.settings.deep-operation.before")
@@ -693,6 +745,8 @@ class SettingsResponsiveUiTest {
         compose.onNodeWithTag("settings-wide-section-list")
             .performScrollToNode(hasTestTag("settings-section-Data & Privacy"))
         compose.onNodeWithTag("settings-section-Data & Privacy").performClick()
+        compose.onNodeWithTag("settings-list").performScrollToNode(hasTestTag("csv-export-disclosure"))
+        compose.onNodeWithTag("csv-export-disclosure").performClick()
         compose.runOnIdle { busy = true }
         listOf("Tasks", "Habits", "Goals", "Gym", "Tracks").forEach { label ->
             compose.onNodeWithTag("settings-list")

@@ -45,14 +45,14 @@ class TaskDayPlannerUiTest {
         compose.onNodeWithText("Already planned across all Areas: 100 minutes").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Preview Plan").performScrollTo().performClick()
         compose.onNodeWithText("Proposed: 1 of 1 new tasks · 130 of 240 minutes total").performScrollTo().assertExists()
-        compose.onNodeWithTag("task-day-plan-apply").performScrollTo().performClick()
+        compose.onNodeWithTag("task-day-plan-apply").performClick()
         compose.onAllNodesWithTag("task-day-plan-apply").assertCountEquals(0) // Entire form is shielded during the request.
         compose.runOnIdle { assertEquals(1, calls); mutation.value = PersistenceRequestState.Finished(requireNotNull(request), WhipResult.Failure("Today changed; review capacity")) }
-        compose.onNodeWithTag("task-day-plan-error").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("task-day-plan-error").assertIsDisplayed()
             .assertContentDescriptionContains("Today changed; review capacity", substring = true)
         compose.onNodeWithText("Proposed: 1 of 1 new tasks · 130 of 240 minutes total").performScrollTo().assertExists()
-        captureVisualCatalogSurface("ux-audit2.task-day-plan.failure")
-        compose.onNodeWithTag("task-day-plan-apply").performScrollTo().assertIsEnabled().performClick()
+        captureVisualCatalogSurface("experience.task-day-plan.failure")
+        compose.onNodeWithTag("task-day-plan-apply").assertIsEnabled().performClick()
         compose.runOnIdle {
             assertEquals(2, calls)
             mutation.value = PersistenceRequestState.Finished(requireNotNull(request), WhipResult.Success(TaskMutationReceipt(
@@ -75,15 +75,20 @@ class TaskDayPlannerUiTest {
         compose.waitUntil(10_000) { automation.windows.any { it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD } }
         compose.onNodeWithTag("task-day-plan-capacity").assertIsDisplayed()
         assertEquals(2f, InstrumentationRegistry.getInstrumentation().targetContext.resources.configuration.fontScale, 0.01f)
-        captureVisualCatalogSurface("ux-audit2.task-day-plan.keyboard.large")
+        captureVisualCatalogSurface("experience.task-day-plan.keyboard.large")
         closeSoftKeyboard()
         compose.onNodeWithText("Preview Plan").performScrollTo().assertIsNotEnabled()
         compose.onNodeWithText("Today's existing plan fills this capacity.", substring = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("task-day-plan-capacity").performScrollTo().performTextReplacement("240")
         closeSoftKeyboard()
         compose.onNodeWithText("Preview Plan").performScrollTo().performClick()
-        compose.onNodeWithTag("task-day-plan-apply").performScrollTo().assertIsDisplayed().assertIsEnabled()
-        captureVisualCatalogSurface("ux-audit2.task-day-plan.short-large")
+        compose.onNodeWithTag("task-day-plan-apply").assertIsDisplayed().assertIsEnabled()
+        compose.onNodeWithText("Proposed:", substring = true).assertIsDisplayed()
+        captureVisualCatalogSurface("experience.task-day-plan.preview.large")
+        compose.onNodeWithTag("task-day-plan-list").performScrollToNode(hasText(candidates.last().task.title))
+        compose.onNodeWithText(candidates.last().task.title).assertIsDisplayed()
+        compose.onNodeWithTag("task-day-plan-apply").assertIsDisplayed().assertIsEnabled()
+        captureVisualCatalogSurface("experience.task-day-plan.short-large")
     }
 
     @Test @AndroidFontScale fun shortLargeTextSelectionKeepsResultsAndCompletionReachable() {
@@ -107,6 +112,41 @@ class TaskDayPlannerUiTest {
         compose.onNodeWithText("Done").performClick()
         compose.onNodeWithTag("workspace-top-app-bar").assertIsDisplayed()
         compose.onNodeWithTag("workspace-search-action").assertIsDisplayed().assertIsEnabled()
+    }
+
+    @Test fun homeAndTodayOpenTheSameRestorablePlanDraft() {
+        val restoration = androidx.compose.ui.test.junit4.StateRestorationTester(compose)
+        val state = TaskUiState(inbox = listOf(task(1, "Inbox action", 30)), currentDate = today, loading = false)
+        restoration.setContent { WhipTheme(dynamicColor = false) {
+            WhipScreen(state = state, onSaveTask = { _, _, _ -> }, onComplete = {}, onSkip = {},
+                onReschedule = { _, _ -> }, onArchive = {}, onReopen = {})
+        } }
+        compose.onNodeWithTag("home-list").performScrollToNode(hasText("Plan My Day"))
+        compose.onNodeWithText("Plan My Day").performClick()
+        compose.onNodeWithTag("task-day-plan-dialog").assertIsDisplayed()
+        compose.onNodeWithTag("task-day-plan-capacity").performScrollTo().performTextReplacement("180")
+        closeSoftKeyboard()
+        compose.onNodeWithText("Preview Plan").performScrollTo().performClick()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithTag("task-day-plan-apply").assertIsEnabled()
+        compose.onNodeWithTag("task-day-plan-capacity").performScrollTo().assertTextContains("180")
+        compose.onNodeWithText("Close").performClick()
+        compose.onNodeWithTag("task-destination-Today").performClick()
+        compose.onNodeWithTag("task-workspace-list").performScrollToNode(hasText("Plan My Day"))
+        compose.onNodeWithText("Plan My Day").performClick()
+        compose.onNodeWithTag("task-day-plan-apply").assertIsDisplayed().assertIsEnabled()
+        captureVisualCatalogSurface("experience.task-day-plan.restored")
+        assertApplyAboveSystemBars()
+    }
+
+    private fun assertApplyAboveSystemBars() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val metrics = instrumentation.targetContext.getSystemService(android.view.WindowManager::class.java).currentWindowMetrics
+        val insets = metrics.windowInsets.getInsetsIgnoringVisibility(android.view.WindowInsets.Type.systemBars())
+        val action = compose.onNodeWithTag("task-day-plan-apply").fetchSemanticsNode()
+        val bottom = action.positionOnScreen.y + action.size.height
+        assertTrue("Whole Apply control must stay above the system bar: $bottom, ${metrics.bounds}, $insets",
+            bottom <= metrics.bounds.bottom - insets.bottom)
     }
 
     private fun openPlanner() {

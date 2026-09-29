@@ -80,6 +80,7 @@ internal fun TodayHeader(
     onOpenHabits: () -> Unit,
     showFullHeader: Boolean = true,
     onOpenReview: (() -> Unit)? = null,
+    onPlanDay: (() -> Unit)? = null,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(vertical = WhipSpacing.compact),
@@ -92,7 +93,7 @@ internal fun TodayHeader(
                 style = MaterialTheme.typography.labelLarge,
             )
         }
-        if (showFullHeader || onOpenReview != null) {
+        if (showFullHeader || onOpenReview != null || onPlanDay != null) {
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -105,6 +106,9 @@ internal fun TodayHeader(
                         style = MaterialTheme.typography.displaySmall,
                         fontWeight = FontWeight.Bold,
                     )
+                }
+                onPlanDay?.let { onPlan ->
+                    WhipTextButton(onClick = onPlan) { Text("Plan My Day") }
                 }
                 onOpenReview?.let { onReview ->
                     WhipTextButton(onClick = onReview) { Text("Review & Trends") }

@@ -102,6 +102,7 @@ internal enum class HabitMutationKind {
     PauseDeleted,
     SkipDeleted,
     ValueUnchanged,
+    ChecklistChanged,
 }
 
 internal data class HabitMutationReceipt(
@@ -916,13 +917,20 @@ class HabitViewModel(
             reminders.syncHabit(habitId)
         }
     fun toggleChecklist(habitId: Long, itemId: Long, date: LocalDate, completed: Boolean) =
-        runOperation(
-            "Updating checklist…",
-            "Checklist updated",
-            successFeedbackPresentation = OperationFeedbackPresentation.Inline,
+        toggleChecklist(habitId, itemId, date, completed, null)
+
+    fun toggleChecklist(habitId: Long, itemId: Long, date: LocalDate, completed: Boolean, requestId: String?): Boolean =
+        runAuthoredMutation(
+            running = "Updating checklist…", success = "Checklist updated",
+            requestId = requestId, savedDescription = "checklist change",
         ) {
-            repository.toggleChecklistItem(habitId, itemId, date, completed)
-            reminders.syncHabit(habitId)
+            completeCommittedHabitMutation(
+                commit = {
+                    repository.toggleChecklistItem(habitId, itemId, date, completed)
+                    HabitMutationReceipt(HabitMutationKind.ChecklistChanged, habitId, effectiveDate = date)
+                },
+                followUp = { committed -> committed.withReminderRefresh(reminders, habitId) },
+            )
         }
     fun startTimer(habitId: Long) {
         _operationStatus.value = OperationStatus.Running("Starting timer…")

@@ -51,6 +51,21 @@ class HabitPresentationTest {
         assertFalse(summary, "logged today" in summary)
     }
 
+    @Test fun historySearchKeepsOriginalUnitsDatesNotesAndNeutralEvents() {
+        val habit = habit(HabitTrackingMode.Decimal).copy(unitId = "litre")
+        val log = HabitLog(41, "log-41", habit.id, 250.0, 0.25, "millilitre", HabitLogStatus.Recorded,
+            date.atStartOfDay(java.time.ZoneOffset.UTC).toInstant(), date.minusYears(2), "UTC", 0,
+            "Forgot my bottle", MeasurementSourceType.Manual, null, null, 1, 1)
+        val text = HabitHistoryEvent.Log(log).habitHistorySearchText(habit, date)
+        assertTrue(text, "250" in text && "ml" in text && "2024-09-27" in text && "forgot my bottle" in text)
+        val skip = HabitSkip("skip", habit.id, date.minusDays(2), 10, 1, 1)
+        assertTrue(HabitHistoryEvent.Skip(skip).habitHistorySearchText(habit, date).contains("skipped"))
+        val pause = HabitPause(3, habit.id, date.minusDays(4), date.minusDays(1), "Travel")
+        val pauseText = HabitHistoryEvent.Pause(pause).habitHistorySearchText(habit, date)
+        assertTrue(pauseText, "travel" in pauseText && date.minusDays(1).toString() in pauseText)
+        assertEquals("millilitre", log.enteredUnitId)
+    }
+
     private fun habit(mode: HabitTrackingMode) = Habit(
         id = 1,
         uuid = "habit-1",

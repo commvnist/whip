@@ -111,6 +111,7 @@ class DataPrivacyJourneyE2ETest {
             assertTrue(plain.contains("Export format survives picker"))
 
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Export CSV"))
+            compose.onNodeWithTag("csv-export-disclosure").performClick()
             compose.onNode(hasText("Export Tasks CSV", substring = false) and hasAnyAncestor(hasTestTag("settings-list"))).performClick()
             saveCreatedDocument(csvFileName)
             compose.waitUntil(10_000) { settingsViewModel.uiState.value.message == "CSV saved" }

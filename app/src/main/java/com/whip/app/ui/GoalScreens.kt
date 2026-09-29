@@ -242,7 +242,11 @@ fun GoalAreaContent(
     LaunchedEffect(actionsGoalId, liveActions) {
         if (actionsGoalId != null && actionsSnapshot == null) actionsSnapshot = liveActions
     }
-    val actions = actionsSnapshot
+    // Milestone writes leave the Goal definition unchanged. Refresh their live outcome
+    // without accepting a replacement definition behind an open inspector.
+    val actions = liveActions?.takeIf {
+        it.goal.mutationBoundary() == actionsSnapshot?.goal?.mutationBoundary()
+    } ?: actionsSnapshot
     val liveEditingMeasurementProjection = editingMeasurementGoalId?.let(editorProjectionById::get)
     val liveEditingMeasurementEntry = liveEditingMeasurementProjection?.let { projection ->
         editingMeasurementId?.let { id -> projection.entries.firstOrNull { it.id == id } }
@@ -312,7 +316,8 @@ fun GoalAreaContent(
             key = mutationRequestNamespace,
             requestNamespace = mutationRequestNamespace,
             onPersisted = { receipt ->
-                actionsGoalId = null
+                if (receipt.kind !in setOf(GoalMutationKind.MilestoneChanged, GoalMutationKind.ProgressRecorded,
+                        GoalMutationKind.ProgressUpdated, GoalMutationKind.ProgressDeleted)) actionsGoalId = null
                 recordingGoalId = null
                 editingMeasurementGoalId = null
                 editingMeasurementId = null
@@ -612,6 +617,77 @@ fun GoalAreaContent(
             },
         )
     }
+    actions?.let { projection ->
+        val mutationCoordinator = authoredMutationCoordinator ?: return@let
+        val boundary = projection.goal.mutationBoundary()
+        fun beginMutation(action: (String) -> Boolean) {
+            val requestId = mutationCoordinator.begin() ?: return
+            if (!action(requestId)) {
+                mutationCoordinator.finishFailure("Another Goal change is already finishing.")
+            }
+        }
+        GoalActionsDialog(
+            projection,
+            modifier = modifier,
+            zoneId = editorState.activeZoneId,
+            nowMillis = editorState.nowMillis,
+            customUnits = editorState.customUnits,
+            onDismiss = {
+                mutationCoordinator.clear()
+                actionsGoalId = null
+            },
+            onEditMeasurement = { entry ->
+                mutationCoordinator.leaveGoalActionSurface {
+                    editingMeasurementGoalId = projection.goal.id
+                    editingMeasurementId = entry.id
+                }
+            },
+            onRecordProgress = {
+                mutationCoordinator.leaveGoalActionSurface {
+                    recordingGoalId = projection.goal.id
+                }
+            },
+            onResetElapsed = {
+                mutationCoordinator.leaveGoalActionSurface {
+                    resettingElapsedGoalId = projection.goal.id
+                    actionsGoalId = null
+                }
+            },
+            onEdit = {
+                mutationCoordinator.leaveGoalActionSurface {
+                    editingGoalId = projection.goal.id
+                    actionsGoalId = null
+                }
+            },
+            onToggleMilestone = { milestone, completed ->
+                beginMutation { viewModel.toggleMilestone(milestone, completed, it) }
+            },
+            onDuplicate = { beginMutation { viewModel.duplicate(boundary, it) } },
+            onPin = { beginMutation { viewModel.setPinned(boundary, !projection.goal.pinned, it) } },
+            onPause = {
+                beginMutation {
+                    viewModel.setStatus(
+                        boundary,
+                        if (projection.goal.status == GoalStatus.Paused) GoalStatus.Active else GoalStatus.Paused,
+                        it,
+                    )
+                }
+            },
+            onComplete = { beginMutation { viewModel.setStatus(boundary, GoalStatus.Completed, it) } },
+            onAbandon = { beginMutation { viewModel.setStatus(boundary, GoalStatus.Abandoned, it) } },
+            onReopen = { beginMutation { viewModel.setStatus(boundary, GoalStatus.Active, it) } },
+            onArchive = { beginMutation { viewModel.setArchived(boundary, !projection.goal.archived, it) } },
+            onDelete = {
+                mutationCoordinator.leaveGoalActionSurface {
+                    viewModel.preparePermanentDeletion(projection.goal.id)
+                    deleteCandidateGoalId = projection.goal.id
+                    actionsGoalId = null
+                }
+            },
+            mutationSaving = mutationCoordinator.saving,
+            mutationError = mutationCoordinator.errorMessage,
+        )
+    }
     resettingElapsed?.let { projection ->
         val mutationCoordinator = authoredMutationCoordinator ?: return@let
         val boundary = projection.goal.mutationBoundary()
@@ -690,76 +766,6 @@ fun GoalAreaContent(
             },
         )
     }
-    actions?.let { projection ->
-        val mutationCoordinator = authoredMutationCoordinator ?: return@let
-        val boundary = projection.goal.mutationBoundary()
-        fun beginMutation(action: (String) -> Boolean) {
-            val requestId = mutationCoordinator.begin() ?: return
-            if (!action(requestId)) {
-                mutationCoordinator.finishFailure("Another Goal change is already finishing.")
-            }
-        }
-        GoalActionsDialog(
-            projection,
-            modifier = modifier,
-            zoneId = editorState.activeZoneId,
-            nowMillis = editorState.nowMillis,
-            customUnits = editorState.customUnits,
-            onDismiss = {
-                mutationCoordinator.clear()
-                actionsGoalId = null
-            },
-            onEditMeasurement = { entry ->
-                mutationCoordinator.leaveGoalActionSurface {
-                    editingMeasurementGoalId = projection.goal.id
-                    editingMeasurementId = entry.id
-                    actionsGoalId = null
-                }
-            },
-            onRecordProgress = {
-                mutationCoordinator.leaveGoalActionSurface {
-                    recordingGoalId = projection.goal.id
-                    actionsGoalId = null
-                }
-            },
-            onResetElapsed = {
-                mutationCoordinator.leaveGoalActionSurface {
-                    resettingElapsedGoalId = projection.goal.id
-                    actionsGoalId = null
-                }
-            },
-            onEdit = {
-                mutationCoordinator.leaveGoalActionSurface {
-                    editingGoalId = projection.goal.id
-                    actionsGoalId = null
-                }
-            },
-            onDuplicate = { beginMutation { viewModel.duplicate(boundary, it) } },
-            onPin = { beginMutation { viewModel.setPinned(boundary, !projection.goal.pinned, it) } },
-            onPause = {
-                beginMutation {
-                    viewModel.setStatus(
-                        boundary,
-                        if (projection.goal.status == GoalStatus.Paused) GoalStatus.Active else GoalStatus.Paused,
-                        it,
-                    )
-                }
-            },
-            onComplete = { beginMutation { viewModel.setStatus(boundary, GoalStatus.Completed, it) } },
-            onAbandon = { beginMutation { viewModel.setStatus(boundary, GoalStatus.Abandoned, it) } },
-            onReopen = { beginMutation { viewModel.setStatus(boundary, GoalStatus.Active, it) } },
-            onArchive = { beginMutation { viewModel.setArchived(boundary, !projection.goal.archived, it) } },
-            onDelete = {
-                mutationCoordinator.leaveGoalActionSurface {
-                    viewModel.preparePermanentDeletion(projection.goal.id)
-                    deleteCandidateGoalId = projection.goal.id
-                    actionsGoalId = null
-                }
-            },
-            mutationSaving = mutationCoordinator.saving,
-            mutationError = mutationCoordinator.errorMessage,
-        )
-    }
     deleteCandidateGoalId?.let { candidateId ->
         val mutationCoordinator = authoredMutationCoordinator ?: return@let
         val impact = goalDeletionImpact?.takeIf { it.goalId == candidateId }
@@ -826,6 +832,12 @@ internal fun GoalProjection.collectionStatus(
         else -> goal.type.displayLabel()
     }
 }
+
+internal fun GoalProjection.offersCompletion(): Boolean =
+    !goal.archived && goal.status == GoalStatus.Active && terminalSnapshot == null &&
+        goal.type in setOf(GoalType.ReachValue, GoalType.ReduceValue, GoalType.AccumulateTotal,
+            GoalType.MeetAverage, GoalType.Consistency, GoalType.WeightedMilestones) &&
+        progress?.let { it.isFinite() && it >= 1.0 } == true
 
 @Composable
 fun GoalCard(
@@ -969,78 +981,88 @@ fun GoalCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                projection.milestones.forEach { milestone ->
-                    val milestoneEditable = !goal.archived && goal.status == GoalStatus.Active
-                    val milestoneModifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 48.dp)
-                        .testTag("goal-milestone-${milestone.id}")
-                        .toggleable(
-                            value = milestone.completed,
-                            enabled = milestoneEditable,
-                            role = Role.Checkbox,
-                            onValueChange = {
-                                onToggleMilestone(goal.milestoneBoundary(milestone), !milestone.completed)
-                            },
+                GoalMilestoneChecklist(projection, onToggleMilestone)
+                if (goal.description.isNotBlank()) Text(goal.description, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun GoalMilestoneChecklist(
+    projection: GoalProjection,
+    onToggleMilestone: (GoalMilestoneBoundary, Boolean) -> Unit,
+    enabled: Boolean = true,
+) {
+    val goal = projection.goal
+    projection.milestones.forEach { milestone ->
+        val milestoneEditable = enabled && !goal.archived && goal.status == GoalStatus.Active
+        val milestoneModifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .testTag("goal-milestone-${milestone.id}")
+            .toggleable(
+                value = milestone.completed,
+                enabled = milestoneEditable,
+                role = Role.Checkbox,
+                onValueChange = {
+                    onToggleMilestone(goal.milestoneBoundary(milestone), !milestone.completed)
+                },
+            )
+            .semantics {
+                contentDescription = if (!milestoneEditable) {
+                    "${milestone.name} is ${if (milestone.completed) "complete" else "not complete"}. Make the Goal active to change milestones"
+                } else if (milestone.completed) {
+                    "Mark milestone ${milestone.name} incomplete"
+                } else "Complete milestone ${milestone.name}"
+            }
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
+            if (stacked) {
+                Column(milestoneModifier) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            milestone.name,
+                            modifier = Modifier.weight(1f),
+                            color = completionTextColor(milestone.completed),
+                            textDecoration = completionTextDecoration(milestone.completed),
                         )
-                        .semantics {
-                            contentDescription = if (!milestoneEditable) {
-                                "${milestone.name} is ${if (milestone.completed) "complete" else "not complete"}. Make the Goal active to change milestones"
-                            } else if (milestone.completed) {
-                                "Mark milestone ${milestone.name} incomplete"
-                            } else "Complete milestone ${milestone.name}"
-                        }
-                    BoxWithConstraints(Modifier.fillMaxWidth()) {
-                        val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
-                        if (stacked) {
-                            Column(milestoneModifier) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        milestone.name,
-                                        modifier = Modifier.weight(1f),
-                                        color = completionTextColor(milestone.completed),
-                                        textDecoration = completionTextDecoration(milestone.completed),
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                    WhipCompletionCheckbox(
-                                        checked = milestone.completed,
-                                        onCheckedChange = null,
-                                        modifier = Modifier.clearAndSetSemantics { },
-                                    )
-                                }
-                                if (milestone.reward.isNotBlank()) {
-                                    Text(
-                                        milestone.reward,
-                                        modifier = Modifier.padding(end = 56.dp),
-                                        style = MaterialTheme.typography.labelSmall,
-                                    )
-                                }
-                            }
-                        } else {
-                            Row(milestoneModifier, verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    milestone.name,
-                                    modifier = Modifier.weight(1f),
-                                    color = completionTextColor(milestone.completed),
-                                    textDecoration = completionTextDecoration(milestone.completed),
-                                )
-                                if (milestone.reward.isNotBlank()) {
-                                    Text(milestone.reward, style = MaterialTheme.typography.labelSmall)
-                                }
-                                Spacer(Modifier.width(8.dp))
-                                WhipCompletionCheckbox(
-                                    checked = milestone.completed,
-                                    onCheckedChange = null,
-                                    modifier = Modifier.clearAndSetSemantics { },
-                                )
-                            }
-                        }
+                        Spacer(Modifier.width(8.dp))
+                        WhipCompletionCheckbox(
+                            checked = milestone.completed,
+                            onCheckedChange = null,
+                            modifier = Modifier.clearAndSetSemantics { },
+                        )
+                    }
+                    if (milestone.reward.isNotBlank()) {
+                        Text(
+                            milestone.reward,
+                            modifier = Modifier.padding(end = 56.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                        )
                     }
                 }
-                if (goal.description.isNotBlank()) Text(goal.description, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                Row(milestoneModifier, verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        milestone.name,
+                        modifier = Modifier.weight(1f),
+                        color = completionTextColor(milestone.completed),
+                        textDecoration = completionTextDecoration(milestone.completed),
+                    )
+                    if (milestone.reward.isNotBlank()) {
+                        Text(milestone.reward, style = MaterialTheme.typography.labelSmall)
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    WhipCompletionCheckbox(
+                        checked = milestone.completed,
+                        onCheckedChange = null,
+                        modifier = Modifier.clearAndSetSemantics { },
+                    )
+                }
             }
         }
     }
@@ -1331,14 +1353,15 @@ private fun GoalInsightEvidence(insights: GoalInsightSummary, projection: GoalPr
 }
 
 @Composable
-private fun GoalMilestoneProgress(projection: GoalProjection) {
+private fun GoalMilestoneProgress(projection: GoalProjection, interactive: Boolean = false) {
     val progress = if (projection.terminalSnapshot != null) projection.terminalSnapshot.progress else projection.progress
     progress?.let { EntityInspectorFact("Weighted Progress", "${formatGoalProgressPercent(it)} complete") }
     Text(
         if (projection.terminalSnapshot != null) {
             "Recorded when this Goal was ${projection.terminalSnapshot.status.label.lowercase()}. Later milestone changes do not change this outcome."
         } else if (!projection.goal.archived && projection.goal.status == GoalStatus.Active) {
-            "Progress reflects each milestone's weight. Expand the Goal in Active Goals to check off milestones."
+            if (interactive) "Check off milestones here. Each contributes its saved weight to progress."
+            else "Open this Goal to check off milestones. Each contributes its saved weight to progress."
         } else {
             "Progress reflects each milestone's weight. Make the Goal active to change milestones."
         },
@@ -2346,7 +2369,8 @@ internal fun GoalMeasurementDialog(
             title = { Text("Delete Progress Update?") },
             text = { Text("This removes the update from the Goal's history and recalculates its progress.") },
             confirmButton = {
-                WhipDestructiveTextButton(onClick = { confirmDelete = false; onDelete() }) {
+                WhipDestructiveTextButton(onClick = { confirmDelete = false; onDelete() },
+                    modifier = Modifier.testTag("goal-measurement-confirm-delete")) {
                     Text("Delete")
                 }
             },
@@ -2513,8 +2537,17 @@ internal fun GoalActionsDialog(
     onDelete: () -> Unit,
     mutationSaving: Boolean = false,
     mutationError: String? = null,
+    onToggleMilestone: (GoalMilestoneBoundary, Boolean) -> Unit = { _, _ -> },
 ) {
-    var visibleMeasurements by rememberSaveable(projection.goal.id) { mutableIntStateOf(25) }
+    var historyQuery by rememberSaveable(projection.goal.id) { mutableStateOf("") }
+    val historyIndex = remember(projection.entries, customUnits, Locale.getDefault()) {
+        projection.entries.map { it to it.goalHistorySearchText(customUnits) }
+    }
+    val normalizedHistoryQuery = historyQuery.trim().lowercase(Locale.ROOT)
+    val matchingMeasurements = remember(historyIndex, normalizedHistoryQuery) {
+        historyIndex.filter { normalizedHistoryQuery in it.second }.map { it.first }
+    }
+    var visibleMeasurements by rememberSaveable(projection.goal.id, normalizedHistoryQuery) { mutableIntStateOf(25) }
     var visibleTrendPoints by rememberSaveable(projection.goal.id) { mutableIntStateOf(25) }
     var showAccessibleTable by rememberSaveable(projection.goal.id) { mutableStateOf(false) }
     var section by rememberSaveable(projection.goal.id) { mutableStateOf(GoalDetailSection.Overview) }
@@ -2607,11 +2640,24 @@ internal fun GoalActionsDialog(
                         }
                     }
                 }
+                if (projection.offersCompletion()) item {
+                    WhipStatusCard(
+                        kind = WhipStatusKind.Success,
+                        title = "Target Reached",
+                        message = "You can keep recording progress or mark this Goal complete. Completing saves this outcome in History.",
+                        actionLabel = "Complete Goal",
+                        onAction = onComplete,
+                        modifier = Modifier.testTag("goal-completion-opportunity"),
+                    )
+                }
                 if (projection.goal.type == GoalType.WeightedMilestones) item {
                     EntityInspectorInformationGroup(
                         title = "Milestone Progress",
                         modifier = Modifier.testTag("goal-inspector-progress-card"),
-                    ) { GoalMilestoneProgress(projection) }
+                    ) {
+                        GoalMilestoneProgress(projection, interactive = true)
+                        GoalMilestoneChecklist(projection, onToggleMilestone, enabled = !mutationSaving)
+                    }
                 }
                 if (projection.goal.type !in setOf(GoalType.ElapsedSince, GoalType.WeightedMilestones)) item {
                     EntityInspectorInformationGroup(
@@ -2729,10 +2775,25 @@ internal fun GoalActionsDialog(
                         item { Text("Milestone progress reflects the current checklist. Completed and abandoned outcomes are retained in Lifecycle History.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     } else {
                         item { WhipSectionHeading("Progress History", modifier = Modifier.padding(top = 8.dp), compact = true) }
+                        if (projection.entries.isNotEmpty()) item { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            WhipSearchField(
+                                label = "Search Progress History", query = historyQuery,
+                                onQueryChange = { historyQuery = it },
+                                hint = "Value, unit, date, or note",
+                                modifier = Modifier.fillMaxWidth().testTag("goal-history-search"),
+                            )
+                            Text("${matchingMeasurements.size} of ${quantityLabel(projection.entries.size, "update")}",
+                                style = MaterialTheme.typography.labelMedium,
+                                modifier = Modifier.testTag("goal-history-result-count"))
+                        } }
+                        if (matchingMeasurements.isEmpty() && historyQuery.isNotBlank()) item {
+                            WhipEmptyState("No Matching Updates", "Try a value, unit, date, or words from a note.",
+                                primaryActionLabel = "Clear Search", onPrimaryAction = { historyQuery = "" })
+                        }
                         if (projection.entries.isEmpty()) item {
                             Text("No progress updates yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        items(projection.entries.take(visibleMeasurements), key = { it.id }) { entry ->
+                        items(matchingMeasurements.take(visibleMeasurements), key = { it.id }) { entry ->
                             EntityInspectorAction(
                                 id = "progress-update-${entry.id}",
                                 label = entry.historyTitle(customUnits),
@@ -2741,11 +2802,11 @@ internal fun GoalActionsDialog(
                                 onClick = { if (entry.isUserEditableGoalUpdate()) onEditMeasurement(entry) },
                             )
                         }
-                        if (visibleMeasurements < projection.entries.size) item {
+                        if (visibleMeasurements < matchingMeasurements.size) item {
                             WhipOutlinedButton(
-                                onClick = { visibleMeasurements = (visibleMeasurements + 25).coerceAtMost(projection.entries.size) },
+                                onClick = { visibleMeasurements = (visibleMeasurements + 25).coerceAtMost(matchingMeasurements.size) },
                                 modifier = Modifier.fillMaxWidth(),
-                            ) { Text("Show More History · ${projection.entries.size - visibleMeasurements} Remaining") }
+                            ) { Text("Show More History · ${matchingMeasurements.size - visibleMeasurements} Remaining") }
                         }
                     }
                 }
@@ -2853,6 +2914,9 @@ private fun GoalProjection.inspectorOutcome(
     }
     else -> "Ready to begin"
 }
+
+internal fun MeasurementEntry.goalHistorySearchText(customUnits: List<UnitDefinition> = emptyList()): String =
+    "$localDate ${historyTitle(customUnits)} ${historySupportingText()}".lowercase(Locale.ROOT)
 
 internal fun MeasurementEntry.historyTitle(customUnits: List<UnitDefinition> = emptyList()): String {
     val valueLabel = enteredValue?.let(::editableNumericValue) ?: status.activityLabel()

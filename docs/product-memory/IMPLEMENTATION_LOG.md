@@ -1,5 +1,14 @@
 # Implementation history
 
+### IMP-20260928-011 — Complete the twelve-group experience overhaul and retain history context
+
+- Related/scope: FB-20260928-007/008, FND-20260928-012/013/014/015, DEC-20260928-004. Parent plus exactly two authorized Astra/high agents assessed 137 current-source workflow dispositions and implemented all twelve accepted groups in the [complete plan](../quality/EXPERIENCE_OVERHAUL_2026-09-28.md).
+- Productivity: Shared actionable Goal milestones and Habit checklists inside inspectors; explicit reached-Goal completion; editable Track starters and actual-renderer disposable preview; saved original-fact Habit/Goal History search and lazy Habit rows. Habit and Goal child history edits/deletions retain their parent, section and query. Track content refresh/recreation retains its requested older window and useful viewport through existing bounded page calls.
+- Home/Tasks/shared: Plan My Day is directly available from Home/Today/Inbox, with lazy candidates, fixed actions, retained draft/error, automatic proposal/error reveal and all-Area workload accounting. Shared non-primary dialogs now respect safe drawing insets as well as keyboard space, after the wider original exposed tablet-taskbar clipping. Primary editor behavior remains unchanged.
+- Gym/Settings/speed: Useful bounded workout launch choices and exact last-session route; searchable routines; protection-first backup/restore hierarchy with administrative disclosures; clock-only Gym elapsed/rest update; prepared global-search queries and content-only source/index ownership. Reuse existing shared controls, request/mutation boundaries and Track field renderer; no speculative abstraction or new dependency.
+- Compatibility: No Room 46/epoch 6/backup 26/release-version change. Preserve original historical values, explicit lifecycle semantics, authored Habit auto-completion settings, actual routine day/equipment constraints and existing backup/request ownership. Architecture documentation now matches the retired Health Connect decision.
+- Status: Implemented; final integration verification and delivery recorded under VER-20260928-007 and the [evidence receipt](../../artifacts/experience-overhaul/2026-09-28/README.md). This source has not been installed on the owner phone; its current private release remains 0.3.82.
+
 ### IMP-20260928-010 — Package the audit and Focus improvements as private update 0.3.82
 
 - Related: FB-20260928-006; IMP-20260928-006/007/008/009; VER-20260928-004/005.

@@ -13,6 +13,13 @@ import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
 
+/** Today describes dated work; planning always draws from the unscheduled Inbox. */
+internal fun SavedTaskFilter.forDayPlanning(source: TaskDestination): SavedTaskFilter = copy(
+    inboxOnly = true,
+    destination = TaskDestination.Inbox.name,
+    dateMode = if (source == TaskDestination.Today) "Any" else dateMode,
+)
+
 /** Date-filter labels describe schedules or actual completion, never a deadline fallback. */
 internal fun ScheduledTask.matchesTaskDateFilter(filter: SavedTaskFilter, today: LocalDate, zoneId: ZoneId): Boolean {
     val date = if (filter.destination == TaskDestination.Completed.name) {

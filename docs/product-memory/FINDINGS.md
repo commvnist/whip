@@ -4,25 +4,27 @@
 
 - Report/source: FB-20260928-008 reports repeated Habit history deletion returning to the collection. Current Habit callbacks call closeHabitActions before opening log/pause editors. Goal measurement editing similarly clears actionsGoalId, and its success handler also dismisses the parent for all non-milestone receipts.
 - Remedy: Preserve parent composition, History selection, query and lazy-list position while a child editor/review is open; render parent before child for correct stacking, clear only the finished child on event receipts, and update live history. Keep whole-entity lifecycle/deletion transitions intentional. Native repeated edits/deletions must assert stored outcomes and retained context.
-- Related/status: EP6 in the current experience plan; accepted, implementation in progress. Track Entry overlays already retain collection context. Gym/Settings review finds child-only Set/editor/row-menu dismissal; complete session deletion intentionally leaves its invalid target and remains in History. These are source-reviewed keeps, not newly executed claims.
+- Related/status: EP6 Implemented and Verified under IMP-20260928-011 / VER-20260928-007. Repeated cleanup/stale-failure/correction and older Track window/recreation have passing native receipts. Gym/Settings review finds child-only Set/editor/row-menu dismissal; complete session deletion intentionally leaves its invalid target and remains in History. These are source-reviewed keeps, not newly executed claims.
+- Track follow-through: Although its overlay correctly preserves the parent, TrackEntriesPage reloads only the first 100 rows after any content-version change. Deleting/correcting an older row after Show More collapses the loaded window and loses its browsing position, including on recreation. Retain a saveable requested row window, reset it only when query/filter/sort scope changes, and refill through the existing bounded repository paging calls. Commit the larger window only after successful Show More; preserve existing stale-query/error ownership. Accepted as the same EP6 repair before editing.
 
 ### FND-20260928-014 — Daily planning discovery and clock-driven work waste user attention
 
 - Current-source observation: Plan My Day is an Inbox-only disclosure; every candidate is eagerly composed inside a single list item, with Apply after all rows. Global Search keys its cross-feature index to whole GymUiState, so non-searchable clock changes trigger rebuilding; query tokenization/ranking repeats per row/comparison. Gym's own tick similarly recalculates non-time summary data.
 - Remedy: ES1/ES2/EGS4 in the [experience plan](../quality/EXPERIENCE_OVERHAUL_2026-09-28.md) provide direct, focused daily planning with lazy candidates/fixed actions and keep clock changes separate from data calculations/indexing. Measure representative work and preserve exact calculation/search/mutation semantics.
-- Related/status: FB-20260928-007, DEC-20260928-004. Confirmed from current owners; accepted before implementation. Source mechanisms are established; no unmeasured frame-rate or latency claim.
+- Related/status: FB-20260928-007, DEC-20260928-004. Implemented and Verified under IMP-20260928-011 / VER-20260928-007, including exact search/calculation equivalence and bounded CPU observations, three planner journeys and fresh originals. No unmeasured frame-rate or startup claim.
+- Visual follow-through: Fresh 1800×2400 planner original reveals bottom action/card clipping behind the tablet taskbar. The shared non-primary ProductivityEditorDialog opts out of platform inset fitting and pads only IME. Accept safe drawing insets at that owner before implementation, preserving primary behavior, with whole-action bounds plus short-keyboard and representative child-dialog verification.
 
 ### FND-20260928-013 — Gym and backup entry screens obscure the next useful action
 
 - Current-source observation: Workout without an active session primarily states absence even for users with routines/history; Routine library offers no search; Data & Privacy puts detailed folder administration ahead of core backup/restore and exposes all CSV actions together.
 - User impact/remedy: EGS1–3 in the [experience plan](../quality/EXPERIENCE_OVERHAUL_2026-09-28.md) provide an actionable returning-user launchpad, searchable routines, and a protection-first backup hierarchy through existing safe commands.
-- Related/status: FB-20260928-007. Confirmed; implementation accepted before edits. Existing persistence/retired product boundaries remain authoritative; fresh rendering and exact checks follow.
+- Related/status: FB-20260928-007. Implemented and Verified under IMP-20260928-011 / VER-20260928-007 with exact routine launch/search, backup state/disclosure/result/export checks and inspected originals. Existing persistence/retired product boundaries remain authoritative.
 
 ### FND-20260928-012 — Productivity discovery and inspectors interrupt the intended workflow
 
 - Current-source observation: Goal milestone and Habit checklist inspectors describe work without offering their existing execution controls; reached finite Goals bury completion in Options. Habit/Goal History requires repeated pagination to locate old evidence. Track authoring exposes its schema without starter guidance or an entry preview.
 - User impact/remedy: EP1–5 in the [experience plan](../quality/EXPERIENCE_OVERHAUL_2026-09-28.md) keep execution in context, make completion discoverable without automating it, make history directly searchable with bounded composition, and help users build a useful Track before saving.
-- Related/status: FB-20260928-007. Confirmed; implementation accepted before edits. Preserve exact mutation boundaries, original history, explicit parent completion and real entry-field semantics.
+- Related/status: FB-20260928-007. Implemented and Verified under IMP-20260928-011 / VER-20260928-007 with four exact JVM rules and six native journeys. Preserve exact mutation boundaries, original history, authored parent-completion policy and real entry-field semantics.
 
 ### FND-20260928-010 — Current productivity projections and edits can change authored meaning
 

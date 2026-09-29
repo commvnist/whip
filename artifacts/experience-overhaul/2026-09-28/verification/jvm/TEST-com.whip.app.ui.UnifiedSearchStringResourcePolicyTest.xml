@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.UnifiedSearchStringResourcePolicyTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-09-29T02:30:56.439Z" hostname="beast" time="0.164">
+  <properties/>
+  <testcase name="composableSearchSurfaceUsesResourcesForFixedDisplayText" classname="com.whip.app.ui.UnifiedSearchStringResourcePolicyTest" time="0.162"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

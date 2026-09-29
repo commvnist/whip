@@ -493,6 +493,12 @@ fun HabitAreaContent(
         HabitActionsDialog(
             item,
             openHistory = historyHabitId == item.habit.id,
+            onChecklist = { habitId, itemId, date, completed ->
+                val requestId = mutationCoordinator.begin()
+                if (requestId != null && !viewModel.toggleChecklist(habitId, itemId, date, completed, requestId)) {
+                    mutationCoordinator.finishFailure("Another Habit change is already finishing.")
+                }
+            },
             customUnits = state.customUnits,
             modifier = modifier,
             onDismiss = {
@@ -506,17 +512,15 @@ fun HabitAreaContent(
             onSchedulePause = {
                 pauseRequestHabitId = item.habit.id
                 editingPauseId = null
-                closeHabitActions()
             },
             onQuick = {
                 if (item.habit.trackingMode in setOf(HabitTrackingMode.Rating, HabitTrackingMode.LogOnly)) {
                     numericLogHabitId = item.habit.id
-                    closeHabitActions()
                 } else {
                     quickHabitAction(item, viewModel) { numericLogHabitId = item.habit.id }
                 }
             },
-            onSkip = { skipConfirmationHabitId = item.habit.id; closeHabitActions() },
+            onSkip = { skipConfirmationHabitId = item.habit.id },
             onUndoSkip = {
                 val requestId = mutationCoordinator.begin()
                 if (requestId != null && !viewModel.undoSkip(item.habit.id, item.date, requestId)) {
@@ -535,18 +539,15 @@ fun HabitAreaContent(
             onAddHistoricalLog = {
                 historicalLogForToday = false
                 historicalLogHabitId = item.habit.id
-                closeHabitActions()
             },
             onEnterDurationManually = {
                 historicalLogForToday = true
                 historicalLogHabitId = item.habit.id
-                closeHabitActions()
             },
-            onEditLog = { log -> editingLogHabitId = item.habit.id; editingLogId = log.id; closeHabitActions() },
+            onEditLog = { log -> editingLogHabitId = item.habit.id; editingLogId = log.id },
             onEditPause = { pause ->
                 pauseRequestHabitId = item.habit.id
                 editingPauseId = pause.id
-                closeHabitActions()
             },
             onArchive = { viewModel.setArchived(item.habit.id, !item.habit.archived); closeHabitActions() },
             onDelete = {
@@ -1236,57 +1237,7 @@ fun HabitProgressCard(
                     }
                 }
                 if (!skipped && !unavailableForCheckIn && habit.trackingMode == HabitTrackingMode.Checklist) {
-                    item.checklistItems.forEach { (checklistItem, completed) ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 48.dp)
-                                .testTag("habit-checklist-item-${checklistItem.id}")
-                                .toggleable(
-                                    value = completed,
-                                    role = Role.Checkbox,
-                                    onValueChange = {
-                                        onChecklist(habit.id, checklistItem.id, item.date, !completed)
-                                    },
-                                )
-                                .semantics {
-                                    contentDescription = if (completed) {
-                                        "Mark checklist item ${checklistItem.name} incomplete"
-                                    } else "Complete checklist item ${checklistItem.name}"
-                                },
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                checklistItem.name,
-                                modifier = Modifier.weight(1f).testTag("habit-checklist-text-${checklistItem.id}"),
-                                color = completionTextColor(completed),
-                                textDecoration = completionTextDecoration(completed),
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Box(
-                                modifier = Modifier.size(48.dp).testTag("habit-checklist-check-${checklistItem.id}"),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                WhipCompletionCheckbox(
-                                    checked = completed,
-                                    onCheckedChange = null,
-                                    modifier = Modifier.clearAndSetSemantics { },
-                                )
-                            }
-                        }
-                    }
-                    val completedItems = item.checklistItems.count { it.second }
-                    val totalItems = item.checklistItems.size
-                    if (totalItems > 0) {
-                        LinearProgressIndicator(
-                            progress = { completedItems.toFloat() / totalItems },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        Text(
-                            "$completedItems / $totalItems items complete",
-                            style = MaterialTheme.typography.labelMedium,
-                        )
-                    }
+                    HabitChecklist(item, onChecklist)
                 }
                 if (!skipped && !unavailableForCheckIn && item.flexibleScheduleTarget != null && item.flexibleScheduleProgress != null) {
                     val target = item.flexibleScheduleTarget
@@ -1334,6 +1285,67 @@ fun HabitProgressCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun HabitChecklist(
+    item: HabitDayProgress,
+    onChecklist: (Long, Long, LocalDate, Boolean) -> Unit,
+    enabled: Boolean = true,
+) {
+    val habit = item.habit
+    item.checklistItems.forEach { (checklistItem, completed) ->
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .testTag("habit-checklist-item-${checklistItem.id}")
+                .toggleable(
+                    value = completed,
+                    enabled = enabled,
+                    role = Role.Checkbox,
+                    onValueChange = {
+                        onChecklist(habit.id, checklistItem.id, item.date, !completed)
+                    },
+                )
+                .semantics {
+                    contentDescription = if (completed) {
+                        "Mark checklist item ${checklistItem.name} incomplete"
+                    } else "Complete checklist item ${checklistItem.name}"
+                },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                checklistItem.name,
+                modifier = Modifier.weight(1f).testTag("habit-checklist-text-${checklistItem.id}"),
+                color = completionTextColor(completed),
+                textDecoration = completionTextDecoration(completed),
+            )
+            Spacer(Modifier.width(8.dp))
+            Box(
+                modifier = Modifier.size(48.dp).testTag("habit-checklist-check-${checklistItem.id}"),
+                contentAlignment = Alignment.Center,
+            ) {
+                WhipCompletionCheckbox(
+                    checked = completed,
+                    onCheckedChange = null,
+                    modifier = Modifier.clearAndSetSemantics { },
+                )
+            }
+        }
+    }
+    val completedItems = item.checklistItems.count { it.second }
+    val totalItems = item.checklistItems.size
+    if (totalItems > 0) {
+        LinearProgressIndicator(
+            progress = { completedItems.toFloat() / totalItems },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            "$completedItems / $totalItems items complete",
+            style = MaterialTheme.typography.labelMedium,
+        )
     }
 }
 
@@ -3001,9 +3013,20 @@ internal fun HabitActionsDialog(
     mutationError: String? = null,
     openHistory: Boolean = false,
     customUnits: List<UnitDefinition> = emptyList(),
+    onChecklist: (Long, Long, LocalDate, Boolean) -> Unit = { _, _, _, _ -> },
 ) {
     val activeZoneId = LocalWhipZone.current
-    var visibleLogs by rememberSaveable(item.habit.id) { mutableIntStateOf(8) }
+    var historyQuery by rememberSaveable(item.habit.id) { mutableStateOf("") }
+    val historyIndex = remember(logs, skips, pauses, item.date, item.habit, customUnits, Locale.getDefault()) {
+        habitHistoryEvents(logs, skips, pauses, item.date).map {
+            it to it.habitHistorySearchText(item.habit, item.date, customUnits)
+        }
+    }
+    val normalizedHistoryQuery = historyQuery.trim().lowercase(Locale.ROOT)
+    val matchingEvents = remember(historyIndex, normalizedHistoryQuery) {
+        historyIndex.filter { normalizedHistoryQuery in it.second }.map { it.first }
+    }
+    var visibleLogs by rememberSaveable(item.habit.id, normalizedHistoryQuery) { mutableIntStateOf(8) }
     val timerElapsedSeconds by rememberHabitTimerElapsedSeconds(item.habit)
     var section by rememberSaveable(item.habit.id, openHistory) {
         mutableStateOf(if (item.habit.archived || openHistory) HabitDetailSection.History else HabitDetailSection.Today)
@@ -3054,14 +3077,16 @@ internal fun HabitActionsDialog(
         inputBlocked = mutationSaving,
         inputBlockedLabel = "Updating Habit",
         content = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
+            LazyColumn(
+                modifier = Modifier.testTag("habit-detail-content"),
                 verticalArrangement = Arrangement.spacedBy(WhipSpacing.screenExpanded),
             ) {
-                PersistenceFailureNotice(mutationError, testTag = "habit-actions-save-problem")
+                if (!mutationError.isNullOrBlank()) item {
+                    PersistenceFailureNotice(mutationError, testTag = "habit-actions-save-problem")
+                }
                 when (section) {
                     HabitDetailSection.Today -> {
-                        WhipGroupedInformationCard(
+                        item { WhipGroupedInformationCard(
                             Modifier.testTag("habit-today-overview"),
                         ) {
                             Text(
@@ -3135,7 +3160,24 @@ internal fun HabitActionsDialog(
                                 )
                             }
                         }
-                        if (skipAvailable) {
+                        }
+                        if (item.habit.trackingMode == HabitTrackingMode.Checklist && item.checklistItems.isNotEmpty()) item {
+                            EntityInspectorInformationGroup(title = "Today's Checklist") {
+                                val editable = item.date == LocalWhipToday.current && !mutationSaving && !item.habit.archived && !item.habit.paused &&
+                                    item.habit.sourceMeasurementId == null &&
+                                    item.dayState !in setOf(HabitDayState.Paused, HabitDayState.Skipped, HabitDayState.NotScheduled)
+                                Text(
+                                    if (editable) {
+                                        if (item.habit.autoCompleteFromItems) "The final item completes today's check-in."
+                                        else "Check items independently, then complete the Habit when you are ready."
+                                    } else "Checklist items are read-only while this Habit is unavailable for today's check-in.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                HabitChecklist(item, onChecklist, enabled = editable)
+                            }
+                        }
+                        if (skipAvailable) item {
                             WhipActionList {
                                 WhipActionRow(
                                     title = "Skip Today",
@@ -3153,58 +3195,70 @@ internal fun HabitActionsDialog(
                         }
                     }
                     HabitDetailSection.History -> {
-                        if (item.habit.sourceMeasurementId == null) {
-                            EntityInspectorAction(
-                                id = "add-past-entry",
-                                label = item.habit.pastCheckInActionLabel(),
-                                onClick = onAddHistoricalLog,
-                                supportingText = "Choose an earlier date and record what happened.",
-                            )
-                        } else {
-                            EntityInspectorGroup(
-                                title = "Linked history",
-                                supportingText = "This history comes from a linked measurement.",
-                            ) {}
+                        item { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (item.habit.sourceMeasurementId == null) {
+                                EntityInspectorAction(
+                                    id = "add-past-entry", label = item.habit.pastCheckInActionLabel(),
+                                    onClick = onAddHistoricalLog,
+                                    supportingText = "Choose an earlier date and record what happened.",
+                                )
+                            } else Text("This history comes from a linked measurement.")
+                            WhipSectionHeading("Habit History", compact = true)
+                            if (historyIndex.isNotEmpty()) {
+                                WhipSearchField(
+                                    label = "Search Habit History", query = historyQuery,
+                                    onQueryChange = { historyQuery = it }, hint = "Value, date, note, skip, or pause",
+                                    modifier = Modifier.fillMaxWidth().testTag("habit-history-search"),
+                                )
+                                Text("${matchingEvents.size} of ${quantityLabel(historyIndex.size, "event")}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    modifier = Modifier.testTag("habit-history-result-count"))
+                            } else Text("Nothing recorded yet.")
+                        } }
+                        if (matchingEvents.isEmpty() && historyQuery.isNotBlank()) item {
+                            WhipEmptyState("No Matching Events", "Try a value, date, or words from a note.",
+                                primaryActionLabel = "Clear Search", onPrimaryAction = { historyQuery = "" })
                         }
-                        val events = habitHistoryEvents(logs, skips, pauses, item.date)
-                        EntityInspectorGroup(
-                            title = "Habit History",
-                            supportingText = if (events.isEmpty()) "Nothing recorded yet." else null,
-                        ) {
-                            events.take(visibleLogs).forEach { event ->
-                                when (event) {
-                                    is HabitHistoryEvent.Log -> EntityInspectorAction(
-                                        id = "log-${event.value.id}",
-                                        label = event.value.activityTitle(item.habit, customUnits),
-                                        supportingText = event.value.activitySupportingText(item.date),
-                                        enabled = event.value.isUserEditable(),
-                                        onClick = { if (event.value.isUserEditable()) onEditLog(event.value) },
-                                    )
-                                    is HabitHistoryEvent.Skip -> EntityInspectorAction(
-                                        id = "skip-${event.value.localDate.toEpochDay()}",
-                                        label = "Skipped · ${event.value.localDate.relativeActivityDate(item.date)}",
-                                        supportingText = "Undo this skip and return the day to its normal schedule.",
-                                        onClick = { onUndoHistoricalSkip(event.value.localDate) },
-                                    )
-                                    is HabitHistoryEvent.Pause -> EntityInspectorAction(
-                                        id = "pause-history-${event.value.id}",
-                                        label = "Paused · ${event.value.displayDateRange()}",
-                                        supportingText = event.value.note.ifBlank {
-                                            "Excluded from check-ins, misses, and reminders · tap to edit"
-                                        },
-                                        onClick = { onEditPause(event.value) },
-                                    )
-                                }
+                        items(matchingEvents.take(visibleLogs), key = { event ->
+                            when (event) {
+                                is HabitHistoryEvent.Log -> "log-${event.value.uuid}"
+                                is HabitHistoryEvent.Skip -> "skip-${event.value.localDate}"
+                                is HabitHistoryEvent.Pause -> "pause-${event.value.id}"
                             }
-                            if (visibleLogs < events.size) EntityInspectorAction(
-                                id = "show-more-history",
-                                label = "Show More History",
-                                supportingText = "${events.size - visibleLogs} earlier event${if (events.size - visibleLogs == 1) "" else "s"}",
-                                onClick = { visibleLogs = (visibleLogs + 25).coerceAtMost(events.size) },
+                        }) { event ->
+                            when (event) {
+                                is HabitHistoryEvent.Log -> EntityInspectorAction(
+                                    id = "log-${event.value.id}",
+                                    label = event.value.activityTitle(item.habit, customUnits),
+                                    supportingText = event.value.activitySupportingText(item.date),
+                                    enabled = event.value.isUserEditable(),
+                                    onClick = { if (event.value.isUserEditable()) onEditLog(event.value) },
+                                )
+                                is HabitHistoryEvent.Skip -> EntityInspectorAction(
+                                    id = "skip-${event.value.localDate.toEpochDay()}",
+                                    label = "Skipped · ${event.value.localDate.relativeActivityDate(item.date)}",
+                                    supportingText = "Undo this skip and return the day to its normal schedule.",
+                                    onClick = { onUndoHistoricalSkip(event.value.localDate) },
+                                )
+                                is HabitHistoryEvent.Pause -> EntityInspectorAction(
+                                    id = "pause-history-${event.value.id}",
+                                    label = "Paused · ${event.value.displayDateRange()}",
+                                    supportingText = event.value.note.ifBlank {
+                                        "Excluded from check-ins, misses, and reminders · tap to edit"
+                                    },
+                                    onClick = { onEditPause(event.value) },
+                                )
+                            }
+                        }
+                        if (visibleLogs < matchingEvents.size) item {
+                            EntityInspectorAction(
+                                id = "show-more-history", label = "Show More History",
+                                supportingText = "${matchingEvents.size - visibleLogs} earlier events",
+                                onClick = { visibleLogs = (visibleLogs + 25).coerceAtMost(matchingEvents.size) },
                             )
                         }
                     }
-                    HabitDetailSection.More -> {
+                    HabitDetailSection.More -> item {
                         if (!item.habit.archived) {
                             EntityInspectorGroup("Whip Home") {
                                 WhipActionList {
@@ -3375,6 +3429,14 @@ internal sealed interface HabitHistoryEvent {
         override val tieBreaker: Long = value.id
     }
 }
+
+internal fun HabitHistoryEvent.habitHistorySearchText(
+    habit: Habit, today: LocalDate, customUnits: List<UnitDefinition> = emptyList(),
+): String = when (this) {
+    is HabitHistoryEvent.Log -> "$effectiveDate ${value.activityTitle(habit, customUnits)} ${value.activitySupportingText(today)}"
+    is HabitHistoryEvent.Skip -> "$effectiveDate Skipped ${value.localDate.relativeActivityDate(today)}"
+    is HabitHistoryEvent.Pause -> "$effectiveDate ${value.endDate} Paused ${value.displayDateRange()} ${value.note}"
+}.lowercase(Locale.ROOT)
 
 internal fun habitHistoryEvents(
     logs: List<HabitLog>,

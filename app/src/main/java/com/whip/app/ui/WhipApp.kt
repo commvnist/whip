@@ -948,6 +948,7 @@ fun WhipScreen(
     val goalDestinationState: MutableState<GoalDestination> = rememberSaveable {
         mutableStateOf(GoalDestination.Active)
     }
+    var taskDayPlannerRequested by rememberSaveable { mutableStateOf(false) }
     var taskPlanningViewRequest by rememberSaveable { mutableStateOf<TaskPlanningView?>(null) }
     var taskEditorOpen by rememberSaveable { mutableStateOf(false) }
     var taskEditorTaskId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -1516,6 +1517,7 @@ fun WhipScreen(
         appDestination = AppDestination.Home
         taskDestination = TaskDestination.Today
         taskPlanningViewRequest = null
+        taskDayPlannerRequested = false
         closeTaskEditor()
         actionItemKey = null
         completedItemKey = null
@@ -2067,6 +2069,11 @@ fun WhipScreen(
                     onOpenHabit = { item -> openHabitIdRequested = item.habit.id },
                     onEditHabit = { item -> editHabitIdRequested = item.habit.id },
                     onOpenTasks = { appDestination = AppDestination.Tasks; taskDestination = TaskDestination.Today },
+                    onPlanDay = {
+                        appDestination = AppDestination.Tasks
+                        taskDestination = TaskDestination.Inbox
+                        taskDayPlannerRequested = true
+                    },
                     onCompleteTask = ::requestCompletion,
                     onOpenTask = { actionItemKey = it.stableKey },
                     onEditTask = ::openTaskEditor,
@@ -2257,6 +2264,8 @@ fun WhipScreen(
                     areaScope = areaScope,
                     onSelectAreaScope = onSelectAreaScope,
                     onTemporarilySelectAreaScope = onTemporarilySelectAreaScope,
+                    dayPlannerRequested = taskDayPlannerRequested,
+                    onDayPlannerRequestConsumed = { taskDayPlannerRequested = false },
                     planningViewRequest = taskPlanningViewRequest,
                     onPlanningViewRequestConsumed = { taskPlanningViewRequest = null },
                     allAreaTaskCount = unscopedTaskState.tasksFor(taskDestination)
@@ -4951,6 +4960,7 @@ private fun HomeContent(
     onOpenHabit: (com.whip.app.domain.HabitDayProgress) -> Unit,
     onEditHabit: (com.whip.app.domain.HabitDayProgress) -> Unit,
     onOpenTasks: () -> Unit,
+    onPlanDay: () -> Unit,
     onCompleteTask: (ScheduledTask) -> Unit,
     onOpenTask: (ScheduledTask) -> Unit,
     onEditTask: (ScheduledTask) -> Unit,
@@ -5094,6 +5104,7 @@ private fun HomeContent(
                     habitState.today.homeHabitSummary()
                 } else HomeHabitSummary(),
                 onOpenTasks = onOpenTasks,
+                onPlanDay = onPlanDay.takeIf { !state.loading && state.errorMessage == null && state.inbox.isNotEmpty() },
                 onOpenHabits = onOpenHabits,
                 showFullHeader = showFullHeader,
                 onOpenReview = onOpenReview.takeIf { hasReviewEvidence && (hasHomeContent || !emptyStateEligible) },
@@ -5778,6 +5789,8 @@ private fun TaskAreaContent(
     areaScope: AreaScope = AreaScope.All,
     onSelectAreaScope: (AreaScope) -> Unit = {},
     onTemporarilySelectAreaScope: (AreaScope) -> Unit = {},
+    dayPlannerRequested: Boolean = false,
+    onDayPlannerRequestConsumed: () -> Unit = {},
     planningViewRequest: TaskPlanningView? = null,
     onPlanningViewRequestConsumed: () -> Unit = {},
     allAreaTaskCount: Int = 0,
@@ -5861,8 +5874,17 @@ private fun TaskAreaContent(
         consume = onAuthoredMutationResultConsumed,
         key = "task-day-plan",
         requestNamespace = "task-day-plan",
-        onPersisted = { dayPlanCandidateKeys = null },
+        onPersisted = {
+            dayPlanCandidateKeys = null
+            showDayPlanner = false
+        },
     )
+    LaunchedEffect(dayPlannerRequested) {
+        if (dayPlannerRequested) {
+            showDayPlanner = true
+            onDayPlannerRequestConsumed()
+        }
+    }
     var taskToolsExpanded by rememberSaveable { mutableStateOf(false) }
     var quickCapture by rememberSaveable { mutableStateOf("") }
     var quickCaptureViewport by remember { mutableStateOf(IntSize.Zero) }
@@ -6039,6 +6061,10 @@ private fun TaskAreaContent(
             calendarMonth = YearMonth.from(selectedDate)
         }
     }
+    val dayPlanFilter = currentFilter.forDayPlanning(destination)
+    val dayPlanCandidates = state.inbox.filter {
+        it.matches(dayPlanFilter, state.currentDate, appSettings.zoneId())
+    }.sortedForWorkspace(sortMode, sortDirection)
     val selectedItems = visibleTasks.filter { it.stableKey in selectedKeys }
     val existingTodayMinutes = dayPlanTodayTasks
         .distinctBy(ScheduledTask::stableKey)
@@ -6206,7 +6232,7 @@ private fun TaskAreaContent(
     Column(
         Modifier
             .fillMaxSize()
-            .then(if (quickMoveCoordinator.saving || dayPlanCoordinator.saving) Modifier.clearAndSetSemantics { } else Modifier),
+            .then(if (quickMoveCoordinator.saving) Modifier.clearAndSetSemantics { } else Modifier),
     ) {
         DestinationTabBar(
             selected = workspaceDestination,
@@ -6579,138 +6605,11 @@ private fun TaskAreaContent(
                 }
             }
         }
-        if (
-            !selectionMode && !reordering &&
-            filtered.isNotEmpty() &&
-            destination == TaskDestination.Inbox
-        ) {
+        if (!selectionMode && !reordering && state.inbox.isNotEmpty() &&
+            destination in setOf(TaskDestination.Inbox, TaskDestination.Today)) {
             item {
-                DisclosureRow(
-                    title = "Plan My Day",
-                    supportingText = "Build a realistic plan from your available time.",
-                    expanded = showDayPlanner,
-                    onClick = {
-                        if (!dayPlanCoordinator.saving) {
-                            showDayPlanner = !showDayPlanner
-                            if (!showDayPlanner) dayPlanCandidateKeys = null
-                        }
-                    },
-                )
-                if (showDayPlanner) Card(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            "Capacity includes Today tasks across all Areas. Candidates follow this Inbox's Area and filters, ranked by priority then deadline. Unknown durations count as 30 minutes.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        OutlinedTextField(
-                            dayCapacityText,
-                            { dayCapacityText = it },
-                            label = { Text("Daily Capacity in Minutes") },
-                            enabled = !dayPlanCoordinator.saving,
-                            isError = dayCapacityText.toIntOrNull()?.let { it in 1..1440 } != true,
-                            supportingText = if (dayCapacityText.toIntOrNull()?.let { it in 1..1440 } != true) {
-                                { Text("Enter 1–1440 minutes.") }
-                            } else null,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth().testTag("task-day-plan-capacity"),
-                        )
-                        PersistenceFailureNotice(dayPlanCoordinator.errorMessage, testTag = "task-day-plan-error")
-                        Text(
-                            buildString {
-                                append("Already planned across all Areas: $existingTodayMinutes minutes")
-                                if (existingTodayAssumptions > 0) append(" · $existingTodayAssumptions without estimates counted as 30 min")
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        WhipButton(
-                            enabled = !dayPlanCoordinator.saving && dayCapacityText.toIntOrNull()?.let { it in 1..1440 && it > existingTodayMinutes } == true && filtered.isNotEmpty(),
-                            onClick = {
-                                val remainingCapacity = ((dayCapacityText.toIntOrNull() ?: 240) - existingTodayMinutes)
-                                    .coerceAtLeast(0)
-                                dayPlanCandidateKeys = selectTasksForCapacity(
-                                    filtered,
-                                    remainingCapacity,
-                                ).mapTo(linkedSetOf(), ScheduledTask::stableKey)
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) { Text("Preview Plan") }
-                        if (dayCapacityText.toIntOrNull()?.let { it in 1..1440 && it <= existingTodayMinutes } == true) Text(
-                            "Today's existing plan fills this capacity. Increase it to add tasks, or review Tasks Today.",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                        dayPlanCandidateKeys?.let { selected ->
-                            val capacity = dayCapacityText.toIntOrNull() ?: 240
-                            val selectedMinutes = filtered.filter { it.stableKey in selected }
-                                .sumOf(ScheduledTask::estimatedDurationMinutes)
-                            val totalMinutes = existingTodayMinutes + selectedMinutes
-                            HorizontalDivider()
-                            Text(
-                                "Proposed: ${filtered.count { it.stableKey in selected }} of ${filtered.size} new tasks · $totalMinutes of $capacity minutes total",
-                                fontWeight = FontWeight.Bold,
-                            )
-                            filtered.forEach { candidate ->
-                                val checked = candidate.stableKey in selected
-                                Row(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .heightIn(min = 48.dp)
-                                        .toggleable(
-                                            value = checked,
-                                            enabled = !dayPlanCoordinator.saving,
-                                            role = Role.Checkbox,
-                                            onValueChange = {
-                                                dayPlanCandidateKeys = if (checked) selected - candidate.stableKey
-                                                else selected + candidate.stableKey
-                                            },
-                                        ),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Column(Modifier.weight(1f)) {
-                                        Text(candidate.task.title)
-                                        Text(
-                                            "${if (checked) "Selected" else "Not selected"} · ${candidate.estimatedDurationMinutes()} min${if (candidate.task.durationMinutes == null) " assumed (no estimate)" else ""} · ${candidate.task.priority.label} priority" +
-                                                if (!checked && totalMinutes + candidate.estimatedDurationMinutes() > capacity) " · would exceed capacity" else "",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                    Spacer(Modifier.width(8.dp))
-                                    Checkbox(
-                                        checked = checked,
-                                        onCheckedChange = null,
-                                        modifier = Modifier.clearAndSetSemantics { },
-                                    )
-                                }
-                            }
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                WhipTextButton(enabled = !dayPlanCoordinator.saving, onClick = { dayPlanCandidateKeys = null }) { Text("Cancel") }
-                                WhipButton(
-                                    enabled = !dayPlanCoordinator.saving && filtered.any { it.stableKey in selected } && capacity in 1..1440 && totalMinutes <= capacity,
-                                    onClick = {
-                                        val selectedTasks = filtered.filter { it.stableKey in selected }
-                                        if (onPlanMyDayRequest != null) {
-                                            val requestId = dayPlanCoordinator.begin() ?: return@WhipButton
-                                            if (!onPlanMyDayRequest(selectedTasks, capacity, requestId)) {
-                                                dayPlanCoordinator.finishFailure("Another Task change is already finishing. Your plan is still here.")
-                                            }
-                                        } else {
-                                            onPlanMyDay(selectedTasks, capacity)
-                                            dayPlanCandidateKeys = null
-                                        }
-                                    },
-                                    modifier = Modifier.testTag("task-day-plan-apply"),
-                                ) { Text(if (dayPlanCoordinator.saving) "Applying…" else "Apply Plan") }
-                            }
-                            if (totalMinutes > capacity) Text(
-                                "Remove ${totalMinutes - capacity} minutes before applying.",
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        }
-                    }
+                WhipOutlinedButton(onClick = { showDayPlanner = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Plan My Day")
                 }
             }
         }
@@ -6878,9 +6777,37 @@ private fun TaskAreaContent(
         }
     }
     PersistenceSavingOverlay(
-        active = quickMoveCoordinator.saving || dayPlanCoordinator.saving,
+        active = quickMoveCoordinator.saving,
         label = "Saving selected Task schedules",
     )
+    }
+
+    if (showDayPlanner) {
+        TaskDayPlanDialog(
+            candidates = dayPlanCandidates,
+            capacityText = dayCapacityText,
+            onCapacityChange = { dayCapacityText = it },
+            selectedKeys = dayPlanCandidateKeys,
+            onSelectionChange = { dayPlanCandidateKeys = it },
+            existingMinutes = existingTodayMinutes,
+            existingAssumptions = existingTodayAssumptions,
+            saving = dayPlanCoordinator.saving,
+            errorMessage = dayPlanCoordinator.errorMessage,
+            modifier = dialogModifier,
+            onDismiss = { showDayPlanner = false },
+            onApply = { selectedTasks, capacity ->
+                if (onPlanMyDayRequest != null) {
+                    val requestId = dayPlanCoordinator.begin()
+                    if (requestId != null && !onPlanMyDayRequest(selectedTasks, capacity, requestId)) {
+                        dayPlanCoordinator.finishFailure("Another Task change is already finishing. Your plan is still here.")
+                    }
+                } else {
+                    onPlanMyDay(selectedTasks, capacity)
+                    dayPlanCandidateKeys = null
+                    showDayPlanner = false
+                }
+            },
+        )
     }
 
     if (showFilters) {

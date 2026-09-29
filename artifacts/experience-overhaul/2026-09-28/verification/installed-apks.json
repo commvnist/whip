@@ -1,0 +1,12 @@
+[
+  {
+    "package": "commvne.com.whip.app.debug",
+    "installed_sha256": "42ed173f85a8606365573b3e9fe1d54927a123be24e1b1d89ec5457864e832d3",
+    "matches_built_apk": true
+  },
+  {
+    "package": "commvne.com.whip.app.debug.test",
+    "installed_sha256": "2c6b9610e1bd32cddf27a9646475e1c2d80856ff33008241f08755a5a88fcecb",
+    "matches_built_apk": true
+  }
+]

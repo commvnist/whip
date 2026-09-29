@@ -4,7 +4,7 @@
 
 - Date/source: 2026-09-28, owner reports that deleting each Habit history item closes the dialog and returns to Habits, making repeated cleanup unnecessarily tedious.
 - Acceptance: Fix the Habit journey and audit analogous single-record correction/removal flows across Habits, Goals, Tracks, Tasks and Gym. A committed child-record change should update the list while retaining the parent inspector, History section, query and useful scroll position. Dismiss only the completed child review/editor; keep failure/retry local and prevent repeated submission. Whole-entity deletion or lifecycle changes can still intentionally leave an unavailable context.
-- Scope/status: Accepted into the active complete-experience goal as EP6, in progress. Preserve exact source identities, historical semantics and the existing short focused QA constraint. Related FB-20260928-007.
+- Scope/status: Implemented and Verified as EP6 under IMP-20260928-011 / VER-20260928-007. Native repeated Habit deletions and Goal correction/stale-failure/retry retain History/query and exact stored outcomes; Track older-page correction/deletion/recreation retains its loaded window and viewport. Analogous Task/Gym/Settings handlers were source-reviewed. Related FB-20260928-007. Not yet installed on the owner phone.
 
 ### FB-20260928-007 — Substantially improve the whole Whip product experience
 
@@ -12,7 +12,7 @@
 - User need: A substantially easier, clearer, faster, more coherent and reliable app. Independently reassess every major area and complete journeys, including meaningful workflow/screen redesign where warranted; prior audits do not establish optimal design.
 - Acceptance: Publish evidence-backed prioritized before/after improvements, implement every recommendation fully across affected owners, inspect fresh changed-interface originals, and reconcile every accepted item to proportionate passing evidence. Assess discovery, interaction effort, hierarchy, language, visual consistency, reuse, accessibility, performance, persistence and recovery. Preserve data/history and legitimate domain semantics.
 - Scope/verification: Baseline clean pushed `9014937f`, installed private 0.3.82/code 88. Parent plus two Astra/high agents; no further delegation. Minimal exact JVM/native checks bounded by `timeout --kill-after=3s 55s`, no full/readiness/candidate batches. Physical release is separate from this audit. Maintain memory and commit/push coherent verified changes.
-- Status: In progress. [Current investigation and implementation plan](../quality/EXPERIENCE_OVERHAUL_2026-09-28.md). Historical completed and paused audit scopes remain unchanged.
+- Status: Complete within the accepted goal. All twelve groups implemented after 137 current-source workflow dispositions, with 10 distinct JVM and 16 distinct Android methods passing, inspected fresh originals and shared-inset visual follow-through. [Completed plan](../quality/EXPERIENCE_OVERHAUL_2026-09-28.md), IMP-20260928-011 / VER-20260928-007. Historical completed and paused audit scopes remain unchanged; phone release is separate.
 
 ### FB-20260928-006 — Release the completed product audit and Focus overhaul to the phone
 

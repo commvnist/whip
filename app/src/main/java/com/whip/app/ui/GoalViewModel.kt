@@ -76,6 +76,7 @@ internal enum class GoalMutationKind {
     ProgressRecorded,
     ProgressUpdated,
     ProgressDeleted,
+    MilestoneChanged,
     ElapsedOriginReset,
     LifecycleChanged,
     ArchiveChanged,
@@ -466,14 +467,17 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
         repository.deleteMeasurement(boundary)
         GoalMutationReceipt(GoalMutationKind.ProgressDeleted, boundary.goal.goalId, measurementEntryId = boundary.entryId)
     }
-    fun toggleMilestone(boundary: GoalMilestoneBoundary, completed: Boolean) = runAuthoredGoalMutation(
+    fun toggleMilestone(boundary: GoalMilestoneBoundary, completed: Boolean) =
+        toggleMilestone(boundary, completed, null)
+
+    fun toggleMilestone(boundary: GoalMilestoneBoundary, completed: Boolean, requestId: String?) = runAuthoredGoalMutation(
         "Updating milestone…",
         "Milestone updated",
-        requestId = null,
+        requestId = requestId,
         savedDescription = "milestone change",
     ) {
         repository.toggleMilestone(boundary, completed)
-        GoalMutationReceipt(GoalMutationKind.LifecycleChanged, boundary.goal.goalId)
+        GoalMutationReceipt(GoalMutationKind.MilestoneChanged, boundary.goal.goalId)
     }
     fun resetElapsedStart(
         boundary: GoalMutationBoundary,

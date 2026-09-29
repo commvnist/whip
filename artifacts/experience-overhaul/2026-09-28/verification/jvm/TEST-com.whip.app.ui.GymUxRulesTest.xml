@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.GymUxRulesTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-09-29T01:46:12.928Z" hostname="beast" time="0.659">
+  <properties/>
+  <testcase name="clockTickPreservesProjectedTotalsAndOnlyUpdatesTime" classname="com.whip.app.ui.GymUxRulesTest" time="0.208"/>
+  <testcase name="workoutLaunchChoicesAndRoutineSearchKeepAuthoredScope" classname="com.whip.app.ui.GymUxRulesTest" time="0.448"/>
+  <system-out><![CDATA[Gym clock projection, 200 exercises / 120 sets: median old full calculation 46006 ns; new clock-only copy 1695 ns per tick. No frame-rate claim.
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

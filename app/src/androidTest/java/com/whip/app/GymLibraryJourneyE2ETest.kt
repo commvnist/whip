@@ -21,6 +21,60 @@ class GymLibraryJourneyE2ETest {
     private val app: WhipApplication get() = ApplicationProvider.getApplicationContext()
     @After fun clean() = runBlocking { app.backupRepository.deleteAllData() }
 
+    @Test fun routineSearchRestoresScopeAndLaunchesTheExplicitDay() {
+        val routineId = runBlocking {
+            prepare()
+            val exercise = app.gymRepository.createExercise(ExerciseDraft("Goblet Squat"))
+            val target = app.routineRepository.createRoutine(RoutineDraft("Weekend strength", notes = "Steady build", days = listOf(
+                RoutineDayDraft("Saturday", listOf(RoutineExerciseDraft(exercise, plannedSets = listOf(WorkoutSetDraft(weight = 20.0, reps = 8))))),
+                RoutineDayDraft("Sunday", listOf(RoutineExerciseDraft(exercise, plannedSets = listOf(WorkoutSetDraft(weight = 25.0, reps = 5))))))))
+            app.routineRepository.createRoutine(RoutineDraft("Other plan", days = listOf(RoutineDayDraft("Recovery", listOf(RoutineExerciseDraft(exercise, plannedSets = listOf(WorkoutSetDraft(reps = 5))))))))
+            val archived = app.routineRepository.createRoutine(RoutineDraft("Archived strength", days = listOf(
+                RoutineDayDraft("Saturday", listOf(RoutineExerciseDraft(exercise, plannedSets = listOf(WorkoutSetDraft(reps = 5))))))))
+            app.routineRepository.setRoutineArchived(archived, true)
+            target
+        }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            compose.onNodeWithContentDescription("Gym tab").performClick()
+            compose.onNodeWithTag("workout-start-list").performScrollToNode(hasText("Browse All Routines"))
+            compose.onNodeWithText("Browse All Routines").performClick()
+            compose.onNodeWithTag("routine-library-search").performTextReplacement("Saturday squat")
+            closeSoftKeyboard()
+            compose.onNodeWithTag("routine-library-count").assertTextContains("1 routine · Active")
+            compose.onNodeWithTag("routine-library-list").performScrollToNode(hasText("Weekend strength"))
+            captureVisualCatalogSurface("experience.gym.routine-search")
+            scenario.recreate()
+            compose.onNodeWithTag("routine-library-search").assertTextContains("Saturday squat")
+            compose.onNodeWithTag("routine-library-list").performScrollToNode(hasText("Show archived", ignoreCase = true))
+            compose.onNodeWithText("Show archived", ignoreCase = true).performClick()
+            compose.onNodeWithTag("routine-library-count").assertTextContains("1 routine · Archived")
+            compose.onNodeWithTag("routine-library-list").performScrollToNode(hasText("Archived strength"))
+            compose.onNodeWithText("Archived strength").assertIsDisplayed()
+            compose.onNodeWithTag("routine-library-list").performScrollToNode(hasContentDescription("Clear filters and reorder all Routines"))
+            compose.onNodeWithContentDescription("Clear filters and reorder all Routines").performClick()
+            compose.onNodeWithTag("reorder-mode-done").performClick()
+            compose.onNodeWithTag("routine-library-count").assertTextContains("2 routines · Active")
+            compose.onNodeWithTag("routine-library-search").performTextReplacement("no such exercise")
+            closeSoftKeyboard()
+            compose.onNodeWithTag("routine-library-list").performScrollToNode(hasText("Clear Search"))
+            compose.onNodeWithText("Clear Search").performClick()
+            compose.onNodeWithTag("routine-library-count").assertTextContains("2 routines · Active")
+            compose.onNodeWithTag("gym-destination-Workout").performClick()
+            compose.onNodeWithTag("workout-start-list").performScrollToNode(hasTestTag("workout-quick-start-$routineId"))
+            compose.onNodeWithTag("workout-quick-start-$routineId").performClick()
+            compose.onNodeWithTag("routine-library-search").assertDoesNotExist()
+            compose.onNodeWithTag("routine-library-list").performScrollToNode(hasText("Start Sunday · 1 exercise"))
+            compose.onNodeWithText("Start Sunday · 1 exercise").performClick()
+            compose.waitUntil(10_000) { runBlocking { app.gymRepository.sessions.first() }.any { it.state == WorkoutSessionState.Active } }
+            val session = runBlocking { app.gymRepository.sessions.first() }.single { it.state == WorkoutSessionState.Active }
+            val sunday = runBlocking { app.routineRepository.days.first() }.single { it.routineId == routineId && it.name == "Sunday" }
+            assertEquals(sunday.id, session.sourceRoutineDayId)
+            compose.onNodeWithTag("gym-destination-Workout").performClick()
+            compose.onNodeWithTag("active-workout-list").assertIsDisplayed()
+            captureVisualCatalogSurface("experience.gym.routine-started")
+        }
+    }
+
     @Test fun emptyHistoryCalendarReturnsToCurrentCollection() {
         runBlocking { prepare(); seed() }
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->

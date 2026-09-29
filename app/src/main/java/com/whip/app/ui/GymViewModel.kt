@@ -2743,18 +2743,12 @@ private fun buildGymUiState(data: GymData, routineData: RoutineBaseData, nowMill
     )
 }
 
-private fun GymUiState.withClockTick(now: Long): GymUiState {
+internal fun GymUiState.withClockTick(now: Long): GymUiState {
     val active = activeSession
     val updatedSummary = active?.let { session ->
-        calculateWorkoutSummary(
-            session = session,
-            workoutExercises = activeWorkoutPerformanceExercises.map(WorkoutExerciseUi::workoutExercise),
-            sets = activeWorkoutPerformanceExercises.flatMap(WorkoutExerciseUi::sets),
-            exercisesById = (exercises + archivedExercises).associateBy(Exercise::id),
-            nowMillis = now,
-            includeWarmups = appSettings.includeWarmupsInGymStats,
-            oneRepMaxRepCutoff = appSettings.oneRepMaxRepCutoff,
-        )
+        // Sets and settings rebuild the summary in dataState. A clock tick changes only elapsed time.
+        summary?.copy(elapsedSeconds = ((session.endedAt?.toEpochMilli() ?: now) -
+            session.startedAt.toEpochMilli()).div(1_000L).coerceAtLeast(0L))
     }
     val remaining = restTimerRemainingSeconds(
         deadlineMillis = active?.restTimerDeadlineMillis,

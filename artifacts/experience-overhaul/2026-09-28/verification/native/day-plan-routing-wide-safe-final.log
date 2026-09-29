@@ -1,0 +1,43 @@
+com.whip.app.TaskDayPlannerUiTest#homeAndTodayOpenTheSameRestorablePlanDraft
+INSTRUMENTATION_STATUS: class=com.whip.app.TaskDayPlannerUiTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.TaskDayPlannerUiTest:
+INSTRUMENTATION_STATUS: test=homeAndTodayOpenTheSameRestorablePlanDraft
+INSTRUMENTATION_STATUS_CODE: 1
+s_glBindAttribLocation: bind attrib 0 name position
+s_glBindAttribLocation: bind attrib 1 name color
+s_glBindAttribLocation: bind attrib 2 name localCoord
+INSTRUMENTATION_STATUS: class=com.whip.app.TaskDayPlannerUiTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stack=java.util.NoSuchElementException: Collection contains no element matching the predicate.
+	at com.whip.app.TaskDayPlannerUiTest.assertApplyAboveSystemBars(TaskDayPlannerUiTest.kt:178)
+	at com.whip.app.TaskDayPlannerUiTest.homeAndTodayOpenTheSameRestorablePlanDraft(TaskDayPlannerUiTest.kt:139)
+
+INSTRUMENTATION_STATUS: stream=
+Error in homeAndTodayOpenTheSameRestorablePlanDraft(com.whip.app.TaskDayPlannerUiTest):
+java.util.NoSuchElementException: Collection contains no element matching the predicate.
+	at com.whip.app.TaskDayPlannerUiTest.assertApplyAboveSystemBars(TaskDayPlannerUiTest.kt:178)
+	at com.whip.app.TaskDayPlannerUiTest.homeAndTodayOpenTheSameRestorablePlanDraft(TaskDayPlannerUiTest.kt:139)
+
+INSTRUMENTATION_STATUS: test=homeAndTodayOpenTheSameRestorablePlanDraft
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 9.36
+There was 1 failure:
+1) homeAndTodayOpenTheSameRestorablePlanDraft(com.whip.app.TaskDayPlannerUiTest)
+java.util.NoSuchElementException: Collection contains no element matching the predicate.
+	at com.whip.app.TaskDayPlannerUiTest.assertApplyAboveSystemBars(TaskDayPlannerUiTest.kt:178)
+	at com.whip.app.TaskDayPlannerUiTest.homeAndTodayOpenTheSameRestorablePlanDraft(TaskDayPlannerUiTest.kt:139)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1
+elapsed_ms=11273 exit=0

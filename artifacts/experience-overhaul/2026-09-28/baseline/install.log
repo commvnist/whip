@@ -1,0 +1,9 @@
+Installing on emulator-5554...
+Artifact: commvne.com.whip.app.debug · SHA-256 63f869c75ffd00f207c708b5bef4fa6d1775b2a4725a2a31c6bba087064ccac9
+Performing Streamed Install
+Success
+Installed package: commvne.com.whip.app.debug
+    versionCode=87 minSdk=26 targetSdk=37
+    versionName=0.3.81-debug
+    lastUpdateTime=2026-09-28 21:29:35
+Installed base APK SHA-256: 63f869c75ffd00f207c708b5bef4fa6d1775b2a4725a2a31c6bba087064ccac9

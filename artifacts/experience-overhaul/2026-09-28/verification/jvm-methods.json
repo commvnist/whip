@@ -1,0 +1,62 @@
+[
+  {
+    "receipt": "TEST-com.whip.app.ui.GymUxRulesTest.xml",
+    "selector": "com.whip.app.ui.GymUxRulesTest.clockTickPreservesProjectedTotalsAndOnlyUpdatesTime",
+    "seconds": 0.208,
+    "result": "pass"
+  },
+  {
+    "receipt": "TEST-com.whip.app.ui.GymUxRulesTest.xml",
+    "selector": "com.whip.app.ui.GymUxRulesTest.workoutLaunchChoicesAndRoutineSearchKeepAuthoredScope",
+    "seconds": 0.448,
+    "result": "pass"
+  },
+  {
+    "receipt": "TEST-com.whip.app.ui.HabitPresentationTest.xml",
+    "selector": "com.whip.app.ui.HabitPresentationTest.historySearchKeepsOriginalUnitsDatesNotesAndNeutralEvents",
+    "seconds": 0.113,
+    "result": "pass"
+  },
+  {
+    "receipt": "TEST-com.whip.app.ui.ProductivityExperienceTest.xml",
+    "selector": "com.whip.app.ui.ProductivityExperienceTest.trackStartersAndPreviewKeepAuthoredDefinitionsSeparateFromSampleFacts",
+    "seconds": 0.017,
+    "result": "pass"
+  },
+  {
+    "receipt": "TEST-com.whip.app.ui.ProductivityExperienceTest.xml",
+    "selector": "com.whip.app.ui.ProductivityExperienceTest.completionOpportunityRequiresAnAchievedActiveFiniteOutcome",
+    "seconds": 0.039,
+    "result": "pass"
+  },
+  {
+    "receipt": "TEST-com.whip.app.ui.ProductivityExperienceTest.xml",
+    "selector": "com.whip.app.ui.ProductivityExperienceTest.goalHistorySearchUsesOriginalObservationFacts",
+    "seconds": 0.003,
+    "result": "pass"
+  },
+  {
+    "receipt": "TEST-com.whip.app.ui.TaskWorkspacePolicyTest.xml",
+    "selector": "com.whip.app.ui.TaskWorkspacePolicyTest.dayPlanningKeepsScopeAndTaskFiltersWithoutTodaysScheduledDateConstraint",
+    "seconds": 0.003,
+    "result": "pass"
+  },
+  {
+    "receipt": "TEST-com.whip.app.ui.UnifiedSearchRulesTest.xml",
+    "selector": "com.whip.app.ui.UnifiedSearchRulesTest.searchContentIgnoresClockButInvalidatesChangedRoutineContent",
+    "seconds": 0.002,
+    "result": "pass"
+  },
+  {
+    "receipt": "TEST-com.whip.app.ui.UnifiedSearchStringResourcePolicyTest.xml",
+    "selector": "com.whip.app.ui.UnifiedSearchStringResourcePolicyTest.composableSearchSurfaceUsesResourcesForFixedDisplayText",
+    "seconds": 0.162,
+    "result": "pass"
+  },
+  {
+    "receipt": "search-benchmark.xml",
+    "selector": "com.whip.app.ui.UnifiedSearchRulesTest.compiledSearchPreservesConstraintsRankingAndReducesRepeatedParsing",
+    "seconds": 0.488,
+    "result": "pass"
+  }
+]

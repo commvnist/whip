@@ -1,0 +1,173 @@
+05413d40932ca5b7fe1a7a1545342b58e74aeee8399292ee81b55793afbb591b  artifacts/experience-overhaul/2026-09-28/.gitattributes
+013344fcb693a2a968067aab1ad975131247cca062572931afc5233315bbf3b5  artifacts/experience-overhaul/2026-09-28/baseline/home.png
+aafdc5042e68b45af3a793b8dfb2ea4fb97138e08fc2e6d8d4da001965ba659a  artifacts/experience-overhaul/2026-09-28/baseline/home.xml
+40dcb8a1ebd8998a97cc5b47bd39c0d6503c61f62671dace2d58b8aadb099da5  artifacts/experience-overhaul/2026-09-28/baseline/install.log
+81844d46c4a4cceb115ff2437021398be8dd3199598fbc33ab6ed494741e448f  artifacts/experience-overhaul/2026-09-28/baseline/onboarding.png
+07c5a37559a6910da766b0bdb6af5c2e096f04df30eb6c77a624d14bfa66e60b  artifacts/experience-overhaul/2026-09-28/baseline/onboarding.xml
+207358e9d982b18f5d718f45d618a422412e6ed72aebc08cc0cdf33aff4583f7  artifacts/experience-overhaul/2026-09-28/diagnostic-before/experience.task-day-plan.short-large.png
+ada1aa8db56e0f6a0f854eaed501fbc050fc031e84bf0c91f9b71a42220bd8bc  artifacts/experience-overhaul/2026-09-28/diagnostic-before/experience.task-day-plan.short-large.xml
+5cea9f405f9f2e4e480545202be157a5940accf426d7ffe4cce861f6fcf14a19  artifacts/experience-overhaul/2026-09-28/originals/audit2.settings.deep-operation.before.png
+c30841056066a12784ce6df4d547b4e7776ae97b197993093ca77acfb1d8a911  artifacts/experience-overhaul/2026-09-28/originals/audit2.settings.deep-operation.before.xml
+64137b00f1eeef1ae0e6477b15b1f2e75f2290945919a66702c66c3eecc50bed  artifacts/experience-overhaul/2026-09-28/originals/audit2.settings.deep-operation.failure.png
+0f3c91dbd56533273a9916a6dc8f76673e621034d6593bd0e29102ba2de8e970  artifacts/experience-overhaul/2026-09-28/originals/audit2.settings.deep-operation.failure.xml
+acaf223776c856c2427f19493496350b23d73a2c6b498f5e9cd16d05bec8b776  artifacts/experience-overhaul/2026-09-28/originals/experience.goals.history-search.png
+f540298fbf705ef2fe270d4206f8d6c7df7a45eba6e798088540fadd94a10ab7  artifacts/experience-overhaul/2026-09-28/originals/experience.goals.history-search.xml
+aa07f0fe8f68a700a7ba1baac9d5575196fca12a9a6f216788df8e509d2e597c  artifacts/experience-overhaul/2026-09-28/originals/experience.goals.retained-history (1).png
+ce36d73cfbf7f2d4421afdb0b20eec3cb6064792660dbdf7fbf9abeb031d75c4  artifacts/experience-overhaul/2026-09-28/originals/experience.goals.retained-history (1).xml
+e9417a9e13d63bb62d01cfeb5b1a47db766aa5e89e7c5ad257a259c5157e905f  artifacts/experience-overhaul/2026-09-28/originals/experience.goals.retained-history.png
+0842b83da8d7e938dec84562f48819ca2d6d3aace5dc33b370d1673ef8ea9d32  artifacts/experience-overhaul/2026-09-28/originals/experience.goals.retained-history.xml
+a254b646a801af6c000daeb17187f0e649b777399e9c2b771117b8ec95c30e81  artifacts/experience-overhaul/2026-09-28/originals/experience.goals.working-milestones (1).png
+b5a1da84289bf67e52e8c96189fab8a981822b0b507fda641db6a7bcdfa8d6fd  artifacts/experience-overhaul/2026-09-28/originals/experience.goals.working-milestones (1).xml
+5577ff97592f2548bb6bf2df089dd9172c52cccacdd185e56d86f9436dd8cc93  artifacts/experience-overhaul/2026-09-28/originals/experience.goals.working-milestones.png
+3d2708a8f53d170deea4bf65ad46e8ff1e4fb6c2d65aceeaa1cdca0cdf3bf3de  artifacts/experience-overhaul/2026-09-28/originals/experience.goals.working-milestones.xml
+c57a2a6ca23cb018d2a546fac75230719316cc249c1c27564c3a06f8b112cfa9  artifacts/experience-overhaul/2026-09-28/originals/experience.gym.first-use.native200.png
+44d1ce97c78ae682ee951c4bdb17b708da16f64cca8b3a164fa9221321d5237d  artifacts/experience-overhaul/2026-09-28/originals/experience.gym.first-use.native200.xml
+5fcc8b4b94bd7a0c5f44af72095bff0fd9ed94ae8cfe78b3961cd248819b98a8  artifacts/experience-overhaul/2026-09-28/originals/experience.gym.launchpad.native200.png
+53239618cc9bf63dbf814e98ae24635e8d28ab2d2c636be9489ff3a4cdb2cf30  artifacts/experience-overhaul/2026-09-28/originals/experience.gym.launchpad.native200.xml
+8b445da7439d2832fdfb089a92af6df0095d5adb045c8f76f7cae7ee9aa609bc  artifacts/experience-overhaul/2026-09-28/originals/experience.gym.routine-search.png
+ea086663348d67cabd323607e1a232f0249deb07e464cfe6da838a8ba43833c6  artifacts/experience-overhaul/2026-09-28/originals/experience.gym.routine-search.xml
+ce4eee18b6b7cff7e05282d09fb757a8019ceb156af2d816ea438a6dfd5ca559  artifacts/experience-overhaul/2026-09-28/originals/experience.gym.routine-started.png
+2bf4c5585b179f49068a0a8f74df12bf6b90b30d15fa3c1a903856c88b01c113  artifacts/experience-overhaul/2026-09-28/originals/experience.gym.routine-started.xml
+9266c938ecd1b04faa6a169e747f9f68cbef3f585926084223ca1883340c2422  artifacts/experience-overhaul/2026-09-28/originals/experience.habits.history-search.png
+b5ad4a6a030e4c8f5af5e46701fb7b64a70beb819a5c408b0b1c80d7e74d3244  artifacts/experience-overhaul/2026-09-28/originals/experience.habits.history-search.xml
+c7dee89aa0db3f8099697000fcf90e3638904d8df753b8454bb0bd45720eb962  artifacts/experience-overhaul/2026-09-28/originals/experience.habits.retained-history (1).png
+a3eb1dbbc5604772d9a2daa56d76fbcf99165b021e1a74d0e7bff9a320f161f3  artifacts/experience-overhaul/2026-09-28/originals/experience.habits.retained-history (1).xml
+95454d9994f27a0b91ff8047e7e15b5fc6eefec3e30e571edd17a164c924c594  artifacts/experience-overhaul/2026-09-28/originals/experience.habits.retained-history.png
+0696b072e6b892142b41da01987365bffa333d89b74582bd8276c200126b13d8  artifacts/experience-overhaul/2026-09-28/originals/experience.habits.retained-history.xml
+760e99f717669f92754384b237b70966513af9f011b8b7cbbbf7985b828221a0  artifacts/experience-overhaul/2026-09-28/originals/experience.habits.working-checklist.large.png
+9d2c47bb5720dba43055d7b31ecd25247a2a4d6d27771e62dd23f7beb36ec79a  artifacts/experience-overhaul/2026-09-28/originals/experience.habits.working-checklist.large.xml
+56fd570340ae65968c99b646b7bf0f08d333c140bf9a14835e10be845e180848  artifacts/experience-overhaul/2026-09-28/originals/experience.search.dark-current-content.png
+2928f7053a69a52a9eca575be45df2093c75560f1af309f7237da7904c7f7f95  artifacts/experience-overhaul/2026-09-28/originals/experience.search.dark-current-content.xml
+f5a9ec32949b45d0fba854b054bf68bfabe06a3e90754d9d585bd788636942c6  artifacts/experience-overhaul/2026-09-28/originals/experience.settings.backup-unverified.native200 (1).png
+119dc4b5267e81c89a28cb2b799d61d335e3c02c9e957e4bd82a91a9c149edc0  artifacts/experience-overhaul/2026-09-28/originals/experience.settings.backup-unverified.native200 (1).xml
+80d9ced8c2b5aa80df06956907daf41e7100b1c7307cedea154419d2857d5306  artifacts/experience-overhaul/2026-09-28/originals/experience.settings.backup-unverified.native200.png
+12818032cf2048eac339fcf1734f1facb119e531d3113ac43fbcbfdf0aed0ca8  artifacts/experience-overhaul/2026-09-28/originals/experience.settings.backup-unverified.native200.xml
+f60a6bad49828561c68723ff4c829b7f29d9ca2c07e2704563e3eece22d73245  artifacts/experience-overhaul/2026-09-28/originals/experience.settings.backup-verified.native200 (1).png
+2a4b584371e92d87bd826f205ff9d38120be54c46ff55206738ee70775f4819e  artifacts/experience-overhaul/2026-09-28/originals/experience.settings.backup-verified.native200 (1).xml
+41f9443ea512e5c879f70eaeb133437051a86c9826624cd4a630b78382c30d42  artifacts/experience-overhaul/2026-09-28/originals/experience.settings.backup-verified.native200.png
+007fe273249d2366281bb4a6cb1276f1d04a19f8bdac94d3d237d93c2f54872d  artifacts/experience-overhaul/2026-09-28/originals/experience.settings.backup-verified.native200.xml
+b06467ce2e925fc6a1371c7b23aab8df0919dedb7e6be9f58ec14376493fa9f2  artifacts/experience-overhaul/2026-09-28/originals/experience.settings.backup-warning.native200 (1).png
+adbbedf4cd296a633694657f0798dec6599f7194fbec99b55bdc43da6adca76e  artifacts/experience-overhaul/2026-09-28/originals/experience.settings.backup-warning.native200 (1).xml
+3dc3a983ff95a48c8ace7c471c740ef8c0486c3e0eaf748a40866dc19f27b53b  artifacts/experience-overhaul/2026-09-28/originals/experience.settings.backup-warning.native200.png
+d2aa4e9cb03aee6825d8d698964fdce55ebca2c5ef40fc2b45a930349f7d67ae  artifacts/experience-overhaul/2026-09-28/originals/experience.settings.backup-warning.native200.xml
+c7585bb8a765a39b3669453691375010d25c07c76fd135589175f27cc9a9e168  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.failure (1).png
+e71bd2cafe1cce1bc9b79dcecef3a14d3a85d4ec429eccb0810be06e8b50868c  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.failure (1).xml
+aacd2c2768c2b729353a80325a1024d1211187074c698a8f28a6bd65161c78f0  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.failure.png
+c2c376c11ee86d319307a0523f164aa5de90ce378afd0322d972dce16b43ba2c  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.failure.xml
+1896dc1361a478e2326269cda603defebad79ab5b58ec036ae81028f40c83c76  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.keyboard.large (1).png
+e216323ac724bda2515e10fb15b7221d8cdd3bd106ec7ac4e38de1231ed6c7ce  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.keyboard.large (1).xml
+5af9f144773bed22c0c938ac7d66e3d4e27df555700adb8923669e208d9899d7  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.keyboard.large (2).png
+2878b242db7367f71eba6cadf7e35fdbef587350dd5fecbe8212b630232dc8ed  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.keyboard.large (2).xml
+179027e3429b62d5124e621eaa398ebbdea3a289a5ad3c048acd80774e65b3b7  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.keyboard.large.png
+f8ec05b573cf9ceab0fa548088d2c5eddb3e2d875456b406effe84ef5eb0985a  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.keyboard.large.xml
+0605f4265317749cb0ca2025b24927c1000cdaf6f9bcaaf5884843d0875d5b20  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.preview.large (1).png
+4655085d43c3518ecb686f15a9cfd50992c42664f4f298b031b80806cdc8ea7e  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.preview.large (1).xml
+03d18a8f568289dbba9f82a895d0e078c1050d8dae225949516fe57490975beb  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.preview.large.png
+5acc46b87b3c7b7130eaf47fd4b0fceab5245c684dea364bd6d4105513ac25bd  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.preview.large.xml
+a07442883d84d3fd4cdec473ffb9665766bde70e8cb7a3950c24b7f8cbb6b9d2  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.restored (1).png
+55ade4d04e7d7c86381c460164887084113fc534ccc0c662e83cb079ef1edda8  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.restored (1).xml
+12dba7020ef65ab4e837a284963b16fb2eab8dd9e666b22d78dbb465f6c07d09  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.restored (2).png
+1a126563a9ea540ef25c88406bf7e586ea6aa6c5245ec118b39c8baa2f3be10b  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.restored (2).xml
+8271bb8a28a7cfe7f9a9d4f3118e78921241881e8bb3c06bb97119b7f25ffe84  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.restored (3).png
+35df4f77a6cb61be192962e8a4a05d7e1178f1cebf339ae2438c04617a824408  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.restored (3).xml
+dcc0ede5d0adf8c5b9540dd46065087cf000b56fd3c17615ed9664f05a8ebd46  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.restored.png
+f879fc9b105ff2ec70b6639c40f46b86da64a5ee0d795fd4151b42d8e2003c00  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.restored.xml
+f959f27ab91c02ddad25a7993f23e64333e3bd6c7dd29016dd23f283ed0f9811  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.short-large (1).png
+5621ca89ec9a0a1f58adf3ad9b60a4a08f1a8a18881cf45de45fb561bb22540c  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.short-large (1).xml
+fdc97ea7220ef53609e41444537ebe0a2db63d64b5a2566058a5ed631a2de739  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.short-large (2).png
+27bd78b5683b3354dda099765d9e18e380e64bcbe8588f803ddea3ad1c94a0a6  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.short-large (2).xml
+207358e9d982b18f5d718f45d618a422412e6ed72aebc08cc0cdf33aff4583f7  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.short-large.png
+ada1aa8db56e0f6a0f854eaed501fbc050fc031e84bf0c91f9b71a42220bd8bc  artifacts/experience-overhaul/2026-09-28/originals/experience.task-day-plan.short-large.xml
+74cad8609fd87f5c731851e80d402cc7d3de2d346c294414b3b66a15143183a3  artifacts/experience-overhaul/2026-09-28/originals/experience.tracks.entry-preview.large (1).png
+970f7f2d225e28e4d80415d541c92544356a64035c6e5b04cf09e0c8c3541550  artifacts/experience-overhaul/2026-09-28/originals/experience.tracks.entry-preview.large (1).xml
+90b5ef83187ac25af06c3b540c59704e9612ca662f5f56b60139023e5d93ca6d  artifacts/experience-overhaul/2026-09-28/originals/experience.tracks.entry-preview.large.png
+9bf6771a00deea485b4022a6ee13ca285f2198a14390f18e0fcb7be370c4fa81  artifacts/experience-overhaul/2026-09-28/originals/experience.tracks.entry-preview.large.xml
+ecc0968e72f1419fa6e6255c0904de9e3c2ed5febb767faadbffc72719a3f0d3  artifacts/experience-overhaul/2026-09-28/originals/experience.tracks.retained-history (1).png
+3f1c2cfccb2fab9dba783342e45af51689b3839ed8f6b97a2a6dc99a18fc29d4  artifacts/experience-overhaul/2026-09-28/originals/experience.tracks.retained-history (1).xml
+61507cd95e184ff45b3ce0f263db95ef14444e9411f1d69ed69d3e9e6334fe5c  artifacts/experience-overhaul/2026-09-28/originals/experience.tracks.retained-history.png
+de1eb35122561baec84cd774132886e928aa39e63691055dafb0e6f032ed15da  artifacts/experience-overhaul/2026-09-28/originals/experience.tracks.retained-history.xml
+e9b95474a108e81bec7fd965994a8eb9d74d361c4f993dd95e02cb993f0a805d  artifacts/experience-overhaul/2026-09-28/originals/settings.data-controls.csv-export.saved.png
+fd0877e7e1d4252d59267b3a3a1636f822a8d891cb35a18a7372b956bd43c007  artifacts/experience-overhaul/2026-09-28/originals/settings.data-controls.csv-export.saved.xml
+5b213d619b87683ff8f05fa22c1a90b10fa15848eca2a8620c39de2645345cc0  artifacts/experience-overhaul/2026-09-28/originals/settings.data-controls.plain-export.saved.png
+44c3d851a243a143b5aae338695aa81e3e78bb89b6e24e8284aad5ed89ddf82c  artifacts/experience-overhaul/2026-09-28/originals/settings.data-controls.plain-export.saved.xml
+391873e298d1676dfae495278ae0c9a8ee612b17cf438c482d7e8fc9d6898d1c  artifacts/experience-overhaul/2026-09-28/originals/ux-audit-2.tracks.search-error.ordinary.png
+02d85881625ec49436de3dd8f4e47f5ebcb3ba0571a34dd6c349dcfdb5a34840  artifacts/experience-overhaul/2026-09-28/originals/ux-audit-2.tracks.search-error.ordinary.xml
+c2b9ce4d7998190efc9316456cdb0d5ab3053b5fa975107e687d567e5dc0da29  artifacts/experience-overhaul/2026-09-28/originals/ux-audit-2.tracks.search-pending.ordinary.png
+15566f8f17e5e368af9fdb7b14008b35031df140d3a9c799dc752ea0d938a3c9  artifacts/experience-overhaul/2026-09-28/originals/ux-audit-2.tracks.search-pending.ordinary.xml
+1bb0a3f67ee29e6d939150795b387c3818b560e3e3e26025ef7f06a2ad576f5e  artifacts/experience-overhaul/2026-09-28/verification/android-package-feedback.log
+7a44e2a6b215269dd4c431c9aa4a60a13543eecb62c1d287f4b7a77051abf277  artifacts/experience-overhaul/2026-09-28/verification/android-package-final-ui.log
+575bab7f112458c671da718647903b2ddf4b53bf5d35a09ca8977b0363f4198f  artifacts/experience-overhaul/2026-09-28/verification/android-package-final.log
+9a1ef4666af94c75eda8bd65b8726f6dfab0497c22e83ea83f6f5731350f22ee  artifacts/experience-overhaul/2026-09-28/verification/android-package-inset-bounds.log
+76b346d11af7490d6696d6b884e93312b9fbf9c5e0f47bfaffb9d87e0ac1c19c  artifacts/experience-overhaul/2026-09-28/verification/android-package-inset-capture.log
+6171bbe6e13f7a50e89f39a3178bf0647172411986b8cc69b974b689fdba96ff  artifacts/experience-overhaul/2026-09-28/verification/android-package-inset-fixture.log
+dee65c907da15541614baab2fc2ad5e532f80b05cacc44425e42f74a656d331f  artifacts/experience-overhaul/2026-09-28/verification/android-package-insets.log
+5e71c6c9dc2862fb6b48c41613424a6a2abf2eb1ee733f9810a48d1cc53f9c8d  artifacts/experience-overhaul/2026-09-28/verification/android-package-ready.log
+b417497b2c05e7f75b0813a8d4c689d84f9cf7830ac550ae7e4eb3d6c23ee365  artifacts/experience-overhaul/2026-09-28/verification/android-package.log
+b85a7f844f7b054379dbf84f92ce624d9bd63ed9d01ba8143273c98789194379  artifacts/experience-overhaul/2026-09-28/verification/apk-hashes-accepted.txt
+356a1d37090e7b48c662601209a37cd458eae7889273cda2b9325a2cc29fedc4  artifacts/experience-overhaul/2026-09-28/verification/apk-hashes-feedback.txt
+bca7e70fa3937ef096bab1f2f798b3bf7447112b33084944c414f70dec53ddf3  artifacts/experience-overhaul/2026-09-28/verification/apk-hashes-final-ui.txt
+a1923a9ea6b2acf92fa95b58b772f668d602e1fabb00483c186806d2d02a2a7c  artifacts/experience-overhaul/2026-09-28/verification/apk-hashes-insets.txt
+0160db6cc85761c464404d0d34ab858e819d5931df8880a1906596e05c7193e7  artifacts/experience-overhaul/2026-09-28/verification/apk-hashes.txt
+27a0aee641067db79385b1e831bbb8b1d4c1b39269d156633c3879a12501cfed  artifacts/experience-overhaul/2026-09-28/verification/emulator-final-state.txt
+50daa2ba76a5c9784728abf9461823bc72d3c4835986fc7ba7cdd96abebea397  artifacts/experience-overhaul/2026-09-28/verification/install-current.log
+50daa2ba76a5c9784728abf9461823bc72d3c4835986fc7ba7cdd96abebea397  artifacts/experience-overhaul/2026-09-28/verification/install-feedback.log
+50daa2ba76a5c9784728abf9461823bc72d3c4835986fc7ba7cdd96abebea397  artifacts/experience-overhaul/2026-09-28/verification/install-final-ui.log
+781a31c82430c97897af612ece5e0ca2205e301cb5ff121ce2660541ea5182c7  artifacts/experience-overhaul/2026-09-28/verification/install-inset-bounds.log
+781a31c82430c97897af612ece5e0ca2205e301cb5ff121ce2660541ea5182c7  artifacts/experience-overhaul/2026-09-28/verification/install-inset-capture.log
+781a31c82430c97897af612ece5e0ca2205e301cb5ff121ce2660541ea5182c7  artifacts/experience-overhaul/2026-09-28/verification/install-inset-fixture.log
+50daa2ba76a5c9784728abf9461823bc72d3c4835986fc7ba7cdd96abebea397  artifacts/experience-overhaul/2026-09-28/verification/install-insets.log
+85749022af19c9b1d694c3594796a0d9be5c43f288fe776f25bf5ba3c7ee0bbe  artifacts/experience-overhaul/2026-09-28/verification/installed-apks.json
+372a7ba97f7c54c59e539577383c0bddfa49ca04b4aa447fd3e2f435ac2c565d  artifacts/experience-overhaul/2026-09-28/verification/jvm/TEST-com.whip.app.ui.GymUxRulesTest.xml
+c3b9289cf4ca1f8b8bea32abf170a2454db8bc6a135d859ac6f963a9fbc583ea  artifacts/experience-overhaul/2026-09-28/verification/jvm/TEST-com.whip.app.ui.HabitPresentationTest.xml
+d35e05c2ee82f143b7ad730c56b213ea18309527055465937a02765ded3b917b  artifacts/experience-overhaul/2026-09-28/verification/jvm/TEST-com.whip.app.ui.ProductivityExperienceTest.xml
+646f4ce4a8203a17bb6d856333bb2c14a7a7ec68d36e4d869858840ebadfec7f  artifacts/experience-overhaul/2026-09-28/verification/jvm/TEST-com.whip.app.ui.TaskWorkspacePolicyTest.xml
+e4df4bb55915f56ffc12902af8c2120b9ca5f85ad7b5a558e5a2256e85dc6644  artifacts/experience-overhaul/2026-09-28/verification/jvm/TEST-com.whip.app.ui.UnifiedSearchRulesTest.xml
+d8e4d588ef158bb31f4c4418b9b680edc1534adb4d0890b14c3067dbb3be24b5  artifacts/experience-overhaul/2026-09-28/verification/jvm/TEST-com.whip.app.ui.UnifiedSearchStringResourcePolicyTest.xml
+83c86a43380ef0bc596396d7ae1ad351fa9afef050248743d7c5b9bd6325d04b  artifacts/experience-overhaul/2026-09-28/verification/jvm/search-benchmark.xml
+5731036a8659cbbf98ae81e0396bcdecc19ba86760baa1cc642d9dd0f7ac96e0  artifacts/experience-overhaul/2026-09-28/verification/jvm-methods.json
+191fd97d76e1c30a7a83d922beee5a3f9f102081c8101880d81c3f2b53244fd5  artifacts/experience-overhaul/2026-09-28/verification/native/backup-csv.log
+5418554599bf26129c88d10c4d8391930d055ebb5c3f88674458d806b53993e7  artifacts/experience-overhaul/2026-09-28/verification/native/backup-overview-insets-final.log
+f6373836d669f1d66e0aa025a3ba51956d8766539b86a82edfe41b08882e6e8e  artifacts/experience-overhaul/2026-09-28/verification/native/backup-overview.log
+b9e7ccc2397fad20e1e389688ebeabb015a59d2405ca712f0d95dc8e25f95e1c  artifacts/experience-overhaul/2026-09-28/verification/native/backup-result.log
+e556e0fb91bb75560f0d3da8a883944bbd8ea995426711f002f6e87049eb72c4  artifacts/experience-overhaul/2026-09-28/verification/native/day-plan-large-final.log
+c285ee47be655897f26da579273043403de978b01a8d684c9afad3b1c2390f3e  artifacts/experience-overhaul/2026-09-28/verification/native/day-plan-large-insets-final.log
+a8b01bb01eb1a21894b7c800d1b4681035863b0fc5022f093c5b268744afc73f  artifacts/experience-overhaul/2026-09-28/verification/native/day-plan-large.log
+99c78fc2f9a88d24f7792d0d7930a00760972abfef19bffce0732c1fec3f78be  artifacts/experience-overhaul/2026-09-28/verification/native/day-plan-recovery-final.log
+bc72ab87d4e8066d8ee82465ac7dc2e0b0136c1b4a2206eda4f80db3d170bd5e  artifacts/experience-overhaul/2026-09-28/verification/native/day-plan-recovery.log
+fd63abfbdb4d7f73bfe1953f72a203b6f7a505fcc836ca559631c61e98e8e248  artifacts/experience-overhaul/2026-09-28/verification/native/day-plan-routing-wide-accepted.log
+c52f2af9cb374bd075302b6b6843d8898a73cafdd096f8942eb99f9b7d0d16bd  artifacts/experience-overhaul/2026-09-28/verification/native/day-plan-routing-wide-bounds-final.log
+c167c5af3742e0632335462489e1b2e5828c2aa00fc774c86ec5a051a0924017  artifacts/experience-overhaul/2026-09-28/verification/native/day-plan-routing-wide-final.log
+792dae1445a22e7bc831583cd73a943fe1fa77fba79a2d27e7c37adcfa200fa8  artifacts/experience-overhaul/2026-09-28/verification/native/day-plan-routing-wide-insets.log
+7c6c66702f864934cc8d9c324d2e8ccc4c28e0871aa3dcd637f68993e0d3448b  artifacts/experience-overhaul/2026-09-28/verification/native/day-plan-routing-wide-safe-final.log
+8b5734eb1745a026eeda1b5f7882b95c6344eb530631fdbe748db3f6f7730171  artifacts/experience-overhaul/2026-09-28/verification/native/day-plan-routing.log
+3752a719d5392950205fdda1d155b92e75fdcffd73131351e46668376a383e8d  artifacts/experience-overhaul/2026-09-28/verification/native/goal-milestones-final.log
+34629c209e7c3bb5130281f597ac252d424da8ba0d44b4a5121d36825695713e  artifacts/experience-overhaul/2026-09-28/verification/native/goal-milestones.log
+b9a37c7c2bc6a6c35dc1c2f7205be3cbf41aebecbbf64e5af855464778b7a4d6  artifacts/experience-overhaul/2026-09-28/verification/native/gym-launchpad.log
+15f51e3dd266e188bf62808767699233b95c82bcde9a8fff2ff3a3bc4f42c363  artifacts/experience-overhaul/2026-09-28/verification/native/habit-checklist.log
+80fdcfd54a821aa45bd31ea056fef6197ddb5d98c4130d401b03a3bf710cf8c4  artifacts/experience-overhaul/2026-09-28/verification/native/history-cleanup-insets-final.log
+7b986ab92c2af3837b6f9acab3b5c8c56cbae1a0eb372bbb398a6a365423a4df  artifacts/experience-overhaul/2026-09-28/verification/native/history-cleanup-setup.log
+c487ab945616f5def959a8ed6303de617a0452e0ed279caf0d78d20b6eb4d735  artifacts/experience-overhaul/2026-09-28/verification/native/history-cleanup.log
+4908745bae5ba48baaa966f87dd45dd0f09cf651eb70ebcb7a3f3368be1c9d9d  artifacts/experience-overhaul/2026-09-28/verification/native/history-search.log
+c3a5e6235dbea3bc58860d7b784368cc353df2116af9dd313067a0ac37168a82  artifacts/experience-overhaul/2026-09-28/verification/native/routine-search.log
+dc3d5e67e6de483e1b501828b7b8aca41f15ff4191ccc21aa1c3ce4ce74e2c38  artifacts/experience-overhaul/2026-09-28/verification/native/search-current.log
+5cfb116fc9668b5e6e358d7f61e17d3a2e0b6666aa1587ccb3d07a76ae86e830  artifacts/experience-overhaul/2026-09-28/verification/native/track-history-window-final.log
+ce9cd2bf40e881d5f8c06f6d54f7d3ee5fccdfb93e9b83f8269751c61b3d0324  artifacts/experience-overhaul/2026-09-28/verification/native/track-history-window.log
+39137351f05741306e7cf5c6fe8ad99661eece4a68fc5042f0f9c88cbc6fd600  artifacts/experience-overhaul/2026-09-28/verification/native/track-preview-final.log
+2340df01337d582bb1016c71f05138e4434c2b20036cb28b71ceeb63b6886b4a  artifacts/experience-overhaul/2026-09-28/verification/native/track-preview-insets-final.log
+448faa7753c881c95812ee1ec53906d7117e6fe09f33a948240384ff8c240320  artifacts/experience-overhaul/2026-09-28/verification/native/track-preview.log
+11f47c6d3720910acd0a87fc8d898eca5146d85c58277febaf38fce100effeca  artifacts/experience-overhaul/2026-09-28/verification/native/track-search-races.log
+2e81dabdefba94f7f027319709f8bd259aee45daf95b81ab0564b4a935745979  artifacts/experience-overhaul/2026-09-28/verification/native-methods.json
+22099600d1180eda7c6cf87d80d743cf6bb6ec6abe3919ea95e044ff58fdb13a  artifacts/experience-overhaul/2026-09-28/verification/production-compile.log
+d4d9faa18f33841be75f033de7f89e37c328c807184e8162e67a076e9b41a47b  artifacts/experience-overhaul/2026-09-28/verification/pull-accepted.log
+03011bcad24eef484a33b6948f333096e75a66fdf156c909002504902d091b98  artifacts/experience-overhaul/2026-09-28/verification/pull-gym-settings.log
+1893d2d7fd9847a2dcabdfac299db2be3d2ed0554b88be0448f47607a39d2b63  artifacts/experience-overhaul/2026-09-28/verification/pull-inset-diagnostic.log
+b795be9f148d1479640a8a24a50b7c606f6c29de0fcb5af02fe0df2696d13519  artifacts/experience-overhaul/2026-09-28/verification/pull-originals-latest.log
+88f0f298c52f1283f31772e41691b0c1c0d4dccee8e20e2ab88924a8d37cf167  artifacts/experience-overhaul/2026-09-28/verification/pull-originals-ready.log
+116f551627aef1fd8c1e60fddd34b9965c1b7442e6c5afdc69b24e69a9fa1379  artifacts/experience-overhaul/2026-09-28/verification/pull-originals.log
+a5debb6f73de8a9f0be24e336459e7d38efba42ba4b935682fe9f443f9969414  artifacts/experience-overhaul/2026-09-28/verification/pull-productivity-final.log
+ced9be56891e3e79f284f3e3ed94f1b914a29740563e51d15a01579c7b7fe813  artifacts/experience-overhaul/2026-09-28/verification/search-compiled.log
+506ea15dcb3ac63f9d0dddd27181720163a9c78c0b781fe236e42449d5201cc4  artifacts/experience-overhaul/2026-09-28/verification/search-final.log
+6cb65ed4664f64c245dacd5c73204a30047c5a8ab8f3dbcd93845d55c6146f7b  artifacts/experience-overhaul/2026-09-28/verification/search-initial.log
+820f182b0ecf6d48da930fe116b2379b87a55e591a8b098d4f7acf6104bd7d34  artifacts/experience-overhaul/2026-09-28/verification/search-resource-policy.log
+39907553db7eb915d984c07af2552522231020ce970dcce3d1bbf94b13af1b0e  artifacts/experience-overhaul/2026-09-28/verification/selected-rules.log
+c18d67e850472e7b3465b3e859217668e12cb5d2ef7cfe13d7bda3d27103cd6e  artifacts/experience-overhaul/2026-09-28/verification/source-sha256.txt

@@ -1874,6 +1874,11 @@ internal fun TrackEntriesPage(
     var conditionMode by rememberSaveable(projection.track.id) { mutableStateOf(TrackConditionMode.MatchAll) }
     var searchState by remember(projection.track.id) { mutableStateOf<TrackHistorySearchState?>(null) }
     var searchRetry by remember(projection.track.id) { mutableIntStateOf(0) }
+    val entryListState = rememberLazyListState()
+    var lastSettledQuery by rememberSaveable(projection.track.id) { mutableStateOf("") }
+    var requestedEntryCount by rememberSaveable(projection.track.id, query.trim(), conditions, conditionMode, sort, sortDirection, sortFieldId) {
+        mutableIntStateOf(TRACK_ENTRY_PAGE_SIZE)
+    }
     var pagedEntries by remember(projection.track.id) { mutableStateOf<List<TrackEntryProjection>>(emptyList()) }
     var totalEntryCount by remember(projection.track.id) { mutableIntStateOf(projection.entries.size) }
     var pageLoading by remember(projection.track.id) { mutableStateOf(true) }
@@ -1904,10 +1909,20 @@ internal fun TrackEntriesPage(
         pageLoading = true
         pageError = null
         try {
-            val page = loadEntryPage(0, TRACK_ENTRY_PAGE_SIZE)
+            val restored = mutableListOf<TrackEntryProjection>()
+            val restoredIds = hashSetOf<Long>()
+            var total = Int.MAX_VALUE
+            while (restored.size < minOf(requestedEntryCount, total)) {
+                val page = loadEntryPage(restored.size, TRACK_ENTRY_PAGE_SIZE)
+                total = page.totalCount
+                if (page.entries.isEmpty()) break
+                val previousSize = restored.size
+                restored += page.entries.filter { restoredIds.add(it.entry.id) }
+                if (restored.size == previousSize) break
+            }
             if (pageLoadGeneration == generation) {
-                pagedEntries = page.entries
-                totalEntryCount = page.totalCount
+                pagedEntries = restored
+                totalEntryCount = total
             }
         } catch (cancelled: CancellationException) {
             throw cancelled
@@ -1919,8 +1934,13 @@ internal fun TrackEntriesPage(
             if (pageLoadGeneration == generation) pageLoading = false
         }
     }
-    LaunchedEffect(projection.track.id, pageContentVersion) { reloadPage() }
     val normalizedQuery = query.trim()
+    // Capture before pending results reduce the composed list. A newly typed query
+    // starts normally; refreshing the same query restores its existing viewport.
+    val searchRefreshPosition = remember(normalizedQuery, pageContentVersion) {
+        (entryListState.firstVisibleItemIndex to entryListState.firstVisibleItemScrollOffset)
+            .takeIf { normalizedQuery.isNotBlank() && normalizedQuery == lastSettledQuery }
+    }
     LaunchedEffect(normalizedQuery, pageContentVersion, searchRetry) {
         val generation = ++searchGeneration
         if (normalizedQuery.isBlank()) {
@@ -1943,19 +1963,45 @@ internal fun TrackEntriesPage(
     val currentSearch = searchState?.takeIf { it.query == normalizedQuery && it.version == pageContentVersion }
     val searchPending = normalizedQuery.isNotBlank() && (currentSearch == null || currentSearch.loading)
     val searchError = currentSearch?.error.takeIf { normalizedQuery.isNotBlank() }
+    LaunchedEffect(normalizedQuery, pageContentVersion, searchPending, searchError) {
+        if (!searchPending && searchError == null) {
+            searchRefreshPosition?.let { (index, offset) -> entryListState.scrollToItem(index, offset) }
+            lastSettledQuery = normalizedQuery
+        }
+    }
     val sortField = projection.fields.firstOrNull { it.id == sortFieldId }
     LaunchedEffect(sortFieldId, sortField?.id) {
         if (sortFieldId != null && sortField == null) sortFieldId = null
     }
     val databasePagedView = query.isBlank() && conditions.isEmpty() && sort == TrackSort.EntryDate &&
         sortField == null && sortDirection == SortDirection.Descending
+    LaunchedEffect(projection.track.id, pageContentVersion, databasePagedView) {
+        if (databasePagedView) reloadPage() else {
+            ++pageLoadGeneration
+            pageLoading = false
+        }
+    }
     val shown = if (databasePagedView) pagedEntries else {
         projection.matchingEntries(conditions, conditionMode)
             .filter { entry -> normalizedQuery.isBlank() || currentSearch?.matches?.contains(entry.entry.id) == true }
             .let { entries -> projection.sortedEntries(entries, sort, sortField, sortDirection) }
     }
-    LazyColumn(
-        Modifier.fillMaxSize().testTag("track-entry-list")
+    // Do not measure the restored older-page position against a one-row loading list.
+    // The remembered list state remains intact until its requested window is ready.
+    if (databasePagedView && pagedEntries.isEmpty() && (pageLoading || pageError != null)) {
+        Column(Modifier.fillMaxSize().padding(WhipPageContentPadding)) {
+            WhipStatusCard(
+                kind = if (pageError == null) WhipStatusKind.Loading else WhipStatusKind.Error,
+                title = if (pageError == null) "Loading Entries" else "Entries Unavailable",
+                message = pageError ?: "Your saved Entries are being prepared.",
+                actionLabel = "Try Again".takeIf { pageError != null },
+                onAction = { coroutineScope.launch { reloadPage() }; Unit }.takeIf { pageError != null },
+                modifier = Modifier.testTag(if (pageError == null) "track-entry-page-loading" else "track-entry-page-error"),
+            )
+        }
+    } else LazyColumn(
+        state = entryListState,
+        modifier = Modifier.fillMaxSize().testTag("track-entry-list")
             .onSizeChanged { historyViewport = it },
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -2014,14 +2060,6 @@ internal fun TrackEntriesPage(
                 onRemove = { index -> conditions = conditions.toMutableList().also { it.removeAt(index) } },
                 onClear = { conditions = emptyList() },
                 onEdit = { filterOpen = true },
-            )
-        }
-        if (databasePagedView && pageLoading && pagedEntries.isEmpty()) item {
-            WhipStatusCard(
-                kind = WhipStatusKind.Loading,
-                title = "Loading Entries",
-                message = "Your saved Entries are being prepared.",
-                modifier = Modifier.testTag("track-entry-page-loading"),
             )
         }
         pageError?.takeIf { databasePagedView }?.let { error -> item {
@@ -2093,6 +2131,7 @@ internal fun TrackEntriesPage(
                                 val page = loadEntryPage(pagedEntries.size, TRACK_ENTRY_PAGE_SIZE)
                                 if (pageLoadGeneration == generation) {
                                     pagedEntries = (pagedEntries + page.entries).distinctBy { it.entry.id }
+                                    requestedEntryCount = maxOf(requestedEntryCount, pagedEntries.size)
                                     totalEntryCount = page.totalCount
                                 }
                             } catch (cancelled: CancellationException) {
@@ -2963,6 +3002,9 @@ internal fun TrackEditor(
         editingFieldIndex = null
         addingField = false
     }
+    var startersOpen by rememberSaveable(token) { mutableStateOf(false) }
+    var starterReplacement by rememberSaveable(token) { mutableStateOf<TrackStarter?>(null) }
+    var entryPreviewOpen by rememberSaveable(token) { mutableStateOf(false) }
     var confirmFieldDeleteIndex by rememberSaveable(token) { mutableStateOf<Int?>(null) }
     var removalReviewOpen by rememberSaveable(token) { mutableStateOf(false) }
     var unsavedConfirm by rememberSaveable(token) { mutableStateOf(false) }
@@ -3142,11 +3184,23 @@ internal fun TrackEditor(
                     }
                 }
                 validationError?.let { message -> item { FormValidationSummary(listOf(message), visible = true, testTag = "track-save-problem") } }
+                if (!editing) item {
+                    WhipOutlinedButton(onClick = { startersOpen = true }, modifier = Modifier.fillMaxWidth().testTag("track-choose-starter")) {
+                        Text("Start from a Template")
+                    }
+                }
                 item {
                     OutlinedTextField(draft.name, { value -> stateHolder.updateDraft { it.copy(name = value.replace('\n', ' ').replace('\r', ' ').take(100)) } }, label = { Text("Track Name *") }, singleLine = true, isError = validationError != null && draft.name.isBlank(), modifier = Modifier.fillMaxWidth().testTag("track-editor-name"), supportingText = if (validationError != null && draft.name.isBlank()) {{ Text("Track name is required") }} else {{ Text("${draft.name.length}/100") }})
                 }
                 item { HorizontalDivider() }
                 item { EditorSectionHeader("Entry Fields", quantityLabel(fields.size, "Field")) }
+                item {
+                    WhipOutlinedButton(onClick = {
+                        runCatching { draft.entryPreviewProjection() }
+                            .onSuccess { entryPreviewOpen = true }
+                            .onFailure { reportValidationError(it.message ?: "Review the Entry Fields.") }
+                    }, modifier = Modifier.fillMaxWidth().testTag("track-preview-entry")) { Text("Preview Entry Form") }
+                }
                 item { WhipOutlinedButton(onClick = { fieldEditorSession++; addingField = true }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Outlined.Add, null); Spacer(Modifier.width(8.dp)); Text("Add Field") } }
                 itemsIndexed(fields, key = { index, field -> field.uuid ?: field.id?.toString() ?: "new-field-$index-${field.name}" }) { index, field ->
                     val reorderInteraction = rememberWhipReorderInteractionState()
@@ -3225,6 +3279,40 @@ internal fun TrackEditor(
         )
         }
     }
+
+    fun applyStarter(starter: TrackStarter) {
+        stateHolder.updateDraft { starter.draft(it.areaId) }
+        validationError = null
+        starterReplacement = null
+        startersOpen = false
+    }
+    if (startersOpen && !busy) PaneAwareAlertDialog(
+        onDismissRequest = { startersOpen = false },
+        title = { Text("Track Templates") },
+        text = {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                item { Text("Choose a starting form. You can rename, reorder, add, or remove Fields before saving.") }
+                items(TrackStarter.entries) { starter ->
+                    WhipActionRow(starter.label, onClick = {
+                        if (dirty) { starterReplacement = starter; startersOpen = false }
+                        else applyStarter(starter)
+                    }, supportingText = starter.description, modifier = Modifier.testTag("track-starter-${starter.name}"))
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { WhipTextButton(onClick = { startersOpen = false }) { Text("Cancel") } },
+    )
+    starterReplacement?.let { starter ->
+        PaneAwareAlertDialog(
+            onDismissRequest = { starterReplacement = null },
+            title = { Text("Replace This Draft?") },
+            text = { Text("Use ${starter.label} in place of this draft's name, details, and Fields. Your selected Area stays the same. No saved Track or Entry changes.") },
+            confirmButton = { WhipDestructiveTextButton(onClick = { applyStarter(starter) }) { Text("Use Template") } },
+            dismissButton = { WhipTextButton(onClick = { starterReplacement = null }) { Text("Keep Draft") } },
+        )
+    }
+    if (entryPreviewOpen && !busy) TrackEntryPreviewDialog(draft, BuiltInUnits.all + customUnits) { entryPreviewOpen = false }
 
     if (editingFieldIndex != null || addingField) fieldEditorStateHolder.SaveableStateProvider(fieldEditorStateKey) {
         editingFieldIndex?.let { index -> fields.getOrNull(index)?.let { field ->

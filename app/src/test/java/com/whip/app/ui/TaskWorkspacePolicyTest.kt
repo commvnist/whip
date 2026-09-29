@@ -12,6 +12,19 @@ import org.junit.Test
 
 class TaskWorkspacePolicyTest {
     @Test
+    fun dayPlanningKeepsScopeAndTaskFiltersWithoutTodaysScheduledDateConstraint() {
+        val filter = SavedTaskFilter(name = "Work", areaId = "work", dateMode = "Today",
+            textQuery = "report", tags = setOf("urgent"), destination = "Today")
+        val planned = filter.forDayPlanning(TaskDestination.Today)
+        assertEquals("Any", planned.dateMode)
+        assertEquals(true, planned.inboxOnly)
+        assertEquals("Inbox", planned.destination)
+        assertEquals(filter.areaId, planned.areaId)
+        assertEquals(filter.textQuery, planned.textQuery)
+        assertEquals(filter.tags, planned.tags)
+        assertEquals("Today", filter.forDayPlanning(TaskDestination.Inbox).dateMode)
+    }
+    @Test
     fun allTaskDestinationsRemainDirectInTheirStableOrder() {
         assertEquals(
             listOf(

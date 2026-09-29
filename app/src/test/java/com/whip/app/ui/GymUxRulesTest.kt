@@ -40,6 +40,67 @@ import org.junit.Test
 
 class GymUxRulesTest {
     @Test
+    fun workoutLaunchChoicesAndRoutineSearchKeepAuthoredScope() {
+        fun routine(id: Long, pinned: Boolean = false) = com.whip.app.domain.GymRoutine(id, "r$id", "Plan $id", "steady", id.toInt(), false, pinned, 1, 1)
+        val first = routine(1)
+        val recent = routine(2)
+        val pinned = routine(3, true)
+        val archived = routine(4, true).copy(archived = true)
+        val session = WorkoutSession(1, "session", "Training", "", Instant.EPOCH, Instant.EPOCH.plusSeconds(60),
+            LocalDate.of(2026, 9, 28), "UTC", WorkoutSessionState.Finished, false, null, null, false, 1, 2, sourceRoutineId = recent.id)
+        assertEquals(listOf(pinned.id, recent.id), workoutQuickRoutines(GymUiState(
+            routines = listOf(first, recent, pinned, pinned, archived), history = listOf(session))).map { it.id })
+        val monday = com.whip.app.domain.RoutineDay(1, "day1", first.id, "Monday", 0, 1, 1)
+        val friday = monday.copy(id = 2, uuid = "day2", name = "Friday", position = 1)
+        assertEquals(monday, routineStartDay(first, listOf(monday)))
+        assertNull(routineStartDay(first, listOf(monday, friday)))
+        assertEquals(friday, routineStartDay(first.copy(programKind = com.whip.app.domain.RoutineProgramKind.Custom,
+            nextProgramDayPosition = 1), listOf(friday, monday)))
+        val exercise = testExercise(9, "Goblet Squat", "", "").copy(archived = true)
+        val placement = com.whip.app.domain.RoutineExercise(7, "p7", monday.id, exercise.id, 0, "", null, false, 1, 1)
+        assertTrue(routineMatchesQuery(first, "MONday squat steady", listOf(monday), listOf(placement), listOf(exercise)))
+        assertFalse(routineMatchesQuery(recent, "squat", listOf(monday), listOf(placement), listOf(exercise)))
+        assertFalse(routineMatchesQuery(first, "Friday", listOf(monday), listOf(placement), listOf(exercise)))
+    }
+
+    @Test
+    fun clockTickPreservesProjectedTotalsAndOnlyUpdatesTime() {
+        val library = (1L..200L).map { testExercise(it, "Exercise $it", "", "") }
+        val placements = (1L..20L).map { WorkoutExercise(it, "p$it", 1, it, it.toInt(), "", null, 1, 1) }
+        val sets = placements.flatMap { placement -> (0..5).map { index ->
+            performanceSet(placement.id).copy(id = placement.id * 10 + index, uuid = "s${placement.id}-$index", position = index)
+        } }
+        val active = WorkoutSession(1, "session", "Training", "", Instant.ofEpochMilli(10_000), null,
+            LocalDate.of(2026, 9, 28), "UTC", WorkoutSessionState.Active, false, 70_000, 60, false, 1, 2)
+        fun summary(session: WorkoutSession, now: Long, inputs: List<WorkoutSet> = sets) = com.whip.app.domain.calculateWorkoutSummary(
+            session, placements, inputs, library.associateBy(Exercise::id), now)
+        val state = GymUiState(activeSession = active, exercises = library, summary = summary(active, 20_000))
+        listOf(9_000L, 10_000L, 20_000L, 70_000L, 90_000L).forEach { now ->
+            val tick = state.withClockTick(now)
+            assertEquals(summary(active, now), tick.summary)
+            assertEquals(restTimerRemainingSeconds(70_000, now, 60), tick.restSecondsRemaining)
+            assertEquals(now, tick.nowMillis)
+        }
+        val ended = active.copy(endedAt = Instant.ofEpochMilli(50_000))
+        assertEquals(summary(ended, 100_000), state.copy(activeSession = ended).withClockTick(100_000).summary)
+        val refreshed = summary(active, 20_000, sets.map { it.copy(repetitions = 8) })
+        assertEquals(refreshed.copy(elapsedSeconds = 20), state.copy(summary = refreshed).withClockTick(30_000).summary)
+        assertNull(state.copy(activeSession = null).withClockTick(30_000).summary)
+        assertNull(state.copy(activeSession = null).withClockTick(30_000).restSecondsRemaining)
+        repeat(100) { summary(active, 30_000); state.withClockTick(30_000) }
+        fun medianNanos(action: () -> Unit): Long = List(7) {
+            val start = System.nanoTime()
+            repeat(100) { action() }
+            (System.nanoTime() - start) / 100
+        }.sorted()[3]
+        var observed = 0L
+        val before = medianNanos { observed += summary(active, 30_000).elapsedSeconds }
+        val after = medianNanos { observed += state.withClockTick(30_000).summary!!.elapsedSeconds }
+        assertTrue(observed > 0)
+        println("Gym clock projection, 200 exercises / 120 sets: median old full calculation $before ns; new clock-only copy $after ns per tick. No frame-rate claim.")
+    }
+
+    @Test
     fun trackedMachineRecordsRemainEligibleForArchivedAndRemovedProfiles() {
         val exercise = testExercise(1, "Row", "Machine", "Back")
         val selection = TrackedGymRecord(exercise.uuid, PersonalRecordType.MaxMachineSetting, machineProfileUuid = "level-profile")

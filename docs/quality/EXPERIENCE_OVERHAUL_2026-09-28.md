@@ -1,6 +1,6 @@
 # Whip complete product-experience overhaul — 2026-09-28
 
-Status: **Implemented; focused acceptance in progress**. FB-20260928-007. Clean pushed baseline `9014937f`; current private phone release 0.3.82/code 88. This is a new goal adopting the owner's comprehensive prompt, with the explicit change to two additional GPT-6 Astra/high agents.
+Status: **Complete — all twelve groups implemented and verified within the owner's focused scope**. FB-20260928-007/008, IMP-20260928-011, VER-20260928-007. Clean pushed baseline `9014937f`; current private phone release remains 0.3.82/code 88. Parent plus exactly two additional GPT-6 Astra/high agents.
 
 ## Required outcome
 
@@ -38,7 +38,7 @@ The parent serializes builds and emulator work. The physical phone remains on it
 
 ## Accepted implementation groups
 
-The twelve groups below are accepted before their production changes, including the owner's subsequent history-continuity feedback. Investigation of remaining workflows continues. A justified keep is an assessment outcome; it is not a postponed recommendation.
+The twelve groups below were accepted before their production changes, including the owner's subsequent history-continuity feedback. The three reports now cover 137 current-source workflow dispositions: 32 shared/Home/Tasks, 45 productivity and 60 Gym/Settings. A justified keep is an assessment outcome; it is not a postponed recommendation or an executed-test claim.
 
 | ID / priority | Current problem and intended improvement | Owners / compatibility | Focused acceptance |
 | --- | --- | --- | --- |
@@ -121,3 +121,34 @@ Initial production compile found a missing RoutineExercise import and failed in 
 The owner's repeated-cleanup report adds EP6 before its implementation. Current Habit log/pause callbacks explicitly destroy the inspector before opening their editor, losing History/query/list state. Goal measurement editing and its general receipt handler similarly dismiss the parent. Preserve those parent compositions behind their child dialogs, then dismiss only the completed editor/review; keep existing authored save/error ownership and exact historical IDs. Whole-entity lifecycle changes and elapsed-origin reset still respect their definition boundary and intentional navigation.
 
 Analogous current-source review: Track's selected definition and Entries search/filter/sort/list remain composed behind its Entry overlay; deletion clears the child candidate/route only. Task occurrence Reopen/Reset callbacks do not clear the inspector; an operation on its selected completed occurrence can legitimately remove that specific completed context, whereas other historical occurrence actions leave it open. Task subtasks remain inside the inspector. Gym SetUpdated clears only the child Set editor, WorkoutSetRemoved clears its local confirmation and preserves workout context, and retained History sessions stay expanded after detail edits. Removing the entire selected Workout invalidates that session and remains in History. Routine Set/placement edits retain the builder. Settings unit editors and emoji menus close only their child surface. These are concrete keeps; native proof focuses on the affected Habit/Goal repeated-edit path and retained Track context.
+
+Deeper Track paging review found an EP6 defect despite correct overlay ownership: every content change reloads just the first 100 Entries, collapsing any Show More window after an old record is changed or after recreation. Accept the additional remedy before editing: retain the requested loaded window with saveable state, reset on actual query/filter/sort change, and refill it using existing bounded 100-row repository calls. Keep cancellation/stale-query/error handling, and only increase the window after a successful Show More. Add focused loaded-window correction/recreation proof; do not introduce a new paging framework.
+
+Fresh short-screen 200% inspection also refined ES1: Preview now reveals the proposed tasks immediately, and a failed Apply reveals its error while retaining selection. The original setup-position capture remains in `diagnostic-before/`; the final exact fixture verifies the proposed summary without manually scrolling, then reaches the sixteenth candidate with Apply still fixed and visible. This is completion of the same planning workflow, not an additional deferred recommendation.
+
+The subsequent wider 1800×2400 original exposed clipped bottom card/action chrome behind Android's tablet taskbar despite a passing visible-label assertion. Accept a shared ES1/design-role follow-through before editing: non-primary `ProductivityEditorDialog` currently opts out of platform inset fitting but applies only IME padding. Apply safe drawing insets at that shared owner, preserving primary editor behavior; strengthen the wider fixture to bound the whole Apply control above the system inset. Recheck the short IME and representative affected child-dialog paths. Do not treat the earlier wide image as clean visual acceptance.
+
+## Delivery and acceptance map
+
+All twelve remedies are implemented. Exact method names, failed attempts, timing, binary hashes and fresh originals are retained in the [evidence receipt](../../artifacts/experience-overhaul/2026-09-28/README.md); the domain reports assess their actual screenshots. Ten distinct JVM methods and sixteen distinct Android methods have passing evidence. Final shared-inset acceptance passes the wide whole-action bounds, short actual-200%/IME planner, large Track preview, backup disclosure/child dialog and repeated Habit/Goal history cleanup. Every passing native invocation takes 8.557–42.301 seconds including guard/process overhead. No full/readiness/candidate batch ran.
+
+| Group | Delivered implementation | Focused evidence |
+| --- | --- | --- |
+| EP1 | Shared actionable Goal milestone checklist in card and inspector, live projection with definition-boundary protection, owned mutation/failure | `goalMilestonesWorkInsideDetailsAndCompleteOnlyOnRequest`; working-milestones original |
+| EP2 | Explicit reached-target completion alongside progress; ongoing/elapsed rules preserved | Same native journey plus `completionOpportunityRequiresAnAchievedActiveFiniteOutcome` |
+| EP3 | Shared Habit checklist in Today/card with committed mutation and reminder follow-up; authored auto-complete policy retained | `habitChecklistWorksInsideTodayAndRetainsParentCompletion`; actual 200% working-checklist original |
+| EP4 | Four editable Track starters, dirty-draft replacement review and disposable preview through actual field renderer | `trackStartersAndPreviewKeepAuthoredDefinitionsSeparateFromSampleFacts`, `trackStarterPreviewUsesRealFieldsWithoutSavingSampleValues`; actual 200% preview original |
+| EP5 | Saved Habit/Goal history query over prepared original facts; filter before pagination; lazy Habit rows | Two original-history JVM rules plus `historySearchFindsOlderOriginalFactsAndRestoresItsQuery`; oldest-match originals |
+| EP6 | Habit/Goal child editing retains parent History; Track preserves requested older window/viewport across content changes and recreation | `repeatedHistoryCleanupKeepsQueriesAndRecoversFromStaleGoalDeletion`, `trackHistoryChangesKeepLoadedOlderWindowAndSearchAcrossRecreation`, existing `changedQueriesCannotShowStaleMatchesAndFailuresRemainRetryable`; retained-history originals |
+| EGS1 | Bounded returning-user workout launchpad through exact existing start/history commands; first-use preserved | `workoutLaunchChoicesAndRoutineSearchKeepAuthoredScope`, `workoutLaunchpadKeepsExactChoicesAtLargeText`; launchpad/first-use originals |
+| EGS2 | Saved multi-term routine-content search/count/clear, explicit archived scope and safe reorder behavior | Same pure rule, `routineSearchRestoresScopeAndLaunchesTheExplicitDay`; routine-search and started originals |
+| EGS3 | Protection summary and core backup/restore before folder/CSV disclosures; warnings and settled results remain visible | `backupOverviewKeepsRecoveryVisibleAndAdministrationRestorable`, `deepDataOperationMakesItsSettledResultVisible`, `plainAndCsvExportsKeepTheirRequestedFormats`; protection/warning/result originals |
+| EGS4 | Clock-only elapsed/rest update, data/settings-owned totals | `clockTickPreservesProjectedTotalsAndOnlyUpdatesTime`; equivalent totals and bounded timing observation |
+| ES1 | Home/Today/Inbox entry, shared lazy planner, fixed actions, retained draft/error, preview/error reveal and shared safe drawing insets | Exact policy method plus three `TaskDayPlannerUiTest` journeys; normal/light, short/200%/IME and wider/taskbar originals |
+| ES2 | Prepared query, content-only Gym/Goal invalidation, index identity ownership and loading on rebuild | Two exact `UnifiedSearchRulesTest` methods and `workoutClockAndChangedContentKeepSearchResultsCurrent`; current-content dark/IME original |
+
+Visual hierarchy uses existing shared roles: work inside Overview, earned completion next to progress, focused planning with fixed confirmation, starter/preview before schema commitment, useful next workout choices, and protection before backup administration. No parallel visual system, generic form engine, dependency, storage migration or backup-version change was introduced. The inspector checklists and Track field renderer are reused at their actual equivalent interaction sites; new pure helpers and the extracted planner reduce shell coupling.
+
+The source matrices cover discovery through authoring, execution, correction, history, archival/removal and recovery, including cross-feature routes and retired integrations. Accessibility evidence includes actual Android 200% text, scrollable long content, labelled controls, IME and whole-action system-inset checks. It does not claim fresh execution of every disposition, TalkBack speech, RTL, every fold/device/OEM condition or a physical-phone speed result.
+
+Final reconciliation: every accepted row above has delivered source, selected passing evidence and inspected rendering where applicable; all 137 source-review rows have an implement/keep disposition. The measured CPU improvements preserve behavior, existing data formats are unchanged, and no accepted recommendation remains open. Delivery and source/evidence integrity are recorded in VER-20260928-007. This completion does not imply a new phone release.

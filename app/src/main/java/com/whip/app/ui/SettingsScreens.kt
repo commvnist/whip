@@ -208,6 +208,8 @@ internal fun SettingsContent(
     var captureExamplesExpanded by rememberSaveable { mutableStateOf(false) }
     var deliveryDetailsExpanded by rememberSaveable { mutableStateOf(false) }
     var notificationTroubleshootingExpanded by rememberSaveable { mutableStateOf(false) }
+    var backupFolderExpanded by rememberSaveable { mutableStateOf(false) }
+    var csvExportsExpanded by rememberSaveable { mutableStateOf(false) }
     var showEncryptedExport by rememberSaveable { mutableStateOf(false) }
     var exportPassphrase by remember { mutableStateOf("") }
     var exportPassphraseConfirmation by remember { mutableStateOf("") }
@@ -1356,42 +1358,102 @@ internal fun SettingsContent(
         }
         dataPrivacyPasses.forEach { dataPrivacyPass ->
         if (dataPrivacyPass == DataPrivacyGroup.Backup) {
-        item { SettingsHeading("Backup & Export") }
         item {
+            WhipGroupedInformationCard(modifier = Modifier.testTag("backup-protection-summary")) {
+                WhipGroupHeading("Backup & Export")
+                Text(when {
+                    !state.portableBackup.configured -> "No backup folder configured"
+                    state.portableBackup.lastError != null -> "Backup needs attention"
+                    state.portableBackup.lastBackupAtMillis == null -> "Folder connected · No verified backup yet"
+                    state.portableBackup.automaticEnabled -> "Automatic daily backup is on"
+                    else -> "Automatic daily backup is off"
+                }, style = MaterialTheme.typography.titleSmall)
+                state.portableBackup.lastBackupAtMillis?.let { millis ->
+                    val whenSaved = formatSettingsTimestamp(
+                        instant = Instant.ofEpochMilli(millis),
+                        zoneId = settings.zoneId(),
+                        locale = LocalConfiguration.current.locales[0],
+                    )
+                    Text(
+                        stringResource(R.string.settings_backup_last_verified, whenSaved),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                state.portableBackup.lastError?.let { error ->
+                    Text(
+                        "Last backup warning or error: $error. Reconnect this folder below, or forget it and choose another folder.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+                    )
+                }
+                if (!state.portableBackup.configured) {
+                    Text("Save a backup below, or choose a folder for verified daily copies.", style = MaterialTheme.typography.bodySmall)
+                    WhipOutlinedButton(onClick = { backupFolder.launch(null) }, enabled = !state.busy,
+                        modifier = Modifier.fillMaxWidth()) { Text("Choose Backup Folder") }
+                } else {
+                    if (state.portableBackup.lastError != null || state.portableBackup.lastBackupAtMillis == null) {
+                        Text(if (state.portableBackup.automaticEnabled) "Automatic daily backup is on" else "Automatic daily backup is off",
+                            style = MaterialTheme.typography.bodySmall)
+                    }
+                    WhipButton(onClick = viewModel::createPortableBackup, enabled = !state.busy,
+                        modifier = Modifier.fillMaxWidth()) { Text("Back Up Now") }
+                    if (state.portableBackup.lastError != null) WhipTextButton(
+                        onClick = { backupFolder.launch(state.portableBackup.folderUri?.let(android.net.Uri::parse)) },
+                        enabled = !state.busy,
+                    ) { Text("Reconnect or Change Folder") }
+                }
+            }
+        }
+        item { SettingsHeading("Save or Restore a Backup") }
+        item {
+            WhipActionList {
+                WhipActionRow(
+                    title = "Save Plain JSON Backup",
+                    supportingText = "A readable copy of your records and settings. Anyone with the file can read it.",
+                    enabled = !state.busy,
+                    onClick = {
+                        viewModel.prepareDocumentExport(ExportKind.Backup)
+                        createDocument.launch("whip-${LocalDate.now(settings.zoneId())}.whip.json")
+                    },
+                )
+                WhipActionDivider()
+                WhipActionRow(
+                    title = "Save Passphrase-Encrypted Backup",
+                    supportingText = "Protect your records and settings with a passphrase. Whip cannot recover a forgotten passphrase.",
+                    enabled = !state.busy,
+                    onClick = { showEncryptedExport = true },
+                )
+                WhipActionDivider()
+                WhipActionRow(
+                    title = "Preview and Restore Backup",
+                    supportingText = "Review a saved backup before choosing to merge or replace local data.",
+                    enabled = !state.busy,
+                    onClick = { openDocument.launch(arrayOf("application/json", "text/plain", "*/*")) },
+                )
+            }
+        }
+        item {
+            DisclosureRow(title = "Portable Backup Folder",
+                supportingText = if (state.portableBackup.configured) "Automatic backups, retention, and folder access" else "Set up verified daily backups",
+                expanded = backupFolderExpanded, onClick = { if (activeTypedSettingTag == null) backupFolderExpanded = !backupFolderExpanded },
+                modifier = Modifier.testTag("backup-folder-disclosure"))
+        }
+        if (backupFolderExpanded) item {
             WhipGroupedInformationCard {
-                    WhipGroupHeading("Portable Backup Folder")
                     Text(
                         "Save verified plain-JSON backups to Files, Drive, or removable storage. Retention and cleanup act only on Whip's automatic-backup and incomplete-write filenames.",
                         style = MaterialTheme.typography.bodySmall,
                     )
                     if (state.portableBackup.configured) {
                         Text("Folder: ${state.portableBackup.folderLabel ?: "Selected folder"}")
-                        state.portableBackup.lastBackupAtMillis?.let { millis ->
-                            val whenSaved = formatSettingsTimestamp(
-                                instant = Instant.ofEpochMilli(millis),
-                                zoneId = settings.zoneId(),
-                                locale = LocalConfiguration.current.locales[0],
-                            )
-                            Text(
-                                state.portableBackup.lastBackupFileName?.let { fileName ->
-                                    stringResource(R.string.settings_backup_last_verified_file, whenSaved, fileName)
-                                } ?: stringResource(R.string.settings_backup_last_verified, whenSaved),
-                                style = MaterialTheme.typography.bodySmall,
-                            )
+                        state.portableBackup.lastBackupFileName?.let { fileName ->
+                            state.portableBackup.lastBackupAtMillis?.let { millis ->
+                                Text(stringResource(R.string.settings_backup_last_verified_file,
+                                    formatSettingsTimestamp(Instant.ofEpochMilli(millis), settings.zoneId(), LocalConfiguration.current.locales[0]),
+                                    fileName), style = MaterialTheme.typography.bodySmall)
+                            }
                         }
-                        state.portableBackup.lastError?.let { error ->
-                            Text(
-                                "Last backup warning or error: $error. Reconnect this folder below, or forget it and choose another folder.",
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
-                            )
-                        }
-                        WhipButton(
-                            onClick = viewModel::createPortableBackup,
-                            enabled = !state.busy,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) { Text("Back Up Now") }
                         SettingsToggle(
                             "Automatic daily backup",
                             state.portableBackup.automaticEnabled,
@@ -1443,34 +1505,11 @@ internal fun SettingsContent(
             }
         }
         item {
-            WhipActionList {
-                WhipActionRow(
-                    title = "Save Plain JSON Backup",
-                    supportingText = "A readable copy of your records and settings. Anyone with the file can read it.",
-                    enabled = !state.busy,
-                    onClick = {
-                        viewModel.prepareDocumentExport(ExportKind.Backup)
-                        createDocument.launch("whip-${LocalDate.now(settings.zoneId())}.whip.json")
-                    },
-                )
-                WhipActionDivider()
-                WhipActionRow(
-                    title = "Save Passphrase-Encrypted Backup",
-                    supportingText = "Protect your records and settings with a passphrase. Whip cannot recover a forgotten passphrase.",
-                    enabled = !state.busy,
-                    onClick = { showEncryptedExport = true },
-                )
-                WhipActionDivider()
-                WhipActionRow(
-                    title = "Preview and Restore Backup",
-                    supportingText = "Review a saved backup before choosing to merge or replace local data.",
-                    enabled = !state.busy,
-                    onClick = { openDocument.launch(arrayOf("application/json", "text/plain", "*/*")) },
-                )
-            }
+            DisclosureRow(title = "Export CSV", supportingText = "Five spreadsheet exports · not restorable backups",
+                expanded = csvExportsExpanded, onClick = { csvExportsExpanded = !csvExportsExpanded },
+                modifier = Modifier.testTag("csv-export-disclosure"))
         }
-        item {
-            Text("Export CSV", modifier = Modifier.semantics { heading() }, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        if (csvExportsExpanded) item {
             Text(
                 "Export individual tables for spreadsheets. Use a backup to restore Whip.",
                 style = MaterialTheme.typography.bodySmall,

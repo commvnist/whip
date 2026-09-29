@@ -11,6 +11,42 @@ import androidx.compose.ui.unit.dp
 import com.whip.app.domain.AreaScope
 
 class UnifiedSearchRulesTest {
+    @Test
+    fun searchContentIgnoresClockButInvalidatesChangedRoutineContent() {
+        val state = GymUiState(loading = false)
+        assertEquals(state.searchContent(), state.copy(nowMillis = 2000, restSecondsRemaining = 10,
+            errorMessage = "Unavailable").searchContent())
+        val routine = com.whip.app.domain.GymRoutine(1, "routine", "Strength", "", 0, false, false, 1, 1)
+        assertFalse(state.searchContent() == state.copy(routines = listOf(routine)).searchContent())
+        assertFalse(state.searchContent() == state.copy(archivedRoutines = listOf(routine)).searchContent())
+    }
+
+    @Test
+    fun compiledSearchPreservesConstraintsRankingAndReducesRepeatedParsing() {
+        val rows = (1L..2_000L).map { task.copy(id = it, title = if (it % 3 == 0L) "Report" else "Quarterly report $it") }
+        val queries = listOf("report tag:finance area:WORK", "report missing deadline:true", "before:invalid",
+            "domain:task after:2026-08-01 before:2026-09-01", "status:active", "deadline:invalid", "unknown:report", "  ")
+        queries.forEach { query ->
+            val compiled = WhipSearchQuery(query)
+            listOf(true, false).forEach { all ->
+                assertEquals(rows.filter { it.legacyMatchesQuery(query, all) }.map { it.id },
+                    rows.filter { compiled.matches(it, all) }.map { it.id })
+            }
+        }
+        assertFalse(WhipSearchQuery("before:2026-08-20").matches(task))
+        assertFalse(WhipSearchQuery("after:2026-08-20").matches(task))
+        assertFalse(WhipSearchQuery("missing tag:home").matches(task, false))
+        assertTrue(WhipSearchQuery("AREA:work").explicitAreaOverride)
+        val query = "report tag:finance area:work deadline:true before:2026-09-01"
+        val compiled = WhipSearchQuery(query)
+        fun repeated() = rows.filter { it.legacyMatchesQuery(query) }.sortedWith(compareBy { it.legacySearchRank(query) }).map { it.id }
+        fun prepared() = rows.filter { compiled.matches(it) }.sortedWith(compareBy { compiled.rank(it) }).map { it.id }
+        assertEquals(repeated(), prepared())
+        repeat(2) { repeated(); prepared() }
+        val before = (1..5).map { kotlin.system.measureNanoTime { repeated() } }.sorted()[2]
+        val after = (1..5).map { kotlin.system.measureNanoTime { prepared() } }.sorted()[2]
+        println("Search 2000 rows: median per-row parse=$before ns; compiled query=$after ns")
+    }
     private val task = WhipSearchResult(
         domain = SearchDomain.Task,
         id = 1,
@@ -191,3 +227,58 @@ class UnifiedSearchRulesTest {
         assertTrue(task.copy(date = tokyoDate).matchesQuery("after:2026-08-31"))
     }
 }
+
+// Previous production implementation retained as the behavior and CPU-work reference.
+private fun WhipSearchResult.legacyMatchesQuery(query: String, requireAllTerms: Boolean = true): Boolean {
+    val tokens = query.trim().split(Regex("\\s+")).filter(String::isNotBlank)
+    val plain = mutableListOf<String>()
+    var structuredCount = 0
+    tokens.forEach { raw ->
+        val token = raw.lowercase()
+        val key = token.substringBefore(':', "")
+        val value = token.substringAfter(':', "")
+        when (key) {
+            "tag" -> { structuredCount++; if (tags.none { it.equals(value, true) }) return false }
+            "area" -> { structuredCount++; if (!area.contains(value, true)) return false }
+            "status" -> { structuredCount++; if (!status.equals(value, true)) return false }
+            "domain" -> { structuredCount++; if (!domain.name.equals(value, true) && !domain.uiLabel().replace(" ", "").equals(value.replace(" ", ""), true)) return false }
+            "before" -> {
+                structuredCount++
+                val boundary = parseDateOrNull(value) ?: return false
+                if (date?.isBefore(boundary) != true) return false
+            }
+            "after" -> {
+                structuredCount++
+                val boundary = parseDateOrNull(value) ?: return false
+                if (date?.isAfter(boundary) != true) return false
+            }
+            "deadline" -> {
+                structuredCount++
+                val required = value.toBooleanStrictOrNull() ?: return false
+                if ((deadline != null) != required) return false
+            }
+            else -> {
+                plain += token
+            }
+        }
+    }
+    if (plain.isEmpty()) return structuredCount > 0
+    val haystack = listOf(domain.uiLabel(), title, detail, area, tags.joinToString(" "), status, date?.toString().orEmpty(), deadline?.toString().orEmpty())
+        .joinToString(" ").lowercase()
+    return if (requireAllTerms) plain.all(haystack::contains) else plain.any(haystack::contains)
+}
+
+/** Stable user-facing rank: exact titles, title prefixes, title matches, then detail matches. */
+private fun WhipSearchResult.legacySearchRank(query: String): Int {
+    val plainQuery = query.trim().split(Regex("\\s+")).filterNot { ':' in it }.joinToString(" ").lowercase()
+    if (plainQuery.isBlank()) return 3
+    val normalizedTitle = title.trim().lowercase()
+    return when {
+        normalizedTitle == plainQuery -> 0
+        normalizedTitle.startsWith(plainQuery) -> 1
+        normalizedTitle.contains(plainQuery) -> 2
+        else -> 3
+    }
+}
+
+private fun parseDateOrNull(value: String): LocalDate? = runCatching { LocalDate.parse(value) }.getOrNull()

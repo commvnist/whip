@@ -118,7 +118,7 @@ private data class RankedSearchValue<T, C : Comparable<C>>(
     val inputIndex: Int,
 )
 
-private fun SearchDomain.uiLabel(): String = if (this == SearchDomain.TrackEntry) "Track Entry" else name
+internal fun SearchDomain.uiLabel(): String = if (this == SearchDomain.TrackEntry) "Track Entry" else name
 
 data class WhipSearchResult(
     val domain: SearchDomain,
@@ -258,6 +258,7 @@ internal fun unifiedSearchDataStatus(
 private data class SearchResultsSnapshot(
     val requestKey: String,
     val results: List<WhipSearchResult>,
+    val source: List<WhipSearchResult>? = null,
 )
 
 internal data class UnifiedSearchWorkspaceModel(
@@ -309,12 +310,15 @@ internal fun UnifiedSearchDialog(
     val activeZoneId = LocalWhipZone.current
     val yesLabel = stringResource(R.string.search_yes)
     val noLabel = stringResource(R.string.search_no)
+    val gymSearchContent = gymState.searchContent()
     val searchIndex by produceState<BoundedSearchIndex?>(
         null,
         taskState,
         habitState,
-        goalState,
-        gymState,
+        goalState.active,
+        goalState.completed,
+        goalState.archived,
+        gymSearchContent,
         trackState,
         customUnits,
         resourceConfiguration,
@@ -322,6 +326,7 @@ internal fun UnifiedSearchDialog(
         yesLabel,
         noLabel,
     ) {
+        value = null
         value = withContext(Dispatchers.Default) {
             buildBoundedSearchIndex(MaxSearchResultsPerDomain) {
             val habitLogs = habitState.logs.groupBy { it.habitId }
@@ -457,7 +462,8 @@ internal fun UnifiedSearchDialog(
             settledQuery = query
         }
     }
-    val explicitAreaOverride = settledQuery.trim().split(Regex("\\s+")).any { it.startsWith("area:", ignoreCase = true) }
+    val parsedQuery = remember(settledQuery) { WhipSearchQuery(settledQuery) }
+    val explicitAreaOverride = parsedQuery.explicitAreaOverride
     val effectiveAreaScope = if (searchAllAreas || explicitAreaOverride) AreaScope.All else areaScope
     val searchRequestKey = listOf(
         settledQuery,
@@ -479,17 +485,18 @@ internal fun UnifiedSearchDialog(
             } else {
                 all.filter { result ->
                     val inScope = result.isVisibleInAreaScope(effectiveAreaScope, explicitAreaOverride)
-                    inScope && result.domain in domains && result.matchesQuery(settledQuery, requireAllTerms)
+                    inScope && result.domain in domains && parsedQuery.matches(result, requireAllTerms)
                 }.sortedWith(
-                    compareBy<WhipSearchResult> { it.searchRank(settledQuery) }
+                    compareBy<WhipSearchResult> { parsedQuery.rank(it) }
                         .thenBy { it.title.lowercase() }
                         .thenBy { it.domain.ordinal },
                 )
             }
         }
-        value = SearchResultsSnapshot(searchRequestKey, matches)
+        value = SearchResultsSnapshot(searchRequestKey, matches, all)
     }
-    val searchSettled = query == settledQuery && matchingSnapshot.requestKey == searchRequestKey
+    val searchSettled = searchIndex != null && query == settledQuery &&
+        matchingSnapshot.requestKey == searchRequestKey && matchingSnapshot.source === all
     val matchingResults = if (searchSettled) matchingSnapshot.results else emptyList()
     val results = matchingResults.take(visibleResults)
     val baseDataStatus = unifiedSearchDataStatus(
@@ -1175,56 +1182,7 @@ internal fun WhipSearchResult.isVisibleInAreaScope(scope: AreaScope, explicitAre
     return !productivity || explicitAreaOverride || scope.matches(areaId)
 }
 
-internal fun WhipSearchResult.matchesQuery(query: String, requireAllTerms: Boolean = true): Boolean {
-    val tokens = query.trim().split(Regex("\\s+")).filter(String::isNotBlank)
-    val plain = mutableListOf<String>()
-    var structuredCount = 0
-    tokens.forEach { raw ->
-        val token = raw.lowercase()
-        val key = token.substringBefore(':', "")
-        val value = token.substringAfter(':', "")
-        when (key) {
-            "tag" -> { structuredCount++; if (tags.none { it.equals(value, true) }) return false }
-            "area" -> { structuredCount++; if (!area.contains(value, true)) return false }
-            "status" -> { structuredCount++; if (!status.equals(value, true)) return false }
-            "domain" -> { structuredCount++; if (!domain.name.equals(value, true) && !domain.uiLabel().replace(" ", "").equals(value.replace(" ", ""), true)) return false }
-            "before" -> {
-                structuredCount++
-                val boundary = parseDateOrNull(value) ?: return false
-                if (date?.isBefore(boundary) != true) return false
-            }
-            "after" -> {
-                structuredCount++
-                val boundary = parseDateOrNull(value) ?: return false
-                if (date?.isAfter(boundary) != true) return false
-            }
-            "deadline" -> {
-                structuredCount++
-                val required = value.toBooleanStrictOrNull() ?: return false
-                if ((deadline != null) != required) return false
-            }
-            else -> {
-                plain += token
-            }
-        }
-    }
-    if (plain.isEmpty()) return structuredCount > 0
-    val haystack = listOf(domain.uiLabel(), title, detail, area, tags.joinToString(" "), status, date?.toString().orEmpty(), deadline?.toString().orEmpty())
-        .joinToString(" ").lowercase()
-    return if (requireAllTerms) plain.all(haystack::contains) else plain.any(haystack::contains)
-}
+internal fun WhipSearchResult.matchesQuery(query: String, requireAllTerms: Boolean = true): Boolean =
+    WhipSearchQuery(query).matches(this, requireAllTerms)
 
-/** Stable user-facing rank: exact titles, title prefixes, title matches, then detail matches. */
-internal fun WhipSearchResult.searchRank(query: String): Int {
-    val plainQuery = query.trim().split(Regex("\\s+")).filterNot { ':' in it }.joinToString(" ").lowercase()
-    if (plainQuery.isBlank()) return 3
-    val normalizedTitle = title.trim().lowercase()
-    return when {
-        normalizedTitle == plainQuery -> 0
-        normalizedTitle.startsWith(plainQuery) -> 1
-        normalizedTitle.contains(plainQuery) -> 2
-        else -> 3
-    }
-}
-
-private fun parseDateOrNull(value: String): LocalDate? = runCatching { LocalDate.parse(value) }.getOrNull()
+internal fun WhipSearchResult.searchRank(query: String): Int = WhipSearchQuery(query).rank(this)

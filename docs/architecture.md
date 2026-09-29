@@ -214,10 +214,11 @@ schedules.
 
 ## Health Connect
 
-Health Connect is an optional read-only source. Selected record types are
-normalized into the same measurement ledger as manual entries and retain stable
-provider record IDs. Aggregate types such as steps and distance are read as
-daily totals to avoid double counting. A bounded sync rebuild removes stale
-Health Connect entries inside the requested window; manual data is independent.
-A Habit or Goal can explicitly bind to a Health measurement. Its UI and derived records
-then mirror the authoritative source with stable IDs and provenance.
+Health Connect integration is retired: the app does not connect to providers or
+sync new health records. Stored measurement provenance remains historical data.
+Before normal runtime opens (including after restore), legacy Health-linked
+Habit projections are materialized into ordinary stored logs and disconnected
+from the retired source. Recovery preserves dates, values, units, provider
+provenance and manual history, and is idempotent so it cannot duplicate logs.
+Those Habits can then receive manual check-ins. This compatibility recovery does
+not reinstate a provider integration.

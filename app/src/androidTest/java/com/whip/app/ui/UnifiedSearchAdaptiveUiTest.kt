@@ -54,6 +54,37 @@ class UnifiedSearchAdaptiveUiTest {
     val compose = createComposeRule()
 
     @Test
+    fun workoutClockAndChangedContentKeepSearchResultsCurrent() {
+        val routine = com.whip.app.domain.GymRoutine(1, "routine", "Strength", "Upper body", 0, false, false, 1, 1)
+        val gym = mutableStateOf(GymUiState(loading = false, routines = listOf(routine)))
+        var selected: WhipSearchResult? = null
+        compose.setContent {
+            WhipTheme(dynamicColor = false, darkTheme = true) {
+                UnifiedSearchDialog(
+                    taskState = TaskUiState(loading = false), habitState = HabitUiState(loading = false),
+                    goalState = GoalUiState(loading = false), gymState = gym.value,
+                    initialScope = WhipSearchScope("Routines", setOf(SearchDomain.Routine)),
+                    onDismiss = {}, onSelect = { selected = it },
+                )
+            }
+        }
+        compose.onNodeWithTag("unified-search-query").performTextReplacement("strength")
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("unified-search-result-Routine-1").fetchSemanticsNodes().isNotEmpty() }
+        repeat(3) { tick ->
+            compose.runOnIdle { gym.value = gym.value.copy(nowMillis = tick * 1000L, restSecondsRemaining = 10 - tick) }
+            compose.onNodeWithTag("unified-search-result-Routine-1").assertIsDisplayed()
+        }
+        compose.runOnIdle { gym.value = gym.value.copy(routines = listOf(routine.copy(name = "Mobility"))) }
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("unified-search-result-Routine-1").fetchSemanticsNodes().isEmpty() }
+        compose.onNodeWithTag("unified-search-query").assertTextContains("strength").performTextReplacement("mobility")
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("unified-search-result-Routine-1").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("unified-search-result-Routine-1").assertTextContains("Mobility", substring = true)
+        com.whip.app.captureVisualCatalogSurface("experience.search.dark-current-content")
+        compose.onNodeWithTag("unified-search-result-Routine-1").performClick()
+        compose.runOnIdle { assertEquals("Mobility", selected?.title) }
+    }
+
+    @Test
     fun trackOnlySearchUsesSharedUnitsWhenHabitLoadingFails() {
         val field = TrackField(1, "field", 1, "Distance", TrackFieldType.Number, 0, true, true, true,
             UnitDimension.Distance, "private-track-unit-id", 1, null, null, "", "", 1, 1)

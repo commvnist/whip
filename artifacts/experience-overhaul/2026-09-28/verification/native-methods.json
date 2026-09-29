@@ -1,0 +1,219 @@
+[
+  {
+    "receipt": "backup-csv.log",
+    "selector": "com.whip.app.DataPrivacyJourneyE2ETest#plainAndCsvExportsKeepTheirRequestedFormats",
+    "result": "pass",
+    "instrumentation_seconds": 40.009,
+    "wall_ms": 42301
+  },
+  {
+    "receipt": "backup-overview-insets-final.log",
+    "selector": "com.whip.app.ui.SettingsResponsiveUiTest#backupOverviewKeepsRecoveryVisibleAndAdministrationRestorable",
+    "result": "pass",
+    "instrumentation_seconds": 10.585,
+    "wall_ms": 12933
+  },
+  {
+    "receipt": "backup-overview.log",
+    "selector": "com.whip.app.ui.SettingsResponsiveUiTest#backupOverviewKeepsRecoveryVisibleAndAdministrationRestorable",
+    "result": "pass",
+    "instrumentation_seconds": 10.229,
+    "wall_ms": 12156
+  },
+  {
+    "receipt": "backup-result.log",
+    "selector": "com.whip.app.ui.SettingsResponsiveUiTest#deepDataOperationMakesItsSettledResultVisible",
+    "result": "pass",
+    "instrumentation_seconds": 6.16,
+    "wall_ms": 8557
+  },
+  {
+    "receipt": "day-plan-large-final.log",
+    "selector": "com.whip.app.TaskDayPlannerUiTest#manyCandidatesAndExhaustedCapacityRemainReachableWithKeyboard",
+    "result": "pass",
+    "instrumentation_seconds": 13.434,
+    "wall_ms": 15512
+  },
+  {
+    "receipt": "day-plan-large-insets-final.log",
+    "selector": "com.whip.app.TaskDayPlannerUiTest#manyCandidatesAndExhaustedCapacityRemainReachableWithKeyboard",
+    "result": "pass",
+    "instrumentation_seconds": 13.988,
+    "wall_ms": 16649
+  },
+  {
+    "receipt": "day-plan-large.log",
+    "selector": "com.whip.app.TaskDayPlannerUiTest#manyCandidatesAndExhaustedCapacityRemainReachableWithKeyboard",
+    "result": "pass",
+    "instrumentation_seconds": 11.45,
+    "wall_ms": 13670
+  },
+  {
+    "receipt": "day-plan-recovery-final.log",
+    "selector": "com.whip.app.TaskDayPlannerUiTest#allAreaCapacityAndFailedApplyKeepTheRequestOwnedPreview",
+    "result": "pass",
+    "instrumentation_seconds": 9.428,
+    "wall_ms": 11732
+  },
+  {
+    "receipt": "day-plan-recovery.log",
+    "selector": "com.whip.app.TaskDayPlannerUiTest#allAreaCapacityAndFailedApplyKeepTheRequestOwnedPreview",
+    "result": "pass",
+    "instrumentation_seconds": 9.716,
+    "wall_ms": 12226
+  },
+  {
+    "receipt": "day-plan-routing-wide-accepted.log",
+    "selector": "com.whip.app.TaskDayPlannerUiTest#homeAndTodayOpenTheSameRestorablePlanDraft",
+    "result": "failed",
+    "instrumentation_seconds": 11.88,
+    "wall_ms": 14009
+  },
+  {
+    "receipt": "day-plan-routing-wide-bounds-final.log",
+    "selector": "com.whip.app.TaskDayPlannerUiTest#homeAndTodayOpenTheSameRestorablePlanDraft",
+    "result": "pass",
+    "instrumentation_seconds": 9.546,
+    "wall_ms": 11645
+  },
+  {
+    "receipt": "day-plan-routing-wide-final.log",
+    "selector": "com.whip.app.TaskDayPlannerUiTest#homeAndTodayOpenTheSameRestorablePlanDraft",
+    "result": "pass",
+    "instrumentation_seconds": 10.091,
+    "wall_ms": 13361
+  },
+  {
+    "receipt": "day-plan-routing-wide-insets.log",
+    "selector": "com.whip.app.TaskDayPlannerUiTest#homeAndTodayOpenTheSameRestorablePlanDraft",
+    "result": "failed",
+    "instrumentation_seconds": 7.994,
+    "wall_ms": 10248
+  },
+  {
+    "receipt": "day-plan-routing-wide-safe-final.log",
+    "selector": "com.whip.app.TaskDayPlannerUiTest#homeAndTodayOpenTheSameRestorablePlanDraft",
+    "result": "failed",
+    "instrumentation_seconds": 9.36,
+    "wall_ms": 11273
+  },
+  {
+    "receipt": "day-plan-routing.log",
+    "selector": "com.whip.app.TaskDayPlannerUiTest#homeAndTodayOpenTheSameRestorablePlanDraft",
+    "result": "pass",
+    "instrumentation_seconds": 10.35,
+    "wall_ms": 12825
+  },
+  {
+    "receipt": "goal-milestones-final.log",
+    "selector": "com.whip.app.ProductivityExperienceJourneyTest#goalMilestonesWorkInsideDetailsAndCompleteOnlyOnRequest",
+    "result": "pass",
+    "instrumentation_seconds": 12.121,
+    "wall_ms": 14193
+  },
+  {
+    "receipt": "goal-milestones.log",
+    "selector": "com.whip.app.ProductivityExperienceJourneyTest#goalMilestonesWorkInsideDetailsAndCompleteOnlyOnRequest",
+    "result": "failed",
+    "instrumentation_seconds": 10.427,
+    "wall_ms": 12687
+  },
+  {
+    "receipt": "gym-launchpad.log",
+    "selector": "com.whip.app.GymPowerInputUiTest#workoutLaunchpadKeepsExactChoicesAtLargeText",
+    "result": "pass",
+    "instrumentation_seconds": 7.195,
+    "wall_ms": 9906
+  },
+  {
+    "receipt": "habit-checklist.log",
+    "selector": "com.whip.app.ProductivityExperienceJourneyTest#habitChecklistWorksInsideTodayAndRetainsParentCompletion",
+    "result": "pass",
+    "instrumentation_seconds": 12.22,
+    "wall_ms": 14559
+  },
+  {
+    "receipt": "history-cleanup-insets-final.log",
+    "selector": "com.whip.app.ProductivityExperienceJourneyTest#repeatedHistoryCleanupKeepsQueriesAndRecoversFromStaleGoalDeletion",
+    "result": "pass",
+    "instrumentation_seconds": 34.074,
+    "wall_ms": 36448
+  },
+  {
+    "receipt": "history-cleanup-setup.log",
+    "selector": "com.whip.app.ProductivityExperienceJourneyTest#repeatedHistoryCleanupKeepsQueriesAndRecoversFromStaleGoalDeletion",
+    "result": "setup-only",
+    "instrumentation_seconds": null,
+    "wall_ms": null
+  },
+  {
+    "receipt": "history-cleanup.log",
+    "selector": "com.whip.app.ProductivityExperienceJourneyTest#repeatedHistoryCleanupKeepsQueriesAndRecoversFromStaleGoalDeletion",
+    "result": "pass",
+    "instrumentation_seconds": 31.939,
+    "wall_ms": 34389
+  },
+  {
+    "receipt": "history-search.log",
+    "selector": "com.whip.app.ProductivityExperienceJourneyTest#historySearchFindsOlderOriginalFactsAndRestoresItsQuery",
+    "result": "pass",
+    "instrumentation_seconds": 22.913,
+    "wall_ms": 25184
+  },
+  {
+    "receipt": "routine-search.log",
+    "selector": "com.whip.app.GymLibraryJourneyE2ETest#routineSearchRestoresScopeAndLaunchesTheExplicitDay",
+    "result": "pass",
+    "instrumentation_seconds": 15.752,
+    "wall_ms": 18104
+  },
+  {
+    "receipt": "search-current.log",
+    "selector": "com.whip.app.ui.UnifiedSearchAdaptiveUiTest#workoutClockAndChangedContentKeepSearchResultsCurrent",
+    "result": "pass",
+    "instrumentation_seconds": 6.809,
+    "wall_ms": 8975
+  },
+  {
+    "receipt": "track-history-window-final.log",
+    "selector": "com.whip.app.ProductivityExperienceJourneyTest#trackHistoryChangesKeepLoadedOlderWindowAndSearchAcrossRecreation",
+    "result": "pass",
+    "instrumentation_seconds": 24.139,
+    "wall_ms": 26453
+  },
+  {
+    "receipt": "track-history-window.log",
+    "selector": "com.whip.app.ProductivityExperienceJourneyTest#trackHistoryChangesKeepLoadedOlderWindowAndSearchAcrossRecreation",
+    "result": "failed",
+    "instrumentation_seconds": 23.062,
+    "wall_ms": 25412
+  },
+  {
+    "receipt": "track-preview-final.log",
+    "selector": "com.whip.app.ProductivityExperienceJourneyTest#trackStarterPreviewUsesRealFieldsWithoutSavingSampleValues",
+    "result": "pass",
+    "instrumentation_seconds": 17.867,
+    "wall_ms": 19991
+  },
+  {
+    "receipt": "track-preview-insets-final.log",
+    "selector": "com.whip.app.ProductivityExperienceJourneyTest#trackStarterPreviewUsesRealFieldsWithoutSavingSampleValues",
+    "result": "pass",
+    "instrumentation_seconds": 16.151,
+    "wall_ms": 18706
+  },
+  {
+    "receipt": "track-preview.log",
+    "selector": "com.whip.app.ProductivityExperienceJourneyTest#trackStarterPreviewUsesRealFieldsWithoutSavingSampleValues",
+    "result": "failed",
+    "instrumentation_seconds": 13.105,
+    "wall_ms": 15260
+  },
+  {
+    "receipt": "track-search-races.log",
+    "selector": "com.whip.app.ui.TrackHistorySearchUiTest#changedQueriesCannotShowStaleMatchesAndFailuresRemainRetryable",
+    "result": "pass",
+    "instrumentation_seconds": 7.855,
+    "wall_ms": 10320
+  }
+]

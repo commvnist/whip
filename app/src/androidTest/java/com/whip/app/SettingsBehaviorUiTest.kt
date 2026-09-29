@@ -403,6 +403,8 @@ class SettingsBehaviorUiTest {
         compose.onNodeWithTag("workspace-settings-action").performClick()
         selectSettingsCategory("Data & Privacy")
         val copy = "Retention and cleanup act only on Whip's automatic-backup and incomplete-write filenames."
+        compose.onNodeWithTag("settings-list").performScrollToNode(androidx.compose.ui.test.hasTestTag("backup-folder-disclosure"))
+        compose.onNodeWithTag("backup-folder-disclosure").performClick()
         compose.onNodeWithTag("settings-list").performScrollToNode(hasText(copy, substring = true))
         compose.onNodeWithText(copy, substring = true).assertIsDisplayed()
     }

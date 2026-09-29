@@ -151,6 +151,7 @@ import com.whip.app.domain.GymGraphPoint
 import com.whip.app.domain.EstimatedOneRepMaxFormula
 import com.whip.app.domain.RoutineDayDraft
 import com.whip.app.domain.RoutineDay
+import com.whip.app.domain.RoutineExercise
 import com.whip.app.domain.RoutineDraft
 import com.whip.app.domain.RoutineExerciseDraft
 import com.whip.app.domain.RoutineProgramDraft
@@ -1300,8 +1301,17 @@ fun GymAreaContent(
                     onOpenRoutines = {
                         if (!workoutMutationBusy) {
                             sessionMutationCoordinator.clear()
+                            focusedRoutineId = null
                             destination = GymDestination.Routines
                         }
+                    },
+                    onOpenRoutine = { routineId ->
+                        focusedRoutineId = routineId
+                        destination = GymDestination.Routines
+                    },
+                    onOpenWorkoutHistory = { workoutId ->
+                        focusedWorkoutId = workoutId
+                        destination = GymDestination.History
                     },
                     onCreateExercise = {
                         if (!workoutMutationBusy) {
@@ -2446,6 +2456,8 @@ private data class GymWorkoutRouteActions(
     val onRequestedWorkoutExerciseConsumed: () -> Unit,
     val onStart: () -> Unit,
     val onOpenRoutines: () -> Unit,
+    val onOpenRoutine: (Long) -> Unit,
+    val onOpenWorkoutHistory: (Long) -> Unit,
     val onCreateExercise: () -> Unit,
     val onEditWorkout: () -> Unit,
     val onAddExercise: () -> Unit,
@@ -2475,6 +2487,11 @@ private fun GymWorkoutRoute(
         onRequestedWorkoutExerciseConsumed = actions.onRequestedWorkoutExerciseConsumed,
         onStart = actions.onStart,
         onOpenRoutines = actions.onOpenRoutines,
+        onStartRoutine = { routineId, dayId ->
+            if (viewModel.operationStatus.value !is OperationStatus.Running) viewModel.startRoutine(routineId, dayId)
+        },
+        onOpenRoutine = actions.onOpenRoutine,
+        onOpenWorkoutHistory = actions.onOpenWorkoutHistory,
         onCreateExercise = actions.onCreateExercise,
         onEditWorkout = actions.onEditWorkout,
         onAddExercise = actions.onAddExercise,
@@ -2658,6 +2675,102 @@ private fun GymHistoryRoute(
     )
 }
 
+internal fun workoutQuickRoutines(state: GymUiState): List<GymRoutine> {
+    val lastUsed = state.history.filterNot(WorkoutSession::archived)
+        .groupBy(WorkoutSession::sourceRoutineId)
+        .mapValues { (_, sessions) -> sessions.maxOf { it.startedAt.toEpochMilli() } }
+    return state.routines.filterNot(GymRoutine::archived).distinctBy(GymRoutine::id)
+        .sortedWith(compareByDescending<GymRoutine> { it.pinned }
+            .thenByDescending { lastUsed[it.id] ?: Long.MIN_VALUE }.thenBy { it.position })
+        .take(2)
+}
+
+internal fun routineStartDay(routine: GymRoutine, days: List<RoutineDay>): RoutineDay? {
+    val ordered = days.filter { it.routineId == routine.id }.sortedBy(RoutineDay::position)
+    return if (routine.programKind == RoutineProgramKind.Static) ordered.singleOrNull() else
+        ordered.firstOrNull { it.position == routine.nextProgramDayPosition }
+            ?: ordered.getOrNull(routine.nextProgramDayPosition) ?: ordered.firstOrNull()
+}
+
+@Composable
+internal fun WorkoutStartContent(
+    state: GymUiState,
+    onStart: () -> Unit,
+    onOpenRoutines: () -> Unit,
+    onCreateExercise: () -> Unit,
+    onStartRoutine: (Long, Long?) -> Unit,
+    onOpenRoutine: (Long) -> Unit,
+    onOpenWorkoutHistory: (Long) -> Unit,
+) {
+    val quickRoutines = remember(state.routines, state.history) { workoutQuickRoutines(state) }
+    val latest = remember(state.history) {
+        state.history.filter { !it.archived && it.state == WorkoutSessionState.Finished }
+            .maxByOrNull { it.endedAt ?: it.startedAt }
+    }
+    val firstUse = state.exercises.isEmpty() && state.routines.isEmpty() && latest == null
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().testTag("workout-start-list"),
+        contentPadding = WhipPageContentPadding,
+        verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
+    ) {
+        item {
+            WhipPageHeader(title = "Workout", supportingText = if (firstUse) "Log your sets as you train." else
+                "Choose today's training, or build a workout as you go.")
+        }
+        if (firstUse) item {
+            WhipEmptyState(title = "No Workout in Progress",
+                supportingText = "Create reusable exercises, or add them as you train in an empty workout.",
+                primaryActionLabel = "Create First Exercise", onPrimaryAction = onCreateExercise,
+                secondaryActionLabel = "Start Empty Workout", onSecondaryAction = onStart)
+        } else {
+            if (quickRoutines.isNotEmpty()) {
+                item { WhipGroupHeading("Your Routines") }
+                items(quickRoutines, key = GymRoutine::id) { routine ->
+                    val days = state.routineDays.filter { it.routineId == routine.id }
+                    val day = routineStartDay(routine, days)
+                    val placements = state.routineExercises.filter { it.routineDayId == day?.id }
+                    val needsEquipment = placements.any { it.equipmentBindingState == RoutineEquipmentBindingState.NeedsEquipment }
+                    WhipGroupedInformationCard(modifier = Modifier.testTag("workout-quick-routine-${routine.id}")) {
+                        WhipGroupHeading(routine.name)
+                        Text(if (routine.programKind != RoutineProgramKind.Static) routineProgramStatusLabel(routine, day?.name)
+                            else day?.name ?: "${quantityLabel(days.size, "training day")} · Choose a day",
+                            style = MaterialTheme.typography.bodyMedium)
+                        if (day != null) Text(quantityLabel(placements.size, "exercise"),
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        WhipButton(
+                            onClick = {
+                                if (day == null || needsEquipment) onOpenRoutine(routine.id)
+                                else onStartRoutine(routine.id, day.id.takeIf { routine.programKind == RoutineProgramKind.Static })
+                            },
+                            modifier = Modifier.fillMaxWidth().testTag("workout-quick-start-${routine.id}"),
+                        ) { Text(when {
+                            needsEquipment -> "Resolve Equipment"
+                            day == null -> "Choose Training Day"
+                            routine.programKind != RoutineProgramKind.Static -> "Start Next · ${day.name}"
+                            else -> "Start ${day.name}"
+                        }) }
+                    }
+                }
+                item { WhipTextButton(onClick = onOpenRoutines, modifier = Modifier.fillMaxWidth()) { Text("Browse All Routines") } }
+            }
+            item {
+                if (quickRoutines.isEmpty()) {
+                    WhipButton(onClick = onStart, modifier = Modifier.fillMaxWidth()) { Text("Start Workout") }
+                    WhipTextButton(onClick = onOpenRoutines, modifier = Modifier.fillMaxWidth()) { Text("Open Routines") }
+                } else {
+                    WhipOutlinedButton(onClick = onStart, modifier = Modifier.fillMaxWidth()) { Text("Start Empty Workout") }
+                }
+            }
+            latest?.let { session -> item {
+                WhipGroupHeading("Last Workout")
+                NavigationRow(title = session.name.ifBlank { "Workout" }, preserveTitleCase = true,
+                    supportingText = session.localDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) + " · View completed sets",
+                    onClick = { onOpenWorkoutHistory(session.id) }, modifier = Modifier.testTag("workout-latest-history"))
+            } }
+        }
+    }
+}
+
 @Composable
 private fun WorkoutContent(
     state: GymUiState,
@@ -2665,6 +2778,9 @@ private fun WorkoutContent(
     onRequestedWorkoutExerciseConsumed: () -> Unit = {},
     onStart: () -> Unit,
     onOpenRoutines: () -> Unit,
+    onStartRoutine: (Long, Long?) -> Unit,
+    onOpenRoutine: (Long) -> Unit,
+    onOpenWorkoutHistory: (Long) -> Unit,
     onCreateExercise: () -> Unit,
     onEditWorkout: () -> Unit,
     onAddExercise: () -> Unit,
@@ -2697,46 +2813,8 @@ private fun WorkoutContent(
 ) {
     val session = state.activeSession
     if (session == null) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = WhipPageContentPadding,
-            verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
-        ) {
-            item {
-                WhipPageHeader(
-                    title = "Workout",
-                    supportingText = "Log your sets as you train.",
-                )
-            }
-            item {
-                WhipEmptyState(
-                    title = "No Workout in Progress",
-                    supportingText = if (state.exercises.isEmpty()) {
-                        "Create reusable exercises, or add them as you train in an empty workout."
-                    } else if (state.routines.isNotEmpty()) {
-                        "Start from a routine for planned sets, or start an empty workout and build it as you train."
-                    } else {
-                        "Start a workout, then choose from your reusable exercise library."
-                    },
-                    primaryActionLabel = when {
-                        state.exercises.isEmpty() -> "Create First Exercise"
-                        state.routines.isNotEmpty() -> "Start from Routine"
-                        else -> "Start Workout"
-                    },
-                    onPrimaryAction = when {
-                        state.exercises.isEmpty() -> onCreateExercise
-                        state.routines.isNotEmpty() -> onOpenRoutines
-                        else -> onStart
-                    },
-                    secondaryActionLabel = when {
-                        state.exercises.isEmpty() -> "Start Empty Workout"
-                        state.routines.isNotEmpty() -> "Start Empty Workout"
-                        else -> null
-                    },
-                    onSecondaryAction = onStart.takeIf { state.exercises.isEmpty() || state.routines.isNotEmpty() },
-                )
-            }
-        }
+        WorkoutStartContent(state, onStart, onOpenRoutines, onCreateExercise, onStartRoutine,
+            onOpenRoutine, onOpenWorkoutHistory)
         return
     }
 
@@ -8719,6 +8797,22 @@ private fun <T> GymEnumDropdown(
     )
 }
 
+internal fun routineMatchesQuery(
+    routine: GymRoutine,
+    query: String,
+    days: List<RoutineDay>,
+    placements: List<RoutineExercise>,
+    exercises: List<Exercise>,
+): Boolean {
+    if (query.isBlank()) return true
+    val routineDays = days.filter { it.routineId == routine.id }
+    val dayIds = routineDays.mapTo(mutableSetOf(), RoutineDay::id)
+    val exerciseIds = placements.filter { it.routineDayId in dayIds }.mapTo(mutableSetOf(), RoutineExercise::exerciseId)
+    val searchable = listOf(routine.name, routine.notes) + routineDays.map(RoutineDay::name) +
+        exercises.filter { it.id in exerciseIds }.map(Exercise::name)
+    return query.trim().split(Regex("\\s+")).all { term -> searchable.any { it.contains(term, ignoreCase = true) } }
+}
+
 @Composable
 private fun RoutineContent(
     state: GymUiState,
@@ -8738,6 +8832,7 @@ private fun RoutineContent(
     var editingRoutineId by rememberSaveable { mutableStateOf<Long?>(null) }
     val editing = editingRoutineId?.let { id -> (state.routines + state.archivedRoutines).firstOrNull { it.id == id } }
     var showArchived by rememberSaveable { mutableStateOf(false) }
+    var query by rememberSaveable { mutableStateOf("") }
     var actionMenuId by rememberSaveable { mutableStateOf<Long?>(null) }
     var positionRoutineId by rememberSaveable { mutableStateOf<Long?>(null) }
     var resetRoutineId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -8756,8 +8851,11 @@ private fun RoutineContent(
         }
     }
     val source = if (showArchived) state.archivedRoutines else state.routines
-    val visible = source.filter {
-        focusedRoutineId == null || it.id == focusedRoutineId
+    val visible = remember(source, focusedRoutineId, query, state.routineDays, state.routineExercises, state.exercises, state.archivedExercises) {
+        source.filter {
+            if (focusedRoutineId != null) it.id == focusedRoutineId
+            else routineMatchesQuery(it, query, state.routineDays, state.routineExercises, state.exercises + state.archivedExercises)
+        }
     }
     val visibleOwnsActiveWorkout = state.activeSession?.sourceRoutineId?.let { activeRoutineId ->
         visible.any { it.id == activeRoutineId }
@@ -8770,8 +8868,8 @@ private fun RoutineContent(
     LaunchedEffect(reorderDismissRequest) {
         if (reorderDismissRequest > 0) reordering = false
     }
-    LaunchedEffect(showArchived, focusedRoutineId) {
-        if (showArchived || focusedRoutineId != null) reordering = false
+    LaunchedEffect(showArchived, focusedRoutineId, query) {
+        if (showArchived || focusedRoutineId != null || query.isNotBlank()) reordering = false
     }
     if (showEditor || editing != null) {
         val initial = editing?.let { routine -> routineDraftForEditing(state, routine) }
@@ -8795,7 +8893,7 @@ private fun RoutineContent(
         return
     }
     WhipReorderLazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().testTag("routine-library-list"),
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
@@ -8804,19 +8902,27 @@ private fun RoutineContent(
                 title = "Routines",
                 supportingText = if (focusedRoutineId == null) {
                     "Reusable plans for your workouts."
-                } else "Showing the routine opened from search.",
+                } else "Showing the selected routine.",
             ) {
                 if (!reordering && focusedRoutineId == null && state.routines.size > 1) {
                     WhipPageIconAction(
                         icon = Icons.Outlined.DragHandle,
-                        label = if (showArchived) "Show active and reorder all Routines" else "Reorder Routines",
+                        label = if (showArchived || query.isNotBlank()) "Clear filters and reorder all Routines" else "Reorder Routines",
                         onClick = {
                             showArchived = false
+                            query = ""
                             reordering = true
                         },
                     )
                 }
             }
+        }
+        if (!reordering && focusedRoutineId == null) item {
+            WhipSearchField(query = query, onQueryChange = { query = it }, label = "Search Routines",
+                modifier = Modifier.testTag("routine-library-search"))
+            Text("${quantityLabel(visible.size, "routine")} · ${if (showArchived) "Archived" else "Active"}",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("routine-library-count"))
         }
         if (!reordering && state.activeSession != null && !visibleOwnsActiveWorkout) item {
             WhipButton(
@@ -8840,13 +8946,16 @@ private fun RoutineContent(
         }
         if (visible.isEmpty()) item {
             WhipEmptyState(
-                title = if (showArchived) "No Archived Routines" else "No Routines Yet",
-                supportingText = "Build a routine here or save a completed workout from History.",
-                primaryActionLabel = "Create Routine".takeUnless { showArchived },
+                title = if (query.isNotBlank() && source.isNotEmpty()) "No Matching Routines" else if (showArchived) "No Archived Routines" else "No Routines Yet",
+                supportingText = if (query.isNotBlank() && source.isNotEmpty()) "Search routine names, notes, training days, or exercises." else
+                    "Build a routine here or save a completed workout from History.",
+                primaryActionLabel = if (query.isNotBlank()) "Clear Search" else "Create Routine".takeUnless { showArchived },
                 onPrimaryAction = {
-                    showEditor = true
-                    onEditorStateChange(true)
-                }.takeUnless { showArchived },
+                    if (query.isNotBlank()) query = "" else {
+                        showEditor = true
+                        onEditorStateChange(true)
+                    }
+                }.takeIf { query.isNotBlank() || !showArchived },
             )
         }
         items(visible.size, key = { visible[it].id }) { routineIndex ->

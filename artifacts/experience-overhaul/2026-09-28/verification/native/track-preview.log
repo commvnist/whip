@@ -1,0 +1,70 @@
+com.whip.app.ProductivityExperienceJourneyTest#trackStarterPreviewUsesRealFieldsWithoutSavingSampleValues
+INSTRUMENTATION_STATUS: class=com.whip.app.ProductivityExperienceJourneyTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.ProductivityExperienceJourneyTest:
+INSTRUMENTATION_STATUS: test=trackStarterPreviewUsesRealFieldsWithoutSavingSampleValues
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.ProductivityExperienceJourneyTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'Sample entry is valid' (ignoreCase: false))
+Semantics of the node:
+Node #707 at (l=96.0, t=633.0, r=985.0, b=855.0)px, Tag: 'track-preview-validation'
+Text = '[Sample entry is valid. Nothing has been saved.]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 6 siblings
+Selector used: (TestTag = 'track-preview-validation')
+
+	at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+	at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+	at com.whip.app.ProductivityExperienceJourneyTest.trackStarterPreviewUsesRealFieldsWithoutSavingSampleValues(ProductivityExperienceJourneyTest.kt:278)
+
+INSTRUMENTATION_STATUS: stream=
+Error in trackStarterPreviewUsesRealFieldsWithoutSavingSampleValues(com.whip.app.ProductivityExperienceJourneyTest):
+java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'Sample entry is valid' (ignoreCase: false))
+Semantics of the node:
+Node #707 at (l=96.0, t=633.0, r=985.0, b=855.0)px, Tag: 'track-preview-validation'
+Text = '[Sample entry is valid. Nothing has been saved.]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 6 siblings
+Selector used: (TestTag = 'track-preview-validation')
+
+	at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+	at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+	at com.whip.app.ProductivityExperienceJourneyTest.trackStarterPreviewUsesRealFieldsWithoutSavingSampleValues(ProductivityExperienceJourneyTest.kt:278)
+
+INSTRUMENTATION_STATUS: test=trackStarterPreviewUsesRealFieldsWithoutSavingSampleValues
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 13.105
+There was 1 failure:
+1) trackStarterPreviewUsesRealFieldsWithoutSavingSampleValues(com.whip.app.ProductivityExperienceJourneyTest)
+java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'Sample entry is valid' (ignoreCase: false))
+Semantics of the node:
+Node #707 at (l=96.0, t=633.0, r=985.0, b=855.0)px, Tag: 'track-preview-validation'
+Text = '[Sample entry is valid. Nothing has been saved.]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 6 siblings
+Selector used: (TestTag = 'track-preview-validation')
+
+	at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+	at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+	at com.whip.app.ProductivityExperienceJourneyTest.trackStarterPreviewUsesRealFieldsWithoutSavingSampleValues(ProductivityExperienceJourneyTest.kt:278)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1
+elapsed_ms=15260 exit=0

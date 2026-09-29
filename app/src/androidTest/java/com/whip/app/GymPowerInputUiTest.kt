@@ -129,6 +129,61 @@ class GymPowerInputUiTest {
     private val compose = createComposeRule()
     @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
+    @AndroidFontScale
+    @Test
+    fun workoutLaunchpadKeepsExactChoicesAtLargeText() {
+        val planned = GymRoutine(71, "planned", "Phased strength", "", 0, false, true, 1, 1,
+            programKind = RoutineProgramKind.Custom, programPhaseCount = 2, programPhaseLabels = listOf("Build", "Recovery"), nextProgramDayPosition = 1)
+        val static = planned.copy(id = 72, uuid = "static", name = "Choose your training", pinned = false, programKind = RoutineProgramKind.Static)
+        val days = listOf(RoutineDay(81, "upper", planned.id, "Upper", 0, 1, 1),
+            RoutineDay(82, "lower", planned.id, "Lower", 1, 1, 1),
+            RoutineDay(83, "static-upper", static.id, "Upper", 0, 1, 1),
+            RoutineDay(84, "static-lower", static.id, "Lower", 1, 1, 1))
+        var state by mutableStateOf(GymUiState(loading = false, exercises = listOf(testExercise()),
+            routines = listOf(static, planned), routineDays = days, history = listOf(testHistorySession())))
+        var started: Pair<Long, Long?>? = null
+        var openedRoutine: Long? = null
+        var openedHistory: Long? = null
+        var browsed = false
+        var emptyStarted = false
+        val restoration = androidx.compose.ui.test.junit4.StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                com.whip.app.ui.WorkoutStartContent(state, { emptyStarted = true }, { browsed = true }, {},
+                    { routine, day -> started = routine to day }, { openedRoutine = it }, { openedHistory = it })
+            }
+        }
+        val list = compose.onNodeWithTag("workout-start-list")
+        list.performScrollToNode(hasTestTag("workout-quick-start-${planned.id}"))
+        compose.onNodeWithTag("workout-quick-start-${planned.id}").assertTextContains("Start Next · Lower").performClick()
+        assertEquals(planned.id to null, started)
+        captureVisualCatalogSurface("experience.gym.launchpad.native200")
+        list.performScrollToNode(hasTestTag("workout-quick-start-${static.id}"))
+        compose.onNodeWithTag("workout-quick-start-${static.id}").assertTextContains("Choose Training Day").performClick()
+        assertEquals(static.id, openedRoutine)
+        list.performScrollToNode(hasText("Browse All Routines"))
+        compose.onNodeWithText("Browse All Routines").performClick()
+        assertTrue(browsed)
+        list.performScrollToNode(hasTestTag("workout-latest-history"))
+        compose.onNodeWithTag("workout-latest-history").performClick()
+        assertEquals(testHistorySession().id, openedHistory)
+        restoration.emulateSavedInstanceStateRestore()
+        list.performScrollToNode(hasText("Start Empty Workout"))
+        compose.onNodeWithText("Start Empty Workout").performClick()
+        assertTrue(emptyStarted)
+        compose.runOnIdle {
+            state = state.copy(routineExercises = listOf(RoutineExercise(91, "placement", 82, testExercise().id,
+                0, "", null, false, 1, 1, equipmentBindingState = com.whip.app.domain.RoutineEquipmentBindingState.NeedsEquipment)))
+        }
+        list.performScrollToNode(hasTestTag("workout-quick-start-${planned.id}"))
+        compose.onNodeWithTag("workout-quick-start-${planned.id}").assertTextContains("Resolve Equipment").performClick()
+        assertEquals(planned.id, openedRoutine)
+        compose.runOnIdle { state = GymUiState(loading = false) }
+        list.performScrollToNode(hasText("Create First Exercise"))
+        compose.onNodeWithText("Create First Exercise").assertIsDisplayed()
+        captureVisualCatalogSurface("experience.gym.first-use.native200")
+    }
+
     @Test
     fun trackedMachineRecordDraftSurvivesRecreationAndOpensItsSource() {
         val exercise = testExercise()
