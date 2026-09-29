@@ -1,5 +1,13 @@
 # User feedback and acceptance criteria
 
+### FB-20260929-007 — Redesign workspace tabs and header responsibilities
+
+- Date/source: 2026-09-29, owner requests analysis and a plan for Tasks, Habits, Goals and Tracks, considering Gym where relevant. Task date filters inside Today are confusing; suggested collection-first tabs such as Tasks / Today, with fewer destinations where useful.
+- Acceptance: Ground each proposed destination in actual current behavior; distinguish collection management, daily execution, historical records and analytics. Define relevant, nonduplicated header controls, valid filter scope, consistent geometry and migration of existing functionality. Goals must not gain an artificial Today view.
+- Scope: Output the plan only. No application implementation, release or resumption of paused testing is requested.
+- Related: FB-20260929-005/006, DEC-20260929-002; source baseline 5490fe81 (released 0.3.85/code 91).
+- Status: Proposed under DEC-20260929-003; [complete plan](../quality/WORKSPACE_NAVIGATION_PLAN_2026-09-29.md), source findings FND-20260929-013 and review limits VER-20260929-007. Application behavior is unchanged.
+
 ### FB-20260929-006 — Release the search consistency correction to the phone
 
 - Date/source: 2026-09-29, owner requests “Release to phone” after IMP-20260929-007.

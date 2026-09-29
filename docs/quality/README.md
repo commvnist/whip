@@ -6,6 +6,7 @@ The [testing speed plan](TESTING_SPEED_PLAN_2026-09-27.md) records the measured 
 
 | Record | Status and use |
 | --- | --- |
+| [Workspace navigation redesign](WORKSPACE_NAVIGATION_PLAN_2026-09-29.md) | Proposed, plan only: purposeful tabs, true Task collection/fixed Today, consistent header and archive ownership, explicit Saved Views. Source-reviewed; no implementation or resumed testing. |
 | [Search and workspace consistency correction](SEARCH_DESIGN_REMEDIATION_2026-09-29.md) | Implemented and privately released in 0.3.85; removes competing collection search and stabilizes shared controls. Signed packaging/install/launch pass; tests, full lint and fresh visual verification remain paused. Supersedes the prior audit's local-search entry points. |
 | [Deep product review](DEEP_PRODUCT_REVIEW_2026-09-29.md) | Implemented and Verified: all 16 accepted groups; nine distinct JVM and 30 distinct native methods with passing evidence, fresh large-text/short/wide originals, complete failure accounting. Exact sub-minute QA, no full batch or new phone release. |
 | [Full product audit](PRODUCT_AUDIT_2026-09-28.md) | Implemented and Verified: all 20 accepted groups, 177 source-reviewed workflow dispositions, 14 distinct JVM and 15 distinct Android methods with passing evidence; 13 inspected acceptance states. Parent plus two Astra/max agents; selected sub-minute QA only, no full batches or phone release. |

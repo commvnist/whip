@@ -1,5 +1,12 @@
 # Verification and release evidence
 
+### VER-20260929-007 — Source-grounded navigation plan; product verification remains paused
+
+- Scope: Planning only at 5490fe81, private 0.3.85/code 91. Read current projections, route/filter policies, global and feature headers, analytics/history partitions, saved navigation, Area scoping and existing affected test contracts.
+- Findings: Confirmed source-level Task date-scope conflict, missing complete collection, carried filter state and saved-filter navigation; identified pinned-versus-scrolling header ownership and archive hierarchy differences. [Evidence, proposal and acceptance plan](../quality/WORKSPACE_NAVIGATION_PLAN_2026-09-29.md).
+- Exclusions: No production edits, tests, builds, emulator/phone actions or fresh rendered inspection. Proposed design quality and runtime behavior are not verified; the separate full-suite campaign remains paused.
+- Repository check: `timeout --kill-after=3s 55s git diff --check` exits 0; a Python pathlib check resolves all ten local links in the new plan. These are documentation-integrity checks only. FB-20260929-007 / IMP-20260929-009; proposal status remains Proposed.
+
 ### VER-20260929-006 — Signed search correction 0.3.85 installed on the phone
 
 - Related/scope: FB-20260929-006, IMP-20260929-008. [Release receipt and source manifest](../../artifacts/phone-releases/2026-09-29/0.3.85/README.md). Production changes compile in signed release packaging; updated test fixtures remain uncompiled and unexecuted after the pause.

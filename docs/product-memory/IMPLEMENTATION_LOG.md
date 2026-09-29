@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260929-009 — Document the workspace navigation redesign proposal
+
+- Delivered artifact: [Workspace navigation plan](../quality/WORKSPACE_NAVIGATION_PLAN_2026-09-29.md), current-source responsibility inventory, proposed tab/filter/header contracts, legacy routing and six implementation steps with acceptance criteria.
+- Product behavior: Unchanged. This is a planning artifact, not application implementation. No new build, version, schema, release or test execution; existing verification pause remains in force.
+- Related/status: FB-20260929-007, FND-20260929-013, DEC-20260929-003, VER-20260929-007. Proposed; owner requested the plan only.
+
 ### IMP-20260929-008 — Release the shared-search correction as 0.3.85
 
 - Related: FB-20260929-006; IMP-20260929-006/007. Version advances to 0.3.85/code 91 with restored toolbar search, consistent collection controls and the pending observable-locale repair. Benchmark and test fixtures are saved with their verification still pending and do not enter the production APK.
