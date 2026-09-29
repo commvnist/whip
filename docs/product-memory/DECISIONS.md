@@ -1,5 +1,11 @@
 # Durable product and engineering decisions
 
+### DEC-20260929-001 — Redo the audit around complete jobs and implement grounded redesigns
+
+- Decision: The owner's rejection of prior audit depth requires an independent critique of current 0.3.83, including previous keep decisions. Accept the [deep review plan](../quality/DEEP_PRODUCT_REVIEW_2026-09-29.md) before each workstream, implement every accepted remedy and close only with proportionate behavioral and freshly inspected rendered evidence.
+- Accepted scope: DGS-1–6, DP1–6 and DS1–4 in the linked plan/reports. Preserve immutable historical meaning, exact mutation ownership, queue/optional-work policies and shared design controls; avoid speculative architecture. Ground further findings before expanding the plan.
+- Constraints/status: FB-20260929-002, FND-20260929-001/002. In progress. Same two authorized agent slots; parent serializes exact sub-minute QA, no readiness/full/candidate batch, no phone release in this new goal.
+
 ### DEC-20260928-004 — Improve complete interactions and hierarchy through existing owners
 
 - Decision: Execute the [complete-experience plan](../quality/EXPERIENCE_OVERHAUL_2026-09-28.md), independently reassessing current source and rendering after 0.3.82. Accept substantial changes to actionable inspectors, historical retrieval, Track authoring, Workout entry, Routine search and backup hierarchy; keep reviewing remaining areas rather than stop at the initial groups.

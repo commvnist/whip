@@ -29,4 +29,37 @@ Only the two previously authorized agent slots are reused. Parent serializes bui
 - Where do data volume, clock updates, query changes and lifecycle recreation cause avoidable work or stale/incoherent state?
 - Would a simpler information hierarchy or fewer decisions materially improve a complete job, and can it be delivered through existing owners?
 
-Concrete observed findings, alternatives and the accepted implementation plan will be added below as investigation establishes them. No prior keep is grandfathered in.
+## Accepted implementation plan
+
+Accepted before production edits. Linked reports contain exact source traces, before/after rationale, compatibility and selected acceptance scenarios. Interaction savings are structural analysis, not measured user timings.
+
+### Gym and Settings
+
+All six remedies in [the independent Gym/Settings review](DEEP_PRODUCT_REVIEW_2026-09-29_GYM_SETTINGS.md) are accepted:
+
+- DGS-1: reachable workout navigation/finish, a saveable one-Set quick-logging choice preserving queue/optional policies and drafts, collapsed completed Sets, exact successful finish→History.
+- DGS-2: completed/compatible previous suggestions converted to receiving units, truthful snapshot-based labels and effort before submission. Include quick draft→full editor handoff and refresh only after its exact owned save; cancellation retains the quick draft and external conflicts remain detected.
+- DGS-3: essential exercise units/load meaning before optional metadata; bounded searchable category assignment in the existing shared editor.
+- DGS-4: retain routine child exercise/machine drafts through exact request/result ownership, busy/failure/retry/recreation, and constrained quick-machine layout.
+- DGS-5: local remembered-purpose Settings search opening the actual control/disclosure, distinguishing Mass from Gym units.
+- DGS-6: recent performed exercise as initial Progress source; content-keyed graph/weekly calculations and structure fingerprints preserving exact evidence/formula semantics.
+
+### Habits, Goals and Tracks
+
+All six remedies in [the independent productivity review](DEEP_PRODUCT_REVIEW_2026-09-29_PRODUCTIVITY.md) are accepted:
+
+- DP1: execution-first Habit Today, shared numeric quick/Set Total/Undo controls plus clearly additive Add Amount; focused Insights reuse the existing chart/evidence body. Preserve parent History and child failure/draft context.
+- DP2: completion-based Goals explicitly record one completion without artificial numeric entry; unrelated edits preserve original values, deliberate outcome changes write 1/0.
+- DP3: searchable scoped entity collections/archives/Insights, retained query/context, clear recovery, safe full-list reorder and visible-only Track selection.
+- DP4: compact milestone name rows with optional Weight & Reward disclosure, stable identities and auto-revealed invalid details.
+- DP5: shared Track detail analysis/date scope, explicit inclusive recent/all/custom ranges, date-spaced numeric/scale trends and accessible original facts, exact View Matching Entries→correction→return.
+- DP6: discoverable remaining configured Track list fields through the existing shared row, preserving order/unit truth without expanding every field by default.
+
+### Home, Tasks and Review — accepted
+
+- DS1: Balance Home across domains. Fresh baseline `shared.home.populated.png` shows the existing hierarchy with one Task; `HomeContent` renders *all* Today Tasks, due Habits, pinned Tracks/routines and pinned Goals before subsequent sections. A 20-Task day therefore forces twenty record rows before Habits. Use consistent three-item previews ordered pinned first, truthful total counts and explicit View All continuation for every truncated section; retain direct completion and the authored section order. Keep saved Task filter choices in one horizontally scrolling row instead of unbounded wrapped rows. Alternative rejected: hide the whole section or auto-change user order. Acceptance: dense mixed Home with many pins can reach the next domain, full count/continuation opens the correct collection, completing a preview refills it, large-text controls remain reachable.
+- DS2: Find and repeatedly manage Tasks in context. `TaskAreaContent` exposes current-list search only inside Sort, Group & Filter; Save These Filters dismisses that parent before opening a name dialog, and Cancel/Save returns to the collection. Add a visible Find Tasks action with an inline shared search field/count, keep it separate from quick capture to avoid competing keyboards, and retain the filter parent through name Save/Cancel. Saved queries and ordinary filters keep one existing owner; no new filter engine. Acceptance: query→open/return/recreate→clear and nested save/cancel retain results and filter context; reorder still clears constraints explicitly.
+- DS3: Make the Task inspector an execution surface. `TaskActionsDialog` puts context before subtasks and hides Focus presets under Options; scheduling is a separate Activity visit even when the user needs a first date. Put subtasks first when present, expose the existing Focus controls in Overview, and make the existing schedule action available beside its timing fact. Keep Activity for series history and Options for lifecycle/organization. Retain child drafts, replacement confirmation and exact focus request ownership; canceling a child stays in the originating section. Acceptance: direct Overview subtask/focus/schedule journey plus short large-text action reachability. No new timer or completion semantics.
+- DS4: Preserve the review-and-correct loop. `ReviewAppRoute` invokes `onDismiss` for every source outcome; opening its original record destroys Review's detail selection/list state and closing the record leaves another workspace. Retain Review's existing saveable subtree and provide an explicit Return to Review path in the destination, with Back returning after the child closes; this works across Tasks/Habits/Goals/workout History and through recreation. Do not clone record editors into Review or keep an invisible modal intercepting source interaction. Also key Review outcomes/signals/correlations to actual content/date/zone/availability, rather than whole clock-ticking feature states. Acceptance: two source records inspected/corrected without reconstructing Review period/detail/position; source deletion refreshes outcomes; exact domain score/date semantics remain unchanged and clock-only ticks reuse projections.
+
+No schema, migration, dependency, generic form framework or second persistence coordinator is warranted. Parent serializes focused verification and inspects original captures. Source completion alone does not close these items. Further concrete findings require reconciliation before their edits.

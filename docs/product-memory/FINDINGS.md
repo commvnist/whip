@@ -1,5 +1,23 @@
 # Durable findings
 
+### FND-20260929-003 — Shared overview and inspection paths bury work and lose return context
+
+- Current evidence: fresh baseline Home original confirms current hierarchy; source shows unbounded earlier sections before later domains and wrapped saved filters. Tasks hides local search in Filters and closes Filters before naming a saved view. Task inspector puts subtasks below metadata, Focus in Options and scheduling on another tab. Review dismisses itself on every source route and rebuilds analytics from clock-ticking feature state.
+- Remedy: DS1–4 in the [deep review plan](../quality/DEEP_PRODUCT_REVIEW_2026-09-29.md): bounded pinned-first previews/full continuation; inline current-list find and retained filter parent; execution-first Task Overview; saved Review return context and content-keyed analytics.
+- Related/status: FB-20260929-002, DEC-20260929-001. Confirmed; implementation starting. Dense-data and changed-layout execution remain forthcoming, not inferred from the sparse capture.
+
+### FND-20260929-001 — Whole-workout execution and configuration obscure or change intended work
+
+- Confirmed source findings: only the queued Set offers quick logging; completed exercises expand every record and Finish follows all blocks. Previous suggestions copy values without conversion and can use unperformed/incompatible snapshots; labels can disagree with saved units. Quick→full editor drops the typed draft and owned saves can leave stale quick inputs. Essential load meaning follows unbounded categories/Advanced. Three routine child creation paths dismiss before async save and lose failed drafts. Settings lacks purpose lookup; Progress starts in arbitrary library order while clock ticks repeat historical calculations.
+- Remedy: DGS-1–6 in the [independent report](../quality/DEEP_PRODUCT_REVIEW_2026-09-29_GYM_SETTINGS.md), including exact finish receipt→History and existing request-owned child saves. Historical snapshot, optional-work and destructive-review policies stay authoritative.
+- Related/status: FB-20260929-002, DEC-20260929-001. Confirmed; implementation starting. Source observations are distinct from forthcoming execution/rendered approval.
+
+### FND-20260929-002 — Productivity work loses controls, meaning and analytical context
+
+- Confirmed source findings: numeric Habit inspector lacks the card's execution controls and buries work below metrics; single-Habit Insights requires leaving the entity. CompletionCount Goal asks for a number though any positive number is one event. Entity collections lack local narrowing. Milestone forms expose three fields per simple item. Track Insights has no direct recent range or exact matching-entry route, and its first/latest summary conceals intervening changes; list rows silently ignore configured third+ fields.
+- Remedy: DP1–6 in the [independent report](../quality/DEEP_PRODUCT_REVIEW_2026-09-29_PRODUCTIVITY.md): shared execution/evidence, truthful event logging, scoped search, progressive milestone details, exact date/condition analytical scope and discoverable configured facts.
+- Related/status: FB-20260929-002, DEC-20260929-001. Confirmed; implementation starting. Preserve original values, history continuity, stale-write boundaries and user-authored policies.
+
 ### FND-20260928-015 — Child history editing destroys its parent browsing context
 
 - Report/source: FB-20260928-008 reports repeated Habit history deletion returning to the collection. Current Habit callbacks call closeHabitActions before opening log/pause editors. Goal measurement editing similarly clears actionsGoalId, and its success handler also dismisses the parent for all non-milestone receipts.
