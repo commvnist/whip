@@ -319,7 +319,13 @@ internal fun WhipPageIconAction(
     ) {
         BadgedBox(
             badge = {
-                if (badgeCount > 0) Badge { Text(badgeCount.toString()) }
+                if (badgeCount > 0) {
+                    if (LocalDensity.current.fontScale > 1.3f) {
+                        Badge(Modifier.testTag("page-action-badge"))
+                    } else {
+                        Badge(Modifier.testTag("page-action-badge")) { Text(badgeCount.toString()) }
+                    }
+                }
             },
         ) {
             Icon(icon, contentDescription = null, tint = contentColor)

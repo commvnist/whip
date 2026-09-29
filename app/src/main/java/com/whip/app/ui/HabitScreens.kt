@@ -370,8 +370,8 @@ fun HabitAreaContent(
         WhipWorkspaceHeader(
             summary = if (workspaceReordering) "Reordering Habits" else when (destination) {
                 HabitDestination.Today -> "${state.today.count { !it.isFinishedForToday() }} remaining · Today"
-                HabitDestination.All -> "${state.all.size} habits · Schedules & settings"
-                HabitDestination.Insights -> "Patterns across ${state.all.size} habits"
+                HabitDestination.All -> "${quantityLabel(state.all.size, "habit")} · Schedules & settings"
+                HabitDestination.Insights -> "Patterns across ${quantityLabel(state.all.size, "habit")}"
                 HabitDestination.Archived -> "Archived Habits"
             },
             onBack = { if (onBackToSource != null) onBackToSource() else destination = archiveReturn }.takeIf { destination == HabitDestination.Archived },

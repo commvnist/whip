@@ -20,6 +20,8 @@ Current snapshot: **2026-09-29**. This page is the entry point, not a replay of 
 
 ## Current work and boundaries
 
+- **Capture/context consistency correction verified:** FB-20260929-016 / FND-20260929-033 / IMP-20260929-020 implement all five accepted groups: a common Tasks/Today Add Task anchor, wrapping secondary controls/visible filtered capture, shared Gym child context, truthful singular/empty copy and bounded enlarged filter indicators. VER-20260929-017 passes 430 affected JVM and seven current native methods, exact normal/actual-200% geometry and fourteen inspected original pairs. [Plan](../quality/WORKSPACE_ANCHORS_2026-09-29.md), [receipts/gallery](../../artifacts/workspace-anchors/2026-09-29/README.md). 0.3.90/code 96 delivery is prepared separately; the phone remains on verified 0.3.89 because connectivity is unavailable.
+
 - **Private overhaul release completed:** FB-20260929-015 authorizes the normal main push and phone deployment. Product `9a9020b9` and release source `86c166cb` are pushed; signed 0.3.89/code 95 is installed in place on Samsung SM-F976W with unchanged accepted source, exact installed bytes/signatures, preserved appId/first-install identity and 127 ms cold foreground launch. IMP-20260929-019 / VER-20260929-016; [receipt](../../artifacts/phone-releases/2026-09-29/0.3.89/README.md). No full suite or phone instrumentation.
 
 - **Fresh overhaul closed:** All 24 accepted remedies from `ba1f7cc5` are implemented and verified under IMP-20260929-018 / VER-20260929-015. [Plan and pillars](../quality/FRESH_APP_OVERHAUL_2026-09-29.md). Previous audit conclusions were not acceptance evidence. Owner appearance feedback and any requested phone release are separate follow-ups, not unfinished remedies.

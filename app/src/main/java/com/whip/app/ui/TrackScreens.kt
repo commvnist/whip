@@ -1085,7 +1085,7 @@ private fun TrackActivityPage(
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
         WhipWorkspaceHeader(
-                    summary = "${items.size} entries · Across visible Tracks",
+                    summary = "${quantityLabel(items.size, "entry")} · Across visible Tracks",
                 ) {
                     WhipPageIconAction(
                         icon = Icons.Outlined.FilterAlt,
@@ -1265,7 +1265,7 @@ private fun TrackWorkspaceInsightsPage(
     }
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-        WhipWorkspaceHeader("${totalEntries} entries · Patterns across Tracks") {
+        WhipWorkspaceHeader("${quantityLabel(totalEntries, "entry")} · Patterns across Tracks") {
                 WhipWorkspaceMore("More Track Actions") { close ->
                     WhipMenuItem("Archived Tracks", onClick = { close(); onOpenArchived() })
                 }

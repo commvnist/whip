@@ -1285,7 +1285,7 @@ fun GymAreaContent(
         summary = when (destination) {
             GymDestination.Workout -> if (state.activeSession == null) "Ready to train" else "Workout in progress"
             GymDestination.Library -> "Routines, exercises & equipment"
-            GymDestination.History -> "${state.history.size} workouts · History"
+            GymDestination.History -> "${quantityLabel(state.history.size, "workout")} · History"
             GymDestination.Progress -> "Trends from completed workouts"
             else -> destination.label
         },
@@ -8088,12 +8088,6 @@ internal fun GymProgressContent(
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
             item {
-                WhipPageHeader(
-                    title = "Progress",
-                    supportingText = "Trends from completed workouts.",
-                )
-            }
-            item {
                 WhipEmptyState(
                     title = "No Exercises to Track",
                     supportingText = "Create an exercise before choosing records or exploring a progress trend.",
@@ -8110,13 +8104,6 @@ internal fun GymProgressContent(
             contentPadding = WhipPageContentPadding,
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
-            item {
-                WhipPageHeader(
-                    title = "Progress",
-                    supportingText = "Trends from completed workouts.",
-                    modifier = Modifier.testTag("gym-progress-title"),
-                )
-            }
             item {
                 TrackedRecordsSection(
                     state = state,

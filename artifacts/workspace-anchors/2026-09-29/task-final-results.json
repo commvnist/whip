@@ -1,0 +1,34 @@
+[
+  {
+    "serial": "emulator-5554",
+    "selector": "com.whip.app.TaskCaptureGeometryUiTest#addTaskBoundsStayAlignedAcrossRoutes",
+    "log": "task-routes-normal.log",
+    "seconds": 28.584,
+    "exitCode": 0,
+    "passed": true
+  },
+  {
+    "serial": "emulator-5556",
+    "selector": "com.whip.app.TaskCaptureGeometryUiTest#addTaskBoundsStayAlignedAcrossRoutesAtNative200",
+    "log": "task-routes-native200.log",
+    "seconds": 26.434,
+    "exitCode": 0,
+    "passed": true
+  },
+  {
+    "serial": "emulator-5554",
+    "selector": "com.whip.app.TaskCaptureGeometryUiTest#addTaskBoundsStayAlignedWithRestoredViews",
+    "log": "task-restoration-normal.log",
+    "seconds": 39.133,
+    "exitCode": 0,
+    "passed": true
+  },
+  {
+    "serial": "emulator-5556",
+    "selector": "com.whip.app.TaskCaptureGeometryUiTest#addTaskBoundsStayAlignedWithRestoredViewsAtNative200",
+    "log": "task-restoration-native200.log",
+    "seconds": 35.277,
+    "exitCode": 0,
+    "passed": true
+  }
+]

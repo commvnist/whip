@@ -1,5 +1,11 @@
 # User feedback and acceptance criteria
 
+### FB-20260929-016 — Align Add Task between Tasks and Today and repair related design drift
+
+- Date/source: 2026-09-29, owner reports that Tasks and Today place the Add Task bar differently and requests this plus other discovered design inconsistencies be fixed, during the authorized phone release/repository delivery.
+- Acceptance: Give ordinary Tasks/Today browsing one shared capture anchor after pinned context; keep optional scope, layout, filter, sorting, planning and focus information below it. Preserve date/Area capture semantics, search ownership, saved scroll, selection/reorder boundaries and drafts. Inspect comparable workspace/context/empty-state copy for related drift and repair grounded findings using existing shared owners. Verify normal/enlarged geometry with focused checks, push the correction and include it in the next phone update.
+- Related/status: DEC-20260929-004, FB-20260929-015; Implemented and Verified under IMP-20260929-020 / VER-20260929-017. All five accepted groups pass focused geometry, restored-state/defaults and original-image acceptance. Phone remains verified 0.3.89/code 95; 0.3.90/code 96 delivery is prepared separately while its connection is unavailable. Baseline `4ff000ae`.
+
 ### FB-20260929-015 — Push the verified overhaul and release it to the owner phone
 
 - Date/source: 2026-09-29, owner explicitly requests “Release to phone and push to repo” after the completed overhaul's main-branch push was rejected by automatic approval review.

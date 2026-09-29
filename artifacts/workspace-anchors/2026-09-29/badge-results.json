@@ -1,0 +1,18 @@
+[
+  {
+    "serial": "emulator-5554",
+    "selector": "com.whip.app.TaskCaptureGeometryUiTest#addTaskBoundsStayAlignedWithRestoredViews",
+    "log": "badge-restoration-normal.log",
+    "seconds": 36.401,
+    "exitCode": 0,
+    "passed": true
+  },
+  {
+    "serial": "emulator-5556",
+    "selector": "com.whip.app.TaskCaptureGeometryUiTest#addTaskBoundsStayAlignedWithRestoredViewsAtNative200",
+    "log": "badge-restoration-native200.log",
+    "seconds": 33.265,
+    "exitCode": 0,
+    "passed": true
+  }
+]

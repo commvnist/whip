@@ -3,14 +3,9 @@ package com.whip.app.ui
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 
@@ -48,17 +43,12 @@ internal fun GymDestinationHost(
             )
         }
         if (navigationVisible && destination in libraryGymDestinations) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = WhipSpacing.screenCompact),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                WhipBackAction(
-                    label = "Back to Gym Library",
-                    onClick = onBackToLibrary,
-                    modifier = Modifier.testTag("gym-library-child-${destination.name}"),
-                )
-                Text("Library", style = MaterialTheme.typography.labelLarge)
-            }
+            WhipWorkspaceHeader(
+                summary = "Library",
+                onBack = onBackToLibrary,
+                backLabel = "Back to Gym Library",
+                backModifier = Modifier.testTag("gym-library-child-${destination.name}"),
+            )
         }
         if (navigationVisible && destination !in libraryGymDestinations) WhipWorkspaceHeader(summary)
         content()

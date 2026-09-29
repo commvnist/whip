@@ -1,5 +1,13 @@
 # Durable findings
 
+### FND-20260929-033 — Optional workspace content displaces primary capture and child context
+
+- Related: FB-20260929-016, DEC-20260929-004. Status: Verified under IMP-20260929-020 / VER-20260929-017 with exact normal/enlarged geometry, restored-state/defaults, bounded badges and fresh original inspection.
+- `WhipApp` places the Tasks-only scope/layout row plus conditional filter/sort/planning/focus items before `task-quick-capture`; Today lacks the first row. Text-query filtering also uniquely hides capture while other filters retain it. Accepted: make capture the first list item in eligible ordinary browsing, followed by secondary context; use wrapping scope/layout controls and count-first Today wording. Preserve scrolling and creation semantics rather than pinning another independent control owner.
+- `GymDestinationHost` gives Library children a custom 48dp Back row while primary destinations use the shared 72dp/104dp normal/enlarged context owner. Accepted: reuse `WhipWorkspaceHeader` with explicit Back accessibility identity. Fresh source also exposes hardcoded singular plurals in Habit/Goal/Track/Gym summaries and a retired duplicated Progress heading only in empty Gym Insights; reuse the existing quantity formatter and remove the redundant intro.
+- All related remedies are accepted for implementation and narrow rendered/geometry acceptance. They extend the stable-structure/coherent-language pillars; no domain, schema or search redesign is needed.
+- Fresh native-200% restored Task originals additionally show the numeric filter Badge clipped by its fixed circular action boundary. Task also supplies a count-bearing label to an action owner that appends the same count for accessibility. Accepted: retain the compact badge dot at enlarged text, full spoken count and fixed action geometry; let the shared owner append that count once.
+
 ### FND-20260929-032 — Enlarged Gym identity shifts shared workspace chrome
 
 - Related: FB-20260929-014. Status: Verified under IMP-20260929-018 / VER-20260929-015, including unrelaxed normal/actual-200% geometry and original-image inspection.

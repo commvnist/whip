@@ -1,0 +1,42 @@
+[
+  {
+    "serial": "emulator-5554",
+    "selector": "com.whip.app.TaskCaptureGeometryUiTest#addTaskBoundsStayAlignedAcrossRoutesAndRestoredViews",
+    "log": "task-normal.log",
+    "seconds": 55.003,
+    "exitCode": 124,
+    "passed": false
+  },
+  {
+    "serial": "emulator-5556",
+    "selector": "com.whip.app.TaskCaptureGeometryUiTest#addTaskBoundsStayAlignedAcrossRoutesAndRestoredViewsAtNative200",
+    "log": "task-native200.log",
+    "seconds": 55.003,
+    "exitCode": 124,
+    "passed": false
+  },
+  {
+    "serial": "emulator-5558",
+    "selector": "com.whip.app.GymWorkspaceConsistencyUiTest#libraryChildrenAndEmptyInsightsKeepContextAndReturnActions",
+    "log": "gym-normal.log",
+    "seconds": 54.158,
+    "exitCode": 0,
+    "passed": true
+  },
+  {
+    "serial": "emulator-5558",
+    "selector": "com.whip.app.GymWorkspaceConsistencyUiTest#libraryChildrenAndEmptyInsightsKeepContextAndReturnActionsAtLargeText",
+    "log": "gym-native200.log",
+    "seconds": 35.081,
+    "exitCode": 0,
+    "passed": true
+  },
+  {
+    "serial": "emulator-5554",
+    "selector": "com.whip.app.ProductivityDefaultsUiTest#todayAndInboxQuickCaptureUseMatchingDestinationCopyAndDefaults",
+    "log": "task-defaults.log",
+    "seconds": 30.646,
+    "exitCode": 0,
+    "passed": true
+  }
+]

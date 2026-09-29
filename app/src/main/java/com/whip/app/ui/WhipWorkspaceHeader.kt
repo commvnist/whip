@@ -21,6 +21,8 @@ internal fun WhipWorkspaceHeader(
     summary: String,
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
+    backLabel: String = "Back to previous view",
+    backModifier: Modifier = Modifier,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     val fontScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
@@ -30,7 +32,7 @@ internal fun WhipWorkspaceHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
-        if (onBack != null) WhipBackAction("Back to previous view", onBack)
+        if (onBack != null) WhipBackAction(backLabel, onBack, backModifier)
         Text(summary, Modifier.weight(1f).semantics { heading() }.testTag("workspace-context-summary"),
             style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
         Row(Modifier.widthIn(min = 96.dp).heightIn(min = 48.dp),

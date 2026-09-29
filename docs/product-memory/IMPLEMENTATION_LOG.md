@@ -1,5 +1,20 @@
 # Implementation history
 
+### IMP-20260929-021 — Prepare the workspace consistency correction for the phone
+
+- Related: FB-20260929-015/016, IMP-20260929-020, DEC-20260906-003; product verification VER-20260929-017.
+- Release metadata advances to 0.3.90/code 96 for the authorized follow-up phone update, retaining the accepted app/test/resource source and established signing/persistence contracts.
+- Status: Preparation in progress. The owner phone is unreachable; signed packaging and repository delivery proceed independently. No installation, phone instrumentation or data reset is claimed.
+
+### IMP-20260929-020 — Align Task capture and shared workspace context
+
+- Related: FB-20260929-016, FND-20260929-033, DEC-20260929-004; verification VER-20260929-017. [Focused plan](../quality/WORKSPACE_ANCHORS_2026-09-29.md).
+- Tasks and Today share one keyed first capture item before optional scope, layout, filter, sort, planning and focus content. Ordinary text filters retain capture. Secondary scope/layout controls wrap, and Today uses count-first context language.
+- Gym Library children reuse the existing context header with explicit Back labels/tags. Habit/Goal/Track/Gym summaries use the existing quantity formatter; empty Gym Insights removes the redundant retired Progress introduction.
+- Existing creation defaults, drafts, request receipts, scrolling, search ownership and selection/reorder/noncapture boundaries remain intact. No dependency, schema, data epoch or backup-format change. Two normal/actual-200% native geometry fixtures are added; source test inventory is 736 JVM + 1300 Android. Task route and restoration checks are separate short methods after two combined invocations hit their 55-second caps; exact geometry assertions are retained.
+- The shared active-filter action keeps an unclipped compact dot at enlarged text with the complete spoken count. Task supplies an uncounted label so the shared action appends that number exactly once.
+- Status: Implemented and Verified under VER-20260929-017: 430 affected JVM methods, seven current native methods and fourteen reviewed originals. All five accepted groups are complete; signed private delivery is separate and awaiting phone connectivity.
+
 ### IMP-20260929-019 — Release the verified fresh overhaul as 0.3.89
 
 - Related: FB-20260929-015, IMP-20260929-017/018, DEC-20260906-003; product verification VER-20260929-014/015.

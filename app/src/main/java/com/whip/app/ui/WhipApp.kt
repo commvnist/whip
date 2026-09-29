@@ -6359,7 +6359,7 @@ private fun TaskAreaContent(
                 if (reordering) WhipTextButton(onClick = { reordering = false }) { Text("Done") }
                 if (!reordering) WhipPageIconAction(
                         icon = Icons.Outlined.FilterList,
-                        label = if (activeFilterCount == 0) "Filter & Sort Tasks" else "Filter & Sort Tasks · $activeFilterCount active",
+                        label = "Filter & Sort Tasks",
                         onClick = { showFilters = true },
                         badgeCount = activeFilterCount, active = activeFilterCount > 0,
                     )
@@ -6577,8 +6577,82 @@ private fun TaskAreaContent(
             contentPadding = WhipPageContentPadding,
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
+        if (!selectionMode && !reordering && destination in setOf(TaskDestination.Today, TaskDestination.Inbox, TaskDestination.All)) {
+            item(key = "task-quick-capture") {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    WhipInlineTextField(
+                        value = quickCapture,
+                        onValueChange = { quickCapture = it },
+                        enabled = !quickCaptureSubmitting,
+                        label = "Add a task",
+                        placeholder = {
+                            Text(
+                                if (appSettings.naturalLanguageTaskCapture) {
+                                    "Try: Send report tomorrow at 9am #work"
+                                } else {
+                                    "What needs doing?"
+                                },
+                            )
+                        },
+                        visualTransformation = SmartTaskCaptureVisualTransformation(
+                            assumptions = quickCaptureAssumptions,
+                            highlightColor = MaterialTheme.colorScheme.primaryContainer,
+                            highlightedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        ),
+                        trailingIcon = {
+                            IconButton(
+                                enabled = quickCapture.isNotBlank() && !quickCaptureSubmitting,
+                                onClick = ::submitQuickCapture,
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = "Add task now")
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { submitQuickCapture() }),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(quickCaptureVisibility)
+                            .semantics {
+                                quickCaptureStateDescription?.let { stateDescription = it }
+                            }
+                            .testTag("task-quick-capture"),
+                    )
+                    PersistenceFailureNotice(
+                        quickCaptureCoordinator.errorMessage,
+                        testTag = "task-quick-capture-save-problem",
+                    )
+                    SmartTaskCapturePreview(
+                        assumptions = quickCaptureAssumptions,
+                        actionText = "Highlighted phrases will be applied when you add this Task. Parsing stays on this device.",
+                        modifier = Modifier.fillMaxWidth(),
+                        testTag = "smart-task-quick-preview",
+                    )
+                    if (quickCapture.isNotBlank() || quickCaptureSubmitting) Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        if (quickCaptureSubmitting) {
+                            Text(
+                                "Saving…",
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 12.dp),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        } else Spacer(Modifier.weight(1f))
+                        WhipTextButton(
+                            enabled = quickCapture.isNotBlank() && !quickCaptureSubmitting,
+                            onClick = { onAddDetails(quickCapture) },
+                        ) { Text("Add Details") }
+                    }
+                }
+            }
+        }
         if (!selectionMode && !reordering && workspaceDestination == TaskWorkspaceDestination.Tasks) item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth().testTag("task-scope-layout-controls"),
+                horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
+                verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
+            ) {
                 var scopeMenu by remember { mutableStateOf(false) }
                 var layoutMenu by remember { mutableStateOf(false) }
                 Box {
@@ -6653,76 +6727,6 @@ private fun TaskAreaContent(
         activeFocusContent?.takeUnless { selectionMode || reordering }?.let { content ->
             item {
                 content()
-            }
-        }
-        if (!selectionMode && !reordering && textQuery.isBlank() && destination in setOf(TaskDestination.Today, TaskDestination.Inbox, TaskDestination.All)) {
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    WhipInlineTextField(
-                        value = quickCapture,
-                        onValueChange = { quickCapture = it },
-                        enabled = !quickCaptureSubmitting,
-                        label = "Add a task",
-                        placeholder = {
-                            Text(
-                                if (appSettings.naturalLanguageTaskCapture) {
-                                    "Try: Send report tomorrow at 9am #work"
-                                } else {
-                                    "What needs doing?"
-                                },
-                            )
-                        },
-                        visualTransformation = SmartTaskCaptureVisualTransformation(
-                            assumptions = quickCaptureAssumptions,
-                            highlightColor = MaterialTheme.colorScheme.primaryContainer,
-                            highlightedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        ),
-                        trailingIcon = {
-                            IconButton(
-                                enabled = quickCapture.isNotBlank() && !quickCaptureSubmitting,
-                                onClick = ::submitQuickCapture,
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = "Add task now")
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { submitQuickCapture() }),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .then(quickCaptureVisibility)
-                            .semantics {
-                                quickCaptureStateDescription?.let { stateDescription = it }
-                            }
-                            .testTag("task-quick-capture"),
-                    )
-                    PersistenceFailureNotice(
-                        quickCaptureCoordinator.errorMessage,
-                        testTag = "task-quick-capture-save-problem",
-                    )
-                    SmartTaskCapturePreview(
-                        assumptions = quickCaptureAssumptions,
-                        actionText = "Highlighted phrases will be applied when you add this Task. Parsing stays on this device.",
-                        modifier = Modifier.fillMaxWidth(),
-                        testTag = "smart-task-quick-preview",
-                    )
-                    if (quickCapture.isNotBlank() || quickCaptureSubmitting) Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        if (quickCaptureSubmitting) {
-                            Text(
-                                "Saving…",
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 12.dp),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        } else Spacer(Modifier.weight(1f))
-                        WhipTextButton(
-                            enabled = quickCapture.isNotBlank() && !quickCaptureSubmitting,
-                            onClick = { onAddDetails(quickCapture) },
-                        ) { Text("Add Details") }
-                    }
-                }
             }
         }
         if (planningView == TaskPlanningView.Calendar) {
@@ -7955,7 +7959,7 @@ private fun taskDestinationSupportingText(destination: TaskDestination, count: I
     val noun = when (destination) {
         TaskDestination.All -> "unfinished task"
         TaskDestination.Inbox -> "unscheduled task"
-        TaskDestination.Today -> return "Today & carried over · ${count.itemCount("task")}"
+        TaskDestination.Today -> return "${count.itemCount("task")} · Today & carried over"
         TaskDestination.Upcoming -> "upcoming task"
         TaskDestination.Completed -> "completed task"
         TaskDestination.Archived -> "archived task"
@@ -7963,7 +7967,7 @@ private fun taskDestinationSupportingText(destination: TaskDestination, count: I
     return count.itemCount(noun)
 }
 
-private fun Int.itemCount(noun: String): String = "$this $noun${if (this == 1) "" else "s"}"
+private fun Int.itemCount(noun: String): String = quantityLabel(this, noun)
 
 private fun String.taskDateModeLabel(): String = when (this) {
     "Today" -> "Scheduled Today"

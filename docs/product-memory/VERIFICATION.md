@@ -1,5 +1,13 @@
 # Verification and release evidence
 
+### VER-20260929-017 — Exact capture and context consistency acceptance
+
+- Related: FB-20260929-016, FND-20260929-033, IMP-20260929-020. Status: Verified within the focused scope. [Complete receipts and originals](../../artifacts/workspace-anchors/2026-09-29/README.md), [implemented plan](../quality/WORKSPACE_ANCHORS_2026-09-29.md).
+- Final affected readiness passes 430 JVM methods / 44 suites, zero failures/errors/skips, 3.039 seconds execution; JVM Gradle stage 18 seconds and compilation/lint/build stage 2m48s. Lint has zero errors, 90 warnings and 14 hints. Seven current native methods have cumulative accepted evidence, all exact invocations 26.434–54.158 seconds under the 55-second limit.
+- Exact idle/drafted Tasks/Today rectangles, actual-200% text, query/pinned/sort restoration, retained drafts, filtered-empty capture, creation defaults, all five Gym Library child/Back context rectangles and both empty Insights actions pass. Enlarged filter indicator stays inside its action and speaks the full count exactly once. Fourteen accepted original PNG/XML pairs are inspected; all 549 final app/test/resource hashes are retained.
+- Failures/limits: Two combined Task methods hit their 55-second caps and remain incomplete. Their shorter split scenarios pass with unrelaxed assertions. One invalid fixture import causes compilation failure; its canceled invocation and brief replay overlap are retained, followed by completed readiness and packaging. Full attempt accounting is 11 native invocations: nine pass, two incomplete. Intermediate clipped-badge originals remain distinguished from acceptance.
+- No full suite, candidate, phone instrumentation, reset or publication. Final source inventory is 736 JVM + 1300 Android = 2036. Signed private delivery is a separate follow-up; phone connectivity is currently unavailable.
+
 ### VER-20260929-016 — Verified fresh overhaul installed as 0.3.89
 
 - Related: FB-20260929-015, IMP-20260929-019, VER-20260929-014/015. [Exact sanitized release receipt](../../artifacts/phone-releases/2026-09-29/0.3.89/README.md). Status: Released; subjective appearance awaits owner use.

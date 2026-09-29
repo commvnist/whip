@@ -452,9 +452,9 @@ fun GoalAreaContent(
         )
         WhipWorkspaceHeader(
             summary = if (manageOrder) "Reordering Goals" else when (destination) {
-                GoalDestination.Active -> "${list.size} goals · Active & paused"
-                GoalDestination.Completed -> "${list.size} outcomes · Completed & abandoned"
-                GoalDestination.Insights -> "Trends across ${list.size} ongoing goals"
+                GoalDestination.Active -> "${quantityLabel(list.size, "goal")} · Active & paused"
+                GoalDestination.Completed -> "${quantityLabel(list.size, "outcome")} · Completed & abandoned"
+                GoalDestination.Insights -> "Trends across ${quantityLabel(list.size, "ongoing goal")}"
                 GoalDestination.Archived -> "Archived Goals"
             },
             onBack = { if (onBackToSource != null) onBackToSource() else destination = archiveReturn }.takeIf { destination == GoalDestination.Archived },
