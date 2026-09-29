@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260929-005 — Package the deep review as private update 0.3.84
+
+- Related: FB-20260929-003; IMP-20260929-002/003/004 / VER-20260929-002.
+- Changes: Version metadata advances to 0.3.84/code 90, including all 16 verified audit groups. Preserve package/signing identity, Room 46, epoch 6 and portable-backup format 26.
+- Status: Implemented; accepted source hashes and existing focused behavioral evidence are retained. Signed packaging, artifact integrity and guarded physical installation/launch provide release acceptance under VER-20260929-003; no repeated broad test campaign.
+
 ### IMP-20260929-004 — Make training execution and configuration retain intent
 
 - Related: FB-20260929-002, FND-20260929-001, DEC-20260929-001; DGS1–6 in the [Gym/Settings review](../quality/DEEP_PRODUCT_REVIEW_2026-09-29_GYM_SETTINGS.md).

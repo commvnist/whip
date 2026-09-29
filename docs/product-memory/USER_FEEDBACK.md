@@ -1,5 +1,11 @@
 # User feedback and acceptance criteria
 
+### FB-20260929-003 — Release the completed deep review to the phone
+
+- Date/source: 2026-09-29, owner requests “Release to phone” after completion of all 16 accepted audit groups.
+- Acceptance: Package the verified source as the next signed private update, install in place on the selected physical phone, preserve app/data identity, and verify version, installed hash and foreground launch.
+- Scope/status: In progress from clean pushed `5b979781`; behavior acceptance remains VER-20260929-002. No repeated full/readiness/candidate campaign, phone instrumentation or Play publication.
+
 ### FB-20260929-002 — Redo the app audit with substantially greater depth
 
 - Date/source: 2026-09-29, after installing 0.3.83 the owner says “That was a lazy audit. Do it again, high effort. /goal”.
