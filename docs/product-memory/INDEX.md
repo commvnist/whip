@@ -14,6 +14,8 @@ Current snapshot: **2026-09-29**. This page is the entry point, not a replay of 
 
 ## Current work and boundaries
 
+- **Active high-effort redo:** FB-20260929-002 rejects the previous audit's depth after the 0.3.83 release. Independently reassess full user jobs and current rendering, challenge earlier keeps, publish grounded improvements and implement the entire accepted [deep review plan](../quality/DEEP_PRODUCT_REVIEW_2026-09-29.md). Parent plus the same two authorized agent slots; focused sub-minute checks only. The phone remains on 0.3.83.
+
 - **Phone release completed:** FB-20260929-001 / VER-20260929-001 deliver the verified experience overhaul in signed 0.3.83/code 89, with unchanged accepted source hashes and exact device verification.
 - **History continuity feedback resolved:** FB-20260928-008 / VER-20260928-007 implement and verify retained Habit/Goal parent history and Track older-page context through repeated edits/deletions/recreation. Analogous handlers have source-review dispositions; whole-entity removal retains intentional navigation.
 
