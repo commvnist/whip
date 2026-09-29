@@ -143,6 +143,23 @@ are recorded under FB-20260910-002 in product memory.
 
 ## Adaptive presentation and visual semantics
 
+Inspection context belongs to the feature that owns it. `ReviewSession` retains
+Review's saveable subtree while the app shell routes to an original record;
+returning restores the same period/detail without cloning that record's editor.
+Track detail similarly owns analytical scope and offscreen field disclosure
+state above its lazy rows. Stable item keys keep milestone drafts intact when
+validation changes neighboring content. Request-owned child saves dismiss only
+after their exact success receipt; the routine builder adapts existing library
+callbacks through its retained request state and the shared coordinator.
+
+Home reuses domain cards in bounded previews with truthful collection
+continuations. Shared controls own equivalent presentation; measurement
+conversion, completion meaning, optional-work policies and data boundaries stay
+in their domains. Review/Gym analytical caches use actual source content and
+settings rather than unrelated clock ticks. See the
+[2026-09-29 review](quality/DEEP_PRODUCT_REVIEW_2026-09-29.md) for the concrete
+ownership and compatibility decisions.
+
 Whip treats a Fold or tablet as a composed workspace, not as a stretched phone.
 Each first-class destination may own an actionable support pane; support panes
 must contain useful navigation or context for that destination rather than

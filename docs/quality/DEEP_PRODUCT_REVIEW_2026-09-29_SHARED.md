@@ -1,6 +1,6 @@
 # Shared app and Task review — 2026-09-29
 
-Status: In progress. FB-20260929-002 / FND-20260929-003. Baseline 0.3.83, `04bc58e2`. This is an assessment of complete jobs, not a screen count. The initial fresh Home capture uses synthetic sparse data; dense/changed journeys are separate forthcoming evidence. Source traces are current, but source inspection does not prove rendered quality.
+Status: Implemented and Verified. FB-20260929-002 / FND-20260929-003 / IMP-20260929-002 / VER-20260929-002. Baseline 0.3.83, `04bc58e2`. This is an assessment of complete jobs, not a screen count. The initial fresh Home capture uses synthetic sparse data; dense/changed journeys have separate final evidence. Source traces are distinct from executed behavior and personally inspected rendering.
 
 ## Job: decide what to do across a busy day
 
@@ -42,4 +42,6 @@ Reuse `WhipSearchField`, record cards, inspector groups, lazy lists, existing me
 
 The first Android package proved an actual architecture limit: JaCoCo reported `MethodTooLargeException` for `WhipScreen`. Feature ownership extraction is therefore a concrete build/extensibility repair, not cosmetic file shuffling. The repaired package's instrumentation task passes with coverage still enabled; complete packaging and native acceptance are recorded separately.
 
-All DS1–4 remedies and the documented follow-through are accepted in the central plan and are being implemented. No claim that this finite review proves the absence of all bugs or subjective perfection is made. Final evidence must distinguish retained source dispositions, executed behavior and personally inspected current originals.
+All DS1–4 remedies and follow-through are complete. Exact final Home preview/refill/continuation passes at normal and actual200% text; Task query/filter nesting, inspector edit/recreation/cancel, large subtask controls and precise custom Focus pass. Review returns after Tasks, Habits, Goals and exact workout History, including recreation and wide1800×2400. The first Habit return fixture matched identical background text as well as its Review row; scoping the assertion to the Review outcome list preserves the strict return requirement and passes. Content-key/Home boundary JVM methods pass.
+
+Parent personally inspected final Home200%, Task search/inspector/large subtask and Review normal/wide originals. The final search image has one query field and no automatically reopened keyboard; the compact subtask row keeps direct completion and secondary overflow; wide Review retains source context above the taskbar. [Exact receipts and visual boundaries](../../artifacts/deep-product-review/2026-09-29/README.md). No claim that this finite review proves absence of all bugs or subjective perfection is made.

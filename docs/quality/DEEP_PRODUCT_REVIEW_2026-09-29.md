@@ -1,6 +1,16 @@
 # Whip deep product review — 2026-09-29
 
-Status: Investigating. FB-20260929-002. Baseline `04bc58e2`, released 0.3.83/code 89. The owner rejected the depth of the prior audit; its completed changes remain historical facts, not evidence that the remaining experience is satisfactory.
+Status: **Implemented and Verified**. All 16 accepted groups complete under FB-20260929-002 / IMP-20260929-002/003/004 / VER-20260929-002. Baseline `04bc58e2`, released 0.3.83/code 89. The owner rejected the depth of the prior audit; its completed changes remain historical facts, not evidence that the remaining experience is satisfactory.
+
+## Completion and evidence
+
+All DS1–4, DP1–6 and DGS1–6 remedies below are implemented. The three linked domain reports explain complete jobs, alternative approaches, retained behavior, shared ownership, compatibility and observed outcomes. The [evidence map](../../artifacts/deep-product-review/2026-09-29/README.md) maps every group to exact passing receipts and inspected originals.
+
+Nine distinct JVM methods and 30 distinct native methods have passing evidence. Each selected native command took 4.712–34.614 seconds under its own 55-second bound; no full/readiness/candidate batch. Preserve all 47 native attempts (34 passes, 13 failures), repaired source/fixture causes and one incomplete compile timeout. Native failures exposed actual milestone validation and offscreen Track disclosure continuity defects; both were repaired and the same strict journeys passed. Failed routine feedback also now reveals itself above a retained scroll position.
+
+Fresh visual review includes populated/dense Home, Task execution/search, large Habit controls and evidence, compact/expanded milestones, Track search/remaining fields/dated trends/corrected evidence, workout execution/finish/short chooser, routine failure/keyboard, Settings destinations and wide Review return. Domain reports identify capture framing/synchronization limits rather than claiming unseen states. Source-reviewed keeps are distinct from executed journeys; no full-platform or measured frame-rate claim is made.
+
+No accepted implementation or verification item remains open. Room 46, epoch 6, backup 26, dependencies and version are unchanged. The owner phone remains on 0.3.83; this audit does not constitute another release. Subjective appearance awaits owner use. Historical paused audits stay paused.
 
 ## Method and completion contract
 

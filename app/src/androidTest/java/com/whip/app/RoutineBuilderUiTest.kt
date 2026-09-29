@@ -87,6 +87,78 @@ class RoutineBuilderUiTest {
     @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     @Test
+    fun nestedExerciseFailureRetainsDraftAndOwnedResultAcrossRecreation() {
+        var completion: ((Long?) -> Unit)? = null
+        var calls = 0
+        val restoration = androidx.compose.ui.test.junit4.StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                RoutineBuilderScreen(routineId = null, gymState = GymUiState(loading = false), initial = null,
+                    onDismiss = {}, onSave = { _, done -> done(true) },
+                    onCreateExercise = { _, done -> calls++; completion = done }, onCreateMachine = { _, _ -> })
+            }
+        }
+        compose.onNodeWithTag("routine-editor-name").performTextInput("Retained plan")
+        compose.onNodeWithTag("routine-add-exercises").performClick()
+        compose.onNodeWithTag("routine-exercise-search").performTextInput("Cable press")
+        compose.onNodeWithText("Create “Cable press”").performClick()
+        closeSoftKeyboard()
+        compose.onNodeWithText("Save").performClick()
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(1, calls); completion!!(null) }
+        compose.onNodeWithText("The Library item could not be saved.", substring = true).performScrollTo().assertIsDisplayed()
+        captureVisualCatalogSurface("deep.gym.routine-exercise-failure")
+        compose.onNodeWithTag("exercise-editor-name").performScrollTo().assertTextContains("Cable press")
+        compose.onNodeWithText("Save").performClick()
+        compose.runOnIdle { assertEquals(2, calls); completion!!(77); completion!!(88) }
+        compose.onNodeWithTag("routine-placement-editor").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Back to routine outline").performClick()
+        compose.onNodeWithTag("routine-editor-name").assertTextContains("Retained plan")
+        compose.onNodeWithText("1 new library item was saved independently and will remain if this routine is canceled.").assertIsDisplayed()
+    }
+
+    @Test
+    @AndroidFontScale(2f)
+    fun quickMachineKeepsFailedDraftAndScrollableNumericFieldsAtLargeText() {
+        val bench = exercise(1, "Machine bench")
+        var completion: ((Long?) -> Unit)? = null
+        var calls = 0
+        val restoration = androidx.compose.ui.test.junit4.StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                RoutineBuilderScreen(routineId = 74,
+                    gymState = GymUiState(exercises = listOf(bench), loading = false),
+                    initial = RoutineDraft("Retained machines", days = listOf(RoutineDayDraft("A", listOf(RoutineExerciseDraft(bench.id))))),
+                    onDismiss = {}, onSave = { _, done -> done(true) }, onCreateExercise = { _, _ -> },
+                    onCreateMachine = { _, done -> calls++; completion = done })
+            }
+        }
+        compose.onNodeWithTag("routine-selected-exercises").performScrollToNode(hasText("Machine bench"))
+        compose.onNodeWithText("Machine bench", useUnmergedTree = true).performScrollTo().performClick()
+        compose.onNodeWithTag("routine-equipment-picker").performScrollTo().performClick()
+        compose.onNodeWithText("Quick-Create Machine for This Exercise").performScrollTo().performClick()
+        compose.onNodeWithTag("routine-quick-machine-name").performTextInput("Home stack")
+        compose.onNodeWithTag("routine-quick-machine-increment").performScrollTo().performTextReplacement("2.5")
+        compose.onNodeWithTag("routine-quick-machine-create").assertIsDisplayed()
+        captureVisualCatalogSurface("deep.gym.quick-machine-ime.native200")
+        closeSoftKeyboard()
+        compose.onNodeWithTag("routine-quick-machine-create").performClick()
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.runOnIdle { completion!!(null) }
+        compose.onNodeWithTag("routine-library-save-error").assertIsDisplayed()
+        captureVisualCatalogSurface("deep.gym.quick-machine-failure.native200")
+        compose.onNodeWithTag("routine-quick-machine-name").performScrollTo().assertTextContains("Home stack")
+        compose.onNodeWithTag("routine-quick-machine-increment").performScrollTo().assertTextContains("2.5")
+        compose.onNodeWithTag("routine-quick-machine-create").performClick()
+        compose.runOnIdle { assertEquals(2, calls); completion!!(88) }
+        compose.onNodeWithTag("routine-placement-editor").assertIsDisplayed()
+        compose.onNodeWithText("Home stack", substring = true).assertExists()
+    }
+
+    @Test
     fun timedAndDistancePrescriptionsKeepApplicableFieldsAndCollapsedTargets() {
         val exercises = listOf(
             exercise(1, "Intervals").copy(trackingType = ExerciseTrackingType.DistanceDuration),

@@ -4,13 +4,13 @@
 
 - Decision: The owner's rejection of prior audit depth requires an independent critique of current 0.3.83, including previous keep decisions. Accept the [deep review plan](../quality/DEEP_PRODUCT_REVIEW_2026-09-29.md) before each workstream, implement every accepted remedy and close only with proportionate behavioral and freshly inspected rendered evidence.
 - Accepted scope: DGS-1–6, DP1–6 and DS1–4 in the linked plan/reports. Preserve immutable historical meaning, exact mutation ownership, queue/optional-work policies and shared design controls; avoid speculative architecture. Ground further findings before expanding the plan.
-- Constraints/status: FB-20260929-002, FND-20260929-001/002. In progress. Same two authorized agent slots; parent serializes exact sub-minute QA, no readiness/full/candidate batch, no phone release in this new goal.
+- Constraints/status: FB-20260929-002, FND-20260929-001/002/003. Implemented and Verified under IMP-20260929-002/003/004 and VER-20260929-002; all 16 groups delivered. Same two authorized agent slots, exact sub-minute QA, no readiness/full/candidate batch or new phone release.
 
 ### DEC-20260928-004 — Improve complete interactions and hierarchy through existing owners
 
 - Decision: Execute the [complete-experience plan](../quality/EXPERIENCE_OVERHAUL_2026-09-28.md), independently reassessing current source and rendering after 0.3.82. Accept substantial changes to actionable inspectors, historical retrieval, Track authoring, Workout entry, Routine search and backup hierarchy; keep reviewing remaining areas rather than stop at the initial groups.
 - Constraints: Every accepted recommendation is implementation scope. Share equivalent behavior and preserve domain semantics, mutation receipts and historical truth. Two additional Astra/high agents only; parent coordinates integration/builds. Exact sub-minute checks and fresh relevant originals, no full/readiness/candidate batches or phone release.
-- Related/status: FB-20260928-007, FND-20260928-012/013. In progress; this decision does not resume historical paused audits.
+- Related/status: FB-20260928-007, FND-20260928-012/013. Implemented and Verified under IMP-20260928-011 / VER-20260928-007; subsequently released as 0.3.83 under VER-20260929-001. This reconciles a stale decision status; historical paused audits remain paused.
 
 ### DEC-20260928-003 — Repair complete workflows through existing shared owners
 

@@ -194,7 +194,6 @@ internal fun RoutineBuilderScreen(
     var createExerciseForMachineProfile by rememberSaveable(token) { mutableStateOf(false) }
     var createdExerciseForMachineId by rememberSaveable(token) { mutableStateOf<Long?>(null) }
     var exerciseNameSeed by rememberSaveable(token) { mutableStateOf("") }
-    var librarySaveInFlight by rememberSaveable(token) { mutableStateOf(false) }
     var routineSaveInFlight by rememberSaveable(token) { mutableStateOf(false) }
     var machineEditorPlacementKey by rememberSaveable(token) { mutableStateOf<Long?>(null) }
     var quickMachinePlacementKey by rememberSaveable(token) { mutableStateOf<Long?>(null) }
@@ -334,6 +333,45 @@ internal fun RoutineBuilderScreen(
                 nextKey = setKey + 1L,
                 independentlySavedLibraryItems = current.independentlySavedLibraryItems + 1,
             )
+        }
+    }
+
+    val librarySaveState by stateHolder.librarySave.collectAsStateWithLifecycle()
+    val librarySaveCoordinator = rememberPersistenceRequestCoordinator(
+        state = librarySaveState,
+        consume = stateHolder::consumeLibrarySave,
+        key = token,
+        requestNamespace = "$token-library",
+        orphanedMessage = "The previous Library save was interrupted. Your draft is still here; check the Library before retrying.",
+        onPersisted = { receipt ->
+            if (receipt.machineDraft != null && receipt.placementKey != null) {
+                updatePlacement(receipt.placementKey) { it.withMachine(receipt.id, receipt.machineDraft) }
+                stateHolder.noteIndependentLibrarySave()
+                machineEditorPlacementKey = null
+                quickMachinePlacementKey = null
+                equipmentPickerPlacementKey = null
+                createdExerciseForMachineId = null
+            } else {
+                showCreateExercise = false
+                createExerciseForMachineProfile = false
+                if (receipt.forMachineProfile) {
+                    createdExerciseForMachineId = receipt.id
+                    stateHolder.noteIndependentLibrarySave()
+                } else if (receipt.dayKey != null) {
+                    addCreatedExercise(receipt.dayKey, receipt.id, receipt.exerciseName, pendingAssistanceRole)
+                    pendingAssistanceRole = null
+                    page = RoutineBuilderPage.Outline
+                }
+            }
+        },
+    )
+    val librarySaveInFlight = librarySaveCoordinator.saving
+    fun saveMachineForPlacement(placementKey: Long, draft: GymMachineDraft) {
+        val requestId = librarySaveCoordinator.begin() ?: return
+        if (!stateHolder.saveLibraryItem(requestId,
+                receipt = { id -> RoutineLibrarySaveReceipt(id, placementKey = placementKey, machineDraft = draft) },
+                save = { complete -> onCreateMachine(draft, complete) })) {
+            librarySaveCoordinator.finishFailure("Another Library save is still finishing. Try again.")
         }
     }
 
@@ -650,23 +688,13 @@ internal fun RoutineBuilderScreen(
                     showCreateExercise = true
                 },
                 onDismiss = {
+                    librarySaveCoordinator.clear()
                     createdExerciseForMachineId = null
                     machineEditorPlacementKey = null
                 },
                 saving = librarySaveInFlight,
-                onSave = { draft ->
-                    createdExerciseForMachineId = null
-                    machineEditorPlacementKey = null
-                    librarySaveInFlight = true
-                    onCreateMachine(draft) { id ->
-                        librarySaveInFlight = false
-                        if (id != null) {
-                            updatePlacement(placementKey) { it.withMachine(id, draft) }
-                            stateHolder.noteIndependentLibrarySave()
-                            equipmentPickerPlacementKey = null
-                        }
-                    }
-                },
+                errorMessage = librarySaveCoordinator.errorMessage,
+                onSave = { draft -> saveMachineForPlacement(placementKey, draft) },
             )
         }
     }
@@ -685,25 +713,20 @@ internal fun RoutineBuilderScreen(
             platePresets = gymState.appSettings.platePresets,
             powerMode = gymState.appSettings.powerMode,
             onDismiss = {
+                librarySaveCoordinator.clear()
                 showCreateExercise = false
                 createExerciseForMachineProfile = false
             },
+            saving = librarySaveInFlight,
+            errorMessage = librarySaveCoordinator.errorMessage,
             onSave = { draft ->
                 val targetDay = selectedDay?.key
                 val belongsToMachineProfile = createExerciseForMachineProfile
-                showCreateExercise = false
-                librarySaveInFlight = true
-                onCreateExercise(draft) { id ->
-                    librarySaveInFlight = false
-                    createExerciseForMachineProfile = false
-                    if (id != null && belongsToMachineProfile) {
-                        createdExerciseForMachineId = id
-                        stateHolder.noteIndependentLibrarySave()
-                    } else if (id != null && targetDay != null) {
-                        addCreatedExercise(targetDay, id, draft.name.trim(), pendingAssistanceRole)
-                        pendingAssistanceRole = null
-                        page = RoutineBuilderPage.Outline
-                    }
+                val requestId = librarySaveCoordinator.begin() ?: return@ExerciseEditorDialog
+                if (!stateHolder.saveLibraryItem(requestId,
+                        receipt = { id -> RoutineLibrarySaveReceipt(id, draft.name.trim(), targetDay, belongsToMachineProfile) },
+                        save = { complete -> onCreateExercise(draft, complete) })) {
+                    librarySaveCoordinator.finishFailure("Another Library save is still finishing. Try again.")
                 }
             },
         )
@@ -718,19 +741,10 @@ internal fun RoutineBuilderScreen(
             QuickMachineDialog(
                 modifier = dialogModifier,
                 exercise = exercise,
-                onDismiss = { quickMachinePlacementKey = null },
-                onSave = { draft ->
-                    quickMachinePlacementKey = null
-                    librarySaveInFlight = true
-                    onCreateMachine(draft) { id ->
-                        librarySaveInFlight = false
-                        if (id != null) {
-                            updatePlacement(placementKey) { it.withMachine(id, draft) }
-                            stateHolder.noteIndependentLibrarySave()
-                            equipmentPickerPlacementKey = null
-                        }
-                    }
-                },
+                onDismiss = { librarySaveCoordinator.clear(); quickMachinePlacementKey = null },
+                saving = librarySaveInFlight,
+                errorMessage = librarySaveCoordinator.errorMessage,
+                onSave = { draft -> saveMachineForPlacement(placementKey, draft) },
             )
         }
     }
@@ -3461,7 +3475,11 @@ private fun EquipmentPickerPane(
 }
 
 @Composable
-private fun QuickMachineDialog(modifier: Modifier = Modifier, exercise: Exercise, onDismiss: () -> Unit, onSave: (GymMachineDraft) -> Unit) {
+private fun QuickMachineDialog(modifier: Modifier = Modifier, exercise: Exercise, saving: Boolean = false, errorMessage: String? = null, onDismiss: () -> Unit, onSave: (GymMachineDraft) -> Unit) {
+    val bodyScrollState = rememberScrollState()
+    LaunchedEffect(errorMessage) {
+        if (errorMessage != null) bodyScrollState.scrollTo(0)
+    }
     var name by rememberSaveable(exercise.id) { mutableStateOf("") }
     var location by rememberSaveable(exercise.id) { mutableStateOf("") }
     var loadType by rememberSaveable(exercise.id) { mutableStateOf(MachineLoadType.Mass) }
@@ -3479,10 +3497,13 @@ private fun QuickMachineDialog(modifier: Modifier = Modifier, exercise: Exercise
     val validRange = min != null && max != null && step != null && min >= 0.0 && max >= min && step > 0.0 && ((max - min) / step) <= 500
     PaneAwareAlertDialog(
         modifier = modifier,
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!saving) onDismiss() },
+        inputBlocked = saving,
+        inputBlockedLabel = "Saving Machine",
         title = { Text("Quick-Create Machine") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.verticalScroll(bodyScrollState).testTag("routine-quick-machine-body"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("routine-library-save-error").semantics { liveRegion = LiveRegionMode.Assertive }) }
                 Text("For ${exercise.name}. Add advanced setup details later from the machine library.")
                 OutlinedTextField(name, { name = it.replace('\n', ' ').replace('\r', ' ').take(100) }, label = { Text("Machine name *") }, singleLine = true, modifier = Modifier.fillMaxWidth().testTag("routine-quick-machine-name"))
                 OutlinedTextField(location, { location = it }, label = { Text("Location") }, modifier = Modifier.fillMaxWidth())
@@ -3502,14 +3523,14 @@ private fun QuickMachineDialog(modifier: Modifier = Modifier, exercise: Exercise
                     }
                 }
                 ResponsiveFieldPair(
-                    first = { field -> OutlinedTextField(minimum, { minimum = it.numericInput() }, label = { Text("Minimum") }, modifier = field) },
-                    second = { field -> OutlinedTextField(maximum, { maximum = it.numericInput() }, label = { Text("Maximum") }, modifier = field) },
+                    first = { field -> OutlinedTextField(minimum, { minimum = it.numericInput() }, label = { Text("Minimum") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = field) },
+                    second = { field -> OutlinedTextField(maximum, { maximum = it.numericInput() }, label = { Text("Maximum") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = field) },
                 )
-                OutlinedTextField(increment, { increment = it.numericInput() }, label = { Text("Increment") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(increment, { increment = it.numericInput() }, label = { Text("Increment") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth().testTag("routine-quick-machine-increment"))
             }
         },
         confirmButton = {
-            WhipTextButton(enabled = name.isNotBlank() && validRange, onClick = {
+            WhipTextButton(enabled = !saving && name.isNotBlank() && validRange, onClick = {
                 onSave(
                     GymMachineDraft(
                         exerciseId = exercise.id,
@@ -3525,7 +3546,7 @@ private fun QuickMachineDialog(modifier: Modifier = Modifier, exercise: Exercise
                 )
             }, modifier = Modifier.testTag("routine-quick-machine-create")) { Text("Create and Select") }
         },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
     )
 }
 

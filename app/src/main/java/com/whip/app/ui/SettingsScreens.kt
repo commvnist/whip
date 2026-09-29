@@ -52,6 +52,10 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
+import kotlinx.coroutines.flow.first
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -242,6 +246,20 @@ internal fun SettingsContent(
         if (externalSectionNavigation) onSectionChange(next) else localSection = next
     }
     var compactSectionOpen by rememberSaveable { mutableStateOf(false) }
+    var settingsSearchOpen by rememberSaveable { mutableStateOf(false) }
+    var settingsSearchQuery by rememberSaveable { mutableStateOf("") }
+    var pendingSettingsAnchor by rememberSaveable { mutableStateOf<String?>(null) }
+    val settingsAnchorPositions = remember(section) { mutableMapOf<String, Int>() }
+    val canSearchSettings = activeTypedSettingTag == null && !state.busy && !confirmDelete &&
+        state.backupPreview == null && !state.encryptedRestorePending && !showEncryptedExport
+    LaunchedEffect(pendingSettingsAnchor, section, compactSectionOpen) {
+        val anchor = pendingSettingsAnchor ?: return@LaunchedEffect
+        if (SettingsSearchEntries.firstOrNull { it.anchor == anchor }?.section != section) return@LaunchedEffect
+        snapshotFlow { settingsListState.layoutInfo.totalItemsCount }.first { it > 0 && anchor in settingsAnchorPositions }
+        withFrameNanos { }
+        settingsAnchorPositions[anchor]?.let { settingsListState.scrollToItem(it) }
+        pendingSettingsAnchor = null
+    }
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         diagnosticRefresh++
     }
@@ -401,7 +419,9 @@ internal fun SettingsContent(
                     WhipPageHeader(
                         title = "Settings",
                         supportingText = "Preferences, defaults, and app data.",
-                    )
+                    ) {
+                        WhipPageIconAction(Icons.Outlined.Search, "Search Settings", onClick = { settingsSearchOpen = true })
+                    }
                 }
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().testTag("settings-category-list"),
@@ -455,6 +475,10 @@ internal fun SettingsContent(
                     } else null,
                     modifier = Modifier.weight(1f),
                 )
+                IconButton(onClick = { settingsSearchOpen = true }, enabled = canSearchSettings,
+                    modifier = Modifier.testTag("settings-search-open")) {
+                    Icon(Icons.Outlined.Search, contentDescription = "Search Settings")
+                }
             }
         }
         Row(Modifier.fillMaxWidth().weight(1f)) {
@@ -474,7 +498,8 @@ internal fun SettingsContent(
             contentPadding = PaddingValues(20.dp, 0.dp, 20.dp, 96.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-        if (state.busy) item {
+        val anchored = SettingsAnchorItems(this, settingsAnchorPositions)
+        if (state.busy) anchored.item {
             WhipStatusCard(
                 kind = WhipStatusKind.Loading,
                 title = "Working",
@@ -482,7 +507,7 @@ internal fun SettingsContent(
                 modifier = Modifier.testTag("settings-loading-status"),
             )
         }
-        state.message?.takeIf { state.backupPreview == null && !state.encryptedRestorePending && !confirmDelete }?.let { message -> item {
+        state.message?.takeIf { state.backupPreview == null && !state.encryptedRestorePending && !confirmDelete }?.let { message -> anchored.item {
             val messageKind = if (state.operation is OperationStatus.Failed) {
                 WhipStatusKind.Error
             } else {
@@ -497,7 +522,7 @@ internal fun SettingsContent(
                 modifier = Modifier.testTag("settings-result-status"),
             )
         } }
-        typedSettingWarning?.let { warning -> item {
+        typedSettingWarning?.let { warning -> anchored.item {
             WhipStatusCard(
                 kind = WhipStatusKind.Warning,
                 title = "Setting Saved with Warnings",
@@ -509,9 +534,9 @@ internal fun SettingsContent(
         } }
 
         if (section == SettingsSection.Appearance) {
-        item { SettingsHeading("Theme and Colors") }
-        item { SettingsDropdown("Theme", AppThemeMode.entries, settings.themeMode, AppThemeMode::label) { selected -> viewModel.update { it.copy(themeMode = selected) } } }
-        item {
+        anchored.item(key = "setting-theme") { SettingsHeading("Theme and Colors") }
+        anchored.item { SettingsDropdown("Theme", AppThemeMode.entries, settings.themeMode, AppThemeMode::label) { selected -> viewModel.update { it.copy(themeMode = selected) } } }
+        anchored.item(key = "setting-dynamic-color") {
             val dynamicColorAvailable = supportsAndroidDynamicColor(Build.VERSION.SDK_INT)
             SettingsToggle(
                 "Use Android dynamic colors",
@@ -524,36 +549,36 @@ internal fun SettingsContent(
                 },
             ) { selected -> viewModel.update { it.copy(dynamicColor = selected) } }
         }
-        item { SettingsHeading("Presentation") }
-        item {
+        anchored.item { SettingsHeading("Presentation") }
+        anchored.item(key = "setting-advanced") {
             SettingsToggle(
                 "Show advanced controls by default",
                 settings.powerMode,
                 supportingText = "Opens optional planning and configuration groups automatically. It does not add or remove capabilities.",
             ) { selected -> viewModel.update { it.copy(powerMode = selected) } }
         }
-        item {
+        anchored.item(key = "setting-low-pressure") {
             SettingsToggle(
                 "Low-pressure Habit presentation",
                 settings.lowPressureMode,
                 supportingText = "De-emphasizes streaks and success/failure language in Habit views without changing history.",
             ) { selected -> viewModel.update { it.copy(lowPressureMode = selected) } }
         }
-        item {
+        anchored.item(key = "setting-celebrate") {
             SettingsToggle(
                 "Celebrate completed Goals",
                 settings.goalCelebrationEnabled,
                 supportingText = "Show Victory Shower for four seconds when you complete a Goal.",
             ) { selected -> viewModel.update { it.copy(goalCelebrationEnabled = selected) } }
         }
-        item {
+        anchored.item {
             SettingsHeading("Opening Area")
             Text(
                 "Choose whether a new Whip session returns to the Area you used last or always starts from one chosen view. Widget shortcuts switch the current Area immediately.",
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        item {
+        anchored.item(key = "setting-opening-area") {
             SettingsDropdown(
                 label = "When Whip opens",
                 values = AreaOpeningMode.entries,
@@ -587,7 +612,7 @@ internal fun SettingsContent(
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        if (settings.areaOpeningMode == AreaOpeningMode.Chosen) item {
+        if (settings.areaOpeningMode == AreaOpeningMode.Chosen) anchored.item {
             val activeAreas = state.areas.filterNot(com.whip.app.domain.Area::archived)
             val choices = listOf(AreaScope.All) + activeAreas.map { AreaScope.One(it.id) }
             val storedChoice = AreaScope.fromStorageKey(settings.chosenOpeningAreaScope)
@@ -607,7 +632,7 @@ internal fun SettingsContent(
                 viewModel.update { it.copy(chosenOpeningAreaScope = selected.storageKey) }
             }
         }
-        item {
+        anchored.item(key = "setting-home") {
             SettingsHeading("Home Overview")
             Text(
                 "Choose which sections and empty-day shortcuts appear on Whip Home. Main navigation and saved data remain unchanged. Pinning an item reveals and expands its section so the action always has a visible destination. Visible sections can start expanded or collapsed.",
@@ -616,7 +641,7 @@ internal fun SettingsContent(
         }
         val visibleHomeSectionCount = settings.homeSections.count { it !in settings.hiddenHomeSections }
         settings.homeSections.forEachIndexed { index, section ->
-            item(key = "home-${section.name}") {
+            anchored.item(key = "home-${section.name}") {
                 val visible = section !in settings.hiddenHomeSections
                 val expanded = section !in settings.collapsedHomeSections
                 val reorderInteraction = rememberWhipReorderInteractionState()
@@ -683,7 +708,7 @@ internal fun SettingsContent(
                 }
             }
         }
-        item {
+        anchored.item(key = "setting-keyboard") {
             WhipGroupedInformationCard {
                 WhipGroupHeading("Hardware Keyboard")
                 Text("Ctrl+H Home · Ctrl+K Search · Ctrl+N contextual add · Ctrl+1–5 switch Tasks, Habits, Goals, Tracks, Gym", style = MaterialTheme.typography.bodySmall)
@@ -693,12 +718,12 @@ internal fun SettingsContent(
         }
 
         if (section == SettingsSection.Planning) {
-        item { SettingsHeading("Date and Number Defaults") }
-        item {
+        anchored.item { SettingsHeading("Date and Number Defaults") }
+        anchored.item(key = "setting-week") {
             SettingsDropdown("First day of week", DayOfWeek.entries, settings.firstDayOfWeek, { weekdayFormatter.label(it, WhipWeekdayLabelWidth.Full) }) { selected -> viewModel.update { it.copy(firstDayOfWeek = selected) } }
             Text("Sets weekday order in calendars and editors, and groups weekly Review and Gym analytics. Existing Habit schedules keep their own week start.", style = MaterialTheme.typography.bodySmall)
         }
-        item {
+        anchored.item(key = "setting-timezone") {
             val followDevice = settings.timeZoneId == null
             val editingTimeZone = activeTypedSettingTag == "settings-field-time-zone"
             SettingsToggle(
@@ -731,7 +756,7 @@ internal fun SettingsContent(
             }
             Text("Active time zone: ${settings.zoneId().id}. Historical entries keep their saved local date and offset.", style = MaterialTheme.typography.bodySmall)
         }
-        item {
+        anchored.item(key = "setting-cutoff") {
             ClockSetting(
                 label = "Late-night day cutoff",
                 currentMinutes = settings.dayCutoffMinutes,
@@ -739,7 +764,7 @@ internal fun SettingsContent(
             )
             Text("Before this time, Today still uses the previous calendar date. Use 00:00 for the standard midnight boundary.", style = MaterialTheme.typography.bodySmall)
         }
-        item {
+        anchored.item(key = "setting-precision") {
             NumberSetting(
                 label = "Default decimal precision",
                 current = settings.numberPrecision,
@@ -747,23 +772,23 @@ internal fun SettingsContent(
                 validRange = 0..6,
             )
         }
-        item { SettingsHeading("Unit Defaults") }
-        item { UnitSetting("Mass", listOf("kilogram", "pound", "gram"), settings.massUnitId) { value -> viewModel.update { it.copy(massUnitId = value) } } }
-        item { UnitSetting("Distance", listOf("kilometre", "mile", "distance_m"), settings.distanceUnitId) { value -> viewModel.update { it.copy(distanceUnitId = value) } } }
-        item { UnitSetting("Volume", listOf("litre", "millilitre", "cup", "fluid_ounce"), settings.volumeUnitId) { value -> viewModel.update { it.copy(volumeUnitId = value) } } }
-        item {
+        anchored.item { SettingsHeading("Unit Defaults") }
+        anchored.item(key = "setting-mass") { UnitSetting("Mass", listOf("kilogram", "pound", "gram"), settings.massUnitId) { value -> viewModel.update { it.copy(massUnitId = value) } } }
+        anchored.item(key = "setting-distance") { UnitSetting("Distance", listOf("kilometre", "mile", "distance_m"), settings.distanceUnitId) { value -> viewModel.update { it.copy(distanceUnitId = value) } } }
+        anchored.item(key = "setting-volume") { UnitSetting("Volume", listOf("litre", "millilitre", "cup", "fluid_ounce"), settings.volumeUnitId) { value -> viewModel.update { it.copy(volumeUnitId = value) } } }
+        anchored.item(key = "setting-custom-units") {
             DisclosureRow("Custom Units", supportingText = "${state.customUnits.count { !it.archived }} active · ${state.customUnits.count { it.archived }} archived",
                 expanded = customUnitsExpanded, onClick = { customUnitsExpanded = !customUnitsExpanded })
         }
         if (customUnitsExpanded) {
-        item {
+        anchored.item {
             Text(
                 "Create reusable units for Habit entries, Goal progress, and number fields in Tracks. You can also create a unit beside an item's Unit control.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        items(state.customUnits, key = { "custom-unit-${it.id}" }) { unit ->
+        anchored.items(state.customUnits, key = { "custom-unit-${it.id}" }) { unit ->
             WhipRecordItem(
                 itemKey = unit.id,
                 itemType = "custom unit",
@@ -793,7 +818,7 @@ internal fun SettingsContent(
                 }
             }
         }
-        item {
+        anchored.item {
             customUnitCoordinator.errorMessage?.let { message ->
                 WhipStatusCard(
                     kind = WhipStatusKind.Error,
@@ -813,14 +838,14 @@ internal fun SettingsContent(
             ) { Text("Create Custom Unit") }
         }
         }
-        item { SettingsHeading("Review Defaults") }
-        item { SettingsDropdown("Default review period", ReviewPeriod.entries, settings.reviewPeriod, ReviewPeriod::label) { value -> viewModel.update { it.copy(reviewPeriod = value) } } }
+        anchored.item { SettingsHeading("Review Defaults") }
+        anchored.item(key = "setting-review") { SettingsDropdown("Default review period", ReviewPeriod.entries, settings.reviewPeriod, ReviewPeriod::label) { value -> viewModel.update { it.copy(reviewPeriod = value) } } }
 
         }
 
         if (section == SettingsSection.Planning) {
-        item { SettingsHeading("Task Defaults") }
-        item {
+        anchored.item { SettingsHeading("Task Defaults") }
+        anchored.item(key = "setting-repeats") {
             SettingsToggle(
                 "Show every repeating occurrence in Upcoming",
                 settings.showAllUpcomingTaskOccurrences,
@@ -834,7 +859,7 @@ internal fun SettingsContent(
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        item {
+        anchored.item(key = "setting-habits-planning") {
             SettingsToggle(
                 "Show habits in Task Agenda and Calendar",
                 settings.showHabitsInTaskPlanning,
@@ -844,8 +869,8 @@ internal fun SettingsContent(
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        item { SettingsDropdown("Repeating-task subtask default", RepeatStepPolicy.entries, settings.defaultTaskStepPolicy, RepeatStepPolicy::uiLabel) { value -> viewModel.update { it.copy(defaultTaskStepPolicy = value) } } }
-        item {
+        anchored.item(key = "setting-subtasks") { SettingsDropdown("Repeating-task subtask default", RepeatStepPolicy.entries, settings.defaultTaskStepPolicy, RepeatStepPolicy::uiLabel) { value -> viewModel.update { it.copy(defaultTaskStepPolicy = value) } } }
+        anchored.item(key = "setting-capture") {
             SettingsToggle(
                 label = "Smart Task Capture",
                 checked = settings.naturalLanguageTaskCapture,
@@ -875,16 +900,16 @@ internal fun SettingsContent(
                 }
             }
         }
-        item { SettingsHeading("Habit Defaults") }
-        item {
+        anchored.item { SettingsHeading("Habit Defaults") }
+        anchored.item(key = "setting-habit-week") {
             SettingsDropdown("Default week start for new Habits", DayOfWeek.entries, settings.defaultHabitWeekStart, { weekdayFormatter.label(it, WhipWeekdayLabelWidth.Full) }) { value -> viewModel.update { it.copy(defaultHabitWeekStart = value) } }
             Text("Existing Habits keep their own saved week start.", style = MaterialTheme.typography.bodySmall)
         }
         }
 
         if (section == SettingsSection.Gym) {
-        item { SettingsHeading("Workout and Rest") }
-        item {
+        anchored.item { SettingsHeading("Workout and Rest") }
+        anchored.item(key = "setting-gym-mass") {
             UnitSetting("Gym summaries and new exercises", listOf("kilogram", "pound"), settings.gymWeightUnitId) { value ->
                 viewModel.update { it.copy(gymWeightUnitId = value) }
             }
@@ -894,7 +919,7 @@ internal fun SettingsContent(
             )
         }
 
-        item {
+        anchored.item(key = "setting-rest") {
             NumberSetting(
                 label = "Default rest time (seconds)",
                 current = settings.defaultRestSeconds,
@@ -903,15 +928,17 @@ internal fun SettingsContent(
                 supportingText = "Used when a workout has no temporary rest-time override.",
             )
         }
-        item {
+        anchored.item(key = "setting-rest-presets") {
             WhipSettingItem("Rest Presets") {
                 edit(value = settings.restTimerPresetSeconds.joinToString(" · ") { seconds -> "%d:%02d".format(seconds / 60, seconds % 60) },
                     onOpen = { restPresetsCoordinator.clear(); restPresetsOpen = true })
             }
             Text("App-wide shortcuts. A workout's temporary rest time does not change these presets.", style = MaterialTheme.typography.bodySmall)
         }
-        item { SettingsToggle("Rest timer sound", settings.timerSound) { value -> viewModel.update { it.copy(timerSound = value) } }; SettingsToggle("Rest timer vibration", settings.timerVibration) { value -> viewModel.update { it.copy(timerVibration = value) } }; SettingsToggle("Keep workout screen awake by default", settings.keepScreenAwake) { value -> viewModel.update { it.copy(keepScreenAwake = value) } } }
-        item {
+        anchored.item(key = "setting-sound") { SettingsToggle("Rest timer sound", settings.timerSound) { value -> viewModel.update { it.copy(timerSound = value) } } }
+        anchored.item(key = "setting-vibration") { SettingsToggle("Rest timer vibration", settings.timerVibration) { value -> viewModel.update { it.copy(timerVibration = value) } } }
+        anchored.item(key = "setting-awake") { SettingsToggle("Keep workout screen awake by default", settings.keepScreenAwake) { value -> viewModel.update { it.copy(keepScreenAwake = value) } } }
+        anchored.item(key = "setting-auto-rest") {
             SettingsToggle(
                 "Start rest timer when a set completes",
                 settings.restTimerAutoStart,
@@ -924,8 +951,8 @@ internal fun SettingsContent(
                 viewModel.update { it.copy(restTimerAutoStart = value) }
             }
         }
-        item { SettingsHeading("Workout Inputs") }
-        item {
+        anchored.item { SettingsHeading("Workout Inputs") }
+        anchored.item(key = "setting-effort") {
             val effortField = when {
                 settings.showGymRpe -> "RPE"
                 settings.showGymRir -> "RIR"
@@ -935,12 +962,14 @@ internal fun SettingsContent(
                 viewModel.update { it.copy(showGymRpe = value == "RPE", showGymRir = value == "RIR") }
             }
             Text("Individual exercises can override this default. RPE and RIR are alternative scales, so only one is shown at a time.", style = MaterialTheme.typography.bodySmall)
+        }
+        anchored.item(key = "setting-tempo") {
             SettingsToggle("Show tempo fields", settings.showGymTempo) { value -> viewModel.update { it.copy(showGymTempo = value) } }
 
         }
-        item { SettingsHeading("Progress Calculations") }
-        item { SettingsDropdown("Estimated 1RM formula", listOf("Epley", "Brzycki"), settings.oneRepMaxFormula, { it }) { value -> viewModel.update { it.copy(oneRepMaxFormula = value) } } }
-        item {
+        anchored.item { SettingsHeading("Progress Calculations") }
+        anchored.item(key = "setting-formula") { SettingsDropdown("Estimated 1RM formula", listOf("Epley", "Brzycki"), settings.oneRepMaxFormula, { it }) { value -> viewModel.update { it.copy(oneRepMaxFormula = value) } } }
+        anchored.item(key = "setting-rep-cutoff") {
             NumberSetting(
                 label = "Estimated 1RM rep cutoff",
                 current = settings.oneRepMaxRepCutoff,
@@ -949,8 +978,8 @@ internal fun SettingsContent(
                 supportingText = "Sets above this repetition count are excluded from estimated 1RM records.",
             )
         }
-        item { SettingsToggle("Include warm-ups in volume and PRs", settings.includeWarmupsInGymStats) { value -> viewModel.update { it.copy(includeWarmupsInGymStats = value) } } }
-        item {
+        anchored.item(key = "setting-warmups") { SettingsToggle("Include warm-ups in volume and PRs", settings.includeWarmupsInGymStats) { value -> viewModel.update { it.copy(includeWarmupsInGymStats = value) } } }
+        anchored.item(key = "setting-hard-sets") {
             Text("Hard-Set Classifications", modifier = Modifier.semantics { heading() }, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 WorkoutSetClassification.entries.forEach { classification ->
@@ -969,7 +998,7 @@ internal fun SettingsContent(
             }
             Text("Only these classifications count in category hard-set summaries. Volume and PR inclusion remain separately configurable.", style = MaterialTheme.typography.bodySmall)
         }
-        item {
+        anchored.item(key = "setting-allocation") {
             SettingsDropdown(
                 "Overlapping category allocation",
                 listOf("Full", "Fractional", "PrimaryOnly"),
@@ -985,12 +1014,12 @@ internal fun SettingsContent(
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        item { SettingsToggle("Adjust estimated 1RM using RPE/RIR", settings.adjustE1rmForEffort) { selected -> viewModel.update { it.copy(adjustE1rmForEffort = selected) } } }
-        item { SettingsToggle("Allow assisted exercises in personal records", settings.includeAssistedInPersonalRecords) { selected -> viewModel.update { it.copy(includeAssistedInPersonalRecords = selected) } } }
+        anchored.item(key = "setting-effort-adjustment") { SettingsToggle("Adjust estimated 1RM using RPE/RIR", settings.adjustE1rmForEffort) { selected -> viewModel.update { it.copy(adjustE1rmForEffort = selected) } } }
+        anchored.item(key = "setting-assisted") { SettingsToggle("Allow assisted exercises in personal records", settings.includeAssistedInPersonalRecords) { selected -> viewModel.update { it.copy(includeAssistedInPersonalRecords = selected) } } }
         }
 
         if (section == SettingsSection.Organization) {
-        item {
+        anchored.item(key = "setting-areas") {
             WhipGroupedInformationCard {
                     WhipGroupHeading("Areas")
                     Text("Create named areas to group related tasks, habits, goals, and tracks across search and review.")
@@ -998,7 +1027,7 @@ internal fun SettingsContent(
                     WhipButton(onClick = onEditAreas, modifier = Modifier.fillMaxWidth()) { Text("Manage Areas") }
             }
         }
-        item {
+        anchored.item(key = "setting-tags") {
             WhipGroupedInformationCard(Modifier.testTag("settings-tags-summary")) {
                     WhipGroupHeading("Tags")
                     Text("Use flexible labels across Tasks, Habits, Goals, and Tracks while each item keeps one primary Area.")
@@ -1012,7 +1041,7 @@ internal fun SettingsContent(
                     ) { Text("Manage Tags") }
             }
         }
-        item {
+        anchored.item(key = "setting-emojis") {
             SettingsHeading("Custom Emojis")
             Text(
                 "Name reusable emoji choices for your own organization. Whip's ${IDENTITY_EMOJI_PRESETS.size} common emojis are always available and cannot be renamed, replaced, or deleted.",
@@ -1094,8 +1123,8 @@ internal fun SettingsContent(
         }
 
         if (section == SettingsSection.Reminders) {
-        item { SettingsHeading("Notifications") }
-        item(key = "notification-diagnostics-$diagnosticRefreshKey") {
+        anchored.item(key = "setting-notifications") { SettingsHeading("Notifications") }
+        anchored.item(key = "notification-diagnostics-$diagnosticRefreshKey") {
             WhipGroupedInformationCard(Modifier.testTag("notification-diagnostics")) {
                     WhipGroupHeading("Reminder Delivery")
                     Text(overallNotificationState.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
@@ -1223,7 +1252,7 @@ internal fun SettingsContent(
                     }
             }
         }
-        item {
+        anchored.item(key = "setting-test-notification") {
             val testNotificationAvailability = ControlAvailability(
                 enabled = canSendNotificationTest(
                     notificationPermissionGranted,
@@ -1260,7 +1289,7 @@ internal fun SettingsContent(
             }
             AvailabilityNotice("Send test notification", testNotificationAvailability)
         }
-        item {
+        anchored.item(key = "setting-refresh-notifications") {
             WhipOutlinedButton(
                 onClick = {
                     diagnosticRefresh++
@@ -1288,8 +1317,8 @@ internal fun SettingsContent(
                 )
             }
         }
-        item { SettingsHeading("Quiet Hours") }
-        item {
+        anchored.item(key = "setting-quiet") { SettingsHeading("Quiet Hours") }
+        anchored.item {
             val enabled = settings.quietStartMinutes != null && settings.quietEndMinutes != null
             val editingQuietHours = activeTypedSettingTag in setOf(
                 "settings-field-quiet-hours-start",
@@ -1358,7 +1387,7 @@ internal fun SettingsContent(
         }
         dataPrivacyPasses.forEach { dataPrivacyPass ->
         if (dataPrivacyPass == DataPrivacyGroup.Backup) {
-        item {
+        anchored.item(key = "setting-backup-status") {
             WhipGroupedInformationCard(modifier = Modifier.testTag("backup-protection-summary")) {
                 WhipGroupHeading("Backup & Export")
                 Text(when {
@@ -1405,8 +1434,8 @@ internal fun SettingsContent(
                 }
             }
         }
-        item { SettingsHeading("Save or Restore a Backup") }
-        item {
+        anchored.item(key = "setting-backup") { SettingsHeading("Save or Restore a Backup") }
+        anchored.item {
             WhipActionList {
                 WhipActionRow(
                     title = "Save Plain JSON Backup",
@@ -1433,13 +1462,13 @@ internal fun SettingsContent(
                 )
             }
         }
-        item {
+        anchored.item(key = "setting-backup-folder") {
             DisclosureRow(title = "Portable Backup Folder",
                 supportingText = if (state.portableBackup.configured) "Automatic backups, retention, and folder access" else "Set up verified daily backups",
                 expanded = backupFolderExpanded, onClick = { if (activeTypedSettingTag == null) backupFolderExpanded = !backupFolderExpanded },
                 modifier = Modifier.testTag("backup-folder-disclosure"))
         }
-        if (backupFolderExpanded) item {
+        if (backupFolderExpanded) anchored.item {
             WhipGroupedInformationCard {
                     Text(
                         "Save verified plain-JSON backups to Files, Drive, or removable storage. Retention and cleanup act only on Whip's automatic-backup and incomplete-write filenames.",
@@ -1504,12 +1533,12 @@ internal fun SettingsContent(
                     }
             }
         }
-        item {
+        anchored.item(key = "setting-csv") {
             DisclosureRow(title = "Export CSV", supportingText = "Five spreadsheet exports · not restorable backups",
                 expanded = csvExportsExpanded, onClick = { csvExportsExpanded = !csvExportsExpanded },
                 modifier = Modifier.testTag("csv-export-disclosure"))
         }
-        if (csvExportsExpanded) item {
+        if (csvExportsExpanded) anchored.item {
             Text(
                 "Export individual tables for spreadsheets. Use a backup to restore Whip.",
                 style = MaterialTheme.typography.bodySmall,
@@ -1527,7 +1556,7 @@ internal fun SettingsContent(
         }
         }
         if (dataPrivacyPass == DataPrivacyGroup.Reset) {
-        item {
+        anchored.item(key = "setting-reset") {
             val destructiveActionDescription = stringResource(R.string.state_destructive_action)
             WhipDangerZone {
                 Text(
@@ -1554,7 +1583,7 @@ internal fun SettingsContent(
 
         }
         if (section == SettingsSection.AboutDiagnostics) {
-        item {
+        anchored.item(key = "setting-about") {
             WhipGroupedInformationCard {
                     Text("Whip", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Text(
@@ -1570,6 +1599,27 @@ internal fun SettingsContent(
         }
     }
     }
+
+    if (settingsSearchOpen) SettingsSearchDialog(
+        query = settingsSearchQuery,
+        onQueryChange = { settingsSearchQuery = it },
+        onDismiss = { settingsSearchOpen = false },
+        onSelect = { entry ->
+            if (canSearchSettings) {
+                when (entry.anchor) {
+                    "setting-custom-units" -> customUnitsExpanded = true
+                    "setting-capture" -> captureExamplesExpanded = true
+                    "setting-notifications" -> { deliveryDetailsExpanded = true; notificationTroubleshootingExpanded = true }
+                    "setting-backup-folder" -> backupFolderExpanded = true
+                    "setting-csv" -> csvExportsExpanded = true
+                }
+                selectSection(entry.section)
+                compactSectionOpen = true
+                pendingSettingsAnchor = entry.anchor
+                settingsSearchOpen = false
+            }
+        },
+    )
 
     state.backupPreview?.let { preview ->
         BackupRestorePreviewDialogs(

@@ -31,6 +31,8 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -70,6 +72,47 @@ import org.junit.Test
 class SettingsResponsiveUiTest {
     private val compose = createComposeRule()
     @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
+
+    @AndroidFontScale
+    @Test
+    fun settingsSearchRestoresQueryAndLandsOnExactControlsAndDisclosures() {
+        val app: WhipApplication = ApplicationProvider.getApplicationContext()
+        val viewModel = SettingsViewModel(app)
+        var section by mutableStateOf(SettingsSection.Appearance)
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                SettingsContent(SettingsUiState(settings = AppSettings(setupCompleted = true)), PaddingValues(), viewModel,
+                    selectedSection = section, onSectionChange = { section = it })
+            }
+        }
+        fun search(query: String) {
+            compose.onNodeWithContentDescription("Search Settings").performClick()
+            compose.onNodeWithTag("settings-search-query").performTextReplacement(query)
+        }
+        search("pounds")
+        androidx.test.espresso.Espresso.closeSoftKeyboard()
+        captureVisualCatalogSurface("deep.settings.search-units.native200")
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithTag("settings-search-query").assertTextContains("pounds")
+        compose.onNodeWithTag("settings-search-setting-gym-mass").performScrollTo().performClick()
+        compose.onNodeWithTag("setting-gym-mass").assertIsDisplayed()
+        captureVisualCatalogSurface("deep.settings.search-gym-unit.native200")
+        search("nothing-like-this")
+        compose.onNodeWithText("No matching settings.", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag("settings-search-query").performTextReplacement("late cutoff")
+        compose.onNodeWithTag("settings-search-setting-cutoff").performClick()
+        compose.onNodeWithTag("setting-cutoff").assertIsDisplayed()
+        compose.onNodeWithTag("settings-field-late-night-day-cutoff").performClick()
+        compose.onNodeWithTag("settings-search-open").assertIsNotEnabled()
+        compose.onNodeWithTag("settings-field-late-night-day-cutoff-cancel").performClick()
+        search("csv")
+        compose.onNodeWithTag("settings-search-setting-csv").performClick()
+        compose.onNodeWithTag("setting-csv").assertIsDisplayed()
+        compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Export Tasks CSV"))
+        compose.onNodeWithText("Export Tasks CSV").assertIsDisplayed()
+        captureVisualCatalogSurface("deep.settings.search-csv.native200")
+    }
 
     @AndroidFontScale
     @Test

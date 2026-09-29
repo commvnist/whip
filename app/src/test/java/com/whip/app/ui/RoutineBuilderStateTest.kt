@@ -30,6 +30,38 @@ import org.junit.Test
 
 class RoutineBuilderStateTest {
     @Test
+    fun librarySaveRetainsExactReceiptRejectsDuplicatesAndRecoversAfterReplacement() {
+        val owner = RoutineBuilderViewModel(SavedStateHandle())
+        owner.initialize("first", RoutineBuilderState(), 1)
+        var completeFirst: ((Long?) -> Unit)? = null
+        assertTrue(owner.saveLibraryItem("first:1", { RoutineLibrarySaveReceipt(it, dayKey = 7) }) { completeFirst = it })
+        assertFalse(owner.saveLibraryItem("first:2", { RoutineLibrarySaveReceipt(it) }) { error("duplicate started") })
+        owner.initialize("first", RoutineBuilderState(), 1)
+        completeFirst!!(77)
+        val first = owner.librarySave.value as com.whip.app.core.PersistenceRequestState.Finished
+        assertEquals(7L, (first.result as com.whip.app.core.WhipResult.Success).value.dayKey)
+        completeFirst!!(88)
+        assertEquals(first, owner.librarySave.value)
+        owner.consumeLibrarySave("other")
+        assertEquals(first, owner.librarySave.value)
+        owner.consumeLibrarySave("first:1")
+        assertTrue(owner.saveLibraryItem("first:3", { RoutineLibrarySaveReceipt(it) }) { it(null) })
+        assertTrue((owner.librarySave.value as com.whip.app.core.PersistenceRequestState.Finished).result is com.whip.app.core.WhipResult.Failure)
+        owner.consumeLibrarySave("first:3")
+        var stale: ((Long?) -> Unit)? = null
+        assertTrue(owner.saveLibraryItem("first:4", { RoutineLibrarySaveReceipt(it) }) { stale = it })
+        owner.initialize("replacement", RoutineBuilderState(), 2)
+        var current: ((Long?) -> Unit)? = null
+        assertTrue(owner.saveLibraryItem("replacement:1", { RoutineLibrarySaveReceipt(it, placementKey = 19) }) { current = it })
+        stale!!(90)
+        assertEquals("replacement:1", (owner.librarySave.value as com.whip.app.core.PersistenceRequestState.Running).requestId)
+        current!!(99)
+        val receipt = ((owner.librarySave.value as com.whip.app.core.PersistenceRequestState.Finished).result as com.whip.app.core.WhipResult.Success).value
+        assertEquals(99L, receipt.id)
+        assertEquals(19L, receipt.placementKey)
+    }
+
+    @Test
     fun collapsedPrescriptionsExposeOnlyApplicableMeasurementsAcrossEveryTrackingType() {
         val set = RoutineBuilderSetState(1, load = "40", repetitionsMin = "5", repetitionsMax = "8",
             distance = "0.4", durationSeconds = "90", restSeconds = "60", rpe = "7", tempo = "3010")

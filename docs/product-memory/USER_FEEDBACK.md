@@ -6,7 +6,7 @@
 - User need: A rigorous independent reassessment of the whole product and substantial implemented improvements, rather than relying on the previous review's keep decisions or presenting source inventories as depth.
 - Acceptance: Review complete real user jobs and their connected screens, authoring, execution, correction, history, organization and recovery. Challenge visual hierarchy, interaction cost, language, discoverability, accessibility, responsiveness and architecture. Ground proposals in current source and observed rendering; publish the plan before production changes and implement every accepted recommendation. Fresh evidence must show the changed journeys and material failure paths.
 - Constraints: Retain the earlier allowance of at most two additional Astra/high agents and exact focused sub-minute verification, no full/readiness/candidate batches. Do not use the owner phone for instrumentation or reset. This new goal does not resume historical paused scopes or imply another phone release.
-- Status: Investigating from clean pushed `04bc58e2`, private phone 0.3.83/code 89. [Deep product review](../quality/DEEP_PRODUCT_REVIEW_2026-09-29.md).
+- Status: Implemented and Verified from baseline `04bc58e2`: all 16 accepted groups in the [deep review](../quality/DEEP_PRODUCT_REVIEW_2026-09-29.md), IMP-20260929-002/003/004 / VER-20260929-002. Nine distinct JVM and 30 distinct native methods pass; fresh original visual review and honest failed-attempt ledger retained. Phone stays on 0.3.83/code 89; subjective appearance awaits owner use.
 
 ### FB-20260929-001 — Release the completed experience overhaul to the phone
 

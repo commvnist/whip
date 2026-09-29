@@ -40,6 +40,8 @@ Parent inspected final Home normal/200%, Task search/inspector/large subtask and
 
 The first normal workout-overview PNG is an external Google crash sheet; the next captures the underlying session before the dialog composed. Neither is accepted as a chooser original. The strict short200 chooser capture supplies the actual dialog view. Sparse baseline Home demonstrates hierarchy; the dense after fixture independently demonstrates truncation/refill. No historical sparse image is presented as a dense before/after measurement.
 
+The Exercise basics capture still shows its Change Entry Meaning confirmation. It supports that confirmation's visual review, not a settled basics-form screenshot. Category selection originals and strict saved unit/load/category assertions provide the remaining selected authoring evidence; no additional broad visual campaign is implied.
+
 ## Method
 
 Every routine check is individually bounded by `timeout --kill-after=3s 55s`. Native receipts name one exact method and include the emulator target guard, instrumentation result and elapsed wall time. `verification/run-native.sh` rejects a nonzero command or a missing `OK (1 test)`; Android's shell exit code alone is insufficient. No full/readiness/candidate batch is run.

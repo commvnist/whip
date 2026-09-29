@@ -141,9 +141,10 @@ class ReviewOutcomeJourneyE2ETest {
             if (section != ReviewSection.Gym) compose.onNodeWithTag("entity-inspector-close").performClick()
             compose.onNodeWithTag("return-to-review").performClick()
             compose.onNodeWithTag("review-outcome-list").assertIsDisplayed()
-            compose.onNodeWithText(title).performScrollTo().assertIsDisplayed()
+            val returnedOutcome = hasText(title) and hasAnyAncestor(hasTestTag("review-outcome-list"))
+            compose.onNode(returnedOutcome).performScrollTo().assertIsDisplayed()
             scenario.recreate()
-            compose.onNodeWithText(title).performScrollTo().assertIsDisplayed()
+            compose.onNode(returnedOutcome).performScrollTo().assertIsDisplayed()
             captureVisualCatalogSurface("deep.review.returned-${section.name.lowercase()}")
         }
     }

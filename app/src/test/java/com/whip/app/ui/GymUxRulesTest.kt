@@ -40,6 +40,107 @@ import org.junit.Test
 
 class GymUxRulesTest {
     @Test
+    fun progressStartsFromPerformedHistoryAndSettingsSearchNamesExactControls() {
+        val exercises = (1L..5L).map { testExercise(it, "Exercise $it", "", "") }
+        val finished = WorkoutSession(1, "session", "Training", "", Instant.EPOCH, Instant.EPOCH.plusSeconds(60),
+            LocalDate.of(2026, 9, 29), "UTC", WorkoutSessionState.Finished, false, null, null, false, 1, 2)
+        val later = finished.copy(id = 2, uuid = "later", startedAt = Instant.EPOCH.plusSeconds(100))
+        val firstPlacement = WorkoutExercise(1, "placement", 1, 3, 0, "", null, 1, 1)
+        val lastPlacement = firstPlacement.copy(id = 2, sessionId = 2, exerciseId = 4)
+        val placements = listOf(firstPlacement, lastPlacement)
+        val scopedPlacements = listOf(firstPlacement.copy(exerciseId = 4, machineProfileUuidSnapshot = "old"),
+            lastPlacement.copy(machineProfileUuidSnapshot = "recent"))
+        val performed = performanceSet(1).copy(workoutExerciseId = 1)
+        val latest = performed.copy(id = 2, workoutExerciseId = 2)
+        assertEquals("recent", mostRecentlyPerformedPlacement(setOf(4), listOf(finished, later), scopedPlacements, listOf(performed, latest))?.machineProfileUuidSnapshot)
+        assertEquals("old", mostRecentlyPerformedPlacement(setOf(4), listOf(finished, later), scopedPlacements, listOf(performed, latest.copy(completed = false)))?.machineProfileUuidSnapshot)
+        assertEquals(null, mostRecentlyPerformedPlacement(setOf(4), listOf(finished, later),
+            listOf(scopedPlacements.first(), lastPlacement), listOf(performed, latest))?.machineProfileUuidSnapshot)
+        assertEquals(4L, mostRecentlyPerformedExerciseId(exercises, listOf(finished, later), placements, listOf(performed, latest)))
+        assertEquals(3L, mostRecentlyPerformedExerciseId(exercises, listOf(finished, later), placements, listOf(performed, latest.copy(completed = false))))
+        assertEquals(3L, mostRecentlyPerformedExerciseId(exercises, listOf(finished, later.copy(state = WorkoutSessionState.Active)), placements, listOf(performed, latest)))
+        assertEquals(3L, mostRecentlyPerformedExerciseId(exercises, listOf(finished, later), placements, listOf(performed, latest.copy(deletedAtMillis = 5))))
+        assertEquals(1L, mostRecentlyPerformedExerciseId(exercises, emptyList(), placements, listOf(performed)))
+        val matureSessions = (1L..500L).map { id -> finished.copy(id = id, uuid = "session-$id",
+            startedAt = Instant.EPOCH.plusSeconds(id * 3600), localDate = finished.localDate.minusDays(500 - id)) }
+        val maturePlacements = matureSessions.map { firstPlacement.copy(id = it.id, uuid = "placement-${it.id}", sessionId = it.id) }
+        val matureSets = maturePlacements.flatMap { placement -> List(24) { position ->
+            performed.copy(id = placement.id * 24 + position, uuid = "set-${placement.id}-$position",
+                workoutExerciseId = placement.id, position = position)
+        } }
+        assertEquals(12_000, matureSets.size)
+        assertEquals(3L, mostRecentlyPerformedExerciseId(exercises, matureSessions, maturePlacements, matureSets))
+        val points = com.whip.app.domain.buildExerciseGraph(exercises[2], matureSessions, maturePlacements,
+            matureSets, com.whip.app.domain.GymGraphMetric.MaxWeight)
+        assertEquals(500, points.size)
+        assertEquals(500L, points.last().sourceSessionId)
+        val corrected = matureSets.map { if (it.workoutExerciseId == 500L) it.copy(canonicalWeightKg = 110.0) else it }
+        val changedPoints = com.whip.app.domain.buildExerciseGraph(exercises[2], matureSessions, maturePlacements,
+            corrected, com.whip.app.domain.GymGraphMetric.MaxWeight)
+        assertEquals(110.0, changedPoints.last().value, 0.0)
+        assertEquals(points.dropLast(1), changedPoints.dropLast(1))
+        assertEquals(SettingsSearchEntries.size, SettingsSearchEntries.map { it.anchor }.distinct().size)
+        assertEquals(listOf("setting-gym-mass"), searchSettings("gym pounds").map { it.anchor })
+        assertEquals(listOf("setting-cutoff"), searchSettings("late cutoff").map { it.anchor })
+        assertEquals(listOf("setting-csv"), searchSettings("export spreadsheet").map { it.anchor })
+        assertTrue(searchSettings("not-a-whip-setting").isEmpty())
+    }
+
+    @Test
+    fun explicitWorkoutSetChoiceRetainsOptionalGatesAndReturnsToQueue() {
+        val exercise = testExercise(1, "Squat", "", "")
+        val placement = WorkoutExercise(1, "placement", 1, 1, 0, "", null, 1, 1)
+        val queued = performanceSet(1).copy(id = 1, completed = false)
+        val chosen = queued.copy(id = 2, position = 1)
+        val joker = queued.copy(id = 3, position = 2, optionalWorkKindSnapshot = RoutineOptionalWorkKind.Joker,
+            workSectionSnapshot = RoutineWorkSection.Optional)
+        val item = WorkoutExerciseUi(placement, exercise, listOf(queued, chosen, joker), emptyList(), 0, null, null)
+        assertEquals(2L, selectedWorkoutExecutionSet(listOf(item), 2, emptySet())?.second?.id)
+        assertNull(selectedWorkoutExecutionSet(listOf(item), 3, emptySet()))
+        assertEquals(3L, selectedWorkoutExecutionSet(listOf(item), 3, setOf(3))?.second?.id)
+        val completed = item.copy(sets = listOf(queued, chosen.copy(completed = true), joker))
+        assertNull(selectedWorkoutExecutionSet(listOf(completed), 2, emptySet()))
+        assertEquals(1L, selectNextWorkoutSet(listOf(completed))?.second?.id)
+        assertNull(selectedWorkoutExecutionSet(listOf(item.copy(workoutExercise = placement.copy(
+            outcome = WorkoutExerciseOutcome.Removed))), 2, emptySet()))
+        assertNull(selectedWorkoutExecutionSet(listOf(item.copy(sets = listOf(chosen.copy(deletedAtMillis = 4)))), 2, emptySet()))
+    }
+
+    @Test
+    fun previousSetSuggestionsPreserveUnitsMeaningAndPerformedEvidence() {
+        val source = WorkoutExercise(1, "source", 1, 1, 0, "", null, 1, 1,
+            loadInterpretationSnapshot = LoadInterpretation.PerHand, exerciseWeightUnitSnapshot = "pound")
+        val receiving = source.copy(id = 2, uuid = "current", sessionId = 2, exerciseWeightUnitSnapshot = "kilogram")
+        val previous = performanceSet(1).copy(enteredWeight = 100.0, enteredWeightUnitId = "pound",
+            canonicalWeightKg = 90.718474, enteredDistance = 1.0, enteredDistanceUnitId = "mile",
+            canonicalDistanceMetres = 1609.344)
+        assertTrue(compatibleQuickSetHistory(receiving, source))
+        val converted = requireNotNull(convertedQuickSetSuggestion(previous, source, "kilogram", "kilometre"))
+        assertEquals(45.359237, requireNotNull(converted.enteredWeight), 0.000001)
+        assertEquals(1.609344, requireNotNull(converted.enteredDistance), 0.000001)
+        assertEquals("kilogram", converted.enteredWeightUnitId)
+        assertEquals("kilometre", converted.enteredDistanceUnitId)
+        assertFalse(compatibleQuickSetHistory(receiving.copy(loadInterpretationSnapshot = LoadInterpretation.Total), source))
+        assertFalse(compatibleQuickSetHistory(receiving.copy(trackingTypeSnapshot = ExerciseTrackingType.RepsOnly), source))
+        assertFalse(compatibleQuickSetHistory(receiving.copy(machineProfileUuidSnapshot = "other"), source))
+        val legacy = requireNotNull(convertedQuickSetSuggestion(previous.copy(enteredWeight = null), source, "kilogram", "kilometre"))
+        assertEquals(45.359237, requireNotNull(legacy.enteredWeight), 0.000001)
+        val ordinal = source.copy(machineLoadTypeSnapshot = MachineLoadType.Level,
+            loadInterpretationSnapshot = LoadInterpretation.OrdinalSetting)
+        val level = requireNotNull(convertedQuickSetSuggestion(previous.copy(machineLoadValue = 7.0), ordinal, "kilogram", "kilometre"))
+        assertNull(level.enteredWeight)
+        assertEquals(7.0, requireNotNull(level.machineLoadValue), 0.0)
+        assertNull(convertedQuickSetSuggestion(previous.copy(completed = false), source, "kilogram", "kilometre"))
+        assertNull(convertedQuickSetSuggestion(previous.copy(deletedAtMillis = 9), source, "kilogram", "kilometre"))
+        val history = (1L..20L).map { previous.copy(id = it, completedAtMillis = it) } +
+            previous.copy(id = 21, completed = false, completedAtMillis = 21)
+        val summary = summarizePreviousSets(history, source.id)
+        assertEquals(20, summary.totalCount)
+        assertEquals(12, summary.sets.size)
+        assertEquals(20L, summary.latestPerformedSet?.id)
+    }
+
+    @Test
     fun workoutLaunchChoicesAndRoutineSearchKeepAuthoredScope() {
         fun routine(id: Long, pinned: Boolean = false) = com.whip.app.domain.GymRoutine(id, "r$id", "Plan $id", "steady", id.toInt(), false, pinned, 1, 1)
         val first = routine(1)

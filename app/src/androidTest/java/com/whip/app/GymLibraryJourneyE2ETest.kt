@@ -21,6 +21,114 @@ class GymLibraryJourneyE2ETest {
     private val app: WhipApplication get() = ApplicationProvider.getApplicationContext()
     @After fun clean() = runBlocking { app.backupRepository.deleteAllData() }
 
+    @Test fun workoutOverviewPreservesChosenDraftAndOwnedDetailsCorrection() {
+        val (sessionId, placements) = runBlocking { prepare(); seedDeepSession() }
+        val target = runBlocking { app.gymRepository.sets.first() }.first { it.workoutExerciseId == placements[4] }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            compose.onNodeWithContentDescription("Gym tab").performClick()
+            fun choose(index: Int) {
+                closeSoftKeyboard()
+                compose.onNodeWithTag("workout-overview-open").performClick()
+                compose.onNodeWithTag("workout-overview-list").performScrollToNode(hasTestTag("workout-overview-exercise-${placements[index]}"))
+                compose.onNodeWithTag("workout-overview-exercise-${placements[index]}").performClick()
+            }
+            compose.onNodeWithTag("workout-overview-open").performClick()
+            compose.onNodeWithTag("workout-overview").assertIsDisplayed()
+            captureVisualCatalogSurface("deep.gym.session-overview")
+            compose.onNodeWithText("Follow Workout Order").performClick()
+            choose(4)
+            compose.onNodeWithTag("quick-set-load-${target.id}").performScrollTo().performTextReplacement("73")
+            choose(1)
+            choose(4)
+            compose.onNodeWithTag("quick-set-load-${target.id}").performScrollTo().assertTextContains("73")
+            scenario.recreate()
+            compose.onNodeWithTag("quick-set-load-${target.id}").performScrollTo().assertTextContains("73")
+            compose.onNodeWithText("Set Details").performScrollTo().performClick()
+            compose.onNodeWithTag("workout-set-editor-load").assertTextContains("73")
+            compose.onNodeWithContentDescription("Cancel set editing").performClick()
+            compose.onNodeWithTag("quick-set-load-${target.id}").performScrollTo().assertTextContains("73")
+            compose.onNodeWithText("Set Details").performScrollTo().performClick()
+            compose.onNodeWithTag("workout-set-editor-load").performTextReplacement("75")
+            compose.onNodeWithTag("workout-set-editor-reps").performScrollTo().performTextReplacement("7")
+            closeSoftKeyboard()
+            compose.onNodeWithText("Save").performClick()
+            compose.waitUntil(5_000) { runBlocking { app.gymRepository.sets.first() }.single { it.id == target.id }.enteredWeight == 75.0 }
+            compose.onNodeWithTag("quick-set-load-${target.id}").performScrollTo().assertTextContains("75")
+            compose.onNodeWithTag("quick-set-save-next-${target.id}").performScrollTo().performClick()
+            compose.waitUntil(5_000) { runBlocking { app.gymRepository.sets.first() }.single { it.id == target.id }.completed }
+            val stored = runBlocking { app.gymRepository.sets.first() }.single { it.id == target.id }
+            assertEquals(75.0, stored.enteredWeight!!, 0.0)
+            assertEquals(7, stored.repetitions)
+            val queued = runBlocking { app.gymRepository.sets.first() }.first { it.workoutExerciseId == placements[1] }
+            compose.onNodeWithTag("quick-set-${queued.id}").performScrollTo().assertIsDisplayed()
+            assertNotNull(runBlocking { app.gymRepository.sessions.first() }.single { it.id == sessionId }.restTimerDeadlineMillis)
+            captureVisualCatalogSurface("deep.gym.session-returned-to-order")
+        }
+    }
+
+    @Test fun repeatedSetsAndCompletedCorrectionKeepWorkoutContext() {
+        val (sessionId, placements) = runBlocking { prepare(); seedDeepSession() }
+        val initialSets = runBlocking { app.gymRepository.sets.first() }
+        val queued = initialSets.filter { it.workoutExerciseId == placements[1] }.sortedBy { it.position }
+        val completed = initialSets.first { it.workoutExerciseId == placements[0] }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use {
+            compose.onNodeWithContentDescription("Gym tab").performClick()
+            queued.take(2).forEach { set ->
+                compose.onNodeWithTag("quick-set-save-next-${set.id}").performScrollTo().performClick()
+                compose.waitUntil(5_000) { runBlocking { app.gymRepository.sets.first() }.single { it.id == set.id }.completed }
+            }
+            closeSoftKeyboard()
+            val beforeSwitch = runBlocking { app.gymRepository.sessions.first() }.single { it.id == sessionId }.restTimerDeadlineMillis
+            compose.onNodeWithTag("workout-overview-open").performClick()
+            compose.onNodeWithTag("workout-overview-exercise-${placements[0]}").performClick()
+            assertEquals(beforeSwitch, runBlocking { app.gymRepository.sessions.first() }.single { it.id == sessionId }.restTimerDeadlineMillis)
+            compose.onNodeWithTag("active-workout-list").performScrollToNode(hasText("4 Completed Sets"))
+            compose.onAllNodesWithTag("workout-set-card-${completed.id}").assertCountEquals(0)
+            compose.onNodeWithText("4 Completed Sets").performClick()
+            compose.onNodeWithTag("workout-set-card-${completed.id}").performScrollTo().performClick()
+            compose.onNodeWithTag("workout-set-editor-reps").performScrollTo().performTextReplacement("9")
+            closeSoftKeyboard()
+            compose.onNodeWithText("Save").performClick()
+            compose.waitUntil(5_000) { runBlocking { app.gymRepository.sets.first() }.single { it.id == completed.id }.repetitions == 9 }
+            compose.onNodeWithTag("workout-set-card-${completed.id}").performScrollTo().assertIsDisplayed()
+            assertEquals(WorkoutSessionState.Active, runBlocking { app.gymRepository.sessions.first() }.single { it.id == sessionId }.state)
+            captureVisualCatalogSurface("deep.gym.completed-correction-context")
+        }
+    }
+
+    @Test fun overviewFinishReviewsRemainingWorkAndOpensExactHistory() {
+        val (sessionId, placements) = runBlocking { prepare(); seedDeepSession() }
+        runBlocking { app.gymRepository.startRestTimer(sessionId, 120) }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use {
+            compose.onNodeWithContentDescription("Gym tab").performClick()
+            compose.onNodeWithTag("workout-overview-open").performClick()
+            compose.onNodeWithTag("workout-overview-finish").performClick()
+            compose.onNodeWithTag("finish-workout-confirmation").assertIsDisplayed()
+            captureVisualCatalogSurface("deep.gym.finish-review")
+            compose.onNodeWithTag("finish-workout-confirm").performClick()
+            compose.waitUntil(5_000) { runBlocking { app.gymRepository.sessions.first() }.single { it.id == sessionId }.state == WorkoutSessionState.Finished }
+            compose.onNodeWithTag("history-workout-card-$sessionId").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithTag("history-workout-exercises-$sessionId").assertExists()
+            val finished = runBlocking { app.gymRepository.sessions.first() }.single { it.id == sessionId }
+            assertNull(finished.restTimerDeadlineMillis)
+            assertEquals(24, runBlocking { app.gymRepository.sets.first() }.count { it.workoutExerciseId in placements })
+            captureVisualCatalogSurface("deep.gym.finished-exact-history")
+        }
+    }
+
+    private suspend fun seedDeepSession(): Pair<Long, List<Long>> {
+        val repo = app.gymRepository
+        val session = repo.startWorkout("Six station training")
+        val placements = (1..6).map { index ->
+            val exercise = repo.createExercise(ExerciseDraft("Station $index", defaultRestSeconds = 120))
+            val placement = repo.addExerciseToWorkout(session, exercise)
+            repeat(4) { repo.addSet(placement, WorkoutSetDraft(weight = 50.0, reps = 5, completed = index == 1)) }
+            placement
+        }
+        repo.createGroup(session, "Accessory pair", WorkoutGroupType.Superset, placements.takeLast(2))
+        return session to placements
+    }
+
     @Test fun routineSearchRestoresScopeAndLaunchesTheExplicitDay() {
         val routineId = runBlocking {
             prepare()

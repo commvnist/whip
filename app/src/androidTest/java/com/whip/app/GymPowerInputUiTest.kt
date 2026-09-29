@@ -2,6 +2,7 @@ package com.whip.app
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsEnabled
@@ -28,6 +29,10 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
@@ -46,6 +51,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.domain.BodyweightLoadPolicy
+import com.whip.app.domain.MachineLoadType
 import com.whip.app.domain.EstimatedOneRepMaxFormula
 import com.whip.app.domain.Exercise
 import com.whip.app.domain.ExerciseDraft
@@ -128,6 +134,206 @@ import java.time.Instant
 class GymPowerInputUiTest {
     private val compose = createComposeRule()
     @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
+
+    @AndroidFontScale
+    @Test
+    fun workoutOverviewKeepsLongExerciseNamesAndFinishReachableAtLargeText() {
+        val items = (1L..6L).map { id ->
+            val exercise = testExercise().copy(id = id, name = "Station $id · Long dumbbell exercise name")
+            val placement = testWorkoutExercise(exercise).copy(id = id)
+            WorkoutExerciseUi(placement, exercise, List(4) { index ->
+                testWorkoutSet(id * 10 + index, id).copy(position = index, completed = id == 1L)
+            }, emptyList(), 0, null, null)
+        }
+        var chosen: Long? = null
+        var finished = false
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                com.whip.app.ui.WorkoutOverviewDialog(items, emptySet(), 20L, false,
+                    onChoose = { _, setId -> chosen = setId }, onFollowOrder = {}, onFinish = { finished = true }, onDismiss = {})
+            }
+        }
+        compose.onNodeWithTag("workout-overview-finish").assertIsDisplayed()
+        captureVisualCatalogSurface("deep.gym.session-overview.native200")
+        compose.onNodeWithTag("workout-overview-list").performScrollToNode(hasTestTag("workout-overview-exercise-6"))
+        compose.onNodeWithTag("workout-overview-exercise-6").performClick()
+        compose.runOnIdle { assertEquals(60L, chosen) }
+        compose.onNodeWithTag("workout-overview-finish").performClick()
+        compose.runOnIdle { assertTrue(finished) }
+    }
+
+    @Test
+    fun durationExerciseBasicsOmitLoadAndCancelKeepsAuthoredValuesUnsaved() {
+        var dismissed = false
+        var saved = false
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                ExerciseEditorDialog(exercise = testExercise().copy(trackingType = ExerciseTrackingType.DurationOnly),
+                    categories = emptyList(), selectedCategoryIds = emptySet(), defaultWeightUnit = "kilogram",
+                    defaultRestSeconds = 120, defaultFormula = EstimatedOneRepMaxFormula.Epley, platePresets = emptyList(),
+                    onDismiss = { dismissed = true }, onSave = { saved = true })
+            }
+        }
+        compose.onAllNodesWithText("What one weight entry means").assertCountEquals(0)
+        compose.onNodeWithTag("exercise-editor-name").performTextReplacement("Timed hold")
+        androidx.test.espresso.Espresso.closeSoftKeyboard()
+        compose.onNodeWithContentDescription("Cancel exercise editing").performClick()
+        compose.onNodeWithText("Keep Editing").performClick()
+        compose.onNodeWithTag("exercise-editor-name").assertTextContains("Timed hold")
+        compose.onNodeWithContentDescription("Cancel exercise editing").performClick()
+        compose.onNodeWithText("Discard Changes").performClick()
+        compose.runOnIdle { assertTrue(dismissed); assertFalse(saved) }
+    }
+
+    @Test
+    fun progressChoosesPerformedExerciseAndRefreshesExactSourceAfterDataChange() {
+        val unused = testExercise().copy(id = 1, name = "Never performed")
+        val performed = testExercise().copy(id = 2, name = "Recent squat", defaultGraphMetric = GymGraphMetric.MaxWeight.name)
+        val session = testHistorySession().copy(localDate = LocalDate.now())
+        val placement = testWorkoutExercise(performed).copy(sessionId = session.id,
+            machineProfileUuidSnapshot = "recent-machine", machineNameSnapshot = "Recent rack",
+            machineLoadTypeSnapshot = MachineLoadType.Mass, machineUnitIdSnapshot = "kilogram")
+        val oldSession = session.copy(id = 49, uuid = "older-session", startedAt = session.startedAt.minusSeconds(86_400), localDate = session.localDate.minusDays(150))
+        val oldPlacement = placement.copy(id = 99, sessionId = oldSession.id, machineProfileUuidSnapshot = "old-machine", machineNameSnapshot = "Old rack")
+        val set = testWorkoutSet(700, placement.id).copy(completed = true, enteredWeight = 50.0, canonicalWeightKg = 50.0)
+        val oldSet = set.copy(id = 701, workoutExerciseId = oldPlacement.id)
+        var state by mutableStateOf(GymUiState(loading = false, exercises = listOf(unused, performed),
+            history = listOf(oldSession, session), allSessions = listOf(oldSession, session), allWorkoutExercises = listOf(oldPlacement, placement), allSets = listOf(oldSet, set)))
+        var opened by mutableStateOf<Long?>(null)
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                if (opened == null) GymProgressContent(state, {}, {}, { opened = it }, {})
+                else WorkoutHistoryContent(history = state.history, state = state, onCopy = {}, onResume = {},
+                    onEditDetails = {}, onOpenActiveWorkout = {}, onSaveAsRoutine = { _, _ -> }, onCopyExercise = {},
+                    onShare = {}, onRestore = {}, onDelete = {}, focusedWorkoutId = opened)
+            }
+        }
+        val list = compose.onNodeWithTag("gym-progress-list")
+        list.performScrollToNode(hasTestTag("gym-progress-exercise-selector"))
+        compose.onNode(hasText("Recent squat") and hasAnyAncestor(hasTestTag("gym-progress-exercise-selector")), useUnmergedTree = true).assertIsDisplayed()
+        list.performScrollToNode(hasText("Data Points"))
+        compose.onNodeWithText("Data Points").performClick()
+        list.performScrollToNode(hasText("50 kg"))
+        compose.onNodeWithText("50 kg").assertIsDisplayed()
+        compose.runOnIdle { state = state.copy(nowMillis = state.nowMillis + 1000) }
+        compose.onNodeWithText("50 kg").assertIsDisplayed()
+        compose.runOnIdle { state = state.copy(allSets = listOf(oldSet, set.copy(enteredWeight = 60.0, canonicalWeightKg = 60.0))) }
+        compose.onNodeWithText("60 kg").assertIsDisplayed()
+        captureVisualCatalogSurface("deep.gym.progress-performed-default")
+        compose.onNodeWithText("60 kg").performClick()
+        compose.onNodeWithTag("gym-chart-point-open-workout").performClick()
+        compose.runOnIdle { assertEquals(session.id, opened) }
+        compose.onNodeWithTag("history-set-performed-700", useUnmergedTree = true).performScrollTo().assertTextEquals("60 kg × 5 reps")
+        captureVisualCatalogSurface("deep.gym.progress-exact-history")
+    }
+
+    @AndroidFontScale
+    @Test
+    fun previousWeightUsesConvertedEntryAndEffortPrecedesCompletion() {
+        val exercise = testExercise().copy(loadInterpretation = LoadInterpretation.PerHand)
+        val placement = testWorkoutExercise(exercise).copy(loadInterpretationSnapshot = LoadInterpretation.PerHand)
+        val source = placement.copy(exerciseWeightUnitSnapshot = "pound")
+        val set = testWorkoutSet(4, placement.id).copy(enteredWeight = null, canonicalWeightKg = null,
+            enteredWeightUnitId = "kilogram", repetitions = null)
+        val previous = set.copy(id = 3, completed = true, enteredWeight = 100.0, enteredWeightUnitId = "pound",
+            canonicalWeightKg = 90.718474, repetitions = 8, rpe = 8.0)
+        var saved: WorkoutSetDraft? = null
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    QuickSetEntry(set = set, exercise = exercise, workoutExercise = placement, machine = null,
+                        preferredWeightUnitId = "kilogram", preferredDistanceUnitId = "kilometre", showRpe = true, showRir = false,
+                        suggestedSet = previous, suggestedWorkoutExercise = source, onMoreDetails = {},
+                        onSave = { _, draft, _ -> saved = draft })
+                }
+            }
+        }
+        compose.onNodeWithTag("quick-set-use-last-4").performClick()
+        compose.onNodeWithTag("quick-set-load-4").performScrollTo().assertTextContains("45.359237")
+        compose.onNode(hasText("RPE (1–10)") and hasSetTextAction()).performScrollTo().performTextReplacement("8")
+        androidx.test.espresso.Espresso.closeSoftKeyboard()
+        val effortTop = compose.onNodeWithText("RPE (1–10)").getUnclippedBoundsInRoot().top
+        val completeTop = compose.onNodeWithTag("quick-set-save-next-4").getUnclippedBoundsInRoot().top
+        assertTrue(effortTop < completeTop)
+        compose.onNodeWithTag("quick-set-save-next-4").performScrollTo()
+        captureVisualCatalogSurface("deep.gym.quick-entry-effort.native200")
+        compose.onNodeWithTag("quick-set-save-next-4").performClick()
+        compose.runOnIdle {
+            assertEquals(45.359237, requireNotNull(saved?.weight), 0.000001)
+            assertEquals("kilogram", saved?.weightUnitId)
+            assertEquals(8.0, saved?.rpe)
+        }
+    }
+
+    @Test
+    fun quickDistanceKeepsSavedUnitWhenPreferenceChanges() {
+        val exercise = testExercise().copy(trackingType = ExerciseTrackingType.DistanceDuration)
+        val placement = testWorkoutExercise(exercise).copy(trackingTypeSnapshot = ExerciseTrackingType.DistanceDuration)
+        val set = testWorkoutSet(4, placement.id).copy(enteredWeight = null, canonicalWeightKg = null,
+            repetitions = null, enteredDistance = null, canonicalDistanceMetres = null, enteredDistanceUnitId = "mile", durationSeconds = 600)
+        val previous = set.copy(id = 3, completed = true, enteredDistance = 1.609344,
+            enteredDistanceUnitId = "kilometre", canonicalDistanceMetres = 1609.344)
+        var preferred by mutableStateOf("kilometre")
+        var saved: WorkoutSetDraft? = null
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    QuickSetEntry(set = set, exercise = exercise, workoutExercise = placement, machine = null,
+                        preferredWeightUnitId = "kilogram", preferredDistanceUnitId = preferred, showRpe = false, showRir = false,
+                        suggestedSet = previous, onMoreDetails = {}, onSave = { _, draft, _ -> saved = draft })
+                }
+            }
+        }
+        compose.onNodeWithTag("quick-set-use-last-4").performClick()
+        compose.onNode(hasText("Distance (mi)") and hasSetTextAction()).assertTextContains("1")
+        compose.runOnIdle { preferred = "distance_m" }
+        compose.onNode(hasText("Distance (mi)") and hasSetTextAction()).assertTextContains("1")
+        compose.onNodeWithTag("quick-set-save-next-4").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals("mile", saved?.distanceUnitId); assertEquals(1.0, saved?.distance) }
+    }
+
+    @AndroidFontScale
+    @Test
+    fun exerciseBasicsPrecedeSearchableCategoriesAndRestoreSelection() {
+        val categories = (1L..30L).map { id ->
+            com.whip.app.domain.ExerciseCategory(id, "category-$id", "Category $id", "Custom", id.toInt(), false, 1, 1)
+        }
+        var saved: ExerciseDraft? = null
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                ExerciseEditorDialog(
+                    exercise = null, initialName = "Dumbbell press", categories = categories,
+                    selectedCategoryIds = emptySet(), defaultWeightUnit = "pound", defaultRestSeconds = 120,
+                    defaultFormula = EstimatedOneRepMaxFormula.Epley, platePresets = emptyList(),
+                    onDismiss = {}, onSave = { saved = it },
+                )
+            }
+        }
+        val list = compose.onNodeWithTag("exercise-editor-list")
+        list.performScrollToNode(hasText("What one weight entry means"))
+        compose.onNodeWithContentDescription("What one weight entry means: Total Load").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("What one weight entry means option: Per Hand").performClick()
+        compose.onNodeWithText("Keep Entered Numbers").performClick()
+        captureVisualCatalogSurface("deep.gym.exercise-basics.native200")
+        list.performScrollToNode(hasTestTag("exercise-category-picker-open"))
+        compose.onNodeWithTag("exercise-category-picker-open").performClick()
+        compose.onNodeWithTag("exercise-category-search").performTextReplacement("Category 29")
+        compose.onNodeWithTag("exercise-category-choice-29").performClick()
+        compose.onNodeWithTag("exercise-category-search").performTextReplacement("Category 3")
+        compose.onNodeWithTag("exercise-category-choice-3").performClick()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithTag("exercise-category-search").assertTextContains("Category 3")
+        compose.onNodeWithText("2 selected · Browsing and analytics labels; routine roles are chosen separately.").assertIsDisplayed()
+        captureVisualCatalogSurface("deep.gym.exercise-categories.native200")
+        compose.onNodeWithText("Done").performClick()
+        compose.onNodeWithText("Save").performClick()
+        compose.runOnIdle {
+            assertEquals("pound", saved?.weightUnitId)
+            assertEquals(LoadInterpretation.PerHand, saved?.loadInterpretation)
+            assertEquals(setOf(3L, 29L), saved?.categoryIds)
+        }
+    }
 
     @AndroidFontScale
     @Test

@@ -2,6 +2,10 @@ package com.whip.app.ui
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import com.whip.app.core.PersistenceRequestState
+import com.whip.app.core.WhipResult
+import com.whip.app.core.tryStartPersistenceRequest
+import com.whip.app.domain.GymMachineDraft
 import java.io.Serializable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -112,12 +116,45 @@ internal class RoutineBuilderViewModel(
         savedStateHandle.get<RoutineBuilderState>(STATE_KEY) ?: RoutineBuilderState(),
     )
     val state = mutableState.asStateFlow()
+    private val mutableLibrarySave = MutableStateFlow<PersistenceRequestState<RoutineLibrarySaveReceipt>>(PersistenceRequestState.Idle)
+    val librarySave = mutableLibrarySave.asStateFlow()
+
+    /** The retained owner receives late callbacks; a recreated dialog only consumes its own request. */
+    fun saveLibraryItem(
+        requestId: String,
+        receipt: (Long) -> RoutineLibrarySaveReceipt,
+        save: ((Long?) -> Unit) -> Unit,
+    ): Boolean {
+        if (!mutableLibrarySave.tryStartPersistenceRequest(requestId)) return false
+        val token = state.value.token
+        fun finish(id: Long?) {
+            if (state.value.token != token ||
+                (mutableLibrarySave.value as? PersistenceRequestState.Running)?.requestId != requestId) return
+            mutableLibrarySave.value = PersistenceRequestState.Finished(requestId,
+                if (id != null) WhipResult.Success(receipt(id))
+                else WhipResult.Failure("The Library item could not be saved. Your changes are still here; try again."))
+        }
+        try { save(::finish) }
+        catch (cancelled: kotlinx.coroutines.CancellationException) {
+            if ((mutableLibrarySave.value as? PersistenceRequestState.Running)?.requestId == requestId) mutableLibrarySave.value = PersistenceRequestState.Idle
+            throw cancelled
+        }
+        catch (_: Exception) { finish(null) }
+        return true
+    }
+
+    fun consumeLibrarySave(requestId: String) {
+        if ((mutableLibrarySave.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
+            mutableLibrarySave.value = PersistenceRequestState.Idle
+        }
+    }
 
     fun initialize(token: String, initial: RoutineBuilderState, dataGeneration: Long = 0L) {
         if (
             mutableState.value.token == token &&
             mutableState.value.dataGeneration == dataGeneration
         ) return
+        mutableLibrarySave.value = PersistenceRequestState.Idle
         set(initial.copy(token = token, dataGeneration = dataGeneration))
     }
 
@@ -136,6 +173,7 @@ internal class RoutineBuilderViewModel(
     }
 
     fun clear() {
+        mutableLibrarySave.value = PersistenceRequestState.Idle
         savedStateHandle.remove<RoutineBuilderState>(STATE_KEY)
         mutableState.value = RoutineBuilderState()
     }
@@ -149,3 +187,12 @@ internal class RoutineBuilderViewModel(
         const val STATE_KEY = "routine-builder-state"
     }
 }
+
+internal data class RoutineLibrarySaveReceipt(
+    val id: Long,
+    val exerciseName: String = "",
+    val dayKey: Long? = null,
+    val forMachineProfile: Boolean = false,
+    val placementKey: Long? = null,
+    val machineDraft: GymMachineDraft? = null,
+)

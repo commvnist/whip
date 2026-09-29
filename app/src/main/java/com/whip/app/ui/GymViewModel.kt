@@ -102,6 +102,8 @@ data class WorkoutExerciseUi(
     val previousSetCount: Int,
     val group: WorkoutGroup?,
     val machine: GymMachine?,
+    val previousWorkoutExercise: WorkoutExercise? = null,
+    val previousSuggestedSet: WorkoutSet? = null,
 )
 
 private const val PREVIOUS_SET_SUMMARY_LIMIT = 12
@@ -184,6 +186,7 @@ internal fun decodeHistoryCopyAuthorship(encoded: List<String>?): HistoryCopyAut
 internal data class PreviousSetSummary(
     val sets: List<WorkoutSet>,
     val totalCount: Int,
+    val latestPerformedSet: WorkoutSet? = null,
 )
 
 internal fun summarizePreviousSets(
@@ -194,13 +197,16 @@ internal fun summarizePreviousSets(
     require(limit > 0)
     val visible = ArrayList<WorkoutSet>(limit)
     var total = 0
+    var latest: WorkoutSet? = null
     allSets.forEach { set ->
-        if (set.workoutExerciseId == workoutExerciseId && set.deletedAtMillis == null) {
+        if (set.workoutExerciseId == workoutExerciseId && set.completed && set.deletedAtMillis == null) {
             total += 1
             if (visible.size < limit) visible += set
+            if (latest == null || (set.completedAtMillis ?: set.updatedAtMillis) >
+                (latest.completedAtMillis ?: latest.updatedAtMillis)) latest = set
         }
     }
-    return PreviousSetSummary(visible, total)
+    return PreviousSetSummary(visible, total, latest)
 }
 
 internal fun personalRecordReconciliationExerciseIds(
@@ -2644,6 +2650,7 @@ private data class RoutineBaseData(
 
 private fun buildGymUiState(data: GymData, routineData: RoutineBaseData, nowMillis: Long, appSettings: AppSettings): GymUiState {
     val exercisesById = data.exercises.associateBy(Exercise::id)
+    val performedPlacementIds = data.sets.asSequence().filter { it.completed && it.deletedAtMillis == null }.mapTo(mutableSetOf(), WorkoutSet::workoutExerciseId)
     val active = data.sessions.firstOrNull { it.state == WorkoutSessionState.Active }
     val activeSessionWorkoutExercises = active?.let { session ->
         data.workoutExercises
@@ -2654,8 +2661,8 @@ private fun buildGymUiState(data: GymData, routineData: RoutineBaseData, nowMill
                 val previousWorkoutExercise = data.workoutExercises
                     .asSequence()
                     .filter {
-                        it.exerciseId == exercise.id && it.equipmentScopeKey == workoutExercise.equipmentScopeKey &&
-                            it.sessionId != session.id
+                        compatibleQuickSetHistory(workoutExercise, it) &&
+                            it.id in performedPlacementIds && it.sessionId != session.id
                     }
                     .mapNotNull { candidate ->
                         val candidateSession = data.sessions.firstOrNull { it.id == candidate.sessionId }
@@ -2673,6 +2680,8 @@ private fun buildGymUiState(data: GymData, routineData: RoutineBaseData, nowMill
                     sets = data.sets.filter { it.workoutExerciseId == workoutExercise.id },
                     previousSets = previousSummary.sets,
                     previousSetCount = previousSummary.totalCount,
+                    previousWorkoutExercise = previousWorkoutExercise,
+                    previousSuggestedSet = previousSummary.latestPerformedSet,
                     group = workoutExercise.groupId?.let { groupId ->
                         data.groups.firstOrNull { it.id == groupId }
                     },
