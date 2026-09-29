@@ -1,5 +1,17 @@
 # Durable findings
 
+### FND-20260928-013 — Gym and backup entry screens obscure the next useful action
+
+- Current-source observation: Workout without an active session primarily states absence even for users with routines/history; Routine library offers no search; Data & Privacy puts detailed folder administration ahead of core backup/restore and exposes all CSV actions together.
+- User impact/remedy: EGS1–3 in the [experience plan](../quality/EXPERIENCE_OVERHAUL_2026-09-28.md) provide an actionable returning-user launchpad, searchable routines, and a protection-first backup hierarchy through existing safe commands.
+- Related/status: FB-20260928-007. Confirmed; implementation accepted before edits. Existing persistence/retired product boundaries remain authoritative; fresh rendering and exact checks follow.
+
+### FND-20260928-012 — Productivity discovery and inspectors interrupt the intended workflow
+
+- Current-source observation: Goal milestone and Habit checklist inspectors describe work without offering their existing execution controls; reached finite Goals bury completion in Options. Habit/Goal History requires repeated pagination to locate old evidence. Track authoring exposes its schema without starter guidance or an entry preview.
+- User impact/remedy: EP1–5 in the [experience plan](../quality/EXPERIENCE_OVERHAUL_2026-09-28.md) keep execution in context, make completion discoverable without automating it, make history directly searchable with bounded composition, and help users build a useful Track before saving.
+- Related/status: FB-20260928-007. Confirmed; implementation accepted before edits. Preserve exact mutation boundaries, original history, explicit parent completion and real entry-field semantics.
+
 ### FND-20260928-010 — Current productivity projections and edits can change authored meaning
 
 - Source findings: Compatible Habit unit changes do not convert target/quick-action/end values; recurring Task projections omit overdue-deadline state; Duplicate can exceed valid name limits; secondary Habit dialogs drop dirty drafts; Goal Latest orders recording time ahead of effective date; Review mishandles out-of-window trends and weighted milestones; flexible Habit completion rate omits the first partial period. Follow-through confirms a one-year lookup truncates earned Habit streaks and binary summation can reject an ordinary Exactly 0.3 target after 0.1 + 0.2 entries; the accepted plan includes both domain-owner repairs.

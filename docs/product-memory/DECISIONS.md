@@ -1,5 +1,11 @@
 # Durable product and engineering decisions
 
+### DEC-20260928-004 — Improve complete interactions and hierarchy through existing owners
+
+- Decision: Execute the [complete-experience plan](../quality/EXPERIENCE_OVERHAUL_2026-09-28.md), independently reassessing current source and rendering after 0.3.82. Accept substantial changes to actionable inspectors, historical retrieval, Track authoring, Workout entry, Routine search and backup hierarchy; keep reviewing remaining areas rather than stop at the initial groups.
+- Constraints: Every accepted recommendation is implementation scope. Share equivalent behavior and preserve domain semantics, mutation receipts and historical truth. Two additional Astra/high agents only; parent coordinates integration/builds. Exact sub-minute checks and fresh relevant originals, no full/readiness/candidate batches or phone release.
+- Related/status: FB-20260928-007, FND-20260928-012/013. In progress; this decision does not resume historical paused audits.
+
 ### DEC-20260928-003 — Repair complete workflows through existing shared owners
 
 - Decision: Execute [the fresh product audit plan](../quality/PRODUCT_AUDIT_2026-09-28.md), accepting concrete workflow and design findings before production edits. Retain the established navigation/card/theme grammar and explicit domain semantics; consolidate truly equivalent pickers and form behavior rather than introduce another framework or generic domain abstraction.
