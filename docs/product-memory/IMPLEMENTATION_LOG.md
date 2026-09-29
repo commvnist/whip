@@ -1,5 +1,11 @@
 # Implementation history
 
+### IMP-20260929-016 — Release the Tasks clarity correction as 0.3.88
+
+- Related: FB-20260929-012, IMP-20260929-015, VER-20260929-013. Pushed product commit `90ab1bde` is packaged with version 0.3.88/code 94; application/test source hashes remain unchanged.
+- Status: Released in place on Samsung SM-F976W. Signed APK/AAB, exact installed hash, preserved installation identity and 145 ms cold foreground launch pass. [Release receipt](../../artifacts/phone-releases/2026-09-29/0.3.88/README.md).
+- No schema, epoch, backup-format or signing-identity change; no full-suite rerun, phone instrumentation or Play publication. Product evidence retains VER-20260929-012's longer keyboard-test limitation; subjective appearance awaits owner use.
+
 ### IMP-20260929-015 — Clarify Task capture and declutter the collection
 
 - Related: FB-20260929-011, FND-20260929-025, DEC-20260929-003; verification VER-20260929-012.

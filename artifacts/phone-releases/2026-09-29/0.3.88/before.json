@@ -1,0 +1,13 @@
+{
+  "model": "SM-F976W",
+  "package": "commvne.com.whip.app",
+  "identity": [
+    "versionCode=93 minSdk=26 targetSdk=37",
+    "versionName=0.3.87",
+    "lastUpdateTime=2026-09-29 13:23:14",
+    "firstInstallTime=2026-08-26 17:59:24"
+  ],
+  "appIdentity": [
+    "appId=10995"
+  ]
+}

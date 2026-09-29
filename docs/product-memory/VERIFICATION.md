@@ -1,5 +1,11 @@
 # Verification and release evidence
 
+### VER-20260929-013 — Tasks UX correction installed as 0.3.88
+
+- FB-20260929-012 / IMP-20260929-016. Signed `./gradlew assembleRelease bundleRelease --console=plain` passes in 105.934 s. Package/version/code, non-debuggable APK, established APK/AAB signing identity, ZIP integrity and unchanged application/test source pass. [Exact receipts](../../artifacts/phone-releases/2026-09-29/0.3.88/README.md).
+- Guarded in-place install upgrades Samsung SM-F976W to 0.3.88/code 94. Installed APK SHA-256 `1850a2fa602e4a69010be2a388756a0507ec0493bc2b336e7dd34a8b77b1e49e` matches the signed artifact. Original application identity and first-install time remain unchanged.
+- Cold foreground launch passes in 145 ms; the process remains running, with zero startup-error matches across 168 sampled log lines and zero crash-payload lines. No phone instrumentation, reset, private-record inspection or Play publication. Status: Released; previous focused product evidence and keyboard E2E limitation remain VER-20260929-012, subjective appearance awaits owner use.
+
 ### VER-20260929-012 — Focused Tasks UX refinement
 
 - Related: FB-20260929-011, FND-20260929-025, IMP-20260929-015. Scope: Task labels/content hierarchy, connected Unscheduled copy, quick capture and relocated planner entry; emulator-only acceptance.

@@ -1,0 +1,1 @@
+PASS: package/version/code, non-debuggable APK, APK/AAB signatures, established certificate, ZIP integrity, unchanged application/test source.

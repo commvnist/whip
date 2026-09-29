@@ -1,0 +1,6 @@
+{
+  "command": "./gradlew assembleRelease bundleRelease --console=plain",
+  "exit_code": 0,
+  "seconds": 105.934,
+  "product_commit": "90ab1bdeacb23502b6064ac39c76734fd6cc24a0"
+}

@@ -1,5 +1,11 @@
 # User feedback and acceptance criteria
 
+### FB-20260929-012 — Release the Tasks UX correction to the phone
+
+- Date/source: 2026-09-29, owner requests “release to phone” after IMP-20260929-015.
+- Acceptance: Package the committed correction as signed 0.3.88/code 94, install in place on the selected owner phone, and verify installed artifact/version, preserved installation identity and cold foreground launch.
+- Scope/status: Released as 0.3.88/code 94 under IMP-20260929-016 / VER-20260929-013. Reuses VER-20260929-012's affected-check evidence and explicit longer keyboard-test limitation; no repeated full suite, phone instrumentation, reset or Play publication.
+
 ### FB-20260929-011 — Make the Tasks page clear and visually purposeful
 
 - Date/source: 2026-09-29, owner rejects “Task for Tasks” and requests Tasks UX/design improvements.
