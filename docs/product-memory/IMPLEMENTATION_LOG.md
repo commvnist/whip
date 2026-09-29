@@ -1,5 +1,10 @@
 # Implementation history
 
+### IMP-20260929-011 — First requested phone release before full-suite resumption
+
+- FB-20260929-009 first stage packages IMP-20260929-010 as signed private 0.3.86/code 92, retaining all navigation production code from `eb8dcda8`.
+- Released in place on the owner phone with exact installed hash and preserved app/data identity; VER-20260929-009 records packaging and launch acceptance. Full-suite repairs and second release remain In progress.
+
 ### IMP-20260929-010 — Implement purposeful tabs and stable workspace headers
 
 - Related: FB-20260929-008, FND-20260929-013, DEC-20260929-003. [Implementation mapping](../quality/WORKSPACE_NAVIGATION_PLAN_2026-09-29.md), [compilation receipts](../../artifacts/workspace-navigation/2026-09-29/README.md).

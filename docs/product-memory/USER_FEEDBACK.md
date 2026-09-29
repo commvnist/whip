@@ -1,5 +1,12 @@
 # User feedback and acceptance criteria
 
+### FB-20260929-009 — Release, complete the full suite, repair and release again
+
+- Date/source: 2026-09-29, owner requests an initial phone release of the navigation redesign, followed by the complete test suite and repairs, then a second phone release.
+- Acceptance: Install the current signed build in place first. Resume the paused full JVM/Android/benchmark and static/harness campaign, diagnose all failures, repair product defects and obsolete fixtures, and establish complete final-source evidence before the second signed update.
+- Constraints: Preserve phone data and signing identity; instrumentation uses up to three disposable emulators only. This explicitly resumes FB-20260929-004/005 verification and supersedes the paused scope of FB-20260929-008. No Play publication.
+- Related/status: FB-20260929-008, IMP-20260929-010, VER-20260929-008; In progress from clean pushed `eb8dcda8`.
+
 ### FB-20260929-008 — Implement the workspace plan with stable visual transitions
 
 - Date/source: 2026-09-29, owner authorizes implementation of the complete navigation plan, emphasizing that elements must not shift between pages and consistent views are key to the app's feel.

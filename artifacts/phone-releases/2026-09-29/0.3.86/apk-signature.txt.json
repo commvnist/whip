@@ -1,0 +1,10 @@
+{
+  "command": [
+    "/root/Android/Sdk/build-tools/36.0.0/apksigner",
+    "verify",
+    "--print-certs",
+    "/root/repos/whip/app/build/outputs/apk/release/app-release.apk"
+  ],
+  "exit": 0,
+  "seconds": 0.138
+}

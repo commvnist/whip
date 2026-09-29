@@ -1,0 +1,8 @@
+{
+  "command": [
+    "scripts/device",
+    "release-install"
+  ],
+  "exit": 0,
+  "seconds": 2.407
+}

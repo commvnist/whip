@@ -1,5 +1,11 @@
 # Verification and release evidence
 
+### VER-20260929-009 — Navigation redesign 0.3.86 installed before full-suite execution
+
+- FB-20260929-009 / IMP-20260929-011. [Exact release receipts](../../artifacts/phone-releases/2026-09-29/0.3.86/README.md). Signed APK/AAB packaging passes in 97.345 seconds, including R8 and release-vital lint. Independently bounded artifact commands verify package/version/code, non-debuggable APK, signatures, established certificate and ZIP integrity.
+- Guarded install upgrades Samsung SM-F976W from 0.3.85/code 91 to 0.3.86/code 92; installed hash equals `bd4bdae75d0a53698b17907e09de059acac11e9fe95fa0c2684df68250a23c8f`. First-install time and app identity are preserved. MainActivity foreground launch and bounded startup smoke pass, with zero startup-error/crash-payload lines.
+- This is the explicitly requested initial release, not full-suite acceptance. Full testing now resumes; repairs and a second phone release remain outstanding. No reset, phone instrumentation, storage change or Play publication.
+
 ### VER-20260929-008 — Navigation implementation compiles; behavioral verification paused
 
 - Scope: FB-20260929-008 / IMP-20260929-010. Production integration compilation only, with the owner's test campaign still paused. No JVM/native/benchmark tests, full/readiness/candidate batch, phone/emulator actions or fresh rendered inspection. [Exact logs and production manifest](../../artifacts/workspace-navigation/2026-09-29/README.md).
