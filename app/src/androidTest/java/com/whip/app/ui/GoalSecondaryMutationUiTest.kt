@@ -257,6 +257,7 @@ class GoalSecondaryMutationUiTest {
                     customUnits = emptyList(), onDismiss = {}, onSave = { saved = it })
             }
         }
+        editorControl(hasTestTag("goal-milestone-details-0")).performClick()
         editorControl(hasTestTag("goal-milestone-weight-0")).performTextReplacement("")
         compose.onNodeWithText("Save").performClick()
         compose.runOnIdle { assertNull(saved) }

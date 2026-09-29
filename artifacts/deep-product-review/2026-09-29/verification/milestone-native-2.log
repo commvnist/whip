@@ -1,0 +1,78 @@
+com.whip.app.DeepProductivityJourneyTest#milestoneEditorKeepsOptionalDetailsAndIdentity
+INSTRUMENTATION_STATUS: class=com.whip.app.DeepProductivityJourneyTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.DeepProductivityJourneyTest:
+INSTRUMENTATION_STATUS: test=milestoneEditorKeepsOptionalDetailsAndIdentity
+INSTRUMENTATION_STATUS_CODE: 1
+s_glBindAttribLocation: bind attrib 0 name position
+s_glBindAttribLocation: bind attrib 1 name color
+s_glBindAttribLocation: bind attrib 2 name localCoord
+INSTRUMENTATION_STATUS: class=com.whip.app.DeepProductivityJourneyTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: No node found that matches Text + InputText + EditableText contains 'Reward (optional)' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #366 at (l=53.0, t=352.0, r=1027.0, b=2168.0)px, Tag: 'goal-editor-fields'
+CollectionInfo = 'CollectionInfo(rowCount=10, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape@49d71b7'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=6864.0, maxValue=6864.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 21 children, 1 sibling
+Selector used: (TestTag = 'goal-editor-fields')
+
+	at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+	at com.whip.app.DeepProductivityJourneyTest.inList(DeepProductivityJourneyTest.kt:136)
+	at com.whip.app.DeepProductivityJourneyTest.milestoneEditorKeepsOptionalDetailsAndIdentity(DeepProductivityJourneyTest.kt:258)
+
+INSTRUMENTATION_STATUS: stream=
+Error in milestoneEditorKeepsOptionalDetailsAndIdentity(com.whip.app.DeepProductivityJourneyTest):
+java.lang.AssertionError: No node found that matches Text + InputText + EditableText contains 'Reward (optional)' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #366 at (l=53.0, t=352.0, r=1027.0, b=2168.0)px, Tag: 'goal-editor-fields'
+CollectionInfo = 'CollectionInfo(rowCount=10, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape@49d71b7'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=6864.0, maxValue=6864.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 21 children, 1 sibling
+Selector used: (TestTag = 'goal-editor-fields')
+
+	at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+	at com.whip.app.DeepProductivityJourneyTest.inList(DeepProductivityJourneyTest.kt:136)
+	at com.whip.app.DeepProductivityJourneyTest.milestoneEditorKeepsOptionalDetailsAndIdentity(DeepProductivityJourneyTest.kt:258)
+
+INSTRUMENTATION_STATUS: test=milestoneEditorKeepsOptionalDetailsAndIdentity
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 20.119
+There was 1 failure:
+1) milestoneEditorKeepsOptionalDetailsAndIdentity(com.whip.app.DeepProductivityJourneyTest)
+java.lang.AssertionError: No node found that matches Text + InputText + EditableText contains 'Reward (optional)' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #366 at (l=53.0, t=352.0, r=1027.0, b=2168.0)px, Tag: 'goal-editor-fields'
+CollectionInfo = 'CollectionInfo(rowCount=10, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape@49d71b7'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=6864.0, maxValue=6864.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 21 children, 1 sibling
+Selector used: (TestTag = 'goal-editor-fields')
+
+	at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+	at com.whip.app.DeepProductivityJourneyTest.inList(DeepProductivityJourneyTest.kt:136)
+	at com.whip.app.DeepProductivityJourneyTest.milestoneEditorKeepsOptionalDetailsAndIdentity(DeepProductivityJourneyTest.kt:258)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1
+
+Elapsed ms: 22041
+Command exit: 0

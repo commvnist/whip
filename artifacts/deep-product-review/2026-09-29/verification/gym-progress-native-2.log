@@ -1,0 +1,75 @@
+com.whip.app.GymPowerInputUiTest#progressChoosesPerformedExerciseAndRefreshesExactSourceAfterDataChange
+INSTRUMENTATION_STATUS: class=com.whip.app.GymPowerInputUiTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.GymPowerInputUiTest:
+INSTRUMENTATION_STATUS: test=progressChoosesPerformedExerciseAndRefreshesExactSourceAfterDataChange
+INSTRUMENTATION_STATUS_CODE: 1
+s_glBindAttribLocation: bind attrib 0 name position
+s_glBindAttribLocation: bind attrib 1 name color
+s_glBindAttribLocation: bind attrib 2 name localCoord
+INSTRUMENTATION_STATUS: class=com.whip.app.GymPowerInputUiTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains '60' (ignoreCase: false))
+Semantics of the node:
+Node #189 at (l=149.0, t=919.0, r=952.0, b=968.0)px, Tag: 'history-set-performed-700'
+Text = '[60 kg × 5 reps]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 3 siblings
+Selector used: (TestTag = 'history-set-performed-700')
+
+	at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+	at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+	at com.whip.app.GymPowerInputUiTest.progressChoosesPerformedExerciseAndRefreshesExactSourceAfterDataChange(GymPowerInputUiTest.kt:225)
+
+INSTRUMENTATION_STATUS: stream=
+Error in progressChoosesPerformedExerciseAndRefreshesExactSourceAfterDataChange(com.whip.app.GymPowerInputUiTest):
+java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains '60' (ignoreCase: false))
+Semantics of the node:
+Node #189 at (l=149.0, t=919.0, r=952.0, b=968.0)px, Tag: 'history-set-performed-700'
+Text = '[60 kg × 5 reps]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 3 siblings
+Selector used: (TestTag = 'history-set-performed-700')
+
+	at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+	at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+	at com.whip.app.GymPowerInputUiTest.progressChoosesPerformedExerciseAndRefreshesExactSourceAfterDataChange(GymPowerInputUiTest.kt:225)
+
+INSTRUMENTATION_STATUS: test=progressChoosesPerformedExerciseAndRefreshesExactSourceAfterDataChange
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 6.445
+There was 1 failure:
+1) progressChoosesPerformedExerciseAndRefreshesExactSourceAfterDataChange(com.whip.app.GymPowerInputUiTest)
+java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains '60' (ignoreCase: false))
+Semantics of the node:
+Node #189 at (l=149.0, t=919.0, r=952.0, b=968.0)px, Tag: 'history-set-performed-700'
+Text = '[60 kg × 5 reps]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Has 3 siblings
+Selector used: (TestTag = 'history-set-performed-700')
+
+	at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+	at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+	at com.whip.app.GymPowerInputUiTest.progressChoosesPerformedExerciseAndRefreshesExactSourceAfterDataChange(GymPowerInputUiTest.kt:225)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1
+
+Elapsed ms: 8373
+Command exit: 0

@@ -1,5 +1,20 @@
 # Implementation history
 
+### IMP-20260929-004 — Make training execution and configuration retain intent
+
+- Related: FB-20260929-002, FND-20260929-001, DEC-20260929-001; DGS1–6 in the [Gym/Settings review](../quality/DEEP_PRODUCT_REVIEW_2026-09-29_GYM_SETTINGS.md).
+- Execution: Workout Overview chooses one next Set without changing optional/group queue policy or rest; per-Set quick drafts survive switching/recreation/Details. Completed rows stay collapsed and Finish opens the exact successful History receipt. Previous suggestions use completed compatible snapshots, converted to receiving units; effort precedes Complete and saved distance units remain unchanged by preferences.
+- Authoring/recovery: Exercise essentials and measurement meaning precede searchable categories. Routine child Exercise/machine saves have retained request/receipt ownership, duplicate/late-callback protection and local failure/retry. Quick-machine body scrolls around a decimal keyboard and reveals failed-save feedback automatically.
+- Settings/performance: Purpose search opens51 actual controls/disclosures with distinct general Mass/Gym semantics. Progress starts from recent completed exercise/equipment evidence; graph, weekly, category and structure work uses actual content keys. No physical frame-rate claim or added framework.
+- Status: Implemented and proportionately Verified under VER-20260929-002. Twelve selected Gym/Settings native methods have passing receipts, including short1080×1600 actual200% chooser/quick-machine failure/retry and exact corrected source History. Four selected pure methods pass. Final original inspection and delivery bookkeeping follow; no schema/epoch/backup/version/phone change.
+
+### IMP-20260929-003 — Keep productivity meaning and analytical context through correction
+
+- Related: FB-20260929-002, FND-20260929-002, DEC-20260929-001; all DP1–6 in the [productivity review](../quality/DEEP_PRODUCT_REVIEW_2026-09-29_PRODUCTIVITY.md). Connected Habit/shared search owners are delivered with IMP-20260929-002.
+- Changes: Completion Goals record one event without an artificial numeric field; unrelated edits preserve original values. Habit/Goal/Track collection queries retain scope through details/archive/recreation; hidden Track selections cannot be mutated. Milestone names lead compact rows with optional weight/reward and stable identities, including validation-banner changes. Track Entries/Insights share date/condition scope, date-spaced numeric/scale trends, original-unit evidence and exact matching-entry correction. Shared entry rows explain and expose remaining configured fields.
+- Native followthrough: Correcting an invalid milestone weight formerly recreated its unkeyed group; a stable lazy-item key retains optional fields. Offscreen Track trend disclosures/page ownership move to the saved Insights page so they survive an evidence-correction round trip. Strict native journeys pass twice-invalid/reopen, identity/reorder/recreation and original-mL correction/return.
+- Verification/status: Implemented and proportionately Verified under VER-20260929-002: all seven new productivity behavior methods have passing receipts, plus three exact pure contracts and repeated history-cleanup regression. Final capture alignment and delivery bookkeeping follow. No schema/epoch/backup/version change; original facts and existing stale-write boundaries remain authoritative.
+
 ### IMP-20260929-002 — Balance daily work and preserve Task/Review inspection context
 
 - Related: FB-20260929-002, FND-20260929-003, DEC-20260929-001; DS1–4 in the [deep review](../quality/DEEP_PRODUCT_REVIEW_2026-09-29.md).

@@ -1,0 +1,117 @@
+com.whip.app.ReviewOutcomeJourneyE2ETest#archivedHabitOutcomesOpenTheirOriginalHabit
+INSTRUMENTATION_STATUS: class=com.whip.app.ReviewOutcomeJourneyE2ETest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.ReviewOutcomeJourneyE2ETest:
+INSTRUMENTATION_STATUS: test=archivedHabitOutcomesOpenTheirOriginalHabit
+INSTRUMENTATION_STATUS_CODE: 1
+s_glBindAttribLocation: bind attrib 0 name position
+s_glBindAttribLocation: bind attrib 1 name color
+s_glBindAttribLocation: bind attrib 2 name localCoord
+INSTRUMENTATION_STATUS: class=com.whip.app.ReviewOutcomeJourneyE2ETest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but found '2' nodes that satisfy: (Text + InputText + EditableText contains 'Archived reflection' (ignoreCase: false))
+Nodes found:
+1) Node #554 at (l=53.0, t=863.0, r=1027.0, b=1214.0)px
+ContentDescription = '[Open habit details for Archived reflection]'
+Focused = 'false'
+IsContainer = 'true'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 8.0.dp), topEnd = CornerSize(size = 8.0.dp), bottomEnd = CornerSize(size = 8.0.dp), bottomStart = CornerSize(size = 8.0.dp))'
+Text = '[Archived reflection, Archived]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 2 children, 2 siblings
+2) Node #669 at (l=53.0, t=735.0, r=1027.0, b=1008.0)px, Tag: 'review-outcome-Habits:41:2026-09-29'
+Focused = 'false'
+IsContainer = 'true'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 8.0.dp), topEnd = CornerSize(size = 8.0.dp), bottomEnd = CornerSize(size = 8.0.dp), bottomStart = CornerSize(size = 8.0.dp))'
+Text = '[Archived reflection, Tue, Sep 29, 2026 · Archived, Habit target reached]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 3 siblings
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+	at com.whip.app.ReviewOutcomeJourneyE2ETest.sourceJourney(ReviewOutcomeJourneyE2ETest.kt:144)
+	at com.whip.app.ReviewOutcomeJourneyE2ETest.archivedHabitOutcomesOpenTheirOriginalHabit(ReviewOutcomeJourneyE2ETest.kt:22)
+
+INSTRUMENTATION_STATUS: stream=
+Error in archivedHabitOutcomesOpenTheirOriginalHabit(com.whip.app.ReviewOutcomeJourneyE2ETest):
+java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but found '2' nodes that satisfy: (Text + InputText + EditableText contains 'Archived reflection' (ignoreCase: false))
+Nodes found:
+1) Node #554 at (l=53.0, t=863.0, r=1027.0, b=1214.0)px
+ContentDescription = '[Open habit details for Archived reflection]'
+Focused = 'false'
+IsContainer = 'true'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 8.0.dp), topEnd = CornerSize(size = 8.0.dp), bottomEnd = CornerSize(size = 8.0.dp), bottomStart = CornerSize(size = 8.0.dp))'
+Text = '[Archived reflection, Archived]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 2 children, 2 siblings
+2) Node #669 at (l=53.0, t=735.0, r=1027.0, b=1008.0)px, Tag: 'review-outcome-Habits:41:2026-09-29'
+Focused = 'false'
+IsContainer = 'true'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 8.0.dp), topEnd = CornerSize(size = 8.0.dp), bottomEnd = CornerSize(size = 8.0.dp), bottomStart = CornerSize(size = 8.0.dp))'
+Text = '[Archived reflection, Tue, Sep 29, 2026 · Archived, Habit target reached]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 3 siblings
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+	at com.whip.app.ReviewOutcomeJourneyE2ETest.sourceJourney(ReviewOutcomeJourneyE2ETest.kt:144)
+	at com.whip.app.ReviewOutcomeJourneyE2ETest.archivedHabitOutcomesOpenTheirOriginalHabit(ReviewOutcomeJourneyE2ETest.kt:22)
+
+INSTRUMENTATION_STATUS: test=archivedHabitOutcomesOpenTheirOriginalHabit
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 11.957
+There was 1 failure:
+1) archivedHabitOutcomesOpenTheirOriginalHabit(com.whip.app.ReviewOutcomeJourneyE2ETest)
+java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but found '2' nodes that satisfy: (Text + InputText + EditableText contains 'Archived reflection' (ignoreCase: false))
+Nodes found:
+1) Node #554 at (l=53.0, t=863.0, r=1027.0, b=1214.0)px
+ContentDescription = '[Open habit details for Archived reflection]'
+Focused = 'false'
+IsContainer = 'true'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 8.0.dp), topEnd = CornerSize(size = 8.0.dp), bottomEnd = CornerSize(size = 8.0.dp), bottomStart = CornerSize(size = 8.0.dp))'
+Text = '[Archived reflection, Archived]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 2 children, 2 siblings
+2) Node #669 at (l=53.0, t=735.0, r=1027.0, b=1008.0)px, Tag: 'review-outcome-Habits:41:2026-09-29'
+Focused = 'false'
+IsContainer = 'true'
+Shape = 'RoundedCornerShape(topStart = CornerSize(size = 8.0.dp), topEnd = CornerSize(size = 8.0.dp), bottomEnd = CornerSize(size = 8.0.dp), bottomStart = CornerSize(size = 8.0.dp))'
+Text = '[Archived reflection, Tue, Sep 29, 2026 · Archived, Habit target reached]'
+Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+MergeDescendants = 'true'
+Has 3 siblings
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+	at com.whip.app.ReviewOutcomeJourneyE2ETest.sourceJourney(ReviewOutcomeJourneyE2ETest.kt:144)
+	at com.whip.app.ReviewOutcomeJourneyE2ETest.archivedHabitOutcomesOpenTheirOriginalHabit(ReviewOutcomeJourneyE2ETest.kt:22)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1
+
+Elapsed ms: 13852
+Command exit: 0

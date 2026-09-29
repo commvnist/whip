@@ -1,0 +1,48 @@
+com.whip.app.GymLibraryJourneyE2ETest#workoutOverviewPreservesChosenDraftAndOwnedDetailsCorrection
+INSTRUMENTATION_STATUS: class=com.whip.app.GymLibraryJourneyE2ETest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.GymLibraryJourneyE2ETest:
+INSTRUMENTATION_STATUS: test=workoutOverviewPreservesChosenDraftAndOwnedDetailsCorrection
+INSTRUMENTATION_STATUS_CODE: 1
+s_glBindAttribLocation: bind attrib 0 name position
+s_glBindAttribLocation: bind attrib 1 name color
+s_glBindAttribLocation: bind attrib 2 name localCoord
+INSTRUMENTATION_STATUS: class=com.whip.app.GymLibraryJourneyE2ETest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stack=java.lang.IllegalStateException: Visual catalog hierarchy for deep.gym.session-overview is obscured by a non-Whip window
+	at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface(VisualCatalogCapture.kt:89)
+	at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface$default(VisualCatalogCapture.kt:26)
+	at com.whip.app.GymLibraryJourneyE2ETest.workoutOverviewPreservesChosenDraftAndOwnedDetailsCorrection(GymLibraryJourneyE2ETest.kt:36)
+
+INSTRUMENTATION_STATUS: stream=
+Error in workoutOverviewPreservesChosenDraftAndOwnedDetailsCorrection(com.whip.app.GymLibraryJourneyE2ETest):
+java.lang.IllegalStateException: Visual catalog hierarchy for deep.gym.session-overview is obscured by a non-Whip window
+	at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface(VisualCatalogCapture.kt:89)
+	at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface$default(VisualCatalogCapture.kt:26)
+	at com.whip.app.GymLibraryJourneyE2ETest.workoutOverviewPreservesChosenDraftAndOwnedDetailsCorrection(GymLibraryJourneyE2ETest.kt:36)
+
+INSTRUMENTATION_STATUS: test=workoutOverviewPreservesChosenDraftAndOwnedDetailsCorrection
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 7.938
+There was 1 failure:
+1) workoutOverviewPreservesChosenDraftAndOwnedDetailsCorrection(com.whip.app.GymLibraryJourneyE2ETest)
+java.lang.IllegalStateException: Visual catalog hierarchy for deep.gym.session-overview is obscured by a non-Whip window
+	at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface(VisualCatalogCapture.kt:89)
+	at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface$default(VisualCatalogCapture.kt:26)
+	at com.whip.app.GymLibraryJourneyE2ETest.workoutOverviewPreservesChosenDraftAndOwnedDetailsCorrection(GymLibraryJourneyE2ETest.kt:36)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1
+
+Elapsed ms: 10046
+Command exit: 0

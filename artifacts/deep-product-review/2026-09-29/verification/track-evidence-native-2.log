@@ -1,0 +1,63 @@
+com.whip.app.DeepProductivityJourneyTest#trackInsightRangeLeadsToTheSameCorrectableEvidence
+INSTRUMENTATION_STATUS: class=com.whip.app.DeepProductivityJourneyTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.DeepProductivityJourneyTest:
+INSTRUMENTATION_STATUS: test=trackInsightRangeLeadsToTheSameCorrectableEvidence
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.DeepProductivityJourneyTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'track-destination-Insights')
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+	at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+	at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+	at com.whip.app.DeepProductivityJourneyTest.trackInsightRangeLeadsToTheSameCorrectableEvidence(DeepProductivityJourneyTest.kt:302)
+
+INSTRUMENTATION_STATUS: stream=
+Error in trackInsightRangeLeadsToTheSameCorrectableEvidence(com.whip.app.DeepProductivityJourneyTest):
+java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'track-destination-Insights')
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+	at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+	at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+	at com.whip.app.DeepProductivityJourneyTest.trackInsightRangeLeadsToTheSameCorrectableEvidence(DeepProductivityJourneyTest.kt:302)
+
+INSTRUMENTATION_STATUS: test=trackInsightRangeLeadsToTheSameCorrectableEvidence
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 9.065
+There was 1 failure:
+1) trackInsightRangeLeadsToTheSameCorrectableEvidence(com.whip.app.DeepProductivityJourneyTest)
+java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'track-destination-Insights')
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+	at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+	at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+	at com.whip.app.DeepProductivityJourneyTest.trackInsightRangeLeadsToTheSameCorrectableEvidence(DeepProductivityJourneyTest.kt:302)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1
+
+Elapsed ms: 10997
+Command exit: 0

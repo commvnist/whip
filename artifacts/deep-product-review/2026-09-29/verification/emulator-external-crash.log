@@ -1,0 +1,224 @@
+--------- beginning of crash
+09-29 02:42:37.835  1706  4173 E AndroidRuntime: FATAL EXCEPTION: grpc-default-executor-3
+09-29 02:42:37.835  1706  4173 E AndroidRuntime: Process: com.google.android.googlequicksearchbox:search, PID: 1706
+09-29 02:42:37.835  1706  4173 E AndroidRuntime: java.lang.OutOfMemoryError: Failed to allocate a 24 byte allocation with 3630288 free bytes and 3545KB until OOM, target footprint 603979776, growth limit 603979776; giving up on allocation because <1% of heap free after GC.
+09-29 02:42:37.835  1706  4173 E AndroidRuntime: 	at io.grpc.e.bw.j(PG:1)
+09-29 02:42:37.835  1706  4173 E AndroidRuntime: 	at io.grpc.e.go.run(PG:1)
+09-29 02:42:37.835  1706  4173 E AndroidRuntime: 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
+09-29 02:42:37.835  1706  4173 E AndroidRuntime: 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)
+09-29 02:42:37.835  1706  4173 E AndroidRuntime: 	at java.lang.Thread.run(Thread.java:1012)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: FATAL EXCEPTION: main
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: Process: com.google.android.googlequicksearchbox:search, PID: 4350
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: java.lang.RuntimeException: java.lang.OutOfMemoryError: Failed to allocate a 24 byte allocation with 2662248 free bytes and 2599KB until OOM, target footprint 603979776, growth limit 603979776; giving up on allocation because <1% of heap free after GC.
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at com.facebook.litho.ak.a(PG:19)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at com.facebook.litho.ComponentTree.I(PG:9)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at com.facebook.litho.ComponentTree.m(PG:13)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at com.facebook.litho.LithoView.onMeasure(PG:25)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.View.measure(View.java:27122)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.support.v7.widget.ft.measureChildWithMargins(PG:12)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.support.v7.widget.LinearLayoutManager.layoutChunk(PG:11)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.support.v7.widget.LinearLayoutManager.fill(PG:7)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.support.v7.widget.LinearLayoutManager.onLayoutChildren(PG:55)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.support.v7.widget.RecyclerView.dispatchLayoutStep2(PG:11)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.support.v7.widget.RecyclerView.dispatchLayout(PG:9)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.support.v7.widget.RecyclerView.onLayout(PG:2)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.View.layout(View.java:24421)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.ViewGroup.layout(ViewGroup.java:6440)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at androidx.swiperefreshlayout.widget.SwipeRefreshLayout.onLayout(PG:9)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.View.layout(View.java:24421)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.ViewGroup.layout(ViewGroup.java:6440)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.widget.LinearLayout.setChildFrame(LinearLayout.java:1891)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.widget.LinearLayout.layoutVertical(LinearLayout.java:1729)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.widget.LinearLayout.onLayout(LinearLayout.java:1638)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.View.layout(View.java:24421)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.ViewGroup.layout(ViewGroup.java:6440)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.widget.FrameLayout.layoutChildren(FrameLayout.java:332)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.widget.FrameLayout.onLayout(FrameLayout.java:270)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.View.layout(View.java:24421)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.ViewGroup.layout(ViewGroup.java:6440)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.widget.FrameLayout.layoutChildren(FrameLayout.java:332)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.widget.FrameLayout.onLayout(FrameLayout.java:270)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.View.layout(View.java:24421)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.ViewGroup.layout(ViewGroup.java:6440)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.widget.FrameLayout.layoutChildren(FrameLayout.java:332)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.widget.FrameLayout.onLayout(FrameLayout.java:270)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.View.layout(View.java:24421)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.ViewGroup.layout(ViewGroup.java:6440)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at androidx.coordinatorlayout.widget.CoordinatorLayout.l(PG:31)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at androidx.coordinatorlayout.widget.CoordinatorLayout.onLayout(PG:7)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.View.layout(View.java:24421)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.ViewGroup.layout(ViewGroup.java:6440)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.widget.FrameLayout.layoutChildren(FrameLayout.java:332)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.widget.FrameLayout.onLayout(FrameLayout.java:270)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.View.layout(View.java:24421)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.ViewGroup.layout(ViewGroup.java:6440)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.widget.FrameLayout.layoutChildren(FrameLayout.java:332)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.widget.FrameLayout.onLayout(FrameLayout.java:270)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.View.layout(View.java:24421)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.ViewGroup.layout(ViewGroup.java:6440)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.widget.FrameLayout.layoutChildren(FrameLayout.java:332)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.widget.FrameLayout.onLayout(FrameLayout.java:270)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.View.layout(View.java:24421)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.ViewGroup.layout(ViewGroup.java:6440)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at com.google.android.apps.search.googleapp.launcher.a.i.a.o.onLayout(PG:7)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.View.layout(View.java:24421)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.ViewGroup.layout(ViewGroup.java:6440)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.widget.FrameLayout.layoutChildren(FrameLayout.java:332)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.widget.FrameLayout.onLayout(FrameLayout.java:270)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.View.layout(View.java:24421)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.ViewGroup.layout(ViewGroup.java:6440)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.widget.FrameLayout.layoutChildren(FrameLayout.java:332)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.widget.FrameLayout.onLayout(FrameLayout.java:270)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.View.layout(View.java:24421)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.view.ViewGroup.layout(ViewGroup.java:6440)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.widget.LinearLayout.setChildFrame(LinearLayout.java:1891)
+09-29 02:45:08.158  4350  4350 E AndroidRuntime: 	at android.widget.LinearLayout.layoutVertical(LinearLayout.java:1729)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at android.widget.LinearLayout.onLayout(LinearLayout.java:1638)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at android.view.View.layout(View.java:24421)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at android.view.ViewGroup.layout(ViewGroup.java:6440)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at android.widget.FrameLayout.layoutChildren(FrameLayout.java:332)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at android.widget.FrameLayout.onLayout(FrameLayout.java:270)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.android.internal.policy.DecorView.onLayout(DecorView.java:789)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at android.view.View.layout(View.java:24421)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at android.view.ViewGroup.layout(ViewGroup.java:6440)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at android.view.ViewRootImpl.performLayout(ViewRootImpl.java:4258)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at android.view.ViewRootImpl.performTraversals(ViewRootImpl.java:3583)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at android.view.ViewRootImpl.doTraversal(ViewRootImpl.java:2465)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at android.view.ViewRootImpl$TraversalRunnable.run(ViewRootImpl.java:9305)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at android.view.Choreographer$CallbackRecord.run(Choreographer.java:1339)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at android.view.Choreographer$CallbackRecord.run(Choreographer.java:1348)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at android.view.Choreographer.doCallbacks(Choreographer.java:952)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at android.view.Choreographer.doFrame(Choreographer.java:882)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at android.view.Choreographer$FrameDisplayEventReceiver.run(Choreographer.java:1322)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at android.os.Handler.handleCallback(Handler.java:958)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at android.os.Handler.dispatchMessage(Handler.java:99)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at android.os.Looper.loopOnce(Looper.java:205)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at android.os.Looper.loop(Looper.java:294)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at android.app.ActivityThread.main(ActivityThread.java:8177)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at java.lang.reflect.Method.invoke(Native Method)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:552)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:971)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: Caused by: java.util.concurrent.ExecutionException: java.lang.OutOfMemoryError: Failed to allocate a 24 byte allocation with 2662248 free bytes and 2599KB until OOM, target footprint 603979776, growth limit 603979776; giving up on allocation because <1% of heap free after GC.
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at java.util.concurrent.FutureTask.report(FutureTask.java:122)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at java.util.concurrent.FutureTask.get(FutureTask.java:191)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.google.common.util.concurrent.eb.a(PG:1)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.facebook.litho.ak.a(PG:13)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	... 87 more
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: Caused by: java.lang.OutOfMemoryError: Failed to allocate a 24 byte allocation with 2662248 free bytes and 2599KB until OOM, target footprint 603979776, growth limit 603979776; giving up on allocation because <1% of heap free after GC.
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at androidx.d.a.iterator(Unknown Source:0)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.bumptech.glide.x.<init>(PG:3)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.google.apps.tiktok.media.b.<init>(PG:1)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.google.apps.tiktok.media.c.z(PG:1)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.google.apps.tiktok.media.c.i(PG:1)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.google.android.libraries.elements.g.v.c(PG:20)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.google.android.libraries.elements.g.t.c(PG:3)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.google.android.libraries.elements.g.f.Q(PG:1)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.facebook.litho.dd.r(PG:80)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.facebook.litho.dd.r(PG:99)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.facebook.litho.dd.r(PG:99)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.facebook.litho.dd.r(PG:99)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.facebook.litho.dd.r(PG:99)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.facebook.litho.dd.r(PG:99)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.facebook.litho.dd.r(PG:99)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.facebook.litho.dd.r(PG:99)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.facebook.litho.dd.r(PG:99)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.facebook.litho.dd.r(PG:99)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.facebook.litho.dd.k(PG:34)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.facebook.litho.aj.call(PG:7)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at java.util.concurrent.FutureTask.run(FutureTask.java:264)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	at com.facebook.litho.ak.a(PG:2)
+09-29 02:45:08.162  4350  4350 E AndroidRuntime: 	... 87 more
+09-29 03:31:06.854  5074  5086 E AndroidRuntime: FATAL EXCEPTION: binder:5074_1
+09-29 03:31:06.854  5074  5086 E AndroidRuntime: Process: com.google.android.googlequicksearchbox:search, PID: 5074
+09-29 03:31:06.854  5074  5086 E AndroidRuntime: java.lang.OutOfMemoryError: Failed to allocate a 24 byte allocation with 4567264 free bytes and 4460KB until OOM, target footprint 603979776, growth limit 603979776; giving up on allocation because <1% of heap free after GC.
+09-29 03:31:06.854  5074  5086 E AndroidRuntime: 	at io.grpc.Status.withDescription(PG:1)
+09-29 03:31:06.854  5074  5086 E AndroidRuntime: 	at io.grpc.binder.a.j.h(PG:22)
+09-29 03:31:06.854  5074  5086 E AndroidRuntime: 	at io.grpc.binder.a.y.onTransact(PG:1)
+09-29 03:31:06.854  5074  5086 E AndroidRuntime: 	at android.os.Binder.execTransactInternal(Binder.java:1344)
+09-29 03:31:06.854  5074  5086 E AndroidRuntime: 	at android.os.Binder.execTransact(Binder.java:1275)
+09-29 03:31:12.029  5074  5086 F libc    : Fatal signal 6 (SIGABRT), code -6 (SI_TKILL) in tid 5086 (binder:5074_1), pid 5074 (earchbox:search)
+09-29 03:31:13.467  6846  6846 F DEBUG   : *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+09-29 03:31:13.468  6846  6846 F DEBUG   : Build fingerprint: 'google/sdk_gphone64_x86_64/emu64xa:14/UE1A.230829.050/12077443:userdebug/dev-keys'
+09-29 03:31:13.468  6846  6846 F DEBUG   : Revision: '0'
+09-29 03:31:13.468  6846  6846 F DEBUG   : ABI: 'x86_64'
+09-29 03:31:13.468  6846  6846 F DEBUG   : Timestamp: 2026-09-29 03:31:12.324249088-0400
+09-29 03:31:13.468  6846  6846 F DEBUG   : Process uptime: 2762s
+09-29 03:31:13.468  6846  6846 F DEBUG   : Cmdline: com.google.android.googlequicksearchbox:search
+09-29 03:31:13.468  6846  6846 F DEBUG   : pid: 5074, tid: 5086, name: binder:5074_1  >>> com.google.android.googlequicksearchbox:search <<<
+09-29 03:31:13.468  6846  6846 F DEBUG   : uid: 10132
+09-29 03:31:13.468  6846  6846 F DEBUG   : signal 6 (SIGABRT), code -6 (SI_TKILL), fault addr --------
+09-29 03:31:13.468  6846  6846 F DEBUG   : Abort message: 'JNI FatalError called: java.lang.Error thrown during binder transaction: java.lang.OutOfMemoryError: Failed to allocate a 24 byte allocation with 4567264 free bytes and 4460KB until OOM, target footprint 603979776, growth limit 603979776; giving up on allocation because <1% of heap free after GC.'
+09-29 03:31:13.468  6846  6846 F DEBUG   :     rax 0000000000000000  rbx 000078b60631e318  rcx 000078b91fcaf610  rdx 0000000000000006
+09-29 03:31:13.468  6846  6846 F DEBUG   :     r8  0000000000033000  r9  0000000000033000  r10 000078b60631e320  r11 0000000000000207
+09-29 03:31:13.468  6846  6846 F DEBUG   :     r12 000078b800056ef0  r13 0000000000000000  r14 00000000000013d2  r15 00000000000013de
+09-29 03:31:13.468  6846  6846 F DEBUG   :     rdi 00000000000013d2  rsi 00000000000013de
+09-29 03:31:13.468  6846  6846 F DEBUG   :     rbp 000000000000000b  rsp 000078b60631e310  rip 000078b91fcaf610
+09-29 03:31:13.468  6846  6846 F DEBUG   : 15 total frames
+09-29 03:31:13.468  6846  6846 F DEBUG   : backtrace:
+09-29 03:31:13.468  6846  6846 F DEBUG   :       #00 pc 0000000000061610  /apex/com.android.runtime/lib64/bionic/libc.so (abort+192) (BuildId: fa337969c798946280caa45e2d71a2e7)
+09-29 03:31:13.468  6846  6846 F DEBUG   :       #01 pc 00000000007fabab  /apex/com.android.art/lib64/libart.so (art::Runtime::Abort(char const*)+1627) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+09-29 03:31:13.468  6846  6846 F DEBUG   :       #02 pc 0000000000037abd  /apex/com.google.mainline.primary.libs@340724000/lib64/libbase.so/a5cce001552a532d111a59af51bbb6cc5e93475522f033f9807fa5f8ad346840deb8c6475491b3425ed7ef34094fb412761afd70b2205820f67d8a4c71c39832/libbase.so (android::base::SetAborter(std::__1::function<void (char const*)>&&)::$_0::__invoke(char const*)+61) (BuildId: d848a07685150bc1df3af6b95e4bc316)
+09-29 03:31:13.468  6846  6846 F DEBUG   :       #03 pc 0000000000036fe2  /apex/com.google.mainline.primary.libs@340724000/lib64/libbase.so/a5cce001552a532d111a59af51bbb6cc5e93475522f033f9807fa5f8ad346840deb8c6475491b3425ed7ef34094fb412761afd70b2205820f67d8a4c71c39832/libbase.so (android::base::LogMessage::~LogMessage()+354) (BuildId: d848a07685150bc1df3af6b95e4bc316)
+09-29 03:31:13.468  6846  6846 F DEBUG   :       #04 pc 0000000000601449  /apex/com.android.art/lib64/libart.so (art::JNI<false>::FatalError(_JNIEnv*, char const*)+185) (BuildId: b6dc79e02101ea00827a35a55ab6597a)
+09-29 03:31:13.468  6846  6846 F DEBUG   :       #05 pc 000000000018a734  /system/lib64/libandroid_runtime.so (android::binder_report_exception(_JNIEnv*, _jthrowable*, char const*)+1204) (BuildId: 58f47cb2665b829aa74415f458f1922a)
+09-29 03:31:13.468  6846  6846 F DEBUG   :       #06 pc 000000000018c954  /system/lib64/libandroid_runtime.so (JavaBBinder::onTransact(unsigned int, android::Parcel const&, android::Parcel*, unsigned int)+292) (BuildId: 58f47cb2665b829aa74415f458f1922a)
+09-29 03:31:13.468  6846  6846 F DEBUG   :       #07 pc 0000000000067180  /system/lib64/libbinder.so (android::BBinder::transact(unsigned int, android::Parcel const&, android::Parcel*, unsigned int)+208) (BuildId: 404ed6308cc41e47e1246a91ff68e31e)
+09-29 03:31:13.468  6846  6846 F DEBUG   :       #08 pc 0000000000065b95  /system/lib64/libbinder.so (android::IPCThreadState::executeCommand(int)+693) (BuildId: 404ed6308cc41e47e1246a91ff68e31e)
+09-29 03:31:13.468  6846  6846 F DEBUG   :       #09 pc 00000000000893e7  /system/lib64/libbinder.so (android::IPCThreadState::joinThreadPool(bool)+615) (BuildId: 404ed6308cc41e47e1246a91ff68e31e)
+09-29 03:31:13.468  6846  6846 F DEBUG   :       #10 pc 0000000000089177  /system/lib64/libbinder.so (android::PoolThread::threadLoop()+23) (BuildId: 404ed6308cc41e47e1246a91ff68e31e)
+09-29 03:31:13.468  6846  6846 F DEBUG   :       #11 pc 00000000000105b2  /system/lib64/libutils.so (android::Thread::_threadLoop(void*)+210) (BuildId: c777bd164e6d4a5c070cb5e2d9bb92e0)
+09-29 03:31:13.468  6846  6846 F DEBUG   :       #12 pc 00000000000ebe72  /system/lib64/libandroid_runtime.so (android::AndroidRuntime::javaThreadShell(void*)+146) (BuildId: 58f47cb2665b829aa74415f458f1922a)
+09-29 03:31:13.468  6846  6846 F DEBUG   :       #13 pc 00000000000cd06a  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+58) (BuildId: fa337969c798946280caa45e2d71a2e7)
+09-29 03:31:13.468  6846  6846 F DEBUG   :       #14 pc 0000000000062d88  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+56) (BuildId: fa337969c798946280caa45e2d71a2e7)
+09-29 03:33:10.665  6885  7381 E AndroidRuntime: FATAL EXCEPTION: binder:6885_8
+09-29 03:33:10.665  6885  7381 E AndroidRuntime: Process: com.google.android.googlequicksearchbox:search, PID: 6885
+09-29 03:33:10.665  6885  7381 E AndroidRuntime: java.lang.OutOfMemoryError: Failed to allocate a 32 byte allocation with 3640936 free bytes and 3555KB until OOM, target footprint 603979776, growth limit 603979776; giving up on allocation because <1% of heap free after GC.
+09-29 03:33:10.665  6885  7381 E AndroidRuntime: 	at com.google.android.gms.common.api.ag.createFromParcel(PG:10)
+09-29 03:33:10.665  6885  7381 E AndroidRuntime: 	at com.google.android.a.c.a(PG:2)
+09-29 03:33:10.665  6885  7381 E AndroidRuntime: 	at com.google.android.gms.clearcut.internal.o.dispatchTransaction(PG:25)
+09-29 03:33:10.665  6885  7381 E AndroidRuntime: 	at com.google.android.a.b.onTransact(PG:2)
+09-29 03:33:10.665  6885  7381 E AndroidRuntime: 	at android.os.Binder.execTransactInternal(Binder.java:1344)
+09-29 03:33:10.665  6885  7381 E AndroidRuntime: 	at android.os.Binder.execTransact(Binder.java:1275)
+09-29 03:33:11.573  6885  7382 E AndroidRuntime: FATAL EXCEPTION: binder:6885_9
+09-29 03:33:11.573  6885  7382 E AndroidRuntime: Process: com.google.android.googlequicksearchbox:search, PID: 6885
+09-29 03:33:11.573  6885  7382 E AndroidRuntime: java.lang.OutOfMemoryError: Failed to allocate a 32 byte allocation with 3549064 free bytes and 3465KB until OOM, target footprint 603979776, growth limit 603979776; giving up on allocation because <1% of heap free after GC.
+09-29 03:33:11.573  6885  7382 E AndroidRuntime: 	at com.google.android.gms.common.api.ag.createFromParcel(PG:10)
+09-29 03:33:11.573  6885  7382 E AndroidRuntime: 	at com.google.android.a.c.a(PG:2)
+09-29 03:33:11.573  6885  7382 E AndroidRuntime: 	at com.google.android.gms.clearcut.internal.o.dispatchTransaction(PG:25)
+09-29 03:33:11.573  6885  7382 E AndroidRuntime: 	at com.google.android.a.b.onTransact(PG:2)
+09-29 03:33:11.573  6885  7382 E AndroidRuntime: 	at android.os.Binder.execTransactInternal(Binder.java:1344)
+09-29 03:33:11.573  6885  7382 E AndroidRuntime: 	at android.os.Binder.execTransact(Binder.java:1275)
+09-29 03:33:13.214  6885  7091 E AndroidRuntime: FATAL EXCEPTION: binder:6885_7
+09-29 03:33:13.214  6885  7091 E AndroidRuntime: Process: com.google.android.googlequicksearchbox:search, PID: 6885
+09-29 03:33:13.214  6885  7091 E AndroidRuntime: java.lang.OutOfMemoryError: Failed to allocate a 24 byte allocation with 3542048 free bytes and 3459KB until OOM, target footprint 603979776, growth limit 603979776; giving up on allocation because <1% of heap free after GC.
+09-29 03:33:13.214  6885  7091 E AndroidRuntime: 	at android.os.BinderProxy.getInstance(BinderProxy.java:454)
+09-29 03:33:13.214  6885  7091 E AndroidRuntime: 	at android.os.Parcel.nativeReadStrongBinder(Native Method)
+09-29 03:33:13.214  6885  7091 E AndroidRuntime: 	at android.os.Parcel.readStrongBinder(Parcel.java:3167)
+09-29 03:33:13.214  6885  7091 E AndroidRuntime: 	at android.app.IApplicationThread$Stub.onTransact(IApplicationThread.java:549)
+09-29 03:33:13.214  6885  7091 E AndroidRuntime: 	at android.os.Binder.execTransactInternal(Binder.java:1344)
+09-29 03:33:13.214  6885  7091 E AndroidRuntime: 	at android.os.Binder.execTransact(Binder.java:1275)
+09-29 03:33:55.494  7423  7455 E AndroidRuntime: FATAL EXCEPTION: BG Thread #2
+09-29 03:33:55.494  7423  7455 E AndroidRuntime: Process: com.google.android.googlequicksearchbox:search, PID: 7423
+09-29 03:33:55.494  7423  7455 E AndroidRuntime: java.lang.OutOfMemoryError: Failed to allocate a 32 byte allocation with 3421728 free bytes and 3341KB until OOM, target footprint 603979776, growth limit 603979776; giving up on allocation because <1% of heap free after GC.
+09-29 03:33:55.494  7423  7455 E AndroidRuntime: 	at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1610)
+09-29 03:33:55.494  7423  7455 E AndroidRuntime: 	at java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:435)
+09-29 03:33:55.494  7423  7455 E AndroidRuntime: 	at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)
+09-29 03:33:55.494  7423  7455 E AndroidRuntime: 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)
+09-29 03:33:55.494  7423  7455 E AndroidRuntime: 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)
+09-29 03:33:55.494  7423  7455 E AndroidRuntime: 	at com.google.android.libraries.i.k.run(PG:2)
+09-29 03:33:55.494  7423  7455 E AndroidRuntime: 	at com.google.android.libraries.i.p.run(PG:4)
+09-29 03:33:55.494  7423  7455 E AndroidRuntime: 	at java.lang.Thread.run(Thread.java:1012)
+09-29 03:35:18.334  7861  7861 E AndroidRuntime: FATAL EXCEPTION: main
+09-29 03:35:18.334  7861  7861 E AndroidRuntime: Process: com.google.android.googlequicksearchbox:search, PID: 7861
+09-29 03:35:18.334  7861  7861 E AndroidRuntime: java.lang.OutOfMemoryError: Failed to allocate a 32 byte allocation with 1156088 free bytes and 1128KB until OOM, target footprint 603979776, growth limit 603979776; giving up on allocation because <1% of heap free after GC.
+09-29 03:35:18.334  7861  7861 E AndroidRuntime: 	at android.view.accessibility.AccessibilityManager.notifyAccessibilityStateChanged(AccessibilityManager.java:2215)
+09-29 03:35:18.334  7861  7861 E AndroidRuntime: 	at android.view.accessibility.AccessibilityManager.setStateLocked(AccessibilityManager.java:1466)
+09-29 03:35:18.334  7861  7861 E AndroidRuntime: 	at android.view.accessibility.AccessibilityManager.-$$Nest$msetStateLocked(Unknown Source:0)
+09-29 03:35:18.334  7861  7861 E AndroidRuntime: 	at android.view.accessibility.AccessibilityManager$MyCallback.handleMessage(AccessibilityManager.java:2368)
+09-29 03:35:18.334  7861  7861 E AndroidRuntime: 	at android.os.Handler.dispatchMessage(Handler.java:102)
+09-29 03:35:18.334  7861  7861 E AndroidRuntime: 	at android.os.Looper.loopOnce(Looper.java:205)
+09-29 03:35:18.334  7861  7861 E AndroidRuntime: 	at android.os.Looper.loop(Looper.java:294)
+09-29 03:35:18.334  7861  7861 E AndroidRuntime: 	at android.app.ActivityThread.main(ActivityThread.java:8177)
+09-29 03:35:18.334  7861  7861 E AndroidRuntime: 	at java.lang.reflect.Method.invoke(Native Method)
+09-29 03:35:18.334  7861  7861 E AndroidRuntime: 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:552)
+09-29 03:35:18.334  7861  7861 E AndroidRuntime: 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:971)

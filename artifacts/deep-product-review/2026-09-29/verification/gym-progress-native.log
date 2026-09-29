@@ -1,0 +1,66 @@
+com.whip.app.GymPowerInputUiTest#progressChoosesPerformedExerciseAndRefreshesExactSourceAfterDataChange
+INSTRUMENTATION_STATUS: class=com.whip.app.GymPowerInputUiTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.GymPowerInputUiTest:
+INSTRUMENTATION_STATUS: test=progressChoosesPerformedExerciseAndRefreshesExactSourceAfterDataChange
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.GymPowerInputUiTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'Recent squat' (ignoreCase: false))
+Semantics of the node:
+Node #41 at (l=53.0, t=1210.0, r=1027.0, b=1384.0)px, Tag: 'gym-progress-exercise-selector'
+Has 2 children, 17 siblings
+Selector used: (TestTag = 'gym-progress-exercise-selector')
+
+	at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+	at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+	at com.whip.app.GymPowerInputUiTest.progressChoosesPerformedExerciseAndRefreshesExactSourceAfterDataChange(GymPowerInputUiTest.kt:212)
+
+INSTRUMENTATION_STATUS: stream=
+Error in progressChoosesPerformedExerciseAndRefreshesExactSourceAfterDataChange(com.whip.app.GymPowerInputUiTest):
+java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'Recent squat' (ignoreCase: false))
+Semantics of the node:
+Node #41 at (l=53.0, t=1210.0, r=1027.0, b=1384.0)px, Tag: 'gym-progress-exercise-selector'
+Has 2 children, 17 siblings
+Selector used: (TestTag = 'gym-progress-exercise-selector')
+
+	at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+	at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+	at com.whip.app.GymPowerInputUiTest.progressChoosesPerformedExerciseAndRefreshesExactSourceAfterDataChange(GymPowerInputUiTest.kt:212)
+
+INSTRUMENTATION_STATUS: test=progressChoosesPerformedExerciseAndRefreshesExactSourceAfterDataChange
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 2.297
+There was 1 failure:
+1) progressChoosesPerformedExerciseAndRefreshesExactSourceAfterDataChange(com.whip.app.GymPowerInputUiTest)
+java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'Recent squat' (ignoreCase: false))
+Semantics of the node:
+Node #41 at (l=53.0, t=1210.0, r=1027.0, b=1384.0)px, Tag: 'gym-progress-exercise-selector'
+Has 2 children, 17 siblings
+Selector used: (TestTag = 'gym-progress-exercise-selector')
+
+	at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+	at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+	at com.whip.app.GymPowerInputUiTest.progressChoosesPerformedExerciseAndRefreshesExactSourceAfterDataChange(GymPowerInputUiTest.kt:212)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1
+
+Elapsed ms: 4235
+Command exit: 0

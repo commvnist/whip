@@ -43,6 +43,7 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.FilterAlt
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PushPin
@@ -85,6 +86,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
@@ -201,6 +203,11 @@ internal fun decodeTrackCondition(saved: String): TrackCondition {
 private val trackConditionListSaver = listSaver<List<TrackCondition>, String>(
     save = { it.map(::encodeTrackCondition) },
     restore = { it.map(::decodeTrackCondition) },
+)
+
+private val trackReviewScopeSaver = listSaver<TrackReviewScope, String>(
+    save = { listOf(it.range.name, it.mode.name) + it.conditions.map(::encodeTrackCondition) },
+    restore = { TrackReviewScope(TrackReviewRange.valueOf(it[0]), it.drop(2).map(::decodeTrackCondition), TrackConditionMode.valueOf(it[1])) },
 )
 
 private val stringSetSaver = listSaver<Set<String>, String>(
@@ -489,8 +496,9 @@ internal fun TrackAreaContent(
     }
     BackHandler(enabled = selected != null && !editorOpen) { selectedTrackId = null }
 
+    val collectionPages = rememberSaveableStateHolder()
     @Composable fun trackList(masterPane: Boolean) {
-        AllTracksPage(
+        collectionPages.SaveableStateProvider("collection-${workspaceDestination.name}") { AllTracksPage(
             customUnits = customUnits,
             state = state,
             innerPadding = PaddingValues(),
@@ -510,7 +518,7 @@ internal fun TrackAreaContent(
             onReorderModeChange = onReorderModeChange,
             reorderDismissRequest = reorderDismissRequest,
             onRetryLoading = viewModel::retryLoading,
-        )
+        ) }
     }
     @Composable fun trackDetail(projection: TrackProjection) {
         TrackDetailPage(
@@ -1348,7 +1356,18 @@ private fun AllTracksPage(
         orphanedMessage =
             "The previous Track change was interrupted. Your selection is still here; verify the Tracks, then retry.",
     )
-    val source = if (showArchived) state.archived else state.active
+    val unfiltered = if (showArchived) state.archived else state.active
+    var query by rememberSaveable(showArchived) { mutableStateOf("") }
+    val normalizedQuery = query.trim().lowercase(Locale.ROOT)
+    val searchIndex = remember(unfiltered) { unfiltered.map { it to it.track.collectionSearchText() } }
+    val source = remember(searchIndex, normalizedQuery) { searchIndex.filter { normalizedQuery in it.second }.map { it.first } }
+    val listState = rememberLazyListState()
+    val focusManager = LocalFocusManager.current
+    var positionedQuery by rememberSaveable(showArchived) { mutableStateOf(normalizedQuery) }
+    LaunchedEffect(normalizedQuery) {
+        if (positionedQuery != normalizedQuery) { listState.scrollToItem(0); positionedQuery = normalizedQuery }
+    }
+    val openTrack: (Long) -> Unit = { focusManager.clearFocus(); onOpen(it) }
     val sourceIds = source.mapTo(mutableSetOf()) { it.track.id }
     val visibleSelectedIds = selectedIds intersect sourceIds
     val selectionReady = !state.loading && state.errorMessage == null
@@ -1382,9 +1401,15 @@ private fun AllTracksPage(
     }
     WhipReorderLazyColumn(
         Modifier.fillMaxSize().padding(innerPadding).testTag("track-list"),
+        state = listState,
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
+        if (unfiltered.isNotEmpty() || query.isNotEmpty()) item {
+            WhipSearchField("Find Tracks", query, { query = it; reordering = false }, hint = "Name, description, tag, or status",
+                modifier = Modifier.fillMaxWidth().testTag("track-collection-search"))
+            if (normalizedQuery.isNotBlank()) Text("${source.size} of ${quantityLabel(unfiltered.size, "Track")}", style = MaterialTheme.typography.labelMedium)
+        }
         item {
             WhipPageHeader(
                 title = if (showArchived) "Archived Tracks" else "Tracks",
@@ -1398,10 +1423,13 @@ private fun AllTracksPage(
                         DropdownMenu(moreOpen, { moreOpen = false }) {
                         if (!showArchived && (state.active.size > 1 || !reorderEnabled)) WhipMenuItem(
                             label = when {
+                                normalizedQuery.isNotBlank() -> "Clear Search & Reorder"
                                 !reorderEnabled -> "Show All Areas & Reorder"
                                 else -> "Reorder Tracks"
                             },
                             onClick = {
+                                query = ""
+                                focusManager.clearFocus()
                                 if (!reorderEnabled) onShowAllAreasForReorder()
                                 selecting = false
                                 selectedIds = emptySet()
@@ -1483,22 +1511,24 @@ private fun AllTracksPage(
         else if (source.isEmpty()) item {
             WhipEmptyState(
                 title = when {
+                    normalizedQuery.isNotBlank() -> "No Matching Tracks"
                     showArchived -> "No Archived Tracks"
                     else -> "No Tracks in This View"
                 },
                 supportingText = when {
+                    normalizedQuery.isNotBlank() -> "Try a name, description, tag, or status."
                     showArchived -> "Archived Tracks appear here and can be restored."
                     else -> "Create a reusable log here, or change the Area above to find existing Tracks."
                 },
-                primaryActionLabel = "Create Track".takeUnless { showArchived },
-                onPrimaryAction = onCreate.takeUnless { showArchived },
+                primaryActionLabel = if (normalizedQuery.isNotBlank()) "Clear Search" else "Create Track".takeUnless { showArchived },
+                onPrimaryAction = if (normalizedQuery.isNotBlank()) ({ query = "" }) else onCreate.takeUnless { showArchived },
             )
         } else {
             if (pinned.isNotEmpty() && !showArchived) {
                 item { WhipSectionHeading("Pinned Tracks", compact = true) }
                 itemsIndexed(pinned, key = { _, item -> "track-pinned-${item.track.id}" }) { index, item ->
                     TrackRow(
-                        item, onOpen, onEdit, onAddEntry,
+                        item, openTrack, onEdit, onAddEntry,
                         customUnits = customUnits,
                         onMove = if (reordering) {{ delta -> moveWithin(pinned, index, delta) }} else null,
                         canMoveEarlier = index > 0,
@@ -1517,7 +1547,7 @@ private fun AllTracksPage(
             }
             itemsIndexed(unpinned, key = { _, item -> "track-${item.track.id}" }) { index, item ->
                 TrackRow(
-                    item, onOpen, onEdit, onAddEntry,
+                    item, openTrack, onEdit, onAddEntry,
                     customUnits = customUnits,
                     onMove = if (reordering) {{ delta -> moveWithin(unpinned, index, delta) }} else null,
                     canMoveEarlier = index > 0,
@@ -1763,6 +1793,9 @@ private fun TrackDetailPage(
     requestedReadOnlyEntryId: Long? = null,
     onReadOnlyEntryRequestConsumed: (Long) -> Unit = {},
 ) {
+    val reviewScopeState = rememberSaveable(projection.track.id, stateSaver = trackReviewScopeSaver) { mutableStateOf(TrackReviewScope()) }
+    var clearEntrySearchRequest by rememberSaveable(projection.track.id) { mutableIntStateOf(0) }
+    val pages = rememberSaveableStateHolder()
     BoxWithConstraints(Modifier.fillMaxSize().padding(innerPadding)) {
       val shortDetail = focusedDetail || maxHeight < 440.dp
       Column(Modifier.fillMaxSize()) {
@@ -1811,7 +1844,7 @@ private fun TrackDetailPage(
             testTagPrefix = "track-destination",
             barTestTag = "track-detail-navigation",
         )
-        when (destination) {
+        pages.SaveableStateProvider("${projection.track.id}-${destination.name}") { when (destination) {
             TrackDetailDestination.Entries -> TrackEntriesPage(
                 projection,
                 today,
@@ -1825,11 +1858,14 @@ private fun TrackDetailPage(
                 requestedReadOnlyEntryId,
                 onReadOnlyEntryRequestConsumed,
                 onRestore = { onSetArchived(false) },
+                reviewScopeState = reviewScopeState,
+                clearSearchRequest = clearEntrySearchRequest,
             )
             TrackDetailDestination.Insights -> TrackInsightsPage(
                 projection, customUnits, today, onAddEntry,
-                onOpenEntries = { onDestinationChange(TrackDetailDestination.Entries) },
+                onOpenEntries = { clearEntrySearchRequest++; onDestinationChange(TrackDetailDestination.Entries) },
                 dialogModifier = dialogModifier,
+                reviewScopeState = reviewScopeState,
             )
             TrackDetailDestination.Options -> TrackOptionsPage(
                 projection,
@@ -1841,7 +1877,7 @@ private fun TrackDetailPage(
                 onImport,
                 onDeleteTrack,
             )
-        }
+        } }
       }
     }
 }
@@ -1860,6 +1896,8 @@ internal fun TrackEntriesPage(
     requestedReadOnlyEntryId: Long? = null,
     onReadOnlyEntryRequestConsumed: (Long) -> Unit = {},
     onRestore: () -> Unit,
+    reviewScopeState: MutableState<TrackReviewScope>? = null,
+    clearSearchRequest: Int = 0,
 ) {
     var searchVisible by rememberSaveable(projection.track.id) { mutableStateOf(false) }
     var query by rememberSaveable(projection.track.id) { mutableStateOf("") }
@@ -1870,13 +1908,15 @@ internal fun TrackEntriesPage(
     var sortFieldId by rememberSaveable(projection.track.id) { mutableStateOf<Long?>(null) }
     var sortOpen by rememberSaveable(projection.track.id) { mutableStateOf(false) }
     var filterOpen by rememberSaveable(projection.track.id) { mutableStateOf(false) }
-    var conditions by rememberSaveable(projection.track.id, stateSaver = trackConditionListSaver) { mutableStateOf<List<TrackCondition>>(emptyList()) }
-    var conditionMode by rememberSaveable(projection.track.id) { mutableStateOf(TrackConditionMode.MatchAll) }
+    val localReviewScope = rememberSaveable(projection.track.id, stateSaver = trackReviewScopeSaver) { mutableStateOf(TrackReviewScope()) }
+    var reviewScope by (reviewScopeState ?: localReviewScope)
+    val conditions = reviewScope.conditions
+    val conditionMode = reviewScope.mode
     var searchState by remember(projection.track.id) { mutableStateOf<TrackHistorySearchState?>(null) }
     var searchRetry by remember(projection.track.id) { mutableIntStateOf(0) }
     val entryListState = rememberLazyListState()
     var lastSettledQuery by rememberSaveable(projection.track.id) { mutableStateOf("") }
-    var requestedEntryCount by rememberSaveable(projection.track.id, query.trim(), conditions, conditionMode, sort, sortDirection, sortFieldId) {
+    var requestedEntryCount by rememberSaveable(projection.track.id, query.trim(), reviewScope, sort, sortDirection, sortFieldId) {
         mutableIntStateOf(TRACK_ENTRY_PAGE_SIZE)
     }
     var pagedEntries by remember(projection.track.id) { mutableStateOf<List<TrackEntryProjection>>(emptyList()) }
@@ -1887,6 +1927,14 @@ internal fun TrackEntriesPage(
     var searchGeneration by remember(projection.track.id) { mutableLongStateOf(0L) }
     var viewEntryId by rememberSaveable(projection.track.id) { mutableStateOf<Long?>(null) }
     val coroutineScope = rememberCoroutineScope()
+    var lastClearRequest by rememberSaveable(projection.track.id) { mutableIntStateOf(0) }
+    LaunchedEffect(clearSearchRequest) {
+        if (clearSearchRequest != lastClearRequest) {
+            query = ""; searchVisible = false
+            entryListState.scrollToItem(0)
+            lastClearRequest = clearSearchRequest
+        }
+    }
     // Use exact structural equality instead of timestamps. Value and Choice
     // replacements do not necessarily touch the parent Entry timestamp, and two
     // legitimate writes can share the same millisecond.
@@ -1973,7 +2021,7 @@ internal fun TrackEntriesPage(
     LaunchedEffect(sortFieldId, sortField?.id) {
         if (sortFieldId != null && sortField == null) sortFieldId = null
     }
-    val databasePagedView = query.isBlank() && conditions.isEmpty() && sort == TrackSort.EntryDate &&
+    val databasePagedView = query.isBlank() && reviewScope.range == TrackReviewRange.All && conditions.isEmpty() && sort == TrackSort.EntryDate &&
         sortField == null && sortDirection == SortDirection.Descending
     LaunchedEffect(projection.track.id, pageContentVersion, databasePagedView) {
         if (databasePagedView) reloadPage() else {
@@ -1981,8 +2029,9 @@ internal fun TrackEntriesPage(
             pageLoading = false
         }
     }
+    val scopedEntries = remember(projection, reviewScope, today) { projection.reviewEntries(reviewScope, today) }
     val shown = if (databasePagedView) pagedEntries else {
-        projection.matchingEntries(conditions, conditionMode)
+        scopedEntries
             .filter { entry -> normalizedQuery.isBlank() || currentSearch?.matches?.contains(entry.entry.id) == true }
             .let { entries -> projection.sortedEntries(entries, sort, sortField, sortDirection) }
     }
@@ -2006,6 +2055,12 @@ internal fun TrackEntriesPage(
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
+        item {
+            TrackReviewRangeControl(reviewScope, today, scopedEntries.size) { range ->
+                reviewScope = reviewScope.copy(range = range)
+                coroutineScope.launch { entryListState.scrollToItem(0) }
+            }
+        }
         if (projection.track.archived) item {
             FlowRow(
                 modifier = Modifier.fillMaxWidth().testTag("track-archived-status"),
@@ -2057,8 +2112,8 @@ internal fun TrackEntriesPage(
         if (conditions.isNotEmpty()) item {
             TrackAppliedConditions(
                 projection, conditions, conditionMode, BuiltInUnits.all + customUnits,
-                onRemove = { index -> conditions = conditions.toMutableList().also { it.removeAt(index) } },
-                onClear = { conditions = emptyList() },
+                onRemove = { index -> reviewScope = reviewScope.copy(conditions = conditions.toMutableList().also { it.removeAt(index) }) },
+                onClear = { reviewScope = reviewScope.copy(conditions = emptyList()) },
                 onEdit = { filterOpen = true },
             )
         }
@@ -2080,7 +2135,7 @@ internal fun TrackEntriesPage(
                 actionLabel = "Retry Search", onAction = { searchRetry++ }, modifier = Modifier.testTag("track-entry-search-error"))
         } }
         if ((!databasePagedView || (!pageLoading && pageError == null)) && !searchPending && searchError == null && shown.isEmpty()) item {
-            val filtered = query.isNotBlank() || conditions.isNotEmpty()
+            val filtered = query.isNotBlank() || conditions.isNotEmpty() || reviewScope.range != TrackReviewRange.All
             WhipEmptyState(
                 title = if (filtered) "No Matching Entries" else "No Entries Yet",
                 supportingText = when {
@@ -2096,7 +2151,7 @@ internal fun TrackEntriesPage(
                 onPrimaryAction = {
                     if (filtered) {
                         query = ""
-                        conditions = emptyList()
+                        reviewScope = TrackReviewScope()
                     } else onAddEntry()
                 },
             )
@@ -2197,7 +2252,7 @@ internal fun TrackEntriesPage(
         today = today,
         units = BuiltInUnits.all + customUnits,
         onDismiss = { filterOpen = false },
-        onApply = { mode, updated -> conditionMode = mode; conditions = updated; filterOpen = false },
+        onApply = { mode, updated -> reviewScope = reviewScope.copy(mode = mode, conditions = updated); filterOpen = false },
     )
     viewEntryId?.let { entryId ->
         projection.entries.firstOrNull { it.entry.id == entryId }?.let { entry ->
@@ -2254,8 +2309,13 @@ private fun TrackEntryRow(
             context(projection.track.area)
         }
         val units = BuiltInUnits.all + customUnits
-        projection.fields.filter(TrackField::showInList).take(2).forEach { field ->
-            fact(field.name, projection.formattedValue(entry, field, units))
+        val shownFields = projection.fields.filter(TrackField::showInList)
+        shownFields.take(2).forEach { field ->
+            fact(field.name, projection.formattedValue(entry, field, units).ifBlank { "—" })
+        }
+        if (shownFields.size > 2) {
+            detail("${shownFields.size - 2} more configured details · View all ${shownFields.size}")
+            action("View All ${shownFields.size} Details for ${projection.entryDisplayTitle(entry, units)}", Icons.Outlined.Info, onOpen)
         }
         if (editable) edit(onEdit)
         if (onOpenTrack != null) command("Open Track", onClick = onOpenTrack)
@@ -2323,17 +2383,26 @@ private fun TrackInsightsPage(
     onAddEntry: () -> Unit,
     onOpenEntries: () -> Unit,
     dialogModifier: Modifier = Modifier,
+    reviewScopeState: MutableState<TrackReviewScope>,
 ) {
+    // Keep offscreen field disclosures outside LazyColumn's prunable item state.
+    var expandedTrendFields by rememberSaveable(projection.track.id) { mutableStateOf<Set<String>>(emptySet()) }
+    var trendPages by rememberSaveable(projection.track.id) { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var filterOpen by rememberSaveable(projection.track.id) { mutableStateOf(false) }
-    var conditions by rememberSaveable(projection.track.id, stateSaver = trackConditionListSaver) { mutableStateOf<List<TrackCondition>>(emptyList()) }
-    var conditionMode by rememberSaveable(projection.track.id) { mutableStateOf(TrackConditionMode.MatchAll) }
-    val scoped = projection.copy(entries = projection.matchingEntries(conditions, conditionMode))
+    var reviewScope by reviewScopeState
+    val conditions = reviewScope.conditions
+    val conditionMode = reviewScope.mode
+    val scoped = remember(projection, reviewScope, today) { projection.copy(entries = projection.reviewEntries(reviewScope, today)) }
     val dates = scoped.entries.map { it.entry.entryDate }
     LazyColumn(
         Modifier.fillMaxSize().testTag("track-insights-list"),
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        item {
+            TrackReviewRangeControl(reviewScope, today, scoped.entries.size) { reviewScope = reviewScope.copy(range = it) }
+            WhipOutlinedButton(onClick = onOpenEntries, modifier = Modifier.fillMaxWidth().testTag("track-review-matching-entries")) { Text("View Matching Entries") }
+        }
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -2352,8 +2421,8 @@ private fun TrackInsightsPage(
         if (conditions.isNotEmpty()) item {
             TrackAppliedConditions(
                 projection, conditions, conditionMode, BuiltInUnits.all + customUnits,
-                onRemove = { index -> conditions = conditions.toMutableList().also { it.removeAt(index) } },
-                onClear = { conditions = emptyList() },
+                onRemove = { index -> reviewScope = reviewScope.copy(conditions = conditions.toMutableList().also { it.removeAt(index) }) },
+                onClear = { reviewScope = reviewScope.copy(conditions = emptyList()) },
                 onEdit = { filterOpen = true },
             )
         }
@@ -2363,7 +2432,7 @@ private fun TrackInsightsPage(
                 WhipEmptyState(
                     title = if (hasEntries) "No Matching Entries" else "No Entries Yet",
                     supportingText = when {
-                        hasEntries -> "Change a condition above, or Clear All to see every Entry."
+                        hasEntries -> "Choose All Dates or change the conditions above to see other Entries."
                         projection.track.archived -> "This archived Track has no recorded Entries. Restore it from Entries to start recording."
                         else -> "Add your first Entry to see summaries of this Track."
                     },
@@ -2378,7 +2447,7 @@ private fun TrackInsightsPage(
             return@LazyColumn
         }
         item {
-            WhipSummaryCard(if (conditions.isEmpty()) "All Entries" else "Matching Entries") {
+            WhipSummaryCard(if (conditions.isEmpty() && reviewScope.range == TrackReviewRange.All) "All Entries" else "Matching Entries") {
                 metric("Total", scoped.entries.size.toString())
                 metric("Last 7 Days", dates.trackInsightCount(today, 7).toString())
                 metric("Last 30 Days", dates.trackInsightCount(today, 30).toString())
@@ -2456,6 +2525,14 @@ private fun TrackInsightsPage(
                 lines.filterNot { numeric && it.first in setOf("Sum", "Average") }
                     .forEach { (label, value) -> fact(label, value) }
             }
+            if (field.type in setOf(TrackFieldType.Number, TrackFieldType.Scale)) {
+                TrackRecordedTrend(field, scoped.entries, BuiltInUnits.all + customUnits,
+                    showData = field.uuid in expandedTrendFields,
+                    onShowData = { expanded -> expandedTrendFields = if (expanded) expandedTrendFields + field.uuid else expandedTrendFields - field.uuid },
+                    page = trendPages[field.uuid] ?: 0,
+                    onPage = { page -> trendPages = trendPages + (field.uuid to page) },
+                )
+            }
         }
     }
     if (filterOpen) TrackFilterDialog(
@@ -2466,7 +2543,7 @@ private fun TrackInsightsPage(
         today = today,
         units = BuiltInUnits.all + customUnits,
         onDismiss = { filterOpen = false },
-        onApply = { mode, updated -> conditionMode = mode; conditions = updated; filterOpen = false },
+        onApply = { mode, updated -> reviewScope = reviewScope.copy(mode = mode, conditions = updated); filterOpen = false },
     )
 }
 
@@ -3733,7 +3810,7 @@ private fun TrackFieldEditor(
                 }
                 item { TrackToggleRow("Required", "Entries cannot be saved without this Field.", required || primary, { required = it }, enabled = !primary) }
                 item { TrackToggleRow("Entry Identity", "Combine one or more required Fields to distinguish Entries with the same name.", primary, { primary = it; if (it) required = true }) }
-                item { TrackToggleRow("Show Label in Entry List", "Show this Field name and value beneath the combined Entry identity.", showInList, { showInList = it }) }
+                item { TrackToggleRow("Show Label in Entry List", "Show this Field in the list preview. After two Fields, View All Details shows the remaining Fields.", showInList, { showInList = it }) }
                 onDelete?.let { action -> item { HorizontalDivider(); WhipDestructiveTextButton(onClick = action, modifier = Modifier.fillMaxWidth()) { Text("Delete Field") } } }
             }
         },

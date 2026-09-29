@@ -1,0 +1,63 @@
+com.whip.app.GymPowerInputUiTest#exerciseBasicsPrecedeSearchableCategoriesAndRestoreSelection
+INSTRUMENTATION_STATUS: class=com.whip.app.GymPowerInputUiTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.GymPowerInputUiTest:
+INSTRUMENTATION_STATUS: test=exerciseBasicsPrecedeSearchableCategoriesAndRestoreSelection
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.GymPowerInputUiTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Per hand' (ignoreCase: true))
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+	at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+	at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+	at com.whip.app.GymPowerInputUiTest.exerciseBasicsPrecedeSearchableCategoriesAndRestoreSelection(GymPowerInputUiTest.kt:315)
+
+INSTRUMENTATION_STATUS: stream=
+Error in exerciseBasicsPrecedeSearchableCategoriesAndRestoreSelection(com.whip.app.GymPowerInputUiTest):
+java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Per hand' (ignoreCase: true))
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+	at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+	at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+	at com.whip.app.GymPowerInputUiTest.exerciseBasicsPrecedeSearchableCategoriesAndRestoreSelection(GymPowerInputUiTest.kt:315)
+
+INSTRUMENTATION_STATUS: test=exerciseBasicsPrecedeSearchableCategoriesAndRestoreSelection
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 3.029
+There was 1 failure:
+1) exerciseBasicsPrecedeSearchableCategoriesAndRestoreSelection(com.whip.app.GymPowerInputUiTest)
+java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'Per hand' (ignoreCase: true))
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)
+	at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+	at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)
+	at com.whip.app.GymPowerInputUiTest.exerciseBasicsPrecedeSearchableCategoriesAndRestoreSelection(GymPowerInputUiTest.kt:315)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1
+
+Elapsed ms: 4950
+Command exit: 0
