@@ -44,7 +44,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -57,6 +56,7 @@ import androidx.compose.runtime.withFrameNanos
 import kotlinx.coroutines.flow.first
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -188,6 +188,10 @@ internal fun SettingsContent(
     onDataReset: () -> Unit = {},
     selectedSection: SettingsSection? = null,
     onSectionChange: (SettingsSection) -> Unit = {},
+    externalSearchAction: Boolean = false,
+    searchRequested: Boolean = false,
+    onSearchRequestConsumed: () -> Unit = {},
+    onSearchAvailabilityChange: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
     val weekdayFormatter = rememberWhipWeekdayFormatter()
@@ -252,6 +256,13 @@ internal fun SettingsContent(
     val settingsAnchorPositions = remember(section) { mutableMapOf<String, Int>() }
     val canSearchSettings = activeTypedSettingTag == null && !state.busy && !confirmDelete &&
         state.backupPreview == null && !state.encryptedRestorePending && !showEncryptedExport
+    SideEffect { onSearchAvailabilityChange(canSearchSettings) }
+    LaunchedEffect(searchRequested) {
+        if (searchRequested) {
+            if (canSearchSettings) settingsSearchOpen = true
+            onSearchRequestConsumed()
+        }
+    }
     LaunchedEffect(pendingSettingsAnchor, section, compactSectionOpen) {
         val anchor = pendingSettingsAnchor ?: return@LaunchedEffect
         if (SettingsSearchEntries.firstOrNull { it.anchor == anchor }?.section != section) return@LaunchedEffect
@@ -420,7 +431,7 @@ internal fun SettingsContent(
                         title = "Settings",
                         supportingText = "Preferences, defaults, and app data.",
                     ) {
-                        WhipPageIconAction(Icons.Outlined.Search, "Search Settings", onClick = { settingsSearchOpen = true })
+                        if (!externalSearchAction) WhipPageIconAction(Icons.Outlined.Search, "Search Settings", onClick = { settingsSearchOpen = true }, enabled = canSearchSettings)
                     }
                 }
                 LazyColumn(
@@ -453,12 +464,12 @@ internal fun SettingsContent(
         }
     Column(Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(whipPagePadding(bottom = 0.dp)),
+            verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (!externalSectionNavigation && !wideSettingsNavigation) {
                     WhipBackAction(
@@ -474,10 +485,14 @@ internal fun SettingsContent(
                         "Local preferences, data controls, defaults, and export."
                     } else null,
                     modifier = Modifier.weight(1f),
-                )
-                IconButton(onClick = { settingsSearchOpen = true }, enabled = canSearchSettings,
-                    modifier = Modifier.testTag("settings-search-open")) {
-                    Icon(Icons.Outlined.Search, contentDescription = "Search Settings")
+                ) {
+                    if (!externalSearchAction) WhipPageIconAction(
+                        Icons.Outlined.Search,
+                        "Search Settings",
+                        onClick = { settingsSearchOpen = true },
+                        enabled = canSearchSettings,
+                        modifier = Modifier.testTag("settings-search-open"),
+                    )
                 }
             }
         }

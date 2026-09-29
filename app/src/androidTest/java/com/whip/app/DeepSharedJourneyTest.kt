@@ -62,7 +62,7 @@ class DeepSharedJourneyTest {
         }
     }
 
-    @Test fun taskFindAndSavedFilterChildRetainTheirParentContext() {
+    @Test fun workspaceSearchAndSavedFilterChildRetainConsistentChrome() {
         val ids = runBlocking {
             (1..8).map { app.taskRepository.create(TaskDraft("Repair item $it", scheduleKind = ScheduleKind.Once,
                 date = app.clock.today(), inbox = false)) }
@@ -70,16 +70,38 @@ class DeepSharedJourneyTest {
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             await("home-list")
             compose.onNodeWithTag("primary-navigation-Tasks").performClick()
-            compose.onNodeWithContentDescription("Find Tasks").performClick()
-            compose.onNodeWithTag("task-list-query").performTextReplacement("item 8")
+            await("task-workspace-list")
+            val headerBounds = compose.onNodeWithTag("workspace-top-app-bar").fetchSemanticsNode().boundsInRoot
+            val searchBounds = compose.onNodeWithTag("workspace-search-action").fetchSemanticsNode().boundsInRoot
+            val titleTop = compose.onNodeWithTag("page-title").fetchSemanticsNode().boundsInRoot.top
+            for (destination in listOf("Habits", "Goals", "Tracks", "Gym", "Tasks")) {
+                compose.onNodeWithTag("primary-navigation-$destination").performClick()
+                compose.onAllNodesWithTag("workspace-search-action").assertCountEquals(1)
+                org.junit.Assert.assertEquals(headerBounds, compose.onNodeWithTag("workspace-top-app-bar").fetchSemanticsNode().boundsInRoot)
+                org.junit.Assert.assertEquals(searchBounds, compose.onNodeWithTag("workspace-search-action").fetchSemanticsNode().boundsInRoot)
+                org.junit.Assert.assertTrue("Page title shifted in $destination", kotlin.math.abs(titleTop - compose.onNodeWithTag("page-title").fetchSemanticsNode().boundsInRoot.top) <= 1f)
+            }
+            compose.onNodeWithTag("workspace-settings-action").performClick()
+            compose.onAllNodesWithContentDescription("Search Settings").assertCountEquals(1)
+            org.junit.Assert.assertEquals(searchBounds, compose.onNodeWithTag("workspace-search-action").fetchSemanticsNode().boundsInRoot)
+            compose.onNodeWithTag("workspace-search-action").performClick()
+            await("settings-search-query")
+            compose.onNodeWithText("Close", substring = false).performClick()
+            compose.onNodeWithTag("workspace-settings-action").performClick()
+            compose.onNodeWithTag("task-list-query").assertDoesNotExist()
+            compose.onNodeWithContentDescription("Find Tasks").assertDoesNotExist()
+            compose.onNodeWithTag("workspace-search-action").performClick()
+            await("unified-search-query")
+            compose.onNodeWithTag("unified-search-query").performTextReplacement("item 8")
             closeSoftKeyboard()
-            compose.onNodeWithTag("task-card-${ids.last()}").performScrollTo().performClick()
+            await("unified-search-result-Task-${ids.last()}")
+            compose.onNodeWithTag("unified-search-result-Task-${ids.last()}").performScrollTo().performClick()
             compose.onNodeWithTag("entity-inspector-close").performClick()
             scenario.recreate()
-            compose.onNodeWithTag("task-list-query").assertTextContains("item 8")
-            compose.onNodeWithTag("task-card-${ids.first()}").assertDoesNotExist()
-            captureVisualCatalogSurface("deep.tasks.inline-find")
+            compose.onNodeWithTag("task-list-query").assertDoesNotExist()
             compose.onNodeWithContentDescription("Filter & Sort Tasks").performClick()
+            compose.onNodeWithTag("task-filter-query").performScrollTo().performTextReplacement("item 8")
+            closeSoftKeyboard()
             compose.onNodeWithText("Save These Filters").performScrollTo().performClick()
             compose.onNodeWithText("Filter Name").performTextReplacement("Repair lookup")
             compose.onNodeWithText("Cancel").performClick()
@@ -90,7 +112,12 @@ class DeepSharedJourneyTest {
             compose.onNodeWithText("Save").performClick()
             compose.onNodeWithText("Sort, Group & Filter Tasks").assertIsDisplayed()
             compose.onNodeWithText("Done").performClick()
-            compose.onNodeWithContentDescription("Clear task search").performClick()
+            compose.onNodeWithText("Query: item 8").assertIsDisplayed()
+            captureVisualCatalogSurface("search-consistency.tasks.active-filter")
+            compose.onNodeWithContentDescription("Filter & Sort Tasks", substring = true).performClick()
+            compose.onNodeWithTag("task-filter-query").performScrollTo().performTextClearance()
+            closeSoftKeyboard()
+            compose.onNodeWithText("Done").performClick()
             compose.onNodeWithTag("task-card-${ids.first()}").performScrollTo().assertIsDisplayed()
         }
     }

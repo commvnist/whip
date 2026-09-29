@@ -102,13 +102,13 @@ class DenseDataBenchmark {
                 )
                 device.waitForIdle(1_000)
             }
-            // Compose merges this action row without exporting either the test tag
-            // or label to UIAutomator on the Fold. The preceding reveal leaves the
-            // primary action at a stable proportional position in the right pane.
-            device.executeShellCommand(
-                "input tap ${device.displayWidth * 69 / 100} ${device.displayHeight * 55 / 100}",
+            device.clickObject(
+                By.res(Pattern.compile(".*quick-set-save-next-.*")),
+                "complete set action",
             )
-            device.waitForIdle(1_000)
+            check(device.wait(Until.gone(By.res(Pattern.compile(".*next-set-focus"))), 10_000)) {
+                "Benchmark input did not complete its only pending Set"
+            }
         }
     }
 
@@ -126,10 +126,9 @@ class DenseDataBenchmark {
             "am start -W -n $PACKAGE_NAME/com.whip.app.BenchmarkDataActivity --es mode $mode",
         )
         check("Status: ok" in launch) { "Benchmark fixture activity did not launch: $launch" }
-        val ready = device.wait(Until.findObject(By.text("Seed ready: $mode")), 180_000)
-        check(ready != null) {
-            val failure = device.findObject(By.textStartsWith("Seed failed:"))?.text
-            "Benchmark fixture failed to seed: $mode${failure?.let { " ($it)" }.orEmpty()}"
+        val status = device.wait(Until.findObject(By.textStartsWith("Seed ")), 180_000)?.text
+        check(status == "Seed ready: $mode") {
+            "Benchmark fixture failed to seed: $mode (${status ?: "no seed result"})"
         }
         // Remove the fixture Activity from the app task before Macrobenchmark
         // launches the normal MAIN/LAUNCHER entry point. Merely pressing Home can

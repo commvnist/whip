@@ -1,5 +1,75 @@
 # Durable findings
 
+### FND-20260929-012 — Area native assertions contradict scrolling and saving ownership
+
+- Severity/category: P2 native fixture drift, discovered during FB-20260929-004.
+- Observed: Full Android execution fails the Area long-choice test expecting the outer title to remain displayed after scrolling dialog content, and permanent deletion looking for disabled background controls while the saving barrier intentionally removes their accessibility nodes.
+- Repair: Assert stable Cancel/Move bounds through choices and scroll the title back into view; assert the announced saving overlay and unavailable background accessibility nodes, preserving large-text selection, failure/retry and cancellation outcomes.
+- Related/status: IMP-20260929-006 / VER-20260929-004. Implemented; native replay paused. No product Area behavior change or passing replay claimed.
+
+### FND-20260929-011 — Collection search introduces competing controls and uneven page starts
+
+- Severity/category: P1 owner-reported design regression.
+- Observed/source: Habit/Goal place always-visible find fields between workspace tabs and page headings; Track puts its find field before the collection heading in the scrolling list. Tasks has a second magnifying glass beside its page title while the root already owns contextual search.
+- Root cause: DS2/DP3 added independent collection-search entry points instead of retaining the shared workspace search owner, producing different vertical starting positions and duplicate actions.
+- Expected/remedy: Restore the single contextual top-right search entry for collections; remove local state and dependent clear-search/reorder paths. Review all main workspace headers, tabs and control geometry, recording grounded corrections separately from source-reviewed keeps.
+- Further source review: Gym Exercise/Machine/Routine collections also expose persistent search fields. Consolidating them requires retaining linked-machine, configuration-version and routine-day/exercise lookup in unified search. Task text filters must return to the shared active-filter row/count because the removed inline query previously owned their visibility. Settings section search uses a separate 48dp IconButton outside its adaptive page header, unlike its category page; align it with the shared header action owner.
+- Related/status: FB-20260929-005, DEC-20260929-002, IMP-20260929-007, VER-20260929-005. Implemented; source-reviewed dispositions in the [correction report](../quality/SEARCH_DESIGN_REMEDIATION_2026-09-29.md). Runtime verification paused by the owner.
+
+### FND-20260929-010 — Target-guard fixture omits runner font state and pins an old release
+
+- Severity/category: P2 harness contract drift.
+- Observed: Complete target-guard execution passes the actual Gradle hooks but fails its coverage fixture on the runner's `settings get system font_scale` call. The fixture also retains unrelated hardcoded 0.3.69/code 75 assertions at its tail.
+- Repair: Model font-scale reads/writes/restoration in fake ADB, assert baseline 1.0 before every batch and restoration of the original 2.0, and remove unrelated historical version pins. Preserve every physical-target, batching, freshness, cache and coverage rejection assertion.
+- Attempt accounting: The initial 55-second fixture timed out; a subsequent overlapping benchmark build encountered a Dex worker failure. The serialized build replay reached the reproducible missing mock command. None is a harness pass.
+- Related/status: FB-20260929-004 / VER-20260929-004. Implemented and Verified by complete fixture replay before the pause.
+
+### FND-20260929-007 — Remembered history search reads an unobservable locale
+
+- Severity/category: P2 product configuration correctness and lint failure.
+- Observed: Full Debug lint rejects `Locale.getDefault()` used as a `remember` key in Habit and Goal inspectors (`NonObservableLocale`, two errors). A live locale change can leave the search index using stale formatted dates/values until another input changes.
+- Expected/repair: Read the locale from Compose's observable configuration and key both indexes on it; retain all record, unit and query keys. Do not suppress or baseline the error.
+- Related/status: FB-20260929-004 / IMP-20260929-006. Implemented; exact locale JVM contracts pass before the pause. Full lint replay pending.
+
+### FND-20260929-008 — Habit Today native contract expects moved analytical metrics
+
+- Severity/category: P2 native contract drift.
+- Observed: The full Android run fails `ActivityHistoryUiTest#habitTodayUsesOneResponsiveOverviewAndExplainedSecondaryAction` looking for `habit-today-metric-streak` in Today.
+- Expected/evidence: DP1 deliberately puts execution in Today and long-term evidence in focused Insights. Today still owns check-in state, date, primary execution and explained neutral Skip; focused Insights has entries/streak/completion evidence.
+- Repair: Assert the current execution hierarchy and retained Skip callback, then independently verify Insights navigation/evidence. Preserve the actual 200% layout assertion.
+- Related/status: FB-20260929-004, VER-20260929-002, IMP-20260929-006. Implemented; native replay paused.
+
+### FND-20260929-009 — Benchmark setup uses retired onboarding and incomplete raw schema inserts
+
+- Severity/category: P2 benchmark harness correctness.
+- Observed: Full benchmark execution fails Baseline profile navigation because setup waits for retired “Start with Recommended Setup” instead of “Use Recommended”. Dense graph seeding fails the NOT NULL `workout_sessions.sourceRoutineProgramKind` constraint; source/schema comparison also finds required placement and Set snapshot columns omitted from raw fixture inserts.
+- Expected/repair: Complete current onboarding, navigate by exported accessibility labels, populate current immutable snapshot defaults, and surface explicit seed failures immediately instead of spending the entire ready timeout. Re-execute all nine scenarios after repair.
+- Related/status: FB-20260929-004 / IMP-20260929-006. Implemented; raw SQL probe passes before the pause, repaired nine-scenario replay pending.
+
+### FND-20260929-006 — UI discovery snapshot predates new audit-owned surfaces
+
+- Severity/category: P2 verification inventory drift.
+- Observed: `scripts/ui-catalog lint` rejects 251 discovered UI owners against the prior 238-owner snapshot.
+- Review: Compared discovery with snapshot commit `47341219`: 12 removed keys and 25 additions. Habit/Track request-local function keys and unit-creation scope changed; Home Habit entry moved to its own file; retired clock-picker/Task-repeat calls disappeared. New meaningful owners are Exercise category picker, workout-start content, Workout Overview, Settings search, Task day planning, Task child dialogs and Track entry preview. Their implementations and native evidence are linked in the completed product, experience and deep-review plans (VER-20260928-005/007 and VER-20260929-002).
+- Repair: Refresh the reviewed discovery hashes while preserving the existing visual-capture contract. Lint confirms 524 required captures, zero pending selectors and zero platform exceptions. This snapshot/lint pass does not claim a new full visual inspection or coverage of every new audit state by that older catalog.
+- Related/status: FB-20260929-004. Implemented and Verified by catalog lint.
+
+### FND-20260929-005 — Architecture assertions retain superseded Focus and Task chrome
+
+- Severity/category: P2 regression contract drift.
+- Observed: Fresh execution runs 722 JVM methods; two fail because `SurfaceRoleArchitectureTest` expects the retired task-name Notice in `WhipApp`, and `UiDesignArchitectureTest` expects two Task page icon actions rather than Search, Filter and More.
+- Expected/evidence: The delivered Focus execution card owns its countdown, actions and low-container surface in `FocusTimerUi.kt`; the deep-review Task search deliberately adds a third shared icon action. Both behaviors have prior native acceptance under VER-20260928-004 / VER-20260929-002.
+- Repair: Move the Focus surface contract to its current explicit timer owner and assert all three Task action meanings with their shared component. Preserve unrelated surface/hierarchy assertions.
+- Related/status: FB-20260929-004 / VER-20260929-004. Exact contracts and complete 722-method JVM replay passed before subsequent changes. The three-icon Task expectation is Superseded by FB-20260929-005: current correction requires the original two Filter/More icons and shared root search.
+
+### FND-20260929-004 — Full-gate inventory predates the completed audits
+
+- Severity/category: P2 verification bookkeeping.
+- Observed: `scripts/check --full` rejects the documented 693-JVM/1,219-Android baseline; current source contains 722 JVM and 1,266 Android methods.
+- Expected/root cause: The source-backed full gate must describe its current inventory. The earlier audits added regression methods while deliberately using focused verification, leaving the full-gate baseline stale.
+- Repair: Update `docs/testing.md` to 1,988 product methods without altering the source-count guard or reducing execution.
+- Related/status: FB-20260929-004. Implemented; complete gate verification pending.
+
 ### FND-20260929-003 — Shared overview and inspection paths bury work and lose return context
 
 - Current evidence: fresh baseline Home original confirms current hierarchy; source shows unbounded earlier sections before later domains and wrapped saved filters. Tasks hides local search in Filters and closes Filters before naming a saved view. Task inspector puts subtasks below metadata, Focus in Options and scheduling on another tab. Review dismisses itself on every source route and rebuilds analytics from clock-ticking feature state.

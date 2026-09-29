@@ -1,10 +1,18 @@
 # Durable product and engineering decisions
 
+### DEC-20260929-002 — Workspace search owns collection lookup
+
+- Context/decision: FB-20260929-005 explicitly rejects the delivered local collection search. The existing contextual toolbar magnifying glass is the sole main-collection entry; Settings purpose lookup uses that same anchor. Remove Habit/Goal/Track/Task and Gym library find controls, retaining richer lookup metadata in unified search.
+- Boundaries: Text criteria inside saved filters, history inspectors and authoring pickers remain contextual controls. Track Activity text narrowing moves inside Filters, eliminating its second magnifying glass. Preserve history correction continuity, area scope, selection mutation boundaries and original facts.
+- Layout: Reuse shared page padding, adaptive headers, 48dp page-action anchors and stable overflow menus. Main root search stays in its 52dp toolbar slot. Home/dashboard, Settings/category and focused editor jobs retain their appropriate content structure.
+- Related/status: FND-20260929-011 / IMP-20260929-007. Implemented; runtime verification paused. Supersedes only collection-search entry points in DEC-20260929-001's DS2/DP3 and prior Gym local lookup; other accepted improvements remain authoritative.
+
 ### DEC-20260929-001 — Redo the audit around complete jobs and implement grounded redesigns
 
 - Decision: The owner's rejection of prior audit depth requires an independent critique of current 0.3.83, including previous keep decisions. Accept the [deep review plan](../quality/DEEP_PRODUCT_REVIEW_2026-09-29.md) before each workstream, implement every accepted remedy and close only with proportionate behavioral and freshly inspected rendered evidence.
 - Accepted scope: DGS-1–6, DP1–6 and DS1–4 in the linked plan/reports. Preserve immutable historical meaning, exact mutation ownership, queue/optional-work policies and shared design controls; avoid speculative architecture. Ground further findings before expanding the plan.
 - Constraints/status: FB-20260929-002, FND-20260929-001/002/003. Implemented and Verified under IMP-20260929-002/003/004 and VER-20260929-002; all 16 groups delivered. Same two authorized agent slots, exact sub-minute QA, no readiness/full/candidate batch or new phone release.
+- Later correction: Collection-search portions of DS2/DP3 are Superseded by the owner's FB-20260929-005 / DEC-20260929-002. Historical acceptance remains recorded; it does not override newer design feedback.
 
 ### DEC-20260928-004 — Improve complete interactions and hierarchy through existing owners
 

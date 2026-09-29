@@ -19,6 +19,10 @@ class UnifiedSearchRulesTest {
         val routine = com.whip.app.domain.GymRoutine(1, "routine", "Strength", "", 0, false, false, 1, 1)
         assertFalse(state.searchContent() == state.copy(routines = listOf(routine)).searchContent())
         assertFalse(state.searchContent() == state.copy(archivedRoutines = listOf(routine)).searchContent())
+        val day = com.whip.app.domain.RoutineDay(1, "day", routine.id, "Saturday", 0, 1, 1)
+        val placement = com.whip.app.domain.RoutineExercise(1, "placement", day.id, 1, 0, "", null, false, 1, 1)
+        assertFalse(state.searchContent() == state.copy(routineDays = listOf(day)).searchContent())
+        assertFalse(state.searchContent() == state.copy(routineExercises = listOf(placement)).searchContent())
     }
 
     @Test
@@ -37,6 +41,9 @@ class UnifiedSearchRulesTest {
         assertFalse(WhipSearchQuery("after:2026-08-20").matches(task))
         assertFalse(WhipSearchQuery("missing tag:home").matches(task, false))
         assertTrue(WhipSearchQuery("AREA:work").explicitAreaOverride)
+        val machineResult = task.copy(domain = SearchDomain.Machine, searchText = "North room v3 cable fly")
+        assertTrue(WhipSearchQuery("north v3 cable").matches(machineResult))
+        assertFalse(WhipSearchQuery("north v2 cable").matches(machineResult))
         val query = "report tag:finance area:work deadline:true before:2026-09-01"
         val compiled = WhipSearchQuery(query)
         fun repeated() = rows.filter { it.legacyMatchesQuery(query) }.sortedWith(compareBy { it.legacySearchRank(query) }).map { it.id }

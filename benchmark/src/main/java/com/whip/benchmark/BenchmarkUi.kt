@@ -52,20 +52,20 @@ internal fun UiDevice.clickObject(
 }
 
 internal fun UiDevice.completeOnboardingIfNeeded() {
-    wait(Until.findObject(By.text("Start with Recommended Setup")), 3_000)?.let { setup ->
-        val center = setup.visibleCenter
-        executeShellCommand("input tap ${center.x} ${center.y}")
+    wait(Until.findObject(By.text("Use Recommended")), 3_000)?.let {
+        clickObject(By.text("Use Recommended"), "recommended setup")
+        check(wait(Until.gone(By.text("Welcome to Whip")), 10_000)) {
+            "Benchmark setup did not finish saving"
+        }
     }
-    waitForIdle(1_000)
+    requireObject(By.desc("Tasks tab"), "primary navigation after setup")
 }
 
 internal fun UiDevice.clickPrimaryDestination(label: String) {
     if (label == "Home") {
-        // Goal and Gym projections can recompose continuously while their dense history is
-        // loading, making the exported Compose node stale between lookup and click. The brand
-        // home action has a stable top-bar position across Whip's benchmark phone viewport.
-        executeShellCommand("input tap ${displayWidth / 10} ${displayHeight * 8 / 100}")
-        return
+        if (hasObject(By.desc("Home"))) return
+        clickObject(By.desc("Go to Home"), "Home navigation item")
+    } else {
+        clickObject(By.desc("$label tab"), "$label navigation item")
     }
-    clickObject(By.text(label), "$label navigation item")
 }

@@ -131,6 +131,7 @@ data class WhipSearchResult(
     val date: LocalDate? = null,
     val deadline: LocalDate? = null,
     val status: String = "active",
+    val searchText: String = "",
 )
 
 internal enum class UnifiedSearchWorkspaceLayout { Compact, Wide }
@@ -363,12 +364,12 @@ internal fun UnifiedSearchDialog(
                     .joinToString(" · ") { log ->
                         "${log.activityTitle(habit, customUnits)} · ${log.activitySupportingText(habitState.currentDate)}"
                     }
-                add(WhipSearchResult(SearchDomain.Habit, habit.id, habit.name, listOf(habit.notes, logText).filter(String::isNotBlank).joinToString(" · "), area = habit.area, areaId = habit.areaId, tags = habit.tags.toSet(), status = if (habit.archived) "archived" else "active"))
+                add(WhipSearchResult(SearchDomain.Habit, habit.id, habit.name, listOf(habit.notes, logText).filter(String::isNotBlank).joinToString(" · "), area = habit.area, areaId = habit.areaId, tags = habit.tags.toSet(), status = if (habit.archived) "archived" else "active", searchText = habit.collectionSearchText()))
             }
             (goalState.active + goalState.completed + goalState.archived).distinctBy { it.goal.id }.forEach { item ->
                 val measurementText = history(SearchDomain.Goal, item.entries, MaxSearchHistoryValuesPerEntity) { it.timestamp }
                     .joinToString(" · ") { entry -> "${entry.historyTitle(customUnits)} · ${entry.historySupportingText()}" }
-                add(WhipSearchResult(SearchDomain.Goal, item.goal.id, item.goal.name, listOf(item.goal.description, measurementText).filter(String::isNotBlank).joinToString(" · "), area = item.goal.area, areaId = item.goal.areaId, tags = item.goal.tags.toSet(), deadline = item.goal.deadline, status = if (item.goal.archived) "archived" else item.goal.status.label.lowercase()))
+                add(WhipSearchResult(SearchDomain.Goal, item.goal.id, item.goal.name, listOf(item.goal.description, measurementText).filter(String::isNotBlank).joinToString(" · "), area = item.goal.area, areaId = item.goal.areaId, tags = item.goal.tags.toSet(), deadline = item.goal.deadline, status = if (item.goal.archived) "archived" else item.goal.status.label.lowercase(), searchText = item.goal.collectionSearchText()))
             }
             trackState.projections.forEach { projection ->
                 add(
@@ -386,6 +387,7 @@ internal fun UnifiedSearchDialog(
                         tags = projection.track.tags.toSet(),
                         date = projection.entries.maxOfOrNull { it.entry.entryDate },
                         status = if (projection.track.archived) "archived" else "active",
+                        searchText = projection.track.collectionSearchText(),
                     ),
                 )
                 history(SearchDomain.TrackEntry, projection.entries, MaxSearchEntriesPerTrack) { it.entry.createdAtMillis }.forEach { entry ->
@@ -418,10 +420,15 @@ internal fun UnifiedSearchDialog(
                     )
                 }
             }
-            (gymState.exercises + gymState.archivedExercises).distinctBy { it.id }.forEach { exercise ->
-                add(WhipSearchResult(SearchDomain.Exercise, exercise.id, exercise.name, exercise.notes, status = if (exercise.archived) "archived" else "active"))
+            val machines = (gymState.machines + gymState.archivedMachines).distinctBy { it.id }
+            val exercises = (gymState.exercises + gymState.archivedExercises).distinctBy { it.id }
+            val exercisesById = exercises.associateBy { it.id }
+            val machineNamesByExercise = machines.flatMap { machine -> machine.exerciseIds.map { it to machine.displayName } }
+                .groupBy({ it.first }, { it.second }).mapValues { (_, names) -> names.joinToString(" ") }
+            exercises.forEach { exercise ->
+                add(WhipSearchResult(SearchDomain.Exercise, exercise.id, exercise.name, exercise.notes, status = if (exercise.archived) "archived" else "active", searchText = exercise.searchText(machineNamesByExercise[exercise.id].orEmpty())))
             }
-            (gymState.machines + gymState.archivedMachines).distinctBy { it.id }.forEach { machine ->
+            machines.forEach { machine ->
                 add(
                     WhipSearchResult(
                         SearchDomain.Machine,
@@ -430,6 +437,7 @@ internal fun UnifiedSearchDialog(
                         listOf(machine.location, machine.details, machine.attachment, machine.seatPosition, machine.backPosition)
                             .filter(String::isNotBlank).joinToString(" · "),
                         status = if (machine.archived) "archived" else "active",
+                        searchText = machine.searchText(exercisesById),
                     ),
                 )
             }
@@ -446,7 +454,7 @@ internal fun UnifiedSearchDialog(
                 )
             }
             (gymState.routines + gymState.archivedRoutines).distinctBy { it.id }.forEach { routine ->
-                add(WhipSearchResult(SearchDomain.Routine, routine.id, routine.name, routine.notes, status = if (routine.archived) "archived" else "active"))
+                add(WhipSearchResult(SearchDomain.Routine, routine.id, routine.name, routine.notes, status = if (routine.archived) "archived" else "active", searchText = routine.searchText(gymState.routineDays, gymState.routineExercises, exercises)))
             }
             }
         }

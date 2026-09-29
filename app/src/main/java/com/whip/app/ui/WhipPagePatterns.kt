@@ -301,14 +301,16 @@ internal fun WhipPageIconAction(
     modifier: Modifier = Modifier,
     badgeCount: Int = 0,
     active: Boolean = false,
+    enabled: Boolean = true,
 ) {
-    val contentColor = if (active) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
+    val contentColor = when {
+        !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+        active -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     IconButton(
         onClick = onClick,
+        enabled = enabled,
         modifier = modifier
             .size(48.dp)
             .semantics {

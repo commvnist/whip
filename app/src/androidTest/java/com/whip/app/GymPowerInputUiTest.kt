@@ -6,6 +6,8 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsOn
+import com.whip.app.ui.defaultSearchScope
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasClickAction
@@ -593,12 +595,23 @@ class GymPowerInputUiTest {
         ) }
         val archived = profiles.last().copy(id = 31, uuid = "archived-machine", archived = true, configurationVersion = 2)
         var edited: Long? = null
+        var searching by mutableStateOf(false)
+        val libraryState = GymUiState(loading = false, exercises = listOf(first, second), machines = profiles, archivedMachines = listOf(archived))
         val restoration = StateRestorationTester(compose)
         restoration.setContent {
             WhipTheme(dynamicColor = false) {
                 com.whip.app.ui.MachineLibraryContent(
-                    state = GymUiState(loading = false, exercises = listOf(first, second), machines = profiles, archivedMachines = listOf(archived)),
+                    state = libraryState,
                     onCreate = {}, onEdit = { edited = it.id }, onArchive = { _, _ -> }, onNewVersion = {}, onDelete = {},
+                )
+                if (searching) com.whip.app.ui.UnifiedSearchDialog(
+                    taskState = com.whip.app.ui.TaskUiState(loading = false),
+                    habitState = com.whip.app.ui.HabitUiState(loading = false),
+                    goalState = com.whip.app.ui.GoalUiState(loading = false),
+                    gymState = libraryState,
+                    initialScope = com.whip.app.ui.WhipSearchEntryContext.Machines.defaultSearchScope(),
+                    onDismiss = { searching = false },
+                    onSelect = { edited = it.id; searching = false },
                 )
             }
         }
@@ -617,28 +630,27 @@ class GymPowerInputUiTest {
         assertTrue("Thirty-profile lookup should measure actual navigation before querying", lookupSwipes > 0)
         compose.onNodeWithText("Cable station 30 · North room").assertIsDisplayed()
         captureVisualCatalogSurface("audit2.gym.machines.distant-target-after-$lookupSwipes-swipes")
-        list.performScrollToNode(hasTestTag("machine-library-search"))
-        compose.onNodeWithTag("machine-library-search").performTextReplacement("north v3 cable fly")
+        compose.onAllNodesWithTag("machine-library-search").assertCountEquals(0)
+        compose.runOnIdle { searching = true }
+        compose.onNodeWithTag("unified-search-query").performTextReplacement("north v3 cable fly")
         androidx.test.espresso.Espresso.closeSoftKeyboard()
-        compose.onNodeWithText("1 of 30 active profiles").assertIsDisplayed()
-        captureVisualCatalogSurface("audit2.gym.machines.lookup")
-        compose.onNodeWithContentDescription("Edit machine Cable station 30 · North room").performScrollTo().performClick()
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("unified-search-result-Machine-30").fetchSemanticsNodes().isNotEmpty() }
+        captureVisualCatalogSurface("search-consistency.gym.machines.lookup")
+        compose.onNodeWithTag("unified-search-result-Machine-30").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(30L, edited) }
         list.performScrollToNode(hasText("Show archived", ignoreCase = true))
         compose.onNodeWithText("Show archived", ignoreCase = true).performClick()
-        compose.onNodeWithText("No Matching Machines").assertIsDisplayed()
-        compose.onNodeWithTag("machine-library-search").performTextReplacement("north v2 cable fly")
+        compose.runOnIdle { searching = true }
+        compose.onNodeWithTag("unified-search-query").performTextReplacement("north v2 cable fly status:archived")
         androidx.test.espresso.Espresso.closeSoftKeyboard()
         restoration.emulateSavedInstanceStateRestore()
-        compose.onNodeWithTag("machine-library-search").assertTextContains("north v2 cable fly")
-        compose.onNodeWithText("1 of 1 archived profiles").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Edit machine Cable station 30 · North room").performScrollTo().performClick()
+        compose.onNodeWithTag("unified-search-query").assertTextContains("north v2 cable fly status:archived")
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("unified-search-result-Machine-31").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("unified-search-result-Machine-31").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(31L, edited) }
-        list.performScrollToNode(hasTestTag("machine-library-search"))
-        compose.onNodeWithTag("machine-library-search").performTextReplacement("missing")
-        androidx.test.espresso.Espresso.closeSoftKeyboard()
-        compose.onNodeWithText("Clear Search", substring = false).performScrollTo().performClick()
-        compose.onNodeWithText("1 of 1 archived profiles").assertIsDisplayed()
+        list.performScrollToNode(hasText("Show archived", ignoreCase = true))
+        compose.onNodeWithText("Show archived", ignoreCase = true).assertIsOn()
+        compose.onNodeWithContentDescription("Edit machine Cable station 30 · North room").performScrollTo().assertIsDisplayed()
     }
 
     @Test

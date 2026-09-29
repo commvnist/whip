@@ -1,5 +1,28 @@
 # User feedback and acceptance criteria
 
+### FB-20260929-006 — Release the search consistency correction to the phone
+
+- Date/source: 2026-09-29, owner requests “Release to phone” after IMP-20260929-007.
+- Acceptance: Build the current correction as signed private 0.3.85/code 91, install in place on the connected owner phone and verify artifact identity, preserved app identity, version and foreground launch.
+- Scope: Release packaging and installation checks are authorized; the full test campaign and behavioral verification remain paused. Include the pending locale repair; benchmark/test fixture changes do not enter the production APK. No Play publication.
+- Status: Released as 0.3.85/code 91; related IMP-20260929-008 / VER-20260929-006. Signed packaging, in-place installation and foreground launch pass; behavioral verification remains paused.
+
+### FB-20260929-005 — Restore a single search entry and consistent page geometry
+
+- Date/source: 2026-09-29, owner pauses test verification and rejects the added Habit/Goal find boxes and duplicated Task search icon. Design consistency and navigation without jarring element shifts are paramount.
+- Acceptance: Remove main-collection search controls; use the existing top-right contextual magnifying glass. Review every main workspace's header, tabs, edges and action placement for analogous inconsistencies and remediate grounded defects. Preserve contextual history filters and inspector continuity.
+- Constraints: Test, lint and build verification remain paused until the owner resumes them. Source review and implementation are authorized; no new phone release requested.
+- Related: FND-20260929-011; supersedes local collection-search portions of DS2/DP3 under DEC-20260929-001. FB-20260929-004 is paused, not completed.
+- Status: Implemented under IMP-20260929-007; source review recorded in VER-20260929-005. Subsequently packaged and released under FB-20260929-006 / VER-20260929-006. Tests, full lint and fresh rendered verification remain paused; subjective appearance awaits user validation.
+
+### FB-20260929-004 — Run the complete suite and repair failures
+
+- Date/source: 2026-09-29, owner requests the full test suite, permits up to three emulators, and asks to fix every issue encountered.
+- Acceptance: Execute the complete JVM and Android inventories with fresh execution, static/lint/build checks and harness fixtures; diagnose failures against current behavior, implement repairs, and finish with evidence covering the complete final inventory. Preserve failed attempts and distinguish fixture drift from product bugs.
+- Constraints: This explicit request supersedes the previous focused-only verification scope for this campaign. Use disposable emulators and the existing guarded runner; keep the owner phone outside instrumentation. No release or Play publication requested.
+- Status: In progress from clean pushed `fd0925e2` (0.3.84/code 90).
+- Notes: Execution paused at owner request under FB-20260929-005. Partial failures and implemented repairs remain open; no full-suite pass is claimed.
+
 ### FB-20260929-003 — Release the completed deep review to the phone
 
 - Date/source: 2026-09-29, owner requests “Release to phone” after completion of all 16 accepted audit groups.

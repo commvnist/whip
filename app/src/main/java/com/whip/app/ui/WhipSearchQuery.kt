@@ -3,6 +3,8 @@ package com.whip.app.ui
 import com.whip.app.domain.Exercise
 import com.whip.app.domain.GymMachine
 import com.whip.app.domain.GymRoutine
+import com.whip.app.domain.RoutineDay
+import com.whip.app.domain.RoutineExercise
 import com.whip.app.domain.WorkoutSession
 import java.time.LocalDate
 
@@ -15,10 +17,13 @@ internal data class GymSearchContent(
     val sessions: List<WorkoutSession>,
     val routines: List<GymRoutine>,
     val archivedRoutines: List<GymRoutine>,
+    val routineDays: List<RoutineDay>,
+    val routineExercises: List<RoutineExercise>,
 )
 
 internal fun GymUiState.searchContent() = GymSearchContent(
     exercises, archivedExercises, machines, archivedMachines, allSessions, routines, archivedRoutines,
+    routineDays, routineExercises,
 )
 
 /** Compile query constraints once for a search, rather than once for every row/comparison. */
@@ -55,7 +60,7 @@ internal class WhipSearchQuery(query: String) {
         if (!constraints.all { it(result) }) return false
         if (plain.isEmpty()) return constraints.isNotEmpty()
         val haystack = with(result) {
-            listOf(domain.uiLabel(), title, detail, area, tags.joinToString(" "), status,
+            listOf(domain.uiLabel(), title, detail, searchText, area, tags.joinToString(" "), status,
                 date?.toString().orEmpty(), deadline?.toString().orEmpty()).joinToString(" ").lowercase()
         }
         return if (requireAllTerms) plain.all(haystack::contains) else plain.any(haystack::contains)

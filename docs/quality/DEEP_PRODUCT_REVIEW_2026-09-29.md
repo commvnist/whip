@@ -2,6 +2,8 @@
 
 Status: **Implemented and Verified**. All 16 accepted groups complete under FB-20260929-002 / IMP-20260929-002/003/004 / VER-20260929-002. Baseline `04bc58e2`, released 0.3.83/code 89. The owner rejected the depth of the prior audit; its completed changes remain historical facts, not evidence that the remaining experience is satisfactory.
 
+Later owner correction: FB-20260929-005 supersedes the DS2/DP3 local collection-search entry points. The [search/design correction](SEARCH_DESIGN_REMEDIATION_2026-09-29.md) restores the shared contextual toolbar owner and documents analogous consistency repairs. It is privately released in 0.3.85 with packaging/install/launch checks; behavioral verification remains paused. Historical audit receipts below do not certify the newer source or override the owner's design judgment.
+
 ## Completion and evidence
 
 All DS1–4, DP1–6 and DGS1–6 remedies below are implemented. The three linked domain reports explain complete jobs, alternative approaches, retained behavior, shared ownership, compatibility and observed outcomes. The [evidence map](../../artifacts/deep-product-review/2026-09-29/README.md) maps every group to exact passing receipts and inspected originals.

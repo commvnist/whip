@@ -4888,7 +4888,6 @@ private fun ExerciseLibraryContent(
     onReorderModeChange: (Boolean) -> Unit = {},
     reorderDismissRequest: Int = 0,
 ) {
-    var query by rememberSaveable { mutableStateOf("") }
     var showArchived by rememberSaveable { mutableStateOf(false) }
     var filtersExpanded by rememberSaveable { mutableStateOf(false) }
     var favoritesOnly by rememberSaveable { mutableStateOf(false) }
@@ -4907,8 +4906,7 @@ private fun ExerciseLibraryContent(
     val lastUsedAtByExercise = state.allWorkoutExercises.groupingBy(WorkoutExercise::exerciseId)
         .fold(0L) { latest, placement -> maxOf(latest, placement.createdAtMillis) }
     val visible = source.filter { exercise ->
-        exerciseMatchesQuery(exercise, query, machineNamesByExercise[exercise.id].orEmpty()) &&
-            (!favoritesOnly || exercise.favorite) &&
+        (!favoritesOnly || exercise.favorite) &&
             (selectedTrackingType == null || exercise.trackingType == selectedTrackingType) &&
             (selectedEquipment == null || if (selectedEquipment == MACHINE_EQUIPMENT_FILTER) {
                 machineNamesByExercise.containsKey(exercise.id)
@@ -4916,7 +4914,7 @@ private fun ExerciseLibraryContent(
             (selectedCategoryId == null || state.categoryLinks.any { it.exerciseId == exercise.id && it.categoryId == selectedCategoryId })
     }.sortedForLibrary(sort, sortDirection, lastUsedAtByExercise)
     val activeFilterCount = listOf(favoritesOnly, showArchived, selectedCategoryId != null, selectedTrackingType != null, selectedEquipment != null).count { it }
-    val reorderHasConstraints = query.isNotBlank() || activeFilterCount > 0
+    val reorderHasConstraints = activeFilterCount > 0
     val manualReorderEnabled = reordering && sort == ExerciseLibrarySort.Manual && !reorderHasConstraints
     BackHandler(enabled = reordering) { reordering = false }
     DisposableEffect(reordering) {
@@ -4944,7 +4942,6 @@ private fun ExerciseLibraryContent(
                         icon = Icons.Outlined.DragHandle,
                         label = if (reorderHasConstraints) "Clear filters and reorder all Exercises" else "Reorder Exercises",
                         onClick = {
-                            query = ""
                             favoritesOnly = false
                             showArchived = false
                             selectedCategoryId = null
@@ -4960,14 +4957,6 @@ private fun ExerciseLibraryContent(
         }
         if (reordering) item {
             WhipReorderModeBar(itemLabel = "Exercises", onDone = { reordering = false })
-        }
-        if (!reordering) item {
-            WhipSearchField(
-                label = "Search Exercises",
-                query = query,
-                onQueryChange = { query = it },
-                modifier = Modifier.testTag("exercise-library-search"),
-            )
         }
         if (!reordering) item {
             DisclosureRow(
@@ -5055,20 +5044,19 @@ private fun ExerciseLibraryContent(
         }
         if (visible.isEmpty()) {
             item {
-                val canClearFilters = source.isNotEmpty() && (query.isNotBlank() ||
+                val canClearFilters = source.isNotEmpty() && (
                     favoritesOnly || selectedCategoryId != null || selectedTrackingType != null || selectedEquipment != null)
                 WhipEmptyState(
                     title = if (source.isEmpty() && showArchived) "No Archived Exercises" else if (source.isEmpty()) "Exercise Library Is Empty" else "No Matching Exercises",
-                    supportingText = if (source.isEmpty() && showArchived) "Archived exercises will appear here." else if (source.isEmpty()) "Create your first named exercise to use it in workouts and routines." else "Clear or change the search and filters.",
+                    supportingText = if (source.isEmpty() && showArchived) "Archived exercises will appear here." else if (source.isEmpty()) "Create your first named exercise to use it in workouts and routines." else "Clear or change the filters.",
                     primaryActionLabel = when {
-                        canClearFilters -> "Clear Search and Filters"
+                        canClearFilters -> "Clear Filters"
                         !showArchived && source.isEmpty() -> "Create Exercise"
                         else -> null
                     },
                     onPrimaryAction = when {
                         canClearFilters -> {
                             {
-                                query = ""
                                 favoritesOnly = false
                                 selectedCategoryId = null
                                 selectedTrackingType = null
@@ -5128,9 +5116,7 @@ internal fun MachineLibraryContent(
 ) {
     var showArchived by rememberSaveable { mutableStateOf(false) }
     val exerciseById = (state.exercises + state.archivedExercises).associateBy(Exercise::id)
-    var query by rememberSaveable { mutableStateOf("") }
-    val source = if (showArchived) state.archivedMachines else state.machines
-    val visible = source.filter { machine -> machineMatchesQuery(machine, query, exerciseById) }
+    val visible = if (showArchived) state.archivedMachines else state.machines
     LazyColumn(
         modifier = Modifier.fillMaxSize().testTag("gym-machine-list"),
         contentPadding = WhipPageContentPadding,
@@ -5143,21 +5129,13 @@ internal fun MachineLibraryContent(
             )
         }
         item { ToggleRow("Show archived", showArchived) { showArchived = it } }
-        item {
-            WhipSearchField("Search Machines", query, { query = it }, modifier = Modifier.testTag("machine-library-search"))
-            Text(
-                "${visible.size} of ${source.size} ${if (showArchived) "archived" else "active"} profiles",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
         if (visible.isEmpty()) item {
             WhipEmptyState(
-                title = if (query.isNotBlank()) "No Matching Machines" else if (showArchived) "No Archived Machines" else "No Machine Profiles",
-                supportingText = if (query.isNotBlank()) "Search by name, location, configuration version or linked exercise." else if (showArchived) "Archived machine profiles will appear here." else
+                title = if (showArchived) "No Archived Machines" else "No Machine Profiles",
+                supportingText = if (showArchived) "Archived machine profiles will appear here." else
                     "Create the machine now. Exercises are optional and can be created or linked inside the machine editor.",
-                primaryActionLabel = if (query.isNotBlank()) "Clear Search" else if (showArchived) "Show Active Machines" else "Create Machine",
-                onPrimaryAction = if (query.isNotBlank()) ({ query = "" }) else if (showArchived) ({ showArchived = false }) else onCreate,
+                primaryActionLabel = if (showArchived) "Show Active Machines" else "Create Machine",
+                onPrimaryAction = if (showArchived) ({ showArchived = false }) else onCreate,
             )
         }
         items(visible, key = GymMachine::id) { machine ->
@@ -5196,12 +5174,8 @@ internal fun MachineLibraryContent(
     }
 }
 
-internal fun machineMatchesQuery(machine: GymMachine, query: String, exercises: Map<Long, Exercise>): Boolean {
-    val terms = query.trim().split(Regex("\\s+")).filter(String::isNotBlank)
-    val searchable = listOf(machine.displayName, "v${machine.configurationVersion}") +
-        machine.exerciseIds.mapNotNull { exercises[it]?.name }
-    return terms.all { term -> searchable.any { it.contains(term, ignoreCase = true) } }
-}
+internal fun GymMachine.searchText(exercises: Map<Long, Exercise>): String =
+    (listOf(displayName, "v$configurationVersion") + exerciseIds.mapNotNull { exercises[it]?.name }).joinToString(" ")
 
 @Composable
 internal fun ExercisePermanentDeleteDialog(
@@ -8906,20 +8880,16 @@ private fun <T> GymEnumDropdown(
     )
 }
 
-internal fun routineMatchesQuery(
-    routine: GymRoutine,
-    query: String,
+internal fun GymRoutine.searchText(
     days: List<RoutineDay>,
     placements: List<RoutineExercise>,
     exercises: List<Exercise>,
-): Boolean {
-    if (query.isBlank()) return true
-    val routineDays = days.filter { it.routineId == routine.id }
+): String {
+    val routineDays = days.filter { it.routineId == id }
     val dayIds = routineDays.mapTo(mutableSetOf(), RoutineDay::id)
     val exerciseIds = placements.filter { it.routineDayId in dayIds }.mapTo(mutableSetOf(), RoutineExercise::exerciseId)
-    val searchable = listOf(routine.name, routine.notes) + routineDays.map(RoutineDay::name) +
-        exercises.filter { it.id in exerciseIds }.map(Exercise::name)
-    return query.trim().split(Regex("\\s+")).all { term -> searchable.any { it.contains(term, ignoreCase = true) } }
+    return (listOf(name, notes) + routineDays.map(RoutineDay::name) +
+        exercises.filter { it.id in exerciseIds }.map(Exercise::name)).joinToString(" ")
 }
 
 @Composable
@@ -8941,7 +8911,6 @@ private fun RoutineContent(
     var editingRoutineId by rememberSaveable { mutableStateOf<Long?>(null) }
     val editing = editingRoutineId?.let { id -> (state.routines + state.archivedRoutines).firstOrNull { it.id == id } }
     var showArchived by rememberSaveable { mutableStateOf(false) }
-    var query by rememberSaveable { mutableStateOf("") }
     var actionMenuId by rememberSaveable { mutableStateOf<Long?>(null) }
     var positionRoutineId by rememberSaveable { mutableStateOf<Long?>(null) }
     var resetRoutineId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -8960,12 +8929,7 @@ private fun RoutineContent(
         }
     }
     val source = if (showArchived) state.archivedRoutines else state.routines
-    val visible = remember(source, focusedRoutineId, query, state.routineDays, state.routineExercises, state.exercises, state.archivedExercises) {
-        source.filter {
-            if (focusedRoutineId != null) it.id == focusedRoutineId
-            else routineMatchesQuery(it, query, state.routineDays, state.routineExercises, state.exercises + state.archivedExercises)
-        }
-    }
+    val visible = source.filter { focusedRoutineId == null || it.id == focusedRoutineId }
     val visibleOwnsActiveWorkout = state.activeSession?.sourceRoutineId?.let { activeRoutineId ->
         visible.any { it.id == activeRoutineId }
     } == true
@@ -8977,8 +8941,8 @@ private fun RoutineContent(
     LaunchedEffect(reorderDismissRequest) {
         if (reorderDismissRequest > 0) reordering = false
     }
-    LaunchedEffect(showArchived, focusedRoutineId, query) {
-        if (showArchived || focusedRoutineId != null || query.isNotBlank()) reordering = false
+    LaunchedEffect(showArchived, focusedRoutineId) {
+        if (showArchived || focusedRoutineId != null) reordering = false
     }
     if (showEditor || editing != null) {
         val initial = editing?.let { routine -> routineDraftForEditing(state, routine) }
@@ -9016,10 +8980,9 @@ private fun RoutineContent(
                 if (!reordering && focusedRoutineId == null && state.routines.size > 1) {
                     WhipPageIconAction(
                         icon = Icons.Outlined.DragHandle,
-                        label = if (showArchived || query.isNotBlank()) "Clear filters and reorder all Routines" else "Reorder Routines",
+                        label = if (showArchived) "Clear filters and reorder all Routines" else "Reorder Routines",
                         onClick = {
                             showArchived = false
-                            query = ""
                             reordering = true
                         },
                     )
@@ -9027,8 +8990,6 @@ private fun RoutineContent(
             }
         }
         if (!reordering && focusedRoutineId == null) item {
-            WhipSearchField(query = query, onQueryChange = { query = it }, label = "Search Routines",
-                modifier = Modifier.testTag("routine-library-search"))
             Text("${quantityLabel(visible.size, "routine")} · ${if (showArchived) "Archived" else "Active"}",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.testTag("routine-library-count"))
@@ -9055,16 +9016,13 @@ private fun RoutineContent(
         }
         if (visible.isEmpty()) item {
             WhipEmptyState(
-                title = if (query.isNotBlank() && source.isNotEmpty()) "No Matching Routines" else if (showArchived) "No Archived Routines" else "No Routines Yet",
-                supportingText = if (query.isNotBlank() && source.isNotEmpty()) "Search routine names, notes, training days, or exercises." else
-                    "Build a routine here or save a completed workout from History.",
-                primaryActionLabel = if (query.isNotBlank()) "Clear Search" else "Create Routine".takeUnless { showArchived },
+                title = if (showArchived) "No Archived Routines" else "No Routines Yet",
+                supportingText = "Build a routine here or save a completed workout from History.",
+                primaryActionLabel = "Create Routine".takeUnless { showArchived },
                 onPrimaryAction = {
-                    if (query.isNotBlank()) query = "" else {
-                        showEditor = true
-                        onEditorStateChange(true)
-                    }
-                }.takeIf { query.isNotBlank() || !showArchived },
+                    showEditor = true
+                    onEditorStateChange(true)
+                }.takeUnless { showArchived },
             )
         }
         items(visible.size, key = { visible[it].id }) { routineIndex ->
@@ -11393,16 +11351,12 @@ internal fun exerciseMatchesQuery(
 ): Boolean {
     val terms = query.trim().split(Regex("\\s+")).filter(String::isNotBlank)
     if (terms.isEmpty()) return true
-    val searchable = listOf(
-        exercise.name,
-        exercise.equipment,
-        exercise.primaryMuscles,
-        exercise.secondaryMuscles,
-        exercise.trackingType.label,
-        machineNames,
-    ).joinToString(" ")
+    val searchable = exercise.searchText(machineNames)
     return terms.all { searchable.contains(it, ignoreCase = true) }
 }
+
+internal fun Exercise.searchText(machineNames: String = ""): String =
+    listOf(name, equipment, primaryMuscles, secondaryMuscles, trackingType.label, machineNames).joinToString(" ")
 
 internal fun parsePositiveNumberList(text: String, itemLabel: String): ParsedPositiveNumbers {
     if (text.isBlank()) return ParsedPositiveNumbers(emptyList(), "Enter at least one $itemLabel")

@@ -58,6 +58,14 @@ class HabitPresentationTest {
             "Forgot my bottle", MeasurementSourceType.Manual, null, null, 1, 1)
         val text = HabitHistoryEvent.Log(log).habitHistorySearchText(habit, date)
         assertTrue(text, "250" in text && "ml" in text && "2024-09-27" in text && "forgot my bottle" in text)
+        for (locale in listOf(java.util.Locale.US, java.util.Locale.FRANCE)) {
+            val localized = HabitHistoryEvent.Log(log).habitHistorySearchText(habit, date, locale = locale)
+            val expectedDate = log.localDate.format(
+                java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM).withLocale(locale),
+            ).lowercase(java.util.Locale.ROOT)
+            assertTrue(localized, expectedDate in localized)
+            assertTrue(localized, "250" in localized && "ml" in localized && "forgot my bottle" in localized)
+        }
         val skip = HabitSkip("skip", habit.id, date.minusDays(2), 10, 1, 1)
         assertTrue(HabitHistoryEvent.Skip(skip).habitHistorySearchText(habit, date).contains("skipped"))
         val pause = HabitPause(3, habit.id, date.minusDays(4), date.minusDays(1), "Travel")

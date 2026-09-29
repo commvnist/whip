@@ -159,9 +159,12 @@ class GymUxRulesTest {
             nextProgramDayPosition = 1), listOf(friday, monday)))
         val exercise = testExercise(9, "Goblet Squat", "", "").copy(archived = true)
         val placement = com.whip.app.domain.RoutineExercise(7, "p7", monday.id, exercise.id, 0, "", null, false, 1, 1)
-        assertTrue(routineMatchesQuery(first, "MONday squat steady", listOf(monday), listOf(placement), listOf(exercise)))
-        assertFalse(routineMatchesQuery(recent, "squat", listOf(monday), listOf(placement), listOf(exercise)))
-        assertFalse(routineMatchesQuery(first, "Friday", listOf(monday), listOf(placement), listOf(exercise)))
+        val result = WhipSearchResult(SearchDomain.Routine, first.id, first.name, first.notes,
+            searchText = first.searchText(listOf(monday), listOf(placement), listOf(exercise)))
+        assertTrue(result.matchesQuery("MONday squat steady"))
+        assertFalse(result.matchesQuery("friday"))
+        assertFalse(result.copy(id = recent.id, title = recent.name,
+            searchText = recent.searchText(listOf(monday), listOf(placement), listOf(exercise))).matchesQuery("squat"))
     }
 
     @Test
@@ -534,6 +537,10 @@ class GymUxRulesTest {
         assertEquals(listOf(999L), match.map(Exercise::id))
         assertTrue(exerciseMatchesQuery(library.first(), "weight repetitions"))
         assertTrue(exerciseMatchesQuery(library.first(), "garage stack", "Garage Stack v2"))
+        val result = WhipSearchResult(SearchDomain.Exercise, library.first().id, library.first().name, "",
+            searchText = library.first().searchText("Garage Stack v2"))
+        assertTrue(result.matchesQuery("garage stack"))
+        assertFalse(result.matchesQuery("cable rear"))
     }
 
     @Test

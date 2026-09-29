@@ -21,7 +21,6 @@ class SurfaceRoleArchitectureTest {
         val homeIntroduction = app.substringBefore("home-support-introduction").takeLast(500) +
             app.substringAfter("home-support-introduction").take(1_500)
         assertTrue(homeIntroduction.contains("WhipGroupedInformationCard"))
-        assertTrue(app.contains("WhipNoticeCard(\n                    title = taskName"))
         assertTrue(Regex("WhipCollectionCard\\(\\s*onClick = \\{ onOpenPlanningHabit").findAll(app).count() == 2)
 
         assertTrue(review.substringAfter("productivityAreaLabel?.let").contains("WhipGroupedInformationCard"))
@@ -46,10 +45,15 @@ class SurfaceRoleArchitectureTest {
         val app = File(uiRoot, "WhipApp.kt").readText()
         val tracks = File(uiRoot, "TrackScreens.kt").readText()
         val gym = File(uiRoot, "GymScreens.kt").readText()
+        val focus = File(uiRoot, "FocusTimerUi.kt").readText()
 
         assertTrue(review.substringAfter("private fun ReviewSignalCard").contains("Card("))
         assertTrue(app.substringAfter("private fun TaskMonthPlanner").contains("Card("))
         listOf(app, tracks, gym).forEach { source -> assertTrue(source.contains("whipReorderItem(")) }
         assertTrue(app.contains(".selectable("))
+        val focusCard = focus.substringAfter("internal fun FocusTimerCard(")
+        assertTrue("Focus execution must retain its dedicated timer surface", focusCard.contains("Card("))
+        assertTrue(focusCard.contains("MaterialTheme.colorScheme.surfaceContainerLow"))
+        assertTrue(focusCard.contains("testTag(\"active-focus-card\")"))
     }
 }

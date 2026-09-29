@@ -53,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -395,29 +396,12 @@ fun GoalAreaContent(
         editingGoalId = projection.goal.id
         onEditGoalRequestConsumed()
     }
-    val sourceList = when (destination) {
+    val list = when (destination) {
         GoalDestination.Active, GoalDestination.Insights -> state.active
         GoalDestination.Completed -> state.completed
         GoalDestination.Archived -> state.archived
     }
-    var collectionQuery by rememberSaveable(destination, areaScopeLabel) { mutableStateOf("") }
-    val normalizedCollectionQuery = collectionQuery.trim().lowercase(Locale.ROOT)
-    val collectionIndex = remember(sourceList) { sourceList.map { it to it.goal.collectionSearchText() } }
-    val list = remember(collectionIndex, normalizedCollectionQuery) {
-        collectionIndex.filter { normalizedCollectionQuery in it.second }.map { it.first }
-    }
     val collectionListState = rememberLazyListState()
-    val collectionFocus = LocalFocusManager.current
-    var positionedQuery by rememberSaveable(destination) { mutableStateOf(normalizedCollectionQuery) }
-    LaunchedEffect(normalizedCollectionQuery) {
-        if (positionedQuery != normalizedCollectionQuery) {
-            collectionListState.scrollToItem(0)
-            positionedQuery = normalizedCollectionQuery
-        }
-    }
-    LaunchedEffect(actionsGoalId, editingGoalId, recordingGoalId) {
-        if (actionsGoalId != null || editingGoalId != null || recordingGoalId != null) collectionFocus.clearFocus()
-    }
     BackHandler(enabled = showWorkspace && manageOrder) { manageOrder = false }
     LaunchedEffect(manageOrder) { onReorderModeChange(manageOrder) }
     LaunchedEffect(reorderDismissRequest) {
@@ -436,17 +420,9 @@ fun GoalAreaContent(
             testTagPrefix = "goal-destination",
             barTestTag = "goal-workspace-navigation",
         )
-        if (sourceList.isNotEmpty() || collectionQuery.isNotEmpty()) Column(Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) {
-            WhipSearchField("Find Goals", collectionQuery, { collectionQuery = it; manageOrder = false },
-                hint = "Name, description, tag, type, or status", modifier = Modifier.fillMaxWidth().testTag("goal-collection-search"))
-            if (normalizedCollectionQuery.isNotBlank()) Text("${list.size} of ${quantityLabel(sourceList.size, "Goal")}", style = MaterialTheme.typography.labelMedium)
-        }
-        if (list.isEmpty() && normalizedCollectionQuery.isNotBlank()) {
-            WhipEmptyState("No Matching Goals", "Try a name, tag, type, or status.", primaryActionLabel = "Clear Search", onPrimaryAction = { collectionQuery = "" })
-        } else if (destination == GoalDestination.Insights) {
+        if (destination == GoalDestination.Insights) {
             GoalInsightsContent(
                 projections = list,
-                queryKey = normalizedCollectionQuery,
                 customUnits = state.customUnits,
                 innerPadding = WhipPageContentPadding,
                 nowMillis = state.nowMillis,
@@ -465,10 +441,8 @@ fun GoalAreaContent(
                     supportingText = destination.supportingText(),
                 ) {
                     if (!manageOrder && destination == GoalDestination.Active && list.isNotEmpty()) {
-                        val hasReorderAction = sourceList.size > 1 || areaScopeLabel != null
-                        if (!hasReorderAction) {
-                            WhipTextButton(onClick = { templatesOpen = true }) { Text("Templates") }
-                        } else Box {
+                        val hasReorderAction = list.size > 1 || areaScopeLabel != null
+                        Box {
                             WhipPageIconAction(
                                 icon = Icons.Outlined.MoreVert,
                                 label = "More Goal Actions",
@@ -480,12 +454,10 @@ fun GoalAreaContent(
                                     label = "Browse Templates",
                                     onClick = { toolsExpanded = false; templatesOpen = true },
                                 )
-                                WhipMenuItem(
-                                    label = if (normalizedCollectionQuery.isNotBlank()) "Clear Search & Reorder" else if (areaScopeLabel == null) "Reorder Goals" else "Show All Areas & Reorder",
+                                if (hasReorderAction) WhipMenuItem(
+                                    label = if (areaScopeLabel == null) "Reorder Goals" else "Show All Areas & Reorder",
                                     onClick = {
                                         toolsExpanded = false
-                                        collectionQuery = ""
-                                        collectionFocus.clearFocus()
                                         if (areaScopeLabel != null) onShowAllAreasForReorder()
                                         manageOrder = true
                                     },
@@ -1276,13 +1248,8 @@ private fun GoalInsightsContent(
     nowMillis: Long,
     zoneId: ZoneId,
     onOpen: (GoalProjection) -> Unit,
-    queryKey: String = "",
 ) {
     val listState = rememberLazyListState()
-    var positionedQuery by rememberSaveable { mutableStateOf(queryKey) }
-    LaunchedEffect(queryKey) {
-        if (positionedQuery != queryKey) { listState.scrollToItem(0); positionedQuery = queryKey }
-    }
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize().testTag("goal-insights-list"),
@@ -2595,8 +2562,9 @@ internal fun GoalActionsDialog(
     onToggleMilestone: (GoalMilestoneBoundary, Boolean) -> Unit = { _, _ -> },
 ) {
     var historyQuery by rememberSaveable(projection.goal.id) { mutableStateOf("") }
-    val historyIndex = remember(projection.entries, customUnits, Locale.getDefault()) {
-        projection.entries.map { it to it.goalHistorySearchText(customUnits) }
+    val historyLocale = LocalConfiguration.current.locales[0]
+    val historyIndex = remember(projection.entries, customUnits, historyLocale) {
+        projection.entries.map { it to it.goalHistorySearchText(customUnits, historyLocale) }
     }
     val normalizedHistoryQuery = historyQuery.trim().lowercase(Locale.ROOT)
     val matchingMeasurements = remember(historyIndex, normalizedHistoryQuery) {
@@ -2972,8 +2940,9 @@ private fun GoalProjection.inspectorOutcome(
     else -> "Ready to begin"
 }
 
-internal fun MeasurementEntry.goalHistorySearchText(customUnits: List<UnitDefinition> = emptyList()): String =
-    "$localDate ${historyTitle(customUnits)} ${historySupportingText()}".lowercase(Locale.ROOT)
+internal fun MeasurementEntry.goalHistorySearchText(
+    customUnits: List<UnitDefinition> = emptyList(), locale: Locale = Locale.getDefault(),
+): String = "$localDate ${historyTitle(customUnits)} ${historySupportingText(locale)}".lowercase(Locale.ROOT)
 
 internal fun MeasurementEntry.historyTitle(customUnits: List<UnitDefinition> = emptyList()): String {
     val valueLabel = enteredValue?.let(::editableNumericValue) ?: status.activityLabel()
@@ -2984,8 +2953,8 @@ internal fun MeasurementEntry.historyTitle(customUnits: List<UnitDefinition> = e
     }
 }
 
-internal fun MeasurementEntry.historySupportingText(): String = buildList {
-    add(localDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
+internal fun MeasurementEntry.historySupportingText(locale: Locale = Locale.getDefault()): String = buildList {
+    add(localDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale)))
     note.takeIf(String::isNotBlank)?.let(::add)
     if (sourceType !in setOf(MeasurementSourceType.Manual, MeasurementSourceType.Goal)) {
         sourceType.activityAttribution()?.let(::add)

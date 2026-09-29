@@ -499,10 +499,10 @@ class AreaFeatureUiTest {
         compose.onNodeWithTag("delete-area-choice-list").performScrollToNode(hasContentDescription("Move items to Area 40"))
         compose.onNodeWithContentDescription("Move items to Area 40").assertIsDisplayed().performClick().assertIsSelected()
         compose.onNodeWithText("Move Items and Delete Area").performClick()
-        compose.onNodeWithText("Cancel").assertIsNotEnabled()
-        compose.onNodeWithContentDescription("Move items to Area 40").assertIsNotEnabled()
-        compose.onNodeWithText("Deleting…").assertIsNotEnabled()
-        compose.onNodeWithText("Delete Area and 4 Items").assertIsNotEnabled()
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        compose.onAllNodesWithText("Cancel").assertCountEquals(0)
+        compose.onAllNodesWithTag("delete-area-choice-list").assertCountEquals(0)
+        compose.onAllNodesWithText("Delete Area and 4 Items").assertCountEquals(0)
         compose.runOnIdle {
             assertEquals(listOf("area-40"), moved)
             saving = false
@@ -587,12 +587,16 @@ class AreaFeatureUiTest {
 
         val firstChoice = compose.onNodeWithContentDescription("Move to Area 1").assertIsDisplayed().getUnclippedBoundsInRoot()
         val viewport = compose.onNodeWithTag("move-area-choice-list").getUnclippedBoundsInRoot()
+        val cancelBounds = compose.onNodeWithText("Cancel").getUnclippedBoundsInRoot()
         assertTrue("The first destination must fit before scrolling", firstChoice.bottom <= viewport.bottom)
         compose.onNodeWithTag("move-area-choice-list")
             .performScrollToNode(hasContentDescription("Move to Area 40"))
         compose.onNodeWithContentDescription("Move to Area 40").assertIsDisplayed().performClick().assertIsSelected()
-        compose.onNodeWithText("Move Everything from Main").assertIsDisplayed()
         compose.onNodeWithText("Cancel").assertIsDisplayed()
+        assertEquals(cancelBounds, compose.onNodeWithText("Cancel").getUnclippedBoundsInRoot())
+        compose.onNodeWithText("Move 2 Items").assertIsDisplayed()
+        compose.onNodeWithTag("move-area-choice-list").performScrollToNode(hasText("Move Everything from Main"))
+        compose.onNodeWithText("Move Everything from Main").assertIsDisplayed()
     }
 
     @Test

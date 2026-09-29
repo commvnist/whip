@@ -137,7 +137,7 @@ class DeepProductivityJourneyTest {
         return compose.onNode(matcher)
     }
 
-    @Test fun habitAndGoalCollectionSearchRetainsContext() {
+    @Test fun habitAndGoalSearchUsesTheWorkspaceActionAndKeepsCollectionsClear() {
         val ids = runBlocking {
             prepare()
             repeat(10) { app.habitRepository.create(HabitDraft("Routine $it", startDate = app.clock.today())) }
@@ -151,36 +151,49 @@ class DeepProductivityJourneyTest {
         }
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             compose.onNodeWithContentDescription("Habits tab").performClick()
-            compose.onNodeWithTag("habit-collection-search").performTextInput("quiet")
+            compose.onNodeWithTag("habit-collection-search").assertDoesNotExist()
+            compose.onNodeWithTag("workspace-search-action").performClick()
+            compose.onNodeWithTag("unified-search-query").performTextInput("quiet")
             closeSoftKeyboard()
-            compose.onNodeWithTag("habit-card-${ids.first}").performScrollTo().assertIsDisplayed().performClick()
             scenario.recreate()
+            compose.onNodeWithTag("unified-search-query").assertTextContains("quiet")
+            compose.waitUntil(10_000) { compose.onAllNodesWithTag("unified-search-result-Habit-${ids.first}").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("unified-search-result-Habit-${ids.first}").performScrollTo().performClick()
             pressBack()
-            compose.onNodeWithTag("habit-collection-search").assertTextContains("quiet")
-            compose.onNodeWithTag("habit-card-${ids.first}").assertIsDisplayed()
-            captureVisualCatalogSurface("deep.habits.collection-search")
+            compose.onNodeWithTag("habit-collection-search").assertDoesNotExist()
+            compose.onNodeWithTag("habit-card-${ids.first}").performScrollTo().assertIsDisplayed()
+            captureVisualCatalogSurface("search-consistency.habits.collection")
             compose.onNodeWithTag("habit-destination-Archived").performClick()
-            compose.onNodeWithTag("habit-collection-search").performTextInput("quiet")
+            compose.onNodeWithTag("workspace-search-action").performClick()
+            compose.onNodeWithTag("unified-search-query").performTextInput("status:archived quiet")
             closeSoftKeyboard()
+            compose.waitUntil(10_000) { compose.onAllNodesWithTag("unified-search-result-Habit-${ids.second}").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("unified-search-result-Habit-${ids.second}").performScrollTo().performClick()
+            pressBack()
             compose.onNodeWithText("Quiet archive").performScrollTo().assertIsDisplayed()
             compose.onNodeWithContentDescription("Goals tab").performClick()
-            compose.onNodeWithTag("goal-collection-search").performTextInput("quiet")
+            compose.onNodeWithTag("goal-collection-search").assertDoesNotExist()
+            compose.onNodeWithTag("workspace-search-action").performClick()
+            compose.onNodeWithTag("unified-search-query").performTextInput("quiet")
             closeSoftKeyboard()
-            compose.onNodeWithTag("goal-card-${ids.third}").performScrollTo().performClick()
+            compose.waitUntil(10_000) { compose.onAllNodesWithTag("unified-search-result-Goal-${ids.third}").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("unified-search-result-Goal-${ids.third}").performScrollTo().performClick()
             pressBack()
             scenario.recreate()
-            compose.onNodeWithTag("goal-collection-search").assertTextContains("quiet")
-            compose.onNodeWithTag("goal-card-${ids.third}").assertIsDisplayed()
-            captureVisualCatalogSurface("deep.goals.collection-search")
+            compose.onNodeWithTag("goal-collection-search").assertDoesNotExist()
+            compose.onNodeWithTag("goal-card-${ids.third}").performScrollTo().assertIsDisplayed()
+            captureVisualCatalogSurface("search-consistency.goals.collection")
+            compose.onNodeWithTag("goal-insights-list").assertDoesNotExist()
+            compose.onNodeWithTag("goal-destination-Active").performClick()
             compose.onNodeWithContentDescription("More Goal Actions").performClick()
-            compose.onNodeWithText("Clear Search & Reorder").performClick()
-            compose.onNodeWithTag("goal-collection-search").assertTextContains("")
+            compose.onNodeWithText("Reorder Goals").performClick()
+            compose.onNodeWithTag("goal-collection-search").assertDoesNotExist()
             compose.onNodeWithContentDescription("Reorder Project 0", substring = true).performScrollTo().assertExists()
         }
         assertEquals(9, runBlocking { app.goalRepository.goals.first().size })
     }
 
-    @Test @AndroidFontScale fun trackCollectionSearchBoundsSelectionAndShowsConfiguredDetails() {
+    @Test @AndroidFontScale fun trackWorkspaceSearchAndSelectionShowConfiguredDetails() {
         val ids = runBlocking {
             prepare()
             val fields = listOf(TrackFieldDraft("Name", TrackFieldType.ShortText, required = true, primary = true)) +
@@ -195,24 +208,26 @@ class DeepProductivityJourneyTest {
         }
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             compose.onNodeWithContentDescription("Tracks tab").performClick()
-            inList("track-list", hasTestTag("track-collection-search")).performTextInput("quiet")
+            compose.onNodeWithTag("track-collection-search").assertDoesNotExist()
+            compose.onNodeWithTag("workspace-search-action").performClick()
+            compose.onNodeWithTag("unified-search-query").performTextInput("quiet domain:track")
             closeSoftKeyboard()
+            scenario.recreate()
+            compose.onNodeWithTag("unified-search-query").assertTextContains("quiet domain:track")
+            compose.waitUntil(10_000) { compose.onAllNodesWithTag("unified-search-result-Track-${ids.first}").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("unified-search-result-Track-${ids.first}").performScrollTo().performClick()
+            compose.onNodeWithContentDescription("Back to Tracks").performClick()
             inList("track-list", hasContentDescription("More Track Options")).performClick()
             compose.onNodeWithText("Select Tracks").performClick()
-            inList("track-list", hasTestTag("track-card-${ids.first}")).performClick()
-            inList("track-list", hasTestTag("track-collection-search")).performTextReplacement("Beta")
-            closeSoftKeyboard()
             inList("track-list", hasText("0 Tracks selected")).assertIsDisplayed()
             inList("track-list", hasText("Pin to Whip Home")).assertIsNotEnabled()
             inList("track-list", hasTestTag("track-card-${ids.second}")).performClick()
             inList("track-list", hasText("Pin to Whip Home")).performClick()
             compose.waitUntil(10_000) { runBlocking { app.trackRepository.projection(ids.second)?.track?.pinned == true } }
             assertFalse(runBlocking { requireNotNull(app.trackRepository.projection(ids.first)).track.pinned })
-            inList("track-list", hasTestTag("track-collection-search")).performTextReplacement("quiet")
-            closeSoftKeyboard()
             scenario.recreate()
-            inList("track-list", hasTestTag("track-collection-search")).assertTextContains("quiet")
-            captureVisualCatalogSurface("deep.tracks.collection-search")
+            compose.onNodeWithTag("track-collection-search").assertDoesNotExist()
+            captureVisualCatalogSurface("search-consistency.tracks.collection")
             inList("track-list", hasTestTag("track-card-${ids.first}")).performClick()
             inList("track-entry-list", hasContentDescription("View All 4 Details for Four facts")).assertIsDisplayed()
             inList("track-entry-list", hasText("2 more configured details · View all 4")).performScrollTo()
@@ -223,7 +238,7 @@ class DeepProductivityJourneyTest {
             inside("track-entry-detail-surface", hasText("Original Detail 4")).assertIsDisplayed()
             pressBack()
             compose.onNodeWithContentDescription("Back to Tracks").performClick()
-            inList("track-list", hasTestTag("track-collection-search")).assertTextContains("quiet")
+            compose.onNodeWithTag("track-collection-search").assertDoesNotExist()
             compose.onNodeWithTag("track-workspace-destination-Activity").performClick()
             compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasContentDescription("View All 4 Details for Four facts"))
             compose.onNodeWithContentDescription("View All 4 Details for Four facts").assertIsDisplayed().performClick()

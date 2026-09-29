@@ -1004,7 +1004,6 @@ private fun TrackActivityPage(
     dialogModifier: Modifier,
     onRetryLoading: () -> Unit,
 ) {
-    var searchVisible by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
     var filtersVisible by rememberSaveable { mutableStateOf(false) }
     var trackFilterId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -1044,6 +1043,7 @@ private fun TrackActivityPage(
         trackFilterId != null,
         areaFilterId != null,
         dateRange != TrackActivityDateRange.AnyDate,
+        query.isNotBlank(),
     ).count { it }
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
@@ -1060,12 +1060,6 @@ private fun TrackActivityPage(
                     },
                 ) {
                     WhipPageIconAction(
-                        icon = Icons.Outlined.Search,
-                        label = "Search Track Activity",
-                        onClick = { searchVisible = !searchVisible; if (!searchVisible) query = "" },
-                        active = searchVisible || query.isNotBlank(),
-                    )
-                    WhipPageIconAction(
                         icon = Icons.Outlined.FilterAlt,
                         label = "Filter Track Activity",
                         onClick = { filtersVisible = !filtersVisible },
@@ -1074,18 +1068,10 @@ private fun TrackActivityPage(
                     )
                 }
             }
-            if (searchVisible) item {
-                WhipSearchField(
-                    label = "Search Activity",
-                    query = query,
-                    onQueryChange = { query = it },
-                    modifier = Modifier.fillMaxWidth().testTag("track-activity-search"),
-                    hint = "Entry, Track, Area, or Field value",
-                )
-            }
             if (!filtersVisible && activeFilterCount > 0) item {
                 WhipGroupedInformationCard(Modifier.testTag("track-activity-filter-summary")) {
                     Text(listOfNotNull(
+                        query.takeIf(String::isNotBlank)?.let { "Text: $it" },
                         dateRange.label.takeUnless { dateRange == TrackActivityDateRange.AnyDate },
                         activeTracks.firstOrNull { it.track.id == trackFilterId }?.track?.name,
                         availableAreas.firstOrNull { it.id == areaFilterId }?.name,
@@ -1098,11 +1084,19 @@ private fun TrackActivityPage(
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Text("Filters", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             if (activeFilterCount > 0) WhipTextButton(onClick = {
+                                query = ""
                                 trackFilterId = null
                                 areaFilterId = null
                                 dateRange = TrackActivityDateRange.AnyDate
                             }) { Text("Clear") }
                         }
+                        WhipSearchField(
+                            label = "Filter Activity Text",
+                            query = query,
+                            onQueryChange = { query = it },
+                            modifier = Modifier.fillMaxWidth().testTag("track-activity-search"),
+                            hint = "Entry, Track, Area, or Field value",
+                        )
                         Text("Date", style = MaterialTheme.typography.labelLarge)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             TrackActivityDateRange.entries.forEach { range ->
@@ -1356,17 +1350,9 @@ private fun AllTracksPage(
         orphanedMessage =
             "The previous Track change was interrupted. Your selection is still here; verify the Tracks, then retry.",
     )
-    val unfiltered = if (showArchived) state.archived else state.active
-    var query by rememberSaveable(showArchived) { mutableStateOf("") }
-    val normalizedQuery = query.trim().lowercase(Locale.ROOT)
-    val searchIndex = remember(unfiltered) { unfiltered.map { it to it.track.collectionSearchText() } }
-    val source = remember(searchIndex, normalizedQuery) { searchIndex.filter { normalizedQuery in it.second }.map { it.first } }
+    val source = if (showArchived) state.archived else state.active
     val listState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
-    var positionedQuery by rememberSaveable(showArchived) { mutableStateOf(normalizedQuery) }
-    LaunchedEffect(normalizedQuery) {
-        if (positionedQuery != normalizedQuery) { listState.scrollToItem(0); positionedQuery = normalizedQuery }
-    }
     val openTrack: (Long) -> Unit = { focusManager.clearFocus(); onOpen(it) }
     val sourceIds = source.mapTo(mutableSetOf()) { it.track.id }
     val visibleSelectedIds = selectedIds intersect sourceIds
@@ -1405,11 +1391,6 @@ private fun AllTracksPage(
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
-        if (unfiltered.isNotEmpty() || query.isNotEmpty()) item {
-            WhipSearchField("Find Tracks", query, { query = it; reordering = false }, hint = "Name, description, tag, or status",
-                modifier = Modifier.fillMaxWidth().testTag("track-collection-search"))
-            if (normalizedQuery.isNotBlank()) Text("${source.size} of ${quantityLabel(unfiltered.size, "Track")}", style = MaterialTheme.typography.labelMedium)
-        }
         item {
             WhipPageHeader(
                 title = if (showArchived) "Archived Tracks" else "Tracks",
@@ -1423,12 +1404,10 @@ private fun AllTracksPage(
                         DropdownMenu(moreOpen, { moreOpen = false }) {
                         if (!showArchived && (state.active.size > 1 || !reorderEnabled)) WhipMenuItem(
                             label = when {
-                                normalizedQuery.isNotBlank() -> "Clear Search & Reorder"
                                 !reorderEnabled -> "Show All Areas & Reorder"
                                 else -> "Reorder Tracks"
                             },
                             onClick = {
-                                query = ""
                                 focusManager.clearFocus()
                                 if (!reorderEnabled) onShowAllAreasForReorder()
                                 selecting = false
@@ -1511,17 +1490,15 @@ private fun AllTracksPage(
         else if (source.isEmpty()) item {
             WhipEmptyState(
                 title = when {
-                    normalizedQuery.isNotBlank() -> "No Matching Tracks"
                     showArchived -> "No Archived Tracks"
                     else -> "No Tracks in This View"
                 },
                 supportingText = when {
-                    normalizedQuery.isNotBlank() -> "Try a name, description, tag, or status."
                     showArchived -> "Archived Tracks appear here and can be restored."
                     else -> "Create a reusable log here, or change the Area above to find existing Tracks."
                 },
-                primaryActionLabel = if (normalizedQuery.isNotBlank()) "Clear Search" else "Create Track".takeUnless { showArchived },
-                onPrimaryAction = if (normalizedQuery.isNotBlank()) ({ query = "" }) else onCreate.takeUnless { showArchived },
+                primaryActionLabel = "Create Track".takeUnless { showArchived },
+                onPrimaryAction = onCreate.takeUnless { showArchived },
             )
         } else {
             if (pinned.isNotEmpty() && !showArchived) {

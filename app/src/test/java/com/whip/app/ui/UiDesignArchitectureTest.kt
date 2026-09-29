@@ -92,8 +92,17 @@ class UiDesignArchitectureTest {
         assertTrue(
             "Task page actions must use the same icon-action anchor as Habits, Goals, and Tracks",
             taskPageActions.contains("label = \"More task list actions\"") &&
+                taskPageActions.contains("\"Filter & Sort Tasks\"") &&
+                !taskPageActions.contains("Icons.Outlined.Search") &&
                 Regex("WhipPageIconAction\\(").findAll(taskPageActions).count() == 2,
         )
+        val collectionSources = listOf("WhipApp", "HabitScreens", "GoalScreens", "TrackScreens", "GymScreens")
+            .joinToString { File(sourceRoot, "com/whip/app/ui/$it.kt").readText() }
+        listOf("habit-collection-search", "goal-collection-search", "track-collection-search", "task-list-query",
+            "exercise-library-search", "machine-library-search", "routine-library-search").forEach { tag ->
+            assertFalse("Collection search must use the shared workspace icon: $tag", collectionSources.contains("testTag(\"$tag\")"))
+        }
+        assertTrue("Settings must use the same workspace search anchor", app.contains("externalSearchAction = true"))
     }
 
     @Test

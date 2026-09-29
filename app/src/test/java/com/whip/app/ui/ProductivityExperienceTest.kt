@@ -41,6 +41,14 @@ class ProductivityExperienceTest {
         val text = entry.goalHistorySearchText()
         assertTrue(text, "150" in text && "lb" in text && "2024-09-28" in text && "long walk" in text)
         assertFalse(text, "68.038" in text)
+        for (locale in listOf(java.util.Locale.US, java.util.Locale.FRANCE)) {
+            val localized = entry.goalHistorySearchText(locale = locale)
+            val expectedDate = entry.localDate.format(
+                java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM).withLocale(locale),
+            ).lowercase(java.util.Locale.ROOT)
+            assertTrue(localized, expectedDate in localized)
+            assertTrue(localized, "150" in localized && "lb" in localized && "long walk" in localized)
+        }
     }
 
     @Test fun trackStartersAndPreviewKeepAuthoredDefinitionsSeparateFromSampleFacts() {

@@ -1,5 +1,28 @@
 # Implementation history
 
+### IMP-20260929-008 — Release the shared-search correction as 0.3.85
+
+- Related: FB-20260929-006; IMP-20260929-006/007. Version advances to 0.3.85/code 91 with restored toolbar search, consistent collection controls and the pending observable-locale repair. Benchmark and test fixtures are saved with their verification still pending and do not enter the production APK.
+- Status: Released under VER-20260929-006. Signed APK/AAB packaging passes; guarded in-place installation matches the signed APK hash and foreground MainActivity launches in 110 ms. [Exact receipt](../../artifacts/phone-releases/2026-09-29/0.3.85/README.md).
+- Boundaries: The owner's release request authorizes packaging and installation checks only. No full/readiness/candidate or behavioral test campaign resumes. Storage schema, epoch and backup format are unchanged.
+
+### IMP-20260929-007 — Restore shared search and stable workspace controls
+
+- Behavior: Remove Habit/Goal/Track find boxes, Task's duplicated icon/find row and Gym Exercise/Machine/Routine search rows. Use the contextual toolbar action, including Settings purpose lookup and Ctrl+K. Keep text criteria visible in Task filter chips/count; move Track Activity text narrowing inside Filters with a truthful summary/count.
+- Layout/reuse: Habit/Goal/Task tools use stable overflow anchors. Settings standalone headers use shared adaptive actions/page padding; the integrated app hides those local actions in favor of the root toolbar. Shared page actions support disabled state for existing editor/busy guards.
+- Search: Preserve authored mode/type/status and linked equipment/version/routine-day/exercise facts in unified-search metadata, separate from display detail. Authored day/placement changes invalidate the existing Gym search content key; clock ticks still do not.
+- Source/regressions: `WhipApp`, Habit/Goal/Track/Gym/Settings screens, `WhipPagePatterns`, unified search/query; existing architecture, pure search and connected native contracts updated. [Complete source review and prepared coverage](../quality/SEARCH_DESIGN_REMEDIATION_2026-09-29.md).
+- Compatibility: No schema/epoch/backup change; original records, area scope, selection bounds and retained history inspectors remain authoritative. Subsequent IMP-20260929-008 packages this correction in 0.3.85/code 91.
+- Related/status: FB-20260929-005, FND-20260929-011, DEC-20260929-002, VER-20260929-005. Implemented and privately released under VER-20260929-006; behavioral/full-lint/rendered verification remains paused, subjective appearance awaiting user validation.
+
+### IMP-20260929-006 — Repair issues discovered by the interrupted full-suite campaign
+
+- Product: Habit/Goal history indexes observe the Compose configuration locale and pass it to formatted date/search builders. Existing pure contracts cover US/French dates and original record facts without mutating process locale.
+- Fixtures: Focus surface assertion follows its dedicated execution owner. Native Today checks execution and moves analytical evidence assertions to Insights. Area tests follow scrolling dialog content, fixed actions and saving-barrier accessibility ownership. Target-guard fake ADB models font scale, asserts batch baseline/restoration and removes unrelated historical release pins.
+- Benchmark: Current onboarding labels/accessibility navigation, full mandatory schema-46 snapshot defaults, explicit seed failure and stable quick-Set submission replace stale setup/SQL/coordinates.
+- Bookkeeping: Current inventory 722 JVM + 1,266 Android; reviewed discovery snapshot updated before the later search correction. See VER-20260929-004 for exact partial successes/failures. No migration, phone instrumentation or new release.
+- Related/status: FB-20260929-004, FND-20260929-004–010/012. Implemented; complete verification remains pending because the owner paused the campaign. Repairs are preserved with the subsequent 0.3.85 release; its packaging does not accept the pending fixtures or complete the campaign. Task's temporary three-icon assertion is superseded by IMP-20260929-007.
+
 ### IMP-20260929-005 — Package the deep review as private update 0.3.84
 
 - Related: FB-20260929-003; IMP-20260929-002/003/004 / VER-20260929-002.

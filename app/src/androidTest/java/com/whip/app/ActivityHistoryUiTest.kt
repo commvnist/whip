@@ -401,7 +401,7 @@ class ActivityHistoryUiTest {
                         modifier = Modifier.width(320.dp),
                         onDismiss = {}, onEdit = {}, onDuplicate = {}, onPin = {}, onPause = {},
                         onSchedulePause = {}, onQuick = {}, onSkip = { skipped = true }, onUndoSkip = {},
-                        onUndoHistoricalSkip = {}, logs = emptyList(), skips = emptyList(), pauses = emptyList(),
+                        onUndoHistoricalSkip = {}, logs = listOf(log()), skips = emptyList(), pauses = emptyList(),
                         onAddHistoricalLog = {}, onEditLog = {}, onEditPause = {}, onArchive = {}, onDelete = {},
                     )
                 }
@@ -415,8 +415,8 @@ class ActivityHistoryUiTest {
         compose.onNodeWithTag("habit-today-state").assertTextContains("Ready for today's check-in.")
         compose.onNodeWithTag("habit-today-date")
             .assertTextContains(today.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)))
-        compose.onNodeWithTag("habit-today-metric-streak").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("habit-today-metric-completion").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("entity-inspector-primary-check-in").assertIsDisplayed().assertIsEnabled()
+        compose.onAllNodesWithText("Current streak").assertCountEquals(0)
         compose.onAllNodesWithText("Context").assertCountEquals(0)
         compose.onAllNodesWithText("Today's availability").assertCountEquals(0)
         compose.onNodeWithText("No check-in will be expected; your streak stays protected.")
@@ -424,6 +424,10 @@ class ActivityHistoryUiTest {
             .assertIsDisplayed()
         compose.onNodeWithTag("entity-inspector-action-skip-today").performClick()
         compose.runOnIdle { assertEquals(true, skipped) }
+        compose.onNodeWithTag("habit-detail-section-Insights").performClick().assertIsSelected()
+        compose.onNodeWithTag("habit-insights-list").assertIsDisplayed()
+        compose.onNodeWithTag("habit-today-metric-entries-1").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("habit-today-metric-streak-1").performScrollTo().assertIsDisplayed()
     }
 
     @Test

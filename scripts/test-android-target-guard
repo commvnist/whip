@@ -67,6 +67,12 @@ case "$*" in
     '-s '*" shell settings get global hide_error_dialogs")
         printf '%s\n' "${FAKE_ADB_HIDE_ERROR_DIALOGS:-null}"
         ;;
+    '-s '*" shell settings get system font_scale")
+        printf '%s\n' "${FAKE_ADB_FONT_SCALE:-1.0}"
+        ;;
+    '-s '*" shell settings put system font_scale "*|\
+    '-s '*" shell settings delete system font_scale")
+        ;;
     '-s '*" shell settings put global hide_error_dialogs 1"|\
     '-s '*" shell settings delete global hide_error_dialogs"|\
     '-s '*" shell input keyevent KEYCODE_WAKEUP"|\
@@ -589,7 +595,7 @@ export FAKE_COVERAGE_COUNTER="$COVERAGE_COUNTER"
 : > "$COVERAGE_GRADLE_LOG"
 : > "$COVERAGE_JAVA_LOG"
 expect_success coverage-fresh-eleven-process-accounting \
-    env ANDROID_SERIAL=emulator-5554 FAKE_COVERAGE_MODE=success PATH="$GUARDED_PATH" \
+    env ANDROID_SERIAL=emulator-5554 FAKE_COVERAGE_MODE=success FAKE_ADB_FONT_SCALE=2.0 PATH="$GUARDED_PATH" \
         "${COVERAGE_FIXTURE_ROOT}/scripts/coverage" --emulator
 [[ "$(grep -c '^connected' "$COVERAGE_GRADLE_LOG")" -eq 11 ]] || {
     printf 'FAIL coverage batching: expected 11 connected tasks\n' >&2
@@ -624,6 +630,12 @@ grep -Fq 'CoverageGate.java e2e app/build/reports/coverage/androidTest/debug/con
     exit 1
 }
 printf 'PASS fresh 11-process coverage accounting and report union\n'
+[[ "$(grep -Fc -- '-s emulator-5554 shell settings put system font_scale 1.0' "$ADB_LOG")" -eq 12 ]] &&
+    grep -Fqx -- '-s emulator-5554 shell settings put system font_scale 2.0' "$ADB_LOG" || {
+    printf 'FAIL coverage font scale: baseline or original restoration was not requested\n' >&2
+    exit 1
+}
+printf 'PASS ordinary font baseline and original scale restoration\n'
 
 : > "$COVERAGE_GRADLE_LOG"
 expect_success targeted-two-emulator-parallel-accounting \
@@ -732,9 +744,5 @@ expect_failure coverage-rejects-stale-results 'produced no fresh executable XML'
     env ANDROID_SERIAL=emulator-5554 FAKE_COVERAGE_MODE=stale PATH="$GUARDED_PATH" \
         "${COVERAGE_FIXTURE_ROOT}/scripts/coverage" --emulator
 printf 'PASS stale/partial/failed coverage rejection\n'
-
-grep -Fq 'versionCode = 75' "${PROJECT_ROOT}/app/build.gradle.kts"
-grep -Fq 'versionName = "0.3.69"' "${PROJECT_ROOT}/app/build.gradle.kts"
-printf 'PASS release version 0.3.69 (75)\n'
 
 printf 'All Android target guard regressions passed.\n'

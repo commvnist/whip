@@ -58,9 +58,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -347,18 +347,6 @@ fun HabitAreaContent(
             onEditHabitRequestConsumed()
         }
     }
-    var collectionQuery by rememberSaveable(destination, areaScopeLabel) { mutableStateOf("") }
-    val normalizedCollectionQuery = collectionQuery.trim().lowercase(Locale.ROOT)
-    val collectionHabits = if (destination == HabitDestination.Archived) state.archived else
-        (if (destination == HabitDestination.Today) state.today else state.all).map { it.habit }
-    val collectionIndex = remember(collectionHabits) { collectionHabits.map { it.id to it.collectionSearchText() } }
-    val matchingIds = remember(collectionIndex, normalizedCollectionQuery) {
-        collectionIndex.filter { normalizedCollectionQuery in it.second }.mapTo(hashSetOf()) { it.first }
-    }
-    val collectionFocus = LocalFocusManager.current
-    LaunchedEffect(actionsHabitId, editingHabitId, numericLogHabitId) {
-        if (actionsHabitId != null || editingHabitId != null || numericLogHabitId != null) collectionFocus.clearFocus()
-    }
     if (showWorkspace) Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
         DestinationTabBar(
             selected = destination,
@@ -370,18 +358,11 @@ fun HabitAreaContent(
             barTestTag = "habit-workspace-navigation",
         )
         val emptyArea = areaScopeLabel != null && state.all.isEmpty() && editorState.all.isNotEmpty()
-        if (collectionHabits.isNotEmpty() || collectionQuery.isNotEmpty()) Column(Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) {
-            WhipSearchField("Find Habits", collectionQuery, { collectionQuery = it; focusedArchivedHabitId = null }, hint = "Name, note, tag, mode, or status",
-                modifier = Modifier.fillMaxWidth().testTag("habit-collection-search"))
-            if (normalizedCollectionQuery.isNotBlank()) Text("${matchingIds.size} of ${quantityLabel(collectionHabits.size, "Habit")}", style = MaterialTheme.typography.labelMedium)
-        }
-        if (matchingIds.isEmpty() && normalizedCollectionQuery.isNotBlank()) {
-            WhipEmptyState("No Matching Habits", "Try a name, note, tag, or mode.", primaryActionLabel = "Clear Search", onPrimaryAction = { collectionQuery = "" })
-        } else key(normalizedCollectionQuery) { when (destination) {
+        when (destination) {
             HabitDestination.Today -> HabitList(
                 title = "Today",
                 subtitle = "Check-ins, values, and timers.",
-                progress = state.today.filter { it.habit.id in matchingIds },
+                progress = state.today,
                 customUnits = state.customUnits,
                 empty = when {
                     emptyArea -> "Your habits are saved in other Areas. Show all Areas to find them."
@@ -419,22 +400,19 @@ fun HabitAreaContent(
                 onChecklist = viewModel::toggleChecklist,
                 onReorder = null,
                 onShowAllForReorder = {
-                    collectionQuery = ""
-                    collectionFocus.clearFocus()
                     if (areaScopeLabel != null) onShowAllAreasForReorder()
                     destination = HabitDestination.All
                     reorderAllRequested = true
                 },
                 lowPressureMode = lowPressureMode,
-                separateCompleted = normalizedCollectionQuery.isBlank(),
-                filtered = normalizedCollectionQuery.isNotBlank(),
+                separateCompleted = true,
                 onReorderModeChange = onReorderModeChange,
                 reorderDismissRequest = reorderDismissRequest,
             )
             HabitDestination.All -> HabitList(
                 title = "All Habits",
                 subtitle = "All your active habits.",
-                progress = state.all.filter { it.habit.id in matchingIds },
+                progress = state.all,
                 customUnits = state.customUnits,
                 empty = if (emptyArea) {
                     "Your habits are saved in other Areas. Show all Areas to find them."
@@ -456,31 +434,25 @@ fun HabitAreaContent(
                 canUndo = { latestPeriodLog(it) != null },
                 onUndoSkip = { item -> viewModel.undoSkip(item.habit.id, item.date) },
                 onChecklist = viewModel::toggleChecklist,
-                onReorder = if (areaScopeLabel == null && normalizedCollectionQuery.isBlank()) viewModel::reorder else null,
-                onShowAllForReorder = if (normalizedCollectionQuery.isNotBlank()) ({
-                    collectionQuery = ""; collectionFocus.clearFocus()
-                    if (areaScopeLabel != null) onShowAllAreasForReorder()
-                    reorderAllRequested = true
-                }) else null,
-                onShowAllAreasForReorder = onShowAllAreasForReorder.takeIf { areaScopeLabel != null && normalizedCollectionQuery.isBlank() },
+                onReorder = if (areaScopeLabel == null) viewModel::reorder else null,
+                onShowAllAreasForReorder = onShowAllAreasForReorder.takeIf { areaScopeLabel != null },
                 reorderRequested = reorderAllRequested,
                 onReorderRequestConsumed = { reorderAllRequested = false },
-                filtered = normalizedCollectionQuery.isNotBlank(),
                 lowPressureMode = lowPressureMode,
                 onReorderModeChange = onReorderModeChange,
                 reorderDismissRequest = reorderDismissRequest,
             )
-            HabitDestination.Insights -> HabitInsights(state.copy(all = state.all.filter { it.habit.id in matchingIds }), lowPressureMode, onOpenHistory = {
+            HabitDestination.Insights -> HabitInsights(state, lowPressureMode, onOpenHistory = {
                 historyHabitId = it
                 actionsHabitId = it
             })
             HabitDestination.Archived -> ArchivedHabitList(
-                habits = state.archived.filter { it.id in matchingIds },
+                habits = state.archived,
                 focusedHabitId = focusedArchivedHabitId,
                 onOpen = { actionsHabitId = it.id },
                 onEdit = { editingHabitId = it.id },
             )
-        } }
+        }
     }
     if (creating || editing != null) {
         HabitEditorDialog(
@@ -1480,7 +1452,6 @@ private fun HabitList(
     onReorderRequestConsumed: () -> Unit = {},
     lowPressureMode: Boolean,
     separateCompleted: Boolean = false,
-    filtered: Boolean = false,
     onReorderModeChange: (Boolean) -> Unit = {},
     reorderDismissRequest: Int = 0,
 ) {
@@ -1522,13 +1493,7 @@ private fun HabitList(
         item {
             WhipPageHeader(title = title, supportingText = subtitle) {
                 if (!manageOrder && progress.isNotEmpty()) {
-                    val hasReorderAction =
-                        onShowAllForReorder != null ||
-                            (onReorder != null && progress.size > 1) ||
-                            onShowAllAreasForReorder != null
-                    if (!hasReorderAction) {
-                        WhipTextButton(onClick = onTemplates) { Text("Templates") }
-                    } else Box {
+                    Box {
                         WhipPageIconAction(
                             icon = Icons.Outlined.MoreVert,
                             label = "More Habit Actions",
@@ -1541,7 +1506,7 @@ private fun HabitList(
                             )
                             onShowAllForReorder?.let { showAll ->
                                 WhipMenuItem(
-                                    label = if (filtered) "Clear Search & Reorder" else "Reorder All Habits",
+                                    label = "Reorder All Habits",
                                     onClick = { toolsExpanded = false; showAll() },
                                 )
                             }
@@ -3086,10 +3051,11 @@ internal fun HabitActionsDialog(
     canUndoValue: Boolean = false,
 ) {
     val activeZoneId = LocalWhipZone.current
+    val historyLocale = LocalConfiguration.current.locales[0]
     var historyQuery by rememberSaveable(item.habit.id) { mutableStateOf("") }
-    val historyIndex = remember(logs, skips, pauses, item.date, item.habit, customUnits, Locale.getDefault()) {
+    val historyIndex = remember(logs, skips, pauses, item.date, item.habit, customUnits, historyLocale) {
         habitHistoryEvents(logs, skips, pauses, item.date).map {
-            it to it.habitHistorySearchText(item.habit, item.date, customUnits)
+            it to it.habitHistorySearchText(item.habit, item.date, customUnits, historyLocale)
         }
     }
     val normalizedHistoryQuery = historyQuery.trim().lowercase(Locale.ROOT)
@@ -3488,10 +3454,11 @@ internal sealed interface HabitHistoryEvent {
 
 internal fun HabitHistoryEvent.habitHistorySearchText(
     habit: Habit, today: LocalDate, customUnits: List<UnitDefinition> = emptyList(),
+    locale: Locale = Locale.getDefault(),
 ): String = when (this) {
-    is HabitHistoryEvent.Log -> "$effectiveDate ${value.activityTitle(habit, customUnits)} ${value.activitySupportingText(today)}"
-    is HabitHistoryEvent.Skip -> "$effectiveDate Skipped ${value.localDate.relativeActivityDate(today)}"
-    is HabitHistoryEvent.Pause -> "$effectiveDate ${value.endDate} Paused ${value.displayDateRange()} ${value.note}"
+    is HabitHistoryEvent.Log -> "$effectiveDate ${value.activityTitle(habit, customUnits)} ${value.activitySupportingText(today, locale)}"
+    is HabitHistoryEvent.Skip -> "$effectiveDate Skipped ${value.localDate.relativeActivityDate(today, locale)}"
+    is HabitHistoryEvent.Pause -> "$effectiveDate ${value.endDate} Paused ${value.displayDateRange(locale)} ${value.note}"
 }.lowercase(Locale.ROOT)
 
 internal fun habitHistoryEvents(
@@ -3666,17 +3633,17 @@ internal fun HabitLog.activityTitle(habit: Habit, customUnits: List<UnitDefiniti
     }
 }
 
-internal fun HabitLog.activitySupportingText(today: LocalDate): String = buildList {
-    add(localDate.relativeActivityDate(today))
+internal fun HabitLog.activitySupportingText(today: LocalDate, locale: Locale = Locale.getDefault()): String = buildList {
+    add(localDate.relativeActivityDate(today, locale))
     if (status == HabitLogStatus.Failed && value != null) add("Below target")
     note.takeIf(String::isNotBlank)?.let(::add)
     sourceType.activityAttribution()?.let(::add)
 }.joinToString(" · ")
 
-internal fun LocalDate.relativeActivityDate(today: LocalDate): String = when (this) {
+internal fun LocalDate.relativeActivityDate(today: LocalDate, locale: Locale = Locale.getDefault()): String = when (this) {
     today -> "Today"
     today.minusDays(1) -> "Yesterday"
-    else -> format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+    else -> format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale))
 }
 
 @Composable
@@ -3838,8 +3805,8 @@ internal fun HabitPauseDialog(
     )
 }
 
-private fun HabitPause.displayDateRange(): String {
-    val formatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+private fun HabitPause.displayDateRange(locale: Locale = Locale.getDefault()): String {
+    val formatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale)
     return endDate?.let { "${startDate.format(formatter)} – ${it.format(formatter)}" }
         ?: "From ${startDate.format(formatter)} · no end date"
 }

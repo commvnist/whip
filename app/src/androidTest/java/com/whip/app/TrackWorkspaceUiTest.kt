@@ -8,6 +8,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -258,13 +259,14 @@ class TrackWorkspaceUiTest {
         compose.onNodeWithText("Arrival").assertIsDisplayed()
         compose.onNodeWithText("Old Opening").assertIsDisplayed()
 
-        compose.onNodeWithContentDescription("Search Track Activity").performClick()
+        compose.onNodeWithContentDescription("Search Track Activity").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Filter Track Activity", substring = true).performClick()
         compose.onNodeWithTag("track-activity-search").performTextInput("Arrival")
+        androidx.test.espresso.Espresso.closeSoftKeyboard()
         compose.onAllNodesWithText("Arrival").assertCountEquals(2)
         compose.onAllNodesWithText("Old Opening").assertCountEquals(0)
         compose.onNodeWithContentDescription("Clear Search").performClick()
 
-        compose.onNodeWithContentDescription("Filter Track Activity", substring = true).performClick()
         compose.onNodeWithText("7 Days").performClick()
         compose.onNodeWithText("Arrival").assertIsDisplayed()
         compose.onAllNodesWithText("Old Opening").assertCountEquals(0)
@@ -276,7 +278,10 @@ class TrackWorkspaceUiTest {
 
         compose.onNodeWithContentDescription("Filter Track Activity", substring = true).performClick()
         compose.onNodeWithTag("track-activity-filter-summary").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Filter Track Activity", substring = true).performClick()
         compose.onNodeWithTag("track-activity-search").performTextReplacement("no matching entry")
+        androidx.test.espresso.Espresso.closeSoftKeyboard()
+        compose.onNodeWithContentDescription("Filter Track Activity", substring = true).performClick()
         compose.onNodeWithText("No Matching Activity").assertIsDisplayed()
         captureVisualCatalogSurface("ux-upgrades.tracks.activity-recovery")
         compose.onNodeWithText("Clear Search & Filters").performClick()

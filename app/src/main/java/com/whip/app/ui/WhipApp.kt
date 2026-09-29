@@ -985,6 +985,8 @@ fun WhipScreen(
     var resetElapsedGoalIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
     var searchOpen by rememberSaveable { mutableStateOf(false) }
     var searchEntryContext by rememberSaveable { mutableStateOf(WhipSearchEntryContext.AllWhip) }
+    var settingsSearchRequested by rememberSaveable { mutableStateOf(false) }
+    var settingsSearchAvailable by remember { mutableStateOf(false) }
     val openHabitIdRequestedState = rememberSaveable { mutableStateOf<Long?>(null) }
     var openHabitIdRequested by openHabitIdRequestedState
     var editHabitIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -1660,8 +1662,12 @@ fun WhipScreen(
                 if (focusedCollectionMode) return@onPreviewKeyEvent true
                 when (event.key) {
                     Key.K -> {
-                        searchEntryContext = appDestination.searchEntryContext(gymDestination)
-                        searchOpen = true
+                        if (appDestination == AppDestination.Settings) {
+                            if (settingsSearchAvailable) settingsSearchRequested = true
+                        } else {
+                            searchEntryContext = appDestination.searchEntryContext(gymDestination)
+                            searchOpen = true
+                        }
                     }
                     Key.N -> {
                         if (
@@ -1967,15 +1973,19 @@ fun WhipScreen(
                             )
                         }
                     }
-                    if (!focusedCollectionMode && appDestination != AppDestination.Settings) {
+                    if (!focusedCollectionMode) {
+                        val searchingSettings = appDestination == AppDestination.Settings
                         val activeSearchContext = appDestination.searchEntryContext(gymDestination)
                         IconButton(
                             onClick = {
-                                searchEntryContext = activeSearchContext
-                                searchOpen = true
+                                if (searchingSettings) settingsSearchRequested = true else {
+                                    searchEntryContext = activeSearchContext
+                                    searchOpen = true
+                                }
                             },
+                            enabled = !searchingSettings || settingsSearchAvailable,
                             modifier = Modifier.focusRequester(searchInvokerFocusRequester).size(52.dp).testTag("workspace-search-action").semantics {
-                                contentDescription = activeSearchContext.searchActionLabel()
+                                contentDescription = if (searchingSettings) "Search Settings" else activeSearchContext.searchActionLabel()
                             },
                         ) { Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(28.dp)) }
                     }
@@ -2444,6 +2454,10 @@ fun WhipScreen(
                             !contentPaneIsExpanded
                     },
                     onSectionChange = { settingsSection = it },
+                    externalSearchAction = true,
+                    searchRequested = settingsSearchRequested,
+                    onSearchRequestConsumed = { settingsSearchRequested = false },
+                    onSearchAvailabilityChange = { settingsSearchAvailable = it },
                 )
                 else RoadmapEmptyArea("Settings", "Settings are loading.", innerPadding)
             }
@@ -5813,18 +5827,12 @@ private fun TaskAreaContent(
         mutableStateOf(destination.toWorkspaceRoute().historySection)
     }
     var textQuery by rememberSaveable { mutableStateOf("") }
-    var taskSearchOpen by rememberSaveable { mutableStateOf(false) }
-    var taskSearchFocusPending by remember { mutableStateOf(false) }
-    val taskSearchFocus = remember { FocusRequester() }
-    val taskSearchFocusManager = LocalFocusManager.current
     val taskListState = rememberLazyListState()
     var previousTaskQuery by rememberSaveable { mutableStateOf(textQuery) }
-    var previousTaskSearchOpen by rememberSaveable { mutableStateOf(taskSearchOpen) }
     val taskFilterScroll = rememberScrollState()
-    LaunchedEffect(taskSearchOpen, textQuery) {
-        if (previousTaskQuery != textQuery || (!previousTaskSearchOpen && taskSearchOpen)) taskListState.scrollToItem(0)
+    LaunchedEffect(textQuery) {
+        if (previousTaskQuery != textQuery) taskListState.scrollToItem(0)
         previousTaskQuery = textQuery
-        previousTaskSearchOpen = taskSearchOpen
     }
     var sortMode by rememberSaveable {
         mutableStateOf(
@@ -6110,7 +6118,7 @@ private fun TaskAreaContent(
             WhipActiveFilter("saved-query", "Query: $textQuery") { textQuery = "" },
         )
     }
-    val activeFilterCount = activeFilters.count { it.key != "saved-query" }
+    val activeFilterCount = activeFilters.size
     val reorderDestinationEligible = destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)
     val reorderHasConstraints =
         textQuery.isNotBlank() || activeFilterCount > 0 || areaScope != AreaScope.All ||
@@ -6269,20 +6277,11 @@ private fun TaskAreaContent(
                     supportingText = taskDestinationSupportingText(destination, visibleTasks.size),
                 ) {
                 if (!reordering) WhipPageIconAction(
-                    icon = Icons.Outlined.Search,
-                    label = if (taskSearchOpen) "Close Task Search" else "Find Tasks",
-                    onClick = {
-                        taskSearchOpen = !taskSearchOpen
-                        taskSearchFocusPending = taskSearchOpen
-                        if (!taskSearchOpen) { textQuery = ""; taskSearchFocusManager.clearFocus() }
-                    },
-                )
-                if (!reordering) WhipPageIconAction(
                         icon = Icons.Outlined.FilterList,
                         label = if (activeFilterCount == 0) "Filter & Sort Tasks" else "Filter & Sort Tasks · $activeFilterCount active",
                         onClick = { showFilters = true },
                     )
-                if (!reordering && canReorderTaskList && canSelectTaskList) Box {
+                if (!reordering && (canReorderTaskList || canSelectTaskList)) Box {
                     WhipPageIconAction(
                         icon = Icons.Outlined.MoreVert,
                         label = "More task list actions",
@@ -6292,7 +6291,7 @@ private fun TaskAreaContent(
                         expanded = taskToolsExpanded,
                         onDismissRequest = { taskToolsExpanded = false },
                     ) {
-                        WhipMenuItem(
+                        if (canReorderTaskList) WhipMenuItem(
                             label = when {
                                 areaScope != AreaScope.All -> "Show All Areas & Reorder"
                                 reorderHasConstraints -> "Clear Filters & Reorder All"
@@ -6300,12 +6299,8 @@ private fun TaskAreaContent(
                             },
                             onClick = ::startTaskReorder,
                         )
-                        WhipMenuItem(label = "Select Tasks", onClick = ::startTaskSelection)
+                        if (canSelectTaskList) WhipMenuItem(label = "Select Tasks", onClick = ::startTaskSelection)
                     }
-                } else if (!reordering && canReorderTaskList) {
-                    WhipTextButton(onClick = ::startTaskReorder) { Text("Reorder") }
-                } else if (!reordering && canSelectTaskList) {
-                    WhipTextButton(onClick = ::startTaskSelection) { Text("Select") }
                 }
                 }
             if (workspaceDestination == TaskWorkspaceDestination.History) {
@@ -6518,23 +6513,9 @@ private fun TaskAreaContent(
             contentPadding = whipPagePadding(top = WhipSpacing.sibling),
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
-        if (!selectionMode && !reordering && (taskSearchOpen || textQuery.isNotBlank())) item {
-            Column(verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro)) {
-                WhipSearchField(
-                    label = "Find Tasks", query = textQuery, onQueryChange = { textQuery = it },
-                    hint = "Titles, notes, or step text", clearLabel = "Clear task search",
-                    modifier = Modifier.fillMaxWidth().focusRequester(taskSearchFocus).testTag("task-list-query"),
-                )
-                Text("${filtered.size} of ${sourceTasks.size} Tasks · ${destination.label}",
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            LaunchedEffect(taskSearchFocusPending) {
-                if (taskSearchFocusPending) { taskSearchFocus.requestFocus(); taskSearchFocusPending = false }
-            }
-        }
-        if (!selectionMode && !reordering && activeFilters.any { it.key != "saved-query" }) item {
+        if (!selectionMode && !reordering && activeFilters.isNotEmpty()) item {
             WhipActiveFilterRow(
-                filters = activeFilters.filterNot { it.key == "saved-query" },
+                filters = activeFilters,
                 onClearAll = {
                     priorities = emptySet()
                     selectedTags = emptySet()
@@ -6571,7 +6552,7 @@ private fun TaskAreaContent(
                 content()
             }
         }
-        if (!selectionMode && !reordering && !taskSearchOpen && textQuery.isBlank() && destination in setOf(TaskDestination.Today, TaskDestination.Inbox)) {
+        if (!selectionMode && !reordering && textQuery.isBlank() && destination in setOf(TaskDestination.Today, TaskDestination.Inbox)) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     WhipInlineTextField(
