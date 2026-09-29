@@ -1,5 +1,13 @@
 # Verification and release evidence
 
+### VER-20260929-018 — Signed 0.3.90 staged while owner-phone connectivity is unavailable
+
+- Related: FB-20260929-015/016, IMP-20260929-021; product acceptance VER-20260929-017. Status: Signed artifacts Verified; phone installation/startup pending. [Exact staged receipt](../../artifacts/phone-releases/2026-09-29/0.3.90/README.md).
+- Pushed release source `80c18150b4110ee0ff803680da1091571a2d6780` packages as 0.3.90/code 96 in 102 seconds. Clean changed-input route reruns no tests; all 549 accepted app/test/resource hashes remain unchanged. Independent non-debuggable APK package/SDK/version, APK v2 signature, AAB JAR signature, shared certificate and both ZIP integrity checks pass.
+- APK SHA-256 `b2d71aa132ee4888cb1fa23558141c73dd1838d99cb4715775f5b00b4abdf091`; AAB SHA-256 `8f6721dd0e725caaa371d2b5002aedb3faf1e842dfc916fe535c5df02c6644af`. Retained signed binaries are in ignored `build/releases`.
+- Two bounded connection attempts find the supplied phone endpoint unreachable; no physical transport is selected. Last verified phone is 0.3.89/code 95 under VER-20260929-016. No new installed-byte/identity/startup acceptance is claimed. The pending current-address request must be answered or connectivity restored before guarded install/launch.
+- No full suite, candidate, phone instrumentation/reset or Play publication. Schema 46, epoch 6, backup format 26 and signer/package identity are unchanged.
+
 ### VER-20260929-017 — Exact capture and context consistency acceptance
 
 - Related: FB-20260929-016, FND-20260929-033, IMP-20260929-020. Status: Verified within the focused scope. [Complete receipts and originals](../../artifacts/workspace-anchors/2026-09-29/README.md), [implemented plan](../quality/WORKSPACE_ANCHORS_2026-09-29.md).

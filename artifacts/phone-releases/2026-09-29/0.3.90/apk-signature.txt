@@ -1,0 +1,17 @@
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): false
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: CN=Whip Android Release, OU=Whip, O=Whip, L=Toronto, ST=Ontario, C=CA
+Signer #1 certificate SHA-256 digest: cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788
+Signer #1 certificate SHA-1 digest: 7b0c8634926a7691b5663c825c61f73acc45a8b2
+Signer #1 certificate MD5 digest: 486a2a0d1a824c2e331f33b42425cb64
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 4096
+Signer #1 public key SHA-256 digest: 8d05d5e5d0e58cffba5111dc5e12a4607df79a839a0f6ea104091581249c3a58
+Signer #1 public key SHA-1 digest: c52ccf08f182a2ecdbfb39871792b890f61a861c
+Signer #1 public key MD5 digest: babc658d6f200f692360df513df130ce

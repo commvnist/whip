@@ -4,7 +4,7 @@
 
 - Related: FB-20260929-015/016, IMP-20260929-020, DEC-20260906-003; product verification VER-20260929-017.
 - Release metadata advances to 0.3.90/code 96 for the authorized follow-up phone update, retaining the accepted app/test/resource source and established signing/persistence contracts.
-- Status: Preparation in progress. The owner phone is unreachable; signed packaging and repository delivery proceed independently. No installation, phone instrumentation or data reset is claimed.
+- Status: Signed and Staged under VER-20260929-018 from pushed release source `80c18150`. All 549 accepted app/test/resource hashes are unchanged; signed packaging, package/version, signatures, certificate and archive checks pass. [Staged receipt](../../artifacts/phone-releases/2026-09-29/0.3.90/README.md). The owner phone is unreachable, so installation/startup verification remains pending; its last verified version is 0.3.89. No installation, phone instrumentation or data reset is claimed.
 
 ### IMP-20260929-020 — Align Task capture and shared workspace context
 

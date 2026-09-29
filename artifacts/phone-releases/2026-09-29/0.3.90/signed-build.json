@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "gradleSeconds": 102,
+  "releaseSource": "80c18150b4110ee0ff803680da1091571a2d6780",
+  "signedTasks": [
+    "assembleRelease",
+    "bundleRelease"
+  ],
+  "fastRoute": "clean/docs; no tests rerun",
+  "acceptedSourceFilesRetained": 549,
+  "phoneInstall": "pending connection"
+}

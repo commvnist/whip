@@ -1,0 +1,7 @@
+Route N (no changes) -> profile:docs (no changed repository inputs)
+Profile: docs
+All JVM tests: false
+All Android tests: false
+Static checks: false
+Frozen candidate required: false
+Fast affected-test loop passed. Android compilation, lint, and packaging were deferred to scripts/check --ready.

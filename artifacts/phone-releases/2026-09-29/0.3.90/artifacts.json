@@ -1,0 +1,23 @@
+{
+  "status": "signed and staged; not installed",
+  "releaseSource": "80c18150b4110ee0ff803680da1091571a2d6780",
+  "package": "commvne.com.whip.app",
+  "versionName": "0.3.90",
+  "versionCode": 96,
+  "certificateSha256": "cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788",
+  "acceptedSourceFiles": 549,
+  "artifacts": {
+    "apk": {
+      "sha256": "b2d71aa132ee4888cb1fa23558141c73dd1838d99cb4715775f5b00b4abdf091",
+      "bytes": 4326450,
+      "copy": "build/releases/Whip-0.3.90-code96-private.apk",
+      "zipIntegrity": "passed"
+    },
+    "aab": {
+      "sha256": "8f6721dd0e725caaa371d2b5002aedb3faf1e842dfc916fe535c5df02c6644af",
+      "bytes": 11668180,
+      "copy": "build/releases/Whip-0.3.90-code96-private.aab",
+      "zipIntegrity": "passed"
+    }
+  }
+}
