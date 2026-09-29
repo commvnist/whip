@@ -537,8 +537,8 @@ class ProductivityCardDesignUiTest {
         compose.onNodeWithTag("habit-expand-6", useUnmergedTree = true).performScrollTo().performClick()
         compose.onNodeWithText("2 / 8", substring = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("−1").performScrollTo().performClick()
-        compose.onNodeWithText("Set").performScrollTo().performClick()
-        compose.onNodeWithText("Undo").performScrollTo().performClick()
+        compose.onNodeWithText("Set Total").performScrollTo().performClick()
+        compose.onNodeWithText("Undo Last Entry").performScrollTo().performClick()
 
         compose.onNodeWithTag("goal-expand-7", useUnmergedTree = true).performScrollTo().performClick()
         compose.onNodeWithText("2 / 8", substring = true).performScrollTo().assertIsDisplayed()

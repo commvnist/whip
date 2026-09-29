@@ -264,47 +264,23 @@ private fun TaskSubtaskCompletionRow(
     onToggle: () -> Unit,
     onConvert: () -> Unit,
 ) {
-    BoxWithConstraints(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .testTag("task-subtask-row-${subtask.step.id}"),
+    var actionsOpen by rememberSaveable(subtask.step.id) { mutableStateOf(false) }
+    Row(
+        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("task-subtask-row-${subtask.step.id}"),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
-        if (stacked) {
-            Column(Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    TaskSubtaskText(subtask, Modifier.weight(1f))
-                    Spacer(Modifier.width(8.dp))
-                    TaskSubtaskCheckbox(subtask, archived, onToggle)
-                }
-                WhipTextButton(
-                    enabled = !archived,
-                    onClick = onConvert,
-                    modifier = Modifier.fillMaxWidth().testTag("task-subtask-convert-${subtask.step.id}"),
-                ) {
-                    Text("Convert to Task")
-                    Spacer(Modifier.weight(1f))
-                }
-            }
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TaskSubtaskText(subtask, Modifier.weight(1f))
-                WhipTextButton(
-                    enabled = !archived,
-                    onClick = onConvert,
-                    modifier = Modifier.testTag("task-subtask-convert-${subtask.step.id}"),
-                ) { Text("Convert to Task") }
-                Spacer(Modifier.width(8.dp))
-                TaskSubtaskCheckbox(subtask, archived, onToggle)
-            }
+        TaskSubtaskText(subtask, Modifier.weight(1f))
+        WhipOverflowMenu(
+            label = "More actions for subtask ${subtask.title}",
+            expanded = actionsOpen,
+            onExpandedChange = { actionsOpen = it },
+            enabled = !archived,
+            modifier = Modifier.testTag("task-subtask-more-${subtask.step.id}"),
+        ) {
+            WhipMenuItem(label = "Convert to Task", onClick = { actionsOpen = false; onConvert() },
+                modifier = Modifier.testTag("task-subtask-convert-${subtask.step.id}"))
         }
+        TaskSubtaskCheckbox(subtask, archived, onToggle)
     }
 }
 
@@ -385,6 +361,7 @@ fun TaskActionsDialog(
     activeFocusTaskTitle: String? = null,
     activeFocusDeadlineMillis: Long? = null,
 ) {
+    val contentScroll = rememberScrollState()
     var section by rememberSaveable(item.stableKey) { mutableStateOf(TaskDetailSection.Overview) }
     var pendingMoveStepId by rememberSaveable(item.stableKey) { mutableStateOf<Long?>(null) }
     var customFocusOpen by rememberSaveable(item.stableKey) { mutableStateOf(false) }
@@ -432,23 +409,11 @@ fun TaskActionsDialog(
         ).takeUnless { item.task.archived },
         content = {
             Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
+                modifier = Modifier.verticalScroll(contentScroll),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 if (section == TaskDetailSection.Overview) {
-                    EntityInspectorInformationGroup(
-                        title = "Context",
-                        modifier = Modifier.testTag("task-inspector-context-card"),
-                    ) {
-                        EntityInspectorFact("Timing", item.task.scheduleExplanation(weekdayFormatter))
-                        item.task.notes.takeIf(String::isNotBlank)?.let { EntityInspectorFact("Notes", it) }
-                        item.task.deadline?.let { deadline ->
-                            EntityInspectorFact(
-                                "Deadline",
-                                deadline.format(shortDateFormatter) + if (item.isDeadlineOverdue) " · overdue" else "",
-                            )
-                        }
-                    }
+                    if (item.subtasks.isNotEmpty()) {
                     EntityInspectorInformationGroup(
                         title = "Subtasks",
                         modifier = Modifier.testTag("task-inspector-subtasks-card"),
@@ -462,6 +427,51 @@ fun TaskActionsDialog(
                                 archived = item.task.archived,
                                 onToggle = { onToggleSubtask(subtask.step.id, !subtask.completed) },
                                 onConvert = { pendingMoveStepId = subtask.step.id },
+                            )
+                        }
+                    }
+                    }
+                    if (!item.task.archived) EntityInspectorGroup("Focus") {
+                            Text("Start a Focus Timer", style = MaterialTheme.typography.labelMedium)
+                            focusError?.let { PersistenceFailureNotice(it, testTag = "focus-start-error") }
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                listOf(15, 30, 45, 60).forEach { minutes ->
+                                    WhipOutlinedButton(
+                                        enabled = !focusBusy,
+                                        onClick = { requestFocus(minutes) },
+                                        modifier = Modifier.heightIn(min = 48.dp).testTag("focus-preset-$minutes")
+                                            .semantics { contentDescription = "Start $minutes minute Focus timer" },
+                                    ) { Text("$minutes min") }
+                                }
+                                WhipOutlinedButton(
+                                    enabled = !focusBusy,
+                                    onClick = { customFocusOpen = true },
+                                    modifier = Modifier.heightIn(min = 48.dp).testTag("focus-custom-time"),
+                                ) { Text("Custom Time") }
+                            }
+                    }
+                    EntityInspectorInformationGroup(
+                        title = "Context",
+                        modifier = Modifier.testTag("task-inspector-context-card"),
+                    ) {
+                        EntityInspectorFact("Timing", item.task.scheduleExplanation(weekdayFormatter))
+                        if (!item.task.archived) EntityInspectorAction(
+                            id = "schedule-now",
+                            label = when (item.task.scheduleKind) {
+                                ScheduleKind.Anytime -> "Choose a Date"
+                                ScheduleKind.Once -> "Change Scheduled Date"
+                                ScheduleKind.Recurring -> "Move This Occurrence"
+                            },
+                            onClick = onReschedule,
+                        )
+                        item.task.notes.takeIf(String::isNotBlank)?.let { EntityInspectorFact("Notes", it) }
+                        item.task.deadline?.let { deadline ->
+                            EntityInspectorFact(
+                                "Deadline",
+                                deadline.format(shortDateFormatter) + if (item.isDeadlineOverdue) " · overdue" else "",
                             )
                         }
                     }
@@ -508,26 +518,6 @@ fun TaskActionsDialog(
                     EntityInspectorGroup("Actions") {
                         if (!item.task.archived) {
                             EntityInspectorAction("duplicate", "Duplicate to Inbox", onDuplicate)
-                            Text("Start a Focus Timer", style = MaterialTheme.typography.labelMedium)
-                            focusError?.let { PersistenceFailureNotice(it, testTag = "focus-start-error") }
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
-                                listOf(15, 30, 45, 60).forEach { minutes ->
-                                    WhipOutlinedButton(
-                                        enabled = !focusBusy,
-                                        onClick = { requestFocus(minutes) },
-                                        modifier = Modifier.heightIn(min = 48.dp).testTag("focus-preset-$minutes")
-                                            .semantics { contentDescription = "Start $minutes minute Focus timer" },
-                                    ) { Text("$minutes min") }
-                                }
-                                WhipOutlinedButton(
-                                    enabled = !focusBusy,
-                                    onClick = { customFocusOpen = true },
-                                    modifier = Modifier.heightIn(min = 48.dp).testTag("focus-custom-time"),
-                                ) { Text("Custom Time") }
-                            }
                         }
                     }
                     EntityInspectorGroup("Availability") {

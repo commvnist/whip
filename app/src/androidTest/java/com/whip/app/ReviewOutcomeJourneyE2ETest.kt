@@ -70,6 +70,18 @@ class ReviewOutcomeJourneyE2ETest {
             compose.onNodeWithTag("entity-inspector-status").assert(hasAnyDescendant(hasText("Completed")))
             compose.onNodeWithText("No scheduled date.").assertIsDisplayed()
             captureVisualCatalogSurface("shared.review.original-current-task")
+            compose.onNodeWithTag("entity-inspector-close").performClick()
+            compose.onNodeWithTag("return-to-review").performClick()
+            assertRows()
+            scenario.recreate()
+            assertRows()
+            compose.onNodeWithTag("review-outcome-Tasks:$recurring:${today.toEpochDay()}:$today")
+                .performScrollTo().performClick()
+            compose.onNodeWithTag("entity-inspector-title").assertTextEquals("Daily design notes")
+            compose.onNodeWithTag("entity-inspector-close").performClick()
+            androidx.test.espresso.Espresso.pressBack()
+            compose.onNodeWithTag("review-outcome-list").assertIsDisplayed()
+            captureVisualCatalogSurface("deep.review.returned-context")
         }
     }
 
@@ -126,6 +138,13 @@ class ReviewOutcomeJourneyE2ETest {
                 if (section == ReviewSection.Habits) compose.onNodeWithTag("entity-inspector-content-history").assertIsDisplayed()
             }
             captureVisualCatalogSurface("shared.review.original-${section.name.lowercase()}")
+            if (section != ReviewSection.Gym) compose.onNodeWithTag("entity-inspector-close").performClick()
+            compose.onNodeWithTag("return-to-review").performClick()
+            compose.onNodeWithTag("review-outcome-list").assertIsDisplayed()
+            compose.onNodeWithText(title).performScrollTo().assertIsDisplayed()
+            scenario.recreate()
+            compose.onNodeWithText(title).performScrollTo().assertIsDisplayed()
+            captureVisualCatalogSurface("deep.review.returned-${section.name.lowercase()}")
         }
     }
 }

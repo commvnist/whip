@@ -69,6 +69,7 @@ internal fun ReviewAppRoute(
     retryActions: DomainRetryActions,
     navigation: ReviewNavigationState,
     onTemporarilySelectAreaScope: (AreaScope) -> Unit,
+    onNavigateToSource: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     ReviewDialog(
@@ -80,14 +81,14 @@ internal fun ReviewAppRoute(
         onDismiss = onDismiss,
         sections = settingsState.settings.reviewSections,
         onSectionsChange = { settingsViewModel?.setReviewSections(it) },
-        onOpenOutcome = { navigation.open(it, tasks); onDismiss() },
-        onDrillDown = { navigation.openSection(it); onDismiss() },
+        onOpenOutcome = { navigation.open(it, tasks); onNavigateToSource() },
+        onDrillDown = { navigation.openSection(it); onNavigateToSource() },
         productivityAreaLabel = reviewProductivityAreaLabel(areaScope, settingsState.areas),
         trackState = tracks, retryActions = retryActions,
         onOpenTracks = {
             if (areaScope != AreaScope.All) onTemporarilySelectAreaScope(AreaScope.All)
             navigation.destination.value = AppDestination.Tracks
-            onDismiss()
+            onNavigateToSource()
         },
     )
 }

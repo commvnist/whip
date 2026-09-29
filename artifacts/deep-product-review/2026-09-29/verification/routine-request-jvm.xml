@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.RoutineBuilderStateTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-09-29T07:28:36.107Z" hostname="beast" time="0.121">
+  <properties/>
+  <testcase name="librarySaveRetainsExactReceiptRejectsDuplicatesAndRecoversAfterReplacement" classname="com.whip.app.ui.RoutineBuilderStateTest" time="0.118"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

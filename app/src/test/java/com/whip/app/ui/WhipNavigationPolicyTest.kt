@@ -62,11 +62,11 @@ class WhipNavigationPolicyTest {
     }
 
     @Test
-    fun homeSummaryNeverDropsPinnedItemsAndOnlyUsesSpareSlotsForOthers() {
+    fun homeSummaryBoundsPinnedItemsAndOnlyUsesSpareSlotsForOthers() {
         val items = listOf("pinned-a", "other-a", "pinned-b", "pinned-c", "pinned-d", "other-b")
 
         assertEquals(
-            listOf("pinned-a", "pinned-b", "pinned-c", "pinned-d"),
+            listOf("pinned-a", "pinned-b", "pinned-c"),
             pinnedHomeSummary(items, limit = 3) { it.startsWith("pinned") },
         )
         assertEquals(

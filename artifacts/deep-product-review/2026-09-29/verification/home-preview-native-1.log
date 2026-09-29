@@ -1,0 +1,78 @@
+com.whip.app.DeepSharedJourneyTest#denseHomeBalancesDomainsAndCompletingRefillsPreview
+INSTRUMENTATION_STATUS: class=com.whip.app.DeepSharedJourneyTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.DeepSharedJourneyTest:
+INSTRUMENTATION_STATUS: test=denseHomeBalancesDomainsAndCompletingRefillsPreview
+INSTRUMENTATION_STATUS_CODE: 1
+s_glBindAttribLocation: bind attrib 0 name position
+s_glBindAttribLocation: bind attrib 1 name color
+s_glBindAttribLocation: bind attrib 2 name localCoord
+INSTRUMENTATION_STATUS: class=com.whip.app.DeepSharedJourneyTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: No node found that matches TestTag = 'task-primary-action-8' in scrollable container
+Semantics of the node:
+Node #91 at (l=0.0, t=300.0, r=1080.0, b=2169.0)px, Tag: 'home-list'
+CollectionInfo = 'CollectionInfo(rowCount=16, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape@3f4181f'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=3063.0, maxValue=3063.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 10 children, 2 siblings
+Selector used: (TestTag = 'home-list')
+
+	at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+	at com.whip.app.DeepSharedJourneyTest.homePreview(DeepSharedJourneyTest.kt:52)
+	at com.whip.app.DeepSharedJourneyTest.denseHomeBalancesDomainsAndCompletingRefillsPreview(DeepSharedJourneyTest.kt:32)
+
+INSTRUMENTATION_STATUS: stream=
+Error in denseHomeBalancesDomainsAndCompletingRefillsPreview(com.whip.app.DeepSharedJourneyTest):
+java.lang.AssertionError: No node found that matches TestTag = 'task-primary-action-8' in scrollable container
+Semantics of the node:
+Node #91 at (l=0.0, t=300.0, r=1080.0, b=2169.0)px, Tag: 'home-list'
+CollectionInfo = 'CollectionInfo(rowCount=16, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape@3f4181f'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=3063.0, maxValue=3063.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 10 children, 2 siblings
+Selector used: (TestTag = 'home-list')
+
+	at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+	at com.whip.app.DeepSharedJourneyTest.homePreview(DeepSharedJourneyTest.kt:52)
+	at com.whip.app.DeepSharedJourneyTest.denseHomeBalancesDomainsAndCompletingRefillsPreview(DeepSharedJourneyTest.kt:32)
+
+INSTRUMENTATION_STATUS: test=denseHomeBalancesDomainsAndCompletingRefillsPreview
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 7.757
+There was 1 failure:
+1) denseHomeBalancesDomainsAndCompletingRefillsPreview(com.whip.app.DeepSharedJourneyTest)
+java.lang.AssertionError: No node found that matches TestTag = 'task-primary-action-8' in scrollable container
+Semantics of the node:
+Node #91 at (l=0.0, t=300.0, r=1080.0, b=2169.0)px, Tag: 'home-list'
+CollectionInfo = 'CollectionInfo(rowCount=16, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape@3f4181f'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=3063.0, maxValue=3063.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 10 children, 2 siblings
+Selector used: (TestTag = 'home-list')
+
+	at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)
+	at com.whip.app.DeepSharedJourneyTest.homePreview(DeepSharedJourneyTest.kt:52)
+	at com.whip.app.DeepSharedJourneyTest.denseHomeBalancesDomainsAndCompletingRefillsPreview(DeepSharedJourneyTest.kt:32)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1
+
+Elapsed ms: 9619
+Command exit: 0

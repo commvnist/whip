@@ -95,13 +95,16 @@ class FocusHomeJourneyE2ETest {
         val quietArea = runBlocking { app.areaRepository.create("Quiet area") }
         launch().use { scenario ->
             awaitTag("home-list")
-            compose.onNodeWithTag("home-list").performScrollToNode(hasTestTag("task-card-$taskId"))
+            compose.onNodeWithTag("home-list").performScrollToNode(hasTestTag("home-view-all-Tasks"))
+            compose.onNodeWithTag("home-view-all-Tasks").performClick()
+            compose.onNodeWithTag("task-workspace-list").performScrollToNode(hasTestTag("task-card-$taskId"))
             compose.onNodeWithTag("task-card-$taskId").assertIsDisplayed().performClick()
-            compose.onNodeWithTag("task-detail-section-Options").performClick()
+            compose.onNodeWithTag("task-detail-section-Overview").performClick()
             compose.onNodeWithTag("focus-preset-30").performScrollTo().performClick()
             compose.waitUntil(10_000) { app.settingsRepository.current().focusTimerTaskId == taskId }
             compose.waitUntil(10_000) { compose.onAllNodesWithTag("entity-inspector").fetchSemanticsNodes().isEmpty() }
             compose.waitUntil(10_000) { compose.onAllNodesWithText("Focus started · 30 min", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("primary-navigation-Home").performClick()
             awaitTag("active-focus-card")
             compose.onNodeWithTag("active-focus-card").assertIsDisplayed()
             compose.onNodeWithTag("active-focus-task").assertTextEquals(title)
@@ -192,8 +195,8 @@ class FocusHomeJourneyE2ETest {
                 compose.onNodeWithTag(tag).assertIsDisplayed().assertIsEnabled().assertHeightIsAtLeast(48.dp)
             }
             compose.onNodeWithTag("home-list").assertHeightIsAtLeast(160.dp)
-            compose.onNodeWithTag("home-list").performScrollToNode(hasText("Other Home work 8"))
-            compose.onNodeWithText("Other Home work 8").assertIsDisplayed()
+            compose.onNodeWithTag("home-list").performScrollToNode(hasTestTag("home-view-all-Tasks"))
+            compose.onNodeWithTag("home-view-all-Tasks").assertIsDisplayed()
             compose.onNodeWithTag("active-focus-card").assertIsDisplayed()
             assertEquals(2f, InstrumentationRegistry.getInstrumentation().targetContext.resources.configuration.fontScale, 0.01f)
             captureVisualCatalogSurface("focus.home.channel-blocked.short-large")

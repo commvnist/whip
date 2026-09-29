@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
@@ -105,6 +106,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
@@ -397,13 +399,13 @@ data class DomainRetryActions(
     val gym: () -> Unit = {},
 )
 
-/** Keeps every pinned item visible while retaining the compact default summary. */
+/** Home is a preview of each domain; pins take priority without burying later sections. */
 internal fun <T> pinnedHomeSummary(
     items: List<T>,
     limit: Int,
     isPinned: (T) -> Boolean,
 ): List<T> {
-    val pinned = items.filter(isPinned)
+    val pinned = items.filter(isPinned).take(limit)
     val remainingSlots = (limit - pinned.size).coerceAtLeast(0)
     return pinned + items.filterNot(isPinned).take(remainingSlots)
 }
@@ -949,6 +951,7 @@ fun WhipScreen(
         mutableStateOf(GoalDestination.Active)
     }
     var taskDayPlannerRequested by rememberSaveable { mutableStateOf(false) }
+    var homeTasksRequested by rememberSaveable { mutableStateOf(false) }
     var taskPlanningViewRequest by rememberSaveable { mutableStateOf<TaskPlanningView?>(null) }
     var taskEditorOpen by rememberSaveable { mutableStateOf(false) }
     var taskEditorTaskId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -1010,13 +1013,12 @@ fun WhipScreen(
     var openGymSearchDomain by openGymSearchDomainState
     val openGymSearchIdState = rememberSaveable { mutableStateOf<Long?>(null) }
     var openGymSearchId by openGymSearchIdState
-    var reviewOpen by rememberSaveable { mutableStateOf(false) }
+    val reviewSession = rememberReviewSession()
     var areaManagerOpen by rememberSaveable { mutableStateOf(false) }
     var tagManagerOpen by rememberSaveable { mutableStateOf(false) }
     var areaMoveNotice by rememberSaveable { mutableStateOf<String?>(null) }
     var areaMoveRestoreScope by rememberSaveable { mutableStateOf<String?>(null) }
-    val homeHabitValueItemIdState: MutableState<Long?> = rememberSaveable { mutableStateOf(null) }
-    var homeHabitValueItemId by homeHabitValueItemIdState
+    val homeHabitValue = rememberHomeHabitValueEditor()
     var contentPaneExpanded by rememberSaveable { mutableStateOf(false) }
     var consumedLaunchDeliveryId by rememberSaveable { mutableStateOf<Long?>(null) }
     val workspaceStateHolder = rememberSaveableStateHolder()
@@ -1123,11 +1125,12 @@ fun WhipScreen(
     fun closeSettings() {
         appDestination = settingsCallerDestination.takeUnless { it == AppDestination.Settings } ?: AppDestination.Home
     }
-    BackHandler(enabled = appDestination != AppDestination.Home && !areaManagerOpen) {
-        if (appDestination == AppDestination.Settings) closeSettings() else appDestination = AppDestination.Home
-    }
-    val homeHabitValueItem = homeHabitValueItemId?.let { id ->
-        (habitState.today + habitState.all).firstOrNull { it.habit.id == id }
+    BackHandler(enabled = (appDestination != AppDestination.Home || reviewSession.canReturn) && !areaManagerOpen && !reviewSession.isOpen) {
+        when {
+            appDestination == AppDestination.Settings -> closeSettings()
+            reviewSession.canReturn -> reviewSession.open()
+            else -> appDestination = AppDestination.Home
+        }
     }
     LaunchedEffect(shortcutFocusRequester) {
         shortcutFocusRequester.requestFocus()
@@ -1552,11 +1555,11 @@ fun WhipScreen(
         trackDetailDestinationState.value = TrackDetailDestination.Entries
         openGymSearchDomain = null
         openGymSearchId = null
-        reviewOpen = false
+        reviewSession.close()
         areaManagerOpen = false
         areaMoveNotice = null
         areaMoveRestoreScope = null
-        homeHabitValueItemId = null
+        homeHabitValue.close()
         contentPaneExpanded = false
         gymRoutineEditorOpen = false
         taskSelectionMode = false
@@ -1646,7 +1649,7 @@ fun WhipScreen(
         modifier = modifier
             .fillMaxSize()
             .testTag("app-background-shell")
-            .semantics { if (areaManagerOpen || reviewOpen || trackEditorRoute != null) hideFromAccessibility() }
+            .semantics { if (areaManagerOpen || reviewSession.isOpen || trackEditorRoute != null) hideFromAccessibility() }
             .focusRequester(shortcutFocusRequester)
             .onPreviewKeyEvent { event ->
                 if (event.type == KeyEventType.KeyDown && event.key == Key.Escape && reorderModeActive) {
@@ -1819,6 +1822,7 @@ fun WhipScreen(
         // The active content owns keyboard space; persistent side navigation stays put.
         modifier = Modifier.fillMaxSize().imePadding(),
         topBar = {
+            Column {
             if (!gymRoutineEditorOpen && !inlineKeyboardVisible && !focusedTrackDetail &&
                 !(appDestination == AppDestination.Tasks && taskSelectionMode)
             ) TopAppBar(
@@ -1989,6 +1993,8 @@ fun WhipScreen(
                     }
                 },
             )
+            if (!gymRoutineEditorOpen && !inlineKeyboardVisible && !focusedCollectionMode) reviewSession.ReturnBar()
+            }
         },
         bottomBar = {
             if (!gymRoutineEditorOpen && !inlineKeyboardVisible && !focusedTrackDetail && (adaptiveLayout == WhipAdaptiveLayout.Compact || contentPaneIsExpanded)) {
@@ -2046,11 +2052,12 @@ fun WhipScreen(
                     innerPadding = innerPadding,
                     onQuickHabit = { item ->
                         habitViewModel?.let { vm ->
-                            quickHabitAction(item, vm) { homeHabitValueItemId = item.habit.id }
+                            quickHabitAction(item, vm) { homeHabitValue.setTotal(item) }
                         }
                     },
                     onHabitValue = { item, value -> habitViewModel?.addValue(item, value) },
-                    onSetHabitValue = { homeHabitValueItemId = it.habit.id },
+                    onSetHabitValue = homeHabitValue::setTotal,
+                    onAddHabitAmount = homeHabitValue::addAmount,
                     onDecrementHabit = { habitViewModel?.decrementValue(it) },
                     onUndoHabit = { item ->
                         habitState.logs.asSequence()
@@ -2065,10 +2072,10 @@ fun WhipScreen(
                     onChecklist = { habitId, itemId, date, completed ->
                         habitViewModel?.toggleChecklist(habitId, itemId, date, completed)
                     },
-                    onOpenHabits = { appDestination = AppDestination.Habits },
+                    onOpenHabits = { habitDestinationState.value = HabitDestination.Today; appDestination = AppDestination.Habits },
                     onOpenHabit = { item -> openHabitIdRequested = item.habit.id },
                     onEditHabit = { item -> editHabitIdRequested = item.habit.id },
-                    onOpenTasks = { appDestination = AppDestination.Tasks; taskDestination = TaskDestination.Today },
+                    onOpenTasks = { homeTasksRequested = true; appDestination = AppDestination.Tasks; taskDestination = TaskDestination.Today },
                     onPlanDay = {
                         appDestination = AppDestination.Tasks
                         taskDestination = TaskDestination.Inbox
@@ -2077,9 +2084,10 @@ fun WhipScreen(
                     onCompleteTask = ::requestCompletion,
                     onOpenTask = { actionItemKey = it.stableKey },
                     onEditTask = ::openTaskEditor,
-                    onOpenGym = { appDestination = AppDestination.Gym },
+                    onOpenGym = { gymDestination = GymDestination.Workout; appDestination = AppDestination.Gym },
+                    onOpenGymRoutines = { gymDestination = GymDestination.Routines; appDestination = AppDestination.Gym },
                     onStartRoutine = { routineId, dayId -> gymViewModel?.startRoutine(routineId, dayId) },
-                    onOpenGoals = { appDestination = AppDestination.Goals },
+                    onOpenGoals = { goalDestinationState.value = GoalDestination.Active; appDestination = AppDestination.Goals },
                     onOpenGoal = { projection -> openGoalIdRequested = projection.goal.id },
                     onEditGoal = { projection -> editGoalIdRequested = projection.goal.id },
                     onRecordGoal = { projection -> recordGoalIdRequested = projection.goal.id },
@@ -2087,14 +2095,18 @@ fun WhipScreen(
                     onToggleMilestone = { boundary, completed ->
                         goalViewModel?.toggleMilestone(boundary, completed)
                     },
-                    onOpenTracks = { appDestination = AppDestination.Tracks },
+                    onOpenTracks = {
+                        selectedTrackState.value = null
+                        trackWorkspaceDestinationState.value = TrackWorkspaceDestination.Tracks
+                        appDestination = AppDestination.Tracks
+                    },
                     onOpenTrack = { projection -> openTrackIdRequested = projection.track.id; appDestination = AppDestination.Tracks },
                     onEditTrack = { projection -> editTrackIdRequested = projection.track.id; appDestination = AppDestination.Tracks },
                     onAddTrackEntry = { projection -> addTrackEntryRequestedForId = projection.track.id; appDestination = AppDestination.Tracks },
                     onSelectHomeTaskFilter = { name ->
                         settingsViewModel?.selectHomeTaskFilter(name)
                     },
-                    onOpenReview = { reviewOpen = true },
+                    onOpenReview = reviewSession::open,
                     onOpenResumeDestination = { destination ->
                         when (destination) {
                             HomeResumeDestination.Inbox -> {
@@ -2265,6 +2277,8 @@ fun WhipScreen(
                     onSelectAreaScope = onSelectAreaScope,
                     onTemporarilySelectAreaScope = onTemporarilySelectAreaScope,
                     dayPlannerRequested = taskDayPlannerRequested,
+                    homeFilterRequested = homeTasksRequested,
+                    onHomeFilterRequestConsumed = { homeTasksRequested = false },
                     onDayPlannerRequestConsumed = { taskDayPlannerRequested = false },
                     planningViewRequest = taskPlanningViewRequest,
                     onPlanningViewRequestConsumed = { taskPlanningViewRequest = null },
@@ -2531,7 +2545,7 @@ fun WhipScreen(
         }
     }
 
-    if (reviewOpen) {
+    reviewSession.Content {
         val reviewNavigation = remember {
             ReviewNavigationState(appDestinationState, taskDestinationState, actionItemKeyState, completedItemKeyState,
                 openHabitIdRequestedState, openGoalIdRequestedState, openGymSearchDomainState, openGymSearchIdState)
@@ -2541,43 +2555,12 @@ fun WhipScreen(
             tracks = unscopedTrackState, settingsState = settingsState, settingsViewModel = settingsViewModel,
             areaScope = areaScope, leadingPaneWidth = dialogSupportExtent, hingeWidth = dialogHingeWidth,
             retryActions = domainRetryActions, navigation = reviewNavigation,
-            onTemporarilySelectAreaScope = onTemporarilySelectAreaScope, onDismiss = { reviewOpen = false },
+            onTemporarilySelectAreaScope = onTemporarilySelectAreaScope,
+            onNavigateToSource = reviewSession::visitSource,
+            onDismiss = reviewSession::close,
         )
     }
-    HomeHabitValueRoute(
-        item = homeHabitValueItem,
-        itemIdState = homeHabitValueItemIdState,
-        viewModel = habitViewModel,
-        customUnits = habitState.customUnits,
-    )
-
-    TaskEditorRouteHost(
-        request = editorRequest,
-        taskState = state,
-        settingsState = settingsState,
-        settingsViewModel = settingsViewModel,
-        areaScope = areaScope,
-        saveCoordinator = taskEditorSaveCoordinator,
-        pendingTaskEditorLaunchState = pendingTaskEditorLaunchState,
-        launchQueueOverflowState = launchQueueOverflowState,
-        paneOffsetX = dialogPaneOffset,
-        paneMaxWidth = dialogContentWidth,
-        pendingDialogModifier = paneDialogModifier,
-        onDismiss = ::closeTaskEditor,
-        onSaveAndNewIntentChange = { taskEditorSaveAndNew = it },
-        onSaveTaskRequest = onSaveTaskRequest,
-        onRequestNotificationPermission = onRequestNotificationPermission,
-        onReplacePendingTaskRequest = { capture, shortened, scheduleDate, areaId ->
-            closeTaskEditor()
-            openTaskEditor(
-                capture = capture,
-                captureShortened = shortened,
-                scheduleDate = scheduleDate,
-                resolvedInitialArea = true,
-                initialAreaId = areaId,
-            )
-        },
-    )
+    homeHabitValue.Content(habitState, habitViewModel)
 
     actionItem?.let { item ->
         TaskActionsDialog(
@@ -2589,7 +2572,6 @@ fun WhipScreen(
             },
             onEdit = {
                 openTaskEditor(item)
-                actionItemKey = null
             },
             onReschedule = {
                 rescheduleItemSnapshot = item
@@ -2616,7 +2598,6 @@ fun WhipScreen(
             },
             onPin = {
                 onSetTaskPinned(item.task.id, !item.task.pinned)
-                actionItemKey = null
             },
             onDuplicate = {
                 onDuplicateTask(item.task.id)
@@ -2659,6 +2640,35 @@ fun WhipScreen(
             modifier = paneDialogModifier,
         )
     }
+
+    TaskEditorRouteHost(
+        request = editorRequest,
+        taskState = state,
+        settingsState = settingsState,
+        settingsViewModel = settingsViewModel,
+        areaScope = areaScope,
+        saveCoordinator = taskEditorSaveCoordinator,
+        pendingTaskEditorLaunchState = pendingTaskEditorLaunchState,
+        launchQueueOverflowState = launchQueueOverflowState,
+        paneOffsetX = dialogPaneOffset,
+        paneMaxWidth = dialogContentWidth,
+        pendingDialogModifier = paneDialogModifier,
+        onDismiss = ::closeTaskEditor,
+        onSaveAndNewIntentChange = { taskEditorSaveAndNew = it },
+        onSaveTaskRequest = onSaveTaskRequest,
+        onRequestNotificationPermission = onRequestNotificationPermission,
+        onReplacePendingTaskRequest = { capture, shortened, scheduleDate, areaId ->
+            closeTaskEditor()
+            openTaskEditor(
+                capture = capture,
+                captureShortened = shortened,
+                scheduleDate = scheduleDate,
+                resolvedInitialArea = true,
+                initialAreaId = areaId,
+            )
+        },
+    )
+
 
     pendingCompleteItem?.let { item ->
         PaneAwareAlertDialog(
@@ -2860,48 +2870,6 @@ private fun whipScreenDialogGeometry(
             hingeWidth,
         )
     }
-}
-
-@Composable
-private fun HomeHabitValueRoute(
-    item: HabitDayProgress?,
-    itemIdState: MutableState<Long?>,
-    viewModel: HabitViewModel?,
-    customUnits: List<com.whip.app.domain.UnitDefinition> = emptyList(),
-) {
-    item ?: return
-    viewModel ?: return
-    val authoredMutationState by viewModel.authoredMutationState.collectAsStateWithLifecycle()
-    val authoredMutationCoordinator = rememberPersistenceRequestCoordinator(
-        state = authoredMutationState,
-        consume = viewModel::consumeAuthoredMutationResult,
-        key = "home-habit-${item.habit.id}",
-        requestNamespace = "home-habit-quick",
-        onPersisted = { itemIdState.value = null },
-    )
-    HabitValueDialog(
-        item = item,
-        customUnits = customUnits,
-        saving = authoredMutationCoordinator.saving,
-        persistenceError = authoredMutationCoordinator.errorMessage,
-        onDismiss = {
-            authoredMutationCoordinator.clear()
-            itemIdState.value = null
-        },
-        onLog = { value, note ->
-            val requestId = authoredMutationCoordinator.begin() ?: return@HabitValueDialog
-            val accepted = if (item.habit.trackingMode == com.whip.app.domain.HabitTrackingMode.LogOnly) {
-                viewModel.log(item.habit.id, value, note = note, requestId = requestId)
-            } else {
-                viewModel.setPeriodValue(item, requireNotNull(value), note, requestId = requestId)
-            }
-            if (!accepted) {
-                authoredMutationCoordinator.finishFailure(
-                    "Another Habit history change is already finishing.",
-                )
-            }
-        },
-    )
 }
 
 @Composable
@@ -4951,6 +4919,7 @@ private fun HomeContent(
     onQuickHabit: (com.whip.app.domain.HabitDayProgress) -> Unit,
     onHabitValue: (com.whip.app.domain.HabitDayProgress, Double) -> Unit,
     onSetHabitValue: (com.whip.app.domain.HabitDayProgress) -> Unit,
+    onAddHabitAmount: (com.whip.app.domain.HabitDayProgress) -> Unit,
     onDecrementHabit: (com.whip.app.domain.HabitDayProgress) -> Unit,
     onUndoHabit: (com.whip.app.domain.HabitDayProgress) -> Unit,
     onUndoHabitSkip: (com.whip.app.domain.HabitDayProgress) -> Unit,
@@ -4965,6 +4934,7 @@ private fun HomeContent(
     onOpenTask: (ScheduledTask) -> Unit,
     onEditTask: (ScheduledTask) -> Unit,
     onOpenGym: () -> Unit,
+    onOpenGymRoutines: () -> Unit,
     onStartRoutine: (Long, Long?) -> Unit,
     onOpenGoals: () -> Unit,
     onOpenGoal: (com.whip.app.domain.GoalProjection) -> Unit,
@@ -4990,11 +4960,13 @@ private fun HomeContent(
 ) {
     val homeTaskFilter = appSettings.savedTaskFilters.firstOrNull { it.name == appSettings.homeTaskFilterName }
     val homeTasks = state.today.filter { homeTaskFilter == null || it.matches(homeTaskFilter, state.currentDate, appSettings.zoneId()) }
-    val homePinnedTasks = homeTasks.filter { it.task.pinned }
-    val homeOtherTasks = homeTasks.filterNot { it.task.pinned }
+    val homeTaskPreview = pinnedHomeSummary(homeTasks, limit = 3) { it.task.pinned }
+    val homePinnedTasks = homeTaskPreview.filter { it.task.pinned }
+    val homeOtherTasks = homeTaskPreview.filterNot { it.task.pinned }
     val homeHabitSections = habitState.today.dailyHabitSections()
-    val homePinnedHabits = homeHabitSections.actionNeeded.filter { it.habit.pinned }
-    val homeOtherHabits = homeHabitSections.actionNeeded.filterNot { it.habit.pinned }
+    val homeHabitPreview = pinnedHomeSummary(homeHabitSections.actionNeeded, limit = 3) { it.habit.pinned }
+    val homePinnedHabits = homeHabitPreview.filter { it.habit.pinned }
+    val homeOtherHabits = homeHabitPreview.filterNot { it.habit.pinned }
     val homeGoals = pinnedHomeSummary(goalState.active, limit = 3) { it.goal.pinned }
     val homePinnedGoals = homeGoals.filter { it.goal.pinned }
     val homeOtherGoals = homeGoals.filterNot { it.goal.pinned }
@@ -5173,10 +5145,9 @@ private fun HomeContent(
                         HomeDomainLoadNotice("Tasks", state.errorMessage, onRetryTaskLoading)
                     } else if (!collapsed) {
                         if (appSettings.savedTaskFilters.isNotEmpty()) item {
-                            FlowRow(
-                                Modifier.fillMaxWidth(),
+                            Row(
+                                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
                                 WhipFilterChip(homeTaskFilter == null, { onSelectHomeTaskFilter(null) }, { Text("All Tasks") })
                                 appSettings.savedTaskFilters.forEach { filter ->
@@ -5222,6 +5193,9 @@ private fun HomeContent(
                                 onEdit = { onEditTask(task) },
                             )
                         }
+                        if (homeTasks.size > homeTaskPreview.size) item {
+                            HomePreviewContinuation("Tasks", homeTasks.size, onOpenTasks)
+                        }
                     }
                 }
                 HomeSection.Habits -> {
@@ -5252,6 +5226,7 @@ private fun HomeContent(
                                 onQuick = { onQuickHabit(habit) },
                                 onQuickValue = { value -> onHabitValue(habit, value) },
                                 onSetValue = { onSetHabitValue(habit) },
+                                onAddAmount = { onAddHabitAmount(habit) },
                                 onDecrement = { onDecrementHabit(habit) },
                                 onUndo = { onUndoHabit(habit) },
                                 onUndoSkip = { onUndoHabitSkip(habit) },
@@ -5272,6 +5247,7 @@ private fun HomeContent(
                                 onQuick = { onQuickHabit(habit) },
                                 onQuickValue = { value -> onHabitValue(habit, value) },
                                 onSetValue = { onSetHabitValue(habit) },
+                                onAddAmount = { onAddHabitAmount(habit) },
                                 onDecrement = { onDecrementHabit(habit) },
                                 onUndo = { onUndoHabit(habit) },
                                 onUndoSkip = { onUndoHabitSkip(habit) },
@@ -5279,6 +5255,9 @@ private fun HomeContent(
                                 onChecklist = onChecklist,
                                 lowPressureMode = appSettings.lowPressureMode,
                             )
+                        }
+                        if (homeHabitSections.actionNeeded.size > homeHabitPreview.size) item {
+                            HomePreviewContinuation("Habits", homeHabitSections.actionNeeded.size, onOpenHabits)
                         }
                         if (homeHabitSections.finished.isNotEmpty()) {
                             item {
@@ -5288,7 +5267,7 @@ private fun HomeContent(
                                     onToggle = { homeFinishedExpanded = !homeFinishedExpanded },
                                 )
                             }
-                            if (homeFinishedExpanded) items(homeHabitSections.finished, key = { "home-habit-${it.habit.id}" }) { habit ->
+                            if (homeFinishedExpanded) items(homeHabitSections.finished.take(3), key = { "home-habit-${it.habit.id}" }) { habit ->
                                 HabitProgressCard(
                                     item = habit,
                                     customUnits = habitState.customUnits,
@@ -5297,6 +5276,7 @@ private fun HomeContent(
                                     onQuick = { onQuickHabit(habit) },
                                     onQuickValue = { value -> onHabitValue(habit, value) },
                                     onSetValue = { onSetHabitValue(habit) },
+                                onAddAmount = { onAddHabitAmount(habit) },
                                     onDecrement = { onDecrementHabit(habit) },
                                     onUndo = { onUndoHabit(habit) },
                                     onUndoSkip = { onUndoHabitSkip(habit) },
@@ -5305,6 +5285,9 @@ private fun HomeContent(
                                     lowPressureMode = appSettings.lowPressureMode,
                                 )
                             }
+                        }
+                        if (homeFinishedExpanded && homeHabitSections.finished.size > 3) item {
+                            HomePreviewContinuation("Finished Habits", homeHabitSections.finished.size, onOpenHabits)
                         }
                     }
                 }
@@ -5354,6 +5337,9 @@ private fun HomeContent(
                                 onToggleMilestone = onToggleMilestone,
                             )
                         }
+                        if (goalState.active.size > homeGoals.size) item {
+                            HomePreviewContinuation("Goals", goalState.active.size, onOpenGoals)
+                        }
                     }
                 }
                 HomeSection.Tracks -> {
@@ -5363,7 +5349,7 @@ private fun HomeContent(
                         else if (trackState.errorMessage != null) item {
                             HomeDomainLoadNotice("Tracks", trackState.errorMessage, onRetryTrackLoading)
                         } else if (!collapsed) {
-                            items(trackState.pinned, key = { "home-track-${it.track.id}" }) { projection ->
+                            items(trackState.pinned.take(3), key = { "home-track-${it.track.id}" }) { projection ->
                                 TrackRow(
                                     projection = projection,
                                     onOpen = { onOpenTrack(projection) },
@@ -5371,7 +5357,7 @@ private fun HomeContent(
                                     onAddEntry = { onAddTrackEntry(projection) },
                                 )
                             }
-                            item { NavigationRow("All Tracks", onOpenTracks, supportingText = "Open every structured log and its entries.") }
+                            item { HomePreviewContinuation("Tracks", trackState.projections.count { !it.track.archived }, onOpenTracks) }
                         }
                     }
                 }
@@ -5408,7 +5394,10 @@ private fun HomeContent(
                             )
                         }
                         if (gymState.activeSession == null) {
-                            items(pinnedRoutines, key = { "pinned-routine-${it.id}" }) { routine ->
+                            if (pinnedRoutines.size > 3) item {
+                                HomePreviewContinuation("Pinned Routines", pinnedRoutines.size, onOpenGymRoutines)
+                            }
+                            items(pinnedRoutines.take(3), key = { "pinned-routine-${it.id}" }) { routine ->
                                 val days = gymState.routineDays.filter { it.routineId == routine.id }.sortedBy { it.position }
                                 if (days.size <= 1) {
                                     HomeStatusCard(
@@ -5426,7 +5415,7 @@ private fun HomeContent(
                                                 Text(routine.name, fontWeight = FontWeight.Bold)
                                             }
                                             Text("Start a Routine Day", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                                 days.forEach { day ->
                                                     WhipTextButton(onClick = { onStartRoutine(routine.id, day.id) }) { Text(day.name) }
                                                 }
@@ -5790,6 +5779,8 @@ private fun TaskAreaContent(
     onSelectAreaScope: (AreaScope) -> Unit = {},
     onTemporarilySelectAreaScope: (AreaScope) -> Unit = {},
     dayPlannerRequested: Boolean = false,
+    homeFilterRequested: Boolean = false,
+    onHomeFilterRequestConsumed: () -> Unit = {},
     onDayPlannerRequestConsumed: () -> Unit = {},
     planningViewRequest: TaskPlanningView? = null,
     onPlanningViewRequestConsumed: () -> Unit = {},
@@ -5822,6 +5813,19 @@ private fun TaskAreaContent(
         mutableStateOf(destination.toWorkspaceRoute().historySection)
     }
     var textQuery by rememberSaveable { mutableStateOf("") }
+    var taskSearchOpen by rememberSaveable { mutableStateOf(false) }
+    var taskSearchFocusPending by remember { mutableStateOf(false) }
+    val taskSearchFocus = remember { FocusRequester() }
+    val taskSearchFocusManager = LocalFocusManager.current
+    val taskListState = rememberLazyListState()
+    var previousTaskQuery by rememberSaveable { mutableStateOf(textQuery) }
+    var previousTaskSearchOpen by rememberSaveable { mutableStateOf(taskSearchOpen) }
+    val taskFilterScroll = rememberScrollState()
+    LaunchedEffect(taskSearchOpen, textQuery) {
+        if (previousTaskQuery != textQuery || (!previousTaskSearchOpen && taskSearchOpen)) taskListState.scrollToItem(0)
+        previousTaskQuery = textQuery
+        previousTaskSearchOpen = taskSearchOpen
+    }
     var sortMode by rememberSaveable {
         mutableStateOf(
             if (destination !in setOf(TaskDestination.Completed, TaskDestination.Archived)) {
@@ -6123,10 +6127,10 @@ private fun TaskAreaContent(
         }
     }
 
-    fun applyFilter(filter: SavedTaskFilter) {
+    fun applyFilter(filter: SavedTaskFilter, restoreArea: Boolean = true) {
         val normalized = filter.normalizedForWorkspace()
         priorities = normalized.priorities
-        onSelectAreaScope(normalized.restoredAreaScope())
+        if (restoreArea) onSelectAreaScope(normalized.restoredAreaScope())
         pinnedOnly = normalized.pinnedOnly
         selectedTags = normalized.tags
         requireAllTags = normalized.requireAllTags
@@ -6144,7 +6148,15 @@ private fun TaskAreaContent(
         runCatching { TaskDestination.valueOf(normalized.destination) }.getOrNull()?.let(onDestinationChange)
         planningView = runCatching { TaskPlanningView.valueOf(normalized.planningView) }
             .getOrDefault(TaskPlanningView.List)
-        showFilters = false
+    }
+    LaunchedEffect(homeFilterRequested) {
+        if (homeFilterRequested) {
+            val filter = appSettings.savedTaskFilters.firstOrNull { it.name == appSettings.homeTaskFilterName }
+                ?: SavedTaskFilter(name = "Home")
+            applyFilter(filter.copy(destination = TaskDestination.Today.name, planningView = TaskPlanningView.List.name,
+                inboxOnly = false, areaId = (areaScope as? AreaScope.One)?.areaId), restoreArea = false)
+            onHomeFilterRequestConsumed()
+        }
     }
     fun submitQuickCapture() {
         if (quickCapture.isBlank() || quickCaptureSubmitting) return
@@ -6256,6 +6268,15 @@ private fun TaskAreaContent(
                     title = workspaceDestination.label,
                     supportingText = taskDestinationSupportingText(destination, visibleTasks.size),
                 ) {
+                if (!reordering) WhipPageIconAction(
+                    icon = Icons.Outlined.Search,
+                    label = if (taskSearchOpen) "Close Task Search" else "Find Tasks",
+                    onClick = {
+                        taskSearchOpen = !taskSearchOpen
+                        taskSearchFocusPending = taskSearchOpen
+                        if (!taskSearchOpen) { textQuery = ""; taskSearchFocusManager.clearFocus() }
+                    },
+                )
                 if (!reordering) WhipPageIconAction(
                         icon = Icons.Outlined.FilterList,
                         label = if (activeFilterCount == 0) "Filter & Sort Tasks" else "Filter & Sort Tasks · $activeFilterCount active",
@@ -6491,14 +6512,29 @@ private fun TaskAreaContent(
             }
         }
         WhipReorderLazyColumn(
+            state = taskListState,
             modifier = Modifier.weight(1f).testTag("task-workspace-list")
                 .onSizeChanged { quickCaptureViewport = it },
             contentPadding = whipPagePadding(top = WhipSpacing.sibling),
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
-        if (!selectionMode && !reordering && activeFilters.isNotEmpty()) item {
+        if (!selectionMode && !reordering && (taskSearchOpen || textQuery.isNotBlank())) item {
+            Column(verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro)) {
+                WhipSearchField(
+                    label = "Find Tasks", query = textQuery, onQueryChange = { textQuery = it },
+                    hint = "Titles, notes, or step text", clearLabel = "Clear task search",
+                    modifier = Modifier.fillMaxWidth().focusRequester(taskSearchFocus).testTag("task-list-query"),
+                )
+                Text("${filtered.size} of ${sourceTasks.size} Tasks · ${destination.label}",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            LaunchedEffect(taskSearchFocusPending) {
+                if (taskSearchFocusPending) { taskSearchFocus.requestFocus(); taskSearchFocusPending = false }
+            }
+        }
+        if (!selectionMode && !reordering && activeFilters.any { it.key != "saved-query" }) item {
             WhipActiveFilterRow(
-                filters = activeFilters,
+                filters = activeFilters.filterNot { it.key == "saved-query" },
                 onClearAll = {
                     priorities = emptySet()
                     selectedTags = emptySet()
@@ -6535,7 +6571,7 @@ private fun TaskAreaContent(
                 content()
             }
         }
-        if (!selectionMode && !reordering && destination in setOf(TaskDestination.Today, TaskDestination.Inbox)) {
+        if (!selectionMode && !reordering && !taskSearchOpen && textQuery.isBlank() && destination in setOf(TaskDestination.Today, TaskDestination.Inbox)) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     WhipInlineTextField(
@@ -6810,14 +6846,14 @@ private fun TaskAreaContent(
         )
     }
 
-    if (showFilters) {
+    if (showFilters && !saveFilterOpen) {
         PaneAwareAlertDialog(
             modifier = dialogModifier,
             onDismissRequest = { showFilters = false },
             title = { Text("Sort, Group & Filter Tasks") },
             text = {
                 Column(
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(taskFilterScroll),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     WhipSearchField(
@@ -6981,7 +7017,6 @@ private fun TaskAreaContent(
                     )
                     }
                     WhipTextButton(onClick = {
-                        showFilters = false
                         saveFilterOpen = true
                     }) { Text("Save These Filters") }
                 }

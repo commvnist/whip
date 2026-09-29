@@ -58,6 +58,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -195,6 +196,7 @@ fun HabitAreaContent(
         historyHabitId = null
     }
     var numericLogHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var numericLogAddsAmount by rememberSaveable { mutableStateOf(false) }
     var pauseRequestHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var editingPauseId by rememberSaveable { mutableStateOf<Long?>(null) }
     var templatesOpen by rememberSaveable { mutableStateOf(false) }
@@ -345,6 +347,18 @@ fun HabitAreaContent(
             onEditHabitRequestConsumed()
         }
     }
+    var collectionQuery by rememberSaveable(destination, areaScopeLabel) { mutableStateOf("") }
+    val normalizedCollectionQuery = collectionQuery.trim().lowercase(Locale.ROOT)
+    val collectionHabits = if (destination == HabitDestination.Archived) state.archived else
+        (if (destination == HabitDestination.Today) state.today else state.all).map { it.habit }
+    val collectionIndex = remember(collectionHabits) { collectionHabits.map { it.id to it.collectionSearchText() } }
+    val matchingIds = remember(collectionIndex, normalizedCollectionQuery) {
+        collectionIndex.filter { normalizedCollectionQuery in it.second }.mapTo(hashSetOf()) { it.first }
+    }
+    val collectionFocus = LocalFocusManager.current
+    LaunchedEffect(actionsHabitId, editingHabitId, numericLogHabitId) {
+        if (actionsHabitId != null || editingHabitId != null || numericLogHabitId != null) collectionFocus.clearFocus()
+    }
     if (showWorkspace) Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
         DestinationTabBar(
             selected = destination,
@@ -356,11 +370,18 @@ fun HabitAreaContent(
             barTestTag = "habit-workspace-navigation",
         )
         val emptyArea = areaScopeLabel != null && state.all.isEmpty() && editorState.all.isNotEmpty()
-        when (destination) {
+        if (collectionHabits.isNotEmpty() || collectionQuery.isNotEmpty()) Column(Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) {
+            WhipSearchField("Find Habits", collectionQuery, { collectionQuery = it; focusedArchivedHabitId = null }, hint = "Name, note, tag, mode, or status",
+                modifier = Modifier.fillMaxWidth().testTag("habit-collection-search"))
+            if (normalizedCollectionQuery.isNotBlank()) Text("${matchingIds.size} of ${quantityLabel(collectionHabits.size, "Habit")}", style = MaterialTheme.typography.labelMedium)
+        }
+        if (matchingIds.isEmpty() && normalizedCollectionQuery.isNotBlank()) {
+            WhipEmptyState("No Matching Habits", "Try a name, note, tag, or mode.", primaryActionLabel = "Clear Search", onPrimaryAction = { collectionQuery = "" })
+        } else key(normalizedCollectionQuery) { when (destination) {
             HabitDestination.Today -> HabitList(
                 title = "Today",
                 subtitle = "Check-ins, values, and timers.",
-                progress = state.today,
+                progress = state.today.filter { it.habit.id in matchingIds },
                 customUnits = state.customUnits,
                 empty = when {
                     emptyArea -> "Your habits are saved in other Areas. Show all Areas to find them."
@@ -387,9 +408,10 @@ fun HabitAreaContent(
                 onTemplates = { templatesOpen = true },
                 onOpen = { actionsHabitId = it.habit.id },
                 onEdit = { editingHabitId = it.habit.id },
-                onQuick = { item -> quickHabitAction(item, viewModel) { numericLogHabitId = item.habit.id } },
+                onQuick = { item -> quickHabitAction(item, viewModel) { numericLogAddsAmount = false; numericLogHabitId = item.habit.id } },
                 onQuickValue = viewModel::addValue,
-                onSetValue = { numericLogHabitId = it.habit.id },
+                onSetValue = { numericLogAddsAmount = false; numericLogHabitId = it.habit.id },
+                onAddAmount = { numericLogAddsAmount = true; numericLogHabitId = it.habit.id },
                 onDecrement = viewModel::decrementValue,
                 onUndo = { item -> latestPeriodLog(item)?.let { viewModel.undoLog(it.id, item.habit.id) } },
                 canUndo = { latestPeriodLog(it) != null },
@@ -397,19 +419,22 @@ fun HabitAreaContent(
                 onChecklist = viewModel::toggleChecklist,
                 onReorder = null,
                 onShowAllForReorder = {
+                    collectionQuery = ""
+                    collectionFocus.clearFocus()
                     if (areaScopeLabel != null) onShowAllAreasForReorder()
                     destination = HabitDestination.All
                     reorderAllRequested = true
                 },
                 lowPressureMode = lowPressureMode,
-                separateCompleted = true,
+                separateCompleted = normalizedCollectionQuery.isBlank(),
+                filtered = normalizedCollectionQuery.isNotBlank(),
                 onReorderModeChange = onReorderModeChange,
                 reorderDismissRequest = reorderDismissRequest,
             )
             HabitDestination.All -> HabitList(
                 title = "All Habits",
                 subtitle = "All your active habits.",
-                progress = state.all,
+                progress = state.all.filter { it.habit.id in matchingIds },
                 customUnits = state.customUnits,
                 empty = if (emptyArea) {
                     "Your habits are saved in other Areas. Show all Areas to find them."
@@ -422,33 +447,40 @@ fun HabitAreaContent(
                 onTemplates = { templatesOpen = true },
                 onOpen = { actionsHabitId = it.habit.id },
                 onEdit = { editingHabitId = it.habit.id },
-                onQuick = { item -> quickHabitAction(item, viewModel) { numericLogHabitId = item.habit.id } },
+                onQuick = { item -> quickHabitAction(item, viewModel) { numericLogAddsAmount = false; numericLogHabitId = item.habit.id } },
                 onQuickValue = viewModel::addValue,
-                onSetValue = { numericLogHabitId = it.habit.id },
+                onSetValue = { numericLogAddsAmount = false; numericLogHabitId = it.habit.id },
+                onAddAmount = { numericLogAddsAmount = true; numericLogHabitId = it.habit.id },
                 onDecrement = viewModel::decrementValue,
                 onUndo = { item -> latestPeriodLog(item)?.let { viewModel.undoLog(it.id, item.habit.id) } },
                 canUndo = { latestPeriodLog(it) != null },
                 onUndoSkip = { item -> viewModel.undoSkip(item.habit.id, item.date) },
                 onChecklist = viewModel::toggleChecklist,
-                onReorder = if (areaScopeLabel == null) viewModel::reorder else null,
-                onShowAllAreasForReorder = onShowAllAreasForReorder.takeIf { areaScopeLabel != null },
+                onReorder = if (areaScopeLabel == null && normalizedCollectionQuery.isBlank()) viewModel::reorder else null,
+                onShowAllForReorder = if (normalizedCollectionQuery.isNotBlank()) ({
+                    collectionQuery = ""; collectionFocus.clearFocus()
+                    if (areaScopeLabel != null) onShowAllAreasForReorder()
+                    reorderAllRequested = true
+                }) else null,
+                onShowAllAreasForReorder = onShowAllAreasForReorder.takeIf { areaScopeLabel != null && normalizedCollectionQuery.isBlank() },
                 reorderRequested = reorderAllRequested,
                 onReorderRequestConsumed = { reorderAllRequested = false },
+                filtered = normalizedCollectionQuery.isNotBlank(),
                 lowPressureMode = lowPressureMode,
                 onReorderModeChange = onReorderModeChange,
                 reorderDismissRequest = reorderDismissRequest,
             )
-            HabitDestination.Insights -> HabitInsights(state, lowPressureMode, onOpenHistory = {
+            HabitDestination.Insights -> HabitInsights(state.copy(all = state.all.filter { it.habit.id in matchingIds }), lowPressureMode, onOpenHistory = {
                 historyHabitId = it
                 actionsHabitId = it
             })
             HabitDestination.Archived -> ArchivedHabitList(
-                habits = state.archived,
+                habits = state.archived.filter { it.id in matchingIds },
                 focusedHabitId = focusedArchivedHabitId,
                 onOpen = { actionsHabitId = it.id },
                 onEdit = { editingHabitId = it.id },
             )
-        }
+        } }
     }
     if (creating || editing != null) {
         HabitEditorDialog(
@@ -515,11 +547,24 @@ fun HabitAreaContent(
             },
             onQuick = {
                 if (item.habit.trackingMode in setOf(HabitTrackingMode.Rating, HabitTrackingMode.LogOnly)) {
-                    numericLogHabitId = item.habit.id
+                    numericLogAddsAmount = false; numericLogHabitId = item.habit.id
                 } else {
-                    quickHabitAction(item, viewModel) { numericLogHabitId = item.habit.id }
+                    quickHabitAction(item, viewModel) { numericLogAddsAmount = false; numericLogHabitId = item.habit.id }
                 }
             },
+            onQuickValue = { amount ->
+                val requestId = mutationCoordinator.begin()
+                if (requestId != null && !viewModel.log(item.habit.id, amount, date = item.date, requestId = requestId)) mutationCoordinator.finishFailure("Another Habit change is already finishing.")
+            },
+            onSetValue = { numericLogAddsAmount = false; numericLogHabitId = item.habit.id },
+            onAddAmount = { numericLogAddsAmount = true; numericLogHabitId = item.habit.id },
+            onUndoValue = {
+                latestPeriodLog(item)?.let { log ->
+                    val requestId = mutationCoordinator.begin()
+                    if (requestId != null && !viewModel.undoLog(log.id, item.habit.id, requestId)) mutationCoordinator.finishFailure("Another Habit change is already finishing.")
+                }
+            },
+            canUndoValue = latestPeriodLog(item) != null,
             onSkip = { skipConfirmationHabitId = item.habit.id },
             onUndoSkip = {
                 val requestId = mutationCoordinator.begin()
@@ -617,6 +662,7 @@ fun HabitAreaContent(
         numericLog?.let { item ->
             HabitValueDialog(
                 item = item,
+                additive = numericLogAddsAmount,
                 customUnits = state.customUnits,
                 saving = authoredMutationCoordinator.saving,
                 persistenceError = authoredMutationCoordinator.errorMessage,
@@ -627,8 +673,8 @@ fun HabitAreaContent(
                 onLog = { value, note ->
                     val requestId = authoredMutationCoordinator.begin()
                     if (requestId != null) {
-                        val accepted = if (item.habit.trackingMode == HabitTrackingMode.LogOnly) {
-                            viewModel.log(item.habit.id, value, note = note, requestId = requestId)
+                        val accepted = if (numericLogAddsAmount || item.habit.trackingMode == HabitTrackingMode.LogOnly) {
+                            viewModel.log(item.habit.id, value, date = item.date, note = note, requestId = requestId)
                         } else {
                             viewModel.setPeriodValue(item, requireNotNull(value), note, requestId = requestId)
                         }
@@ -1062,6 +1108,7 @@ fun HabitProgressCard(
     lowPressureMode: Boolean = false,
     reorderMode: Boolean = false,
     customUnits: List<UnitDefinition> = emptyList(),
+    onAddAmount: (() -> Unit)? = null,
 ) {
     val habit = item.habit
     val timerElapsedSeconds by rememberHabitTimerElapsedSeconds(habit)
@@ -1069,7 +1116,6 @@ fun HabitProgressCard(
     val unavailableForCheckIn = habit.timerStartedAtMillis == null &&
         (habit.paused || item.dayState in setOf(HabitDayState.Paused, HabitDayState.NotScheduled))
     val disclosure = rememberItemDisclosure(itemKey = habitDisclosureKey(habit.id, item.date))
-    var showAllQuickValues by rememberSaveable(habit.id) { mutableStateOf(false) }
     val streakUnit = when (habit.scheduleType) {
         HabitScheduleType.FlexibleTimesPerWeek -> "week"
         HabitScheduleType.FlexibleTimesPerMonth -> "month"
@@ -1211,30 +1257,7 @@ fun HabitProgressCard(
                     )
                 }
                 if (!skipped && !unavailableForCheckIn && habit.sourceMeasurementId == null && habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal)) {
-                    val quickValues = (listOf(habit.quickIncrement) + habit.quickActions)
-                        .filter { it.isFinite() && it > 0.0 }
-                        .distinct()
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        (if (showAllQuickValues) quickValues else quickValues.take(3)).forEach { value ->
-                            WhipTextButton(onClick = { onQuickValue(value) }) { Text("+${editableNumericValue(value)}") }
-                        }
-                        if (quickValues.size > 3) {
-                            DisclosureButton(
-                                label = "Quick values",
-                                expanded = showAllQuickValues,
-                                onClick = { showAllQuickValues = !showAllQuickValues },
-                            )
-                        }
-                        WhipTextButton(enabled = item.value > 0.0, onClick = onDecrement) {
-                            Text("−${editableNumericValue(minOf(habit.quickIncrement, item.value.coerceAtLeast(0.0)))}")
-                        }
-                        WhipTextButton(onClick = onSetValue) { Text("Set") }
-                        WhipTextButton(enabled = canUndo, onClick = onUndo) { Text("Undo") }
-                    }
+                    HabitNumericActions(item, customUnits, onQuickValue, onSetValue, onAddAmount, onDecrement, onUndo, canUndo)
                 }
                 if (!skipped && !unavailableForCheckIn && habit.trackingMode == HabitTrackingMode.Checklist) {
                     HabitChecklist(item, onChecklist)
@@ -1285,6 +1308,39 @@ fun HabitProgressCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun HabitNumericActions(
+    item: HabitDayProgress,
+    units: List<UnitDefinition>,
+    onQuickValue: (Double) -> Unit,
+    onSetValue: () -> Unit,
+    onAddAmount: (() -> Unit)?,
+    onDecrement: () -> Unit,
+    onUndo: () -> Unit,
+    canUndo: Boolean,
+    enabled: Boolean = true,
+) {
+    val habit = item.habit
+    var expanded by rememberSaveable(habit.id) { mutableStateOf(false) }
+    val values = remember(habit.quickIncrement, habit.quickActions) {
+        (listOf(habit.quickIncrement) + habit.quickActions).filter { it.isFinite() && it > 0.0 }.distinct()
+    }
+    val unit = habit.unitSymbol(units).takeIf(String::isNotBlank)?.let { " $it" }.orEmpty()
+    FlowRow(Modifier.fillMaxWidth().testTag("habit-numeric-actions-${habit.id}"),
+        horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        (if (expanded) values else values.take(3)).forEach { amount ->
+            WhipTextButton(enabled = enabled, onClick = { onQuickValue(amount) }) { Text("+${editableNumericValue(amount)}$unit") }
+        }
+        if (values.size > 3) DisclosureButton("Quick Values", expanded, { expanded = !expanded })
+        onAddAmount?.let { add -> WhipTextButton(enabled = enabled, onClick = add) { Text("Add Amount") } }
+        WhipTextButton(enabled = enabled, onClick = onSetValue) { Text("Set Total") }
+        WhipTextButton(enabled = enabled && item.value > 0.0, onClick = onDecrement) {
+            Text("−${editableNumericValue(minOf(habit.quickIncrement, item.value.coerceAtLeast(0.0)))}$unit")
+        }
+        WhipTextButton(enabled = enabled && canUndo, onClick = onUndo) { Text("Undo Last Entry") }
     }
 }
 
@@ -1411,6 +1467,7 @@ private fun HabitList(
     onQuick: (HabitDayProgress) -> Unit,
     onQuickValue: (HabitDayProgress, Double) -> Unit,
     onSetValue: (HabitDayProgress) -> Unit,
+    onAddAmount: (HabitDayProgress) -> Unit,
     onDecrement: (HabitDayProgress) -> Unit,
     onUndo: (HabitDayProgress) -> Unit,
     canUndo: (HabitDayProgress) -> Boolean,
@@ -1423,6 +1480,7 @@ private fun HabitList(
     onReorderRequestConsumed: () -> Unit = {},
     lowPressureMode: Boolean,
     separateCompleted: Boolean = false,
+    filtered: Boolean = false,
     onReorderModeChange: (Boolean) -> Unit = {},
     reorderDismissRequest: Int = 0,
 ) {
@@ -1483,7 +1541,7 @@ private fun HabitList(
                             )
                             onShowAllForReorder?.let { showAll ->
                                 WhipMenuItem(
-                                    label = "Reorder All Habits",
+                                    label = if (filtered) "Clear Search & Reorder" else "Reorder All Habits",
                                     onClick = { toolsExpanded = false; showAll() },
                                 )
                             }
@@ -1542,6 +1600,7 @@ private fun HabitList(
                     onQuick = { onQuick(item) },
                     onQuickValue = { value -> onQuickValue(item, value) },
                     onSetValue = { onSetValue(item) },
+                    onAddAmount = { onAddAmount(item) },
                     onDecrement = { onDecrement(item) },
                     onUndo = { onUndo(item) },
                     canUndo = canUndo(item),
@@ -1603,6 +1662,7 @@ private fun HabitList(
                     onQuick = { onQuick(item) },
                     onQuickValue = { value -> onQuickValue(item, value) },
                     onSetValue = { onSetValue(item) },
+                    onAddAmount = { onAddAmount(item) },
                     onDecrement = { onDecrement(item) },
                     onUndo = { onUndo(item) },
                     canUndo = canUndo(item),
@@ -1620,13 +1680,14 @@ internal fun HabitInsights(
     state: HabitUiState,
     lowPressureMode: Boolean,
     onOpenHistory: ((Long) -> Unit)? = null,
+    focused: Boolean = false,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize().testTag("habit-insights-list"),
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
-        item { WhipPageHeader(title = "Habit Insights", supportingText = "Patterns in your recorded activity.") }
+        if (!focused) item { WhipPageHeader(title = "Habit Insights", supportingText = "Patterns in your recorded activity.") }
         if (state.all.isEmpty()) item {
             WhipEmptyState("No Habit Insights Yet", "Create and check in to a habit to build insight over time.")
         }
@@ -1639,7 +1700,7 @@ internal fun HabitInsights(
             val flexible = habit.scheduleType in setOf(HabitScheduleType.FlexibleTimesPerWeek, HabitScheduleType.FlexibleTimesPerMonth)
             val showOutcomes = habit.comparison != TargetComparison.None && !flexible && !lowPressureMode
             WhipItemCard {
-                WhipProductivityItemContent(
+                if (!focused) WhipProductivityItemContent(
                     itemType = "habit", itemName = habit.name, emoji = habit.icon,
                     identityModifier = Modifier.testTag("habit-insight-icon-${habit.id}"),
                 ) {
@@ -2753,9 +2814,10 @@ internal fun HabitValueDialog(
     saving: Boolean = false,
     persistenceError: String? = null,
     customUnits: List<UnitDefinition> = emptyList(),
+    additive: Boolean = false,
 ) {
     val initialValue by rememberSaveable(item.habit.id, item.date) {
-        mutableStateOf(if (item.habit.trackingMode == HabitTrackingMode.LogOnly) "" else plainNumericValue(item.value))
+        mutableStateOf(if (additive || item.habit.trackingMode == HabitTrackingMode.LogOnly) "" else plainNumericValue(item.value))
     }
     var value by rememberSaveable(item.habit.id, item.date) {
         mutableStateOf(initialValue)
@@ -2767,7 +2829,7 @@ internal fun HabitValueDialog(
         if (value != initialValue || note.isNotEmpty()) confirmDiscard = true else onDismiss()
     }
     val logOnly = item.habit.trackingMode == HabitTrackingMode.LogOnly
-    val setsPeriodTotal = item.habit.trackingMode in setOf(
+    val setsPeriodTotal = !additive && item.habit.trackingMode in setOf(
         HabitTrackingMode.Count,
         HabitTrackingMode.Decimal,
         HabitTrackingMode.Duration,
@@ -2777,7 +2839,7 @@ internal fun HabitValueDialog(
     PaneAwareAlertDialog(
         testTag = "habit-value-dialog",
         onDismissRequest = ::requestDismiss,
-        title = { Text(item.habit.todayCheckInTitle()) },
+        title = { Text(if (additive) "Add Amount" else item.habit.todayCheckInTitle()) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -2785,6 +2847,7 @@ internal fun HabitValueDialog(
             ) {
                 PersistenceFailureNotice(persistenceError, testTag = "habit-value-save-problem")
                 Text("${item.habit.icon} ${item.habit.name}", style = MaterialTheme.typography.titleMedium)
+                if (additive) Text("Adds a new entry to this period; your existing entries stay unchanged.", style = MaterialTheme.typography.bodySmall)
                 if (setsPeriodTotal) Text(
                     "Current ${item.habit.periodTotalDescription()}: " +
                         "${formatHabitValue(item.value, item.habit.precision)} " +
@@ -2796,6 +2859,7 @@ internal fun HabitValueDialog(
                     value,
                     { value = it },
                     if (setsPeriodTotal) item.habit.periodTotalAmountLabel(customUnits)
+                    else if (additive) "Amount to Add (${item.habit.unitSymbol(customUnits)})"
                     else item.habit.historyAmountLabel(optional = logOnly, customUnits = customUnits),
                     modifier = Modifier.testTag("habit-value-input"),
                     enabled = !saving,
@@ -2830,7 +2894,8 @@ internal fun HabitValueDialog(
             WhipTextButton(
                 enabled = validValue && !saving,
                 onClick = { onLog(parsedValue, note) },
-            ) { Text(if (saving) "Saving…" else if (logOnly) "Add Entry" else "Save") }
+                modifier = Modifier.testTag("habit-value-save"),
+            ) { Text(if (saving) "Saving…" else if (additive) "Add Amount" else if (logOnly) "Add Entry" else "Save") }
         },
         dismissButton = { WhipTextButton(enabled = !saving, onClick = ::requestDismiss) { Text("Cancel") } },
         inputBlocked = saving,
@@ -3014,6 +3079,11 @@ internal fun HabitActionsDialog(
     openHistory: Boolean = false,
     customUnits: List<UnitDefinition> = emptyList(),
     onChecklist: (Long, Long, LocalDate, Boolean) -> Unit = { _, _, _, _ -> },
+    onQuickValue: (Double) -> Unit = {},
+    onSetValue: () -> Unit = {},
+    onAddAmount: () -> Unit = {},
+    onUndoValue: () -> Unit = {},
+    canUndoValue: Boolean = false,
 ) {
     val activeZoneId = LocalWhipZone.current
     var historyQuery by rememberSaveable(item.habit.id) { mutableStateOf("") }
@@ -3077,7 +3147,11 @@ internal fun HabitActionsDialog(
         inputBlocked = mutationSaving,
         inputBlockedLabel = "Updating Habit",
         content = {
-            LazyColumn(
+            if (section == HabitDetailSection.Insights) HabitInsights(
+                state = HabitUiState(all = listOf(item), logs = logs, skips = skips, pauses = pauses, currentDate = item.date, customUnits = customUnits, loading = false),
+                lowPressureMode = lowPressureMode, focused = true,
+                onOpenHistory = { section = HabitDetailSection.History },
+            ) else LazyColumn(
                 modifier = Modifier.testTag("habit-detail-content"),
                 verticalArrangement = Arrangement.spacedBy(WhipSpacing.screenExpanded),
             ) {
@@ -3123,34 +3197,6 @@ internal fun HabitActionsDialog(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            if ((!lowPressureMode && item.habit.comparison != TargetComparison.None) || item.flexibleScheduleProgress != null) {
-                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                                FlowRow(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(20.dp),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                                ) {
-                                    if (!lowPressureMode && item.habit.comparison != TargetComparison.None) {
-                                        HabitTodayMetric(
-                                            id = "streak",
-                                            value = item.habit.streakUnitLabel(item.streak),
-                                            label = "Current streak",
-                                        )
-                                        HabitTodayMetric(
-                                            id = "completion",
-                                            value = "${(item.completionRate * 100).toInt()}%",
-                                            label = "Completion · last 30 days",
-                                        )
-                                    }
-                                    item.flexibleScheduleProgress?.let { progress ->
-                                        HabitTodayMetric(
-                                            id = "period",
-                                            value = "$progress of ${item.flexibleScheduleTarget ?: 0}",
-                                            label = "This period",
-                                        )
-                                    }
-                                }
-                            }
                             if (item.habit.trackingMode == HabitTrackingMode.Duration && item.habit.sourceMeasurementId == null) {
                                 EntityInspectorAction(
                                     id = "enter-duration-manually",
@@ -3160,6 +3206,15 @@ internal fun HabitActionsDialog(
                                 )
                             }
                         }
+                        }
+                        if (item.habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal) &&
+                            !item.habit.archived && !item.habit.paused && item.habit.sourceMeasurementId == null &&
+                            item.dayState !in setOf(HabitDayState.Paused, HabitDayState.Skipped, HabitDayState.NotScheduled)) item {
+                            EntityInspectorInformationGroup("Record or Adjust") {
+                                HabitNumericActions(item, customUnits, onQuickValue, onSetValue, onAddAmount,
+                                    onDecrement = { onQuickValue(-minOf(item.habit.quickIncrement, item.value.coerceAtLeast(0.0))) },
+                                    onUndo = onUndoValue, canUndo = canUndoValue, enabled = !mutationSaving)
+                            }
                         }
                         if (item.habit.trackingMode == HabitTrackingMode.Checklist && item.checklistItems.isNotEmpty()) item {
                             EntityInspectorInformationGroup(title = "Today's Checklist") {
@@ -3258,6 +3313,7 @@ internal fun HabitActionsDialog(
                             )
                         }
                     }
+                    HabitDetailSection.Insights -> Unit
                     HabitDetailSection.More -> item {
                         if (!item.habit.archived) {
                             EntityInspectorGroup("Whip Home") {
@@ -3458,6 +3514,7 @@ internal fun habitHistoryEvents(
 private enum class HabitDetailSection(val id: String, val label: String) {
     Today("today", "Today"),
     History("history", "History"),
+    Insights("insights", "Insights"),
     More("options", "Options"),
     ;
 

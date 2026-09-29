@@ -114,25 +114,28 @@ fun ReviewDialog(
     val locale = LocalConfiguration.current.locales[0]
     val through = taskState.currentDate
     val start = reviewStartDate(period, through)
-    val dates = generateSequence(start) { it.plusDays(1) }.takeWhile { !it.isAfter(through) }.toList()
+    val dates = remember(start, through) {
+        generateSequence(start) { it.plusDays(1) }.takeWhile { !it.isAfter(through) }.toList()
+    }
     val includedSections = reviewSectionsInDisplayOrder(sections).toSet()
     val availability = reviewAvailability(includedSections, taskState, habitState, goalState, gymState, trackState)
-    val outcomes = remember(taskState, habitState, goalState, gymState, availability.readySections, start, through, zone) {
+    val sourceContent = reviewSourceContent(taskState, habitState, goalState, gymState)
+    val outcomes = remember(sourceContent, availability.readySections, start, through, zone) {
         reviewOutcomes(taskState, habitState, goalState, gymState, availability.readySections,
             minOf(start, through.minusDays(29)), through, zone)
     }
-    val allSignals = ReviewSection.entries.map { section ->
+    val allSignals = remember(outcomes, dates, productivityAreaLabel) { ReviewSection.entries.map { section ->
         section to ReviewSignal(when (section) {
             ReviewSection.Tasks -> "Tasks"
             ReviewSection.Habits -> "Habit outcomes"
             ReviewSection.Goals -> "Goal progress"
             ReviewSection.Gym -> if (productivityAreaLabel == null) "Workouts" else "Workouts · All gym data"
         }, outcomes.dailyReviewValues(section, dates))
-    }
+    } }
     val signals = allSignals.filter { it.first in availability.readySections }
     val correlationSignals = if (productivityAreaLabel == null) signals else signals.filterNot { it.first == ReviewSection.Gym }
     val correlationDates = (0L until 30L).map { through.minusDays(29L - it) }
-    val correlations = buildList {
+    val correlations = remember(outcomes, correlationSignals, through) { buildList {
         correlationSignals.indices.forEach { left ->
             (left + 1 until correlationSignals.size).forEach { right ->
                 pearsonCorrelation(
@@ -152,8 +155,11 @@ fun ReviewDialog(
             }
         }
     }
+    }
     val hasReviewData = signals.any { (_, signal) -> signal.values.any { it != 0.0 } }
-    val trackEvidence = if (availability.tracksReady) trackReviewEvidence(trackState, start, through) else null
+    val trackEvidence = remember(trackState.projections, availability.tracksReady, start, through) {
+        if (availability.tracksReady) trackReviewEvidence(trackState, start, through) else null
+    }
     val rangeLabel = formatReviewRange(start, through, locale)
     val controls: @Composable () -> Unit = {
         ReviewControlPanel(

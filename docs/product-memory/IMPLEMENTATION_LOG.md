@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260929-002 — Balance daily work and preserve Task/Review inspection context
+
+- Related: FB-20260929-002, FND-20260929-003, DEC-20260929-001; DS1–4 in the [deep review](../quality/DEEP_PRODUCT_REVIEW_2026-09-29.md).
+- Behavior: Three-item pinned-first Home previews retain full counts, direct execution and exact collection continuations. Local Task search is visible and retains query/list context; nested filter naming retains its parent. Task Overview leads with subtasks and Focus, places scheduling beside timing, and keeps its inspector behind definition edits/Pin changes. Secondary subtask conversion uses the shared overflow; search restoration does not reopen the keyboard.
+- Review/architecture: Feature-owned saveable Review session returns to the same period/detail after source inspection, including root Back. Content keys exclude clocks/live progress. Home Habit value ownership is extracted alongside Review ownership to keep root bytecode instrumentable without excluding coverage. Shared controls and existing mutation/navigation owners remain authoritative.
+- Connected daily Habit work (DP1 and Habit portion of DP3): Today leads with execution; shared numeric controls distinguish Add Amount from Set Total and retain Undo. Inspector and card reuse those controls; focused Insights reuse existing evidence. Shared prepared collection search supports the same local-query pattern. Exact numeric facts and actual200% focused Insights/checklist pass; repeated Habit/Goal history cleanup is freshly reverified.
+- Compatibility/status: Implemented; focused acceptance is recorded incrementally under VER-20260929-002. No persisted schema, dependency, version or phone change. Productivity and Gym/Settings implementations remain separate chunks.
+
 ### IMP-20260929-001 — Package the experience overhaul as private update 0.3.83
 
 - Related: FB-20260929-001; IMP-20260928-011 / VER-20260928-007.

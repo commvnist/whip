@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.GymUxRulesTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-09-29T07:28:44.719Z" hostname="beast" time="0.63">
+  <properties/>
+  <testcase name="explicitWorkoutSetChoiceRetainsOptionalGatesAndReturnsToQueue" classname="com.whip.app.ui.GymUxRulesTest" time="0.554"/>
+  <testcase name="progressStartsFromPerformedHistoryAndSettingsSearchNamesExactControls" classname="com.whip.app.ui.GymUxRulesTest" time="0.063"/>
+  <testcase name="previousSetSuggestionsPreserveUnitsMeaningAndPerformedEvidence" classname="com.whip.app.ui.GymUxRulesTest" time="0.01"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

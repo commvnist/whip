@@ -1,5 +1,13 @@
 # Verification and release evidence
 
+### VER-20260929-002 — Deep product review, selected acceptance in progress
+
+- Scope: FB-20260929-002 / DEC-20260929-001, baseline `04bc58e2`. [Plan](../quality/DEEP_PRODUCT_REVIEW_2026-09-29.md), [raw evidence and snapshot accounting](../../artifacts/deep-product-review/2026-09-29/README.md). Parent plus the same two authorized agent slots; synthetic API 34 emulator only. No full/readiness/candidate batch or phone release.
+- Commands: Each routine invocation uses `timeout --kill-after=3s 55s`. JVM uses exact `scripts/qa-targeted --jvm PATTERN --jvm-only`; native uses the retained `run-native.sh CLASS#METHOD RECEIPT`, emulator guard and one-method assertion. Gradle compilation/packaging is separate from executed behavior.
+- Current results: Home preview/refill/full continuation passes at normal and actual200% text; final Task inline-find/filter nesting and inspector definition-edit/cancel/recreation pass. Initial Review mixed-source return/context, Habit numeric facts and Goal completion-event methods pass. Pure Home bound, Review content-key, three productivity rules, three Gym rules and retained Routine request ownership pass. Remaining final native journeys are ongoing; source/fixture compilation is not their acceptance.
+- Attempt history: Root JaCoCo MethodTooLarge fixed by feature ownership extraction; API/fixture compile mismatches and one55s compile timeout remain in original receipts. Fresh final app/test package passes17s with coverage enabled. Earlier package/native receipts identify their earlier snapshot. One post-package Routine fixture-only assertion refinement requires a separately recorded test APK refresh before its selected execution.
+- Limits/status: In progress. Fresh original final Task search/inspector and dense actual200% Home inspected: redundant query chip/IME restoration removed; direct compact subtask controls and reachable continuations preserved. Prior failed/earlier captures are retained, including suffixed final originals. Phone remains0.3.83/code89; subjective owner validation is separate.
+
 ### VER-20260929-001 — Signed experience overhaul update 0.3.83 installed on the phone
 
 - Related/scope: FB-20260929-001, IMP-20260929-001, accepted experience behavior under VER-20260928-007. Clean pushed source `a46259e9`; [artifacts and exact receipt](../../artifacts/phone-releases/2026-09-29/0.3.83/README.md). All 29 accepted source/test hashes remain unchanged; only version metadata advances to 0.3.83/code 89.

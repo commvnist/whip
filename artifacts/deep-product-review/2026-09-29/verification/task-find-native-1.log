@@ -1,0 +1,30 @@
+com.whip.app.DeepSharedJourneyTest#taskFindAndSavedFilterChildRetainTheirParentContext
+INSTRUMENTATION_STATUS: class=com.whip.app.DeepSharedJourneyTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.DeepSharedJourneyTest:
+INSTRUMENTATION_STATUS: test=taskFindAndSavedFilterChildRetainTheirParentContext
+INSTRUMENTATION_STATUS_CODE: 1
+s_glBindAttribLocation: bind attrib 0 name position
+s_glBindAttribLocation: bind attrib 1 name color
+s_glBindAttribLocation: bind attrib 2 name localCoord
+INSTRUMENTATION_STATUS: class=com.whip.app.DeepSharedJourneyTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=taskFindAndSavedFilterChildRetainTheirParentContext
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_RESULT: stream=
+
+Time: 18.761
+
+OK (1 test)
+
+
+INSTRUMENTATION_CODE: -1
+
+Elapsed ms: 21101
+Command exit: 0

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.ReviewOutcomesTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-09-29T07:28:04.819Z" hostname="beast" time="0.157">
+  <properties/>
+  <testcase name="multipleGoalEntriesContributeOneNormalizedDailyGain" classname="com.whip.app.ui.ReviewOutcomesTest" time="0.155"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

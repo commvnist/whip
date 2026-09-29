@@ -53,6 +53,13 @@ class ReviewOutcomesTest {
         assertEquals(0.3, rows.single().score, 0.00000001)
         assertTrue(rows.single().archived)
         assertEquals(rows.single().score, rows.dailyReviewValues(ReviewSection.Goals, listOf(today)).single(), 0.0)
+        val projection = projectGoal(goal, entries, emptyList(), today)
+        val source = reviewSourceContent(TaskUiState(), HabitUiState(), GoalUiState(archived = listOf(projection)), GymUiState())
+        assertEquals(source, reviewSourceContent(TaskUiState(), HabitUiState(),
+            GoalUiState(archived = listOf(projection.copy(currentValue = 123.0, progress = 0.9)), nowMillis = 5000),
+            GymUiState(nowMillis = 5000, restSecondsRemaining = 30)))
+        assertNotEquals(source, reviewSourceContent(TaskUiState(), HabitUiState(),
+            GoalUiState(archived = listOf(projection.copy(entries = entries.dropLast(1)))), GymUiState()))
     }
 
     @Test fun rawHabitIncrementsBecomeOneOutcomeOnlyWhenThePeriodTargetIsReached() {

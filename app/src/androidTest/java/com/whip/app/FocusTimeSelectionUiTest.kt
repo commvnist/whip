@@ -78,20 +78,20 @@ class FocusTimeSelectionUiTest {
         }
     }
 
-    private fun more() = compose.onNodeWithTag("task-detail-section-Options").performClick()
+    private fun overview() = compose.onNodeWithTag("task-detail-section-Overview").performClick()
     private fun capture(id: String) {
         closeSoftKeyboard()
         compose.waitForIdle()
         captureVisualCatalogSurface(id)
     }
     private fun custom() {
-        more()
+        overview()
         compose.onNodeWithTag("focus-custom-time").performScrollTo().performClick()
     }
 
     @Test fun presetsStartExactly15_30_45_60Minutes() {
         compose.setContent { Content() }
-        more()
+        overview()
         compose.onNodeWithText("25 min").assertDoesNotExist()
         compose.onNodeWithTag("focus-custom-time").performScrollTo().assertIsDisplayed()
         capture("focus.duration.presets")
@@ -184,7 +184,7 @@ class FocusTimeSelectionUiTest {
     @Test fun enlargedPresetsAndCustomControlRemainReachableWith48DpTargets() {
         compose.setContent { Content(enlarged = true) }
         compose.assertDialogFontScale()
-        more()
+        overview()
         listOf("focus-preset-15", "focus-preset-30", "focus-preset-45", "focus-preset-60", "focus-custom-time").forEach { tag ->
             val bounds = compose.onNodeWithTag(tag).performScrollTo().assertIsDisplayed().getUnclippedBoundsInRoot()
             assertTrue("$tag keeps a 48 dp target", bounds.bottom - bounds.top >= 48.dp)
@@ -200,7 +200,7 @@ class FocusTimeSelectionUiTest {
 
     @Test fun presetReplacementRequiresConsentBeforeStarting() {
         compose.setContent { Content(active = true) }
-        more()
+        overview()
         compose.onNodeWithTag("focus-preset-30").performScrollTo().performClick()
         compose.onNodeWithText("Keep Timer").performClick()
         compose.runOnIdle { assertTrue(started.isEmpty()) }
