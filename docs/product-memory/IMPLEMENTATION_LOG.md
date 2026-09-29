@@ -5,7 +5,7 @@
 - Related: FB-20260929-001; IMP-20260928-011 / VER-20260928-007.
 - Changes: Version metadata advances to 0.3.83/code 89. Include all twelve verified experience improvements and history-continuity fixes; preserve package/signing identity, Room 46, epoch 6 and portable-backup format 26.
 - Verification: Preserve accepted source/test hashes and existing focused behavioral evidence. Signed release compilation/minification, artifact signature/metadata/integrity and guarded physical installation/launch provide release acceptance; no repeated full test batch.
-- Status: In progress; installation and release receipt follow packaging from clean pushed source.
+- Status: Released under VER-20260929-001. Clean pushed source `a46259e9` builds successfully; guarded in-place installation verifies exact APK hash, original install/app identity and 132 ms cold foreground launch. [Release receipt](../../artifacts/phone-releases/2026-09-29/0.3.83/README.md). No new behavior beyond the verified experience overhaul and no Play publication.
 
 ### IMP-20260928-011 — Complete the twelve-group experience overhaul and retain history context
 
@@ -14,7 +14,7 @@
 - Home/Tasks/shared: Plan My Day is directly available from Home/Today/Inbox, with lazy candidates, fixed actions, retained draft/error, automatic proposal/error reveal and all-Area workload accounting. Shared non-primary dialogs now respect safe drawing insets as well as keyboard space, after the wider original exposed tablet-taskbar clipping. Primary editor behavior remains unchanged.
 - Gym/Settings/speed: Useful bounded workout launch choices and exact last-session route; searchable routines; protection-first backup/restore hierarchy with administrative disclosures; clock-only Gym elapsed/rest update; prepared global-search queries and content-only source/index ownership. Reuse existing shared controls, request/mutation boundaries and Track field renderer; no speculative abstraction or new dependency.
 - Compatibility: No Room 46/epoch 6/backup 26/release-version change. Preserve original historical values, explicit lifecycle semantics, authored Habit auto-completion settings, actual routine day/equipment constraints and existing backup/request ownership. Architecture documentation now matches the retired Health Connect decision.
-- Status: Implemented, Verified and pushed in `e05b2bac`; integration evidence and delivery recorded under VER-20260928-007 and the [evidence receipt](../../artifacts/experience-overhaul/2026-09-28/README.md). This source has not been installed on the owner phone; its current private release remains 0.3.82.
+- Status: Implemented, Verified and pushed in `e05b2bac`; integration evidence and delivery recorded under VER-20260928-007 and the [evidence receipt](../../artifacts/experience-overhaul/2026-09-28/README.md). Subsequently Released to the owner phone in private 0.3.83 under VER-20260929-001.
 
 ### IMP-20260928-010 — Package the audit and Focus improvements as private update 0.3.82
 

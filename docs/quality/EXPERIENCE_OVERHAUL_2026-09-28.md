@@ -1,5 +1,7 @@
 # Whip complete product-experience overhaul — 2026-09-28
 
+Subsequent release: all twelve groups were installed privately on the owner phone in **0.3.83/code 89** on 2026-09-29, under [VER-20260929-001 and the release receipt](../../artifacts/phone-releases/2026-09-29/0.3.83/README.md). The audit evidence below retains its original pre-release scope.
+
 Status: **Complete — all twelve groups implemented and verified within the owner's focused scope**. FB-20260928-007/008, IMP-20260928-011, VER-20260928-007. Clean pushed baseline `9014937f`; current private phone release remains 0.3.82/code 88. Parent plus exactly two additional GPT-6 Astra/high agents.
 
 ## Required outcome

@@ -1,0 +1,14 @@
+{
+  "process_alive": true,
+  "process_log_lines_sampled": 249,
+  "crash_buffer_empty": true,
+  "error_match_counts": {
+    "FATAL EXCEPTION": 0,
+    "ANR in commvne.com.whip.app": 0,
+    "SQLiteException": 0,
+    "Unable to start activity": 0,
+    "Startup recovery failed": 0
+  },
+  "private_records_or_screenshots_collected": false,
+  "fresh_behavior_test_runs": 0
+}

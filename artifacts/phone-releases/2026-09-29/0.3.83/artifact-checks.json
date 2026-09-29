@@ -1,0 +1,72 @@
+[
+  {
+    "name": "apk-signature",
+    "command": [
+      "timeout",
+      "--kill-after=3s",
+      "55s",
+      "/root/Android/Sdk/build-tools/36.0.0/apksigner",
+      "verify",
+      "--verbose",
+      "--print-certs",
+      "app/build/outputs/apk/release/app-release.apk"
+    ],
+    "exit": 0,
+    "elapsed_seconds": 0.132
+  },
+  {
+    "name": "apk-badging",
+    "command": [
+      "timeout",
+      "--kill-after=3s",
+      "55s",
+      "/root/Android/Sdk/build-tools/36.0.0/aapt",
+      "dump",
+      "badging",
+      "app/build/outputs/apk/release/app-release.apk"
+    ],
+    "exit": 0,
+    "elapsed_seconds": 0.003
+  },
+  {
+    "name": "apk-permissions",
+    "command": [
+      "timeout",
+      "--kill-after=3s",
+      "55s",
+      "/root/Android/Sdk/build-tools/36.0.0/aapt",
+      "dump",
+      "permissions",
+      "app/build/outputs/apk/release/app-release.apk"
+    ],
+    "exit": 0,
+    "elapsed_seconds": 0.002
+  },
+  {
+    "name": "aab-signature",
+    "command": [
+      "timeout",
+      "--kill-after=3s",
+      "55s",
+      "jarsigner",
+      "-verify",
+      "app/build/outputs/bundle/release/app-release.aab"
+    ],
+    "exit": 0,
+    "elapsed_seconds": 0.634
+  },
+  {
+    "name": "aab-certificate",
+    "command": [
+      "timeout",
+      "--kill-after=3s",
+      "55s",
+      "keytool",
+      "-printcert",
+      "-jarfile",
+      "app/build/outputs/bundle/release/app-release.aab"
+    ],
+    "exit": 0,
+    "elapsed_seconds": 0.259
+  }
+]

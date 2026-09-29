@@ -5,13 +5,13 @@
 - Date/source: 2026-09-29, owner explicitly requests “Releass to phone”.
 - Acceptance: Package the verified twelve-group experience overhaul, including retained Habit/Goal/Track history context, as the next signed private update; install in place on the selected physical phone and verify exact version/hash, preserved app identity and foreground launch.
 - Related: IMP-20260928-011 / VER-20260928-007. Preserve the existing minimal focused-check scope; no repeated full/readiness/candidate campaign or Play publication.
-- Status: In progress. Phone connected with 0.3.82/code 88; preparation starts from clean pushed `5cc5fa8f`. Do not clear app data or change storage contracts.
+- Status: Released under VER-20260929-001. Clean pushed preparation `a46259e9` produced signed 0.3.83/code 89, installed in place on Samsung SM-F976W with exact installed hash, preserved install/app identity and verified 132 ms cold foreground launch. No data clear or storage-contract change; subjective appearance awaits owner use.
 
 ### FB-20260928-008 — Keep history open while correcting or clearing individual records
 
 - Date/source: 2026-09-28, owner reports that deleting each Habit history item closes the dialog and returns to Habits, making repeated cleanup unnecessarily tedious.
 - Acceptance: Fix the Habit journey and audit analogous single-record correction/removal flows across Habits, Goals, Tracks, Tasks and Gym. A committed child-record change should update the list while retaining the parent inspector, History section, query and useful scroll position. Dismiss only the completed child review/editor; keep failure/retry local and prevent repeated submission. Whole-entity deletion or lifecycle changes can still intentionally leave an unavailable context.
-- Scope/status: Implemented and Verified as EP6 under IMP-20260928-011 / VER-20260928-007. Native repeated Habit deletions and Goal correction/stale-failure/retry retain History/query and exact stored outcomes; Track older-page correction/deletion/recreation retains its loaded window and viewport. Analogous Task/Gym/Settings handlers were source-reviewed. Related FB-20260928-007. Not yet installed on the owner phone.
+- Scope/status: Implemented and Verified as EP6 under IMP-20260928-011 / VER-20260928-007. Native repeated Habit deletions and Goal correction/stale-failure/retry retain History/query and exact stored outcomes; Track older-page correction/deletion/recreation retains its loaded window and viewport. Analogous Task/Gym/Settings handlers were source-reviewed. Related FB-20260928-007. Subsequently Released to the owner phone in 0.3.83 under VER-20260929-001.
 
 ### FB-20260928-007 — Substantially improve the whole Whip product experience
 

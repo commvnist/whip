@@ -1,0 +1,24 @@
+{
+  "target": "selected-owner-phone",
+  "model": "SM-F976W",
+  "package": "commvne.com.whip.app",
+  "before": {
+    "versionCode": "88 minSdk=26 targetSdk=37",
+    "versionName": "0.3.82",
+    "firstInstallTime": "2026-08-26 17:59:24",
+    "lastUpdateTime": "2026-09-28 17:22:36",
+    "appId": "10995"
+  },
+  "after": {
+    "versionCode": "89 minSdk=26 targetSdk=37",
+    "versionName": "0.3.83",
+    "firstInstallTime": "2026-08-26 17:59:24",
+    "lastUpdateTime": "2026-09-29 02:34:41",
+    "appId": "10995"
+  },
+  "first_install_identity_preserved": true,
+  "app_id_preserved": true,
+  "installed_apk_sha256": "4fda4dd257e4387025deea3b94fde2be39d51d2a2e49df9685367b4d45a1c9a2",
+  "installed_hash_verified_by_guarded_script": true,
+  "foreground_launch_verified_by_guarded_script": true
+}

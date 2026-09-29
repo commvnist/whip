@@ -1,5 +1,13 @@
 # Verification and release evidence
 
+### VER-20260929-001 — Signed experience overhaul update 0.3.83 installed on the phone
+
+- Related/scope: FB-20260929-001, IMP-20260929-001, accepted experience behavior under VER-20260928-007. Clean pushed source `a46259e9`; [artifacts and exact receipt](../../artifacts/phone-releases/2026-09-29/0.3.83/README.md). All 29 accepted source/test hashes remain unchanged; only version metadata advances to 0.3.83/code 89.
+- Build/checks: Signed `./gradlew assembleRelease bundleRelease` passes in 161.207 seconds with release-vital lint and R8. Each artifact/device command bounded by 55 seconds verifies metadata, non-debuggable APK, established APK/AAB certificate, ZIP integrity and no retired location permissions. No repeated JVM/native/full/readiness/candidate test campaign; prior focused evidence retained.
+- Artifacts: APK SHA-256 `4fda4dd257e4387025deea3b94fde2be39d51d2a2e49df9685367b4d45a1c9a2`; AAB SHA-256 `d8b61092d9e5f7e8465c38758d983a0c6feb923f26a7b83fb9b72f8147657841`. Established certificate SHA-256 `cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788`. Ordinary AAB self-signed/timestamp/archive-reading warnings remain in original logs.
+- Device/result: Released on selected Samsung SM-F976W through physical-target guard. `scripts/device release-install` upgrades 0.3.82/code 88 in place; installed-base hash equals signed APK. First install `2026-08-26 17:59:24` and app ID 10995 preserved; update `2026-09-29 02:34:41`. `scripts/device release-run` verifies foreground after a 132 ms cold launch. Read-only smoke: live process, 249 sampled log lines, empty crash buffer, zero fatal/ANR/SQLite/startup-error matches.
+- Limits/status: Released; subjective appearance Awaiting user validation. No reset, uninstall, downgrade, phone instrumentation/capture/private-record inspection or Play publication. Room 46/epoch 6/backup 26 unchanged. Transient device address excluded; historical paused work stays paused.
+
 ### VER-20260928-007 — Complete experience overhaul with focused acceptance
 
 - Delivery: Integrated source/evidence commit `e05b2bac9b6f40625002ed51cc0053ecdff61efb` is pushed normally to origin/main. All 29 staged source/test blobs and 173 evidence payloads match their SHA-256 manifests; staged whitespace, current report/gallery links, 12-group mapping and 137-row count pass. Final installed emulator hashes match accepted builds. Subsequent delivery bookkeeping changes no production, test or evidence payload bytes.
