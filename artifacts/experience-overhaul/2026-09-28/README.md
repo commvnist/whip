@@ -2,6 +2,8 @@
 
 The canonical [plan](../../../docs/quality/EXPERIENCE_OVERHAUL_2026-09-28.md) owns twelve implemented groups and 137 current-source workflow dispositions. FB-20260928-007/008 own scope and repeated-history cleanup. Final integration receipts below distinguish execution from source review; no accepted remedy is deferred.
 
+Delivered in `e05b2bac9b6f40625002ed51cc0053ecdff61efb`, pushed normally to origin/main. All 29 source/test and 173 evidence payload hashes match committed bytes. Report/gallery links, disposition counts and staged whitespace pass. Delivery bookkeeping changes no tested source or raw evidence.
+
 ## Evidence boundaries
 
 - `baseline/` contains direct synthetic-emulator onboarding/Home inspection of the retained pre-enhancement 0.3.81-debug binary. The install receipt distinguishes it from current-source acceptance.
