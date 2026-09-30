@@ -622,7 +622,7 @@ class GoalSecondaryMutationUiTest {
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 GoalCard(
-                    projection = projection(goal(archived = archived)),
+                    projection = projection(goal(type = GoalType.WeightedMilestones, archived = archived)),
                     onOpen = {},
                     onEdit = {},
                     onRecord = {},

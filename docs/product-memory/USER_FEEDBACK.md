@@ -1,12 +1,20 @@
 # User feedback and acceptance criteria
 
+### FB-20260929-018 — Execute routine work directly without opening or expanding items
+
+- Date/source: 2026-09-29, owner requires Habits, Tasks, Goals and analogous workflows to be logged, checked off or checked in directly on their visible items; opening a Habit just to check in is inefficient UX.
+- Acceptance: Review collection, Today, Home, dated planning and other routine execution surfaces. Expose eligible check-off, numeric logging, checklist/milestone execution, timer and analogous primary actions without inspector/disclosure prerequisites. Actions needing input open the existing focused entry/confirmation directly. Preserve exact dates/identities, availability, historical truth, request-owned saves, accessible enlarged layouts and inspector access.
+- Scope: Implement grounded tap-barrier fixes and proportionately verify them; preserve collection-first navigation and keep supplementary history/analysis under disclosure. No phone release or unrelated audit remediation requested.
+- Related: FB-20260929-017, DEC-20260929-003/004; source baseline `ecdb3eee`.
+- Status: Implemented. Parent plus the existing authorized Tasks/Habits/Goals component agents; parent reviews Home, Tracks, Gym and platform siblings. VER-20260929-020 passes 430 affected JVM and 18 distinct selected native methods with nine inspected originals. Full readiness remains incomplete because lint exceeded the required 55-second cap; no release.
+
 ### FB-20260929-017 — Thorough component-by-component design, coherence and UX audit
 
 - Date/source: 2026-09-29, owner requests a full top-to-bottom design consistency, coherence and UX audit across all components and main user flows, emphasizing thoroughness. One GPT-6.1 Sol/high agent per component is allowed.
 - Acceptance: Independently inspect current source and available rendered evidence, cover discovery through creation, execution, correction, history, analysis and recovery, and assess shared visual/interaction rules across components. Deliver a prioritized evidence-backed report with detailed flow dispositions, concrete remedies, justified keeps and explicit verification gaps. Label older evidence and source-only conclusions accurately.
 - Scope: Audit/report only; no production remediation or phone release is requested. Component reviewers use GPT-6.1 Sol/high; coordinating parent reconciles cross-component findings and captures selected fresh emulator evidence.
 - Related: DEC-20260929-002/003/004, FB-20260929-016; baseline `6d79bd1f`.
-- Status: Verified audit delivery under IMP-20260929-022 / VER-20260929-019; [consolidated report](../quality/DESIGN_COHERENCE_UX_AUDIT_2026-09-29.md). 784 flow/state dispositions, 52 grounded findings (5 P1/40 P2/7 P3), eight fresh selected native passes and 36 inspected current original pairs. Findings FND-20260929-034–042 remain Confirmed/unfixed; no remediation/release is requested or claimed.
+- Status: Verified audit delivery under IMP-20260929-022 / VER-20260929-019; [consolidated report](../quality/DESIGN_COHERENCE_UX_AUDIT_2026-09-29.md). 784 flow/state dispositions, 52 grounded findings (5 P1/40 P2/7 P3), eight fresh selected native passes and 36 inspected current original pairs. All findings were unfixed at audit delivery. Subsequent FB-20260929-018 implements H2/TASK-02/TASK-03; other 49 remain unfixed. No release belongs to the audit.
 
 ### FB-20260929-016 — Align Add Task between Tasks and Today and repair related design drift
 

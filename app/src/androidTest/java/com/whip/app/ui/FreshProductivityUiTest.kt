@@ -91,34 +91,36 @@ class FreshProductivityUiTest {
         compose.runOnIdle { assertFalse(saved) }
     }
 
-    @Test fun reachedGoalKeepsAboveTargetProgressAndRoutesToExplicitReview() {
+    @Test fun reachedGoalKeepsLoggingAndDirectCompletionWithoutOpeningDetails() {
         var opened = false
         var logged = false
+        var completed = false
         val projection = projection(goal()).copy(currentValue = 30.0, progress = 1.25)
         compose.setContent { WhipTheme(dynamicColor = false) { Surface {
             Column(Modifier.width(320.dp).padding(16.dp)) {
                 GoalCard(projection, onOpen = { opened = true }, onEdit = {}, onRecord = { logged = true },
-                    onResetElapsed = {}, onToggleMilestone = { _, _ -> })
+                    onResetElapsed = {}, onToggleMilestone = { _, _ -> }, onComplete = { completed = true })
             }
         } } }
         compose.onNodeWithText("125%").assertIsDisplayed()
         compose.onNodeWithText("30 → 24 · Target reached").assertIsDisplayed()
-        compose.onNodeWithText("Review").performClick()
-        compose.runOnIdle { assertTrue(opened); assertFalse(logged) }
+        compose.onNodeWithText("Log").performClick()
+        compose.onNodeWithTag("goal-card-complete-2").performClick()
+        compose.runOnIdle { assertFalse(opened); assertTrue(logged); assertTrue(completed) }
         captureVisualCatalogSurface("fresh-productivity.goal-reached")
     }
 
-    @Test @AndroidFontScale fun goalReviewAndItemsRemainFullyReadableAtLargeText() {
+    @Test @AndroidFontScale fun goalLogAndResetRemainFullyReadableAtLargeText() {
         val reached = projection(goal().copy(name = "Read books")).copy(currentValue = 30.0, progress = 1.25)
-        val milestones = projection(goal().copy(id = 3, name = "Release", type = GoalType.WeightedMilestones))
+        val elapsed = projection(goal().copy(id = 3, name = "Elapsed", type = GoalType.ElapsedSince, elapsedStartMillis = 0L))
         compose.setContent { WhipTheme(dynamicColor = false) { Surface {
             Column(Modifier.width(320.dp).verticalScroll(rememberScrollState()).padding(16.dp)) {
-                listOf(reached, milestones).forEach { item ->
+                listOf(reached, elapsed).forEach { item ->
                     GoalCard(item, onOpen = {}, onEdit = {}, onRecord = {}, onResetElapsed = {}, onToggleMilestone = { _, _ -> })
                 }
             }
         } } }
-        listOf("Review" to 2, "Items" to 3).forEach { (label, id) ->
+        listOf("Log" to 2, "Reset" to 3).forEach { (label, id) ->
             val node = compose.onNodeWithText(label, useUnmergedTree = true)
             node.performScrollTo().assertIsDisplayed()
             val layouts = mutableListOf<TextLayoutResult>()
@@ -127,13 +129,13 @@ class FreshProductivityUiTest {
             val layout = layouts.single()
             assertEquals(2f, layout.layoutInput.density.fontScale, 0.01f)
             assertEquals(1, layout.lineCount)
-            assertFalse(
+            // Compose may flag fractional paragraph width rounded into an integer size.
+            assertTrue(
                 "$label must not clip: size=${layout.size}, constraints=${layout.layoutInput.constraints}, " +
-                    "intrinsic=${layout.multiParagraph.intrinsics.maxIntrinsicWidth}, " +
-                    "widthOverflow=${layout.didOverflowWidth}, heightOverflow=${layout.didOverflowHeight}, " +
-                    "style=${layout.layoutInput.style}, density=${layout.layoutInput.density}",
-                layout.hasVisualOverflow,
+                    "lineRight=${layout.getLineRight(0)}",
+                layout.getLineRight(0) <= layout.size.width + 1f,
             )
+            assertFalse("$label must fit vertically", layout.didOverflowHeight)
             assertFalse("$label must not ellipsize", layout.isLineEllipsized(0))
             assertEquals(label.length, layout.getLineEnd(0, visibleEnd = true))
             val slot = compose.onNodeWithTag("goal-primary-action-$id", useUnmergedTree = true)
@@ -141,6 +143,88 @@ class FreshProductivityUiTest {
             assertTrue("$label must leave room for the Goal title", slot.right - slot.left <= 112.dp)
         }
         captureVisualCatalogSurface("fresh-productivity.goal-actions.large")
+    }
+
+    @Test fun collapsedGoalActionsRespectEveryTypeAndLifecycle() {
+        var item by mutableStateOf(goal())
+        var reorder by mutableStateOf(false)
+        var logged = 0
+        var reset = 0
+        var completed = 0
+        var toggled = 0
+        var opened = 0
+        val milestone = GoalMilestone(91, "milestone-91", item.id, "Publish", 0, 1.0, false, null, "", 1, 1)
+        compose.setContent { WhipTheme(dynamicColor = false) { Surface {
+            Column(Modifier.width(320.dp).verticalScroll(rememberScrollState()).padding(16.dp)) {
+                GoalCard(projection(item).copy(progress = .5, milestones = listOf(milestone)),
+                    onOpen = { opened++ }, onEdit = {}, onRecord = { logged++ },
+                    onResetElapsed = { reset++ }, onToggleMilestone = { boundary, value ->
+                        assertEquals(91L, boundary.milestoneId); assertTrue(value); toggled++
+                    }, onComplete = { completed++ }, reorderMode = reorder)
+            }
+        } } }
+        GoalType.entries.forEach { type ->
+            compose.runOnIdle { item = goal().copy(type = type, aggregation = type.defaultAggregation(), elapsedStartMillis = 0L) }
+            when (type) {
+                GoalType.WeightedMilestones -> compose.onNodeWithTag("goal-milestone-91", useUnmergedTree = true)
+                    .assertIsEnabled().performClick()
+                GoalType.ElapsedSince -> compose.onNodeWithTag("goal-card-reset-2", useUnmergedTree = true).performClick()
+                else -> compose.onNodeWithContentDescription(
+                    if (type.defaultAggregation() == GoalAggregation.CompletionCount) "Record a completion for Read 24 books"
+                    else "Log progress for Read 24 books",
+                ).performClick()
+            }
+            compose.onNodeWithTag("goal-card-complete-2", useUnmergedTree = true).performScrollTo().performClick()
+        }
+        compose.runOnIdle {
+            assertEquals(7, logged); assertEquals(1, reset); assertEquals(1, toggled)
+            assertEquals(9, completed); assertEquals(0, opened)
+        }
+        GoalType.entries.forEach { type ->
+            listOf(GoalStatus.Paused, GoalStatus.Completed, GoalStatus.Abandoned, GoalStatus.Archived).forEach { status ->
+                compose.runOnIdle { item = goal().copy(type = type, status = status) }
+                compose.onNodeWithTag("goal-primary-action-2", useUnmergedTree = true).assertDoesNotExist()
+                compose.onNodeWithTag("goal-card-complete-2", useUnmergedTree = true).assertDoesNotExist()
+                compose.onNodeWithTag("goal-milestone-91", useUnmergedTree = true).assertDoesNotExist()
+            }
+        }
+        compose.runOnIdle { item = goal().copy(archived = true) }
+        compose.onNodeWithTag("goal-primary-action-2", useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithTag("goal-card-complete-2", useUnmergedTree = true).assertDoesNotExist()
+        compose.runOnIdle { item = goal(); reorder = true }
+        compose.onNodeWithTag("goal-primary-action-2", useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithTag("goal-card-complete-2", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test fun directCompletionConfirmsBelowTargetAndSavesFrozenOutcome() {
+        val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+        val id = runBlocking {
+            app.goalRepository.create(GoalDraft(name = "Direct completion", type = GoalType.ReachValue,
+                dimension = UnitDimension.Count, unitId = "count", baseline = 0.0, targetMin = 10.0,
+                startDate = app.clock.today())).also { app.goalRepository.recordMeasurement(it, 4.0) }
+        }
+        compose.setContent { WhipTheme(dynamicColor = false) {
+            val vm: GoalViewModel = viewModel()
+            val state by vm.uiState.collectAsStateWithLifecycle()
+            GoalAreaContent(state = state.copy(active = state.active.filter { it.goal.id == id }),
+                innerPadding = PaddingValues(), viewModel = vm)
+        } }
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("goal-card-complete-$id").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("goal-card-complete-$id").performScrollTo().performClick()
+        compose.onNodeWithTag("goal-detail-surface").assertDoesNotExist()
+        compose.onNodeWithText("40% complete").assertIsDisplayed()
+        compose.onNodeWithText("This Goal has not reached its measured target.", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Cancel").performClick()
+        compose.runOnIdle { assertEquals(GoalStatus.Active, runBlocking { app.goalRepository.get(id) }!!.status) }
+        compose.onNodeWithTag("goal-card-complete-$id").performClick()
+        compose.onNodeWithTag("goal-completion-confirm").performClick()
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("goal-completion-dialog").fetchSemanticsNodes().isEmpty() }
+        runBlocking {
+            assertEquals(GoalStatus.Completed, app.goalRepository.get(id)!!.status)
+            val closure = app.database.goalDao().getClosureSnapshots(id).single()
+            assertEquals(.4, closure.progress!!, 0.0)
+            assertEquals(4.0, closure.value!!, 0.0)
+        }
     }
 
     @Test fun cancellingHabitDefinitionEditReturnsToHistory() {

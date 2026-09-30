@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="0" errors="0" skipped="0" time="7.643" timestamp="2026-09-30T02:04:03" hostname="localhost">
+  <testsuite name="com.whip.app.ui.FreshProductivityUiTest" tests="1" failures="0" errors="0" skipped="0" time="5.958" timestamp="2026-09-30T02:04:03" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="reachedGoalKeepsLoggingAndDirectCompletionWithoutOpeningDetails" classname="com.whip.app.ui.FreshProductivityUiTest" time="5.958" />
+  </testsuite>
+</testsuites>

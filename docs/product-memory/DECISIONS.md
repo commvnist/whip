@@ -1,5 +1,12 @@
 # Durable product and engineering decisions
 
+### DEC-20260929-005 — Primary execution stays visible; supplemental details remain optional
+
+- Decision: FB-20260929-018 supersedes hiding primary execution behind item disclosure or a collection-management summary. Eligible check-off, item checklists/milestones, numeric input/presets, timer and primary lifecycle actions are directly accessible. Required input and consequential confirmation open focused forms rather than inspectors.
+- Constraints: Preserve collection-first navigation, exact occurrence/day and lifecycle eligibility, request-owned persistence/error/recovery, active timer visibility and meaningful 200% text. Recurring All rows bind only a real Today occurrence; future planning is not an instruction to log today. Selection/reorder/archive keep their separate jobs.
+- Implementation: Existing shared cards, input/confirmation/Focus controls and repositories; no alternate logging persistence or new dependency. Shared grammar still discloses notes/history/analysis/configuration. The new Focus entry route is a small saved UI owner to keep the main shell below instrumentation method-size limits.
+- Related/status: FND-20260929-043 / IMP-20260929-023; Implemented; focused runtime acceptance passes under VER-20260929-020, full readiness remains incomplete at the lint time cap. [Surface record](../quality/DIRECT_DAILY_EXECUTION_2026-09-29.md).
+
 ### DEC-20260929-004 — Fresh overhaul uses stable roles, progressive disclosure and retained context
 
 - Status: Implemented and Verified within the selected scope under IMP-20260929-018 / VER-20260929-015. Related: FB-20260929-014, FND-20260929-027/028/029/030/031/032.

@@ -1,0 +1,18 @@
+{
+  "baseline": "ecdb3eee",
+  "source_inventory": {
+    "jvm": 736,
+    "android": 1312
+  },
+  "executed_jvm": 430,
+  "executed_jvm_suites": 44,
+  "distinct_native_methods": 18,
+  "native_failures": 0,
+  "native_errors": 0,
+  "native_skips": 0,
+  "native_reuse": 0,
+  "original_pairs": 9,
+  "apk_sha256": "6b2d4f18dce889025a9dfcfb4f925424eab91837b1ae84ee9ef4ddc62438f44e",
+  "readiness": "Incomplete: 55-second cap in lint; JVM, compilation, instrumentation, APK packaging and selected native checks pass",
+  "release": false
+}

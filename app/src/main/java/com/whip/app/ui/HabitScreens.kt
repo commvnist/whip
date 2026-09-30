@@ -35,6 +35,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -63,6 +64,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntSize
@@ -1110,25 +1112,11 @@ fun HabitProgressCard(
 ) {
     val habit = item.habit
     val weekdayFormatter = rememberWhipWeekdayFormatter()
-    if (management && habit.timerSessionId == null) {
-        WhipItemCard(Modifier.clickable(enabled = !reorderMode, onClickLabel = "Open habit details for ${habit.name}", onClick = onOpen)
-            .testTag("habit-card-${habit.id}")) {
-            WhipProductivityItemContent(itemType = "habit", itemName = habit.name, emoji = habit.icon, compact = true) {
-                area(habit.areaId, habit.area)
-                edit(onEdit.takeUnless { reorderMode })
-                summary {
-                    text(listOf(habit.area, habit.collectionScheduleLabel { weekdayFormatter.label(it, WhipWeekdayLabelWidth.Short) })
-                        .filter(String::isNotBlank).joinToString(" · "))
-                    text(item.managementAvailabilityLabel(customUnits))
-                }
-            }
-        }
-        return
-    }
     val timerElapsedSeconds by rememberHabitTimerElapsedSeconds(habit)
     val skipped = item.dayState == HabitDayState.Skipped
     val unavailableForCheckIn = habit.timerStartedAtMillis == null &&
-        (habit.paused || item.dayState in setOf(HabitDayState.Paused, HabitDayState.NotScheduled))
+        (habit.archived || habit.paused || !item.scheduled || item.date != LocalWhipToday.current ||
+            item.dayState in setOf(HabitDayState.Paused, HabitDayState.NotScheduled))
     val disclosure = rememberItemDisclosure(itemKey = habitDisclosureKey(habit.id, item.date))
     val streakUnit = when (habit.scheduleType) {
         HabitScheduleType.FlexibleTimesPerWeek -> "week"
@@ -1144,10 +1132,31 @@ fun HabitProgressCard(
         if (habit.timerNeedsReview) "Review timer · ${formatElapsedDuration(timerElapsedSeconds)} estimated"
         else "${formatElapsedDuration(timerElapsedSeconds)} elapsed"
     } else item.compactCollectionStatus(lowPressureMode, customUnits)
+    val numericPrimaryLabel = "+${plainNumericValue(habit.quickIncrement)}"
+    val textMeasurer = rememberTextMeasurer()
+    val primaryTextStyle = LocalTextStyle.current.merge(MaterialTheme.typography.labelLarge)
+    val density = LocalDensity.current
+    fun primaryLabelWidth(label: String) = with(density) {
+        (textMeasurer.measure(label, style = primaryTextStyle, maxLines = 1).size.width +
+            2 * 4.dp.roundToPx()).toDp()
+    }
+    val primaryLabel = when {
+        skipped -> "Undo"
+        habit.trackingMode == HabitTrackingMode.Duration -> when {
+            habit.timerStartedAtMillis == null -> "Start"
+            habit.timerNeedsReview -> "Review"
+            else -> "Stop"
+        }
+        habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal) ->
+            numericPrimaryLabel.takeIf { primaryLabelWidth(it) <= 112.dp } ?: "Add"
+        habit.trackingMode == HabitTrackingMode.Rating -> "Rate"
+        else -> "Log"
+    }
+    val primaryWidth = primaryLabelWidth(primaryLabel).coerceIn(64.dp, 112.dp)
     val primaryAction: (@Composable () -> Unit)? = when {
         reorderMode -> null
         unavailableForCheckIn -> null
-        skipped -> {{ ItemPrimaryTextButton("Undo", onUndoSkip) }}
+        skipped -> {{ ItemPrimaryTextButton(primaryLabel, onUndoSkip) }}
         habit.sourceMeasurementId != null -> null
         habit.trackingMode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist) -> {{
             WhipCompletionCheckbox(
@@ -1161,23 +1170,20 @@ fun HabitProgressCard(
             )
         }}
         habit.trackingMode == HabitTrackingMode.Duration -> {{
-            val label = when {
-                habit.timerStartedAtMillis == null -> "Start"
-                habit.timerNeedsReview -> "Review"
-                else -> "Stop"
-            }
             val actionDescription = when {
                 habit.timerStartedAtMillis == null -> "Start timer for ${habit.name}"
                 habit.timerNeedsReview -> "Review timer for ${habit.name}; ${formatElapsedDurationSpoken(timerElapsedSeconds)} estimated"
                 else -> "Stop and log ${habit.name}; ${formatElapsedDurationSpoken(timerElapsedSeconds)} elapsed"
             }
-            ItemPrimaryTextButton(label, onQuick, Modifier.semantics { contentDescription = actionDescription })
+            ItemPrimaryTextButton(primaryLabel, onQuick, Modifier.semantics { contentDescription = actionDescription })
         }}
         habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal) -> {{
-            ItemPrimaryTextButton("+${editableNumericValue(habit.quickIncrement)}", { onQuickValue(habit.quickIncrement) })
+            ItemPrimaryTextButton(primaryLabel, { onQuickValue(habit.quickIncrement) }, Modifier.semantics {
+                contentDescription = "Add ${plainNumericValue(habit.quickIncrement)} ${habit.unitSymbol(customUnits)} to ${habit.name}".replace("  ", " ")
+            })
         }}
         else -> {{
-            ItemPrimaryTextButton(if (habit.trackingMode == HabitTrackingMode.Rating) "Rate" else "Log", onQuick)
+            ItemPrimaryTextButton(primaryLabel, onQuick)
         }}
     }
     WhipItemCard(
@@ -1205,6 +1211,7 @@ fun HabitProgressCard(
             titleModifier = Modifier.testTag("habit-card-title-${habit.id}"),
             primaryActionModifier = Modifier.testTag("habit-primary-action-${habit.id}"),
             editModifier = Modifier.testTag("habit-edit-action-${habit.id}"),
+            compact = management,
         ) {
             area(habit.areaId, habit.area)
             edit(onEdit.takeUnless { reorderMode })
@@ -1224,15 +1231,17 @@ fun HabitProgressCard(
                 )
             }
             summary {
+                if (management) text(
+                    listOf(habit.area, habit.collectionScheduleLabel { weekdayFormatter.label(it, WhipWeekdayLabelWidth.Short) })
+                        .filter(String::isNotBlank).joinToString(" · "),
+                )
                 text(
-                    text = compactStatus,
+                    text = if (management && habit.timerSessionId == null) item.managementAvailabilityLabel(customUnits) else compactStatus,
                     modifier = Modifier.testTag("habit-card-status-${habit.id}"),
                 )
             }
-            disclosure(expanded = disclosure.expanded, tag = "habit-expand-${habit.id}", onToggle = disclosure.toggle.takeUnless { reorderMode })
-            primaryAction(width = if (
-                skipped || habit.trackingMode in setOf(HabitTrackingMode.Duration, HabitTrackingMode.Rating, HabitTrackingMode.LogOnly)
-            ) 72.dp else 64.dp, content = primaryAction)
+            if (!management) disclosure(expanded = disclosure.expanded, tag = "habit-expand-${habit.id}", onToggle = disclosure.toggle.takeUnless { reorderMode })
+            primaryAction(width = if (habit.trackingMode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist)) 64.dp else primaryWidth, content = primaryAction)
 
             expandedContent {
                 if (skipped) {
@@ -1269,12 +1278,6 @@ fun HabitProgressCard(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                }
-                if (!skipped && !unavailableForCheckIn && habit.sourceMeasurementId == null && habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal)) {
-                    HabitNumericActions(item, customUnits, onQuickValue, onSetValue, onAddAmount, onDecrement, onUndo, canUndo)
-                }
-                if (!skipped && !unavailableForCheckIn && habit.trackingMode == HabitTrackingMode.Checklist) {
-                    HabitChecklist(item, onChecklist)
                 }
                 if (!skipped && !unavailableForCheckIn && item.flexibleScheduleTarget != null && item.flexibleScheduleProgress != null) {
                     val target = item.flexibleScheduleTarget
@@ -1322,6 +1325,22 @@ fun HabitProgressCard(
                 }
             }
         }
+        if (!reorderMode && !skipped && !unavailableForCheckIn && habit.sourceMeasurementId == null &&
+            !habit.archived && !habit.paused && item.scheduled && item.date == LocalWhipToday.current) {
+            when (habit.trackingMode) {
+                HabitTrackingMode.Count, HabitTrackingMode.Decimal -> HabitNumericActions(
+                    item, customUnits, onQuickValue, onSetValue, onAddAmount, onDecrement, onUndo, canUndo,
+                    includePrimaryIncrement = numericPrimaryLabel != primaryLabel,
+                )
+                HabitTrackingMode.Checklist -> HabitChecklist(item, onChecklist)
+                HabitTrackingMode.Duration -> onAddAmount?.let { add ->
+                    WhipTextButton(onClick = add, modifier = Modifier.testTag("habit-manual-duration-${habit.id}")) {
+                        Text("Enter Duration")
+                    }
+                }
+                else -> Unit
+            }
+        }
     }
 }
 
@@ -1359,6 +1378,7 @@ private fun HabitNumericActions(
     onUndo: () -> Unit,
     canUndo: Boolean,
     enabled: Boolean = true,
+    includePrimaryIncrement: Boolean = true,
 ) {
     val habit = item.habit
     var expanded by rememberSaveable(habit.id) { mutableStateOf(false) }
@@ -1368,10 +1388,11 @@ private fun HabitNumericActions(
     val unit = habit.unitSymbol(units).takeIf(String::isNotBlank)?.let { " $it" }.orEmpty()
     FlowRow(Modifier.fillMaxWidth().testTag("habit-numeric-actions-${habit.id}"),
         horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        (if (expanded) values else values.take(3)).forEach { amount ->
-            WhipTextButton(enabled = enabled, onClick = { onQuickValue(amount) }) { Text("+${editableNumericValue(amount)}$unit") }
+        val visibleValues = if (includePrimaryIncrement) values else values.filter { it != habit.quickIncrement }
+        (if (expanded) visibleValues else visibleValues.take(3)).forEach { amount ->
+            WhipTextButton(enabled = enabled, onClick = { onQuickValue(amount) }) { Text("+${plainNumericValue(amount)}$unit") }
         }
-        if (values.size > 3) DisclosureButton("Quick Values", expanded, { expanded = !expanded })
+        if (visibleValues.size > 3) DisclosureButton("Quick Values", expanded, { expanded = !expanded })
         onAddAmount?.let { add -> WhipTextButton(enabled = enabled, onClick = add) { Text("Add Amount") } }
         WhipTextButton(enabled = enabled, onClick = onSetValue) { Text("Set Total") }
         WhipTextButton(enabled = enabled && item.value > 0.0, onClick = onDecrement) {

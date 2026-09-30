@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="0" errors="0" skipped="0" time="21.498" timestamp="2026-09-30T02:11:54" hostname="localhost">
+  <testsuite name="com.whip.app.DirectDailyExecutionJourneyTest" tests="1" failures="0" errors="0" skipped="0" time="20.407" timestamp="2026-09-30T02:11:54" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="calendarHabitAndMultiDayRoutineRunWithoutExpandingDetails" classname="com.whip.app.DirectDailyExecutionJourneyTest" time="20.407" />
+  </testsuite>
+</testsuites>

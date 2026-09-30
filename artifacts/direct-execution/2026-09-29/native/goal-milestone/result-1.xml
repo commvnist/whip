@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="0" errors="0" skipped="0" time="6.694" timestamp="2026-09-30T02:04:51" hostname="localhost">
+  <testsuite name="com.whip.app.ui.GoalSecondaryMutationUiTest" tests="1" failures="0" errors="0" skipped="0" time="4.809" timestamp="2026-09-30T02:04:51" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="milestoneIsEditableOnlyForAnUnarchivedActiveGoal" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="4.809" />
+  </testsuite>
+</testsuites>

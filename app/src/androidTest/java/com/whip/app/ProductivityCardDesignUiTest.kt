@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
@@ -76,6 +77,7 @@ import com.whip.app.ui.HabitUiState
 import com.whip.app.ui.HabitViewModel
 import com.whip.app.ui.DestinationTabBar
 import com.whip.app.ui.LocalItemDisclosureState
+import com.whip.app.ui.LocalWhipToday
 import com.whip.app.ui.TaskRow
 import com.whip.app.ui.rememberItemDisclosureState
 import com.whip.app.ui.theme.WhipTheme
@@ -97,7 +99,7 @@ class ProductivityCardDesignUiTest {
     @Test
     fun tasksHabitsAndGoalsShareIdentityActionAndEditColumns() {
         val date = LocalDate.of(2026, 8, 24)
-        compose.setContent {
+        setContentForDate(date) {
             WhipTheme(darkTheme = true, dynamicColor = false) {
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(20.dp),
@@ -470,7 +472,7 @@ class ProductivityCardDesignUiTest {
         var setValue = false
         var undone = false
         var goalLogged = false
-        compose.setContent {
+        setContentForDate(date) {
             WhipTheme(dynamicColor = false) {
                 val expansionState = rememberItemDisclosureState()
                 CompositionLocalProvider(LocalItemDisclosureState provides expansionState) {
@@ -587,7 +589,7 @@ class ProductivityCardDesignUiTest {
             ) to (id < 3)
         }
 
-        compose.setContent {
+        setContentForDate(date) {
             WhipTheme(dynamicColor = false) {
                 val expansionState = rememberItemDisclosureState()
                 CompositionLocalProvider(LocalItemDisclosureState provides expansionState) {
@@ -684,7 +686,7 @@ class ProductivityCardDesignUiTest {
         val skipped = sampleHabit(date).copy(id = 12, name = "Evening walk")
         val synced = sampleHabit(date).copy(id = 13, name = "Daily steps", sourceMeasurementId = "saved-steps")
 
-        compose.setContent {
+        setContentForDate(date) {
             WhipTheme(dynamicColor = false) {
                 Column(
                     modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -736,7 +738,7 @@ class ProductivityCardDesignUiTest {
             targetMin = 1.0,
         )
 
-        compose.setContent {
+        setContentForDate(date) {
             WhipTheme(dynamicColor = false) {
                 Column(
                     modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -790,7 +792,7 @@ class ProductivityCardDesignUiTest {
         var runningTapped = false
         var reviewTapped = false
 
-        compose.setContent {
+        setContentForDate(date) {
             WhipTheme(dynamicColor = false) {
                 val density = LocalDensity.current
                 CompositionLocalProvider(
@@ -927,7 +929,8 @@ class ProductivityCardDesignUiTest {
         )
         compose.onNodeWithContentDescription("Expand goal Days since smoking").assertExists()
         compose.onAllNodesWithText("Reset Timer").assertCountEquals(0)
-        compose.onAllNodesWithTag("goal-primary-action-8").assertCountEquals(0)
+        compose.onNodeWithTag("goal-primary-action-8").assertIsDisplayed()
+        compose.onNodeWithTag("goal-card-reset-8", useUnmergedTree = true).performClick()
         val elapsedMetric = compose.onNodeWithTag("goal-card-status-8", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         val elapsedIdentity = compose.onNodeWithTag("goal-icon-8", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         val elapsedTitle = compose.onNodeWithText("Days since smoking", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
@@ -940,8 +943,8 @@ class ProductivityCardDesignUiTest {
         compose.onNodeWithText("Counting since", substring = true).assertIsDisplayed()
         compose.onNodeWithTag("goal-expand-8", useUnmergedTree = true).performClick()
         compose.onNodeWithText("0/1 milestones").performScrollTo().assertIsDisplayed()
-        compose.onAllNodesWithText("Publish the release").assertCountEquals(0)
-        compose.onAllNodesWithText("Celebrate").assertCountEquals(0)
+        compose.onNodeWithText("Publish the release").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Celebrate").assertIsDisplayed()
 
         compose.onNodeWithTag("goal-expand-9", useUnmergedTree = true).performScrollTo().performClick()
         compose.onNodeWithContentDescription("2 days", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
@@ -1097,6 +1100,12 @@ class ProductivityCardDesignUiTest {
                 "Activity cell omitted a recognized state: $descriptions",
                 spokenStates.any { descriptions.single().endsWith(": $it") },
             )
+        }
+    }
+
+    private fun setContentForDate(date: LocalDate, content: @Composable () -> Unit) {
+        compose.setContent {
+            CompositionLocalProvider(LocalWhipToday provides date, content = content)
         }
     }
 

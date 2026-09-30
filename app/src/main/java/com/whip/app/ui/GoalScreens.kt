@@ -195,6 +195,7 @@ fun GoalAreaContent(
     onReorderModeChange: (Boolean) -> Unit = {},
     reorderDismissRequest: Int = 0,
     mutationRequestNamespace: String = "goal-workspace",
+    completeGoalIdRequest: Long? = null,
 ) {
     val goalCelebration = LocalGoalCelebration.current
     val localDestinationState = rememberSaveable { mutableStateOf(GoalDestination.Active) }
@@ -227,6 +228,7 @@ fun GoalAreaContent(
     var editingMeasurementGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
     var editingMeasurementId by rememberSaveable { mutableStateOf<String?>(null) }
     var resettingElapsedGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var completingGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
     var manageOrder by rememberSaveable { mutableStateOf(false) }
     var deleteCandidateGoalId by rememberSaveable { mutableStateOf<Long?>(null) }
     var templatesOpen by rememberSaveable { mutableStateOf(false) }
@@ -310,6 +312,12 @@ fun GoalAreaContent(
         }
     }
     val resettingElapsed = resettingElapsedSnapshot
+    val liveCompleting = completingGoalId?.let(editorProjectionById::get)
+    var completingSnapshot by rememberSaveable(completingGoalId) { mutableStateOf(liveCompleting) }
+    LaunchedEffect(completingGoalId, liveCompleting) {
+        if (completingGoalId != null && completingSnapshot == null) completingSnapshot = liveCompleting
+    }
+    val completing = completingSnapshot
     val liveDeleteCandidate = deleteCandidateGoalId?.let(editorProjectionById::get)
     var deleteCandidateSnapshot by rememberSaveable(deleteCandidateGoalId) { mutableStateOf(liveDeleteCandidate) }
     LaunchedEffect(deleteCandidateGoalId, liveDeleteCandidate) {
@@ -335,6 +343,7 @@ fun GoalAreaContent(
         recordingGoalId != null ||
         editingMeasurementGoalId != null ||
         resettingElapsedGoalId != null ||
+        completingGoalId != null ||
         deleteCandidateGoalId != null
     val authoredMutationState by viewModel.authoredMutationState.collectAsStateWithLifecycle()
     val goalDeletionImpact by viewModel.goalDeletionImpact.collectAsStateWithLifecycle()
@@ -353,6 +362,7 @@ fun GoalAreaContent(
                 editingMeasurementGoalId = null
                 editingMeasurementId = null
                 resettingElapsedGoalId = null
+                completingGoalId = null
                 deleteCandidateGoalId = null
                 viewModel.clearPermanentDeletionPreview()
                 if (receipt.kind == GoalMutationKind.LifecycleChanged && receipt.newStatus == GoalStatus.Completed) {
@@ -365,10 +375,12 @@ fun GoalAreaContent(
         )
     } else null
     val elapsedNowMillis = state.nowMillis
-    LaunchedEffect(createRequested, recordGoalIdRequest, resetElapsedGoalIdRequest, editorState.active) {
+    LaunchedEffect(createRequested, recordGoalIdRequest, resetElapsedGoalIdRequest, completeGoalIdRequest, editorState.active) {
         if (createRequested) creating = true
         recordGoalIdRequest?.let { requestedId ->
-            val requested = editorState.active.firstOrNull { it.goal.id == requestedId && !it.goal.archived }
+            val requested = editorState.active.firstOrNull {
+                it.goal.id == requestedId && !it.goal.archived && it.goal.status == GoalStatus.Active
+            }
             if (requested == null) {
                 viewModel.reportUnavailable("That Goal is no longer active. Open Goals to choose an available Goal.")
             } else if (requested.goal.type == GoalType.ElapsedSince || requested.goal.type == GoalType.WeightedMilestones) {
@@ -379,7 +391,8 @@ fun GoalAreaContent(
         }
         resetElapsedGoalIdRequest?.let { requestedId ->
             val requested = editorState.active.firstOrNull {
-                it.goal.id == requestedId && !it.goal.archived && it.goal.type == GoalType.ElapsedSince
+                it.goal.id == requestedId && !it.goal.archived && it.goal.status == GoalStatus.Active &&
+                    it.goal.type == GoalType.ElapsedSince
             }
             if (requested == null) {
                 viewModel.reportUnavailable("That elapsed-time Goal is no longer active. Open Goals to choose an available Goal.")
@@ -388,7 +401,14 @@ fun GoalAreaContent(
                 resettingElapsedGoalId = requestedId
             }
         }
-        if (createRequested || recordGoalIdRequest != null || resetElapsedGoalIdRequest != null) {
+        completeGoalIdRequest?.let { requestedId ->
+            val requested = editorState.active.firstOrNull {
+                it.goal.id == requestedId && !it.goal.archived && it.goal.status == GoalStatus.Active
+            }
+            if (requested == null) viewModel.reportUnavailable("That Goal is no longer active. Open Goals to choose an available Goal.")
+            else completingGoalId = requestedId
+        }
+        if (createRequested || recordGoalIdRequest != null || resetElapsedGoalIdRequest != null || completeGoalIdRequest != null) {
             onExternalRequestConsumed()
         }
     }
@@ -538,6 +558,7 @@ fun GoalAreaContent(
                         onRecord = { recordingGoalId = projection.goal.id },
                         onToggleMilestone = viewModel::toggleMilestone,
                         onResetElapsed = { resettingElapsedGoalId = projection.goal.id },
+                        onComplete = { completingGoalId = projection.goal.id },
                         reorderMode = manageOrder,
                         )
                     }
@@ -732,6 +753,27 @@ fun GoalAreaContent(
             },
         )
     }
+    completing?.let { projection ->
+        val mutationCoordinator = authoredMutationCoordinator ?: return@let
+        GoalCompletionDialog(
+            projection = projection,
+            customUnits = editorState.customUnits,
+            nowMillis = editorState.nowMillis,
+            zoneId = editorState.activeZoneId,
+            saving = mutationCoordinator.saving,
+            persistenceError = mutationCoordinator.errorMessage,
+            onDismiss = {
+                mutationCoordinator.clear()
+                completingGoalId = null
+            },
+            onComplete = {
+                val requestId = mutationCoordinator.begin()
+                if (requestId != null && !viewModel.setStatus(projection.goal.mutationBoundary(), GoalStatus.Completed, requestId)) {
+                    mutationCoordinator.finishFailure("Another Goal change is already finishing.")
+                }
+            },
+        )
+    }
     recording?.let { projection ->
         val mutationCoordinator = authoredMutationCoordinator ?: return@let
         val boundary = projection.goal.progressBoundary()
@@ -868,8 +910,10 @@ fun GoalCard(
     nowMillis: Long = System.currentTimeMillis(),
     zoneId: ZoneId = ZoneId.systemDefault(),
     reorderMode: Boolean = false,
+    onComplete: (() -> Unit)? = null,
 ) {
     val goal = projection.goal
+    val executable = !reorderMode && !goal.archived && goal.status == GoalStatus.Active
     val disclosure = rememberItemDisclosure(itemKey = "goal:${goal.id}")
     val numericSummary = projection.compactNumericReading(customUnits)
     val compactStatus = listOfNotNull(
@@ -879,8 +923,7 @@ fun GoalCard(
     ).joinToString(" · ")
     val elapsedStatus = projection.elapsedDisplayValue(nowMillis, zoneId)
     val primaryLabel = when {
-        projection.offersCompletion() -> "Review"
-        goal.type == GoalType.WeightedMilestones -> "Items"
+        goal.type == GoalType.ElapsedSince -> "Reset"
         goal.aggregation == GoalAggregation.CompletionCount -> "+1"
         else -> "Log"
     }
@@ -892,18 +935,15 @@ fun GoalCard(
         (labelWidth + 2 * 4.dp.roundToPx()).toDp().coerceIn(64.dp, 112.dp)
     }
     val primaryAction: (@Composable () -> Unit)? = when {
-        reorderMode -> null
-        projection.offersCompletion() -> {{ ItemPrimaryTextButton(primaryLabel, onOpen) }}
-        !goal.archived && goal.status == GoalStatus.Active && goal.type == GoalType.WeightedMilestones -> {{
-            ItemPrimaryTextButton(primaryLabel, { if (!disclosure.expanded) disclosure.toggle() },
-                Modifier.semantics { contentDescription = "Show milestones for ${goal.name}" })
+        !executable || goal.type == GoalType.WeightedMilestones -> null
+        goal.type == GoalType.ElapsedSince -> {{
+            ItemPrimaryTextButton(primaryLabel, onResetElapsed,
+                Modifier.testTag("goal-card-reset-${goal.id}").semantics { contentDescription = "Reset timer for ${goal.name}" })
         }}
-        !goal.archived && goal.status == GoalStatus.Active &&
-            goal.type !in setOf(GoalType.WeightedMilestones, GoalType.ElapsedSince) -> {{
+        else -> {{
             ItemPrimaryTextButton(primaryLabel, onRecord,
                 Modifier.semantics { contentDescription = if (goal.aggregation == GoalAggregation.CompletionCount) "Record a completion for ${goal.name}" else "Log progress for ${goal.name}" })
         }}
-        else -> null
     }
     WhipItemCard(
         modifier = Modifier
@@ -1011,9 +1051,6 @@ fun GoalCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    if (!goal.archived && goal.status == GoalStatus.Active) WhipTextButton(
-                        onClick = onResetElapsed, modifier = Modifier.testTag("goal-card-reset-${goal.id}"),
-                    ) { Text("Reset Timer") }
                 } else projection.typedOutcomeReading(customUnits)?.let {
                     Text(it)
                     projection.consistencyPeriodReading()?.let { period -> Text(period, style = MaterialTheme.typography.bodySmall) }
@@ -1030,11 +1067,56 @@ fun GoalCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                GoalMilestoneChecklist(projection, onToggleMilestone)
+                if (!executable) GoalMilestoneChecklist(projection, onToggleMilestone, enabled = false)
                 if (goal.description.isNotBlank()) Text(goal.description, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+        if (executable && goal.type == GoalType.WeightedMilestones) {
+            GoalMilestoneChecklist(projection, onToggleMilestone)
+        }
+        if (executable && onComplete != null) WhipTextButton(
+            onClick = onComplete,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                .testTag("goal-card-complete-${goal.id}")
+                .semantics { contentDescription = "Complete goal ${goal.name}" },
+        ) { Text("Complete Goal") }
     }
+}
+
+@Composable
+internal fun GoalCompletionDialog(
+    projection: GoalProjection,
+    customUnits: List<UnitDefinition>,
+    nowMillis: Long,
+    zoneId: ZoneId,
+    saving: Boolean,
+    persistenceError: String?,
+    onDismiss: () -> Unit,
+    onComplete: () -> Unit,
+) {
+    PaneAwareAlertDialog(
+        testTag = "goal-completion-dialog",
+        onDismissRequest = { if (!saving) onDismiss() },
+        title = { Text("Complete ${projection.goal.name}?") },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                PersistenceFailureNotice(persistenceError, testTag = "goal-completion-save-problem")
+                Text(projection.inspectorOutcome(nowMillis, customUnits, zoneId))
+                if (projection.progress?.let { it < 1.0 } == true) Text(
+                    "This Goal has not reached its measured target. You can still complete it with the outcome shown above.",
+                )
+                Text("Completing saves this outcome in History. Progress entries remain available for correction.")
+            }
+        },
+        confirmButton = {
+            WhipTextButton(onClick = onComplete, enabled = !saving, modifier = Modifier.testTag("goal-completion-confirm")) {
+                Text(if (saving) "Completing…" else "Complete Goal")
+            }
+        },
+        dismissButton = { WhipTextButton(onClick = onDismiss, enabled = !saving) { Text("Cancel") } },
+        inputBlocked = saving,
+        inputBlockedLabel = "Completing Goal",
+    )
 }
 
 @Composable

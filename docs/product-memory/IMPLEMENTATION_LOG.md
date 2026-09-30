@@ -1,5 +1,14 @@
 # Implementation history
 
+### IMP-20260929-023 — Execute daily work directly on visible items
+
+- Related: FB-20260929-018, FND-20260929-043, DEC-20260929-005; [surface record](../quality/DIRECT_DAILY_EXECUTION_2026-09-29.md). Status: Implemented; 430 affected JVM and 18 exact native methods pass under VER-20260929-020, with nine inspected originals. Full readiness remains incomplete at the lint time cap. Git history records normal upstream delivery; no release.
+- Habits reuse tracking-mode execution in All/Today/Home and today's Task planning overlay. Individual checklist items, numeric alternatives and manual duration are visible; focused Count/Duration/Rating/note-only forms retain their save owners. Measured amount labels preserve extreme increments at enlarged text (H2).
+- Tasks expose Subtasks, Focus and History Reopen. All recurring collections bind actions to an authoritative due occurrence and show its date. Dated All merges Today/planning by stable key (TASK-02); Tomorrow selects tomorrow (TASK-03). Focus presets, custom validation, replacement confirmation and request settlement are shared with existing inspector controls through an independent saved launcher.
+- Goals keep Log/completion-event capture available after attainment, expose active milestones and elapsed Reset, and add direct lifecycle completion through existing frozen-outcome receipts with below-target confirmation. Home routes the same actions. Static multi-day Gym routines expose Start/Resolve Equipment without Routine Details expansion.
+- Important source: HabitScreens, TaskComponents, TaskFocusLauncher, GoalScreens, GymScreens and WhipApp; focused direct-execution fixtures plus adjusted existing Goal/Routine/card expectations.
+- Compatibility: No dependency/schema/epoch/backup change. Preserve exact occurrences, unavailable/archive/selection/reorder guards, timer recovery, historical facts and consequential confirmations. Twelve new Android methods raise source inventory to 736 JVM + 1312 Android; this declaration is not a full-suite pass. No phone release requested.
+
 ### IMP-20260929-022 — Deliver the full component design, coherence and UX audit
 
 - Behavior changed: Documentation only. Eight independent GPT-6.1 Sol/high component reviewers plus parent shared-shell/Home review deliver 784 source flow/state dispositions and 52 grounded findings, prioritized by truth, authored work, recovery, continuation and presentation.

@@ -1,10 +1,12 @@
 # Full design consistency, coherence and UX audit — 2026-09-29
 
-**Audit complete; findings are not remediated.** Product baseline `6d79bd1f82da9c1666960834410b3e08ed6d3ea1`, current source 0.3.90/code 96. Scope: first use through capture, daily execution, inspection, correction, history, analysis, organization, backup/recovery and Android entry points across all supported components. FB-20260929-017 records the owner's request. Eight independent component reviewers used GPT-6.1 Sol/high, one per component; the parent reviewed shared shell/Home/design system, reconciled findings and operated fresh device evidence. No production/test/schema changes or release occurred.
+**Audit complete; findings were unfixed at delivery.** Product baseline `6d79bd1f82da9c1666960834410b3e08ed6d3ea1`, current source 0.3.90/code 96. Scope: first use through capture, daily execution, inspection, correction, history, analysis, organization, backup/recovery and Android entry points across all supported components. FB-20260929-017 records the owner's request. Eight independent component reviewers used GPT-6.1 Sol/high, one per component; the parent reviewed shared shell/Home/design system, reconciled findings and operated fresh device evidence. No production/test/schema changes or release occurred in the audit itself.
 
 Whip's visual system is broadly coherent. The most consequential inconsistencies are **what an action means, which records it affects, whether a save really completed, and where the user returns afterward**. Another visual overhaul should not precede repairs to false target truth, phase-local tools rewriting other phases, unsettled Routine saves and misleading import outcomes. The complete inventory contains **784 flow/state dispositions and 52 grounded findings: 5 P1, 40 P2, 7 P3**, plus three explicitly optional Review improvements and unresolved runtime probes.
 
 ## Reading map and coverage
+
+Subsequent FB-20260929-018 [direct-execution implementation](DIRECT_DAILY_EXECUTION_2026-09-29.md) repairs H2, TASK-02 and TASK-03 with focused native acceptance. The other 49 findings, including all five P1 items, remain unfixed. This report preserves the original audit baseline and counts.
 
 Each report contains a top-to-bottom flow/state inventory, precise current source references, prior-decision reconciliation, concrete triggers, effects, remedies and verification conditions. A disposition is a reviewed flow/state, **not an independently executed end-to-end test**. Source review covers every matrix row; fresh visual/runtime evidence covers the expressly named subset. Unsupported capabilities are identified rather than invented as requirements.
 

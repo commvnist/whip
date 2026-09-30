@@ -117,6 +117,10 @@ fun TaskRow(
     onSelectionToggle: (() -> Unit)? = null,
     reorderMode: Boolean = false,
     showCompletionControl: Boolean = true,
+    onToggleSubtask: ((Long, Boolean) -> Unit)? = null,
+    onStartFocus: (() -> Unit)? = null,
+    focusBusy: Boolean = false,
+    executionLabel: String? = null,
 ) {
     val disclosure = rememberItemDisclosure("task:${item.stableKey}")
     val weekdayFormatter = rememberWhipWeekdayFormatter()
@@ -232,7 +236,9 @@ fun TaskRow(
                         onCheckedChange = { onComplete?.invoke() },
                         enabled = onComplete != null,
                         modifier = Modifier.semantics {
-                            contentDescription = if (completed) {
+                            contentDescription = if (completed && onComplete != null) {
+                                "Reopen task ${item.task.title}"
+                            } else if (completed) {
                                 "Task ${item.task.title} completed"
                             } else "Complete task ${item.task.title}"
                         },
@@ -256,6 +262,35 @@ fun TaskRow(
                         )
                     }
                 }
+            }
+        }
+        if (!selectionMode && !reorderMode && !completed && !item.task.archived) {
+            executionLabel?.takeIf(String::isNotBlank)?.let { label ->
+                Text(label, style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("task-execution-context-${item.task.id}"))
+            }
+            onToggleSubtask?.let { toggle ->
+                item.subtasks.forEach { subtask ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                            .testTag("task-inline-subtask-${item.task.id}-${subtask.step.id}"),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        TaskSubtaskText(subtask, Modifier.weight(1f))
+                        TaskSubtaskCheckbox(subtask, archived = false) {
+                            toggle(subtask.step.id, !subtask.completed)
+                        }
+                    }
+                }
+            }
+            onStartFocus?.let { start ->
+                WhipOutlinedButton(
+                    onClick = start,
+                    enabled = !focusBusy,
+                    modifier = Modifier.heightIn(min = 48.dp).testTag("task-inline-focus-${item.task.id}")
+                        .semantics { contentDescription = "Start Focus for task ${item.task.title}" },
+                ) { Text("Focus") }
             }
         }
     }
@@ -441,24 +476,7 @@ fun TaskActionsDialog(
                     if (!item.task.archived) EntityInspectorGroup("Focus") {
                             Text("Start a Focus Timer", style = MaterialTheme.typography.labelMedium)
                             focusError?.let { PersistenceFailureNotice(it, testTag = "focus-start-error") }
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
-                                listOf(15, 30, 45, 60).forEach { minutes ->
-                                    WhipOutlinedButton(
-                                        enabled = !focusBusy,
-                                        onClick = { requestFocus(minutes) },
-                                        modifier = Modifier.heightIn(min = 48.dp).testTag("focus-preset-$minutes")
-                                            .semantics { contentDescription = "Start $minutes minute Focus timer" },
-                                    ) { Text("$minutes min") }
-                                }
-                                WhipOutlinedButton(
-                                    enabled = !focusBusy,
-                                    onClick = { customFocusOpen = true },
-                                    modifier = Modifier.heightIn(min = 48.dp).testTag("focus-custom-time"),
-                                ) { Text("Custom Time") }
-                            }
+                            TaskFocusPresetButtons(focusBusy, requestFocus) { customFocusOpen = true }
                     }
                     EntityInspectorInformationGroup(
                         title = "Context",
@@ -560,54 +578,27 @@ fun TaskActionsDialog(
     )
     }
     if (replacementMinutes != null) {
-        PaneAwareAlertDialog(
-            onDismissRequest = { if (!focusBusy) replacementMinutes = null },
-            title = { Text("Replace Focus Timer?") },
-            text = { Text("“${activeFocusTaskTitle ?: "Focus session"}” has an active timer. Replace it with a $replacementMinutes minute timer for “${item.task.title}”?") },
-            confirmButton = {
-                WhipTextButton(enabled = !focusBusy, onClick = {
-                    val minutes = requireNotNull(replacementMinutes)
-                    replacementMinutes = null
-                    onStartFocus(minutes)
-                }, modifier = Modifier.testTag("focus-replace")) { Text("Replace Timer") }
-            },
-            dismissButton = {
-                WhipTextButton(enabled = !focusBusy, onClick = { replacementMinutes = null }) { Text("Keep Timer") }
+        TaskFocusReplacementDialog(
+            taskTitle = item.task.title,
+            activeTaskTitle = activeFocusTaskTitle,
+            minutes = requireNotNull(replacementMinutes),
+            busy = focusBusy,
+            onDismiss = { replacementMinutes = null },
+            onReplace = {
+                val minutes = requireNotNull(replacementMinutes)
+                replacementMinutes = null
+                onStartFocus(minutes)
             },
         )
     } else if (customFocusOpen) {
-        val minutes = customFocusMinutes.toIntOrNull()
-        val valid = minutes != null && minutes in 1..240
-        PaneAwareAlertDialog(
-            onDismissRequest = { if (!focusBusy) customFocusOpen = false },
-            inputBlocked = focusBusy,
-            inputBlockedLabel = "Starting…",
-            title = { Text("Custom Focus Time") },
-            text = {
-                Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(item.task.title)
-                    focusError?.let { PersistenceFailureNotice(it, testTag = "focus-start-error") }
-                    OutlinedTextField(
-                        value = customFocusMinutes,
-                        onValueChange = { customFocusMinutes = it },
-                        enabled = !focusBusy,
-                        label = { Text("Duration (minutes)") },
-                        supportingText = { Text("Enter 1–240 minutes") },
-                        isError = !valid,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().testTag("focus-custom-minutes")
-                            .semantics { if (!valid) error("Enter 1–240 minutes") },
-                    )
-                }
-            },
-            confirmButton = {
-                WhipTextButton(enabled = valid && !focusBusy, onClick = { requestFocus(requireNotNull(minutes)) },
-                    modifier = Modifier.testTag("focus-custom-start")) { Text(if (focusBusy) "Starting…" else "Start Focus") }
-            },
-            dismissButton = {
-                WhipTextButton(enabled = !focusBusy, onClick = { customFocusOpen = false }) { Text("Cancel") }
-            },
+        TaskFocusCustomDurationDialog(
+            taskTitle = item.task.title,
+            minutesText = customFocusMinutes,
+            onMinutesChange = { customFocusMinutes = it },
+            busy = focusBusy,
+            errorMessage = focusError,
+            onDismiss = { customFocusOpen = false },
+            onStart = requestFocus,
         )
     }
     pendingMoveStepId?.let { stepId ->
@@ -653,6 +644,148 @@ private enum class TaskDetailSection(
             label = label,
             connectedLabel = connectedLabel,
         )
+}
+
+@Composable
+internal fun TaskFocusDialog(
+    item: ScheduledTask,
+    onDismiss: () -> Unit,
+    onStartFocus: (Int) -> Unit,
+    focusBusy: Boolean = false,
+    focusError: String? = null,
+    activeFocusTaskTitle: String? = null,
+    activeFocusDeadlineMillis: Long? = null,
+) {
+    var customOpen by rememberSaveable(item.stableKey) { mutableStateOf(false) }
+    var customMinutes by rememberSaveable(item.stableKey) { mutableStateOf("30") }
+    var replacementMinutes by rememberSaveable(item.stableKey) { mutableStateOf<Int?>(null) }
+    val requestFocus: (Int) -> Unit = { minutes ->
+        if (!focusBusy) {
+            if ((activeFocusDeadlineMillis ?: 0L) > System.currentTimeMillis()) replacementMinutes = minutes
+            else onStartFocus(minutes)
+        }
+    }
+    if (replacementMinutes != null) {
+        TaskFocusReplacementDialog(
+            taskTitle = item.task.title,
+            activeTaskTitle = activeFocusTaskTitle,
+            minutes = requireNotNull(replacementMinutes),
+            busy = focusBusy,
+            onDismiss = { replacementMinutes = null },
+            onReplace = {
+                val minutes = requireNotNull(replacementMinutes)
+                replacementMinutes = null
+                onStartFocus(minutes)
+            },
+        )
+    } else if (customOpen) {
+        TaskFocusCustomDurationDialog(
+            taskTitle = item.task.title,
+            minutesText = customMinutes,
+            onMinutesChange = { customMinutes = it },
+            busy = focusBusy,
+            errorMessage = focusError,
+            onDismiss = { customOpen = false },
+            onStart = requestFocus,
+        )
+    } else {
+        PaneAwareAlertDialog(
+            onDismissRequest = { if (!focusBusy) onDismiss() },
+            inputBlocked = focusBusy,
+            inputBlockedLabel = "Starting…",
+            title = { Text("Start Focus Timer") },
+            text = {
+                Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(item.task.title)
+                    PersistenceFailureNotice(focusError, testTag = "focus-start-error")
+                    TaskFocusPresetButtons(focusBusy, requestFocus) { customOpen = true }
+                }
+            },
+            confirmButton = { WhipTextButton(enabled = !focusBusy, onClick = onDismiss) { Text("Close") } },
+        )
+    }
+}
+
+@Composable
+private fun TaskFocusPresetButtons(busy: Boolean, onStart: (Int) -> Unit, onCustom: () -> Unit) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        listOf(15, 30, 45, 60).forEach { minutes ->
+            WhipOutlinedButton(
+                enabled = !busy,
+                onClick = { onStart(minutes) },
+                modifier = Modifier.heightIn(min = 48.dp).testTag("focus-preset-$minutes")
+                    .semantics { contentDescription = "Start $minutes minute Focus timer" },
+            ) { Text("$minutes min") }
+        }
+        WhipOutlinedButton(
+            enabled = !busy,
+            onClick = onCustom,
+            modifier = Modifier.heightIn(min = 48.dp).testTag("focus-custom-time"),
+        ) { Text("Custom Time") }
+    }
+}
+
+@Composable
+private fun TaskFocusReplacementDialog(
+    taskTitle: String,
+    activeTaskTitle: String?,
+    minutes: Int,
+    busy: Boolean,
+    onDismiss: () -> Unit,
+    onReplace: () -> Unit,
+) {
+    PaneAwareAlertDialog(
+        onDismissRequest = { if (!busy) onDismiss() },
+        inputBlocked = busy,
+        inputBlockedLabel = "Starting…",
+        title = { Text("Replace Focus Timer?") },
+        text = { Text("“${activeTaskTitle ?: "Focus session"}” has an active timer. Replace it with a $minutes minute timer for “$taskTitle”?") },
+        confirmButton = { WhipTextButton(enabled = !busy, onClick = onReplace, modifier = Modifier.testTag("focus-replace")) { Text("Replace Timer") } },
+        dismissButton = { WhipTextButton(enabled = !busy, onClick = onDismiss) { Text("Keep Timer") } },
+    )
+}
+
+@Composable
+private fun TaskFocusCustomDurationDialog(
+    taskTitle: String,
+    minutesText: String,
+    onMinutesChange: (String) -> Unit,
+    busy: Boolean,
+    errorMessage: String?,
+    onDismiss: () -> Unit,
+    onStart: (Int) -> Unit,
+) {
+    val minutes = minutesText.toIntOrNull()
+    val valid = minutes != null && minutes in 1..240
+    PaneAwareAlertDialog(
+        onDismissRequest = { if (!busy) onDismiss() },
+        inputBlocked = busy,
+        inputBlockedLabel = "Starting…",
+        title = { Text("Custom Focus Time") },
+        text = {
+            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(taskTitle)
+                PersistenceFailureNotice(errorMessage, testTag = "focus-start-error")
+                OutlinedTextField(
+                    value = minutesText,
+                    onValueChange = onMinutesChange,
+                    enabled = !busy,
+                    label = { Text("Duration (minutes)") },
+                    supportingText = { Text("Enter 1–240 minutes") },
+                    isError = !valid,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().testTag("focus-custom-minutes")
+                        .semantics { if (!valid) error("Enter 1–240 minutes") },
+                )
+            }
+        },
+        confirmButton = {
+            WhipTextButton(enabled = valid && !busy, onClick = { onStart(requireNotNull(minutes)) },
+                modifier = Modifier.testTag("focus-custom-start")) { Text(if (busy) "Starting…" else "Start Focus") }
+        },
+        dismissButton = { WhipTextButton(enabled = !busy, onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 @Composable

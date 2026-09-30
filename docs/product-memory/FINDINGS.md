@@ -1,5 +1,14 @@
 # Durable findings
 
+### FND-20260929-043 — Execution controls were hidden by collection management and disclosure
+
+- Severity/category: P2, daily execution efficiency. Status: Implemented; 430 affected JVM and 18 selected native passes under VER-20260929-020. Full readiness remains incomplete at the lint time cap.
+- Observed: Fresh All Habit entry returned a management-only card without check-in; checklist items/numeric alternatives, Goal milestones/elapsed reset, Task Subtasks/Focus and static multi-day Routine launch required details. Reached Goal replaced direct Log with inspector Review; completed Task's checkbox could not reopen; today's calendar Habit overlay was navigation-only.
+- Expected: Execute eligible work on its visible item. A focused value/choice/confirmation form can open directly, without an inspector prerequisite. Preserve exact occurrence/day/lifecycle and unavailable state semantics.
+- Root cause: Secondary disclosure contained primary execution content, and collection management early returns bypassed already-established execution callbacks. Shared card reuse alone did not ensure that collection callers supplied mutation owners.
+- Evidence/remedy: [Surface-by-surface direct execution record](../quality/DIRECT_DAILY_EXECUTION_2026-09-29.md). Reuse existing card actions, focused forms, request receipts and repositories across All/Today/Home/dated planning; preserve selection/reorder/archive and timer recovery. H2 and TASK-02/TASK-03 overlap the previous audit and are included in this change.
+- Related: FB-20260929-018, DEC-20260929-005, FND-20260929-037/H2, IMP-20260929-023, VER-20260929-020.
+
 ### FND-20260929-034 — Directionless numeric Goal baselines can reverse attainment truth
 
 - Severity/category: P1, outcome correctness/coherence. Status: Confirmed; no remedy implemented.
@@ -21,7 +30,7 @@
 
 ### FND-20260929-036 — Task draft, dated collection and completed evidence seams remain
 
-- Severity/category: Four P2 and one P3, capture/history/continuation. Status: Confirmed; no remedy implemented.
+- Severity/category: Four P2 and one P3 at audit delivery, capture/history/continuation. Status: Confirmed for remaining TASK-01/04/05. TASK-02/03 are Implemented with focused native acceptance under IMP-20260929-023 / VER-20260929-020; full readiness is incomplete at the lint time cap.
 - Observed: TASK-01 pending New Subtask text is omitted from dirty/save draft; fresh Cancel exits without review. TASK-02 today's Schedule-anchored recurring occurrence is omitted from dated collection views. TASK-03 Tomorrow selects today, freshly reproduced. TASK-04 completed definition edit clears its launching inspector. TASK-05 preserved historical named subtasks are unavailable to inspect.
 - Expected/impact: Visible input belongs to the draft, dated views contain eligible work, child editing preserves context and stored receipt facts remain readable.
 - Evidence/root cause: [60-disposition Task report](../quality/coherence-audit-2026-09-29/tasks.md) traces editor drafts, planning projection and completed inspector ownership; [fresh receipt](../../artifacts/coherence-audit/2026-09-29/README.md). Save omission and schedule variants are source-only here.
@@ -30,7 +39,7 @@
 
 ### FND-20260929-037 — Habit ending, quick-action and eligibility views disagree
 
-- Severity/category: Three P2 and one P3, availability/evidence/action meaning. Status: Confirmed; no remedy implemented.
+- Severity/category: Three P2 and one P3 at audit delivery, availability/evidence/action meaning. Status: Confirmed for remaining H1/H3/H4. H2 is Implemented with actual-200% complete-label/glyph/amount native acceptance under IMP-20260929-023 / VER-20260929-020; full readiness is incomplete at the lint time cap.
 - Observed: H1 threshold-ended Habit suppresses Today scheduling but cadence-only state/rates can generate false misses and Ready/Check In. H2 fixed-width numeric action clips a valid increment; fresh1000000000 displays only+100 at actual200%. H3 partially checked Checklist offers an impossible Skip. H4 today's manual-duration form says Log an Earlier Day.
 - Expected/root cause: Availability/denominators and eligibility should share domain cutoff/prerequisite owners; responsive actions must preserve the actual mutation amount.
 - Evidence: [64-disposition Habit report](../quality/coherence-audit-2026-09-29/habits.md); H2 normal/native200 originals in [receipt](../../artifacts/coherence-audit/2026-09-29/README.md). H1/H3/H4 source-only variants were not newly executed.

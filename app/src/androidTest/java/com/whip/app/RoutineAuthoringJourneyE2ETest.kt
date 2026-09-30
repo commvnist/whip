@@ -101,7 +101,7 @@ class RoutineAuthoringJourneyE2ETest {
                 app.routineRepository.sets.first().map { it.position to it.draft }
             })
             val updatedLowerDay = runBlocking { app.routineRepository.days.first() }.single { it.name == "Lower" }
-            compose.onNodeWithTag("routine-details-${routine.id}").performScrollTo().performClick()
+            compose.onNodeWithTag("routine-details-${routine.id}").performScrollTo().assertIsDisplayed()
             compose.onNodeWithText("Start Lower · 1 exercise").performScrollTo().performClick()
             compose.waitUntil(10_000) {
                 runBlocking { app.gymRepository.sessions.first() }.any { it.state == WorkoutSessionState.Active }

@@ -9173,8 +9173,8 @@ private fun RoutineContent(
                         }
                     }
                     if (!reordering) DisclosureRow(
-                        title = if (!programmed && days.size > 1) "Choose Day and View Details" else "Routine Details",
-                        supportingText = if (detailsExpanded) "Hide day choices and program details" else "Day choices, notes, and training history",
+                        title = "Routine Details",
+                        supportingText = if (detailsExpanded) "Hide notes and program details" else "Notes, program details, and training history",
                         expanded = detailsExpanded,
                         onClick = { detailsExpanded = !detailsExpanded },
                         modifier = Modifier.testTag("routine-details-${routine.id}"),
@@ -9274,7 +9274,7 @@ private fun RoutineContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     }
-                    if (!reordering && (detailsExpanded || !programmed && days.size == 1)) days.forEach { day ->
+                    if (!reordering && (detailsExpanded || !programmed && !routine.archived)) days.forEach { day ->
                         val dayExercises = state.routineExercises.filter { it.routineDayId == day.id }
                         val count = dayExercises.size
                         val needsEquipment = dayExercises.filter {
@@ -9315,7 +9315,7 @@ private fun RoutineContent(
                         val dayActionAvailable = state.activeSession == null ||
                             (needsEquipment.isNotEmpty() && !ownsActiveWorkout)
                         if ((!programmed || day.id != nextProgramDay?.id) && dayActionAvailable) {
-                            WhipTextButton(onClick = {
+                            WhipTextButton(modifier = Modifier.fillMaxWidth().testTag("routine-start-day-${day.id}"), onClick = {
                                 when {
                                     needsEquipment.isNotEmpty() -> {
                                         editingRoutineId = routine.id

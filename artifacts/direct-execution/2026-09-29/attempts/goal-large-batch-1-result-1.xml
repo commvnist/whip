@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="1" errors="0" skipped="0" time="7.786" timestamp="2026-09-30T02:04:27" hostname="localhost">
+  <testsuite name="com.whip.app.ui.FreshProductivityUiTest" tests="1" failures="1" errors="0" skipped="0" time="6.037" timestamp="2026-09-30T02:04:27" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="goalLogAndResetRemainFullyReadableAtLargeText" classname="com.whip.app.ui.FreshProductivityUiTest" time="6.037">
+      <failure>java.lang.AssertionError: Log must not clip: size=109 x 91, constraints=Constraints(minWidth = 0, maxWidth = 146, minHeight = 0, maxHeight = Infinity), intrinsic=109.0, widthOverflow=true, heightOverflow=false, style=TextStyle(color=Color(0.9490196, 0.93333334, 0.9019608, 1.0, sRGB IEC61966-2.1), brush=null, alpha=1.0, fontSize=13.0.sp, fontWeight=FontWeight(weight=600), fontStyle=null, fontSynthesis=null, fontFamily=null, fontFeatureSettings=null, letterSpacing=Unspecified, baselineShift=null, textGeometricTransform=null, localeList=null, background=Color(0.0, 0.0, 0.0, 0.0, None), textDecoration=null, shadow=null, drawStyle=null, textAlign=Unspecified, textDirection=Unspecified, lineHeight=18.0.sp, textIndent=null, platformStyle=PlatformTextStyle(spanStyle=null, paragraphSyle=PlatformParagraphStyle(includeFontPadding=false, emojiSupportMatch=EmojiSupportMatch.Default)), lineHeightStyle=LineHeightStyle(alignment=LineHeightStyle.Alignment.Center, trim=LineHeightStyle.Trim.None,mode=LineHeightStyle.Mode.Fixed), lineBreak=LineBreak(strategy=Strategy.Unspecified, strictness=Strictness.Unspecified, wordBreak=WordBreak.Unspecified), hyphens=Hyphens.Unspecified, textMotion=null), density=androidx.compose.ui.node.LayoutModifierNodeCoordinator&#64;f1a933c
+at org.junit.Assert.fail(Assert.java:89)
+at org.junit.Assert.assertTrue(Assert.java:42)
+at org.junit.Assert.assertFalse(Assert.java:65)
+at com.whip.app.ui.FreshProductivityUiTest.goalLogAndResetRemainFullyReadableAtLargeText(FreshProductivityUiTest.kt:132)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>
