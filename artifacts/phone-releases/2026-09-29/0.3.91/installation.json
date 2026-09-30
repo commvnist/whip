@@ -1,0 +1,13 @@
+{
+  "model": "SM-F976W",
+  "package": "commvne.com.whip.app",
+  "versionName": "0.3.91",
+  "versionCode": 97,
+  "installedApkSha256": "d117083b90eaaa1bcf0a39879a8b46eec7ec58c8ca7651f171a72e7d00e7f3dc",
+  "appIdPreserved": true,
+  "firstInstallTimePreserved": true,
+  "coldLaunchMilliseconds": 131,
+  "foreground": true,
+  "processStartupErrors": 0,
+  "physicalInstrumentation": false
+}

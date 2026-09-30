@@ -1,0 +1,5 @@
+    appId=10995
+    versionCode=97 minSdk=26 targetSdk=37
+    versionName=0.3.91
+    lastUpdateTime=2026-09-29 22:28:25
+      firstInstallTime=2026-08-26 17:59:24

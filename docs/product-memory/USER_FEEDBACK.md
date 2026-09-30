@@ -1,5 +1,13 @@
 # User feedback and acceptance criteria
 
+### FB-20260929-019 — Release first, then extensive QA/UX/design and faster scoped verification
+
+- Date/source: 2026-09-29, owner explicitly requests first release to the phone and push to the remote, followed by extensive functional QA, UX and design acceptance and research into greater QA coverage with the fastest practical SDLC; known-scope changes should ideally verify in under one minute.
+- Acceptance: Deliver the current direct-execution source as a signed in-place phone update with exact artifact/identity/startup evidence and normal upstream push. Then inspect and execute complete main flows across components, ground and repair confirmed defects, include lifecycle/error/history/large-text/platform boundaries, and preserve exact failures/exclusions rather than claiming absolute bug freedom. Research primary sources and measure the current harness before adopting coverage/speed improvements; preserve correctness and fail closed on unknown scopes.
+- Scope: The release-first sequence is explicit. Full QA and a final stable readiness batch may exceed a minute; routine implementation checks stay bounded at55seconds. Owner subsequently authorizes three GPT-6.1 Sol/high agents with three disposable emulators for parallel QA. No Play publication or physical-phone instrumentation/data reset. A subsequent phone delivery of QA fixes is not yet requested.
+- Related: FB-20260929-017/018, IMP-20260929-023, VER-20260929-020, FND-20260929-034–043, existing testing-speed plan. Baseline `b8c6495e`.
+- Status: In progress. Release-first phone acceptance is completed under IMP-20260929-024 / VER-20260929-021; source was already pushed and release metadata receives normal upstream delivery. Extensive QA/remediation/research follows this release.
+
 ### FB-20260929-018 — Execute routine work directly without opening or expanding items
 
 - Date/source: 2026-09-29, owner requires Habits, Tasks, Goals and analogous workflows to be logged, checked off or checked in directly on their visible items; opening a Habit just to check in is inefficient UX.

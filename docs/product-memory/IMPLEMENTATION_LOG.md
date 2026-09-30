@@ -1,5 +1,12 @@
 # Implementation history
 
+### IMP-20260929-024 — Release direct execution to the owner phone before extensive QA
+
+- Related: FB-20260929-019, IMP-20260929-023, VER-20260929-021. Status: Released; subjective appearance awaits owner use.
+- Advance metadata to 0.3.91/code97 and deliver the current pushed direct-execution product as a signed in-place update on Samsung SM-F976W. All 555 accepted app/test/resource hashes from `b8c6495e` remain unchanged.
+- Existing protected signing, package identity, schema46/epoch6/backup26 and guarded physical installation remain authoritative. No physical instrumentation, data reset or Play publication. The first release precedes the extensive QA/remediation phase; later QA fixes are not automatically deployed.
+- [Exact release receipt](../../artifacts/phone-releases/2026-09-29/0.3.91/README.md). Normal upstream delivery is recorded by Git history.
+
 ### IMP-20260929-023 — Execute daily work directly on visible items
 
 - Related: FB-20260929-018, FND-20260929-043, DEC-20260929-005; [surface record](../quality/DIRECT_DAILY_EXECUTION_2026-09-29.md). Status: Implemented; 430 affected JVM and 18 exact native methods pass under VER-20260929-020, with nine inspected originals. Full readiness remains incomplete at the lint time cap. Git history records normal upstream delivery; no release.

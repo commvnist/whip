@@ -1,0 +1,20 @@
+{
+  "versionName": "0.3.91",
+  "versionCode": 97,
+  "productSource": "b8c6495e",
+  "artifacts": [
+    {
+      "kind": "apk",
+      "sha256": "d117083b90eaaa1bcf0a39879a8b46eec7ec58c8ca7651f171a72e7d00e7f3dc",
+      "bytes": 4342834,
+      "retained": "build/releases/Whip-0.3.91-code97-private.apk"
+    },
+    {
+      "kind": "aab",
+      "sha256": "a3bb486671d58ef3db46b7c2265518bb66cb9339bf92e994cd9acdc15b203efd",
+      "bytes": 11721796,
+      "retained": "build/releases/Whip-0.3.91-code97-private.aab"
+    }
+  ],
+  "sourceHashesUnchanged": 555
+}

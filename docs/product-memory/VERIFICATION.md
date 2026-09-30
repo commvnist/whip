@@ -1,5 +1,12 @@
 # Verification and release evidence
 
+### VER-20260929-021 — Signed 0.3.91 in-place phone acceptance
+
+- Related: FB-20260929-019, IMP-20260929-024; prior focused product acceptance VER-20260929-020. Status: Released, appearance awaiting user validation. [Artifact/signature/installation/launch receipt](../../artifacts/phone-releases/2026-09-29/0.3.91/README.md).
+- Product `b8c6495e` was already pushed; metadata is 0.3.91/code97. Fast affected checks pass in25s; signed offline `:app:assembleRelease :app:bundleRelease` passes in1m58s, including release-vital lint. All555 accepted app/test/resource hashes are unchanged. Signature/certificate, non-debuggable package/version and both ZIP integrity checks pass; AAB JAR verification passes with the ordinary private self-signed warning.
+- Installed APK SHA256 `d117083b90eaaa1bcf0a39879a8b46eec7ec58c8ca7651f171a72e7d00e7f3dc`; signed AAB SHA256 `a3bb486671d58ef3db46b7c2265518bb66cb9339bf92e994cd9acdc15b203efd`. Exact installed bytes match the signed APK; appId10995 and original first-install time are unchanged.
+- Cold `am start -W -S` reports131ms and correct resumed foreground. Process-only bounded startup inspection finds zero startup/crash signatures. No owner data read, physical instrumentation/reset, full suite, Play candidate or absolute bug-free claim. The full QA/UX/design phase starts after this release and normal upstream push.
+
 ### VER-20260929-020 — Direct execution focused acceptance and bounded readiness limitation
 
 - Related: FB-20260929-018, FND-20260929-043, DEC-20260929-005, IMP-20260929-023. Status: Implemented; declared focused behavioral scope passes, full required readiness remains incomplete at the lint time cap. [Exact commands/XML/attempts/originals](../../artifacts/direct-execution/2026-09-29/README.md).
