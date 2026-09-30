@@ -134,3 +134,24 @@ All nine new follow-up native journeys now have focused acceptance (four Gym, tw
 
 
 Full fresh native campaign started on explicit5554/5556/5558 after final affected readiness passed3m08s. No execution reuse; source and APK inputs frozen. Independent read-only lane review found no concrete regression or stale sibling caller in the finite Habit/Track changes. Current campaign acceptance is pending, separately from focused passes.
+
+
+### Second verified improvement batch landed
+
+The focused Habit/Track follow-up and nine native acceptance journeys are normally pushed as [1ad6aaad98fa4a3fc6337568814538b9512041bb](https://github.com/commvnist/whip/commit/1ad6aaad98fa4a3fc6337568814538b9512041bb); remote main matched exactly. Source/APK signatures remain frozen during the already-running full campaign; committing source metadata does not change its inputs. Only the pre-existing phone signature receipt modification remains unstaged.
+
+Exact-commit GitHub API reports zero Actions runs, zero check-runs and zero commit statuses. Combined pending with zero entries means no hosted CI recorded, not an active job or a failure. Local gate/native evidence is reported separately. The full fresh campaign accepted its graphics batch46/46 with zero failures/skips, then began three ordinary workers. Its complete1342-method acceptance is still pending.
+
+
+### First complete-inventory attempt rejected
+
+Fresh campaign8a57d8 accepted the46-method graphics batch with zero failures/skips, then found two DataPrivacyJourneyE2ETest failures: unscoped exact Unscheduled text matched three nodes while selecting the Task collection scope. Both privacy/backup methods failed before their final visible-record checks. The campaign was controlled-stopped by its verified dedicated process group; only disposable debug/test app fixture processes on5554/5556/5558 were stopped. Emulators/shared adb/owner phone remained untouched. Partial ordinary groups and preserved failure logs are not complete-inventory acceptance.
+
+The shared test helper now selects the exact label under the actual Popup owner for scope and layout menus, following existing Track journey gesture conventions. All final records/settings/theme/recreation assertions remain intact. Exact privacy replay and a replacement full fresh campaign are required; no passing result is inferred from the selector correction.
+
+
+### Replacement campaign current-source gate
+
+The corrected shared Popup gesture passes all8 DataPrivacyJourneyE2ETest methods fresh on5556 in3m45s, zero failures/skips/reuse (DTcVpZ); it preserves exact imported/local records, settings, cancelled reset and visible reopened tasks. The complete local gate passes in1m42s. Current-source fresh759 JVM methods/124 suites executed during final Track-owner readiness (after that source edit); their XML is archived in final-current-jvm-accepted. The full gate legitimately reuses those exact current-source results rather than claiming another execution. Coverage floors remain84.82%/65.39%/69.49%; required lint/build/static checks pass.
+
+Exactly one replacement full fresh1342-method campaign started after prior processes ended. Immutable inputs: app0672b8b8284f778a1fd0191c577f286537bd1693edf78adc470124029208e64a; testa2bdfdeaeb81e3e0b79dff67f2de96d2d5d794aff67ab40c355c12c1f3599a14; source manifesta321cbe041d5b02c4b2f4c25a1475508d8bc46462165177b20a76c8cbbe28ca4. Original failed campaign and targeted accepted replay remain separate logs. Full replacement acceptance remains pending.

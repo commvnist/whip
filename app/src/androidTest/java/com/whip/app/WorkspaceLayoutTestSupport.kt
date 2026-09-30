@@ -13,7 +13,7 @@ internal fun ComposeTestRule.selectTaskCollectionScope(label: String) {
     val scope = hasText("All Tasks ▾") or hasText("Unscheduled ▾") or hasText("Upcoming ▾") or hasText("Custom scope ▾")
     onNodeWithTag("task-workspace-list").performScrollToNode(scope)
     onNode(scope).performClick()
-    onNodeWithText(label, substring = false).performClick()
+    onNode(hasText(label, substring = false) and hasAnyAncestor(isPopup())).performClick()
     onNodeWithTag("task-destination-Tasks").assertIsSelected()
     onNodeWithText("$label ▾").assertIsDisplayed()
 }
@@ -34,7 +34,7 @@ internal fun ComposeTestRule.selectTaskPlanningLayout(label: String) {
     val chooser = hasText("List ▾") or hasText("Agenda ▾") or hasText("Calendar ▾")
     onNodeWithTag("task-workspace-list").performScrollToNode(chooser)
     onNode(chooser).performClick()
-    onNodeWithText(label).performClick()
+    onNode(hasText(label, substring = false) and hasAnyAncestor(isPopup())).performClick()
     onNodeWithText("$label ▾").assertIsDisplayed()
 }
 
