@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="0" errors="0" skipped="0" time="15.038" timestamp="2026-09-30T00:48:28" hostname="localhost">
+  <testsuite name="com.whip.app.DeepSharedJourneyTest" tests="1" failures="0" errors="0" skipped="0" time="13.953" timestamp="2026-09-30T00:48:28" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="denseHomeContinuationRemainsReachableAtLargeText" classname="com.whip.app.DeepSharedJourneyTest" time="13.953" />
+  </testsuite>
+</testsuites>

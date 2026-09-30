@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="0" errors="0" skipped="0" time="15.209" timestamp="2026-09-30T00:49:45" hostname="localhost">
+  <testsuite name="com.whip.app.AdaptiveWhipScreenTest" tests="1" failures="0" errors="0" skipped="0" time="13.61" timestamp="2026-09-30T00:49:45" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="expandedWorkspacesAlignChromeWithTheirDeclaredContentColumn" classname="com.whip.app.AdaptiveWhipScreenTest" time="13.61" />
+  </testsuite>
+</testsuites>

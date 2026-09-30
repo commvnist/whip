@@ -1,5 +1,13 @@
 # User feedback and acceptance criteria
 
+### FB-20260929-017 — Thorough component-by-component design, coherence and UX audit
+
+- Date/source: 2026-09-29, owner requests a full top-to-bottom design consistency, coherence and UX audit across all components and main user flows, emphasizing thoroughness. One GPT-6.1 Sol/high agent per component is allowed.
+- Acceptance: Independently inspect current source and available rendered evidence, cover discovery through creation, execution, correction, history, analysis and recovery, and assess shared visual/interaction rules across components. Deliver a prioritized evidence-backed report with detailed flow dispositions, concrete remedies, justified keeps and explicit verification gaps. Label older evidence and source-only conclusions accurately.
+- Scope: Audit/report only; no production remediation or phone release is requested. Component reviewers use GPT-6.1 Sol/high; coordinating parent reconciles cross-component findings and captures selected fresh emulator evidence.
+- Related: DEC-20260929-002/003/004, FB-20260929-016; baseline `6d79bd1f`.
+- Status: Verified audit delivery under IMP-20260929-022 / VER-20260929-019; [consolidated report](../quality/DESIGN_COHERENCE_UX_AUDIT_2026-09-29.md). 784 flow/state dispositions, 52 grounded findings (5 P1/40 P2/7 P3), eight fresh selected native passes and 36 inspected current original pairs. Findings FND-20260929-034–042 remain Confirmed/unfixed; no remediation/release is requested or claimed.
+
 ### FB-20260929-016 — Align Add Task between Tasks and Today and repair related design drift
 
 - Date/source: 2026-09-29, owner reports that Tasks and Today place the Add Task bar differently and requests this plus other discovered design inconsistencies be fixed, during the authorized phone release/repository delivery.

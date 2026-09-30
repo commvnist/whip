@@ -1,5 +1,85 @@
 # Durable findings
 
+### FND-20260929-034 — Directionless numeric Goal baselines can reverse attainment truth
+
+- Severity/category: P1, outcome correctness/coherence. Status: Confirmed; no remedy implemented.
+- Observed: Reduce target80 with blank Starting Value displays90 as112.5%/Target reached and70 as87.5%/unreached. Both directions reproduced on current debug90; explicit inverted baselines are source-proven variants. G2/G3/G4/G5 additionally cover physical versus logical date, hidden precision validation, frozen/current context and observation-based terminology.
+- Expected/impact: A reducing Goal must reward movement in its authored direction and never prompt closure on the wrong side of its target; dependent Home/Review/closure uses the same score.
+- Root cause/evidence: `GoalModels.calculateGoalProgress` substitutes zero without a valid interval-direction contract. [Goals report](../quality/coherence-audit-2026-09-29/goals.md), [fresh originals](../../artifacts/coherence-audit/2026-09-29/README.md).
+- Recommended: Explicit baseline/direction validation, honest fallback for existing invalid configurations and shared logical-date consumers; preserve valid >100% and frozen historical facts.
+- Related: FB-20260929-017, G1–G5, FND-20260929-041; baseline `6d79bd1f`.
+
+### FND-20260929-035 — Gym authoring and continuation contracts have remaining scope and receipt gaps
+
+- Severity/category: Two P1 and seven P2, authored-work preservation and UX. Status: Confirmed; no remedy implemented.
+- Observed: GYM-01 phase-local scheme/warm-up tools transform the whole placement; six phase rows can become only the first two Phase1 rows while viewing Phase2. GYM-02 Routine Save keeps inputs/exit active after capture and lacks recreated request-owned settlement. Both are current-source conclusions; delayed/process-loss variants were not executed.
+- Other findings: GYM-03 direct empty-workout Create saves only Library; GYM-04 loses Insights scope on source visit; GYM-05 submitted child drafts remain editable; GYM-06 presets relabel target units; GYM-07 shared text omits performed/planned truth; GYM-08 secondary draft dismiss protection incomplete; GYM-09 reuse picker silently caps at50.
+- Evidence: [86-disposition Gym report](../quality/coherence-audit-2026-09-29/gym.md). GYM-03 has fresh before/after/library originals. Fresh ordinary phased Library→Workout test passes; it proves reachable phases, not scheme preservation.
+- Expected/root cause: Local scope and submitted draft are authoritative; remaining callers bypass existing phase/receipt/input/context contracts.
+- Recommended: Scope/merge prescription transforms by selected phase; use existing save receipts and input blocking; atomic create-and-add; retained analysis/source return; honest share/preset/picker semantics.
+- Related: FB-20260929-017, GYM-01–09; baseline `6d79bd1f`.
+
+### FND-20260929-036 — Task draft, dated collection and completed evidence seams remain
+
+- Severity/category: Four P2 and one P3, capture/history/continuation. Status: Confirmed; no remedy implemented.
+- Observed: TASK-01 pending New Subtask text is omitted from dirty/save draft; fresh Cancel exits without review. TASK-02 today's Schedule-anchored recurring occurrence is omitted from dated collection views. TASK-03 Tomorrow selects today, freshly reproduced. TASK-04 completed definition edit clears its launching inspector. TASK-05 preserved historical named subtasks are unavailable to inspect.
+- Expected/impact: Visible input belongs to the draft, dated views contain eligible work, child editing preserves context and stored receipt facts remain readable.
+- Evidence/root cause: [60-disposition Task report](../quality/coherence-audit-2026-09-29/tasks.md) traces editor drafts, planning projection and completed inspector ownership; [fresh receipt](../../artifacts/coherence-audit/2026-09-29/README.md). Save omission and schedule variants are source-only here.
+- Recommended: Resolve pending raw text at parent Save; distinct complete dated occurrence projection; explicit tomorrow anchor; retain inspector owner and show saved historical checklist facts.
+- Related: FB-20260929-017, TASK-01–05; preserve DEC-20260929-002/003/004 collection/search/chrome decisions.
+
+### FND-20260929-037 — Habit ending, quick-action and eligibility views disagree
+
+- Severity/category: Three P2 and one P3, availability/evidence/action meaning. Status: Confirmed; no remedy implemented.
+- Observed: H1 threshold-ended Habit suppresses Today scheduling but cadence-only state/rates can generate false misses and Ready/Check In. H2 fixed-width numeric action clips a valid increment; fresh1000000000 displays only+100 at actual200%. H3 partially checked Checklist offers an impossible Skip. H4 today's manual-duration form says Log an Earlier Day.
+- Expected/root cause: Availability/denominators and eligibility should share domain cutoff/prerequisite owners; responsive actions must preserve the actual mutation amount.
+- Evidence: [64-disposition Habit report](../quality/coherence-audit-2026-09-29/habits.md); H2 normal/native200 originals in [receipt](../../artifacts/coherence-audit/2026-09-29/README.md). H1/H3/H4 source-only variants were not newly executed.
+- Recommended: Consistent ending cutoff retaining the reaching day, measured/short truthful action labels, shared Skip prerequisite and date-appropriate log title. Avoid recursive ending/outcome calculation.
+- Related: FB-20260929-017, H1–H4, FND-20260929-041 (distinct discrete-period accounting root), FND-20260929-042.
+
+### FND-20260929-038 — Track correction return and recovery language are inconsistent
+
+- Severity/category: Three P2 and one P3, continuation/recovery scope. Status: Confirmed; no remedy implemented.
+- Observed: TR-01 Entries/Activity correction closes its source inspector while Insights retains it; TR-02 existing Entry duplicate recovery calls the draft new; TR-03 oversized CSV export advises deleting source text/older Entries; TR-04 deletion preparation names retired integrations absent from current impact.
+- Evidence: [128-disposition Track report](../quality/coherence-audit-2026-09-29/tracks.md), current source. Fresh actual200% archived history/search/IME/recreation/Restore passes and seven originals are inspected; this does not execute the correction/recovery defects. Bespoke enlarged selection titles and long Scale endpoints remain unconfirmed layout probes.
+- Expected/root cause: Retain child-context ownership and state accurate correction/export/delete scope; size ceilings are format limits, not instructions to destroy source evidence.
+- Recommended: Reuse inspector continuation, mode-specific duplicate copy and existing portable-backup recovery route; preserve intentional allocation ceiling and retired feature boundary.
+- Related: FB-20260929-017, TR-01–04; baseline `6d79bd1f`.
+
+### FND-20260929-039 — Settings merge can misreport committed data and secondary context remains uneven
+
+- Severity/category: One P1, five P2, two P3; committed-data recovery/settings UX. Status: Confirmed; no remedy implemented.
+- Observed: SET-01 database merge commits, then index/default-Area/background repair can throw into Import Not Completed. P1 is source-proven; post-commit failure was not injected. SET-02 taxonomy dirty dismissal, SET-03 compact Area viewport loss, SET-04 compact category-index reset, SET-05 equal quiet endpoints show enabled/no effect, SET-06 unchecked immediate setting/Area follow-up persistence, SET-07 custom-unit archive guidance, SET-08 missing manager action search aliases.
+- Evidence: [76-disposition Settings report](../quality/coherence-audit-2026-09-29/settings.md). SET-04 freshly reproduced at actual200% About→Back; source traces distinguish previously fixed category-detail state and typed editor persistence.
+- Expected/root cause: Committed operation receipts must survive ancillary repair failure; list/draft/durable-setting contracts belong to retained host owners.
+- Recommended: Commit-aware import receipt plus repair warnings/targeted retry; existing dirty guards/saved list states/typed mutations; truthful zero-length quiet copy and bounded manager guidance/search aliases.
+- Related: FB-20260929-017, SET-01–08, FND-20260929-040; baseline `6d79bd1f`.
+
+### FND-20260929-040 — Shared Home intent and emoji Save & Use bypass existing contracts
+
+- Severity/category: Two P2, daily navigation and confirmed persistence. Status: Confirmed; no remedy implemented.
+- Observed: SH1 wide Home support's Tasks Today/Habit attention/Workout callbacks restore last root jobs unlike main Home's explicit Today/Workout. Tasks Calendar variant freshly reproduced. SH2 shared emoji Save & Use closes and changes entity value before an unchecked saved-library callback can confirm durability; failed/busy save has no retained local outcome.
+- Evidence: [56-disposition shared report](../quality/coherence-audit-2026-09-29/shared.md); wide originals, current picker/Settings persistence paths. SH2 disk failure/restart was not injected; dedicated Settings emoji manager already has the correct typed owner.
+- Recommended/root cause: Pass explicit daily intents at the support caller while keeping ordinary tab restoration; reuse existing confirmed custom-emoji receipt, retaining name/value on failure and independent Use Once.
+- Related: FB-20260929-017, SH1/SH2, FND-20260929-039 (same persistence owner, different callers), DEC-20260929-002/003/004.
+
+### FND-20260929-041 — Review exposes repeated period rewards and inconsistent retained evidence
+
+- Severity/category: One P1, four P2, one P3; outcome truth/analysis/recovery. Status: Confirmed; no remedy implemented.
+- Observed: RV-01 nonflex Daily+Week/Month targets emit repeated/backdated daily rewards from one attained period. `hasEnded(AfterCompletions)` consumes this count, so a finite Habit can end early; distinct from H1's post-ending expected-day issue. RV-02 archived finished Gym sessions disappear from Review. RV-03 current-period zero hides independent30-day correlations. RV-04 missing-source requests settle inconsistently. RV-05 empty Open Tasks routes Completed. RV-06 sole trend point is not painted.
+- Evidence/root cause: [102-disposition Review report](../quality/coherence-audit-2026-09-29/review.md) traces complete consumers and current sources. Fresh root only; no new targeted defect fixture executed. Entity-only original handoff is an existing justified contract, not an exact-event correctness defect.
+- Recommended: Correct discrete-period outcome owner/attainment date for all consumers, complete finished-session evidence and memo keys, independent comparison rendering, named settled absence and intent-aware empty recovery; draw the sole observation. Preserve rolling/day targets and neutral/flexible behavior.
+- Related: FB-20260929-017, RV-01–06; FND-20260929-034/037/035. Three additional explanatory/contextual Review improvements remain optional, excluded from grounded defect count.
+
+### FND-20260929-042 — Android surfaces lose timer provenance and compact measurement meaning
+
+- Severity/category: Nine P2, exact handoff/widget evidence/recovery. Status: Confirmed in source; no remedies implemented.
+- Observed: PLAT-01 visible out-of-Area timer Review cannot open its scoped inspector; PLAT-02 hide-completed can hide active/review timer; PLAT-03 Rest Open drops session/destination; PLAT-04 numeric widget formatter can show+0 for0.001 and omits target/unit/period meaning; PLAT-05 stopped duration repeats Start without saved evidence; PLAT-06 elapsed snapshot looks live; PLAT-07 extreme metadata lacks its promised semantic substitute; PLAT-08 overnight reminder Open loses logical date; PLAT-09 direct widget mutation errors are swallowed.
+- Evidence: [148-disposition platform report](../quality/coherence-audit-2026-09-29/platform.md). Current source plus explicitly dated widget corroboration; no fresh defect/launcher/TalkBack/notification tap campaign. Fresh sole-Area Widget Habit→Today method passes, not timer-exception coverage.
+- Expected/root cause: Exact source scope/date and actual mutation amount survive external entry; compact presentation and asynchronous outcomes share source semantics.
+- Recommended: Resolve entity/timer exception scope, retain unsettled timers, explicit session/date commands, shared compact amount/target summaries, honest live/snapshot elapsed, retained accessible metadata and generation-bound mutation recovery. Preserve stale-action guards, cached read-only safety and existing scheduling/idempotence.
+- Related: FB-20260929-017, PLAT-01–09, FND-20260929-037/040/041.
+
 ### FND-20260929-033 — Optional workspace content displaces primary capture and child context
 
 - Related: FB-20260929-016, DEC-20260929-004. Status: Verified under IMP-20260929-020 / VER-20260929-017 with exact normal/enlarged geometry, restored-state/defaults, bounded badges and fresh original inspection.

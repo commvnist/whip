@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260929-022 — Deliver the full component design, coherence and UX audit
+
+- Behavior changed: Documentation only. Eight independent GPT-6.1 Sol/high component reviewers plus parent shared-shell/Home review deliver 784 source flow/state dispositions and 52 grounded findings, prioritized by truth, authored work, recovery, continuation and presentation.
+- Important files: [Consolidated audit](../quality/DESIGN_COHERENCE_UX_AUDIT_2026-09-29.md), nine detailed component reports, [fresh evidence receipt/originals](../../artifacts/coherence-audit/2026-09-29/README.md), FND-20260929-034–042.
+- Persistence/migration/history impact: No application/test/resource/schema/build changes; schema46/epoch6/backup26, staged0.3.90 and installed0.3.89 remain as previously recorded.
+- Compatibility/limitations: Proposed remedies are not implemented. Source-proven variants, dated originals, fresh execution/manual evidence, justified keeps, absent capabilities and remaining accessibility/OEM/lifecycle/short-IME probes are separate. Three Review improvements are optional, excluded from defect count.
+- Related/verification: FB-20260929-017, VER-20260929-019. Status: Verified within audit scope; Git history records this documentation chunk and normal upstream delivery.
+
 ### IMP-20260929-021 — Prepare the workspace consistency correction for the phone
 
 - Related: FB-20260929-015/016, IMP-20260929-020, DEC-20260906-003; product verification VER-20260929-017.

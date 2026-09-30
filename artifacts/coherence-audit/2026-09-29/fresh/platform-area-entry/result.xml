@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="0" errors="0" skipped="0" time="7.317" timestamp="2026-09-30T01:10:56" hostname="localhost">
+  <testsuite name="com.whip.app.PlatformEntrySurfaceE2ETest" tests="1" failures="0" errors="0" skipped="0" time="6.251" timestamp="2026-09-30T01:10:56" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="widgetDoesNotShowATemporaryBannerForTheOnlyVisibleArea" classname="com.whip.app.PlatformEntrySurfaceE2ETest" time="6.251" />
+  </testsuite>
+</testsuites>

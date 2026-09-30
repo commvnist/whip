@@ -1,5 +1,14 @@
 # Verification and release evidence
 
+### VER-20260929-019 — Current component audit source, original and bounded native evidence
+
+- Scope/environment: Baseline `6d79bd1f`, debug0.3.90/code96, two disposable API34 emulators; eight Sol/high component reviewers and parent. [Exact command/selector/result/gallery receipt](../../artifacts/coherence-audit/2026-09-29/README.md).
+- Commands: Eight single-method `timeout --kill-after=3s 55s env ANDROID_SERIAL=… scripts/android-test-engine --mode targeted --class … --evidence-dir …` invocations: productivity roots, supporting roots, dense native200 Home, expanded geometry, shared Add/Search/Review, phased Gym Library→Workout, native200 archived Track history/search/IME/recreation/Restore, sole-Area widget Habit→Today.
+- Result/counts: Eight distinct methods/eight passes, zero failures/errors/skips/reuse/timeouts. XML durations 7.317–43.090s; longest complete wrapper 49s. Seven separate manual defect journeys reproduce TASK-01/03, G1, H2, GYM-03, SET-04, SH1; first-run recommended setup is a keep. 36 fresh PNG/XML pairs personally inspected; PNG pixels preserved, exported XML line endings normalized to LF. Historical originals identified separately.
+- Artifact: Debug APK SHA256 `7c38c71ddc77385f2c2bf33af333b9396dca9dc91e893c3113dfe5cbb496dcae`. No signed release/install; no owner data used. Manual size/font settings restored.
+- Exclusions/residuals: No full JVM/native suite, lint/candidate/phone/fold/complete TalkBack campaign.52 findings remain unfixed, five P1 visible in INDEX. Controlled failure/process-loss/OEM/locale/maximal short-IME acceptance remains as explicitly listed; source test declarations are not extra passes.
+- Related: FB-20260929-017, IMP-20260929-022, FND-20260929-034–042. Status: Verified for the declared audit/native/manual scope; documentation validation recorded in the receipt. Git history records normal upstream delivery without recursive hash bookkeeping.
+
 ### VER-20260929-018 — Signed 0.3.90 staged while owner-phone connectivity is unavailable
 
 - Related: FB-20260929-015/016, IMP-20260929-021; product acceptance VER-20260929-017. Status: Signed artifacts Verified; phone installation/startup pending. [Exact staged receipt](../../artifacts/phone-releases/2026-09-29/0.3.90/README.md).

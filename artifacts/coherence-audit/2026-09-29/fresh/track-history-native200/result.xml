@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="0" errors="0" skipped="0" time="43.09" timestamp="2026-09-30T01:10:10" hostname="localhost">
+  <testsuite name="com.whip.app.TrackHistoryJourneyE2ETest" tests="1" failures="0" errors="0" skipped="0" time="41.89" timestamp="2026-09-30T01:10:10" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="archivedHistoryCanBeSearchedRecreatedAndRestoredAtLargeText" classname="com.whip.app.TrackHistoryJourneyE2ETest" time="41.89" />
+  </testsuite>
+</testsuites>
