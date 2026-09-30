@@ -80,16 +80,20 @@ class DirectDailyExecutionJourneyTest {
             habit to goal
         }
         launchMainActivity(Intent(app, MainActivity::class.java)).use {
-            compose.onNodeWithContentDescription("Complete checklist item Prepare tomorrow").performScrollTo().performClick()
+            await { compose.onAllNodesWithTag("home-list").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("home-list").performScrollToNode(hasContentDescription("Complete checklist item Prepare tomorrow"))
+            compose.onNodeWithContentDescription("Complete checklist item Prepare tomorrow").performClick()
             await { runBlocking { app.habitRepository.logs.first().any { it.habitId == ids.first } } }
             assertNoInspector()
-            compose.onNodeWithContentDescription("Log progress for Practice total").performScrollTo().performClick()
+            compose.onNodeWithTag("home-list").performScrollToNode(hasContentDescription("Log progress for Practice total"))
+            compose.onNodeWithContentDescription("Log progress for Practice total").performClick()
             compose.onNodeWithTag("goal-measurement-value").performTextReplacement("4")
             closeSoftKeyboard()
             compose.onNodeWithTag("goal-measurement-save").performClick()
             await { runBlocking { app.goalRepository.measurementEntries.first().any { it.canonicalValue == 4.0 } } }
             await { compose.onAllNodesWithTag("goal-measurement-value").fetchSemanticsNodes().isEmpty() }
-            compose.onNodeWithTag("goal-card-complete-${ids.second}").performScrollTo().performClick()
+            compose.onNodeWithTag("home-list").performScrollToNode(hasTestTag("goal-card-complete-${ids.second}"))
+            compose.onNodeWithTag("goal-card-complete-${ids.second}").performClick()
             assertNoInspector()
             captureVisualCatalogSurface("direct.home.goal-completion")
             compose.onNodeWithTag("goal-completion-confirm").performClick()

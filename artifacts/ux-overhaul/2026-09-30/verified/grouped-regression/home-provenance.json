@@ -1,0 +1,29 @@
+{
+  "serial": "emulator-5554",
+  "run": "yxXQyZ",
+  "run_start_epoch": 1790759429,
+  "device_png_modified_epoch": 1790759463,
+  "app_sha256": "0672b8b8284f778a1fd0191c577f286537bd1693edf78adc470124029208e64a",
+  "test_sha256": "81eb49007f2628302e829e41b0d42e693a42ef8a47f50a9bd0ecb4e61ffa69ba",
+  "passed": 3,
+  "failed": 0,
+  "skipped": 0,
+  "reused": 0,
+  "native_gradle_seconds": 54,
+  "files": [
+    {
+      "source": "build/qa-overhaul/2026-09-30/home-lazy-gesture-capture/direct.home.goal-completion.png",
+      "copy": "artifacts/ux-overhaul/2026-09-30/verified/grouped-regression/direct.home.goal-completion.png",
+      "source_sha256": "4ef22f720b688dcc707c6812587af567189c7052603e5fdaa679e45a20aa710f",
+      "copy_sha256": "4ef22f720b688dcc707c6812587af567189c7052603e5fdaa679e45a20aa710f",
+      "transform": "none"
+    },
+    {
+      "source": "build/qa-overhaul/2026-09-30/home-lazy-gesture-capture/direct.home.goal-completion.xml",
+      "copy": "artifacts/ux-overhaul/2026-09-30/verified/grouped-regression/direct.home.goal-completion.xml",
+      "source_sha256": "3cf21c82a8c9a98f6b52654d942df3b460ac95ecb1100821b8007ce1e998cab8",
+      "copy_sha256": "6ab04cb0debde61d329767eaaa0cccc03aeec43b548c80209d76eec8d30f5268",
+      "transform": "CRLF to LF only"
+    }
+  ]
+}

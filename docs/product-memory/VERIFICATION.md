@@ -9,6 +9,8 @@
 
 - Complete-inventory attempts remain unaccepted: first rejected two unscoped Popup selections (fresh full Privacy replay8/8); second completed298 methods with seven native fixture/gesture failures. Exact shared menu fix pushed as [dcbfee6c](https://github.com/commvnist/whip/commit/dcbfee6cc2e3889fb1b1d59cf3df86c6186a62b6). All eight follow-up fixture replays now pass on the three assigned serials with original business/geometry assertions intact; lint and affected readiness pass. One third frozen full fresh1342-method campaign is running. See latest matrix for distinct accepted/failed/partial evidence; no full-suite or release claim.
 
+- Third full attempt r5Kv0E accepted 216 methods and completed another 82 with one Home lazy-child gesture failure; complete inventory remains rejected. Original XML retained, dedicated process group controlled-stopped. Actual Home list now materializes each direct action before tapping; the complete DirectDailyExecution class passes 3/3 fresh in 54 seconds, preserving no-inspector/log/frozen 0.4 outcome assertions. Production APK is unchanged; final affected readiness passes in 1m04s. One fourth frozen full fresh campaign KqdBtz is running; complete-inventory acceptance remains pending.
+
 
 ### VER-20260929-021 — Signed 0.3.91 in-place phone acceptance
 
