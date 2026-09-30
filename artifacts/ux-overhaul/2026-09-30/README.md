@@ -37,3 +37,5 @@ Repository XML copies use LF line endings; device metadata/content and original 
 
 
 [Canonical creation baseline/repaired native proof](verified/canonical-creation/README.md) and [full canonical page catalog10/10](verified/catalog-canonical/README.md) preserve the bounded follow-up repairs and current cross-tab geometry evidence. The clear-review capture limit is explicitly recorded.
+
+[Complete frozen native inventory and original six failures](verified/final-regression/README.md):1343 unique executed,1337 passing,6 failing,0 skipped/not-run/duplicates. Focused fixture repairs remain pending.

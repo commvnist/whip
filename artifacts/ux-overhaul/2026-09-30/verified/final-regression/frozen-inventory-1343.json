@@ -1,0 +1,238 @@
+{
+  "observedUtc": "2026-09-30T14:12:27.194012+00:00",
+  "sourceCommit": "b937d9ca7a0b8092a884988cdcb99d367ce7d1f6",
+  "productionApkSha256": "9a210929c30d1fd09970b2e62d8430219f659012a5e2645e0daf8cff7d2fae02",
+  "testApkSha256": "a5fa92175b042b9c8306a240635b7881d8e436b398862fd992dbb95cbda96cbc",
+  "originalCampaign": "UYOVBs",
+  "continuation": "Only untouched groups11/14/16/17/18/19 via unchanged targeted engine; reset19last. Original attempt remains rejected.",
+  "executed": 1343,
+  "passed": 1337,
+  "failed": 6,
+  "skipped": 0,
+  "notRun": 0,
+  "duplicateMethods": 0,
+  "groups": [
+    {
+      "originalBatch": 1,
+      "xmlPath": "build/instrumentation-results-UYOVBs/batch-1/result-1.xml",
+      "xmlSha256": "dd7552ef07dc9e1fa94a55b13468211ed237b64746636bc9d4981a241dbfcbee",
+      "tests": 46,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "114.975"
+    },
+    {
+      "originalBatch": 2,
+      "xmlPath": "build/instrumentation-results-UYOVBs/batch-2/result-1.xml",
+      "xmlSha256": "be3e921c08124777b32ab62c40a5282a205e0021220f5f1a87081a9f27d46316",
+      "tests": 124,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "1248.708"
+    },
+    {
+      "originalBatch": 3,
+      "xmlPath": "build/instrumentation-results-UYOVBs/batch-3/result-1.xml",
+      "xmlSha256": "d4ee4558a6d7f5a675eac50006a8e89ace5c4a766297dc324ff8364e89ac9300",
+      "tests": 82,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "1289.745"
+    },
+    {
+      "originalBatch": 4,
+      "xmlPath": "build/instrumentation-results-UYOVBs/batch-4/result-1.xml",
+      "xmlSha256": "a9416897fc7c4ee1edf98ca8b80ff6e9c91c0b662dfb2b2f383dfe8184f2a4b1",
+      "tests": 46,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "927.261"
+    },
+    {
+      "originalBatch": 5,
+      "xmlPath": "build/instrumentation-results-UYOVBs/batch-5/result-1.xml",
+      "xmlSha256": "f49769576447a558f7daebcfe7d77d01f900bb4799157153d5d2e02493be9423",
+      "tests": 159,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "2132.992"
+    },
+    {
+      "originalBatch": 6,
+      "xmlPath": "build/instrumentation-results-UYOVBs/batch-6/result-1.xml",
+      "xmlSha256": "2cb97690d2bfc084b08037d0df16c5b8e4063c8c472c03e0f89a5d3a2c1537d4",
+      "tests": 80,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "640.375"
+    },
+    {
+      "originalBatch": 7,
+      "xmlPath": "build/instrumentation-results-UYOVBs/batch-7/result-1.xml",
+      "xmlSha256": "97e09fd22f7ad91dfab30f4b52ce9720b6debf73e2dfa7e0e5ec8480d3a7d331",
+      "tests": 99,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "748.135"
+    },
+    {
+      "originalBatch": 8,
+      "xmlPath": "build/instrumentation-results-UYOVBs/batch-8/result-1.xml",
+      "xmlSha256": "95b4ced47f1ccb3763550869316ee809a3b77aa7e48548db992e4ddf0e2aa3ef",
+      "tests": 33,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "650.381"
+    },
+    {
+      "originalBatch": 9,
+      "xmlPath": "build/instrumentation-results-UYOVBs/batch-9/result-1.xml",
+      "xmlSha256": "bb45babf246ff47b722569b3c6405bda16662ee4bc3555021b380d8ae8f4dd50",
+      "tests": 125,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "1389.085"
+    },
+    {
+      "originalBatch": 10,
+      "xmlPath": "build/instrumentation-results-UYOVBs/batch-10/result-1.xml",
+      "xmlSha256": "dfd99a5fad730827d39417f96a9653fb00d9d4c35054d94b30f8d6935cf16b5e",
+      "tests": 63,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "1152.792"
+    },
+    {
+      "originalBatch": 11,
+      "xmlPath": "/root/repos/whip/build/instrumentation-results-ln7XPg/batch-1/result-1.xml",
+      "xmlSha256": "a08a03bcf2897cc6a14acdaad5898fc5a5849327626faeb366290431f58eff3b",
+      "tests": 113,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "1165.614"
+    },
+    {
+      "originalBatch": 12,
+      "xmlPath": "build/instrumentation-results-UYOVBs/batch-12/result-1.xml",
+      "xmlSha256": "f3247e15aef29a9cb5d4d48c1305ae60e134bb3b3f313ece3c08abdde9d1df38",
+      "tests": 48,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "1251.701"
+    },
+    {
+      "originalBatch": 13,
+      "xmlPath": "build/instrumentation-results-UYOVBs/batch-13/result-1.xml",
+      "xmlSha256": "3553dc2744553ecfd8abf99d8f307478a5b1f938240cac6df25ad2d2eb79d4a4",
+      "tests": 44,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "1084.534"
+    },
+    {
+      "originalBatch": 14,
+      "xmlPath": "/root/repos/whip/build/instrumentation-results-IsmekK/batch-1/result-1.xml",
+      "xmlSha256": "9c264022785252ea8540a509a03082d7dfd1afa34b6bd7b81647e13f4f7f6fee",
+      "tests": 50,
+      "failures": 3,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "201.555"
+    },
+    {
+      "originalBatch": 15,
+      "xmlPath": "build/instrumentation-results-UYOVBs/batch-15/result-1.xml",
+      "xmlSha256": "447ce0eadd9d9d0f43a5bcd76d01337a3b0a3759d99fd7697e21a15619f3b44b",
+      "tests": 93,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "625.87"
+    },
+    {
+      "originalBatch": 16,
+      "xmlPath": "/root/repos/whip/build/instrumentation-results-q1Vmg9/batch-1/result-1.xml",
+      "xmlSha256": "ef0d11b235bcf9487939218e1902d44b1e4dff684585c87010c451ee7fa49257",
+      "tests": 67,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "748.273"
+    },
+    {
+      "originalBatch": 17,
+      "xmlPath": "/root/repos/whip/build/instrumentation-results-XMJ8ZH/batch-1/result-1.xml",
+      "xmlSha256": "8504a5398a5dbc6d4ded70603465b7343098a0bd163c1e64fcddbbe871e4cd46",
+      "tests": 58,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "176.738"
+    },
+    {
+      "originalBatch": 18,
+      "xmlPath": "/root/repos/whip/build/instrumentation-results-gCip02/batch-1/result-1.xml",
+      "xmlSha256": "d9eef6cdc6a5280dc8d4984cc6db7e47730ba6d30005bc13ba985c065a933c77",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "156.22"
+    },
+    {
+      "originalBatch": 19,
+      "xmlPath": "/root/repos/whip/build/instrumentation-results-5ojQXR/batch-1/result-1.xml",
+      "xmlSha256": "e02fea0bd258e18084a370cc152a3c8d74c700584b2e9f4a667ab9ec2ac49e0d",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "1.166"
+    }
+  ],
+  "failures": [
+    {
+      "originalBatch": 8,
+      "method": "com.whip.app.ProductivityCreationJourneyE2ETest#taskHabitAndGoalCanBeCreatedAndUsedThroughTheRealUi",
+      "stack": "java.lang.AssertionError: Failed to inject touch input.\nReason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'habit-done-disclosure')\nHowever, the unmerged tree contains '1' node that matches. Are you missing `useUnmergedNode = true` in your finder?\n\nat androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)\nat androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)\nat androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)\nat androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:403)\nat androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)\nat androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:61)\nat com.whip.app.ProductivityCreationJourneyE2ETest.taskHabitAndGoalCanBeCreatedAndUsedThroughTheRealUi(ProductivityCreationJourneyE2ETest.kt:150)\n"
+    },
+    {
+      "originalBatch": 13,
+      "method": "com.whip.app.VisualCatalogPagesTest#captureTrackPageCatalog",
+      "stack": "java.lang.AssertionError: No node found that matches Text + InputText + EditableText contains 'Plan the week' (ignoreCase: false) in scrollable container\nSemantics of the node:\nNode #14799 at (l=0.0, t=300.0, r=1080.0, b=2169.0)px, Tag: 'home-list'\nCollectionInfo = 'CollectionInfo(rowCount=14, columnCount=1)'\nIsTraversalGroup = 'true'\nShape = 'androidx.compose.foundation.VerticalScrollableClipShape@a1dd498'\nVerticalScrollAxisRange = 'ScrollAxisRange(value=3066.0, maxValue=3066.0, reverseScrolling=false)'\nActions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]\nHas 8 children, 2 siblings\nSelector used: (TestTag = 'home-list')\n\nat androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:258)\nat com.whip.app.VisualCatalogPagesTest.waitForHome(VisualCatalogPagesTest.kt:671)\nat com.whip.app.VisualCatalogPagesTest.captureTrackPageCatalog(VisualCatalogPagesTest.kt:198)\n"
+    },
+    {
+      "originalBatch": 14,
+      "method": "com.whip.app.WhipComposeSemanticsTest#globalAddAndHabitEditorAreReachableThroughComposeSemantics",
+      "stack": "java.lang.AssertionError: Assert failed: The component with Text + InputText + EditableText contains 'Future tasks' (ignoreCase: false) as substring is not displayed!\nat androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)\nat com.whip.app.WhipComposeSemanticsTest.globalAddAndHabitEditorAreReachableThroughComposeSemantics(WhipComposeSemanticsTest.kt:89)\n"
+    },
+    {
+      "originalBatch": 14,
+      "method": "com.whip.app.WhipNavigationTest#primaryAreasAndAccessibleTopActionsAreReachable",
+      "stack": "java.lang.AssertionError: Failed to assert count of nodes.\nReason: Expected exactly '1' node but found '2' nodes that satisfy: (Text + InputText + EditableText contains 'Review & Trends' (ignoreCase: false))\nNodes found:\n1) Node #10613 at (l=711.0, t=425.0, r=1027.0, b=551.0)px\nFocused = 'false'\nRole = 'Button'\nShape = 'RoundedCornerShape(topStart = CornerSize(size = 6.0.dp), topEnd = CornerSize(size = 6.0.dp), bottomEnd = CornerSize(size = 6.0.dp), bottomStart = CornerSize(size = 6.0.dp))'\nText = '[Review & Trends]'\nActions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]\nMergeDescendants = 'true'\nHas 6 siblings\n2) Node #10750 at (l=53.0, t=2499.0, r=1027.0, b=2723.0)px, Tag: 'home-destination-review'\nContentDescription = '[Open Review & Trends]'\nFocused = 'false'\nIsContainer = 'true'\nShape = 'RoundedCornerShape(topStart = CornerSize(size = 8.0.dp), topEnd = CornerSize(size = 8.0.dp), bottomEnd = CornerSize(size = 8.0.dp), bottomStart = CornerSize(size = 8.0.dp))'\nText = '[Review & Trends, Reflect on completed work and spot patterns as your history grows.]'\nActions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]\nMergeDescendants = 'true'\nHas 4 siblings\n\nat androidx.compose.ui.test.AssertionsKt.assertCountEquals(Assertions.kt:311)\nat com.whip.app.WhipNavigationTest.primaryAreasAndAccessibleTopActionsAreReachable(WhipNavigationTest.kt:112)\n"
+    },
+    {
+      "originalBatch": 14,
+      "method": "com.whip.app.WhipNavigationTest#everyFirstClassDestinationIsReachableThroughVisibleNavigation",
+      "stack": "java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'Completed tasks' (ignoreCase: false) as substring)\nSemantics of the node:\nNode #11164 at (l=53.0, t=524.0, r=754.0, b=567.0)px, Tag: 'workspace-context-summary'\nText = '[0 completed tasks]'\n[Heading]\nActions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]\nHas 2 siblings\nSelector used: (TestTag = 'workspace-context-summary')\n\nat androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)\nat androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)\nat androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)\nat androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)\nat com.whip.app.WhipNavigationTest.everyFirstClassDestinationIsReachableThroughVisibleNavigation(WhipNavigationTest.kt:232)\n"
+    },
+    {
+      "originalBatch": 15,
+      "method": "com.whip.app.ui.GoalSecondaryMutationUiTest#unitChangesPreserveTargetsAndPartialDrafts",
+      "stack": "java.lang.IllegalArgumentException: Required value was null.\nat com.whip.app.ui.GoalSecondaryMutationUiTest.unitChangesPreserveTargetsAndPartialDrafts$lambda$1(GoalSecondaryMutationUiTest.kt:113)\nat com.whip.app.ui.GoalSecondaryMutationUiTest$$ExternalSyntheticLambda87.invoke(D8$$SyntheticClass:0)\nat androidx.compose.ui.test.AndroidSynchronization_androidKt.runOnUiThread$lambda$0(AndroidSynchronization.android.kt:39)\nat androidx.compose.ui.test.AndroidSynchronization_androidKt$$ExternalSyntheticLambda0.call(D8$$SyntheticClass:0)\nat java.util.concurrent.FutureTask.run(FutureTask.java:264)\nat java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:487)\nat java.util.concurrent.FutureTask.run(FutureTask.java:264)\nat android.app.Instrumentation$SyncRunnable.run(Instrumentation.java:2420)\nat android.os.Handler.handleCallback(Handler.java:958)\nat android.os.Handler.dispatchMessage(Handler.java:99)\nat android.os.Looper.loopOnce(Looper.java:205)\nat android.os.Looper.loop(Looper.java:294)\nat android.app.ActivityThread.main(ActivityThread.java:8177)\nat java.lang.reflect.Method.invoke(Native Method)\nat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:552)\nat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:971)\nSuppressed: java.util.concurrent.ExecutionException: An Exception occurred on the UI thread during runOnUiThread()\nat androidx.compose.ui.test.AndroidSynchronization_androidKt.runOnUiThread(AndroidSynchronization.android.kt:50)\nat androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.runOnUiThread(ComposeUiTest.android.kt:844)\nat androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.runOnIdle(ComposeUiTest.android.kt:851)\nat androidx.compose.ui.test.junit4.AndroidComposeTestRule.runOnIdle(AndroidComposeTestRule.android.kt:489)\nat com.whip.app.ui.GoalSecondaryMutationUiTest.unitChangesPreserveTargetsAndPartialDrafts(GoalSecondaryMutationUiTest.kt:112)\nat java.lang.reflect.Method.invoke(Native Method)\nat org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)\nat org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)\nat org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)\nat org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)\nat androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$testWithDisposal$1.evaluate(AndroidComposeTestRule.android.kt:426)\nat org.junit.rules.ExternalResource$1.evaluate(ExternalResource.java:54)\nat androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invokeSuspend(AndroidComposeTestRule.android.kt:448)\nat androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invoke(Unknown Source:8)\nat androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1$evaluate$1.invoke(Unknown Source:4)\nat androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1.invokeSuspend(ComposeUiTest.android.kt:689)\nat androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1.invoke(Unknown Source:8)\nat androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1$1$1$1.invoke(Unknown Source:2)\nat androidx.compose.ui.test.EspressoLink.withStrategy(EspressoLink.android.kt:69)\nat androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1.invokeSuspend(ComposeUiTest.android.kt:686)\nat androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1.invoke(Unknown Source:8)\nat androidx.compose.ui.test.AndroidComposeUiTestEnvironment$runTest$1$1.invoke(Unknown Source:4)\nat kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$1.invokeSuspend(TestBuilders.kt:318)\nat kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)\nat kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)\nat kotlinx.coroutines.test.TestDispatcher.processEvent$kotlinx_coroutines_test(TestDispatcher.kt:24)\nat kotlinx.coroutines.test.TestCoroutineScheduler.tryRunNextTaskUnless$kotlinx_coroutines_test(TestCoroutineScheduler.kt:99)\nat kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$workRunner$1.invokeSuspend(TestBuilders.kt:327)\nat kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)\nat kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)\nat kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)\nat kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)\nat kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)\nat kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source:1)\nat kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:47)\nat kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source:1)\nat kotlinx.coroutines.test.TestBuildersJvmKt.createTestResult(TestBuildersJvm.kt:10)\nat kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:310)\nat kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(Unknown Source:1)\nat kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:168)\nat kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(Unknown Source:1)\nat androidx.compose.ui.test.AndroidComposeUiTestEnvironment.runTest(ComposeUiTest.android.kt:665)\nat androidx.compose.ui.test.junit4.AndroidComposeTestRule$apply$1.evaluate(AndroidComposeTestRule.android.kt:447)\nat com.whip.app.AndroidFontScaleRule$apply$1.evaluate(AndroidFontScaleRule.kt:61)\nat org.junit.rules.RunRules.evaluate(RunRules.java:20)\nat org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)\nat org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)\nat org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)\nat org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)\nat org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)\nat org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)\nat org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)\nat org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)\nat org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)\nat org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)\nat org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)\nat org.junit.runners.ParentRunner.run(ParentRunner.java:413)\nat androidx.test.ext.junit.runners.AndroidJUnit4.run(AndroidJUnit4.java:162)\nat org.junit.runners.Suite.runChild(Suite.java:128)\nat org.junit.runners.Suite.runChild(Suite.java:27)\nat org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)\nat org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)\nat org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)\nat org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)\nat org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)\nat org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)\nat org.junit.runners.ParentRunner.run(ParentRunner.java:413)\nat org.junit.runner.JUnitCore.run(JUnitCore.java:137)\nat org.junit.runner.JUnitCore.run(JUnitCore.java:115)\nat androidx.test.internal.runner.TestExecutor.execute(TestExecutor.java:68)\nat androidx.test.internal.runner.TestExecutor.execute(TestExecutor.java:59)\nat androidx.test.runner.AndroidJUnitRunner.onStart(AndroidJUnitRunner.java:467)\nat android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2402)\n"
+    }
+  ]
+}
