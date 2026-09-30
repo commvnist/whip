@@ -2,6 +2,27 @@
 
 Status: implementation and native acceptance in progress. This is the resumed work, not a release receipt or a claim that all twelve acceptance categories passed.
 
+## Latest regression checkpoint
+
+The second complete-inventory attempt, vPxC4e, is rejected: completed batches contain 298 methods, 291 passing and seven failing, with zero skips. Only its first two batches were accepted (46 + 124 = 170); a later partially executed batch is incomplete. Original XML and logs remain under build/instrumentation-results-vPxC4e and full-fresh-android-replacement.log. Its verified dedicated campaign process group was stopped before fixture edits; emulator processes, shared adb and the owner phone were untouched.
+
+The seven failures traced to native gesture/fixture assumptions, not waived domain assertions: three card-center taps hit nested actions instead of opening details; a Task selector matched both inspector and background card; the current-date Calendar cell was lazy and in the preceding month on September 30; two strict clipping fixtures depended on incidental content height. Five test files now address those exact causes. Original identity, save/history, neighbor preservation, completion-once, Task-open, recreation, accessibility-role and strict clipping assertions remain intact.
+
+Fresh native replays from one immutable pair pass **8/8**: integration 2/2 in109.394s on5554; routines 2/2 in66.01s on5556; goals/habits 4/4 in148.108s on5558. All three lanes inspected original captures. Root Calendar/Task [selected originals](../../artifacts/ux-overhaul/2026-09-30/verified/grouped-regression/README.md) retain original PNG bytes and equivalent XML. The Home completion snackbar overlaps the Gym heading in its capture; heading semantics/click assertions pass, but that image alone is not visual heading proof.
+
+App SHA256: 0672b8b8284f778a1fd0191c577f286537bd1693edf78adc470124029208e64a (unchanged production). Test SHA256: 89fdca06ebfe66507172c791349b98d628fc9713d12887d8a32974d48020b32f. Source manifest: 0d18f34b52db06eead93637c2ffb2f9ce0e3fe4e9239802fdbb3e51340da981f. Final fixture lint passes1m32s; affected scripts/check --ready passes. Current-source759 JVM acceptance and full required local build/coverage gates remain valid; no new JVM execution is claimed for test-only changes.
+
+Exactly one third fresh1342-method campaign is active on5554/5556/5558, run directory r5Kv0E and full-fresh-android-third.log. Production/tests/build scripts/APKs are frozen during execution. Complete-inventory acceptance remains pending.
+
+| Acceptance categories | Verified current scope | Remaining |
+| --- | --- | --- |
+| 1-3. Layout, style and reuse | Native cross-tab/normal/wide/200% geometry; shared chrome/empty states, existing receipt and summary owners; originals inspected | Complete native regression |
+| 4-6. Actions, navigation and retained state | Owned save/cancel/Back, phase-local editing, parent scroll returns, Track foreground and strict filter/selection recreation | Complete native regression |
+| 7-8. Validation and state feedback | Failure/draft protection, committed import warning, stale/retry distinction, settled unavailable and completion states | Complete native regression |
+| 9. Accessibility/input | Focused normal/200%/IME, exact 4dp and half-clipped fixtures, named actions/roles and preserved keyboard bounds | Complete native regression; no TalkBack speech/OEM certification |
+| 10. Data correctness | Fresh759 JVM with coverage floors; focused finite periods, goal direction, routine save/phase, import and neighbor preservation | Complete native regression |
+| 11-12. Native evidence and delivery | Three actual devices; all eight failed-journey replays pass; preserved originals and prior failures; three verified pushes | Full1342 accounting, final disposition/commit/remote/CI receipt |
+
 ## Execution and preservation
 
 The Windows parent invokes the existing Arch WSL distribution (`wsl.exe -d archlinux --exec`). Source, Gradle and Android tools execute in Arch on beast at `/root/repos/whip`. Branch `main`, starting commit `0030c226507a0f7a8e5222da71e7c52dd38b6e58`; established remote `https://github.com/commvnist/whip.git` was verified at that commit. All 35 initial tracked modifications and the paused QA handoff were preserved and integrated.

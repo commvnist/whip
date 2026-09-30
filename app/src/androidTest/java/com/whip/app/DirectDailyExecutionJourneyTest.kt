@@ -116,7 +116,12 @@ class DirectDailyExecutionJourneyTest {
             compose.onNodeWithContentDescription("Tasks tab").performClick()
             compose.selectTaskCollectionScope("All Tasks")
             compose.selectTaskPlanningLayout("Calendar")
-            compose.onNodeWithTag("task-calendar-day-${app.clock.today().toEpochDay()}", useUnmergedTree = true)
+            compose.onNodeWithTag("task-workspace-list").performScrollToNode(hasTestTag("task-calendar"))
+            val today = app.clock.today()
+            if (java.time.YearMonth.from(today) != java.time.YearMonth.from(today.plusDays(1))) {
+                compose.onNodeWithContentDescription("Previous Month").performScrollTo().performClick()
+            }
+            compose.onNodeWithTag("task-calendar-day-${today.toEpochDay()}", useUnmergedTree = true)
                 .performScrollTo().performClick()
             compose.onNodeWithText("Selected: ${app.clock.today().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}")
                 .performScrollTo().assertIsDisplayed()

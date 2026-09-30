@@ -30,3 +30,5 @@ Repository XML copies use LF line endings; device metadata/content and original 
 [Accepted persisted Gym journeys](verified/gym-follow-up/README.md) preserve exact source/phase/unit evidence and separate first failed attempts from accepted replays.
 
 [Review and Track follow-up originals](verified/review-track-follow-up/README.md) preserve the visible inspector-over-editor defect, corrected foreground drafts and accepted saved-context return, alongside truthful Review count/chart evidence and separate failed attempts.
+
+[Fresh grouped Calendar/Task regression originals](verified/grouped-regression/README.md) accompany the exact eight-method repair replay; acceptance frames are distinct from visual redesign before/after evidence.

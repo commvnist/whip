@@ -270,16 +270,36 @@ class FocusHomeJourneyE2ETest {
             }
             assertNull(app.settingsRepository.current().focusTimerDeadlineMillis)
             assertNull(runBlocking { app.taskRepository.getTask(taskId) }?.completedAtMillis)
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithTag("active-focus-card").fetchSemanticsNodes().isEmpty()
+            }
+            val gymStatusDescription = "No Active Workout, Start and resume workouts from the Gym screen."
+            val homeList = compose.onNodeWithTag("home-list")
+            homeList.performScrollToNode(hasContentDescription(gymStatusDescription))
+            val gymStatus = compose.onNodeWithContentDescription(gymStatusDescription)
+            val density = InstrumentationRegistry.getInstrumentation().targetContext.resources.displayMetrics.density
+            // Establish the clipping case from real bounds rather than incidental Home content height.
+            for (attempt in 0 until 30) {
+                val full = gymStatus.getUnclippedBoundsInRoot()
+                val targetTop = homeList.fetchSemanticsNode().boundsInRoot.bottom -
+                    (full.bottom - full.top).value * density / 2f
+                val delta = full.top.value * density - targetTop
+                if (kotlin.math.abs(delta) <= 1f) break
+                homeList.performSemanticsAction(SemanticsActions.ScrollBy) { it(0f, delta) }
+                compose.waitForIdle()
+            }
+            val fullBounds = gymStatus.getUnclippedBoundsInRoot()
+            val targetTop = homeList.fetchSemanticsNode().boundsInRoot.bottom -
+                (fullBounds.bottom - fullBounds.top).value * density / 2f
+            assertTrue("Gym status must be half exposed at the Home viewport edge: full=$fullBounds targetTop=$targetTop",
+                kotlin.math.abs(fullBounds.top.value * density - targetTop) <= 1f)
             val gymHeading = compose.onNode(hasContentDescription("Gym") and hasAnyAncestor(hasTestTag("home-list")))
             gymHeading.assertIsDisplayed().assertHasClickAction()
             assertTrue(gymHeading.fetchSemanticsNode().config.contains(SemanticsProperties.Heading))
             assertEquals(Role.Button, gymHeading.fetchSemanticsNode().config[SemanticsProperties.Role])
-            val gymStatus = compose.onNodeWithContentDescription("No Active Workout, Start and resume workouts from the Gym screen.")
             gymStatus.assertIsDisplayed().assertHasClickAction()
             assertEquals(Role.Button, gymStatus.fetchSemanticsNode().config[SemanticsProperties.Role])
             val visibleBounds = gymStatus.fetchSemanticsNode().boundsInRoot
-            val fullBounds = gymStatus.getUnclippedBoundsInRoot()
-            val density = InstrumentationRegistry.getInstrumentation().targetContext.resources.displayMetrics.density
             assertTrue("Completion fixture must retain the partly clipped Gym card: visible=$visibleBounds full=$fullBounds",
                 visibleBounds.height > 0f && visibleBounds.height < (fullBounds.bottom - fullBounds.top).value * density)
             captureVisualCatalogSurface("focus.home.native-complete")

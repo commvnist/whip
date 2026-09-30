@@ -1,0 +1,39 @@
+{
+  "serial": "emulator-5554",
+  "device_cutoff_epoch": 1790756778,
+  "app_sha256": "0672b8b8284f778a1fd0191c577f286537bd1693edf78adc470124029208e64a",
+  "test_sha256": "89fdca06ebfe66507172c791349b98d628fc9713d12887d8a32974d48020b32f",
+  "passed": 2,
+  "failed": 0,
+  "duration_seconds": 109.394,
+  "files": [
+    {
+      "source": "build/qa-overhaul/2026-09-30/root-grouped-fixture-catalog/whip-ui-catalog/deep.tasks.execution-overview.png",
+      "copy": "artifacts/ux-overhaul/2026-09-30/verified/grouped-regression/deep.tasks.execution-overview.png",
+      "source_sha256": "afb1240b1b3fb6267d039526fd39166c63c3da6ba70f953b59d4b8d6df0db5a3",
+      "copy_sha256": "afb1240b1b3fb6267d039526fd39166c63c3da6ba70f953b59d4b8d6df0db5a3",
+      "transform": "none"
+    },
+    {
+      "source": "build/qa-overhaul/2026-09-30/root-grouped-fixture-catalog/whip-ui-catalog/deep.tasks.execution-overview.xml",
+      "copy": "artifacts/ux-overhaul/2026-09-30/verified/grouped-regression/deep.tasks.execution-overview.xml",
+      "source_sha256": "49c8b32f4ae7ff53d19f07e90896a8d02e59805eba3954e7fc67089172ec47fe",
+      "copy_sha256": "31c8ff8d08fe09ac83d6b8639bbafe29c48993b9a39ff3e190af1ca76ff35c1a",
+      "transform": "CRLF to LF only"
+    },
+    {
+      "source": "build/qa-overhaul/2026-09-30/root-grouped-fixture-catalog/whip-ui-catalog/direct.tasks.calendar-habit.png",
+      "copy": "artifacts/ux-overhaul/2026-09-30/verified/grouped-regression/direct.tasks.calendar-habit.png",
+      "source_sha256": "c399495dd2343c33668a0de1b55d3a444ddd486f27a4a5fe35117a3a4a208885",
+      "copy_sha256": "c399495dd2343c33668a0de1b55d3a444ddd486f27a4a5fe35117a3a4a208885",
+      "transform": "none"
+    },
+    {
+      "source": "build/qa-overhaul/2026-09-30/root-grouped-fixture-catalog/whip-ui-catalog/direct.tasks.calendar-habit.xml",
+      "copy": "artifacts/ux-overhaul/2026-09-30/verified/grouped-regression/direct.tasks.calendar-habit.xml",
+      "source_sha256": "c895891ac74dd9a12d0144e2e0bfa9aa7e0de406da41185071cf1a77e392d2c1",
+      "copy_sha256": "c8a1fbdcc2bb460c03cc51004f9b2d7b6716afe8bcb0a051e88eb72c0ff90150",
+      "transform": "CRLF to LF only"
+    }
+  ]
+}

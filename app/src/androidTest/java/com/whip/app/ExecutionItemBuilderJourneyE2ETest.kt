@@ -29,6 +29,8 @@ class ExecutionItemBuilderJourneyE2ETest {
             val placement = app.gymRepository.addExerciseToWorkout(session, exercise)
             val skipped = app.gymRepository.addSet(placement, WorkoutSetDraft(weight = 40.0, reps = 5, workSection = RoutineWorkSection.Optional))
             app.gymRepository.addSet(placement, WorkoutSetDraft(weight = 42.5, reps = 5, completed = true))
+            // Keep enough real content below the target to reproduce clipping on a tall viewport.
+            app.gymRepository.addSet(placement, WorkoutSetDraft(weight = 47.5, reps = 5))
             app.gymRepository.deleteSet(skipped, WorkoutSetRemovalReason.Skipped)
             Triple(session, skipped, app.gymRepository.sets.first().associateBy { it.id })
         }

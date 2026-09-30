@@ -149,10 +149,10 @@ class DeepSharedJourneyTest {
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             await("task-card-$id")
             compose.onNodeWithTag("task-card-$id").performClick()
-            compose.onNodeWithText("Write the opening paragraph").performScrollTo().assertIsDisplayed()
+            compose.onNode(hasText("Write the opening paragraph") and hasAnyAncestor(hasTestTag("entity-inspector"))).performScrollTo().assertIsDisplayed()
             compose.onNodeWithTag("focus-preset-30").performScrollTo().assertIsDisplayed()
             captureVisualCatalogSurface("deep.tasks.execution-overview")
-            compose.onNodeWithContentDescription("More actions for subtask Write the opening paragraph").performScrollTo().performClick()
+            compose.onNode(hasContentDescription("More actions for subtask Write the opening paragraph") and hasAnyAncestor(hasTestTag("entity-inspector"))).performScrollTo().performClick()
             compose.onNodeWithText("Convert to Task").performClick()
             compose.onNodeWithText("Convert Subtask to a Task?").assertIsDisplayed()
             compose.onNodeWithText("Cancel").performClick()
