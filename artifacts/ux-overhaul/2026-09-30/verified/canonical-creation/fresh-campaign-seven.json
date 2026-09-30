@@ -1,0 +1,63 @@
+{
+  "campaign": "UYOVBs",
+  "sourceCommit": "b937d9ca7a0b8092a884988cdcb99d367ce7d1f6",
+  "immutablePair": "app9a210929c30d1fd09970b2e62d8430219f659012a5e2645e0daf8cff7d2fae02/testa5fa92175b042b9c8306a240635b7881d8e436b398862fd992dbb95cbda96cbc",
+  "acceptedGroups": {
+    "5": 159,
+    "9": 125
+  },
+  "failures": 0,
+  "skips": 0,
+  "reused": false,
+  "methods": [
+    {
+      "batch": 5,
+      "class": "com.whip.app.GymPowerInputUiTest",
+      "method": "exerciseEditorExplainsInvalidDefaultsAndDoesNotSubmitThem",
+      "seconds": "22.481",
+      "status": "passed"
+    },
+    {
+      "batch": 5,
+      "class": "com.whip.app.GymPowerInputUiTest",
+      "method": "durationExerciseOnlyShowsApplicableAdvancedOptionsAndRepairsItsGraphDefault",
+      "seconds": "10.304",
+      "status": "passed"
+    },
+    {
+      "batch": 5,
+      "class": "com.whip.app.GymPowerInputUiTest",
+      "method": "convertingExerciseToPoundsUsesPoundHardwareRatherThanConvertedDecimals",
+      "seconds": "10.976",
+      "status": "passed"
+    },
+    {
+      "batch": 9,
+      "class": "com.whip.app.RoutineAuthoringJourneyE2ETest",
+      "method": "transformedMiddlePhasePersistsReopensAndInstantiatesWithoutChangingOtherPhases",
+      "seconds": "69.094",
+      "status": "passed"
+    },
+    {
+      "batch": 9,
+      "class": "com.whip.app.RoutineAuthoringJourneyE2ETest",
+      "method": "olderThanFiftyWorkoutImportsIntoSelectedDayAndPersistsAcrossReopen",
+      "seconds": "68.974",
+      "status": "passed"
+    },
+    {
+      "batch": 9,
+      "class": "com.whip.app.RoutineRepositoryTest",
+      "method": "filteredPhaseStartsWithCanonicalPlacementsAndOnlySurvivingGroups",
+      "seconds": "2.767",
+      "status": "passed"
+    },
+    {
+      "batch": 9,
+      "class": "com.whip.app.RoutineRepositoryTest",
+      "method": "beginnersProtocolsSaveEditAndRunOncePerExerciseWithoutEmptyDays",
+      "seconds": "4.458",
+      "status": "passed"
+    }
+  ]
+}

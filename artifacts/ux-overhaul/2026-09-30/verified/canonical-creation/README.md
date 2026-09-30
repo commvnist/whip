@@ -16,3 +16,6 @@ Final CURRENTMAIN seven-method run also passes7/7: all four routine journeys plu
 
 
 [Export normalization](export-normalization.json) records original versus repository text hashes. Only CRLF line endings changed; native results and parsed hierarchies are equivalent, PNG pixels unchanged.
+
+
+[Fresh full-campaign repair receipts](fresh-campaign-seven.json) confirm all seven selected methods within accepted complete groups159/159 and125/125. Older pagination/reopen passes68.974s withoriginal wait/history assertions; no focused result is reused by the fresh engine. Full1343 acceptance remains separate.
