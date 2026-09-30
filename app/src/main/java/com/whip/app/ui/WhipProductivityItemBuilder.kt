@@ -117,13 +117,7 @@ internal fun WhipProductivityItemContent(
             item.summaryContent?.invoke()
         }
         item.activity?.let { actions ->
-            WhipActivityActions(Modifier.padding(top = WhipSpacing.micro)) {
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
-                    verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
-                ) { actions() }
-            }
+            WhipActivityActions(Modifier.padding(top = WhipSpacing.micro)) { actions() }
         }
         if (!compact && (disclosure == null || disclosure.expanded)) {
             if (disclosure != null) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)

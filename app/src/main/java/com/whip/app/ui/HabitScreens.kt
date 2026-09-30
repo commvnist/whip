@@ -3279,16 +3279,10 @@ internal fun HabitActionsDialog(
                             !item.habit.archived && !item.habit.paused && item.habit.sourceMeasurementId == null &&
                             item.dayState !in setOf(HabitDayState.Paused, HabitDayState.Skipped, HabitDayState.NotScheduled)) item {
                             EntityInspectorInformationGroup("Record or Adjust") {
-                                WhipActivityActions {
-                                    FlowRow(
-                                        modifier = Modifier.fillMaxWidth().testTag("habit-numeric-actions-${item.habit.id}"),
-                                        horizontalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
-                                        verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
-                                    ) {
-                                        HabitNumericActions(item, customUnits, onQuickValue, onSetValue, onAddAmount,
-                                            onDecrement = { onQuickValue(-minOf(item.habit.quickIncrement, item.value.coerceAtLeast(0.0))) },
-                                            onUndo = onUndoValue, canUndo = canUndoValue, enabled = !mutationSaving)
-                                    }
+                                WhipActivityActions(Modifier.testTag("habit-numeric-actions-${item.habit.id}")) {
+                                    HabitNumericActions(item, customUnits, onQuickValue, onSetValue, onAddAmount,
+                                        onDecrement = { onQuickValue(-minOf(item.habit.quickIncrement, item.value.coerceAtLeast(0.0))) },
+                                        onUndo = onUndoValue, canUndo = canUndoValue, enabled = !mutationSaving)
                                 }
                             }
                         }

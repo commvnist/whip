@@ -531,24 +531,25 @@ internal fun ProductivityEditorDialog(
                             Box(Modifier.semantics { heading() }) { headingContent() }
                         }
                         Box(Modifier.weight(1f, fill = stableHeight)) { text() }
-                        WhipActivityActions(enabled = equalActionSizes) {
-                            FlowRow(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = when {
-                                    leadingActions -> Arrangement.spacedBy(WhipSpacing.compact)
-                                    equalActionSizes -> Arrangement.spacedBy(WhipSpacing.compact, Alignment.End)
-                                    else -> Arrangement.End
-                                },
-                                verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
-                            ) {
-                                if (leadingActions) {
-                                    confirmButton()
-                                    dismissButton()
-                                } else {
-                                    dismissButton()
-                                    confirmButton()
-                                }
+                        val actions: @Composable () -> Unit = {
+                            if (leadingActions) {
+                                confirmButton()
+                                dismissButton()
+                            } else {
+                                dismissButton()
+                                confirmButton()
                             }
+                        }
+                        WhipActivityActions(
+                            enabled = equalActionSizes,
+                            horizontalAlignment = if (leadingActions) Alignment.Start else Alignment.End,
+                        ) {
+                            if (equalActionSizes) actions()
+                            else FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = if (leadingActions) Arrangement.spacedBy(WhipSpacing.compact) else Arrangement.End,
+                                verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+                            ) { actions() }
                         }
                     }
                 }

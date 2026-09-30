@@ -101,8 +101,8 @@ class ActivityActionLayoutUiTest {
         app.habitRepository.logs.first().filter { it.habitId == habitId && it.localDate == app.clock.today() }.sumOf { it.canonicalValue ?: 0.0 }
     }
 
-    private fun assertSameButtonSize(expected: Rect, actual: Rect, context: String, compareWidth: Boolean = true) {
-        if (compareWidth) assertEquals("$context width", expected.width, actual.width, 1f)
+    private fun assertSameButtonSize(expected: Rect, actual: Rect, context: String) {
+        assertEquals("$context width", expected.width, actual.width, 1f)
         assertEquals("$context height", expected.height, actual.height, 1f)
     }
 
@@ -212,10 +212,13 @@ class ActivityActionLayoutUiTest {
         }
         launchMainActivity(Intent(app, MainActivity::class.java)).use {
             compose.onNodeWithContentDescription("Habits tab").performClick()
-            val reference = cardGroup("habit", duration, "Start Timer", "Enter Duration")
+            val durationPair = cardGroup("habit", duration, "Start Timer", "Enter Duration")
+            if (suffix == "normal") {
+                assertEquals("Single-line Duration actions must use the 48dp touch minimum",
+                    with(compose.density) { 48.dp.toPx() }, durationPair.height, 1f)
+            }
             captureSize("duration-card")
-            val numeric = cardGroup("habit", quantity, "+1", "+1000000000", "Add Amount", "Set Total", "−0", "Undo Last Entry")
-            assertSameButtonSize(reference, numeric, "Habit card group heights", compareWidth = false)
+            cardGroup("habit", quantity, "+1", "+1000000000", "Add Amount", "Set Total", "−0", "Undo Last Entry")
             captureSize("numeric-card")
             card("habit", quantity, hasText("+1")).performScrollTo().assertIsDisplayed().performClick()
             compose.waitUntil(10_000) { value(quantity) == 1.0 }
@@ -223,9 +226,8 @@ class ActivityActionLayoutUiTest {
             card("habit", duration, hasText("Enter Duration")).performScrollTo().assertIsDisplayed().performClick()
             compose.onNodeWithTag("habit-value-input").performTextReplacement("12")
             closeSoftKeyboard()
-            val footer = assertSizedButtons(dialog, "Log Duration", "Cancel")
+            assertSizedButtons(dialog, "Log Duration", "Cancel")
             assertLoggingFooter("habit-value-save", "Log Duration")
-            assertSameButtonSize(reference, footer, "Card and logging footer heights", compareWidth = false)
             captureSize("duration-footer")
             compose.onNodeWithTag("habit-value-save").assertIsDisplayed().performClick()
             waitGone("habit-value-dialog")
@@ -233,21 +235,18 @@ class ActivityActionLayoutUiTest {
 
             openInspector("habit", duration)
             val inspectorScope = hasAnyAncestor(hasTestTag("habit-detail-surface"))
-            val dock = assertSizedButtons(inspectorScope, "Start Timer")
-            assertSameButtonSize(reference, dock, "Card and inspector dock heights", compareWidth = false)
+            assertSizedButtons(inspectorScope, "Start Timer")
             captureSize("duration-inspector")
             device.pressBack()
             waitGone("habit-detail-surface")
             openInspector("habit", outside)
-            val outsideDock = assertSizedButtons(inspectorScope, "Mark Today Complete Outside Schedule")
-            assertSameButtonSize(dock, outsideDock, "Short and long Habit inspector labels")
+            assertSizedButtons(inspectorScope, "Mark Today Complete Outside Schedule")
             captureSize("outside-inspector")
             device.pressBack()
             waitGone("habit-detail-surface")
 
             compose.onNodeWithContentDescription("Goals tab").performClick()
-            val goalButtons = cardGroup("goal", goal, "Record Completion", "Complete Goal")
-            assertSameButtonSize(reference, goalButtons, "Habit and Goal card group heights", compareWidth = false)
+            cardGroup("goal", goal, "Record Completion", "Complete Goal")
             captureSize("goal-card")
             card("goal", goal, hasText("Record Completion")).performScrollTo().assertIsDisplayed().performClick()
             assertSizedButtons(dialog, "Record Completion", "Cancel")
@@ -263,8 +262,7 @@ class ActivityActionLayoutUiTest {
             assertEquals(GoalStatus.Active, runBlocking { app.goalRepository.get(goal)!!.status })
             openInspector("goal", goal)
             val goalScope = hasAnyAncestor(hasTestTag("goal-detail-surface"))
-            val goalDock = assertSizedButtons(goalScope, "Record Completion")
-            assertSameButtonSize(dock, goalDock, "Habit and Goal inspector dock heights", compareWidth = false)
+            assertSizedButtons(goalScope, "Record Completion")
             captureSize("goal-inspector")
             compose.onNodeWithTag("goal-detail-section-History").assertIsDisplayed().performClick()
             compose.onNode(hasScrollToIndexAction() and goalScope).performScrollToNode(hasText("QA sizing saved", substring = true))
