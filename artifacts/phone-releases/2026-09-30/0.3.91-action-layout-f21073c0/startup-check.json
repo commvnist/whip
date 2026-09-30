@@ -1,0 +1,11 @@
+{
+  "process_scoped": true,
+  "window_seconds": 3,
+  "process_survived": true,
+  "signature_counts": {
+    "crash": 0,
+    "database": 0,
+    "startup": 0
+  },
+  "owner_records_inspected": false
+}
