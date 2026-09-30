@@ -1,0 +1,1 @@
+App identity, first install time, data directory and notification permission unchanged. No uninstall or data clear.

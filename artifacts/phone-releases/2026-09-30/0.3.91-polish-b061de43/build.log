@@ -1,0 +1,101 @@
+Calculating task graph as no cached configuration is available for tasks: :app:assembleRelease
+> Task :app:preBuild UP-TO-DATE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:preReleaseBuild UP-TO-DATE
+> Task :app:extractProguardFiles
+> Task :app:mergeReleaseJniLibFolders
+> Task :app:mergeReleaseNativeLibs
+> Task :app:checkReleaseDuplicateClasses
+> Task :app:generateReleaseBuildConfig FROM-CACHE
+> Task :app:generateReleaseResValues FROM-CACHE
+> Task :app:generateReleaseResources FROM-CACHE
+
+> Task :app:stripReleaseDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so. Run with --info option to learn more.
+
+> Task :app:extractReleaseNativeSymbolTables FROM-CACHE
+> Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
+> Task :app:processReleaseNavigationResources FROM-CACHE
+> Task :app:javaPreCompileRelease FROM-CACHE
+> Task :app:packageReleaseResources FROM-CACHE
+> Task :app:mergeReleaseArtProfile
+> Task :app:checkReleaseAarMetadata
+> Task :app:mapReleaseSourceSetPaths
+> Task :app:compileReleaseNavigationResources FROM-CACHE
+> Task :app:mergeReleaseResources FROM-CACHE
+> Task :app:createReleaseCompatibleScreenManifests
+> Task :app:extractDeepLinksRelease
+> Task :app:processReleaseMainManifest FROM-CACHE
+> Task :app:processReleaseManifest FROM-CACHE
+> Task :app:processReleaseManifestForPackage FROM-CACHE
+> Task :app:mergeReleaseStartupProfile
+> Task :app:mergeReleaseAssets
+> Task :app:compressReleaseAssets FROM-CACHE
+> Task :app:parseReleaseLocalResources FROM-CACHE
+> Task :app:generateReleaseRFile FROM-CACHE
+> Task :app:extractReleaseVersionControlInfo
+> Task :app:processReleaseResources
+> Task :app:collectReleaseDependencies
+> Task :app:sdkReleaseDependencyData
+> Task :app:validateSigningRelease
+> Task :app:writeReleaseAppMetadata
+> Task :app:writeReleaseSigningConfigVersions
+> Task :app:kspReleaseKotlin
+> Task :app:compileReleaseKotlin
+w: file:///tmp/whip-phone-release-20260930-polish-b061de43/app/src/main/java/com/whip/app/ui/GoalScreens.kt:1756:54 Unnecessary safe call on a non-null receiver of type 'GoalProjection'.
+w: file:///tmp/whip-phone-release-20260930-polish-b061de43/app/src/main/java/com/whip/app/ui/RoutineBuilder.kt:3259:77 Unnecessary safe call on a non-null receiver of type 'Exercise'.
+w: file:///tmp/whip-phone-release-20260930-polish-b061de43/app/src/main/java/com/whip/app/ui/RoutineBuilder.kt:3262:29 Unnecessary safe call on a non-null receiver of type 'Exercise'.
+w: file:///tmp/whip-phone-release-20260930-polish-b061de43/app/src/main/java/com/whip/app/ui/RoutineBuilder.kt:3263:89 Unnecessary safe call on a non-null receiver of type 'Exercise'.
+w: file:///tmp/whip-phone-release-20260930-polish-b061de43/app/src/main/java/com/whip/app/ui/RoutineBuilder.kt:3294:45 Unnecessary safe call on a non-null receiver of type 'Exercise'.
+w: file:///tmp/whip-phone-release-20260930-polish-b061de43/app/src/main/java/com/whip/app/ui/RoutineBuilder.kt:3295:124 Unnecessary safe call on a non-null receiver of type 'Exercise'.
+w: file:///tmp/whip-phone-release-20260930-polish-b061de43/app/src/main/java/com/whip/app/ui/RoutineBuilder.kt:3296:119 Unnecessary safe call on a non-null receiver of type 'Exercise'.
+w: file:///tmp/whip-phone-release-20260930-polish-b061de43/app/src/main/java/com/whip/app/ui/TrackEntryDeleteCandidate.kt:9:47 Non-public primary constructor is exposed via the generated 'copy()' method of the 'data' class.
+
+The generated 'copy()' will change its visibility in future releases.
+
+To suppress the warning do one of the following:
+- Annotate the data class with the '@ConsistentCopyVisibility' annotation.
+- Use the '-Xconsistent-data-class-copy-visibility' compiler flag.
+- Annotate the data class with the '@ExposedCopyVisibility' annotation 
+  (Discouraged, but can be used to keep binary compatibility).
+
+To learn more, see the documentation of the '@ConsistentCopyVisibility' and '@ExposedCopyVisibility' annotations.
+
+This will become an error in language version 2.5. See https://youtrack.jetbrains.com/issue/KT-11914.
+w: file:///tmp/whip-phone-release-20260930-polish-b061de43/app/src/main/java/com/whip/app/ui/WhipManagementHeader.kt:63:38 Unnecessary safe call on a non-null receiver of type 'WhipManagementAction'.
+w: file:///tmp/whip-phone-release-20260930-polish-b061de43/app/src/main/java/com/whip/app/widget/WhipWidgetProvider.kt:92:31 'fun notifyAppWidgetViewDataChanged(p0: Int, p1: Int): Unit' is deprecated. Deprecated in Java.
+w: file:///tmp/whip-phone-release-20260930-polish-b061de43/app/src/main/java/com/whip/app/widget/WhipWidgetProvider.kt:141:55 'fun notifyAppWidgetViewDataChanged(p0: Int, p1: Int): Unit' is deprecated. Deprecated in Java.
+w: file:///tmp/whip-phone-release-20260930-polish-b061de43/app/src/main/java/com/whip/app/widget/WhipWidgetProvider.kt:155:55 'fun notifyAppWidgetViewDataChanged(p0: Int, p1: Int): Unit' is deprecated. Deprecated in Java.
+w: file:///tmp/whip-phone-release-20260930-polish-b061de43/app/src/main/java/com/whip/app/widget/WhipWidgetProvider.kt:406:55 'fun notifyAppWidgetViewDataChanged(p0: Int, p1: Int): Unit' is deprecated. Deprecated in Java.
+w: file:///tmp/whip-phone-release-20260930-polish-b061de43/app/src/main/java/com/whip/app/widget/WhipWidgetProvider.kt:420:55 'fun notifyAppWidgetViewDataChanged(p0: Int, p1: Int): Unit' is deprecated. Deprecated in Java.
+w: file:///tmp/whip-phone-release-20260930-polish-b061de43/app/src/main/java/com/whip/app/widget/WhipWidgetProvider.kt:636:13 'fun setRemoteAdapter(p0: Int, p1: Intent!): Unit' is deprecated. Deprecated in Java.
+w: file:///tmp/whip-phone-release-20260930-polish-b061de43/app/src/main/java/com/whip/app/widget/WhipWidgetProvider.kt:642:17 'fun notifyAppWidgetViewDataChanged(p0: Int, p1: Int): Unit' is deprecated. Deprecated in Java.
+w: file:///tmp/whip-phone-release-20260930-polish-b061de43/app/src/main/java/com/whip/app/widget/WhipWidgetProvider.kt:736:13 'fun setRemoteAdapter(p0: Int, p1: Intent!): Unit' is deprecated. Deprecated in Java.
+w: file:///tmp/whip-phone-release-20260930-polish-b061de43/app/src/main/java/com/whip/app/widget/WhipWidgetProvider.kt:753:17 'fun notifyAppWidgetViewDataChanged(p0: Int, p1: Int): Unit' is deprecated. Deprecated in Java.
+
+> Task :app:processReleaseJavaRes
+> Task :app:mergeReleaseJavaResource
+> Task :app:compileReleaseJavaWithJavac
+> Task :app:mergeReleaseGeneratedProguardFiles
+> Task :app:expandReleaseArtProfileWildcards
+> Task :app:produceReleaseComposeMapping
+> Task :app:reportReleaseComposeMappingErrors
+> Task :app:copyRoomSchemas NO-SOURCE
+> Task :app:generateReleaseLintVitalReportModel
+> Task :app:minifyReleaseWithR8
+> Task :app:lintVitalAnalyzeRelease
+> Task :app:lintVitalReportRelease
+> Task :app:lintVitalRelease
+> Task :app:convertShrunkResourcesToBinaryRelease
+> Task :app:optimizeReleaseResources
+> Task :app:mergeReleaseComposeMapping
+> Task :app:compileReleaseArtProfile
+> Task :app:packageRelease
+> Task :app:assembleRelease
+> Task :app:createReleaseApkListingFileRedirect
+
+[Incubating] Problems report is available at: file:///tmp/whip-phone-release-20260930-polish-b061de43/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 2m 37s
+54 actionable tasks: 39 executed, 15 from cache
+Configuration cache entry stored.

@@ -1,0 +1,24 @@
+{
+  "source_commit": "b061de4310d72466a1636d80414e35131f6a0e5a",
+  "source_tree": "5237020de2b90321e4b12168282c7843320cea39",
+  "package": "commvne.com.whip.app",
+  "version_name": "0.3.91",
+  "version_code": 97,
+  "device_model": "SM-F976W",
+  "device_sdk": 37,
+  "apk_path": "/tmp/whip-phone-release-20260930-polish-b061de43/build/releases/Whip-0.3.91-code97-polish-b061de43-private.apk",
+  "apk_sha256": "58090a71444541e145108e85a80aa6c97bc237a0f429763bf323342c4cc86e07",
+  "installed_apk_sha256": "58090a71444541e145108e85a80aa6c97bc237a0f429763bf323342c4cc86e07",
+  "before_apk_sha256": "85ad5c745874e5eb15c8a610ef75c4e836d6b2baa10f5733adc6bd7fe126c9b9",
+  "certificate_sha256": "cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788",
+  "install_mode": "existing scripts/device release-install: adb install -r",
+  "preserved": "appId, firstInstallTime, dataDir and notification permission unchanged; no uninstall/data clear",
+  "foreground_launch": "existing scripts/device release-run passed",
+  "startup_check": {
+    "process_scoped": true,
+    "window_seconds": 3,
+    "crash_database_startup_signatures": 0
+  },
+  "tests_rerun_for_release": 0,
+  "public_release": false
+}

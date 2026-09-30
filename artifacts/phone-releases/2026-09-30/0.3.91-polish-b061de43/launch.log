@@ -1,0 +1,10 @@
+Launching commvne.com.whip.app on [redacted-phone-connection]...
+Stopping: commvne.com.whip.app
+Starting: Intent { cmp=commvne.com.whip.app/com.whip.app.MainActivity }
+Status: ok
+LaunchState: COLD
+Activity: commvne.com.whip.app/com.whip.app.MainActivity
+TotalTime: 179
+WaitTime: 180
+Complete
+Foreground:   ResumedActivity: ActivityRecord{63743963 u0 commvne.com.whip.app/com.whip.app.MainActivity t16758}
