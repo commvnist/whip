@@ -1415,20 +1415,17 @@ private fun HabitNumericActions(
         (listOf(habit.quickIncrement) + habit.quickActions).filter { it.isFinite() && it > 0.0 }.distinct()
     }
     val unit = habit.unitSymbol(units).takeIf(String::isNotBlank)?.let { " $it" }.orEmpty()
-    FlowRow(Modifier.fillMaxWidth().testTag("habit-numeric-actions-${habit.id}"),
-        horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        val visibleValues = if (includePrimaryIncrement) values else values.filter { it != habit.quickIncrement }
-        (if (expanded) visibleValues else visibleValues.take(3)).forEach { amount ->
-            WhipTextButton(enabled = enabled, onClick = { onQuickValue(amount) }) { Text("+${plainNumericValue(amount)}$unit") }
-        }
-        if (visibleValues.size > 3) DisclosureButton("Quick Values", expanded, { expanded = !expanded })
-        onAddAmount?.let { add -> WhipTextButton(enabled = enabled, onClick = add) { Text("Add Amount") } }
-        WhipTextButton(enabled = enabled, onClick = onSetValue) { Text("Set Total") }
-        WhipTextButton(enabled = enabled && item.value > 0.0, onClick = onDecrement) {
-            Text("−${editableNumericValue(minOf(habit.quickIncrement, item.value.coerceAtLeast(0.0)))}$unit")
-        }
-        WhipTextButton(enabled = enabled && canUndo, onClick = onUndo) { Text("Undo Last Entry") }
+    val visibleValues = if (includePrimaryIncrement) values else values.filter { it != habit.quickIncrement }
+    (if (expanded) visibleValues else visibleValues.take(3)).forEach { amount ->
+        WhipTextButton(enabled = enabled, onClick = { onQuickValue(amount) }) { Text("+${plainNumericValue(amount)}$unit") }
     }
+    if (visibleValues.size > 3) DisclosureButton("Quick Values", expanded, { expanded = !expanded })
+    onAddAmount?.let { add -> WhipTextButton(enabled = enabled, onClick = add) { Text("Add Amount") } }
+    WhipTextButton(enabled = enabled, onClick = onSetValue) { Text("Set Total") }
+    WhipTextButton(enabled = enabled && item.value > 0.0, onClick = onDecrement) {
+        Text("−${editableNumericValue(minOf(habit.quickIncrement, item.value.coerceAtLeast(0.0)))}$unit")
+    }
+    WhipTextButton(enabled = enabled && canUndo, onClick = onUndo) { Text("Undo Last Entry") }
 }
 
 @Composable
@@ -3080,15 +3077,10 @@ internal fun HabitHistoryLogDialog(
             ) { Text(if (saving) "Saving…" else if (log == null) item.habit.recordActionLabel() else "Save Changes") }
         },
         dismissButton = {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
-                verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
-            ) {
-                if (onDelete != null) WhipDestructiveTextButton(enabled = !saving, onClick = { confirmDelete = true }) {
-                    Text("Delete")
-                }
-                WhipTextButton(enabled = !saving, onClick = ::requestDismiss) { Text("Cancel") }
+            if (onDelete != null) WhipDestructiveTextButton(enabled = !saving, onClick = { confirmDelete = true }) {
+                Text("Delete")
             }
+            WhipTextButton(enabled = !saving, onClick = ::requestDismiss) { Text("Cancel") }
         },
         inputBlocked = saving,
         inputBlockedLabel = if (onDelete != null && confirmDelete) "Updating Habit History" else "Saving Habit History",
@@ -3288,9 +3280,15 @@ internal fun HabitActionsDialog(
                             item.dayState !in setOf(HabitDayState.Paused, HabitDayState.Skipped, HabitDayState.NotScheduled)) item {
                             EntityInspectorInformationGroup("Record or Adjust") {
                                 WhipActivityActions {
-                                    HabitNumericActions(item, customUnits, onQuickValue, onSetValue, onAddAmount,
-                                        onDecrement = { onQuickValue(-minOf(item.habit.quickIncrement, item.value.coerceAtLeast(0.0))) },
-                                        onUndo = onUndoValue, canUndo = canUndoValue, enabled = !mutationSaving)
+                                    FlowRow(
+                                        modifier = Modifier.fillMaxWidth().testTag("habit-numeric-actions-${item.habit.id}"),
+                                        horizontalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
+                                        verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+                                    ) {
+                                        HabitNumericActions(item, customUnits, onQuickValue, onSetValue, onAddAmount,
+                                            onDecrement = { onQuickValue(-minOf(item.habit.quickIncrement, item.value.coerceAtLeast(0.0))) },
+                                            onUndo = onUndoValue, canUndo = canUndoValue, enabled = !mutationSaving)
+                                    }
                                 }
                             }
                         }

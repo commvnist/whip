@@ -156,6 +156,13 @@ class ActivityActionLayoutUiTest {
         current.zipWithNext().forEach { (first, next) ->
             assertTrue("Related controls must not overlap", first.right <= next.left + 1f || first.bottom <= next.top + 1f)
         }
+        if (suffix == "normal") {
+            current.chunked(2).filter { it.size == 2 }.forEach { (first, next) ->
+                assertEquals("Normal activity siblings must share a row top: ${labels.joinToString()}", first.top, next.top, 1f)
+                assertEquals("Normal activity siblings must share a row bottom: ${labels.joinToString()}", first.bottom, next.bottom, 1f)
+                assertTrue("Normal activity siblings must sit side by side", first.right <= next.left + 1f)
+            }
+        }
         return current.first()
     }
 
@@ -208,7 +215,7 @@ class ActivityActionLayoutUiTest {
             val reference = cardGroup("habit", duration, "Start Timer", "Enter Duration")
             captureSize("duration-card")
             val numeric = cardGroup("habit", quantity, "+1", "+1000000000", "Add Amount", "Set Total", "−0", "Undo Last Entry")
-            assertSameButtonSize(reference, numeric, "Habit card groups")
+            assertSameButtonSize(reference, numeric, "Habit card group heights", compareWidth = false)
             captureSize("numeric-card")
             card("habit", quantity, hasText("+1")).performScrollTo().assertIsDisplayed().performClick()
             compose.waitUntil(10_000) { value(quantity) == 1.0 }
@@ -218,7 +225,7 @@ class ActivityActionLayoutUiTest {
             closeSoftKeyboard()
             val footer = assertSizedButtons(dialog, "Log Duration", "Cancel")
             assertLoggingFooter("habit-value-save", "Log Duration")
-            assertSameButtonSize(reference, footer, "Card and logging footer", compareWidth = suffix == "normal")
+            assertSameButtonSize(reference, footer, "Card and logging footer heights", compareWidth = false)
             captureSize("duration-footer")
             compose.onNodeWithTag("habit-value-save").assertIsDisplayed().performClick()
             waitGone("habit-value-dialog")
@@ -227,7 +234,7 @@ class ActivityActionLayoutUiTest {
             openInspector("habit", duration)
             val inspectorScope = hasAnyAncestor(hasTestTag("habit-detail-surface"))
             val dock = assertSizedButtons(inspectorScope, "Start Timer")
-            assertSameButtonSize(reference, dock, "Card and inspector dock", compareWidth = suffix == "normal")
+            assertSameButtonSize(reference, dock, "Card and inspector dock heights", compareWidth = false)
             captureSize("duration-inspector")
             device.pressBack()
             waitGone("habit-detail-surface")
@@ -240,7 +247,7 @@ class ActivityActionLayoutUiTest {
 
             compose.onNodeWithContentDescription("Goals tab").performClick()
             val goalButtons = cardGroup("goal", goal, "Record Completion", "Complete Goal")
-            assertSameButtonSize(reference, goalButtons, "Habit and Goal card groups")
+            assertSameButtonSize(reference, goalButtons, "Habit and Goal card group heights", compareWidth = false)
             captureSize("goal-card")
             card("goal", goal, hasText("Record Completion")).performScrollTo().assertIsDisplayed().performClick()
             assertSizedButtons(dialog, "Record Completion", "Cancel")
@@ -257,7 +264,7 @@ class ActivityActionLayoutUiTest {
             openInspector("goal", goal)
             val goalScope = hasAnyAncestor(hasTestTag("goal-detail-surface"))
             val goalDock = assertSizedButtons(goalScope, "Record Completion")
-            assertSameButtonSize(dock, goalDock, "Habit and Goal inspector docks")
+            assertSameButtonSize(dock, goalDock, "Habit and Goal inspector dock heights", compareWidth = false)
             captureSize("goal-inspector")
             compose.onNodeWithTag("goal-detail-section-History").assertIsDisplayed().performClick()
             compose.onNode(hasScrollToIndexAction() and goalScope).performScrollToNode(hasText("QA sizing saved", substring = true))

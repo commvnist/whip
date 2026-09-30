@@ -534,7 +534,11 @@ internal fun ProductivityEditorDialog(
                         WhipActivityActions(enabled = equalActionSizes) {
                             FlowRow(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = if (leadingActions) Arrangement.spacedBy(WhipSpacing.compact) else Arrangement.End,
+                                horizontalArrangement = when {
+                                    leadingActions -> Arrangement.spacedBy(WhipSpacing.compact)
+                                    equalActionSizes -> Arrangement.spacedBy(WhipSpacing.compact, Alignment.End)
+                                    else -> Arrangement.End
+                                },
                                 verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
                             ) {
                                 if (leadingActions) {

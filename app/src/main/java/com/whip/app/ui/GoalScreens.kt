@@ -2514,21 +2514,16 @@ internal fun GoalMeasurementDialog(
             ) { Text(if (saving) "Saving…" else if (entry == null) projection.goal.recordActionLabel() else "Save Changes") }
         },
         dismissButton = {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
-                verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
-            ) {
-                if (onDelete != null) WhipDestructiveTextButton(
-                    enabled = !saving,
-                    onClick = { confirmDelete = true },
-                    modifier = Modifier.testTag("goal-measurement-delete"),
-                ) { Text("Delete") }
-                WhipTextButton(
-                    enabled = !saving,
-                    onClick = ::requestDismiss,
-                    modifier = Modifier.testTag("goal-measurement-cancel"),
-                ) { Text("Cancel") }
-            }
+            if (onDelete != null) WhipDestructiveTextButton(
+                enabled = !saving,
+                onClick = { confirmDelete = true },
+                modifier = Modifier.testTag("goal-measurement-delete"),
+            ) { Text("Delete") }
+            WhipTextButton(
+                enabled = !saving,
+                onClick = ::requestDismiss,
+                modifier = Modifier.testTag("goal-measurement-cancel"),
+            ) { Text("Cancel") }
         },
         inputBlocked = saving,
         inputBlockedLabel = if (entry == null) "Saving Goal Progress" else "Updating Goal Progress",

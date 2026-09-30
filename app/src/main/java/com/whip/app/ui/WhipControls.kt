@@ -42,8 +42,14 @@ internal fun WhipActivityActions(
         return
     }
     BoxWithConstraints(modifier.fillMaxWidth()) {
-        val scale = LocalDensity.current.fontScale.coerceAtLeast(1f)
-        val cell = DpSize((160.dp * scale).coerceAtMost(maxWidth), 64.dp * scale)
+        val density = LocalDensity.current
+        val scale = density.fontScale.coerceAtLeast(1f)
+        val cell = with(density) {
+            // Round in pixels so two equal cells and their gap fit odd-width rows.
+            val halfWidth = ((constraints.maxWidth - WhipSpacing.compact.roundToPx()).coerceAtLeast(0) / 2).toDp()
+            val width = if (scale >= 1.5f && halfWidth < 140.dp * scale) maxWidth else halfWidth
+            DpSize(width.coerceAtLeast(48.dp).coerceAtMost(maxWidth), 80.dp * scale)
+        }
         CompositionLocalProvider(LocalWhipActivityActionSize provides cell) { content() }
     }
 }
