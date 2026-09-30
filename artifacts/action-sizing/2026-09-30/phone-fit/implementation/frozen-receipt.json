@@ -1,0 +1,33 @@
+{
+  "head": "47e61384e087692b9a745449eaa7a8133f9bba6e",
+  "production_base": "cfc7add4fc484a2388247eeea9d16cc8f6e20e34",
+  "source_manifest_path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/phone-fit/implementation/source-manifest.json",
+  "source_manifest_sha256": "7bdba7d8f2ef8b355d0e2cc82315430da21e79804ae7d44174f67b5d40ae0ea8",
+  "source_file_count": 563,
+  "apks": {
+    "app-debug.apk": {
+      "path": "/root/repos/whip/build/action-sizing/2026-09-30/frozen-phone-fit/app-debug.apk",
+      "sha256": "c419686654ba579d951982be717ec89703033e50be1cd354d22e482bcca5f5b2",
+      "bytes": 44730414
+    },
+    "app-debug-androidTest.apk": {
+      "path": "/root/repos/whip/build/action-sizing/2026-09-30/frozen-phone-fit/app-debug-androidTest.apk",
+      "sha256": "55d9f2fc5664329606517aadce64362f3816a5ab4f75740c2760a18cf0c5d387",
+      "bytes": 11086809
+    }
+  },
+  "phone_receipt_sha256": "05e34843fb7926a88d04b25e3c4f0e926e9eb85a1f5f3a84d85a93f858e6adbe",
+  "validation": {
+    "readiness": "passed",
+    "source_guards": "passed",
+    "initial_compile_lint_package": "passed",
+    "corrected_app_and_test_assembly": "passed",
+    "corrected_lint": "passed",
+    "footer_continuation_seconds": 200.984,
+    "lint_severity_counts": {
+      "Warning": 90,
+      "Hint": 15
+    },
+    "frozen_source_and_build_outputs_verified": true
+  }
+}

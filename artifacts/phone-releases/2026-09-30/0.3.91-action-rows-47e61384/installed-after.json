@@ -1,0 +1,8 @@
+{
+  "app_id": "10995",
+  "first_install_time": "2026-08-26 17:59:24",
+  "data_directory": "/data/user/0/commvne.com.whip.app",
+  "notification_permission": "granted=true, flags=[ USER_SET|USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]",
+  "version_code": "97",
+  "version_name": "0.3.91"
+}

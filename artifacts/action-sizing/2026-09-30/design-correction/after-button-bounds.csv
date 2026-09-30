@@ -1,0 +1,14 @@
+capture,label,left_px,top_px,width_px,height_px,class,visibility
+after-goal-phone,Log Progress,96,1035,426,240,android.view.View,fully-visible
+after-goal-phone,Complete Goal,558,1035,426,240,android.view.View,fully-visible
+after-goal-wide,Log Progress,1138,880,572,210,android.view.View,fully-visible
+after-goal-wide,Complete Goal,1742,880,572,210,android.view.View,fully-visible
+after-habits-phone,Start Timer,96,1035,426,240,android.view.View,fully-visible
+after-habits-phone,Enter Duration,558,1035,426,240,android.view.View,fully-visible
+after-habits-phone,Check In,96,1617,426,240,android.view.View,fully-visible
+after-home-phone-scrolled,Start Timer,96,1380,426,240,android.view.View,fully-visible
+after-home-phone-scrolled,Enter Duration,558,1380,426,240,android.view.View,fully-visible
+after-home-phone-scrolled,Check In,96,1914,426,240,android.view.View,fully-visible
+after-home-phone,Start Timer,96,1606,426,240,android.view.View,fully-visible
+after-home-phone,Enter Duration,558,1606,426,240,android.view.View,fully-visible
+after-home-phone,Check In,96,2140,426,116,android.view.View,viewport-clipped

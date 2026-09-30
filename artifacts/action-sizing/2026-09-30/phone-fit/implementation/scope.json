@@ -1,0 +1,15 @@
+{
+  "head_at_build": "169aa6f5eb8749f315a2ac419f0cd6c5966f153c",
+  "production_base": "cfc7add4fc484a2388247eeea9d16cc8f6e20e34",
+  "phone_receipt_sha256": "05e34843fb7926a88d04b25e3c4f0e926e9eb85a1f5f3a84d85a93f858e6adbe",
+  "qa_source_sha256": "0d35d4ad3e425b184d555fe3ec4c0350a6e8c486ce5a3aa7917c07048bf88c02",
+  "normal_phone": {
+    "width_px": 1080,
+    "height_px": 2520,
+    "density": 480,
+    "font_scale": 1.0
+  },
+  "normal_cell": "integer pixel floor((available width - compact12dp gap)/2)",
+  "large_font_fallback": "font scale >=1.5 and half width <140dp * scale",
+  "height": "80dp * max(font scale,1)"
+}

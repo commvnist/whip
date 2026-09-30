@@ -1,0 +1,6 @@
+capture,label,left_px,top_px,width_px,height_px,class,visibility
+before-goal-phone,Log Progress,96,1035,480,192,android.view.View,fully-visible
+before-goal-phone,Complete Goal,96,1239,480,192,android.view.View,fully-visible
+before-habits-phone,Start Timer,96,1035,480,192,android.view.View,fully-visible
+before-habits-phone,Enter Duration,96,1239,480,192,android.view.View,fully-visible
+before-habits-phone,Check In,96,1773,480,192,android.view.View,fully-visible

@@ -1,0 +1,147 @@
+diff --git a/app/src/main/java/com/whip/app/ui/GoalScreens.kt b/app/src/main/java/com/whip/app/ui/GoalScreens.kt
+index 05e52a1f..de22e3be 100644
+--- a/app/src/main/java/com/whip/app/ui/GoalScreens.kt
++++ b/app/src/main/java/com/whip/app/ui/GoalScreens.kt
+@@ -2514,21 +2514,16 @@ internal fun GoalMeasurementDialog(
+             ) { Text(if (saving) "Saving…" else if (entry == null) projection.goal.recordActionLabel() else "Save Changes") }
+         },
+         dismissButton = {
+-            FlowRow(
+-                horizontalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+-                verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+-            ) {
+-                if (onDelete != null) WhipDestructiveTextButton(
+-                    enabled = !saving,
+-                    onClick = { confirmDelete = true },
+-                    modifier = Modifier.testTag("goal-measurement-delete"),
+-                ) { Text("Delete") }
+-                WhipTextButton(
+-                    enabled = !saving,
+-                    onClick = ::requestDismiss,
+-                    modifier = Modifier.testTag("goal-measurement-cancel"),
+-                ) { Text("Cancel") }
+-            }
++            if (onDelete != null) WhipDestructiveTextButton(
++                enabled = !saving,
++                onClick = { confirmDelete = true },
++                modifier = Modifier.testTag("goal-measurement-delete"),
++            ) { Text("Delete") }
++            WhipTextButton(
++                enabled = !saving,
++                onClick = ::requestDismiss,
++                modifier = Modifier.testTag("goal-measurement-cancel"),
++            ) { Text("Cancel") }
+         },
+         inputBlocked = saving,
+         inputBlockedLabel = if (entry == null) "Saving Goal Progress" else "Updating Goal Progress",
+diff --git a/app/src/main/java/com/whip/app/ui/HabitScreens.kt b/app/src/main/java/com/whip/app/ui/HabitScreens.kt
+index cd0966e6..47243d13 100644
+--- a/app/src/main/java/com/whip/app/ui/HabitScreens.kt
++++ b/app/src/main/java/com/whip/app/ui/HabitScreens.kt
+@@ -1415,20 +1415,17 @@ private fun HabitNumericActions(
+         (listOf(habit.quickIncrement) + habit.quickActions).filter { it.isFinite() && it > 0.0 }.distinct()
+     }
+     val unit = habit.unitSymbol(units).takeIf(String::isNotBlank)?.let { " $it" }.orEmpty()
+-    FlowRow(Modifier.fillMaxWidth().testTag("habit-numeric-actions-${habit.id}"),
+-        horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+-        val visibleValues = if (includePrimaryIncrement) values else values.filter { it != habit.quickIncrement }
+-        (if (expanded) visibleValues else visibleValues.take(3)).forEach { amount ->
+-            WhipTextButton(enabled = enabled, onClick = { onQuickValue(amount) }) { Text("+${plainNumericValue(amount)}$unit") }
+-        }
+-        if (visibleValues.size > 3) DisclosureButton("Quick Values", expanded, { expanded = !expanded })
+-        onAddAmount?.let { add -> WhipTextButton(enabled = enabled, onClick = add) { Text("Add Amount") } }
+-        WhipTextButton(enabled = enabled, onClick = onSetValue) { Text("Set Total") }
+-        WhipTextButton(enabled = enabled && item.value > 0.0, onClick = onDecrement) {
+-            Text("−${editableNumericValue(minOf(habit.quickIncrement, item.value.coerceAtLeast(0.0)))}$unit")
+-        }
+-        WhipTextButton(enabled = enabled && canUndo, onClick = onUndo) { Text("Undo Last Entry") }
++    val visibleValues = if (includePrimaryIncrement) values else values.filter { it != habit.quickIncrement }
++    (if (expanded) visibleValues else visibleValues.take(3)).forEach { amount ->
++        WhipTextButton(enabled = enabled, onClick = { onQuickValue(amount) }) { Text("+${plainNumericValue(amount)}$unit") }
+     }
++    if (visibleValues.size > 3) DisclosureButton("Quick Values", expanded, { expanded = !expanded })
++    onAddAmount?.let { add -> WhipTextButton(enabled = enabled, onClick = add) { Text("Add Amount") } }
++    WhipTextButton(enabled = enabled, onClick = onSetValue) { Text("Set Total") }
++    WhipTextButton(enabled = enabled && item.value > 0.0, onClick = onDecrement) {
++        Text("−${editableNumericValue(minOf(habit.quickIncrement, item.value.coerceAtLeast(0.0)))}$unit")
++    }
++    WhipTextButton(enabled = enabled && canUndo, onClick = onUndo) { Text("Undo Last Entry") }
+ }
+ 
+ @Composable
+@@ -3080,15 +3077,10 @@ internal fun HabitHistoryLogDialog(
+             ) { Text(if (saving) "Saving…" else if (log == null) item.habit.recordActionLabel() else "Save Changes") }
+         },
+         dismissButton = {
+-            FlowRow(
+-                horizontalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+-                verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+-            ) {
+-                if (onDelete != null) WhipDestructiveTextButton(enabled = !saving, onClick = { confirmDelete = true }) {
+-                    Text("Delete")
+-                }
+-                WhipTextButton(enabled = !saving, onClick = ::requestDismiss) { Text("Cancel") }
++            if (onDelete != null) WhipDestructiveTextButton(enabled = !saving, onClick = { confirmDelete = true }) {
++                Text("Delete")
+             }
++            WhipTextButton(enabled = !saving, onClick = ::requestDismiss) { Text("Cancel") }
+         },
+         inputBlocked = saving,
+         inputBlockedLabel = if (onDelete != null && confirmDelete) "Updating Habit History" else "Saving Habit History",
+@@ -3288,9 +3280,15 @@ internal fun HabitActionsDialog(
+                             item.dayState !in setOf(HabitDayState.Paused, HabitDayState.Skipped, HabitDayState.NotScheduled)) item {
+                             EntityInspectorInformationGroup("Record or Adjust") {
+                                 WhipActivityActions {
+-                                    HabitNumericActions(item, customUnits, onQuickValue, onSetValue, onAddAmount,
+-                                        onDecrement = { onQuickValue(-minOf(item.habit.quickIncrement, item.value.coerceAtLeast(0.0))) },
+-                                        onUndo = onUndoValue, canUndo = canUndoValue, enabled = !mutationSaving)
++                                    FlowRow(
++                                        modifier = Modifier.fillMaxWidth().testTag("habit-numeric-actions-${item.habit.id}"),
++                                        horizontalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
++                                        verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
++                                    ) {
++                                        HabitNumericActions(item, customUnits, onQuickValue, onSetValue, onAddAmount,
++                                            onDecrement = { onQuickValue(-minOf(item.habit.quickIncrement, item.value.coerceAtLeast(0.0))) },
++                                            onUndo = onUndoValue, canUndo = canUndoValue, enabled = !mutationSaving)
++                                    }
+                                 }
+                             }
+                         }
+diff --git a/app/src/main/java/com/whip/app/ui/ProductivityEditorComponents.kt b/app/src/main/java/com/whip/app/ui/ProductivityEditorComponents.kt
+index acd68066..248f76bd 100644
+--- a/app/src/main/java/com/whip/app/ui/ProductivityEditorComponents.kt
++++ b/app/src/main/java/com/whip/app/ui/ProductivityEditorComponents.kt
+@@ -534,7 +534,11 @@ internal fun ProductivityEditorDialog(
+                         WhipActivityActions(enabled = equalActionSizes) {
+                             FlowRow(
+                                 modifier = Modifier.fillMaxWidth(),
+-                                horizontalArrangement = if (leadingActions) Arrangement.spacedBy(WhipSpacing.compact) else Arrangement.End,
++                                horizontalArrangement = when {
++                                    leadingActions -> Arrangement.spacedBy(WhipSpacing.compact)
++                                    equalActionSizes -> Arrangement.spacedBy(WhipSpacing.compact, Alignment.End)
++                                    else -> Arrangement.End
++                                },
+                                 verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+                             ) {
+                                 if (leadingActions) {
+diff --git a/app/src/main/java/com/whip/app/ui/WhipControls.kt b/app/src/main/java/com/whip/app/ui/WhipControls.kt
+index eafc0114..1dcd5758 100644
+--- a/app/src/main/java/com/whip/app/ui/WhipControls.kt
++++ b/app/src/main/java/com/whip/app/ui/WhipControls.kt
+@@ -42,8 +42,14 @@ internal fun WhipActivityActions(
+         return
+     }
+     BoxWithConstraints(modifier.fillMaxWidth()) {
+-        val scale = LocalDensity.current.fontScale.coerceAtLeast(1f)
+-        val cell = DpSize((160.dp * scale).coerceAtMost(maxWidth), 64.dp * scale)
++        val density = LocalDensity.current
++        val scale = density.fontScale.coerceAtLeast(1f)
++        val cell = with(density) {
++            // Round in pixels so two equal cells and their gap fit odd-width rows.
++            val halfWidth = ((constraints.maxWidth - WhipSpacing.compact.roundToPx()).coerceAtLeast(0) / 2).toDp()
++            val width = if (scale >= 1.5f && halfWidth < 140.dp * scale) maxWidth else halfWidth
++            DpSize(width.coerceAtLeast(48.dp).coerceAtMost(maxWidth), 80.dp * scale)
++        }
+         CompositionLocalProvider(LocalWhipActivityActionSize provides cell) { content() }
+     }
+ }

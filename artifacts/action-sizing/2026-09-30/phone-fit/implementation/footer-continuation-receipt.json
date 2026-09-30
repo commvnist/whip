@@ -1,0 +1,15 @@
+{
+  "stage": "footer-continuation",
+  "command": [
+    "timeout",
+    "--kill-after=3s",
+    "300s",
+    "./gradlew",
+    ":app:lintDebug",
+    ":app:assembleDebug",
+    ":app:assembleDebugAndroidTest"
+  ],
+  "duration_seconds": 200.984,
+  "exit_code": 0,
+  "reason": "Consultant identified nested dismiss rows preventing normal Save Changes/Delete pairing"
+}
