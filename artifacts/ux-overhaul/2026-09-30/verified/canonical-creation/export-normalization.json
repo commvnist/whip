@@ -1,0 +1,11 @@
+{
+  "onlyChange": "CRLF to LF; original hashes preserved, PNG pixels unchanged",
+  "files": [
+    {
+      "path": "phase-instantiated.xml",
+      "originalSha256": "0f1eead0a04e71fb340516d1843d53eecfb5d502eeb6437ee06c227c6ca4fd6c",
+      "repositorySha256": "e9e032492ee0f0ba5e2b1e6b911cadc367e14a5884db480cb130a47c1669b093",
+      "parsedXmlEquivalent": true
+    }
+  ]
+}

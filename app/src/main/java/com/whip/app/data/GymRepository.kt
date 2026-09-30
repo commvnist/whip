@@ -1616,7 +1616,7 @@ class RoomGymRepository(
                     dao.updateWorkoutExercise(placement.copy(position = index, updatedAtMillis = now))
                 }
             }
-            normalizeActiveWorkoutStructureInSession(current.sessionId, now)
+            dao.normalizeActiveWorkoutStructureInSession(current.sessionId, now)
             bumpWorkoutRevision(session.id, now)
             newId
         }
@@ -1646,7 +1646,7 @@ class RoomGymRepository(
                 updatedAtMillis = now,
             ),
         )
-        normalizeActiveWorkoutStructureInSession(current.sessionId, now)
+        dao.normalizeActiveWorkoutStructureInSession(current.sessionId, now)
         bumpWorkoutRevision(session.id, now)
         structureReceipt(session.id, boundary.structure.fingerprint, true, previousLayout, current.uuid)
     }
@@ -1703,7 +1703,7 @@ class RoomGymRepository(
         val previousLayout = currentWorkoutLayout(session)
         val now = nowMillis()
         dao.updateWorkoutExercise(current.copy(groupId = null, updatedAtMillis = now))
-        normalizeActiveWorkoutStructureInSession(current.sessionId, now)
+        dao.normalizeActiveWorkoutStructureInSession(current.sessionId, now)
         bumpWorkoutRevision(session.id, now)
         structureReceipt(session.id, boundary.structure.fingerprint, true, previousLayout, current.uuid)
     }
@@ -1771,7 +1771,7 @@ class RoomGymRepository(
                 }
             }
         }
-        if (normalizeActiveWorkoutStructureInSession(session.id, now)) changed = true
+        if (dao.normalizeActiveWorkoutStructureInSession(session.id, now)) changed = true
         if (changed) bumpWorkoutRevision(session.id, now)
         structureReceipt(session.id, boundary.fingerprint, changed, previousLayout.takeIf { changed })
     }
@@ -1841,7 +1841,7 @@ class RoomGymRepository(
                 if (set.position != index) dao.updateWorkoutSet(set.copy(position = index, updatedAtMillis = now))
             }
         }
-        normalizeActiveWorkoutStructureInSession(session.id, now)
+        dao.normalizeActiveWorkoutStructureInSession(session.id, now)
         bumpWorkoutRevision(session.id, now)
         structureReceipt(session.id, boundary.fingerprint, true, currentLayout)
     }
@@ -1852,7 +1852,7 @@ class RoomGymRepository(
         val before = currentWorkoutBoundary(session)
         val previousLayout = currentWorkoutLayout(session)
         val now = nowMillis()
-        val changed = normalizeActiveWorkoutStructureInSession(sessionId, now)
+        val changed = dao.normalizeActiveWorkoutStructureInSession(sessionId, now)
         if (changed) bumpWorkoutRevision(sessionId, now)
         structureReceipt(sessionId, before.fingerprint, changed, previousLayout.takeIf { changed })
     }
@@ -1914,86 +1914,11 @@ class RoomGymRepository(
                 )
             }
         }
-        normalizeActiveWorkoutStructureInSession(session.id, now)
+        dao.normalizeActiveWorkoutStructureInSession(session.id, now)
         bumpWorkoutRevision(session.id, now)
         structureReceipt(session.id, boundary.fingerprint, true, previousLayout, requestedGroupUuid)
     }
 
-    private suspend fun normalizeActiveWorkoutStructureInSession(sessionId: Long, now: Long): Boolean {
-        var changed = false
-        val allPlacements = dao.getWorkoutExercises(sessionId)
-            .sortedWith(compareBy(WorkoutExerciseEntity::position, WorkoutExerciseEntity::id))
-        var ordered = allPlacements
-            .filter { it.outcome == WorkoutExerciseOutcome.Active.name }
-            .sortedWith(compareBy({ it.position }, { it.id }))
-        val groups = dao.getWorkoutGroups(sessionId)
-        val knownGroupIds = groups.mapTo(mutableSetOf(), WorkoutGroupEntity::id)
-
-        // Clear dangling or singleton membership and delete empty/singleton group records.
-        ordered.filter { it.groupId != null && it.groupId !in knownGroupIds }.forEach { member ->
-            dao.updateWorkoutExercise(member.copy(groupId = null, updatedAtMillis = now))
-            changed = true
-        }
-        groups.forEach { group ->
-            val members = ordered.filter { it.groupId == group.id }
-            if (members.size < 2) {
-                members.forEach { member ->
-                    dao.updateWorkoutExercise(member.copy(groupId = null, updatedAtMillis = now))
-                    changed = true
-                }
-                dao.deleteWorkoutGroup(group.id)
-                changed = true
-            }
-        }
-
-        // Flatten every surviving group at its first authored position. This repairs malformed
-        // grouping and prevents regrouping one member from splitting its old group.
-        ordered = dao.getWorkoutExercises(sessionId)
-            .filter { it.outcome == WorkoutExerciseOutcome.Active.name }
-            .sortedWith(compareBy({ it.position }, { it.id }))
-        val emittedGroups = mutableSetOf<Long>()
-        val normalized = buildList {
-            ordered.forEach { item ->
-                val groupId = item.groupId
-                if (groupId == null) add(item)
-                else if (emittedGroups.add(groupId)) addAll(ordered.filter { it.groupId == groupId })
-            }
-        }
-        val activeIterator = normalized.iterator()
-        allPlacements.forEachIndexed { index, slot ->
-            val item = if (slot.outcome == WorkoutExerciseOutcome.Active.name) activeIterator.next() else slot
-            if (item.position != index) {
-                dao.updateWorkoutExercise(item.copy(position = index, updatedAtMillis = now))
-                changed = true
-            }
-        }
-        dao.getWorkoutExercises(sessionId).forEach { placement ->
-            dao.getWorkoutSets(placement.id)
-                .sortedWith(compareBy(WorkoutSetEntity::position, WorkoutSetEntity::id))
-                .forEachIndexed { index, set ->
-                    if (set.position != index) {
-                        dao.updateWorkoutSet(set.copy(position = index, updatedAtMillis = now))
-                        changed = true
-                    }
-                }
-        }
-        val normalizedPlacements = dao.getWorkoutExercises(sessionId)
-        val firstMemberPositionByGroup = normalizedPlacements
-            .filter { it.groupId != null }
-            .groupBy { requireNotNull(it.groupId) }
-            .mapValues { (_, members) -> members.minOf(WorkoutExerciseEntity::position) }
-        dao.getWorkoutGroups(sessionId)
-            .sortedWith(compareBy<WorkoutGroupEntity> { group ->
-                firstMemberPositionByGroup[group.id] ?: Int.MAX_VALUE
-            }.thenBy(WorkoutGroupEntity::id))
-            .forEachIndexed { index, group ->
-                if (group.position != index) {
-                    dao.updateWorkoutGroup(group.copy(position = index, updatedAtMillis = now))
-                    changed = true
-                }
-            }
-        return changed
-    }
 
     override suspend fun addSet(boundary: WorkoutPlacementMutationBoundary, draft: WorkoutSetDraft?): Long =
         database.withTransaction {
@@ -2549,6 +2474,83 @@ class RoomGymRepository(
     }
 
     private fun nowMillis() = clock.now().toEpochMilli()
+}
+
+/** Call inside the transaction that owns this workout. */
+internal suspend fun GymDao.normalizeActiveWorkoutStructureInSession(sessionId: Long, now: Long): Boolean {
+    var changed = false
+    val allPlacements = getWorkoutExercises(sessionId)
+        .sortedWith(compareBy(WorkoutExerciseEntity::position, WorkoutExerciseEntity::id))
+    var ordered = allPlacements
+        .filter { it.outcome == WorkoutExerciseOutcome.Active.name }
+        .sortedWith(compareBy({ it.position }, { it.id }))
+    val groups = getWorkoutGroups(sessionId)
+    val knownGroupIds = groups.mapTo(mutableSetOf(), WorkoutGroupEntity::id)
+
+    // Clear dangling or singleton membership and delete empty/singleton group records.
+    ordered.filter { it.groupId != null && it.groupId !in knownGroupIds }.forEach { member ->
+        updateWorkoutExercise(member.copy(groupId = null, updatedAtMillis = now))
+        changed = true
+    }
+    groups.forEach { group ->
+        val members = ordered.filter { it.groupId == group.id }
+        if (members.size < 2) {
+            members.forEach { member ->
+                updateWorkoutExercise(member.copy(groupId = null, updatedAtMillis = now))
+                changed = true
+            }
+            deleteWorkoutGroup(group.id)
+            changed = true
+        }
+    }
+
+    // Flatten every surviving group at its first authored position. This repairs malformed
+    // grouping and prevents regrouping one member from splitting its old group.
+    ordered = getWorkoutExercises(sessionId)
+        .filter { it.outcome == WorkoutExerciseOutcome.Active.name }
+        .sortedWith(compareBy({ it.position }, { it.id }))
+    val emittedGroups = mutableSetOf<Long>()
+    val normalized = buildList {
+        ordered.forEach { item ->
+            val groupId = item.groupId
+            if (groupId == null) add(item)
+            else if (emittedGroups.add(groupId)) addAll(ordered.filter { it.groupId == groupId })
+        }
+    }
+    val activeIterator = normalized.iterator()
+    allPlacements.forEachIndexed { index, slot ->
+        val item = if (slot.outcome == WorkoutExerciseOutcome.Active.name) activeIterator.next() else slot
+        if (item.position != index) {
+            updateWorkoutExercise(item.copy(position = index, updatedAtMillis = now))
+            changed = true
+        }
+    }
+    getWorkoutExercises(sessionId).forEach { placement ->
+        getWorkoutSets(placement.id)
+            .sortedWith(compareBy(WorkoutSetEntity::position, WorkoutSetEntity::id))
+            .forEachIndexed { index, set ->
+                if (set.position != index) {
+                    updateWorkoutSet(set.copy(position = index, updatedAtMillis = now))
+                    changed = true
+                }
+            }
+    }
+    val normalizedPlacements = getWorkoutExercises(sessionId)
+    val firstMemberPositionByGroup = normalizedPlacements
+        .filter { it.groupId != null }
+        .groupBy { requireNotNull(it.groupId) }
+        .mapValues { (_, members) -> members.minOf(WorkoutExerciseEntity::position) }
+    getWorkoutGroups(sessionId)
+        .sortedWith(compareBy<WorkoutGroupEntity> { group ->
+            firstMemberPositionByGroup[group.id] ?: Int.MAX_VALUE
+        }.thenBy(WorkoutGroupEntity::id))
+        .forEachIndexed { index, group ->
+            if (group.position != index) {
+                updateWorkoutGroup(group.copy(position = index, updatedAtMillis = now))
+                changed = true
+            }
+        }
+    return changed
 }
 
 private fun validateExercise(draft: ExerciseDraft) {

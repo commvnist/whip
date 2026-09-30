@@ -2802,6 +2802,68 @@ class RoutineRepositoryTest {
     }
 
     @Test
+    fun filteredPhaseStartsWithCanonicalPlacementsAndOnlySurvivingGroups() = runBlocking {
+        val exerciseIds = (0..2).map { gym.createExercise(ExerciseDraft("Filtered placement $it")) }
+        for (survivingMembers in 0..2) for (ungroupedFirst in listOf(false, true)) {
+            fun member(index: Int) = RoutineExerciseDraft(
+                exerciseId = exerciseIds[index],
+                notes = "Grouped member $index",
+                groupKey = "Filtered pair",
+                placementKind = RoutinePlacementKind.Supplemental,
+                plannedSets = listOf(WorkoutSetDraft(
+                    weight = 30.0 + index, reps = 5,
+                    routinePhaseIndex = if (index < survivingMembers) 1 else 0,
+                    workSection = RoutineWorkSection.Supplemental,
+                )),
+            )
+            val tail = RoutineExerciseDraft(exerciseIds[2], notes = "Ungrouped tail",
+                plannedSets = listOf(WorkoutSetDraft(weight = 10.0, reps = 8, routinePhaseIndex = 1)))
+            val authoredOrder = if (ungroupedFirst) listOf(tail, member(0), member(1))
+                else listOf(member(0), tail, member(1))
+            val routineId = routines.createRoutine(RoutineDraft(
+                name = "Filtered group $survivingMembers/$ungroupedFirst",
+                program = RoutineProgramDraft(kind = RoutineProgramKind.Custom, phaseCount = 2),
+                days = listOf(RoutineDayDraft("Filtered day", authoredOrder)),
+            ))
+            routines.setRoutineProgramPosition(routineId, 1, 0, 1)
+            val authoredExercises = routines.exercises.first()
+            val authoredSets = routines.sets.first()
+            val sessionId = routines.startRoutine(routineId)
+            val placements = gym.workoutExercises.first().filter { it.sessionId == sessionId }
+            val expectedIds = if (ungroupedFirst) listOf(exerciseIds[2]) + exerciseIds.take(survivingMembers)
+                else exerciseIds.take(survivingMembers) + exerciseIds[2]
+            assertEquals(expectedIds, placements.map { it.exerciseId })
+            assertEquals(placements.indices.toList(), placements.map { it.position })
+            val groups = gym.groups.first().filter { it.sessionId == sessionId }
+            if (survivingMembers == 2) {
+                assertEquals(1, groups.size)
+                assertEquals(0, groups.single().position)
+                val expectedGroupIds = if (ungroupedFirst) listOf(null, groups.single().id, groups.single().id)
+                    else listOf(groups.single().id, groups.single().id, null)
+                assertEquals(expectedGroupIds, placements.map { it.groupId })
+            } else {
+                assertTrue(groups.isEmpty())
+                assertTrue(placements.all { it.groupId == null })
+            }
+            val placementIds = placements.map { it.id }.toSet()
+            val sets = gym.sets.first().filter { it.workoutExerciseId in placementIds }
+            assertTrue(sets.all { it.position == 0 })
+            assertTrue(placements.all { it.createdAtMillis == it.updatedAtMillis })
+            assertTrue(groups.all { it.createdAtMillis == it.updatedAtMillis })
+            assertTrue(sets.all { it.createdAtMillis == it.updatedAtMillis })
+            val session = gym.sessions.first().single { it.id == sessionId }
+            assertFalse(gym.normalizeActiveWorkoutStructure(sessionId).changed)
+            assertEquals(session, gym.sessions.first().single { it.id == sessionId })
+            assertEquals(placements, gym.workoutExercises.first().filter { it.sessionId == sessionId })
+            assertEquals(groups, gym.groups.first().filter { it.sessionId == sessionId })
+            assertEquals(sets, gym.sets.first().filter { it.workoutExerciseId in placementIds })
+            assertEquals(authoredExercises, routines.exercises.first())
+            assertEquals(authoredSets, routines.sets.first())
+            gym.discardWorkout(sessionId)
+        }
+    }
+
+    @Test
     fun beginnersProtocolsSaveEditAndRunOncePerExerciseWithoutEmptyDays() = runBlocking {
         val squatId = gym.createExercise(ExerciseDraft("Squat", weightUnitId = "pound", weightIncrement = 5.0))
         val benchId = gym.createExercise(ExerciseDraft("Bench", weightUnitId = "pound", weightIncrement = 5.0))
@@ -2901,6 +2963,7 @@ class RoutineRepositoryTest {
                 val placements = gym.workoutExercises.first().filter { it.sessionId == sessionId }
                 assertEquals("${protocol.name} day ${dayIndex + 1}", expectedByDay[dayIndex], placements.map { it.exerciseId })
                 assertTrue("${protocol.name} day ${dayIndex + 1} must not be empty", placements.isNotEmpty())
+                assertEquals(placements.indices.toList(), placements.map { it.position })
                 executedExercises += placements.map { it.exerciseId }
                 val placementIds = placements.map { it.id }.toSet()
                 val sets = gym.sets.first().filter { it.workoutExerciseId in placementIds }

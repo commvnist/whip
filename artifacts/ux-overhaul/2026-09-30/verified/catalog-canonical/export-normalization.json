@@ -1,0 +1,65 @@
+{
+  "onlyChange": "CRLF to LF; original hashes preserved, PNG pixels unchanged",
+  "files": [
+    {
+      "path": "originals/goals.active.populated.xml",
+      "originalSha256": "4597aa207a3eef4303cc3aa26f579003caa8005261db9709b5db9095aba8a3dd",
+      "repositorySha256": "bb54c5b27cf44b27e50774083bc1761334ced30a8e731dea93cff872425ccb89",
+      "parsedXmlEquivalent": true
+    },
+    {
+      "path": "originals/shared.home.empty.xml",
+      "originalSha256": "bf57a17f591c8685a74d5e93029b2cc812bb7b56bdd7d21ec5bd465c9f57214f",
+      "repositorySha256": "4a7f185c747035224e54788232206666b266463a32a53cec606d3e7b6b3880a6",
+      "parsedXmlEquivalent": true
+    },
+    {
+      "path": "originals/settings.overview.xml",
+      "originalSha256": "107d2c585589bffa8acb4a1e8f76e12b25875144826cac42e6deb2518303d3e3",
+      "repositorySha256": "cf623add87a8e174fc159a4fa74a18906fafb60a2e3f36eb13967efc5110f055",
+      "parsedXmlEquivalent": true
+    },
+    {
+      "path": "originals/shared.home.populated.xml",
+      "originalSha256": "2878253e44b3bd1b2c6cea8d1582691420d1dcea6989b09e11e4e96b08c66a10",
+      "repositorySha256": "ef59d5417ed6a085736228df72e70d7fcf747f1455667e8a19ddfab88c2168c7",
+      "parsedXmlEquivalent": true
+    },
+    {
+      "path": "originals/gym.workout.active.xml",
+      "originalSha256": "2c870cb26b6406b48f5d40033e4e95513455670aa74ecf7c93f47a4ba6b5c6de",
+      "repositorySha256": "6681744311add136bbd1850da78f28021a41f151fcf3b67f3438337f5990b77b",
+      "parsedXmlEquivalent": true
+    },
+    {
+      "path": "originals/habits.all.populated.xml",
+      "originalSha256": "b8e95bb6a00e32faf29cc272b1c78fe1cbfa610ec8719cc4d348288b3b3fe6b3",
+      "repositorySha256": "461444593abb6519e9b0aeeb602b959bd29c72687a2f92bd54cccc00017ef873",
+      "parsedXmlEquivalent": true
+    },
+    {
+      "path": "originals/shared.home.clear-review.xml",
+      "originalSha256": "0868a4b1716aa0b3ab0de9a458373bcb193246cc9a0e14b32d1069cde81a3f5f",
+      "repositorySha256": "d13ec74be3e8284fa1d0a371cc49191d8f56d052223249a5d8ee342798f80600",
+      "parsedXmlEquivalent": true
+    },
+    {
+      "path": "originals/gym.workout.populated.xml",
+      "originalSha256": "d334290f41882beb7c60f8570065e28a1df3e566220927ab94cc5662b155b911",
+      "repositorySha256": "821b986ace0c730e3221395f7d3656781eaabd7d167ff4298d4290842620bac4",
+      "parsedXmlEquivalent": true
+    },
+    {
+      "path": "originals/tracks.all.populated.xml",
+      "originalSha256": "80d4c458c4ee8d6c1e39ca8636dc665acf309b25db269b4eb09dfbdeb3fc11d1",
+      "repositorySha256": "33da36a2c3c658c4d85fbc9923473fc4e42ed5a2fee118c1eb0b6f557879aea1",
+      "parsedXmlEquivalent": true
+    },
+    {
+      "path": "originals/tasks.collection.xml",
+      "originalSha256": "553444506c72bfff54ea4211d5000f07ccc764318a0a181114ffac9796176c67",
+      "repositorySha256": "389f9dd53661e89b00b0edcf17d0c35482187514865deb926d79fcad4c7621df",
+      "parsedXmlEquivalent": true
+    }
+  ]
+}

@@ -638,6 +638,7 @@ class RoomRoutineRepository(
                 }
             }
         }
+        gymDao.normalizeActiveWorkoutStructureInSession(sessionId, now)
         sessionId
     }
 

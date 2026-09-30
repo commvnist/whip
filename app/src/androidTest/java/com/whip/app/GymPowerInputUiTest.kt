@@ -1229,7 +1229,7 @@ class GymPowerInputUiTest {
             }
         }
 
-        compose.onNodeWithText("Advanced Options").performClick()
+        openExerciseAdvancedOptions()
         compose.onNodeWithText("lb").performScrollTo().performClick()
         captureVisualCatalogSurface("gym.defaults-change")
         compose.onNodeWithText("Convert Default Values").performClick()
@@ -1264,7 +1264,7 @@ class GymPowerInputUiTest {
         }
 
         compose.onNodeWithTag("exercise-editor-name").performTextInput("Bench press")
-        compose.onNodeWithText("Advanced Options").performClick()
+        openExerciseAdvancedOptions()
         compose.onNodeWithTag("exercise-editor-list").performScrollToNode(hasTestTag("exercise-weight-increment"))
         compose.onNodeWithTag("exercise-weight-increment").performTextReplacement("0")
         compose.onNodeWithText("Save").performClick()
@@ -1300,7 +1300,7 @@ class GymPowerInputUiTest {
         }
 
         captureVisualCatalogSurface("gym.exercise.editor")
-        compose.onNodeWithText("Advanced Options").performClick()
+        openExerciseAdvancedOptions()
         compose.onNodeWithTag("exercise-editor-list").performScrollToNode(hasText("Default graph"))
         compose.onAllNodesWithTag("exercise-weight-increment").assertCountEquals(0)
         compose.onAllNodesWithTag("exercise-repetition-increment").assertCountEquals(0)
@@ -2979,6 +2979,12 @@ class GymPowerInputUiTest {
 
         compose.onNodeWithText("Replaced by Zercher Squat during this workout").assertIsDisplayed()
         compose.onNodeWithText("Not performed · exercise replaced", substring = true).assertIsDisplayed()
+    }
+
+    private fun openExerciseAdvancedOptions() {
+        closeSoftKeyboard()
+        compose.onNodeWithTag("exercise-editor-list").performScrollToNode(hasText("Advanced Options"))
+        compose.onNodeWithText("Advanced Options").assertIsDisplayed().performClick()
     }
 
     private fun testHistorySession() = WorkoutSession(

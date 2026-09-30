@@ -361,13 +361,31 @@ class RoutineAuthoringJourneyE2ETest {
                     app.gymRepository.addSet(placement, original)
                 }
                 app.gymRepository.finishWorkout(session)
+                // Pagination starts from real settled history, not an unrelated 56-timer startup burst.
+                val finished = app.gymRepository.sessions.first().single { it.id == session }
+                app.restTimerScheduler.cancel(session)
+                app.gymRepository.acknowledgeRestTimerCleanup(session, finished.restTimerRevision)
+                assertTrue(!app.gymRepository.sessions.first().single { it.id == session }.restTimerCleanupPending)
             }
         }
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             compose.onNodeWithContentDescription("Gym tab").performClick()
             // App startup acknowledges completed timers; import must preserve the settled history exactly.
+            val cleanupStartedAt = android.os.SystemClock.elapsedRealtime()
+            var cleanupLastLoggedAt = -1_000L
             compose.waitUntil(10_000) {
-                runBlocking { app.gymRepository.sessions.first().none { it.restTimerCleanupPending } }
+                val sessions = runBlocking { app.gymRepository.sessions.first() }
+                val pending = sessions.filter { it.restTimerCleanupPending }
+                val elapsed = android.os.SystemClock.elapsedRealtime() - cleanupStartedAt
+                if (elapsed - cleanupLastLoggedAt >= 1_000L || pending.isEmpty()) {
+                    android.util.Log.i(
+                        "WhipRoutineCleanupQA",
+                        "elapsedMs=$elapsed sessions=${sessions.size} pending=${pending.size} " +
+                            "id:revision=${pending.joinToString { "${it.id}:${it.restTimerRevision}" }}",
+                    )
+                    cleanupLastLoggedAt = elapsed
+                }
+                pending.isEmpty()
             }
             val historyBefore = runBlocking { app.gymRepository.sessions.first() }
             compose.onNodeWithTag("gym-destination-Library").performClick()

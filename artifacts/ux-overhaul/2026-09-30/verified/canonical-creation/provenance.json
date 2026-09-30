@@ -1,0 +1,41 @@
+{
+  "serial": "emulator-5554",
+  "baseline": {
+    "serial": "emulator-5554",
+    "app": "/root/repos/whip/build/qa-overhaul/2026-09-30/card-routine-repair-final/app-debug.apk",
+    "test": "/root/repos/whip-worktrees/routine-creation-canonical-20260930/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
+    "appSha256": "e56ba3202deb6851bdd8dcebcb99f9f3fa8c7604489a1dd5422fde8a02400b37",
+    "testSha256": "4611a4bfcc6b7f62cba630d7993137754b8a5d05f45a873209aa314368fa7833",
+    "source": "baseline production6f plus isolated six-case assertion test"
+  },
+  "repaired": {
+    "serial": "emulator-5554",
+    "startedUtc": "2026-09-30T11:50:27.990170+00:00",
+    "source": "isolated reviewed canonical DAO owner plus three Advanced Options fixture callers",
+    "apks": {
+      "app-debug.apk": "6922aff3bb79aec2fe974c19908bc76670dbac55179d0561830026e776613850",
+      "app-debug-androidTest.apk": "4611a4bfcc6b7f62cba630d7993137754b8a5d05f45a873209aa314368fa7833"
+    }
+  },
+  "sibling": {
+    "serial": "emulator-5554",
+    "utc": "2026-09-30T11:55:33.825773+00:00",
+    "sameImmutableInstalledPair": "../routine-canonical-repaired/provenance.json",
+    "methods": [
+      "removingAGroupMemberKeepsAValidPairThenDissolvesTheLastSingleton",
+      "groupingNonAdjacentExercisesPersistsOneContiguousBlock",
+      "regroupingDissolvesTheOldSingletonAndKeepsTheNewGroupContiguous",
+      "regroupingOneMemberKeepsTheSurvivingOldGroupContiguous",
+      "normalizationRepairsConnectedSplitAndSingletonWorkoutGroups",
+      "deletingAWorkoutExerciseDissolvesItsRemainingSingletonGroup"
+    ]
+  },
+  "files": {
+    "sibling-native.log": "4e2e0779472621e4b4c661a9f0f921978d9e054cf95c2ee9d9770e777bef84bc",
+    "baseline-native.log": "c987d2f0b51c2705ad1c96a9907bd0040939684ef8a2e381c2b6ae00eb730e30",
+    "phase-instantiated.png": "ebb90dad245c856e811f8f140828b6a9286c0eb4c1c091361595ef169bc7cdfe",
+    "phase-instantiated.xml": "0f1eead0a04e71fb340516d1843d53eecfb5d502eeb6437ee06c227c6ca4fd6c",
+    "repaired-native.log": "2981e26d67dd56c59107ba3f8a7ae7bf7a70ffd50db5c33ff50a806643401642"
+  },
+  "repositoryExportNormalization": "export-normalization.json"
+}

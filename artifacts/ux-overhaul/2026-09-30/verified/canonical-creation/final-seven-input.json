@@ -1,0 +1,11 @@
+{
+  "startedAtUtc": "2026-09-30T12:10:29.882868+00:00",
+  "deviceLogcatStart": "09-30 08:10:29.000",
+  "serial": "emulator-5556",
+  "selector": "com.whip.app.RoutineAuthoringJourneyE2ETest,com.whip.app.GymLibraryJourneyE2ETest#historicalSetCorrectionPreservesBothSessionsAndRejectsAStaleEdit,com.whip.app.GymRepositoryTest#terminalSessionKeepsTimerCleanupPendingUntilSchedulerAcknowledgesIt,com.whip.app.GymRepositoryTest#activeSessionAndTimerDeadlineAreStoredData",
+  "testsExpected": 7,
+  "source": "frozen current-main canonical-catalog-final",
+  "appSha256": "9a210929c30d1fd09970b2e62d8430219f659012a5e2645e0daf8cff7d2fae02",
+  "testSha256": "a5fa92175b042b9c8306a240635b7881d8e436b398862fd992dbb95cbda96cbc",
+  "waitMs": 10000
+}

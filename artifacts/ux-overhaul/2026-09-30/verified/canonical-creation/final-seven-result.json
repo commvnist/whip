@@ -1,0 +1,71 @@
+{
+  "finishedAtUtc": "2026-09-30T12:12:46.317519+00:00",
+  "processExitCode": 0,
+  "appPids": [
+    "30139",
+    "30331"
+  ],
+  "statusCodes": [
+    "1",
+    "0",
+    "1",
+    "0",
+    "1",
+    "0",
+    "1",
+    "0",
+    "1",
+    "0",
+    "1",
+    "0",
+    "1",
+    "0"
+  ],
+  "okCount": [
+    "7"
+  ],
+  "failureLines": [],
+  "diagnosticSamples": [
+    "09-30 08:12:17.666 30331 30362 I WhipRoutineCleanupQA: elapsedMs=20 sessions=56 pending=0 id:revision="
+  ],
+  "testsRun": 7,
+  "passed": 7,
+  "failed": 0,
+  "skipped": 0,
+  "testSeconds": 134.408,
+  "methods": [
+    {
+      "selector": "com.whip.app.RoutineAuthoringJourneyE2ETest#transformedMiddlePhasePersistsReopensAndInstantiatesWithoutChangingOtherPhases",
+      "statusCode": 0
+    },
+    {
+      "selector": "com.whip.app.RoutineAuthoringJourneyE2ETest#authoredPrescriptionSurvivesRecoveryExecutionAndLaterRoutineEdits",
+      "statusCode": 0
+    },
+    {
+      "selector": "com.whip.app.RoutineAuthoringJourneyE2ETest#twoDayRoutinePreservesContextAndStartsTheChosenDay",
+      "statusCode": 0
+    },
+    {
+      "selector": "com.whip.app.RoutineAuthoringJourneyE2ETest#olderThanFiftyWorkoutImportsIntoSelectedDayAndPersistsAcrossReopen",
+      "statusCode": 0
+    },
+    {
+      "selector": "com.whip.app.GymLibraryJourneyE2ETest#historicalSetCorrectionPreservesBothSessionsAndRejectsAStaleEdit",
+      "statusCode": 0
+    },
+    {
+      "selector": "com.whip.app.GymRepositoryTest#terminalSessionKeepsTimerCleanupPendingUntilSchedulerAcknowledgesIt",
+      "statusCode": 0
+    },
+    {
+      "selector": "com.whip.app.GymRepositoryTest#activeSessionAndTimerDeadlineAreStoredData",
+      "statusCode": 0
+    }
+  ],
+  "preparedHistoryCleanupElapsedMs": 20,
+  "preparedHistorySessions": 56,
+  "preparedHistoryPending": 0,
+  "freshPngXmlPairs": 22,
+  "priorCampaignFailurePreserved": true
+}

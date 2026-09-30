@@ -34,3 +34,6 @@ Repository XML copies use LF line endings; device metadata/content and original 
 [Fresh grouped Calendar/Task regression originals](verified/grouped-regression/README.md) accompany the exact eight-method repair replay; acceptance frames are distinct from visual redesign before/after evidence.
 
 [Card/routine repair originals](verified/card-routine-repair/README.md): one collapsed checklist progress count with direct rows retained, native200% Reset sizing, phased session persistence and actual details journeys. Focused23/23 passed; full campaign remains separate.
+
+
+[Canonical creation baseline/repaired native proof](verified/canonical-creation/README.md) and [full canonical page catalog10/10](verified/catalog-canonical/README.md) preserve the bounded follow-up repairs and current cross-tab geometry evidence. The clear-review capture limit is explicitly recorded.

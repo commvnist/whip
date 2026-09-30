@@ -1,0 +1,2 @@
+ed08251187f162737c4c04664f7d0fe60a1668005c278511ec9ae9ec2a5197b4  /root/repos/whip-worktrees/routine-creation-canonical-20260930/app/src/androidTest/java/com/whip/app/VisualCatalogPagesTest.kt
+c3fc17e54f23f58a958deb0fa6798286413ca9059fccb0f1987222850ffe88b8  /root/repos/whip-worktrees/routine-creation-canonical-20260930/app/src/androidTest/java/com/whip/app/VisualCatalogCapture.kt

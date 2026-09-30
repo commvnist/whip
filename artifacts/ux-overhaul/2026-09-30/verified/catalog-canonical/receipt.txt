@@ -1,0 +1,12 @@
+VisualCatalogPagesTest: 10/10 passed in 272.748 seconds on emulator-5558.
+All ten methods returned STATUS_CODE 0, followed by OK (10 tests). No assertion was weakened.
+App SHA256: 6922aff3bb79aec2fe974c19908bc76670dbac55179d0561830026e776613850
+Test SHA256: 67ca5dff0d0c86a959f580f5c05d1e14121a94a81780fdf20ef1bec6764b2dcd
+Source worktree: /root/repos/whip-worktrees/routine-creation-canonical-20260930.
+The package directory has no full source manifest. Owned fixture file hashes are recorded separately.
+One instrumentation process verified the strict duplicate guard while dedicated journeys owned the canonical captures. Both overview geometry methods remained intact.
+The persistent Review & Trends header and clear-day Review Progress action both opened and closed Review. Welcome absence and exact action counts remained asserted.
+Ten fresh representative PNG/XML pairs were pulled. All 20 byte counts match the device; all ten XML files parse, contain the Whip package and have no unlabeled Whip NAF node. All ten PNG files were personally inspected.
+Task and Goal navigation hierarchy bounds are consistent across Task, Habit, Goal, Track and Gym.
+Capture limitation: shared.home.clear-review.png does not draw bottom navigation, although the matching XML retains every navigation node at its expected bounds. This frame shows both Review actions and clear-state content; it does not certify bottom-navigation pixels. Other representative PNG files show navigation.
+Emulator-5558 is idle and released. Complete campaign acceptance remains pending and root-owned.

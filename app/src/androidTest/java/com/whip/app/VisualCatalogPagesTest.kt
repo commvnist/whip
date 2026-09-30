@@ -75,21 +75,18 @@ class VisualCatalogPagesTest {
         app.backupRepository.deleteAllData()
     }
 
+    // Dedicated page journeys own canonical captures; these overviews verify cross-tab geometry.
     @Test
     fun captureProductivityWorkspaceOverview() {
         seedRepresentativeData()
         launch().use {
             waitForHome("Plan the week")
-            captureVisualCatalogSurface("shared.home.populated")
             openPrimary("Tasks")
             val geometry = workspaceGeometry()
-            captureVisualCatalogSurface("tasks.collection")
             openPrimary("Habits")
             assertEquals("Habits chrome must align with Tasks", geometry, workspaceGeometry())
-            captureVisualCatalogSurface("habits.all.populated")
             openPrimary("Goals")
             assertEquals("Goals chrome must align with Tasks", geometry, workspaceGeometry())
-            captureVisualCatalogSurface("goals.active.populated")
         }
     }
 
@@ -100,7 +97,6 @@ class VisualCatalogPagesTest {
             waitForHome("Plan the week")
             openPrimary("Tracks")
             val geometry = workspaceGeometry()
-            captureVisualCatalogSurface("tracks.all.populated")
             openPrimary("Gym")
             assertEquals("Gym chrome must align with Tracks", geometry, workspaceGeometry())
             captureVisualCatalogSurface("gym.workout.populated")
@@ -133,11 +129,18 @@ class VisualCatalogPagesTest {
         launch().use {
             waitForHome("Review Progress")
             compose.onAllNodesWithText("Welcome to Whip").assertCountEquals(0)
-            compose.onAllNodesWithText("Review & Trends").assertCountEquals(0)
+            compose.onAllNodesWithText("Review & Trends").assertCountEquals(1)
+            compose.onNodeWithText("Review & Trends").assertIsDisplayed()
             compose.onAllNodesWithText("Review Progress").assertCountEquals(1)
             captureVisualCatalogSurface("shared.home.clear-review")
+            compose.onNodeWithText("Review & Trends").performClick()
+            compose.onNodeWithContentDescription("Close Review & Trends").assertIsDisplayed().performClick()
+            waitForHome("Review Progress")
             compose.onNodeWithText("Review Progress").performClick()
-            compose.onNodeWithContentDescription("Close Review & Trends").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Close Review & Trends").assertIsDisplayed().performClick()
+            waitForHome("Review Progress")
+            compose.onAllNodesWithText("Review & Trends").assertCountEquals(1)
+            compose.onAllNodesWithText("Review Progress").assertCountEquals(1)
         }
     }
 
